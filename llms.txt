@@ -2,7 +2,7 @@
 
 > Video editing MCP server, Python library, and CLI for AI agents.
 
-mcp-video gives AI agents structured tools for FFmpeg-based video editing, video analysis, subtitles, resizing, transcoding, and code-driven video creation workflows.
+mcp-video gives AI agents 87 structured tools for FFmpeg-based video editing, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, and Hyperframes code-driven video creation.
 
 ## Use cases
 - Claude Code / Cursor video editing tools
@@ -11,6 +11,7 @@ mcp-video gives AI agents structured tools for FFmpeg-based video editing, video
 - Python video editing scripts
 - CLI video operations
 - Video QA checkpoints for generated media
+- Local AI video workflows with human review before publication
 
 ## Key paths
 - `README.md`: public overview and install guide
@@ -26,4 +27,4 @@ mcp-video gives AI agents structured tools for FFmpeg-based video editing, video
 - Use timeouts on all subprocess calls
 
 ## Keywords
-video editing MCP server, AI agent video editing, FFmpeg automation, Claude video tools, Cursor MCP, Python video library, video automation CLI, Model Context Protocol.
+video editing MCP server, AI agent video editing, FFmpeg automation, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, subtitles, reels automation, shorts automation.

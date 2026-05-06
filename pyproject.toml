@@ -5,15 +5,15 @@ build-backend = "hatchling.build"
 [project]
 name = "mcp-video"
 version = "1.3.5"
-description = "Video editing MCP server for AI agents. 87 tools, 3 interfaces, rich CLI. Local, fast, free."
+description = "Video editing MCP server for AI agents. 87 FFmpeg and Hyperframes tools, Python client, and CLI. Local, fast, free."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
 keywords = [
     "video", "editing", "mcp", "ffmpeg", "hyperframes", "ai", "agents",
-    "claude", "cursor", "subtitle", "whisper", "transcription",
+    "claude", "claude-code", "cursor", "codex", "subtitle", "subtitles", "whisper", "transcription",
     "video-processing", "chroma-key", "stabilization", "color-grading",
-    "model-context-protocol", "cli",
+    "model-context-protocol", "mcp-server", "ai-video", "video-automation", "cli",
 ]
 classifiers = [
     "Development Status :: 5 - Production/Stable",
@@ -102,7 +102,7 @@ ignore = ["E501", "S603", "S607", "S311", "S310", "S112", "S110"]
 mcp-video = "mcp_video.__main__:main"
 
 [project.urls]
-Homepage = "https://github.com/KyaniteLabs/mcp-video"
+Homepage = "https://kyanitelabs.github.io/mcp-video/"
 Documentation = "https://github.com/KyaniteLabs/mcp-video#readme"
 Repository = "https://github.com/KyaniteLabs/mcp-video"
 "Bug Tracker" = "https://github.com/KyaniteLabs/mcp-video/issues"
