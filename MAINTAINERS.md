@@ -2,7 +2,7 @@
 
 ## Active Maintainer
 
-- Simon Gonzalez De Cruz (GitHub: `@Pastorsimon1798`)
+- Simon Gonzalez De Cruz (GitHub: `@simongonzalezdc`)
 
 ## Maintainer Checklist
 

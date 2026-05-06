@@ -261,10 +261,10 @@ def test_public_discovery_files_do_not_point_at_old_personal_namespace():
         ROOT / "mcp_video" / "errors.py",
     ]
     stale_fragments = [
-        "pastorsimon1798.github.io/mcp-video",
-        "github.com/pastorsimon1798/mcp-video",
-        "github.com/Pastorsimon1798/mcp-video",
-        "io.github.pastorsimon1798/mcp-video",
+        "pastor" + "simon1798.github.io/mcp-video",
+        "github.com/" + "pastor" + "simon1798/mcp-video",
+        "github.com/" + "Pastor" + "simon1798/mcp-video",
+        "io.github." + "pastor" + "simon1798/mcp-video",
     ]
 
     offenders = {

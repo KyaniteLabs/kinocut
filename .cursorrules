@@ -1,7 +1,7 @@
 # KyaniteLabs — AI Agent Instructions
 
 ## Organization
-- Org: KyaniteLabs, owner: Pastorsimon1798
+- Org: KyaniteLabs, owner: simongonzalezdc
 - All repos use issue-driven development — contributions enter as GitHub issues, not direct PRs
 - Pipeline runs every 30 min: triage → fix → review → merge
 - All main/master branches are protected (no direct push, CI required)
