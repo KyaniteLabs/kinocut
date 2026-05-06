@@ -2,7 +2,7 @@
 
 ## Overview
 
-mcp-video currently collects **1054 tests** covering public MCP tools, Python client, CLI, FFmpeg operations, AI features, Hyperframes integration, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
+mcp-video currently collects **1074 tests** covering public MCP tools, Python client, CLI, FFmpeg operations, AI features, cinematic creation helpers, Hyperframes integration, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
 
 ## Test Suite: `tests/test_real_all_features.py`
 
@@ -131,7 +131,7 @@ pip install demucs torch torchaudio openai-whisper realesrgan basicsr imagehash 
 | test_44_ai_upscale | ~30s | FSRCNN model (fast CPU inference) |
 | test_43_ai_stem_separation | ~30s | Downloads model on first run |
 | Full suite | ~5min | All 70 real-media tests |
-| Full project suite | Environment-dependent | 1054 tests collected |
+| Full project suite | Environment-dependent | 1074 tests collected |
 
 ## Recent Fixes
 
