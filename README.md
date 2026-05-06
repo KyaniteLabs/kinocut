@@ -64,7 +64,7 @@ Use it when you want an AI assistant to:
 - create new video projects with Hyperframes and post-process the result with FFmpeg tools;
 - drive repeatable media workflows from Claude Code, Cursor, Codex-style clients, scripts, or CI.
 
-## Install
+## Installation
 
 Prerequisite: [FFmpeg](https://ffmpeg.org/) must be installed and available on `PATH`.
 
@@ -170,7 +170,7 @@ mcp-video video-quality-check clip.mp4
 | Batch automation | "Convert this folder of clips to web-ready MP4 with consistent loudness." |
 | Code-created video | "Scaffold a Hyperframes composition, render it, then add subtitles and a watermark." |
 
-## Tool Surface
+## MCP Tools
 
 mcp-video registers **91 MCP tools** across 11 categories, including a `search_tools` discovery tool so agents can find the right operation without loading every tool description into context.
 
@@ -240,6 +240,16 @@ Safety contract:
 - [FAQ](docs/faq.md)
 - [llms.txt](llms.txt)
 
+## Testing
+
+Run the standard development suite after installing dev dependencies:
+
+```bash
+pytest tests/ -v -m "not slow and not hyperframes"
+```
+
+See the [testing guide](docs/TESTING.md) for slower media and integration checks.
+
 ## Development
 
 ```bash
@@ -254,6 +264,9 @@ pytest tests/ -v -m "not slow and not hyperframes"
 ## Community
 
 - [Contributing](CONTRIBUTING.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Governance](GOVERNANCE.md)
+- [Maintainers](MAINTAINERS.md)
 - [Security](SECURITY.md)
 - [Support](SUPPORT.md)
 - [Roadmap](ROADMAP.md)
