@@ -41,7 +41,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 Claude Code:
 
 ```bash
-claude mcp add mcp-video -- uvx mcp-video
+claude mcp add mcp-video -- uvx --from mcp-video mcp-video
 ```
 
 Claude Desktop:
@@ -51,7 +51,7 @@ Claude Desktop:
   "mcpServers": {
     "mcp-video": {
       "command": "uvx",
-      "args": ["mcp-video"]
+      "args": ["--from", "mcp-video", "mcp-video"]
     }
   }
 }
@@ -64,7 +64,7 @@ Cursor:
   "mcpServers": {
     "mcp-video": {
       "command": "uvx",
-      "args": ["mcp-video"]
+      "args": ["--from", "mcp-video", "mcp-video"]
     }
   }
 }
