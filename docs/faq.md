@@ -2,7 +2,7 @@
 
 ## What is mcp-video?
 
-mcp-video is an open-source MCP server, Python library, and CLI that wraps FFmpeg, cinematic planning helpers, and Hyperframes to give AI agents 91 video editing and creation tools. It runs locally, requires no cloud services, and is free under the Apache-2.0 license.
+mcp-video is an open-source MCP server, Python library, and CLI that wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes, and local repurposing workflows for AI-agent video editing and creation. It runs locally, requires no cloud services, and is free under the Apache-2.0 license.
 
 ## What is MCP?
 
@@ -44,13 +44,17 @@ pip install mcp-video[ai]
 
 mcp-video includes 7 AI features: silence removal, Whisper transcription, scene detection, stem separation (isolate vocals/drums), AI upscaling (2x/4x super-resolution), auto color grading, and spatial audio positioning.
 
-## How many tools does it have?
+## What tool areas does it cover?
 
-91 MCP tools across 11 categories: Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered, Hyperframes, Audio Synthesis, Visual Effects, Transitions, Layout & Motion Graphics, Analysis, and Image Analysis. The count includes the `search_tools` meta-tool for fast discovery.
+mcp-video covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered media, Hyperframes, local repurposing, Audio Synthesis, Visual Effects, Transitions, Layout & Motion Graphics, Analysis, and Image Analysis. Use `search_tools` when an agent needs to find the right operation without loading the whole registry.
 
 ## What are the cinematic creation tools?
 
 The cinematic creation tools add a PUSHING CREATION-compatible pre-production workflow: `video_project_create` scaffolds a project with `style.md`, `storyboard.md`, and `refs/`; `style_pack_read` parses STYLE_ and NEG_ blocks; `storyboard_read` parses shot rows; and `shot_prompt_render` expands a storyboard shot into generation-ready positive and negative prompts.
+
+## What do the Hyperframes and repurposing tools add?
+
+Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection, catalog blocks, website capture, local TTS, transcription import, background removal, diagnostics, and benchmarking. Repurposing tools create dry-run manifests or local platform packages for Shorts, Reels, TikTok, and YouTube-style variants, including thumbnails, storyboards, and optional release checkpoints.
 
 ## Is it free?
 

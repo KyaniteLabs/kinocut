@@ -324,4 +324,34 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("template", _template)
+
+    def _repurpose_plan(a, j):
+        from ..engine_repurpose import repurpose_plan
+
+        _out(
+            repurpose_plan(a.input, output_dir=a.output_dir, platforms=a.platforms),
+            j,
+            print,
+        )
+
+    runner.register("repurpose-plan", _repurpose_plan)
+
+    def _repurpose(a, j):
+        from ..engine_repurpose import repurpose
+
+        _out(
+            _with_spinner(
+                "Rendering repurposing package...",
+                repurpose,
+                a.input,
+                output_dir=a.output_dir,
+                platforms=a.platforms,
+                include_release_checkpoint=not a.skip_release_checkpoint,
+                min_score=a.min_score,
+            ),
+            j,
+            print,
+        )
+
+    runner.register("repurpose", _repurpose)
     return runner.dispatch()

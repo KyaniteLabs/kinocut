@@ -30,6 +30,8 @@ from .engine_metadata import read_metadata as read_metadata
 from .engine_metadata import write_metadata as write_metadata
 from .engine_overlay import overlay_video as _overlay_video
 from .engine_preview import preview as preview
+from .engine_repurpose import repurpose as repurpose
+from .engine_repurpose import repurpose_plan as repurpose_plan
 
 # Compatibility re-export: callers still import get_duration from mcp_video.engine.
 from .engine_probe import get_duration as get_duration

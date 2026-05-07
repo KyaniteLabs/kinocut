@@ -23,6 +23,20 @@ def hyperframes_render(
     format: str | None = None,
     workers: str | int | None = None,
     crf: int | None = None,
+    video_bitrate: str | None = None,
+    variables: str | None = None,
+    variables_file: str | None = None,
+    docker: bool = False,
+    hdr: bool = False,
+    sdr: bool = False,
+    gpu: bool = False,
+    browser_gpu: bool = False,
+    no_browser_gpu: bool = False,
+    quiet: bool = False,
+    strict: bool = False,
+    strict_all: bool = False,
+    max_concurrent_renders: int | None = None,
+    strict_variables: bool = False,
 ) -> dict[str, Any]:
     """Render a Hyperframes composition to video.
 
@@ -63,6 +77,20 @@ def hyperframes_render(
             format=format,
             workers=workers,
             crf=crf,
+            video_bitrate=video_bitrate,
+            variables=variables,
+            variables_file=variables_file,
+            docker=docker,
+            hdr=hdr,
+            sdr=sdr,
+            gpu=gpu,
+            browser_gpu=browser_gpu,
+            no_browser_gpu=no_browser_gpu,
+            quiet=quiet,
+            strict=strict,
+            strict_all=strict_all,
+            max_concurrent_renders=max_concurrent_renders,
+            strict_variables=strict_variables,
         )
     )
 
@@ -121,6 +149,194 @@ def hyperframes_still(
     from .hyperframes_engine import still
 
     return _result(still(project_path, output_path=output_path, frame=frame))
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_snapshot(
+    project_path: str,
+    frames: int = 5,
+    at: list[float] | None = None,
+    timeout_ms: int | None = None,
+) -> dict[str, Any]:
+    """Capture key frames as PNG screenshots for visual verification."""
+    if frames < 1:
+        return _validation_error(f"frames must be at least 1, got {frames}")
+    project_path = _validate_project_path(project_path)
+    from .hyperframes_engine import snapshot
+
+    return _result(snapshot(project_path, frames=frames, at=at, timeout_ms=timeout_ms))
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_inspect(
+    project_path: str,
+    samples: int = 9,
+    at: list[float] | None = None,
+    tolerance: int = 2,
+    timeout_ms: int | None = None,
+    max_issues: int = 80,
+    strict: bool = False,
+) -> dict[str, Any]:
+    """Inspect rendered composition layout for overflow and visual issues."""
+    if samples < 1:
+        return _validation_error(f"samples must be at least 1, got {samples}")
+    project_path = _validate_project_path(project_path)
+    from .hyperframes_engine import inspect
+
+    return _result(
+        inspect(
+            project_path,
+            samples=samples,
+            at=at,
+            tolerance=tolerance,
+            timeout_ms=timeout_ms,
+            max_issues=max_issues,
+            strict=strict,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_info(project_path: str) -> dict[str, Any]:
+    """Print Hyperframes project metadata."""
+    project_path = _validate_project_path(project_path)
+    from .hyperframes_engine import info
+
+    return _result(info(project_path))
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_catalog(item_type: str | None = None, tag: str | None = None) -> dict[str, Any]:
+    """Browse Hyperframes catalog blocks/components."""
+    if item_type is not None and item_type not in {"block", "component"}:
+        return _validation_error("item_type must be 'block' or 'component'")
+    from .hyperframes_engine import catalog
+
+    return _result(catalog(item_type=item_type, tag=tag))
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_capture(
+    url: str,
+    output: str | None = None,
+    skip_assets: bool = False,
+    max_screenshots: int | None = None,
+    timeout_ms: int | None = None,
+) -> dict[str, Any]:
+    """Capture a website as editable Hyperframes components."""
+    if not url.startswith(("http://", "https://")):
+        return _validation_error("url must start with http:// or https://")
+    from .hyperframes_engine import capture
+
+    return _result(
+        capture(
+            url,
+            output=output,
+            skip_assets=skip_assets,
+            max_screenshots=max_screenshots,
+            timeout_ms=timeout_ms,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_tts(
+    text_or_file: str | None = None,
+    output_path: str | None = None,
+    voice: str | None = None,
+    speed: float | None = None,
+    language: str | None = None,
+    list_voices: bool = False,
+) -> dict[str, Any]:
+    """Generate speech audio or list available Hyperframes local TTS voices."""
+    if speed is not None and speed <= 0:
+        return _validation_error(f"speed must be positive, got {speed}")
+    if not list_voices and not text_or_file:
+        return _validation_error("text_or_file is required unless list_voices is true")
+    from .hyperframes_engine import tts
+
+    return _result(
+        tts(
+            text_or_file,
+            output_path=output_path,
+            voice=voice,
+            speed=speed,
+            language=language,
+            list_voices=list_voices,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_transcribe(
+    input_path: str,
+    project_path: str | None = None,
+    model: str | None = None,
+    language: str | None = None,
+) -> dict[str, Any]:
+    """Transcribe audio/video to word-level timestamps or import transcripts."""
+    from .hyperframes_engine import transcribe
+
+    return _result(transcribe(input_path, project_path=project_path, model=model, language=language))
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_remove_background(
+    input_path: str,
+    output_path: str | None = None,
+    background_output_path: str | None = None,
+    device: str = "auto",
+    quality: str = "balanced",
+    info: bool = False,
+) -> dict[str, Any]:
+    """Remove a video/image background using Hyperframes local AI."""
+    if device not in {"auto", "cpu", "coreml", "cuda"}:
+        return _validation_error("device must be one of auto, cpu, coreml, cuda")
+    if quality not in {"fast", "balanced", "best"}:
+        return _validation_error("quality must be one of fast, balanced, best")
+    from .hyperframes_engine import remove_background
+
+    return _result(
+        remove_background(
+            input_path,
+            output_path=output_path,
+            background_output_path=background_output_path,
+            device=device,
+            quality=quality,
+            info=info,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_doctor() -> dict[str, Any]:
+    """Run Hyperframes environment diagnostics."""
+    from .hyperframes_engine import doctor
+
+    return _result(doctor())
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_benchmark(
+    project_path: str,
+    output_path: str | None = None,
+    json_output: bool = True,
+) -> dict[str, Any]:
+    """Benchmark Hyperframes render speed and file size."""
+    project_path = _validate_project_path(project_path)
+    from .hyperframes_engine import benchmark
+
+    return _result(benchmark(project_path, output_path=output_path, json_output=json_output))
 
 
 @mcp.tool()

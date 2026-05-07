@@ -11,12 +11,22 @@ from mcp_video.hyperframes_engine import (
     _require_hyperframes_deps,
     _validate_project,
     add_block,
+    benchmark,
+    catalog,
     compositions,
     create_project,
+    doctor,
+    capture,
+    info,
+    inspect,
     preview,
     render,
     render_and_post,
+    remove_background,
+    snapshot,
     still,
+    transcribe,
+    tts,
     validate,
 )
 from mcp_video.errors import (
@@ -44,6 +54,10 @@ def _make_completed_process(
         stdout=stdout,
         stderr=stderr,
     )
+
+
+def _hyperframes_subcommand(cmd: list[str]) -> str:
+    return cmd[cmd.index("hyperframes") + 1]
 
 
 def _mock_deps_ok():
@@ -464,41 +478,200 @@ class TestStill:
     """Tests for still()."""
 
     def test_renders_single_frame(self, sample_hyperframes_project):
-        """still() should render a single frame with correct args."""
-        project = str(sample_hyperframes_project)
+        """still() should render one snapshot frame with correct args."""
+        project = Path(sample_hyperframes_project)
+        actual = project / "snapshots" / "frame-00-at-1.4s.png"
         fake_cp = _make_completed_process(stdout="Rendered frame.")
 
-        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+        def fake_run(*_args, **_kwargs):
+            actual.parent.mkdir(exist_ok=True)
+            actual.write_bytes(b"png")
+            return fake_cp
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=fake_run) as mock_run:
             result = still(
-                project,
+                str(project),
                 output_path="/tmp/frame.png",
                 frame=42,
             )
 
-            assert result.output_path == "/tmp/frame.png"
+            assert result.output_path == str(actual)
             assert result.frame == 42
 
             cmd = mock_run.call_args[0][0]
             assert "snapshot" in cmd
-            assert "--frames" in cmd
-            idx = cmd.index("--frames")
-            assert cmd[idx + 1] == "1"
             assert "--at" in cmd
             idx = cmd.index("--at")
             assert cmd[idx + 1] == "1.4"
 
-    def test_default_output_path(self, sample_hyperframes_project):
-        """still() should generate an output path when none is provided."""
+
+class TestSnapshot:
+    """Tests for Hyperframes 0.5 snapshot path handling."""
+
+    def test_returns_actual_snapshot_files(self, sample_hyperframes_project):
+        project = Path(sample_hyperframes_project)
+        snapshot_dir = project / "snapshots"
+        snapshot_dir.mkdir()
+        expected = snapshot_dir / "frame-00-at-0.0s.png"
+        fake_cp = _make_completed_process(stdout="captured")
+
+        def fake_run(*_args, **_kwargs):
+            expected.write_bytes(b"png")
+            return fake_cp
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=fake_run):
+            result = snapshot(str(project), frames=1)
+
+        assert result.frame_paths == [str(expected)]
+        assert result.output_dir == str(snapshot_dir)
+        assert Path(result.frame_paths[0]).is_file()
+
+    def test_builds_at_timestamps(self, sample_hyperframes_project):
         project = str(sample_hyperframes_project)
-        fake_cp = _make_completed_process(stdout="ok")
+        fake_cp = _make_completed_process(stdout="captured")
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            snapshot(project, at=[0.5, 1.25])
+
+        cmd = mock_run.call_args[0][0]
+        assert "snapshot" in cmd
+        assert "--at" in cmd
+        assert cmd[cmd.index("--at") + 1] == "0.5,1.25"
+
+    def test_still_returns_actual_snapshot_path_not_requested_path(self, sample_hyperframes_project):
+        project = Path(sample_hyperframes_project)
+        snapshot_dir = project / "snapshots"
+        snapshot_dir.mkdir()
+        actual = snapshot_dir / "frame-00-at-0.0s.png"
+
+        def fake_run(*_args, **_kwargs):
+            actual.write_bytes(b"png")
+            return _make_completed_process(stdout="captured")
+
+        requested = str(project / "requested.png")
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=fake_run):
+            result = still(str(project), output_path=requested, frame=0)
+
+        assert result.output_path == str(actual)
+        assert result.output_path != requested
+        assert Path(result.output_path).is_file()
+
+
+class TestHyperframes05Tools:
+    """Tests for high-value Hyperframes 0.5 CLI wrappers."""
+
+    def test_catalog_parses_json(self):
+        payload = json.dumps([{"name": "tiktok-follow", "type": "block", "tags": ["social"]}])
+        fake_cp = _make_completed_process(stdout=payload)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            result = catalog(tag="social", item_type="block")
+
+        assert result.items[0]["name"] == "tiktok-follow"
+        cmd = mock_run.call_args[0][0]
+        assert cmd[0] == "npx"
+        assert _hyperframes_subcommand(cmd) == "catalog"
+        assert "--json" in cmd
+        assert "--tag" in cmd
+        assert cmd[cmd.index("--tag") + 1] == "social"
+        assert "--type" in cmd
+        assert cmd[cmd.index("--type") + 1] == "block"
+
+    def test_inspect_returns_json_report(self, sample_hyperframes_project):
+        payload = json.dumps({"issues": [], "samples": 3})
+        fake_cp = _make_completed_process(stdout=payload)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            result = inspect(str(sample_hyperframes_project), samples=3, strict=True)
+
+        assert result.data["samples"] == 3
+        cmd = mock_run.call_args[0][0]
+        assert "inspect" in cmd
+        assert "--json" in cmd
+        assert "--samples" in cmd
+        assert "--strict" in cmd
+
+    def test_capture_forwards_url_and_json(self, tmp_path):
+        payload = json.dumps({"projectPath": str(tmp_path / "captured")})
+        fake_cp = _make_completed_process(stdout=payload)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            result = capture("https://example.com", output=str(tmp_path / "captured"))
+
+        assert result.data["projectPath"].endswith("captured")
+        cmd = mock_run.call_args[0][0]
+        assert cmd[0] == "npx"
+        assert _hyperframes_subcommand(cmd) == "capture"
+        assert "https://example.com" in cmd
+        assert "--json" in cmd
+
+    def test_tts_and_transcribe_parse_json(self, tmp_path):
+        tts_payload = json.dumps({"output": str(tmp_path / "speech.wav")})
+        transcribe_payload = json.dumps({"words": [{"word": "hello", "start": 0.0}]})
 
         with (
             _mock_deps_ok(),
-            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
-            patch("os.makedirs"),
+            patch(
+                "mcp_video.hyperframes_engine.subprocess.run",
+                side_effect=[
+                    _make_completed_process(stdout=tts_payload),
+                    _make_completed_process(stdout=transcribe_payload),
+                ],
+            ) as mock_run,
         ):
-            result = still(project, frame=5)
-            assert "_frame5.png" in result.output_path
+            speech = tts("hello", output_path=str(tmp_path / "speech.wav"), voice="af_heart")
+            transcript = transcribe("/tmp/video.mp4", project_path=str(tmp_path), model="base.en")
+
+        assert speech.data["output"].endswith("speech.wav")
+        assert transcript.data["words"][0]["word"] == "hello"
+        assert _hyperframes_subcommand(mock_run.call_args_list[0][0][0]) == "tts"
+        assert _hyperframes_subcommand(mock_run.call_args_list[1][0][0]) == "transcribe"
+
+    def test_tts_list_voices_does_not_require_text(self):
+        payload = json.dumps({"voices": [{"id": "af_heart"}]})
+
+        with (
+            _mock_deps_ok(),
+            patch(
+                "mcp_video.hyperframes_engine.subprocess.run", return_value=_make_completed_process(stdout=payload)
+            ) as mock_run,
+        ):
+            result = tts(list_voices=True)
+
+        assert result.data["voices"][0]["id"] == "af_heart"
+        cmd = mock_run.call_args[0][0]
+        assert _hyperframes_subcommand(cmd) == "tts"
+        assert "--list" in cmd
+        assert "" not in cmd
+
+    def test_tts_requires_text_unless_listing_voices(self):
+        with pytest.raises(MCPVideoError, match="text_or_file is required"):
+            tts()
+
+    def test_remove_background_doctor_info_and_benchmark(self, sample_hyperframes_project):
+        responses = [
+            _make_completed_process(stdout=json.dumps({"output": "/tmp/cutout.webm"})),
+            _make_completed_process(stdout=json.dumps({"version": "0.5.0"})),
+            _make_completed_process(stdout=json.dumps({"name": "project"})),
+            _make_completed_process(stdout=json.dumps({"runs": []})),
+        ]
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=responses) as mock_run:
+            cutout = remove_background("/tmp/input.mp4", output_path="/tmp/cutout.webm")
+            health = doctor()
+            meta = info(str(sample_hyperframes_project))
+            bench = benchmark(str(sample_hyperframes_project), json_output=True)
+
+        assert cutout.data["output"] == "/tmp/cutout.webm"
+        assert health.data["version"] == "0.5.0"
+        assert meta.data["name"] == "project"
+        assert bench.data["runs"] == []
+        assert [_hyperframes_subcommand(call[0][0]) for call in mock_run.call_args_list] == [
+            "remove-background",
+            "doctor",
+            "info",
+            "benchmark",
+        ]
 
     def test_raises_on_failure(self, sample_hyperframes_project):
         """still() should raise HyperframesRenderError on non-zero exit."""

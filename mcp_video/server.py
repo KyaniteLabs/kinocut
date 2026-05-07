@@ -73,11 +73,21 @@ from .server_tools_creation import (
 )
 from .server_tools_hyperframes import (
     hyperframes_add_block as hyperframes_add_block,
+    hyperframes_benchmark as hyperframes_benchmark,
+    hyperframes_capture as hyperframes_capture,
+    hyperframes_catalog as hyperframes_catalog,
     hyperframes_compositions as hyperframes_compositions,
+    hyperframes_doctor as hyperframes_doctor,
     hyperframes_init as hyperframes_init,
+    hyperframes_info as hyperframes_info,
+    hyperframes_inspect as hyperframes_inspect,
     hyperframes_preview as hyperframes_preview,
     hyperframes_render as hyperframes_render,
+    hyperframes_remove_background as hyperframes_remove_background,
+    hyperframes_snapshot as hyperframes_snapshot,
     hyperframes_still as hyperframes_still,
+    hyperframes_transcribe as hyperframes_transcribe,
+    hyperframes_tts as hyperframes_tts,
     hyperframes_to_mcpvideo as hyperframes_to_mcpvideo,
     hyperframes_validate as hyperframes_validate,
 )
@@ -120,4 +130,8 @@ from .server_tools_ai import (
     video_fix_design_issues as video_fix_design_issues,
     video_quality_check as video_quality_check,
     video_release_checkpoint as video_release_checkpoint,
+)
+from .server_tools_repurpose import (
+    video_repurpose as video_repurpose,
+    video_repurpose_plan as video_repurpose_plan,
 )

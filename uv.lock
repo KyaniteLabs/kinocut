@@ -1394,7 +1394,7 @@ wheels = [
 
 [[package]]
 name = "mcp-video"
-version = "1.3.6"
+version = "1.3.10"
 source = { editable = "." }
 dependencies = [
     { name = "mcp" },
@@ -1404,32 +1404,34 @@ dependencies = [
 
 [package.optional-dependencies]
 ai = [
-    { name = "basicsr" },
+    { name = "basicsr", marker = "python_full_version < '3.13'" },
     { name = "demucs" },
     { name = "imagehash" },
     { name = "numpy" },
     { name = "openai-whisper" },
     { name = "opencv-contrib-python" },
     { name = "pillow" },
-    { name = "realesrgan" },
+    { name = "realesrgan", marker = "python_full_version < '3.13'" },
     { name = "torch" },
     { name = "torchaudio" },
+    { name = "torchcodec" },
 ]
 ai-scene = [
     { name = "imagehash" },
     { name = "pillow" },
 ]
 all-ai = [
-    { name = "basicsr" },
+    { name = "basicsr", marker = "python_full_version < '3.13'" },
     { name = "demucs" },
     { name = "imagehash" },
     { name = "numpy" },
     { name = "openai-whisper" },
     { name = "opencv-contrib-python" },
     { name = "pillow" },
-    { name = "realesrgan" },
+    { name = "realesrgan", marker = "python_full_version < '3.13'" },
     { name = "torch" },
     { name = "torchaudio" },
+    { name = "torchcodec" },
 ]
 client = [
     { name = "pillow" },
@@ -1458,25 +1460,26 @@ stems = [
     { name = "demucs" },
     { name = "torch" },
     { name = "torchaudio" },
+    { name = "torchcodec" },
 ]
 transcribe = [
     { name = "openai-whisper" },
 ]
 upscale = [
-    { name = "basicsr" },
+    { name = "basicsr", marker = "python_full_version < '3.13'" },
     { name = "numpy" },
     { name = "opencv-contrib-python" },
     { name = "pillow" },
-    { name = "realesrgan" },
+    { name = "realesrgan", marker = "python_full_version < '3.13'" },
     { name = "torch" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "anthropic", marker = "extra == 'image-ai'", specifier = ">=0.96.0" },
-    { name = "basicsr", marker = "extra == 'ai'", specifier = ">=1.4" },
-    { name = "basicsr", marker = "extra == 'all-ai'", specifier = ">=1.4" },
-    { name = "basicsr", marker = "extra == 'upscale'", specifier = ">=1.4" },
+    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'ai'", specifier = ">=1.4" },
+    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'all-ai'", specifier = ">=1.4" },
+    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'upscale'", specifier = ">=1.4" },
     { name = "demucs", marker = "extra == 'ai'", specifier = ">=4.0" },
     { name = "demucs", marker = "extra == 'all-ai'", specifier = ">=4.0" },
     { name = "demucs", marker = "extra == 'stems'", specifier = ">=4.0" },
@@ -1504,9 +1507,9 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
-    { name = "realesrgan", marker = "extra == 'ai'", specifier = ">=0.3" },
-    { name = "realesrgan", marker = "extra == 'all-ai'", specifier = ">=0.3" },
-    { name = "realesrgan", marker = "extra == 'upscale'", specifier = ">=0.3" },
+    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'ai'", specifier = ">=0.3" },
+    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'all-ai'", specifier = ">=0.3" },
+    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'upscale'", specifier = ">=0.3" },
     { name = "rich", specifier = ">=15.0.0" },
     { name = "rich", marker = "extra == 'dev'", specifier = ">=15.0.0" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.11" },
@@ -1520,6 +1523,9 @@ requires-dist = [
     { name = "torchaudio", marker = "extra == 'ai'", specifier = ">=2.0" },
     { name = "torchaudio", marker = "extra == 'all-ai'", specifier = ">=2.0" },
     { name = "torchaudio", marker = "extra == 'stems'", specifier = ">=2.0" },
+    { name = "torchcodec", marker = "extra == 'ai'", specifier = ">=0.8" },
+    { name = "torchcodec", marker = "extra == 'all-ai'", specifier = ">=0.8" },
+    { name = "torchcodec", marker = "extra == 'stems'", specifier = ">=0.8" },
     { name = "webcolors", marker = "extra == 'dev'", specifier = ">=1.13" },
     { name = "webcolors", marker = "extra == 'image'", specifier = ">=1.13" },
     { name = "webcolors", marker = "extra == 'image-ai'", specifier = ">=1.13" },
@@ -3148,6 +3154,29 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/9a/a0/62a5842062f739239691f2e57523e0570dd06704ad987755f7644a3afa23/torchaudio-2.11.0-cp314-cp314t-manylinux_2_28_aarch64.whl", hash = "sha256:1be3767064364ae82705bdf2b15c1e8b41fea82c4cd04d47428a8684b634b6ed", size = 1618552, upload-time = "2026-03-23T18:13:21.09Z" },
     { url = "https://files.pythonhosted.org/packages/6d/89/c293d818f9f899db93bf291b42401c05ae29acfb2e53d5341c30ea703e62/torchaudio-2.11.0-cp314-cp314t-manylinux_2_28_x86_64.whl", hash = "sha256:67f6edac29ed004652c11db5c19d9debb5d835695930574f564efc8bdd061bba", size = 1771986, upload-time = "2026-03-23T18:13:22.153Z" },
     { url = "https://files.pythonhosted.org/packages/93/f7/ee5da8c03f1a3c7662c6c6a119f24a4b3e646da94be56dce3201e3a6ee9b/torchaudio-2.11.0-cp314-cp314t-win_amd64.whl", hash = "sha256:88fb5e29f670a33d9bac6aabb1d2734460cf6e461bde5cdc352826035851b16d", size = 328661, upload-time = "2026-03-23T18:13:20.1Z" },
+]
+
+[[package]]
+name = "torchcodec"
+version = "0.11.1"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d2/cc/471eb0ce4120a535d263c48a665f27a85706f976b5fe0aa3bab7694868f3/torchcodec-0.11.1-cp311-cp311-macosx_11_0_arm64.whl", hash = "sha256:47db9696c694c74186c5a861dbf4e5390788355f2586a1fa6af68ad56e6f1ed4", size = 4202726, upload-time = "2026-04-14T18:24:42.776Z" },
+    { url = "https://files.pythonhosted.org/packages/ba/d9/cff76c42a13dd4f920785b9ef15315ea037eabf0d9900b24386a44b3b689/torchcodec-0.11.1-cp311-cp311-manylinux_2_28_aarch64.whl", hash = "sha256:60fbd745235ea8899ad056d0d5433cb43b17a80ab7672ea85747cdd22d7c6dff", size = 2385516, upload-time = "2026-04-14T18:24:44.648Z" },
+    { url = "https://files.pythonhosted.org/packages/f6/50/bd8e96424e2ae403b4ef3e2cb839a0be8a685fa9f6f27482acdaad075845/torchcodec-0.11.1-cp311-cp311-manylinux_2_28_x86_64.whl", hash = "sha256:dd17e1cb3b8c6cdd2f6a522d8822031b169fb10b7ff465d0de748df9af4ea930", size = 2310372, upload-time = "2026-04-14T18:24:47.75Z" },
+    { url = "https://files.pythonhosted.org/packages/22/04/c53a64ff8161949726edaa70b00b282c100cbcaa63c4b2c9f4f33829055d/torchcodec-0.11.1-cp311-cp311-win_amd64.whl", hash = "sha256:30e8fb461c4551c53b51bc19ab01e7a8c118aa89aa59e7ab110548c6b9ad01ae", size = 1915258, upload-time = "2026-04-14T18:24:49.739Z" },
+    { url = "https://files.pythonhosted.org/packages/64/85/38f4843ff2a6bf7dfb71a153acd99024dadb96749965a67524c2f1cc1894/torchcodec-0.11.1-cp312-cp312-macosx_11_0_arm64.whl", hash = "sha256:57056e91d1d883d0fb77ca7759e304be9c0bdb4ea0e37bde5c2e361347063b8c", size = 4368988, upload-time = "2026-04-14T18:24:51.46Z" },
+    { url = "https://files.pythonhosted.org/packages/4b/85/3b41034b0f1289423745f918ace2a1e1e86b9c578c2e2461b6afcbb5354a/torchcodec-0.11.1-cp312-cp312-manylinux_2_28_aarch64.whl", hash = "sha256:f1aee486a84247fcaa67870ac5005aa8d382a9839e91e476fa71b5b3d9fda9b7", size = 2397532, upload-time = "2026-04-14T18:24:53.368Z" },
+    { url = "https://files.pythonhosted.org/packages/ca/a9/a2b6ee3e84c55bdd0c45fd991dde71c95a99115ec9e26938b212b4545dcf/torchcodec-0.11.1-cp312-cp312-manylinux_2_28_x86_64.whl", hash = "sha256:6c26e90e7aa982302644d0af8cb706318682bb390f48a80ecbfeab03499acd04", size = 2329883, upload-time = "2026-04-14T18:24:55.467Z" },
+    { url = "https://files.pythonhosted.org/packages/82/48/683114a4ed6b59f76b6919532a5db0f4068787be26bab92cc18a1dfa6794/torchcodec-0.11.1-cp312-cp312-win_amd64.whl", hash = "sha256:3fd2d10e0e0a5f455c1c87dc1380b3bd43b77dd5eeeaf479470643b1c04a2dd2", size = 1921066, upload-time = "2026-04-14T18:24:57.102Z" },
+    { url = "https://files.pythonhosted.org/packages/2c/61/a8985a7561ef651e409deeac151a0ed5cef763db9577db5cc49c2f5eaab2/torchcodec-0.11.1-cp313-cp313-macosx_12_0_arm64.whl", hash = "sha256:915fbe20068ec77486fbbeaf0c627c89c7376445f27d215b7489c0a03c64fd4c", size = 4289805, upload-time = "2026-04-14T18:24:59.124Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/31/c4ec0304dd169a9b2b7fa0dd1d5d659d3cccc975b98ac88c498fe6dd7196/torchcodec-0.11.1-cp313-cp313-manylinux_2_28_aarch64.whl", hash = "sha256:3755de03c96afd37410cba68198225d11cd6431a32f2161a0019791a4a853305", size = 2399057, upload-time = "2026-04-14T18:25:00.782Z" },
+    { url = "https://files.pythonhosted.org/packages/5d/b2/85ad7a81f387e40983c21bc94da0c333974afb41f38c3a85d25875274187/torchcodec-0.11.1-cp313-cp313-manylinux_2_28_x86_64.whl", hash = "sha256:5eee69971cec1147a03b8a6b678b5dfbeff0b2c71ed7929e488391f9fbcd630c", size = 2332721, upload-time = "2026-04-14T18:25:02.518Z" },
+    { url = "https://files.pythonhosted.org/packages/ad/ca/5c66f21d2a12039450e9dd4d9d7c480019dfbe9e8a87696a3c3a827c1e37/torchcodec-0.11.1-cp313-cp313-win_amd64.whl", hash = "sha256:67b34e5733636588ebe0f15082bbb90a8ce1472ccb8bb1a656ec28958a208919", size = 1920990, upload-time = "2026-04-14T18:25:04.269Z" },
+    { url = "https://files.pythonhosted.org/packages/c4/b7/8d6ee76fca0cfefec01402f33c11766455da2b8460cb9191cdc34f8defc0/torchcodec-0.11.1-cp314-cp314-macosx_12_0_arm64.whl", hash = "sha256:a00ef79e847644f91c9995de021062adc851916b16244d26c0a7a04569710508", size = 4408290, upload-time = "2026-04-14T18:25:05.967Z" },
+    { url = "https://files.pythonhosted.org/packages/1e/1e/e37bd46ffac9eec1a9afc32c5097cd83b0de1e865021f7f953c5142919f4/torchcodec-0.11.1-cp314-cp314-manylinux_2_28_aarch64.whl", hash = "sha256:170a3efea64f0cd2c21cee0a233a9e13c67a704b5c5e7ef9aeda31e747ac6885", size = 2402232, upload-time = "2026-04-14T18:25:08.026Z" },
+    { url = "https://files.pythonhosted.org/packages/8f/d0/a9173dbfa011cc2224f7489e50844b9f62110050bbdbd9d29485e7f1e0e2/torchcodec-0.11.1-cp314-cp314-manylinux_2_28_x86_64.whl", hash = "sha256:db66ddce36a6fa35f30fbe1d78b57289fcb53f8f43c1c85923edbe339540c665", size = 2334158, upload-time = "2026-04-14T18:25:09.77Z" },
+    { url = "https://files.pythonhosted.org/packages/18/96/6ee0e26547976dc55a69042ce895747a34221eab348931e975141d80d25e/torchcodec-0.11.1-cp314-cp314-win_amd64.whl", hash = "sha256:3fd9ef8302b261d3db5585e42be4a3138c5c240a822031642cdf1f82ea3db5b7", size = 1925002, upload-time = "2026-04-14T18:25:11.718Z" },
 ]
 
 [[package]]

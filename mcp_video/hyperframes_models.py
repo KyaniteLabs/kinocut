@@ -57,6 +57,30 @@ class HyperframesStillResult(BaseModel):
     resolution: str | None = None
 
 
+class HyperframesSnapshotResult(BaseModel):
+    """Result of capturing one or more Hyperframes snapshot frames."""
+
+    success: bool = True
+    frame_paths: list[str] = Field(default_factory=list)
+    output_dir: str
+    frames: int | None = None
+    at: list[float] = Field(default_factory=list)
+
+
+class HyperframesJsonResult(BaseModel):
+    """Generic JSON-capable result for Hyperframes utility commands."""
+
+    success: bool = True
+    command: str
+    data: dict[str, Any] | list[Any] | str = Field(default_factory=dict)
+    stdout: str = ""
+
+    @property
+    def items(self) -> list[Any]:
+        """Convenience alias for catalog-like list responses."""
+        return self.data if isinstance(self.data, list) else []
+
+
 class HyperframesProjectResult(BaseModel):
     """Result of creating a new Hyperframes project."""
 

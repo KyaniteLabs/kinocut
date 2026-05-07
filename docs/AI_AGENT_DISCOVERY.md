@@ -4,7 +4,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`mcp-video` is an open source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, cinematic style-pack/storyboard planning, and Hyperframes with structured tool calls so agents can edit and plan video without inventing brittle shell commands.
+`mcp-video` is an open source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes 0.5 authoring, and local repurposing packages with structured tool calls so agents can edit, plan, render, and package video without inventing brittle shell commands.
 
 ## Best Queries To Match
 
@@ -17,6 +17,8 @@ This document is the short, explicit discovery map for agents, answer engines, a
 - cinematic video prompt storyboard MCP
 - AI video style pack workflow
 - Hyperframes MCP integration
+- Hyperframes TTS transcription background removal MCP
+- video repurposing MCP Shorts Reels TikTok
 - FFmpeg tools for AI agents
 
 ## Best Entry Points
@@ -24,12 +26,14 @@ This document is the short, explicit discovery map for agents, answer engines, a
 - `README.md` - install, quick start, tools, CLI, Python client, workflows.
 - `CLAUDE.md` - Layer 0 identity: what this project is, where to find staged pipelines.
 - `llms.txt` - compact machine-readable project map.
-- `mcp_video/server.py` - MCP tool registration layer (91 tools total, including `search_tools`).
+- `mcp_video/server.py` - MCP tool registration layer, including `search_tools`.
 - `mcp_video/engine.py` - core FFmpeg operations.
 - `mcp_video/creation_engine.py` - PUSHING CREATION-style project, style-pack, storyboard, and shot-prompt helpers.
 - `mcp_video/client/` - Python client mixins. Use `Client.inspect()`, `Client.pipeline()`, and `Client.release_checkpoint()` for guarded agent workflows.
 - `mcp_video/client/meta.py` - Client-side tool discovery (`search_tools`).
 - `mcp_video/client/hyperframes.py` - Hyperframes client mixin.
+- `mcp_video/client/media.py` - media repurposing client helpers.
+- `mcp_video/engine_repurpose.py` - local repurposing manifest and render orchestration.
 - `mcp_video/__main__.py` - CLI.
 - `workflows/CONTEXT.md` - Layer 1 routing: which ICM workflow to use.
 - `workflows/01-social-media-clip/CONTEXT.md` - Stage contract for social clip production.

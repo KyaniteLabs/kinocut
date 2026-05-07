@@ -58,6 +58,143 @@ class ClientHyperframesMixin:
 
         return still(project_path, output_path=output, frame=frame)
 
+    def hyperframes_snapshot(
+        self,
+        project_path: str,
+        frames: int = 5,
+        at: list[float] | None = None,
+        timeout_ms: int | None = None,
+    ) -> dict:
+        """Capture key frames as PNG screenshots for visual verification."""
+        from ..hyperframes_engine import snapshot
+
+        return snapshot(project_path, frames=frames, at=at, timeout_ms=timeout_ms)
+
+    def hyperframes_inspect(
+        self,
+        project_path: str,
+        samples: int = 9,
+        at: list[float] | None = None,
+        tolerance: int = 2,
+        timeout_ms: int | None = None,
+        max_issues: int = 80,
+        strict: bool = False,
+    ) -> dict:
+        """Inspect rendered layout for text/container overflow."""
+        from ..hyperframes_engine import inspect
+
+        return inspect(
+            project_path,
+            samples=samples,
+            at=at,
+            tolerance=tolerance,
+            timeout_ms=timeout_ms,
+            max_issues=max_issues,
+            strict=strict,
+        )
+
+    def hyperframes_info(self, project_path: str) -> dict:
+        """Return Hyperframes project metadata."""
+        from ..hyperframes_engine import info
+
+        return info(project_path)
+
+    def hyperframes_catalog(self, item_type: str | None = None, tag: str | None = None) -> dict:
+        """Browse Hyperframes catalog blocks/components."""
+        from ..hyperframes_engine import catalog
+
+        return catalog(item_type=item_type, tag=tag)
+
+    def hyperframes_capture(
+        self,
+        url: str,
+        output: str | None = None,
+        skip_assets: bool = False,
+        max_screenshots: int | None = None,
+        timeout_ms: int | None = None,
+    ) -> dict:
+        """Capture a website as editable Hyperframes components."""
+        from ..hyperframes_engine import capture
+
+        return capture(
+            url,
+            output=output,
+            skip_assets=skip_assets,
+            max_screenshots=max_screenshots,
+            timeout_ms=timeout_ms,
+        )
+
+    def hyperframes_tts(
+        self,
+        text_or_file: str | None = None,
+        output: str | None = None,
+        voice: str | None = None,
+        speed: float | None = None,
+        language: str | None = None,
+        list_voices: bool = False,
+    ) -> dict:
+        """Generate local speech audio or list available Hyperframes TTS voices."""
+        from ..hyperframes_engine import tts
+
+        return tts(
+            text_or_file,
+            output_path=output,
+            voice=voice,
+            speed=speed,
+            language=language,
+            list_voices=list_voices,
+        )
+
+    def hyperframes_transcribe(
+        self,
+        input_path: str,
+        project_path: str | None = None,
+        model: str | None = None,
+        language: str | None = None,
+    ) -> dict:
+        """Transcribe media to word-level timestamps or import transcripts."""
+        from ..hyperframes_engine import transcribe
+
+        return transcribe(input_path, project_path=project_path, model=model, language=language)
+
+    def hyperframes_remove_background(
+        self,
+        input_path: str,
+        output: str | None = None,
+        background_output: str | None = None,
+        device: str = "auto",
+        quality: str = "balanced",
+        info: bool = False,
+    ) -> dict:
+        """Remove a video/image background with Hyperframes local AI."""
+        from ..hyperframes_engine import remove_background
+
+        return remove_background(
+            input_path,
+            output_path=output,
+            background_output_path=background_output,
+            device=device,
+            quality=quality,
+            info=info,
+        )
+
+    def hyperframes_doctor(self) -> dict:
+        """Run Hyperframes environment diagnostics."""
+        from ..hyperframes_engine import doctor
+
+        return doctor()
+
+    def hyperframes_benchmark(
+        self,
+        project_path: str,
+        output: str | None = None,
+        json_output: bool = True,
+    ) -> dict:
+        """Benchmark Hyperframes render speed and file size."""
+        from ..hyperframes_engine import benchmark
+
+        return benchmark(project_path, output_path=output, json_output=json_output)
+
     def hyperframes_init(
         self,
         name: str,

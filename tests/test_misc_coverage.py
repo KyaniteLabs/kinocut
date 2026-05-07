@@ -149,6 +149,14 @@ class TestServerToolsHyperframesValidation:
         result = hyperframes_init("test", template="not-real")
         assert result.get("success") is False
 
+    def test_hyperframes_tts_requires_text_unless_listing_voices(self):
+        from mcp_video.server_tools_hyperframes import hyperframes_tts
+
+        result = hyperframes_tts()
+
+        assert result.get("success") is False
+        assert result.get("error", {}).get("message") == "text_or_file is required unless list_voices is true"
+
 
 class TestAudioEngineInit:
     """Test audio_engine/__init__.py add_generated_audio."""

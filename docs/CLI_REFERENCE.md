@@ -55,6 +55,8 @@ mcp-video [command] [options]
 | `split-screen` | Place two videos side by side or top/bottom |
 | `templates` | List available video templates |
 | `template` | Apply a video template (tiktok, youtube-shorts, etc.) |
+| `repurpose-plan` | Create a dry-run platform package manifest |
+| `repurpose` | Render local platform-ready variants and review artifacts |
 
 ## Visual Effects
 
@@ -143,6 +145,16 @@ mcp-video [command] [options]
 | `hyperframes-compositions` | List compositions in a Hyperframes project |
 | `hyperframes-preview` | Launch Hyperframes preview studio |
 | `hyperframes-still` | Render a single frame as an image |
+| `hyperframes-snapshot` | Capture one or more rendered PNG snapshots |
+| `hyperframes-inspect` | Inspect rendered layout overflow and visual issues |
+| `hyperframes-info` | Show Hyperframes project metadata |
+| `hyperframes-catalog` | Browse catalog blocks and components |
+| `hyperframes-capture` | Capture a website as editable Hyperframes components |
+| `hyperframes-tts` | Generate local speech audio through Hyperframes |
+| `hyperframes-transcribe` | Transcribe media or import transcript timing |
+| `hyperframes-remove-background` | Remove image or video backgrounds |
+| `hyperframes-doctor` | Run Hyperframes environment diagnostics |
+| `hyperframes-benchmark` | Benchmark render settings |
 | `hyperframes-init` | Scaffold a new Hyperframes project |
 | `hyperframes-add-block` | Install a block from the Hyperframes catalog |
 | `hyperframes-validate` | Validate a Hyperframes project structure |

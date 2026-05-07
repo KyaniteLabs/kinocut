@@ -49,6 +49,53 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     hyperframes_still_p.add_argument("-o", "--output", help="Output image file path")
     hyperframes_still_p.add_argument("--frame", type=int, default=0, help="Frame number to render (default: 0)")
 
+    snapshot_p = subparsers.add_parser("hyperframes-snapshot", help="Capture key frames as PNG screenshots")
+    snapshot_p.add_argument("project_path", help="Path to Hyperframes project")
+    snapshot_p.add_argument("--frames", type=int, default=5, help="Number of evenly-spaced frames")
+    snapshot_p.add_argument("--at", nargs="+", type=float, help="Specific timestamps in seconds")
+
+    inspect_p = subparsers.add_parser("hyperframes-inspect", help="Inspect Hyperframes layout overflow")
+    inspect_p.add_argument("project_path", help="Path to Hyperframes project")
+    inspect_p.add_argument("--samples", type=int, default=9)
+    inspect_p.add_argument("--strict", action="store_true")
+
+    catalog_p = subparsers.add_parser("hyperframes-catalog", help="Browse Hyperframes catalog")
+    catalog_p.add_argument("--tag")
+    catalog_p.add_argument("--type", dest="item_type", choices=["block", "component"])
+
+    info_p = subparsers.add_parser("hyperframes-info", help="Show Hyperframes project metadata")
+    info_p.add_argument("project_path", help="Path to Hyperframes project")
+
+    capture_p = subparsers.add_parser("hyperframes-capture", help="Capture a website as Hyperframes components")
+    capture_p.add_argument("url", help="Website URL")
+    capture_p.add_argument("-o", "--output", help="Output directory")
+    capture_p.add_argument("--skip-assets", action="store_true")
+
+    tts_p = subparsers.add_parser("hyperframes-tts", help="Generate speech audio with Hyperframes TTS")
+    tts_p.add_argument("text_or_file", help="Text to speak or path to .txt")
+    tts_p.add_argument("-o", "--output", help="Output audio file")
+    tts_p.add_argument("--voice")
+    tts_p.add_argument("--speed", type=float)
+
+    transcribe_p = subparsers.add_parser("hyperframes-transcribe", help="Transcribe media with Hyperframes")
+    transcribe_p.add_argument("input_path", help="Audio/video/transcript input")
+    transcribe_p.add_argument("-d", "--project-path")
+    transcribe_p.add_argument("-m", "--model")
+    transcribe_p.add_argument("-l", "--language")
+
+    remove_bg_p = subparsers.add_parser("hyperframes-remove-background", help="Remove image/video background")
+    remove_bg_p.add_argument("input_path", help="Input image/video")
+    remove_bg_p.add_argument("-o", "--output", help="Output file path")
+    remove_bg_p.add_argument("--background-output")
+    remove_bg_p.add_argument("--device", default="auto", choices=["auto", "cpu", "coreml", "cuda"])
+    remove_bg_p.add_argument("--quality", default="balanced", choices=["fast", "balanced", "best"])
+
+    subparsers.add_parser("hyperframes-doctor", help="Run Hyperframes diagnostics")
+
+    benchmark_p = subparsers.add_parser("hyperframes-benchmark", help="Benchmark Hyperframes rendering")
+    benchmark_p.add_argument("project_path", help="Path to Hyperframes project")
+    benchmark_p.add_argument("-o", "--output", help="Output path")
+
     # hyperframes-init
     hyperframes_init_p = subparsers.add_parser("hyperframes-init", help="Scaffold a new Hyperframes project")
     hyperframes_init_p.add_argument("name", help="Project name")

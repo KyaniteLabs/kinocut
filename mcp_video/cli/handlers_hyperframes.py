@@ -78,6 +78,105 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("hyperframes-still", _still)
 
+    def _snapshot(a, j):
+        from ..hyperframes_engine import snapshot
+
+        r = _with_spinner("Capturing Hyperframes snapshots...", snapshot, a.project_path, frames=a.frames, at=a.at)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-snapshot", _snapshot)
+
+    def _inspect(a, j):
+        from ..hyperframes_engine import inspect
+
+        r = _with_spinner(
+            "Inspecting Hyperframes layout...", inspect, a.project_path, samples=a.samples, strict=a.strict
+        )
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-inspect", _inspect)
+
+    def _info(a, j):
+        from ..hyperframes_engine import info
+
+        r = _with_spinner("Reading Hyperframes project info...", info, a.project_path)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-info", _info)
+
+    def _catalog(a, j):
+        from ..hyperframes_engine import catalog
+
+        r = _with_spinner("Reading Hyperframes catalog...", catalog, item_type=a.item_type, tag=a.tag)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-catalog", _catalog)
+
+    def _capture(a, j):
+        from ..hyperframes_engine import capture
+
+        r = _with_spinner("Capturing website...", capture, a.url, output=a.output, skip_assets=a.skip_assets)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-capture", _capture)
+
+    def _tts(a, j):
+        from ..hyperframes_engine import tts
+
+        r = _with_spinner(
+            "Generating speech...", tts, a.text_or_file, output_path=a.output, voice=a.voice, speed=a.speed
+        )
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-tts", _tts)
+
+    def _transcribe(a, j):
+        from ..hyperframes_engine import transcribe
+
+        r = _with_spinner(
+            "Transcribing media...",
+            transcribe,
+            a.input_path,
+            project_path=a.project_path,
+            model=a.model,
+            language=a.language,
+        )
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-transcribe", _transcribe)
+
+    def _remove_background(a, j):
+        from ..hyperframes_engine import remove_background
+
+        r = _with_spinner(
+            "Removing background...",
+            remove_background,
+            a.input_path,
+            output_path=a.output,
+            background_output_path=a.background_output,
+            device=a.device,
+            quality=a.quality,
+        )
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-remove-background", _remove_background)
+
+    def _doctor(a, j):
+        from ..hyperframes_engine import doctor
+
+        r = _with_spinner("Checking Hyperframes environment...", doctor)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-doctor", _doctor)
+
+    def _benchmark(a, j):
+        from ..hyperframes_engine import benchmark
+
+        r = _with_spinner("Benchmarking Hyperframes render...", benchmark, a.project_path, output_path=a.output)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+
+    runner.register("hyperframes-benchmark", _benchmark)
+
     def _init(a, j):
         from ..hyperframes_engine import create_project
 

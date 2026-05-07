@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-91 MCP tools across 11 categories, including the `search_tools` meta-tool. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
+mcp-video exposes structured MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes 0.5 video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
 
 ---
 
@@ -8,7 +8,7 @@
 
 | Tool | Description |
 |------|-------------|
-| `search_tools` | Search all registered MCP tools by keyword. Returns matching tool names, descriptions, and required parameters. Use this when you need to find the right tool without loading all 91 descriptions into context. |
+| `search_tools` | Search all registered MCP tools by keyword. Returns matching tool names, descriptions, and required parameters. Use this when you need to find the right tool without loading the full registry into context. |
 
 **Python Client:**
 ```python
@@ -100,20 +100,41 @@ pip install "mcp-video[ai]"          # all AI extras, kept for compatibility
 
 ---
 
-## Hyperframes — HTML-Native Video (8 tools)
+## Hyperframes — HTML-Native Video (18 tools)
 
-Create videos programmatically using [Hyperframes](https://hyperframes.io/) — an HTML-native framework for video (Apache 2.0). Scaffold projects, add blocks, render compositions, then post-process with mcp-video.
+Create videos programmatically using [Hyperframes](https://hyperframes.io/) — an HTML-native framework for video (Apache 2.0). Hyperframes owns HTML-video authoring, catalog blocks, website capture, local TTS, transcription import, background removal, layout inspection, diagnostics, benchmarking, and rendering; mcp-video wraps those operations for MCP-safe orchestration and FFmpeg post-processing.
 
 | Tool | Description |
 |------|-------------|
 | `hyperframes_init` | Scaffold a new Hyperframes project (blank, warm-grain, swiss-grid templates) |
 | `hyperframes_render` | Render a Hyperframes composition to video (MP4/WebM/MOV) |
-| `hyperframes_still` | Render a single frame as an image via snapshot |
+| `hyperframes_snapshot` | Capture actual PNG snapshot paths written by Hyperframes |
+| `hyperframes_still` | Backward-compatible single-frame snapshot helper |
+| `hyperframes_inspect` | Inspect rendered layout for overflow and visual issues |
+| `hyperframes_info` | Read project metadata |
+| `hyperframes_catalog` | Browse catalog blocks/components, including social overlays and caption styles |
+| `hyperframes_capture` | Capture a website as editable Hyperframes components |
+| `hyperframes_tts` | Generate speech audio with local Hyperframes TTS or list available voices |
+| `hyperframes_transcribe` | Transcribe media to word-level timestamps or import transcripts |
+| `hyperframes_remove_background` | Remove image/video backgrounds to transparent media |
+| `hyperframes_doctor` | Run Hyperframes environment diagnostics |
+| `hyperframes_benchmark` | Compare render speed and output size |
 | `hyperframes_compositions` | List all compositions in a project |
 | `hyperframes_preview` | Launch Hyperframes preview studio |
 | `hyperframes_validate` | Check project structure and run lint |
 | `hyperframes_add_block` | Install a block from the Hyperframes catalog |
 | `hyperframes_to_mcpvideo` | Pipeline: render with Hyperframes, then post-process with mcp-video |
+
+---
+
+## Repurposing (2 tools)
+
+Create local YouTube/social media packages from one source video. Publishing and scheduling are intentionally out of scope for v1; the tools produce files, manifests, thumbnails, storyboards, and optional release-checkpoint artifacts for a human or downstream publisher to review.
+
+| Tool | Description |
+|------|-------------|
+| `video_repurpose_plan` | Dry-run a platform manifest with vertical, horizontal, and square output variants |
+| `video_repurpose` | Render platform-ready assets plus thumbnails, storyboards, release-checkpoint artifacts, and `repurpose_manifest.json` |
 
 ---
 

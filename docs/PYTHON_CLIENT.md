@@ -228,10 +228,29 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `hyperframes_compositions(project_path)` | `CompositionsResult` | List compositions in a project |
 | `hyperframes_preview(project_path, port?)` | `HyperframesPreviewResult` | Launch live preview studio |
 | `hyperframes_still(project_path, output?, frame?)` | `HyperframesStillResult` | Render a single frame |
+| `hyperframes_snapshot(project_path, frames?, at?)` | `HyperframesSnapshotResult` | Capture actual PNG snapshot paths |
+| `hyperframes_inspect(project_path, samples?, strict?)` | `HyperframesJsonResult` | Inspect rendered layout issues |
+| `hyperframes_info(project_path)` | `HyperframesJsonResult` | Read project metadata |
+| `hyperframes_catalog(item_type?, tag?)` | `HyperframesJsonResult` | Browse blocks/components |
+| `hyperframes_capture(url, output?)` | `HyperframesJsonResult` | Capture a website as editable components |
+| `hyperframes_tts(text_or_file?, output?, list_voices?)` | `HyperframesJsonResult` | Generate local speech audio or list available voices |
+| `hyperframes_transcribe(input_path, project_path?, model?, language?)` | `HyperframesJsonResult` | Transcribe media/import transcripts |
+| `hyperframes_remove_background(input_path, output?)` | `HyperframesJsonResult` | Produce transparent cutout media |
+| `hyperframes_doctor()` | `HyperframesJsonResult` | Run Hyperframes diagnostics |
+| `hyperframes_benchmark(project_path, output?)` | `HyperframesJsonResult` | Benchmark render settings |
 | `hyperframes_init(name, output_dir?, template?)` | `HyperframesProjectResult` | Scaffold a new project |
 | `hyperframes_add_block(project_path, block_name)` | `HyperframesBlockResult` | Install a block from the catalog |
 | `hyperframes_validate(project_path)` | `HyperframesValidationResult` | Validate project for rendering readiness |
 | `hyperframes_to_mcpvideo(project_path, post_process, output?)` | `HyperframesPipelineResult` | Render then post-process with mcp-video |
+
+---
+
+## Repurposing Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `repurpose_plan(video, output_dir?, platforms?)` | `dict` | Write a dry-run `repurpose_manifest.json` |
+| `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts |
 
 ---
 

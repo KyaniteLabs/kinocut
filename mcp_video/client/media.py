@@ -563,6 +563,36 @@ class ClientMediaMixin:
         """Compare video quality between original and processed versions."""
         return _compare_quality(original, distorted, metrics=metrics)
 
+    def repurpose_plan(
+        self,
+        video: str,
+        output_dir: str | None = None,
+        platforms: list[str] | None = None,
+    ) -> dict[str, Any]:
+        """Create a dry-run repurposing manifest."""
+        from ..engine_repurpose import repurpose_plan
+
+        return repurpose_plan(video, output_dir=output_dir, platforms=platforms)
+
+    def repurpose(
+        self,
+        video: str,
+        output_dir: str | None = None,
+        platforms: list[str] | None = None,
+        include_release_checkpoint: bool = True,
+        min_score: float = 0.0,
+    ) -> dict[str, Any]:
+        """Render a local repurposing package."""
+        from ..engine_repurpose import repurpose
+
+        return repurpose(
+            video,
+            output_dir=output_dir,
+            platforms=platforms,
+            include_release_checkpoint=include_release_checkpoint,
+            min_score=min_score,
+        )
+
     def read_metadata(
         self,
         video: str,

@@ -11,6 +11,15 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Added
+
+- Expanded Hyperframes orchestration for the 0.5 surface: snapshots, inspection, metadata, catalog, website capture, local TTS, transcription, background removal, diagnostics, benchmarks, and richer render controls.
+- Added local video repurposing helpers for dry-run manifests and platform-ready variants with thumbnails, storyboards, and optional release checkpoints.
+
+### Changed
+
+- Refreshed README, MCP tool docs, Python client docs, AI discovery, and `llms.txt` so PUSHING CREATION, Hyperframes, and repurposing are described as the current operator paths without centering test-count messaging.
+
 ## 1.3.10 - 2026-05-07
 
 ### Fixed

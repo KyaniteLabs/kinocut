@@ -2,7 +2,7 @@
 
 ## Overview
 
-mcp-video currently collects **1074 tests** covering public MCP tools, Python client, CLI, FFmpeg operations, AI features, cinematic creation helpers, Hyperframes integration, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
+mcp-video uses focused tests for public MCP tools, the Python client, CLI behavior, FFmpeg operations, AI features, cinematic creation helpers, Hyperframes integration, repurposing packages, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
 
 ## Test Suite: `tests/test_real_all_features.py`
 
@@ -20,19 +20,21 @@ python -m pytest tests/test_real_all_features.py::TestCoreVideoEditing -v
 python -m pytest tests/test_real_all_features.py -v -m "not slow"
 ```
 
-### Test Categories
+### Coverage Areas
 
-| Category | Tests | Description |
-|----------|-------|-------------|
-| **Core Video Editing** | 18 | Trim, merge, resize, speed, rotate, flip, reverse, stabilize, chroma key, blur, watermark, text, overlay, split-screen |
-| **Audio Features** | 10 | Extract audio, normalize, synthesize, presets, sequence, compose, effects, add audio, waveform, generated audio |
-| **Visual Effects** | 8 | Vignette, chromatic aberration, scanlines, noise, glow, color grade, filters, masks |
-| **Transitions** | 3 | Glitch, pixelate, morph |
-| **AI Features** | 8 | Scene detection, silence removal, transcription, stem separation, upscale, color grade, spatial audio, color extraction |
-| **Layout & Composition** | 8 | Grid layout, PiP, animated text, subtitles, motion graphics (counter, progress), create from images, export frames |
-| **Quality & Metadata** | 8 | Quality check, design quality, fix design issues, compare quality, auto chapters, detailed info, read/write metadata |
-| **Utility** | 7 | Convert format, preview, storyboard, thumbnail, batch process, timeline edit, generate subtitles |
-| **Total** | **70** | **100% passing** |
+| Category | Description |
+|----------|-------------|
+| **Core Video Editing** | Trim, merge, resize, speed, rotate, flip, reverse, stabilize, chroma key, blur, watermark, text, overlay, split-screen |
+| **Audio Features** | Extract audio, normalize, synthesize, presets, sequence, compose, effects, add audio, waveform, generated audio |
+| **Visual Effects** | Vignette, chromatic aberration, scanlines, noise, glow, color grade, filters, masks |
+| **Transitions** | Glitch, pixelate, morph |
+| **AI Features** | Scene detection, silence removal, transcription, stem separation, upscale, color grade, spatial audio, color extraction |
+| **Planning and Creation** | PUSHING CREATION project scaffolds, style packs, storyboard parsing, shot prompt rendering |
+| **Hyperframes** | Project scaffolds, render/snapshot/still flows, layout inspection, catalog, capture, local TTS, transcription, background removal, diagnostics, benchmarks |
+| **Repurposing** | Dry-run manifests, platform variants, thumbnails, storyboards, release-checkpoint artifacts |
+| **Layout & Composition** | Grid layout, PiP, animated text, subtitles, motion graphics, create from images, export frames |
+| **Quality & Metadata** | Quality check, design quality, fix design issues, compare quality, auto chapters, detailed info, read/write metadata |
+| **Utility** | Convert format, preview, storyboard, thumbnail, batch process, timeline edit, generate subtitles |
 
 ## Hyperframes Tests
 
@@ -130,8 +132,8 @@ pip install demucs torch torchaudio torchcodec openai-whisper imagehash numpy op
 | test_12_stabilize_video | ~60s | Uses 2s clip (full video too slow) |
 | test_44_ai_upscale | ~30s | FSRCNN model (fast CPU inference) |
 | test_43_ai_stem_separation | ~30s | Downloads model on first run |
-| Full suite | ~5min | All 70 real-media tests |
-| Full project suite | Environment-dependent | 1074 tests collected |
+| Real-media feature sweep | ~5min | Exercises media-producing paths |
+| Full project suite | Environment-dependent | Exercises unit, integration, public-surface, and security coverage |
 
 ## Recent Fixes
 

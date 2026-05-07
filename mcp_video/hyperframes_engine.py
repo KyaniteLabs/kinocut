@@ -14,8 +14,8 @@ import re
 import shutil
 import subprocess
 import time
-from pathlib import Path
 from collections.abc import Callable
+from pathlib import Path
 from typing import Any
 
 from .errors import (
@@ -29,10 +29,12 @@ from .hyperframes_models import (
     CompositionInfo,
     CompositionsResult,
     HyperframesBlockResult,
+    HyperframesJsonResult,
     HyperframesPipelineResult,
     HyperframesPreviewResult,
     HyperframesProjectResult,
     HyperframesRenderResult,
+    HyperframesSnapshotResult,
     HyperframesStillResult,
     HyperframesValidationResult,
 )
@@ -121,6 +123,22 @@ _SCHEMA: dict[str, dict[str, Any]] = {
             "format": "format",
             "workers": "workers",
             "crf": "crf",
+            "video-bitrate": "video_bitrate",
+            "variables": "variables",
+            "variables-file": "variables_file",
+            "max-concurrent-renders": "max_concurrent_renders",
+        },
+        "switches": {
+            "docker": "docker",
+            "hdr": "hdr",
+            "sdr": "sdr",
+            "gpu": "gpu",
+            "browser-gpu": "browser_gpu",
+            "no-browser-gpu": "no_browser_gpu",
+            "quiet": "quiet",
+            "strict": "strict",
+            "strict-all": "strict_all",
+            "strict-variables": "strict_variables",
         },
         "timeout": 600,
     },
@@ -133,11 +151,122 @@ _SCHEMA: dict[str, dict[str, Any]] = {
     "snapshot": {
         "subcommand": "snapshot",
         "positional": ["project_path"],
-        "fixed": ["--frames", "1"],
-        "computed": {
-            "at": lambda kw: str(kw.get("frame", 0) / 30.0),
+        "flags": {
+            "frames": "frames",
+            "at": "at_csv",
+            "timeout": "timeout_ms",
         },
         "timeout": 120,
+    },
+    "inspect": {
+        "subcommand": "inspect",
+        "positional": ["project_path"],
+        "fixed": ["--json"],
+        "flags": {
+            "samples": "samples",
+            "at": "at_csv",
+            "tolerance": "tolerance",
+            "timeout": "timeout_ms",
+            "max-issues": "max_issues",
+        },
+        "switches": {
+            "strict": "strict",
+            "collapse-static": "collapse_static",
+            "no-collapse-static": "no_collapse_static",
+        },
+        "timeout": 120,
+    },
+    "info": {
+        "subcommand": "info",
+        "positional": ["project_path"],
+        "fixed": ["--json"],
+        "timeout": 60,
+    },
+    "catalog": {
+        "subcommand": "catalog",
+        "fixed": ["--json"],
+        "flags": {
+            "type": "item_type",
+            "tag": "tag",
+        },
+        "cwd_key": None,
+        "timeout": 60,
+    },
+    "capture": {
+        "subcommand": "capture",
+        "positional": ["url"],
+        "fixed": ["--json"],
+        "flags": {
+            "output": "output",
+            "max-screenshots": "max_screenshots",
+            "timeout": "timeout_ms",
+        },
+        "switches": {
+            "skip-assets": "skip_assets",
+        },
+        "cwd_key": None,
+        "timeout": 180,
+    },
+    "transcribe": {
+        "subcommand": "transcribe",
+        "positional": ["input_path"],
+        "fixed": ["--json"],
+        "flags": {
+            "dir": "project_path",
+            "model": "model",
+            "language": "language",
+        },
+        "cwd_key": None,
+        "timeout": 600,
+    },
+    "tts": {
+        "subcommand": "tts",
+        "optional_positional": ["text_or_file"],
+        "fixed": ["--json"],
+        "flags": {
+            "output": "output_path",
+            "voice": "voice",
+            "speed": "speed",
+            "lang": "language",
+        },
+        "switches": {
+            "list": "list_voices",
+        },
+        "cwd_key": None,
+        "timeout": 600,
+    },
+    "remove-background": {
+        "subcommand": "remove-background",
+        "positional": ["input_path"],
+        "fixed": ["--json"],
+        "flags": {
+            "output": "output_path",
+            "background-output": "background_output_path",
+            "device": "device",
+            "quality": "quality",
+        },
+        "switches": {
+            "info": "info",
+        },
+        "cwd_key": None,
+        "timeout": 900,
+    },
+    "doctor": {
+        "subcommand": "doctor",
+        "fixed": ["--json"],
+        "cwd_key": None,
+        "timeout": 60,
+    },
+    "benchmark": {
+        "subcommand": "benchmark",
+        "positional": ["project_path"],
+        "flags": {
+            "output": "output_path",
+        },
+        "switches": {
+            "json": "json_output",
+        },
+        "timeout": 900,
     },
     "add": {
         "subcommand": "add",
@@ -186,18 +315,21 @@ def _hyperframes_op(
     _require_hyperframes_deps()
 
     cwd_key = spec.get("cwd_key", "project_path")
-    cwd_val = kwargs.get(cwd_key)
-    if cwd_val is None:
-        raise MCPVideoError(
-            f"Missing required parameter: {cwd_key}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-
-    if cwd_key == "project_path":
-        cwd, _entry_point = _validate_project(cwd_val)
+    if cwd_key is None:
+        cwd = Path(kwargs.get("cwd") or os.getcwd()).resolve()
     else:
-        cwd = Path(cwd_val).resolve()
+        cwd_val = kwargs.get(cwd_key)
+        if cwd_val is None:
+            raise MCPVideoError(
+                f"Missing required parameter: {cwd_key}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        if cwd_key == "project_path":
+            cwd, _entry_point = _validate_project(cwd_val)
+        else:
+            cwd = Path(cwd_val).resolve()
 
     args: list[str] = [spec["subcommand"]]
 
@@ -211,10 +343,19 @@ def _hyperframes_op(
             )
         args.append(str(val))
 
+    for pos_key in spec.get("optional_positional", []):
+        val = kwargs.get(pos_key)
+        if val:
+            args.append(str(val))
+
     for flag, kw_key in spec.get("flags", {}).items():
         val = kwargs.get(kw_key)
         if val is not None:
             args.extend([f"--{flag}", str(val)])
+
+    for flag, kw_key in spec.get("switches", {}).items():
+        if kwargs.get(kw_key):
+            args.append(f"--{flag}")
 
     for item in spec.get("fixed", []):
         args.append(item)
@@ -244,6 +385,37 @@ def _post_process_ops() -> dict[str, Callable]:
     }
 
 
+def _parse_json_stdout(stdout: str) -> dict[str, Any] | list[Any] | str:
+    """Parse Hyperframes JSON output, preserving text when a command is human-only."""
+    text = stdout.strip()
+    if not text:
+        return {}
+    try:
+        return json.loads(text)
+    except json.JSONDecodeError:
+        return text
+
+
+def _csv(values: list[float] | list[str] | None) -> str | None:
+    if not values:
+        return None
+    return ",".join(str(v) for v in values)
+
+
+def _snapshot_pngs(project: Path, before: set[Path]) -> list[str]:
+    snapshot_dir = project / "snapshots"
+    if not snapshot_dir.is_dir():
+        return []
+    after = set(snapshot_dir.glob("*.png"))
+    created = after - before
+    paths = sorted(created or after)
+    return [str(path) for path in paths]
+
+
+def _json_result(command: str, result: subprocess.CompletedProcess[str]) -> HyperframesJsonResult:
+    return HyperframesJsonResult(command=command, data=_parse_json_stdout(result.stdout), stdout=result.stdout)
+
+
 # ---------------------------------------------------------------------------
 # Public API
 # ---------------------------------------------------------------------------
@@ -259,6 +431,20 @@ def render(
     format: str | None = None,
     workers: str | int | None = None,
     crf: int | None = None,
+    video_bitrate: str | None = None,
+    variables: str | None = None,
+    variables_file: str | None = None,
+    docker: bool = False,
+    hdr: bool = False,
+    sdr: bool = False,
+    gpu: bool = False,
+    browser_gpu: bool = False,
+    no_browser_gpu: bool = False,
+    quiet: bool = False,
+    strict: bool = False,
+    strict_all: bool = False,
+    max_concurrent_renders: int | None = None,
+    strict_variables: bool = False,
 ) -> HyperframesRenderResult:
     """Render a Hyperframes composition to video."""
     if output_path is None:
@@ -275,6 +461,20 @@ def render(
         format=format,
         workers=workers,
         crf=crf,
+        video_bitrate=video_bitrate,
+        variables=variables,
+        variables_file=variables_file,
+        docker=docker,
+        hdr=hdr,
+        sdr=sdr,
+        gpu=gpu,
+        browser_gpu=browser_gpu,
+        no_browser_gpu=no_browser_gpu,
+        quiet=quiet,
+        strict=strict,
+        strict_all=strict_all,
+        max_concurrent_renders=max_concurrent_renders,
+        strict_variables=strict_variables,
     )
 
     render_time = round(time.time() - start_time, 1)
@@ -404,17 +604,192 @@ def still(
     output_path: str | None = None,
     frame: int = 0,
 ) -> HyperframesStillResult:
-    """Render a single frame from a Hyperframes composition."""
-    if output_path is None:
-        os.makedirs("out", exist_ok=True)
-        output_path = os.path.join("out", f"{Path(project_path).name}_frame{frame}.png")
+    """Render a single frame from a Hyperframes composition.
 
-    _hyperframes_op("snapshot", project_path=project_path, frame=frame)
+    Hyperframes 0.5 writes snapshot PNGs into the project ``snapshots/``
+    directory and does not accept an output file flag. Return the actual
+    generated frame path instead of echoing a requested-but-unwritten path.
+    """
+    seconds = frame / 30.0
+    snap = snapshot(project_path, at=[seconds], frames=1)
+    actual_output = snap.frame_paths[0] if snap.frame_paths else output_path or ""
 
     return HyperframesStillResult(
-        output_path=output_path,
+        output_path=actual_output,
         frame=frame,
     )
+
+
+def snapshot(
+    project_path: str,
+    frames: int = 5,
+    at: list[float] | None = None,
+    timeout_ms: int | None = None,
+) -> HyperframesSnapshotResult:
+    """Capture key frames as PNG screenshots for visual verification."""
+    _require_hyperframes_deps()
+    project, _entry_point = _validate_project(project_path)
+    snapshot_dir = project / "snapshots"
+    before = set(snapshot_dir.glob("*.png")) if snapshot_dir.is_dir() else set()
+    at_csv = _csv(at)
+    _hyperframes_op(
+        "snapshot",
+        project_path=project_path,
+        frames=frames if at_csv is None else None,
+        at_csv=at_csv,
+        timeout_ms=timeout_ms,
+    )
+    frame_paths = _snapshot_pngs(project, before)
+    return HyperframesSnapshotResult(
+        frame_paths=frame_paths,
+        output_dir=str(snapshot_dir),
+        frames=frames,
+        at=at or [],
+    )
+
+
+def inspect(
+    project_path: str,
+    samples: int = 9,
+    at: list[float] | None = None,
+    tolerance: int = 2,
+    timeout_ms: int | None = None,
+    max_issues: int = 80,
+    collapse_static: bool = False,
+    no_collapse_static: bool = False,
+    strict: bool = False,
+) -> HyperframesJsonResult:
+    """Inspect rendered layout for text and container overflow."""
+    result, _project = _hyperframes_op(
+        "inspect",
+        project_path=project_path,
+        samples=samples,
+        at_csv=_csv(at),
+        tolerance=tolerance,
+        timeout_ms=timeout_ms,
+        max_issues=max_issues,
+        collapse_static=collapse_static,
+        no_collapse_static=no_collapse_static,
+        strict=strict,
+    )
+    return _json_result("inspect", result)
+
+
+def info(project_path: str) -> HyperframesJsonResult:
+    """Return Hyperframes project metadata."""
+    result, _project = _hyperframes_op("info", project_path=project_path)
+    return _json_result("info", result)
+
+
+def catalog(item_type: str | None = None, tag: str | None = None) -> HyperframesJsonResult:
+    """Browse Hyperframes catalog blocks/components."""
+    result, _cwd = _hyperframes_op("catalog", item_type=item_type, tag=tag)
+    return _json_result("catalog", result)
+
+
+def capture(
+    url: str,
+    output: str | None = None,
+    skip_assets: bool = False,
+    max_screenshots: int | None = None,
+    timeout_ms: int | None = None,
+) -> HyperframesJsonResult:
+    """Capture a website as editable Hyperframes components."""
+    result, _cwd = _hyperframes_op(
+        "capture",
+        url=url,
+        output=output,
+        skip_assets=skip_assets,
+        max_screenshots=max_screenshots,
+        timeout_ms=timeout_ms,
+    )
+    return _json_result("capture", result)
+
+
+def transcribe(
+    input_path: str,
+    project_path: str | None = None,
+    model: str | None = None,
+    language: str | None = None,
+) -> HyperframesJsonResult:
+    """Transcribe audio/video to word-level timestamps or import transcript files."""
+    result, _cwd = _hyperframes_op(
+        "transcribe",
+        input_path=input_path,
+        project_path=project_path,
+        model=model,
+        language=language,
+    )
+    return _json_result("transcribe", result)
+
+
+def tts(
+    text_or_file: str | None = None,
+    output_path: str | None = None,
+    voice: str | None = None,
+    speed: float | None = None,
+    language: str | None = None,
+    list_voices: bool = False,
+) -> HyperframesJsonResult:
+    """Generate speech audio from text using Hyperframes local TTS."""
+    if not list_voices and not text_or_file:
+        raise MCPVideoError(
+            "text_or_file is required unless list_voices is true",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    result, _cwd = _hyperframes_op(
+        "tts",
+        text_or_file=text_or_file,
+        output_path=output_path,
+        voice=voice,
+        speed=speed,
+        language=language,
+        list_voices=list_voices,
+    )
+    return _json_result("tts", result)
+
+
+def remove_background(
+    input_path: str,
+    output_path: str | None = None,
+    background_output_path: str | None = None,
+    device: str = "auto",
+    quality: str = "balanced",
+    info: bool = False,
+) -> HyperframesJsonResult:
+    """Remove a video/image background with Hyperframes local AI."""
+    result, _cwd = _hyperframes_op(
+        "remove-background",
+        input_path=input_path,
+        output_path=output_path,
+        background_output_path=background_output_path,
+        device=device,
+        quality=quality,
+        info=info,
+    )
+    return _json_result("remove-background", result)
+
+
+def doctor() -> HyperframesJsonResult:
+    """Run Hyperframes environment diagnostics."""
+    result, _cwd = _hyperframes_op("doctor")
+    return _json_result("doctor", result)
+
+
+def benchmark(
+    project_path: str,
+    output_path: str | None = None,
+    json_output: bool = True,
+) -> HyperframesJsonResult:
+    """Benchmark Hyperframes render speed and output size."""
+    result, _project = _hyperframes_op(
+        "benchmark",
+        project_path=project_path,
+        output_path=output_path,
+        json_output=json_output,
+    )
+    return _json_result("benchmark", result)
 
 
 def create_project(

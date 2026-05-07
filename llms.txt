@@ -2,13 +2,15 @@
 
 > Video editing MCP server, Python library, and CLI for AI agents.
 
-mcp-video gives AI agents 91 structured tools for FFmpeg-based video editing, cinematic style-pack and storyboard planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, and Hyperframes code-driven video creation.
+mcp-video gives AI agents structured tools for FFmpeg-based video editing, PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, Hyperframes 0.5 code-driven video creation, and local repurposing packages.
 
 ## Use cases
 - Claude Code / Cursor video editing tools
 - FFmpeg automation through MCP
 - Agentic media pipelines
 - Cinematic video prompt planning with STYLE_/NEG_ blocks and storyboard tables
+- Hyperframes 0.5 rendering, snapshots, inspection, catalog blocks, website capture, local TTS, transcription, background removal, diagnostics, and benchmarks
+- Local repurposing packages for Shorts, Reels, TikTok, and YouTube variants
 - Python video editing scripts
 - CLI video operations
 - Video QA checkpoints for generated media
@@ -19,6 +21,7 @@ mcp-video gives AI agents 91 structured tools for FFmpeg-based video editing, ci
 - `docs/TOOLS.md`: MCP tool reference
 - `docs/AI_AGENT_DISCOVERY.md`: agent discovery guidance
 - `mcp_video/creation_engine.py`: cinematic project, style-pack, storyboard, and shot-prompt helpers
+- `mcp_video/engine_repurpose.py`: local platform package planning and rendering
 - `examples/`: usage examples
 
 ## Safety Rules For Agents
@@ -29,4 +32,4 @@ mcp-video gives AI agents 91 structured tools for FFmpeg-based video editing, ci
 - Use timeouts on all subprocess calls
 
 ## Keywords
-video editing MCP server, AI agent video editing, cinematic video storyboard MCP, AI video style pack, FFmpeg automation, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, subtitles, reels automation, shorts automation.
+video editing MCP server, AI agent video editing, cinematic video storyboard MCP, AI video style pack, FFmpeg automation, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, local TTS, video background removal, subtitles, reels automation, shorts automation, video repurposing.

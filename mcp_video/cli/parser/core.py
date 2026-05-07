@@ -86,6 +86,18 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     template_p.add_argument("--outro", help="Outro video file (for youtube)")
     template_p.add_argument("-o", "--output", help="Output file path")
 
+    repurpose_plan_p = subparsers.add_parser("repurpose-plan", help="Create a dry-run repurposing manifest")
+    repurpose_plan_p.add_argument("input", help="Input video file")
+    repurpose_plan_p.add_argument("-o", "--output-dir", help="Package output directory")
+    repurpose_plan_p.add_argument("--platforms", nargs="+", help="Platforms to include")
+
+    repurpose_p = subparsers.add_parser("repurpose", help="Render a local repurposing package")
+    repurpose_p.add_argument("input", help="Input video file")
+    repurpose_p.add_argument("-o", "--output-dir", help="Package output directory")
+    repurpose_p.add_argument("--platforms", nargs="+", help="Platforms to include")
+    repurpose_p.add_argument("--skip-release-checkpoint", action="store_true")
+    repurpose_p.add_argument("--min-score", type=float, default=0.0)
+
     # Effect commands
 
     # Transition commands
