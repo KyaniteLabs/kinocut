@@ -11,6 +11,12 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.3.10 - 2026-05-07
+
+### Fixed
+
+- Improved `mcp-video doctor` guidance on Python 3.13+ so missing Real-ESRGAN/BasicSR reports explain the BasicSR build guard and point users to the OpenCV fallback or Python 3.11/3.12 for the Real-ESRGAN backend.
+
 ## 1.3.9 - 2026-05-06
 
 ### Fixed

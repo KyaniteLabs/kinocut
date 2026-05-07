@@ -3,7 +3,7 @@
   "name": "io.github.KyaniteLabs/mcp-video",
   "title": "mcp-video",
   "description": "Video editing MCP server with 91 FFmpeg, planning, and Hyperframes tools.",
-  "version": "1.3.9",
+  "version": "1.3.10",
   "websiteUrl": "https://kyanitelabs.github.io/mcp-video/",
   "repository": {
     "url": "https://github.com/KyaniteLabs/mcp-video",
@@ -13,7 +13,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-video",
-      "version": "1.3.9",
+      "version": "1.3.10",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
