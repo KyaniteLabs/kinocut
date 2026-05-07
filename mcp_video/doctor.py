@@ -18,6 +18,12 @@ VersionRunner = Callable[[list[str]], str | None]
 FindSpecFn = Callable[[str], Any]
 PackageVersionFn = Callable[[str], str | None]
 
+PYTHON_313_UPSCALE_BACKEND_HINT = (
+    "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
+    'The OpenCV fallback is still installed by: pip install "mcp-video[upscale]". '
+    "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
+)
+
 COMMAND_CHECKS = (
     {
         "name": "ffmpeg",
@@ -121,6 +127,8 @@ def _check_package(
     found = find_spec(import_name) is not None
     version = package_version(distribution_name) if found else None
     ok = found and version is not None
+    if not ok and distribution_name in {"realesrgan", "basicsr"} and sys.version_info >= (3, 13):
+        install_hint = PYTHON_313_UPSCALE_BACKEND_HINT
     return {
         "name": distribution_name,
         "category": category,
