@@ -764,6 +764,13 @@ class TestGenerateSubtitles:
         with pytest.raises(MCPVideoError, match=r"start.*end"):
             generate_subtitles(entries, sample_video)
 
+    def test_invalid_entry_rejected_before_input_validation(self):
+        from mcp_video.engine import generate_subtitles
+
+        entries = [{"start": 1.0, "text": "Missing end"}]
+        with pytest.raises(MCPVideoError, match="subtitle entry"):
+            generate_subtitles(entries, "/tmp/missing.mp4")
+
 
 class TestAudioWaveform:
     """Tests for audio waveform extraction."""

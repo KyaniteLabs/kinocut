@@ -31,10 +31,10 @@ def generate_subtitles(
     burn: bool = False,
 ) -> SubtitleResult:
     """Generate SRT subtitles from text entries and optionally burn into video."""
+    _validate_entries(entries)
     input_path = _validate_input_path(input_path)
     if output_path:
         _validate_output_path(output_path)
-    _validate_entries(entries)
 
     srt_file = _write_srt(entries, input_path, output_path)
     if burn:

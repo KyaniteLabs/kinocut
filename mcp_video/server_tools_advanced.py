@@ -416,8 +416,12 @@ def video_generate_subtitles(
         input_path: Absolute path to the input video.
         burn: If True, burn subtitles into the video (default False).
     """
-    if not isinstance(entries, list) or len(entries) == 0:
-        return _validation_error("entries must be a non-empty list")
+    try:
+        from .engine_subtitle_generate import _validate_entries
+
+        _validate_entries(entries)
+    except MCPVideoError as exc:
+        return _validation_error(str(exc))
     input_path = _validate_input_path(input_path)
     return _result(generate_subtitles(entries, input_path, burn=burn))
 

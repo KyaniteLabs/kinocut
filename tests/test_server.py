@@ -37,6 +37,7 @@ from mcp_video.server import (
     video_extract_audio,
     video_fade,
     video_filter,
+    video_generate_subtitles,
     video_hls_segment,
     video_info,
     video_layout_grid,
@@ -792,6 +793,20 @@ class TestServerValidationAI:
     def test_scene_detect_rejects_bad_threshold(self, sample_video):
         result = video_ai_scene_detect(sample_video, threshold=5.0)
         assert result["success"] is False
+
+
+class TestServerValidationSubtitles:
+    def test_generate_subtitles_rejects_bad_entry_before_input_validation(self):
+        result = video_generate_subtitles([{"start": 1.0, "text": "Missing end"}], "/tmp/missing.mp4")
+
+        assert result["success"] is False
+        assert "subtitle entry" in result["error"]["message"]
+
+    def test_generate_subtitles_rejects_bad_range_before_input_validation(self):
+        result = video_generate_subtitles([{"start": 2.0, "end": 1.0, "text": "Bad"}], "/tmp/missing.mp4")
+
+        assert result["success"] is False
+        assert "start" in result["error"]["message"]
 
 
 class TestServerValidationTimelinePosition:
