@@ -54,6 +54,17 @@ class ChecksMixin:
         mean_luma = self._get_mean_luma(video_path)
         color_stats = self._analyze_colors(video_path)
 
+        if mean_luma is None:
+            self.issues.append(
+                DesignIssue(
+                    category="typography",
+                    severity="info",
+                    message="Brightness analysis unavailable — skipped readability check.",
+                    fix_available=False,
+                )
+            )
+            return
+
         # Check if this is an intentional dark brand theme
         is_dark_brand = self._is_dark_brand_theme(mean_luma, color_stats)
 

@@ -56,10 +56,18 @@ class ProbeMixin:
         duration = probe.get("duration", 0)
         return float(duration) if duration else 0
 
-    def _get_mean_luma(self, video_path: str) -> float:
-        """Get mean luminance."""
+    def _get_mean_luma(self, video_path: str) -> float | None:
+        """Get mean luminance. Returns None if analysis fails."""
         cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            logger.warning("ffmpeg signalstats timed out for %s", video_path)
+            return None
+
+        if result.returncode != 0:
+            logger.warning("ffmpeg signalstats failed for %s: %s", video_path, result.stderr[:200])
+            return None
 
         for line in result.stderr.split("\n"):
             if "lavfi.signalstats.YAVG" in line:
@@ -67,13 +75,21 @@ class ProbeMixin:
                     return float(line.split("=")[-1].strip())
                 except Exception as exc:
                     logger.debug("Luma parsing failed: %s", exc)
-                    pass
-        return 128
+        logger.warning("No YAVG signalstats found for %s", video_path)
+        return None
 
-    def _get_contrast(self, video_path: str) -> float:
-        """Get contrast (standard deviation of luminance)."""
+    def _get_contrast(self, video_path: str) -> float | None:
+        """Get contrast (standard deviation of luminance). Returns None if analysis fails."""
         cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        except subprocess.TimeoutExpired:
+            logger.warning("ffmpeg signalstats timed out for %s", video_path)
+            return None
+
+        if result.returncode != 0:
+            logger.warning("ffmpeg signalstats failed for %s: %s", video_path, result.stderr[:200])
+            return None
 
         for line in result.stderr.split("\n"):
             if "lavfi.signalstats.YSTD" in line:
@@ -81,5 +97,5 @@ class ProbeMixin:
                     return float(line.split("=")[-1].strip())
                 except Exception as exc:
                     logger.debug("Contrast parsing failed: %s", exc)
-                    pass
-        return 50
+        logger.warning("No YSTD signalstats found for %s", video_path)
+        return None
