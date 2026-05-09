@@ -21,36 +21,42 @@ class ScoringMixin:
         Brand-aware scoring:
         - Dark themes (luma < 50) are not penalized as harshly
         - This accounts for intentional dark brand aesthetics
+
+        When luma or contrast analysis fails, uses a neutral 50 score
+        for that metric instead of a perfect score.
         """
         mean_luma = self._get_mean_luma(video_path)
         color_stats = self._analyze_colors(video_path)
 
-        # Check if this is an intentional dark brand theme
-        is_dark_brand_theme = self._is_dark_brand_theme(mean_luma, color_stats)
-
-        if is_dark_brand_theme:
-            # For dark brand themes, use a gentler scoring curve
-            # that doesn't penalize the intentional aesthetic
-            if mean_luma < 30:
-                brightness_score = 65  # Very dark but intentional
-            elif mean_luma < 50:
-                brightness_score = 75  # Dark but acceptable
-            elif mean_luma < 70:
-                brightness_score = 85  # Elevated dark
-            else:
-                brightness_score = max(0, 100 - abs(mean_luma - 128) / 2.56)
+        if mean_luma is None:
+            brightness_score = 50
         else:
-            # Standard scoring for non-brand content
-            brightness_score = max(0, 100 - abs(mean_luma - 128) / 1.28)
+            # Check if this is an intentional dark brand theme
+            is_dark_brand_theme = self._is_dark_brand_theme(mean_luma, color_stats)
+
+            if is_dark_brand_theme:
+                # For dark brand themes, use a gentler scoring curve
+                # that doesn't penalize the intentional aesthetic
+                if mean_luma < 30:
+                    brightness_score = 65  # Very dark but intentional
+                elif mean_luma < 50:
+                    brightness_score = 75  # Dark but acceptable
+                elif mean_luma < 70:
+                    brightness_score = 85  # Elevated dark
+                else:
+                    brightness_score = max(0, 100 - abs(mean_luma - 128) / 2.56)
+            else:
+                # Standard scoring for non-brand content
+                brightness_score = max(0, 100 - abs(mean_luma - 128) / 1.28)
 
         contrast = self._get_contrast(video_path)
-        contrast_score = min(100, contrast * 2)
+        contrast_score = min(100, contrast * 2) if contrast is not None else 50
 
         audio_score = self._calculate_audio_score(video_path)
 
         return (brightness_score + contrast_score + audio_score) / 3
 
-    def _is_dark_brand_theme(self, mean_luma: float, color_stats: dict) -> bool:
+    def _is_dark_brand_theme(self, mean_luma: float | None, color_stats: dict) -> bool:
         """Detect if video uses an intentional dark brand theme.
 
         Checks for:
@@ -58,7 +64,7 @@ class ScoringMixin:
         - Brand color presence (Electric Lime, Midnight Violet)
         - Consistent color palette
         """
-        if mean_luma > 60:
+        if mean_luma is None or mean_luma > 60:
             return False
 
         rgb_means = color_stats.get("rgb_means", [128, 128, 128])
