@@ -50,6 +50,7 @@ from ..models import (
     StoryboardResult,
     SubtitleResult,
     ThumbnailResult,
+    _validate_position,
 )
 
 
@@ -271,6 +272,7 @@ class ClientMediaMixin:
         preset: str | None = None,
     ) -> EditResult:
         """Add image watermark."""
+        _validate_position(position)
         return _watermark(
             video,
             image_path=image,
@@ -474,6 +476,7 @@ class ClientMediaMixin:
         preset: str | None = None,
     ) -> EditResult:
         """Picture-in-picture: overlay a video on top of another."""
+        _validate_position(position)
         return _overlay_video(
             background_path=background,
             overlay_path=overlay,

@@ -20,6 +20,7 @@ from .engine import (
     watermark,
 )
 from .errors import MCPVideoError
+from .models import _validate_position
 from .server_app import _error_result, _result, _safe_tool, _validation_error, mcp
 from .templates import TEMPLATES, preview_template
 from .validation import VALID_AUDIO_FORMATS, VALID_FORMATS, VALID_PRESETS
@@ -132,6 +133,10 @@ def video_watermark(
         crf: Override CRF value (0-51, lower = better quality). Default 23.
         preset: Override FFmpeg encoding preset (ultrafast, fast, medium, slow, veryslow).
     """
+    try:
+        _validate_position(position)
+    except MCPVideoError as exc:
+        return _validation_error(str(exc))
     if not 0 <= opacity <= 1:
         return _validation_error(f"opacity must be between 0 and 1, got {opacity}")
     if margin < 0:

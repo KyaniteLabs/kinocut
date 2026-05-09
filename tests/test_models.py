@@ -18,6 +18,8 @@ from mcp_video.models import (
     TimelineTransition,
     VideoInfo,
     WatermarkSettings,
+    _position_coords,
+    _resolve_position,
 )
 
 
@@ -228,3 +230,12 @@ class TestValidation:
     def test_invalid_enum_rejected(self, cls, kwargs):
         with pytest.raises(Exception):
             cls(**kwargs)
+
+    def test_position_helpers_reject_unknown_named_position(self):
+        position_map = {"center": "center", "bottom-right": "bottom-right"}
+
+        with pytest.raises(Exception, match="position must be one of"):
+            _position_coords("middle-ish")
+
+        with pytest.raises(Exception, match="position must be one of"):
+            _resolve_position("middle-ish", position_map, "bottom-right")

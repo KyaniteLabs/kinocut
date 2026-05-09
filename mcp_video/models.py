@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Any, Literal, get_args
 
 from pydantic import BaseModel, Field
 
@@ -267,6 +267,7 @@ NamedPosition = Literal[
 
 # Position can be a named position string, pixel coordinates, or percentage coordinates
 Position = NamedPosition | dict[str, float]
+VALID_NAMED_POSITIONS = set(get_args(NamedPosition))
 
 # --- Transition types ---
 
@@ -402,11 +403,14 @@ class WatermarkSettings(BaseModel):
 
 
 def _validate_position(position: Position) -> None:
-    """Validate position dict values to prevent FFmpeg filter injection.
-
-    Only validates when position is a dict; named strings are safe by design.
-    """
+    """Validate named and dict positions before building FFmpeg expressions."""
     if not isinstance(position, dict):
+        if position not in VALID_NAMED_POSITIONS:
+            raise _MCPVideoError(
+                f"position must be one of {sorted(VALID_NAMED_POSITIONS)}, got {position}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
         return
     if "x_pct" in position and "y_pct" in position:
         for key in ("x_pct", "y_pct"):
@@ -485,7 +489,7 @@ def _position_coords(position: Position, width: int = 0, height: int = 0) -> str
         "bottom-center": "x=(w-text_w)/2:y=h-text_h-10",
         "bottom-right": "x=w-text_w-10:y=h-text_h-10",
     }
-    return mapping.get(position, mapping["center"])
+    return mapping[position]
 
 
 def _resolve_position(
@@ -510,4 +514,4 @@ def _resolve_position(
                 "Position dict must have 'x'+'y' (pixels) or 'x_pct'+'y_pct' (percentage)",
                 code="invalid_position_dict",
             )
-    return position_map.get(position, position_map[default])
+    return position_map[position]

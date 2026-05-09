@@ -29,6 +29,7 @@ from .engine import (
 )
 from .engine import video_batch as _video_batch
 from .errors import MCPVideoError
+from .models import _validate_position
 from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_LAYOUTS, VALID_PRESETS
@@ -276,6 +277,10 @@ def video_overlay(
         crf: Override CRF value (0-51, lower = better quality). Default 23.
         preset: Override FFmpeg encoding preset (ultrafast, fast, medium, slow, veryslow).
     """
+    try:
+        _validate_position(position)
+    except MCPVideoError as exc:
+        return _validation_error(str(exc))
     if width is not None and width <= 0:
         return _validation_error(f"width must be positive, got {width}")
     if height is not None and height <= 0:

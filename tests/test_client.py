@@ -381,6 +381,14 @@ class TestClientValidators:
         with pytest.raises(MCPVideoError, match="qualities"):
             editor.hls_segment("/tmp/video.mp4", qualities=["high", "cinema"])
 
+    def test_watermark_rejects_unknown_position(self, editor):
+        with pytest.raises(MCPVideoError, match="position must be one of"):
+            editor.watermark("/tmp/video.mp4", "/tmp/logo.png", position="middle-ish")
+
+    def test_overlay_video_rejects_unknown_position(self, editor):
+        with pytest.raises(MCPVideoError, match="position must be one of"):
+            editor.overlay_video("/tmp/video.mp4", "/tmp/overlay.mp4", position="middle-ish")
+
     def test_convert_invalid_format(self, editor):
         with pytest.raises(MCPVideoError, match="format must be one of"):
             editor.convert("video.mp4", format="avi")

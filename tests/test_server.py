@@ -789,6 +789,20 @@ class TestServerValidationAI:
         assert result["success"] is False
 
 
+class TestServerValidationOverlayPosition:
+    def test_watermark_rejects_bad_position_before_input_validation(self):
+        result = video_watermark("/tmp/missing.mp4", "/tmp/logo.png", position="middle-ish")
+
+        assert result["success"] is False
+        assert "position" in result["error"]["message"]
+
+    def test_overlay_rejects_bad_position_before_input_validation(self):
+        result = video_overlay("/tmp/missing.mp4", "/tmp/overlay.mp4", position="middle-ish")
+
+        assert result["success"] is False
+        assert "position" in result["error"]["message"]
+
+
 class TestServerValidationHls:
     def test_rejects_bad_hls_quality_before_input_validation(self):
         result = video_hls_segment("/tmp/missing.mp4", qualities=["high", "cinema"])
