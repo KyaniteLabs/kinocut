@@ -9,10 +9,63 @@ import logging
 import subprocess
 from typing import Any
 
-from ..errors import MCPVideoError
+from ..errors import MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _validate_input_path, _run_command, _run_ffmpeg
+from ..limits import DEFAULT_FFMPEG_TIMEOUT
 
 logger = logging.getLogger(__name__)
+
+
+def _rgb_to_hex(rgb: bytes) -> str:
+    """Convert three RGB bytes to a hex color string."""
+    return f"#{rgb[0]:02X}{rgb[1]:02X}{rgb[2]:02X}"
+
+
+def _extract_representative_colors(video: str, duration: float, max_colors: int = 3) -> list[str]:
+    """Extract simple representative frame colors without optional image dependencies."""
+    if max_colors < 1:
+        return []
+
+    sample_times = [0.0]
+    if duration > 0:
+        sample_times = [max(0.0, duration * ratio) for ratio in (0.1, 0.5, 0.9)]
+
+    colors: list[str] = []
+    for timestamp in sample_times:
+        cmd = [
+            "ffmpeg",
+            "-ss",
+            f"{timestamp:.3f}",
+            "-i",
+            video,
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=1:1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        except subprocess.TimeoutExpired as exc:
+            raise ProcessingError(
+                " ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
+            ) from exc
+        if result.returncode != 0:
+            raise ProcessingError(" ".join(cmd), result.returncode, result.stderr.decode(errors="replace"))
+        if len(result.stdout) < 3:
+            raise ProcessingError(" ".join(cmd), result.returncode, "FFmpeg returned no RGB frame data")
+
+        color = _rgb_to_hex(result.stdout[:3])
+        if color not in colors:
+            colors.append(color)
+        if len(colors) >= max_colors:
+            break
+
+    return colors
 
 
 def video_info_detailed(video: str) -> dict[str, Any]:
@@ -100,6 +153,8 @@ def video_info_detailed(video: str) -> dict[str, Any]:
         logger = logging.getLogger(__name__)
         logger.warning("Scene detection failed (optional): %s", e)
 
+    dominant_colors = _extract_representative_colors(video, duration)
+
     return {
         "duration": duration,
         "fps": fps,
@@ -107,7 +162,7 @@ def video_info_detailed(video: str) -> dict[str, Any]:
         "bitrate": bitrate,
         "has_audio": audio_stream is not None,
         "scene_changes": scene_changes[:10],  # Limit to first 10
-        "dominant_colors": None,  # Frame analysis not yet implemented
+        "dominant_colors": dominant_colors,
     }
 
 

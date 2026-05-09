@@ -1532,6 +1532,21 @@ def test_analyze_video_extracts_colors_by_default(monkeypatch):
     assert not [error for error in result["errors"] if error["section"] == "colors"]
 
 
+@requires_ffmpeg
+@requires_ffprobe
+def test_video_info_detailed_returns_representative_colors():
+    """video_info_detailed should not advertise dominant_colors as an unimplemented None."""
+    from mcp_video.effects_engine import video_info_detailed
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        video = create_simple_video(str(Path(tmpdir) / "test.mp4"))
+        result = video_info_detailed(video)
+
+    assert result["dominant_colors"]
+    assert result["dominant_colors"][0].startswith("#")
+    assert result["dominant_colors"][0] != "#000000"
+
+
 def test_validate_analysis_output_paths_blocks_system_prefixes():
     """_validate_analysis_output_paths rejects writes to system directories."""
     from mcp_video.ai_engine import _validate_analysis_output_paths
