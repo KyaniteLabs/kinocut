@@ -106,8 +106,8 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 
 | Tool | Description |
 |------|-------------|
-| `hyperframes_init` | Scaffold a new Hyperframes project (blank, warm-grain, swiss-grid templates) |
-| `hyperframes_render` | Render a Hyperframes composition to video (MP4/WebM/MOV) |
+| `hyperframes_init` | Scaffold a new Hyperframes project (blank, warm-grain, swiss-grid templates; optional media bootstrap, Tailwind, and resolution preset flags) |
+| `hyperframes_render` | Render a Hyperframes composition to video (MP4/WebM/MOV/PNG sequence; optional composition and resolution preset flags) |
 | `hyperframes_snapshot` | Capture actual PNG snapshot paths written by Hyperframes |
 | `hyperframes_still` | Backward-compatible single-frame snapshot helper |
 | `hyperframes_inspect` | Inspect rendered layout for overflow and visual issues |
@@ -118,11 +118,11 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 | `hyperframes_transcribe` | Transcribe media to word-level timestamps or import transcripts |
 | `hyperframes_remove_background` | Remove image/video backgrounds to transparent media |
 | `hyperframes_doctor` | Run Hyperframes environment diagnostics |
-| `hyperframes_benchmark` | Compare render speed and output size |
+| `hyperframes_benchmark` | Compare render speed and output size, with configurable run count |
 | `hyperframes_compositions` | List all compositions in a project |
 | `hyperframes_preview` | Launch Hyperframes preview studio |
 | `hyperframes_validate` | Check project structure and run lint |
-| `hyperframes_add_block` | Install a block from the Hyperframes catalog |
+| `hyperframes_add_block` | Install a block from the Hyperframes catalog, with optional clipboard suppression |
 | `hyperframes_to_mcpvideo` | Pipeline: render with Hyperframes, then post-process with mcp-video |
 
 ---

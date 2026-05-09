@@ -7,7 +7,12 @@ import re
 
 from .limits import MAX_CRF, MAX_PORT, MAX_RESOLUTION, MIN_CRF, MIN_PORT
 from .server_app import _result, _safe_tool, _validation_error, mcp
-from .validation import VALID_HYPERFRAMES_FORMATS, VALID_HYPERFRAMES_QUALITIES, VALID_HYPERFRAMES_TEMPLATES
+from .validation import (
+    VALID_HYPERFRAMES_FORMATS,
+    VALID_HYPERFRAMES_QUALITIES,
+    VALID_HYPERFRAMES_RESOLUTIONS,
+    VALID_HYPERFRAMES_TEMPLATES,
+)
 from .ffmpeg_helpers import _validate_project_path
 
 
@@ -19,8 +24,10 @@ def hyperframes_render(
     fps: float | None = None,
     width: int | None = None,
     height: int | None = None,
+    composition: str | None = None,
     quality: str | None = None,
     format: str | None = None,
+    resolution: str | None = None,
     workers: str | int | None = None,
     crf: int | None = None,
     video_bitrate: str | None = None,
@@ -47,7 +54,9 @@ def hyperframes_render(
         width: Output width in pixels.
         height: Output height in pixels.
         quality: Render quality (draft, standard, high). Default standard.
-        format: Output format (mp4, webm, mov). Default mp4.
+        format: Output format (mp4, webm, mov, png-sequence). Default mp4.
+        resolution: Hyperframes resolution preset (landscape, portrait, landscape-4k, portrait-4k, 1080p, 4k, uhd).
+        composition: Specific composition file to render instead of index.html.
         workers: Parallel render workers (number or 'auto'). Default auto.
         crf: Override encoder CRF (lower = better quality).
     """
@@ -57,6 +66,10 @@ def hyperframes_render(
         )
     if format is not None and format not in VALID_HYPERFRAMES_FORMATS:
         return _validation_error(f"Invalid format: must be one of {sorted(VALID_HYPERFRAMES_FORMATS)}, got '{format}'")
+    if resolution is not None and resolution not in VALID_HYPERFRAMES_RESOLUTIONS:
+        return _validation_error(
+            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{resolution}'"
+        )
     if width is not None and (width < 1 or width > MAX_RESOLUTION):
         return _validation_error(f"Invalid width: must be 1-{MAX_RESOLUTION}, got {width}")
     if height is not None and (height < 1 or height > MAX_RESOLUTION):
@@ -73,8 +86,10 @@ def hyperframes_render(
             fps=fps,
             width=width,
             height=height,
+            composition=composition,
             quality=quality,
             format=format,
+            resolution=resolution,
             workers=workers,
             crf=crf,
             video_bitrate=video_bitrate,
@@ -330,13 +345,14 @@ def hyperframes_doctor() -> dict[str, Any]:
 def hyperframes_benchmark(
     project_path: str,
     output_path: str | None = None,
+    runs: int | None = None,
     json_output: bool = True,
 ) -> dict[str, Any]:
     """Benchmark Hyperframes render speed and file size."""
     project_path = _validate_project_path(project_path)
     from .hyperframes_engine import benchmark
 
-    return _result(benchmark(project_path, output_path=output_path, json_output=json_output))
+    return _result(benchmark(project_path, output_path=output_path, runs=runs, json_output=json_output))
 
 
 @mcp.tool()
@@ -345,6 +361,13 @@ def hyperframes_init(
     name: str,
     output_dir: str | None = None,
     template: str = "blank",
+    video: str | None = None,
+    audio: str | None = None,
+    skip_transcribe: bool = False,
+    model: str | None = None,
+    language: str | None = None,
+    tailwind: bool = False,
+    resolution: str | None = None,
 ) -> dict[str, Any]:
     """Scaffold a new Hyperframes project.
 
@@ -352,6 +375,13 @@ def hyperframes_init(
         name: Project name.
         output_dir: Directory to create the project in. Defaults to current directory.
         template: Project template (blank, warm-grain, swiss-grid). Default blank.
+        video: Optional source video for project bootstrap.
+        audio: Optional source audio for project bootstrap.
+        skip_transcribe: Skip Whisper transcription during media bootstrap.
+        model: Whisper model for transcription.
+        language: Language code for transcription.
+        tailwind: Add Tailwind CSS browser-runtime support.
+        resolution: Hyperframes canvas resolution preset.
     """
     if not re.match(r"^[a-zA-Z0-9_-]+$", name):
         return _validation_error("Invalid name: must match ^[a-zA-Z0-9_-]+$")
@@ -359,9 +389,26 @@ def hyperframes_init(
         return _validation_error(
             f"Invalid template: must be one of {sorted(VALID_HYPERFRAMES_TEMPLATES)}, got '{template}'"
         )
+    if resolution is not None and resolution not in VALID_HYPERFRAMES_RESOLUTIONS:
+        return _validation_error(
+            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{resolution}'"
+        )
     from .hyperframes_engine import create_project
 
-    return _result(create_project(name, output_dir=output_dir, template=template))
+    return _result(
+        create_project(
+            name,
+            output_dir=output_dir,
+            template=template,
+            video=video,
+            audio=audio,
+            skip_transcribe=skip_transcribe,
+            model=model,
+            language=language,
+            tailwind=tailwind,
+            resolution=resolution,
+        )
+    )
 
 
 @mcp.tool()
@@ -369,6 +416,7 @@ def hyperframes_init(
 def hyperframes_add_block(
     project_path: str,
     block_name: str,
+    no_clipboard: bool = False,
 ) -> dict[str, Any]:
     """Install a block from the Hyperframes catalog.
 
@@ -381,7 +429,7 @@ def hyperframes_add_block(
     project_path = _validate_project_path(project_path)
     from .hyperframes_engine import add_block
 
-    return _result(add_block(project_path, block_name))
+    return _result(add_block(project_path, block_name, no_clipboard=no_clipboard))
 
 
 @mcp.tool()

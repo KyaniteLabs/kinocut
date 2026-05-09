@@ -119,8 +119,10 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "flags": {
             "output": "output_path",
             "fps": "fps",
+            "composition": "composition",
             "quality": "quality",
             "format": "format",
+            "resolution": "resolution",
             "workers": "workers",
             "crf": "crf",
             "video-bitrate": "video_bitrate",
@@ -262,6 +264,7 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "positional": ["project_path"],
         "flags": {
             "output": "output_path",
+            "runs": "runs",
         },
         "switches": {
             "json": "json_output",
@@ -274,6 +277,9 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "flags": {
             "dir": "project_path",
         },
+        "switches": {
+            "no-clipboard": "no_clipboard",
+        },
         "fixed": ["--json"],
         "timeout": 60,
     },
@@ -282,6 +288,15 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         "positional": ["name"],
         "flags": {
             "example": "template",
+            "video": "video",
+            "audio": "audio",
+            "model": "model",
+            "language": "language",
+            "resolution": "resolution",
+        },
+        "switches": {
+            "skip-transcribe": "skip_transcribe",
+            "tailwind": "tailwind",
         },
         "fixed": ["--non-interactive", "--skip-skills"],
         "cwd_key": "output_dir",
@@ -421,14 +436,31 @@ def _json_result(command: str, result: subprocess.CompletedProcess[str]) -> Hype
 # ---------------------------------------------------------------------------
 
 
+def _resolution_from_dimensions(width: int | None, height: int | None) -> str | None:
+    """Return the Hyperframes resolution preset matching legacy width/height args."""
+    match (width, height):
+        case (1920, 1080):
+            return "landscape"
+        case (1080, 1920):
+            return "portrait"
+        case (3840, 2160):
+            return "landscape-4k"
+        case (2160, 3840):
+            return "portrait-4k"
+        case _:
+            return None
+
+
 def render(
     project_path: str,
     output_path: str | None = None,
     fps: float | None = None,
     width: int | None = None,
     height: int | None = None,
+    composition: str | None = None,
     quality: str | None = None,
     format: str | None = None,
+    resolution: str | None = None,
     workers: str | int | None = None,
     crf: int | None = None,
     video_bitrate: str | None = None,
@@ -451,14 +483,18 @@ def render(
         os.makedirs("out", exist_ok=True)
         output_path = os.path.join("out", f"{Path(project_path).name}.mp4")
 
+    effective_resolution = resolution or _resolution_from_dimensions(width, height)
+
     start_time = time.time()
     _result, _project = _hyperframes_op(
         "render",
         project_path=project_path,
         output_path=output_path,
         fps=fps,
+        composition=composition,
         quality=quality,
         format=format,
+        resolution=effective_resolution,
         workers=workers,
         crf=crf,
         video_bitrate=video_bitrate,
@@ -484,9 +520,9 @@ def render(
     except OSError:
         size_mb = None
 
-    resolution = None
+    reported_resolution = effective_resolution
     if width and height:
-        resolution = f"{width}x{height}"
+        reported_resolution = f"{width}x{height}"
 
     if not os.path.isfile(output_path):
         return HyperframesRenderResult(
@@ -494,7 +530,7 @@ def render(
             codec=format or "h264",
             size_mb=None,
             render_time=render_time,
-            resolution=resolution,
+            resolution=reported_resolution,
             success=False,
         )
 
@@ -503,7 +539,7 @@ def render(
         codec=format or "h264",
         size_mb=size_mb,
         render_time=render_time,
-        resolution=resolution,
+        resolution=reported_resolution,
     )
 
 
@@ -780,6 +816,7 @@ def doctor() -> HyperframesJsonResult:
 def benchmark(
     project_path: str,
     output_path: str | None = None,
+    runs: int | None = None,
     json_output: bool = True,
 ) -> HyperframesJsonResult:
     """Benchmark Hyperframes render speed and output size."""
@@ -787,6 +824,7 @@ def benchmark(
         "benchmark",
         project_path=project_path,
         output_path=output_path,
+        runs=runs,
         json_output=json_output,
     )
     return _json_result("benchmark", result)
@@ -796,6 +834,13 @@ def create_project(
     name: str,
     output_dir: str | None = None,
     template: str = "blank",
+    video: str | None = None,
+    audio: str | None = None,
+    skip_transcribe: bool = False,
+    model: str | None = None,
+    language: str | None = None,
+    tailwind: bool = False,
+    resolution: str | None = None,
 ) -> HyperframesProjectResult:
     """Scaffold a new Hyperframes project."""
     name = _validate_project_name(name)
@@ -817,6 +862,13 @@ def create_project(
         name=name,
         template=template,
         output_dir=output_dir,
+        video=video,
+        audio=audio,
+        skip_transcribe=skip_transcribe,
+        model=model,
+        language=language,
+        tailwind=tailwind,
+        resolution=resolution,
     )
 
     # Discover created files
@@ -891,12 +943,14 @@ def validate(
 def add_block(
     project_path: str,
     block_name: str,
+    no_clipboard: bool = False,
 ) -> HyperframesBlockResult:
     """Install a block from the Hyperframes catalog."""
     result, project = _hyperframes_op(
         "add",
         project_path=project_path,
         block_name=block_name,
+        no_clipboard=no_clipboard,
     )
 
     files_added: list[str] = []

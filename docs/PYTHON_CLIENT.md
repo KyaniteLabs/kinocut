@@ -224,7 +224,7 @@ print(checkpoint["quality_score"])  # Must pass min_score
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `hyperframes_render(project_path, output?, fps?, width?, height?, quality?, format?, workers?, crf?)` | `HyperframesRenderResult` | Render a Hyperframes composition to video |
+| `hyperframes_render(project_path, output?, fps?, width?, height?, composition?, quality?, format?, resolution?, workers?, crf?)` | `HyperframesRenderResult` | Render a Hyperframes composition to video or PNG sequence |
 | `hyperframes_compositions(project_path)` | `CompositionsResult` | List compositions in a project |
 | `hyperframes_preview(project_path, port?)` | `HyperframesPreviewResult` | Launch live preview studio |
 | `hyperframes_still(project_path, output?, frame?)` | `HyperframesStillResult` | Render a single frame |
@@ -237,9 +237,9 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `hyperframes_transcribe(input_path, project_path?, model?, language?)` | `HyperframesJsonResult` | Transcribe media/import transcripts |
 | `hyperframes_remove_background(input_path, output?)` | `HyperframesJsonResult` | Produce transparent cutout media |
 | `hyperframes_doctor()` | `HyperframesJsonResult` | Run Hyperframes diagnostics |
-| `hyperframes_benchmark(project_path, output?)` | `HyperframesJsonResult` | Benchmark render settings |
-| `hyperframes_init(name, output_dir?, template?)` | `HyperframesProjectResult` | Scaffold a new project |
-| `hyperframes_add_block(project_path, block_name)` | `HyperframesBlockResult` | Install a block from the catalog |
+| `hyperframes_benchmark(project_path, output?, runs?)` | `HyperframesJsonResult` | Benchmark render settings |
+| `hyperframes_init(name, output_dir?, template?, video?, audio?, skip_transcribe?, model?, language?, tailwind?, resolution?)` | `HyperframesProjectResult` | Scaffold a new project |
+| `hyperframes_add_block(project_path, block_name, no_clipboard?)` | `HyperframesBlockResult` | Install a block from the catalog |
 | `hyperframes_validate(project_path)` | `HyperframesValidationResult` | Validate project for rendering readiness |
 | `hyperframes_to_mcpvideo(project_path, post_process, output?)` | `HyperframesPipelineResult` | Render then post-process with mcp-video |
 

@@ -141,7 +141,7 @@ mcp-video [command] [options]
 
 | Command | Description |
 |---------|-------------|
-| `hyperframes-render` | Render a Hyperframes composition to video |
+| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence (`--composition`, `--resolution`) |
 | `hyperframes-compositions` | List compositions in a Hyperframes project |
 | `hyperframes-preview` | Launch Hyperframes preview studio |
 | `hyperframes-still` | Render a single frame as an image |
@@ -154,9 +154,9 @@ mcp-video [command] [options]
 | `hyperframes-transcribe` | Transcribe media or import transcript timing |
 | `hyperframes-remove-background` | Remove image or video backgrounds |
 | `hyperframes-doctor` | Run Hyperframes environment diagnostics |
-| `hyperframes-benchmark` | Benchmark render settings |
-| `hyperframes-init` | Scaffold a new Hyperframes project |
-| `hyperframes-add-block` | Install a block from the Hyperframes catalog |
+| `hyperframes-benchmark` | Benchmark render settings (`--runs`) |
+| `hyperframes-init` | Scaffold a new Hyperframes project (media bootstrap, Tailwind, and resolution flags) |
+| `hyperframes-add-block` | Install a block from the Hyperframes catalog (`--no-clipboard`) |
 | `hyperframes-validate` | Validate a Hyperframes project structure |
 | `hyperframes-pipeline` | Render + post-process in one step |
 

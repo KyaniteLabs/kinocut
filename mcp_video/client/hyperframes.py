@@ -15,8 +15,10 @@ class ClientHyperframesMixin:
         fps: float | None = None,
         width: int | None = None,
         height: int | None = None,
+        composition: str | None = None,
         quality: str | None = None,
         format: str | None = None,
+        resolution: str | None = None,
         workers: str | int | None = None,
         crf: int | None = None,
     ) -> dict:
@@ -29,8 +31,10 @@ class ClientHyperframesMixin:
             fps=fps,
             width=width,
             height=height,
+            composition=composition,
             quality=quality,
             format=format,
+            resolution=resolution,
             workers=workers,
             crf=crf,
         )
@@ -188,18 +192,26 @@ class ClientHyperframesMixin:
         self,
         project_path: str,
         output: str | None = None,
+        runs: int | None = None,
         json_output: bool = True,
     ) -> dict:
         """Benchmark Hyperframes render speed and file size."""
         from ..hyperframes_engine import benchmark
 
-        return benchmark(project_path, output_path=output, json_output=json_output)
+        return benchmark(project_path, output_path=output, runs=runs, json_output=json_output)
 
     def hyperframes_init(
         self,
         name: str,
         output_dir: str | None = None,
         template: str = "blank",
+        video: str | None = None,
+        audio: str | None = None,
+        skip_transcribe: bool = False,
+        model: str | None = None,
+        language: str | None = None,
+        tailwind: bool = False,
+        resolution: str | None = None,
     ) -> dict:
         """Scaffold a new Hyperframes project.
 
@@ -215,17 +227,29 @@ class ClientHyperframesMixin:
             raise MCPVideoError("name cannot be empty", error_type="validation_error", code="empty_name")
         from ..hyperframes_engine import create_project
 
-        return create_project(name, output_dir=output_dir, template=template)
+        return create_project(
+            name,
+            output_dir=output_dir,
+            template=template,
+            video=video,
+            audio=audio,
+            skip_transcribe=skip_transcribe,
+            model=model,
+            language=language,
+            tailwind=tailwind,
+            resolution=resolution,
+        )
 
     def hyperframes_add_block(
         self,
         project_path: str,
         block_name: str,
+        no_clipboard: bool = False,
     ) -> dict:
         """Install a block from the Hyperframes catalog."""
         from ..hyperframes_engine import add_block
 
-        return add_block(project_path, block_name)
+        return add_block(project_path, block_name, no_clipboard=no_clipboard)
 
     def hyperframes_validate(self, project_path: str) -> dict:
         """Validate project for rendering readiness.

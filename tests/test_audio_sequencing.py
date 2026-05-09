@@ -1,6 +1,7 @@
 """Tests for audio sequencing, composition, and effects."""
 
 import math
+import struct
 import wave
 from pathlib import Path
 
@@ -117,6 +118,36 @@ class TestAudioCompose:
             sample_rate=8000,
         )
         assert Path(result).exists()
+
+    def test_compose_24_bit_pcm_wav_does_not_bleed_past_frame_count(self, tmp_path):
+        src = tmp_path / "src-24bit.wav"
+        output = tmp_path / "out.wav"
+        sample_rate = 48000
+        input_frames = 2400
+
+        frames = bytearray()
+        for i in range(input_frames):
+            sample = int(0.4 * 8388607 * math.sin(2 * math.pi * 440 * i / sample_rate))
+            frames.extend(sample.to_bytes(3, "little", signed=True))
+
+        with wave.open(str(src), "wb") as wav_file:
+            wav_file.setnchannels(1)
+            wav_file.setsampwidth(3)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(bytes(frames))
+
+        result = audio_compose(
+            [{"file": str(src), "volume": 1.0, "start": 0.0, "loop": False}],
+            duration=0.08,
+            output=str(output),
+            sample_rate=sample_rate,
+        )
+
+        with wave.open(result, "rb") as wav_file:
+            pcm = wav_file.readframes(wav_file.getnframes())
+        samples = struct.unpack("<" + "h" * (len(pcm) // 2), pcm)
+
+        assert max(abs(sample) for sample in samples[input_frames:3600]) == 0
 
 
 class TestAudioEffects:

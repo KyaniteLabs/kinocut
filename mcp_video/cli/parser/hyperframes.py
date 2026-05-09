@@ -14,6 +14,12 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     hyperframes_render_p.add_argument("--fps", type=float, help="Frame rate (24, 30, 60)")
     hyperframes_render_p.add_argument("--width", type=int, help="Output width in pixels")
     hyperframes_render_p.add_argument("--height", type=int, help="Output height in pixels")
+    hyperframes_render_p.add_argument("-c", "--composition", help="Composition file to render instead of index.html")
+    hyperframes_render_p.add_argument(
+        "--resolution",
+        choices=["landscape", "portrait", "landscape-4k", "portrait-4k", "1080p", "4k", "uhd"],
+        help="Output resolution preset",
+    )
     hyperframes_render_p.add_argument(
         "--quality",
         default="standard",
@@ -24,7 +30,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         "--format",
         dest="output_format",
         default="mp4",
-        choices=["mp4", "webm", "mov"],
+        choices=["mp4", "webm", "mov", "png-sequence"],
         help="Output format (default: mp4)",
     )
     hyperframes_render_p.add_argument("--workers", help="Parallel render workers (number or 'auto')")
@@ -95,6 +101,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     benchmark_p = subparsers.add_parser("hyperframes-benchmark", help="Benchmark Hyperframes rendering")
     benchmark_p.add_argument("project_path", help="Path to Hyperframes project")
     benchmark_p.add_argument("-o", "--output", help="Output path")
+    benchmark_p.add_argument("--runs", type=int, help="Number of runs per config")
 
     # hyperframes-init
     hyperframes_init_p = subparsers.add_parser("hyperframes-init", help="Scaffold a new Hyperframes project")
@@ -107,6 +114,17 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         choices=["blank", "warm-grain", "swiss-grid"],
         help="Project template (default: blank)",
     )
+    hyperframes_init_p.add_argument("--video", help="Source video for project bootstrap")
+    hyperframes_init_p.add_argument("--audio", help="Source audio for project bootstrap")
+    hyperframes_init_p.add_argument("--skip-transcribe", action="store_true", help="Skip Whisper transcription")
+    hyperframes_init_p.add_argument("--model", help="Whisper model for transcription")
+    hyperframes_init_p.add_argument("--language", help="Language code for transcription")
+    hyperframes_init_p.add_argument("--tailwind", action="store_true", help="Add Tailwind CSS browser-runtime support")
+    hyperframes_init_p.add_argument(
+        "--resolution",
+        choices=["landscape", "portrait", "landscape-4k", "portrait-4k", "1080p", "4k", "uhd"],
+        help="Canvas resolution preset",
+    )
 
     # hyperframes-add-block
     hyperframes_add_p = subparsers.add_parser(
@@ -114,6 +132,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     hyperframes_add_p.add_argument("project_path", help="Path to Hyperframes project")
     hyperframes_add_p.add_argument("block_name", help="Registry item name (e.g. claude-code-window, shader-wipe)")
+    hyperframes_add_p.add_argument("--no-clipboard", action="store_true", help="Skip copying include snippet")
 
     # hyperframes-validate
     hyperframes_validate_p = subparsers.add_parser("hyperframes-validate", help="Validate a Hyperframes project")

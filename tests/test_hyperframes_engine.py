@@ -211,13 +211,13 @@ class TestRender:
             assert cmd[idx + 1] == "standard"
 
     def test_passes_all_optional_args(self, sample_hyperframes_project):
-        """render() should forward width, height, fps, quality, format, workers, crf."""
+        """render() should forward render options supported by Hyperframes CLI."""
         project = str(sample_hyperframes_project)
         fake_cp = _make_completed_process(stdout="done")
 
         with (
             _mock_deps_ok(),
-            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
+            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run,
             patch("os.path.isfile", return_value=True),
             patch("os.path.getsize", return_value=2 * 1024 * 1024),
         ):
@@ -227,8 +227,10 @@ class TestRender:
                 fps=60,
                 width=1280,
                 height=720,
+                composition="compositions/intro.html",
                 quality="high",
                 format="webm",
+                resolution="portrait",
                 workers=4,
                 crf=18,
             )
@@ -236,6 +238,11 @@ class TestRender:
             assert result.output_path == "/tmp/out.mp4"
             assert result.codec == "webm"
             assert result.resolution == "1280x720"
+            cmd = mock_run.call_args[0][0]
+            assert cmd[cmd.index("--composition") + 1] == "compositions/intro.html"
+            assert cmd[cmd.index("--resolution") + 1] == "portrait"
+            assert "--width" not in cmd
+            assert "--height" not in cmd
 
     def test_raises_on_nonzero_exit(self, sample_hyperframes_project):
         """render() should raise HyperframesRenderError on non-zero exit."""
@@ -253,13 +260,13 @@ class TestRender:
             render(project, output_path="/tmp/out.mp4")
 
     def test_sets_resolution_when_both_width_and_height(self, sample_hyperframes_project):
-        """render() should set resolution when width and height are provided."""
+        """render() should map legacy 1920x1080 dimensions to Hyperframes resolution."""
         project = str(sample_hyperframes_project)
         fake_cp = _make_completed_process(stdout="ok")
 
         with (
             _mock_deps_ok(),
-            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
+            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run,
             patch("os.path.isfile", return_value=True),
             patch("os.path.getsize", return_value=1024),
         ):
@@ -270,6 +277,8 @@ class TestRender:
                 height=1080,
             )
             assert result.resolution == "1920x1080"
+            cmd = mock_run.call_args[0][0]
+            assert cmd[cmd.index("--resolution") + 1] == "landscape"
 
     def test_resolution_is_none_when_dimensions_missing(self, sample_hyperframes_project):
         """render() should return resolution=None when width/height are not set."""
@@ -660,7 +669,7 @@ class TestHyperframes05Tools:
             cutout = remove_background("/tmp/input.mp4", output_path="/tmp/cutout.webm")
             health = doctor()
             meta = info(str(sample_hyperframes_project))
-            bench = benchmark(str(sample_hyperframes_project), json_output=True)
+            bench = benchmark(str(sample_hyperframes_project), runs=5, json_output=True)
 
         assert cutout.data["output"] == "/tmp/cutout.webm"
         assert health.data["version"] == "0.5.0"
@@ -672,6 +681,8 @@ class TestHyperframes05Tools:
             "info",
             "benchmark",
         ]
+        benchmark_cmd = mock_run.call_args_list[-1][0][0]
+        assert benchmark_cmd[benchmark_cmd.index("--runs") + 1] == "5"
 
     def test_raises_on_failure(self, sample_hyperframes_project):
         """still() should raise HyperframesRenderError on non-zero exit."""
@@ -715,7 +726,18 @@ class TestCreateProject:
         with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run:
             mock_run.return_value = _make_completed_process(stdout="initialized")
 
-            create_project("test-project", output_dir=str(tmp_path), template="blank")
+            create_project(
+                "test-project",
+                output_dir=str(tmp_path),
+                template="blank",
+                video="/tmp/source.mp4",
+                audio="/tmp/source.wav",
+                skip_transcribe=True,
+                model="base.en",
+                language="en",
+                tailwind=True,
+                resolution="portrait",
+            )
 
             call_args = mock_run.call_args
             cmd = call_args[0][0]
@@ -726,6 +748,13 @@ class TestCreateProject:
             assert "--example" in cmd
             idx = cmd.index("--example")
             assert cmd[idx + 1] == "blank"
+            assert cmd[cmd.index("--video") + 1] == "/tmp/source.mp4"
+            assert cmd[cmd.index("--audio") + 1] == "/tmp/source.wav"
+            assert "--skip-transcribe" in cmd
+            assert cmd[cmd.index("--model") + 1] == "base.en"
+            assert cmd[cmd.index("--language") + 1] == "en"
+            assert "--tailwind" in cmd
+            assert cmd[cmd.index("--resolution") + 1] == "portrait"
             assert "--non-interactive" in cmd
 
     def test_returns_project_result(self, tmp_path):
@@ -821,7 +850,7 @@ class TestAddBlock:
         fake_cp = _make_completed_process(stdout='{"files": ["blocks/test.tsx"]}')
 
         with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
-            result = add_block(project, "claude-code-window")
+            result = add_block(project, "claude-code-window", no_clipboard=True)
 
             assert result.block_name == "claude-code-window"
             assert "blocks/test.tsx" in result.files_added
@@ -830,6 +859,7 @@ class TestAddBlock:
             assert "add" in cmd
             assert "claude-code-window" in cmd
             assert "--dir" in cmd
+            assert "--no-clipboard" in cmd
 
     def test_raises_on_failure(self, sample_hyperframes_project):
         """add_block() should raise HyperframesRenderError on non-zero exit."""

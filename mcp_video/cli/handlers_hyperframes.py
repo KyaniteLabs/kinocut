@@ -33,8 +33,10 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
             fps=a.fps,
             width=a.width,
             height=a.height,
+            composition=getattr(a, "composition", None),
             quality=a.quality,
             format=a.output_format,
+            resolution=getattr(a, "resolution", None),
             workers=a.workers,
             crf=a.crf,
         )
@@ -138,8 +140,8 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
             transcribe,
             a.input_path,
             project_path=a.project_path,
-            model=a.model,
-            language=a.language,
+            model=getattr(a, "model", None),
+            language=getattr(a, "language", None),
         )
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
@@ -172,7 +174,13 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
     def _benchmark(a, j):
         from ..hyperframes_engine import benchmark
 
-        r = _with_spinner("Benchmarking Hyperframes render...", benchmark, a.project_path, output_path=a.output)
+        r = _with_spinner(
+            "Benchmarking Hyperframes render...",
+            benchmark,
+            a.project_path,
+            output_path=a.output,
+            runs=getattr(a, "runs", None),
+        )
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-benchmark", _benchmark)
@@ -181,7 +189,18 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
         from ..hyperframes_engine import create_project
 
         r = _with_spinner(
-            f"Creating project '{a.name}'...", create_project, a.name, output_dir=a.output_dir, template=a.template
+            f"Creating project '{a.name}'...",
+            create_project,
+            a.name,
+            output_dir=a.output_dir,
+            template=a.template,
+            video=getattr(a, "video", None),
+            audio=getattr(a, "audio", None),
+            skip_transcribe=getattr(a, "skip_transcribe", False),
+            model=getattr(a, "model", None),
+            language=getattr(a, "language", None),
+            tailwind=getattr(a, "tailwind", False),
+            resolution=getattr(a, "resolution", None),
         )
         _out(r, j, _format_hyperframes_init)
 
@@ -190,7 +209,13 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
     def _add_block(a, j):
         from ..hyperframes_engine import add_block
 
-        r = _with_spinner(f"Adding block '{a.block_name}'...", add_block, a.project_path, a.block_name)
+        r = _with_spinner(
+            f"Adding block '{a.block_name}'...",
+            add_block,
+            a.project_path,
+            a.block_name,
+            no_clipboard=getattr(a, "no_clipboard", False),
+        )
         _out(r, j, _format_hyperframes_add_block)
 
     runner.register("hyperframes-add-block", _add_block)

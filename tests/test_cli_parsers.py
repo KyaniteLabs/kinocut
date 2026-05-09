@@ -189,6 +189,60 @@ class TestParserHyperframes:
         assert args.format == "json"
         assert args.output_format == "webm"
 
+    def test_render_accepts_current_hyperframes_resolution_and_png_sequence(self):
+        from mcp_video.cli.parser import build_parser
+
+        args = build_parser().parse_args(
+            [
+                "hyperframes-render",
+                "project",
+                "--composition",
+                "compositions/intro.html",
+                "--resolution",
+                "portrait",
+                "--format",
+                "png-sequence",
+            ]
+        )
+
+        assert args.composition == "compositions/intro.html"
+        assert args.resolution == "portrait"
+        assert args.output_format == "png-sequence"
+
+    def test_init_add_and_benchmark_accept_current_hyperframes_flags(self):
+        from mcp_video.cli.parser import build_parser
+
+        init = build_parser().parse_args(
+            [
+                "hyperframes-init",
+                "demo",
+                "--video",
+                "/tmp/source.mp4",
+                "--audio",
+                "/tmp/source.wav",
+                "--skip-transcribe",
+                "--model",
+                "base.en",
+                "--language",
+                "en",
+                "--tailwind",
+                "--resolution",
+                "landscape",
+            ]
+        )
+        add = build_parser().parse_args(["hyperframes-add-block", "project", "shader-wipe", "--no-clipboard"])
+        benchmark = build_parser().parse_args(["hyperframes-benchmark", "project", "--runs", "5"])
+
+        assert init.video == "/tmp/source.mp4"
+        assert init.audio == "/tmp/source.wav"
+        assert init.skip_transcribe is True
+        assert init.model == "base.en"
+        assert init.language == "en"
+        assert init.tailwind is True
+        assert init.resolution == "landscape"
+        assert add.no_clipboard is True
+        assert benchmark.runs == 5
+
 
 class TestParserQuality:
     def test_adds_expected_parsers(self):

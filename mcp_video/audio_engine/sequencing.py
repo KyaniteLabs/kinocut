@@ -175,8 +175,10 @@ def audio_compose(
 
         # Read WAV file
         with wave.open(file_path, "rb") as wav_file:
+            sample_width = wav_file.getsampwidth()
+            channels = wav_file.getnchannels()
             frames = wav_file.readframes(wav_file.getnframes())
-            track_samples = _pcm_to_float(frames)
+            track_samples = _pcm_to_float(frames, sample_width=sample_width, channels=channels)
 
         start_sample = int(start_time * sample_rate)
 
