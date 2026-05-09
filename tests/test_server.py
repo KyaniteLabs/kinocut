@@ -38,6 +38,8 @@ from mcp_video.server import (
     video_fade,
     video_filter,
     video_info,
+    video_layout_grid,
+    video_layout_pip,
     video_info_resource,
     video_merge,
     video_mograph_progress,
@@ -182,6 +184,20 @@ class TestVideoAddTextTool:
             result = video_add_text(sample_video, text="Hello")
             assert result["success"] is False
             assert "error" in result
+
+
+class TestVideoLayoutToolValidation:
+    def test_layout_grid_rejects_unknown_layout_before_input_validation(self):
+        result = video_layout_grid(["/tmp/missing.mp4"], "9x9", "/tmp/out.mp4")
+
+        assert result["success"] is False
+        assert "layout" in result["error"]["message"]
+
+    def test_layout_pip_rejects_unknown_position_before_input_validation(self):
+        result = video_layout_pip("/tmp/main.mp4", "/tmp/pip.mp4", "/tmp/out.mp4", position="middle")
+
+        assert result["success"] is False
+        assert "position" in result["error"]["message"]
 
 
 class TestVideoTextAnimatedTool:

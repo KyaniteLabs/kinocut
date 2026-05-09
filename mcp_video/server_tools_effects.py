@@ -13,6 +13,8 @@ from .ffmpeg_helpers import _validate_input_path
 from .limits import MAX_MOGRAPH_FRAMES
 
 VALID_TEXT_ANIMATIONS = {"fade", "glitch", "slide-up", "typewriter"}
+VALID_GRID_LAYOUTS = {"2x2", "3x1", "1x3", "2x3"}
+VALID_PIP_POSITIONS = {"top-left", "top-right", "bottom-left", "bottom-right"}
 
 # ---------------------------------------------------------------------------
 # Visual Effects Tools (P1 Features)
@@ -260,6 +262,12 @@ def video_layout_grid(
     Returns:
         Dict with success status and output_path.
     """
+    if layout not in VALID_GRID_LAYOUTS:
+        raise MCPVideoError(
+            f"layout must be one of {sorted(VALID_GRID_LAYOUTS)}, got {layout}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
     for _p in clips:
         _validate_input_path(_p)
     if gap < 0:
@@ -312,6 +320,12 @@ def video_layout_pip(
     Returns:
         Dict with success status and output_path.
     """
+    if position not in VALID_PIP_POSITIONS:
+        raise MCPVideoError(
+            f"position must be one of {sorted(VALID_PIP_POSITIONS)}, got {position}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
     main_path = _validate_input_path(main_path)
     pip_path = _validate_input_path(pip_path)
     if not (0.0 < size <= 1.0):

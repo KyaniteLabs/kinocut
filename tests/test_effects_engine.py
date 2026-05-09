@@ -114,6 +114,39 @@ def test_subtitle_text_is_wrapped_for_safe_area():
     assert "The same source becomes\nYouTube, Shorts, and square\nsocial cuts." in wrapped
 
 
+def test_layout_grid_rejects_unknown_layout_before_ffmpeg(tmp_path, monkeypatch):
+    from mcp_video.effects_engine import layout_grid
+    from mcp_video.effects_engine import layout as layout_engine
+
+    clip = tmp_path / "clip.mp4"
+    output = tmp_path / "out.mp4"
+    clip.write_bytes(b"placeholder")
+    monkeypatch.setattr(layout_engine, "_run_command", lambda cmd: output.write_bytes(b"output"))
+
+    with pytest.raises(MCPVideoError, match="layout"):
+        layout_grid([str(clip)], "9x9", str(output))
+
+    assert not output.exists()
+
+
+def test_layout_pip_rejects_unknown_position_before_ffmpeg(tmp_path, monkeypatch):
+    from mcp_video.effects_engine import layout_pip
+    from mcp_video.effects_engine import layout as layout_engine
+
+    main = tmp_path / "main.mp4"
+    pip = tmp_path / "pip.mp4"
+    output = tmp_path / "out.mp4"
+    main.write_bytes(b"placeholder")
+    pip.write_bytes(b"placeholder")
+    monkeypatch.setattr(layout_engine, "_run_ffmpeg", lambda cmd: type("Probe", (), {"stdout": "1920x1080"})())
+    monkeypatch.setattr(layout_engine, "_run_command", lambda cmd: output.write_bytes(b"output"))
+
+    with pytest.raises(MCPVideoError, match="position"):
+        layout_pip(str(main), str(pip), str(output), position="middle")
+
+    assert not output.exists()
+
+
 def test_text_animated_rejects_empty_text_before_ffmpeg(tmp_path, monkeypatch):
     from mcp_video.effects_engine import text_animated
     from mcp_video.effects_engine import text as text_engine

@@ -18,6 +18,18 @@ from ..ffmpeg_helpers import (
 
 logger = logging.getLogger(__name__)
 
+VALID_GRID_LAYOUTS = {"2x2", "3x1", "1x3", "2x3"}
+VALID_PIP_POSITIONS = {"top-left", "top-right", "bottom-left", "bottom-right"}
+
+
+def _validate_choice(name: str, value: str, valid_values: set[str]) -> None:
+    if value not in valid_values:
+        raise MCPVideoError(
+            f"{name} must be one of {sorted(valid_values)}, got {value}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
 
 def layout_grid(
     clips: list[str],
@@ -42,6 +54,7 @@ def layout_grid(
     """
     if len(clips) == 0:
         raise MCPVideoError("At least one clip required", error_type="validation_error", code="invalid_parameter")
+    _validate_choice("layout", layout, VALID_GRID_LAYOUTS)
 
     if gap < 0 or padding < 0:
         raise MCPVideoError(
@@ -153,6 +166,7 @@ def layout_pip(
     Returns:
         Path to output video
     """
+    _validate_choice("position", position, VALID_PIP_POSITIONS)
     main = _validate_input_path(main)
     pip = _validate_input_path(pip)
     _validate_output_path(output)
