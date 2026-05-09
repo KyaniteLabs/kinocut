@@ -225,8 +225,8 @@ class TestRender:
                 project,
                 output_path="/tmp/out.mp4",
                 fps=60,
-                width=1280,
-                height=720,
+                width=1080,
+                height=1920,
                 composition="compositions/intro.html",
                 quality="high",
                 format="webm",
@@ -237,7 +237,7 @@ class TestRender:
 
             assert result.output_path == "/tmp/out.mp4"
             assert result.codec == "webm"
-            assert result.resolution == "1280x720"
+            assert result.resolution == "1080x1920"
             cmd = mock_run.call_args[0][0]
             assert cmd[cmd.index("--composition") + 1] == "compositions/intro.html"
             assert cmd[cmd.index("--resolution") + 1] == "portrait"
@@ -279,6 +279,45 @@ class TestRender:
             assert result.resolution == "1920x1080"
             cmd = mock_run.call_args[0][0]
             assert cmd[cmd.index("--resolution") + 1] == "landscape"
+
+    def test_rejects_unmapped_legacy_dimensions_instead_of_silent_noop(self, sample_hyperframes_project):
+        """render() should not claim arbitrary dimensions that Hyperframes CLI cannot apply."""
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
+            pytest.raises(MCPVideoError, match="only supports width/height pairs"),
+        ):
+            render(str(sample_hyperframes_project), output_path="/tmp/out.mp4", width=1280, height=720)
+
+        mock_run.assert_not_called()
+
+    def test_rejects_incomplete_legacy_dimensions(self, sample_hyperframes_project):
+        """render() should not silently ignore a lone width or height."""
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
+            pytest.raises(MCPVideoError, match="width and height must be provided together"),
+        ):
+            render(str(sample_hyperframes_project), output_path="/tmp/out.mp4", width=1920)
+
+        mock_run.assert_not_called()
+
+    def test_rejects_conflicting_dimensions_and_resolution(self, sample_hyperframes_project):
+        """render() should not report dimensions that conflict with the requested preset."""
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run,
+            pytest.raises(MCPVideoError, match="conflicts with resolution"),
+        ):
+            render(
+                str(sample_hyperframes_project),
+                output_path="/tmp/out.mp4",
+                width=1920,
+                height=1080,
+                resolution="portrait",
+            )
+
+        mock_run.assert_not_called()
 
     def test_resolution_is_none_when_dimensions_missing(self, sample_hyperframes_project):
         """render() should return resolution=None when width/height are not set."""

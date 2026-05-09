@@ -224,7 +224,7 @@ print(checkpoint["quality_score"])  # Must pass min_score
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `hyperframes_render(project_path, output?, fps?, width?, height?, composition?, quality?, format?, resolution?, workers?, crf?)` | `HyperframesRenderResult` | Render a Hyperframes composition to video or PNG sequence |
+| `hyperframes_render(project_path, output?, fps?, width?, height?, composition?, quality?, format?, resolution?, workers?, crf?)` | `HyperframesRenderResult` | Render a Hyperframes composition to video or PNG sequence; width/height must map to Hyperframes resolution presets |
 | `hyperframes_compositions(project_path)` | `CompositionsResult` | List compositions in a project |
 | `hyperframes_preview(project_path, port?)` | `HyperframesPreviewResult` | Launch live preview studio |
 | `hyperframes_still(project_path, output?, frame?)` | `HyperframesStillResult` | Render a single frame |

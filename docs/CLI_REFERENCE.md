@@ -141,7 +141,7 @@ mcp-video [command] [options]
 
 | Command | Description |
 |---------|-------------|
-| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence (`--composition`, `--resolution`) |
+| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence (`--composition`, `--resolution`; width/height must map to a preset) |
 | `hyperframes-compositions` | List compositions in a Hyperframes project |
 | `hyperframes-preview` | Launch Hyperframes preview studio |
 | `hyperframes-still` | Render a single frame as an image |

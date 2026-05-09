@@ -107,7 +107,7 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 | Tool | Description |
 |------|-------------|
 | `hyperframes_init` | Scaffold a new Hyperframes project (blank, warm-grain, swiss-grid templates; optional media bootstrap, Tailwind, and resolution preset flags) |
-| `hyperframes_render` | Render a Hyperframes composition to video (MP4/WebM/MOV/PNG sequence; optional composition and resolution preset flags) |
+| `hyperframes_render` | Render a Hyperframes composition to video (MP4/WebM/MOV/PNG sequence; optional composition and resolution preset flags; arbitrary width/height pairs are rejected instead of silently ignored) |
 | `hyperframes_snapshot` | Capture actual PNG snapshot paths written by Hyperframes |
 | `hyperframes_still` | Backward-compatible single-frame snapshot helper |
 | `hyperframes_inspect` | Inspect rendered layout for overflow and visual issues |

@@ -451,6 +451,50 @@ def _resolution_from_dimensions(width: int | None, height: int | None) -> str | 
             return None
 
 
+def _canonical_resolution(value: str | None) -> str | None:
+    """Normalize Hyperframes resolution aliases to canonical presets."""
+    match value:
+        case None:
+            return None
+        case "1080p":
+            return "landscape"
+        case "4k" | "uhd":
+            return "landscape-4k"
+        case _:
+            return value
+
+
+def _resolve_render_resolution(width: int | None, height: int | None, resolution: str | None) -> str | None:
+    """Return the effective Hyperframes resolution without silently ignoring dimensions."""
+    if (width is None) ^ (height is None):
+        raise MCPVideoError(
+            "width and height must be provided together",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
+    if width is None and height is None:
+        return resolution
+
+    dimension_resolution = _resolution_from_dimensions(width, height)
+    if dimension_resolution is None:
+        raise MCPVideoError(
+            "Hyperframes render only supports width/height pairs that map to --resolution presets: "
+            "1920x1080, 1080x1920, 3840x2160, or 2160x3840. Use resolution=... instead of arbitrary dimensions.",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
+    if resolution is not None and _canonical_resolution(resolution) != dimension_resolution:
+        raise MCPVideoError(
+            f"width/height {width}x{height} conflicts with resolution '{resolution}'",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
+    return resolution or dimension_resolution
+
+
 def render(
     project_path: str,
     output_path: str | None = None,
@@ -483,7 +527,7 @@ def render(
         os.makedirs("out", exist_ok=True)
         output_path = os.path.join("out", f"{Path(project_path).name}.mp4")
 
-    effective_resolution = resolution or _resolution_from_dimensions(width, height)
+    effective_resolution = _resolve_render_resolution(width, height, resolution)
 
     start_time = time.time()
     _result, _project = _hyperframes_op(
