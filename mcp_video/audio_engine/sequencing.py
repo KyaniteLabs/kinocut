@@ -11,7 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import MCPVideoError
-from ..validation import VALID_AUDIO_SEQUENCE_TYPES, VALID_WAVEFORMS
+from ..validation import VALID_AUDIO_EFFECT_TYPES, VALID_AUDIO_SEQUENCE_TYPES, VALID_WAVEFORMS
 from .core import (
     _float_to_pcm,
     _pcm_to_float,
@@ -257,6 +257,28 @@ def audio_compose(
     return write_wav(pcm_data, output, sample_rate)
 
 
+def _validate_audio_effects(effects: list[dict[str, Any]]) -> None:
+    """Validate effects before reading or writing media."""
+    if not isinstance(effects, list):
+        raise MCPVideoError("effects must be a list", error_type="validation_error", code="invalid_parameter")
+
+    for i, effect in enumerate(effects):
+        if not isinstance(effect, dict):
+            raise MCPVideoError(
+                f"effects[{i}] must be a dict",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        effect_type = effect.get("type")
+        if effect_type not in VALID_AUDIO_EFFECT_TYPES:
+            raise MCPVideoError(
+                f"effects[{i}].type must be one of {sorted(VALID_AUDIO_EFFECT_TYPES)}, got {effect_type!r}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+
 def audio_effects(
     input_path: str,
     output: str,
@@ -274,6 +296,8 @@ def audio_effects(
     Returns:
         Path to processed WAV file
     """
+    _validate_audio_effects(effects)
+
     # Read input
     with wave.open(input_path, "rb") as wav_file:
         sample_rate = wav_file.getframerate()

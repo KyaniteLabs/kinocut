@@ -425,6 +425,16 @@ class TestClientValidators:
                 assert not isinstance(exc_info.value, ValueError)
 
 
+class TestClientAudioEffectsValidation:
+    def test_audio_effects_rejects_unknown_effect_type(self, editor):
+        with pytest.raises(MCPVideoError, match="type"):
+            editor.audio_effects("/tmp/in.wav", "/tmp/out.wav", [{"type": "bitcrush"}])
+
+    def test_audio_effects_rejects_missing_effect_type(self, editor):
+        with pytest.raises(MCPVideoError, match="type"):
+            editor.audio_effects("/tmp/in.wav", "/tmp/out.wav", [{"frequency": 1000}])
+
+
 class TestClientAudioSequenceValidation:
     def test_audio_sequence_rejects_empty_sequence(self, editor):
         with pytest.raises(MCPVideoError, match="sequence"):

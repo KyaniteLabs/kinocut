@@ -230,6 +230,20 @@ class TestAudioEffects:
         result = audio_effects(src, output, [])
         assert Path(result).exists()
 
+    def test_unknown_effect_rejected(self, tmp_path):
+        src = _make_wav(str(tmp_path / "src.wav"))
+        output = str(tmp_path / "out.wav")
+        with pytest.raises(MCPVideoError, match="type"):
+            audio_effects(src, output, [{"type": "bitcrush"}])
+        assert not Path(output).exists()
+
+    def test_missing_effect_type_rejected(self, tmp_path):
+        src = _make_wav(str(tmp_path / "src.wav"))
+        output = str(tmp_path / "out.wav")
+        with pytest.raises(MCPVideoError, match="type"):
+            audio_effects(src, output, [{"frequency": 1000}])
+        assert not Path(output).exists()
+
     def test_chain_of_effects(self, tmp_path):
         src = _make_wav(str(tmp_path / "src.wav"))
         output = str(tmp_path / "out.wav")
