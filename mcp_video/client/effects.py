@@ -122,6 +122,7 @@ class ClientEffectsMixin:
     _VALID_LAYOUTS: ClassVar[set[str]] = {"2x2", "3x1", "1x3", "2x3"}
     _VALID_PIP_POSITIONS: ClassVar[set[str]] = {"top-left", "top-right", "bottom-left", "bottom-right"}
     _VALID_TEXT_ANIMATIONS: ClassVar[set[str]] = {"fade", "glitch", "slide-up", "typewriter"}
+    _VALID_MOGRAPH_STYLES: ClassVar[set[str]] = {"bar", "circle", "dots"}
 
     def layout_grid(
         self,
@@ -273,6 +274,10 @@ class ClientEffectsMixin:
             In the CLI (video-mograph-count), start and end are positional arguments.
             In the Python client, they must be passed as named arguments.
         """
+        if duration <= 0:
+            raise MCPVideoError("duration must be positive", error_type="validation_error", code="invalid_parameter")
+        if fps <= 0:
+            raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
         from ..effects_engine import mograph_count
 
         return self._to_edit_result(
@@ -290,6 +295,11 @@ class ClientEffectsMixin:
         fps: int = 30,
     ) -> EditResult:
         """Generate progress bar / loading animation."""
+        if duration <= 0:
+            raise MCPVideoError("duration must be positive", error_type="validation_error", code="invalid_parameter")
+        if fps <= 0:
+            raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
+        self._validate_choice("style", style, self._VALID_MOGRAPH_STYLES)
         from ..effects_engine import mograph_progress
 
         return self._to_edit_result(

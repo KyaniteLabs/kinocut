@@ -10,9 +10,19 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _run_command, _escape_ffmpeg_filter_value
 
 logger = logging.getLogger(__name__)
+
+VALID_MOGRAPH_STYLES = {"bar", "circle", "dots"}
+
+
+def _validate_timing(duration: float, fps: int) -> None:
+    if duration <= 0:
+        raise MCPVideoError("duration must be positive", error_type="validation_error", code="invalid_parameter")
+    if fps <= 0:
+        raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
 
 
 def mograph_count(
@@ -36,6 +46,8 @@ def mograph_count(
     Returns:
         Path to output video
     """
+    _validate_timing(duration, fps)
+
     style = style or {}
     font = style.get("font", "Arial")
     size = style.get("size", 160)
@@ -125,6 +137,14 @@ def mograph_progress(
     Returns:
         Path to output video
     """
+    _validate_timing(duration, fps)
+    if style not in VALID_MOGRAPH_STYLES:
+        raise MCPVideoError(
+            f"style must be one of {sorted(VALID_MOGRAPH_STYLES)}, got {style}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_path = Path(tmpdir)
         total_frames = int(duration * fps)

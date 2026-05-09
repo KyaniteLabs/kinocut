@@ -369,6 +369,14 @@ class TestClientValidators:
         with pytest.raises(MCPVideoError, match="quality must be one of"):
             editor.export("video.mp4", quality="superb")
 
+    def test_mograph_count_rejects_non_positive_duration(self, editor):
+        with pytest.raises(MCPVideoError, match="duration"):
+            editor.mograph_count(start=0, end=10, duration=0, output="/tmp/out.mp4")
+
+    def test_mograph_progress_rejects_unknown_style(self, editor):
+        with pytest.raises(MCPVideoError, match="style"):
+            editor.mograph_progress(duration=1.0, output="/tmp/out.mp4", style="spiral")
+
     def test_convert_invalid_format(self, editor):
         with pytest.raises(MCPVideoError, match="format must be one of"):
             editor.convert("video.mp4", format="avi")

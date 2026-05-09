@@ -114,6 +114,32 @@ def test_subtitle_text_is_wrapped_for_safe_area():
     assert "The same source becomes\nYouTube, Shorts, and square\nsocial cuts." in wrapped
 
 
+def test_mograph_count_rejects_invalid_duration_before_ffmpeg(tmp_path, monkeypatch):
+    from mcp_video.effects_engine import mograph_count
+    from mcp_video.effects_engine import mograph as mograph_engine
+
+    output = tmp_path / "count.mp4"
+    monkeypatch.setattr(mograph_engine, "_run_command", lambda cmd: output.write_bytes(b"output"))
+
+    with pytest.raises(MCPVideoError, match="duration"):
+        mograph_count(0, 10, 0, str(output))
+
+    assert not output.exists()
+
+
+def test_mograph_progress_rejects_unknown_style_before_ffmpeg(tmp_path, monkeypatch):
+    from mcp_video.effects_engine import mograph as mograph_engine
+    from mcp_video.effects_engine import mograph_progress
+
+    output = tmp_path / "progress.mp4"
+    monkeypatch.setattr(mograph_engine, "_run_command", lambda cmd: output.write_bytes(b"output"))
+
+    with pytest.raises(MCPVideoError, match="style"):
+        mograph_progress(1.0, str(output), style="spiral")
+
+    assert not output.exists()
+
+
 def test_layout_grid_rejects_unknown_layout_before_ffmpeg(tmp_path, monkeypatch):
     from mcp_video.effects_engine import layout_grid
     from mcp_video.effects_engine import layout as layout_engine
