@@ -8,11 +8,10 @@ from __future__ import annotations
 import tempfile
 import wave
 from pathlib import Path
-
-from ..errors import MCPVideoError
 from typing import Any
 
-
+from ..errors import MCPVideoError
+from ..validation import VALID_AUDIO_SEQUENCE_TYPES, VALID_WAVEFORMS
 from .core import (
     _float_to_pcm,
     _pcm_to_float,
@@ -38,6 +37,53 @@ DEFAULT_CHANNELS = 1
 DEFAULT_SAMPLE_WIDTH = 2  # 16-bit
 
 
+def _validate_audio_sequence(sequence: list[dict[str, Any]]) -> None:
+    """Validate sequence events before generating any output file."""
+    if not isinstance(sequence, list) or not sequence:
+        raise MCPVideoError("Sequence cannot be empty", error_type="validation_error", code="invalid_parameter")
+
+    for i, event in enumerate(sequence):
+        if not isinstance(event, dict):
+            raise MCPVideoError(
+                f"sequence[{i}] must be a dict",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        event_type = event.get("type")
+        if event_type not in VALID_AUDIO_SEQUENCE_TYPES:
+            raise MCPVideoError(
+                f"sequence[{i}].type must be one of {sorted(VALID_AUDIO_SEQUENCE_TYPES)}, got {event_type!r}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        at = event.get("at")
+        if not isinstance(at, (int, float)):
+            raise MCPVideoError(
+                f"sequence[{i}].at must be numeric",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        duration = event.get("duration", 1.0)
+        if not isinstance(duration, (int, float)) or duration <= 0:
+            raise MCPVideoError(
+                f"sequence[{i}].duration must be > 0",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        if event_type == "tone":
+            waveform = event.get("waveform", "sine")
+            if waveform not in VALID_WAVEFORMS:
+                raise MCPVideoError(
+                    f"sequence[{i}].waveform must be one of {sorted(VALID_WAVEFORMS)}, got {waveform!r}",
+                    error_type="validation_error",
+                    code="invalid_parameter",
+                )
+
+
 def audio_sequence(
     sequence: list[dict[str, Any]],
     output: str,
@@ -59,8 +105,7 @@ def audio_sequence(
     Returns:
         Path to generated WAV file
     """
-    if not sequence:
-        raise MCPVideoError("Sequence cannot be empty", error_type="validation_error", code="invalid_parameter")
+    _validate_audio_sequence(sequence)
 
     # Calculate total duration
     max_end = max(event.get("at", 0) + event.get("duration", 1.0) for event in sequence)
@@ -91,8 +136,8 @@ def audio_sequence(
                 pcm = generate_sawtooth(freq, duration, sample_rate, volume)
             elif waveform == "triangle":
                 pcm = generate_triangle(freq, duration, sample_rate, volume)
-            else:
-                pcm = generate_sine(freq, duration, sample_rate, volume)
+            elif waveform == "noise":
+                pcm = generate_noise(duration, sample_rate, volume)
 
             samples = _pcm_to_float(pcm)
 
@@ -122,9 +167,6 @@ def audio_sequence(
             pcm = generate_noise(duration, sample_rate, volume)
             samples = _pcm_to_float(pcm)
             samples = apply_lowpass(samples, 2000, sample_rate)
-
-        else:
-            continue
 
         # Mix into buffer
         for i, sample in enumerate(samples):

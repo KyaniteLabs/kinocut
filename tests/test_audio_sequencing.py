@@ -46,14 +46,29 @@ class TestAudioSequence:
         result = audio_sequence(seq, output, sample_rate=8000)
         assert Path(result).exists()
 
-    def test_unknown_event_type_ignored(self, tmp_path):
+    def test_unknown_event_type_rejected(self, tmp_path):
         output = str(tmp_path / "out.wav")
         seq = [
             {"type": "unknown", "at": 0.0, "duration": 0.05},
             {"type": "tone", "at": 0.0, "duration": 0.05, "freq": 440},
         ]
-        result = audio_sequence(seq, output, sample_rate=8000)
-        assert Path(result).exists()
+        with pytest.raises(MCPVideoError, match="type"):
+            audio_sequence(seq, output, sample_rate=8000)
+        assert not Path(output).exists()
+
+    def test_unknown_tone_waveform_rejected(self, tmp_path):
+        output = str(tmp_path / "out.wav")
+        seq = [{"type": "tone", "at": 0.0, "duration": 0.05, "freq": 440, "waveform": "pulse"}]
+        with pytest.raises(MCPVideoError, match="waveform"):
+            audio_sequence(seq, output, sample_rate=8000)
+        assert not Path(output).exists()
+
+    def test_missing_event_type_rejected(self, tmp_path):
+        output = str(tmp_path / "out.wav")
+        seq = [{"at": 0.0, "duration": 0.05, "freq": 440}]
+        with pytest.raises(MCPVideoError, match="type"):
+            audio_sequence(seq, output, sample_rate=8000)
+        assert not Path(output).exists()
 
     def test_normalization_on_clipping(self, tmp_path):
         output = str(tmp_path / "out.wav")

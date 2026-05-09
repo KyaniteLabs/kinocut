@@ -425,6 +425,23 @@ class TestClientValidators:
                 assert not isinstance(exc_info.value, ValueError)
 
 
+class TestClientAudioSequenceValidation:
+    def test_audio_sequence_rejects_empty_sequence(self, editor):
+        with pytest.raises(MCPVideoError, match="sequence"):
+            editor.audio_sequence([], output="/tmp/out.wav")
+
+    def test_audio_sequence_rejects_unknown_event_type(self, editor):
+        with pytest.raises(MCPVideoError, match="type"):
+            editor.audio_sequence([{"type": "unknown", "at": 0.0, "duration": 0.1}], output="/tmp/out.wav")
+
+    def test_audio_sequence_rejects_unknown_waveform(self, editor):
+        with pytest.raises(MCPVideoError, match="waveform"):
+            editor.audio_sequence(
+                [{"type": "tone", "at": 0.0, "duration": 0.1, "waveform": "pulse"}],
+                output="/tmp/out.wav",
+            )
+
+
 class TestClientAudioComposeValidation:
     def test_audio_compose_rejects_empty_tracks(self, editor):
         with pytest.raises(MCPVideoError, match="tracks"):
