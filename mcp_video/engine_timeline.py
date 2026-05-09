@@ -20,6 +20,7 @@ from .paths import (
 )
 from .models import (
     _position_coords,
+    _validate_position,
 )
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
@@ -38,6 +39,7 @@ def edit_timeline(timeline: Timeline | dict, output_path: str | None = None) -> 
     """Execute a full timeline-based edit described in JSON."""
     if isinstance(timeline, dict):
         timeline = Timeline.model_validate(timeline)
+    _validate_timeline_positions(timeline)
     tmpdir = tempfile.mkdtemp(prefix="mcp_video_timeline_")
     try:
         video_clips, audio_clips, text_elements, image_overlays = _collect_tracks(timeline, tmpdir)
@@ -67,6 +69,14 @@ def edit_timeline(timeline: Timeline | dict, output_path: str | None = None) -> 
         return export_video(current, output_path=output, quality=timeline.export.quality, format=timeline.export.format)
     finally:
         shutil.rmtree(tmpdir, ignore_errors=True)
+
+
+def _validate_timeline_positions(timeline: Timeline) -> None:
+    for track in timeline.tracks:
+        for elem in track.elements:
+            _validate_position(elem.position)
+        for img in track.images:
+            _validate_position(img.position)
 
 
 def _collect_tracks(timeline: Timeline, tmpdir: str):
@@ -181,10 +191,14 @@ def _image_overlay_position(img: TimelineImageOverlay, overlay_position_map: dic
             return f"(main_w*{img.position['x_pct']}-overlay_w/2):(main_h*{img.position['y_pct']}-overlay_h/2)"
         if "x" in img.position and "y" in img.position:
             return f"{img.position['x']}:{img.position['y']}"
-        return overlay_position_map["center"]
+        raise MCPVideoError(
+            "Position dict must have 'x'+'y' (pixels) or 'x_pct'+'y_pct' (percentage)",
+            error_type="validation_error",
+            code="invalid_position_dict",
+        )
     if img.x is not None and img.y is not None:
         return f"{img.x}:{img.y}"
-    return overlay_position_map.get(img.position, overlay_position_map["center"])
+    return overlay_position_map[img.position]
 
 
 def _image_enable_expression(img: TimelineImageOverlay) -> str:

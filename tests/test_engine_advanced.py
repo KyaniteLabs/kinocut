@@ -139,6 +139,20 @@ class TestEditTimeline:
         result = edit_timeline(tl)
         assert os.path.isfile(result.output_path)
 
+    def test_timeline_rejects_invalid_image_position_before_input_validation(self):
+        from mcp_video.engine import edit_timeline
+        from mcp_video.errors import MCPVideoError
+
+        timeline = {
+            "tracks": [
+                {"type": "video", "clips": [{"source": "/tmp/missing.mp4"}]},
+                {"type": "image", "images": [{"source": "/tmp/logo.png", "position": {"x_pct": 0.5}}]},
+            ]
+        }
+
+        with pytest.raises(MCPVideoError, match="Position dict"):
+            edit_timeline(timeline)
+
     def test_timeline_with_audio(self, sample_video, sample_audio, tmp_path):
         out = str(tmp_path / "timeline_audio.mp4")
         tl = Timeline(

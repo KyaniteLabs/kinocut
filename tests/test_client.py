@@ -228,6 +228,17 @@ class TestClientEdit:
         with pytest.raises(Exception):
             editor.edit({"width": "not_an_int"})
 
+    def test_edit_rejects_invalid_image_position_before_input_validation(self, editor):
+        timeline = {
+            "tracks": [
+                {"type": "video", "clips": [{"source": "/tmp/missing.mp4"}]},
+                {"type": "image", "images": [{"source": "/tmp/logo.png", "position": {"x_pct": 0.5}}]},
+            ]
+        }
+
+        with pytest.raises(MCPVideoError, match="Position dict"):
+            editor.edit(timeline)
+
 
 class TestClientExtractAudio:
     def test_extract_audio_returns_edit_result(self, editor, sample_video):

@@ -789,6 +789,21 @@ class TestServerValidationAI:
         assert result["success"] is False
 
 
+class TestServerValidationTimelinePosition:
+    def test_edit_rejects_invalid_image_position_before_input_validation(self):
+        timeline = {
+            "tracks": [
+                {"type": "video", "clips": [{"source": "/tmp/missing.mp4"}]},
+                {"type": "image", "images": [{"source": "/tmp/logo.png", "position": {"x_pct": 0.5}}]},
+            ]
+        }
+
+        result = video_edit(timeline)
+
+        assert result["success"] is False
+        assert "Position dict" in result["error"]["message"]
+
+
 class TestServerValidationCompareQuality:
     def test_compare_quality_rejects_bad_metric_before_input_validation(self):
         result = video_compare_quality("/tmp/missing-original.mp4", "/tmp/missing-distorted.mp4", metrics=["vmaf"])
