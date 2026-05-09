@@ -434,6 +434,10 @@ class TestClientAudioComposeValidation:
         with pytest.raises(MCPVideoError, match="duration"):
             editor.audio_compose([{"file": "/tmp/a.wav"}], duration=0, output="/tmp/out.wav")
 
+    def test_audio_compose_rejects_track_without_file(self, editor):
+        with pytest.raises(MCPVideoError, match="file"):
+            editor.audio_compose([{"volume": 0.5}], duration=1.0, output="/tmp/out.wav")
+
 
 class TestClientTextAnimatedValidation:
     def test_text_animated_rejects_empty_text(self, editor):

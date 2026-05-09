@@ -8,6 +8,7 @@ from pathlib import Path
 import pytest
 
 from mcp_video.audio_engine.sequencing import audio_compose, audio_effects, audio_sequence
+from mcp_video.errors import MCPVideoError
 from mcp_video.audio_engine.synthesis import audio_synthesize
 
 
@@ -94,15 +95,22 @@ class TestAudioCompose:
         )
         assert Path(result).exists()
 
-    def test_compose_missing_file_skipped(self, tmp_path):
+    def test_compose_missing_file_rejected(self, tmp_path):
         output = str(tmp_path / "out.wav")
-        result = audio_compose(
-            [{"file": "/nonexistent.wav", "volume": 0.5}],
-            duration=0.1,
-            output=output,
-            sample_rate=8000,
-        )
-        assert Path(result).exists()
+        with pytest.raises(MCPVideoError, match="not found"):
+            audio_compose(
+                [{"file": "/nonexistent.wav", "volume": 0.5}],
+                duration=0.1,
+                output=output,
+                sample_rate=8000,
+            )
+        assert not Path(output).exists()
+
+    def test_compose_missing_file_key_rejected(self, tmp_path):
+        output = str(tmp_path / "out.wav")
+        with pytest.raises(MCPVideoError, match="file"):
+            audio_compose([{"volume": 0.5}], duration=0.1, output=output, sample_rate=8000)
+        assert not Path(output).exists()
 
     def test_compose_multiple_tracks(self, tmp_path):
         t1 = _make_wav(str(tmp_path / "t1.wav"), freq=440)

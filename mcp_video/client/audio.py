@@ -149,6 +149,18 @@ class ClientAudioMixin:
             raise MCPVideoError("tracks cannot be empty", error_type="validation_error", code="empty_tracks")
         if duration <= 0:
             raise MCPVideoError("duration must be > 0", error_type="validation_error", code="invalid_parameter")
+        for i, track in enumerate(tracks):
+            if not isinstance(track, dict):
+                raise MCPVideoError(
+                    f"tracks[{i}] must be a dict", error_type="validation_error", code="invalid_parameter"
+                )
+            track_file = track.get("file")
+            if not track_file or not isinstance(track_file, str):
+                raise MCPVideoError(
+                    f"tracks[{i}].file must be a non-empty path string",
+                    error_type="validation_error",
+                    code="invalid_parameter",
+                )
         from ..audio_engine import audio_compose
 
         return self._to_edit_result(

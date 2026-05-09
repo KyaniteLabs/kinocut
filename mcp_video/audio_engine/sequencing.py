@@ -8,9 +8,10 @@ from __future__ import annotations
 import tempfile
 import wave
 from pathlib import Path
-from typing import Any
 
 from ..errors import MCPVideoError
+from typing import Any
+
 
 from .core import (
     _float_to_pcm,
@@ -170,8 +171,18 @@ def audio_compose(
         start_time = track.get("start", 0)
         loop = track.get("loop", False)
 
-        if not file_path or not Path(file_path).exists():
-            continue
+        if not file_path or not isinstance(file_path, str):
+            raise MCPVideoError(
+                "tracks must contain 'file' key with a non-empty path string",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        if not Path(file_path).exists():
+            raise MCPVideoError(
+                f"Audio track file not found: {file_path}",
+                error_type="input_error",
+                code="invalid_input",
+            )
 
         # Read WAV file
         with wave.open(file_path, "rb") as wav_file:
