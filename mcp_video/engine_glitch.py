@@ -182,11 +182,13 @@ def glitch_screen_tearing(
     for i in range(tear_count):
         phase = i * 137.5  # golden-angle spacing for variety
         freq = 0.005 + i * 0.003
+        seed = i * 7 + 42
         # Each tear contributes a displacement within a narrow Y band
+        # random(N) in geq takes a seed integer; use Y+seed for spatial variation
         tear_exprs.append(
             f"(sin(Y*{freq:.4f}+T*{speed:.1f}+{phase:.1f})*"
-            f"step(sin(Y*{freq:.4f}+T*{speed:.1f}+{phase:.1f}),0.95)*"
-            f"{offset_range:.1f}*(random(i*7+T*100)*2-1))"
+            f"if(gt(sin(Y*{freq:.4f}+T*{speed:.1f}+{phase:.1f}),0.95),1,0)*"
+            f"{offset_range:.1f}*(random(floor(Y)+{seed})*2-1))"
         )
 
     displacement = "+".join(tear_exprs) if tear_exprs else "0"
@@ -236,10 +238,11 @@ def glitch_vhs_tracking(
     roll_speed = _sanitize_ffmpeg_number(roll_speed, "roll_speed")
 
     # 1. Rolling horizontal band: sin-based X offset varying with Y and time
+    # Uses ternary (if(x,1,0)) to create discrete band steps instead of step()
     roll_offset = tracking * 40
     roll_expr = (
         f"(sin((Y+T*{roll_speed:.1f}*100)*0.02)*{roll_offset:.1f}*"
-        f"step(sin((Y+T*{roll_speed:.1f}*100)*0.005),0.3))"
+        f"if(gt(sin((Y+T*{roll_speed:.1f}*100)*0.005),0.3),1,0))"
     )
 
     # 2. geq for the rolling displacement (applied to all channels)
@@ -295,12 +298,14 @@ def glitch_macroblocking(
     levels = color_reduction * 0.3  # subtle posterization
 
     # Scale down then up with neighbor interpolation for blocky look,
-    # then posterize, then blend with original
+    # then posterize, then blend with original.
+    # We use iw*block_size to restore original dimensions after downscale,
+    # since "iw" in the second scale refers to the already-downscaled width.
     vf = (
         f"split[orig][blocked];"
         f"[blocked]"
         f"scale='iw/{block_size}':'ih/{block_size}':flags=neighbor,"
-        f"scale=iw:ih:flags=neighbor,"
+        f"scale='iw*{block_size}':'ih*{block_size}':flags=neighbor,"
         f"colorlevels=rimin={levels:.3f}:gimin={levels:.3f}:bimin={levels:.3f}"
         f"[blk];"
         f"[orig][blk]blend=all_expr='A*(1-{intensity:.2f})+B*{intensity:.2f}'"
