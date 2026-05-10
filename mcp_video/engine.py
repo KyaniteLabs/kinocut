@@ -84,6 +84,18 @@ from .engine_timeline import _apply_composite_overlays as _apply_composite_overl
 from .engine_timeline import edit_timeline as edit_timeline
 from .engine_transcode import normalize as normalize
 from .engine_watermark import watermark as watermark
+from .engine_glitch import glitch_rgb_shift as glitch_rgb_shift
+from .engine_glitch import glitch_scanline_jitter as glitch_scanline_jitter
+from .engine_glitch import glitch_screen_tearing as glitch_screen_tearing
+from .engine_glitch import glitch_vhs_tracking as glitch_vhs_tracking
+from .engine_glitch import glitch_macroblocking as glitch_macroblocking
+from .engine_glitch import glitch_datamoshing as glitch_datamoshing
+from .engine_glitch import glitch_cmyk_split as glitch_cmyk_split
+from .engine_glitch import glitch_turbulent_displacement as glitch_turbulent_displacement
+from .engine_glitch_shader import glitch_digital_feedback as glitch_digital_feedback
+from .engine_glitch_shader import glitch_slit_scan as glitch_slit_scan
+from .engine_glitch_shader import glitch_depth_splatting as glitch_depth_splatting
+from .engine_glitch_shader import glitch_point_cloud as glitch_point_cloud
 
 apply_mask = _apply_mask
 apply_filter = _apply_filter

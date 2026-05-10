@@ -118,6 +118,22 @@ from .server_tools_effects import (
     video_text_animated as video_text_animated,
     video_subtitles_styled as video_subtitles_styled,
 )
+from .server_tools_glitch import (
+    glitch_cmyk_split as glitch_cmyk_split,
+    glitch_datamoshing as glitch_datamoshing,
+    glitch_macroblocking as glitch_macroblocking,
+    glitch_rgb_shift as glitch_rgb_shift,
+    glitch_scanline_jitter as glitch_scanline_jitter,
+    glitch_screen_tearing as glitch_screen_tearing,
+    glitch_turbulent_displacement as glitch_turbulent_displacement,
+    glitch_vhs_tracking as glitch_vhs_tracking,
+)
+from .server_tools_glitch_shader import (
+    glitch_depth_splatting as glitch_depth_splatting,
+    glitch_digital_feedback as glitch_digital_feedback,
+    glitch_point_cloud as glitch_point_cloud,
+    glitch_slit_scan as glitch_slit_scan,
+)
 from .server_tools_ai import (
     video_ai_color_grade as video_ai_color_grade,
     video_ai_remove_silence as video_ai_remove_silence,
