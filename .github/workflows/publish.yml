@@ -6,15 +6,20 @@ on:
 
 permissions:
   contents: read
-  id-token: write  # Required for OIDC trusted publishing
+
+concurrency:
+  group: publish-${{ github.event.release.tag_name }}
+  cancel-in-progress: false
 
 jobs:
   surface-audit:
     name: Check tracked release surface
     runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.13'
       - name: Check forbidden tracked artifacts
@@ -24,11 +29,13 @@ jobs:
     name: Build package
     needs: surface-audit
     runs-on: blacksmith-2vcpu-ubuntu-2404
+    permissions:
+      contents: read
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
         with:
           fetch-depth: 0  # Needed for hatch-vcs if ever adopted
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6
         with:
           python-version: '3.13'
       - name: Create venv
@@ -108,7 +115,7 @@ jobs:
       - name: Validate distribution metadata
         run: .venv/bin/python -m twine check dist/*
       - name: Upload build artifacts
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: dist
           path: dist/
@@ -116,6 +123,7 @@ jobs:
   publish:
     name: Publish to PyPI
     needs: build
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -123,22 +131,23 @@ jobs:
       id-token: write
     steps:
       - name: Download build artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
           path: dist/
       - name: Publish to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
+        uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
 
   publish-mcp-registry:
     name: Publish to MCP Registry
     needs: publish
+    if: startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     permissions:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6
       - name: Install mcp-publisher
         run: |
           curl -L "https://github.com/modelcontextprotocol/registry/releases/latest/download/mcp-publisher_$(uname -s | tr '[:upper:]' '[:lower:]')_$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/').tar.gz" | tar xz mcp-publisher
