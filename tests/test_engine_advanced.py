@@ -971,6 +971,38 @@ class TestImageSequences:
         assert _format_fps_for_ffmpeg(29.97002997) == "29.97002997"
         assert _format_fps_for_ffmpeg(12.00001) == "12.00001"
 
+    def test_create_from_images_passes_precise_non_integer_fps_to_ffmpeg(self, tmp_path, monkeypatch):
+        from mcp_video import engine_images
+        from mcp_video.models import EditResult
+
+        frame = tmp_path / "frame.png"
+        frame.write_bytes(b"fake-png")
+        output = str(tmp_path / "out.mp4")
+        calls = []
+
+        monkeypatch.setattr(engine_images, "_normalize_images", lambda images, tmpdir: images)
+        monkeypatch.setattr(
+            engine_images,
+            "_write_concat_file",
+            lambda normalized, tmpdir, fps: str(tmp_path / "concat.txt"),
+        )
+        monkeypatch.setattr(engine_images, "_run_ffmpeg", lambda cmd: calls.append(cmd))
+        monkeypatch.setattr(
+            engine_images,
+            "_build_edit_result",
+            lambda output_path, operation, timing: EditResult(
+                output_path=output_path,
+                operation=operation,
+            ),
+        )
+
+        result = engine_images.create_from_images([str(frame)], output_path=output, fps=29.97002997)
+
+        final_cmd = calls[-1]
+        fps_idx = final_cmd.index("-r")
+        assert final_cmd[fps_idx + 1] == "29.97002997"
+        assert result.operation == "create_from_images"
+
     def test_create_from_images_empty_raises(self):
         from mcp_video.engine import create_from_images
 

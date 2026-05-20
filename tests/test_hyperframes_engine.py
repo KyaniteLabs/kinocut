@@ -227,6 +227,23 @@ class TestRender:
             idx = cmd.index("--fps")
             assert cmd[idx + 1] == "30"
 
+    def test_preserves_non_integral_float_fps(self, sample_hyperframes_project):
+        """render() should pass non-integral FPS values through unchanged."""
+        project = str(sample_hyperframes_project)
+        fake_cp = _make_completed_process(stdout="Rendered.")
+
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run,
+            patch("os.path.isfile", return_value=True),
+            patch("os.path.getsize", return_value=1024 * 1024),
+        ):
+            render(project, output_path="/tmp/out.mp4", fps=29.97, format="mp4")
+
+            cmd = mock_run.call_args[0][0]
+            idx = cmd.index("--fps")
+            assert cmd[idx + 1] == "29.97"
+
     def test_passes_all_optional_args(self, sample_hyperframes_project):
         """render() should forward render options supported by Hyperframes CLI."""
         project = str(sample_hyperframes_project)
