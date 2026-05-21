@@ -379,3 +379,20 @@ def test_module_reexports():
         "video_batch",
     ]:
         assert hasattr(engine, name), f"engine missing {name}"
+
+
+def test_hyperframes_runtime_data_public_signatures():
+    """Hyperframes runtime-data controls stay visible on public tool surfaces."""
+    import inspect
+
+    from mcp_video import server_tools_hyperframes as tools
+    from mcp_video.client import Client
+
+    server_methods = [tools.hyperframes_render, tools.hyperframes_still, tools.hyperframes_snapshot]
+    client = Client()
+    client_methods = [client.hyperframes_render, client.hyperframes_still, client.hyperframes_snapshot]
+
+    for method in [*server_methods, *client_methods]:
+        params = inspect.signature(method).parameters
+        assert "variables" in params
+        assert "variables_file" in params

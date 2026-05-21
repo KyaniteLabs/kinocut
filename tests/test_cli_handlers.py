@@ -342,6 +342,100 @@ class TestHandlersHyperframes:
         assert captured["project_path"] == "/tmp/project"
         assert captured["kwargs"]["format"] == "webm"
 
+    def test_render_json_forwards_runtime_variables(self, monkeypatch, capsys):
+        from mcp_video.cli.handlers_hyperframes import handle_hyperframes_commands
+
+        captured = {}
+
+        def fake_render(project_path, **kwargs):
+            captured["project_path"] = project_path
+            captured["kwargs"] = kwargs
+            return {"success": True, "output_path": "/tmp/render.mp4"}
+
+        monkeypatch.setattr("mcp_video.hyperframes_engine.render", fake_render)
+        monkeypatch.setattr(
+            "mcp_video.cli.handlers_hyperframes._with_spinner",
+            lambda _label, fn, *args, **kwargs: fn(*args, **kwargs),
+        )
+        args = _make_args(
+            command="hyperframes-render",
+            project_path="/tmp/project",
+            variables='{"title":"Launch"}',
+            variables_file="/tmp/render-vars.json",
+            output_format="mp4",
+        )
+
+        result = handle_hyperframes_commands(args, use_json=True)
+        data = json.loads(capsys.readouterr().out)
+
+        assert result is True
+        assert data["success"] is True
+        assert captured["kwargs"]["variables"] == {"title": "Launch"}
+        assert captured["kwargs"]["variables_file"] == "/tmp/render-vars.json"
+
+    def test_still_json_forwards_runtime_variables(self, monkeypatch, capsys):
+        from mcp_video.cli.handlers_hyperframes import handle_hyperframes_commands
+
+        captured = {}
+
+        def fake_still(project_path, **kwargs):
+            captured["project_path"] = project_path
+            captured["kwargs"] = kwargs
+            return {"success": True, "output_path": "/tmp/still.png"}
+
+        monkeypatch.setattr("mcp_video.hyperframes_engine.still", fake_still)
+        monkeypatch.setattr(
+            "mcp_video.cli.handlers_hyperframes._with_spinner",
+            lambda _label, fn, *args, **kwargs: fn(*args, **kwargs),
+        )
+        args = _make_args(
+            command="hyperframes-still",
+            project_path="/tmp/project",
+            frame=10,
+            variables='{"title":"Still"}',
+            variables_file="/tmp/still-vars.json",
+        )
+
+        result = handle_hyperframes_commands(args, use_json=True)
+        data = json.loads(capsys.readouterr().out)
+
+        assert result is True
+        assert data["success"] is True
+        assert captured["kwargs"]["variables"] == {"title": "Still"}
+        assert captured["kwargs"]["variables_file"] == "/tmp/still-vars.json"
+
+    def test_snapshot_json_forwards_runtime_variables(self, monkeypatch, capsys):
+        from mcp_video.cli.handlers_hyperframes import handle_hyperframes_commands
+
+        captured = {}
+
+        def fake_snapshot(project_path, **kwargs):
+            captured["project_path"] = project_path
+            captured["kwargs"] = kwargs
+            return {"frame_paths": ["/tmp/snap.png"]}
+
+        monkeypatch.setattr("mcp_video.hyperframes_engine.snapshot", fake_snapshot)
+        monkeypatch.setattr(
+            "mcp_video.cli.handlers_hyperframes._with_spinner",
+            lambda _label, fn, *args, **kwargs: fn(*args, **kwargs),
+        )
+        args = _make_args(
+            command="hyperframes-snapshot",
+            project_path="/tmp/project",
+            frames=1,
+            at=None,
+            variables='{"title":"Snapshot"}',
+            variables_file="/tmp/snapshot-vars.json",
+        )
+
+        result = handle_hyperframes_commands(args, use_json=True)
+        data = json.loads(capsys.readouterr().out)
+
+        assert result is True
+        assert data["frame_paths"] == ["/tmp/snap.png"]
+        assert captured["kwargs"]["variables"] == {"title": "Snapshot"}
+        assert captured["kwargs"]["variables_file"] == "/tmp/snapshot-vars.json"
+
 
 class TestHandlersImage:
     def test_all_commands_register(self, monkeypatch):

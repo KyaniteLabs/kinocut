@@ -31,7 +31,7 @@ def hyperframes_render(
     workers: str | int | None = None,
     crf: int | None = None,
     video_bitrate: str | None = None,
-    variables: str | None = None,
+    variables: Any | None = None,
     variables_file: str | None = None,
     docker: bool = False,
     hdr: bool = False,
@@ -59,6 +59,8 @@ def hyperframes_render(
         composition: Specific composition file to render instead of index.html.
         workers: Parallel render workers (number or 'auto'). Default auto.
         crf: Override encoder CRF (lower = better quality).
+        variables: Inline JSON object/string with runtime data for the composition.
+        variables_file: Path to a JSON file with runtime data for the composition.
     """
     if quality is not None and quality not in VALID_HYPERFRAMES_QUALITIES:
         return _validation_error(
@@ -152,6 +154,8 @@ def hyperframes_still(
     project_path: str,
     output_path: str | None = None,
     frame: int = 0,
+    variables: Any | None = None,
+    variables_file: str | None = None,
 ) -> dict[str, Any]:
     """Render a single frame as image from a Hyperframes composition.
 
@@ -159,11 +163,15 @@ def hyperframes_still(
         project_path: Absolute path to the Hyperframes project directory.
         output_path: Where to save the image. Auto-generated if omitted.
         frame: Frame number to render (default 0).
+        variables: Inline JSON object/string with runtime data for the composition.
+        variables_file: Path to a JSON file with runtime data for the composition.
     """
     project_path = _validate_project_path(project_path)
     from .hyperframes_engine import still
 
-    return _result(still(project_path, output_path=output_path, frame=frame))
+    return _result(
+        still(project_path, output_path=output_path, frame=frame, variables=variables, variables_file=variables_file)
+    )
 
 
 @mcp.tool()
@@ -173,6 +181,8 @@ def hyperframes_snapshot(
     frames: int = 5,
     at: list[float] | None = None,
     timeout_ms: int | None = None,
+    variables: Any | None = None,
+    variables_file: str | None = None,
 ) -> dict[str, Any]:
     """Capture key frames as PNG screenshots for visual verification."""
     if frames < 1:
@@ -180,7 +190,16 @@ def hyperframes_snapshot(
     project_path = _validate_project_path(project_path)
     from .hyperframes_engine import snapshot
 
-    return _result(snapshot(project_path, frames=frames, at=at, timeout_ms=timeout_ms))
+    return _result(
+        snapshot(
+            project_path,
+            frames=frames,
+            at=at,
+            timeout_ms=timeout_ms,
+            variables=variables,
+            variables_file=variables_file,
+        )
+    )
 
 
 @mcp.tool()

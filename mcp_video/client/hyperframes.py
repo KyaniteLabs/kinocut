@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any
+
 from ..errors import MCPVideoError
 
 
@@ -21,6 +23,8 @@ class ClientHyperframesMixin:
         resolution: str | None = None,
         workers: str | int | None = None,
         crf: int | None = None,
+        variables: Any | None = None,
+        variables_file: str | None = None,
     ) -> dict:
         """Render a Hyperframes composition to video."""
         from ..hyperframes_engine import render
@@ -37,6 +41,8 @@ class ClientHyperframesMixin:
             resolution=resolution,
             workers=workers,
             crf=crf,
+            variables=variables,
+            variables_file=variables_file,
         )
 
     def hyperframes_compositions(self, project_path: str) -> dict:
@@ -56,11 +62,13 @@ class ClientHyperframesMixin:
         project_path: str,
         output: str | None = None,
         frame: int = 0,
+        variables: Any | None = None,
+        variables_file: str | None = None,
     ) -> dict:
         """Render a single frame as image."""
         from ..hyperframes_engine import still
 
-        return still(project_path, output_path=output, frame=frame)
+        return still(project_path, output_path=output, frame=frame, variables=variables, variables_file=variables_file)
 
     def hyperframes_snapshot(
         self,
@@ -68,11 +76,20 @@ class ClientHyperframesMixin:
         frames: int = 5,
         at: list[float] | None = None,
         timeout_ms: int | None = None,
+        variables: Any | None = None,
+        variables_file: str | None = None,
     ) -> dict:
         """Capture key frames as PNG screenshots for visual verification."""
         from ..hyperframes_engine import snapshot
 
-        return snapshot(project_path, frames=frames, at=at, timeout_ms=timeout_ms)
+        return snapshot(
+            project_path,
+            frames=frames,
+            at=at,
+            timeout_ms=timeout_ms,
+            variables=variables,
+            variables_file=variables_file,
+        )
 
     def hyperframes_inspect(
         self,

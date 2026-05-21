@@ -141,11 +141,11 @@ mcp-video [command] [options]
 
 | Command | Description |
 |---------|-------------|
-| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence (`--composition`, `--resolution`; width/height must map to a preset) |
+| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence (`--composition`, `--resolution`, `--variables`, `--variables-file`; width/height must map to a preset) |
 | `hyperframes-compositions` | List compositions in a Hyperframes project |
 | `hyperframes-preview` | Launch Hyperframes preview studio |
-| `hyperframes-still` | Render a single frame as an image |
-| `hyperframes-snapshot` | Capture one or more rendered PNG snapshots |
+| `hyperframes-still` | Render a single frame as an image; accepts `--variables` and `--variables-file` runtime data |
+| `hyperframes-snapshot` | Capture one or more rendered PNG snapshots; accepts `--variables` and `--variables-file` runtime data |
 | `hyperframes-inspect` | Inspect rendered layout overflow and visual issues |
 | `hyperframes-info` | Show Hyperframes project metadata |
 | `hyperframes-catalog` | Browse catalog blocks and components |

@@ -278,6 +278,38 @@ class TestRender:
             assert "--width" not in cmd
             assert "--height" not in cmd
 
+    def test_render_serializes_inline_variables(self, sample_hyperframes_project):
+        """render() should pass inline runtime data as JSON to Hyperframes."""
+        project = str(sample_hyperframes_project)
+        fake_cp = _make_completed_process(stdout="done")
+
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run,
+            patch("os.path.isfile", return_value=True),
+            patch("os.path.getsize", return_value=2 * 1024 * 1024),
+        ):
+            render(project, output_path="/tmp/out.mp4", variables={"title": "Launch", "count": 3})
+
+        cmd = mock_run.call_args[0][0]
+        assert cmd[cmd.index("--variables") + 1] == '{"count":3,"title":"Launch"}'
+
+    def test_render_accepts_variables_file(self, sample_hyperframes_project):
+        """render() should pass variables_file to Hyperframes."""
+        project = str(sample_hyperframes_project)
+        fake_cp = _make_completed_process(stdout="done")
+
+        with (
+            _mock_deps_ok(),
+            patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run,
+            patch("os.path.isfile", return_value=True),
+            patch("os.path.getsize", return_value=2 * 1024 * 1024),
+        ):
+            render(project, output_path="/tmp/out.mp4", variables_file="/tmp/variables.json")
+
+        cmd = mock_run.call_args[0][0]
+        assert cmd[cmd.index("--variables-file") + 1] == "/tmp/variables.json"
+
     def test_raises_on_nonzero_exit(self, sample_hyperframes_project):
         """render() should raise HyperframesRenderError on non-zero exit."""
         project = str(sample_hyperframes_project)
@@ -651,6 +683,18 @@ class TestStill:
             idx = cmd.index("--at")
             assert cmd[idx + 1] == "1.4"
 
+    def test_forwards_runtime_variables_to_snapshot(self, sample_hyperframes_project):
+        """still() should pass runtime data through to the snapshot CLI."""
+        project = Path(sample_hyperframes_project)
+        fake_cp = _make_completed_process(stdout="Rendered frame.")
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            still(str(project), frame=42, variables={"headline": "Runtime"}, variables_file="/tmp/runtime.json")
+
+        cmd = mock_run.call_args[0][0]
+        assert cmd[cmd.index("--variables") + 1] == '{"headline":"Runtime"}'
+        assert cmd[cmd.index("--variables-file") + 1] == "/tmp/runtime.json"
+
 
 class TestSnapshot:
     """Tests for Hyperframes 0.5 snapshot path handling."""
@@ -684,6 +728,18 @@ class TestSnapshot:
         assert "snapshot" in cmd
         assert "--at" in cmd
         assert cmd[cmd.index("--at") + 1] == "0.5,1.25"
+
+    def test_builds_runtime_data_args(self, sample_hyperframes_project):
+        project = str(sample_hyperframes_project)
+        fake_cp = _make_completed_process(stdout="captured")
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            snapshot(project, frames=1, variables={"quote": "Hello"}, variables_file="/tmp/vars.json")
+
+        cmd = mock_run.call_args[0][0]
+        assert "snapshot" in cmd
+        assert cmd[cmd.index("--variables") + 1] == '{"quote":"Hello"}'
+        assert cmd[cmd.index("--variables-file") + 1] == "/tmp/vars.json"
 
     def test_still_returns_actual_snapshot_path_not_requested_path(self, sample_hyperframes_project):
         project = Path(sample_hyperframes_project)

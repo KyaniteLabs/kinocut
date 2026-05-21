@@ -157,6 +157,8 @@ _SCHEMA: dict[str, dict[str, Any]] = {
             "frames": "frames",
             "at": "at_csv",
             "timeout": "timeout_ms",
+            "variables": "variables",
+            "variables-file": "variables_file",
         },
         "timeout": 120,
     },
@@ -387,6 +389,8 @@ def _hyperframes_op(
 
 def _format_cli_value(value: Any) -> str:
     """Format Hyperframes CLI flag values without introducing false precision."""
+    if isinstance(value, (dict, list)):
+        return json.dumps(value, sort_keys=True, separators=(",", ":"))
     if isinstance(value, float) and value.is_integer():
         return str(int(value))
     return str(value)
@@ -536,7 +540,7 @@ def render(
     workers: str | int | None = None,
     crf: int | None = None,
     video_bitrate: str | None = None,
-    variables: str | None = None,
+    variables: Any | None = None,
     variables_file: str | None = None,
     docker: bool = False,
     hdr: bool = False,
@@ -710,6 +714,8 @@ def still(
     project_path: str,
     output_path: str | None = None,
     frame: int = 0,
+    variables: Any | None = None,
+    variables_file: str | None = None,
 ) -> HyperframesStillResult:
     """Render a single frame from a Hyperframes composition.
 
@@ -718,7 +724,7 @@ def still(
     generated frame path instead of echoing a requested-but-unwritten path.
     """
     seconds = frame / 30.0
-    snap = snapshot(project_path, at=[seconds], frames=1)
+    snap = snapshot(project_path, at=[seconds], frames=1, variables=variables, variables_file=variables_file)
     actual_output = snap.frame_paths[0] if snap.frame_paths else output_path or ""
 
     return HyperframesStillResult(
@@ -732,6 +738,8 @@ def snapshot(
     frames: int = 5,
     at: list[float] | None = None,
     timeout_ms: int | None = None,
+    variables: Any | None = None,
+    variables_file: str | None = None,
 ) -> HyperframesSnapshotResult:
     """Capture key frames as PNG screenshots for visual verification."""
     _require_hyperframes_deps()
@@ -745,6 +753,8 @@ def snapshot(
         frames=frames if at_csv is None else None,
         at_csv=at_csv,
         timeout_ms=timeout_ms,
+        variables=variables,
+        variables_file=variables_file,
     )
     frame_paths = _snapshot_pngs(project, before)
     return HyperframesSnapshotResult(

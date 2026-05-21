@@ -224,11 +224,11 @@ print(checkpoint["quality_score"])  # Must pass min_score
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `hyperframes_render(project_path, output?, fps?, width?, height?, composition?, quality?, format?, resolution?, workers?, crf?)` | `HyperframesRenderResult` | Render a Hyperframes composition to video or PNG sequence; width/height must map to Hyperframes resolution presets |
+| `hyperframes_render(project_path, output?, fps?, width?, height?, composition?, quality?, format?, resolution?, workers?, crf?, variables?, variables_file?)` | `HyperframesRenderResult` | Render a Hyperframes composition to video or PNG sequence; width/height must map to Hyperframes resolution presets; `variables` or `variables_file` passes runtime data |
 | `hyperframes_compositions(project_path)` | `CompositionsResult` | List compositions in a project |
 | `hyperframes_preview(project_path, port?)` | `HyperframesPreviewResult` | Launch live preview studio |
-| `hyperframes_still(project_path, output?, frame?)` | `HyperframesStillResult` | Render a single frame |
-| `hyperframes_snapshot(project_path, frames?, at?)` | `HyperframesSnapshotResult` | Capture actual PNG snapshot paths |
+| `hyperframes_still(project_path, output?, frame?, variables?, variables_file?)` | `HyperframesStillResult` | Render a single frame with optional runtime data |
+| `hyperframes_snapshot(project_path, frames?, at?, variables?, variables_file?)` | `HyperframesSnapshotResult` | Capture actual PNG snapshot paths with optional runtime data |
 | `hyperframes_inspect(project_path, samples?, strict?)` | `HyperframesJsonResult` | Inspect rendered layout issues |
 | `hyperframes_info(project_path)` | `HyperframesJsonResult` | Read project metadata |
 | `hyperframes_catalog(item_type?, tag?)` | `HyperframesJsonResult` | Browse blocks/components |

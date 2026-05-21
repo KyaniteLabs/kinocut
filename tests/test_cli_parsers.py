@@ -209,6 +209,47 @@ class TestParserHyperframes:
         assert args.resolution == "portrait"
         assert args.output_format == "png-sequence"
 
+    def test_render_still_and_snapshot_accept_runtime_data_flags(self):
+        from mcp_video.cli.parser import build_parser
+
+        render_args = build_parser().parse_args(
+            [
+                "hyperframes-render",
+                "project",
+                "--variables",
+                '{"title":"Launch"}',
+                "--variables-file",
+                "/tmp/render-vars.json",
+            ]
+        )
+        still_args = build_parser().parse_args(
+            [
+                "hyperframes-still",
+                "project",
+                "--variables",
+                '{"title":"Still"}',
+                "--variables-file",
+                "/tmp/still-vars.json",
+            ]
+        )
+        snapshot_args = build_parser().parse_args(
+            [
+                "hyperframes-snapshot",
+                "project",
+                "--variables",
+                '{"title":"Snapshot"}',
+                "--variables-file",
+                "/tmp/snapshot-vars.json",
+            ]
+        )
+
+        assert render_args.variables == '{"title":"Launch"}'
+        assert render_args.variables_file == "/tmp/render-vars.json"
+        assert still_args.variables == '{"title":"Still"}'
+        assert still_args.variables_file == "/tmp/still-vars.json"
+        assert snapshot_args.variables == '{"title":"Snapshot"}'
+        assert snapshot_args.variables_file == "/tmp/snapshot-vars.json"
+
     def test_init_add_and_benchmark_accept_current_hyperframes_flags(self):
         from mcp_video.cli.parser import build_parser
 

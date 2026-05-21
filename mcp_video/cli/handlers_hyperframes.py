@@ -22,6 +22,12 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
     """Handle Hyperframes commands extracted from the main dispatcher."""
     runner = CommandRunner(args, use_json)
 
+    def _variables(a: Any, json_mode: bool) -> Any | None:
+        value = getattr(a, "variables", None)
+        if value is None:
+            return None
+        return _parse_json_arg(value, "variables", json_mode)
+
     def _render(a, j):
         from ..hyperframes_engine import render
 
@@ -39,6 +45,8 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
             resolution=getattr(a, "resolution", None),
             workers=a.workers,
             crf=a.crf,
+            variables=_variables(a, j),
+            variables_file=getattr(a, "variables_file", None),
         )
         _out(r, j, lambda res: _format_hyperframes_render(res, a.project_path))
 
@@ -74,7 +82,13 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
         from ..hyperframes_engine import still
 
         r = _with_spinner(
-            f"Rendering still frame {a.frame}...", still, a.project_path, output_path=a.output, frame=a.frame
+            f"Rendering still frame {a.frame}...",
+            still,
+            a.project_path,
+            output_path=a.output,
+            frame=a.frame,
+            variables=_variables(a, j),
+            variables_file=getattr(a, "variables_file", None),
         )
         _out(r, j, lambda res: _format_hyperframes_still(res, a.project_path))
 
@@ -83,7 +97,15 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
     def _snapshot(a, j):
         from ..hyperframes_engine import snapshot
 
-        r = _with_spinner("Capturing Hyperframes snapshots...", snapshot, a.project_path, frames=a.frames, at=a.at)
+        r = _with_spinner(
+            "Capturing Hyperframes snapshots...",
+            snapshot,
+            a.project_path,
+            frames=a.frames,
+            at=a.at,
+            variables=_variables(a, j),
+            variables_file=getattr(a, "variables_file", None),
+        )
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-snapshot", _snapshot)

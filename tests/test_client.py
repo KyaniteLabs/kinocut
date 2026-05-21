@@ -564,6 +564,15 @@ class TestClientAgentApiConsistency:
         assert "images" in info["parameters"]
         assert info["return_type"] == "EditResult"
 
+    def test_hyperframes_runtime_data_is_in_client_signatures(self, editor):
+        render = editor.inspect("hyperframes_render")
+        still = editor.inspect("hyperframes_still")
+        snapshot = editor.inspect("hyperframes_snapshot")
+
+        for info in (render, still, snapshot):
+            assert "variables" in info["parameters"]
+            assert "variables_file" in info["parameters"]
+
     def test_pipeline_chains_edit_results(self, editor, monkeypatch):
         calls = []
 

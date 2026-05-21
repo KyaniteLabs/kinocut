@@ -35,6 +35,8 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     hyperframes_render_p.add_argument("--workers", help="Parallel render workers (number or 'auto')")
     hyperframes_render_p.add_argument("--crf", type=int, help="Override encoder CRF")
+    hyperframes_render_p.add_argument("--variables", help="Inline JSON runtime data for the composition")
+    hyperframes_render_p.add_argument("--variables-file", help="Path to JSON runtime data for the composition")
 
     # hyperframes-compositions
     hyperframes_comps_p = subparsers.add_parser(
@@ -54,11 +56,15 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     hyperframes_still_p.add_argument("project_path", help="Path to Hyperframes project")
     hyperframes_still_p.add_argument("-o", "--output", help="Output image file path")
     hyperframes_still_p.add_argument("--frame", type=int, default=0, help="Frame number to render (default: 0)")
+    hyperframes_still_p.add_argument("--variables", help="Inline JSON runtime data for the composition")
+    hyperframes_still_p.add_argument("--variables-file", help="Path to JSON runtime data for the composition")
 
     snapshot_p = subparsers.add_parser("hyperframes-snapshot", help="Capture key frames as PNG screenshots")
     snapshot_p.add_argument("project_path", help="Path to Hyperframes project")
     snapshot_p.add_argument("--frames", type=int, default=5, help="Number of evenly-spaced frames")
     snapshot_p.add_argument("--at", nargs="+", type=float, help="Specific timestamps in seconds")
+    snapshot_p.add_argument("--variables", help="Inline JSON runtime data for the composition")
+    snapshot_p.add_argument("--variables-file", help="Path to JSON runtime data for the composition")
 
     inspect_p = subparsers.add_parser("hyperframes-inspect", help="Inspect Hyperframes layout overflow")
     inspect_p.add_argument("project_path", help="Path to Hyperframes project")
