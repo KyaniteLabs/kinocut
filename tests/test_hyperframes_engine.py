@@ -8,6 +8,14 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from mcp_video.defaults import DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
+from mcp_video.errors import (
+    HyperframesNotFoundError,
+    HyperframesProjectError,
+    HyperframesRenderError,
+    InputFileError,
+    MCPVideoError,
+)
 from mcp_video.hyperframes_engine import (
     HYPERFRAMES_COMMAND_ENV,
     _hyperframes_command_prefix,
@@ -31,13 +39,6 @@ from mcp_video.hyperframes_engine import (
     transcribe,
     tts,
     validate,
-)
-from mcp_video.errors import (
-    HyperframesNotFoundError,
-    HyperframesProjectError,
-    HyperframesRenderError,
-    InputFileError,
-    MCPVideoError,
 )
 
 
@@ -658,6 +659,108 @@ class TestCompositions:
             result = compositions(project)
 
         assert result.compositions[0].duration_in_frames == 120
+
+    def test_uses_html_data_duration_when_cli_reports_zero_frames(self, sample_hyperframes_project):
+        """data-duration should repair false zero-frame composition preflight output."""
+        project_path = Path(sample_hyperframes_project)
+        (project_path / "index.html").write_text(
+            '<!DOCTYPE html><div data-composition-id="main" data-duration="5" data-width="1080" '
+            'data-height="1920" data-fps="30"></div>',
+            encoding="utf-8",
+        )
+        comp_json = json.dumps(
+            {
+                "id": "main",
+                "width": 1080,
+                "height": 1920,
+                "fps": 30,
+                "durationInFrames": 0,
+            }
+        )
+        fake_cp = _make_completed_process(stdout=comp_json)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp):
+            result = compositions(str(project_path))
+
+        comp = result.compositions[0]
+        assert comp.width == 1080
+        assert comp.height == 1920
+        assert comp.fps == 30
+        assert comp.duration_in_frames == 150
+
+    def test_uses_html_data_duration_for_text_table_zero_frames(self, sample_hyperframes_project):
+        """Text/table fallback should also repair zero frames from HTML metadata."""
+        project_path = Path(sample_hyperframes_project)
+        (project_path / "index.html").write_text(
+            '<div data-composition-id="main" data-duration="10" data-width="1080" data-height="1920"></div>',
+            encoding="utf-8",
+        )
+        fake_cp = _make_completed_process(stdout="main 30 1080x1920 0 (10s)\n")
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp):
+            result = compositions(str(project_path))
+
+        assert result.compositions[0].duration_in_frames == 300
+
+    def test_uses_html_fps_when_cli_reports_zero_fps(self, sample_hyperframes_project):
+        """HTML fps should be used when CLI fps is present but not usable."""
+        project_path = Path(sample_hyperframes_project)
+        (project_path / "index.html").write_text(
+            '<div data-composition-id="main" data-duration="5" data-fps="24"></div>',
+            encoding="utf-8",
+        )
+        comp_json = json.dumps({"id": "main", "fps": 0, "durationInFrames": 0})
+        fake_cp = _make_completed_process(stdout=comp_json)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp):
+            result = compositions(str(project_path))
+
+        assert result.compositions[0].fps == 24
+        assert result.compositions[0].duration_in_frames == 120
+
+    def test_merges_repeated_html_composition_metadata(self, sample_hyperframes_project):
+        """Repeated composition tags should combine fallback metadata instead of overwriting it."""
+        project_path = Path(sample_hyperframes_project)
+        (project_path / "index.html").write_text(
+            '<div data-composition-id="main" data-duration="5"></div>'
+            '<div data-composition-id="main" data-width="1080" data-height="1920"></div>',
+            encoding="utf-8",
+        )
+        comp_json = json.dumps({"id": "main", "fps": 0, "durationInFrames": 0})
+        fake_cp = _make_completed_process(stdout=comp_json)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp):
+            result = compositions(str(project_path))
+
+        comp = result.compositions[0]
+        assert comp.width == 1080
+        assert comp.height == 1920
+        assert comp.duration_in_frames == 150
+
+    def test_sanitizes_html_width_height_metadata(self, sample_hyperframes_project):
+        """HTML dimensions should accept pixel-like integers and ignore invalid values."""
+        project_path = Path(sample_hyperframes_project)
+        (project_path / "index.html").write_text(
+            '<div data-composition-id="main" data-width="1080px" data-height="1920.0"></div>'
+            '<div data-composition-id="bad" data-width="inf" data-height="nan"></div>',
+            encoding="utf-8",
+        )
+        comp_json = json.dumps(
+            [
+                {"id": "main", "durationInFrames": 1},
+                {"id": "bad", "durationInFrames": 1},
+            ]
+        )
+        fake_cp = _make_completed_process(stdout=comp_json)
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp):
+            result = compositions(str(project_path))
+
+        main, bad = result.compositions
+        assert main.width == 1080
+        assert main.height == 1920
+        assert bad.width == DEFAULT_COMPOSITION_WIDTH
+        assert bad.height == DEFAULT_COMPOSITION_HEIGHT
 
     def test_handles_invalid_json(self, sample_hyperframes_project):
         """compositions() should return empty list when JSON is invalid."""
