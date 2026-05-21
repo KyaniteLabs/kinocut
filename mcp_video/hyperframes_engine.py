@@ -21,6 +21,7 @@ from collections.abc import Callable, Mapping
 from pathlib import Path
 from typing import Any
 
+from .defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
 from .errors import (
     HyperframesNotFoundError,
     HyperframesProjectError,
@@ -783,7 +784,7 @@ def _coerce_float(value: Any) -> float | None:
 
 
 def _composition_duration_frames(data: dict[str, Any]) -> int:
-    fps = _coerce_float(data.get("fps", data.get("_html_fps"))) or 30.0
+    fps = _coerce_float(data.get("fps", data.get("_html_fps"))) or DEFAULT_COMPOSITION_FPS
     frame_value = data.get("durationInFrames", data.get("duration_in_frames"))
     frames = _coerce_float(frame_value)
     if frames and frames > 0:
@@ -814,9 +815,9 @@ def compositions(
         comp_list.append(
             CompositionInfo(
                 id=comp_id,
-                width=merged.get("width", merged.get("_html_width", 1920)),
-                height=merged.get("height", merged.get("_html_height", 1080)),
-                fps=merged.get("fps", merged.get("_html_fps", 30)),
+                width=merged.get("width", merged.get("_html_width", DEFAULT_COMPOSITION_WIDTH)),
+                height=merged.get("height", merged.get("_html_height", DEFAULT_COMPOSITION_HEIGHT)),
+                fps=merged.get("fps", merged.get("_html_fps", DEFAULT_COMPOSITION_FPS)),
                 duration_in_frames=_composition_duration_frames(merged),
                 default_props=merged.get("defaultProps", {}),
             )
