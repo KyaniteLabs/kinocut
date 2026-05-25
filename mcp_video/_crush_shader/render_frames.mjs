@@ -23,13 +23,18 @@ const ALLOWED_EFFECTS = new Set([
     'digital_feedback', 'slit_scan', 'depth_splatting', 'point_cloud',
 ]);
 
-const CRUSH_JS_SRC = resolve(import.meta.dirname, '../../../../CRUSH_SHADERS/crush-js/src');
 const MAX_FRAMES = 7200;
 const PAST_BUFFER_COUNT = 8;
 
 async function main() {
     const config = JSON.parse(process.argv[2]);
     const { effect, inputDir, outputDir, frameCount, params } = config;
+
+    const CRUSH_JS_SRC = config.crushPath
+        ? resolve(config.crushPath)
+        : (process.env.MCP_VIDEO_CRUSH_PATH
+            ? resolve(process.env.MCP_VIDEO_CRUSH_PATH)
+            : resolve(import.meta.dirname, '../../../../CRUSH_SHADERS/crush-js/src'));
 
     // Validate effect name against allowlist
     if (!ALLOWED_EFFECTS.has(effect)) {

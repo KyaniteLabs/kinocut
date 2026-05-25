@@ -32,6 +32,28 @@ _CRUSH_JS_DIR = Path(__file__).resolve().parent / "_crush_shader"
 # Headless render script (render_frames.mjs)
 _RENDER_SCRIPT = _CRUSH_JS_DIR / "render_frames.mjs"
 
+
+def _resolve_crush_path() -> str:
+    """Resolve CRUSH.js source directory with multiple fallback strategies.
+
+    Resolution order:
+    1. MCP_VIDEO_CRUSH_PATH environment variable
+    2. ~/.mcp-video/crush-js/src
+    3. Bundled relative path (../../../../CRUSH_SHADERS/crush-js/src from render script)
+    """
+    env_path = os.environ.get("MCP_VIDEO_CRUSH_PATH")
+    if env_path:
+        p = Path(env_path).expanduser().resolve()
+        if p.is_dir():
+            return str(p)
+
+    home_path = Path.home() / ".mcp-video" / "crush-js" / "src"
+    if home_path.is_dir():
+        return str(home_path)
+
+    # Fallback: the render script itself resolves relative to its own location
+    return str(_CRUSH_JS_DIR)
+
 _VIDEO_ENCODE_FLAGS = [
     "-c:a",
     "copy",
@@ -191,15 +213,19 @@ def _run_shader_effect(
             "outputDir": rendered_dir,
             "frameCount": frame_count,
             "params": params,
+            "crushPath": _resolve_crush_path(),
         }
 
         # Run Node.js render
+        env = os.environ.copy()
+        env["MCP_VIDEO_CRUSH_PATH"] = _resolve_crush_path()
         render_cmd = [node, str(_RENDER_SCRIPT), json.dumps(render_params)]
         render_result = subprocess.run(
             render_cmd,
             capture_output=True,
             text=True,
             timeout=300,  # 5 minute max
+            env=env,
         )
 
         if render_result.returncode != 0:
