@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings as _warnings
+
 from typing import Any
 
 from .engine_probe import probe
@@ -20,6 +22,7 @@ from .ffmpeg_helpers import (
 )
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
+from .filter_guardrails import clamp_filter_params, validate_filter_params
 from .models import ColorPreset, EditResult, FilterType
 
 
@@ -82,6 +85,14 @@ def apply_filter(
     """Apply a visual or audio filter to a video."""
     input_path = _validate_input_path(input_path)
     params = _sanitize_params(params or {})
+
+    # --- Guardrails: validate and clamp filter params ---
+    guardrail_warnings = validate_filter_params(filter_type, params)
+    for w in guardrail_warnings:
+        _warnings.warn(f"[FILTER GUARDRAIL] {w}", stacklevel=2)
+    params = clamp_filter_params(filter_type, params)
+    # --- End guardrails ---
+
     output = output_path or _auto_output(input_path, f"filter_{filter_type}")
     _validate_output_path(output)
     info = probe(input_path)
