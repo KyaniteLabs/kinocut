@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .engine import add_audio, add_text, convert, merge, probe, resize, speed, trim
+from .engine import add_audio, add_text, add_texts, convert, merge, probe, resize, speed, trim
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_FORMATS, VALID_PRESETS
@@ -171,6 +171,61 @@ def video_add_text(
             output_path=output_path,
             crf=crf,
             preset=preset,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_add_texts(
+    input_path: str,
+    texts: list[dict],
+    output_path: str | None = None,
+    crf: int | None = None,
+    preset: str | None = None,
+    auto_layout: bool = True,
+) -> dict[str, Any]:
+    """Overlay multiple text elements on a video in a single FFmpeg pass.
+
+    Automatically detects overlapping text and distributes vertically stacked
+    texts when they share the same named position.
+
+    Args:
+        input_path: Absolute path to the input video.
+        texts: List of text overlay dicts. Each dict may contain:
+            - text (str, required)
+            - position (str|dict, default "center")
+            - font (str, optional)
+            - size (int, default 48)
+            - color (str, default "white")
+            - shadow (bool, default True)
+            - start_time (float, optional)
+            - duration (float, optional)
+        output_path: Where to save the output. Auto-generated if omitted.
+        crf: Override CRF value (0-51, lower = better quality). Default 23.
+        preset: Override FFmpeg encoding preset (ultrafast, fast, medium, slow, veryslow).
+        auto_layout: Automatically distribute vertically stacked texts at the
+            same named position. Default True.
+    """
+    if crf is not None and not (MIN_CRF <= crf <= MAX_CRF):
+        return _validation_error(f"crf must be {MIN_CRF}-{MAX_CRF}, got {crf}")
+    if preset is not None and preset not in VALID_PRESETS:
+        return _validation_error(f"Invalid preset: {preset}")
+    input_path = _validate_input_path(input_path)
+    if not texts:
+        return _validation_error("texts list cannot be empty")
+    for i, t in enumerate(texts):
+        size = t.get("size", 48)
+        if size < 8 or size > 500:
+            return _validation_error(f"Font size must be between 8 and 500, got {size} at index {i}")
+    return _result(
+        add_texts(
+            input_path,
+            texts=texts,
+            output_path=output_path,
+            crf=crf,
+            preset=preset,
+            auto_layout=auto_layout,
         )
     )
 

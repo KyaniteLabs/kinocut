@@ -79,6 +79,7 @@ from .engine_split_screen import split_screen as _split_screen
 from .engine_subtitle_generate import generate_subtitles as generate_subtitles
 from .engine_subtitles import subtitles as subtitles
 from .engine_text import add_text as add_text
+from .engine_text import add_texts as add_texts
 from .engine_thumbnail import thumbnail as thumbnail
 from .engine_timeline import _apply_composite_overlays as _apply_composite_overlays
 from .engine_timeline import edit_timeline as edit_timeline
