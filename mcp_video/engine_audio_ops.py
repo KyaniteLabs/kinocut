@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings as _warnings
+
 from .defaults import DEFAULT_AUDIO_BITRATE
 from .engine_probe import probe
 from .engine_runtime_utils import (
@@ -17,6 +19,8 @@ from .ffmpeg_helpers import (
     _run_ffmpeg,
 )
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_value, _run_ffprobe_json
+from .audio_guardrails import validate_audio_mix
+from .errors import MCPVideoError
 from .models import EditResult
 
 
@@ -121,6 +125,33 @@ def add_audio(
 
     video_info = probe(video_path)
     source_has_audio = _has_audio(_run_ffprobe_json(video_path))
+
+    # --- Guardrails: audio mix validation ---
+    # Validate volume first (hard constraint, no probe needed)
+    if volume < 0.0:
+        raise MCPVideoError(
+            f"volume must be >= 0, got {volume}",
+            error_type="validation_error",
+            code="invalid_volume",
+        )
+    if volume > 1.0:
+        _warnings.warn(
+            f"[AUDIO GUARDRAIL] volume={volume} > 1.0. If source audio is already "
+            f"near peak, this may cause digital clipping/distortion.",
+            stacklevel=2,
+        )
+    # Validate timing/probe-based checks (best-effort, may fail for audio-only)
+    try:
+        audio_info = probe(audio_path)
+        mix_warnings = validate_audio_mix(
+            video_info, audio_info,
+            volume=volume, start_time=start_time or 0.0,
+        )
+        for w in mix_warnings:
+            _warnings.warn(f"[AUDIO GUARDRAIL] {w}", stacklevel=2)
+    except Exception as e:
+        _warnings.warn(f"[AUDIO GUARDRAIL] Could not validate audio mix: {e}", stacklevel=2)
+    # --- End guardrails ---
 
     with _timed_operation() as timing:
         filters = _build_audio_filters(volume, fade_in, fade_out, video_info.duration)
