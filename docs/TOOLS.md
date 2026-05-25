@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes structured MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes 0.5 video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
+mcp-video exposes 119 registered MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes 0.5 video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -40,9 +40,9 @@ Plan video generation like a director of photography before rendering. These too
 | `video_info` | Get metadata: duration, resolution, codec, fps, file size |
 | `video_info_detailed` | Extended metadata with scene detection and dominant colors |
 | `video_trim` | Trim by start time + duration or end time |
-| `video_merge` | Concatenate clips with optional per-pair transitions |
+| `video_merge` | Concatenate clips with optional per-pair transitions; warns on resolution/FPS/audio mismatches and rejects transitions longer than the shortest clip |
 | `video_add_text` | Overlay text with positioning, font, color, shadow |
-| `video_add_audio` | Add, replace, or mix audio tracks with fade effects |
+| `video_add_audio` | Add, replace, or mix audio tracks with fade effects; validates volume and warns on timing/sample-rate risks |
 | `video_resize` | Change resolution or apply preset aspect ratios (16:9, 9:16, 1:1, etc.) |
 | `video_convert` | Convert between mp4, webm, gif, mov (two-pass encoding) |
 | `video_speed` | Speed up or slow down (0.5x = slow-mo, 2x = time-lapse) |
@@ -50,15 +50,15 @@ Plan video generation like a director of photography before rendering. These too
 | `video_fade` | Fade in/out effects |
 | `video_crop` | Crop to rectangular region with offset |
 | `video_rotate` | Rotate 90/180/270 and flip horizontal/vertical |
-| `video_filter` | Apply filters: blur, sharpen, grayscale, sepia, invert, brightness, contrast, saturation, denoise, deinterlace, ken_burns |
-| `video_chroma_key` | Remove solid color background (green screen) |
+| `video_filter` | Apply filters: blur, sharpen, grayscale, sepia, invert, brightness, contrast, saturation, denoise, deinterlace, ken_burns; numeric parameters are bounded/clamped before FFmpeg execution |
+| `video_chroma_key` | Remove solid color background (green screen) with bounded similarity/blend parameters |
 | `video_stabilize` | Stabilize shaky footage (requires FFmpeg with vidstab) |
 | `video_subtitles` | Burn SRT/VTT subtitles into video |
 | `video_subtitles_styled` | Burn subtitles with custom styling (font, size, color, outline) |
 | `video_generate_subtitles` | Create SRT from text entries, optionally burn in |
-| `video_watermark` | Add image watermark with opacity and positioning |
-| `video_overlay` | Picture-in-picture overlay |
-| `video_split_screen` | Side-by-side or top/bottom layout |
+| `video_watermark` | Add image watermark with validated opacity and positioning |
+| `video_overlay` | Picture-in-picture overlay with opacity and timing guardrails |
+| `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
 | `video_edit` | Full timeline-based edit from JSON DSL |
 | `video_create_from_images` | Create video from image sequence |
 | `video_export_frames` | Export video as individual image frames |
@@ -183,9 +183,9 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 
 | Tool | Description |
 |------|-------------|
-| `video_layout_grid` | Grid layout for multiple videos (2x2, 3x1, etc.) |
+| `video_layout_grid` | Grid layout for multiple videos (2x2, 3x1, etc.) with clip-count and duration mismatch warnings |
 | `video_layout_pip` | Picture-in-picture with border and positioning |
-| `video_text_animated` | Animated text overlays (fade, slide, typewriter) |
+| `video_text_animated` | Animated text overlays (fade, slide, typewriter) with color, timing, and overflow guardrails |
 | `video_mograph_count` | Animated number counter video |
 | `video_mograph_progress` | Progress bar/circle/dots animation |
 | `video_auto_chapters` | Auto-detect scenes and create chapter timestamps |

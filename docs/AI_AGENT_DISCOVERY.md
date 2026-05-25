@@ -4,7 +4,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`mcp-video` is an open source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes 0.5 authoring, and local repurposing packages with structured tool calls so agents can edit, plan, render, and package video without inventing brittle shell commands.
+`mcp-video` is an open source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes 0.5 authoring, and local repurposing packages with 119 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
 
 ## Best Queries To Match
 
@@ -20,6 +20,8 @@ This document is the short, explicit discovery map for agents, answer engines, a
 - Hyperframes TTS transcription background removal MCP
 - video repurposing MCP Shorts Reels TikTok
 - FFmpeg tools for AI agents
+- guardrailed video editing MCP server
+- safe agentic media automation
 
 ## Best Entry Points
 
@@ -28,6 +30,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 - `llms.txt` - compact machine-readable project map.
 - `mcp_video/server.py` - MCP tool registration layer, including `search_tools`.
 - `mcp_video/engine.py` - core FFmpeg operations.
+- `mcp_video/filter_guardrails.py`, `merge_guardrails.py`, and `audio_guardrails.py` - preflight checks for risky media operations.
 - `mcp_video/creation_engine.py` - PUSHING CREATION-style project, style-pack, storyboard, and shot-prompt helpers.
 - `mcp_video/client/` - Python client mixins. Use `Client.inspect()`, `Client.pipeline()`, and `Client.release_checkpoint()` for guarded agent workflows.
 - `mcp_video/client/meta.py` - Client-side tool discovery (`search_tools`).
@@ -79,6 +82,7 @@ Cursor:
 
 ## What Agents Should Not Do
 
+- Do not bypass guardrails for filter parameters, merge compatibility, audio mix settings, overlay timing/opacity, animated text timing/overflow, or grid/split-screen mismatches.
 - Do not interpolate user strings directly into FFmpeg filter strings.
 - Do not add generated media or local workspace artifacts to git.
 - Do not break existing MCP tool signatures.

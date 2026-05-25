@@ -26,11 +26,11 @@ mcp_video/
 ├── __init__.py            # Exports Client + public API
 ├── __main__.py            # CLI entry point (argparse + Rich)
 ├── client.py              # Python Client API (wraps all engines)
-├── server.py              # MCP server (87 tools + 4 resources)
+├── server.py              # MCP server (119 tools + 4 resources)
 ├── engine.py              # Core FFmpeg engine (40 video operations)
 ├── models.py              # Pydantic models (VideoInfo, EditResult, Timeline DSL)
 ├── errors.py              # Error hierarchy + FFmpeg stderr parser
-├── validation.py          # Shared validation constants / allowed values
+├── validation.py          # Shared validation constants / allowed values / normalized-parameter helpers
 ├── ffmpeg_helpers.py      # Shared FFmpeg utilities (escape, validate, run) (v1.2.0)
 ├── templates.py           # Social media templates (TikTok, YouTube, Instagram)
 ├── audio_engine.py        # Procedural audio synthesis (pure NumPy)
@@ -42,6 +42,9 @@ mcp_video/
 ├── image_engine.py        # Image color analysis (K-means, palette generation)
 ├── image_models.py        # Image data models
 ├── quality_guardrails.py  # Automated quality checks (brightness, contrast, audio)
+├── filter_guardrails.py   # Preflight bounds for video/audio filter parameters
+├── merge_guardrails.py    # Pre-merge compatibility checks
+├── audio_guardrails.py    # Audio mix validation helpers
 ├── design_quality.py      # Design quality + auto-fix (layout, typography, motion)
 └── limits.py              # Resource validation constants (max 4h, 8K, 4GB)
 tests/

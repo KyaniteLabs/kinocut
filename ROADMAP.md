@@ -1,6 +1,6 @@
 # Improvement Roadmap
 
-v1.3.0 shipped. 87 MCP tools, Hyperframes integration, 17 new features. Remotion completely removed post-v1.3.0. Here's what's next.
+v1.4.0 ships a 119-tool MCP surface with Hyperframes integration, repurposing workflows, and expanded preflight guardrails. Remotion has been fully removed; the current priority is safer agentic media automation.
 
 ---
 
@@ -57,7 +57,8 @@ v1.2.0 shipped. 82 MCP tools, 832 tests, security hardened. Here's what's next.
 - [x] FFmpeg filter injection prevention — all numeric params sanitized before interpolation via `_sanitize_ffmpeg_number`
 - [x] Color validation hardened — whitelist CSS named colors + hex + `0xRRGGBB` format, reject FFmpeg special chars
 - [x] Null byte rejection on all input paths across all engines
-- [x] Server-side parameter validation on all 87 tools (crf, preset, format, transitions, audio, AI)
+- [x] Server-side parameter validation across the public MCP surface (crf, preset, format, transitions, audio, AI)
+- [x] Preflight guardrails for risky video/audio operations: filter bounds, merge compatibility, audio mixing, overlay/watermark/chroma parameters, animated text timing/overflow, and grid/split-screen mismatches
 - [x] `except Exception` fallback on all ~55 tool functions — no raw exceptions leak to MCP framework
 - [x] Timeout (600s) on all 22 subprocess.run calls in ai_engine.py
 - [x] Subprocess.TimeoutExpired handling in ai_engine.py

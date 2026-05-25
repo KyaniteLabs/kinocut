@@ -11,6 +11,21 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Added
+
+- Added preflight guardrails for high-risk video/audio edit paths:
+  - `video_filter` warns and clamps out-of-range filter parameters.
+  - `video_merge` warns on resolution/FPS/audio mismatches and rejects transitions longer than the shortest clip.
+  - `video_add_audio` validates volume and warns on mix/timing risks.
+  - `video_overlay`, `video_watermark`, and `video_chroma_key` validate opacity/similarity/blend/timing parameters.
+  - `video_text_animated` validates color, start/duration, and warns on timing/overflow risks.
+  - `video_layout_grid` and `video_split_screen` warn on clip-count, duration, FPS, and audio mismatches.
+- Added tracked implementation plan at `docs/plans/2026-05-24-video-guardrails.md`.
+
+### Changed
+
+- Refreshed README, tool reference, landing page, roadmap, contribution guide, package metadata, and GitHub repository description for the current 119-tool guardrailed surface.
+
 ## 1.4.0 - 2026-05-09
 
 ### Added

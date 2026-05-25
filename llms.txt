@@ -1,8 +1,8 @@
 # mcp-video
 
-> Video editing MCP server, Python library, and CLI for AI agents.
+> Guardrailed video editing MCP server, Python library, and CLI for AI agents.
 
-mcp-video gives AI agents structured tools for FFmpeg-based video editing, PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, Hyperframes 0.5 code-driven video creation, and local repurposing packages.
+mcp-video gives AI agents 119 structured tools for FFmpeg-based video editing, PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, Hyperframes 0.5 code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
 
 ## Use cases
 - Claude Code / Cursor video editing tools
@@ -14,6 +14,7 @@ mcp-video gives AI agents structured tools for FFmpeg-based video editing, PUSHI
 - Python video editing scripts
 - CLI video operations
 - Video QA checkpoints for generated media
+- Preflight guardrails for agent-produced edits
 - Local AI video workflows with human review before publication
 
 ## Key paths
@@ -29,6 +30,7 @@ mcp-video gives AI agents structured tools for FFmpeg-based video editing, PUSHI
 - Validate all file paths before FFmpeg processing
 - Respect system resource limits (CPU, memory, disk)
 - Sanitize filter strings to prevent injection attacks
+- Keep guardrails enabled for filter bounds, merge compatibility, audio volume/timing, overlay opacity/timing, chroma similarity/blend, animated text layout, and layout mismatches
 - Use timeouts on all subprocess calls
 
 ## MCP Registry
@@ -36,4 +38,4 @@ mcp-video gives AI agents structured tools for FFmpeg-based video editing, PUSHI
 mcp-video is listed on the [official MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video) as `io.github.KyaniteLabs/mcp-video`. Registry metadata is in `server.json` at the repo root.
 
 ## Keywords
-video editing MCP server, AI agent video editing, cinematic video storyboard MCP, AI video style pack, FFmpeg automation, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, local TTS, video background removal, subtitles, reels automation, shorts automation, video repurposing.
+video editing MCP server, guardrailed video editing MCP server, AI agent video editing, safe agentic media automation, cinematic video storyboard MCP, AI video style pack, FFmpeg automation, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, local TTS, video background removal, subtitles, reels automation, shorts automation, video repurposing.

@@ -9,14 +9,14 @@
 <h1 align="center">mcp-video</h1>
 
 <p align="center">
-  <strong>Video editing MCP server for AI agents.</strong><br>
-  Structured tools for FFmpeg video editing, cinematic prompt planning, media analysis, subtitles, audio, effects, Hyperframes video creation, and local repurposing packages.
+  <strong>Guardrailed video editing MCP server for AI agents.</strong><br>
+  Structured tools for FFmpeg video editing, cinematic prompt planning, media analysis, subtitles, audio, effects, Hyperframes video creation, local repurposing packages, and preflight validation that helps prevent silent bad media output.
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/mcp-video/"><img src="https://img.shields.io/pypi/v/mcp-video.svg" alt="PyPI"></a>
   <a href="https://github.com/KyaniteLabs/mcp-video/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/KyaniteLabs/mcp-video/.github/workflows/ci.yml?branch=master&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-103%20tools-orange.svg" alt="103 MCP tools">
+  <img src="https://img.shields.io/badge/MCP-119%20tools-orange.svg" alt="119 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
   <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
@@ -37,7 +37,7 @@
 
 ## Public Discovery
 
-**mcp-video** is a free, open-source **Model Context Protocol (MCP) server**, Python library, and CLI that gives AI agents a real video-editing surface. It wraps FFmpeg, PUSHING CREATION-style planning, media analysis, quality checks, subtitles, audio generation, effects, Hyperframes 0.5 rendering, and local repurposing packages behind structured tool schemas.
+**mcp-video** is a free, open-source **Model Context Protocol (MCP) server**, Python library, and CLI that gives AI agents a real video-editing surface. It wraps FFmpeg, PUSHING CREATION-style planning, media analysis, quality checks, subtitles, audio generation, effects, Hyperframes 0.5 rendering, local repurposing packages, and guardrails for risky edit parameters behind structured tool schemas.
 
 Best-fit searches:
 
@@ -56,7 +56,7 @@ Best-fit searches:
 
 ## Why It Exists
 
-AI agents can write FFmpeg commands, but they should not have to guess flags, parse brittle stderr, or silently publish broken media. mcp-video gives agents typed operations, inspectable tool metadata, structured results, and quality checkpoints so a video workflow can be automated and reviewed without turning into shell-command roulette.
+AI agents can write FFmpeg commands, but they should not have to guess flags, parse brittle stderr, or silently publish broken media. mcp-video gives agents typed operations, inspectable tool metadata, structured results, preflight guardrails, and quality checkpoints so a video workflow can be automated and reviewed without turning into shell-command roulette.
 
 Use it when you want an AI assistant to:
 
@@ -179,19 +179,19 @@ mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-mcp-video registers a broad MCP tool surface, including a `search_tools` discovery tool so agents can find the right operation without loading every tool description into context.
+mcp-video currently registers **119 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
-| Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates |
+| Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates, merge-compatibility guardrails |
 | Cinematic creation | 4 | project scaffold, style-pack parsing, storyboard parsing, shot prompt expansion |
 | AI-assisted media | 11 | transcription, scene detection, upscaling, stem separation, silence removal, color grading |
 | Hyperframes | 18 | init, preview, render, snapshots, inspect, catalog, website capture, local TTS, transcription, background removal, diagnostics, benchmark, post-process |
 | Repurposing | 2 | dry-run manifests, platform-ready variants, thumbnails, storyboards, release checkpoints |
-| Procedural audio | 7 | synthesize, compose, presets, effects, sequences, generated audio, spatial audio |
-| Visual effects | 8 | vignette, glow, noise, scanlines, chromatic aberration, luma key, mask, shape mask |
+| Procedural audio | 7 | synthesize, compose, presets, effects, sequences, generated audio, spatial audio, mix-parameter guardrails |
+| Visual effects | 8 | vignette, glow, noise, scanlines, chromatic aberration, luma key, mask, shape mask, bounded filter parameters |
 | Transitions | 3 | glitch, morph, pixelate |
-| Layout and motion | 6 | grid, picture-in-picture, animated text, counters, progress bars, auto-chapters |
+| Layout and motion | 6 | grid, picture-in-picture, split-screen, animated text, counters, progress bars, auto-chapters, layout mismatch warnings |
 | Analysis | 8 | scene detection, thumbnail, preview, storyboard, quality compare, metadata, waveform, release checkpoint |
 | Image analysis | 3 | extract colors, generate palettes, analyze product images |
 | Discovery | 1 | `search_tools` |
@@ -233,6 +233,7 @@ result = client.pipeline(
 Safety contract:
 
 - Media-producing calls return structured results with output paths.
+- High-risk edit paths now run preflight guardrails before FFmpeg execution: filter bounds, merge compatibility, audio mix volume/timing, overlay/watermark/chroma opacity and similarity, animated text timing/overflow, and grid/split-screen mismatch warnings.
 - Analysis and discovery calls return structured JSON reports.
 - Tool discovery is available through `search_tools()` and `Client.inspect()`.
 - Unexpected keyword errors are converted into actionable `MCPVideoError` guidance.
