@@ -16,7 +16,7 @@ from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
 )
-from .ffmpeg_helpers import _validate_input_path, _validate_output_path
+from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
 from .validation import _validate_normalized_float
 from .models import EditResult, NamedPosition, Position
 
@@ -53,7 +53,7 @@ def watermark(
 
     overlay_pos = _resolve_position(position, position_map, "bottom-right")
     # Format opacity for FFmpeg (0.0 to 1.0)
-    opacity_fmt = f"{safe_opacity:.2f}"
+    opacity_fmt = _escape_ffmpeg_filter_value(f"{safe_opacity:.2f}")
 
     with _timed_operation() as timing:
         _run_ffmpeg(
