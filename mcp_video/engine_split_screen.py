@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import warnings as _warnings
+
 from .engine_probe import probe
 from .engine_runtime_utils import (
     _build_edit_result,
@@ -40,6 +42,37 @@ def split_screen(
 
     left_info = probe(left_path)
     right_info = probe(right_path)
+
+    # --- Guardrails: duration, FPS, audio mismatch ---
+    try:
+        if abs(left_info.duration - right_info.duration) > 1.0:
+            _warnings.warn(
+                f"[SPLIT GUARDRAIL] Input durations differ significantly: "
+                f"left={left_info.duration:.1f}s, right={right_info.duration:.1f}s. "
+                f"Output will be truncated to the shorter.",
+                stacklevel=2,
+            )
+        left_fps = getattr(left_info, "fps", None)
+        right_fps = getattr(right_info, "fps", None)
+        if left_fps and right_fps and abs(left_fps - right_fps) > 1.0:
+            _warnings.warn(
+                f"[SPLIT GUARDRAIL] Input frame rates differ: "
+                f"left={left_fps:.1f}fps, right={right_fps:.1f}fps. "
+                f"Output may stutter.",
+                stacklevel=2,
+            )
+        left_has_audio = getattr(left_info, "audio_codec", None) is not None
+        right_has_audio = getattr(right_info, "audio_codec", None) is not None
+        if right_has_audio and not left_has_audio:
+            _warnings.warn(
+                "[SPLIT GUARDRAIL] Right video has audio but left does not. "
+                "Only left audio is mapped; right audio will be lost.",
+                stacklevel=2,
+            )
+    except Exception:
+        pass  # Best-effort guardrails
+    # --- End guardrails ---
+
     filter_complex = _split_filter(left_info.width, left_info.height, right_info.width, right_info.height, layout)
 
     with _timed_operation() as timing:

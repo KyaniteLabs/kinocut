@@ -6,6 +6,7 @@ Visual effects using FFmpeg filters and PIL for custom processing.
 from __future__ import annotations
 
 import logging
+import warnings as _warnings
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import (
@@ -15,6 +16,7 @@ from ..ffmpeg_helpers import (
     _run_command,
     _escape_ffmpeg_filter_value,
 )
+from ..engine_probe import probe as _probe
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +68,30 @@ def layout_grid(
 
     # Parse layout
     cols, rows = map(int, layout.split("x"))
-    n_clips = min(len(clips), cols * rows)
+    n_cells = cols * rows
+
+    # --- Guardrails: clip count and duration ---
+    if len(clips) > n_cells:
+        _warnings.warn(
+            f"[GRID GUARDRAIL] {len(clips)} clips provided but {layout} only has "
+            f"{n_cells} cells. Only the first {n_cells} clips will be used.",
+            stacklevel=2,
+        )
+    try:
+        durations = [_probe(c).duration for c in clips[:n_cells]]
+        min_dur = min(durations)
+        max_dur = max(durations)
+        if max_dur - min_dur > 1.0:
+            _warnings.warn(
+                f"[GRID GUARDRAIL] Clip durations vary from {min_dur:.1f}s to "
+                f"{max_dur:.1f}s. Output will be truncated to shortest clip.",
+                stacklevel=2,
+            )
+    except Exception:
+        pass  # Best-effort duration check
+    # --- End guardrails ---
+
+    n_clips = min(len(clips), n_cells)
 
     # Use even dimensions that work for x264
     cell_w = 640  # Standard width
