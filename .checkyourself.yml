@@ -1,0 +1,8 @@
+version: 1
+suppress:
+  - id: Possible secret-like field without credential shape
+    reason: MiniMax integration reads an API key from runtime configuration; the repository does not commit a literal credential at this site.
+    files:
+      - mcp_video/music_generation/minimax.py
+    reviewed_by: KyaniteLabs
+    reviewed_at: "2026-05-29"

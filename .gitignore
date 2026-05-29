@@ -11,6 +11,8 @@ build/
 .venv-build/
 venv/
 .env
+*.pem
+*.key
 .pytest_cache/
 .mypy_cache/
 .ruff_cache/
@@ -55,4 +57,3 @@ glama-score*.png
 
 # Coverage data
 .coverage
-

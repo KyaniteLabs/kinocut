@@ -12,6 +12,6 @@ permissions:
 
 jobs:
   probe:
-    uses: KyaniteLabs/.github/.github/workflows/blacksmith-probe.yml@main
+    uses: KyaniteLabs/.github/.github/workflows/blacksmith-probe.yml@3446813931bdcad5962acc21c315a79a3f9d1837 # main at 2026-05-29
     with:
       probe_label: complementary-runner-probe
