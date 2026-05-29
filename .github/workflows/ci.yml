@@ -17,7 +17,7 @@ jobs:
       code: ${{ steps.classify.outputs.code }}
       docker: ${{ steps.classify.outputs.docker }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
           fetch-depth: 0
       - id: classify
@@ -46,8 +46,8 @@ jobs:
     name: Repository readiness
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -61,8 +61,8 @@ jobs:
     name: Lint
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -80,8 +80,8 @@ jobs:
     name: Package surface
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
-      - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.13'
           cache: 'pip'
@@ -103,9 +103,9 @@ jobs:
       - name: Skip tests
         if: needs.changes.outputs.code != 'true'
         run: echo "Code inputs unchanged; marking Python 3.13 test check successful."
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: needs.changes.outputs.code == 'true'
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         if: needs.changes.outputs.code == 'true'
         with:
           python-version: '3.13'
@@ -140,9 +140,9 @@ jobs:
       - name: Skip compatibility tests
         if: needs.changes.outputs.code != 'true'
         run: echo "Code inputs unchanged; marking Python ${{ matrix.python-version }} compatibility check successful."
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         if: needs.changes.outputs.code == 'true'
-      - uses: actions/setup-python@v6
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         if: needs.changes.outputs.code == 'true'
         with:
           python-version: ${{ matrix.python-version }}
@@ -170,7 +170,7 @@ jobs:
     needs: changes
     runs-on: blacksmith-2vcpu-ubuntu-2404
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
       - name: Skip Docker build
         if: needs.changes.outputs.docker != 'true'
         run: echo "Docker inputs unchanged; marking Docker check successful."
