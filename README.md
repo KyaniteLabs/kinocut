@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://kyanitelabs.tech">
-    <img src="https://kyanitelabs.tech/static/brand/hero_crystal_workbench_1672x941.png" alt="Kyanite Labs AI tool workbench hero image" width="100%">
+    <img src="assets/mcp-video-hero.webp" alt="mcp-video — guardrailed video editing MCP server for AI agents: FFmpeg, subtitles, audio, effects, and repurposing tools" width="100%">
   </a>
 </p>
 
