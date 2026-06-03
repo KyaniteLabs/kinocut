@@ -99,6 +99,19 @@ Hyperframes tools additionally need Node.js 22+ and a resolvable Hyperframes CLI
 
 ## Quick Start
 
+### Try the receipt-backed proof first
+
+From a clone of this repo, run the smallest confidence workflow before wiring an agent host:
+
+```bash
+uv run --no-project --with mcp-video python workflows/05-confidence-baseline/workflow.py
+uv run --no-project --with mcp-video python workflows/benchmarks/run_confidence_benchmark.py
+```
+
+The workflow generates a tiny source clip, creates a checked vertical video, runs quality/release checkpoint steps, and writes `workflows/05-confidence-baseline/output/video_receipt.json`.
+
+Proof notes live in [`docs/proofs/`](docs/proofs/).
+
 ### Claude Code
 
 ```bash
