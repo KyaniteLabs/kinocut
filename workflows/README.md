@@ -12,7 +12,7 @@ ICM-style staged pipelines for common video productions.
 | `04-hyperframes-video` | Create video with Hyperframes, then post-process | 5 |
 | `05-confidence-baseline` | Generate or accept a tiny source clip, create a checked vertical proof, and write a Video Receipt | 8 |
 | `06-repurpose-package` | Turn one source clip into a local platform package with manifest, variants, review artifacts, checkpoints, and a Video Receipt | 5 |
-| `benchmarks` | Run local receipt/readiness checks over workflow outputs | varies |
+| `benchmarks` | Run local receipt/readiness and adversarial certification checks over workflow outputs | varies |
 
 ## How to use
 
@@ -60,3 +60,9 @@ uv run --no-project --with mcp-video python workflows/benchmarks/run_confidence_
 ```
 
 The benchmark verifies the final video, quality report, release checkpoint, thumbnail, storyboard frames, Video Receipt, and pending human-review status.
+
+For adversarial readiness checks:
+
+```bash
+uv run --no-project --with mcp-video python workflows/benchmarks/run_adversarial_certification.py
+```

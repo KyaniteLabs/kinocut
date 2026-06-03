@@ -8,10 +8,12 @@ effects, and transitions — using only mcp-video client methods.
 Usage:
     python workflow.py
 
-The script runs 7 stages and outputs the final video to output/final_video.mp4.
+The script runs 9 stages and outputs the final video plus a Video Receipt.
 """
 
+import json
 import os
+from typing import Any
 
 try:
     from PIL import Image, ImageDraw, ImageFont
@@ -36,6 +38,17 @@ SCENES = [
 
 FPS = 30
 WIDTH, HEIGHT = 1920, 1080
+
+
+def _value(result: Any, key: str, default: Any = None) -> Any:
+    if isinstance(result, dict):
+        return result.get(key, default)
+    return getattr(result, key, default)
+
+
+def _dump_json(path: str, data: dict[str, Any]) -> None:
+    with open(path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=2, sort_keys=True)
 
 
 def _load_font(size: int):
@@ -73,7 +86,7 @@ def _create_scene_image(color: str, text: str, output: str) -> str:
 
 
 def _stage_soundtrack() -> str:
-    print("\n[1/7] Generating soundtrack...")
+    print("\n[1/9] Generating soundtrack...")
     drone = client.audio_preset(
         "drone-tech",
         os.path.join(TMP_DIR, "drone.wav"),
@@ -101,7 +114,7 @@ def _stage_soundtrack() -> str:
 
 
 def _stage_scenes() -> list[str]:
-    print("\n[2/7] Creating scene videos...")
+    print("\n[2/9] Creating scene videos...")
     scene_clips = []
     for i, scene in enumerate(SCENES):
         img_path = os.path.join(TMP_DIR, f"scene_{i:02d}.png")
@@ -116,7 +129,7 @@ def _stage_scenes() -> list[str]:
 
 
 def _stage_effects(scene_clips: list[str]) -> list[str]:
-    print("\n[3/7] Applying effects...")
+    print("\n[3/9] Applying effects...")
     fx_clips = []
     for i, clip in enumerate(scene_clips):
         out = os.path.join(TMP_DIR, f"scene_{i:02d}_fx.mp4")
@@ -130,7 +143,7 @@ def _stage_effects(scene_clips: list[str]) -> list[str]:
 
 
 def _stage_transitions(fx_clips: list[str]) -> list[str]:
-    print("\n[4/7] Creating transitions...")
+    print("\n[4/9] Creating transitions...")
     transition_clips = []
     for i in range(len(fx_clips) - 1):
         out = os.path.join(TMP_DIR, f"transition_{i:02d}.mp4")
@@ -146,7 +159,7 @@ def _stage_transitions(fx_clips: list[str]) -> list[str]:
 
 
 def _stage_assemble(fx_clips: list[str]) -> str:
-    print("\n[5/7] Assembling scenes with transitions...")
+    print("\n[5/9] Assembling scenes with transitions...")
     assembled = client.merge(
         clips=fx_clips,
         output=os.path.join(OUTPUT_DIR, "05_assembled.mp4"),
@@ -158,7 +171,7 @@ def _stage_assemble(fx_clips: list[str]) -> str:
 
 
 def _stage_audio_mix(video: str, soundtrack: str) -> str:
-    print("\n[6/7] Mixing audio...")
+    print("\n[6/9] Mixing audio...")
     mixed = client.add_audio(
         video=video,
         audio=soundtrack,
@@ -171,7 +184,7 @@ def _stage_audio_mix(video: str, soundtrack: str) -> str:
 
 
 def _stage_export(video: str) -> str:
-    print("\n[7/7] Exporting final video...")
+    print("\n[7/9] Exporting final video...")
     final = client.convert(
         video,
         format="mp4",
@@ -180,6 +193,99 @@ def _stage_export(video: str) -> str:
     )
     print(f"   -> {final.output_path}")
     return final.output_path
+
+
+def _stage_quality_checkpoint(video: str) -> tuple[dict[str, Any], dict[str, Any]]:
+    print("\n[8/9] Running quality and release checkpoint...")
+    quality = client.quality_check(video)
+    checkpoint = client.release_checkpoint(
+        video,
+        output_dir=os.path.join(OUTPUT_DIR, "checkpoint"),
+        min_score=0,
+        frame_count=4,
+    )
+    quality_json = quality if isinstance(quality, dict) else quality.model_dump()
+    checkpoint_json = checkpoint if isinstance(checkpoint, dict) else checkpoint.model_dump()
+    _dump_json(os.path.join(OUTPUT_DIR, "quality.json"), quality_json)
+    _dump_json(os.path.join(OUTPUT_DIR, "release_checkpoint.json"), checkpoint_json)
+    print(f"   -> {os.path.join(OUTPUT_DIR, 'quality.json')}")
+    print(f"   -> {os.path.join(OUTPUT_DIR, 'release_checkpoint.json')}")
+    return quality_json, checkpoint_json
+
+
+def _write_receipt(
+    soundtrack: str,
+    scene_clips: list[str],
+    fx_clips: list[str],
+    assembled: str,
+    mixed: str,
+    final_video: str,
+    quality: dict[str, Any],
+    checkpoint: dict[str, Any],
+) -> None:
+    print("\n[9/9] Writing Video Receipt...")
+    info = client.info(final_video)
+    receipt = {
+        "user_intent": "Build a branded explainer video from generated scenes, procedural audio, effects, and transitions.",
+        "source_media": {
+            "path": "generated-from-scenes",
+            "duration_seconds": _value(info, "duration"),
+            "width": _value(info, "width"),
+            "height": _value(info, "height"),
+        },
+        "tool_calls": [
+            {"stage": "01-audio", "tool": "Client.audio_preset + Client.audio_compose", "output": soundtrack},
+            {"stage": "02-scenes", "tool": "Client.create_from_images", "output": ", ".join(scene_clips)},
+            {"stage": "03-effects", "tool": "Client.effect_vignette / Client.effect_glow", "output": ", ".join(fx_clips)},
+            {"stage": "05-assemble", "tool": "Client.merge", "output": assembled},
+            {"stage": "06-audio-mix", "tool": "Client.add_audio", "output": mixed},
+            {"stage": "07-export", "tool": "Client.convert", "output": final_video},
+            {"stage": "08-quality", "tool": "Client.quality_check", "output": os.path.join(OUTPUT_DIR, "quality.json")},
+            {
+                "stage": "08-checkpoint",
+                "tool": "Client.release_checkpoint",
+                "output": os.path.join(OUTPUT_DIR, "checkpoint"),
+            },
+        ],
+        "edits_applied": [
+            "generated soundtrack",
+            "created title-card scene clips",
+            "applied visual effects",
+            "assembled scenes",
+            "mixed procedural audio",
+            "exported final MP4",
+            "created release checkpoint",
+        ],
+        "guardrails_triggered": quality.get("recommendations", []),
+        "quality": {
+            "all_passed": quality.get("all_passed"),
+            "overall_score": quality.get("overall_score"),
+            "recommendations": quality.get("recommendations", []),
+        },
+        "review_artifacts": {
+            "final_video": final_video,
+            "quality_report": os.path.join(OUTPUT_DIR, "quality.json"),
+            "release_checkpoint": os.path.join(OUTPUT_DIR, "release_checkpoint.json"),
+            "thumbnail": checkpoint.get("thumbnail"),
+            "storyboard": checkpoint.get("storyboard", {}).get("frames", []),
+        },
+        "human_review": {
+            "required": True,
+            "status": "pending",
+            "instructions": checkpoint.get(
+                "instructions",
+                "Open final video, thumbnail, and storyboard before publishing.",
+            ),
+        },
+        "known_limitations": [
+            "Generated title cards prove workflow plumbing, not final brand taste.",
+            "Automated quality checks do not replace visual/audio review.",
+        ],
+        "next_edit_suggestion": "Review title-card pacing, visual style, and audio mix before using this as a public demo.",
+    }
+    receipt_path = os.path.join(OUTPUT_DIR, "video_receipt.json")
+    _dump_json(receipt_path, receipt)
+    print(f"   -> {receipt_path}")
 
 
 def main() -> None:
@@ -193,10 +299,12 @@ def main() -> None:
     _stage_transitions(fx_clips)
     assembled = _stage_assemble(fx_clips)
     mixed = _stage_audio_mix(assembled, soundtrack)
-    _stage_export(mixed)
+    final_video = _stage_export(mixed)
+    quality, checkpoint = _stage_quality_checkpoint(final_video)
+    _write_receipt(soundtrack, scene_clips, fx_clips, assembled, mixed, final_video, quality, checkpoint)
 
     print("\n" + "=" * 60)
-    print("Workflow complete! Review output/final_video.mp4")
+    print("Workflow complete! Review output/final_video.mp4 and output/video_receipt.json")
     print("=" * 60)
 
 

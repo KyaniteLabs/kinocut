@@ -11,6 +11,7 @@ from pathlib import Path
 from typing import Any
 
 from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
+from mcp_video.errors import ProcessingError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -45,14 +46,21 @@ def _check_receipt(receipt: dict[str, Any]) -> list[dict[str, str]]:
 
 
 def _run_workflow(workflow_dir: Path) -> subprocess.CompletedProcess[str]:
-    return subprocess.run(
-        [sys.executable, str(workflow_dir / "workflow.py")],
-        cwd=REPO_ROOT,
-        check=False,
-        capture_output=True,
-        text=True,
-        timeout=DEFAULT_FFMPEG_TIMEOUT,
-    )
+    try:
+        return subprocess.run(
+            [sys.executable, str(workflow_dir / "workflow.py")],
+            cwd=REPO_ROOT,
+            check=False,
+            capture_output=True,
+            text=True,
+            timeout=DEFAULT_FFMPEG_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ProcessingError(
+            str(workflow_dir / "workflow.py"),
+            124,
+            f"Workflow {workflow_dir} timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
+        ) from exc
 
 
 def main() -> int:

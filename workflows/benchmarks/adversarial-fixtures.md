@@ -2,6 +2,12 @@
 
 Use these fixtures for a future `agentic-video-certify` command. Each fixture should either pass with a receipt or fail with a clear, actionable error.
 
+Run the current local certification subset:
+
+```bash
+uv run --no-project --with mcp-video python workflows/benchmarks/run_adversarial_certification.py
+```
+
 | Fixture | Purpose | Expected Behavior |
 | --- | --- | --- |
 | Silent video | Audio warnings should be explicit | Receipt records missing/quiet audio; human review required. |

@@ -11,6 +11,8 @@ from typing import Any
 
 from mcp_video import Client
 from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
+from mcp_video.errors import ProcessingError
+from mcp_video.ffmpeg_helpers import _validate_input_path
 
 
 WORKFLOW_DIR = Path(__file__).resolve().parent
@@ -28,13 +30,12 @@ def _value(result: Any, key: str, default: Any = None) -> Any:
 
 
 def _run(cmd: list[str]) -> None:
-    subprocess.run(
-        cmd,
-        check=True,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        timeout=DEFAULT_FFMPEG_TIMEOUT,
-    )
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
+        raise ProcessingError(" ".join(cmd), 124, f"FFmpeg timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from exc
+    except subprocess.CalledProcessError as exc:
+        raise ProcessingError(" ".join(cmd), exc.returncode, exc.stderr or "") from exc
 
 
 def _generate_source(path: Path) -> None:
@@ -103,7 +104,7 @@ def main() -> None:
     print("=" * 60)
 
     client = Client()
-    source = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else OUTPUT_DIR / "source.mp4"
+    source = Path(_validate_input_path(sys.argv[1])) if len(sys.argv) > 1 else OUTPUT_DIR / "source.mp4"
 
     if not source.exists():
         print("\n[1/5] Generating synthetic source clip...")

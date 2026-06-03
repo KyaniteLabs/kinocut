@@ -38,7 +38,10 @@ Use it when a workflow creates or edits media that may be published, handed to a
   "review_artifacts": {
     "final_video": "output/final_clip.mp4",
     "thumbnail": "output/checkpoint/thumbnail.jpg",
-    "storyboard": "output/checkpoint/storyboard"
+    "storyboard": [
+      "output/checkpoint/storyboard/frame_01.jpg",
+      "output/checkpoint/storyboard/frame_02.jpg"
+    ]
   },
   "human_review": {
     "required": true,

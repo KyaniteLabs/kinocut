@@ -19,6 +19,8 @@ Build a branded explainer video from scratch using synthesized audio, scenes, ef
 5. **05-assemble**: Use `video_merge` to combine scenes with transitions
 6. **06-audio-mix**: Use `video_add_audio` to layer soundtrack
 7. **07-export**: Use `video_convert` for final format
+8. **08-quality-checkpoint**: Run quality check and release checkpoint
+9. **09-receipt**: Write `output/video_receipt.json`
 
 ## Outputs
 
@@ -30,6 +32,9 @@ Build a branded explainer video from scratch using synthesized audio, scenes, ef
 | Transition clips | output/04_transition_*.mp4 | Scene-to-scene transitions |
 | Assembled video | output/05_assembled.mp4 | Merged scenes |
 | Final video | output/final_video.mp4 | MP4 with audio mix |
+| Quality report | output/quality.json | JSON |
+| Release checkpoint | output/checkpoint/ | JSON + thumbnail/storyboard |
+| Video Receipt | output/video_receipt.json | JSON |
 
 ## Quality gates
 
@@ -38,3 +43,5 @@ Build a branded explainer video from scratch using synthesized audio, scenes, ef
 - [ ] Brand colors used consistently
 - [ ] Text is readable at 1080p
 - [ ] Audio levels are consistent across scenes
+- [ ] Release checkpoint creates thumbnail and storyboard artifacts
+- [ ] Video Receipt keeps human review pending before publishing

@@ -10,6 +10,8 @@ from pathlib import Path
 from typing import Any
 
 from mcp_video import Client
+from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
+from mcp_video.errors import ProcessingError
 
 
 WORKFLOW_DIR = Path(__file__).resolve().parent
@@ -24,7 +26,12 @@ def _value(result: Any, key: str, default: Any = None) -> Any:
 
 
 def _run(cmd: list[str]) -> None:
-    subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    try:
+        subprocess.run(cmd, check=True, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    except subprocess.TimeoutExpired as exc:
+        raise ProcessingError(" ".join(cmd), 124, f"FFmpeg timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from exc
+    except subprocess.CalledProcessError as exc:
+        raise ProcessingError(" ".join(cmd), exc.returncode, exc.stderr or "") from exc
 
 
 def _generate_source(path: Path) -> None:

@@ -33,7 +33,7 @@ Primary workflow:
 Proof status:
 
 - Existing workflow demonstrates generated scenes, procedural audio, effects, transitions, assembly, audio mix, and export.
-- It should be upgraded with a Video Receipt before being treated as a release-grade demo lane.
+- It now writes a quality report, release checkpoint, and Video Receipt before it is treated as a release-grade demo lane.
 
 Trust artifacts to require before publishing:
 
