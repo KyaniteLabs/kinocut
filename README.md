@@ -280,3 +280,15 @@ pytest tests/ -v -m "not slow and not hyperframes"
 Apache 2.0. See [LICENSE](LICENSE).
 
 Built with [FFmpeg](https://ffmpeg.org/), [Hyperframes](https://hyperframes.io/), and the [Model Context Protocol](https://modelcontextprotocol.io/).
+
+---
+
+## Part of KyaniteLabs
+
+Open-source tools by [KyaniteLabs](https://kyanitelabs.tech). Related projects:
+
+- **[Epoch](https://github.com/KyaniteLabs/Epoch)** — time-estimation MCP server (PERT) for AI agents
+- **[DialectOS](https://github.com/KyaniteLabs/DialectOS)** — Spanish dialect localization MCP server & CLI
+- **[checkyourself](https://github.com/KyaniteLabs/checkyourself)** — local-first production-readiness checks for AI-built code
+
+→ More at **[kyanitelabs.tech](https://kyanitelabs.tech)**
