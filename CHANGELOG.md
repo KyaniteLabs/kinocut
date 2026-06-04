@@ -11,6 +11,13 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.5.1 - 2026-06-04
+
+### Fixed
+
+- Removed the unpublished `meltysynth` dependency from optional audio extras so Glama, uv, and package metadata validators can resolve the project.
+- Updated the repository readiness audit after the intentionally removed `/explainer-video` npm Dependabot entry.
+
 ## 1.5.0 - 2026-06-04
 
 ### Added

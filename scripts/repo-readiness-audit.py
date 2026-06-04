@@ -243,7 +243,6 @@ def main() -> int:
     dependabot_groups = dependabot_groups_by_ecosystem()
     for ecosystem, directory, group_name in [
         ("uv", "/", "python-runtime"),
-        ("npm", "/explainer-video", "explainer-video"),
         ("github-actions", "/", "github-actions"),
     ]:
         check(

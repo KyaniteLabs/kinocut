@@ -121,7 +121,13 @@ PACKAGE_CHECKS = (
         'Install enhanced audio extras: pip install "mcp-video[audio-enhanced]"',
     ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, 'Install audio AI extras: pip install "mcp-video[audio-ai]"'),
-    ("meltysynth", "meltysynth", "audio-midi", False, 'Install MIDI audio extras: pip install "mcp-video[audio-midi]"'),
+    (
+        "meltysynth",
+        "meltysynth",
+        "manual-midi",
+        False,
+        "MeltySynth is not currently published on PyPI; install a compatible meltysynth module manually.",
+    ),
 )
 
 

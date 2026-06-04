@@ -19,7 +19,8 @@ def _require_meltysynth() -> Any:
         return ms
     except ImportError as exc:
         raise MCPVideoError(
-            "meltysynth not installed. Run: pip install meltysynth",
+            "meltysynth is not installed. MeltySynth is not currently published on PyPI; "
+            "install a compatible meltysynth module manually before using MIDI SoundFont synthesis.",
             error_type="dependency_error",
             code="meltysynth_not_found",
         ) from exc

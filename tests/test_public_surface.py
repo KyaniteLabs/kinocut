@@ -344,6 +344,14 @@ def test_heavy_ai_extras_keep_python313_installable():
         assert "basicsr>=1.4; python_version < '3.13'" in dependencies
 
 
+def test_optional_extras_do_not_advertise_unpublished_dependencies():
+    pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
+    optional_deps = pyproject["project"]["optional-dependencies"]
+    dependency_text = "\n".join(dependency for dependencies in optional_deps.values() for dependency in dependencies)
+
+    assert "meltysynth" not in dependency_text
+
+
 def test_module_reexports():
     """Engine and server modules preserve expected import targets."""
     import mcp_video.server as server
