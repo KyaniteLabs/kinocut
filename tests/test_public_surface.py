@@ -343,6 +343,10 @@ def test_heavy_ai_extras_keep_python313_installable():
         assert "realesrgan>=0.3; python_version < '3.13'" in dependencies
         assert "basicsr>=1.4; python_version < '3.13'" in dependencies
 
+    for extra in ("audio-ai", "audio-all"):
+        assert "numpy>=1.24" in optional_deps[extra]
+        assert all(not dependency.startswith("basic-pitch") for dependency in optional_deps[extra])
+
 
 def test_optional_extras_do_not_advertise_unpublished_dependencies():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
@@ -350,6 +354,7 @@ def test_optional_extras_do_not_advertise_unpublished_dependencies():
     dependency_text = "\n".join(dependency for dependencies in optional_deps.values() for dependency in dependencies)
 
     assert "meltysynth" not in dependency_text
+    assert "basic-pitch" not in dependency_text
 
 
 def test_module_reexports():

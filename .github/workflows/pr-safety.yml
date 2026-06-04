@@ -3,12 +3,6 @@ name: PR safety
 on:
   pull_request:
     branches: [master]
-    paths:
-      - "mcp_video/**"
-      - "tests/**"
-      - "pyproject.toml"
-      - "uv.lock"
-      - ".github/workflows/pr-safety.yml"
 
 jobs:
   hosted-pr-checks:
@@ -16,20 +10,45 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: classify
+        name: Classify changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="${{ github.event.pull_request.base.sha }}"
+          head="${{ github.event.pull_request.head.sha }}"
+          changed="$(git diff --name-only "$base" "$head")"
+          printf '%s\n' "$changed"
+          if printf '%s\n' "$changed" | grep -Eq '^(mcp_video/|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml)'; then
+            echo "code=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "code=false" >> "$GITHUB_OUTPUT"
+          fi
+      - name: Skip hosted checks
+        if: steps.classify.outputs.code != 'true'
+        run: echo "Code inputs unchanged; marking hosted PR checks successful."
       - name: Install FFmpeg
+        if: steps.classify.outputs.code == 'true'
         run: |
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends ffmpeg
           ffmpeg -version
           ffprobe -version
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        if: steps.classify.outputs.code == 'true'
         with:
           python-version: "3.13"
       - name: Install package
+        if: steps.classify.outputs.code == 'true'
         run: python -m pip install -e ".[dev]"
       - name: Lint
+        if: steps.classify.outputs.code == 'true'
         run: |
           ruff check mcp_video/ tests/
           ruff format --check mcp_video/ tests/
       - name: Test
+        if: steps.classify.outputs.code == 'true'
         run: pytest tests/ -q -m "not slow" --tb=short

@@ -11,6 +11,10 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+
+- Removed BasicPitch from declared optional extras and documented it as a manual integration so Dependabot can patch vulnerable TensorFlow/Keras/protobuf transitive dependencies instead of resolving an unsafe pinned stack.
+
 ## 1.5.1 - 2026-06-04
 
 ### Fixed

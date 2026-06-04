@@ -11,15 +11,15 @@ from typing import Any
 from ...errors import MCPVideoError
 
 
-def _require_basic_pitch() -> Any:
-    """Lazy import basic_pitch with helpful error."""
+def _require_basic_pitch_predict() -> Any:
+    """Lazy import BasicPitch's predictor with helpful error."""
     try:
-        import basic_pitch
+        from basic_pitch.inference import predict
 
-        return basic_pitch
+        return predict
     except ImportError as exc:
         raise MCPVideoError(
-            "basic-pitch not installed. Run: pip install basic-pitch",
+            "basic-pitch not installed. It is a manual optional integration; install it separately on Python 3.11 or 3.12.",
             error_type="dependency_error",
             code="basic_pitch_not_found",
         ) from exc
@@ -46,7 +46,7 @@ def detect_pitch(
     Returns:
         Dict with output paths and detected note data
     """
-    from basic_pitch.inference import predict
+    predict = _require_basic_pitch_predict()
 
     input_path_obj = Path(input_path)
     if not input_path_obj.exists():
@@ -88,7 +88,7 @@ def audio_to_midi(
     Returns:
         Path to output MIDI file
     """
-    from basic_pitch.inference import predict
+    predict = _require_basic_pitch_predict()
 
     input_path_obj = Path(input_path)
     if not input_path_obj.exists():

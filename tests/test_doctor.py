@@ -132,6 +132,8 @@ def test_run_diagnostics_explains_python313_basicsr_guard(monkeypatch):
     assert "BasicSR currently fails to build" in checks["basicsr"]["install_hint"]
     assert "OpenCV fallback" in checks["realesrgan"]["install_hint"]
     assert "Python 3.11 or 3.12" in checks["basicsr"]["install_hint"]
+    assert "manual optional integration" in checks["basic-pitch"]["install_hint"]
+    assert "Python 3.11 or 3.12" in checks["basic-pitch"]["install_hint"]
 
 
 def test_run_diagnostics_requires_matching_distribution_for_package_checks():

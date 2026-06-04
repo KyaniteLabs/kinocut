@@ -30,6 +30,11 @@ PYTHON_313_UPSCALE_BACKEND_HINT = (
     "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
 )
 
+BASIC_PITCH_MANUAL_HINT = (
+    "BasicPitch is a manual optional integration because its TensorFlow dependency chain is not safely "
+    "resolvable by the package extras. Use Python 3.11 or 3.12 if you specifically need audio AI pitch extraction."
+)
+
 COMMAND_CHECKS = (
     {
         "name": "ffmpeg",
@@ -120,7 +125,7 @@ PACKAGE_CHECKS = (
         False,
         'Install enhanced audio extras: pip install "mcp-video[audio-enhanced]"',
     ),
-    ("basic-pitch", "basic_pitch", "audio-ai", False, 'Install audio AI extras: pip install "mcp-video[audio-ai]"'),
+    ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
     (
         "meltysynth",
         "meltysynth",
@@ -222,6 +227,8 @@ def _check_package(
     ok = found and version is not None
     if not ok and distribution_name in {"realesrgan", "basicsr"} and sys.version_info >= (3, 13):
         install_hint = PYTHON_313_UPSCALE_BACKEND_HINT
+    elif not ok and distribution_name == "basic-pitch" and sys.version_info >= (3, 13):
+        install_hint = BASIC_PITCH_MANUAL_HINT
     return {
         "name": distribution_name,
         "category": category,
