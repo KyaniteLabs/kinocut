@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Annotated, Any
+
+from mcp.types import ToolAnnotations
+from pydantic import Field
 
 from .engine import add_audio, add_text, add_texts, convert, merge, probe, resize, speed, trim
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
@@ -10,6 +13,21 @@ from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_FORMATS, VALID_PRESETS
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
+
+ExistingVideoPath = Annotated[
+    str,
+    Field(description="Absolute path to an existing local video file. The input file is read only."),
+]
+ExistingAudioPath = Annotated[
+    str,
+    Field(description="Absolute path to an existing local audio file such as MP3, WAV, M4A, or AAC."),
+]
+OptionalOutputVideoPath = Annotated[
+    str | None,
+    Field(
+        description="Destination video path. Auto-generated when omitted; an existing supplied path may be overwritten."
+    ),
+]
 
 
 @mcp.tool()
@@ -75,23 +93,64 @@ VALID_XFADE_TRANSITIONS = {
 }
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Merge video clips",
+    description=(
+        "Concatenate two or more existing video clips into one rendered output file. "
+        "The input clips are read only and kept unchanged; the tool creates an auto-named output "
+        "or writes to output_path, using FFmpeg and reporting transition or media-mismatch validation errors."
+    ),
+    annotations=ToolAnnotations(
+        title="Merge video clips",
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    ),
+)
 @_safe_tool
 def video_merge(
-    clips: list[str],
-    output_path: str | None = None,
-    transition: str | None = None,
-    transitions: list[str] | None = None,
-    transition_duration: float = 1.0,
+    clips: Annotated[
+        list[str],
+        Field(
+            description=(
+                "Ordered absolute paths to existing video clips. Provide at least two clips; "
+                "inputs are validated and never modified."
+            )
+        ),
+    ],
+    output_path: OptionalOutputVideoPath = None,
+    transition: Annotated[
+        str | None,
+        Field(
+            description=(
+                "Optional xfade transition applied to every clip boundary, such as fade, "
+                "dissolve, wipeleft, wiperight, slideleft, or slideright."
+            )
+        ),
+    ] = None,
+    transitions: Annotated[
+        list[str] | None,
+        Field(description="Optional per-boundary xfade transitions. Overrides transition when provided."),
+    ] = None,
+    transition_duration: Annotated[
+        float,
+        Field(description="Duration in seconds for each transition; must fit inside neighboring clips."),
+    ] = 1.0,
 ) -> dict[str, Any]:
-    """Merge multiple video clips into one.
+    """Merge multiple video clips into one rendered output file.
 
     Args:
-        clips: List of absolute paths to video clips to merge (in order).
-        output_path: Where to save the merged video. Auto-generated if omitted.
-        transition: Single transition type for all clip pairs (fade, dissolve, wipe-*).
-        transitions: Per-pair transition types. Overrides transition if both provided.
-        transition_duration: Duration of each transition in seconds.
+        clips: Ordered list of absolute paths to existing video clips. Requires at least
+            two clips for a meaningful merge; each input path is validated and never modified.
+        output_path: Destination for the merged render. Auto-generated if omitted; may be
+            overwritten if an existing path is supplied.
+        transition: Optional single xfade transition for every clip pair, such as fade,
+            dissolve, wipeleft, wiperight, slideleft, or slideright.
+        transitions: Optional per-pair transition list. Overrides transition when both
+            are provided and should have one entry per gap between clips.
+        transition_duration: Duration of each transition in seconds. Must fit inside the
+            shortest neighboring clip.
     """
     if transition is not None and transition not in VALID_XFADE_TRANSITIONS:
         return _validation_error(
@@ -230,29 +289,62 @@ def video_add_texts(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Add or mix video audio",
+    description=(
+        "Add, replace, or mix an audio file into an existing video and render a new output file. "
+        "The source video and audio are read only; output_path is created or overwritten. "
+        "Controls volume, fade-in, fade-out, mix/replace mode, and optional start time."
+    ),
+    annotations=ToolAnnotations(
+        title="Add or mix video audio",
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    ),
+)
 @_safe_tool
 def video_add_audio(
-    video_path: str,
-    audio_path: str,
-    volume: float = 1.0,
-    fade_in: float = 0.0,
-    fade_out: float = 0.0,
-    mix: bool = False,
-    start_time: float | None = None,
-    output_path: str | None = None,
+    video_path: ExistingVideoPath,
+    audio_path: ExistingAudioPath,
+    volume: Annotated[
+        float,
+        Field(description="Audio gain from 0.0 to 2.0, where 1.0 preserves original loudness."),
+    ] = 1.0,
+    fade_in: Annotated[
+        float,
+        Field(description="Non-negative fade-in duration in seconds applied to the inserted audio."),
+    ] = 0.0,
+    fade_out: Annotated[
+        float,
+        Field(description="Non-negative fade-out duration in seconds applied near the inserted audio end."),
+    ] = 0.0,
+    mix: Annotated[
+        bool,
+        Field(
+            description="True mixes the new audio with existing video audio; false replaces the original audio track."
+        ),
+    ] = False,
+    start_time: Annotated[
+        float | None,
+        Field(description="Optional start offset in seconds where the inserted audio begins."),
+    ] = None,
+    output_path: OptionalOutputVideoPath = None,
 ) -> dict[str, Any]:
-    """Add or replace the audio track of a video.
+    """Add, replace, or mix an audio track into a video.
 
     Args:
-        video_path: Absolute path to the video file.
-        audio_path: Absolute path to the audio file (MP3, WAV, etc.).
-        volume: Audio volume (0.0 to 2.0, where 1.0 = original).
-        fade_in: Fade in duration in seconds.
-        fade_out: Fade out duration in seconds.
-        mix: If true, mix with existing audio. If false, replace it.
-        start_time: When the audio starts playing (seconds).
-        output_path: Where to save the output. Auto-generated if omitted.
+        video_path: Absolute path to the existing video file. The input file is read only.
+        audio_path: Absolute path to the existing audio file, such as MP3, WAV, M4A, or AAC.
+        volume: Audio gain from 0.0 to 2.0, where 1.0 keeps original loudness.
+        fade_in: Non-negative fade-in duration in seconds applied to the inserted audio.
+        fade_out: Non-negative fade-out duration in seconds applied near the inserted audio end.
+        mix: True mixes the new audio with existing video audio; False replaces the
+            video's original audio track.
+        start_time: Optional start offset in seconds for the inserted audio.
+        output_path: Destination video path. Auto-generated if omitted; may be overwritten
+            if an existing path is supplied.
     """
     video_path = _validate_input_path(video_path)
     audio_path = _validate_input_path(audio_path)
@@ -321,13 +413,33 @@ def video_resize(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Convert video format",
+    description=(
+        "Transcode an existing video into a different container or codec format such as mp4, webm, gif, or mov. "
+        "Use this for format conversion; use video_export for final delivery presets. "
+        "The input video is read only and a new output file is rendered."
+    ),
+    annotations=ToolAnnotations(
+        title="Convert video format",
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    ),
+)
 @_safe_tool
 def video_convert(
-    input_path: str,
-    format: str = "mp4",
-    quality: str = "high",
-    output_path: str | None = None,
+    input_path: ExistingVideoPath,
+    format: Annotated[
+        str,
+        Field(description="Target output format. Supported values are mp4, webm, gif, and mov."),
+    ] = "mp4",
+    quality: Annotated[
+        str,
+        Field(description="Encoding quality preset: low, medium, high, or ultra."),
+    ] = "high",
+    output_path: OptionalOutputVideoPath = None,
 ) -> dict[str, Any]:
     """Convert a video to a different format or codec.
 
@@ -336,10 +448,12 @@ def video_convert(
     delivery with quality tuning, prefer :func:`video_export`.
 
     Args:
-        input_path: Absolute path to the input video.
-        format: Target format (mp4, webm, gif, mov).
-        quality: Quality preset (low, medium, high, ultra).
-        output_path: Where to save the output. Auto-generated if omitted.
+        input_path: Absolute path to the existing input video. The source is read only.
+        format: Target output format. Supported values are mp4, webm, gif, and mov.
+        quality: Encoding quality preset. Supported values come from QUALITY_PRESETS:
+            low, medium, high, and ultra.
+        output_path: Destination video path. Auto-generated if omitted; may be overwritten
+            if an existing path is supplied.
     """
     if format not in VALID_FORMATS:
         return _validation_error(f"Invalid format: {format}. Must be one of {sorted(VALID_FORMATS)}")
@@ -356,19 +470,38 @@ def video_convert(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    title="Change video speed",
+    description=(
+        "Render a new video with playback speed changed while keeping the source video unchanged. "
+        "Values below 1.0 create slow motion and values above 1.0 create fast motion; "
+        "the factor is validated against configured speed limits."
+    ),
+    annotations=ToolAnnotations(
+        title="Change video speed",
+        readOnlyHint=False,
+        destructiveHint=True,
+        idempotentHint=False,
+        openWorldHint=False,
+    ),
+)
 @_safe_tool
 def video_speed(
-    input_path: str,
-    factor: float = 1.0,
-    output_path: str | None = None,
+    input_path: ExistingVideoPath,
+    factor: Annotated[
+        float,
+        Field(description="Playback speed multiplier. 2.0 is double speed, 0.5 is half speed, and 1.0 is unchanged."),
+    ] = 1.0,
+    output_path: OptionalOutputVideoPath = None,
 ) -> dict[str, Any]:
-    """Change video playback speed.
+    """Change video playback speed and render a new output file.
 
     Args:
-        input_path: Absolute path to the input video.
-        factor: Speed multiplier. 2.0 = 2x faster (time-lapse), 0.5 = half speed (slow-mo).
-        output_path: Where to save the output. Auto-generated if omitted.
+        input_path: Absolute path to the existing input video. The source is read only.
+        factor: Speed multiplier within the configured allowed range. 2.0 is 2x
+            faster, 0.5 is half-speed slow motion, and 1.0 means no speed change.
+        output_path: Destination video path. Auto-generated if omitted; may be overwritten
+            if an existing path is supplied.
     """
     if not (MIN_SPEED_FACTOR <= factor <= MAX_SPEED_FACTOR):
         return _validation_error(
