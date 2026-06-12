@@ -92,7 +92,7 @@ def main() -> int:
         return 1
 
     receipt = _load_json(receipt_path)
-    checks = [{"name": "receipt_exists", "status": "pass"}] + _check_receipt(receipt)
+    checks = [{"name": "receipt_exists", "status": "pass"}, *_check_receipt(receipt)]
     if not args.skip_run:
         workflow_completed = run_result is not None and run_result.returncode == 0
         checks.insert(1, {"name": "workflow_completed", "status": "pass" if workflow_completed else "fail"})

@@ -46,7 +46,7 @@ def _make_video(path: Path, *, volume: float = 1.0, rate: int = 30) -> None:
             "-f",
             "lavfi",
             "-i",
-            f"sine=frequency=440:sample_rate=48000",
+            "sine=frequency=440:sample_rate=48000",
             "-filter:a",
             f"volume={volume}",
             "-t",
