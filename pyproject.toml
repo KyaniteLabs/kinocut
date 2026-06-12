@@ -41,6 +41,9 @@ image = ["pillow>=10.0", "scikit-learn>=1.3", "webcolors>=1.13"]
 image-ai = ["pillow>=10.0", "scikit-learn>=1.3", "webcolors>=1.13", "anthropic>=0.96.0"]
 audio = ["numpy>=1.24"]
 audio-enhanced = ["numpy>=1.24", "scipy>=1.10", "soundfile>=0.12"]
+# audio-ai and audio-midi are capability aliases of `audio` kept for install
+# compatibility: their heavy engines (basic-pitch, meltysynth) are manual
+# integrations that pip extras cannot resolve safely — see docs/adr/0006.
 audio-ai = ["numpy>=1.24"]
 audio-midi = ["numpy>=1.24"]
 audio-analysis = ["numpy>=1.24", "librosa>=0.10", "soundfile>=0.12"]
@@ -180,6 +183,24 @@ markers = [
     "slow: marks tests as slow (real-media integration tests)",
     "hyperframes: marks tests requiring Node.js + Hyperframes CLI",
 ]
+
+[tool.pyright]
+# Typed-core rollout: the contract modules every engine depends on are
+# type-checked first; expand module by module as annotations are cleaned up.
+include = [
+    "mcp_video/ffmpeg_helpers.py",
+    "mcp_video/models.py",
+    "mcp_video/errors.py",
+    "mcp_video/engine_probe.py",
+    "mcp_video/engine_runtime_utils.py",
+    "mcp_video/validation.py",
+    "mcp_video/limits.py",
+    "mcp_video/defaults.py",
+]
+typeCheckingMode = "basic"
+pythonVersion = "3.11"
+venvPath = "."
+venv = ".venv"
 
 [tool.coverage.run]
 source = ["mcp_video"]

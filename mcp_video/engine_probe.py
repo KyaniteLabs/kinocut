@@ -5,6 +5,7 @@ from __future__ import annotations
 import contextlib
 import os
 import threading
+from typing import Any
 
 from .errors import InputFileError, MCPVideoError, ProcessingError
 from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
@@ -26,7 +27,7 @@ def _cache_key(path: str) -> tuple[str, float, int]:
     return (path, stat.st_mtime, stat.st_size)
 
 
-def _parse_probe_duration(value: object) -> float | None:
+def _parse_probe_duration(value: Any) -> float | None:
     try:
         return float(value)
     except (TypeError, ValueError):

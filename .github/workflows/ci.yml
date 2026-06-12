@@ -75,6 +75,10 @@ jobs:
         run: .venv/bin/ruff check mcp_video/ tests/
       - name: Ruff format check
         run: .venv/bin/ruff format --check mcp_video/ tests/
+      - name: Type check core modules
+        run: |
+          .venv/bin/pip install -e . pyright
+          .venv/bin/pyright
 
   package-surface:
     name: Package surface
