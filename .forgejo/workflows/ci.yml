@@ -3,12 +3,26 @@ on:
     branches: [master]
   pull_request:
 jobs:
+  lint:
+    # Light job: ruff static analysis only — no ffmpeg, no package build (~30s).
+    # Routed to the `light` runner label -> the capacity-1 VPS runner, which
+    # co-hosts the production Forgejo git server and is sized for cheap work.
+    # Runs in parallel with `test`, giving fast style feedback without tying up
+    # the heavy runner. ruff pinned to match the `[dev]` extra (no latest drift).
+    runs-on: light
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install ruff
+        run: |
+          apt-get update -qq && apt-get install -y -qq python3 python3-venv
+          python3 -m venv /tmp/lintenv
+          /tmp/lintenv/bin/pip install --quiet "ruff>=0.15.11"
+      - name: Lint
+        run: /tmp/lintenv/bin/ruff check .
   test:
-    # Heavy job: ffmpeg + full dependency tree + the ~1464-test suite (~5 min).
-    # Pinned to the `heavy` runner label so it runs ONLY on the 32-core NUCBox
-    # runner and never lands on the capacity-1 VPS runner that co-hosts the
-    # production Forgejo git server. Intensity-based routing (2026-06-13):
-    # nucbox-ci advertises `heavy`, vps-runner-01 advertises `light`.
+    # Heavy job: ffmpeg + full dependency tree + the ~1464 "not slow" tests
+    # (~5 min). Pinned to the `heavy` runner label -> the 32-core NUCBox runner
+    # only; never the small VPS. Lint runs separately on the `light` job above.
     runs-on: heavy
     steps:
       - uses: actions/checkout@v4
@@ -19,7 +33,5 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
-      - name: Lint
-        run: .venv/bin/ruff check .
       - name: Test
         run: .venv/bin/pytest tests/ -q -m "not slow"
