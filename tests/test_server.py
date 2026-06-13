@@ -1,5 +1,6 @@
 """Tests for the MCP server tool layer — needs FFmpeg."""
 
+import asyncio
 import json
 import os
 
@@ -238,7 +239,7 @@ class TestVideoResizeTool:
 
 class TestVideoConvertTool:
     def test_returns_success(self, sample_video):
-        result = video_convert(sample_video, format="webm")
+        result = asyncio.run(video_convert(sample_video, format="webm"))
         assert result["success"] is True
         assert result["format"] == "webm"
 
@@ -757,12 +758,12 @@ class TestServerValidationPreset:
 
 class TestServerValidationFormat:
     def test_convert_rejects_bad_format(self, sample_video):
-        result = video_convert(sample_video, format="exe")
+        result = asyncio.run(video_convert(sample_video, format="exe"))
         assert result["success"] is False
         assert "format" in result["error"]["message"].lower()
 
     def test_convert_rejects_bad_quality(self, sample_video):
-        result = video_convert(sample_video, quality="medium-rare")
+        result = asyncio.run(video_convert(sample_video, quality="medium-rare"))
         assert result["success"] is False
         assert "quality" in result["error"]["message"].lower()
 

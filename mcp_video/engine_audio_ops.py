@@ -177,3 +177,107 @@ def add_audio(
         )
 
     return _build_edit_result(output, "add_audio", timing).model_copy(update={"warnings": warnings})
+
+
+def duck_audio(
+    video_path: str,
+    music_path: str,
+    output_path: str | None = None,
+    music_volume: float = 0.6,
+    threshold: float = 0.05,
+    ratio: float = 8.0,
+    attack: float = 20.0,
+    release: float = 300.0,
+) -> EditResult:
+    """Mix background music under a video's audio, auto-ducking it when the voice plays.
+
+    Uses FFmpeg's sidechaincompress keyed by the video's own audio track, so the
+    music dips during speech and recovers in pauses — the standard treatment for
+    shorts, reels, and podcast clips.
+
+    Args:
+        video_path: Video whose existing audio (voice) drives the ducking.
+        music_path: Background music or ambience to mix underneath.
+        output_path: Where to save the result. Auto-generated if omitted.
+        music_volume: Base music level before ducking (0-2, 1.0 = unchanged).
+        threshold: Sidechain level above which ducking engages (0-1).
+        ratio: Compression ratio applied to the music while voice plays (1-20).
+        attack: How fast the music dips, in milliseconds (1-2000).
+        release: How fast the music recovers, in milliseconds (1-9000).
+    """
+    video_path = _validate_input_path(video_path)
+    music_path = _validate_input_path(music_path)
+    output = output_path or _auto_output(video_path, "ducked")
+    _validate_output_path(output)
+
+    if not 0 < music_volume <= 2:
+        raise MCPVideoError(
+            f"music_volume must be in (0, 2], got {music_volume}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 0 < threshold <= 1:
+        raise MCPVideoError(
+            f"threshold must be in (0, 1], got {threshold}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 1 <= ratio <= 20:
+        raise MCPVideoError(
+            f"ratio must be between 1 and 20, got {ratio}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 1 <= attack <= 2000:
+        raise MCPVideoError(
+            f"attack must be between 1 and 2000 ms, got {attack}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 1 <= release <= 9000:
+        raise MCPVideoError(
+            f"release must be between 1 and 9000 ms, got {release}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
+    if not _has_audio(_run_ffprobe_json(video_path)):
+        raise MCPVideoError(
+            "duck_audio requires the video to have an audio track to duck against. "
+            "Use add_audio to attach music to a silent video instead.",
+            error_type="validation_error",
+            code="missing_audio_stream",
+        )
+
+    filter_complex = (
+        f"[1:a]volume={music_volume:g}[bg];"
+        f"[bg][0:a]sidechaincompress=threshold={threshold:g}:ratio={ratio:g}"
+        f":attack={attack:g}:release={release:g}[duck];"
+        f"[0:a][duck]amix=inputs=2:duration=first:normalize=0[aout]"
+    )
+
+    with _timed_operation() as timing:
+        _run_ffmpeg(
+            [
+                "-i",
+                video_path,
+                "-i",
+                music_path,
+                "-filter_complex",
+                filter_complex,
+                "-map",
+                "0:v?",
+                "-map",
+                "[aout]",
+                "-c:v",
+                "copy",
+                "-c:a",
+                "aac",
+                "-b:a",
+                DEFAULT_AUDIO_BITRATE,
+                *_movflags_args(output),
+                output,
+            ]
+        )
+
+    return _build_edit_result(output, "duck_audio", timing)

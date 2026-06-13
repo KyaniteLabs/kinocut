@@ -7,9 +7,14 @@ from typing import Annotated, Any
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
+import functools
+
+import anyio
+from mcp.server.fastmcp import Context
+
 from .engine import add_audio, add_text, add_texts, convert, merge, probe, resize, speed, trim
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
-from .server_app import _result, _safe_tool, _validation_error, mcp
+from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
@@ -411,27 +416,30 @@ def video_resize(
     ),
 )
 @_safe_tool
-def video_convert(
+async def video_convert(
     input_path: ExistingVideoPath,
     format: Annotated[
         str,
-        Field(description="Target output format. Supported values are mp4, webm, gif, and mov."),
+        Field(description="Target output format: mp4, webm, gif, mov, hevc, av1, or prores."),
     ] = "mp4",
     quality: Annotated[
         str,
         Field(description="Encoding quality preset: low, medium, high, or ultra."),
     ] = "high",
     output_path: OptionalOutputVideoPath = None,
+    ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Convert a video to a different format or codec.
 
     Use ``video_convert`` when you need to change the container or codec
     (e.g. mp4 → webm, or re-encode with a different CRF). For simple final
-    delivery with quality tuning, prefer :func:`video_export`.
+    delivery with quality tuning, prefer :func:`video_export`. Long renders
+    stream MCP progress notifications so clients can show a live percentage.
 
     Args:
         input_path: Absolute path to the existing input video. The source is read only.
-        format: Target output format. Supported values are mp4, webm, gif, and mov.
+        format: Target output format. Supported values are mp4, webm, gif, mov,
+            hevc, av1, and prores.
         quality: Encoding quality preset. Supported values come from QUALITY_PRESETS:
             low, medium, high, and ultra.
         output_path: Destination video path. Auto-generated if omitted; may be overwritten
@@ -442,14 +450,15 @@ def video_convert(
     if quality not in QUALITY_PRESETS:
         return _validation_error(f"Invalid quality: {quality}. Must be one of {sorted(QUALITY_PRESETS)}")
     input_path = _validate_input_path(input_path)
-    return _result(
-        convert(
-            input_path,
-            format=format,
-            quality=quality,
-            output_path=output_path,
-        )
+    run_convert = functools.partial(
+        convert,
+        input_path,
+        format=format,
+        quality=quality,
+        output_path=output_path,
+        on_progress=_mcp_progress_reporter(ctx),
     )
+    return _result(await anyio.to_thread.run_sync(run_convert))
 
 
 @mcp.tool(

@@ -324,3 +324,49 @@ def video_audio_spatial(
     from .ai_engine import audio_spatial
 
     return _result(audio_spatial(input_path, output_path, positions, method))
+
+
+@mcp.tool()
+@_safe_tool
+def video_duck_audio(
+    input_path: str,
+    music_path: str,
+    output_path: str | None = None,
+    music_volume: float = 0.6,
+    threshold: float = 0.05,
+    ratio: float = 8.0,
+    attack: float = 20.0,
+    release: float = 300.0,
+) -> dict[str, Any]:
+    """Mix background music under a video's voice with automatic ducking.
+
+    The video's own audio (voice/dialog) drives FFmpeg's sidechain compressor,
+    so the music dips while speech plays and recovers in pauses — the standard
+    treatment for shorts, reels, and podcast clips.
+
+    Args:
+        input_path: Video whose existing audio drives the ducking.
+        music_path: Background music or ambience to mix underneath.
+        output_path: Where to save the result. Auto-generated if omitted.
+        music_volume: Base music level before ducking (0-2, default 0.6).
+        threshold: Sidechain level above which ducking engages (0-1).
+        ratio: Compression ratio applied while voice plays (1-20).
+        attack: How fast the music dips, in milliseconds (1-2000).
+        release: How fast the music recovers, in milliseconds (1-9000).
+    """
+    input_path = _validate_input_path(input_path)
+    music_path = _validate_input_path(music_path)
+    from .engine_audio_ops import duck_audio
+
+    return _result(
+        duck_audio(
+            input_path,
+            music_path,
+            output_path=output_path,
+            music_volume=music_volume,
+            threshold=threshold,
+            ratio=ratio,
+            attack=attack,
+            release=release,
+        )
+    )

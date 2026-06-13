@@ -36,14 +36,17 @@ def ai_color_grade(
     output: str,
     reference: str | None = None,
     style: str = "auto",
+    lut_path: str | None = None,
 ) -> str:
-    """Auto color grading based on reference or style preset.
+    """Color grading via a LUT file, a reference video, or a style preset.
 
     Args:
         video: Input video path
         output: Output video path
         reference: Optional reference video for color matching
         style: Style preset (auto, cinematic, vintage, warm, cool, dramatic, noir)
+        lut_path: Optional .cube/.3dl LUT file — applied with FFmpeg lut3d and
+            overrides both reference and style
 
     Returns:
         Path to output video
@@ -58,6 +61,17 @@ def ai_color_grade(
     video_path = Path(video)
     if not video_path.exists():
         raise InputFileError(video)
+
+    if lut_path is not None:
+        suffix = Path(lut_path).suffix.lower()
+        if suffix not in {".cube", ".3dl"}:
+            raise MCPVideoError(
+                f"LUT file must be a .cube or .3dl file, got '{suffix or lut_path}'",
+                error_type="validation_error",
+                code="invalid_lut",
+            )
+        lut_path = _validate_input_path(lut_path)
+        return _apply_lut(str(video_path), output, lut_path)
 
     try:
         params = STYLE_PRESETS[style]
@@ -119,6 +133,30 @@ def ai_color_grade(
     Path(output).parent.mkdir(parents=True, exist_ok=True)
     _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
 
+    return output
+
+
+def _apply_lut(video: str, output: str, lut_path: str) -> str:
+    """Apply a .cube/.3dl LUT with FFmpeg's lut3d filter."""
+    from ..ffmpeg_helpers import _escape_ffmpeg_filter_value
+
+    filter_string = f"lut3d={_escape_ffmpeg_filter_value(lut_path)}"
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        video,
+        "-vf",
+        filter_string,
+        "-c:a",
+        "copy",
+        "-pix_fmt",
+        "yuv420p",
+        output,
+    ]
+    _validate_output_path(output)
+    Path(output).parent.mkdir(parents=True, exist_ok=True)
+    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
     return output
 
 

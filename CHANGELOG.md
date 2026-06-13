@@ -11,6 +11,13 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Added
+
+- `video_duck_audio` (tool #120): mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
+- `video_ai_color_grade` accepts `lut_path` for professional `.cube`/`.3dl` LUT files via FFmpeg `lut3d`, overriding style presets and reference matching.
+- `video_convert` streams MCP progress notifications during long renders, so clients can show a live percentage instead of an apparently hung call.
+- Spanish-language README section (`En español`) and bilingual EN/ES text for the most common errors (FFmpeg missing, file not found).
+
 ### Changed
 
 - Glitch tools (`glitch_rgb_shift`, `glitch_scanline_jitter`, `glitch_screen_tearing`, `glitch_vhs_tracking`, `glitch_macroblocking`, `glitch_datamoshing`, `glitch_cmyk_split`, `glitch_turbulent_displacement`) now return rich edit metadata in their MCP responses — `duration`, `resolution`, `size_mb`, and `elapsed_ms` — matching the envelope shape of all other edit tools. Previously these tools returned only `success` and `output_path`.

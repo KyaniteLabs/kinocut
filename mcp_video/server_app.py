@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
+import contextlib
 import functools
+import inspect
 import logging
+from collections.abc import Callable
 from typing import Any
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp import Context, FastMCP
 
 from .errors import MCPVideoError
 
@@ -58,6 +62,19 @@ def _safe_tool(fn: Any) -> Any:
             return _error_result(e)
     """
 
+    if inspect.iscoroutinefunction(fn):
+
+        @functools.wraps(fn)
+        async def async_wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
+            try:
+                return await fn(*args, **kwargs)
+            except MCPVideoError as e:
+                return _error_result(e)
+            except Exception as e:
+                return _error_result(e)
+
+        return async_wrapper
+
     @functools.wraps(fn)
     def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
         try:
@@ -68,6 +85,26 @@ def _safe_tool(fn: Any) -> Any:
             return _error_result(e)
 
     return wrapper
+
+
+def _mcp_progress_reporter(ctx: Context | None) -> Callable[[float], None] | None:
+    """Bridge a sync engine ``on_progress(percent)`` callback to MCP progress
+    notifications.
+
+    Must be called from inside an async tool (a running event loop): the engine
+    invokes the callback from its stderr-reader thread, so notifications are
+    scheduled with ``run_coroutine_threadsafe``. Progress reporting must never
+    break a render — failures are swallowed.
+    """
+    if ctx is None:
+        return None
+    loop = asyncio.get_running_loop()
+
+    def report(percent: float) -> None:
+        with contextlib.suppress(Exception):
+            asyncio.run_coroutine_threadsafe(ctx.report_progress(percent, 100.0), loop)
+
+    return report
 
 
 def _error_result(err: MCPVideoError | Exception) -> dict[str, Any]:

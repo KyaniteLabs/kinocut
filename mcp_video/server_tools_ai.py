@@ -191,8 +191,9 @@ def video_ai_color_grade(
     output_path: str,
     reference_path: str | None = None,
     style: str = "auto",
+    lut_path: str | None = None,
 ) -> dict[str, Any]:
-    """Apply a color grade to a video, by style preset or by matching a reference video.
+    """Apply a color grade to a video — by LUT file, style preset, or reference video.
 
     Args:
         input_path: Video file to grade.
@@ -201,6 +202,8 @@ def video_ai_color_grade(
             color balance is adjusted to match the reference (overrides style).
         style: Style preset. One of: auto (gentle contrast lift), warm, cool,
             vintage, cinematic, dramatic, noir (high contrast, desaturated).
+        lut_path: Optional .cube/.3dl LUT file applied with FFmpeg lut3d —
+            overrides both reference and style for professional grading looks.
     """
     if style not in VALID_COLOR_GRADE_STYLES:
         return _validation_error(f"Invalid style: must be one of {sorted(VALID_COLOR_GRADE_STYLES)}, got '{style}'")
@@ -209,7 +212,7 @@ def video_ai_color_grade(
         reference_path = _validate_input_path(reference_path)
     from .ai_engine import ai_color_grade
 
-    return _result(ai_color_grade(input_path, output_path, reference_path, style))
+    return _result(ai_color_grade(input_path, output_path, reference_path, style, lut_path=lut_path))
 
 
 @mcp.tool()
