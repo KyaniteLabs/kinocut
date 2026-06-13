@@ -151,9 +151,6 @@ from .server_tools_repurpose import (
     video_repurpose as video_repurpose,
     video_repurpose_plan as video_repurpose_plan,
 )
-from .server_tools_music import (
-    video_generate_music as video_generate_music,
-)
 from .server_tools_guardrails import (
     video_validate_text_layout as video_validate_text_layout,
     video_extract_frame as video_extract_frame,

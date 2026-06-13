@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://pypi.org/project/mcp-video/"><img src="https://img.shields.io/pypi/v/mcp-video.svg" alt="PyPI"></a>
   <a href="https://github.com/KyaniteLabs/mcp-video/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/KyaniteLabs/mcp-video/.github/workflows/ci.yml?branch=master&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-120%20tools-orange.svg" alt="120 MCP tools">
+  <img src="https://img.shields.io/badge/MCP-119%20tools-orange.svg" alt="119 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
   <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
@@ -114,7 +114,7 @@ Mix freely, e.g. `pip install "mcp-video[transcribe,image]"`. Run `mcp-video doc
 
 ## En español
 
-mcp-video es un servidor MCP de edición de video para agentes de IA: 120 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), con barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
+mcp-video es un servidor MCP de edición de video para agentes de IA: 119 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), con barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -238,7 +238,7 @@ mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-mcp-video currently registers **120 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
+mcp-video currently registers **119 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |

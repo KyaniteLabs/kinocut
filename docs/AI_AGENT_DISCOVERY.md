@@ -4,7 +4,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`mcp-video` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 120 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
+`mcp-video` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 119 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
 
 ## Best Queries To Match
 

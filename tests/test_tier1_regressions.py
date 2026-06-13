@@ -210,13 +210,3 @@ def test_merge_rejects_unknown_transition_at_engine_layer(sample_video, sample_v
             output_path=str(tmp_path / "bad_transition.mp4"),
             transition="fade;[0:v]drawtext=text=evil",
         )
-
-
-# --- SEC-1: API-returned download URLs are untrusted ----------------------------
-
-
-def test_minimax_download_blocks_private_urls(tmp_path):
-    from mcp_video.music_generation import minimax
-
-    with pytest.raises(MCPVideoError, match="SSRF"):
-        minimax._download_url("http://169.254.169.254/latest/meta-data", str(tmp_path / "a.mp3"), 5)

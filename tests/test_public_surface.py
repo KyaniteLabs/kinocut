@@ -218,7 +218,6 @@ EXPECTED_SERVER_TOOLS = {
     "storyboard_read",
     "shot_prompt_render",
     "video_add_texts",
-    "video_generate_music",
     "video_validate_text_layout",
     "video_extract_frame",
     "video_duck_audio",
@@ -261,7 +260,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 120
+    assert len(tool_names) == 119
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -286,7 +285,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "mcp-video"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 120
+        assert len(tool_names) == 119
 
     asyncio.run(check_server())
 

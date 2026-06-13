@@ -14,10 +14,11 @@ This project follows a simple release-note style:
 ### Removed
 
 - The opt-in anonymous analytics ping (`MCP_VIDEO_ANALYTICS=1`). The endpoint it posted to was never deployed or owned by the project, making the domain claimable by a third party — removed entirely rather than left as a silent no-op.
+- `video_generate_music` and the MiniMax music API integration. A hosted, per-key music API does not belong in a local-first tool; background-music generation moves to a local open-source pipeline (planned: ACE-Step) with mcp-video handling the mixing via `video_duck_audio`.
 
 ### Added
 
-- `video_duck_audio` (tool #120): mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
+- `video_duck_audio`: mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
 - `video_ai_color_grade` accepts `lut_path` for professional `.cube`/`.3dl` LUT files via FFmpeg `lut3d`, overriding style presets and reference matching.
 - `video_convert` streams MCP progress notifications during long renders, so clients can show a live percentage instead of an apparently hung call.
 - Spanish-language README section (`En español`) and bilingual EN/ES text for the most common errors (FFmpeg missing, file not found).

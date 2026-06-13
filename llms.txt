@@ -2,7 +2,7 @@
 
 > Guardrailed video editing MCP server, Python library, and CLI for AI agents.
 
-mcp-video gives AI agents 120 structured tools for FFmpeg-based video editing, PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
+mcp-video gives AI agents 119 structured tools for FFmpeg-based video editing, PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
 
 ## Use cases
 - Claude Code / Cursor video editing tools

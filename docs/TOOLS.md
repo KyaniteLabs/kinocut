@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes 120 registered MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+mcp-video exposes 119 registered MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -156,14 +156,6 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 | `video_add_generated_audio` | Generate audio and add it to a video in one call |
 | `video_audio_spatial` | 3D spatial audio positioning (azimuth + elevation) |
 | `video_duck_audio` | Mix background music under a video's voice with automatic sidechain ducking; music dips while speech plays and recovers in pauses |
-
----
-
-## Music Generation (1 tool)
-
-| Tool | Description | Dependencies |
-|------|-------------|--------------|
-| `video_generate_music` | Generate music from a text prompt (instrumental or with lyrics) using the MiniMax API; supports `music-2.6-free` and `music-2.6` models | `MINIMAX_API_KEY` environment variable |
 
 ---
 

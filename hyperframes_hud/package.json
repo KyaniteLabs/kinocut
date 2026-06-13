@@ -1,0 +1,11 @@
+{
+  "name": "hyperframes_hud",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "npx --yes hyperframes@0.6.52 preview",
+    "check": "npx --yes hyperframes@0.6.52 lint && npx --yes hyperframes@0.6.52 validate && npx --yes hyperframes@0.6.52 inspect",
+    "render": "npx --yes hyperframes@0.6.52 render",
+    "publish": "npx --yes hyperframes@0.6.52 publish"
+  }
+}

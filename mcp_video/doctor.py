@@ -304,20 +304,6 @@ def _check_audio_engine() -> dict[str, Any]:
     }
 
 
-def _check_minimax() -> dict[str, Any]:
-    """Check MiniMax API key availability."""
-    has_key = bool(os.environ.get("MINIMAX_API_KEY"))
-    return {
-        "name": "minimax_api",
-        "category": "music_generation",
-        "required": False,
-        "ok": has_key,
-        "path": None,
-        "version": None,
-        "install_hint": None if has_key else "Set MINIMAX_API_KEY environment variable for AI music generation.",
-    }
-
-
 def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -> dict[str, Any]:
     spec = find_spec("mcp_video")
     path = getattr(spec, "origin", None) if spec is not None else None
@@ -426,7 +412,6 @@ def run_diagnostics(
     )
     checks.append(_check_crush())
     checks.append(_check_audio_engine())
-    checks.append(_check_minimax())
     return {
         "success": True,
         "platform": {

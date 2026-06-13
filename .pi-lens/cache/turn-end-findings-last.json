@@ -1,0 +1,4 @@
+{
+  "signature": "mcp_video/engine_text.py::Unresolved from this turn — mcp_video/engine_text.py:\n🔴 STOP — 1 issue(s) must be fixed:\n  L259: Argument of type \"str | dict[str, float]\" cannot be assigned to parameter \"position\" of type \"Position\" in function \"_position_coords\"\n    Type \"str | dict[str, float]\" is not assignable to type \"Position\"\n      Type \"str\" is not assignable to type \"Position\"\n        \"str\" is not assignable to \"dict[str, float]\"\n        \"str\" is not assignable to type \"Literal['top-left']\"\n        \"str\" is not assignable to type \"Literal['top-center']\"\n        \"str\" is not assignable to type \"Literal['top-right']\"\n        \"str\" is not assignable to type \"Literal['center-left']\"\n        \"str\" is not assignable to type \"Literal['center']\"\n    ...",
+  "sessionId": "lens-mplb1dt5-e481f9c8"
+}
