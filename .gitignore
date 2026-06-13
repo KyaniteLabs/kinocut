@@ -57,3 +57,11 @@ glama-score*.png
 
 # Coverage data
 .coverage
+
+# Local scratch/experiment files (not part of the mcp-video package)
+/analyze_frame.py
+/srt_to_ass.py
+/test_korean.py
+/test.srt
+/fonts/
+/hyperframes_hud/
