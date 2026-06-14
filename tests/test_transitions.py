@@ -63,14 +63,6 @@ def test_morph_transition():
 
 
 @pytest.mark.slow
-@pytest.mark.skip(
-    reason="transition_pixelate is pathologically slow: its `scale=...:eval=frame` "
-    "pixelation filter exceeds the 600s FFmpeg timeout even on a 32-core host. This "
-    "is a real performance defect in the transition (not environmental); gating the "
-    "animation cosine to the transition window did not resolve it, so it needs a "
-    "filter rework (e.g. a fixed-downscale approach instead of per-frame eval). "
-    "Re-enable this test once transition_pixelate is fixed."
-)
 def test_pixelate_transition():
     """Test pixelate transition creates output file."""
     from mcp_video.transitions_engine import transition_pixelate

@@ -122,31 +122,35 @@ def transition_pixelate(
     # Calculate transition midpoint
     mid = offset + duration / 2
 
-    # Build filter_complex using scale with eval=frame
+    # Pixelation effect via the dedicated `pixelize` filter, timeline-gated to the
+    # transition window with `enable=between(t,...)`.
     #
-    # The pixelation effect:
-    # 1. First scale down by factor N (creating pixelation)
-    # 2. Then scale back up with neighbor flag (preserving blocky look)
-    #
-    # Scale factor N varies from 1 (no pixelation) to pixel_size (max pixelation)
-    # Using cos curve centered on transition midpoint for smooth animation
-    #
-    # eval=frame is required to evaluate expressions per-frame using 't' variable
-
-    # Build scale expressions that ensure dimensions stay even
-    # Use trunc to round down to integer, then ensure it's at least 2 and even
+    # The previous implementation animated a per-frame `scale=...:eval=frame`, which
+    # forced swscale to reconfigure its context every frame and was pathologically
+    # slow — a 2s clip exceeded the 600s FFmpeg timeout. `pixelize` is a single fast
+    # pass and is identity outside the enabled window, so the cost is bounded to the
+    # short transition. Two stacked `pixelize` passes — a base block across the whole
+    # transition window and a larger block over the inner window centred on the
+    # midpoint — give a "grow to peak" pixelation feel without per-frame eval.
     safe_duration = _escape_ffmpeg_filter_value(str(duration))
     safe_offset = _escape_ffmpeg_filter_value(str(offset))
-    safe_pixel_size = _escape_ffmpeg_filter_value(str(pixel_size))
-    safe_mid = _escape_ffmpeg_filter_value(str(mid))
-    cos_expr = f"((1+cos((t-{safe_mid})*PI/{safe_duration}))/2)"
-    scale_w_expr = f"trunc(iw/max(1,min({safe_pixel_size},1+({safe_pixel_size}-1)*{cos_expr}))/2)*2"
-    scale_h_expr = f"trunc(ih/max(1,min({safe_pixel_size},1+({safe_pixel_size}-1)*{cos_expr}))/2)*2"
+
+    end = offset + duration
+    inner_half = duration * 0.2
+    inner_start = max(offset, mid - inner_half)
+    inner_end = min(end, mid + inner_half)
+    # pixelize block size in pixels; pixel_size is the peak. Keep >= 2 and within
+    # a sane upper bound so the block never swallows the whole frame.
+    peak_block = max(2, min(int(pixel_size), 256))
+    base_block = max(2, peak_block // 3)
+
+    def _t(value: float) -> str:
+        return f"{value:.4f}"
 
     filter_complex = (
         f"[0:v][1:v]xfade=transition=fade:duration={safe_duration}:offset={safe_offset}[faded];"
-        f"[faded]scale='{scale_w_expr}':'{scale_h_expr}':flags=neighbor:eval=frame,"
-        f"scale=iw:ih:flags=neighbor[output]"
+        f"[faded]pixelize=w={base_block}:h={base_block}:enable='between(t,{_t(offset)},{_t(end)})',"
+        f"pixelize=w={peak_block}:h={peak_block}:enable='between(t,{_t(inner_start)},{_t(inner_end)})'[output]"
     )
 
     cmd = [
