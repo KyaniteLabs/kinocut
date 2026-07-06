@@ -20,12 +20,13 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
-from .errors import MCPVideoError
+from .errors import MCPVideoError, ProcessingError
 from .ffmpeg_helpers import (
     _run_command,
     _validate_input_path,
     _validate_output_path,
 )
+from .limits import FFPROBE_TIMEOUT
 
 # Path to the CRUSH.js module bundled with mcp-video
 _CRUSH_JS_DIR = Path(__file__).resolve().parent / "_crush_shader"
@@ -173,8 +174,11 @@ def _get_fps(input_path: str) -> str:
         "json",
         input_path,
     ]
-    result = subprocess.run(cmd, capture_output=True, text=True, check=True)  # noqa: S603
-    data = json.loads(result.stdout)
+    result = _run_command(cmd, timeout=FFPROBE_TIMEOUT)
+    try:
+        data = json.loads(result.stdout)
+    except json.JSONDecodeError as exc:
+        raise ProcessingError(" ".join(cmd), 0, f"Invalid JSON from ffprobe: {exc}") from None
     streams = data.get("streams", [])
     if streams:
         return streams[0].get("r_frame_rate", "30/1")
