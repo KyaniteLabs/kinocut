@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import subprocess
 
 import pytest
 
@@ -16,7 +17,7 @@ from mcp_video.engine_glitch import (
     glitch_turbulent_displacement,
     glitch_vhs_tracking,
 )
-from mcp_video.errors import InputFileError
+from mcp_video.errors import InputFileError, ProcessingError
 from mcp_video.models import EditResult
 
 
@@ -376,3 +377,70 @@ class TestGlitchTurbulentDisplacement:
         result = glitch_turbulent_displacement(sample_video, out, octaves=10)
         assert isinstance(result, EditResult)
         assert os.path.isfile(result.output_path)
+
+
+class TestGlitchShaderFpsProbe:
+    def test_get_fps_uses_shared_runner_with_ffprobe_timeout(self, monkeypatch, tmp_path):
+        import mcp_video.engine_glitch_shader as shader_engine
+        from mcp_video.limits import FFPROBE_TIMEOUT
+
+        calls = {}
+
+        def fake_run_command(cmd, timeout):
+            calls["cmd"] = cmd
+            calls["timeout"] = timeout
+            return subprocess.CompletedProcess(
+                cmd,
+                0,
+                stdout='{"streams":[{"r_frame_rate":"24/1"}]}',
+                stderr="",
+            )
+
+        monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
+
+        assert shader_engine._get_fps(str(tmp_path / "input.mp4")) == "24/1"
+        assert calls["cmd"][0] == "ffprobe"
+        assert calls["timeout"] == FFPROBE_TIMEOUT
+
+    def test_get_fps_propagates_probe_timeout_as_processing_error(self, monkeypatch, tmp_path):
+        import mcp_video.engine_glitch_shader as shader_engine
+
+        def fake_run_command(cmd, timeout):
+            raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {timeout}s")
+
+        monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
+
+        with pytest.raises(ProcessingError, match="timed out"):
+            shader_engine._get_fps(str(tmp_path / "hung.mp4"))
+
+    def test_get_fps_propagates_nonzero_probe_as_processing_error(self, monkeypatch, tmp_path):
+        import mcp_video.engine_glitch_shader as shader_engine
+
+        def fake_run_command(cmd, timeout):
+            raise ProcessingError(" ".join(cmd), 1, "Invalid data found when processing input")
+
+        monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
+
+        with pytest.raises(ProcessingError, match="Invalid data found"):
+            shader_engine._get_fps(str(tmp_path / "corrupt.mp4"))
+
+    def test_get_fps_sanitizes_malformed_probe_json(self, monkeypatch, tmp_path):
+        import mcp_video.engine_glitch_shader as shader_engine
+
+        def fake_run_command(cmd, timeout):
+            return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
+
+        monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
+
+        with pytest.raises(ProcessingError, match="Invalid JSON from ffprobe"):
+            shader_engine._get_fps(str(tmp_path / "empty.mp4"))
+
+    def test_get_fps_preserves_empty_stream_fallback(self, monkeypatch, tmp_path):
+        import mcp_video.engine_glitch_shader as shader_engine
+
+        def fake_run_command(cmd, timeout):
+            return subprocess.CompletedProcess(cmd, 0, stdout='{"streams":[]}', stderr="")
+
+        monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
+
+        assert shader_engine._get_fps(str(tmp_path / "no-video.mp4")) == "30/1"
