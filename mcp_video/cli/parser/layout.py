@@ -92,3 +92,8 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     lpip_p.add_argument(
         "--no-rounded-corners", dest="rounded_corners", action="store_false", help="Disable rounded corners"
     )
+
+    comp_p = subparsers.add_parser("composite-layers", help="Composite ordered image/video layers from a JSON spec")
+    comp_p.add_argument("--spec", required=True, help="Path to composite-layers JSON spec")
+    comp_p.add_argument("-o", "--output", dest="output", help="Output media path")
+    comp_p.add_argument("--save-layer-plan", help="Write deterministic resolved layer-plan receipt JSON")

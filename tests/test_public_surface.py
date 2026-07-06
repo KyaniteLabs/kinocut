@@ -103,6 +103,7 @@ EXPECTED_CLI_COMMANDS = {
     "video-mograph-progress",
     "video-layout-grid",
     "video-layout-pip",
+    "composite-layers",
     "video-add-generated-audio",
     "video-audio-spatial",
     "video-auto-chapters",
@@ -142,6 +143,7 @@ EXPECTED_SERVER_TOOLS = {
     "video_chroma_key",
     "video_normalize_audio",
     "video_overlay",
+    "video_composite_layers",
     "video_split_screen",
     "video_batch",
     "video_cleanup",
@@ -238,7 +240,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 98
+    assert len(EXPECTED_CLI_COMMANDS) == 99
 
 
 def test_agent_cookbook_dry_run():
@@ -260,7 +262,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 119
+    assert len(tool_names) == 120
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -285,7 +287,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "mcp-video"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 119
+        assert len(tool_names) == 120
 
     asyncio.run(check_server())
 

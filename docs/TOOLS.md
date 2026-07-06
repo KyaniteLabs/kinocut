@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes 119 registered MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+mcp-video exposes 120 registered MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -59,6 +59,7 @@ Plan video generation like a director of photography before rendering. These too
 | `video_generate_subtitles` | Create SRT from text entries, optionally burn in |
 | `video_watermark` | Add image watermark with validated opacity and positioning |
 | `video_overlay` | Picture-in-picture overlay with opacity and timing guardrails |
+| `video_composite_layers` | Spec-driven ordered image/video layer compositing (P1: normal alpha, opacity, fixed x/y, deterministic layer-plan receipt) |
 | `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
 | `video_edit` | Full timeline-based edit from JSON DSL |
 | `video_create_from_images` | Create video from image sequence |

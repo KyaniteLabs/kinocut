@@ -126,4 +126,23 @@ def handle_composition_command(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-layout-pip", _layout_pip)
 
+    def _composite_layers(a, j):
+        from ..engine_composite_layers import composite_layers
+
+        r = _with_spinner(
+            "Compositing layers...",
+            composite_layers,
+            a.spec,
+            output_path=a.output,
+            save_layer_plan=a.save_layer_plan,
+        )
+        _out(
+            r,
+            j,
+            lambda res: _format_path_panel("Composite layers", res.output_path),
+            json_transform=lambda r: r.model_dump(),
+        )
+
+    runner.register("composite-layers", _composite_layers)
+
     return runner.dispatch()

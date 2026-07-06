@@ -44,6 +44,7 @@ from .server_tools_advanced import (
     video_chroma_key as video_chroma_key,
     video_cleanup as video_cleanup,
     video_compare_quality as video_compare_quality,
+    video_composite_layers as video_composite_layers,
     video_create_from_images as video_create_from_images,
     video_detect_scenes as video_detect_scenes,
     video_export_frames as video_export_frames,

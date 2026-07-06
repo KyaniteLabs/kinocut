@@ -29,6 +29,7 @@ from .engine import (
 )
 from .engine import video_batch as _video_batch
 from .engine_batch import VALID_BATCH_OPERATIONS
+from .engine_composite_layers import composite_layers
 from .errors import MCPVideoError
 from .models import _validate_position
 from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS
@@ -623,3 +624,24 @@ def video_cleanup(
         "failed": failed,
         "results": results,
     }
+
+@mcp.tool()
+@_safe_tool
+def video_composite_layers(
+    spec_path: str,
+    output_path: str | None = None,
+    save_layer_plan: str | None = None,
+) -> dict[str, Any]:
+    """Composite ordered image/video layers from a JSON spec.
+
+    P1 supports normal alpha compositing, opacity, fixed x/y positioning,
+    video/image/solid layers, and a deterministic layer-plan receipt.
+    Masks, expanded blend modes, transforms, and per-layer effect routing are
+    deliberately deferred to later compositor phases.
+
+    Args:
+        spec_path: Path to a composite-layers JSON spec.
+        output_path: Optional destination media path.
+        save_layer_plan: Optional JSON path for the resolved layer-plan receipt.
+    """
+    return _result(composite_layers(spec_path, output_path=output_path, save_layer_plan=save_layer_plan))

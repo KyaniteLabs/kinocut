@@ -10,6 +10,7 @@ from .engine_audio_normalize import normalize_audio as normalize_audio
 from .engine_batch import video_batch as _video_batch
 from .engine_chroma_key import chroma_key as chroma_key
 from .engine_compare_quality import compare_quality as compare_quality
+from .engine_composite_layers import composite_layers as composite_layers
 from .engine_convert import convert as convert
 from .engine_crop import crop as crop
 from .engine_detect_scenes import detect_scenes as detect_scenes

@@ -44,6 +44,7 @@ mcp-video trim interview.mp4 -s 00:02:15 -d 45
 mcp-video video-ai-transcribe clip.mp4 --output captions.srt
 mcp-video subtitles clip.mp4 captions.srt
 mcp-video resize clip.mp4 --aspect-ratio 9:16
+mcp-video composite-layers --spec layers.json -o composite.mp4 --save-layer-plan layer-plan.json
 mcp-video video-quality-check clip.mp4
 mcp-video repurpose-plan clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
@@ -65,6 +66,6 @@ mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 ## Guardrails
 
 - Do not publish or hand off media without a quality check and human review.
-- Prefer structured mcp-video tools over raw FFmpeg shell commands.
+- Prefer structured mcp-video tools over raw FFmpeg shell commands; use `composite-layers`/`video_composite_layers` for ordered layer stacks instead of hand-written filtergraphs.
 - Keep output paths explicit so generated media is easy to inspect.
 - For Hyperframes, verify project structure and rendered snapshots before full video export.
