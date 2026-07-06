@@ -7,27 +7,27 @@ jobs:
     # Light job: ruff static analysis only — no ffmpeg, no package build (~30s).
     # Routed to the `light` runner label -> the capacity-1 VPS runner, which
     # co-hosts the production Forgejo git server and is sized for cheap work.
-    # Runs in parallel with `test`, giving fast style feedback without tying up
-    # the heavy runner. ruff pinned to match the `[dev]` extra (no latest drift).
+    # Runs ahead of `test`, giving fast style feedback while the capacity-1
+    # runner processes jobs sequentially. ruff pinned to match the `[dev]` extra
+    # (no latest drift).
     runs-on: light
     steps:
       - uses: actions/checkout@v4
       - name: Install ruff
         run: |
           apt-get update -qq && apt-get install -y -qq python3 python3-venv
-          python3 -m venv /tmp/lintenv
-          /tmp/lintenv/bin/pip install --quiet "ruff>=0.15.11"
+          python3 -m venv .venv-lint
+          .venv-lint/bin/pip install --quiet "ruff>=0.15.11"
       - name: Lint
-        run: /tmp/lintenv/bin/ruff check .
+        run: .venv-lint/bin/ruff check .
   test:
-    # Heavy job: ffmpeg + full dependency tree + the ~1464 "not slow" tests.
-    # Pinned to the `heavy` runner label -> the 32-core NUCBox runner only;
-    # never the small VPS. Lint runs separately on the `light` job above.
-    # Parallelized with pytest-xdist `-n 8` (8 workers): ~8x faster than the
-    # former single-process run, and bounded so up to the runner's 4 concurrent
-    # jobs stay within the 32 cores. Tests are xdist-safe (real I/O uses
-    # tmp_path / tmp_path_factory; session fixtures are per-worker).
-    runs-on: heavy
+    # PR-safe test job: ffmpeg + full dependency tree + the "not slow" suite.
+    # Route to `light`, the known-live VPS runner label, instead of broad
+    # `ubuntu-latest` (which can also match stale/offline runners) or the
+    # optional `heavy` label. This keeps protected-branch PR checks from staying
+    # pending when heavyweight runners are offline. xdist is capped at 4 workers
+    # to keep the capacity-1 fallback runner responsive.
+    runs-on: light
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -38,14 +38,15 @@ jobs:
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
       - name: Test
-        run: .venv/bin/pytest tests/ -q -m "not slow" -n 8
+        run: .venv/bin/pytest tests/ -q -m "not slow" -n 4
   test-slow:
-    # Slow real-media integration suite (the ~89 `slow` tests, skipped by the
-    # PR `test` job). Runs ONLY on push to master (post-merge), so PR feedback
-    # stays fast while master still exercises real ffmpeg media processing.
-    # `heavy` -> NUCBox. Kept serial (no -n) — these do heavier real I/O.
+    # Slow real-media integration suite, skipped by the PR `test` job. Runs only
+    # on push to master. Route to `light` so post-merge checks stay on the
+    # known-live VPS runner instead of waiting forever on optional/stale
+    # heavyweight runners. Kept serial (no -n) because these tests do heavier
+    # real I/O.
     if: ${{ github.event_name == 'push' }}
-    runs-on: heavy
+    runs-on: light
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
