@@ -48,10 +48,9 @@
 - Epoch only works if everyone contributes estimate-vs-actual data
 
 ## Local LLM
-- Use local inference at 100.66.225.85:1234 before cloud APIs
-- Check loaded models first, don't touch models you didn't load
-- Unload when done
-- CPU thread pool: 10, flash attention: on, KV cache: Q8
+- Prefer project-approved local inference before cloud APIs when configured in your own environment.
+- Do not commit hostnames, private IPs, model inventory, or machine-specific runtime settings.
+- Check loaded models first, do not touch models you did not load, and unload when done.
 
 ## Agent Coordination
 - Check open PRs before editing files

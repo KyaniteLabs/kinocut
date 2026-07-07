@@ -138,6 +138,11 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     },
     "split_screen": {"category": "media", "return_type": MEDIA_RETURN, "aliases": {"output": "output_path"}},
     "create_from_images": {"category": "media", "return_type": MEDIA_RETURN, "aliases": {"output": "output_path"}},
+    "composite_layers": {
+        "category": "media",
+        "return_type": MEDIA_RETURN,
+        "aliases": {"spec": "spec_path", "output": "output_path"},
+    },
     "write_metadata": {
         "category": "media",
         "return_type": MEDIA_RETURN,

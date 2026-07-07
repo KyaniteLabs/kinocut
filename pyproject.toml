@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-video"
-version = "1.5.1"
+version = "1.5.2"
 description = "Guardrailed video editing MCP server for AI agents. FFmpeg, PUSHING CREATION planning, Hyperframes, repurposing tools, Python client, and CLI. Local, fast, free."
 readme = "README.md"
 license = "Apache-2.0"
@@ -133,11 +133,11 @@ mcp-video = "mcp_video.__main__:main"
 
 [project.urls]
 Homepage = "https://kyanitelabs.github.io/mcp-video/"
-Documentation = "https://github.com/KyaniteLabs/mcp-video#readme"
-Repository = "https://github.com/KyaniteLabs/mcp-video"
-"Bug Tracker" = "https://github.com/KyaniteLabs/mcp-video/issues"
-Changelog = "https://github.com/KyaniteLabs/mcp-video/blob/master/CHANGELOG.md"
-Discussions = "https://github.com/KyaniteLabs/mcp-video/discussions"
+Documentation = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video#readme"
+Repository = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video"
+"Bug Tracker" = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues"
+Changelog = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/src/branch/master/CHANGELOG.md"
+Discussions = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues"
 
 [tool.hatch.build]
 exclude = [
@@ -149,6 +149,7 @@ exclude = [
     ".venv/",
     ".venv-build/",
     ".playwright-mcp/",
+    ".pi-lens/",
     ".stitch/",
     "tests/",
     "manual/",

@@ -31,6 +31,24 @@ This project follows a simple release-note style:
 
 - Removed BasicPitch from declared optional extras and documented it as a manual integration so Dependabot can patch vulnerable TensorFlow/Keras/protobuf transitive dependencies instead of resolving an unsafe pinned stack.
 
+## 1.5.2 - 2026-07-06
+
+### Added
+
+- Added `composite-layers` / `video_composite_layers` P1 for ordered image/video/solid layer stacks with normal alpha compositing, per-layer opacity, fixed x/y placement, and deterministic layer-plan receipts.
+- Added Python client parity for `Client.composite_layers(...)`.
+
+### Changed
+
+- Routed Forgejo CI required jobs to the known-live `light` runner label so PR and post-merge checks do not wait on optional heavyweight runners.
+- Aligned package metadata with the Forgejo repository as the canonical source while preserving MCP Registry identity.
+
+### Fixed
+
+- Guarded glitch shader ffprobe subprocess calls with timeout-aware error handling.
+- Removed tracked local `.pi-lens` cache artifacts and scrubbed public local-infrastructure references from agent guidance files.
+- Added release-hardening checks to prevent local path/cache leakage from returning.
+
 ## 1.5.1 - 2026-06-04
 
 ### Fixed

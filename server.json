@@ -3,17 +3,17 @@
   "name": "io.github.KyaniteLabs/mcp-video",
   "title": "mcp-video",
   "description": "Guardrailed video editing MCP server: FFmpeg tools for subtitles, audio, effects, Hyperframes.",
-  "version": "1.5.1",
+  "version": "1.5.2",
   "websiteUrl": "https://kyanitelabs.github.io/mcp-video/",
   "repository": {
-    "url": "https://github.com/KyaniteLabs/mcp-video",
-    "source": "github"
+    "url": "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video",
+    "source": "git"
   },
   "packages": [
     {
       "registryType": "pypi",
       "identifier": "mcp-video",
-      "version": "1.5.1",
+      "version": "1.5.2",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

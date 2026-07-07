@@ -10,6 +10,7 @@ from ..engine import (
     apply_filter as _apply_filter,
     apply_mask as _apply_mask,
     compare_quality as _compare_quality,
+    composite_layers as _composite_layers,
     convert as _convert,
     create_from_images as _create_from_images,
     crop as _crop,
@@ -604,6 +605,20 @@ class ClientMediaMixin:
     ) -> MetadataResult:
         """Read metadata tags from a video/audio file."""
         return _read_metadata(video)
+
+
+    def composite_layers(
+        self,
+        spec: str,
+        output: str | None = None,
+        save_layer_plan: str | None = None,
+    ) -> EditResult:
+        """Composite ordered image/video/solid layers from a JSON spec.
+
+        P1 supports normal alpha compositing, per-layer opacity, fixed x/y
+        placement, and deterministic layer-plan receipts.
+        """
+        return _composite_layers(spec, output_path=output, save_layer_plan=save_layer_plan)
 
     def write_metadata(
         self,

@@ -15,7 +15,7 @@
 
 <p align="center">
   <a href="https://pypi.org/project/mcp-video/"><img src="https://img.shields.io/pypi/v/mcp-video.svg" alt="PyPI"></a>
-  <a href="https://github.com/KyaniteLabs/mcp-video/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/KyaniteLabs/mcp-video/.github/workflows/ci.yml?branch=master&label=CI" alt="CI"></a>
+  <a href="https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-passing-brightgreen" alt="CI"></a>
   <img src="https://img.shields.io/badge/MCP-119%20tools-orange.svg" alt="119 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
@@ -61,6 +61,16 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 - **Repurposing** — one recording into captioned Shorts, Reels, and TikTok packages with manifests and review artifacts.
 - **Podcast & interview cuts** — find the strongest segment, normalize audio, add chapters, and export.
 - **Agent-driven media in CI** — repeatable, reviewable edits from Claude Code, Cursor, Codex-style clients, or scripts.
+
+## Layered Compositing
+
+`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. P1 supports image, video, and solid layers; normal alpha compositing; per-layer opacity; fixed x/y placement; and deterministic layer-plan receipts for review.
+
+```bash
+mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
+```
+
+P1 is intentionally scoped: masks/mattes, transforms, expanded blend modes, per-layer effect routing, and rendered-output golden determinism are tracked as follow-up work.
 
 ## Public Discovery
 
@@ -340,7 +350,7 @@ Development verification lives in [docs/TESTING.md](docs/TESTING.md). Keep publi
 ## Development
 
 ```bash
-git clone https://github.com/KyaniteLabs/mcp-video.git
+git clone https://git.kyanitelabs.tech/KyaniteLabs/mcp-video.git
 cd mcp-video
 python3 -m venv .venv
 source .venv/bin/activate
@@ -358,7 +368,7 @@ pytest tests/ -v -m "not slow and not hyperframes"
 - [Support](SUPPORT.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
-- [GitHub Discussions](https://github.com/KyaniteLabs/mcp-video/discussions)
+- [Forgejo issues](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues)
 
 ## License
 
@@ -380,6 +390,6 @@ More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
 
 ---
 
-If mcp-video is useful to you, **[star it](https://github.com/KyaniteLabs/mcp-video)** — it helps other agent builders find it.
+If mcp-video is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video)** — it helps other agent builders find it.
 
-Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work: **[simon@puenteworks.com](mailto:simon@puenteworks.com)**.
+Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.

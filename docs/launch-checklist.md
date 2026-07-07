@@ -91,7 +91,7 @@ Also works as a CLI: `mcp-video trim video.mp4 -s 0:30 -d 15`
 
 pip install mcp-video
 
-GitHub: github.com/KyaniteLabs/mcp-video
+Source: git.kyanitelabs.tech/KyaniteLabs/mcp-video
 Apache 2.0. Contributions welcome.
 
 If you build with MCP, I'd love to hear what tools you need.
@@ -137,7 +137,7 @@ Quick setup:
 
 pip install mcp-video
 
-GitHub: https://github.com/KyaniteLabs/mcp-video
+Source: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video
 
 ---
 
@@ -181,7 +181,7 @@ Local tools. Apache 2.0.
 
 What tools would you want to see in a video editing MCP server?
 
-GitHub: https://github.com/KyaniteLabs/mcp-video
+Source: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video
 
 ---
 
@@ -218,7 +218,7 @@ Everything runs locally. No cloud, no API keys, no per-minute billing. Your vide
 
 pip install mcp-video
 
-https://github.com/KyaniteLabs/mcp-video
+https://git.kyanitelabs.tech/KyaniteLabs/mcp-video
 
 ---
 
@@ -244,7 +244,7 @@ What's different:
 
 Apache 2.0. pip install mcp-video.
 
-https://github.com/KyaniteLabs/mcp-video
+https://git.kyanitelabs.tech/KyaniteLabs/mcp-video
 
 ---
 
@@ -258,7 +258,7 @@ Structured tools (trim, merge, text, audio, resize, crop, rotate, fade, convert,
 
 Would love your feedback if you get a chance to try it. What video editing capabilities would be most useful in your workflows?
 
-GitHub: https://github.com/KyaniteLabs/mcp-video
+Source: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video
 
 ### DM Template 2 (AI content creators)
 
@@ -276,4 +276,4 @@ The architecture is: MCP server wrapping FFmpeg, cinematic planning helpers, Hyp
 
 Curious if you've thought about adding video capabilities to [their project]? Would be happy to collaborate or share what I've learned about the MCP tool-building patterns.
 
-GitHub: https://github.com/KyaniteLabs/mcp-video
+Source: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video

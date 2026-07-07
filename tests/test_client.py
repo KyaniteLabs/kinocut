@@ -358,6 +358,28 @@ class TestClientBatch:
 class TestClientValidators:
     """Tests for parameter validation in the Python client."""
 
+    def test_composite_layers_returns_edit_result(self, editor, monkeypatch):
+        captured = {}
+
+        def fake_composite_layers(spec_path, output_path=None, save_layer_plan=None):
+            captured.update({
+                "spec_path": spec_path,
+                "output_path": output_path,
+                "save_layer_plan": save_layer_plan,
+            })
+            return EditResult(output_path="out.mp4", operation="composite_layers")
+
+        monkeypatch.setattr("mcp_video.client.media._composite_layers", fake_composite_layers)
+
+        result = editor.composite_layers("layers.json", output="out.mp4", save_layer_plan="plan.json")
+
+        assert isinstance(result, EditResult)
+        assert captured == {
+            "spec_path": "layers.json",
+            "output_path": "out.mp4",
+            "save_layer_plan": "plan.json",
+        }
+
     def test_layout_grid_invalid_layout(self, editor):
         with pytest.raises(MCPVideoError, match="layout must be one of"):
             editor.layout_grid(["a.mp4", "b.mp4"], "invalid-layout", "out.mp4")

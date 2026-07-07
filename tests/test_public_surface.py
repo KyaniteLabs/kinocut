@@ -378,11 +378,43 @@ def test_server_json_and_readme_match_registry_identity():
 
     assert server["name"] == "io.github.KyaniteLabs/mcp-video"
     assert server["websiteUrl"] == "https://kyanitelabs.github.io/mcp-video/"
-    assert server["repository"]["url"] == "https://github.com/KyaniteLabs/mcp-video"
+    assert server["repository"]["url"] == "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video"
     assert server["packages"][0]["identifier"] == "mcp-video"
     assert server["packages"][0]["runtimeHint"] == "uvx"
     assert server["packages"][0]["transport"]["type"] == "stdio"
     assert f"mcp-name: {server['name']}" in readme
+
+
+def test_public_tree_does_not_track_local_cache_artifacts():
+    tracked = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True).splitlines()
+
+    assert [path for path in tracked if path.startswith(".pi-lens/")] == []
+
+
+def test_public_guidance_does_not_expose_local_runtime_details():
+    checked_paths = [
+        ROOT / ".cursorrules",
+        ROOT / ".windsurfrules",
+        ROOT / ".github" / "copilot-instructions.md",
+        ROOT / "README.md",
+        ROOT / "pyproject.toml",
+        ROOT / "server.json",
+    ]
+    forbidden = [
+        "/" + "Users/",
+        "100." + "66.225.85",
+        "simon" + "@puenteworks.com",
+        ".pi-lens" + "/cache",
+    ]
+
+    offenders = {
+        str(path.relative_to(ROOT)): fragment
+        for path in checked_paths
+        for fragment in forbidden
+        if path.exists() and fragment in path.read_text(encoding="utf-8")
+    }
+
+    assert offenders == {}
 
 
 def test_heavy_ai_extras_keep_python313_installable():

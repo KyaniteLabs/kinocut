@@ -6,9 +6,11 @@ __pycache__/
 *.egg-info/
 dist/
 build/
+.pi-lens/
 *.egg
 .venv/
 .venv-build/
+.pi-lens/
 venv/
 .env
 *.pem

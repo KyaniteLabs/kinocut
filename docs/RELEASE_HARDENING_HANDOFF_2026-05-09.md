@@ -5,7 +5,7 @@
 Canonical checkout used for this handoff:
 
 ```bash
-cd /Users/simongonzalezdecruz/workspaces/kyanite-labs/mcp-video
+cd <repo>
 ```
 
 Current verified state at handoff creation:
@@ -36,11 +36,11 @@ Do **not** repeat these fixes. They are already on `master`.
 
 ### Original severe bugs
 
-- PR #263 — <https://github.com/KyaniteLabs/mcp-video/pull/263>
+- PR #263 — <https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/pull/263>
   - Fixed green-cast video effects and 24-bit WAV handling.
   - Covered `effect_noise` / `video_overlay` visual output and 24-bit PCM WAV audio effects.
 
-- PR #266 — <https://github.com/KyaniteLabs/mcp-video/pull/266>
+- PR #266 — <https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/pull/266>
   - Hardened adjacent media paths.
   - Fixed 24-bit WAV handling in `audio_compose`.
   - Checked Hyperframes version: `npm view hyperframes version dist-tags.latest --json` reported `0.5.5`; no newer package was available during the sweep.
@@ -133,7 +133,7 @@ gh pr create --title "..." --body "...verification..." --base master --head <bra
 gh pr checks <PR_NUMBER> --watch --interval 10
 gh pr merge <PR_NUMBER> --squash --delete-branch --admin || true
 gh pr view <PR_NUMBER> --json state,mergedAt,mergeCommit,url
-cd /Users/simongonzalezdecruz/workspaces/kyanite-labs/mcp-video
+cd <repo>
 git fetch origin && git pull --ff-only
 python3 -c "import mcp_video"
 git worktree remove .worktrees/<branch>
@@ -143,7 +143,7 @@ git branch -D <branch> || true
 Note: `gh pr merge --admin` often printed this harmless local worktree-related error even when the remote merge succeeded:
 
 ```text
-failed to run git: fatal: 'master' is already used by worktree at '/Users/simongonzalezdecruz/workspaces/kyanite-labs/mcp-video'
+failed to run git: fatal: 'master' is already used by worktree at '<repo>'
 ```
 
 Always verify merge truth with:

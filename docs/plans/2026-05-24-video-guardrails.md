@@ -13,7 +13,7 @@
 Before any task, verify the environment:
 
 ```bash
-cd /Users/simongonzalezdecruz/workspaces/mcp-video
+cd <repo>
 python3 -c "import mcp_video; print('OK')"
 python3 -m pytest tests/ -x -q --tb=short -m "not slow and not hyperframes" 2>&1 | tail -3
 ```

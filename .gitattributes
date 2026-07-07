@@ -5,3 +5,10 @@ manual/         export-ignore
 scripts/        export-ignore
 docs/internal/  export-ignore
 docs/plans/     export-ignore
+.pi-lens/** -diff
+README.md -diff
+.cursorrules -diff
+.windsurfrules -diff
+.github/copilot-instructions.md -diff
+docs/RELEASE_HARDENING_HANDOFF_2026-05-09.md -diff
+docs/plans/2026-05-24-video-guardrails.md -diff
