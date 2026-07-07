@@ -86,6 +86,7 @@ def test_composite_layers_builds_three_layer_filtergraph_and_receipt(tmp_path, m
         (lambda spec: spec.update({"passes": []}), "unsupported_compositor_feature"),
         (lambda spec: spec["layers"][1].update({"mask": "mask.png"}), "unsupported_compositor_feature"),
         (lambda spec: spec["layers"][1].update({"id": "bad/id"}), "invalid_layer_id"),
+        (lambda spec: spec["layers"][1].update({"position": {"x": "left", "y": 0}}), "invalid_position"),
     ],
 )
 def test_composite_layers_rejects_invalid_p1_specs(tmp_path, mutator, code):

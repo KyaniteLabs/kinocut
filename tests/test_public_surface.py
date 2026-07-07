@@ -403,6 +403,7 @@ def test_public_guidance_does_not_expose_local_runtime_details():
         ROOT / "SUPPORT.md",
         ROOT / "SECURITY.md",
         ROOT / "index.html",
+        ROOT / "ROADMAP.md",
         ROOT / "pyproject.toml",
         ROOT / "server.json",
     ]
@@ -424,15 +425,18 @@ def test_public_guidance_does_not_expose_local_runtime_details():
 
 
 def test_canonical_public_surfaces_point_to_forgejo_not_stale_github_repo():
+    docs_paths = sorted((ROOT / "docs").rglob("*.md"))
     checked_paths = [
         ROOT / "README.md",
         ROOT / "CONTRIBUTING.md",
         ROOT / "SUPPORT.md",
         ROOT / "SECURITY.md",
         ROOT / "index.html",
+        ROOT / "ROADMAP.md",
         ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml",
         ROOT / "server.json",
         ROOT / "pyproject.toml",
+        *docs_paths,
     ]
     forbidden = [
         "github.com/KyaniteLabs/mcp-video",

@@ -267,7 +267,14 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
         raw = {"x": data.pop("x", 0), "y": data.pop("y", 0)}
     if not isinstance(raw, dict):
         raise MCPVideoError("position must be an object", error_type="validation_error", code="invalid_position")
-    return {"x": float(raw.get("x", 0)), "y": float(raw.get("y", 0))}
+    try:
+        return {"x": float(raw.get("x", 0)), "y": float(raw.get("y", 0))}
+    except (TypeError, ValueError) as exc:
+        raise MCPVideoError(
+            f"position x/y values must be numeric: {exc}",
+            error_type="validation_error",
+            code="invalid_position",
+        ) from None
 
 
 def _resolve_layer_source(layer: _Layer, spec_dir: Path) -> tuple[str | None, str | None]:

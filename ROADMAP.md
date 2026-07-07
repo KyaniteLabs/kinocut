@@ -1,6 +1,6 @@
 # Improvement Roadmap
 
-v1.4.0 ships a 119-tool MCP surface with Hyperframes integration, repurposing workflows, and expanded preflight guardrails. Remotion has been fully removed; the current priority is safer agentic media automation.
+v1.5.2 ships a 119-tool MCP surface with Hyperframes integration, repurposing workflows, composite-layers P1, and expanded preflight guardrails. Remotion has been fully removed; the current priority is safer agentic media automation.
 
 ---
 
