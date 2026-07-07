@@ -462,10 +462,12 @@ def test_public_site_matches_release_identity():
 
     assert '"version": "1.5.2"' in site
     assert "v1.5.2" in site
-    assert "1600 passing tests" in site
-    assert '<div class="num">1600</div>' in site
+    assert "1601 passing tests" in site
+    assert '<div class="num">1601</div>' in site
     assert "1215 passing tests" not in site
+    assert "1600 passing tests" not in site
     assert '<div class="num">1612</div>' not in site
+    assert '<div class="num">1600</div>' not in site
     assert "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video" in site
     assert "https://github.com/KyaniteLabs/mcp-video" not in site
 
