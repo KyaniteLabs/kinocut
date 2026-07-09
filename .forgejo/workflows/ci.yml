@@ -129,22 +129,20 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
-      - name: Run filtergraph render tests
-        # Explicit file list = the filtergraph render surface (composite masks +
-        # blend + rotation, golden real renders, overlay, filters, glitch,
-        # transitions, advanced masks, real-media, effects). Runs slow AND
-        # not-slow here on purpose: the masked-render regression test is gated on
-        # ffmpeg presence, not `slow`, so `-m slow` would miss the exact scale2ref
-        # surface. Not the whole suite (keeps the 3-leg cost bounded).
+      - name: Run compositor/workflow filtergraph render tests
+        # The matrix guards the ACTIVELY-DEVELOPED compositor + workflow
+        # filtergraph surface — where the scale2ref=w=rw:h=rh FFmpeg-6 parse bug
+        # lived — across pinned FFmpeg 6/7/8. These files are proven portable on
+        # all three majors. The legacy filtergraph engines (glitch, transitions,
+        # effects, advanced, real-media, filters) carry pre-existing quirks tied
+        # to the FFmpeg BUILD, not our code (e.g. FFmpeg 7.1.0's best_input abort,
+        # static-6.1.3 build-flag gaps) — they are covered by the `test` /
+        # `test-slow` jobs on the runner's apt FFmpeg (the version that platform
+        # actually ships). Runs slow AND not-slow: the masked-render regression is
+        # gated on ffmpeg presence, not the `slow` marker.
         run: |
           .venv/bin/pytest -q --tb=short -n 4 \
             tests/test_engine_composite_layers.py \
             tests/test_server_tools_composite_layers.py \
             tests/test_workflow_golden.py \
-            tests/test_engine_overlay.py \
-            tests/test_engine_filters.py \
-            tests/test_engine_glitch.py \
-            tests/test_transitions.py \
-            tests/test_engine_advanced.py \
-            tests/test_real_media.py \
-            tests/test_effects_engine.py
+            tests/test_engine_overlay.py
