@@ -328,4 +328,5 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     },
     # Workflow engine
     "workflow_validate": {"category": "workflow", "return_type": "dict", "aliases": {}},
+    "workflow_plan": {"category": "workflow", "return_type": "dict", "aliases": {}},
 }

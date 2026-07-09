@@ -12,3 +12,10 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         help="Validate a workflow job-spec without rendering any media",
     )
     wf_validate.add_argument("--spec", required=True, help="Path to the workflow job-spec JSON file")
+
+    wf_plan = subparsers.add_parser(
+        "workflow-plan",
+        help="Produce a no-render plan (op graph, source probes, hashes) for a workflow job-spec",
+    )
+    wf_plan.add_argument("--spec", required=True, help="Path to the workflow job-spec JSON file")
+    wf_plan.add_argument("--save-plan", default=None, help="Optional path to write the plan artifact as JSON")

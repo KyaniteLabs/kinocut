@@ -21,6 +21,7 @@ from .ops import (
     OP_ALLOWLIST as OP_ALLOWLIST,
     OpAdapter as OpAdapter,
 )
+from .planner import plan_workflow as plan_workflow
 from .spec import (
     WorkflowOutput as WorkflowOutput,
     WorkflowSource as WorkflowSource,

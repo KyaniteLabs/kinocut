@@ -157,5 +157,6 @@ from .server_tools_guardrails import (
     video_extract_frame as video_extract_frame,
 )
 from .server_tools_workflow import (
+    video_workflow_plan as video_workflow_plan,
     video_workflow_validate as video_workflow_validate,
 )

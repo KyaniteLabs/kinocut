@@ -72,6 +72,28 @@ def _format_workflow_validation(result: Any) -> None:
     _format_success_panel(lines, title="Workflow Validation", border_style="green")
 
 
+def _format_workflow_plan(result: Any) -> None:
+    """Display a workflow plan artifact as a success panel (no media rendered)."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    workflow = data.get("workflow") or {}
+    ops = [step.get("op") for step in data.get("steps", [])]
+    warnings = data.get("warnings", [])
+    lines = [
+        f"[bold green]Workflow:[/bold green] {escape(str(workflow.get('name') or '(unnamed)'))}",
+        f"[bold green]Steps:[/bold green] {len(data.get('steps', []))}",
+        f"[bold green]Ops:[/bold green] {escape(', '.join(o for o in ops if o)) if ops else '(none)'}",
+        f"[bold green]Sources:[/bold green] {len(data.get('sources', []))}",
+        f"[bold green]Outputs:[/bold green] {len(data.get('outputs', []))}",
+        f"[bold green]Variants:[/bold green] {len(data.get('variants', []))}",
+    ]
+    if warnings:
+        lines.append(f"[yellow]Warnings ({len(warnings)}):[/yellow]")
+        for warning in warnings[:5]:
+            lines.append(f"  - {escape(str(warning.get('message', warning)))}")
+    lines.append("[bold yellow]No media rendered.[/bold yellow]")
+    _format_success_panel(lines, title="Workflow Plan", border_style="yellow")
+
+
 def _format_info_text(info: Any) -> None:
     """Display video info as a rich table."""
     table = Table(title="Video Info", show_header=False, border_style="blue")
