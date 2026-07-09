@@ -1,0 +1,90 @@
+{
+  "outputs": [
+    {
+      "id": "master",
+      "output_hash": null,
+      "path": "output/final.mp4"
+    }
+  ],
+  "receipt_kind": "workflow_plan",
+  "render_determinism_scope": "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds",
+  "schema_version": 1,
+  "sources": [
+    {
+      "id": "hero",
+      "probe": {
+        "codec": "h264",
+        "duration": 2.0,
+        "resolution": "320x240"
+      },
+      "resolved": "input/hero.mp4",
+      "source_hash": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+    }
+  ],
+  "spec_hash": "sha256:e98c34be88d1f614335c229a75bb9eb14028940d0166e74d6bf1bbec6ab10387",
+  "steps": [
+    {
+      "id": "probe-hero",
+      "input_hashes": {
+        "src": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+      },
+      "inputs": {
+        "src": "@sources.hero"
+      },
+      "op": "probe",
+      "output": null,
+      "output_hash": null,
+      "status": "pending"
+    },
+    {
+      "id": "trim-hero",
+      "input_hashes": {
+        "src": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+      },
+      "inputs": {
+        "src": "@sources.hero"
+      },
+      "op": "trim",
+      "output": "@work/hero_trim.mp4",
+      "output_hash": null,
+      "status": "pending"
+    },
+    {
+      "id": "resize-hero",
+      "input_hashes": {
+        "src": null
+      },
+      "inputs": {
+        "src": "@work/hero_trim.mp4"
+      },
+      "op": "resize",
+      "output": "@work/hero_resized.mp4",
+      "output_hash": null,
+      "status": "pending"
+    },
+    {
+      "id": "caption",
+      "input_hashes": {
+        "src": null
+      },
+      "inputs": {
+        "src": "@work/hero_resized.mp4"
+      },
+      "op": "add_text",
+      "output": "@outputs.master",
+      "output_hash": null,
+      "status": "pending"
+    }
+  ],
+  "tool": "video_workflow_plan",
+  "variants": [],
+  "versions": {
+    "ffmpeg": "8.1",
+    "mcp_video": "1.6.0"
+  },
+  "warnings": [],
+  "workflow": {
+    "name": "release-smoke-plan",
+    "variant": null
+  }
+}
