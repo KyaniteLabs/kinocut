@@ -361,25 +361,27 @@ class TestClientValidators:
     def test_composite_layers_returns_edit_result(self, editor, monkeypatch):
         captured = {}
 
-        def fake_composite_layers(spec_path, output_path=None, save_layer_plan=None):
+        def fake_composite_layers(spec_path, output_path=None, save_layer_plan=None, dry_run=False):
             captured.update(
                 {
                     "spec_path": spec_path,
                     "output_path": output_path,
                     "save_layer_plan": save_layer_plan,
+                    "dry_run": dry_run,
                 }
             )
             return EditResult(output_path="out.mp4", operation="composite_layers")
 
         monkeypatch.setattr("mcp_video.client.media._composite_layers", fake_composite_layers)
 
-        result = editor.composite_layers("layers.json", output="out.mp4", save_layer_plan="plan.json")
+        result = editor.composite_layers("layers.json", output="out.mp4", save_layer_plan="plan.json", dry_run=True)
 
         assert isinstance(result, EditResult)
         assert captured == {
             "spec_path": "layers.json",
             "output_path": "out.mp4",
             "save_layer_plan": "plan.json",
+            "dry_run": True,
         }
 
     def test_layout_grid_invalid_layout(self, editor):

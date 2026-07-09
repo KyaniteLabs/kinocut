@@ -43,6 +43,22 @@ def _format_path_panel(label: str, result: Any) -> None:
     )
 
 
+def _format_composite_layers_text(result: Any) -> None:
+    """Display composite-layers result without implying dry-runs rendered media."""
+    data = _model_dump(result)
+    if data.get("dry_run"):
+        lines = [
+            f"[bold green]Operation:[/bold green] {data.get('operation', 'composite_layers_dry_run')}",
+            f"[bold green]Planned output:[/bold green] {data.get('output_path', 'N/A')}",
+        ]
+        if data.get("layer_plan_path"):
+            lines.append(f"[bold green]Layer plan:[/bold green] {data['layer_plan_path']}")
+        lines.append("[bold yellow]No media rendered.[/bold yellow]")
+        _format_success_panel(lines, title="Composite Layers Plan", border_style="yellow")
+        return
+    _format_path_panel("Composite layers", result)
+
+
 def _format_info_text(info: Any) -> None:
     """Display video info as a rich table."""
     table = Table(title="Video Info", show_header=False, border_style="blue")

@@ -97,3 +97,4 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     comp_p.add_argument("--spec", required=True, help="Path to composite-layers JSON spec")
     comp_p.add_argument("-o", "--output", dest="output", help="Output media path")
     comp_p.add_argument("--save-layer-plan", help="Write deterministic resolved layer-plan receipt JSON")
+    comp_p.add_argument("--dry-run", action="store_true", help="Validate spec and write layer plan without rendering")

@@ -13,18 +13,20 @@ def test_video_composite_layers_returns_structured_error_for_missing_spec():
 
 
 def test_video_composite_layers_wraps_engine_result(monkeypatch):
-    def fake_composite_layers(spec_path, output_path=None, save_layer_plan=None):
+    def fake_composite_layers(spec_path, output_path=None, save_layer_plan=None, dry_run=False):
         return {
             "output_path": output_path or "out.mp4",
             "layer_plan_path": save_layer_plan,
             "layer_plan": {"tool": "video_composite_layers"},
+            "dry_run": dry_run,
         }
 
     monkeypatch.setattr("mcp_video.server_tools_advanced.composite_layers", fake_composite_layers)
 
-    result = video_composite_layers("layers.json", output_path="out.mp4", save_layer_plan="plan.json")
+    result = video_composite_layers("layers.json", output_path="out.mp4", save_layer_plan="plan.json", dry_run=True)
 
     assert result["success"] is True
     assert result["output_path"] == "out.mp4"
     assert result["layer_plan_path"] == "plan.json"
     assert result["layer_plan"]["tool"] == "video_composite_layers"
+    assert result["dry_run"] is True

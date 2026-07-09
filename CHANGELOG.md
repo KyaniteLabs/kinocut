@@ -18,6 +18,7 @@ This project follows a simple release-note style:
 
 ### Added
 
+- `composite-layers` / `video_composite_layers` P2 supports transform sizing, timing windows, mask/matte alpha sources, dry-run layer plans, source/output hashes, and richer render receipts for agent review before publishing.
 - `video_duck_audio`: mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
 - `video_ai_color_grade` accepts `lut_path` for professional `.cube`/`.3dl` LUT files via FFmpeg `lut3d`, overriding style presets and reference matching.
 - `video_convert` streams MCP progress notifications during long renders, so clients can show a live percentage instead of an apparently hung call.

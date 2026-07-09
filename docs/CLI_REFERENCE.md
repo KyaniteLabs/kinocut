@@ -111,12 +111,13 @@ mcp-video [command] [options]
 |---------|-------------|
 | `video-layout-grid` | Arrange multiple videos in a grid |
 | `video-layout-pip` | Picture-in-picture with border |
-| `composite-layers` | Spec-driven ordered image/video layer compositing (P1: normal alpha, opacity, fixed x/y, layer-plan receipt) |
+| `composite-layers` | Spec-driven ordered image/video layer compositing with transforms, masks, timing windows, dry-run plans, and receipts |
 
 
-### `composite-layers` P1 spec
+### `composite-layers` spec
 
 ```bash
+mcp-video composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
 mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
@@ -125,14 +126,23 @@ mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer
   "canvas": {"width": 1280, "height": 720, "background": "#000000", "fps": 24, "duration": 2.0},
   "layers": [
     {"id": "background", "type": "video", "src": "bg.mp4", "opacity": 1.0, "position": {"x": 0, "y": 0}},
-    {"id": "plate", "type": "image", "src": "plate.png", "opacity": 1.0, "position": {"x": 120, "y": 80}},
+    {
+      "id": "plate",
+      "type": "image",
+      "src": "plate.png",
+      "mask": "plate-mask.png",
+      "opacity": 1.0,
+      "transform": {"x": 120, "y": 80, "width": 640},
+      "start": 0.25,
+      "duration": 1.5
+    },
     {"id": "title", "type": "image", "src": "title.png", "opacity": 0.9, "position": {"x": 32, "y": 32}}
   ],
   "output": {"format": "mp4"}
 }
 ```
 
-P1 intentionally supports only normal blend mode, per-layer opacity, fixed x/y positioning, image/video/solid layers, and deterministic layer-plan receipts. Masks, expanded blend modes, scale/rotate transforms, and per-layer effect routing are deferred to later compositor phases. Relative `src` paths resolve relative to the spec file and must stay inside that directory.
+The compositor supports normal alpha compositing, per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources. Relative `src`, `mask`, and `matte` paths resolve relative to the spec file and must stay inside that directory. Expanded blend modes, rotation, and per-layer effect routing are deferred until they can keep the same preflight and receipt guarantees.
 
 ## Audio-Video
 

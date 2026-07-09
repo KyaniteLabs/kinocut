@@ -632,17 +632,22 @@ def video_composite_layers(
     spec_path: str,
     output_path: str | None = None,
     save_layer_plan: str | None = None,
+    dry_run: bool = False,
 ) -> dict[str, Any]:
     """Composite ordered image/video layers from a JSON spec.
 
-    P1 supports normal alpha compositing, opacity, fixed x/y positioning,
+    Supports normal alpha compositing, opacity, x/y positioning, transform
+    scale/width/height, timing windows, optional mask/matte alpha sources,
     video/image/solid layers, and a deterministic layer-plan receipt.
-    Masks, expanded blend modes, transforms, and per-layer effect routing are
-    deliberately deferred to later compositor phases.
+    Non-normal blend modes, rotation, and per-layer effect routing are
+    deliberately deferred until they can stay preflightable.
 
     Args:
         spec_path: Path to a composite-layers JSON spec.
         output_path: Optional destination media path.
         save_layer_plan: Optional JSON path for the resolved layer-plan receipt.
+        dry_run: Validate and emit the layer plan without rendering media.
     """
-    return _result(composite_layers(spec_path, output_path=output_path, save_layer_plan=save_layer_plan))
+    return _result(
+        composite_layers(spec_path, output_path=output_path, save_layer_plan=save_layer_plan, dry_run=dry_run)
+    )

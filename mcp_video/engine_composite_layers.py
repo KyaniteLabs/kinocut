@@ -1,4 +1,4 @@
-"""Spec-driven multi-layer compositor P1."""
+"""Spec-driven multi-layer compositor."""
 
 from __future__ import annotations
 
@@ -11,6 +11,7 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
+from .defaults import DEFAULT_CRF, DEFAULT_PRESET
 from .engine_runtime_utils import _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
@@ -25,16 +26,37 @@ from .models import EditResult
 _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
 _SUPPORTED_LAYER_TYPES = {"video", "image", "solid"}
-_P1_UNSUPPORTED_TOP_LEVEL = {"passes"}
-_P1_UNSUPPORTED_LAYER_FIELDS = {"mask", "matte"}
+_UNSUPPORTED_TOP_LEVEL = {"passes"}
+_SUPPORTED_LAYER_FIELDS = {
+    "anchor",
+    "blend",
+    "color",
+    "duration",
+    "height",
+    "id",
+    "mask",
+    "matte",
+    "opacity",
+    "position",
+    "scale",
+    "src",
+    "start",
+    "transform",
+    "type",
+    "width",
+    "x",
+    "y",
+}
 _IMAGE_OUTPUT_SUFFIXES = {".png", ".jpg", ".jpeg", ".webp"}
+_IMAGE_INPUT_SUFFIXES = _IMAGE_OUTPUT_SUFFIXES
 
 
 class CompositeLayerResult(EditResult):
-    """Result for composite-layers including the deterministic P1 receipt."""
+    """Result for composite-layers including the deterministic receipt."""
 
     layer_plan_path: str | None = None
     layer_plan: dict[str, Any] = Field(default_factory=dict)
+    dry_run: bool = False
 
 
 class _Canvas(BaseModel):
@@ -50,7 +72,14 @@ class _Layer(BaseModel):
     type: Literal["video", "image", "solid"]
     opacity: float = 1.0
     position: dict[str, float] = Field(default_factory=lambda: {"x": 0.0, "y": 0.0})
+    width: int | None = None
+    height: int | None = None
+    scale: float | None = None
+    start: float | None = None
+    duration: float | None = None
     src: str | None = None
+    mask: str | None = None
+    matte: str | None = None
     color: str | None = None
     blend: str = "normal"
 
@@ -60,24 +89,35 @@ class _ResolvedLayer(BaseModel):
     type: Literal["video", "image", "solid"]
     opacity: float
     position: dict[str, float]
+    width: int | None = None
+    height: int | None = None
+    scale: float | None = None
+    start: float | None = None
+    duration: float | None = None
     src: str | None = None
     resolved_src: str | None = None
+    mask_src: str | None = None
+    resolved_mask_src: str | None = None
     color: str | None = None
     blend: str = "normal"
     input_index: int
+    mask_input_index: int | None = None
 
 
 def composite_layers(
     spec_path: str,
     output_path: str | None = None,
     save_layer_plan: str | None = None,
+    dry_run: bool = False,
 ) -> CompositeLayerResult:
-    """Render a P1 ordered layer stack from a JSON spec.
+    """Render an ordered layer stack from a JSON spec.
 
-    P1 supports normal alpha compositing, per-layer opacity, fixed x/y
-    positioning, image/video/solid layers, and a deterministic layer-plan
-    receipt. Masks, non-normal blend modes, scale/rotate transforms, and
-    per-layer effects are intentionally deferred to later phases.
+    The compositor supports normal alpha compositing, per-layer opacity,
+    x/y positioning, scale/width/height transforms, timeline enable windows,
+    image/video/solid layers, optional mask/matte alpha sources, and a
+    deterministic layer-plan receipt. Non-normal blend modes, rotation, and
+    per-layer effect routing remain deferred until they can be represented
+    with equally safe preflight and receipt behavior.
     """
     spec_resolved = _validate_spec_path(spec_path)
     spec_data, spec_bytes = _load_spec(spec_resolved)
@@ -90,13 +130,17 @@ def composite_layers(
     args = _build_ffmpeg_args(canvas, layers, filter_complex, output)
     receipt = _build_layer_plan(spec_bytes, canvas, layers, filter_complex, output)
 
-    with _timed_operation() as timing:
-        _run_ffmpeg(args)
+    if dry_run:
+        timing: dict[str, float | None] = {"elapsed_ms": None}
+    else:
+        with _timed_operation() as timing:
+            _run_ffmpeg(args)
+        receipt["output_hash"] = _file_hash(output)
 
     if layer_plan_output is not None:
         Path(layer_plan_output).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
 
-    return _build_composite_result(output, timing, receipt, layer_plan_output)
+    return _build_composite_result(output, timing, receipt, layer_plan_output, dry_run=dry_run)
 
 
 def _validate_spec_path(spec_path: str) -> Path:
@@ -159,10 +203,10 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
 
 
 def _parse_layers(spec_data: dict[str, Any], spec_dir: Path) -> list[_ResolvedLayer]:
-    unsupported = sorted(_P1_UNSUPPORTED_TOP_LEVEL & set(spec_data))
+    unsupported = sorted(_UNSUPPORTED_TOP_LEVEL & set(spec_data))
     if unsupported:
         raise MCPVideoError(
-            f"unsupported composite-layers P1 field(s): {unsupported}",
+            f"unsupported composite-layers field(s): {unsupported}",
             error_type="validation_error",
             code="unsupported_compositor_feature",
         )
@@ -171,16 +215,11 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path) -> list[_ResolvedLa
         raise MCPVideoError("layers must be a non-empty list", error_type="validation_error", code="invalid_layers")
     seen: set[str] = set()
     resolved: list[_ResolvedLayer] = []
+    input_index = 1
     for offset, raw in enumerate(raw_layers, start=1):
         if not isinstance(raw, dict):
             raise MCPVideoError("each layer must be an object", error_type="validation_error", code="invalid_layer")
-        unsupported_layer_fields = sorted(_P1_UNSUPPORTED_LAYER_FIELDS & set(raw))
-        if unsupported_layer_fields:
-            raise MCPVideoError(
-                f"layer {raw.get('id', offset)!r} uses deferred P2 field(s): {unsupported_layer_fields}",
-                error_type="validation_error",
-                code="unsupported_compositor_feature",
-            )
+        _reject_unknown_layer_fields(raw, offset)
         layer = _parse_layer(raw)
         if layer.id in seen:
             raise MCPVideoError(
@@ -190,20 +229,41 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path) -> list[_ResolvedLa
             )
         seen.add(layer.id)
         src, receipt_src = _resolve_layer_source(layer, spec_dir)
+        mask_src, receipt_mask_src = _resolve_mask_source(layer, spec_dir)
+        mask_input_index = input_index + 1 if mask_src is not None else None
         resolved.append(
             _ResolvedLayer(
                 id=layer.id,
                 type=layer.type,
                 opacity=layer.opacity,
                 position=layer.position,
+                width=layer.width,
+                height=layer.height,
+                scale=layer.scale,
+                start=layer.start,
+                duration=layer.duration,
                 src=src,
                 resolved_src=receipt_src,
+                mask_src=mask_src,
+                resolved_mask_src=receipt_mask_src,
                 color=layer.color,
                 blend=layer.blend,
-                input_index=offset,
+                input_index=input_index,
+                mask_input_index=mask_input_index,
             )
         )
+        input_index += 2 if mask_src is not None else 1
     return resolved
+
+
+def _reject_unknown_layer_fields(raw: dict[str, Any], offset: int) -> None:
+    unsupported = sorted(set(raw) - _SUPPORTED_LAYER_FIELDS)
+    if unsupported:
+        raise MCPVideoError(
+            f"layer {raw.get('id', offset)!r} uses unsupported field(s): {unsupported}",
+            error_type="validation_error",
+            code="unsupported_compositor_feature",
+        )
 
 
 def _parse_layer(raw: dict[str, Any]) -> _Layer:
@@ -231,13 +291,15 @@ def _parse_layer(raw: dict[str, Any]) -> _Layer:
         )
     if layer.blend != "normal":
         raise MCPVideoError(
-            f"blend mode {layer.blend!r} is deferred beyond P1; use 'normal'",
+            f"blend mode {layer.blend!r} is deferred beyond this compositor phase; use 'normal'",
             error_type="validation_error",
             code="unsupported_blend_mode",
         )
     _validate_opacity(layer.opacity, layer.id)
     _non_negative_number(layer.position["x"], f"{layer.id}.position.x")
     _non_negative_number(layer.position["y"], f"{layer.id}.position.y")
+    _validate_layer_transform(layer)
+    _validate_layer_timing(layer)
     if layer.type == "solid":
         layer.color = _validate_color(layer.color or "#000000", f"{layer.id}.color")
     elif not layer.src:
@@ -254,14 +316,20 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
     if raw is None:
         raw = data.pop("anchor", None)
     transform = data.pop("transform", None)
-    if raw is None and isinstance(transform, dict):
-        unsupported = {k for k in transform if k not in {"x", "y"}}
+    if transform is not None and not isinstance(transform, dict):
+        raise MCPVideoError("transform must be an object", error_type="validation_error", code="invalid_transform")
+    if isinstance(transform, dict):
+        unsupported = {k for k in transform if k not in {"x", "y", "width", "height", "scale"}}
         if unsupported:
             raise MCPVideoError(
-                f"transform field(s) {sorted(unsupported)} are deferred beyond P1",
+                f"transform field(s) {sorted(unsupported)} are deferred beyond P2",
                 error_type="validation_error",
                 code="unsupported_compositor_feature",
             )
+        for key in ("width", "height", "scale"):
+            if key in transform and key not in data:
+                data[key] = transform[key]
+    if raw is None and isinstance(transform, dict):
         raw = transform
     if raw is None:
         raw = {"x": data.pop("x", 0), "y": data.pop("y", 0)}
@@ -275,6 +343,34 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
             error_type="validation_error",
             code="invalid_position",
         ) from None
+
+
+def _validate_layer_transform(layer: _Layer) -> None:
+    if layer.scale is not None and (layer.width is not None or layer.height is not None):
+        raise MCPVideoError(
+            f"layer {layer.id!r} cannot combine scale with width/height",
+            error_type="validation_error",
+            code="invalid_transform",
+        )
+    if layer.width is not None:
+        _positive_int(layer.width, f"{layer.id}.width")
+    if layer.height is not None:
+        _positive_int(layer.height, f"{layer.id}.height")
+    if layer.scale is not None:
+        _positive_number(layer.scale, f"{layer.id}.scale")
+
+
+def _validate_layer_timing(layer: _Layer) -> None:
+    if layer.start is not None:
+        _non_negative_number(layer.start, f"{layer.id}.start")
+    if layer.duration is not None:
+        _positive_number(layer.duration, f"{layer.id}.duration")
+    if layer.duration is not None and layer.start is None:
+        raise MCPVideoError(
+            f"layer {layer.id!r} duration requires start",
+            error_type="validation_error",
+            code="invalid_layer_timing",
+        )
 
 
 def _resolve_layer_source(layer: _Layer, spec_dir: Path) -> tuple[str | None, str | None]:
@@ -307,6 +403,24 @@ def _resolve_layer_source(layer: _Layer, spec_dir: Path) -> tuple[str | None, st
             )
     receipt_src = _receipt_source(validated, spec_dir)
     return str(validated), receipt_src
+
+
+def _resolve_mask_source(layer: _Layer, spec_dir: Path) -> tuple[str | None, str | None]:
+    mask = layer.mask or layer.matte
+    if mask is None:
+        return None, None
+    candidate = Path(mask)
+    if candidate.is_absolute():
+        validated = Path(_validate_input_path(str(candidate))).resolve()
+    else:
+        validated = Path(_validate_input_path(str(spec_dir / candidate))).resolve()
+        if not _is_relative_to(validated, spec_dir):
+            raise MCPVideoError(
+                f"layer {layer.id!r} mask escapes the spec directory",
+                error_type="validation_error",
+                code="unsafe_layer_source",
+            )
+    return str(validated), _receipt_source(validated, spec_dir)
 
 
 def _resolve_output_path(output_path: str | None, spec_path: Path, spec_data: dict[str, Any]) -> str:
@@ -359,13 +473,29 @@ def _build_ffmpeg_args(
             args.extend(["-i", layer.src])
         else:
             args.extend(["-f", "lavfi", "-t", _num(canvas.duration), "-i", _solid_filter(layer, canvas)])
+        if layer.mask_src is not None:
+            if _is_image_path(layer.mask_src):
+                args.extend(["-loop", "1", "-t", _num(canvas.duration), "-i", layer.mask_src])
+            else:
+                args.extend(["-i", layer.mask_src])
     image_output = Path(output_path).suffix.lower() in _IMAGE_OUTPUT_SUFFIXES
     args.extend(["-filter_complex", filter_complex, "-map", "[vout]", "-an"])
     if image_output:
         args.extend(["-frames:v", "1", "-update", "1"])
     else:
         args.extend(
-            ["-t", _num(canvas.duration), "-c:v", "libx264", "-preset", "medium", "-crf", "23", "-pix_fmt", "yuv420p"]
+            [
+                "-t",
+                _num(canvas.duration),
+                "-c:v",
+                "libx264",
+                "-preset",
+                DEFAULT_PRESET,
+                "-crf",
+                str(DEFAULT_CRF),
+                "-pix_fmt",
+                "yuv420p",
+            ]
         )
     args.append(output_path)
     return args
@@ -377,15 +507,57 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
     for idx, layer in enumerate(layers, start=1):
         layer_label = f"layer{idx}"
         out_label = "vout" if idx == len(layers) else f"base{idx}"
-        opacity = _escape_ffmpeg_filter_value(f"{_validate_opacity(layer.opacity, layer.id):.2f}")
         x = _escape_ffmpeg_filter_value(_num(layer.position["x"]))
         y = _escape_ffmpeg_filter_value(_num(layer.position["y"]))
-        chains.append(f"[{idx}:v]format=rgba,colorchannelmixer=aa={opacity}[{layer_label}]")
+        chain = _layer_filter_chain(layer)
+        chains.append(f"[{layer.input_index}:v]{chain}[{layer_label}raw]")
+        if layer.mask_input_index is not None:
+            mask_label = f"{layer_label}mask"
+            layer_ref_label = f"{layer_label}ref"
+            chains.append(f"[{layer.mask_input_index}:v]format=gray[{mask_label}raw]")
+            chains.append(
+                f"[{mask_label}raw][{layer_label}raw]scale2ref=w=rw:h=rh[{mask_label}][{layer_ref_label}]"
+            )
+            chains.append(f"[{layer_ref_label}][{mask_label}]alphamerge[{layer_label}]")
+        else:
+            chains.append(f"[{layer_label}raw]null[{layer_label}]")
         overlay = f"[{previous}][{layer_label}]overlay={x}:{y}:format=auto:eof_action=pass"
+        overlay = f"{overlay}{_enable_expression(layer)}"
         overlay = f"{overlay},format=yuv420p[{out_label}]" if idx == len(layers) else f"{overlay}[{out_label}]"
         chains.append(overlay)
         previous = out_label
     return ";".join(chains)
+
+
+def _layer_filter_chain(layer: _ResolvedLayer) -> str:
+    parts = ["format=rgba"]
+    scale_filter = _scale_filter(layer)
+    if scale_filter is not None:
+        parts.append(scale_filter)
+    opacity = _escape_ffmpeg_filter_value(f"{_validate_opacity(layer.opacity, layer.id):.2f}")
+    parts.append(f"colorchannelmixer=aa={opacity}")
+    return ",".join(parts)
+
+
+def _scale_filter(layer: _ResolvedLayer) -> str | None:
+    if layer.scale is not None:
+        scale = _escape_ffmpeg_filter_value(_num(layer.scale))
+        return f"scale=iw*{scale}:ih*{scale}"
+    if layer.width is None and layer.height is None:
+        return None
+    width = _escape_ffmpeg_filter_value(_num(layer.width)) if layer.width is not None else "-1"
+    height = _escape_ffmpeg_filter_value(_num(layer.height)) if layer.height is not None else "-1"
+    return f"scale={width}:{height}"
+
+
+def _enable_expression(layer: _ResolvedLayer) -> str:
+    if layer.start is None:
+        return ""
+    safe_start = _escape_ffmpeg_filter_value(_num(layer.start))
+    if layer.duration is None:
+        return f":enable='gte(t\\,{safe_start})'"
+    safe_end = _escape_ffmpeg_filter_value(_num(layer.start + layer.duration))
+    return f":enable='between(t\\,{safe_start}\\,{safe_end})'"
 
 
 def _build_layer_plan(
@@ -405,22 +577,39 @@ def _build_layer_plan(
                 "id": layer.id,
                 "type": layer.type,
                 "resolved_src": layer.resolved_src,
+                "source_hash": _file_hash(layer.src),
                 "opacity": layer.opacity,
                 "position": layer.position,
+                "transform": _receipt_transform(layer),
+                "timing": _receipt_timing(layer),
+                "mask": layer.resolved_mask_src,
+                "mask_hash": _file_hash(layer.mask_src),
                 "blend": layer.blend,
                 "color": layer.color,
+                "input_index": layer.input_index,
+                "mask_input_index": layer.mask_input_index,
             }
             for layer in layers
         ],
         "filtergraph_summary": [
             "canvas normalized to rgba",
-            "layers overlaid bottom-to-top with normal alpha compositing",
+            "layers transformed and overlaid bottom-to-top with normal alpha compositing",
             "per-layer opacity applied via colorchannelmixer alpha",
+            "mask/matte inputs are scaled to the transformed layer and applied as alpha with alphamerge",
+            "start/duration windows are enforced with overlay enable expressions",
         ],
         "filtergraph_hash": "sha256:" + hashlib.sha256(filter_complex.encode("utf-8")).hexdigest(),
         "output_path": output_path,
+        "output_hash": None,
+        "features": {
+            "layer_types": sorted({layer.type for layer in layers}),
+            "transforms": any(_has_transform(layer) for layer in layers),
+            "timing_windows": any(layer.start is not None for layer in layers),
+            "masks": any(layer.mask_src is not None for layer in layers),
+            "blend_modes": sorted({layer.blend for layer in layers}),
+        },
         "render_determinism_scope": (
-            "layer-plan receipt only; rendered bytes are not promised portable across FFmpeg builds in P1"
+            "input/spec/filtergraph/output hashes are deterministic; rendered bytes may still vary across FFmpeg builds"
         ),
     }
 
@@ -430,7 +619,19 @@ def _build_composite_result(
     timing: dict[str, float | None],
     receipt: dict[str, Any],
     layer_plan_path: str | None,
+    *,
+    dry_run: bool = False,
 ) -> CompositeLayerResult:
+    if dry_run:
+        return CompositeLayerResult(
+            output_path=output_path,
+            operation="composite_layers_dry_run",
+            format=Path(output_path).suffix.lower().lstrip("."),
+            elapsed_ms=timing["elapsed_ms"],
+            layer_plan_path=layer_plan_path,
+            layer_plan=receipt,
+            dry_run=True,
+        )
     if Path(output_path).suffix.lower() in _IMAGE_OUTPUT_SUFFIXES:
         return CompositeLayerResult(
             output_path=output_path,
@@ -439,6 +640,7 @@ def _build_composite_result(
             elapsed_ms=timing["elapsed_ms"],
             layer_plan_path=layer_plan_path,
             layer_plan=receipt,
+            dry_run=False,
         )
     from .engine_probe import probe
 
@@ -453,7 +655,20 @@ def _build_composite_result(
         elapsed_ms=timing["elapsed_ms"],
         layer_plan_path=layer_plan_path,
         layer_plan=receipt,
+        dry_run=False,
     )
+
+
+def _receipt_transform(layer: _ResolvedLayer) -> dict[str, int | float | None]:
+    return {"width": layer.width, "height": layer.height, "scale": layer.scale}
+
+
+def _receipt_timing(layer: _ResolvedLayer) -> dict[str, float | None]:
+    return {"start": layer.start, "duration": layer.duration}
+
+
+def _has_transform(layer: _ResolvedLayer) -> bool:
+    return layer.width is not None or layer.height is not None or layer.scale is not None
 
 
 def _canvas_filter(canvas: _Canvas) -> str:
@@ -515,6 +730,20 @@ def _num(value: float) -> str:
     if number.is_integer():
         return str(int(number))
     return f"{number:.6f}".rstrip("0").rstrip(".")
+
+
+def _is_image_path(path: str) -> bool:
+    return Path(path).suffix.lower() in _IMAGE_INPUT_SUFFIXES
+
+
+def _file_hash(path: str | None) -> str | None:
+    if path is None:
+        return None
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def _is_relative_to(path: Path, parent: Path) -> bool:

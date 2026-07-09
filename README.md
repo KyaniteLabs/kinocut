@@ -64,13 +64,14 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 ## Layered Compositing
 
-`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. P1 supports image, video, and solid layers; normal alpha compositing; per-layer opacity; fixed x/y placement; and deterministic layer-plan receipts for review.
+`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. P2 supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; mask/matte alpha sources; dry-run plans; and deterministic receipts with source, filtergraph, and output hashes.
 
 ```bash
+mcp-video composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
 mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
-P1 is intentionally scoped: masks/mattes, transforms, expanded blend modes, per-layer effect routing, and rendered-output golden determinism are tracked as follow-up work.
+Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. Expanded blend modes, rotation, per-layer effect routing, and full NLE adapters are tracked as later phases so this surface stays deterministic and preflightable.
 
 ## Public Discovery
 

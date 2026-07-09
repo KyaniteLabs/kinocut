@@ -59,7 +59,7 @@ Plan video generation like a director of photography before rendering. These too
 | `video_generate_subtitles` | Create SRT from text entries, optionally burn in |
 | `video_watermark` | Add image watermark with validated opacity and positioning |
 | `video_overlay` | Picture-in-picture overlay with opacity and timing guardrails |
-| `video_composite_layers` | Spec-driven ordered image/video layer compositing (P1: normal alpha, opacity, fixed x/y, deterministic layer-plan receipt) |
+| `video_composite_layers` | Spec-driven ordered image/video layer compositing with transforms, timing windows, masks/mattes, dry-run plans, and deterministic receipts |
 | `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
 | `video_edit` | Full timeline-based edit from JSON DSL |
 | `video_create_from_images` | Create video from image sequence |

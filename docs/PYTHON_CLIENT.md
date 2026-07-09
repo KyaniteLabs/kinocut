@@ -203,6 +203,7 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `transition_morph(clip1, clip2, output, duration?, mesh_size?)` | `EditResult` | Mesh warp transition |
 | `layout_grid(clips, layout, output, gap?, padding?, background?)` | `EditResult` | Grid layout for multiple videos |
 | `layout_pip(main, pip, output, position?, size?, margin?, rounded_corners?, border?, border_color?, border_width?)` | `EditResult` | Picture-in-picture with border |
+| `composite_layers(spec, output?, save_layer_plan?, dry_run?)` | `EditResult` | Spec-driven ordered layer compositing with transforms, masks, timing windows, dry-run plans, and receipts |
 | `text_animated(video, text, output, animation?, font?, size?, color?, position?, start?, duration?)` | `EditResult` | Animated text overlays |
 | `mograph_count(start, end, duration, output, style?, fps?)` | `EditResult` | Animated number counter video |
 | `mograph_progress(duration, output, style?, color?, track_color?, fps?)` | `EditResult` | Progress bar/circle/dots animation |

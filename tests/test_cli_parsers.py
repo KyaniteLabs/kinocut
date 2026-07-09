@@ -142,6 +142,7 @@ class TestParserLayout:
 
         names = _get_subparser_names(layout)
         expected = {
+            "composite-layers",
             "video-layout-grid",
             "video-layout-pip",
             "video-mograph-count",
@@ -149,6 +150,28 @@ class TestParserLayout:
             "video-text-animated",
         }
         assert expected <= names
+
+    def test_composite_layers_dry_run_options(self):
+        from mcp_video.cli.parser import build_parser
+
+        args = build_parser().parse_args(
+            [
+                "composite-layers",
+                "--spec",
+                "layers.json",
+                "--dry-run",
+                "--save-layer-plan",
+                "layer-plan.json",
+                "-o",
+                "out.mp4",
+            ]
+        )
+
+        assert args.command == "composite-layers"
+        assert args.spec == "layers.json"
+        assert args.dry_run is True
+        assert args.save_layer_plan == "layer-plan.json"
+        assert args.output == "out.mp4"
 
 
 class TestParserImage:
