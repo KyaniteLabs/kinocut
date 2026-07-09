@@ -21,6 +21,7 @@ from dataclasses import dataclass, field
 from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 
 from ..engine import add_text, convert, merge, probe, resize, trim
+from ..engine_composite_layers import composite_layers
 from ._errors import INVALID_WORKFLOW_PARAMS, workflow_error
 
 
@@ -81,6 +82,30 @@ class OpAdapter:
                     f"got {type(value).__name__}",
                     INVALID_WORKFLOW_PARAMS,
                 )
+
+
+class CompositeOpAdapter(OpAdapter):
+    """Bespoke adapter for the multi-layer ``composite_layers`` op.
+
+    Unlike the simple ops, composite consumes a NESTED layer spec (not a single
+    ``src``/``srcs`` → engine-arg binding), so the generic signature-derived param
+    handling does not apply: the only tunable param is ``canvas``, which the workflow
+    layer writes into a SYNTHESIZED spec (see ``workflow/composite.py``), never passing
+    it to the engine signature. Input handling (per-layer @ref confinement + hashing)
+    and execution (spec synthesis) live in ``workflow/composite.py``; the validator and
+    executor branch on ``isinstance(adapter, CompositeOpAdapter)``.
+    """
+
+    def accepted_params(self) -> frozenset[str]:
+        return frozenset({"canvas"})
+
+    def validate_param_values(self, params: dict[str, Any], step_id: str) -> None:
+        canvas = params.get("canvas")
+        if canvas is not None and not isinstance(canvas, dict):
+            raise workflow_error(
+                f"step {step_id!r} (composite_layers) param 'canvas' must be an object",
+                INVALID_WORKFLOW_PARAMS,
+            )
 
 
 def _annotation_text(annotation: Any) -> str:
@@ -183,4 +208,13 @@ OP_ADAPTERS: dict[str, OpAdapter] = {
         excluded_params=frozenset({"font"}),
     ),
     "merge": OpAdapter("merge", merge, input_key="srcs", engine_input_param="clips", multi_input=True),
+    # composite rides the existing video_workflow_* surfaces (no new tool/CLI). Its layer
+    # sources are workflow @refs synthesized into a workspace-confined spec — see composite.py.
+    "composite_layers": CompositeOpAdapter(
+        "composite_layers",
+        composite_layers,
+        input_key="layers",
+        engine_input_param="spec_path",
+        has_output=True,
+    ),
 }

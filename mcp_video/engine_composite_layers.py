@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import re
 from pathlib import Path
 from typing import Any, Literal
@@ -16,6 +15,7 @@ from .engine_composite_layers_blend import BLEND_ALL_MODES, SUPPORTED_BLEND_MODE
 from .engine_composite_layers_rotate import (
     has_transform, overlay_position, receipt_transform, rotate_filter, validate_rotation,
 )
+from .engine_composite_layers_source import _receipt_source, resolve_layer_source, resolve_mask_source
 from .engine_runtime_utils import _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
@@ -26,6 +26,7 @@ from .ffmpeg_helpers import (
     _validate_input_path,
     _validate_output_path,
 )
+from .limits import MAX_RESOLUTION, MAX_VIDEO_DURATION
 from .models import EditResult
 
 _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -211,6 +212,20 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
     _positive_int(canvas.height, "canvas.height")
     _positive_number(canvas.fps, "canvas.fps")
     _positive_number(canvas.duration, "canvas.duration")
+    # Clamp canvas dimensions/duration so an over-large spec cannot fan out into a
+    # multi-gigapixel / multi-hour FFmpeg job (DoS). Bounds match the shared limits.
+    if canvas.width > MAX_RESOLUTION or canvas.height > MAX_RESOLUTION:
+        raise MCPVideoError(
+            f"canvas dimensions must not exceed {MAX_RESOLUTION}px",
+            error_type="validation_error",
+            code="invalid_canvas",
+        )
+    if canvas.duration > MAX_VIDEO_DURATION:
+        raise MCPVideoError(
+            f"canvas.duration must not exceed {MAX_VIDEO_DURATION} seconds",
+            error_type="validation_error",
+            code="invalid_canvas",
+        )
     _validate_color(canvas.background, "canvas.background")
     return canvas
 
@@ -241,8 +256,8 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path) -> list[_ResolvedLa
                 code="duplicate_layer_id",
             )
         seen.add(layer.id)
-        src, receipt_src = _resolve_layer_source(layer, spec_dir)
-        mask_src, receipt_mask_src = _resolve_mask_source(layer, spec_dir)
+        src, receipt_src = resolve_layer_source(layer, spec_dir)
+        mask_src, receipt_mask_src = resolve_mask_source(layer, spec_dir)
         mask_input_index = input_index + 1 if mask_src is not None else None
         resolved.append(
             _ResolvedLayer(
@@ -389,56 +404,6 @@ def _validate_layer_timing(layer: _Layer) -> None:
             error_type="validation_error",
             code="invalid_layer_timing",
         )
-
-
-def _resolve_layer_source(layer: _Layer, spec_dir: Path) -> tuple[str | None, str | None]:
-    if layer.type == "solid":
-        return None, None
-    if layer.src is None:
-        raise MCPVideoError(
-            f"layer {layer.id!r} requires src",
-            error_type="validation_error",
-            code="missing_layer_src",
-        )
-    candidate = Path(layer.src)
-    if candidate.is_absolute():
-        validated = Path(_validate_input_path(str(candidate))).resolve()
-    else:
-        if ".." in candidate.parts:
-            resolved_candidate = (spec_dir / candidate).resolve()
-            if not _is_relative_to(resolved_candidate, spec_dir):
-                raise MCPVideoError(
-                    f"layer {layer.id!r} source escapes the spec directory",
-                    error_type="validation_error",
-                    code="unsafe_layer_source",
-                )
-        validated = Path(_validate_input_path(str(spec_dir / candidate))).resolve()
-        if not _is_relative_to(validated, spec_dir):
-            raise MCPVideoError(
-                f"layer {layer.id!r} source escapes the spec directory",
-                error_type="validation_error",
-                code="unsafe_layer_source",
-            )
-    receipt_src = _receipt_source(validated, spec_dir)
-    return str(validated), receipt_src
-
-
-def _resolve_mask_source(layer: _Layer, spec_dir: Path) -> tuple[str | None, str | None]:
-    mask = layer.mask or layer.matte
-    if mask is None:
-        return None, None
-    candidate = Path(mask)
-    if candidate.is_absolute():
-        validated = Path(_validate_input_path(str(candidate))).resolve()
-    else:
-        validated = Path(_validate_input_path(str(spec_dir / candidate))).resolve()
-        if not _is_relative_to(validated, spec_dir):
-            raise MCPVideoError(
-                f"layer {layer.id!r} mask escapes the spec directory",
-                error_type="validation_error",
-                code="unsafe_layer_source",
-            )
-    return str(validated), _receipt_source(validated, spec_dir)
 
 
 def _resolve_output_path(output_path: str | None, spec_path: Path, spec_data: dict[str, Any]) -> str:
@@ -775,25 +740,3 @@ def _file_hash(path: str | None) -> str | None:
         for chunk in iter(lambda: handle.read(1024 * 1024), b""):
             digest.update(chunk)
     return "sha256:" + digest.hexdigest()
-
-
-def _is_relative_to(path: Path, parent: Path) -> bool:
-    try:
-        path.relative_to(parent)
-        return True
-    except ValueError:
-        return False
-
-
-def _receipt_source(path: Path, spec_dir: Path) -> str:
-    with _suppress_value_error():
-        return os.fspath(path.relative_to(spec_dir))
-    return os.fspath(path)
-
-
-class _suppress_value_error:
-    def __enter__(self) -> None:
-        return None
-
-    def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
-        return exc_type is ValueError

@@ -10,6 +10,7 @@ Covers the four review lanes' HIGH/blocking findings on the workflow surface:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
@@ -18,7 +19,7 @@ from mcp_video.engine_resize import resize
 from mcp_video.engine_text import add_text
 from mcp_video.errors import MCPVideoError
 from mcp_video.limits import MAX_RESOLUTION, MAX_WORKFLOW_STEPS, MAX_WORKFLOW_VARIANTS
-from mcp_video.workflow import plan_workflow, render_workflow, validate_workflow_spec
+from mcp_video.workflow import OP_ADAPTERS, OpAdapter, plan_workflow, render_workflow, validate_workflow_spec
 from mcp_video.workflow.executor import _ensure_receipt_dir, _write_receipt
 from mcp_video.workflow.planner import _write_plan
 
@@ -119,6 +120,150 @@ def test_plan_workflow_end_to_end_save_plan_rejects_system_path(tmp_path):
     spec_path = _write_spec(tmp_path, _probe_spec())
     with pytest.raises(MCPVideoError):
         plan_workflow(spec_path, save_plan="/etc/mcp_video_evil_plan.json")
+
+
+# --- R1: artifact writes confined to the spec's workspace root ---------------
+#
+# A path OUTSIDE the workspace can still pass _validate_artifact_path (valid .json,
+# not a system dir / dotfile / traversal). R1 additionally confines every artifact
+# write UNDER the spec's workspace root — the same realpath+relative_to gate the
+# validator applies to sources/outputs — so an operator cannot drop a .json anywhere
+# else writable.
+
+
+def test_write_plan_confined_to_workspace_root(tmp_path):
+    ws = Path(os.path.realpath(tmp_path / "workspace"))
+    ws.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _write_plan({"receipt_kind": "workflow_plan"}, str(ws / "plan.json"), ws)  # inside works
+    assert (ws / "plan.json").is_file()
+    with pytest.raises(MCPVideoError) as exc:
+        _write_plan({"receipt_kind": "workflow_plan"}, str(outside / "plan.json"), ws)
+    assert exc.value.code == "unsafe_workflow_source"
+    assert not (outside / "plan.json").exists()
+
+
+def test_write_receipt_confined_to_workspace_root(tmp_path):
+    ws = Path(os.path.realpath(tmp_path / "workspace"))
+    ws.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _write_receipt({"receipt_kind": "workflow"}, str(ws / "receipt.json"), ws)  # inside works
+    assert (ws / "receipt.json").is_file()
+    with pytest.raises(MCPVideoError) as exc:
+        _write_receipt({"receipt_kind": "workflow"}, str(outside / "receipt.json"), ws)
+    assert exc.value.code == "unsafe_workflow_source"
+    assert not (outside / "receipt.json").exists()
+
+
+def test_ensure_receipt_dir_confined_to_workspace_root(tmp_path):
+    ws = Path(os.path.realpath(tmp_path / "workspace"))
+    ws.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    _ensure_receipt_dir(str(ws / "receipts"), ws)  # inside works
+    assert (ws / "receipts").is_dir()
+    with pytest.raises(MCPVideoError) as exc:
+        _ensure_receipt_dir(str(outside / "receipts"), ws)
+    assert exc.value.code == "unsafe_workflow_source"
+    assert not (outside / "receipts").exists()
+
+
+def test_plan_workflow_save_plan_outside_workspace_fails_closed(tmp_path):
+    """End-to-end: plan_workflow threads the workspace root into the artifact writer."""
+    ws = tmp_path / "workspace"
+    ws.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    spec_path = _write_spec(ws, _probe_spec())
+    plan_workflow(spec_path, save_plan=str(ws / "plan.json"))  # inside works
+    assert (ws / "plan.json").is_file()
+    with pytest.raises(MCPVideoError) as exc:
+        plan_workflow(spec_path, save_plan=str(outside / "plan.json"))
+    assert exc.value.code == "unsafe_workflow_source"
+    assert not (outside / "plan.json").exists()
+
+
+# --- R2: out-of-workspace absolute home paths redacted in errors + receipts --
+
+
+def _leaking_resize(input_path=None, width=None, height=None, output_path=None, **_):
+    raise RuntimeError("required asset missing: /Users/secret/leak.txt (and /home/victim/creds.txt)")
+
+
+def test_out_of_workspace_paths_redacted_in_error_and_receipt(tmp_path, monkeypatch):
+    spec = {
+        "schema_version": 1,
+        "sources": {"a": {"path": "a.mp4"}},
+        "steps": [
+            {
+                "id": "boom",
+                "op": "resize",
+                "inputs": {"src": "@sources.a"},
+                "params": {"width": 100, "height": 100},
+                "output": "@outputs.o",
+            }
+        ],
+        "outputs": {"o": {"path": "out.mp4"}},
+    }
+    spec_path = _write_spec(tmp_path, spec)
+    receipt_path = tmp_path / "receipt.json"
+    boom = OpAdapter("resize", _leaking_resize, input_key="src", engine_input_param="input_path")
+    monkeypatch.setitem(OP_ADAPTERS, "resize", boom)
+
+    with pytest.raises(MCPVideoError) as exc:
+        render_workflow(spec_path, save_receipt=str(receipt_path))
+
+    raised = str(exc.value)
+    assert "/Users/secret" not in raised and "/home/victim" not in raised
+    assert "<redacted-path>" in raised
+
+    receipt = json.loads(receipt_path.read_text())
+    message = next(s for s in receipt["steps"] if s["id"] == "boom")["error"]["message"]
+    assert "/Users/secret" not in message and "/home/victim" not in message
+    assert "<redacted-path>" in message
+
+
+def _leaking_resize_system(input_path=None, width=None, height=None, output_path=None, **_):
+    raise RuntimeError(f"missing /etc/passwd and /opt/secret/key.pem while writing {output_path}")
+
+
+def test_out_of_workspace_system_paths_redacted_but_in_workspace_stays_relative(tmp_path, monkeypatch):
+    # R2 generalized: ANY absolute path outside the workspace (system dirs, not just home)
+    # is redacted; an in-workspace path is stripped to a clean relative token, not redacted.
+    spec = {
+        "schema_version": 1,
+        "sources": {"a": {"path": "a.mp4"}},
+        "steps": [
+            {
+                "id": "boom",
+                "op": "resize",
+                "inputs": {"src": "@sources.a"},
+                "params": {"width": 100, "height": 100},
+                "output": "@outputs.o",
+            }
+        ],
+        "outputs": {"o": {"path": "out.mp4"}},
+    }
+    spec_path = _write_spec(tmp_path, spec)
+    receipt_path = tmp_path / "receipt.json"
+    boom = OpAdapter("resize", _leaking_resize_system, input_key="src", engine_input_param="input_path")
+    monkeypatch.setitem(OP_ADAPTERS, "resize", boom)
+
+    with pytest.raises(MCPVideoError) as exc:
+        render_workflow(spec_path, save_receipt=str(receipt_path))
+
+    raised = str(exc.value)
+    assert "/etc/passwd" not in raised and "/opt/secret" not in raised
+    assert "<redacted-path>" in raised
+
+    receipt = json.loads(receipt_path.read_text())
+    message = next(s for s in receipt["steps"] if s["id"] == "boom")["error"]["message"]
+    assert "/etc/passwd" not in message and "/opt/secret" not in message
+    assert "<redacted-path>" in message
+    # the in-workspace output path survives as a workspace-relative token (not redacted).
+    assert "out.mp4" in message
 
 
 # --- S2: param VALUE validation at the workflow layer ------------------------

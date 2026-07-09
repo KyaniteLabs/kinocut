@@ -25,6 +25,7 @@ import contextlib
 import hashlib
 import json
 import os
+import re
 import uuid
 from datetime import UTC, datetime
 from pathlib import Path
@@ -43,9 +44,10 @@ from ._errors import (
     workflow_error,
 )
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
+from .composite import iter_composite_refs, render_composite_step
 from .inspector import read_receipt
-from .ops import OP_ADAPTERS, OpAdapter
-from .planner import _hash_if_exists, _iter_step_refs, _probe_source
+from .ops import OP_ADAPTERS, CompositeOpAdapter, OpAdapter
+from .planner import _confine_artifact_path, _hash_if_exists, _iter_step_refs, _probe_source
 from .spec import WorkflowStep, load_spec, parse_spec, validate_spec_path
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
@@ -163,7 +165,7 @@ def _render_one(
         output_rel, output_abs = _resolve_output(
             step.output, workspace_root, run_dir_rel, run_dir_abs, output_paths, work_paths
         )
-        input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache)
+        input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter)
 
         if still_reusing and _step_reusable(prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache):
             prior = prior_by_id[step.id]
@@ -184,7 +186,7 @@ def _render_one(
 
         started_at = _utcnow()
         try:
-            _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs)
+            _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
         except Exception as exc:  # fail closed on ANY engine fault, not only MCPVideoError
             err = exc if isinstance(exc, MCPVideoError) else _wrap_engine_exception(exc, step, workspace_root)
             steps_receipt.append(
@@ -241,7 +243,7 @@ def _render_one(
     }
 
     if save_receipt is not None:
-        _write_receipt(receipt, save_receipt)
+        _write_receipt(receipt, save_receipt, workspace_root)
 
     if failure is not None:
         raise failure
@@ -272,9 +274,10 @@ def _render_all_variants(
             "all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC
         )
     spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    workspace_root = Path(os.path.realpath(resolved.parent))
     _reject_variant_output_collisions(spec_path, ids)
     if save_receipt_dir is not None:
-        _ensure_receipt_dir(save_receipt_dir)
+        _ensure_receipt_dir(save_receipt_dir, workspace_root)
 
     receipts: list[dict[str, Any]] = []
     for variant_id in ids:
@@ -316,10 +319,12 @@ def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
             seen[output_path] = variant_id
 
 
-def _ensure_receipt_dir(save_receipt_dir: str) -> None:
+def _ensure_receipt_dir(save_receipt_dir: str, workspace_root: Path | None = None) -> None:
     if not isinstance(save_receipt_dir, str) or not save_receipt_dir:
         raise workflow_error("save_receipt_dir must be a non-empty directory path", INVALID_WORKFLOW_SPEC)
     _validate_artifact_path(save_receipt_dir)  # block traversal / symlink / system-dir / dotfile targets
+    if workspace_root is not None:
+        _confine_artifact_path(save_receipt_dir, workspace_root, "save_receipt_dir")
     Path(save_receipt_dir).mkdir(parents=True, exist_ok=True)
 
 
@@ -416,15 +421,38 @@ def _run_step(
     source_paths: dict[str, str],
     work_paths: dict[str, Path],
     output_abs: Path | None,
+    run_dir_abs: Path,
 ) -> None:
     """Invoke the backing engine function for one step (fail-closed)."""
     adapter.validate_param_values(step.params, step.id)  # defense in depth: re-check values at the engine boundary
+    if isinstance(adapter, CompositeOpAdapter):
+        # composite synthesizes a workspace-confined nested layer spec from its @refs.
+        # source_ids/work_ids drive the render-time re-validation (validate/render TOCTOU guard).
+        render_composite_step(
+            adapter, step, workspace_root, source_paths, work_paths, run_dir_abs, output_abs,
+            _resolve_confined_input, set(source_paths), set(work_paths),
+        )
+        return
     resolved_input = _resolve_engine_input(adapter, step.inputs, workspace_root, source_paths, work_paths)
     kwargs: dict[str, Any] = dict(step.params)
     kwargs[adapter.engine_input_param] = resolved_input
     if adapter.has_output:
         kwargs["output_path"] = str(output_abs)
     adapter.engine_fn(**kwargs)
+
+
+def _resolve_confined_input(
+    ref: str, workspace_root: Path, source_paths: dict[str, str], work_paths: dict[str, Path]
+) -> Path:
+    """Resolve a workflow @ref to a workspace-confined absolute path (composite layer source).
+
+    Reuses the SAME resolution + realpath-confinement the executor applies to every input,
+    so a composite layer source is confined identically to any other op's source (a symlink
+    swapped in after validation still fails closed at execution time).
+    """
+    return _confine_to_workspace(
+        _resolve_ref_path(ref, workspace_root, source_paths, work_paths), workspace_root, ref
+    )
 
 
 def _resolve_engine_input(
@@ -478,10 +506,16 @@ def _hash_inputs(
     source_paths: dict[str, str],
     work_paths: dict[str, Path],
     hash_cache: dict[str, str | None],
+    adapter: OpAdapter | None = None,
 ) -> dict[str, str | None]:
-    """Real sha256 for every consumed input (``src`` / ``srcs[i]`` slots)."""
+    """Real sha256 for every consumed input (``src`` / ``srcs[i]`` / composite layer slots)."""
+    # composite records one hash per layer source (layers[i].src/mask); every other op
+    # hashes its flat src/srcs refs. Both drive complete per-step provenance.
+    ref_pairs = (
+        iter_composite_refs(inputs) if isinstance(adapter, CompositeOpAdapter) else _iter_step_refs(inputs)
+    )
     hashes: dict[str, str | None] = {}
-    for key, ref in _iter_step_refs(inputs):
+    for key, ref in ref_pairs:
         path = _resolve_ref_path(ref, workspace_root, source_paths, work_paths)
         hashes[key] = _hash_if_exists(path, hash_cache)
     return hashes
@@ -660,10 +694,10 @@ def _wrap_engine_exception(exc: Exception, step: WorkflowStep, workspace_root: P
 
     Type confusion is caught earlier by param-value validation (S2); this is the
     depth layer for any OTHER runtime fault an engine may raise (RuntimeError,
-    AttributeError, ...). The message is workspace-sanitized so a receipt or MCP
-    envelope never leaks the absolute workspace path.
+    AttributeError, ...). The message is sanitized so a receipt or MCP envelope
+    never leaks the absolute workspace path OR any other out-of-workspace path.
     """
-    message = _strip_workspace(
+    message = _sanitize_message(
         f"step {step.id!r} ({step.op}) failed: {type(exc).__name__}: {exc}", workspace_root
     )
     return workflow_error(message, WORKFLOW_STEP_FAILED)
@@ -674,9 +708,23 @@ def _sanitize_error(exc: MCPVideoError, workspace_root: Path) -> dict[str, Any]:
     return {
         "code": exc.code,
         "type": exc.error_type,
-        "message": _strip_workspace(str(exc), workspace_root),
+        "message": _sanitize_message(str(exc), workspace_root),
         "suggested_action": exc.suggested_action,
     }
+
+
+# Any absolute path token still present AFTER the workspace prefix is stripped is, by
+# construction, OUTSIDE the workspace (in-workspace paths are relativized first), so it is
+# redacted wholesale — not just home dirs. An engine fault can embed a path anywhere on the
+# host (/Users, /home, /opt, /srv, /etc, /tmp, /private/var/folders, /mnt, /data, ...);
+# leaving any of them in a receipt or MCP error envelope is an information leak.
+_ABSOLUTE_PATH_RE = re.compile(r"/[^\s:'\"/]+(?:/[^\s:'\"/]+)*")
+_REDACTED_PATH = "<redacted-path>"
+
+
+def _sanitize_message(message: str, workspace_root: Path) -> str:
+    """Strip the workspace prefix, then redact any residual out-of-workspace absolute path."""
+    return _ABSOLUTE_PATH_RE.sub(_REDACTED_PATH, _strip_workspace(message, workspace_root))
 
 
 def _strip_workspace(message: str, workspace_root: Path) -> str:
@@ -690,9 +738,11 @@ def _utcnow() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _write_receipt(receipt: dict[str, Any], save_receipt: str) -> None:
+def _write_receipt(receipt: dict[str, Any], save_receipt: str, workspace_root: Path | None = None) -> None:
     """Write the receipt as pretty, stable JSON (matches the plan writer)."""
     if not isinstance(save_receipt, str) or not save_receipt:
         raise workflow_error("save_receipt must be a non-empty file path", INVALID_WORKFLOW_SPEC)
     _validate_artifact_path(save_receipt)  # traversal / symlink / system-dir / dotfile / overwrite-non-json guard
+    if workspace_root is not None:
+        _confine_artifact_path(save_receipt, workspace_root, "save_receipt")
     Path(save_receipt).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")

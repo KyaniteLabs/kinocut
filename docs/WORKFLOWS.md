@@ -70,9 +70,10 @@ all rejected (the models are strict — `extra="forbid"`).
 ```
 
 - `id` — unique, non-empty string; duplicates fail closed.
-- `op` — one of the six allowlisted ops (below). Anything else → `unsupported_workflow_op`.
+- `op` — one of the seven allowlisted ops (below). Anything else → `unsupported_workflow_op`.
 - `inputs` — exactly the input key the op expects: `src` for single-input ops, `srcs`
-  (a non-empty list of refs) for multi-input `merge`. Any other input key fails closed.
+  (a non-empty list of refs) for multi-input `merge`, `layers` (a structured layer stack)
+  for `composite_layers`. Any other input key fails closed.
 - `params` — tunable knobs passed through to the backing engine. The accepted set is
   **derived from the engine's real signature by introspection** (there is no parallel,
   hand-maintained param schema). A param the engine does not accept →
@@ -82,7 +83,7 @@ all rejected (the models are strict — `extra="forbid"`).
   target). Required for output-producing ops; must be **absent** for the inspection-only
   `probe` op.
 
-### Op allowlist (6 ops)
+### Op allowlist (7 ops)
 
 Every op maps 1:1 to an existing vetted engine function. `params` are whatever that
 engine accepts.
@@ -95,9 +96,42 @@ engine accepts.
 | `convert` | `convert` | `src` | required | `format`, `quality` |
 | `add_text` | `add_text` | `src` | required | `text`, `position`, `size`, `color`, … |
 | `merge` | `merge` | `srcs` (list) | required | `transitions`, `transition_duration` |
+| `composite_layers` | `composite_layers` | `layers` (stack) | required | `canvas` |
 
-`composite_layers` is **not** a workflow op this release (call `video_composite_layers`
-directly). See [Deferrals](#deferrals).
+#### `composite_layers` (multi-layer compositing)
+
+`composite_layers` composes an ordered layer stack. Unlike the other ops it does **not**
+take a raw nested spec path (that would let nested layer sources bypass workspace
+confinement + per-step hashing). Instead the workflow layer OWNS the layer-spec:
+
+- `inputs.layers` is the ordered list of layer objects. Each layer carries `id`, `type`
+  (`video` | `image` | `solid`) and the usual placement fields (`opacity`, `position`/`x`/`y`,
+  `width`/`height`/`scale`, `rotation`/`pivot`, `start`/`duration`, `color`, `blend`).
+- **Every layer source (`src`, and optional `mask`) MUST be a workflow `@ref`** — a
+  `@sources.<id>` or a `@work/<name>` produced by a strictly-earlier step. A raw/nested,
+  absolute, or `../` path fails closed with `unsafe_workflow_source`; nested paths are not
+  accepted. Each layer source is resolved, workspace-confined, and hashed into the step's
+  `input_hashes` (one sha256 per `layers[i].src` / `layers[i].mask`) exactly like every
+  other op's inputs — provenance is complete.
+- `params.canvas` is the only tunable param (`width`, `height`, `duration`, `fps`,
+  `background`). It is written into a **synthesized, workspace-confined** layer spec that
+  the engine consumes; its layer sources are the resolved confined paths. The synthesized
+  spec is deterministic and removed after the render.
+- `output` uses the normal `@work/<name>` / `@outputs.<id>` binding + `output_hash`.
+
+```json
+{ "id": "compose", "op": "composite_layers",
+  "inputs": { "layers": [
+    { "id": "base", "type": "video", "src": "@sources.bg" },
+    { "id": "logo", "type": "image", "src": "@sources.logo", "opacity": 0.7, "position": { "x": 24, "y": 24 } }
+  ] },
+  "params": { "canvas": { "width": 1920, "height": 1080, "duration": 6 } },
+  "output": "@outputs.final" }
+```
+
+Composite rides the existing `video_workflow_*` tools / `workflow-*` CLI (no new surface).
+For the full non-workflow compositor feature set (masks, blend modes, rotation), call
+`video_composite_layers` directly.
 
 **Param values are type-checked.** Each `params` value is validated against the backing
 engine's parameter type (e.g. `width` must be an integer, not `"20000"`); a type mismatch
@@ -265,7 +299,7 @@ For the exact receipt shapes (`workflow`, `workflow_plan`, `workflow_batch`, and
 |---|---|
 | `invalid_workflow_spec` | Malformed spec: wrong `schema_version`, missing steps, unknown key, duplicate id, bad output target. |
 | `unknown_workflow_ref` | A `@ref` that is undeclared, forward, or the wrong namespace for its position. |
-| `unsupported_workflow_op` | A step `op` outside the six-op allowlist. |
+| `unsupported_workflow_op` | A step `op` outside the seven-op allowlist. |
 | `unsafe_workflow_source` | An absolute path, `../` escape, symlink escape, or null byte in a path (also re-checked at execution time). |
 | `invalid_workflow_params` | A step param the backing engine does not accept, or a param VALUE whose type cannot satisfy the engine (e.g. a string for an int). |
 | `invalid_workflow_variant` | An unknown variant id, a malformed override key/value, or two variants writing the same output path. |
@@ -285,13 +319,9 @@ sensitive dotfiles, or overwriting a non-`.json` file).
 
 These are intentionally out of scope this release and fail closed if requested:
 
-- `composite_layers` as a workflow op — its nested layer-spec resolves media relative to
-  its own directory, which would bypass workspace confinement and per-step hashing. A
-  future version must first express nested layer sources as workflow `@refs`, keep them
-  workspace-confined, hash them into `input_hashes`, and ship an escaping-source test.
 - Parallel/concurrent step execution (sequential ordered list only).
 - Conditional/branching steps, loops, retries-with-backoff.
 - Cross-machine/distributed jobs.
 - `--force` resume (a full restart-from-scratch flag); today a changed spec simply fails
   the resume gate and you re-run without `--resume`.
-- Any op beyond the six allowlisted.
+- Any op beyond the seven allowlisted.

@@ -27,7 +27,9 @@ _DEFAULT_ACTIONS = {
     UNKNOWN_WORKFLOW_REF: (
         "Reference only declared @sources.<id> ids and @work/<name> outputs produced by strictly-earlier steps."
     ),
-    UNSUPPORTED_WORKFLOW_OP: "Use an allowlisted op: probe, trim, resize, convert, merge, add_text.",
+    UNSUPPORTED_WORKFLOW_OP: (
+        "Use an allowlisted op: probe, trim, resize, convert, merge, add_text, composite_layers."
+    ),
     UNSAFE_WORKFLOW_SOURCE: (
         "Use a relative path that stays inside the spec's workspace directory (no absolute paths or ../ escapes)."
     ),
