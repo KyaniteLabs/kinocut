@@ -45,7 +45,7 @@ from ._errors import (
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
 from .inspector import read_receipt
 from .ops import OP_ADAPTERS, OpAdapter
-from .planner import _hash_if_exists, _iter_step_refs, _probe_source
+from .planner import _confine_artifact_path, _hash_if_exists, _iter_step_refs, _probe_source
 from .spec import WorkflowStep, load_spec, parse_spec, validate_spec_path
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
@@ -241,7 +241,7 @@ def _render_one(
     }
 
     if save_receipt is not None:
-        _write_receipt(receipt, save_receipt)
+        _write_receipt(receipt, save_receipt, workspace_root)
 
     if failure is not None:
         raise failure
@@ -272,9 +272,10 @@ def _render_all_variants(
             "all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC
         )
     spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    workspace_root = Path(os.path.realpath(resolved.parent))
     _reject_variant_output_collisions(spec_path, ids)
     if save_receipt_dir is not None:
-        _ensure_receipt_dir(save_receipt_dir)
+        _ensure_receipt_dir(save_receipt_dir, workspace_root)
 
     receipts: list[dict[str, Any]] = []
     for variant_id in ids:
@@ -316,10 +317,12 @@ def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
             seen[output_path] = variant_id
 
 
-def _ensure_receipt_dir(save_receipt_dir: str) -> None:
+def _ensure_receipt_dir(save_receipt_dir: str, workspace_root: Path | None = None) -> None:
     if not isinstance(save_receipt_dir, str) or not save_receipt_dir:
         raise workflow_error("save_receipt_dir must be a non-empty directory path", INVALID_WORKFLOW_SPEC)
     _validate_artifact_path(save_receipt_dir)  # block traversal / symlink / system-dir / dotfile targets
+    if workspace_root is not None:
+        _confine_artifact_path(save_receipt_dir, workspace_root, "save_receipt_dir")
     Path(save_receipt_dir).mkdir(parents=True, exist_ok=True)
 
 
@@ -690,9 +693,11 @@ def _utcnow() -> str:
     return datetime.now(UTC).isoformat()
 
 
-def _write_receipt(receipt: dict[str, Any], save_receipt: str) -> None:
+def _write_receipt(receipt: dict[str, Any], save_receipt: str, workspace_root: Path | None = None) -> None:
     """Write the receipt as pretty, stable JSON (matches the plan writer)."""
     if not isinstance(save_receipt, str) or not save_receipt:
         raise workflow_error("save_receipt must be a non-empty file path", INVALID_WORKFLOW_SPEC)
     _validate_artifact_path(save_receipt)  # traversal / symlink / system-dir / dotfile / overwrite-non-json guard
+    if workspace_root is not None:
+        _confine_artifact_path(save_receipt, workspace_root, "save_receipt")
     Path(save_receipt).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")

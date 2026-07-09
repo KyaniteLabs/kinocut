@@ -25,7 +25,7 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_artifact_path
-from ._errors import INVALID_WORKFLOW_SPEC, workflow_error
+from ._errors import INVALID_WORKFLOW_SPEC, UNSAFE_WORKFLOW_SOURCE, workflow_error
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
 from .spec import validate_spec_path
 from .validator import validate_workflow_spec
@@ -75,7 +75,7 @@ def plan_workflow(spec_path: str, save_plan: str | None = None, variant: str | N
     }
 
     if save_plan is not None:
-        _write_plan(plan, save_plan)
+        _write_plan(plan, save_plan, workspace_root)
 
     return plan
 
@@ -211,9 +211,32 @@ def _probe_source(absolute: Path) -> dict[str, Any] | None:
     return {"duration": info.duration, "resolution": info.resolution, "codec": info.codec}
 
 
-def _write_plan(plan: dict[str, Any], save_plan: str) -> None:
+def _write_plan(plan: dict[str, Any], save_plan: str, workspace_root: Path | None = None) -> None:
     """Write the plan artifact as pretty, stable JSON (matches receipt writer)."""
     if not isinstance(save_plan, str) or not save_plan:
         raise workflow_error("save_plan must be a non-empty file path", INVALID_WORKFLOW_SPEC)
     _validate_artifact_path(save_plan)  # traversal / symlink / system-dir / dotfile / overwrite-non-json guard
+    if workspace_root is not None:
+        _confine_artifact_path(save_plan, workspace_root, "save_plan")
     Path(save_plan).write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+
+def _confine_artifact_path(path: str, workspace_root: Path, label: str) -> None:
+    """Fail closed unless a workflow artifact write path resolves inside the workspace.
+
+    ``_validate_artifact_path`` already blocks traversal / symlink / system-dir /
+    dotfile / non-``.json``-overwrite targets, but it does NOT confine the write to the
+    spec's workspace — an operator could still drop a ``.json`` anywhere else writable.
+    This adds the same realpath + ``relative_to`` confinement every declared source and
+    output already obeys, so provenance artifacts (plan / receipt / receipt-dir) can only
+    be written under the spec's workspace root.
+    """
+    real = Path(os.path.realpath(path))
+    try:
+        real.relative_to(workspace_root)
+    except ValueError:
+        raise workflow_error(
+            f"{label} {path!r} resolves outside the workspace root; "
+            "write workflow artifacts inside the spec's workspace directory",
+            UNSAFE_WORKFLOW_SOURCE,
+        ) from None
