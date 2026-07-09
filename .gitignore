@@ -29,6 +29,8 @@ venv/
 *.flac
 *.aac
 *.jpg
+# Golden SSIM fixtures are committed on purpose (small, deterministic references)
+!tests/fixtures/golden/*.mp4
 *.jpeg
 *.png
 !index.html

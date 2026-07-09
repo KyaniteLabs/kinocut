@@ -1,0 +1,262 @@
+{
+  "count": 2,
+  "receipt_kind": "workflow_batch",
+  "schema_version": 1,
+  "spec_hash": "sha256:324734fc1e3bc7e1d35a3a23ef9b33c5c2b421ba3435f294f7833e8f358ef5a7",
+  "status": "completed",
+  "tool": "video_workflow_render",
+  "variants": [
+    {
+      "cleanup_manifest": {
+        "cleaned": true,
+        "intermediates": [
+          "work/324734fc-38c25e83/mcp_video_hero_trim.mp4",
+          "work/324734fc-38c25e83/mcp_video_hero_resized.mp4"
+        ],
+        "policy": "clean-on-success"
+      },
+      "feature_flags": {
+        "ops": [
+          "probe",
+          "trim",
+          "resize",
+          "add_text"
+        ],
+        "resume_used": false,
+        "resumed_from": null,
+        "variants": true
+      },
+      "outputs": [
+        {
+          "id": "master",
+          "output_hash": "sha256:e196f98c89a98590bd710907584709446f16a9de27cb7b341251ac19405efad4",
+          "path": "output/final.square.mp4"
+        }
+      ],
+      "receipt_kind": "workflow",
+      "render_determinism_scope": "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds",
+      "resume_cursor": {
+        "last_completed_step": "caption",
+        "next_step": null
+      },
+      "schema_version": 1,
+      "sources": [
+        {
+          "id": "hero",
+          "probe": {
+            "codec": "h264",
+            "duration": 2.0,
+            "resolution": "320x240"
+          },
+          "resolved": "input/hero.mp4",
+          "source_hash": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+        }
+      ],
+      "spec_hash": "sha256:324734fc1e3bc7e1d35a3a23ef9b33c5c2b421ba3435f294f7833e8f358ef5a7",
+      "status": "completed",
+      "steps": [
+        {
+          "ended_at": "2026-07-09T09:31:55.250917+00:00",
+          "id": "probe-hero",
+          "input_hashes": {
+            "src": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+          },
+          "inputs": {
+            "src": "@sources.hero"
+          },
+          "op": "probe",
+          "output": null,
+          "output_hash": null,
+          "started_at": "2026-07-09T09:31:55.250853+00:00",
+          "status": "completed"
+        },
+        {
+          "ended_at": "2026-07-09T09:31:55.333624+00:00",
+          "id": "trim-hero",
+          "input_hashes": {
+            "src": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+          },
+          "inputs": {
+            "src": "@sources.hero"
+          },
+          "op": "trim",
+          "output": "work/324734fc-38c25e83/mcp_video_hero_trim.mp4",
+          "output_hash": "sha256:e0d47400ab42360e93835c0525a7394725adf2a66de7b3fb556c275241d5f371",
+          "started_at": "2026-07-09T09:31:55.250952+00:00",
+          "status": "completed"
+        },
+        {
+          "ended_at": "2026-07-09T09:31:55.423937+00:00",
+          "id": "resize-hero",
+          "input_hashes": {
+            "src": "sha256:e0d47400ab42360e93835c0525a7394725adf2a66de7b3fb556c275241d5f371"
+          },
+          "inputs": {
+            "src": "@work/hero_trim.mp4"
+          },
+          "op": "resize",
+          "output": "work/324734fc-38c25e83/mcp_video_hero_resized.mp4",
+          "output_hash": "sha256:504b9914d78af10bc753c9b4bddfc486aa8da21b485777e72306606cf74b78d0",
+          "started_at": "2026-07-09T09:31:55.333693+00:00",
+          "status": "completed"
+        },
+        {
+          "ended_at": "2026-07-09T09:31:55.508796+00:00",
+          "id": "caption",
+          "input_hashes": {
+            "src": "sha256:504b9914d78af10bc753c9b4bddfc486aa8da21b485777e72306606cf74b78d0"
+          },
+          "inputs": {
+            "src": "@work/hero_resized.mp4"
+          },
+          "op": "add_text",
+          "output": "output/final.square.mp4",
+          "output_hash": "sha256:e196f98c89a98590bd710907584709446f16a9de27cb7b341251ac19405efad4",
+          "started_at": "2026-07-09T09:31:55.424052+00:00",
+          "status": "completed"
+        }
+      ],
+      "tool": "video_workflow_render",
+      "versions": {
+        "ffmpeg": "8.1",
+        "mcp_video": "1.6.0"
+      },
+      "warnings": [],
+      "work_dir": "work/324734fc-38c25e83",
+      "workflow": {
+        "name": "release-smoke-variants",
+        "variant": "square"
+      }
+    },
+    {
+      "cleanup_manifest": {
+        "cleaned": true,
+        "intermediates": [
+          "work/324734fc-b7bea481/mcp_video_hero_trim.mp4",
+          "work/324734fc-b7bea481/mcp_video_hero_resized.mp4"
+        ],
+        "policy": "clean-on-success"
+      },
+      "feature_flags": {
+        "ops": [
+          "probe",
+          "trim",
+          "resize",
+          "add_text"
+        ],
+        "resume_used": false,
+        "resumed_from": null,
+        "variants": true
+      },
+      "outputs": [
+        {
+          "id": "master",
+          "output_hash": "sha256:1803c5599894af5c87c0b0390a63ea7342ffa6e1a33145b88ab8d568103a08bd",
+          "path": "output/final.wide.mp4"
+        }
+      ],
+      "receipt_kind": "workflow",
+      "render_determinism_scope": "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds",
+      "resume_cursor": {
+        "last_completed_step": "caption",
+        "next_step": null
+      },
+      "schema_version": 1,
+      "sources": [
+        {
+          "id": "hero",
+          "probe": {
+            "codec": "h264",
+            "duration": 2.0,
+            "resolution": "320x240"
+          },
+          "resolved": "input/hero.mp4",
+          "source_hash": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+        }
+      ],
+      "spec_hash": "sha256:324734fc1e3bc7e1d35a3a23ef9b33c5c2b421ba3435f294f7833e8f358ef5a7",
+      "status": "completed",
+      "steps": [
+        {
+          "ended_at": "2026-07-09T09:31:55.509997+00:00",
+          "id": "probe-hero",
+          "input_hashes": {
+            "src": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+          },
+          "inputs": {
+            "src": "@sources.hero"
+          },
+          "op": "probe",
+          "output": null,
+          "output_hash": null,
+          "started_at": "2026-07-09T09:31:55.509975+00:00",
+          "status": "completed"
+        },
+        {
+          "ended_at": "2026-07-09T09:31:55.594151+00:00",
+          "id": "trim-hero",
+          "input_hashes": {
+            "src": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927"
+          },
+          "inputs": {
+            "src": "@sources.hero"
+          },
+          "op": "trim",
+          "output": "work/324734fc-b7bea481/mcp_video_hero_trim.mp4",
+          "output_hash": "sha256:e0d47400ab42360e93835c0525a7394725adf2a66de7b3fb556c275241d5f371",
+          "started_at": "2026-07-09T09:31:55.510014+00:00",
+          "status": "completed"
+        },
+        {
+          "ended_at": "2026-07-09T09:31:55.684861+00:00",
+          "id": "resize-hero",
+          "input_hashes": {
+            "src": "sha256:e0d47400ab42360e93835c0525a7394725adf2a66de7b3fb556c275241d5f371"
+          },
+          "inputs": {
+            "src": "@work/hero_trim.mp4"
+          },
+          "op": "resize",
+          "output": "work/324734fc-b7bea481/mcp_video_hero_resized.mp4",
+          "output_hash": "sha256:e1743c181067a315f12ef735456ce5d19c7c978445f8674f47d75ecb4563bce6",
+          "started_at": "2026-07-09T09:31:55.594219+00:00",
+          "status": "completed"
+        },
+        {
+          "ended_at": "2026-07-09T09:31:55.769930+00:00",
+          "id": "caption",
+          "input_hashes": {
+            "src": "sha256:e1743c181067a315f12ef735456ce5d19c7c978445f8674f47d75ecb4563bce6"
+          },
+          "inputs": {
+            "src": "@work/hero_resized.mp4"
+          },
+          "op": "add_text",
+          "output": "output/final.wide.mp4",
+          "output_hash": "sha256:1803c5599894af5c87c0b0390a63ea7342ffa6e1a33145b88ab8d568103a08bd",
+          "started_at": "2026-07-09T09:31:55.684942+00:00",
+          "status": "completed"
+        }
+      ],
+      "tool": "video_workflow_render",
+      "versions": {
+        "ffmpeg": "8.1",
+        "mcp_video": "1.6.0"
+      },
+      "warnings": [],
+      "work_dir": "work/324734fc-b7bea481",
+      "workflow": {
+        "name": "release-smoke-variants",
+        "variant": "wide"
+      }
+    }
+  ],
+  "versions": {
+    "ffmpeg": "8.1",
+    "mcp_video": "1.6.0"
+  },
+  "workflow": {
+    "name": "release-smoke-variants",
+    "variant": null
+  }
+}

@@ -203,6 +203,7 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `transition_morph(clip1, clip2, output, duration?, mesh_size?)` | `EditResult` | Mesh warp transition |
 | `layout_grid(clips, layout, output, gap?, padding?, background?)` | `EditResult` | Grid layout for multiple videos |
 | `layout_pip(main, pip, output, position?, size?, margin?, rounded_corners?, border?, border_color?, border_width?)` | `EditResult` | Picture-in-picture with border |
+| `composite_layers(spec, output?, save_layer_plan?, dry_run?)` | `EditResult` | Spec-driven ordered layer compositing with transforms, masks, timing windows, full-canvas blend modes, rotation/pivot, dry-run plans, and `layer_plan` v2 receipts (video-only output) |
 | `text_animated(video, text, output, animation?, font?, size?, color?, position?, start?, duration?)` | `EditResult` | Animated text overlays |
 | `mograph_count(start, end, duration, output, style?, fps?)` | `EditResult` | Animated number counter video |
 | `mograph_progress(duration, output, style?, color?, track_color?, fps?)` | `EditResult` | Progress bar/circle/dots animation |
@@ -253,6 +254,39 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts |
 
 ---
+
+## Agent Workflow Engine Methods
+
+Plan, validate, render, recover, and prove a multi-step local video job from one JSON
+job-spec. Each method accepts the spec as a path **or** an inline `dict`, and returns the
+structured artifact as a `dict`. Structural violations and failing render steps raise
+`MCPVideoError` (fail-closed). Full schema, `@ref` grammar, variants, resume, and cleanup
+are in [WORKFLOWS.md](WORKFLOWS.md); receipt shapes are in
+[VIDEO_RECEIPT.md](VIDEO_RECEIPT.md).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `workflow_validate(spec)` | `dict` | Fail-closed structural verdict (`{"valid": True, ...}`); renders nothing |
+| `workflow_plan(spec, save_plan?, variant?)` | `dict` | Dry-run plan artifact (`receipt_kind: "workflow_plan"`): op graph, source probes/hashes, output intents; renders zero media |
+| `workflow_render(spec, resume_receipt?, save_receipt?, keep_intermediates?, variant?, all_variants?, save_receipt_dir?)` | `dict` | Execute sequentially and return a `workflow` receipt, or a `workflow_batch` summary for `all_variants` |
+| `workflow_inspect(receipt)` | `dict` | Normalized read-only summary + integrity re-check of any `workflow`/`workflow_plan`/`layer_plan` receipt (legacy v1 tolerated) |
+
+```python
+from mcp_video import Client
+
+video = Client()
+
+video.workflow_validate("job.json")
+plan = video.workflow_plan("job.json", save_plan="plan.json")
+receipt = video.workflow_render("job.json", save_receipt="receipt.json")
+summary = video.workflow_inspect("receipt.json")
+
+# resume a job that failed with intermediates kept
+video.workflow_render("job.json", resume_receipt="receipt.json", save_receipt="receipt.json")
+
+# render every declared variant into its own receipt
+batch = video.workflow_render("job.json", all_variants=True, save_receipt_dir="receipts/")
+```
 
 ---
 

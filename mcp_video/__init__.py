@@ -1,6 +1,6 @@
 """mcp-video — Video editing MCP server for AI agents."""
 
-__version__ = "1.5.2"
+__version__ = "1.6.0"
 
 from .client import Client
 from .ai_engine import (

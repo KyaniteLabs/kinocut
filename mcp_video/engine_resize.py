@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from .ffmpeg_helpers import _build_ffmpeg_cmd
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
+from .engine_composite_layers import _positive_int
 from .engine_probe import probe
 from .engine_runtime_utils import _build_edit_result, _timed_operation
+from .limits import MAX_RESOLUTION
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg
 from .errors import MCPVideoError
@@ -45,6 +47,16 @@ def resize(
             code="invalid_aspect_ratio",
         )
     elif width and height:
+        # Defense in depth: reject non-int / non-positive / oversize dimensions
+        # reaching the scaler directly (the workflow layer also type-checks these).
+        _positive_int(width, "width")
+        _positive_int(height, "height")
+        if width > MAX_RESOLUTION or height > MAX_RESOLUTION:
+            raise MCPVideoError(
+                f"resize dimensions must not exceed {MAX_RESOLUTION}px (got {width}x{height})",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
         w, h = width, height
     elif width:
         ratio = info.height / info.width

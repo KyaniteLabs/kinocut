@@ -61,6 +61,10 @@ def add_text(
             code="invalid_parameter",
         )
     _validate_color(color)
+    # Defense in depth: coerce fontsize to a finite integer BEFORE it is
+    # interpolated into the drawtext filtergraph (a proven file-read primitive
+    # if a non-numeric string reaches `fontsize=`). Fails closed on non-numbers.
+    size = int(_sanitize_ffmpeg_number(size, "size"))
     output = output_path or _auto_output(input_path, "titled")
     _validate_output_path(output)
 

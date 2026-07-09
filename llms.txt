@@ -2,7 +2,7 @@
 
 > Guardrailed video editing MCP server, Python library, and CLI for AI agents.
 
-mcp-video gives AI agents 119 structured tools for FFmpeg-based video editing, PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
+mcp-video gives AI agents 124 structured tools for FFmpeg-based video editing, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, layered compositing with full-canvas blend modes and rotation, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
 
 ## Use cases
 - Claude Code / Cursor video editing tools
@@ -22,6 +22,8 @@ mcp-video gives AI agents 119 structured tools for FFmpeg-based video editing, P
 ## Key paths
 - `README.md`: public overview and install guide
 - `docs/TOOLS.md`: MCP tool reference
+- `docs/WORKFLOWS.md`: agent workflow engine (job-spec, @refs, variants, resume, receipts)
+- `docs/VIDEO_RECEIPT.md`: receipt kinds and schema policy
 - `docs/AI_AGENT_DISCOVERY.md`: agent discovery guidance
 - `skills/mcp-video/SKILL.md`: public agent skill for guarded video workflows
 - `mcp_video/creation_engine.py`: cinematic project, style-pack, storyboard, and shot-prompt helpers

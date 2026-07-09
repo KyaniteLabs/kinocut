@@ -43,6 +43,125 @@ def _format_path_panel(label: str, result: Any) -> None:
     )
 
 
+def _format_composite_layers_text(result: Any) -> None:
+    """Display composite-layers result without implying dry-runs rendered media."""
+    data = _model_dump(result)
+    if data.get("dry_run"):
+        lines = [
+            f"[bold green]Operation:[/bold green] {data.get('operation', 'composite_layers_dry_run')}",
+            f"[bold green]Planned output:[/bold green] {data.get('output_path', 'N/A')}",
+        ]
+        if data.get("layer_plan_path"):
+            lines.append(f"[bold green]Layer plan:[/bold green] {data['layer_plan_path']}")
+        lines.append("[bold yellow]No media rendered.[/bold yellow]")
+        _format_success_panel(lines, title="Composite Layers Plan", border_style="yellow")
+        return
+    _format_path_panel("Composite layers", result)
+
+
+def _format_workflow_validation(result: Any) -> None:
+    """Display a workflow-validation verdict as a success panel."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    ops = data.get("ops", [])
+    lines = [
+        f"[bold green]Workflow:[/bold green] {escape(str(data.get('name') or '(unnamed)'))}",
+        f"[bold green]Valid:[/bold green] {data.get('valid')}",
+        f"[bold green]Steps:[/bold green] {len(data.get('steps', []))}",
+        f"[bold green]Ops:[/bold green] {escape(', '.join(ops)) if ops else '(none)'}",
+    ]
+    _format_success_panel(lines, title="Workflow Validation", border_style="green")
+
+
+def _format_workflow_plan(result: Any) -> None:
+    """Display a workflow plan artifact as a success panel (no media rendered)."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    workflow = data.get("workflow") or {}
+    ops = [step.get("op") for step in data.get("steps", [])]
+    warnings = data.get("warnings", [])
+    lines = [
+        f"[bold green]Workflow:[/bold green] {escape(str(workflow.get('name') or '(unnamed)'))}",
+        f"[bold green]Steps:[/bold green] {len(data.get('steps', []))}",
+        f"[bold green]Ops:[/bold green] {escape(', '.join(o for o in ops if o)) if ops else '(none)'}",
+        f"[bold green]Sources:[/bold green] {len(data.get('sources', []))}",
+        f"[bold green]Outputs:[/bold green] {len(data.get('outputs', []))}",
+        f"[bold green]Variants:[/bold green] {len(data.get('variants', []))}",
+    ]
+    if warnings:
+        lines.append(f"[yellow]Warnings ({len(warnings)}):[/yellow]")
+        for warning in warnings[:5]:
+            lines.append(f"  - {escape(str(warning.get('message', warning)))}")
+    lines.append("[bold yellow]No media rendered.[/bold yellow]")
+    _format_success_panel(lines, title="Workflow Plan", border_style="yellow")
+
+
+def _format_workflow_render(result: Any) -> None:
+    """Display a workflow render receipt (or an all-variants batch) as a panel."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    if data.get("receipt_kind") == "workflow_batch":
+        _format_workflow_batch(data)
+        return
+    workflow = data.get("workflow") or {}
+    steps = data.get("steps", [])
+    completed = sum(1 for step in steps if step.get("status") == "completed")
+    outputs = data.get("outputs", [])
+    cleanup = data.get("cleanup_manifest") or {}
+    lines = [
+        f"[bold green]Workflow:[/bold green] {escape(str(workflow.get('name') or '(unnamed)'))}",
+    ]
+    if workflow.get("variant"):
+        lines.append(f"[bold green]Variant:[/bold green] {escape(str(workflow['variant']))}")
+    lines.extend(
+        [
+            f"[bold green]Status:[/bold green] {escape(str(data.get('status')))}",
+            f"[bold green]Steps:[/bold green] {completed}/{len(steps)} completed",
+            f"[bold green]Outputs:[/bold green] {escape(', '.join(o.get('path', '') for o in outputs)) or '(none)'}",
+            f"[bold green]Intermediates cleaned:[/bold green] {cleanup.get('cleaned')}",
+        ]
+    )
+    _format_success_panel(lines, title="Workflow Render", border_style="green")
+
+
+def _format_workflow_batch(data: dict) -> None:
+    """Display an all-variants batch render summary as a success panel."""
+    workflow = data.get("workflow") or {}
+    variants = data.get("variants", [])
+    lines = [
+        f"[bold green]Workflow:[/bold green] {escape(str(workflow.get('name') or '(unnamed)'))}",
+        f"[bold green]Status:[/bold green] {escape(str(data.get('status')))}",
+        f"[bold green]Variants:[/bold green] {data.get('count', len(variants))} rendered",
+    ]
+    for receipt in variants:
+        variant_name = (receipt.get("workflow") or {}).get("variant")
+        paths = ", ".join(o.get("path", "") for o in receipt.get("outputs", []))
+        lines.append(f"  - [cyan]{escape(str(variant_name))}[/cyan]: {escape(paths) or '(no outputs)'}")
+    _format_success_panel(lines, title="Workflow Render (all variants)", border_style="green")
+
+
+def _format_workflow_inspect(result: Any) -> None:
+    """Display a normalized receipt inspection as a success panel."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    status = data.get("status") or {}
+    summary = (data.get("integrity") or {}).get("summary") or {}
+    review = data.get("human_review") or []
+    lines = [
+        f"[bold green]Kind:[/bold green] {escape(str(data.get('kind')))}",
+        f"[bold green]Tool:[/bold green] {escape(str(data.get('tool')))}",
+        f"[bold green]Schema version:[/bold green] {data.get('schema_version')}",
+        f"[bold green]Status:[/bold green] {escape(str(status.get('overall')))}",
+        f"[bold green]Outputs:[/bold green] {len(data.get('outputs', []))}",
+        f"[bold green]Integrity:[/bold green] {summary.get('matched', 0)}/{summary.get('checked', 0)} match"
+        f" ({summary.get('mismatched', 0)} mismatched, {summary.get('missing', 0)} missing)",
+    ]
+    if status.get("failed_step"):
+        lines.append(f"[bold red]Failed step:[/bold red] {escape(str(status['failed_step']))}")
+    if review:
+        lines.append(f"[yellow]Human review ({len(review)}):[/yellow]")
+        for note in review[:5]:
+            lines.append(f"  - {escape(str(note))}")
+    border = "yellow" if (review or summary.get("mismatched") or summary.get("missing")) else "green"
+    _format_success_panel(lines, title="Workflow Inspect", border_style=border)
+
+
 def _format_info_text(info: Any) -> None:
     """Display video info as a rich table."""
     table = Table(title="Video Info", show_header=False, border_style="blue")

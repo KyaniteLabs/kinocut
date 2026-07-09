@@ -11,6 +11,7 @@ from .hyperframes import ClientHyperframesMixin
 from .image import ClientImageMixin
 from .quality import ClientQualityMixin
 from .meta import ClientMetaMixin
+from .workflow import ClientWorkflowMixin
 
 
 class Client(
@@ -23,6 +24,7 @@ class Client(
     ClientImageMixin,
     ClientQualityMixin,
     ClientMetaMixin,
+    ClientWorkflowMixin,
 ):
     """mcp-video client for programmatic video editing.
 

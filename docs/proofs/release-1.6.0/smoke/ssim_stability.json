@@ -1,0 +1,8 @@
+{
+  "metric": "ssim",
+  "note": "SSIM self-consistency, not a checked-in golden; byte-identity is NOT claimed.",
+  "pass": true,
+  "test": "render self-consistency (two independent renders of the same spec)",
+  "threshold": 0.98,
+  "value": 1.0
+}

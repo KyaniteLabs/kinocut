@@ -9,27 +9,43 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 1.6.0 - 2026-07-09
+
+### Added
+
+- **Agent workflow engine** — a new `video_workflow_*` MCP tool family (`video_workflow_validate`, `video_workflow_plan`, `video_workflow_render`, `video_workflow_inspect`) plus flat CLI commands (`workflow-validate`, `workflow-plan`, `workflow-render`, `workflow-inspect`) and Python client parity (`Client.workflow_validate/plan/render/inspect`). An agent can define a multi-step local video job as a JSON spec (`schema_version: 1`), validate it cheaply, produce a no-render dry-run plan, render it with a provenance receipt, and inspect that receipt afterward. Steps are an ordered, backward-reference-only list over a fixed 6-op allowlist (`probe`, `trim`, `resize`, `convert`, `merge`, `add_text`), each backed by an existing vetted engine; unknown ops, forward/unknown `@refs`, and workspace-escaping paths fail closed with `MCPVideoError` codes.
+- **Workflow resume, variants, and cleanup** — `video_workflow_render --resume <receipt>` continues a partially-completed job (spec-hash gated; a step is reused only when it is completed AND its output and input hashes still match); `variants[].overrides` emit N outputs from one source/step declaration; intermediates in the job's isolated `@work/` directory are cleaned on success, kept on failure, and `--keep-intermediates` overrides cleanup for inspection.
+- **Compositor full-canvas blend modes** — `composite-layers` / `video_composite_layers` layers accept `blend` values `multiply`, `screen`, `overlay`, `darken`, `lighten`, applied full-canvas via the FFmpeg `blend` filter. Positioned/scaled/masked/timed blend is deferred and fails closed with the new `unsupported_blend_geometry` code; unknown modes fail closed with `unsupported_blend_mode`.
+- **Compositor rotation and pivot** — layers accept `rotation` (degrees, transparent-fill) and a new `pivot` field (`center` default, plus the four corners) setting the rotation/placement reference point. The existing `anchor` position alias is unchanged. Unknown pivots and non-numeric rotation fail closed.
+- `composite-layers` / `video_composite_layers` P2 supports transform sizing, timing windows, mask/matte alpha sources, dry-run layer plans, source/output hashes, and richer render receipts for agent review before publishing.
+- `video_duck_audio`: mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
+- `video_ai_color_grade` accepts `lut_path` for professional `.cube`/`.3dl` LUT files via FFmpeg `lut3d`, overriding style presets and reference matching.
+- `video_convert` streams MCP progress notifications during long renders, so clients can show a live percentage instead of an apparently hung call.
+- Spanish-language README section (`En español`) and bilingual EN/ES text for the most common errors (FFmpeg missing, file not found).
+- New docs for the release surface: `docs/WORKFLOWS.md` (workflow engine), workflow + layer_plan receipt schemas in `docs/VIDEO_RECEIPT.md`, and a receipt-privacy scan test that fails on any home path, username-in-path, or secret-shaped token in committed docs/examples or freshly produced dry-run/render artifacts.
+
+### Changed
+
+- **`layer_plan` receipt bumped to `schema_version: 2`** (backward-readable, additive). It gains a `receipt_kind` discriminator (`"layer_plan"`), `transform.rotation`/`transform.pivot` fields, blend/rotation `features` flags, and an explicit `audio_policy: "dropped_video_only"` flag (composite output stays video-only this release; audio compositing is deferred, documented, and receipt-flagged rather than silent). `video_workflow_inspect` reads both new workflow receipts and legacy `receipt_kind`-less v1 layer_plan receipts by inferring the kind.
+- Glitch tools (`glitch_rgb_shift`, `glitch_scanline_jitter`, `glitch_screen_tearing`, `glitch_vhs_tracking`, `glitch_macroblocking`, `glitch_datamoshing`, `glitch_cmyk_split`, `glitch_turbulent_displacement`) now return rich edit metadata in their MCP responses — `duration`, `resolution`, `size_mb`, and `elapsed_ms` — matching the envelope shape of all other edit tools. Previously these tools returned only `success` and `output_path`.
+
+### Fixed
+
+- The `composite-layers` layer-plan receipt now records `output_path` (and `resolved_src`/`mask`) relative to the spec directory whenever the file lives inside it, instead of emitting the resolved absolute path — a shared or committed receipt no longer leaks the user's home directory. Internal rendering still uses the resolved absolute location; only the receipt is relativized.
+- Removed BasicPitch from declared optional extras and documented it as a manual integration so Dependabot can patch vulnerable TensorFlow/Keras/protobuf transitive dependencies instead of resolving an unsafe pinned stack.
+
+### Security
+
+- **Workflow param VALUE validation** — a step's `params` values are now type-checked against the backing engine's parameter types (not just names), so a string for an integer parameter (e.g. `width="20000"`, `size="24,drawtext=textfile=/etc/hosts"`) fails closed with `invalid_workflow_params` before any FFmpeg invocation. Engine sinks are independently hardened: `resize` rejects non-integer/oversize dimensions and `add_text` coerces `fontsize` through a numeric guard before filtergraph interpolation.
+- **Workflow artifact write-path validation** — `--save-plan`, `--save-receipt`, and `--save-receipt-dir` now route through the same traversal/symlink/system-directory/sensitive-dotfile guard as media outputs and additionally refuse to overwrite any file that is not a `.json` artifact, closing an arbitrary out-of-workspace overwrite that previously only rejected null bytes.
+- **Workflow resource caps** — a spec may declare at most 64 steps and 32 variants, and `resize` dimensions are bounded to 7680px; exceeding a cap fails closed.
+- **`add_text` `font` excluded from workflow specs** — the path-typed `font` parameter (a filesystem existence oracle) is no longer tunable through a workflow op and fails closed as an unaccepted param; set fonts by calling `add_text` directly.
+- Workflow steps now fail closed on ANY engine exception (not only `MCPVideoError`): an unexpected runtime fault is wrapped as `workflow_step_failed`, recorded on the receipt with a workspace-sanitized message, and left resumable; the Python client rejects a dict spec for render; batch variants that resolve to a colliding output path fail closed; and raw-relative input refs are re-confined to the workspace at execution time (closing a validate→execute symlink TOCTOU).
 
 ### Removed
 
 - The opt-in anonymous analytics ping (`MCP_VIDEO_ANALYTICS=1`). The endpoint it posted to was never deployed or owned by the project, making the domain claimable by a third party — removed entirely rather than left as a silent no-op.
 - `video_generate_music` and the MiniMax music API integration. A hosted, per-key music API does not belong in a local-first tool; background-music generation moves to a local open-source pipeline (planned: ACE-Step) with mcp-video handling the mixing via `video_duck_audio`.
-
-### Added
-
-- `video_duck_audio`: mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
-- `video_ai_color_grade` accepts `lut_path` for professional `.cube`/`.3dl` LUT files via FFmpeg `lut3d`, overriding style presets and reference matching.
-- `video_convert` streams MCP progress notifications during long renders, so clients can show a live percentage instead of an apparently hung call.
-- Spanish-language README section (`En español`) and bilingual EN/ES text for the most common errors (FFmpeg missing, file not found).
-
-### Changed
-
-- Glitch tools (`glitch_rgb_shift`, `glitch_scanline_jitter`, `glitch_screen_tearing`, `glitch_vhs_tracking`, `glitch_macroblocking`, `glitch_datamoshing`, `glitch_cmyk_split`, `glitch_turbulent_displacement`) now return rich edit metadata in their MCP responses — `duration`, `resolution`, `size_mb`, and `elapsed_ms` — matching the envelope shape of all other edit tools. Previously these tools returned only `success` and `output_path`.
-
-### Fixed
-
-- Removed BasicPitch from declared optional extras and documented it as a manual integration so Dependabot can patch vulnerable TensorFlow/Keras/protobuf transitive dependencies instead of resolving an unsafe pinned stack.
 
 ## 1.5.2 - 2026-07-06
 

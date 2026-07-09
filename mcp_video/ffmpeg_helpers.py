@@ -94,29 +94,38 @@ def _validate_project_path(path: str) -> str:
     return resolved
 
 
-def _validate_output_path(path: str) -> str:
-    """Validate an output path before FFmpeg writes with ``-y``.
+_SAFE_EXISTING_ARTIFACT_SUFFIXES = frozenset({".json"})
 
-    mcp-video intentionally lets users write normal media artifacts around their
-    projects and temp directories. It must not overwrite system files, symlink
-    targets, sensitive home dotfiles, or obviously non-media source/config files.
+
+def _validate_write_path(
+    path: str,
+    *,
+    allowed_existing_suffixes: frozenset[str],
+    label: str,
+) -> str:
+    """Shared write-path guard used by output-media and artifact writers.
+
+    Blocks null bytes, ``..`` traversal, symlink targets, system directories,
+    and sensitive home dotfiles. When the target already exists, refuses to
+    overwrite it unless its suffix is in ``allowed_existing_suffixes`` (media
+    suffixes for renders; ``.json`` only for provenance artifacts).
     """
     if "\x00" in path:
         raise MCPVideoError(
-            f"Output path contains null bytes: {path!r}",
+            f"{label} contains null bytes: {path!r}",
             error_type="validation_error",
             code="invalid_output_path",
         )
     raw_parts = re.split(r"[\\/]+", path)
     if ".." in raw_parts:
         raise MCPVideoError(
-            f"Output path contains directory traversal: {path!r}",
+            f"{label} contains directory traversal: {path!r}",
             error_type="validation_error",
             code="invalid_output_path",
         )
     if os.path.islink(path):
         raise MCPVideoError(
-            f"Output path resolves through a symlink: {path!r}",
+            f"{label} resolves through a symlink: {path!r}",
             error_type="validation_error",
             code="unsafe_path",
         )
@@ -124,7 +133,7 @@ def _validate_output_path(path: str) -> str:
     resolved = os.path.realpath(path)
     if any(resolved == prefix or resolved.startswith(prefix + os.sep) for prefix in _BLOCKED_OUTPUT_PREFIXES):
         raise MCPVideoError(
-            f"Output path escapes safe directory: {path}",
+            f"{label} escapes safe directory: {path}",
             error_type="validation_error",
             code="unsafe_path",
         )
@@ -134,7 +143,7 @@ def _validate_output_path(path: str) -> str:
         rel_parts = set(os.path.relpath(resolved, home).split(os.sep))
         if rel_parts & _SENSITIVE_HOME_PARTS:
             raise MCPVideoError(
-                f"Output path targets a sensitive home directory: {path}",
+                f"{label} targets a sensitive home directory: {path}",
                 error_type="validation_error",
                 code="unsafe_path",
             )
@@ -144,13 +153,38 @@ def _validate_output_path(path: str) -> str:
 
     if os.path.exists(resolved):
         suffix = os.path.splitext(resolved)[1].lower()
-        if suffix not in _SAFE_EXISTING_OUTPUT_SUFFIXES:
+        if suffix not in allowed_existing_suffixes:
             raise MCPVideoError(
-                f"Refusing to overwrite non-media output path: {path}",
+                f"Refusing to overwrite existing file at {label.lower()}: {path}",
                 error_type="validation_error",
                 code="unsafe_path",
             )
     return path
+
+
+def _validate_output_path(path: str) -> str:
+    """Validate an output path before FFmpeg writes with ``-y``.
+
+    mcp-video intentionally lets users write normal media artifacts around their
+    projects and temp directories. It must not overwrite system files, symlink
+    targets, sensitive home dotfiles, or obviously non-media source/config files.
+    """
+    return _validate_write_path(
+        path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path"
+    )
+
+
+def _validate_artifact_path(path: str) -> str:
+    """Validate a provenance-artifact write path (plan/receipt JSON).
+
+    Same traversal / symlink / system-dir / sensitive-dotfile guard as
+    ``_validate_output_path`` but stricter on overwrite: a workflow plan or
+    receipt may only overwrite an existing ``.json`` artifact, never a media
+    file or any other on-disk file.
+    """
+    return _validate_write_path(
+        path, allowed_existing_suffixes=_SAFE_EXISTING_ARTIFACT_SUFFIXES, label="Artifact path"
+    )
 
 
 def _run_command(cmd: list[str], timeout: int = DEFAULT_FFMPEG_TIMEOUT) -> subprocess.CompletedProcess[str]:
@@ -399,6 +433,19 @@ def _sanitize_ffmpeg_number(value: Any, name: str) -> float:
             code="invalid_parameter",
         )
     return result
+
+
+def _format_ffmpeg_number(value: Any) -> str:
+    """Format a finite number for FFmpeg interpolation (integers stay bare).
+
+    Single source of truth for the byte-identical formatter previously copied
+    into the compositor modules (``_num`` / ``_fmt_num``). Fails closed on a
+    non-finite / non-numeric value via ``_sanitize_ffmpeg_number``.
+    """
+    number = _sanitize_ffmpeg_number(value, "ffmpeg number")
+    if number.is_integer():
+        return str(int(number))
+    return f"{number:.6f}".rstrip("0").rstrip(".")
 
 
 def _escape_ffmpeg_filter_value(value: str) -> str:

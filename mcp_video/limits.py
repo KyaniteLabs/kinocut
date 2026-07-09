@@ -42,3 +42,7 @@ MAX_CONCURRENCY = 16
 
 # Processing bounds
 MAX_SPEED_CHAIN_COUNT = 20
+
+# Workflow-engine bounds (fail closed above these)
+MAX_WORKFLOW_STEPS = 64
+MAX_WORKFLOW_VARIANTS = 32

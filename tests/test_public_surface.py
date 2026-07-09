@@ -145,6 +145,10 @@ EXPECTED_CLI_COMMANDS = {
     "image-extract-colors",
     "image-generate-palette",
     "image-analyze-product",
+    "workflow-validate",
+    "workflow-plan",
+    "workflow-render",
+    "workflow-inspect",
 }
 
 EXPECTED_SERVER_TOOLS = {
@@ -253,6 +257,10 @@ EXPECTED_SERVER_TOOLS = {
     "video_validate_text_layout",
     "video_extract_frame",
     "video_duck_audio",
+    "video_workflow_validate",
+    "video_workflow_plan",
+    "video_workflow_render",
+    "video_workflow_inspect",
 }
 
 
@@ -270,7 +278,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 99
+    assert len(EXPECTED_CLI_COMMANDS) == 103
 
 
 def test_agent_cookbook_dry_run():
@@ -292,7 +300,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 120
+    assert len(tool_names) == 124
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -317,7 +325,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "mcp-video"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 120
+        assert len(tool_names) == 124
 
     asyncio.run(check_server())
 
@@ -460,18 +468,19 @@ def test_public_surface_manifest_covers_agent_discovery_files():
 def test_public_site_matches_release_identity():
     site = (ROOT / "index.html").read_text(encoding="utf-8")
 
-    assert '"version": "1.5.2"' in site
-    assert "v1.5.2" in site
-    assert "1,600+ passing tests" in site
-    assert '<div class="num">1,600+</div>' in site
+    assert '"version": "1.6.0"' in site
+    assert "v1.6.0" in site
+    assert "v1.5.2" not in site
+    assert "1,800+ passing tests" in site
+    assert '<div class="num">1,800+</div>' in site
     assert "1215 passing tests" not in site
-    assert "1600 passing tests" not in site
-    assert "1601 passing tests" not in site
-    assert "1602 passing tests" not in site
-    assert '<div class="num">1612</div>' not in site
-    assert '<div class="num">1600</div>' not in site
-    assert '<div class="num">1601</div>' not in site
-    assert '<div class="num">1602</div>' not in site
+    assert "1800 passing tests" not in site
+    assert "1801 passing tests" not in site
+    assert "1802 passing tests" not in site
+    assert '<div class="num">1826</div>' not in site
+    assert '<div class="num">1800</div>' not in site
+    assert '<div class="num">1801</div>' not in site
+    assert '<div class="num">1802</div>' not in site
     assert "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video" in site
     assert "https://github.com/KyaniteLabs/mcp-video" not in site
 

@@ -14,6 +14,7 @@ from . import layout
 from . import media
 from . import quality
 from . import hyperframes
+from . import workflow
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -56,5 +57,6 @@ def build_parser() -> argparse.ArgumentParser:
     layout.add_parsers(subparsers)
     image.add_parsers(subparsers)
     quality.add_parsers(subparsers)
+    workflow.add_parsers(subparsers)
 
     return parser

@@ -7,3 +7,6 @@ docs/internal/  export-ignore
 docs/plans/     export-ignore
 .pi-lens/** -diff
 .pi/** -diff
+
+# Golden SSIM fixtures are binary media — never normalize/diff them
+tests/fixtures/golden/** binary

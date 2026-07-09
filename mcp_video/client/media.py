@@ -611,13 +611,15 @@ class ClientMediaMixin:
         spec: str,
         output: str | None = None,
         save_layer_plan: str | None = None,
+        dry_run: bool = False,
     ) -> EditResult:
         """Composite ordered image/video/solid layers from a JSON spec.
 
-        P1 supports normal alpha compositing, per-layer opacity, fixed x/y
-        placement, and deterministic layer-plan receipts.
+        Supports normal alpha compositing, per-layer opacity, x/y placement,
+        transforms, timing windows, masks/mattes, and deterministic layer-plan
+        receipts.
         """
-        return _composite_layers(spec, output_path=output, save_layer_plan=save_layer_plan)
+        return _composite_layers(spec, output_path=output, save_layer_plan=save_layer_plan, dry_run=dry_run)
 
     def write_metadata(
         self,

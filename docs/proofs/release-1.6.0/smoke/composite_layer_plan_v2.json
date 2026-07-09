@@ -1,0 +1,128 @@
+{
+  "audio_policy": "dropped_video_only",
+  "canvas": {
+    "background": "#000000",
+    "duration": 1.0,
+    "fps": 12.0,
+    "height": 240,
+    "width": 320
+  },
+  "features": {
+    "audio": "dropped",
+    "blend_modes": [
+      "multiply",
+      "normal"
+    ],
+    "layer_types": [
+      "image",
+      "video"
+    ],
+    "masks": false,
+    "rotation": true,
+    "timing_windows": false,
+    "transforms": false
+  },
+  "filtergraph_hash": "sha256:992d0301f4ae7189d9d53e020821d1da431c9ae8c98120a4c33d9ed04f5646c4",
+  "filtergraph_summary": [
+    "canvas normalized to rgba",
+    "layers transformed and overlaid bottom-to-top with normal alpha compositing",
+    "per-layer opacity applied via colorchannelmixer alpha",
+    "mask/matte inputs are scaled to the transformed layer and applied as alpha with alphamerge",
+    "start/duration windows are enforced with overlay enable expressions",
+    "full-canvas non-normal blend layers use blend=all_mode against the running base",
+    "rotated layers use transparent-fill rotate (scale -> rotate -> opacity -> position); pivot sets the reference point"
+  ],
+  "layers": [
+    {
+      "blend": "normal",
+      "color": null,
+      "id": "base",
+      "input_index": 1,
+      "mask": null,
+      "mask_hash": null,
+      "mask_input_index": null,
+      "opacity": 1.0,
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "resolved_src": "input/hero.mp4",
+      "source_hash": "sha256:3b9a3b07aff2a7ccd98dd11622d76f03add5619c9235a19acfa09a4ecf9bc927",
+      "timing": {
+        "duration": null,
+        "start": null
+      },
+      "transform": {
+        "height": null,
+        "pivot": null,
+        "rotation": null,
+        "scale": null,
+        "width": null
+      },
+      "type": "video"
+    },
+    {
+      "blend": "multiply",
+      "color": null,
+      "id": "tint",
+      "input_index": 2,
+      "mask": null,
+      "mask_hash": null,
+      "mask_input_index": null,
+      "opacity": 1.0,
+      "position": {
+        "x": 0.0,
+        "y": 0.0
+      },
+      "resolved_src": "input/tint.png",
+      "source_hash": "sha256:cd53cee3c959eb2787b5d5474cfba3b7cfb5bc9b160c59f3694979e76339b7bc",
+      "timing": {
+        "duration": null,
+        "start": null
+      },
+      "transform": {
+        "height": null,
+        "pivot": null,
+        "rotation": null,
+        "scale": null,
+        "width": null
+      },
+      "type": "image"
+    },
+    {
+      "blend": "normal",
+      "color": null,
+      "id": "logo",
+      "input_index": 3,
+      "mask": null,
+      "mask_hash": null,
+      "mask_input_index": null,
+      "opacity": 0.9,
+      "position": {
+        "x": 210.0,
+        "y": 20.0
+      },
+      "resolved_src": "input/logo.png",
+      "source_hash": "sha256:77490ef866f28c1a3a751f4a5d5c02327f84f1982579b87993271981746ff377",
+      "timing": {
+        "duration": null,
+        "start": null
+      },
+      "transform": {
+        "height": null,
+        "pivot": "center",
+        "rotation": 15.0,
+        "scale": null,
+        "width": null
+      },
+      "type": "image"
+    }
+  ],
+  "output_hash": null,
+  "output_path": "output/composite.mp4",
+  "receipt_kind": "layer_plan",
+  "render_determinism_scope": "input/spec/filtergraph/output hashes are deterministic; rendered bytes may still vary across FFmpeg builds",
+  "schema_version": 2,
+  "spec_hash": "sha256:7150d7030ba8e2c5b63658fc22dfa9ee271c6d5522e7844013bb502410e006f3",
+  "tool": "video_composite_layers"
+}

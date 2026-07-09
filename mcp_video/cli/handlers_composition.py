@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .common import _parse_json_arg, _with_spinner
-from .formatting import _format_path_panel
+from .formatting import _format_composite_layers_text, _format_path_panel
 from .runner import CommandRunner, _out
 
 
@@ -135,11 +135,12 @@ def handle_composition_command(args: Any, *, use_json: bool) -> bool:
             a.spec,
             output_path=a.output,
             save_layer_plan=a.save_layer_plan,
+            dry_run=a.dry_run,
         )
         _out(
             r,
             j,
-            lambda res: _format_path_panel("Composite layers", res.output_path),
+            _format_composite_layers_text,
             json_transform=lambda r: r.model_dump(),
         )
 
