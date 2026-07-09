@@ -37,7 +37,7 @@ def _write_invalid_spec(tmp_path: Path) -> str:
     spec = {
         "schema_version": 1,
         "sources": {"a": {"path": "a.mp4"}},
-        "steps": [{"id": "s1", "op": "composite_layers", "inputs": {"src": "@sources.a"}, "output": "@outputs.o"}],
+        "steps": [{"id": "s1", "op": "speed", "inputs": {"src": "@sources.a"}, "output": "@outputs.o"}],
         "outputs": {"o": {"path": "out.mp4"}},
     }
     path = Path(tmp_path) / "bad.json"

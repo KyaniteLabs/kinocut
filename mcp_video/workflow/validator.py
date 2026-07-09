@@ -28,7 +28,8 @@ from ._errors import (
     UNSUPPORTED_WORKFLOW_OP,
     workflow_error,
 )
-from .ops import OP_ADAPTERS, OpAdapter
+from .composite import validate_composite_inputs
+from .ops import OP_ADAPTERS, CompositeOpAdapter, OpAdapter
 from .spec import WorkflowSpec, load_spec, parse_spec, validate_spec_path
 from .variants import apply_variant_overrides
 
@@ -190,6 +191,10 @@ def _resolve_op(op: str, step_id: str) -> OpAdapter:
 def _validate_inputs(
     step: Any, adapter: OpAdapter, workspace_root: Path, source_ids: set[str], work_produced: set[str]
 ) -> dict[str, Any]:
+    if isinstance(adapter, CompositeOpAdapter):
+        # composite's inputs are a structured layer stack, not a simple src/srcs @ref;
+        # its bespoke validation enforces the @ref-only rule for every layer source.
+        return validate_composite_inputs(step, source_ids, work_produced)
     inputs = step.inputs
     if not isinstance(inputs, dict) or not inputs:
         raise workflow_error(

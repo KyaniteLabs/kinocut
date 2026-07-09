@@ -27,6 +27,7 @@ from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_artifact_path
 from ._errors import INVALID_WORKFLOW_SPEC, UNSAFE_WORKFLOW_SOURCE, workflow_error
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
+from .composite import iter_composite_refs
 from .spec import validate_spec_path
 from .validator import validate_workflow_spec
 
@@ -126,9 +127,15 @@ def _plan_steps(
     source_paths: dict[str, str] = verdict["source_paths"]
     steps: list[dict[str, Any]] = []
     for step in verdict["steps"]:
+        # composite carries its layer sources inside structured layer objects, so its
+        # @refs are extracted per-layer (layers[i].src/mask) instead of the flat inputs.
+        ref_pairs = (
+            iter_composite_refs(step["inputs"])
+            if step["op"] == "composite_layers"
+            else _iter_step_refs(step["inputs"])
+        )
         input_hashes = {
-            key: _hash_ref(ref, workspace_root, source_paths, hash_cache)
-            for key, ref in _iter_step_refs(step["inputs"])
+            key: _hash_ref(ref, workspace_root, source_paths, hash_cache) for key, ref in ref_pairs
         }
         steps.append(
             {

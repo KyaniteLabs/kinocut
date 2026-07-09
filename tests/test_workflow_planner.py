@@ -191,7 +191,7 @@ def test_plan_fails_closed_on_invalid_spec(tmp_path):
     spec = {
         "schema_version": 1,
         "sources": {"a": {"path": "a.mp4"}},
-        "steps": [{"id": "s1", "op": "composite_layers", "inputs": {"src": "@sources.a"}, "output": "@outputs.o"}],
+        "steps": [{"id": "s1", "op": "speed", "inputs": {"src": "@sources.a"}, "output": "@outputs.o"}],
         "outputs": {"o": {"path": "out.mp4"}},
     }
     with pytest.raises(MCPVideoError) as exc:

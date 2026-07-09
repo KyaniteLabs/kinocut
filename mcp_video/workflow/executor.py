@@ -44,8 +44,9 @@ from ._errors import (
     workflow_error,
 )
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
+from .composite import iter_composite_refs, render_composite_step
 from .inspector import read_receipt
-from .ops import OP_ADAPTERS, OpAdapter
+from .ops import OP_ADAPTERS, CompositeOpAdapter, OpAdapter
 from .planner import _confine_artifact_path, _hash_if_exists, _iter_step_refs, _probe_source
 from .spec import WorkflowStep, load_spec, parse_spec, validate_spec_path
 from .validator import validate_workflow_spec
@@ -164,7 +165,7 @@ def _render_one(
         output_rel, output_abs = _resolve_output(
             step.output, workspace_root, run_dir_rel, run_dir_abs, output_paths, work_paths
         )
-        input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache)
+        input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter)
 
         if still_reusing and _step_reusable(prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache):
             prior = prior_by_id[step.id]
@@ -185,7 +186,7 @@ def _render_one(
 
         started_at = _utcnow()
         try:
-            _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs)
+            _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
         except Exception as exc:  # fail closed on ANY engine fault, not only MCPVideoError
             err = exc if isinstance(exc, MCPVideoError) else _wrap_engine_exception(exc, step, workspace_root)
             steps_receipt.append(
@@ -420,15 +421,36 @@ def _run_step(
     source_paths: dict[str, str],
     work_paths: dict[str, Path],
     output_abs: Path | None,
+    run_dir_abs: Path,
 ) -> None:
     """Invoke the backing engine function for one step (fail-closed)."""
     adapter.validate_param_values(step.params, step.id)  # defense in depth: re-check values at the engine boundary
+    if isinstance(adapter, CompositeOpAdapter):
+        # composite synthesizes a workspace-confined nested layer spec from its @refs.
+        render_composite_step(
+            adapter, step, workspace_root, source_paths, work_paths, run_dir_abs, output_abs, _resolve_confined_input
+        )
+        return
     resolved_input = _resolve_engine_input(adapter, step.inputs, workspace_root, source_paths, work_paths)
     kwargs: dict[str, Any] = dict(step.params)
     kwargs[adapter.engine_input_param] = resolved_input
     if adapter.has_output:
         kwargs["output_path"] = str(output_abs)
     adapter.engine_fn(**kwargs)
+
+
+def _resolve_confined_input(
+    ref: str, workspace_root: Path, source_paths: dict[str, str], work_paths: dict[str, Path]
+) -> Path:
+    """Resolve a workflow @ref to a workspace-confined absolute path (composite layer source).
+
+    Reuses the SAME resolution + realpath-confinement the executor applies to every input,
+    so a composite layer source is confined identically to any other op's source (a symlink
+    swapped in after validation still fails closed at execution time).
+    """
+    return _confine_to_workspace(
+        _resolve_ref_path(ref, workspace_root, source_paths, work_paths), workspace_root, ref
+    )
 
 
 def _resolve_engine_input(
@@ -482,10 +504,16 @@ def _hash_inputs(
     source_paths: dict[str, str],
     work_paths: dict[str, Path],
     hash_cache: dict[str, str | None],
+    adapter: OpAdapter | None = None,
 ) -> dict[str, str | None]:
-    """Real sha256 for every consumed input (``src`` / ``srcs[i]`` slots)."""
+    """Real sha256 for every consumed input (``src`` / ``srcs[i]`` / composite layer slots)."""
+    # composite records one hash per layer source (layers[i].src/mask); every other op
+    # hashes its flat src/srcs refs. Both drive complete per-step provenance.
+    ref_pairs = (
+        iter_composite_refs(inputs) if isinstance(adapter, CompositeOpAdapter) else _iter_step_refs(inputs)
+    )
     hashes: dict[str, str | None] = {}
-    for key, ref in _iter_step_refs(inputs):
+    for key, ref in ref_pairs:
         path = _resolve_ref_path(ref, workspace_root, source_paths, work_paths)
         hashes[key] = _hash_if_exists(path, hash_cache)
     return hashes

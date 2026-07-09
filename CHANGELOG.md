@@ -9,6 +9,36 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Added
+
+- **`composite_layers` workflow op** — the workflow engine's allowlist grows to **7 ops**;
+  a step may now compose an ordered layer stack (`op: "composite_layers"`) without leaving
+  the workflow's safety envelope. Layer sources are expressed as workflow `@refs`
+  (`inputs.layers[].src` / `.mask` → `@sources.<id>` / `@work/<name>`), never as nested or
+  raw paths (those fail closed with `unsafe_workflow_source`). Every layer source is
+  resolved, workspace-confined, and hashed into the step's `input_hashes` (one sha256 per
+  layer source), and the workflow layer synthesizes a workspace-confined nested spec that
+  the vetted `composite_layers` engine consumes — so composite provenance matches every
+  other op. The only tunable param is `canvas`; output uses the normal
+  `@work`/`@outputs` binding + `output_hash`. This rides the existing `video_workflow_*`
+  tools / `workflow-*` CLI (no new tool or command). See `docs/WORKFLOWS.md`.
+
+### Security
+
+- **Workflow artifact writes are confined to the spec's workspace root (R1)** — `--save-plan`,
+  `--save-receipt`, and `--save-receipt-dir` now additionally require the resolved target to
+  live UNDER the spec's workspace directory (the same realpath + `relative_to` confinement
+  every declared source and output already obeys), on top of the existing
+  traversal/symlink/system-dir/dotfile guard. A `.json` write that passed the media guard but
+  pointed outside the workspace now fails closed with `unsafe_workflow_source`.
+- **Out-of-workspace absolute paths redacted in workflow errors (R2)** — a wrapped engine
+  fault whose message embeds an absolute home path (`/Users/<name>/…`, `/home/<name>/…`)
+  outside the workspace is now redacted to `<redacted-path>` in both the raised
+  `MCPVideoError` and the receipt's recorded step error, closing a residual path leak beyond
+  the workspace-prefix strip.
+
 ## 1.6.0 - 2026-07-09
 
 ### Added

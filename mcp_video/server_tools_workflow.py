@@ -14,7 +14,7 @@ def video_workflow_validate(spec_path: str) -> dict[str, Any]:
     """Validate an agent workflow job-spec without rendering any media.
 
     Runs the fail-closed structural validator over the JSON job-spec at
-    ``spec_path``: op allowlist (probe|trim|resize|convert|merge|add_text),
+    ``spec_path``: op allowlist (probe|trim|resize|convert|merge|add_text|composite_layers),
     symbolic ``@ref`` resolution (@sources.<id>, @work/<name>, @outputs.<id>),
     backward-reference-only ordering (a step may reference @work outputs from
     strictly-earlier steps only), per-op param introspection, and
@@ -79,7 +79,7 @@ def video_workflow_render(
     """Execute an agent workflow job-spec and return a provenance receipt.
 
     Validates the spec first (fail-closed), then runs each allowlisted op
-    (probe|trim|resize|convert|merge|add_text) SEQUENTIALLY in spec order via the
+    (probe|trim|resize|convert|merge|add_text|composite_layers) SEQUENTIALLY in spec order via the
     backing engine functions. Intermediates are written to a per-run ``@work``
     directory unique to this invocation and cleaned on success (kept on failure);
     final media lands at the declared ``@outputs`` paths.

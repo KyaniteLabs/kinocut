@@ -10,6 +10,7 @@ import pytest
 
 from mcp_video.errors import MCPVideoError
 from mcp_video.workflow import OP_ADAPTERS, validate_workflow_spec
+from mcp_video.workflow.ops import CompositeOpAdapter
 
 
 def _write_spec(directory: Path, spec: dict, name: str = "job.json") -> str:
@@ -97,7 +98,7 @@ def test_valid_merge_uses_srcs_list(tmp_path):
 # --- op allowlist -----------------------------------------------------------
 
 
-@pytest.mark.parametrize("op", ["composite_layers", "explode", "video_batch", ""])
+@pytest.mark.parametrize("op", ["speed", "explode", "video_batch", ""])
 def test_unsupported_op_fails_closed(tmp_path, op):
     spec = {
         "schema_version": 1,
@@ -292,10 +293,16 @@ def test_adapter_accepted_params_subset_of_engine_signature():
     output_path."""
     for name, adapter in OP_ADAPTERS.items():
         signature_params = set(inspect.signature(adapter.engine_fn).parameters)
-        assert adapter.accepted_params() <= signature_params, name
         assert adapter.engine_input_param in signature_params, name
         if adapter.has_output:
             assert "output_path" in signature_params, name
+        if isinstance(adapter, CompositeOpAdapter):
+            # composite is bespoke: its only param 'canvas' is written into a synthesized
+            # nested spec (see workflow/composite.py), not passed to the engine signature,
+            # so it deliberately opts out of the signature-derived param subset invariant.
+            assert adapter.accepted_params() == frozenset({"canvas"}), name
+            continue
+        assert adapter.accepted_params() <= signature_params, name
 
 
 # --- schema / structural fail-closed ----------------------------------------
