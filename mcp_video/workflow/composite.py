@@ -20,7 +20,7 @@ This module closes that hole by making the workflow layer OWN the layer-spec:
     allowlist (never a blind ``dict`` copy), and synthesizes a nested spec whose layer
     sources are the resolved, workspace-confined absolute paths. The spec is written at
     the WORKSPACE ROOT (so the engine's spec-dir confinement == workspace confinement),
-    handed to the engine, and removed after the render.
+    R1-guarded, handed to the engine, and removed after the render.
 
 The only tunable ``params`` key is ``canvas`` (written into the synthesized spec,
 never passed to the engine signature); its VALUE correctness stays the engine's
@@ -271,9 +271,22 @@ def render_composite_step(
     synth_spec = {"canvas": canvas, "layers": synth_layers}
     safe_id = step.id.replace("/", "_").replace("\\", "_")
     synth_path = workspace_root / f"mcp_video_composite_{run_dir_abs.name}_{safe_id}.json"
+    _confine_synth_path(str(synth_path), workspace_root)
     synth_path.write_text(json.dumps(synth_spec), encoding="utf-8")
     try:
         adapter.engine_fn(spec_path=str(synth_path), output_path=str(output_abs))
     finally:
         with contextlib.suppress(OSError):
             synth_path.unlink()
+
+
+def _confine_synth_path(path: str, workspace_root: Path) -> None:
+    """Fail closed unless the synth-spec write resolves inside the workspace (R1 guard).
+
+    Lazy-imported to avoid a planner<->composite import cycle; routes the synth write
+    through the SAME realpath + workspace confinement every other workflow artifact uses,
+    so a planted symlink at the synth path cannot redirect the write out of the workspace.
+    """
+    from .planner import _confine_artifact_path
+
+    _confine_artifact_path(path, workspace_root, "composite synth spec")

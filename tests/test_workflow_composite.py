@@ -173,6 +173,42 @@ def test_toctou_injected_matte_fails_closed_at_render(tmp_path, monkeypatch):
     assert list(tmp_path.rglob("mcp_video_composite_*.json")) == []
 
 
+def test_synth_spec_symlink_escape_fails_closed(tmp_path):
+    # A planted symlink at the synth-spec write path must not redirect the write out of the
+    # workspace (R1 artifact guard on the composite writer); the engine is never invoked.
+    from types import SimpleNamespace
+
+    from mcp_video.workflow.composite import render_composite_step
+    from mcp_video.workflow.executor import _resolve_confined_input
+
+    ws = tmp_path / "ws"
+    ws.mkdir()
+    run_dir = ws / "work" / "run1"
+    run_dir.mkdir(parents=True)
+    outside = tmp_path / "evil_synth.json"
+    synth = ws / f"mcp_video_composite_{run_dir.name}_comp.json"
+    synth.symlink_to(outside)
+
+    called = {"engine": False}
+
+    def engine_fn(**_kwargs):
+        called["engine"] = True
+
+    adapter = SimpleNamespace(engine_fn=engine_fn)
+    step = SimpleNamespace(
+        id="comp",
+        inputs={"layers": [{"id": "s", "type": "solid", "color": "#000000"}]},
+        params={"canvas": {"width": 32, "height": 32, "duration": 1, "fps": 12, "background": "#000000"}},
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        render_composite_step(
+            adapter, step, ws, {}, {}, run_dir, ws / "out.mp4",
+            _resolve_confined_input, set(), set(),
+        )
+    assert exc.value.code == "unsafe_workflow_source"
+    assert called["engine"] is False
+
+
 def test_duplicate_layer_id_fails_closed(tmp_path):
     spec = _composite_spec(
         layers=[

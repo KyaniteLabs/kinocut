@@ -225,6 +225,47 @@ def test_out_of_workspace_paths_redacted_in_error_and_receipt(tmp_path, monkeypa
     assert "<redacted-path>" in message
 
 
+def _leaking_resize_system(input_path=None, width=None, height=None, output_path=None, **_):
+    raise RuntimeError(f"missing /etc/passwd and /opt/secret/key.pem while writing {output_path}")
+
+
+def test_out_of_workspace_system_paths_redacted_but_in_workspace_stays_relative(tmp_path, monkeypatch):
+    # R2 generalized: ANY absolute path outside the workspace (system dirs, not just home)
+    # is redacted; an in-workspace path is stripped to a clean relative token, not redacted.
+    spec = {
+        "schema_version": 1,
+        "sources": {"a": {"path": "a.mp4"}},
+        "steps": [
+            {
+                "id": "boom",
+                "op": "resize",
+                "inputs": {"src": "@sources.a"},
+                "params": {"width": 100, "height": 100},
+                "output": "@outputs.o",
+            }
+        ],
+        "outputs": {"o": {"path": "out.mp4"}},
+    }
+    spec_path = _write_spec(tmp_path, spec)
+    receipt_path = tmp_path / "receipt.json"
+    boom = OpAdapter("resize", _leaking_resize_system, input_key="src", engine_input_param="input_path")
+    monkeypatch.setitem(OP_ADAPTERS, "resize", boom)
+
+    with pytest.raises(MCPVideoError) as exc:
+        render_workflow(spec_path, save_receipt=str(receipt_path))
+
+    raised = str(exc.value)
+    assert "/etc/passwd" not in raised and "/opt/secret" not in raised
+    assert "<redacted-path>" in raised
+
+    receipt = json.loads(receipt_path.read_text())
+    message = next(s for s in receipt["steps"] if s["id"] == "boom")["error"]["message"]
+    assert "/etc/passwd" not in message and "/opt/secret" not in message
+    assert "<redacted-path>" in message
+    # the in-workspace output path survives as a workspace-relative token (not redacted).
+    assert "out.mp4" in message
+
+
 # --- S2: param VALUE validation at the workflow layer ------------------------
 
 

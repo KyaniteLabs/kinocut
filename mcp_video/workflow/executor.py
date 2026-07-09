@@ -695,7 +695,7 @@ def _wrap_engine_exception(exc: Exception, step: WorkflowStep, workspace_root: P
     Type confusion is caught earlier by param-value validation (S2); this is the
     depth layer for any OTHER runtime fault an engine may raise (RuntimeError,
     AttributeError, ...). The message is sanitized so a receipt or MCP envelope
-    never leaks the absolute workspace path OR any other out-of-workspace home path.
+    never leaks the absolute workspace path OR any other out-of-workspace path.
     """
     message = _sanitize_message(
         f"step {step.id!r} ({step.op}) failed: {type(exc).__name__}: {exc}", workspace_root
@@ -713,16 +713,18 @@ def _sanitize_error(exc: MCPVideoError, workspace_root: Path) -> dict[str, Any]:
     }
 
 
-# Bare absolute home paths (``/Users/<seg>/...`` on macOS, ``/home/<seg>/...`` on Linux).
-# An engine fault can embed a path OUTSIDE the workspace (e.g. a missing font/lut/asset);
-# stripping only the workspace prefix would still leak that path into the receipt + error.
-_ABSOLUTE_HOME_PATH_RE = re.compile(r"/(?:Users|home)/[^\s:'\"/]+(?:/[^\s:'\"]*)?")
+# Any absolute path token still present AFTER the workspace prefix is stripped is, by
+# construction, OUTSIDE the workspace (in-workspace paths are relativized first), so it is
+# redacted wholesale — not just home dirs. An engine fault can embed a path anywhere on the
+# host (/Users, /home, /opt, /srv, /etc, /tmp, /private/var/folders, /mnt, /data, ...);
+# leaving any of them in a receipt or MCP error envelope is an information leak.
+_ABSOLUTE_PATH_RE = re.compile(r"/[^\s:'\"/]+(?:/[^\s:'\"/]+)*")
 _REDACTED_PATH = "<redacted-path>"
 
 
 def _sanitize_message(message: str, workspace_root: Path) -> str:
-    """Strip the workspace prefix, then redact any residual out-of-workspace home path."""
-    return _ABSOLUTE_HOME_PATH_RE.sub(_REDACTED_PATH, _strip_workspace(message, workspace_root))
+    """Strip the workspace prefix, then redact any residual out-of-workspace absolute path."""
+    return _ABSOLUTE_PATH_RE.sub(_REDACTED_PATH, _strip_workspace(message, workspace_root))
 
 
 def _strip_workspace(message: str, workspace_root: Path) -> str:

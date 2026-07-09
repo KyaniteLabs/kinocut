@@ -11,6 +11,7 @@ import pytest
 
 from mcp_video.engine_composite_layers import composite_layers
 from mcp_video.errors import MCPVideoError
+from mcp_video.limits import MAX_VIDEO_DURATION
 
 
 def _write_minimal_assets(tmp_path):
@@ -151,6 +152,28 @@ def test_composite_layers_rejects_absolute_source_escape(tmp_path, field):
         composite_layers(str(spec_path), output_path=str(spec_dir / "out.mp4"))
 
     assert excinfo.value.code == "unsafe_layer_source"
+
+
+@pytest.mark.parametrize(
+    "canvas_over",
+    [
+        {"width": 100000, "height": 100000},
+        {"width": 100000},
+        {"height": 100000},
+        {"duration": MAX_VIDEO_DURATION + 1},
+    ],
+)
+def test_composite_layers_rejects_oversize_canvas(tmp_path, canvas_over):
+    # Unbounded canvas dims/duration would fan out into a giant FFmpeg job (DoS); clamp them.
+    _write_minimal_assets(tmp_path)
+    spec = _minimal_spec()
+    spec["canvas"].update(canvas_over)
+    spec_path = _write_spec(tmp_path, spec)
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        composite_layers(str(spec_path), output_path=str(tmp_path / "out.mp4"))
+
+    assert excinfo.value.code == "invalid_canvas"
 
 
 def test_composite_layers_dry_run_supports_transform_mask_and_timing(tmp_path, monkeypatch):

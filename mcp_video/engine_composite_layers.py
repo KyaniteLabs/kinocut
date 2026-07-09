@@ -26,6 +26,7 @@ from .ffmpeg_helpers import (
     _validate_input_path,
     _validate_output_path,
 )
+from .limits import MAX_RESOLUTION, MAX_VIDEO_DURATION
 from .models import EditResult
 
 _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -211,6 +212,20 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
     _positive_int(canvas.height, "canvas.height")
     _positive_number(canvas.fps, "canvas.fps")
     _positive_number(canvas.duration, "canvas.duration")
+    # Clamp canvas dimensions/duration so an over-large spec cannot fan out into a
+    # multi-gigapixel / multi-hour FFmpeg job (DoS). Bounds match the shared limits.
+    if canvas.width > MAX_RESOLUTION or canvas.height > MAX_RESOLUTION:
+        raise MCPVideoError(
+            f"canvas dimensions must not exceed {MAX_RESOLUTION}px",
+            error_type="validation_error",
+            code="invalid_canvas",
+        )
+    if canvas.duration > MAX_VIDEO_DURATION:
+        raise MCPVideoError(
+            f"canvas.duration must not exceed {MAX_VIDEO_DURATION} seconds",
+            error_type="validation_error",
+            code="invalid_canvas",
+        )
     _validate_color(canvas.background, "canvas.background")
     return canvas
 
