@@ -4,13 +4,16 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`mcp-video` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 119 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
+`mcp-video` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 124 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
 
 ## Best Queries To Match
 
 - video editing MCP server
 - MCP server for FFmpeg
 - AI agent video editing
+- agent video workflow engine
+- multi-step video job with provenance receipts
+- resumable video render workflow MCP
 - Claude Code video editing MCP
 - Cursor MCP video editing
 - programmatic video editing Python
@@ -27,6 +30,8 @@ This document is the short, explicit discovery map for agents, answer engines, a
 ## Best Entry Points
 
 - `README.md` - install, quick start, tools, CLI, Python client, workflows.
+- `docs/WORKFLOWS.md` - agent workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume semantics, cleanup, and privacy.
+- `docs/VIDEO_RECEIPT.md` - workflow/`layer_plan` receipt kinds, `schema_version` policy, and the `receipt_kind` discriminator.
 - `skills/mcp-video/SKILL.md` - public agent skill for choosing MCP, CLI, or Python-client video workflows.
 - `CLAUDE.md` - Layer 0 identity: what this project is, where to find staged pipelines.
 - `llms.txt` - compact machine-readable project map.

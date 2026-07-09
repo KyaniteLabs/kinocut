@@ -111,7 +111,7 @@ mcp-video [command] [options]
 |---------|-------------|
 | `video-layout-grid` | Arrange multiple videos in a grid |
 | `video-layout-pip` | Picture-in-picture with border |
-| `composite-layers` | Spec-driven ordered image/video layer compositing with transforms, masks, timing windows, dry-run plans, and receipts |
+| `composite-layers` | Spec-driven ordered image/video layer compositing with transforms, masks, timing windows, full-canvas blend modes, rotation/pivot, dry-run plans, and `layer_plan` v2 receipts |
 
 
 ### `composite-layers` spec
@@ -142,7 +142,40 @@ mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer
 }
 ```
 
-The compositor supports normal alpha compositing, per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources. Relative `src`, `mask`, and `matte` paths resolve relative to the spec file and must stay inside that directory. Expanded blend modes, rotation, and per-layer effect routing are deferred until they can keep the same preflight and receipt guarantees.
+The compositor supports normal alpha compositing, per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources. It also supports **full-canvas** blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten` — a non-`normal` blend layer must be full-canvas: position `{0,0}`, full opacity, no scale/mask/timing, else it fails closed with `unsupported_blend_geometry`) and **rotation** (`rotation` in degrees within `[-360, 360]` with a new `pivot` reference point — `center` default, `top_left`, `top_right`, `bottom_left`, `bottom_right`; ordering is scale → rotate → opacity → position). The existing `anchor` field stays a position alias, distinct from `pivot`. Output is video-only (`audio_policy: dropped_video_only`). Relative `src`, `mask`, and `matte` paths resolve relative to the spec file and must stay inside that directory. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are deferred and fail closed.
+
+## Workflow Engine
+
+Plan, validate, render, recover, and prove a multi-step local video job from one JSON
+job-spec. Flat commands map 1:1 to the `video_workflow_*` MCP tools. Full schema, `@ref`
+grammar, variants, resume, and cleanup are in [WORKFLOWS.md](WORKFLOWS.md).
+
+| Command | Description |
+|---------|-------------|
+| `workflow-validate` | Fail-closed structural gate for a job-spec; renders nothing |
+| `workflow-plan` | No-render plan (op graph, source probes/hashes) for a job-spec |
+| `workflow-render` | Execute a job-spec sequentially and emit a provenance receipt |
+| `workflow-inspect` | Summarize any workflow/`layer_plan` receipt with a read-only integrity check |
+
+```bash
+mcp-video workflow-validate --spec job.json
+mcp-video workflow-plan     --spec job.json [--save-plan plan.json] [--variant square]
+mcp-video workflow-render   --spec job.json [--resume receipt.json] [--save-receipt receipt.json] \
+                            [--keep-intermediates] [--variant square] [--all-variants] [--save-receipt-dir receipts/]
+mcp-video workflow-inspect  --receipt receipt.json
+```
+
+| Flag | Command | Description |
+|------|---------|-------------|
+| `--spec` | validate / plan / render | Path to the workflow job-spec JSON file (required) |
+| `--save-plan` | plan | Optional path to write the plan artifact as JSON |
+| `--variant` | plan / render | Operate on one declared variant's effective steps |
+| `--resume` | render | Path to a prior render receipt to resume from |
+| `--save-receipt` | render | Optional path to write the workflow receipt as JSON |
+| `--keep-intermediates` | render | Retain `@work` intermediates even on success |
+| `--all-variants` | render | Render every declared variant and emit a batch summary (mutually exclusive with `--variant`) |
+| `--save-receipt-dir` | render | With `--all-variants`, directory for per-variant receipts (`<dir>/<variant>.json`) |
+| `--receipt` | inspect | Path to the receipt JSON file to inspect (required) |
 
 ## Audio-Video
 

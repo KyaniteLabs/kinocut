@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://pypi.org/project/mcp-video/"><img src="https://img.shields.io/pypi/v/mcp-video.svg" alt="PyPI"></a>
   <a href="https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-119%20tools-orange.svg" alt="119 MCP tools">
+  <img src="https://img.shields.io/badge/MCP-124%20tools-orange.svg" alt="124 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
   <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
@@ -62,16 +62,78 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 - **Podcast & interview cuts** — find the strongest segment, normalize audio, add chapters, and export.
 - **Agent-driven media in CI** — repeatable, reviewable edits from Claude Code, Cursor, Codex-style clients, or scripts.
 
+## Agent Workflow Engine
+
+Agents can **plan, validate, render, recover, and prove** a multi-step local video job from
+a single JSON job-spec — through MCP (`video_workflow_*`), the CLI (`workflow-*`), or the
+Python client (`Client.workflow_*`) — with receipts strong enough for another agent or a
+human to trust before *and* after a render. Ops are a small allowlist
+(`probe | trim | resize | convert | merge | add_text`) mapped 1:1 to the same vetted engine
+functions the individual tools use; media references are symbolic and workspace-confined;
+everything fails closed.
+
+```json
+{
+  "schema_version": 1,
+  "name": "captioned-vertical-short",
+  "sources": { "hero": { "path": "input/hero.mp4" } },
+  "steps": [
+    { "id": "trim-hero", "op": "trim", "inputs": { "src": "@sources.hero" },
+      "params": { "start": 0, "duration": 6 }, "output": "@work/hero_trim.mp4" },
+    { "id": "vertical", "op": "resize", "inputs": { "src": "@work/hero_trim.mp4" },
+      "params": { "width": 1080, "height": 1920 }, "output": "@work/hero_vertical.mp4" },
+    { "id": "caption", "op": "add_text", "inputs": { "src": "@work/hero_vertical.mp4" },
+      "params": { "text": "Watch this", "position": "bottom-center" }, "output": "@outputs.master" }
+  ],
+  "outputs": { "master": { "path": "output/final.mp4" } }
+}
+```
+
+```bash
+mcp-video workflow-validate --spec job.json    # cheap structural gate, no render
+mcp-video workflow-plan     --spec job.json --save-plan plan.json     # dry-run op graph + hashes
+mcp-video workflow-render   --spec job.json --save-receipt receipt.json   # execute + provenance receipt
+mcp-video workflow-inspect  --receipt receipt.json    # read-only integrity re-check
+```
+
+The render receipt records per-step input/output hashes, a resume cursor, and a cleanup
+manifest, all with workspace-relative paths:
+
+```json
+{
+  "receipt_kind": "workflow",
+  "versions": { "mcp_video": "1.5.2", "ffmpeg": "8.1" },
+  "spec_hash": "sha256:be2f3a9b...",
+  "steps": [
+    { "id": "trim-hero", "op": "trim", "status": "completed",
+      "input_hashes": { "src": "sha256:3b976d49..." },
+      "output": "work/be2f3a9b-2effedb3/mcp_video_hero_trim.mp4", "output_hash": "sha256:00727499..." },
+    { "id": "caption", "op": "add_text", "status": "completed",
+      "output": "output/final.mp4", "output_hash": "sha256:8633ad2a..." }
+  ],
+  "cleanup_manifest": { "cleaned": true, "policy": "clean-on-success" },
+  "resume_cursor": { "last_completed_step": "caption", "next_step": null },
+  "status": "completed",
+  "render_determinism_scope": "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds"
+}
+```
+
+`--all-variants` emits N distinct outputs from one declaration, and `--resume` continues a
+job that failed with its intermediates kept (fail-closed on a changed spec). Full schema,
+`@ref` grammar, variants, resume, and cleanup are in
+[docs/WORKFLOWS.md](docs/WORKFLOWS.md); a runnable spec is in
+[examples/workflows/](examples/workflows/captioned-vertical-short/).
+
 ## Layered Compositing
 
-`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. P2 supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; mask/matte alpha sources; dry-run plans; and deterministic receipts with source, filtergraph, and output hashes.
+`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
 
 ```bash
 mcp-video composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
 mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
-Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. Expanded blend modes, rotation, per-layer effect routing, and full NLE adapters are tracked as later phases so this surface stays deterministic and preflightable.
+Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer must be full-canvas (position `{0,0}`, full opacity, no scale/mask/timing) or it fails closed; output is video-only. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are tracked as later phases so this surface stays deterministic and preflightable.
 
 ## Public Discovery
 
@@ -151,7 +213,7 @@ Mix freely, e.g. `pip install "mcp-video[transcribe,image]"`. Run `mcp-video doc
 
 ## En español
 
-mcp-video es un servidor MCP de edición de video para agentes de IA: 119 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), con barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
+mcp-video es un servidor MCP de edición de video para agentes de IA: 124 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -275,11 +337,12 @@ mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-mcp-video currently registers **119 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
+mcp-video currently registers **124 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
 | Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates, merge-compatibility guardrails |
+| Agent workflow engine | 4 | validate, plan, render, resume, inspect multi-step jobs with provenance receipts |
 | Cinematic creation | 4 | project scaffold, style-pack parsing, storyboard parsing, shot prompt expansion |
 | AI-assisted media | 11 | transcription, scene detection, upscaling, stem separation, silence removal, color grading |
 | Hyperframes | 18 | init, preview, render, snapshots, inspect, catalog, website capture, local TTS, transcription, background removal, diagnostics, benchmark, post-process |

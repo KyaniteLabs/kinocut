@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes 120 registered MCP tools across video editing, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+mcp-video exposes 124 registered MCP tools across video editing, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -33,6 +33,24 @@ Plan video generation like a director of photography before rendering. These too
 
 ---
 
+## Agent Workflow Engine (4 tools)
+
+Plan, validate, render, recover, and prove a multi-step local video job from one JSON
+job-spec over a small allowlisted op set (`probe | trim | resize | convert | merge |
+add_text`). Every op maps 1:1 to a vetted engine function; params are introspected from
+the engine signature; media references are symbolic and workspace-confined. Full schema,
+`@ref` grammar, variants, resume, and cleanup are in [WORKFLOWS.md](WORKFLOWS.md); receipt
+shapes are in [VIDEO_RECEIPT.md](VIDEO_RECEIPT.md).
+
+| Tool | Description |
+|------|-------------|
+| `video_workflow_validate` | Fail-closed structural gate for a job-spec (op allowlist, `@ref` resolution, backward-reference-only ordering, per-op param introspection, workspace-confined path safety); renders nothing |
+| `video_workflow_plan` | Dry-run plan artifact (`receipt_kind: workflow_plan`): ordered op graph, per-source ffprobe + sha256 hashes where the file exists, output intents, variant summary; renders zero media (`save_plan`, `variant`) |
+| `video_workflow_render` | Execute allowlisted ops sequentially and emit a `workflow` provenance receipt (per-step input/output hashes, cleanup manifest, determinism caveat); supports `resume_receipt`, `save_receipt`, `keep_intermediates`, `variant`, `all_variants`, `save_receipt_dir` |
+| `video_workflow_inspect` | Summarize any receipt this project emits — `workflow`, `workflow_plan`, or `layer_plan` (v2 or legacy v1 without `receipt_kind`) — with a read-only integrity re-check, human-review pointers, and known limitations |
+
+---
+
 ## Core Editing (35 tools)
 
 | Tool | Description |
@@ -59,7 +77,7 @@ Plan video generation like a director of photography before rendering. These too
 | `video_generate_subtitles` | Create SRT from text entries, optionally burn in |
 | `video_watermark` | Add image watermark with validated opacity and positioning |
 | `video_overlay` | Picture-in-picture overlay with opacity and timing guardrails |
-| `video_composite_layers` | Spec-driven ordered image/video layer compositing with transforms, timing windows, masks/mattes, dry-run plans, and deterministic receipts |
+| `video_composite_layers` | Spec-driven ordered image/video layer compositing with transforms, timing windows, masks/mattes, full-canvas blend modes (multiply/screen/overlay/darken/lighten), rotation with a `pivot` reference point, dry-run plans, and deterministic `layer_plan` v2 receipts (video-only output) |
 | `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
 | `video_edit` | Full timeline-based edit from JSON DSL |
 | `video_create_from_images` | Create video from image sequence |

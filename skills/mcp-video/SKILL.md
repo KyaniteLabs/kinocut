@@ -13,6 +13,7 @@ Use mcp-video when an agent needs a structured video-editing surface instead of 
 - Read `../../docs/CLI_REFERENCE.md` for command names and flags.
 - Read `../../docs/TOOLS.md` for MCP tool coverage.
 - Read `../../docs/PYTHON_CLIENT.md` when scripting multi-step workflows.
+- Read `../../docs/WORKFLOWS.md` for the agent workflow engine (job-spec, `@refs`, variants, resume, receipts).
 - Run `mcp-video doctor` before media work that depends on FFmpeg, Hyperframes, image tools, or AI dependencies.
 
 ## Choose A Surface
@@ -31,11 +32,25 @@ Plan-first flow:
 
 1. Write a JSON spec with `canvas`, ordered `layers`, and explicit output.
 2. Run `mcp-video composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json`.
-3. Inspect the layer plan for source hashes, filtergraph hash, transforms, timing windows, and masks.
+3. Inspect the layer plan for source hashes, filtergraph hash, transforms, rotation/pivot, blend modes, timing windows, and masks.
 4. Render only after the plan looks right.
 5. Run `video-quality-check`, `storyboard` or `thumbnail`, and `video_release_checkpoint`.
 
-Do not use `composite-layers` as a full NLE replacement. Expanded blend modes, rotation, per-layer effect routing, and external editor adapters belong to later phases unless the repo documents them as supported.
+The compositor now also supports **full-canvas** blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point; the `layer_plan` receipt is v2. A non-`normal` blend layer must be full-canvas (else `unsupported_blend_geometry`), output is video-only, and the existing `anchor` stays a position alias distinct from `pivot`. Still deferred and fail-closed: positioned/scaled/masked/timed blend, rotation + mask, per-layer effect routing, audio compositing, and full NLE adapters. Do not use `composite-layers` as a full NLE replacement.
+
+## Agent Workflow Engine
+
+When the edit is a multi-step job (not a single tool call), use the workflow engine to plan, validate, render, recover, and prove it from one JSON job-spec — through `video_workflow_*` (MCP), `workflow-*` (CLI), or `Client.workflow_*` (Python). Ops are a small allowlist (`probe | trim | resize | convert | merge | add_text`) mapped 1:1 to vetted engines; media references are symbolic (`@sources.*`, `@work/*`, `@outputs.*`) and workspace-confined; everything fails closed. See `../../docs/WORKFLOWS.md`.
+
+Plan → validate → render → inspect → resume:
+
+1. `workflow-validate --spec job.json` — cheap structural gate; renders nothing.
+2. `workflow-plan --spec job.json --save-plan plan.json` — dry-run op graph + source probes/hashes; renders zero media.
+3. `workflow-render --spec job.json --save-receipt receipt.json` — execute sequentially; emit a provenance receipt (per-step hashes, cleanup manifest, determinism caveat). Add `--all-variants` for batch variants.
+4. `workflow-inspect --receipt receipt.json` — read-only integrity re-check + human-review pointers before trusting a receipt.
+5. `workflow-render --spec job.json --resume receipt.json` — resume a job that failed with intermediates kept (fail-closed on a changed spec).
+
+Receipts store workspace-relative paths only — keep specs and example receipts free of home paths, usernames, and tokens.
 
 ## Workflow
 

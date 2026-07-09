@@ -1,0 +1,22 @@
+{
+  "schema_version": 1,
+  "name": "captioned-vertical-short",
+  "sources": {
+    "hero": { "path": "input/hero.mp4" }
+  },
+  "steps": [
+    { "id": "probe-hero", "op": "probe", "inputs": { "src": "@sources.hero" } },
+    { "id": "trim-hero", "op": "trim", "inputs": { "src": "@sources.hero" },
+      "params": { "start": 0, "duration": 6 }, "output": "@work/hero_trim.mp4" },
+    { "id": "vertical", "op": "resize", "inputs": { "src": "@work/hero_trim.mp4" },
+      "params": { "width": 1080, "height": 1920 }, "output": "@work/hero_vertical.mp4" },
+    { "id": "caption", "op": "add_text", "inputs": { "src": "@work/hero_vertical.mp4" },
+      "params": { "text": "Watch this", "position": "bottom-center" }, "output": "@outputs.master" }
+  ],
+  "outputs": {
+    "master": { "path": "output/final.mp4" }
+  },
+  "variants": [
+    { "id": "square", "overrides": { "steps.vertical.params": { "width": 1080, "height": 1080 } } }
+  ]
+}
