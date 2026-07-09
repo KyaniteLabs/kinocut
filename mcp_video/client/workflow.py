@@ -2,7 +2,30 @@
 
 from __future__ import annotations
 
+import json
+import os
+import tempfile
+from collections.abc import Iterator
+from contextlib import contextmanager
 from typing import Any
+
+
+@contextmanager
+def _spec_path_from(spec: str | dict) -> Iterator[str]:
+    """Yield a filesystem spec path for ``spec`` (dict specs are materialized).
+
+    A dict spec is written to a short-lived temp file so the validator/planner
+    can resolve @sources/@outputs relative to a real directory. A str spec is
+    yielded unchanged. (Render does NOT accept dicts — see ``workflow_render``.)
+    """
+    if isinstance(spec, dict):
+        with tempfile.TemporaryDirectory(prefix="mcp_video_workflow_") as tmpdir:
+            spec_path = os.path.join(tmpdir, "workflow.json")
+            with open(spec_path, "w", encoding="utf-8") as handle:
+                json.dump(spec, handle)
+            yield spec_path
+    else:
+        yield spec
 
 
 class ClientWorkflowMixin:
@@ -22,17 +45,8 @@ class ClientWorkflowMixin:
         """
         from ..workflow import validate_workflow_spec
 
-        if isinstance(spec, dict):
-            import json
-            import os
-            import tempfile
-
-            with tempfile.TemporaryDirectory(prefix="mcp_video_workflow_") as tmpdir:
-                spec_path = os.path.join(tmpdir, "workflow.json")
-                with open(spec_path, "w", encoding="utf-8") as handle:
-                    json.dump(spec, handle)
-                return validate_workflow_spec(spec_path)
-        return validate_workflow_spec(spec)
+        with _spec_path_from(spec) as spec_path:
+            return validate_workflow_spec(spec_path)
 
     def workflow_plan(
         self, spec: str | dict, save_plan: str | None = None, variant: str | None = None
@@ -61,17 +75,8 @@ class ClientWorkflowMixin:
         """
         from ..workflow import plan_workflow
 
-        if isinstance(spec, dict):
-            import json
-            import os
-            import tempfile
-
-            with tempfile.TemporaryDirectory(prefix="mcp_video_workflow_") as tmpdir:
-                spec_path = os.path.join(tmpdir, "workflow.json")
-                with open(spec_path, "w", encoding="utf-8") as handle:
-                    json.dump(spec, handle)
-                return plan_workflow(spec_path, save_plan, variant)
-        return plan_workflow(spec, save_plan, variant)
+        with _spec_path_from(spec) as spec_path:
+            return plan_workflow(spec_path, save_plan, variant)
 
     def workflow_render(
         self,
@@ -105,8 +110,13 @@ class ClientWorkflowMixin:
         are skipped, and the first step failing any check plus everything after it
         re-runs.
 
+        Unlike validate/plan, ``spec`` MUST be a file path: rendering resolves
+        ``@sources``/``@outputs`` and writes intermediates relative to the spec's
+        directory, so a dict materialized into a temp dir would fail to find its
+        sources and would delete its outputs when the temp dir is torn down.
+
         Args:
-            spec: Path to a workflow job-spec JSON file, or the spec as a dict.
+            spec: Path to a workflow job-spec JSON file (a dict is rejected).
             resume_receipt: Optional path to a prior render receipt to resume from.
             save_receipt: Optional path to write the workflow receipt as JSON.
             keep_intermediates: Retain @work intermediates even on success.
@@ -119,28 +129,24 @@ class ClientWorkflowMixin:
             summary (``{"receipt_kind": "workflow_batch", ...}``) for all_variants.
 
         Raises:
-            MCPVideoError: on any structural violation or failing step (fail-closed).
+            MCPVideoError: if ``spec`` is a dict, or on any structural violation or
+                failing step (fail-closed).
         """
+        from ..errors import MCPVideoError
         from ..workflow import render_workflow
 
         if isinstance(spec, dict):
-            import json
-            import os
-            import tempfile
-
-            with tempfile.TemporaryDirectory(prefix="mcp_video_workflow_") as tmpdir:
-                spec_path = os.path.join(tmpdir, "workflow.json")
-                with open(spec_path, "w", encoding="utf-8") as handle:
-                    json.dump(spec, handle)
-                return render_workflow(
-                    spec_path,
-                    resume_receipt,
-                    save_receipt,
-                    keep_intermediates,
-                    variant,
-                    all_variants,
-                    save_receipt_dir,
-                )
+            raise MCPVideoError(
+                "workflow_render requires a spec FILE PATH, not a dict: sources and outputs must "
+                "resolve in a durable workspace directory. Write the spec to a .json file first, or "
+                "use workflow_validate/workflow_plan (which accept a dict) for dry checks.",
+                error_type="validation_error",
+                code="invalid_workflow_spec",
+                suggested_action={
+                    "auto_fix": False,
+                    "description": "Pass a path to a workflow job-spec .json file for render.",
+                },
+            )
         return render_workflow(
             spec,
             resume_receipt,

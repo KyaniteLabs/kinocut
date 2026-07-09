@@ -20,6 +20,7 @@ INVALID_WORKFLOW_RECEIPT = "invalid_workflow_receipt"
 RESUME_SPEC_MISMATCH = "resume_spec_mismatch"
 INVALID_WORKFLOW_VARIANT = "invalid_workflow_variant"
 RESUME_VARIANT_MISMATCH = "resume_variant_mismatch"
+WORKFLOW_STEP_FAILED = "workflow_step_failed"
 
 _DEFAULT_ACTIONS = {
     INVALID_WORKFLOW_SPEC: "Fix the workflow spec structure to match the documented job-spec schema and retry.",
@@ -45,6 +46,10 @@ _DEFAULT_ACTIONS = {
     RESUME_VARIANT_MISMATCH: (
         "Resume only against a receipt for the SAME variant; render each variant into its own receipt "
         "and resume that variant's receipt."
+    ),
+    WORKFLOW_STEP_FAILED: (
+        "A workflow step's engine raised an unexpected error; inspect the step's recorded error, fix the "
+        "step inputs/params, and re-run (kept intermediates allow --resume)."
     ),
 }
 

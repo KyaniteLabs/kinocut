@@ -35,9 +35,11 @@ from ..ffmpeg_helpers import _validate_artifact_path
 from ._errors import (
     INVALID_WORKFLOW_RECEIPT,
     INVALID_WORKFLOW_SPEC,
+    INVALID_WORKFLOW_VARIANT,
     RESUME_SPEC_MISMATCH,
     RESUME_VARIANT_MISMATCH,
     UNSAFE_WORKFLOW_SOURCE,
+    WORKFLOW_STEP_FAILED,
     workflow_error,
 )
 from ._versions import versions
@@ -186,14 +188,15 @@ def _render_one(
         started_at = _utcnow()
         try:
             _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs)
-        except MCPVideoError as exc:
+        except Exception as exc:  # fail closed on ANY engine fault, not only MCPVideoError
+            err = exc if isinstance(exc, MCPVideoError) else _wrap_engine_exception(exc, step, workspace_root)
             steps_receipt.append(
                 _step_entry(
                     step, "failed", input_hashes, output_rel, None, started_at, _utcnow(),
-                    error=_sanitize_error(exc, workspace_root),
+                    error=_sanitize_error(err, workspace_root),
                 )
             )
-            failure = exc
+            failure = err
             failed_index = index
             break
         output_hash = _hash_if_exists(output_abs, hash_cache) if output_abs is not None else None
@@ -272,6 +275,7 @@ def _render_all_variants(
             "all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC
         )
     spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    _reject_variant_output_collisions(spec_path, ids)
     if save_receipt_dir is not None:
         _ensure_receipt_dir(save_receipt_dir)
 
@@ -291,6 +295,28 @@ def _render_all_variants(
         "variants": receipts,
         "status": "completed",
     }
+
+
+def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
+    """Fail closed when two variants resolve an output to the SAME path.
+
+    Auto-naming keeps default outputs distinct per variant, but two variants can
+    each override ``outputs.<id>.path`` to the same file and silently overwrite
+    one another. Precompute every variant's resolved (workspace-relative) output
+    paths and reject any duplicate before rendering starts.
+    """
+    seen: dict[str, str] = {}  # resolved output path -> owning variant id
+    for variant_id in ids:
+        verdict = validate_workflow_spec(spec_path, variant=variant_id)
+        for output_path in verdict["output_paths"].values():
+            prior = seen.get(output_path)
+            if prior is not None:
+                raise workflow_error(
+                    f"variants {prior!r} and {variant_id!r} both write an output to {output_path!r}; "
+                    "give each variant a distinct output path",
+                    INVALID_WORKFLOW_VARIANT,
+                )
+            seen[output_path] = variant_id
 
 
 def _ensure_receipt_dir(save_receipt_dir: str) -> None:
@@ -432,7 +458,21 @@ def _resolve_ref_path(
                 f"internal: @work ref {ref!r} was not produced by an earlier step", INVALID_WORKFLOW_SPEC
             )
         return path
-    return workspace_root / ref
+    # Raw relative ref: re-confine at execution time (a symlink swapped in AFTER
+    # validation could otherwise escape — validate->execute TOCTOU).
+    return _confine_to_workspace(workspace_root / ref, workspace_root, ref)
+
+
+def _confine_to_workspace(candidate: Path, workspace_root: Path, ref: str) -> Path:
+    """Fail closed if ``candidate`` resolves outside ``workspace_root`` (realpath check)."""
+    real = Path(os.path.realpath(candidate))
+    try:
+        real.relative_to(workspace_root)
+    except ValueError:
+        raise workflow_error(
+            f"input ref {ref!r} escapes the workspace root at execution time", UNSAFE_WORKFLOW_SOURCE
+        ) from None
+    return candidate
 
 
 def _hash_inputs(
@@ -616,6 +656,20 @@ def _resume_cursor(steps: list[dict[str, Any]]) -> dict[str, str | None]:
         elif next_step is None and step["status"] in ("failed", "pending"):
             next_step = step["id"]
     return {"last_completed_step": last_completed, "next_step": next_step}
+
+
+def _wrap_engine_exception(exc: Exception, step: WorkflowStep, workspace_root: Path) -> MCPVideoError:
+    """Wrap an arbitrary engine exception as a fail-closed ``MCPVideoError``.
+
+    Type confusion is caught earlier by param-value validation (S2); this is the
+    depth layer for any OTHER runtime fault an engine may raise (RuntimeError,
+    AttributeError, ...). The message is workspace-sanitized so a receipt or MCP
+    envelope never leaks the absolute workspace path.
+    """
+    message = _strip_workspace(
+        f"step {step.id!r} ({step.op}) failed: {type(exc).__name__}: {exc}", workspace_root
+    )
+    return workflow_error(message, WORKFLOW_STEP_FAILED)
 
 
 def _sanitize_error(exc: MCPVideoError, workspace_root: Path) -> dict[str, Any]:
