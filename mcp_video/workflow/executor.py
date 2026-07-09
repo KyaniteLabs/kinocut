@@ -31,8 +31,15 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import MCPVideoError
-from ._errors import INVALID_WORKFLOW_SPEC, workflow_error
+from ._errors import (
+    INVALID_WORKFLOW_RECEIPT,
+    INVALID_WORKFLOW_SPEC,
+    RESUME_SPEC_MISMATCH,
+    UNSAFE_WORKFLOW_SOURCE,
+    workflow_error,
+)
 from ._versions import versions
+from .inspector import read_receipt
 from .ops import OP_ADAPTERS, OpAdapter
 from .planner import _hash_if_exists, _iter_step_refs, _probe_source
 from .spec import WorkflowStep, load_spec, parse_spec, validate_spec_path
@@ -48,7 +55,9 @@ _RENDER_DETERMINISM_SCOPE = (
 _CLEANUP_POLICY = "clean-on-success"
 
 
-def render_workflow(spec_path: str, save_receipt: str | None = None) -> dict[str, Any]:
+def render_workflow(
+    spec_path: str, resume_receipt: str | None = None, save_receipt: str | None = None
+) -> dict[str, Any]:
     """Execute a validated workflow job-spec sequentially and return the receipt.
 
     Validates ``spec_path`` first (fail-closed via the structural validator),
@@ -56,6 +65,18 @@ def render_workflow(spec_path: str, save_receipt: str | None = None) -> dict[str
     every consumed input and each produced output. Intermediates are written to
     a per-invocation ``@work`` directory and cleaned on success (kept on
     failure). Optionally writes the receipt JSON to ``save_receipt``.
+
+    ``resume_receipt`` is a prior render receipt (from a job that failed with its
+    intermediates kept). Resume is fail-closed per §5a: the current ``spec_hash``
+    MUST equal the receipt's or it is a different job (``resume_spec_mismatch``).
+    A step is SKIPPED (reused) iff its prior status is ``completed`` AND its
+    recorded input hashes still match the current inputs AND (for output-producing
+    ops) its recorded output file still exists and re-hashes to the recorded
+    ``output_hash``. These are INTEGRITY checks on persisted intermediates, never
+    determinism claims. The FIRST step failing any check is the resume point; it
+    and every step after it re-run. The prior run's ``@work`` directory is reused
+    so kept intermediates are found (a missing dir/file simply fails the checks
+    and re-runs — that IS the mechanism).
 
     Fail-closed: the first step whose engine raises ``MCPVideoError`` aborts the
     job; the failure is recorded on the receipt (which is still written to
@@ -69,7 +90,13 @@ def render_workflow(spec_path: str, save_receipt: str | None = None) -> dict[str
 
     source_paths: dict[str, str] = verdict["source_paths"]
     output_paths: dict[str, str] = verdict["output_paths"]
-    run_dir_rel, run_dir_abs = _make_run_dir(workspace_root, spec_hash)
+
+    resuming = resume_receipt is not None
+    if resuming:
+        prior_by_id, run_dir_rel, run_dir_abs = _load_resume(resume_receipt, spec_hash, workspace_root)
+    else:
+        prior_by_id = {}
+        run_dir_rel, run_dir_abs = _make_run_dir(workspace_root, spec_hash)
 
     hash_cache: dict[str, str | None] = {}
     work_paths: dict[str, Path] = {}  # @work name -> absolute path on disk
@@ -79,14 +106,34 @@ def render_workflow(spec_path: str, save_receipt: str | None = None) -> dict[str
     intermediates: list[str] = []
     failure: MCPVideoError | None = None
     failed_index = -1
+    still_reusing = resuming
+    resumed_from: str | None = None
 
     for index, step in enumerate(spec.steps):
         adapter = OP_ADAPTERS[step.op]
         output_rel, output_abs = _resolve_output(
             step.output, workspace_root, run_dir_rel, run_dir_abs, output_paths, work_paths
         )
-        started_at = _utcnow()
         input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache)
+
+        if still_reusing and _step_reusable(prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache):
+            prior = prior_by_id[step.id]
+            output_hash = _hash_if_exists(output_abs, hash_cache) if output_abs is not None else None
+            if output_rel is not None and output_rel.startswith(run_dir_rel + "/"):
+                intermediates.append(output_rel)
+            steps_receipt.append(
+                _step_entry(
+                    step, "completed", input_hashes, output_rel, output_hash,
+                    prior.get("started_at"), prior.get("ended_at"), skipped=True,
+                )
+            )
+            continue
+
+        if still_reusing:  # first step that could not be reused = the resume point
+            still_reusing = False
+            resumed_from = step.id
+
+        started_at = _utcnow()
         try:
             _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs)
         except MCPVideoError as exc:
@@ -132,7 +179,8 @@ def render_workflow(spec_path: str, save_receipt: str | None = None) -> dict[str
         "resume_cursor": _resume_cursor(steps_receipt),
         "feature_flags": {
             "variants": bool(verdict["variants"]),
-            "resume_used": False,
+            "resume_used": resuming,
+            "resumed_from": resumed_from,
             "ops": [step.op for step in spec.steps],
         },
         "warnings": [],
@@ -147,6 +195,72 @@ def render_workflow(spec_path: str, save_receipt: str | None = None) -> dict[str
         raise failure
 
     return receipt
+
+
+# --- Resume ------------------------------------------------------------------
+
+
+def _load_resume(
+    resume_receipt: str, spec_hash: str, workspace_root: Path
+) -> tuple[dict[str, dict[str, Any]], str, Path]:
+    """Load + gate a prior receipt for resume (fail-closed per §5a).
+
+    Enforces the spec_hash gate (a changed spec is a different job) and reuses the
+    prior run's ``@work`` directory so kept intermediates are found. Returns
+    ``(prior_steps_by_id, work_dir_rel, work_dir_abs)``.
+    """
+    prior = read_receipt(resume_receipt)  # raises invalid_workflow_receipt on unreadable/malformed JSON
+    prior_hash = prior.get("spec_hash")
+    if prior_hash != spec_hash:
+        raise workflow_error(
+            f"resume receipt spec_hash {prior_hash!r} does not match the current spec_hash {spec_hash!r}; "
+            "this is a different job",
+            RESUME_SPEC_MISMATCH,
+        )
+    prior_steps = prior.get("steps")
+    if not isinstance(prior_steps, list):
+        raise workflow_error("resume receipt has no step list to resume from", INVALID_WORKFLOW_RECEIPT)
+    prior_by_id = {s["id"]: s for s in prior_steps if isinstance(s, dict) and s.get("id")}
+    work_dir_rel = prior.get("work_dir")
+    if not isinstance(work_dir_rel, str) or not work_dir_rel:
+        raise workflow_error("resume receipt is missing the work_dir to resume into", INVALID_WORKFLOW_RECEIPT)
+    run_dir_abs = Path(os.path.realpath(workspace_root / work_dir_rel))
+    try:
+        run_dir_abs.relative_to(workspace_root)
+    except ValueError:
+        raise workflow_error(
+            "resume receipt work_dir escapes the workspace root", UNSAFE_WORKFLOW_SOURCE
+        ) from None
+    run_dir_abs.mkdir(parents=True, exist_ok=True)  # recreated if the prior dir was deleted (steps then re-run)
+    return prior_by_id, work_dir_rel, run_dir_abs
+
+
+def _step_reusable(
+    prior: dict[str, Any] | None,
+    adapter: OpAdapter,
+    current_input_hashes: dict[str, str | None],
+    output_abs: Path | None,
+    hash_cache: dict[str, str | None],
+) -> bool:
+    """Skip-iff gate (§5a.2): reuse a step only when its product is still valid.
+
+    ALL must hold: the prior step was ``completed`` AND its recorded input hashes
+    still match the current inputs AND — for output-producing ops — its recorded
+    output file still exists and re-hashes to the recorded ``output_hash``.
+    Inspection ops (e.g. ``probe``) persist no output file, so they are reusable
+    on an input-hash match alone. Any mismatch (tampered/absent intermediate,
+    changed input) fails the gate so the step re-runs.
+    """
+    if prior is None or prior.get("status") != "completed":
+        return False
+    if prior.get("input_hashes") != current_input_hashes:
+        return False
+    if not adapter.has_output:
+        return True
+    if output_abs is None or not output_abs.is_file():
+        return False
+    current = _hash_if_exists(output_abs, hash_cache)
+    return current is not None and current == prior.get("output_hash")
 
 
 # --- Step execution ----------------------------------------------------------
@@ -338,8 +452,14 @@ def _step_entry(
     ended_at: str | None,
     *,
     error: dict[str, Any] | None = None,
+    skipped: bool = False,
 ) -> dict[str, Any]:
-    """Build one receipt step entry (adds ``error`` only for a failed step)."""
+    """Build one receipt step entry.
+
+    Adds ``error`` only for a failed step and ``skipped: true`` only for a step
+    reused on resume (its status stays ``completed`` per §5a); a normal render
+    emits neither key, so the Story-3 step-field set is unchanged.
+    """
     entry: dict[str, Any] = {
         "id": step.id,
         "op": step.op,
@@ -353,6 +473,8 @@ def _step_entry(
     }
     if error is not None:
         entry["error"] = error
+    if skipped:
+        entry["skipped"] = True
     return entry
 
 

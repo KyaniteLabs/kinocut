@@ -26,5 +26,14 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     wf_render.add_argument("--spec", required=True, help="Path to the workflow job-spec JSON file")
     wf_render.add_argument(
+        "--resume", default=None, help="Optional path to a prior render receipt to resume from"
+    )
+    wf_render.add_argument(
         "--save-receipt", default=None, help="Optional path to write the workflow receipt as JSON"
     )
+
+    wf_inspect = subparsers.add_parser(
+        "workflow-inspect",
+        help="Summarize any workflow/layer_plan receipt with a read-only integrity check",
+    )
+    wf_inspect.add_argument("--receipt", required=True, help="Path to the receipt JSON file to inspect")

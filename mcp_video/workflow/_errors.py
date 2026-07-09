@@ -16,6 +16,8 @@ UNKNOWN_WORKFLOW_REF = "unknown_workflow_ref"
 UNSUPPORTED_WORKFLOW_OP = "unsupported_workflow_op"
 UNSAFE_WORKFLOW_SOURCE = "unsafe_workflow_source"
 INVALID_WORKFLOW_PARAMS = "invalid_workflow_params"
+INVALID_WORKFLOW_RECEIPT = "invalid_workflow_receipt"
+RESUME_SPEC_MISMATCH = "resume_spec_mismatch"
 
 _DEFAULT_ACTIONS = {
     INVALID_WORKFLOW_SPEC: "Fix the workflow spec structure to match the documented job-spec schema and retry.",
@@ -27,6 +29,13 @@ _DEFAULT_ACTIONS = {
         "Use a relative path that stays inside the spec's workspace directory (no absolute paths or ../ escapes)."
     ),
     INVALID_WORKFLOW_PARAMS: "Remove params the target engine does not accept; see the op's engine signature.",
+    INVALID_WORKFLOW_RECEIPT: (
+        "Point at a receipt this project emitted (workflow render/plan or layer_plan); the file must be readable JSON."
+    ),
+    RESUME_SPEC_MISMATCH: (
+        "Resume only against a receipt whose spec_hash matches the current spec; a changed spec is a different job "
+        "(re-run without --resume to start fresh)."
+    ),
 }
 
 

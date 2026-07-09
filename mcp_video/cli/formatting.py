@@ -112,6 +112,31 @@ def _format_workflow_render(result: Any) -> None:
     _format_success_panel(lines, title="Workflow Render", border_style="green")
 
 
+def _format_workflow_inspect(result: Any) -> None:
+    """Display a normalized receipt inspection as a success panel."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    status = data.get("status") or {}
+    summary = (data.get("integrity") or {}).get("summary") or {}
+    review = data.get("human_review") or []
+    lines = [
+        f"[bold green]Kind:[/bold green] {escape(str(data.get('kind')))}",
+        f"[bold green]Tool:[/bold green] {escape(str(data.get('tool')))}",
+        f"[bold green]Schema version:[/bold green] {data.get('schema_version')}",
+        f"[bold green]Status:[/bold green] {escape(str(status.get('overall')))}",
+        f"[bold green]Outputs:[/bold green] {len(data.get('outputs', []))}",
+        f"[bold green]Integrity:[/bold green] {summary.get('matched', 0)}/{summary.get('checked', 0)} match"
+        f" ({summary.get('mismatched', 0)} mismatched, {summary.get('missing', 0)} missing)",
+    ]
+    if status.get("failed_step"):
+        lines.append(f"[bold red]Failed step:[/bold red] {escape(str(status['failed_step']))}")
+    if review:
+        lines.append(f"[yellow]Human review ({len(review)}):[/yellow]")
+        for note in review[:5]:
+            lines.append(f"  - {escape(str(note))}")
+    border = "yellow" if (review or summary.get("mismatched") or summary.get("missing")) else "green"
+    _format_success_panel(lines, title="Workflow Inspect", border_style=border)
+
+
 def _format_info_text(info: Any) -> None:
     """Display video info as a rich table."""
     table = Table(title="Video Info", show_header=False, border_style="blue")

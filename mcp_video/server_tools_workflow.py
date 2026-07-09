@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .server_app import _result, _safe_tool, mcp
-from .workflow import plan_workflow, render_workflow, validate_workflow_spec
+from .workflow import inspect_receipt, plan_workflow, render_workflow, validate_workflow_spec
 
 
 @mcp.tool()
@@ -59,7 +59,9 @@ def video_workflow_plan(spec_path: str, save_plan: str | None = None) -> dict[st
 
 @mcp.tool()
 @_safe_tool
-def video_workflow_render(spec_path: str, save_receipt: str | None = None) -> dict[str, Any]:
+def video_workflow_render(
+    spec_path: str, resume_receipt: str | None = None, save_receipt: str | None = None
+) -> dict[str, Any]:
     """Execute an agent workflow job-spec and return a provenance receipt.
 
     Validates the spec first (fail-closed), then runs each allowlisted op
@@ -67,6 +69,13 @@ def video_workflow_render(spec_path: str, save_receipt: str | None = None) -> di
     backing engine functions. Intermediates are written to a per-run ``@work``
     directory unique to this invocation and cleaned on success (kept on failure);
     final media lands at the declared ``@outputs`` paths.
+
+    Pass ``resume_receipt`` (a prior render receipt from a job that failed with its
+    intermediates kept) to RESUME: the current spec_hash must equal the receipt's
+    (else fail-closed ``resume_spec_mismatch``); each step whose recorded status is
+    ``completed`` AND whose recorded input hashes still match AND whose recorded
+    output file still exists and re-hashes to the recorded hash is SKIPPED, and the
+    first step failing any check plus everything after it re-runs.
 
     Returns a workflow receipt (``receipt_kind: "workflow"``) capturing tool +
     FFmpeg versions, the spec hash, per-source probes/hashes, per-step status with
@@ -77,6 +86,31 @@ def video_workflow_render(spec_path: str, save_receipt: str | None = None) -> di
 
     Args:
         spec_path: Absolute path to the workflow job-spec JSON file.
+        resume_receipt: Optional path to a prior render receipt to resume from.
         save_receipt: Optional path to write the workflow receipt as JSON.
     """
-    return _result(render_workflow(spec_path, save_receipt))
+    return _result(render_workflow(spec_path, resume_receipt, save_receipt))
+
+
+@mcp.tool()
+@_safe_tool
+def video_workflow_inspect(receipt_path: str) -> dict[str, Any]:
+    """Summarize any receipt this project emits, with a read-only integrity check.
+
+    Reads a workflow render receipt, a dry-run ``workflow_plan`` artifact, or a
+    ``layer_plan`` receipt (v1 legacy with NO ``receipt_kind`` field, or v2) at
+    ``receipt_path`` and returns a NORMALIZED inspection: the kind (inferred from
+    the ``tool`` field when ``receipt_kind`` is absent, per legacy tolerance),
+    schema_version, tool, versions, a status summary (per-step statuses, failed
+    step + error if any), a hash presence/integrity report (which recorded
+    source/output hashes still match the bytes on disk NOW — a read-only re-check),
+    outputs, warnings, cleanup state, plus human-review pointers and known
+    limitations.
+
+    Nothing is rendered or modified. A malformed/unreadable receipt fails closed
+    with ``invalid_workflow_receipt``.
+
+    Args:
+        receipt_path: Absolute path to the receipt JSON file to inspect.
+    """
+    return _result(inspect_receipt(receipt_path))
