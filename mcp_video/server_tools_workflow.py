@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .server_app import _result, _safe_tool, mcp
-from .workflow import plan_workflow, validate_workflow_spec
+from .workflow import plan_workflow, render_workflow, validate_workflow_spec
 
 
 @mcp.tool()
@@ -55,3 +55,28 @@ def video_workflow_plan(spec_path: str, save_plan: str | None = None) -> dict[st
         save_plan: Optional path to write the plan artifact as JSON.
     """
     return _result(plan_workflow(spec_path, save_plan))
+
+
+@mcp.tool()
+@_safe_tool
+def video_workflow_render(spec_path: str, save_receipt: str | None = None) -> dict[str, Any]:
+    """Execute an agent workflow job-spec and return a provenance receipt.
+
+    Validates the spec first (fail-closed), then runs each allowlisted op
+    (probe|trim|resize|convert|merge|add_text) SEQUENTIALLY in spec order via the
+    backing engine functions. Intermediates are written to a per-run ``@work``
+    directory unique to this invocation and cleaned on success (kept on failure);
+    final media lands at the declared ``@outputs`` paths.
+
+    Returns a workflow receipt (``receipt_kind: "workflow"``) capturing tool +
+    FFmpeg versions, the spec hash, per-source probes/hashes, per-step status with
+    real sha256 hashes of every consumed input and produced output, the cleanup
+    manifest, and the determinism-scope caveat. On the first failing step it fails
+    closed: the failure is recorded on the receipt (still written to
+    ``save_receipt`` when given) and surfaced as a structured error.
+
+    Args:
+        spec_path: Absolute path to the workflow job-spec JSON file.
+        save_receipt: Optional path to write the workflow receipt as JSON.
+    """
+    return _result(render_workflow(spec_path, save_receipt))

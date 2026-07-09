@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from .formatting import _format_workflow_plan, _format_workflow_validation
+from .formatting import _format_workflow_plan, _format_workflow_render, _format_workflow_validation
 from .runner import CommandRunner, _out
 
 
@@ -27,5 +27,13 @@ def handle_workflow_commands(args: Any, *, use_json: bool) -> bool:
         _out(result, j, _format_workflow_plan)
 
     runner.register("workflow-plan", _workflow_plan)
+
+    def _workflow_render(a, j):
+        from ..workflow import render_workflow
+
+        result = render_workflow(a.spec, a.save_receipt)
+        _out(result, j, _format_workflow_render)
+
+    runner.register("workflow-render", _workflow_render)
 
     return runner.dispatch()

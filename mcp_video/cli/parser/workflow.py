@@ -19,3 +19,12 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     wf_plan.add_argument("--spec", required=True, help="Path to the workflow job-spec JSON file")
     wf_plan.add_argument("--save-plan", default=None, help="Optional path to write the plan artifact as JSON")
+
+    wf_render = subparsers.add_parser(
+        "workflow-render",
+        help="Execute a workflow job-spec sequentially and emit a provenance receipt",
+    )
+    wf_render.add_argument("--spec", required=True, help="Path to the workflow job-spec JSON file")
+    wf_render.add_argument(
+        "--save-receipt", default=None, help="Optional path to write the workflow receipt as JSON"
+    )

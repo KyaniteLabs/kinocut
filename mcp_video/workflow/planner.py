@@ -20,14 +20,12 @@ from __future__ import annotations
 import hashlib
 import json
 import os
-import re
-import subprocess
 from pathlib import Path
 from typing import Any
 
-from .. import __version__ as _MCP_VIDEO_VERSION
 from ..errors import MCPVideoError
 from ._errors import INVALID_WORKFLOW_SPEC, workflow_error
+from ._versions import versions
 from .spec import validate_spec_path
 from .validator import validate_workflow_spec
 
@@ -36,9 +34,6 @@ _WORK_PREFIX = "@work/"
 _RENDER_DETERMINISM_SCOPE = (
     "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds"
 )
-
-_ffmpeg_version_cache: str | None = None
-_ffmpeg_version_probed = False
 
 
 def plan_workflow(spec_path: str, save_plan: str | None = None) -> dict[str, Any]:
@@ -66,7 +61,7 @@ def plan_workflow(spec_path: str, save_plan: str | None = None) -> dict[str, Any
         "schema_version": verdict["schema_version"],
         "receipt_kind": "workflow_plan",
         "tool": "video_workflow_plan",
-        "versions": {"mcp_video": _MCP_VIDEO_VERSION, "ffmpeg": _ffmpeg_version()},
+        "versions": versions(),
         "spec_hash": "sha256:" + hashlib.sha256(spec_bytes).hexdigest(),
         "workflow": {"name": verdict["name"], "variant": None},
         "sources": sources,
@@ -221,21 +216,3 @@ def _write_plan(plan: dict[str, Any], save_plan: str) -> None:
     if "\x00" in save_plan:
         raise workflow_error("save_plan path contains null bytes", INVALID_WORKFLOW_SPEC)
     Path(save_plan).write_text(json.dumps(plan, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-
-def _ffmpeg_version() -> str | None:
-    """Probe the runtime FFmpeg version token (e.g. ``7.1.1``), memoized."""
-    global _ffmpeg_version_cache, _ffmpeg_version_probed
-    if _ffmpeg_version_probed:
-        return _ffmpeg_version_cache
-    _ffmpeg_version_probed = True
-    command = ["ffmpeg", "-version"]
-    try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=10)  # noqa: S603
-    except (OSError, subprocess.SubprocessError):
-        _ffmpeg_version_cache = None
-        return None
-    first_line = (result.stdout or result.stderr or "").splitlines()[:1]
-    match = re.search(r"ffmpeg version (\S+)", first_line[0], re.IGNORECASE) if first_line else None
-    _ffmpeg_version_cache = match.group(1) if match else None
-    return _ffmpeg_version_cache

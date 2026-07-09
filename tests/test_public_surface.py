@@ -147,6 +147,7 @@ EXPECTED_CLI_COMMANDS = {
     "image-analyze-product",
     "workflow-validate",
     "workflow-plan",
+    "workflow-render",
 }
 
 EXPECTED_SERVER_TOOLS = {
@@ -257,6 +258,7 @@ EXPECTED_SERVER_TOOLS = {
     "video_duck_audio",
     "video_workflow_validate",
     "video_workflow_plan",
+    "video_workflow_render",
 }
 
 
@@ -274,7 +276,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 101
+    assert len(EXPECTED_CLI_COMMANDS) == 102
 
 
 def test_agent_cookbook_dry_run():
@@ -296,7 +298,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 122
+    assert len(tool_names) == 123
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -321,7 +323,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "mcp-video"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 122
+        assert len(tool_names) == 123
 
     asyncio.run(check_server())
 

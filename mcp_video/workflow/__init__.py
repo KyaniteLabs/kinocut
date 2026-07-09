@@ -2,8 +2,9 @@
 
 Story 1 ships the ordered-list job-spec model and the fail-closed structural
 validator (op allowlist, @ref resolution, backward-reference-only ordering,
-per-op param introspection, workspace-confined path safety). Planner, render,
-resume, and inspect land in later stories on top of this spine.
+per-op param introspection, workspace-confined path safety). Story 2 adds the
+dry-run planner; Story 3 adds the sequential render executor + workflow receipt.
+Resume and inspect land in later stories on top of this spine.
 """
 
 from __future__ import annotations
@@ -16,6 +17,7 @@ from ._errors import (
     UNSUPPORTED_WORKFLOW_OP as UNSUPPORTED_WORKFLOW_OP,
     workflow_error as workflow_error,
 )
+from .executor import render_workflow as render_workflow
 from .ops import (
     OP_ADAPTERS as OP_ADAPTERS,
     OP_ALLOWLIST as OP_ALLOWLIST,

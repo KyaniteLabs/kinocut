@@ -94,6 +94,24 @@ def _format_workflow_plan(result: Any) -> None:
     _format_success_panel(lines, title="Workflow Plan", border_style="yellow")
 
 
+def _format_workflow_render(result: Any) -> None:
+    """Display a workflow render receipt as a success panel."""
+    data = result if isinstance(result, dict) else _model_dump(result)
+    workflow = data.get("workflow") or {}
+    steps = data.get("steps", [])
+    completed = sum(1 for step in steps if step.get("status") == "completed")
+    outputs = data.get("outputs", [])
+    cleanup = data.get("cleanup_manifest") or {}
+    lines = [
+        f"[bold green]Workflow:[/bold green] {escape(str(workflow.get('name') or '(unnamed)'))}",
+        f"[bold green]Status:[/bold green] {escape(str(data.get('status')))}",
+        f"[bold green]Steps:[/bold green] {completed}/{len(steps)} completed",
+        f"[bold green]Outputs:[/bold green] {escape(', '.join(o.get('path', '') for o in outputs)) or '(none)'}",
+        f"[bold green]Intermediates cleaned:[/bold green] {cleanup.get('cleaned')}",
+    ]
+    _format_success_panel(lines, title="Workflow Render", border_style="green")
+
+
 def _format_info_text(info: Any) -> None:
     """Display video info as a rich table."""
     table = Table(title="Video Info", show_header=False, border_style="blue")

@@ -65,3 +65,37 @@ class ClientWorkflowMixin:
                     json.dump(spec, handle)
                 return plan_workflow(spec_path, save_plan)
         return plan_workflow(spec, save_plan)
+
+    def workflow_render(self, spec: str | dict, save_receipt: str | None = None) -> dict[str, Any]:
+        """Execute a workflow job-spec sequentially and return the receipt.
+
+        Validates the spec first (fail-closed), runs each allowlisted op in spec
+        order via the backing engine, hashing every consumed input and produced
+        output, and returns a workflow receipt (``receipt_kind: "workflow"``).
+        Intermediates are written to a per-run ``@work`` directory (cleaned on
+        success, kept on failure). Only the optional ``save_receipt`` JSON is
+        written outside the workspace's declared paths.
+
+        Args:
+            spec: Path to a workflow job-spec JSON file, or the spec as a dict.
+            save_receipt: Optional path to write the workflow receipt as JSON.
+
+        Returns:
+            The workflow receipt (``{"receipt_kind": "workflow", ...}``).
+
+        Raises:
+            MCPVideoError: on any structural violation or failing step (fail-closed).
+        """
+        from ..workflow import render_workflow
+
+        if isinstance(spec, dict):
+            import json
+            import os
+            import tempfile
+
+            with tempfile.TemporaryDirectory(prefix="mcp_video_workflow_") as tmpdir:
+                spec_path = os.path.join(tmpdir, "workflow.json")
+                with open(spec_path, "w", encoding="utf-8") as handle:
+                    json.dump(spec, handle)
+                return render_workflow(spec_path, save_receipt)
+        return render_workflow(spec, save_receipt)
