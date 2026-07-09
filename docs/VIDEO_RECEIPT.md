@@ -117,7 +117,7 @@ byte-determinism claims. Paths are workspace-relative. (Hashes abbreviated below
   "schema_version": 1,
   "receipt_kind": "workflow",
   "tool": "video_workflow_render",
-  "versions": { "mcp_video": "1.5.2", "ffmpeg": "8.1" },
+  "versions": { "mcp_video": "1.6.0", "ffmpeg": "8.1" },
   "spec_hash": "sha256:be2f3a9b...",
   "workflow": { "name": "captioned-vertical-short", "variant": null },
   "sources": [
@@ -179,7 +179,7 @@ variant with no cross-variant leakage:
   "schema_version": 1,
   "receipt_kind": "workflow_batch",
   "tool": "video_workflow_render",
-  "versions": { "mcp_video": "1.5.2", "ffmpeg": "8.1" },
+  "versions": { "mcp_video": "1.6.0", "ffmpeg": "8.1" },
   "spec_hash": "sha256:be2f3a9b...",
   "workflow": { "name": "captioned-vertical-short", "variant": null },
   "count": 1,
@@ -233,6 +233,8 @@ catalog. Audio is dropped (`audio_policy: "dropped_video_only"`, `features.audio
 }
 ```
 
-> `output_path` above is shown sanitized/relative; the compositor records the resolved
-> output location. `resolved_src` and `mask` are relative to the spec directory. Keep
-> committed example receipts relative and free of home paths, usernames, or tokens.
+> `output_path`, `resolved_src`, and `mask` are recorded **relative to the spec
+> directory** whenever the file lives inside it (the common workspace case), and stay
+> absolute only for a path the spec explicitly points outside that directory. Internal
+> rendering always uses the resolved absolute location; only the receipt is relativized.
+> Keep committed example receipts relative and free of home paths, usernames, or tokens.

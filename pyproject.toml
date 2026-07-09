@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-video"
-version = "1.5.2"
+version = "1.6.0"
 description = "Guardrailed video editing MCP server for AI agents. FFmpeg, PUSHING CREATION planning, Hyperframes, repurposing tools, Python client, and CLI. Local, fast, free."
 readme = "README.md"
 license = "Apache-2.0"

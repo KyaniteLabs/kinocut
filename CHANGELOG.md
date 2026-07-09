@@ -9,28 +9,35 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
-
-### Removed
-
-- The opt-in anonymous analytics ping (`MCP_VIDEO_ANALYTICS=1`). The endpoint it posted to was never deployed or owned by the project, making the domain claimable by a third party — removed entirely rather than left as a silent no-op.
-- `video_generate_music` and the MiniMax music API integration. A hosted, per-key music API does not belong in a local-first tool; background-music generation moves to a local open-source pipeline (planned: ACE-Step) with mcp-video handling the mixing via `video_duck_audio`.
+## 1.6.0 - 2026-07-09
 
 ### Added
 
+- **Agent workflow engine** — a new `video_workflow_*` MCP tool family (`video_workflow_validate`, `video_workflow_plan`, `video_workflow_render`, `video_workflow_inspect`) plus flat CLI commands (`workflow-validate`, `workflow-plan`, `workflow-render`, `workflow-inspect`) and Python client parity (`Client.workflow_validate/plan/render/inspect`). An agent can define a multi-step local video job as a JSON spec (`schema_version: 1`), validate it cheaply, produce a no-render dry-run plan, render it with a provenance receipt, and inspect that receipt afterward. Steps are an ordered, backward-reference-only list over a fixed 6-op allowlist (`probe`, `trim`, `resize`, `convert`, `merge`, `add_text`), each backed by an existing vetted engine; unknown ops, forward/unknown `@refs`, and workspace-escaping paths fail closed with `MCPVideoError` codes.
+- **Workflow resume, variants, and cleanup** — `video_workflow_render --resume <receipt>` continues a partially-completed job (spec-hash gated; a step is reused only when it is completed AND its output and input hashes still match); `variants[].overrides` emit N outputs from one source/step declaration; intermediates in the job's isolated `@work/` directory are cleaned on success, kept on failure, and `--keep-intermediates` overrides cleanup for inspection.
+- **Compositor full-canvas blend modes** — `composite-layers` / `video_composite_layers` layers accept `blend` values `multiply`, `screen`, `overlay`, `darken`, `lighten`, applied full-canvas via the FFmpeg `blend` filter. Positioned/scaled/masked/timed blend is deferred and fails closed with the new `unsupported_blend_geometry` code; unknown modes fail closed with `unsupported_blend_mode`.
+- **Compositor rotation and pivot** — layers accept `rotation` (degrees, transparent-fill) and a new `pivot` field (`center` default, plus the four corners) setting the rotation/placement reference point. The existing `anchor` position alias is unchanged. Unknown pivots and non-numeric rotation fail closed.
 - `composite-layers` / `video_composite_layers` P2 supports transform sizing, timing windows, mask/matte alpha sources, dry-run layer plans, source/output hashes, and richer render receipts for agent review before publishing.
 - `video_duck_audio`: mix background music under a video's voice with automatic sidechain ducking — the music dips during speech and recovers in pauses. Engine function `duck_audio` with validated `music_volume`, `threshold`, `ratio`, `attack`, and `release` parameters.
 - `video_ai_color_grade` accepts `lut_path` for professional `.cube`/`.3dl` LUT files via FFmpeg `lut3d`, overriding style presets and reference matching.
 - `video_convert` streams MCP progress notifications during long renders, so clients can show a live percentage instead of an apparently hung call.
 - Spanish-language README section (`En español`) and bilingual EN/ES text for the most common errors (FFmpeg missing, file not found).
+- New docs for the release surface: `docs/WORKFLOWS.md` (workflow engine), workflow + layer_plan receipt schemas in `docs/VIDEO_RECEIPT.md`, and a receipt-privacy scan test that fails on any home path, username-in-path, or secret-shaped token in committed docs/examples or freshly produced dry-run/render artifacts.
 
 ### Changed
 
+- **`layer_plan` receipt bumped to `schema_version: 2`** (backward-readable, additive). It gains a `receipt_kind` discriminator (`"layer_plan"`), `transform.rotation`/`transform.pivot` fields, blend/rotation `features` flags, and an explicit `audio_policy: "dropped_video_only"` flag (composite output stays video-only this release; audio compositing is deferred, documented, and receipt-flagged rather than silent). `video_workflow_inspect` reads both new workflow receipts and legacy `receipt_kind`-less v1 layer_plan receipts by inferring the kind.
 - Glitch tools (`glitch_rgb_shift`, `glitch_scanline_jitter`, `glitch_screen_tearing`, `glitch_vhs_tracking`, `glitch_macroblocking`, `glitch_datamoshing`, `glitch_cmyk_split`, `glitch_turbulent_displacement`) now return rich edit metadata in their MCP responses — `duration`, `resolution`, `size_mb`, and `elapsed_ms` — matching the envelope shape of all other edit tools. Previously these tools returned only `success` and `output_path`.
 
 ### Fixed
 
+- The `composite-layers` layer-plan receipt now records `output_path` (and `resolved_src`/`mask`) relative to the spec directory whenever the file lives inside it, instead of emitting the resolved absolute path — a shared or committed receipt no longer leaks the user's home directory. Internal rendering still uses the resolved absolute location; only the receipt is relativized.
 - Removed BasicPitch from declared optional extras and documented it as a manual integration so Dependabot can patch vulnerable TensorFlow/Keras/protobuf transitive dependencies instead of resolving an unsafe pinned stack.
+
+### Removed
+
+- The opt-in anonymous analytics ping (`MCP_VIDEO_ANALYTICS=1`). The endpoint it posted to was never deployed or owned by the project, making the domain claimable by a third party — removed entirely rather than left as a silent no-op.
+- `video_generate_music` and the MiniMax music API integration. A hosted, per-key music API does not belong in a local-first tool; background-music generation moves to a local open-source pipeline (planned: ACE-Step) with mcp-video handling the mixing via `video_duck_audio`.
 
 ## 1.5.2 - 2026-07-06
 

@@ -102,7 +102,7 @@ manifest, all with workspace-relative paths:
 ```json
 {
   "receipt_kind": "workflow",
-  "versions": { "mcp_video": "1.5.2", "ffmpeg": "8.1" },
+  "versions": { "mcp_video": "1.6.0", "ffmpeg": "8.1" },
   "spec_hash": "sha256:be2f3a9b...",
   "steps": [
     { "id": "trim-hero", "op": "trim", "status": "completed",
