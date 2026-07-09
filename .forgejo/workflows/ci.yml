@@ -86,8 +86,12 @@ jobs:
             ffmpeg_tag: autobuild-2025-08-31-13-00
             ffmpeg_asset: ffmpeg-n6.1.3-linux64-gpl-6.1.tar.xz
           - major: "7"
-            ffmpeg_tag: autobuild-2024-09-30-15-36
-            ffmpeg_asset: ffmpeg-n7.1-linux64-gpl-7.1.tar.xz
+            # 7.1.0 (autobuild-2024-09-30) has an upstream `best_input >= 0`
+            # assertion regression (ffmpeg_filter.c) that aborts on the glitch
+            # engine's scale2ref+displace graphs; fixed by 7.1.5. Pin the fixed
+            # frozen build, not the buggy early release.
+            ffmpeg_tag: autobuild-2026-06-25-13-48
+            ffmpeg_asset: ffmpeg-n7.1.5-1-g7d0e842004-linux64-gpl-7.1.tar.xz
           - major: "8"
             ffmpeg_tag: autobuild-2026-06-25-13-48
             ffmpeg_asset: ffmpeg-n8.1.2-linux64-gpl-8.1.tar.xz
