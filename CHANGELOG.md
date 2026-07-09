@@ -11,6 +11,13 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+
+- Audio-only normalization now uses an audio-aware output probe, so valid WAV results no longer fail with a misleading `No video stream found` error. Audio muxing continues to validate audio inputs without video-only warnings.
+- Hyperframes commands normalize a project path once at command entry, preventing relative paths such as `hyperframes` from resolving as `hyperframes/hyperframes`.
+- `audio-compose` now decodes supported non-legacy WAV containers, including `WAVE_FORMAT_EXTENSIBLE`, to canonical mono signed 16-bit PCM at the requested sample rate before mixing.
+- Technical and design quality checks now report shared saturation and contrast metrics with explicit units and availability. `video-quality-check --fail-on-warning` exits nonzero whenever the returned result has `all_passed: false`.
+
 ### Added
 
 - **`composite_layers` workflow op** — the workflow engine's allowlist grows to **7 ops**;

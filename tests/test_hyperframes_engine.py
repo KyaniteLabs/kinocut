@@ -1029,6 +1029,21 @@ class TestHyperframes05Tools:
         assert "--samples" in cmd
         assert "--strict" in cmd
 
+    def test_inspect_normalizes_relative_project_path_once(self, tmp_path, monkeypatch):
+        project = tmp_path / "hyperframes"
+        project.mkdir()
+        (project / "index.html").write_text("<!doctype html><html></html>")
+        monkeypatch.chdir(tmp_path)
+        fake_cp = _make_completed_process(stdout=json.dumps({"issues": []}))
+
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
+            inspect("hyperframes")
+
+        cmd = mock_run.call_args.args[0]
+        project_arg = cmd[cmd.index("inspect") + 1]
+        assert project_arg == str(project.resolve())
+        assert mock_run.call_args.kwargs["cwd"] == str(project.resolve())
+
     def test_capture_forwards_url_and_json(self, tmp_path):
         payload = json.dumps({"projectPath": str(tmp_path / "captured")})
         fake_cp = _make_completed_process(stdout=payload)

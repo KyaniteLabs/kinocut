@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 from .engine_runtime_utils import (
     _build_edit_result,
     _require_filter,
@@ -66,4 +68,6 @@ def normalize_audio(
         output,
         "normalize_audio",
         timing,
+        format=Path(output).suffix.lstrip(".") or "wav",
+        audio_only=True,
     )

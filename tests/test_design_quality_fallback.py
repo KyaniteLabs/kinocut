@@ -72,6 +72,22 @@ class TestGetContrastFallback:
             assert result is None, f"Expected None on subprocess failure, got {result}"
 
 
+class TestSaturationFallback:
+    def test_missing_signalstats_is_explicitly_unavailable(self, guardrails):
+        with patch("mcp_video.design_quality.guardrails.analysis.subprocess.run") as mock_run:
+            mock_run.return_value = FakeCompletedProcess(stderr="no signalstats metadata")
+            color_stats = guardrails._analyze_colors("/tmp/nonexistent.mp4")
+
+        assert color_stats["saturation"] is None
+        assert color_stats["saturation_metric"]["available"] is False
+
+        with patch.object(guardrails, "_analyze_colors", return_value=color_stats):
+            guardrails.issues = []
+            guardrails._check_color("/tmp/nonexistent.mp4")
+
+        assert any("Saturation analysis unavailable" in issue.message for issue in guardrails.issues)
+
+
 class TestTechnicalScoreDoesNotRewardFailure:
     """When luma/contrast analysis fails, technical score must not be perfect."""
 

@@ -29,6 +29,7 @@ def design_quality_check(
         "design_score": report.design_score,
         "hierarchy_score": report.hierarchy_score,
         "motion_score": report.motion_score,
+        "metrics": guardrails.metrics,
         "issues": [
             {
                 "category": i.category,

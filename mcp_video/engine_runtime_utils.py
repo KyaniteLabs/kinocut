@@ -116,6 +116,7 @@ def _build_edit_result(
     timing: dict[str, float | None],
     format: str = "mp4",
     *,
+    audio_only: bool = False,
     progress: float | None = None,
     thumbnail_base64: str | None = None,
 ) -> EditResult:
@@ -124,13 +125,13 @@ def _build_edit_result(
     Eliminates the repeated ``info = probe(output); return EditResult(...)``
     pattern found in ~25 engine functions.
     """
-    from .engine_probe import probe
+    from .engine_probe import probe, probe_audio_input
 
-    info = probe(output_path)
+    info = probe_audio_input(output_path) if audio_only else probe(output_path)
     return EditResult(
         output_path=output_path,
         duration=info.duration,
-        resolution=info.resolution,
+        resolution=None if audio_only else info.resolution,
         size_mb=info.size_mb,
         format=format,
         operation=operation,

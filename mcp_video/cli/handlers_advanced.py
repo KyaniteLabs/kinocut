@@ -59,6 +59,8 @@ def handle_advanced_commands(args: Any, *, use_json: bool) -> bool:
 
         r = _with_spinner("Running quality check...", quality_check, a.input, fail_on_warning=a.fail_on_warning)
         _out(r, j, _format_quality_check)
+        if a.fail_on_warning and not r.get("all_passed", False):
+            raise SystemExit(1)
 
     runner.register("video-quality-check", _quality_check)
 

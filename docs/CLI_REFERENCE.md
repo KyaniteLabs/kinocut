@@ -38,7 +38,7 @@ mcp-video [command] [options]
 | `filter` | Apply visual filter (blur, sharpen, grayscale, ken_burns, etc.) |
 | `blur` | Blur video |
 | `color-grade` | Apply color preset (warm, cool, vintage, etc.) |
-| `normalize-audio` | Normalize audio to LUFS target |
+| `normalize-audio` | Normalize audio-only or video input to a LUFS target |
 | `audio-waveform` | Extract audio waveform data |
 | `reverse` | Reverse video playback |
 | `chroma-key` | Remove solid color background (green screen) |
@@ -92,7 +92,7 @@ mcp-video [command] [options]
 | Command | Description |
 |---------|-------------|
 | `audio-synthesize` | Generate audio from waveform synthesis |
-| `audio-compose` | Layer multiple audio tracks with mixing |
+| `audio-compose` | Layer audio tracks, including PCM WAV in legacy or extensible containers |
 | `audio-preset` | Generate preset sound effects |
 | `audio-sequence` | Compose timed audio event sequence |
 | `audio-effects` | Apply audio effects chain (reverb, lowpass, etc.) |
@@ -194,6 +194,8 @@ mcp-video workflow-inspect  --receipt receipt.json
 | `video-design-quality-check` | Design quality analysis |
 | `video-fix-design-issues` | Auto-fix design issues |
 
+Quality JSON identifies each saturation and contrast metric, its unit, measured value, and whether the measurement was available. Technical and design checks use the same definitions. `video-quality-check --fail-on-warning` is a CI-style gate: it exits nonzero when `all_passed` is false.
+
 ## Image Analysis
 
 | Command | Description |
@@ -224,6 +226,8 @@ mcp-video workflow-inspect  --receipt receipt.json
 | `hyperframes-add-block` | Install a block from the Hyperframes catalog (`--no-clipboard`) |
 | `hyperframes-validate` | Validate a Hyperframes project structure |
 | `hyperframes-pipeline` | Render + post-process in one step |
+
+Hyperframes project paths may be relative or absolute. Relative paths are resolved once against the caller's working directory before the command is executed.
 
 ## Global Options
 

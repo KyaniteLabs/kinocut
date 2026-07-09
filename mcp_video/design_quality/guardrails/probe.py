@@ -86,23 +86,10 @@ class ProbeMixin:
         return None
 
     def _get_contrast(self, video_path: str) -> float | None:
-        """Get contrast (standard deviation of luminance). Returns None if analysis fails."""
-        cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
-        except subprocess.TimeoutExpired:
-            logger.warning("ffmpeg signalstats timed out for %s", video_path)
-            return None
+        """Get the shared YHIGH/YLOW contrast metric used by technical QA."""
+        from ...quality_guardrails import VisualQualityGuardrails
 
-        if result.returncode != 0:
-            logger.warning("ffmpeg signalstats failed for %s: %s", video_path, result.stderr[:200])
-            return None
-
-        for line in result.stderr.split("\n"):
-            if "lavfi.signalstats.YSTD" in line:
-                try:
-                    return float(line.split("=")[-1].strip())
-                except Exception as exc:
-                    logger.debug("Contrast parsing failed: %s", exc)
-        logger.warning("No YSTD signalstats found for %s", video_path)
-        return None
+        report = VisualQualityGuardrails().check_contrast(video_path)
+        metric = report.details["metric"]
+        self.metrics["contrast"] = metric
+        return metric["value"] if metric["available"] else None

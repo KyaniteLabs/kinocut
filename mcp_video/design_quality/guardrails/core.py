@@ -76,6 +76,8 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
     def __init__(self):
         self.issues: list[DesignIssue] = []
         self._frame_data: list[dict] = []
+        self.metrics: dict[str, dict] = {}
+        self._color_analysis_cache: dict[str, dict] = {}
 
     def analyze(self, video_path: str, auto_fix: bool = False) -> DesignQualityReport:
         """Run comprehensive design quality analysis.
@@ -90,6 +92,8 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
         _validate_input_path(video_path)
         self.issues = []
         self._frame_data = []
+        self.metrics = {}
+        self._color_analysis_cache = {}
         fixes_applied = []
 
         # Collect frame-by-frame data

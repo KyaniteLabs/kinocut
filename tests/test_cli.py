@@ -141,6 +141,37 @@ class TestCLINormalizeAudio:
         assert data["success"] is True
         assert data["operation"] == "normalize_audio"
 
+    def test_normalize_audio_accepts_audio_only_wav(self, tmp_path):
+        source = tmp_path / "voice.wav"
+        output = tmp_path / "normalized.wav"
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=440:duration=0.2",
+                "-c:a",
+                "pcm_s16le",
+                str(source),
+            ],
+            check=True,
+            timeout=30,
+        )
+
+        result = run_cli_json("normalize-audio", str(source), "-o", str(output))
+
+        data = json.loads(result.stdout)
+        assert data["success"] is True
+        assert data["operation"] == "normalize_audio"
+        assert data["resolution"] is None
+        assert data["format"] == "wav"
+        assert output.is_file()
+
 
 class TestCLIOverlayVideo:
     def test_overlay_video_outputs_json(self, sample_video, sample_video_2):

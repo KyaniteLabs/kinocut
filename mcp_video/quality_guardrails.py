@@ -27,6 +27,22 @@ def _diagnostic(stage: str, message: str, **extra: Any) -> dict[str, Any]:
     return payload
 
 
+def _metric(
+    name: str,
+    value: float | None,
+    unit: str,
+    **metadata: Any,
+) -> dict[str, Any]:
+    """Build the explicit metric contract shared by both quality surfaces."""
+    return {
+        "name": name,
+        "available": value is not None,
+        "value": value,
+        "unit": unit,
+        **metadata,
+    }
+
+
 def _escape_lavfi_path(path: str) -> str:
     """Escape special characters in a file path for FFmpeg lavfi movie= filter.
 
@@ -408,15 +424,29 @@ class VisualQualityGuardrails:
             y_high = self._mean_signalstat(video, "YMAX")
             y_low = self._mean_signalstat(video, "YMIN")
         if y_high is None or y_low is None:
+            metric = _metric(
+                "ffmpeg.signalstats.YHIGH-YLOW",
+                None,
+                "percent_of_8bit_luma_range",
+            )
             return QualityReport(
                 check_name="contrast",
                 passed=False,
                 score=0.0,
                 message="Could not analyze contrast (analysis failed)",
-                details={"diagnostic": _diagnostic("ffprobe_signalstats", "missing luminance range values")},
+                details={
+                    "diagnostic": _diagnostic("ffprobe_signalstats", "missing luminance range values"),
+                    "metric": metric,
+                },
             )
 
         y_std = max(0.0, (y_high - y_low) / 2.56)  # Approximate contrast on a 0-100 scale.
+        metric = _metric(
+            "ffmpeg.signalstats.YHIGH-YLOW",
+            y_std,
+            "percent_of_8bit_luma_range",
+            raw={"y_low": y_low, "y_high": y_high, "unit": "8bit_luma"},
+        )
 
         # Standard deviation indicates contrast (higher = more contrast)
         passed = self.CONTRAST_MIN <= y_std <= self.CONTRAST_MAX
@@ -445,6 +475,7 @@ class VisualQualityGuardrails:
                 "y_low": y_low,
                 "y_high": y_high,
                 "target_range": [self.CONTRAST_MIN, self.CONTRAST_MAX],
+                "metric": metric,
             },
         )
 
@@ -452,17 +483,32 @@ class VisualQualityGuardrails:
         """Check saturation levels."""
         sat_avg = self._mean_signalstat(video, "SATAVG")
         if sat_avg is None:
+            metric = _metric(
+                "ffmpeg.signalstats.SATAVG",
+                None,
+                "percent_of_8bit_yuv_saturation_range",
+                raw={"value": None, "unit": "signalstats_chroma_magnitude", "full_scale": 181.0},
+            )
             return QualityReport(
                 check_name="saturation",
                 passed=False,
                 score=0.0,
                 message="Could not analyze saturation (analysis failed)",
-                details={"diagnostic": _diagnostic("ffprobe_signalstats", "missing SATAVG values")},
+                details={
+                    "diagnostic": _diagnostic("ffprobe_signalstats", "missing SATAVG values"),
+                    "metric": metric,
+                },
             )
 
         # signalstats SATAVG is a per-pixel saturation average. 181 is a
         # practical full-saturation ceiling for 8-bit YUV in FFmpeg output.
         saturation_pct = (sat_avg / 181) * 100
+        metric = _metric(
+            "ffmpeg.signalstats.SATAVG",
+            saturation_pct,
+            "percent_of_8bit_yuv_saturation_range",
+            raw={"value": sat_avg, "unit": "signalstats_chroma_magnitude", "full_scale": 181.0},
+        )
 
         passed = self.SATURATION_MIN <= saturation_pct <= self.SATURATION_MAX
 
@@ -483,7 +529,7 @@ class VisualQualityGuardrails:
             passed=passed,
             score=score,
             message=message,
-            details={"saturation_pct": saturation_pct, "sat_avg": sat_avg},
+            details={"saturation_pct": saturation_pct, "sat_avg": sat_avg, "metric": metric},
         )
 
     def check_audio_levels(self, video: str) -> QualityReport:
@@ -819,8 +865,8 @@ def quality_check(video: str, fail_on_warning: bool = False) -> dict[str, Any]:
     report = guardrails.generate_report(video)
 
     if fail_on_warning:
-        # Any score below 80 is considered a failure
-        report["all_passed"] = report["overall_score"] >= 80
+        # The stricter score threshold must never erase a failed check.
+        report["all_passed"] = bool(report["all_passed"]) and report["overall_score"] >= 80
 
     return report
 

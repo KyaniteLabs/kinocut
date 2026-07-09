@@ -10,6 +10,7 @@ from unittest.mock import Mock, patch
 import pytest
 
 from mcp_video import quality_check, VisualQualityGuardrails, QualityReport
+from mcp_video.design_quality import design_quality_check
 
 
 def create_test_video(output_path: str, color: str = "gray", duration: float = 2.0) -> str:
@@ -197,6 +198,27 @@ class TestVisualQualityGuardrails:
         assert report.check_name == "saturation"
         assert isinstance(report.score, float)
         assert 0 <= report.score <= 100
+
+    def test_technical_and_design_checks_share_saturation_metric(self, tmp_path):
+        video_path = str(tmp_path / "lime.mp4")
+        create_test_video(video_path, "green", duration=0.5)
+
+        technical = quality_check(video_path)
+        design = design_quality_check(video_path)
+
+        technical_metric = next(c for c in technical["checks"] if c["name"] == "saturation")["details"][
+            "metric"
+        ]
+        design_metric = design["metrics"]["saturation"]
+        assert technical_metric["name"] == design_metric["name"] == "ffmpeg.signalstats.SATAVG"
+        assert technical_metric["unit"] == design_metric["unit"] == "percent_of_8bit_yuv_saturation_range"
+        assert design_metric["value"] == pytest.approx(technical_metric["value"])
+
+        technical_contrast = next(c for c in technical["checks"] if c["name"] == "contrast")["details"]["metric"]
+        design_contrast = design["metrics"]["contrast"]
+        assert technical_contrast["name"] == design_contrast["name"] == "ffmpeg.signalstats.YHIGH-YLOW"
+        assert technical_contrast["unit"] == design_contrast["unit"] == "percent_of_8bit_luma_range"
+        assert design_contrast["value"] == pytest.approx(technical_contrast["value"])
 
     def test_check_color_balance(self, guardrails, tmp_path):
         """Test color balance check."""
@@ -421,6 +443,25 @@ class TestQualityCheckAPI:
         # If overall score < 80, all_passed should be False
         if report["overall_score"] < 80:
             assert report["all_passed"] is False
+
+    def test_fail_on_warning_preserves_failed_checks_above_score_threshold(self, tmp_path, monkeypatch):
+        video_path = str(tmp_path / "test.mp4")
+        create_test_video(video_path, "gray")
+        monkeypatch.setattr(
+            VisualQualityGuardrails,
+            "generate_report",
+            lambda self, video: {
+                "video": video,
+                "overall_score": 95.0,
+                "all_passed": False,
+                "checks": [{"name": "contrast", "passed": False}],
+                "recommendations": ["Contrast check failed"],
+            },
+        )
+
+        report = quality_check(video_path, fail_on_warning=True)
+
+        assert report["all_passed"] is False
 
     def test_assert_quality_raises_on_low_score(self, tmp_path, monkeypatch):
         """Quality assertions should be usable as a hard workflow gate."""

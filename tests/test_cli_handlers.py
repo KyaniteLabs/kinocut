@@ -9,6 +9,8 @@ import importlib
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 
 class FakeCommandRunner:
     """Records command registrations and simulates dispatch."""
@@ -570,6 +572,35 @@ class TestDispatchCustomLambdas:
         args = _make_args(command="video-analyze", input="test.mp4")
         result = _reload_and_dispatch("mcp_video.cli.handlers_ai", "video-analyze", args, monkeypatch)
         assert result is True
+
+    def test_quality_check_fail_on_warning_exits_nonzero_after_output(self, monkeypatch, capsys):
+        from mcp_video.cli import handlers_advanced
+        from mcp_video.cli.common import output_json
+
+        args = _make_args(command="video-quality-check", input="test.mp4", fail_on_warning=True)
+        report = {"overall_score": 20.0, "all_passed": False, "checks": [], "recommendations": []}
+        monkeypatch.setattr("mcp_video.quality_guardrails.quality_check", lambda *_args, **_kwargs: report)
+        monkeypatch.setattr(handlers_advanced, "_with_spinner", lambda _label, fn, *a, **kw: fn(*a, **kw))
+        monkeypatch.setattr(handlers_advanced, "_out", lambda result, *_args, **_kwargs: output_json(result))
+
+        with pytest.raises(SystemExit) as exc_info:
+            handlers_advanced.handle_advanced_commands(args, use_json=True)
+
+        assert exc_info.value.code == 1
+        assert json.loads(capsys.readouterr().out)["all_passed"] is False
+
+    def test_quality_check_fail_on_warning_keeps_zero_exit_for_passing_report(self, monkeypatch, capsys):
+        from mcp_video.cli import handlers_advanced
+        from mcp_video.cli.common import output_json
+
+        args = _make_args(command="video-quality-check", input="test.mp4", fail_on_warning=True)
+        report = {"overall_score": 95.0, "all_passed": True, "checks": [], "recommendations": []}
+        monkeypatch.setattr("mcp_video.quality_guardrails.quality_check", lambda *_args, **_kwargs: report)
+        monkeypatch.setattr(handlers_advanced, "_with_spinner", lambda _label, fn, *a, **kw: fn(*a, **kw))
+        monkeypatch.setattr(handlers_advanced, "_out", lambda result, *_args, **_kwargs: output_json(result))
+
+        assert handlers_advanced.handle_advanced_commands(args, use_json=True) is True
+        assert json.loads(capsys.readouterr().out)["all_passed"] is True
 
     def test_filter_custom(self, monkeypatch):
         args = _make_args(command="filter", input="test.mp4")

@@ -7,10 +7,13 @@ from __future__ import annotations
 
 import tempfile
 import wave
+from collections.abc import Iterator
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _run_ffmpeg
 from ..validation import VALID_AUDIO_EFFECT_TYPES, VALID_AUDIO_SEQUENCE_TYPES, VALID_WAVEFORMS
 from .core import (
     _float_to_pcm,
@@ -47,6 +50,54 @@ from .synthesis import audio_preset
 DEFAULT_SAMPLE_RATE = 44100
 DEFAULT_CHANNELS = 1
 DEFAULT_SAMPLE_WIDTH = 2  # 16-bit
+
+
+def _wav_format_tag(path: str) -> int | None:
+    """Read the RIFF fmt tag without asking Python's version-specific WAV decoder."""
+    with Path(path).open("rb") as source:
+        header = source.read(12)
+        if len(header) != 12 or header[:4] not in {b"RIFF", b"RF64"} or header[8:] != b"WAVE":
+            return None
+        while chunk := source.read(8):
+            if len(chunk) != 8:
+                return None
+            chunk_id = chunk[:4]
+            chunk_size = int.from_bytes(chunk[4:], "little")
+            if chunk_id == b"fmt ":
+                format_tag = source.read(2)
+                return int.from_bytes(format_tag, "little") if len(format_tag) == 2 else None
+            source.seek(chunk_size + (chunk_size % 2), 1)
+    return None
+
+
+@contextmanager
+def _canonical_wav_input(path: str, sample_rate: int) -> Iterator[str]:
+    """Decode WAV variants unsupported by older stdlib readers to mono PCM16."""
+    if _wav_format_tag(path) == 0x0001:
+        yield path
+        return
+
+    with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
+        canonical_path = tmp.name
+    try:
+        _run_ffmpeg(
+            [
+                "-i",
+                path,
+                "-map",
+                "0:a:0",
+                "-ac",
+                "1",
+                "-ar",
+                str(sample_rate),
+                "-c:a",
+                "pcm_s16le",
+                canonical_path,
+            ]
+        )
+        yield canonical_path
+    finally:
+        Path(canonical_path).unlink(missing_ok=True)
 
 
 def _normalize_mix(mix_buffer: Any) -> Any:
@@ -344,8 +395,12 @@ def audio_compose(
                 code="invalid_input",
             )
 
-        # Read WAV file
-        with wave.open(file_path, "rb") as wav_file:
+        # WAVE_FORMAT_EXTENSIBLE is valid PCM but unsupported by Python 3.11's
+        # stdlib reader. Decode non-legacy headers to one canonical mix format.
+        with (
+            _canonical_wav_input(file_path, sample_rate) as readable_path,
+            wave.open(readable_path, "rb") as wav_file,
+        ):
             sample_width = wav_file.getsampwidth()
             channels = wav_file.getnchannels()
             frames = wav_file.readframes(wav_file.getnframes())

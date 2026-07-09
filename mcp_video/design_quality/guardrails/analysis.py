@@ -165,6 +165,12 @@ class AnalysisMixin:
 
     def _analyze_colors(self, video_path: str) -> dict:
         """Analyze color distribution."""
+        cached = self._color_analysis_cache.get(video_path)
+        if cached is not None:
+            return cached
+
+        from ...quality_guardrails import VisualQualityGuardrails
+
         # Get mean RGB values
         cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
         result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
@@ -183,10 +189,18 @@ class AnalysisMixin:
                     logger.debug("Color parsing failed: %s", exc)
                     pass
 
-        # Calculate saturation estimate
-        saturation = max(abs(c - 128) for c in rgb_means) / 128 * 100
+        saturation_report = VisualQualityGuardrails().check_saturation(video_path)
+        saturation_metric = saturation_report.details["metric"]
+        self.metrics["saturation"] = saturation_metric
+        saturation = saturation_metric["value"] if saturation_metric["available"] else None
 
-        return {"rgb_means": rgb_means, "saturation": saturation}
+        result = {
+            "rgb_means": rgb_means,
+            "saturation": saturation,
+            "saturation_metric": saturation_metric,
+        }
+        self._color_analysis_cache[video_path] = result
+        return result
 
     def _analyze_motion_smoothness(self, video_path: str) -> float:
         """Analyze motion smoothness (0-1)."""

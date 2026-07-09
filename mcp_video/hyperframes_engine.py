@@ -435,8 +435,10 @@ def _hyperframes_op(
 
         if cwd_key == "project_path":
             cwd, _entry_point = _validate_project(cwd_val)
+            kwargs[cwd_key] = str(cwd)
         else:
             cwd = Path(cwd_val).resolve()
+            kwargs[cwd_key] = str(cwd)
 
     _require_hyperframes_deps(cwd=cwd)
 

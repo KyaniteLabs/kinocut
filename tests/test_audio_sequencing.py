@@ -2,6 +2,7 @@
 
 import math
 import struct
+import subprocess
 import wave
 from pathlib import Path
 
@@ -197,6 +198,67 @@ class TestAudioCompose:
         samples = struct.unpack("<" + "h" * (len(pcm) // 2), pcm)
 
         assert max(abs(sample) for sample in samples[input_frames:3600]) == 0
+
+    def test_compose_decodes_wave_format_extensible_on_python_311(self, tmp_path, monkeypatch):
+        source = tmp_path / "extensible.wav"
+        output = tmp_path / "out.wav"
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=440:duration=0.1",
+                "-ac",
+                "4",
+                "-c:a",
+                "pcm_s16le",
+                str(source),
+            ],
+            check=True,
+            timeout=30,
+        )
+        real_wave_open = wave.open
+
+        def python_311_wave_open(path, mode="rb"):
+            candidate = Path(path)
+            if mode == "rb" and candidate == source:
+                data = candidate.read_bytes()
+                fmt = data.index(b"fmt ")
+                if int.from_bytes(data[fmt + 8 : fmt + 10], "little") == 0xFFFE:
+                    raise wave.Error("unknown format: 65534")
+            return real_wave_open(path, mode)
+
+        monkeypatch.setattr(wave, "open", python_311_wave_open)
+
+        result = audio_compose(
+            [{"file": str(source), "volume": 1.0, "start": 0.0}],
+            duration=0.1,
+            output=str(output),
+            sample_rate=8000,
+        )
+
+        assert result == str(output)
+        assert output.is_file()
+
+    def test_compose_rejects_corrupt_wav_without_output(self, tmp_path):
+        source = tmp_path / "corrupt.wav"
+        output = tmp_path / "out.wav"
+        source.write_bytes(b"not a wav file")
+
+        with pytest.raises(MCPVideoError):
+            audio_compose(
+                [{"file": str(source), "volume": 1.0, "start": 0.0}],
+                duration=0.1,
+                output=str(output),
+                sample_rate=8000,
+            )
+
+        assert not output.exists()
 
 
 class TestAudioEffects:

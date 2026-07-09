@@ -73,8 +73,8 @@ class ScoringMixin:
         has_violet_tint = rgb_means[0] > rgb_means[1] and rgb_means[2] > rgb_means[1]
 
         # Check for high saturation accents (Electric Lime)
-        saturation = color_stats.get("saturation", 50)
-        has_vibrant_accents = saturation > 30
+        saturation = color_stats.get("saturation")
+        has_vibrant_accents = saturation is not None and saturation > 30
 
         return has_violet_tint or has_vibrant_accents
 

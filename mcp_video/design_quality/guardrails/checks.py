@@ -130,8 +130,17 @@ class ChecksMixin:
             )
 
         # Check saturation
-        saturation = color_stats.get("saturation", 50)
-        if saturation < 10:
+        saturation = color_stats.get("saturation")
+        if saturation is None:
+            self.issues.append(
+                DesignIssue(
+                    category="color",
+                    severity="info",
+                    message="Saturation analysis unavailable; no saturation classification was made.",
+                    fix_available=False,
+                )
+            )
+        elif saturation < 10:
             self.issues.append(
                 DesignIssue(
                     category="color",
