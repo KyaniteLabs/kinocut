@@ -37,6 +37,7 @@ from .models import (
     ResumeState,
     VerificationCheck,
     canonical_payload,
+    receipt_integrity_sha256,
 )
 from .capabilities import snapshot_capabilities, whisper_model_path
 from .operations import OperationResult, execute_repair, make_master, make_universal_copy
@@ -466,15 +467,35 @@ def render_rescue(
             raise rescue_error("rescue verification failed; package quarantined", RESCUE_VERIFICATION_FAILED)
         promoted_operations = _remap_operations(operations, package_dir, final_dir, workspace)
         resume_ref = _relative(resume_receipt, output) if resume_receipt else None
+        receipt_ref = f"{final_name}/rescue-receipt.json"
+        placeholder_hash = "sha256:" + "0" * 64
+        artifacts.append(
+            PackageArtifact(
+                kind="receipt",
+                status="available",
+                path="rescue-receipt.json",
+                sha256=placeholder_hash,
+            )
+        )
         receipt = _base_receipt(plan, "completed", approved, promoted_operations, checks, PackageManifest(path=final_name, promoted=True, artifacts=artifacts), workspace, output, job_dir, resume_used=resume_receipt is not None, resume_receipt_path=resume_ref)
-        packaged_receipt = package_dir / "rescue-receipt.json"
-        _write_receipt(receipt, packaged_receipt)
+        receipt = receipt.model_copy(
+            update={"receipt_path": receipt_ref, "receipt_sha256": placeholder_hash}
+        )
+        receipt_hash = receipt_integrity_sha256(receipt)
+        finalized_artifacts = [
+            artifact.model_copy(update={"sha256": receipt_hash})
+            if artifact.kind == "receipt"
+            else artifact
+            for artifact in receipt.package.artifacts
+        ]
         receipt = receipt.model_copy(
             update={
-                "receipt_path": f"{final_name}/rescue-receipt.json",
-                "receipt_sha256": _sha(packaged_receipt),
+                "receipt_sha256": receipt_hash,
+                "package": receipt.package.model_copy(update={"artifacts": finalized_artifacts}),
             }
         )
+        packaged_receipt = package_dir / "rescue-receipt.json"
+        _write_receipt(receipt, packaged_receipt)
         os.replace(package_dir, final_dir)
         if receipt_copy:
             _write_receipt(receipt, receipt_copy)

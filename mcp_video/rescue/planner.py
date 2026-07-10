@@ -120,6 +120,26 @@ def _partition_repairs(repairs: list[Repair]) -> dict[Disposition, list[Repair]]
     return {disposition: [repair for repair in repairs if repair.disposition is disposition] for disposition in Disposition}
 
 
+def _validate_policy_classification(plan: RescuePlan) -> None:
+    expected = _partition_repairs(
+        [evaluate_finding(finding, plan.capabilities) for finding in plan.findings]
+    )
+    actual = {
+        Disposition.SAFE_REPAIR: plan.safe_repairs,
+        Disposition.RECOMMENDATION: plan.recommendations,
+        Disposition.UNAVAILABLE: plan.unavailable_repairs,
+        Disposition.BLOCKED: plan.blocked_repairs,
+    }
+    for disposition in Disposition:
+        expected_payload = [repair.model_dump(mode="json") for repair in expected[disposition]]
+        actual_payload = [repair.model_dump(mode="json") for repair in actual[disposition]]
+        if actual_payload != expected_payload:
+            raise rescue_error(
+                "rescue plan repair buckets do not match current policy classification",
+                RESCUE_PLAN_MISMATCH,
+            )
+
+
 def _write_plan(plan: RescuePlan, plan_path: Path) -> None:
     plan_path.parent.mkdir(parents=True, exist_ok=True)
     plan_path.write_text(
@@ -203,5 +223,6 @@ def read_plan(path: str | Path) -> RescuePlan:
     expected = "sha256:" + hashlib.sha256(canonical_payload(plan)).hexdigest()
     if plan.plan_sha256 != expected:
         raise rescue_error("rescue plan hash does not match its action fields", RESCUE_PLAN_MISMATCH)
+    _validate_policy_classification(plan)
     _validate_plan_references(plan, plan_path)
     return plan

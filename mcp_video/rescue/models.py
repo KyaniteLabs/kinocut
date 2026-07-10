@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import copy
+import hashlib
 import json
 from datetime import datetime
 from enum import StrEnum
@@ -401,3 +403,19 @@ def canonical_payload(
 
     payload = model.model_dump(mode="json", exclude=excluded)
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+
+
+def receipt_integrity_sha256(receipt: RescueReceipt | dict[str, Any]) -> Sha256:
+    """Hash a receipt while excluding only its two self-referential digest values."""
+
+    payload = receipt.model_dump(mode="json") if isinstance(receipt, RescueReceipt) else copy.deepcopy(receipt)
+    payload["receipt_sha256"] = None
+    package = payload.get("package")
+    if isinstance(package, dict):
+        artifacts = package.get("artifacts")
+        if isinstance(artifacts, list):
+            for artifact in artifacts:
+                if isinstance(artifact, dict) and artifact.get("kind") == "receipt":
+                    artifact["sha256"] = None
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    return "sha256:" + hashlib.sha256(encoded).hexdigest()

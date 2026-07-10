@@ -131,6 +131,11 @@ monotonic timestamps, stream coverage, A/V end-time delta, caption bounds, spoke
 coverage, the universal MP4 contract, explicit metric units, and persisted hashes. Numeric
 metrics include a name, value, unit, definition, and availability status.
 
+`receipt_sha256` is the SHA-256 of the finalized canonical receipt payload, excluding only
+the two self-referential digest slots: the top-level `receipt_sha256` value and the receipt
+artifact's own `sha256` value. The packaged receipt and any `--save-receipt` copy are
+identical, and inspection recomputes this digest before trusting the package manifest.
+
 ## Stable Errors
 
 Automation may branch on these error codes:

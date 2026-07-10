@@ -17,7 +17,15 @@ from mcp_video.errors import MCPVideoError
 from mcp_video.rescue.capabilities import snapshot_capabilities
 from mcp_video.rescue.planner import plan_rescue
 from mcp_video.rescue.renderer import render_rescue
-from mcp_video.rescue.models import Disposition, Metric, Repair, RescuePlan, VerificationCheck, canonical_payload
+from mcp_video.rescue.models import (
+    Disposition,
+    Finding,
+    Metric,
+    Repair,
+    RescuePlan,
+    VerificationCheck,
+    canonical_payload,
+)
 from mcp_video.rescue.inspector import inspect_rescue
 
 
@@ -84,20 +92,46 @@ def _install_fake_local_whisper(tmp_path, monkeypatch):
 
 def _add_safe_metadata_repair(plan_path):
     plan = RescuePlan.model_validate_json(plan_path.read_text(encoding="utf-8"))
+    evidence = [
+        Metric(
+            name="metadata_state",
+            value=True,
+            unit="boolean",
+            definition="Fixture repair evidence.",
+        )
+    ]
+    finding = Finding(
+        id="metadata:normalize",
+        type="metadata",
+        summary="Container metadata needs normalization.",
+        confidence=1.0,
+        confidence_rationale="Renderer resume fixture.",
+        evidence=evidence,
+        parameters={},
+        expected_benefit="Normalize the container through a bounded adapter.",
+        tradeoffs=["Media is re-encoded."],
+        executor="ffmpeg.normalize",
+    )
     repair = Repair(
         id="metadata:normalize",
         type="metadata",
         disposition=Disposition.SAFE_REPAIR,
         confidence=1.0,
         confidence_rationale="Renderer resume fixture.",
-        evidence=[Metric(name="metadata_state", value=True, unit="boolean", definition="Fixture repair evidence.")],
+        evidence=evidence,
         parameters={},
         expected_benefit="Normalize the container through a bounded adapter.",
         tradeoffs=["Media is re-encoded."],
         executor="ffmpeg.normalize",
         promotable=True,
     )
-    plan = plan.model_copy(update={"safe_repairs": [repair], "plan_sha256": None})
+    plan = plan.model_copy(
+        update={
+            "findings": [*plan.findings, finding],
+            "safe_repairs": [*plan.safe_repairs, repair],
+            "plan_sha256": None,
+        }
+    )
     digest = "sha256:" + hashlib.sha256(canonical_payload(plan)).hexdigest()
     plan = plan.model_copy(update={"plan_sha256": digest})
     plan_path.write_text(json.dumps(plan.model_dump(mode="json"), indent=2, sort_keys=True) + "\n", encoding="utf-8")
@@ -126,10 +160,20 @@ def test_completed_receipt_points_to_hashed_packaged_receipt(tmp_path, sample_vi
     receipt = render_rescue(str(plan_path), approved_repair_ids=[])
 
     packaged_receipt = plan_path.parent / receipt["receipt_path"]
-    expected_hash = "sha256:" + hashlib.sha256(packaged_receipt.read_bytes()).hexdigest()
+    packaged_payload = json.loads(packaged_receipt.read_text(encoding="utf-8"))
+    receipt_artifact = next(
+        artifact for artifact in packaged_payload["package"]["artifacts"] if artifact["kind"] == "receipt"
+    )
     assert packaged_receipt.name == "rescue-receipt.json"
-    assert receipt["receipt_sha256"] == expected_hash
+    assert packaged_payload["receipt_path"] == receipt["receipt_path"]
+    assert packaged_payload["receipt_sha256"] == receipt["receipt_sha256"]
+    assert receipt_artifact["path"] == "rescue-receipt.json"
+    assert receipt_artifact["sha256"] == receipt["receipt_sha256"]
     assert inspect_rescue(str(packaged_receipt))["integrity"]["all_matching"] is True
+
+    packaged_payload["warnings"].append("tampered after promotion")
+    packaged_receipt.write_text(json.dumps(packaged_payload), encoding="utf-8")
+    assert inspect_rescue(str(packaged_receipt))["integrity"]["all_matching"] is False
 
 
 def test_renderer_fails_closed_when_source_changes(tmp_path, sample_video):

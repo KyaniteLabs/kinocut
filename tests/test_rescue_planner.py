@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from mcp_video.errors import MCPVideoError
+from mcp_video.rescue.models import RescuePlan, canonical_payload
 from mcp_video.rescue.planner import plan_rescue, read_plan
 
 
@@ -73,6 +74,26 @@ def test_read_plan_rejects_tampered_action_fields(tmp_path, sample_video):
     plan_rescue(str(source), str(plan_path.parent), save_plan=str(plan_path))
     payload = json.loads(plan_path.read_text(encoding="utf-8"))
     payload["package_intents"][0]["required"] = False
+    plan_path.write_text(json.dumps(payload), encoding="utf-8")
+
+    with pytest.raises(MCPVideoError) as caught:
+        read_plan(plan_path)
+
+    assert caught.value.code == "rescue_plan_mismatch"
+
+
+def test_read_plan_rejects_rehashed_policy_bucket_forgery(tmp_path, sample_video):
+    source = tmp_path / "clip.mp4"
+    shutil.copy2(sample_video, source)
+    plan_path = tmp_path / "out" / "plan.json"
+    plan_rescue(str(source), str(plan_path.parent), save_plan=str(plan_path))
+    payload = json.loads(plan_path.read_text(encoding="utf-8"))
+    forged = payload["unavailable_repairs"].pop(0)
+    forged.update({"disposition": "safe_repair", "promotable": True})
+    payload["safe_repairs"].append(forged)
+    payload["plan_sha256"] = None
+    plan = RescuePlan.model_validate(payload)
+    payload["plan_sha256"] = "sha256:" + hashlib.sha256(canonical_payload(plan)).hexdigest()
     plan_path.write_text(json.dumps(payload), encoding="utf-8")
 
     with pytest.raises(MCPVideoError) as caught:
