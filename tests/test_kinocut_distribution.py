@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import subprocess
 import sys
 import tomllib
@@ -37,6 +38,7 @@ def test_kinocut_is_the_canonical_distribution_with_compatible_commands() -> Non
 
 def test_kinocut_import_is_a_public_facade_over_the_compatible_runtime() -> None:
     import importlib
+    import importlib.resources
 
     import kinocut
     from kinocut.errors import MCPVideoError as KinocutError
@@ -61,6 +63,9 @@ def test_kinocut_import_is_a_public_facade_over_the_compatible_runtime() -> None
     assert legacy_handler is canonical_handler
     assert legacy_handler.__spec__.name == "kinocut.cli.handlers_core"
     assert legacy_handler.__package__ == "kinocut.cli"
+    legacy_style = importlib.resources.files("mcp_video").joinpath("creation_templates/style.md")
+    canonical_style = importlib.resources.files("kinocut").joinpath("creation_templates/style.md")
+    assert legacy_style.read_bytes() == canonical_style.read_bytes()
     assert not (ROOT / "mcp_video").exists()
 
 
@@ -138,6 +143,13 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "npm pack" in workflow
     assert "npm publish" in workflow
     assert "--provenance" in workflow
+    assert "Verify clean install and mcp-video upgrade compatibility" in workflow
+    assert "mcp-video==1.6.0" in workflow
+    assert "pip uninstall --yes mcp-video" in workflow
+    assert "RELEASE_ATTEMPT: ${{ github.run_attempt }}" in workflow
+    assert "skip-existing: true" in workflow
+    assert re.search(r"publish-npm:\n(?:.*\n)*?    needs: publish\n", workflow)
+    assert 'npm view "kinocut@$version" version' in workflow
     assert "needs: [publish, publish-npm]" in workflow
     assert "needs.publish-npm.result == 'success'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow

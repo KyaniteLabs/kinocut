@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib
 import importlib.abc
+import importlib.machinery
 import importlib.util
 import sys
 
@@ -27,6 +28,13 @@ class _KinocutAliasLoader(importlib.abc.Loader):
     def exec_module(self, module) -> None:
         for name, value in self._metadata.items():
             setattr(module, name, value)
+
+    def get_resource_reader(self, _fullname: str):
+        canonical_spec = importlib.util.find_spec(self.canonical_name)
+        if canonical_spec is None or canonical_spec.loader is None:
+            return None
+        get_reader = getattr(canonical_spec.loader, "get_resource_reader", None)
+        return get_reader(self.canonical_name) if get_reader is not None else None
 
 
 class _KinocutAliasFinder(importlib.abc.MetaPathFinder):
@@ -63,6 +71,10 @@ for _name, _module in tuple(sys.modules.items()):
 __version__ = _kinocut.__version__
 __all__ = [*_kinocut.__all__, "__version__"]
 __path__ = _kinocut.__path__
+__loader__ = _KinocutAliasLoader("kinocut")
+__spec__ = importlib.util.spec_from_loader(__name__, __loader__, is_package=True)
+if __spec__ is not None:
+    __spec__.submodule_search_locations = list(__path__)
 
 
 if __name__ == "__main__":

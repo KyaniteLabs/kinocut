@@ -54,6 +54,7 @@ jobs:
       - name: Verify release versions are publishable
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_ATTEMPT: ${{ github.run_attempt }}
         run: |
           .venv/bin/python - <<'PY'
           import json
@@ -76,6 +77,7 @@ jobs:
                   break
           server = json.loads(Path("server.json").read_text())
           tag = os.environ["RELEASE_TAG"]
+          release_attempt = int(os.environ["RELEASE_ATTEMPT"])
 
           failures = []
           if project["name"] != "kinocut":
@@ -96,21 +98,27 @@ jobs:
           if package_versions != {version}:
               failures.append(f"server.json package versions {sorted(package_versions)!r} do not match {version!r}")
 
-          def require_missing(url, label):
+          def require_missing_on_first_attempt(url, label):
               try:
                   urllib.request.urlopen(url, timeout=20).close()
               except urllib.error.HTTPError as exc:
                   if exc.code != 404:
                       raise
               else:
-                  failures.append(f"{label} already exists")
+                  if release_attempt == 1:
+                      failures.append(f"{label} already exists")
+                  else:
+                      print(f"Recovery attempt {release_attempt}: {label} already exists and will be skipped.")
 
-          require_missing(f"https://pypi.org/pypi/kinocut/{version}/json", f"kinocut {version} on PyPI")
-          require_missing(
+          require_missing_on_first_attempt(
+              f"https://pypi.org/pypi/kinocut/{version}/json",
+              f"kinocut {version} on PyPI",
+          )
+          require_missing_on_first_attempt(
               f"https://pypi.org/pypi/mcp-video/{shim_version}/json",
               f"mcp-video {shim_version} on PyPI",
           )
-          require_missing(
+          require_missing_on_first_attempt(
               f"https://registry.npmjs.org/kinocut/{version}",
               f"kinocut {version} on npm",
           )
@@ -153,6 +161,27 @@ jobs:
         run: .venv/bin/python .github/scripts/check-built-artifacts.py release-dist
       - name: Validate distribution metadata
         run: .venv/bin/python -m twine check release-dist/*
+      - name: Verify clean install and mcp-video upgrade compatibility
+        run: |
+          python -m venv .venv-clean-install
+          .venv-clean-install/bin/pip install release-dist/kinocut-*.whl
+          .venv-clean-install/bin/pip check
+          .venv-clean-install/bin/python -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+          .venv-clean-install/bin/kino --version
+          .venv-clean-install/bin/kinocut --version
+          .venv-clean-install/bin/mcp-video --version
+
+          python -m venv .venv-upgrade
+          .venv-upgrade/bin/pip install "mcp-video==1.6.0"
+          .venv-upgrade/bin/pip install --upgrade release-dist/kinocut-*.whl release-dist/mcp_video-*.whl
+          .venv-upgrade/bin/pip check
+          .venv-upgrade/bin/python -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+          .venv-upgrade/bin/kino --version
+          .venv-upgrade/bin/kinocut --version
+          .venv-upgrade/bin/mcp-video --version
+          .venv-upgrade/bin/pip uninstall --yes mcp-video
+          .venv-upgrade/bin/pip check
+          .venv-upgrade/bin/python -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
       - name: Upload Python artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -181,10 +210,12 @@ jobs:
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+        with:
+          skip-existing: true
 
   publish-npm:
     name: Publish to npm
-    needs: build
+    needs: publish
     if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     environment: npm
@@ -203,7 +234,15 @@ jobs:
       - name: Install trusted-publishing npm client
         run: npm install --global npm@11.5.1
       - name: Publish to npm with provenance
-        run: npm publish npm-dist/kinocut-*.tgz --provenance --access public
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          if npm view "kinocut@$version" version >/dev/null 2>&1; then
+            echo "kinocut@$version already exists; skipping on recovery attempt."
+          else
+            npm publish npm-dist/kinocut-*.tgz --provenance --access public
+          fi
 
   publish-mcp-registry:
     name: Publish to MCP Registry
