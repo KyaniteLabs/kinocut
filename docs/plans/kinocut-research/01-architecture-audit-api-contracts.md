@@ -34,7 +34,7 @@ The canonical unit of work must become `project_id + revision_id`, not `input_pa
 
 ### Real timeline intermediate representation
 
-The existing `Timeline` model contains tracks and clips, but it is a render request schema, not an editable graph. It has no stable node IDs, rational timebase, keyframes, nested sequences, effect stack, generators, linked audio/video, gaps, track state, or mutation operations. See [models.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/models.py:310).
+The existing `Timeline` model contains tracks and clips, but it is a render request schema, not an editable graph. It has no stable node IDs, rational timebase, keyframes, nested sequences, effect stack, generators, linked audio/video, gaps, track state, or mutation operations. See [models.py](../../../mcp_video/models.py#L310).
 
 Its executor exposes deeper limitations:
 
@@ -45,7 +45,7 @@ Its executor exposes deeper limitations:
 - Trim, merge, composite, audio, resize, and export form a sequential re-encode pipeline.
 - Temporary state is deleted after every invocation.
 
-See [engine_timeline.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/engine_timeline.py:38) and [engine_timeline.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/engine_timeline.py:106).
+See [engine_timeline.py](../../../mcp_video/engine_timeline.py#L38) and [engine_timeline.py](../../../mcp_video/engine_timeline.py#L106).
 
 The future timeline must be a typed, immutable graph that compiles into a render DAG.
 
@@ -73,7 +73,7 @@ Live inspection found 119 registered tools:
 - 74 tools accepting `input_path`.
 - 75 tools accepting `output_path`.
 
-Even progress-enabled FFmpeg execution blocks on `proc.wait()` until completion; progress is notification plumbing, not asynchronous job execution. See [ffmpeg_helpers.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/ffmpeg_helpers.py:232) and [server_app.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/server_app.py:82).
+Even progress-enabled FFmpeg execution blocks on `proc.wait()` until completion; progress is notification plumbing, not asynchronous job execution. See [ffmpeg_helpers.py](../../../mcp_video/ffmpeg_helpers.py#L232) and [server_app.py](../../../mcp_video/server_app.py#L82).
 
 A render must become a persistent DAG job with:
 
@@ -90,7 +90,7 @@ Hyperframes’ `workers` parameter is intra-render local parallelism, not a dist
 
 ### Content-addressed media and proxy store
 
-The only general cache is an in-memory ffprobe cache keyed by path, modification time, and size. It disappears on restart and cannot reuse derived media. See [engine_probe.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/engine_probe.py:16).
+The only general cache is an in-memory ffprobe cache keyed by path, modification time, and size. It disappears on restart and cannot reuse derived media. See [engine_probe.py](../../../mcp_video/engine_probe.py#L16).
 
 A media store must assign immutable IDs to:
 
@@ -103,11 +103,11 @@ A media store must assign immutable IDs to:
 
 Cache identity must include source digest, normalized operation parameters, timeline-node hash, renderer/toolchain version, and output profile.
 
-The current `video_preview` is useful but produces another ordinary output file. It is not a managed proxy tied to an asset or revision. See [engine_preview.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/engine_preview.py:14).
+The current `video_preview` is useful but produces another ordinary output file. It is not a managed proxy tied to an asset or revision. See [engine_preview.py](../../../mcp_video/engine_preview.py#L14).
 
 ### Event and review control plane
 
-The current release checkpoint runs quality analysis, emits thumbnail/storyboard artifacts, and instructs a human to inspect them. See [server_tools_ai.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/server_tools_ai.py:256).
+The current release checkpoint runs quality analysis, emits thumbnail/storyboard artifacts, and instructs a human to inspect them. See [server_tools_ai.py](../../../mcp_video/server_tools_ai.py#L256).
 
 That is a checkpoint, not a feedback loop. The missing event system needs typed events such as:
 
@@ -129,8 +129,8 @@ A VLM reviewer must consume proxies, storyboards, audio features, transcript, pr
 | One top-level tool per media verb | Tool count grows combinatorially as operations gain scheduling, ranges, revisions, proxies, policies, and distributed execution. |
 | Filesystem path as identity | Paths are mutable, machine-specific, collision-prone, and meaningless to remote workers. |
 | Tool call equals render execution | The client must remain connected while expensive work runs; there is no cancellation, recovery, queueing, or admission control. |
-| `EditResult` centers on `output_path` | It lacks artifact ID, revision ID, job ID, content digest, parent provenance, cache status, and renderer fingerprint. See [models.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/models.py:96). |
-| Timeline passed inline as dict/string/file | It has no server-owned canonical state, atomic patch protocol, or concurrency protection. See [server_tools_media.py](/Users/simongonzalezdecruz/workspaces/mcp-video/mcp_video/server_tools_media.py:458). |
+| `EditResult` centers on `output_path` | It lacks artifact ID, revision ID, job ID, content digest, parent provenance, cache status, and renderer fingerprint. See [models.py](../../../mcp_video/models.py#L96). |
+| Timeline passed inline as dict/string/file | It has no server-owned canonical state, atomic patch protocol, or concurrency protection. See [server_tools_media.py](../../../mcp_video/server_tools_media.py#L458). |
 | Sequential intermediate-file chaining | It causes redundant decoding/encoding and cannot invalidate or reuse individual graph nodes. |
 | Manual intermediate cleanup | Garbage collection is filename/suffix-oriented rather than reachability- and retention-policy-driven. |
 | Preview as standalone transformation | It cannot incrementally update only the changed timeline range or share cached analysis with final rendering. |
@@ -335,5 +335,4 @@ This preserves the current differentiator—guardrails and proof—while moving 
 The repository does not define deployment concurrency, remote-worker trust boundaries, artifact-retention budgets, or the allowed VLM providers. Those are implementation policy decisions; they do not change the architectural diagnosis.
 
 Repository state remained clean. Epoch feedback was attempted, but the read-only sandbox prevented writing to `~/.epoch/`.
-
 
