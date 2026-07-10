@@ -132,7 +132,7 @@ jobs:
         run: .venv/bin/pip install -e ".[dev]"
       - name: Run tests with coverage
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n 4 --dist loadfile --cov=mcp_video --cov-report=term
+        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=mcp_video --cov-report=term
 
   compatibility:
     name: Compatibility (Python ${{ matrix.python-version }})
@@ -152,6 +152,8 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         with:
           python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
       - name: Create venv
         if: needs.changes.outputs.code == 'true'
         run: python -m venv .venv
@@ -169,7 +171,7 @@ jobs:
         run: .venv/bin/pip install -e ".[dev]"
       - name: Run tests
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n 4 --dist loadfile
+        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile
 
   minimal-install:
     name: Minimal install (no extras)
