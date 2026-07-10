@@ -22,6 +22,7 @@ from .models import (
     VerificationCheck,
     canonical_payload,
 )
+from .planner import plan_rescue, read_plan
 
 __all__ = [
     "CleanupState",
@@ -44,4 +45,6 @@ __all__ = [
     "SourceIdentity",
     "VerificationCheck",
     "canonical_payload",
+    "plan_rescue",
+    "read_plan",
 ]
