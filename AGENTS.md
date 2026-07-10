@@ -1,8 +1,9 @@
-# mcp-video — Project Rules
+# Kinocut - Project Rules
 
 ## Public Agent Skill
-- `skills/mcp-video/SKILL.md` is the public skill for this repo.
-- Invoke `$mcp-video` in compatible agent hosts for guarded video inspection, editing, Hyperframes, repurposing, release checkpoints, and human-review workflows.
+- `skills/kinocut/SKILL.md` is the canonical public skill for this repo.
+- Invoke `$kinocut` in compatible agent hosts for guarded video inspection, editing, Hyperframes, repurposing, release checkpoints, and human-review workflows.
+- `skills/mcp-video/SKILL.md` is a compatibility entry point only. Keep it thin and direct new work to `$kinocut`.
 - Keep the skill aligned with `docs/CLI_REFERENCE.md`, `docs/TOOLS.md`, the Python client, and public MCP tool names when those surfaces change.
 
 ## Before Writing Any Code
@@ -88,7 +89,7 @@ The data stored in `~/.epoch/` (estimates.jsonl + feedback.jsonl) is the project
 ## Testing
 
 20. **Every fix must pass `python3 -m pytest tests/ -x -q --tb=short`** before committing.
-21. **Run `python3 -c "import mcp_video"`** to verify no broken imports after changes.
+21. **Run `python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"`** to verify the canonical import and compatibility shim after changes.
 
 <!-- EMPOWER_ORCHESTRATOR:START -->
 ## Empower the Orchestrator

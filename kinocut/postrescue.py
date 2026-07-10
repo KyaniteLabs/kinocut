@@ -75,7 +75,7 @@ def load_post_rescue_request(path: str) -> JsonObject:
 
 
 def call_post_rescue(function: Callable[[Mapping[str, Any]], JsonObject], request: Mapping[str, Any]) -> JsonObject:
-    """Run a public adapter and normalize schema failures to MCP Video errors."""
+    """Run a public adapter and normalize schema failures to Kinocut errors."""
 
     try:
         return function(request)

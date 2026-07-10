@@ -1,4 +1,4 @@
-Here is a strategic synthesis for positioning `mcp-video` as the default media layer for AI agents, structured as requested.
+Here is a strategic synthesis for positioning Kinocut as the default media layer for AI agents.
 
 ## 1. Wedge Features: The "You Have to Try This" Moments
 
@@ -38,7 +38,7 @@ These features are designed to create viral "aha!" moments when an agent user (e
     *   **Difficulty:** Low (Mostly prompt engineering and JSON validation).
 9.  **"The Generative Handoff" (Sora/Kling Post-Processor)**
     *   **Pitch:** "Take this raw API output from Sora, upscale it, interpolate to 60fps, and add cinematic letterboxing."
-    *   **Why it demos well:** Positions `mcp-video` as the essential "last mile" for the new wave of generative video models, which often output raw, unpolished files.
+    *   **Why it demos well:** Positions Kinocut as the essential "last mile" for the new wave of generative video models, which often output raw, unpolished files.
     *   **Difficulty:** Low (Standard FFmpeg wrappers, but high perceived value).
 10. **"The Anti-Slop Guardrail" (Preflight Quality Check)**
     *   **Pitch:** "Before rendering, check if this FFmpeg command will result in a file over 500MB or cause audio desync, and suggest a fix."
@@ -49,16 +49,16 @@ These features are designed to create viral "aha!" moments when an agent user (e
 
 ## 2. Integration Surface: Becoming the Default Media Layer
 
-To become the default, `mcp-video` needs to exist wherever agents (and the developers building them) live.
+To become the default, Kinocut needs to exist wherever agents (and the developers building them) live.
 
 *   **Primary: The One-Line Agent Install:**
-    *   **Claude Desktop / Cursor:** Needs to be as simple as `npx @kyanitelabs/mcp-video install` or a one-click addition in the Claude Desktop config. If it takes more than 2 minutes to get the server running, you lose the audience.
+    *   **Claude Desktop / Cursor:** Canonical setup is `uvx --from kinocut kino`, with a one-click client configuration built around the same command. If setup takes more than 2 minutes, you lose the audience.
 *   **Secondary: Framework Bridges (LangChain / LlamaIndex / CrewAI):**
-    *   Provide pre-built toolkits (`from langchain_mcp_video import VideoToolkit`). Agents built in these frameworks should just import the toolkit to suddenly gain 119 video capabilities.
+    *   Provide pre-built toolkits (`from langchain_kinocut import VideoToolkit`). Agents built in these frameworks should import the toolkit to gain Kinocut's 135 current video capabilities through a smaller intent-oriented surface.
 *   **Tertiary: The CI/CD Pipeline (GitHub Actions):**
-    *   `mcp-video-action`: A GitHub action that uses the VMAF/quality metrics to do visual regression testing on video outputs. "Did this PR break the automated rendering pipeline? Fail the build if VMAF drops below 90."
+    *   `kinocut-action`: A GitHub action that uses VMAF and quality metrics for visual regression testing on video outputs. "Did this PR break the automated rendering pipeline? Fail the build if VMAF drops below 90."
 *   **Quaternary: Generative API Glue:**
-    *   Tools specifically designed to wrap the outputs of Runway, Luma, Veo, and Sora. When an agent calls a generative API, the natural next step should be passing that blob to `mcp-video` for upscaling, watermark removal (if legal), and audio stitching.
+    *   Tools specifically designed to finish outputs from Runway, Luma, Veo, and Sora. When an agent calls a generative API, the natural next step should be passing that artifact to Kinocut for normalization, lawful cleanup, and audio stitching.
 *   **Quinary: No-Code Nodes (n8n):**
     *   While agents are the focus, providing an n8n node exposes the underlying tools to a massive audience of workflow automators who are currently struggling with raw FFmpeg commands in bash nodes.
 
@@ -70,9 +70,9 @@ The most powerful agentic workflow is self-correction. If an agent can watch its
 
 **The Loop:**
 1.  **Generate:** Agent executes an edit (e.g., overlaying a title).
-2.  **Sample:** `mcp-video` extracts keyframes around the edit points (e.g., at t=5s, t=6s, t=7s).
+2.  **Sample:** Kinocut extracts keyframes around the edit points (e.g., at t=5s, t=6s, t=7s).
 3.  **Grade (VLM):** The agent passes the frames to a Vision-Language Model (like Claude 3.5 Sonnet) with a rubric: *"Is the title text legible? Is it overlapping the subject's face? Is the contrast sufficient?"*
-4.  **Analyze (Heuristics):** `mcp-video` runs objective checks (VMAF for pixelation, EBU R128 for audio clipping).
+4.  **Analyze (Heuristics):** Kinocut runs objective checks (VMAF for pixelation, EBU R128 for audio clipping).
 5.  **Iterate:** If the VLM says "text is unreadable" or the audio check fails, the agent rewrites the FFmpeg command (e.g., adding a drop shadow to the text, lowering audio gain) and re-renders.
 
 **Required Tools API Sketch:**
@@ -109,4 +109,4 @@ def validate_edit_intent(timeline_json: dict) -> list[str]:
 This is the only audience that directly benefits from an **API/MCP-first approach**. There is a massive wave of developers trying to build "AI video generators" or "automated marketing engines."
 Right now, their biggest bottleneck is fighting with FFmpeg wrappers in Python or Node.js, trying to stitch together TTS audio, generated images, and video clips without the file corrupting.
 
-If `mcp-video` solves the *infrastructure* problem of programmatic video manipulation with built-in guardrails, it becomes the underlying engine for hundreds of downstream SaaS apps. You win by being the shovel provider in the AI video gold rush. Your messaging should be: *"Stop fighting FFmpeg. Let your agents handle the video pipeline safely."*
+If Kinocut solves the *infrastructure* problem of programmatic video manipulation with built-in guardrails, it becomes the underlying engine for downstream agentic-video apps. The messaging should be: *"Stop fighting FFmpeg. Let your agents handle the video pipeline safely."*

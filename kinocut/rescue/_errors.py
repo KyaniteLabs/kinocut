@@ -20,7 +20,7 @@ UNSAFE_RESCUE_OUTPUT = "unsafe_rescue_output"
 _DEFAULT_ACTIONS = {
     INVALID_RESCUE_INPUT: "Use one readable local media file with a video stream and retry planning.",
     INVALID_RESCUE_PLAN: "Use an unmodified rescue plan emitted by video_rescue_plan.",
-    INVALID_RESCUE_RECEIPT: "Use a readable rescue plan or render receipt emitted by MCP Video.",
+    INVALID_RESCUE_RECEIPT: "Use a readable rescue plan or render receipt emitted by Kinocut.",
     RESCUE_SOURCE_MISMATCH: "Restore the exact planned source or create a new rescue plan for the changed file.",
     RESCUE_PLAN_MISMATCH: "Use the original unmodified plan or run video_rescue_plan again.",
     RESCUE_POLICY_VIOLATION: "Remove the blocked action and use only operations allowed by the plan policy.",

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Agent cookbook for a guarded mcp-video render pipeline.
+"""Agent cookbook for a guarded Kinocut render pipeline.
 
 This is intentionally copy/paste friendly:
 1. Inspect the real client signature before calling a tool.
@@ -18,11 +18,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from mcp_video import Client
+from kinocut import Client
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="mcp-video agent cookbook")
+    parser = argparse.ArgumentParser(description="Kinocut agent cookbook")
     parser.add_argument("--frames-dir", default="frames", help="Directory of image frames")
     parser.add_argument("--audio", default="soundtrack.wav", help="Audio file to add")
     parser.add_argument("--output", default="final.mp4", help="Final output video")
@@ -31,7 +31,9 @@ def parse_args() -> argparse.Namespace:
 
 
 def discover_frames(frames_dir: str) -> list[str]:
-    frames = sorted(str(path) for path in Path(frames_dir).glob("*") if path.suffix.lower() in {".png", ".jpg", ".jpeg"})
+    frames = sorted(
+        str(path) for path in Path(frames_dir).glob("*") if path.suffix.lower() in {".png", ".jpg", ".jpeg"}
+    )
     if not frames:
         raise SystemExit(f"No frames found in {frames_dir}; expected PNG/JPG images.")
     return frames

@@ -1,4 +1,4 @@
-"""Visual Design Quality System for mcp-video."""
+"""Visual design quality system for Kinocut."""
 
 from __future__ import annotations
 

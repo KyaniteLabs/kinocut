@@ -2,7 +2,7 @@
 
 ## Our Commitment
 
-We are committed to making participation in the `mcp-video` community a harassment-free experience for everyone.
+We are committed to making participation in the Kinocut community a harassment-free experience for everyone.
 
 ## Expected Behavior
 

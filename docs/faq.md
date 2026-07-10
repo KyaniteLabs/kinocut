@@ -10,7 +10,7 @@ MCP (Model Context Protocol) is a standard protocol that lets AI agents like Cla
 
 ## Is Kinocut on the MCP Registry?
 
-Yes. Kinocut is listed on the [official MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut) as `io.github.KyaniteLabs/kinocut`. Registry metadata is published automatically on each release via trusted publishing.
+Kinocut targets the official MCP Registry identifier `io.github.KyaniteLabs/kinocut`. Registry metadata is published from the release workflow after package publication; treat the listing as pending until its public registry URL resolves.
 
 ## Which AI agents work with Kinocut?
 

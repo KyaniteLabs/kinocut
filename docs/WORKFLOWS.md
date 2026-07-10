@@ -225,7 +225,8 @@ run's intermediates.
 ## Cleanup policy
 
 Intermediates live only in the run's unique `@work/` directory and their filenames carry
-the `mcp_video_` stem prefix.
+the legacy `mcp_video_` stem prefix. Kinocut preserves this internal prefix through the
+1.x compatibility window so existing receipts and resume cursors remain valid.
 
 - **Success** → manifest-tracked intermediates are removed (`cleaned: true`, `policy:
   "clean-on-success"`).

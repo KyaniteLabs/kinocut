@@ -1,4 +1,4 @@
-"""Environment diagnostics for mcp-video integrations."""
+"""Environment diagnostics for Kinocut integrations."""
 
 from __future__ import annotations
 

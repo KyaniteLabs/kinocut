@@ -1,6 +1,6 @@
 <p align="center">
   <a href="https://kyanitelabs.tech">
-    <img src="assets/mcp-video-hero.webp" alt="Kinocut - guardrailed video editing for AI agents" width="100%">
+    <img src="assets/kinocut-hero.webp" alt="Kinocut - guardrailed video editing for AI agents" width="100%">
   </a>
 </p>
 
@@ -19,7 +19,6 @@
   <img src="https://img.shields.io/badge/MCP-135%20tools-orange.svg" alt="135 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
-  <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
 </p>
 
 <p align="center">
@@ -32,8 +31,7 @@
   <a href="docs/RESCUE.md">Video Rescue</a> &bull;
   <a href="docs/AI_AGENT_DISCOVERY.md">AI Discovery</a> &bull;
   <a href="#agent-skill">Agent Skill</a> &bull;
-  <a href="llms.txt">llms.txt</a> &bull;
-  <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut">MCP Registry</a>
+  <a href="llms.txt">llms.txt</a>
 </p>
 
 ---
@@ -422,6 +420,7 @@ Safety contract:
 
 ## Documentation
 
+- [Documentation map](docs/README.md)
 - [Tool reference](docs/TOOLS.md)
 - [Python client reference](docs/PYTHON_CLIENT.md)
 - [Post-rescue planning](docs/POST_RESCUE_FEATURES.md)

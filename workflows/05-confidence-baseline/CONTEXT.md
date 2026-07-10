@@ -2,7 +2,7 @@
 
 Generate a tiny synthetic source clip, run a staged social-video workflow, produce a quality report, and write a Video Receipt.
 
-Use this workflow when you need proof that mcp-video can move from install to reviewed output without relying on private media.
+Use this workflow when you need proof that Kinocut can move from install to reviewed output without relying on private media.
 
 ## Inputs
 
@@ -39,9 +39,8 @@ Use this workflow when you need proof that mcp-video can move from install to re
 
 ## Quality Gates
 
-- [ ] Required dependencies pass `mcp-video doctor`.
+- [ ] Required dependencies pass `kino doctor`.
 - [ ] Final video is `9:16`.
 - [ ] Audio passes quality check.
 - [ ] Release checkpoint creates thumbnail and storyboard artifacts.
 - [ ] Video Receipt records tool calls, quality, warnings, and human-review status.
-

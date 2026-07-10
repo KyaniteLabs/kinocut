@@ -1,4 +1,4 @@
-"""mcp-video Python client — Hyperframes operations mixin."""
+"""Kinocut Python client Hyperframes operations mixin."""
 
 from __future__ import annotations
 

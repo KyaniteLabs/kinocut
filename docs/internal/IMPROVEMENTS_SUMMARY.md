@@ -1,5 +1,9 @@
 # Design Quality Improvements - Implementation Summary
 
+> **Historical snapshot.** This document describes the former explainer-video
+> implementation and pre-Kinocut paths. It is retained as a design record, not
+> current package or release guidance.
+
 ## Changes Implemented
 
 ### 1. Brighter Background (Theme Colors)

@@ -35,6 +35,40 @@ PUBLIC_SURFACE_STATIC_PATHS = (
     ROOT / "skills" / "mcp-video" / "SKILL.md",
 )
 
+CURRENT_KINOCUT_DOC_PATHS = (
+    ROOT / "AGENTS.md",
+    ROOT / "CODE_OF_CONDUCT.md",
+    ROOT / "CONTRIBUTING.md",
+    ROOT / "GOVERNANCE.md",
+    ROOT / "README.md",
+    ROOT / "ROADMAP.md",
+    ROOT / "SECURITY.md",
+    ROOT / "llms.txt",
+    ROOT / "docs" / "README.md",
+    ROOT / "docs" / "AI_AGENT_DISCOVERY.md",
+    ROOT / "docs" / "CLI_REFERENCE.md",
+    ROOT / "docs" / "DESIGN_STANDARDS.md",
+    ROOT / "docs" / "INTEGRATION-ROADMAP.md",
+    ROOT / "docs" / "LEGAL_REVIEW.md",
+    ROOT / "docs" / "POST_RESCUE_FEATURES.md",
+    ROOT / "docs" / "PYTHON_CLIENT.md",
+    ROOT / "docs" / "RESCUE.md",
+    ROOT / "docs" / "TESTING.md",
+    ROOT / "docs" / "TOOLS.md",
+    ROOT / "docs" / "VIDEO_RECEIPT.md",
+    ROOT / "docs" / "WORKFLOWS.md",
+    ROOT / "docs" / "KINOCUT-AUDIO-FEATURES.md",
+    ROOT / "docs" / "KINOCUT-FEATURES-ROADMAP.md",
+    ROOT / "docs" / "faq.md",
+    ROOT / "docs" / "launch-checklist.md",
+    ROOT / "docs" / "repository-audit-checklist.md",
+    ROOT / "examples" / "claude_mcp_config.json",
+    ROOT / "examples" / "pip_install_config.json",
+    ROOT / "skills" / "kinocut" / "SKILL.md",
+    ROOT / "workflows" / "README.md",
+    ROOT / "workflows" / "GOLDEN_WORKFLOWS.md",
+)
+
 
 def _public_surface_paths() -> list[Path]:
     """Return every maintained public/discovery surface covered by drift guards."""
@@ -44,6 +78,16 @@ def _public_surface_paths() -> list[Path]:
 
 def _read_public_surfaces() -> dict[str, str]:
     return {str(path.relative_to(ROOT)): path.read_text(encoding="utf-8") for path in _public_surface_paths()}
+
+
+def _maintained_markdown_paths() -> list[Path]:
+    roots = (ROOT, ROOT / "docs", ROOT / "examples", ROOT / "skills", ROOT / "workflows")
+    paths: set[Path] = set()
+    for base in roots:
+        paths.update(path for path in base.glob("*.md") if path.is_file())
+        if base != ROOT:
+            paths.update(path for path in base.rglob("*.md") if path.is_file())
+    return sorted(paths)
 
 
 EXPECTED_CLI_COMMANDS = {
@@ -346,7 +390,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
             tools_result = await session.list_tools()
 
         tool_names = {tool.name for tool in tools_result.tools}
-        assert init_result.serverInfo.name == "mcp-video"
+        assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
         assert len(tool_names) == 135
 
@@ -477,9 +521,83 @@ def test_canonical_public_surfaces_point_to_renamed_repository():
     ]
 
     checked_surfaces = _read_public_surfaces()
-    offenders = {path: fragment for path, text in checked_surfaces.items() for fragment in forbidden if fragment in text}
+    offenders = {
+        path: fragment for path, text in checked_surfaces.items() for fragment in forbidden if fragment in text
+    }
 
     assert offenders == {}
+
+
+def test_current_documentation_uses_canonical_kinocut_identity():
+    forbidden = (
+        "cd mcp-video",
+        "mcp_video/",
+        "--with mcp-video",
+        'pip install "mcp-video[',
+        "@kyanitelabs/mcp-video",
+        "from kinocut import video_",
+        "119 tools",
+        "119-tool",
+        "124 MCP tools",
+        "103 CLI commands",
+    )
+    missing = [str(path.relative_to(ROOT)) for path in CURRENT_KINOCUT_DOC_PATHS if not path.exists()]
+    offenders = {
+        str(path.relative_to(ROOT)): fragment
+        for path in CURRENT_KINOCUT_DOC_PATHS
+        if path.exists()
+        for fragment in forbidden
+        if fragment in path.read_text(encoding="utf-8")
+    }
+    tracked = subprocess.check_output(["git", "ls-files"], cwd=ROOT, text=True).splitlines()
+
+    assert missing == []
+    assert offenders == {}
+    assert "docs/MCP-VIDEO-AUDIO-FEATURES.md" not in tracked
+    assert "docs/MCP-VIDEO-FEATURES-ROADMAP.md" not in tracked
+
+
+def test_registry_status_is_not_claimed_live_before_publication():
+    checked_paths = (ROOT / "README.md", ROOT / "llms.txt", ROOT / "docs" / "AI_AGENT_DISCOVERY.md")
+    forbidden = ("is listed on the", "MCP-Registry-blue.svg")
+    offenders = {
+        str(path.relative_to(ROOT)): fragment
+        for path in checked_paths
+        for fragment in forbidden
+        if fragment in path.read_text(encoding="utf-8")
+    }
+
+    assert offenders == {}
+
+
+def test_runnable_examples_use_canonical_kinocut_imports():
+    runnable_paths = sorted((ROOT / "examples").rglob("*.py")) + sorted((ROOT / "workflows").rglob("*.py"))
+    offenders = {
+        str(path.relative_to(ROOT)): "from mcp_video"
+        for path in runnable_paths
+        if "from mcp_video" in path.read_text(encoding="utf-8")
+    }
+
+    assert runnable_paths
+    assert offenders == {}
+
+
+def test_local_markdown_links_resolve():
+    link_pattern = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
+    missing: list[str] = []
+
+    for path in _maintained_markdown_paths():
+        text = path.read_text(encoding="utf-8")
+        for match in link_pattern.finditer(text):
+            target = match.group(1).split()[0].strip("<>")
+            if target.startswith(("http://", "https://", "mailto:", "#")) or "{" in target:
+                continue
+            relative_target = target.split("#", 1)[0]
+            if relative_target and not (path.parent / relative_target).resolve().exists():
+                line = text.count("\n", 0, match.start()) + 1
+                missing.append(f"{path.relative_to(ROOT)}:{line} -> {target}")
+
+    assert missing == []
 
 
 def test_publish_workflow_has_registry_only_recovery_path():

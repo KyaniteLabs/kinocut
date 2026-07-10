@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Hyperframes Video Workflow for mcp-video.
+Hyperframes Video Workflow for Kinocut.
 
 Creates a video from scratch using Hyperframes (HTML-native, Apache 2.0),
-then post-processes with mcp-video client methods.
+then post-processes with Kinocut client methods.
 
 Requires: Node.js 22+ and npx
 
@@ -18,7 +18,7 @@ The script runs 5 stages and outputs the final video to output/final_video.mp4.
 import os
 import sys
 
-from mcp_video import Client
+from kinocut import Client
 
 client = Client()
 
@@ -75,8 +75,8 @@ def main() -> None:
     render_path = _value(render, "output_path")
     print(f"   -> {render_path}")
 
-    # Stage 5: Post-process with mcp-video
-    print("\n[5/5] Post-processing with mcp-video...")
+    # Stage 5: Post-process with Kinocut
+    print("\n[5/5] Post-processing with Kinocut...")
 
     # Example: add a watermark and export
     watermarked = client.watermark(

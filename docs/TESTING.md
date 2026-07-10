@@ -1,8 +1,8 @@
-# mcp-video Testing Documentation
+# Kinocut Testing Documentation
 
 ## Overview
 
-mcp-video uses focused tests for public MCP tools, the Python client, CLI behavior, FFmpeg operations, AI features, cinematic creation helpers, Hyperframes integration, repurposing packages, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
+Kinocut uses focused tests for public MCP tools, the Python client, CLI behavior, FFmpeg operations, AI features, cinematic creation helpers, Hyperframes integration, repurposing packages, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
 
 ## Test Suite: `tests/test_real_all_features.py`
 
@@ -70,13 +70,13 @@ python -m pytest tests/ -v -m "not hyperframes"
 ### 4. AI Stem Separation (`test_43_ai_stem_separation`)
 - Uses Facebook Demucs
 - Separates vocals, drums, bass, other
-- Provided by the `mcp-video[ai]` extra (`demucs`, `torch`, `torchaudio`, `torchcodec`)
+- Provided by the `kinocut[ai]` extra (`demucs`, `torch`, `torchaudio`, `torchcodec`)
 
 ### 5. AI Upscale (`test_44_ai_upscale`)
 - OpenCV DNN with FSRCNN model (57KB, fast)
 - Real-ESRGAN path only where BasicSR can build; Python 3.13 uses the OpenCV fallback
 - 2x and 4x upscaling
-- Provided by the `mcp-video[ai]` extra (`opencv-contrib-python`, `numpy`)
+- Provided by the `kinocut[ai]` extra (`opencv-contrib-python`, `numpy`)
 
 ### 6. AI Color Grade (`test_45_ai_color_grade`)
 - Auto color grading
@@ -104,7 +104,7 @@ ffmpeg -filters | grep vidstab
 ### Python Packages
 ```bash
 # Install the optional AI stack
-pip install "mcp-video[ai]"
+pip install "kinocut[ai]"
 
 # Or install individual packages if you only need a subset
 pip install demucs torch torchaudio torchcodec openai-whisper imagehash numpy opencv-contrib-python
@@ -186,4 +186,4 @@ Every MCP tool has a corresponding test:
 - Real FFmpeg operations validated
 - Error handling verified
 - Edge cases covered (silent videos, different codecs, etc.)
-- Remotion integration completely removed (PR #163)
+- Remotion integration completely removed in v1.3.1 (PR #163)

@@ -1,4 +1,4 @@
-"""Shared validation constants and functions for mcp-video."""
+"""Shared validation constants and functions for Kinocut."""
 
 from __future__ import annotations
 

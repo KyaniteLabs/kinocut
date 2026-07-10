@@ -1,4 +1,4 @@
-# mcp-video Workflows
+# Kinocut Workflows
 
 ICM-style staged pipelines for common video productions.
 
@@ -37,7 +37,7 @@ Each workflow has:
 1. Create `workflows/NN-your-workflow/`
 2. Write `CONTEXT.md` with stage contract
 3. Add `references/` for configuration
-4. Write `workflow.py` using the mcp-video client
+4. Write `workflow.py` using the Kinocut client
 5. Update `workflows/CONTEXT.md` routing table
 
 ## Confidence baseline
@@ -56,7 +56,7 @@ The workflow writes `output/video_receipt.json` so the final video, quality repo
 Run the benchmark after the baseline when you need a machine-checkable pass/fail summary:
 
 ```bash
-uv run --no-project --with mcp-video python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The benchmark verifies the final video, quality report, release checkpoint, thumbnail, storyboard frames, Video Receipt, and pending human-review status.
@@ -64,5 +64,5 @@ The benchmark verifies the final video, quality report, release checkpoint, thum
 For adversarial readiness checks:
 
 ```bash
-uv run --no-project --with mcp-video python workflows/benchmarks/run_adversarial_certification.py
+uv run --no-project --with kinocut python workflows/benchmarks/run_adversarial_certification.py
 ```

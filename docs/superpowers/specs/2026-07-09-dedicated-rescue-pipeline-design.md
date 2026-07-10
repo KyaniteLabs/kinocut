@@ -1,5 +1,9 @@
 # MCP Video Dedicated Rescue Pipeline Design
 
+> **Historical design record:** This document preserves the package name and
+> source paths used when the rescue pipeline was designed. The project is now
+> Kinocut; use `kinocut`, `kino`, and the current documentation for new work.
+
 **Status:** Approved for implementation planning
 
 **Date:** 2026-07-09

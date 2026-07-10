@@ -8,7 +8,7 @@
 | Extract a podcast highlight with chapters and captions | `02-podcast-clip` | 6 | 5-10 min |
 | Build a branded explainer video from scratch | `03-explainer-video` | 10 | 30-60 min |
 | Create a video with Hyperframes, then post-process | `04-hyperframes-video` | 5 | 10-20 min |
-| Prove mcp-video can create a checked output without private media | `05-confidence-baseline` | 8 | 1-3 min |
+| Prove Kinocut can create a checked output without private media | `05-confidence-baseline` | 8 | 1-3 min |
 | Create a platform-ready repurposing package with review artifacts | `06-repurpose-package` | 5 | 2-5 min |
 | Verify the confidence baseline produced its trust artifacts | `benchmarks/run_confidence_benchmark.py` | pass/fail checks | 1-3 min |
 
@@ -27,6 +27,6 @@ Each workflow follows ICM conventions:
 - `CONTEXT.md` — Stage contract (Inputs, Process, Outputs)
 - `references/` — Factory configuration (platform specs, style guides)
 - `output/` — Working artifacts (generated at each stage)
-- `workflow.py` — Runnable Python script using the mcp-video client
+- `workflow.py` — Runnable Python script using the Kinocut client
 
 Benchmark scripts live in `workflows/benchmarks/` and write ignored JSON reports to `workflows/benchmarks/output/`.

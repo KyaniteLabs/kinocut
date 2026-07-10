@@ -1,5 +1,9 @@
 # Architecture Deepening Audit — Round 2
 
+> **Historical snapshot.** This audit predates the 2026-07-10 Kinocut rename and
+> the move from `mcp_video/` to `kinocut/`. Paths and findings are preserved as
+> evidence, not current implementation guidance.
+
 > Matt Pocock-style audit after completing all 5 candidates from Round 1.
 > Two explore agents walked the codebase for new friction points.
 

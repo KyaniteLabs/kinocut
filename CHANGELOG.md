@@ -23,6 +23,8 @@ This project follows a simple release-note style:
 
 - The project, repository links, documentation, package metadata, and public discovery surfaces now use the Kinocut name and `kinocut.dev` home.
 - The implementation package moved from `mcp_video` to `kinocut`. New Python integrations should import from `kinocut`.
+- Current documentation, examples, workflows, active plans, and research guidance now use canonical Kinocut names, paths, install commands, and the verified 135-tool/114-command surface. Dated evidence retains its historical identity with explicit snapshot notices.
+- The documentation map separates current operating guidance from historical audits, proofs, and handoffs; local Markdown links and canonical naming are enforced by public-surface tests.
 
 ### Compatibility
 
@@ -32,6 +34,8 @@ This project follows a simple release-note style:
 ### Fixed
 
 - MCP Registry metadata now uses the registry-supported GitHub mirror URL, while Forgejo remains canonical everywhere else. The publish workflow also supports a registry-only recovery dispatch, so a downstream registry rejection can be repaired without attempting to re-upload an immutable PyPI release.
+- The MCP stdio handshake now reports `kinocut` as the server name instead of the retired project name.
+- Contribution, testing, licensing, design-standard, integration, workflow, and agent setup docs now match the current package layout and release behavior; the Remotion removal version is corrected to v1.3.1.
 
 ## 1.6.0 - 2026-07-10
 

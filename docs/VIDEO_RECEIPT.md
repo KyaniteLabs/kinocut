@@ -68,7 +68,7 @@ Use it when a workflow creates or edits media that may be published, handed to a
 Use the confidence benchmark to check that a workflow produced the expected receipt and review artifacts:
 
 ```bash
-uv run --no-project --with mcp-video python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The benchmark is intentionally narrow: it proves the receipt-backed baseline can run and that the final video, quality report, release checkpoint, thumbnail, storyboard frames, and human-review state are present.

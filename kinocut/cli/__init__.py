@@ -1,1 +1,1 @@
-"""CLI helpers for mcp-video."""
+"""CLI helpers for Kinocut."""

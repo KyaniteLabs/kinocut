@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Explainer Video Workflow for mcp-video.
+Explainer Video Workflow for Kinocut.
 
 Builds a branded explainer video from scratch using synthesized audio, scenes,
-effects, and transitions — using only mcp-video client methods.
+effects, and transitions — using only Kinocut client methods.
 
 Usage:
     python workflow.py
@@ -20,7 +20,7 @@ try:
 except ImportError as exc:
     raise ImportError("Pillow is required for the explainer workflow. Install it with: pip install Pillow") from exc
 
-from mcp_video import Client
+from kinocut import Client
 
 client = Client()
 
@@ -30,7 +30,7 @@ TMP_DIR = os.path.join(OUTPUT_DIR, "tmp")
 os.makedirs(TMP_DIR, exist_ok=True)
 
 SCENES = [
-    {"accent": "#ff0033", "text": "Meet mcp-video", "duration": 5},
+    {"accent": "#ff0033", "text": "Meet Kinocut", "duration": 5},
     {"accent": "#00cc66", "text": "Edit video with AI agents", "duration": 5},
     {"accent": "#0066ff", "text": "87 MCP tools at your command", "duration": 5},
     {"accent": "#ffcc00", "text": "FFmpeg edits + Hyperframes creation", "duration": 5},
@@ -264,7 +264,11 @@ def _write_receipt(
         "tool_calls": [
             {"stage": "01-audio", "tool": "Client.audio_preset + Client.audio_compose", "output": soundtrack},
             {"stage": "02-scenes", "tool": "Client.create_from_images", "output": ", ".join(scene_clips)},
-            {"stage": "03-effects", "tool": "Client.effect_vignette / Client.effect_glow", "output": ", ".join(fx_clips)},
+            {
+                "stage": "03-effects",
+                "tool": "Client.effect_vignette / Client.effect_glow",
+                "output": ", ".join(fx_clips),
+            },
             {
                 "stage": "04-transitions",
                 "tool": "Client.transition_glitch / Client.transition_pixelate / Client.transition_morph",

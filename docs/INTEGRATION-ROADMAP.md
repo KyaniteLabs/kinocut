@@ -1,4 +1,4 @@
-# MCP-Video Integration Roadmap
+# Kinocut Integration Roadmap
 
 **Created:** 2026-03-27
 **Context:** Integration wishlist from Cerafica feedback — to be addressed after v0.6.0 improvements ship.
@@ -27,17 +27,17 @@
 ```
 Blender MCP (3D vessel modeling + rotation animation)
   → Render to MP4 (Blender's render engine)
-    → mcp-video (add text overlays, logo, export for Instagram/Web)
+    → Kinocut (add text overlays, logo, export for Instagram/Web)
 ```
 
 ### Use Cases for Cerafica
 - Photorealistic 3D vessel rotation instead of filmed footage
 - Consistent lighting and backgrounds across all products
 - Batch render 11 products with same camera angle/lighting
-- Combine with mcp-video for branded output
+- Combine with Kinocut for branded output
 
 ### Skills Needed
-- Create a Cerafica workflow skill that chains: Blender MCP → mcp-video
+- Create a Cerafica workflow skill that chains: Blender MCP → Kinocut
 - No custom MCP development required
 
 ### Effort: 1-2 days (setup + workflow skill)
@@ -48,7 +48,7 @@ Blender MCP (3D vessel modeling + rotation animation)
 
 ### Status: Shipped in v0.7.0
 
-Three image analysis tools built directly into mcp-video using scikit-learn K-means (already a dependency) and optional Claude Vision API for AI descriptions.
+Three image analysis tools built directly into Kinocut using scikit-learn K-means (already a dependency) and optional Claude Vision API for AI descriptions.
 
 **Tools shipped:**
 1. `image_extract_colors(image_path, n_colors=5)` — dominant colors with hex codes + percentages
@@ -57,16 +57,16 @@ Three image analysis tools built directly into mcp-video using scikit-learn K-me
 
 **Architecture:**
 ```
-Built into mcp-video server (no separate MCP server needed)
+Built into the Kinocut server (no separate MCP server needed)
   ├── Color extraction (scikit-learn K-means) — FREE, LOCAL
   └── AI descriptions (Claude Vision API) — OPTIONAL, $0.15/image
 ```
 
 **Pipeline Integration:**
 ```
-mcp-video (video_export_frames)
+Kinocut (`video_export_frames`)
   → Image Analysis tools (extract colors, descriptions)
-    → mcp-video (use metadata in text overlays)
+    → Kinocut (use metadata in text overlays)
 ```
 
 ---
@@ -93,9 +93,9 @@ Full Hyperframes integration with 8 MCP tools, Python client methods, and CLI co
 
 ## 4. Remotion Integration — REMOVED
 
-### Status: Completely removed in v2.0.0 (PR #163).
+### Status: Completely removed in v1.3.1 (PR #163).
 
-Remotion's custom freemium license (company-size gate, no derivative resale) created liability for wrappers like mcp-video. All Remotion MCP tools, CLI commands, client methods, engine modules, and tests have been deleted. Hyperframes (HTML-native, Apache 2.0) is now the sole code-based video creation engine.
+Remotion's custom freemium license (company-size gate, no derivative resale) created liability for wrappers like Kinocut. All Remotion MCP tools, CLI commands, client methods, engine modules, and tests have been deleted. Hyperframes (HTML-native, Apache 2.0) is now the sole code-based video creation engine.
 
 **Migration path:** Use `hyperframes_init`, `hyperframes_render`, `hyperframes_preview`, and `hyperframes_to_mcpvideo` instead of the removed Remotion equivalents.
 
@@ -108,4 +108,4 @@ Remotion's custom freemium license (company-size gate, no derivative resale) cre
 | Blender MCP | LOW | 1-2 days | Defer | No | Medium |
 | Image Analysis | MEDIUM | 2-3 days | **Completed (v0.7.0)** | Yes | Medium |
 | Hyperframes | HIGH | Shipped | **Completed (v1.2.5)** | Yes | High |
-| Remotion | MEDIUM | 5-10 days | **Removed (v2.0.0)** | N/A | N/A |
+| Remotion | MEDIUM | 5-10 days | **Removed (v1.3.1)** | N/A | N/A |

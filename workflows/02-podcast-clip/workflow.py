@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Podcast Clip Workflow for mcp-video.
+Podcast Clip Workflow for Kinocut.
 
 Extracts a highlight from a podcast episode with auto-chapters and burned captions.
 
@@ -14,7 +14,7 @@ import json
 import os
 import sys
 
-from mcp_video import Client
+from kinocut import Client
 
 client = Client()
 

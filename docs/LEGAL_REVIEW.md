@@ -1,18 +1,18 @@
 # Licensing and Commercial-Use Notes
 
-This is a practical project-specific licensing summary for `mcp-video`.
+This is a practical project-specific licensing summary for Kinocut.
 
 **Not legal advice.** If you are distributing this commercially or embedding it in a product, have counsel review the final obligations for your use case.
 
 ## Project license
 
-The `mcp-video` Python package is released under **Apache 2.0**. See [LICENSE](LICENSE).
+The `kinocut` Python package is released under **Apache 2.0**. The `mcp-video` distribution is a compatibility shim and carries the same project license. See [LICENSE](../LICENSE).
 
 ## Important dependency and tooling caveats
 
 ### FFmpeg
 
-`mcp-video` depends on FFmpeg being available at runtime for many features.
+Kinocut depends on FFmpeg being available at runtime for many features.
 
 - FFmpeg licensing depends on how FFmpeg is built and distributed.
 - If you only invoke a system-installed FFmpeg, your obligations may differ from bundling FFmpeg binaries yourself.

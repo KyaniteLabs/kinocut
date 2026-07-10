@@ -79,7 +79,7 @@ def requires_filter(name: str, feature: str):
 class TestServerInitialization:
     def test_mcp_instance(self):
         assert mcp is not None
-        assert mcp.name == "mcp-video"
+        assert mcp.name == "kinocut"
 
     def test_tools_registered(self):
         # Check that the server has tools registered

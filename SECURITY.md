@@ -1,6 +1,6 @@
 # Security Policy
 
-mcp-video shells out to FFmpeg and handles local media paths, so security reports are taken seriously.
+Kinocut shells out to FFmpeg and handles local media paths, so security reports are taken seriously.
 
 ## Supported Versions
 
@@ -17,7 +17,7 @@ Helpful reports include:
 - The affected MCP tool, CLI command, or Python API.
 - A minimal reproduction using non-sensitive media.
 - The expected impact, such as command injection, path traversal, unsafe file overwrite, denial of service, dependency compromise, or secret exposure.
-- Your OS, Python version, FFmpeg version, and mcp-video version.
+- Your OS, Python version, FFmpeg version, and Kinocut version.
 
 ## Response Expectations
 
@@ -38,6 +38,6 @@ In scope:
 
 Out of scope:
 
-- Reports requiring malicious local code execution before using mcp-video.
+- Reports requiring malicious local code execution before using Kinocut.
 - Issues only affecting third-party FFmpeg builds outside this project.
 - Denial-of-service reports that require unrealistic media sizes beyond documented limits.

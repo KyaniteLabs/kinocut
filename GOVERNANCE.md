@@ -1,6 +1,6 @@
 # Governance
 
-`mcp-video` is currently maintained as a benevolent-maintainer open source project.
+Kinocut is currently maintained as a benevolent-maintainer open source project.
 
 ## Decision Model
 
@@ -34,4 +34,3 @@ The project is an MCP-first video editing toolkit. It should not become:
 - a speculative abstraction layer over every video framework.
 
 Those may be separate projects if they become real products.
-

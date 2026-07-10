@@ -1,8 +1,10 @@
-# MCP Video Proof Gallery
+# Kinocut Proof Gallery
 
-This directory collects dated proof artifacts for mcp-video confidence work.
+This directory collects dated proof artifacts for Kinocut confidence work. Artifacts
+created before the 2026-07-10 rename intentionally retain the `mcp-video` name,
+commands, package versions, and source paths they actually verified.
 
-## Current Proofs
+## Dated Proofs
 
 | Date | Artifact | Purpose |
 | --- | --- | --- |

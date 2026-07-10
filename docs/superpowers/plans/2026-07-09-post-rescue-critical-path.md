@@ -1,5 +1,9 @@
 # MCP Video Post-Rescue Critical Path
 
+> **Historical planning record:** This plan predates the Kinocut rename. Former
+> package names are retained as dated evidence; the approved Kinocut trusted
+> execution layer plan is the current roadmap.
+
 **Status:** Implemented for the approved 1.6.0 planning, retrieval, verification, and
 explicit-adapter scope. New media mutation remains restricted to separately approved vetted
 executors, as required by the surface-parity decision. See the

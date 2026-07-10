@@ -1,6 +1,6 @@
 # 04-hyperframes-video
 
-Create a video from scratch using Hyperframes (HTML-native, Apache 2.0), then post-process with mcp-video.
+Create a video from scratch using Hyperframes (HTML-native, Apache 2.0), then post-process with Kinocut.
 
 ## Inputs
 
@@ -9,7 +9,7 @@ Create a video from scratch using Hyperframes (HTML-native, Apache 2.0), then po
 | Project name | User provided | Name for the new Hyperframes project |
 | Template | User provided | `blank`, `warm-grain`, or `swiss-grid` |
 | Blocks | User provided | Optional blocks from Hyperframes catalog |
-| Post-process | User provided | mcp-video filters, resize, text overlay, etc. |
+| Post-process | User provided | Kinocut filters, resize, text overlay, etc. |
 
 ## Process
 
@@ -17,7 +17,7 @@ Create a video from scratch using Hyperframes (HTML-native, Apache 2.0), then po
 2. **02-blocks**: Use `hyperframes_add_block` to install catalog blocks (optional)
 3. **03-validate**: Use `hyperframes_validate` to check project structure
 4. **04-render**: Use `hyperframes_render` to generate the base video
-5. **05-post-process**: Use mcp-video tools (resize, add_text, watermark, export)
+5. **05-post-process**: Use Kinocut tools (resize, add_text, watermark, export)
 
 ## Outputs
 

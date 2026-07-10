@@ -1,6 +1,6 @@
 # Repository Audit Checklist (Step-by-Step)
 
-Use this checklist to keep `mcp-video` at professional quality across code, docs, CI/CD, GitHub setup, and growth readiness.
+Use this checklist to keep Kinocut at professional quality across code, docs, CI/CD, Forgejo/GitHub setup, and growth readiness.
 
 ## 1) Code health (weekly)
 
@@ -12,8 +12,8 @@ Use this checklist to keep `mcp-video` at professional quality across code, docs
 Suggested commands:
 
 ```bash
-ruff check mcp_video/
-ruff format --check mcp_video/
+ruff check kinocut/ mcp_video.py
+ruff format --check kinocut/ mcp_video.py
 pytest tests/ -q -m "not slow" --tb=short
 python -m build --sdist --wheel
 python .github/scripts/check-built-artifacts.py dist
@@ -61,7 +61,7 @@ gh workflow run "Integration smoke"
 
 This validates:
 - base install imports and CLI help/version
-- `mcp-video doctor --json`
+- `kino doctor --json`
 - a minimal FFmpeg trim path
 - image extra import and tiny image color extraction
 - Node/npm/npx availability reporting for Hyperframes

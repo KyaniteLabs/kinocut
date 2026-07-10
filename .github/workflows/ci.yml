@@ -387,4 +387,4 @@ jobs:
         run: echo "Docker inputs unchanged; marking Docker check successful."
       - name: Build Docker image
         if: needs.changes.outputs.docker == 'true'
-        run: docker build -t mcp-video:test .
+        run: docker build -t kinocut:test .

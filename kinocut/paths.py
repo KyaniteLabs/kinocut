@@ -1,4 +1,4 @@
-"""Path generation helpers for mcp-video."""
+"""Path generation helpers for Kinocut."""
 
 from __future__ import annotations
 

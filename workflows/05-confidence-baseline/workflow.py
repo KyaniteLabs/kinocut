@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Confidence baseline workflow for mcp-video."""
+"""Confidence baseline workflow for Kinocut."""
 
 from __future__ import annotations
 
@@ -9,9 +9,9 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from mcp_video import Client
-from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
-from mcp_video.errors import ProcessingError
+from kinocut import Client
+from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
+from kinocut.errors import ProcessingError
 
 
 WORKFLOW_DIR = Path(__file__).resolve().parent
@@ -131,22 +131,28 @@ def main() -> None:
 
     print("\n[6/7] Running quality and release checkpoint...")
     quality = client.quality_check(final_path)
-    checkpoint = client.release_checkpoint(final_path, output_dir=str(OUTPUT_DIR / "checkpoint"), min_score=50, frame_count=4)
-    tool_calls.append({"stage": "06-quality", "tool": "Client.quality_check", "output": str(OUTPUT_DIR / "quality.json")})
+    checkpoint = client.release_checkpoint(
+        final_path, output_dir=str(OUTPUT_DIR / "checkpoint"), min_score=50, frame_count=4
+    )
+    tool_calls.append(
+        {"stage": "06-quality", "tool": "Client.quality_check", "output": str(OUTPUT_DIR / "quality.json")}
+    )
     tool_calls.append(
         {"stage": "06-checkpoint", "tool": "Client.release_checkpoint", "output": str(OUTPUT_DIR / "checkpoint")}
     )
 
     quality_json = quality if isinstance(quality, dict) else quality.model_dump()
     checkpoint_json = checkpoint if isinstance(checkpoint, dict) else checkpoint.model_dump()
-    (OUTPUT_DIR / "quality.json").write_text(json.dumps(quality_json, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    (OUTPUT_DIR / "quality.json").write_text(
+        json.dumps(quality_json, indent=2, sort_keys=True) + "\n", encoding="utf-8"
+    )
     (OUTPUT_DIR / "release_checkpoint.json").write_text(
         json.dumps(checkpoint_json, indent=2, sort_keys=True) + "\n",
         encoding="utf-8",
     )
 
     receipt = {
-        "user_intent": "Prove mcp-video can produce a checked vertical video from generated or local source media.",
+        "user_intent": "Prove Kinocut can produce a checked vertical video from generated or local source media.",
         "source_media": {
             "path": str(source),
             "duration_seconds": duration,

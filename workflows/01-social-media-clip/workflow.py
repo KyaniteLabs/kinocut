@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Social Media Clip Workflow for mcp-video.
+Social Media Clip Workflow for Kinocut.
 
 Turns landscape video into a vertical TikTok / Short / Reel.
 
@@ -13,7 +13,7 @@ The script runs 5 stages and outputs the final clip to output/final_clip.mp4.
 import os
 import sys
 
-from mcp_video import Client
+from kinocut import Client
 
 client = Client()
 

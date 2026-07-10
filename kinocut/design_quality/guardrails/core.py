@@ -1,4 +1,4 @@
-"""Visual Design Quality System for mcp-video.
+"""Visual design quality system for Kinocut.
 
 Comprehensive design quality checks that go beyond technical metrics
 to evaluate visual hierarchy, layout, typography, spacing, and motion design.

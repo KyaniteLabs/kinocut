@@ -20,3 +20,12 @@ references research evidence or the kernel API contracts.
 Provenance: 4 Claude web-research agents + codex (in-repo) + kimi + glm + agy
 lanes, orchestrated 2026-07-09; plan approved by Simon 2026-07-10 after a
 3-round Planner/Architect/Critic consensus loop (revision history in the plan).
+
+## Snapshot note
+
+This pack was captured immediately before the rename, when the project was still
+called `mcp-video` and exposed 119 tools. Those names, counts, stars, and market
+observations are retained where they are evidence from that dated snapshot. Current
+implementation guidance uses **Kinocut**, the `kinocut/` package, `kino` CLI, and
+`kinocut://` resources. The verified release-cutover surface is **135 MCP tools and
+114 CLI commands**; re-check live market statistics before quoting them externally.

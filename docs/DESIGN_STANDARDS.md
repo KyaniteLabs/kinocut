@@ -1,8 +1,8 @@
-# mcp-video Visual Design Standards
+# Kinocut Visual Design Standards
 
 ## Overview
 
-mcp-video uses a consistent visual design system for all video output. These standards ensure professional, accessible, and visually appealing results.
+Kinocut uses a consistent visual design system for all video output. These standards ensure professional, accessible, and visually appealing results.
 
 ## Color Palette
 
@@ -112,18 +112,21 @@ border-radius: 12px;
 ## Quality Guardrails
 
 ### Technical Checks (Auto-enforced)
-- ✅ Brightness within 40-200 range (mean luminance)
-- ✅ Contrast ratio ≥ 4.5:1 for text
-- ✅ Frame rate ≥ 24 fps
-- ✅ Audio loudness: -16 LUFS (YouTube standard)
-- ✅ No color casts (unless intentional)
+- Brightness target: FFmpeg `signalstats.YAVG` from 40-200 on the 8-bit luma scale (0-255).
+- Contrast target: 20-100 percent of the 8-bit luma range, derived from `YHIGH-YLOW`.
+- Saturation target: 10-120 percent of the practical 8-bit YUV saturation range, calculated as `SATAVG / 181 * 100`.
+- Text contrast ratio: at least 4.5:1.
+- Frame rate: at least 24 fps. A 24 fps delivery is valid and intentional, not a warning by itself.
+- Audio loudness target: -16 LUFS; true peak must remain at or below -1 dBTP.
+- Color-cast warnings are advisory when the look is intentional.
 
 ### Design Checks (Flagged for review)
-- ⚠️ Text near edges (check safe areas)
-- ⚠️ Font size < 24px at 1080p
-- ⚠️ Low saturation (< 10%)
-- ⚠️ Excessive contrast (> 100 std dev)
-- ⚠️ Animation frame drops
+- Text near edges (check safe areas).
+- Font size below 24px at 1080p.
+- Low saturation below 10 percent of the practical 8-bit YUV saturation range.
+- High saturation above 90 percent is informational unless the brand theme makes it intentional.
+- Excessive contrast above 100 percent of the 8-bit luma range.
+- Animation frame drops.
 
 ### Composition Checks (Manual review suggested)
 - 📝 Visual balance
@@ -143,7 +146,7 @@ The design quality system can automatically fix:
 ## Usage in Code
 
 ```python
-from mcp_video import design_quality_check, fix_design_issues
+from kinocut import design_quality_check, fix_design_issues
 
 # Check design quality
 report = design_quality_check("my_video.mp4")
@@ -158,4 +161,4 @@ fixed_video = fix_design_issues("my_video.mp4", output="fixed.mp4")
 
 ## Implementation
 
-See `mcp_video/design_quality.py` for the implementation of these standards.
+See `kinocut/design_quality/` for the implementation of these standards.

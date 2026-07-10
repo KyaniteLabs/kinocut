@@ -1,4 +1,4 @@
-"""Resource limits and validation constants for mcp-video."""
+"""Resource limits and validation constants for Kinocut."""
 
 # Video limits
 MAX_VIDEO_DURATION = 14400  # 4 hours in seconds

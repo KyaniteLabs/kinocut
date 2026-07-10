@@ -1,4 +1,4 @@
-"""Open-source audio integrations for mcp-video.
+"""Open-source audio integrations for Kinocut.
 
 All integrations use permissive licenses (BSD, MIT, or Apache 2.0).
 No GPL/LGPL dependencies.

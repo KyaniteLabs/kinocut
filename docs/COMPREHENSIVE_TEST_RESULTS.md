@@ -1,6 +1,8 @@
 # Comprehensive Tool Execution Test Results
 
-> Historical snapshot: this report predates the current 87-tool public MCP surface and the `video_release_checkpoint` guardrail tool.
+> **Historical snapshot.** This report predates the Kinocut rename, the current
+> 135-tool public MCP surface, and the `video_release_checkpoint` guardrail tool.
+> Its `mcp_video/` paths and 81-tool result describe the tested 2026-04-22 state.
 
 **Date:** 2026-04-22  
 **Tester:** Claude Code (systematic execution test)  

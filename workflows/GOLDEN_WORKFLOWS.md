@@ -1,6 +1,6 @@
 # Golden Workflow Map
 
-These are the buyer-facing proof lanes for mcp-video.
+These are the buyer-facing proof lanes for Kinocut.
 
 ## 1. Podcast or Interview to Vertical Short
 

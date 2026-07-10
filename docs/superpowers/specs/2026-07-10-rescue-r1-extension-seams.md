@@ -1,5 +1,9 @@
 # Rescue R1 Extension Seams
 
+> **Historical implementation record:** This document describes the MCP Video
+> 1.6.0 package layout. The project is now Kinocut; use the canonical `kinocut`
+> package paths for new extensions.
+
 **Status:** Approved for implementation
 
 ## Decision

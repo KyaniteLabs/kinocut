@@ -1,4 +1,4 @@
-"""Pydantic models for mcp-video operations."""
+"""Pydantic models for Kinocut operations."""
 
 from __future__ import annotations
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run and verify the receipt-backed mcp-video confidence baseline."""
+"""Run and verify the receipt-backed Kinocut confidence baseline."""
 
 from __future__ import annotations
 
@@ -10,8 +10,8 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
-from mcp_video.errors import ProcessingError
+from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
+from kinocut.errors import ProcessingError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -66,7 +66,9 @@ def _run_workflow(workflow_dir: Path) -> subprocess.CompletedProcess[str]:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workflow-dir", type=Path, default=DEFAULT_WORKFLOW_DIR)
-    parser.add_argument("--skip-run", action="store_true", help="Validate the existing receipt without rerunning workflow.")
+    parser.add_argument(
+        "--skip-run", action="store_true", help="Validate the existing receipt without rerunning workflow."
+    )
     args = parser.parse_args()
 
     workflow_dir = args.workflow_dir.expanduser().resolve()

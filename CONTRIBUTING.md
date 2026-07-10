@@ -1,13 +1,13 @@
-# Contributing to mcp-video
+# Contributing to Kinocut
 
-Thanks for your interest in improving mcp-video. This is a focused project — every tool should work reliably, and every change should maintain that standard.
+Thanks for your interest in improving Kinocut. This is a focused project: every tool should work reliably, and every change should maintain that standard.
 
 ## Quick Start
 
 ```bash
 # Clone and install dev dependencies
 git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
-cd mcp-video
+cd kinocut
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -22,73 +22,50 @@ pytest tests/test_engine.py -v
 ## Project Structure
 
 ```
-mcp_video/
-├── __init__.py            # Exports Client + public API
-├── __main__.py            # CLI entry point (argparse + Rich)
-├── client.py              # Python Client API (wraps all engines)
-├── server.py              # MCP server (119 tools + 4 resources)
-├── engine.py              # Core FFmpeg engine (40 video operations)
-├── models.py              # Pydantic models (VideoInfo, EditResult, Timeline DSL)
-├── errors.py              # Error hierarchy + FFmpeg stderr parser
-├── validation.py          # Shared validation constants / allowed values / normalized-parameter helpers
-├── ffmpeg_helpers.py      # Shared FFmpeg utilities (escape, validate, run) (v1.2.0)
-├── templates.py           # Social media templates (TikTok, YouTube, Instagram)
-├── audio_engine.py        # Procedural audio synthesis (pure NumPy)
-├── effects_engine.py      # Visual effects + motion graphics (FFmpeg filters)
-├── transitions_engine.py  # Clip transitions (glitch, pixelate, morph)
-├── ai_engine.py           # AI features (Whisper, Demucs, Real-ESRGAN, spatial audio)
-├── hyperframes_engine.py  # Hyperframes CLI wrapper (render, preview, validate, init)
-├── hyperframes_models.py  # Hyperframes data models
-├── image_engine.py        # Image color analysis (K-means, palette generation)
-├── image_models.py        # Image data models
-├── quality_guardrails.py  # Automated quality checks (brightness, contrast, audio)
-├── filter_guardrails.py   # Preflight bounds for video/audio filter parameters
-├── merge_guardrails.py    # Pre-merge compatibility checks
-├── audio_guardrails.py    # Audio mix validation helpers
-├── design_quality.py      # Design quality + auto-fix (layout, typography, motion)
-└── limits.py              # Resource validation constants (max 4h, 8K, 4GB)
+kinocut/
+├── __init__.py             # Canonical public API
+├── __main__.py             # kino/kinocut/mcp-video CLI entry point
+├── server.py               # MCP registration assembly (135 tools)
+├── server_app.py           # Shared FastMCP app and result helpers
+├── server_tools_*.py       # Thin public MCP registration modules
+├── engine_*.py             # Focused FFmpeg/media operations
+├── client/                 # Python Client mixins and contracts
+├── cli/                    # Parsers, handlers, and formatting
+├── workflow/               # Plan/validate/render/resume/inspect engine
+├── rescue/                 # Dedicated review-first rescue pipeline
+├── ai_engine/              # Optional AI analysis and media operations
+├── audio_engine/           # Procedural audio and composition
+├── effects_engine/         # Effects and motion graphics
+├── design_quality/         # Design checks and auto-fix implementation
+├── ffmpeg_helpers.py       # Canonical FFmpeg execution/path helpers
+├── defaults.py             # Runtime defaults
+├── validation.py           # Shared parameter validation
+└── limits.py               # Resource and subprocess limits
+mcp_video.py                # Compatibility import module
+compat/mcp-video-shim/      # Compatibility distribution metadata
 tests/
-├── conftest.py                  # Shared fixtures (sample video, audio, etc.)
-├── test_models.py               # Model validation (no FFmpeg)
-├── test_errors.py               # Error parsing (no FFmpeg)
-├── test_templates.py            # Template functions (no FFmpeg)
-├── test_client.py               # Client API wrapper
-├── test_server.py               # MCP tool layer
-├── test_engine.py               # Core FFmpeg operations
-├── test_engine_advanced.py      # Edge cases, crop, rotate, fade, filters, validation
-├── test_cli.py                  # CLI commands
-├── test_e2e.py                  # Multi-step workflows
-├── test_ai_features.py          # AI tools (mocked where needed)
-├── test_audio_presets.py        # Audio preset validation
-├── test_transitions.py          # Transition effects
-├── test_quality_guardrails.py   # Quality scoring
-├── test_image_engine.py         # Color extraction, palettes
-├── test_adversarial_audit.py    # Security audit (injection, validation, bounds)
-├── test_red_team.py             # Red team tests
-├── test_hyperframes_engine.py   # Hyperframes CLI wrapper (mocked)
-├── test_real_media.py           # Real-media integration tests (marked @slow)
-├── test_real_all_features.py    # Real-media all-features sweep (marked @slow)
-└── test_real_exhaustive.py      # Exhaustive real-media tests (marked @slow)
+├── test_public_surface.py       # Exact CLI/MCP/discovery compatibility contract
+├── test_server*.py              # MCP registration and wire behavior
+├── test_cli*.py                 # CLI parsing and command behavior
+├── test_workflow_*.py           # Workflow engine and receipt contracts
+├── test_rescue_*.py             # Rescue pipeline contracts
+└── test_real_*.py               # Real-media coverage (usually marked slow)
 ```
 
 ## Making Changes
 
 ### Adding a new tool
 
-1. **Engine first** — Add the FFmpeg function in `engine.py`. Follow the existing pattern:
-   - `_validate_input(input_path)` at the top
-   - `_run_ffmpeg([...])` for the FFmpeg call
-   - `probe(output)` after processing
-   - Return an `EditResult` with `duration`, `resolution`, `size_mb`
+1. **Engine first** — Add behavior to the focused `engine_*.py` module or existing subpackage that owns the operation. Reuse `_validate_input_path()`, `_validate_output_path()`, `_run_ffmpeg()`, and audio/video-aware probes from `ffmpeg_helpers.py`.
 2. **Model if needed** — Add any new Pydantic models to `models.py`
 3. **Error if needed** — Add error types to `errors.py` if the failure mode is distinct
-4. **Server** — Add the `@mcp.tool()` wrapper in `server.py` with parameter validation
+4. **Server** — Add the thin `@mcp.tool()` wrapper to the matching `server_tools_*.py` module with parameter validation; keep business logic out of the registration layer
 5. **Tests** — Add tests in the appropriate file:
    - `test_engine_advanced.py` for new operations
    - `test_server.py` for the MCP tool wrapper
    - `test_e2e.py` if it's a workflow-type operation
    - `test_adversarial_audit.py` for any new validation/injection tests
-6. **Update counts** — README test counts and tool count
+6. **Update contracts** — Update `EXPECTED_CLI_COMMANDS`, the exact MCP count, README, `llms.txt`, `docs/AI_AGENT_DISCOVERY.md`, and tool/reference docs when the public surface changes
 
 ### Fixing a bug
 
@@ -100,13 +77,13 @@ tests/
 ## Code Conventions
 
 - **Error types matter** — Use `input_error` for validation failures, `processing_error` for FFmpeg failures, `dependency_error` for missing tools. Don't default to `unknown_error`.
-- **Validate in the server** — Parameter validation belongs in `server.py` (before calling the engine), not just in the engine. Use `_error_result(MCPVideoError(...))` for validation failures.
+- **Validate at the boundary** — Parameter validation belongs in the matching `server_tools_*.py` registration module before the engine call, with engine-level validation retained for non-MCP callers. Use `_validation_error()` or the established structured error helper.
 - **Probe after processing** — Every operation that produces a video file should call `probe(output)` and return duration/resolution in the `EditResult`.
 - **Escape FFmpeg special chars** — Use `_escape_ffmpeg_filter_value()` from `ffmpeg_helpers.py` for paths/values going into FFmpeg filter strings.
-- **Validate paths** — Use `_validate_input()` (engine) or `_validate_input_path()` (effects/transitions) to reject null bytes and verify file existence. Treat `validation.py` as the shared source of allowed-value constants, not a hidden catch-all helper layer.
+- **Validate paths** — Use `_validate_input_path()` and `_validate_output_path()` from `ffmpeg_helpers.py` to reject null bytes, confine paths, and verify inputs. Treat `validation.py` as the shared source of allowed-value constants, not a hidden catch-all helper layer.
 - **Sanitize output paths** — `_auto_output` replaces colons with underscores to prevent FFmpeg filter breakage.
 - **No shell=True** — All subprocess calls use list args, never shell strings.
-- **Keep it simple** — One function per operation. No classes for engines. No abstractions for one-time use.
+- **Keep ownership clear** — Prefer focused engine functions and existing subpackages. Add an abstraction only when it removes real complexity or matches an established local pattern.
 
 ## Testing Rules
 
@@ -168,9 +145,9 @@ For workspace cleanup (stale worktrees/branches), run:
 To monitor the GitHub mirror CI and review comments on mirrored PRs, run:
 
 ```bash
-./scripts/github-pr-monitor.py --owner KyaniteLabs --repo mcp-video
+./scripts/github-pr-monitor.py --owner KyaniteLabs --repo kinocut
 # optional: target a specific PR
-./scripts/github-pr-monitor.py --owner KyaniteLabs --repo mcp-video --pr 17
+./scripts/github-pr-monitor.py --owner KyaniteLabs --repo kinocut --pr 17
 ```
 
 ## Pull Request Process

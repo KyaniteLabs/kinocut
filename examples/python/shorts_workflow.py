@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-YouTube Shorts Workflow Example for mcp-video.
+YouTube Shorts Workflow Example for Kinocut.
 
-Demonstrates how to use the mcp-video Python client to create a YouTube Short
+Demonstrates how to use the Kinocut Python client to create a YouTube Short
 from a longer video. The workflow:
   1. Trim a highlight clip
   2. Resize to 9:16 vertical format
@@ -11,7 +11,7 @@ from a longer video. The workflow:
   5. Export the final short
 
 Requirements:
-  - mcp_video Python client installed
+  - kinocut Python client installed
 
 Usage:
   python3 shorts_workflow.py
@@ -21,7 +21,7 @@ Replace placeholder paths with your actual file paths before running.
 
 import os
 
-from mcp_video import Client
+from kinocut import Client
 
 # ---------------------------------------------------------------------------
 # Configuration -- replace these with your actual paths and preferences

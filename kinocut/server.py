@@ -1,4 +1,4 @@
-"""mcp-video MCP server — exposes video editing tools for AI agents."""
+"""Kinocut MCP server - exposes video editing tools for AI agents."""
 
 from __future__ import annotations
 

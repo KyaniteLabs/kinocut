@@ -1,6 +1,6 @@
 # Improvement Roadmap
 
-v1.5.2 ships a 119-tool MCP surface with Hyperframes integration, repurposing workflows, composite-layers P1, and expanded preflight guardrails. Remotion has been fully removed; the current priority is safer agentic media automation.
+Kinocut 1.7.0 exposes 135 MCP tools and 114 CLI commands, with Hyperframes integration, repurposing workflows, layered compositing, dedicated rescue, and expanded preflight guardrails. Remotion has been fully removed; the current priority is a trusted execution layer for agentic media automation.
 
 ---
 
@@ -216,7 +216,7 @@ v1.2.0 shipped. 82 MCP tools, 832 tests, security hardened. Here's what's next.
 
 ## FFmpeg Coverage Gaps
 
-Features that FFmpeg supports but mcp-video doesn't expose yet. Ordered by impact.
+Features that FFmpeg supports but Kinocut doesn't expose yet. Ordered by impact.
 
 ### High Impact
 - [x] **Audio effects** — Reverb (`aecho`), equalizer (`equalizer`), compressor (`acompressor`), pitch shift (`asetrate`+`aresample`), noise reduction (`afftdn`)

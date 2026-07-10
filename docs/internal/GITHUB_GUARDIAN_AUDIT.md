@@ -1,5 +1,9 @@
 # GitHub Guardian Audit — 2026-03-29
 
+> **Historical snapshot.** This audit predates the Kinocut rename and subsequent
+> CI/package restructuring. Preserve it as evidence; verify all findings against
+> the current Forgejo repository and GitHub mirror before acting.
+
 ## 🔴 Critical: CI Failing
 
 ### mcp-video

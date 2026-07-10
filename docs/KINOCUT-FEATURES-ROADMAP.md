@@ -1,4 +1,4 @@
-# mcp-video Features Roadmap
+# Kinocut Features Roadmap
 
 Consolidated feature backlog from explainer video project.
 
@@ -46,11 +46,11 @@ Fully tested and working:
 - ✅ `video_audio_spatial` - 3D spatial audio (v1.0)
 
 ### Audio Synthesis (Shipped v0.9.0)
-- ✅ `video_audio_preset` - 18+ pre-configured sounds
-- ✅ `video_audio_synthesize` - Procedural waveform generation
-- ✅ `video_audio_sequence` - Timed sequence composition
-- ✅ `video_audio_compose` - Multi-track mixing
-- ✅ `video_audio_effects` - Effects chain processing
+- ✅ `audio_preset` - 18+ pre-configured sounds
+- ✅ `audio_synthesize` - Procedural waveform generation
+- ✅ `audio_sequence` - Timed sequence composition
+- ✅ `audio_compose` - Multi-track mixing
+- ✅ `audio_effects` - Effects chain processing
 - ✅ `video_add_generated_audio` - One-shot video+audio
 
 ### Visual Effects (Shipped v0.9.0)
@@ -85,81 +85,87 @@ Fully tested and working:
 
 ## 🎵 **Audio Synthesis & Sound Design**
 
-### `video_audio_synthesize`
+### `Client.audio_synthesize`
 Generate audio procedurally using synthesis.
 
 ```python
-from mcp_video import video_audio_synthesize
+from kinocut import Client
 
-video_audio_synthesize(
+video = Client()
+
+video.audio_synthesize(
     output="drone.wav",
     waveform="sine",      # sine, square, sawtooth, triangle, noise
     frequency=100,        # Hz base frequency
     duration=5.0,         # seconds
     volume=0.3,
     effects={
-        "lfo": {"rate": 0.1, "depth": 5},      # Frequency modulation
-        "harmonic": 0.5,                       # Add harmonic overtones
         "envelope": {"attack": 0.1, "decay": 0.2, "sustain": 0.7, "release": 0.5},
     }
 )
 ```
 
-### `video_audio_preset`
+### `Client.audio_preset`
 Pre-configured sound design elements.
 
 ```python
-from mcp_video import video_audio_preset
+from kinocut import Client
+
+video = Client()
 
 # UI interaction
-video_audio_preset("ui-blip", pitch="high", output="blip.wav")
-video_audio_preset("ui-click", pitch="mid", output="click.wav")
-video_audio_preset("ui-whoosh", direction="up", duration=0.3, output="whoosh.wav")
+video.audio_preset("ui-blip", pitch="high", output="blip.wav")
+video.audio_preset("ui-click", pitch="mid", output="click.wav")
+video.audio_preset("ui-whoosh-up", duration=0.3, output="whoosh.wav")
 
 # Ambient textures
-video_audio_preset("drone-low", frequency=80, output="drone.wav")
-video_audio_preset("drone-tech", frequency=120, modulation=True, output="drone.wav")
+video.audio_preset("drone-low", output="drone.wav")
+video.audio_preset("drone-tech", intensity=0.7, output="drone-tech.wav")
 
 # Notifications
-video_audio_preset("chime-success", output="success.wav")
-video_audio_preset("chime-error", output="error.wav")
+video.audio_preset("chime-success", output="success.wav")
+video.audio_preset("chime-error", output="error.wav")
 
 # Data/Processing
-video_audio_preset("typing", intensity=0.5, output="typing.wav")
-video_audio_preset("scan", duration=1.0, output="scan.wav")
-video_audio_preset("data-flow", duration=0.3, output="flow.wav")
+video.audio_preset("typing", intensity=0.5, output="typing.wav")
+video.audio_preset("scan", duration=1.0, output="scan.wav")
+video.audio_preset("data-flow", duration=0.3, output="flow.wav")
 ```
 
-**Presets to implement:**
+**Available presets:**
 - UI: `ui-blip`, `ui-click`, `ui-tap`, `ui-whoosh-up`, `ui-whoosh-down`
 - Ambient: `drone-low`, `drone-mid`, `drone-tech`, `drone-ominous`
 - Notifications: `chime-success`, `chime-error`, `chime-notification`
 - Data: `typing`, `scan`, `processing`, `data-flow`, `upload`, `download`
 
-### `video_audio_sequence`
+### `Client.audio_sequence`
 Compose multiple audio events into a timed sequence.
 
 ```python
-from mcp_video import video_audio_sequence
+from kinocut import Client
+
+video = Client()
 
 sequence = [
     {"type": "tone", "freq": 800, "duration": 0.05, "at": 0},
     {"type": "tone", "freq": 1000, "duration": 0.05, "at": 0.1},
-    {"type": "chime", "notes": [523, 659, 784], "at": 2.0},
+    {"type": "preset", "name": "chime-success", "at": 2.0},
     {"type": "whoosh", "direction": "up", "duration": 0.3, "at": 3.0},
     {"type": "preset", "name": "typing", "at": 5.0, "duration": 2.0},
 ]
 
-video_audio_sequence(sequence, output="soundtrack.wav", sample_rate=44100)
+video.audio_sequence(sequence, output="soundtrack.wav")
 ```
 
-### `video_audio_compose`
+### `Client.audio_compose`
 Layer multiple audio tracks with mixing.
 
 ```python
-from mcp_video import video_audio_compose
+from kinocut import Client
 
-video_audio_compose(
+video = Client()
+
+video.audio_compose(
     tracks=[
         {"file": "drone.wav", "volume": 0.2, "loop": True, "start": 0},
         {"file": "blips.wav", "volume": 0.3, "start": 5.0},
@@ -170,14 +176,16 @@ video_audio_compose(
 )
 ```
 
-### `video_audio_effects`
+### `Client.audio_effects`
 Apply audio effects chain.
 
 ```python
-from mcp_video import video_audio_effects
+from kinocut import Client
 
-video_audio_effects(
-    input="raw.wav",
+video = Client()
+
+video.audio_effects(
+    input_path="raw.wav",
     output="processed.wav",
     effects=[
         {"type": "lowpass", "frequency": 2000},
@@ -189,19 +197,21 @@ video_audio_effects(
 )
 ```
 
-### `video_add_generated_audio`
+### `Client.add_generated_audio`
 One-shot video + generated audio.
 
 ```python
-from mcp_video import video_add_generated_audio
+from kinocut import Client
 
-video_add_generated_audio(
+video = Client()
+
+video.add_generated_audio(
     video="input.mp4",
     audio_config={
         "drone": {"frequency": 100, "volume": 0.2},
         "events": [
-            {"type": "blip", "at": 2.0},
-            {"type": "chime", "at": 5.0},
+            {"type": "preset", "name": "ui-blip", "at": 2.0},
+            {"type": "preset", "name": "chime-success", "at": 5.0},
             {"type": "whoosh", "at": 10.0},
         ]
     },
@@ -543,11 +553,11 @@ Most effects can be implemented with:
 
 ## 📝 **MCP Tools Schema**
 
-Each feature should be exposed as an MCP tool:
+Each shipped feature is exposed as an MCP tool:
 
 ```json
 {
-  "name": "video_audio_preset",
+  "name": "audio_preset",
   "description": "Generate preset sound design element",
   "inputSchema": {
     "type": "object",
@@ -555,9 +565,9 @@ Each feature should be exposed as an MCP tool:
       "preset": {"type": "string", "enum": ["ui-blip", "ui-click", "chime-success", "drone-low", "typing", "scan"]},
       "pitch": {"type": "string", "enum": ["low", "mid", "high"]},
       "duration": {"type": "number"},
-      "output": {"type": "string"}
+      "output_path": {"type": "string"}
     },
-    "required": ["preset", "output"]
+    "required": ["preset"]
   }
 }
 ```

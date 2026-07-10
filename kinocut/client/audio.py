@@ -1,4 +1,4 @@
-"""mcp-video Python client — clean API for programmatic video editing."""
+"""Kinocut Python client audio operations."""
 
 from __future__ import annotations
 

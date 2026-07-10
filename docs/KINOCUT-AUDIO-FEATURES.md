@@ -1,19 +1,21 @@
-# mcp-video Audio Features Needed
+# Kinocut Audio Features
 
-Based on the generative sound design implementation in the explainer video, here are the features that should be added to mcp-video to support procedural audio.
+This document records the procedural-audio feature design that Kinocut implemented from the original explainer-video work.
 
 ---
 
 ## 🎯 **Core Audio Engine**
 
-### `video_audio_synthesize`
+### `Client.audio_synthesize`
 Generate audio procedurally using Web Audio API-style synthesis.
 
 ```python
-from mcp_video import video_audio_synthesize
+from kinocut import Client
+
+video = Client()
 
 # Generate a drone tone
-video_audio_synthesize(
+video.audio_synthesize(
     output="drone.wav",
     waveform="sine",  # sine, square, sawtooth, triangle, noise
     frequency=100,    # Hz base frequency
@@ -26,66 +28,72 @@ video_audio_synthesize(
 )
 ```
 
-### `video_audio_sequence`
+### `Client.audio_sequence`
 Compose multiple audio events into a sequence.
 
 ```python
-from mcp_video import video_audio_sequence
+from kinocut import Client
+
+video = Client()
 
 sequence = [
     {"type": "tone", "freq": 800, "duration": 0.05, "at": 0},
     {"type": "tone", "freq": 1000, "duration": 0.05, "at": 0.1},
-    {"type": "chime", "notes": [523, 659, 784], "at": 2.0},
+    {"type": "preset", "name": "chime-success", "at": 2.0},
     {"type": "whoosh", "direction": "up", "duration": 0.3, "at": 3.0},
 ]
 
-video_audio_sequence(sequence, output="sound-design.wav")
+video.audio_sequence(sequence, output="sound-design.wav")
 ```
 
 ---
 
 ## 🔊 **Sound Design Presets**
 
-### `video_audio_preset`
+### `Client.audio_preset`
 Pre-configured sound design elements.
 
 ```python
-from mcp_video import video_audio_preset
+from kinocut import Client
+
+video = Client()
 
 # UI interaction sounds
-video_audio_preset("ui-blip", pitch="high", output="click.wav")
-video_audio_preset("ui-click", pitch="mid", output="click.wav")
-video_audio_preset("ui-whoosh", direction="up", output="whoosh.wav")
+video.audio_preset("ui-blip", pitch="high", output="blip.wav")
+video.audio_preset("ui-click", pitch="mid", output="click.wav")
+video.audio_preset("ui-whoosh-up", output="whoosh.wav")
 
 # Ambient textures
-video_audio_preset("drone-low", freq=80, output="drone.wav")
-video_audio_preset("drone-tech", freq=120, modulation=True, output="drone.wav")
+video.audio_preset("drone-low", output="drone-low.wav")
+video.audio_preset("drone-tech", intensity=0.7, output="drone-tech.wav")
 
 # Success/notification
-video_audio_preset("chime-success", output="chime.wav")
-video_audio_preset("chime-error", output="error.wav")
+video.audio_preset("chime-success", output="chime.wav")
+video.audio_preset("chime-error", output="error.wav")
 
 # Data/processing
-video_audio_preset("typing", intensity=0.5, output="typing.wav")
-video_audio_preset("scan", duration=1.0, output="scan.wav")
-video_audio_preset("data-flow", duration=0.3, output="flow.wav")
+video.audio_preset("typing", intensity=0.5, output="typing.wav")
+video.audio_preset("scan", duration=1.0, output="scan.wav")
+video.audio_preset("data-flow", duration=0.3, output="flow.wav")
 ```
 
 ---
 
 ## 🎵 **Audio Composition**
 
-### `video_audio_compose`
+### `Client.audio_compose`
 Layer multiple audio tracks with timing.
 
 ```python
-from mcp_video import video_audio_compose
+from kinocut import Client
 
-video_audio_compose(
+video = Client()
+
+video.audio_compose(
     tracks=[
         {"file": "drone.wav", "volume": 0.2, "loop": True},
-        {"file": "blips.wav", "volume": 0.3, "at": 5.0},
-        {"file": "chime.wav", "volume": 0.5, "at": 10.0},
+        {"file": "blips.wav", "volume": 0.3, "start": 5.0},
+        {"file": "chime.wav", "volume": 0.5, "start": 10.0},
     ],
     duration=15.0,
     output="soundtrack.wav"
@@ -96,14 +104,16 @@ video_audio_compose(
 
 ## 🎚️ **Audio Effects Chain**
 
-### `video_audio_effects`
+### `Client.audio_effects`
 Apply effects to audio.
 
 ```python
-from mcp_video import video_audio_effects
+from kinocut import Client
 
-video_audio_effects(
-    input="raw.wav",
+video = Client()
+
+video.audio_effects(
+    input_path="raw.wav",
     output="processed.wav",
     effects=[
         {"type": "lowpass", "freq": 2000},
@@ -118,17 +128,19 @@ video_audio_effects(
 
 ## 🎬 **Video + Audio Integration**
 
-### `video_add_generated_audio`
+### `Client.add_generated_audio`
 Add procedurally generated audio to video.
 
 ```python
-from mcp_video import video_add_generated_audio
+from kinocut import Client
+
+video = Client()
 
 # Generate and add in one call
-video_add_generated_audio(
+video.add_generated_audio(
     video="input.mp4",
     audio_config={
-        "drone": {"freq": 100, "volume": 0.2},
+        "drone": {"frequency": 100, "volume": 0.2},
         "events": [
             {"type": "blip", "at": 2.0},
             {"type": "chime", "at": 5.0},
@@ -142,11 +154,12 @@ video_add_generated_audio(
 
 ## 🎹 **MCP Tools Interface**
 
-These would be exposed as MCP tools:
+The same operations are exposed as MCP tools. The public names use the
+`audio_*` family, with `video_add_generated_audio` for the video integration:
 
 ```json
 {
-  "name": "video_audio_synthesize",
+  "name": "audio_synthesize",
   "description": "Generate procedural audio using synthesis",
   "parameters": {
     "waveform": {"type": "string", "enum": ["sine", "square", "sawtooth", "triangle", "noise"]},
@@ -160,7 +173,7 @@ These would be exposed as MCP tools:
 
 ```json
 {
-  "name": "video_audio_preset",
+  "name": "audio_preset",
   "description": "Generate preset sound design elements",
   "parameters": {
     "preset": {"type": "string", "enum": ["ui-blip", "ui-click", "ui-whoosh", "drone-low", "drone-tech", "chime-success", "typing", "scan"]},
@@ -199,7 +212,7 @@ These would be exposed as MCP tools:
 
 ### Recommended: Option 1 (Pure Python)
 
-Most aligned with mcp-video's philosophy of minimal dependencies.
+Most aligned with Kinocut's philosophy of minimal dependencies.
 
 ```python
 import numpy as np
@@ -216,14 +229,14 @@ wavfile.write("tone.wav", 44100, generate_tone(440, 1.0))
 
 ---
 
-## 📊 **Priority Ranking**
+## 📊 **Implemented Surface**
 
 | Feature | Priority | Effort | Value |
 |---------|----------|--------|-------|
-| `video_audio_synthesize` | P1 | Medium | High - Core building block |
-| `video_audio_preset` | P1 | Low | High - Easy UX |
-| `video_audio_compose` | P2 | Medium | Medium - Composition layer |
-| `video_audio_effects` | P2 | High | Medium - Polish |
+| `audio_synthesize` | P1 | Medium | High - Core building block |
+| `audio_preset` | P1 | Low | High - Easy UX |
+| `audio_compose` | P2 | Medium | Medium - Composition layer |
+| `audio_effects` | P2 | High | Medium - Polish |
 | `video_add_generated_audio` | P1 | Low | High - Integration convenience |
 
 ---
@@ -242,12 +255,12 @@ Suggested initial presets:
 
 ---
 
-## 🚀 **MVP Scope**
+## 🚀 **Original MVP Scope**
 
-For immediate implementation:
+The original MVP selected these operations, all of which are now implemented:
 
-1. `video_audio_synthesize` - Basic waveform generation
-2. `video_audio_preset` - 10 most common presets
+1. `audio_synthesize` - Basic waveform generation
+2. `audio_preset` - Common sound-design presets
 3. `video_add_generated_audio` - Convenience wrapper
 
-Total: ~200 lines of Python + tests.
+The shipped surface has since expanded beyond this original estimate.

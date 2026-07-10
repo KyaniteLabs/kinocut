@@ -5,7 +5,7 @@ with the STYLE_/NEG_ block convention used by PUSHING FRAMES.
 -->
 ---
 title: Cinematography Rules - Starter Library
-author: mcp-video
+author: Kinocut
 pack_version: '0.1'
 template_id: cinematography
 ---

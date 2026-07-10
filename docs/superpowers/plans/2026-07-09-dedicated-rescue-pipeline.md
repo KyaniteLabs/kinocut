@@ -1,5 +1,9 @@
 # Dedicated Rescue Pipeline Implementation Plan
 
+> **Historical implementation plan:** Paths and commands below record the MCP
+> Video 1.6.0 implementation. The project is now Kinocut; do not use this plan as
+> current install or source-layout guidance.
+
 **Status:** Implemented for MCP Video 1.6.0. Current release evidence is recorded in
 [`docs/proofs/release-1.6.0/RESCUE_POST_RESCUE_RECEIPT.md`](../../proofs/release-1.6.0/RESCUE_POST_RESCUE_RECEIPT.md).
 The unchecked task boxes below preserve the original TDD execution script; the receipt and

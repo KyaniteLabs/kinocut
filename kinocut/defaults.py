@@ -1,4 +1,4 @@
-"""Default values for mcp-video.
+"""Default values for Kinocut.
 
 All default constants used across the codebase are centralized here
 per AGENTS.md Rule 12.

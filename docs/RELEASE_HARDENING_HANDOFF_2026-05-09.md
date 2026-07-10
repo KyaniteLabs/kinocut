@@ -1,5 +1,9 @@
 # mcp-video release-hardening handoff — 2026-05-09
 
+> **Historical snapshot.** This handoff predates the Kinocut rename. The
+> `mcp-video` name, `mcp_video/` paths, commands, and findings describe the
+> repository state on 2026-05-09 and are not current setup instructions.
+
 ## Current repo state
 
 Canonical checkout used for this handoff:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run a small adversarial readiness certification for mcp-video workflows."""
+"""Run a small adversarial readiness certification for Kinocut workflows."""
 
 from __future__ import annotations
 
@@ -8,9 +8,9 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from mcp_video import Client
-from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
-from mcp_video.errors import InputFileError, MCPVideoError, ProcessingError
+from kinocut import Client
+from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
+from kinocut.errors import InputFileError, MCPVideoError, ProcessingError
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -67,7 +67,9 @@ def _case_quiet_audio(client: Client) -> dict[str, Any]:
     _make_video(path, volume=0.02)
     quality = client.quality_check(str(path))
     recommendations = quality.get("recommendations", []) if isinstance(quality, dict) else quality.recommendations
-    passed = any("quiet" in recommendation.lower() or "lufs" in recommendation.lower() for recommendation in recommendations)
+    passed = any(
+        "quiet" in recommendation.lower() or "lufs" in recommendation.lower() for recommendation in recommendations
+    )
     return {
         "case": "very_quiet_audio",
         "passed": passed,
@@ -80,7 +82,9 @@ def _case_quiet_audio(client: Client) -> dict[str, Any]:
 def _case_long_filename(client: Client) -> dict[str, Any]:
     path = OUTPUT_DIR / "long filename with spaces for path handling.mp4"
     _make_video(path)
-    checkpoint = client.release_checkpoint(str(path), output_dir=str(OUTPUT_DIR / "long filename checkpoint"), min_score=50)
+    checkpoint = client.release_checkpoint(
+        str(path), output_dir=str(OUTPUT_DIR / "long filename checkpoint"), min_score=50
+    )
     storyboard = _field(checkpoint, "storyboard", {})
     frames = _field(storyboard, "frames", [])
     thumbnail = _field(checkpoint, "thumbnail")

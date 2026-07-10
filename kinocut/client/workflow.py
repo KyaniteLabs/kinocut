@@ -1,4 +1,4 @@
-"""mcp-video Python client — agent workflow-engine methods."""
+"""Kinocut Python client agent workflow-engine methods."""
 
 from __future__ import annotations
 

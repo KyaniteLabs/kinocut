@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Golden repurposing package workflow for mcp-video."""
+"""Golden repurposing package workflow for Kinocut."""
 
 from __future__ import annotations
 
@@ -9,10 +9,10 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from mcp_video import Client
-from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
-from mcp_video.errors import ProcessingError
-from mcp_video.ffmpeg_helpers import _validate_input_path
+from kinocut import Client
+from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
+from kinocut.errors import ProcessingError
+from kinocut.ffmpeg_helpers import _validate_input_path
 
 
 WORKFLOW_DIR = Path(__file__).resolve().parent
