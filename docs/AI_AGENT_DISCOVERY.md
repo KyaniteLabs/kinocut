@@ -4,7 +4,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`Kinocut` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 124 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
+`Kinocut` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 135 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
 
 ## Best Queries To Match
 
@@ -108,7 +108,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 
 High-leverage listing targets:
 
-- [Official MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut) — metadata in `server.json` at the repo root, published from the release workflow via `mcp-publisher` after PyPI publication. Identifier: `io.github.KyaniteLabs/Kinocut`.
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut) — metadata in `server.json` at the repo root, published from the release workflow via `mcp-publisher` after PyPI publication. Identifier: `io.github.KyaniteLabs/kinocut`.
 - [Glama MCP Registry](https://glama.ai/mcp/servers) — Submit via GitHub repo URL.
 - [Smithery](https://smithery.ai) — Submit via GitHub repo URL once the official registry and Glama listings are fresh.
 - [MCP.so](https://mcp.so) — Submit via GitHub repo URL.
@@ -125,4 +125,4 @@ Track:
 - Issues opened by real users.
 - Discussion posts and show-and-tell examples.
 - Mentions in MCP directories and AI answer results.
-- MCP Registry publication status for `io.github.KyaniteLabs/Kinocut`.
+- MCP Registry publication status for `io.github.KyaniteLabs/kinocut`.
