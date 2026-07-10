@@ -32,3 +32,24 @@ def test_policy_registry_rejects_duplicate_versions() -> None:
     with pytest.raises(ValueError, match="duplicate policy profile"):
         PolicyRegistry((profile, profile))
 
+
+@pytest.mark.parametrize(
+    ("policy_id", "allowed", "required_check"),
+    (
+        ("local_timeline_editing", {"timeline"}, "no_unapproved_removal"),
+        ("local_visual_transform", {"crop"}, "crop_continuity"),
+        ("local_restorative", set(), "restoration_feature_gates"),
+        ("local_composition", {"timeline", "crop"}, "source_attribution"),
+        ("local_creative_autopilot", {"timeline", "crop"}, "prerequisite_capabilities"),
+        ("explicit_remote_execution", {"network"}, "egress_approval"),
+    ),
+)
+def test_post_rescue_policies_have_least_privilege_and_gating_checks(
+    policy_id: str, allowed: set[str], required_check: str
+) -> None:
+    profile = POLICY_REGISTRY.resolve(policy_id, 1)
+    permissions = profile.permissions.model_dump()
+
+    assert {name for name, value in permissions.items() if value} == allowed
+    assert required_check in profile.gating_checks
+    assert profile.permissions.source_overwrite is False
