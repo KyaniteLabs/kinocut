@@ -17,6 +17,7 @@ This project follows a simple release-note style:
 - Hyperframes commands normalize a project path once at command entry, preventing relative paths such as `hyperframes` from resolving as `hyperframes/hyperframes`.
 - `audio-compose` now decodes supported non-legacy WAV containers, including `WAVE_FORMAT_EXTENSIBLE`, to canonical mono signed 16-bit PCM at the requested sample rate before mixing.
 - Technical and design quality checks now report shared saturation and contrast metrics with explicit units and availability. `video-quality-check --fail-on-warning` exits nonzero whenever the returned result has `all_passed: false`.
+- Rescue acceptance fixtures now encode rotation with stream metadata supported by the Bookworm CI image, so the push-only slow suite runs against its installed FFmpeg instead of failing during fixture creation.
 
 ### Added
 

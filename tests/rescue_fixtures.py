@@ -114,14 +114,14 @@ def make_rescue_fixture(
                 "-y",
                 "-v",
                 "error",
-                "-display_rotation",
-                str(rotation),
                 "-i",
                 str(encoded),
                 "-map",
                 "0",
                 "-c",
                 "copy",
+                "-metadata:s:v:0",
+                f"rotate={rotation}",
                 str(output),
             ]
         )
