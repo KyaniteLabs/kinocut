@@ -1,4 +1,4 @@
-# CLAUDE.md instructions for KyaniteLabs/mcp-video
+# CLAUDE.md instructions for KyaniteLabs/kinocut
 
 <!-- EMPOWER_ORCHESTRATOR:START -->
 ## Empower the Orchestrator

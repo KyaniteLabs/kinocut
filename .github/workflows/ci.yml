@@ -31,12 +31,12 @@ jobs:
           fi
           changed="$(git diff --name-only "$base" "$head" 2>/dev/null || git diff --name-only HEAD^ HEAD)"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(mcp_video/|tests/|pyproject\.toml|uv\.lock|Dockerfile|\.github/workflows/ci\.yml)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|Dockerfile|\.github/workflows/ci\.yml)'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$changed" | grep -Eq '^(Dockerfile|mcp_video/|pyproject\.toml|uv\.lock|\.dockerignore|\.github/workflows/ci\.yml)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(Dockerfile|kinocut/|mcp_video\.py|pyproject\.toml|uv\.lock|\.dockerignore|\.github/workflows/ci\.yml)'; then
             echo "docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "docker=false" >> "$GITHUB_OUTPUT"
@@ -72,9 +72,9 @@ jobs:
       - name: Install ruff
         run: .venv/bin/pip install ruff
       - name: Ruff check
-        run: .venv/bin/ruff check mcp_video/ tests/
+        run: .venv/bin/ruff check kinocut/ mcp_video.py tests/
       - name: Ruff format check
-        run: .venv/bin/ruff format --check mcp_video/ tests/
+        run: .venv/bin/ruff format --check kinocut/ mcp_video.py tests/
       - name: Type check core modules
         run: |
           .venv/bin/pip install -e . pyright
@@ -132,7 +132,7 @@ jobs:
         run: .venv/bin/pip install -e ".[dev]"
       - name: Run tests with coverage
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=mcp_video --cov-report=term
+        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov-report=term
 
   compatibility:
     name: Compatibility (Python ${{ matrix.python-version }})
@@ -205,8 +205,8 @@ jobs:
       - name: Bare install must import and pass doctor
         if: needs.changes.outputs.code == 'true'
         run: |
-          .venv/bin/python -c "import mcp_video, mcp_video.server"
-          .venv/bin/mcp-video doctor
+          .venv/bin/python -c "import kinocut, kinocut.server, mcp_video"
+          .venv/bin/kino doctor
       - name: Run extras-free test subset
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pytest tests/test_public_surface.py tests/test_doctor.py tests/test_models.py tests/test_errors.py -q --tb=short

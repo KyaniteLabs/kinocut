@@ -31,6 +31,7 @@ PUBLIC_SURFACE_STATIC_PATHS = (
     ROOT / "sitemap.xml",
     ROOT / "pyproject.toml",
     ROOT / "server.json",
+    ROOT / "skills" / "kinocut" / "SKILL.md",
     ROOT / "skills" / "mcp-video" / "SKILL.md",
 )
 
@@ -406,8 +407,8 @@ def test_public_discovery_files_do_not_point_at_old_personal_namespace():
     checked_paths = [
         *_public_surface_paths(),
         ROOT / "scripts" / "github-pr-monitor.py",
-        ROOT / "mcp_video" / "ai_engine" / "download.py",
-        ROOT / "mcp_video" / "errors.py",
+        ROOT / "kinocut" / "ai_engine" / "download.py",
+        ROOT / "kinocut" / "errors.py",
     ]
     stale_fragments = [
         "pastor" + "simon1798.github.io/mcp-video",
@@ -430,13 +431,13 @@ def test_server_json_and_readme_match_registry_identity():
     server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert server["name"] == "io.github.KyaniteLabs/mcp-video"
-    assert server["websiteUrl"] == "https://kyanitelabs.github.io/mcp-video/"
+    assert server["name"] == "io.github.KyaniteLabs/kinocut"
+    assert server["websiteUrl"] == "https://kinocut.dev/"
     # The registry's semantic validator currently accepts the GitHub mirror,
     # while Forgejo remains the canonical repository on every other surface.
-    assert server["repository"]["url"] == "https://github.com/KyaniteLabs/mcp-video"
+    assert server["repository"]["url"] == "https://github.com/KyaniteLabs/kinocut"
     assert server["repository"]["source"] == "github"
-    assert server["packages"][0]["identifier"] == "mcp-video"
+    assert server["packages"][0]["identifier"] == "kinocut"
     assert server["packages"][0]["runtimeHint"] == "uvx"
     assert server["packages"][0]["transport"]["type"] == "stdio"
     assert f"mcp-name: {server['name']}" in readme
@@ -464,9 +465,11 @@ def test_public_guidance_does_not_expose_local_runtime_details():
     assert offenders == {}
 
 
-def test_canonical_public_surfaces_point_to_forgejo_not_stale_github_repo():
+def test_canonical_public_surfaces_point_to_renamed_repository():
     forbidden = [
         "github.com/KyaniteLabs/mcp-video",
+        "git.kyanitelabs.tech/KyaniteLabs/mcp-video",
+        "kyanitelabs.github.io/mcp-video",
         "GitHub Security Advisories",
         "View on GitHub",
         "See GitHub for full list",
@@ -474,7 +477,6 @@ def test_canonical_public_surfaces_point_to_forgejo_not_stale_github_repo():
     ]
 
     checked_surfaces = _read_public_surfaces()
-    checked_surfaces.pop("server.json")
     offenders = {path: fragment for path, text in checked_surfaces.items() for fragment in forbidden if fragment in text}
 
     assert offenders == {}
@@ -493,6 +495,7 @@ def test_public_surface_manifest_covers_agent_discovery_files():
 
     assert "llms.txt" in public_paths
     assert "docs/AI_AGENT_DISCOVERY.md" in public_paths
+    assert "skills/kinocut/SKILL.md" in public_paths
     assert "skills/mcp-video/SKILL.md" in public_paths
     assert "ROADMAP.md" in public_paths
 
@@ -500,21 +503,10 @@ def test_public_surface_manifest_covers_agent_discovery_files():
 def test_public_site_matches_release_identity():
     site = (ROOT / "index.html").read_text(encoding="utf-8")
 
-    assert '"version": "1.6.0"' in site
-    assert "v1.6.0" in site
-    assert "v1.5.2" not in site
-    assert "1,800+ passing tests" in site
-    assert '<div class="num">1,800+</div>' in site
-    assert "1215 passing tests" not in site
-    assert "1800 passing tests" not in site
-    assert "1801 passing tests" not in site
-    assert "1802 passing tests" not in site
-    assert '<div class="num">1826</div>' not in site
-    assert '<div class="num">1800</div>' not in site
-    assert '<div class="num">1801</div>' not in site
-    assert '<div class="num">1802</div>' not in site
-    assert "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video" in site
-    assert "https://github.com/KyaniteLabs/mcp-video" not in site
+    assert '<link rel="canonical" href="https://kinocut.dev/">' in site
+    assert 'content="0; url=https://kinocut.dev/"' in site
+    assert 'href="https://kinocut.dev/"' in site
+    assert "mcp-video is now Kinocut" in site
 
 
 def test_heavy_ai_extras_keep_python313_installable():

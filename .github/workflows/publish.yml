@@ -1,4 +1,4 @@
-name: Publish to PyPI
+name: Publish Kinocut
 
 on:
   release:
@@ -30,7 +30,7 @@ jobs:
         run: python .github/scripts/check-forbidden-artifacts.py
 
   build:
-    name: Build package
+    name: Build release artifacts
     needs: surface-audit
     if: github.event_name == 'release'
     runs-on: blacksmith-2vcpu-ubuntu-2404
@@ -40,17 +40,21 @@ jobs:
       - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
         with:
           persist-credentials: false
-          fetch-depth: 0  # Needed for hatch-vcs if ever adopted
+          fetch-depth: 0
       - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
         with:
           python-version: '3.13'
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
       - name: Create venv
         run: python -m venv .venv
       - name: Install build dependencies
         run: .venv/bin/pip install build jsonschema twine
-      - name: Verify release version is publishable
+      - name: Verify release versions are publishable
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_ATTEMPT: ${{ github.run_attempt }}
         run: |
           .venv/bin/python - <<'PY'
           import json
@@ -61,38 +65,68 @@ jobs:
           import urllib.request
           from pathlib import Path
 
-          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          project = tomllib.loads(Path("pyproject.toml").read_text())["project"]
+          shim_project = tomllib.loads(Path("compat/mcp-video-shim/pyproject.toml").read_text())["project"]
+          npm_package = json.loads(Path("npm/package.json").read_text())
+          version = project["version"]
+          shim_version = shim_project["version"]
           package_version = None
-          for line in Path("mcp_video/__init__.py").read_text().splitlines():
+          for line in Path("kinocut/__init__.py").read_text().splitlines():
               if line.startswith("__version__"):
                   package_version = line.split("=", 1)[1].strip().strip('"')
                   break
           server = json.loads(Path("server.json").read_text())
           tag = os.environ["RELEASE_TAG"]
+          release_attempt = int(os.environ["RELEASE_ATTEMPT"])
 
           failures = []
+          if project["name"] != "kinocut":
+              failures.append(f"canonical distribution is {project['name']!r}, expected 'kinocut'")
+          if shim_project["name"] != "mcp-video":
+              failures.append(f"compatibility distribution is {shim_project['name']!r}, expected 'mcp-video'")
+          if shim_project.get("dependencies") != [f"kinocut=={version}"]:
+              failures.append("mcp-video shim must depend exactly on the release's Kinocut version")
+          if npm_package.get("name") != "kinocut" or npm_package.get("version") != version:
+              failures.append("npm package name/version does not match the Kinocut release")
           if tag != f"v{version}":
               failures.append(f"release tag {tag!r} does not match pyproject version v{version}")
           if package_version != version:
-              failures.append(f"mcp_video.__version__ {package_version!r} does not match {version!r}")
+              failures.append(f"kinocut.__version__ {package_version!r} does not match {version!r}")
           if server.get("version") != version:
               failures.append(f"server.json version {server.get('version')!r} does not match {version!r}")
           package_versions = {pkg.get("version") for pkg in server.get("packages", [])}
           if package_versions != {version}:
               failures.append(f"server.json package versions {sorted(package_versions)!r} do not match {version!r}")
 
-          try:
-              urllib.request.urlopen(f"https://pypi.org/pypi/mcp-video/{version}/json", timeout=20).close()
-          except urllib.error.HTTPError as exc:
-              if exc.code != 404:
-                  raise
-          else:
-              failures.append(f"mcp-video {version} already exists on PyPI")
+          def require_missing_on_first_attempt(url, label):
+              try:
+                  urllib.request.urlopen(url, timeout=20).close()
+              except urllib.error.HTTPError as exc:
+                  if exc.code != 404:
+                      raise
+              else:
+                  if release_attempt == 1:
+                      failures.append(f"{label} already exists")
+                  else:
+                      print(f"Recovery attempt {release_attempt}: {label} already exists and will be skipped.")
+
+          require_missing_on_first_attempt(
+              f"https://pypi.org/pypi/kinocut/{version}/json",
+              f"kinocut {version} on PyPI",
+          )
+          require_missing_on_first_attempt(
+              f"https://pypi.org/pypi/mcp-video/{shim_version}/json",
+              f"mcp-video {shim_version} on PyPI",
+          )
+          require_missing_on_first_attempt(
+              f"https://registry.npmjs.org/kinocut/{version}",
+              f"kinocut {version} on npm",
+          )
 
           if failures:
-              print("\\n".join(failures), file=sys.stderr)
+              print("\n".join(failures), file=sys.stderr)
               raise SystemExit(1)
-          print(f"Release {tag} is aligned and PyPI version {version} is available.")
+          print(f"Release {tag}, mcp-video {shim_version}, and npm {version} are aligned and available.")
           PY
       - name: Validate MCP registry metadata
         run: |
@@ -114,17 +148,50 @@ jobs:
               raise SystemExit(1)
           print(f"MCP registry metadata is valid for {server['name']} {server['version']}.")
           PY
-      - name: Build package
-        run: .venv/bin/python -m build
+      - name: Build Python distributions
+        run: |
+          mkdir -p release-dist
+          .venv/bin/python -m build --outdir release-dist
+          .venv/bin/python -m build compat/mcp-video-shim --outdir release-dist
+      - name: Build npm package
+        run: |
+          mkdir -p npm-dist
+          npm pack ./npm --pack-destination npm-dist
       - name: Check built artifact contents
-        run: .venv/bin/python .github/scripts/check-built-artifacts.py dist
+        run: .venv/bin/python .github/scripts/check-built-artifacts.py release-dist
       - name: Validate distribution metadata
-        run: .venv/bin/python -m twine check dist/*
-      - name: Upload build artifacts
+        run: .venv/bin/python -m twine check release-dist/*
+      - name: Verify clean install and mcp-video upgrade compatibility
+        run: |
+          python -m venv .venv-clean-install
+          .venv-clean-install/bin/pip install release-dist/kinocut-*.whl
+          .venv-clean-install/bin/pip check
+          .venv-clean-install/bin/python -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+          .venv-clean-install/bin/kino --version
+          .venv-clean-install/bin/kinocut --version
+          .venv-clean-install/bin/mcp-video --version
+
+          python -m venv .venv-upgrade
+          .venv-upgrade/bin/pip install "mcp-video==1.6.0"
+          .venv-upgrade/bin/pip install --upgrade release-dist/kinocut-*.whl release-dist/mcp_video-*.whl
+          .venv-upgrade/bin/pip check
+          .venv-upgrade/bin/python -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+          .venv-upgrade/bin/kino --version
+          .venv-upgrade/bin/kinocut --version
+          .venv-upgrade/bin/mcp-video --version
+          .venv-upgrade/bin/pip uninstall --yes mcp-video
+          .venv-upgrade/bin/pip check
+          .venv-upgrade/bin/python -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
+      - name: Upload Python artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: dist
-          path: dist/
+          path: release-dist/
+      - name: Upload npm artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: npm-dist
+          path: npm-dist/
 
   publish:
     name: Publish to PyPI
@@ -136,17 +203,50 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Download build artifacts
+      - name: Download Python artifacts
         uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           name: dist
           path: dist/
       - name: Publish to PyPI
         uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # release/v1
+        with:
+          skip-existing: true
+
+  publish-npm:
+    name: Publish to npm
+    needs: publish
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Download npm artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: npm-dist
+          path: npm-dist/
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+      - name: Install trusted-publishing npm client
+        run: npm install --global npm@11.5.1
+      - name: Publish to npm with provenance
+        env:
+          RELEASE_TAG: ${{ github.event.release.tag_name }}
+        run: |
+          version="${RELEASE_TAG#v}"
+          if npm view "kinocut@$version" version >/dev/null 2>&1; then
+            echo "kinocut@$version already exists; skipping on recovery attempt."
+          else
+            npm publish npm-dist/kinocut-*.tgz --provenance --access public
+          fi
 
   publish-mcp-registry:
     name: Publish to MCP Registry
-    needs: publish
+    needs: [publish, publish-npm]
     if: >-
       ${{
         always() &&
@@ -154,6 +254,7 @@ jobs:
           (
             github.event_name == 'release' &&
             needs.publish.result == 'success' &&
+            needs.publish-npm.result == 'success' &&
             startsWith(github.event.release.tag_name, 'v')
           ) ||
           github.event_name == 'workflow_dispatch'
@@ -169,8 +270,6 @@ jobs:
           persist-credentials: false
       - name: Install mcp-publisher
         env:
-          # Pinned + checksum-verified: this step runs with id-token: write,
-          # so an unverified `latest` binary would be a supply-chain hole.
           MCP_PUBLISHER_VERSION: v1.7.9
           MCP_PUBLISHER_SHA256: ab128162b0616090b47cf245afe0a23f3ef08936fdce19074f5ba0a4469281ac
         run: |

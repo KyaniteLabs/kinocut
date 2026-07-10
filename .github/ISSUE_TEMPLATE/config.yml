@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
   - name: Questions and usage help
-    url: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/new?title=Question:%20
+    url: https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/new?title=Question:%20
     about: Ask setup questions and workflow questions in canonical Forgejo issues so bug reports stay focused and reproducible.
   - name: Ideas and early proposals
-    url: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/new?title=Idea:%20
+    url: https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/new?title=Idea:%20
     about: Float early ideas here before opening a feature request.
   - name: Security vulnerabilities
-    url: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/src/branch/master/SECURITY.md
+    url: https://git.kyanitelabs.tech/KyaniteLabs/kinocut/src/branch/master/SECURITY.md
     about: Please follow the private reporting guidance in SECURITY.md.
   - name: Support guidance
-    url: https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/src/branch/master/SUPPORT.md
+    url: https://git.kyanitelabs.tech/KyaniteLabs/kinocut/src/branch/master/SUPPORT.md
     about: Read support expectations and what details to include.

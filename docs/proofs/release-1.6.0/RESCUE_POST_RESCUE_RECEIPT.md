@@ -3,7 +3,7 @@
 **Generated:** 2026-07-10
 **Feature implementation head:** `0c8adab`
 **Closeout evidence:** the commit containing this receipt
-**Pull request:** [#108](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/pulls/108)
+**Pull request:** [#108](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/108)
 **Base:** `1132219` (`master` after defect-fix PR #52)
 
 ## Release Identity
@@ -59,10 +59,10 @@ candidate's full regression suite:
 
 | Issue | Root-cause result | Forgejo receipt |
 | --- | --- | --- |
-| [#7](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/7) | Audio-only operations use an audio-aware probe; successful muxes no longer emit video-only warnings | comment `3960` |
-| [#49](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/49) | Hyperframes project paths normalize once at command entry | comment `3962` |
-| [#50](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/50) | Supported extensible WAV inputs decode to canonical PCM before composition | comment `3964` |
-| [#51](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/51) | Quality metrics share explicit definitions/units and failed `--fail-on-warning` checks exit nonzero | comment `3966` |
+| [#7](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/7) | Audio-only operations use an audio-aware probe; successful muxes no longer emit video-only warnings | comment `3960` |
+| [#49](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/49) | Hyperframes project paths normalize once at command entry | comment `3962` |
+| [#50](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/50) | Supported extensible WAV inputs decode to canonical PCM before composition | comment `3964` |
+| [#51](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/51) | Quality metrics share explicit definitions/units and failed `--fail-on-warning` checks exit nonzero | comment `3966` |
 
 The intentional 24 fps delivery behavior is unchanged.
 

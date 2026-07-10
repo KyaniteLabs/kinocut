@@ -5,7 +5,8 @@ on:
   push:
     branches: [master]
     paths:
-      - "mcp_video/**"
+      - "kinocut/**"
+      - "mcp_video.py"
       - "tests/**"
       - "pyproject.toml"
       - "uv.lock"
@@ -31,23 +32,26 @@ jobs:
       - name: Import package and public facades
         run: |
           .venv/bin/python - <<'PY'
+          import kinocut
+          import kinocut.engine
+          import kinocut.server
           import mcp_video
-          import mcp_video.engine
-          import mcp_video.server
-          from mcp_video.client import Client
-          from mcp_video.engine import convert, edit_timeline, video_batch
-          print(mcp_video.__version__, Client.__name__, convert.__name__, edit_timeline.__name__, video_batch.__name__)
+          from kinocut.client import Client
+          from kinocut.engine import convert, edit_timeline, video_batch
+          assert kinocut.__version__ == mcp_video.__version__
+          print(kinocut.__version__, Client.__name__, convert.__name__, edit_timeline.__name__, video_batch.__name__)
           PY
       - name: CLI help and version
         run: |
+          .venv/bin/python -m kinocut --version
+          .venv/bin/python -m kinocut --help
           .venv/bin/python -m mcp_video --version
-          .venv/bin/python -m mcp_video --help
-          .venv/bin/python -m mcp_video doctor --json | .venv/bin/python -m json.tool >/tmp/mcp-video-doctor.json
+          .venv/bin/kino doctor --json | .venv/bin/python -m json.tool >/tmp/kinocut-doctor.json
       - name: Validate doctor JSON
         run: |
           .venv/bin/python - <<'PY'
           import json
-          data = json.load(open("/tmp/mcp-video-doctor.json"))
+          data = json.load(open("/tmp/kinocut-doctor.json"))
           assert data["success"] is True
           assert "required_ok" in data["summary"]
           assert any(check["name"] == "ffmpeg" for check in data["checks"])
@@ -78,8 +82,8 @@ jobs:
           ffmpeg -y -f lavfi -i testsrc=size=160x120:rate=15 -f lavfi -i sine=frequency=440:sample_rate=44100 -t 1 -c:v libx264 -pix_fmt yuv420p -c:a aac sample.mp4
       - name: Smoke core FFmpeg path
         run: |
-          .venv/bin/python -m mcp_video --format json info sample.mp4 | .venv/bin/python -m json.tool >/tmp/info.json
-          .venv/bin/python -m mcp_video --format json trim sample.mp4 --start 0 --duration 0.5 -o trimmed.mp4 | .venv/bin/python -m json.tool >/tmp/trim.json
+          .venv/bin/python -m kinocut --format json info sample.mp4 | .venv/bin/python -m json.tool >/tmp/info.json
+          .venv/bin/python -m kinocut --format json trim sample.mp4 --start 0 --duration 0.5 -o trimmed.mp4 | .venv/bin/python -m json.tool >/tmp/trim.json
           test -s trimmed.mp4
       - name: Smoke MCP stdio path
         run: |
@@ -90,7 +94,7 @@ jobs:
           from mcp.client.stdio import StdioServerParameters, stdio_client
 
           async def main():
-              params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video", "--mcp"])
+              params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"])
               async with stdio_client(params) as (read, write):
                   async with ClientSession(read, write) as session:
                       await session.initialize()

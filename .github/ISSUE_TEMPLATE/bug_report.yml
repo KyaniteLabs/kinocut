@@ -1,12 +1,12 @@
 name: Bug report
-description: Report a reproducible mcp-video bug.
+description: Report a reproducible Kinocut bug.
 title: "Bug: "
 labels: ["bug", "needs-triage"]
 body:
   - type: markdown
     attributes:
       value: |
-        Thanks for helping make mcp-video more reliable. Please include enough detail for a maintainer or agent to reproduce the failure locally.
+        Thanks for helping make Kinocut more reliable. Please include enough detail for a maintainer or agent to reproduce the failure locally.
   - type: textarea
     id: summary
     attributes:
@@ -21,7 +21,7 @@ body:
       label: Reproduction steps
       description: Include the exact MCP tool call, Python snippet, or CLI command.
       placeholder: |
-        1. Run `mcp-video ...`
+        1. Run `kino ...`
         2. Use input media with ...
         3. See error ...
     validations:
@@ -45,8 +45,8 @@ body:
   - type: input
     id: version
     attributes:
-      label: mcp-video version
-      placeholder: "python -c 'import mcp_video; print(mcp_video.__version__)'"
+      label: Kinocut version
+      placeholder: "python -c 'import kinocut; print(kinocut.__version__)'"
     validations:
       required: false
   - type: input

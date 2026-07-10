@@ -48,7 +48,7 @@
 Legend: **Entry** = must be true to start · **Exit** = done-definition + gate to next phase · file anchors are repo-relative to `~/workspaces/mcp-video`.
 
 ### Phase 0 — Kinocut rename cutover (identity pivot)
-Not new architecture; the identity pivot that precedes every distribution moment. Tracked in Forgejo `KyaniteLabs/mcp-video#53`.
+Not new architecture; the identity pivot that precedes every distribution moment. Tracked in Forgejo `KyaniteLabs/kinocut#53`.
 
 **Entry:** in-flight Codex release published as `mcp-video`; namespace already secured (kinocut.dev + PyPI/npm `kinocut` 0.0.1 placeholders live).
 **Work breakdown (issue-sized):**

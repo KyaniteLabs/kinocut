@@ -11,6 +11,24 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.7.0 - 2026-07-10
+
+### Added
+
+- Kinocut is now the canonical Python distribution and import package, with `kino` and `kinocut` CLI commands alongside the preserved `mcp-video` command.
+- The `kinocut` npm package provides a thin `uvx` launcher for the `kino` CLI, and the MCP Registry entry now publishes under the immutable `io.github.KyaniteLabs/kinocut` identity.
+- The canonical `skills/kinocut` agent skill teaches both MCP and CLI workflows; `skills/mcp-video` remains as a compatibility pointer.
+
+### Changed
+
+- The project, repository links, documentation, package metadata, and public discovery surfaces now use the Kinocut name and `kinocut.dev` home.
+- The implementation package moved from `mcp_video` to `kinocut`. New Python integrations should import from `kinocut`.
+
+### Compatibility
+
+- `mcp-video==1.6.1` is a metadata-only upgrade shim that installs `kinocut==1.7.0` and forwards every optional extra. Existing `mcp_video` imports, `mcp-video` commands, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data, `mcp-video://` resource URIs, and receipt keys remain supported through at least Kinocut 1.8.x.
+- Clean installs and in-place upgrades from `mcp-video==1.6.0` are exercised as release gates, including Python imports, all three CLI entry points, package metadata, and uninstall behavior.
+
 ### Fixed
 
 - MCP Registry metadata now uses the registry-supported GitHub mirror URL, while Forgejo remains canonical everywhere else. The publish workflow also supports a registry-only recovery dispatch, so a downstream registry rejection can be repaired without attempting to re-upload an immutable PyPI release.

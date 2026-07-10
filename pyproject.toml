@@ -3,9 +3,9 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [project]
-name = "mcp-video"
-version = "1.6.0"
-description = "Guardrailed video editing MCP server for AI agents. FFmpeg, PUSHING CREATION planning, Hyperframes, repurposing tools, Python client, and CLI. Local, fast, free."
+name = "kinocut"
+version = "1.7.0"
+description = "Trusted, guardrailed video editing for AI agents. FFmpeg, Hyperframes, repurposing tools, Python client, CLI, and MCP server."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
@@ -129,15 +129,17 @@ ignore = ["E501", "S311"]
 ".github/scripts/*.py" = ["S603", "S607"]
 
 [project.scripts]
-mcp-video = "mcp_video.__main__:main"
+kino = "kinocut.__main__:main"
+kinocut = "kinocut.__main__:main"
+mcp-video = "kinocut.__main__:main"
 
 [project.urls]
-Homepage = "https://kyanitelabs.github.io/mcp-video/"
-Documentation = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video#readme"
-Repository = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video"
-"Bug Tracker" = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues"
-Changelog = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/src/branch/master/CHANGELOG.md"
-Discussions = "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues"
+Homepage = "https://kinocut.dev/"
+Documentation = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut#readme"
+Repository = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
+"Bug Tracker" = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues"
+Changelog = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/src/branch/master/CHANGELOG.md"
+Discussions = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues"
 
 [tool.hatch.build]
 exclude = [
@@ -170,11 +172,15 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["mcp_video"]
+packages = ["kinocut"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"mcp_video.py" = "mcp_video.py"
 
 [tool.hatch.build.targets.sdist]
 only-include = [
-    "/mcp_video",
+    "/kinocut",
+    "/mcp_video.py",
     "/CHANGELOG.md",
     "/LICENSE",
     "/README.md",
@@ -192,32 +198,32 @@ markers = [
 # Typed-core rollout: the contract modules every engine depends on are
 # type-checked first; expand module by module as annotations are cleaned up.
 include = [
-    "mcp_video/ffmpeg_helpers.py",
-    "mcp_video/models.py",
-    "mcp_video/errors.py",
-    "mcp_video/engine_probe.py",
-    "mcp_video/engine_runtime_utils.py",
-    "mcp_video/validation.py",
-    "mcp_video/limits.py",
-    "mcp_video/defaults.py",
-    "mcp_video/creative",
-    "mcp_video/remote",
-    "mcp_video/rescue",
-    "mcp_video/restorative",
-    "mcp_video/semantic",
-    "mcp_video/visual_intelligence",
-    "mcp_video/cli/formatting.py",
-    "mcp_video/cli/rescue_formatting.py",
-    "mcp_video/cli/handlers_postrescue.py",
-    "mcp_video/cli/handlers_rescue.py",
-    "mcp_video/cli/parser/postrescue.py",
-    "mcp_video/cli/parser/rescue.py",
-    "mcp_video/client/contracts.py",
-    "mcp_video/client/postrescue.py",
-    "mcp_video/client/rescue.py",
-    "mcp_video/postrescue.py",
-    "mcp_video/server_tools_postrescue.py",
-    "mcp_video/server_tools_rescue.py",
+    "kinocut/ffmpeg_helpers.py",
+    "kinocut/models.py",
+    "kinocut/errors.py",
+    "kinocut/engine_probe.py",
+    "kinocut/engine_runtime_utils.py",
+    "kinocut/validation.py",
+    "kinocut/limits.py",
+    "kinocut/defaults.py",
+    "kinocut/creative",
+    "kinocut/remote",
+    "kinocut/rescue",
+    "kinocut/restorative",
+    "kinocut/semantic",
+    "kinocut/visual_intelligence",
+    "kinocut/cli/formatting.py",
+    "kinocut/cli/rescue_formatting.py",
+    "kinocut/cli/handlers_postrescue.py",
+    "kinocut/cli/handlers_rescue.py",
+    "kinocut/cli/parser/postrescue.py",
+    "kinocut/cli/parser/rescue.py",
+    "kinocut/client/contracts.py",
+    "kinocut/client/postrescue.py",
+    "kinocut/client/rescue.py",
+    "kinocut/postrescue.py",
+    "kinocut/server_tools_postrescue.py",
+    "kinocut/server_tools_rescue.py",
 ]
 typeCheckingMode = "basic"
 pythonVersion = "3.11"
@@ -225,8 +231,8 @@ venvPath = "."
 venv = ".venv"
 
 [tool.coverage.run]
-source = ["mcp_video"]
-omit = ["mcp_video/_crush_shader/*"]
+source = ["kinocut"]
+omit = ["kinocut/_crush_shader/*"]
 
 [tool.coverage.report]
 fail_under = 70

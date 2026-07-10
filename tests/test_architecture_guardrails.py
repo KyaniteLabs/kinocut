@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PACKAGE = ROOT / "mcp_video"
+PACKAGE = ROOT / "kinocut"
 
 FACADE_MODULES = {
     "engine.py": {
@@ -95,9 +95,9 @@ def test_engine_operation_modules_do_not_import_compatibility_facade() -> None:
         bad_imports: list[str] = []
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                # Catch: "from engine import …", "from mcp_video.engine import …",
+                # Catch: "from engine import …", "from kinocut.engine import …",
                 # "from . import engine", "from .engine import …"
-                if node.module in {"engine", "mcp_video.engine"}:
+                if node.module in {"engine", "kinocut.engine"}:
                     bad_imports.append(f"from {node.module} import ...")
                 if node.level and node.level >= 1 and node.module == "engine":
                     bad_imports.append(f"from {'.' * node.level}engine import ...")
@@ -107,8 +107,8 @@ def test_engine_operation_modules_do_not_import_compatibility_facade() -> None:
                             bad_imports.append("from . import engine")
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "mcp_video.engine":
-                        bad_imports.append("import mcp_video.engine")
+                    if alias.name == "kinocut.engine":
+                        bad_imports.append("import kinocut.engine")
         if bad_imports:
             offenders[path.relative_to(ROOT).as_posix()] = bad_imports
 
@@ -123,9 +123,9 @@ def test_server_tool_modules_register_against_server_app_not_facade() -> None:
         bad_imports: list[str] = []
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                # Catch: "from server import …", "from mcp_video.server import …",
+                # Catch: "from server import …", "from kinocut.server import …",
                 # "from . import server", "from .server import …"
-                if node.module in {"server", "mcp_video.server"}:
+                if node.module in {"server", "kinocut.server"}:
                     bad_imports.append(f"from {node.module} import ...")
                 if node.level and node.level >= 1 and node.module == "server":
                     bad_imports.append(f"from {'.' * node.level}server import ...")
@@ -135,8 +135,8 @@ def test_server_tool_modules_register_against_server_app_not_facade() -> None:
                             bad_imports.append("from . import server")
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "mcp_video.server":
-                        bad_imports.append("import mcp_video.server")
+                    if alias.name == "kinocut.server":
+                        bad_imports.append("import kinocut.server")
         if bad_imports:
             offenders[path.relative_to(ROOT).as_posix()] = bad_imports
 
@@ -146,9 +146,9 @@ def test_server_tool_modules_register_against_server_app_not_facade() -> None:
 def test_shared_ffmpeg_helpers_remain_canonical_for_core_utilities() -> None:
     """Prevent new copies of the canonical FFmpeg helper utilities."""
     allowed_definitions = {
-        "_run_ffmpeg": {"mcp_video/ffmpeg_helpers.py"},
-        "_get_video_duration": {"mcp_video/ffmpeg_helpers.py"},
-        "_seconds_to_srt_time": {"mcp_video/ffmpeg_helpers.py"},
+        "_run_ffmpeg": {"kinocut/ffmpeg_helpers.py"},
+        "_get_video_duration": {"kinocut/ffmpeg_helpers.py"},
+        "_seconds_to_srt_time": {"kinocut/ffmpeg_helpers.py"},
     }
     definitions = {name: set() for name in allowed_definitions}
 

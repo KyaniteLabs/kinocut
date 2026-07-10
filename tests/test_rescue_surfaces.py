@@ -44,7 +44,7 @@ def test_rescue_documentation_covers_surfaces_and_guardrails():
 
 
 def test_rescue_skill_requires_plan_inspection_before_render():
-    skill = (ROOT / "skills" / "mcp-video" / "SKILL.md").read_text(encoding="utf-8").lower()
+    skill = (ROOT / "skills" / "kinocut" / "SKILL.md").read_text(encoding="utf-8").lower()
 
     assert "inspect the plan before render" in skill
     assert "never add recommendation ids" in skill

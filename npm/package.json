@@ -1,0 +1,23 @@
+{
+  "name": "kinocut",
+  "version": "1.7.0",
+  "description": "Thin uvx launcher for Kinocut, the trusted execution layer for agentic video.",
+  "license": "Apache-2.0",
+  "homepage": "https://kinocut.dev/",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/KyaniteLabs/kinocut.git"
+  },
+  "bugs": "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues",
+  "type": "module",
+  "bin": {
+    "kino": "bin/kinocut.js",
+    "kinocut": "bin/kinocut.js"
+  },
+  "files": [
+    "bin/kinocut.js"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

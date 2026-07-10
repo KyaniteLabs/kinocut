@@ -1,6 +1,6 @@
 # Factory intake for issue #302: effect_noise with mode='film' produces extreme green/magenta chromatic distortion on image-based videos
 
-Repository: `KyaniteLabs/mcp-video`
+Repository: `KyaniteLabs/kinocut`
 Category: `llm_fix`
 Source issue: `#302`
 
@@ -8,7 +8,7 @@ Source issue: `#302`
 
 # Bug Report: `effect_noise` Produces Extreme Green/Magenta Chromatic Distortion
 
-**Repository:** KyaniteLabs/mcp-video  
+**Repository:** KyaniteLabs/kinocut
 **Version:** 1.4.0  
 **Labels:** bug, effects
 

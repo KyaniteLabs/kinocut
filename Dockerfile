@@ -7,7 +7,8 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
-COPY mcp_video/ mcp_video/
+COPY kinocut/ kinocut/
+COPY mcp_video.py ./
 
 RUN pip install --no-cache-dir .
 
@@ -18,4 +19,4 @@ USER appuser
 
 ENV MCP_VIDEO_ANALYTICS=0
 
-ENTRYPOINT ["mcp-video"]
+ENTRYPOINT ["kino"]

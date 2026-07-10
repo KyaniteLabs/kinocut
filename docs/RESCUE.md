@@ -25,10 +25,10 @@ Cancellation or a gating verification failure never promotes a package.
 ## CLI
 
 ```bash
-mcp-video rescue-plan --source media/clip.mov --output-dir rescue-output --save-plan rescue-output/plan.json
-mcp-video --format json rescue-inspect --receipt rescue-output/plan.json
-mcp-video rescue-render --plan rescue-output/plan.json --approve rotation:metadata --approve audio_loudness:primary --save-receipt rescue-output/render-receipt.json
-mcp-video rescue-inspect --receipt rescue-output/render-receipt.json
+kino rescue-plan --source media/clip.mov --output-dir rescue-output --save-plan rescue-output/plan.json
+kino --format json rescue-inspect --receipt rescue-output/plan.json
+kino rescue-render --plan rescue-output/plan.json --approve rotation:metadata --approve audio_loudness:primary --save-receipt rescue-output/render-receipt.json
+kino rescue-inspect --receipt rescue-output/render-receipt.json
 ```
 
 Review `safe_repairs`, `recommendations`, `unavailable_repairs`, `blocked_repairs`, previews,
@@ -40,12 +40,12 @@ Cancellation and resume are explicit:
 
 ```bash
 touch rescue-output/cancel
-mcp-video rescue-render --plan rescue-output/plan.json \
+kino rescue-render --plan rescue-output/plan.json \
   --cancel-file rescue-output/cancel \
   --save-receipt rescue-output/cancelled.json
 
 rm rescue-output/cancel
-mcp-video rescue-render --plan rescue-output/plan.json \
+kino rescue-render --plan rescue-output/plan.json \
   --resume rescue-output/cancelled.json \
   --save-receipt rescue-output/render-receipt.json
 ```
@@ -71,7 +71,7 @@ failed rescue. Never add recommendation or blocked IDs to `approved_repair_ids`.
 ## Python
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 video = Client()
 plan = video.rescue_plan(
@@ -154,11 +154,11 @@ Whisper remains optional and is never downloaded by rescue. Install it manually 
 caption sidecars are wanted:
 
 ```bash
-pip install "mcp-video[transcribe]"
+pip install "kinocut[transcribe]"
 ```
 
 The configured local model must already exist and match the planned digest. Run
-`mcp-video doctor` to see `rescue.core_ready` and `rescue.captions_available`.
+`kino doctor` to see `rescue.core_ready` and `rescue.captions_available`.
 
 ## Compatibility And Performance
 

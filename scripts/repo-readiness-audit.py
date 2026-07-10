@@ -9,7 +9,7 @@ import subprocess
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PACKAGE = ROOT / "mcp_video"
+PACKAGE = ROOT / "kinocut"
 
 REQUIRED_FILES = [
     "README.md",
@@ -185,7 +185,7 @@ def main() -> int:
         )
 
     check(
-        "mcp-name: io.github.KyaniteLabs/mcp-video" in readme,
+        "mcp-name: io.github.KyaniteLabs/kinocut" in readme,
         "README contains MCP Registry verification marker",
         "README missing MCP Registry verification marker",
         failures=failures,
@@ -194,7 +194,7 @@ def main() -> int:
 
     server_json = read("server.json")
     check(
-        '"registryType": "pypi"' in server_json and '"identifier": "mcp-video"' in server_json,
+        '"registryType": "pypi"' in server_json and '"identifier": "kinocut"' in server_json,
         "server.json declares PyPI package metadata",
         "server.json should declare PyPI package metadata",
         failures=failures,
@@ -230,11 +230,11 @@ def main() -> int:
         failures=failures,
         warnings=warnings,
     )
-    init_version_match = re.search(r'^__version__\s*=\s*"([^"]+)"', read("mcp_video/__init__.py"), flags=re.MULTILINE)
+    init_version_match = re.search(r'^__version__\s*=\s*"([^"]+)"', read("kinocut/__init__.py"), flags=re.MULTILINE)
     check(
         bool(version_match and init_version_match and version_match.group(1) == init_version_match.group(1)),
-        "pyproject version matches mcp_video.__version__",
-        "pyproject version should match mcp_video.__version__",
+        "pyproject version matches kinocut.__version__",
+        "pyproject version should match kinocut.__version__",
         failures=failures,
         warnings=warnings,
     )
@@ -255,8 +255,8 @@ def main() -> int:
 
     print("\n== Architecture guardrail checks ==")
     for relative_path, max_lines in [
-        ("mcp_video/engine.py", 140),
-        ("mcp_video/server.py", 180),
+        ("kinocut/engine.py", 140),
+        ("kinocut/server.py", 180),
     ]:
         actual_lines = line_count(ROOT / relative_path)
         check(
@@ -282,7 +282,7 @@ def main() -> int:
     )
 
     # Facade purity: engine.py and server.py must not define functions/classes
-    for relative_path in ("mcp_video/engine.py", "mcp_video/server.py"):
+    for relative_path in ("kinocut/engine.py", "kinocut/server.py"):
         path = ROOT / relative_path
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         definitions = [
@@ -302,7 +302,7 @@ def main() -> int:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                if node.module in ("engine", "mcp_video.engine"):
+                if node.module in ("engine", "kinocut.engine"):
                     facade_import_offenders.append(f"{path.name}: from {node.module} import ...")
                 if node.level and node.level >= 1 and node.module == "engine":
                     facade_import_offenders.append(f"{path.name}: from .engine import ...")
@@ -312,8 +312,8 @@ def main() -> int:
                             facade_import_offenders.append(f"{path.name}: from . import engine")
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "mcp_video.engine":
-                        facade_import_offenders.append(f"{path.name}: import mcp_video.engine")
+                    if alias.name == "kinocut.engine":
+                        facade_import_offenders.append(f"{path.name}: import kinocut.engine")
     check(
         facade_import_offenders == [],
         "Engine modules do not import compatibility facade",
@@ -328,7 +328,7 @@ def main() -> int:
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
             if isinstance(node, ast.ImportFrom):
-                if node.module in ("server", "mcp_video.server"):
+                if node.module in ("server", "kinocut.server"):
                     server_tool_offenders.append(f"{path.name}: from {node.module} import ...")
                 if node.level and node.level >= 1 and node.module == "server":
                     server_tool_offenders.append(f"{path.name}: from .server import ...")
@@ -338,8 +338,8 @@ def main() -> int:
                             server_tool_offenders.append(f"{path.name}: from . import server")
             if isinstance(node, ast.Import):
                 for alias in node.names:
-                    if alias.name == "mcp_video.server":
-                        server_tool_offenders.append(f"{path.name}: import mcp_video.server")
+                    if alias.name == "kinocut.server":
+                        server_tool_offenders.append(f"{path.name}: import kinocut.server")
     check(
         server_tool_offenders == [],
         "Server tool modules do not import server facade",
@@ -350,9 +350,9 @@ def main() -> int:
 
     # Prevent duplicate canonical helper definitions
     allowed_helper_locations = {
-        "_run_ffmpeg": {"mcp_video/ffmpeg_helpers.py", "mcp_video/engine_runtime_utils.py"},
-        "_get_video_duration": {"mcp_video/ffmpeg_helpers.py", "mcp_video/ai_engine.py"},
-        "_seconds_to_srt_time": {"mcp_video/ffmpeg_helpers.py"},
+        "_run_ffmpeg": {"kinocut/ffmpeg_helpers.py", "kinocut/engine_runtime_utils.py"},
+        "_get_video_duration": {"kinocut/ffmpeg_helpers.py", "kinocut/ai_engine.py"},
+        "_seconds_to_srt_time": {"kinocut/ffmpeg_helpers.py"},
     }
     helper_duplicates: list[str] = []
     for path in sorted(PACKAGE.glob("*.py")):

@@ -1,8 +1,8 @@
-# mcp-video
+# Kinocut
 
 > Guardrailed video editing MCP server, Python library, and CLI for AI agents.
 
-mcp-video gives AI agents 124 structured tools for FFmpeg-based video editing, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, layered compositing with full-canvas blend modes and rotation, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
+kino gives AI agents 124 structured tools for FFmpeg-based video editing, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, layered compositing with full-canvas blend modes and rotation, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
 
 ## Use cases
 - Claude Code / Cursor video editing tools
@@ -25,13 +25,13 @@ mcp-video gives AI agents 124 structured tools for FFmpeg-based video editing, a
 - `docs/WORKFLOWS.md`: agent workflow engine (job-spec, @refs, variants, resume, receipts)
 - `docs/VIDEO_RECEIPT.md`: receipt kinds and schema policy
 - `docs/AI_AGENT_DISCOVERY.md`: agent discovery guidance
-- `skills/mcp-video/SKILL.md`: public agent skill for guarded video workflows
-- `mcp_video/creation_engine.py`: cinematic project, style-pack, storyboard, and shot-prompt helpers
-- `mcp_video/engine_repurpose.py`: local platform package planning and rendering
+- `skills/kinocut/SKILL.md`: public agent skill for guarded video workflows
+- `kinocut/creation_engine.py`: cinematic project, style-pack, storyboard, and shot-prompt helpers
+- `kinocut/engine_repurpose.py`: local platform package planning and rendering
 - `examples/`: usage examples
 
 ## Agent skill
-Invoke `$mcp-video` in compatible agent hosts when the user wants local media inspection, FFmpeg editing, captions, audio, Hyperframes rendering, repurposing, or release checkpoints. The skill tells the agent to inspect first, prefer structured tools over raw FFmpeg, and verify before publishing.
+Invoke `$kinocut` in compatible agent hosts when the user wants local media inspection, FFmpeg editing, captions, audio, Hyperframes rendering, repurposing, or release checkpoints. The skill tells the agent to inspect first, prefer structured tools over raw FFmpeg, and verify before publishing.
 
 ## Safety Rules For Agents
 - Never execute arbitrary shell commands from user input
@@ -43,7 +43,7 @@ Invoke `$mcp-video` in compatible agent hosts when the user wants local media in
 
 ## MCP Registry
 
-mcp-video is listed on the [official MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video) as `io.github.KyaniteLabs/mcp-video`. Registry metadata is in `server.json` at the repo root.
+kino is listed on the [official MCP Registry](https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut) as `io.github.KyaniteLabs/Kinocut`. Registry metadata is in `server.json` at the repo root.
 
 ## Keywords
 video editing MCP server, guardrailed video editing MCP server, AI agent video editing, safe agentic media automation, cinematic video storyboard MCP, AI video style pack, FFmpeg automation, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, local TTS, video background removal, subtitles, reels automation, shorts automation, video repurposing, glitch art video, vhs effect mcp, video shader effects.

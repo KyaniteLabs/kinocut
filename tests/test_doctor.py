@@ -23,14 +23,14 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
             return "0.6.31"
         return f"{command[0]} version test"
 
-    present_packages = {"mcp", "pydantic", "rich", "mcp_video"}
+    present_packages = {"mcp", "pydantic", "rich", "kinocut"}
 
     def fake_find_spec(name: str) -> ModuleSpec | None:
         if name not in present_packages:
             return None
         spec = ModuleSpec(name, loader=None)
-        if name == "mcp_video":
-            spec.origin = "/env/site-packages/mcp_video/__init__.py"
+        if name == "kinocut":
+            spec.origin = "/env/site-packages/kinocut/__init__.py"
         return spec
 
     report = run_diagnostics(
@@ -38,7 +38,7 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
         version_runner=fake_version,
         find_spec=fake_find_spec,
         package_version=lambda name: (
-            "1.4.0" if name == "mcp-video" else ("1.0.0" if name in present_packages else None)
+            "1.7.0" if name == "kinocut" else ("1.0.0" if name in present_packages else None)
         ),
     )
 
@@ -46,8 +46,8 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
     assert report["success"] is True
     assert report["summary"]["required_ok"] is True
     assert checks["mcp-video"]["ok"] is True
-    assert checks["mcp-video"]["version"] == "1.4.0"
-    assert checks["mcp-video"]["path"] == "/env/site-packages/mcp_video/__init__.py"
+    assert checks["mcp-video"]["version"] == "1.7.0"
+    assert checks["mcp-video"]["path"] == "/env/site-packages/kinocut/__init__.py"
     assert checks["ffmpeg"]["ok"] is True
     assert checks["ffprobe"]["ok"] is True
     assert checks["node"]["required"] is False
@@ -219,11 +219,11 @@ def test_run_diagnostics_checks_optional_packages_without_importing_them():
     assert checks["scikit-learn"]["ok"] is True
     assert checks["openai-whisper"]["ok"] is False
     assert checks["openai-whisper"]["required"] is False
-    assert "mcp-video[transcribe]" in checks["openai-whisper"]["install_hint"]
-    assert "mcp-video[stems]" in checks["demucs"]["install_hint"]
-    assert "mcp-video[stems]" in checks["torchcodec"]["install_hint"]
-    assert "mcp-video[upscale]" in checks["opencv-contrib-python"]["install_hint"]
-    assert "mcp-video[ai-scene]" in checks["imagehash"]["install_hint"]
+    assert "kinocut[transcribe]" in checks["openai-whisper"]["install_hint"]
+    assert "kinocut[stems]" in checks["demucs"]["install_hint"]
+    assert "kinocut[stems]" in checks["torchcodec"]["install_hint"]
+    assert "kinocut[upscale]" in checks["opencv-contrib-python"]["install_hint"]
+    assert "kinocut[ai-scene]" in checks["imagehash"]["install_hint"]
 
 
 def test_run_diagnostics_explains_python313_basicsr_guard(monkeypatch):
@@ -249,7 +249,7 @@ def test_run_diagnostics_explains_python313_basicsr_guard(monkeypatch):
 def test_run_diagnostics_requires_matching_distribution_for_package_checks():
     from mcp_video.doctor import run_diagnostics
 
-    present = {"mcp", "pydantic", "rich", "cv2", "mcp_video"}
+    present = {"mcp", "pydantic", "rich", "cv2", "kinocut"}
 
     def fake_find_spec(name: str) -> ModuleSpec | None:
         return ModuleSpec(name, loader=None) if name in present else None
@@ -270,14 +270,14 @@ def test_run_diagnostics_requires_matching_distribution_for_package_checks():
     assert checks["opencv-contrib-python"]["version"] is None
 
 
-def test_run_diagnostics_reports_mcp_video_import_path_when_distribution_metadata_missing():
+def test_run_diagnostics_reports_kinocut_import_path_when_distribution_metadata_missing():
     from mcp_video.doctor import run_diagnostics
 
     def fake_find_spec(name: str) -> ModuleSpec | None:
-        if name != "mcp_video":
+        if name != "kinocut":
             return ModuleSpec(name, loader=None) if name in {"mcp", "pydantic", "rich"} else None
         spec = ModuleSpec(name, loader=None)
-        spec.origin = str(Path("/repo/mcp_video/__init__.py"))
+        spec.origin = str(Path("/repo/kinocut/__init__.py"))
         return spec
 
     report = run_diagnostics(
@@ -289,7 +289,7 @@ def test_run_diagnostics_reports_mcp_video_import_path_when_distribution_metadat
 
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["mcp-video"]["ok"] is True
-    assert checks["mcp-video"]["path"] == "/repo/mcp_video/__init__.py"
+    assert checks["mcp-video"]["path"] == "/repo/kinocut/__init__.py"
     assert checks["mcp-video"]["version"] is None
 
 
@@ -319,7 +319,7 @@ def test_cli_doctor_text_outputs_summary():
     )
 
     assert result.returncode == 0
-    assert "mcp-video doctor" in result.stdout
+    assert "Kinocut doctor" in result.stdout
     assert "ffmpeg" in result.stdout
     assert "hyperframes" in result.stdout
     assert "openai-whisper" in result.stdout

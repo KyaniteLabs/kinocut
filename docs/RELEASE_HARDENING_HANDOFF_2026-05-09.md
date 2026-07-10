@@ -36,11 +36,11 @@ Do **not** repeat these fixes. They are already on `master`.
 
 ### Original severe bugs
 
-- PR #263 — <https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/pull/263>
+- PR #263 — <https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pull/263>
   - Fixed green-cast video effects and 24-bit WAV handling.
   - Covered `effect_noise` / `video_overlay` visual output and 24-bit PCM WAV audio effects.
 
-- PR #266 — <https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/pull/266>
+- PR #266 — <https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pull/266>
   - Hardened adjacent media paths.
   - Fixed 24-bit WAV handling in `audio_compose`.
   - Checked Hyperframes version: `npm view hyperframes version dist-tags.latest --json` reported `0.5.5`; no newer package was available during the sweep.

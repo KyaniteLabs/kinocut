@@ -1,0 +1,41 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "mcp-video"
+version = "1.6.1"
+description = "Compatibility installer for Kinocut, formerly mcp-video."
+readme = "README.md"
+license = "Apache-2.0"
+requires-python = ">=3.11"
+dependencies = ["kinocut==1.7.0"]
+
+[project.scripts]
+mcp-video = "kinocut.__main__:main"
+
+[project.optional-dependencies]
+client = ["kinocut[client]==1.7.0"]
+image = ["kinocut[image]==1.7.0"]
+image-ai = ["kinocut[image-ai]==1.7.0"]
+audio = ["kinocut[audio]==1.7.0"]
+audio-enhanced = ["kinocut[audio-enhanced]==1.7.0"]
+audio-ai = ["kinocut[audio-ai]==1.7.0"]
+audio-midi = ["kinocut[audio-midi]==1.7.0"]
+audio-analysis = ["kinocut[audio-analysis]==1.7.0"]
+hyperframes = ["kinocut[hyperframes]==1.7.0"]
+transcribe = ["kinocut[transcribe]==1.7.0"]
+ai-scene = ["kinocut[ai-scene]==1.7.0"]
+stems = ["kinocut[stems]==1.7.0"]
+upscale = ["kinocut[upscale]==1.7.0"]
+ai = ["kinocut[ai]==1.7.0"]
+all-ai = ["kinocut[all-ai]==1.7.0"]
+audio-all = ["kinocut[audio-all]==1.7.0"]
+dev = ["kinocut[dev]==1.7.0"]
+
+[project.urls]
+Homepage = "https://kinocut.dev/"
+Repository = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
+
+[tool.hatch.build.targets.wheel]
+bypass-selection = true

@@ -1,7 +1,7 @@
 interface:
-  display_name: "mcp-video"
-  short_description: "Guarded local video editing workflows"
-  default_prompt: "Use $mcp-video to inspect, edit, verify, and package this local video safely."
+  display_name: "mcp-video compatibility"
+  short_description: "Redirect legacy video workflows to Kinocut"
+  default_prompt: "Use $kinocut to complete this video task while preserving mcp-video compatibility."
 
 policy:
-  allow_implicit_invocation: true
+  allow_implicit_invocation: false

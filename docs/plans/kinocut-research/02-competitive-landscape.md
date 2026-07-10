@@ -1,6 +1,6 @@
 # Competitive landscape (Claude agent) — key findings
 
-BASELINE: mcp-video 71★/19 forks. NOTE: kyanitelabs.github.io/mcp-video site STALE ("81 tools, FFmpeg + Remotion" vs 119-tool/Hyperframes reality).
+BASELINE: mcp-video 71★/19 forks. NOTE: kinocut.dev site STALE ("81 tools, FFmpeg + Remotion" vs 119-tool/Hyperframes reality).
 
 DIRECT FFMPEG MCPs: all superseded by mcp-video (video-creator/ffmpeg-mcp 137★ dormant-ish, egoist 120★ dormant, misbahsy 82★). ~40 video MCPs exist, 7+ FFmpeg ones; NONE has preflight/quality checkpoints — guardrail positioning unique in cluster.
 NAME COLLISION: studiomeyer-io/mcp-video (npx mcp-video!) 4★ active — has browser recording (Playwright), LUT color grading, beat-sync compose, built-in TTS.

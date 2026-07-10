@@ -1,7 +1,7 @@
 # CLI Reference
 
 ```
-mcp-video [command] [options]
+kino [command] [options]
 ```
 
 ## Diagnostics
@@ -117,8 +117,8 @@ mcp-video [command] [options]
 ### `composite-layers` spec
 
 ```bash
-mcp-video composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
-mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
+kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
+kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
 ```json
@@ -158,11 +158,11 @@ grammar, variants, resume, and cleanup are in [WORKFLOWS.md](WORKFLOWS.md).
 | `workflow-inspect` | Summarize any workflow/`layer_plan` receipt with a read-only integrity check |
 
 ```bash
-mcp-video workflow-validate --spec job.json
-mcp-video workflow-plan     --spec job.json [--save-plan plan.json] [--variant square]
-mcp-video workflow-render   --spec job.json [--resume receipt.json] [--save-receipt receipt.json] \
+kino workflow-validate --spec job.json
+kino workflow-plan     --spec job.json [--save-plan plan.json] [--variant square]
+kino workflow-render   --spec job.json [--resume receipt.json] [--save-receipt receipt.json] \
                             [--keep-intermediates] [--variant square] [--all-variants] [--save-receipt-dir receipts/]
-mcp-video workflow-inspect  --receipt receipt.json
+kino workflow-inspect  --receipt receipt.json
 ```
 
 | Flag | Command | Description |
@@ -190,10 +190,10 @@ only safe IDs from that exact plan, and `rescue-inspect` reads either a plan or 
 | `rescue-inspect` | Inspect a plan or receipt and re-check package integrity |
 
 ```bash
-mcp-video rescue-plan --source media/clip.mov --output-dir rescue-output --save-plan rescue-output/plan.json
-mcp-video --format json rescue-inspect --receipt rescue-output/plan.json
-mcp-video rescue-render --plan rescue-output/plan.json --approve rotation:metadata --save-receipt rescue-output/render-receipt.json
-mcp-video rescue-inspect --receipt rescue-output/render-receipt.json
+kino rescue-plan --source media/clip.mov --output-dir rescue-output --save-plan rescue-output/plan.json
+kino --format json rescue-inspect --receipt rescue-output/plan.json
+kino rescue-render --plan rescue-output/plan.json --approve rotation:metadata --save-receipt rescue-output/render-receipt.json
+kino rescue-inspect --receipt rescue-output/render-receipt.json
 ```
 
 | Flag | Command | Description |

@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes 135 registered MCP tools across video editing, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino exposes 135 registered MCP tools across video editing, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -12,7 +12,7 @@ mcp-video exposes 135 registered MCP tools across video editing, dedicated rescu
 
 **Python Client:**
 ```python
-from mcp_video import Client
+from kinocut import Client
 editor = Client()
 results = editor.search_tools("subtitle")
 # Returns: {"success": True, "count": 3, "tools": [...]}
@@ -120,7 +120,7 @@ download models, contact providers, or submit jobs. See
 | `video_export` | Render with quality and format settings |
 | `video_normalize_audio` | Normalize audio loudness to a target LUFS level |
 | `video_batch` | Apply the same operation to multiple video files |
-| `video_cleanup` | Remove mcp-video-managed intermediate files |
+| `video_cleanup` | Remove Kinocut-managed intermediate files |
 | `video_hls_segment` | Segment video into HLS format with multi-quality variants |
 | `video_template_preview` | Preview social/video template operations before rendering |
 | `video_validate_text_layout` | Validate text overlays for overlap, low contrast, unsafe positioning, and missing shadows before rendering |
@@ -146,11 +146,11 @@ download models, contact providers, or submit jobs. See
 Install only the AI dependencies you need:
 
 ```bash
-pip install "mcp-video[transcribe]"  # Whisper transcription
-pip install "mcp-video[ai-scene]"    # perceptual scene hashing
-pip install "mcp-video[stems]"       # Demucs stem separation
-pip install "mcp-video[upscale]"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
-pip install "mcp-video[ai]"          # all AI extras, kept for compatibility
+pip install "kinocut[transcribe]"  # Whisper transcription
+pip install "kinocut[ai-scene]"    # perceptual scene hashing
+pip install "kinocut[stems]"       # Demucs stem separation
+pip install "kinocut[upscale]"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
+pip install "kinocut[ai]"          # all AI extras, kept for compatibility
 pip install yt-dlp                   # only for downloading platform URLs (YouTube/Vimeo/...)
 ```
 
@@ -158,7 +158,7 @@ pip install yt-dlp                   # only for downloading platform URLs (YouTu
 
 ## Hyperframes — HTML-Native Video (18 tools)
 
-Create videos programmatically using [Hyperframes](https://hyperframes.io/) — an HTML-native framework for video (Apache 2.0). Hyperframes owns HTML-video authoring, catalog blocks, website capture, local TTS, transcription import, background removal, layout inspection, diagnostics, benchmarking, and rendering; mcp-video wraps those operations for MCP-safe orchestration and FFmpeg post-processing.
+Create videos programmatically using [Hyperframes](https://hyperframes.io/) — an HTML-native framework for video (Apache 2.0). Hyperframes owns HTML-video authoring, catalog blocks, website capture, local TTS, transcription import, background removal, layout inspection, diagnostics, benchmarking, and rendering; Kinocut wraps those operations for MCP-safe orchestration and FFmpeg post-processing.
 
 | Tool | Description |
 |------|-------------|
@@ -179,7 +179,7 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 | `hyperframes_preview` | Launch Hyperframes preview studio |
 | `hyperframes_validate` | Check project structure and run lint |
 | `hyperframes_add_block` | Install a block from the Hyperframes catalog, with optional clipboard suppression |
-| `hyperframes_to_mcpvideo` | Pipeline: render with Hyperframes, then post-process with mcp-video |
+| `hyperframes_to_mcpvideo` | Pipeline: render with Hyperframes, then post-process with Kinocut |
 
 ---
 
@@ -238,7 +238,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 
 ## Glitch Effects (12 tools)
 
-CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (marked below) require Node.js, the `MCP_VIDEO_CRUSH_PATH` environment variable pointing to the [CRUSH](https://github.com/pushingsquares/crush) shader sources, and the `canvas` npm package — install it once with `npm install` inside `mcp_video/_crush_shader/`. The tools report exactly which piece is missing.
+CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (marked below) require Node.js, the `MCP_VIDEO_CRUSH_PATH` environment variable pointing to the [CRUSH](https://github.com/pushingsquares/crush) shader sources, and the `canvas` npm package — install it once with `npm install` inside `kinocut/_crush_shader/`. The tools report exactly which piece is missing.
 
 | Tool | Description |
 |------|-------------|

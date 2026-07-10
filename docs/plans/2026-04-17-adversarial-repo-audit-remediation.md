@@ -126,7 +126,7 @@ GitHub settings updated:
    ```bash
    git fetch --tags origin
    git tag --list --sort=-creatordate | head
-   gh release list --repo KyaniteLabs/mcp-video --limit 10
+   gh release list --repo KyaniteLabs/kinocut --limit 10
    ```
 
 2. If no `v1.2.1` tag exists, create a signed or annotated tag from current `master` after CI is green:

@@ -17,8 +17,8 @@ The sharpness issue is mostly a confidence/readability problem: public automatio
 ## Evidence Commands
 
 ```bash
-gh pr list -R KyaniteLabs/mcp-video --state open --json number,title,headRefName,updatedAt,url
-gh run list -R KyaniteLabs/mcp-video --limit 20 --json databaseId,workflowName,headBranch,status,conclusion,createdAt,updatedAt,event,url
+gh pr list -R KyaniteLabs/kinocut --state open --json number,title,headRefName,updatedAt,url
+gh run list -R KyaniteLabs/kinocut --limit 20 --json databaseId,workflowName,headBranch,status,conclusion,createdAt,updatedAt,event,url
 find .github -maxdepth 3 -type f | sort
 test -f README.md
 test -f LICENSE

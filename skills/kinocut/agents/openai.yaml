@@ -1,0 +1,7 @@
+interface:
+  display_name: "Kinocut"
+  short_description: "Guarded local video editing workflows"
+  default_prompt: "Use $kinocut to inspect, edit, verify, and package this local video safely."
+
+policy:
+  allow_implicit_invocation: true

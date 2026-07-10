@@ -2,7 +2,7 @@
 
 > **Historical note.** This research led to the Hyperframes integration that shipped in v1.2.5. Remotion was later removed in v1.3.0/v1.3.1 due to licensing concerns.
 >
-> **Issue:** [#153](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues/153)
+> **Issue:** [#153](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/153)
 > **Date:** 2026-04-27
 > **Author:** Kimi Code CLI  
 

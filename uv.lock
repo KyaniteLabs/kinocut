@@ -1183,6 +1183,196 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a1/19/c9e1596b5572c786b93428d0904280e964c930fae7e6c9368ed9e1b63922/julius-0.2.7.tar.gz", hash = "sha256:3c0f5f5306d7d6016fcc95196b274cae6f07e2c9596eed314e4e7641554fbb08", size = 59640, upload-time = "2022-09-19T16:13:34.2Z" }
 
 [[package]]
+name = "kinocut"
+version = "1.7.0"
+source = { editable = "." }
+dependencies = [
+    { name = "mcp" },
+    { name = "pydantic" },
+    { name = "rich" },
+]
+
+[package.optional-dependencies]
+ai = [
+    { name = "basicsr", marker = "python_full_version < '3.13'" },
+    { name = "demucs" },
+    { name = "imagehash" },
+    { name = "numpy" },
+    { name = "openai-whisper" },
+    { name = "opencv-contrib-python" },
+    { name = "pillow" },
+    { name = "realesrgan", marker = "python_full_version < '3.13'" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "torchcodec" },
+]
+ai-scene = [
+    { name = "imagehash" },
+    { name = "pillow" },
+]
+all-ai = [
+    { name = "basicsr", marker = "python_full_version < '3.13'" },
+    { name = "demucs" },
+    { name = "imagehash" },
+    { name = "librosa" },
+    { name = "numpy" },
+    { name = "openai-whisper" },
+    { name = "opencv-contrib-python" },
+    { name = "pillow" },
+    { name = "realesrgan", marker = "python_full_version < '3.13'" },
+    { name = "scipy" },
+    { name = "soundfile" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "torchcodec" },
+]
+audio = [
+    { name = "numpy" },
+]
+audio-ai = [
+    { name = "numpy" },
+]
+audio-all = [
+    { name = "librosa" },
+    { name = "numpy" },
+    { name = "scipy" },
+    { name = "soundfile" },
+]
+audio-analysis = [
+    { name = "librosa" },
+    { name = "numpy" },
+    { name = "soundfile" },
+]
+audio-enhanced = [
+    { name = "numpy" },
+    { name = "scipy" },
+    { name = "soundfile" },
+]
+audio-midi = [
+    { name = "numpy" },
+]
+client = [
+    { name = "pillow" },
+]
+dev = [
+    { name = "pillow" },
+    { name = "pytest" },
+    { name = "pytest-asyncio" },
+    { name = "pytest-cov" },
+    { name = "pytest-timeout" },
+    { name = "pytest-xdist" },
+    { name = "rich" },
+    { name = "ruff" },
+    { name = "scikit-learn" },
+    { name = "webcolors" },
+]
+image = [
+    { name = "pillow" },
+    { name = "scikit-learn" },
+    { name = "webcolors" },
+]
+image-ai = [
+    { name = "anthropic" },
+    { name = "pillow" },
+    { name = "scikit-learn" },
+    { name = "webcolors" },
+]
+stems = [
+    { name = "demucs" },
+    { name = "torch" },
+    { name = "torchaudio" },
+    { name = "torchcodec" },
+]
+transcribe = [
+    { name = "openai-whisper" },
+]
+upscale = [
+    { name = "basicsr", marker = "python_full_version < '3.13'" },
+    { name = "numpy" },
+    { name = "opencv-contrib-python" },
+    { name = "pillow" },
+    { name = "realesrgan", marker = "python_full_version < '3.13'" },
+    { name = "torch" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "anthropic", marker = "extra == 'image-ai'", specifier = ">=0.96.0" },
+    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'ai'", specifier = ">=1.4" },
+    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'all-ai'", specifier = ">=1.4" },
+    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'upscale'", specifier = ">=1.4" },
+    { name = "demucs", marker = "extra == 'ai'", specifier = ">=4.0" },
+    { name = "demucs", marker = "extra == 'all-ai'", specifier = ">=4.0" },
+    { name = "demucs", marker = "extra == 'stems'", specifier = ">=4.0" },
+    { name = "imagehash", marker = "extra == 'ai'", specifier = ">=4.3" },
+    { name = "imagehash", marker = "extra == 'ai-scene'", specifier = ">=4.3" },
+    { name = "imagehash", marker = "extra == 'all-ai'", specifier = ">=4.3" },
+    { name = "librosa", marker = "extra == 'all-ai'", specifier = ">=0.10" },
+    { name = "librosa", marker = "extra == 'audio-all'", specifier = ">=0.10" },
+    { name = "librosa", marker = "extra == 'audio-analysis'", specifier = ">=0.10" },
+    { name = "mcp", specifier = ">=1.27.0" },
+    { name = "numpy", marker = "extra == 'ai'", specifier = ">=2.0.0" },
+    { name = "numpy", marker = "extra == 'all-ai'", specifier = ">=2.0.0" },
+    { name = "numpy", marker = "extra == 'audio'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'audio-ai'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'audio-all'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'audio-analysis'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'audio-enhanced'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'audio-midi'", specifier = ">=1.24" },
+    { name = "numpy", marker = "extra == 'upscale'", specifier = ">=2.0.0" },
+    { name = "openai-whisper", marker = "extra == 'ai'", specifier = ">=20231117" },
+    { name = "openai-whisper", marker = "extra == 'all-ai'", specifier = ">=20231117" },
+    { name = "openai-whisper", marker = "extra == 'transcribe'", specifier = ">=20231117" },
+    { name = "opencv-contrib-python", marker = "extra == 'ai'", specifier = ">=4.10" },
+    { name = "opencv-contrib-python", marker = "extra == 'all-ai'", specifier = ">=4.10" },
+    { name = "opencv-contrib-python", marker = "extra == 'upscale'", specifier = ">=4.10" },
+    { name = "pillow", marker = "extra == 'ai'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'ai-scene'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'all-ai'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'client'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'dev'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'image'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'image-ai'", specifier = ">=10.0" },
+    { name = "pillow", marker = "extra == 'upscale'", specifier = ">=10.0" },
+    { name = "pydantic", specifier = ">=2.13.2" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3" },
+    { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6" },
+    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'ai'", specifier = ">=0.3" },
+    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'all-ai'", specifier = ">=0.3" },
+    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'upscale'", specifier = ">=0.3" },
+    { name = "rich", specifier = ">=15.0.0" },
+    { name = "rich", marker = "extra == 'dev'", specifier = ">=15.0.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.11" },
+    { name = "scikit-learn", marker = "extra == 'dev'", specifier = ">=1.3" },
+    { name = "scikit-learn", marker = "extra == 'image'", specifier = ">=1.3" },
+    { name = "scikit-learn", marker = "extra == 'image-ai'", specifier = ">=1.3" },
+    { name = "scipy", marker = "extra == 'all-ai'", specifier = ">=1.10" },
+    { name = "scipy", marker = "extra == 'audio-all'", specifier = ">=1.10" },
+    { name = "scipy", marker = "extra == 'audio-enhanced'", specifier = ">=1.10" },
+    { name = "soundfile", marker = "extra == 'all-ai'", specifier = ">=0.12" },
+    { name = "soundfile", marker = "extra == 'audio-all'", specifier = ">=0.12" },
+    { name = "soundfile", marker = "extra == 'audio-analysis'", specifier = ">=0.12" },
+    { name = "soundfile", marker = "extra == 'audio-enhanced'", specifier = ">=0.12" },
+    { name = "torch", marker = "extra == 'ai'", specifier = ">=2.0" },
+    { name = "torch", marker = "extra == 'all-ai'", specifier = ">=2.0" },
+    { name = "torch", marker = "extra == 'stems'", specifier = ">=2.0" },
+    { name = "torch", marker = "extra == 'upscale'", specifier = ">=2.0" },
+    { name = "torchaudio", marker = "extra == 'ai'", specifier = ">=2.0" },
+    { name = "torchaudio", marker = "extra == 'all-ai'", specifier = ">=2.0" },
+    { name = "torchaudio", marker = "extra == 'stems'", specifier = ">=2.0" },
+    { name = "torchcodec", marker = "extra == 'ai'", specifier = ">=0.8" },
+    { name = "torchcodec", marker = "extra == 'all-ai'", specifier = ">=0.8" },
+    { name = "torchcodec", marker = "extra == 'stems'", specifier = ">=0.8" },
+    { name = "webcolors", marker = "extra == 'dev'", specifier = ">=1.13" },
+    { name = "webcolors", marker = "extra == 'image'", specifier = ">=1.13" },
+    { name = "webcolors", marker = "extra == 'image-ai'", specifier = ">=1.13" },
+]
+provides-extras = ["client", "image", "image-ai", "audio", "audio-enhanced", "audio-ai", "audio-midi", "audio-analysis", "hyperframes", "transcribe", "ai-scene", "stems", "upscale", "ai", "all-ai", "audio-all", "dev"]
+
+[[package]]
 name = "kiwisolver"
 version = "1.5.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1609,196 +1799,6 @@ sdist = { url = "https://files.pythonhosted.org/packages/38/83/d1efe7c2980d8a3af
 wheels = [
     { url = "https://files.pythonhosted.org/packages/fd/73/42d9596facebdb533b7f0b86c1b0364ef350d1f8ba78b1052e8a58b48b65/mcp-1.27.1-py3-none-any.whl", hash = "sha256:1af3c4203b329430fde7a87b4fcb6392a041f5cb851fd68fc674016ab4e7c06f", size = 216260, upload-time = "2026-05-08T16:50:10.547Z" },
 ]
-
-[[package]]
-name = "mcp-video"
-version = "1.6.0"
-source = { editable = "." }
-dependencies = [
-    { name = "mcp" },
-    { name = "pydantic" },
-    { name = "rich" },
-]
-
-[package.optional-dependencies]
-ai = [
-    { name = "basicsr", marker = "python_full_version < '3.13'" },
-    { name = "demucs" },
-    { name = "imagehash" },
-    { name = "numpy" },
-    { name = "openai-whisper" },
-    { name = "opencv-contrib-python" },
-    { name = "pillow" },
-    { name = "realesrgan", marker = "python_full_version < '3.13'" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "torchcodec" },
-]
-ai-scene = [
-    { name = "imagehash" },
-    { name = "pillow" },
-]
-all-ai = [
-    { name = "basicsr", marker = "python_full_version < '3.13'" },
-    { name = "demucs" },
-    { name = "imagehash" },
-    { name = "librosa" },
-    { name = "numpy" },
-    { name = "openai-whisper" },
-    { name = "opencv-contrib-python" },
-    { name = "pillow" },
-    { name = "realesrgan", marker = "python_full_version < '3.13'" },
-    { name = "scipy" },
-    { name = "soundfile" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "torchcodec" },
-]
-audio = [
-    { name = "numpy" },
-]
-audio-ai = [
-    { name = "numpy" },
-]
-audio-all = [
-    { name = "librosa" },
-    { name = "numpy" },
-    { name = "scipy" },
-    { name = "soundfile" },
-]
-audio-analysis = [
-    { name = "librosa" },
-    { name = "numpy" },
-    { name = "soundfile" },
-]
-audio-enhanced = [
-    { name = "numpy" },
-    { name = "scipy" },
-    { name = "soundfile" },
-]
-audio-midi = [
-    { name = "numpy" },
-]
-client = [
-    { name = "pillow" },
-]
-dev = [
-    { name = "pillow" },
-    { name = "pytest" },
-    { name = "pytest-asyncio" },
-    { name = "pytest-cov" },
-    { name = "pytest-timeout" },
-    { name = "pytest-xdist" },
-    { name = "rich" },
-    { name = "ruff" },
-    { name = "scikit-learn" },
-    { name = "webcolors" },
-]
-image = [
-    { name = "pillow" },
-    { name = "scikit-learn" },
-    { name = "webcolors" },
-]
-image-ai = [
-    { name = "anthropic" },
-    { name = "pillow" },
-    { name = "scikit-learn" },
-    { name = "webcolors" },
-]
-stems = [
-    { name = "demucs" },
-    { name = "torch" },
-    { name = "torchaudio" },
-    { name = "torchcodec" },
-]
-transcribe = [
-    { name = "openai-whisper" },
-]
-upscale = [
-    { name = "basicsr", marker = "python_full_version < '3.13'" },
-    { name = "numpy" },
-    { name = "opencv-contrib-python" },
-    { name = "pillow" },
-    { name = "realesrgan", marker = "python_full_version < '3.13'" },
-    { name = "torch" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "anthropic", marker = "extra == 'image-ai'", specifier = ">=0.96.0" },
-    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'ai'", specifier = ">=1.4" },
-    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'all-ai'", specifier = ">=1.4" },
-    { name = "basicsr", marker = "python_full_version < '3.13' and extra == 'upscale'", specifier = ">=1.4" },
-    { name = "demucs", marker = "extra == 'ai'", specifier = ">=4.0" },
-    { name = "demucs", marker = "extra == 'all-ai'", specifier = ">=4.0" },
-    { name = "demucs", marker = "extra == 'stems'", specifier = ">=4.0" },
-    { name = "imagehash", marker = "extra == 'ai'", specifier = ">=4.3" },
-    { name = "imagehash", marker = "extra == 'ai-scene'", specifier = ">=4.3" },
-    { name = "imagehash", marker = "extra == 'all-ai'", specifier = ">=4.3" },
-    { name = "librosa", marker = "extra == 'all-ai'", specifier = ">=0.10" },
-    { name = "librosa", marker = "extra == 'audio-all'", specifier = ">=0.10" },
-    { name = "librosa", marker = "extra == 'audio-analysis'", specifier = ">=0.10" },
-    { name = "mcp", specifier = ">=1.27.0" },
-    { name = "numpy", marker = "extra == 'ai'", specifier = ">=2.0.0" },
-    { name = "numpy", marker = "extra == 'all-ai'", specifier = ">=2.0.0" },
-    { name = "numpy", marker = "extra == 'audio'", specifier = ">=1.24" },
-    { name = "numpy", marker = "extra == 'audio-ai'", specifier = ">=1.24" },
-    { name = "numpy", marker = "extra == 'audio-all'", specifier = ">=1.24" },
-    { name = "numpy", marker = "extra == 'audio-analysis'", specifier = ">=1.24" },
-    { name = "numpy", marker = "extra == 'audio-enhanced'", specifier = ">=1.24" },
-    { name = "numpy", marker = "extra == 'audio-midi'", specifier = ">=1.24" },
-    { name = "numpy", marker = "extra == 'upscale'", specifier = ">=2.0.0" },
-    { name = "openai-whisper", marker = "extra == 'ai'", specifier = ">=20231117" },
-    { name = "openai-whisper", marker = "extra == 'all-ai'", specifier = ">=20231117" },
-    { name = "openai-whisper", marker = "extra == 'transcribe'", specifier = ">=20231117" },
-    { name = "opencv-contrib-python", marker = "extra == 'ai'", specifier = ">=4.10" },
-    { name = "opencv-contrib-python", marker = "extra == 'all-ai'", specifier = ">=4.10" },
-    { name = "opencv-contrib-python", marker = "extra == 'upscale'", specifier = ">=4.10" },
-    { name = "pillow", marker = "extra == 'ai'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'ai-scene'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'all-ai'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'client'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'dev'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'image'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'image-ai'", specifier = ">=10.0" },
-    { name = "pillow", marker = "extra == 'upscale'", specifier = ">=10.0" },
-    { name = "pydantic", specifier = ">=2.13.2" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "pytest-timeout", marker = "extra == 'dev'", specifier = ">=2.3" },
-    { name = "pytest-xdist", marker = "extra == 'dev'", specifier = ">=3.6" },
-    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'ai'", specifier = ">=0.3" },
-    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'all-ai'", specifier = ">=0.3" },
-    { name = "realesrgan", marker = "python_full_version < '3.13' and extra == 'upscale'", specifier = ">=0.3" },
-    { name = "rich", specifier = ">=15.0.0" },
-    { name = "rich", marker = "extra == 'dev'", specifier = ">=15.0.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.15.11" },
-    { name = "scikit-learn", marker = "extra == 'dev'", specifier = ">=1.3" },
-    { name = "scikit-learn", marker = "extra == 'image'", specifier = ">=1.3" },
-    { name = "scikit-learn", marker = "extra == 'image-ai'", specifier = ">=1.3" },
-    { name = "scipy", marker = "extra == 'all-ai'", specifier = ">=1.10" },
-    { name = "scipy", marker = "extra == 'audio-all'", specifier = ">=1.10" },
-    { name = "scipy", marker = "extra == 'audio-enhanced'", specifier = ">=1.10" },
-    { name = "soundfile", marker = "extra == 'all-ai'", specifier = ">=0.12" },
-    { name = "soundfile", marker = "extra == 'audio-all'", specifier = ">=0.12" },
-    { name = "soundfile", marker = "extra == 'audio-analysis'", specifier = ">=0.12" },
-    { name = "soundfile", marker = "extra == 'audio-enhanced'", specifier = ">=0.12" },
-    { name = "torch", marker = "extra == 'ai'", specifier = ">=2.0" },
-    { name = "torch", marker = "extra == 'all-ai'", specifier = ">=2.0" },
-    { name = "torch", marker = "extra == 'stems'", specifier = ">=2.0" },
-    { name = "torch", marker = "extra == 'upscale'", specifier = ">=2.0" },
-    { name = "torchaudio", marker = "extra == 'ai'", specifier = ">=2.0" },
-    { name = "torchaudio", marker = "extra == 'all-ai'", specifier = ">=2.0" },
-    { name = "torchaudio", marker = "extra == 'stems'", specifier = ">=2.0" },
-    { name = "torchcodec", marker = "extra == 'ai'", specifier = ">=0.8" },
-    { name = "torchcodec", marker = "extra == 'all-ai'", specifier = ">=0.8" },
-    { name = "torchcodec", marker = "extra == 'stems'", specifier = ">=0.8" },
-    { name = "webcolors", marker = "extra == 'dev'", specifier = ">=1.13" },
-    { name = "webcolors", marker = "extra == 'image'", specifier = ">=1.13" },
-    { name = "webcolors", marker = "extra == 'image-ai'", specifier = ">=1.13" },
-]
-provides-extras = ["client", "image", "image-ai", "audio", "audio-enhanced", "audio-ai", "audio-midi", "audio-analysis", "hyperframes", "transcribe", "ai-scene", "stems", "upscale", "ai", "all-ai", "audio-all", "dev"]
 
 [[package]]
 name = "mdurl"

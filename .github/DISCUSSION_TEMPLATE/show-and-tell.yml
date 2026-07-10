@@ -3,7 +3,7 @@ body:
   - type: markdown
     attributes:
       value: |
-        Share demos, workflows, agent prompts, videos, and integrations built with mcp-video.
+        Share demos, workflows, agent prompts, videos, and integrations built with Kinocut.
   - type: textarea
     id: demo
     attributes:
@@ -20,4 +20,3 @@ body:
     attributes:
       label: Links or media
       description: Add screenshots, videos, repos, or writeups.
-

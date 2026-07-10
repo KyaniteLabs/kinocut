@@ -19,7 +19,7 @@ body:
     id: current
     attributes:
       label: Current workaround
-      description: How would someone do this today with mcp-video, FFmpeg, or another tool?
+      description: How would someone do this today with Kinocut, FFmpeg, or another tool?
     validations:
       required: false
   - type: textarea
@@ -29,7 +29,7 @@ body:
       description: Sketch the MCP tool, CLI command, or Python function shape if you have one.
       placeholder: |
         MCP: video_example(input_path, ...)
-        CLI: mcp-video example input.mp4 --option ...
+        CLI: kino example input.mp4 --option ...
         Python: client.example(...)
     validations:
       required: false

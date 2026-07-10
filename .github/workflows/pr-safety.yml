@@ -22,7 +22,7 @@ jobs:
           head="${{ github.event.pull_request.head.sha }}"
           changed="$(git diff --name-only "$base" "$head")"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(mcp_video/|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml)'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -47,8 +47,8 @@ jobs:
       - name: Lint
         if: steps.classify.outputs.code == 'true'
         run: |
-          ruff check mcp_video/ tests/
-          ruff format --check mcp_video/ tests/
+          ruff check kinocut/ mcp_video.py tests/
+          ruff format --check kinocut/ mcp_video.py tests/
       - name: Test
         if: steps.classify.outputs.code == 'true'
         run: pytest tests/ -q -m "not slow" --tb=short

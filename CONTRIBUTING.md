@@ -6,7 +6,7 @@ Thanks for your interest in improving mcp-video. This is a focused project — e
 
 ```bash
 # Clone and install dev dependencies
-git clone https://git.kyanitelabs.tech/KyaniteLabs/mcp-video.git
+git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
 cd mcp-video
 python3 -m venv .venv
 source .venv/bin/activate

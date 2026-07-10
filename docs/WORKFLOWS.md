@@ -256,28 +256,28 @@ over freshly produced dry-run artifacts.
 
 ```bash
 # 1. cheap structural gate (no render)
-mcp-video workflow-validate --spec job.json
+kino workflow-validate --spec job.json
 
 # 2. dry-run plan: op graph + source probes/hashes, renders zero media
-mcp-video workflow-plan --spec job.json --save-plan plan.json
+kino workflow-plan --spec job.json --save-plan plan.json
 
 # 3. execute + write a provenance receipt
-mcp-video workflow-render --spec job.json --save-receipt receipt.json
+kino workflow-render --spec job.json --save-receipt receipt.json
 
 # 4. render every declared variant into its own receipt
-mcp-video workflow-render --spec job.json --all-variants --save-receipt-dir receipts/
+kino workflow-render --spec job.json --all-variants --save-receipt-dir receipts/
 
 # 5. resume a job that failed with intermediates kept
-mcp-video workflow-render --spec job.json --resume receipt.json --save-receipt receipt.json
+kino workflow-render --spec job.json --resume receipt.json --save-receipt receipt.json
 
 # 6. summarize any receipt (read-only integrity re-check)
-mcp-video workflow-inspect --receipt receipt.json
+kino workflow-inspect --receipt receipt.json
 ```
 
 Python:
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 video = Client()
 video.workflow_validate("job.json")

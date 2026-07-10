@@ -1,12 +1,12 @@
 <p align="center">
   <a href="https://kyanitelabs.tech">
-    <img src="assets/mcp-video-hero.webp" alt="mcp-video — guardrailed video editing MCP server for AI agents: FFmpeg, subtitles, audio, effects, and repurposing tools" width="100%">
+    <img src="assets/mcp-video-hero.webp" alt="Kinocut - guardrailed video editing for AI agents" width="100%">
   </a>
 </p>
 
-<!-- mcp-name: io.github.KyaniteLabs/mcp-video -->
+<!-- mcp-name: io.github.KyaniteLabs/kinocut -->
 
-<h1 align="center">mcp-video</h1>
+<h1 align="center">Kinocut</h1>
 
 <p align="center">
   <strong>Guardrailed video editing MCP server for AI agents.</strong><br>
@@ -14,12 +14,12 @@
 </p>
 
 <p align="center">
-  <a href="https://pypi.org/project/mcp-video/"><img src="https://img.shields.io/pypi/v/mcp-video.svg" alt="PyPI"></a>
-  <a href="https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
+  <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
+  <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
   <img src="https://img.shields.io/badge/MCP-135%20tools-orange.svg" alt="135 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
-  <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
+  <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
 </p>
 
 <p align="center">
@@ -33,7 +33,7 @@
   <a href="docs/AI_AGENT_DISCOVERY.md">AI Discovery</a> &bull;
   <a href="#agent-skill">Agent Skill</a> &bull;
   <a href="llms.txt">llms.txt</a> &bull;
-  <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video">MCP Registry</a>
+  <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut">MCP Registry</a>
 </p>
 
 ---
@@ -44,10 +44,10 @@ Tell the agent what you want in plain language:
 
 > "Trim this interview to the strongest 45 seconds, add burned captions, make it vertical, and quality-check it before export."
 
-mcp-video turns that into typed, guardrailed tool calls — no FFmpeg flags to guess, no silently broken exports:
+Kinocut turns that into typed, guardrailed tool calls - no FFmpeg flags to guess, no silently broken exports:
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 video = Client()
 
 clip = video.trim("interview.mp4", start="00:02:15", duration="00:00:45")
@@ -91,10 +91,10 @@ everything fails closed.
 ```
 
 ```bash
-mcp-video workflow-validate --spec job.json    # cheap structural gate, no render
-mcp-video workflow-plan     --spec job.json --save-plan plan.json     # dry-run op graph + hashes
-mcp-video workflow-render   --spec job.json --save-receipt receipt.json   # execute + provenance receipt
-mcp-video workflow-inspect  --receipt receipt.json    # read-only integrity re-check
+kino workflow-validate --spec job.json    # cheap structural gate, no render
+kino workflow-plan     --spec job.json --save-plan plan.json     # dry-run op graph + hashes
+kino workflow-render   --spec job.json --save-receipt receipt.json   # execute + provenance receipt
+kino workflow-inspect  --receipt receipt.json    # read-only integrity re-check
 ```
 
 The render receipt records per-step input/output hashes, a resume cursor, and a cleanup
@@ -103,7 +103,7 @@ manifest, all with workspace-relative paths:
 ```json
 {
   "receipt_kind": "workflow",
-  "versions": { "mcp_video": "1.6.0", "ffmpeg": "8.1" },
+  "versions": { "mcp_video": "1.7.0", "ffmpeg": "8.1" },
   "spec_hash": "sha256:be2f3a9b...",
   "steps": [
     { "id": "trim-hero", "op": "trim", "status": "completed",
@@ -138,15 +138,15 @@ sharing copy are always verified; optional captions remain sidecars. See
 `composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
 
 ```bash
-mcp-video composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
-mcp-video composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
+kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
+kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
 Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer must be full-canvas (position `{0,0}`, full opacity, no scale/mask/timing) or it fails closed; output is video-only. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are tracked as later phases so this surface stays deterministic and preflightable.
 
 ## Public Discovery
 
-**mcp-video** is a free, open-source **Model Context Protocol (MCP) server**, Python library, and CLI that gives AI agents a real video-editing surface. It wraps FFmpeg, PUSHING CREATION-style planning, media analysis, quality checks, subtitles, audio generation, effects, Hyperframes rendering, local repurposing packages, and guardrails for risky edit parameters behind structured tool schemas.
+**Kinocut** is a free, open-source **Model Context Protocol (MCP) server**, Python library, and CLI that gives AI agents a real video-editing surface. It wraps FFmpeg, PUSHING CREATION-style planning, media analysis, quality checks, subtitles, audio generation, effects, Hyperframes rendering, local repurposing packages, and guardrails for risky edit parameters behind structured tool schemas.
 
 Best-fit searches:
 
@@ -165,7 +165,7 @@ Best-fit searches:
 
 ## Why It Exists
 
-AI agents can write FFmpeg commands, but they should not have to guess flags, parse brittle stderr, or silently publish broken media. mcp-video gives agents typed operations, inspectable tool metadata, structured results, preflight guardrails, and quality checkpoints so a video workflow can be automated and reviewed without turning into shell-command roulette.
+AI agents can write FFmpeg commands, but they should not have to guess flags, parse brittle stderr, or silently publish broken media. Kinocut gives agents typed operations, inspectable tool metadata, structured results, preflight guardrails, and quality checkpoints so a video workflow can be automated and reviewed without turning into shell-command roulette.
 
 Use it when you want an AI assistant to:
 
@@ -193,14 +193,14 @@ sudo apt install ffmpeg
 Run without a global install:
 
 ```bash
-uvx --from mcp-video mcp-video doctor
+uvx --from kinocut kino doctor
 ```
 
 Or install with pip:
 
 ```bash
-pip install mcp-video
-mcp-video doctor
+pip install kinocut
+kino doctor
 ```
 
 Hyperframes tools additionally need Node.js 22+ and a resolvable Hyperframes CLI. Install/pin Hyperframes in the active Node package layout, add `hyperframes` to `PATH`, or set `MCP_VIDEO_HYPERFRAMES_COMMAND`.
@@ -211,18 +211,29 @@ The core install covers all FFmpeg editing tools. Optional features ship as extr
 
 | You want | Install | Approx. extra size |
 |---|---|---|
-| Speech-to-text subtitles (Whisper) | `pip install "mcp-video[transcribe]"` | ~1 GB (torch) |
-| Image analysis (colors, layout, contrast) | `pip install "mcp-video[image]"` | ~50 MB |
-| Vocal/instrument stem separation | `pip install "mcp-video[stems]"` | ~2 GB (torch + demucs) |
-| AI upscaling | `pip install "mcp-video[upscale]"` | ~2 GB (Python ≤3.12) |
-| Procedural audio/music tools | `pip install "mcp-video[audio]"` | ~30 MB (numpy) |
-| Everything AI | `pip install "mcp-video[ai]"` | several GB |
+| Speech-to-text subtitles (Whisper) | `pip install "kinocut[transcribe]"` | ~1 GB (torch) |
+| Image analysis (colors, layout, contrast) | `pip install "kinocut[image]"` | ~50 MB |
+| Vocal/instrument stem separation | `pip install "kinocut[stems]"` | ~2 GB (torch + demucs) |
+| AI upscaling | `pip install "kinocut[upscale]"` | ~2 GB (Python ≤3.12) |
+| Procedural audio/music tools | `pip install "kinocut[audio]"` | ~30 MB (numpy) |
+| Everything AI | `pip install "kinocut[ai]"` | several GB |
 
-Mix freely, e.g. `pip install "mcp-video[transcribe,image]"`. Run `mcp-video doctor` afterward — it reports exactly which features are available and what is missing.
+Mix freely, e.g. `pip install "kinocut[transcribe,image]"`. Run `kino doctor` afterward — it reports exactly which features are available and what is missing.
+
+### Upgrading from mcp-video
+
+Kinocut preserves the original surface during the rename window. Existing installs can upgrade without changing code:
+
+```bash
+pip install --upgrade mcp-video
+mcp-video doctor
+```
+
+`mcp-video==1.6.1` is a metadata-only compatibility installer for `kinocut==1.7.0`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported through at least Kinocut 1.8.x. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
-mcp-video es un servidor MCP de edición de video para agentes de IA: 135 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
+Kinocut es un servidor MCP de edición de video para agentes de IA: 135 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -234,17 +245,17 @@ brew install ffmpeg
 sudo apt install ffmpeg
 
 # Instalación y diagnóstico
-pip install mcp-video
-mcp-video doctor
+pip install kinocut
+kino doctor
 ```
 
 Para Claude Code:
 
 ```bash
-claude mcp add mcp-video -- uvx --from mcp-video mcp-video
+claude mcp add kinocut -- uvx --from kinocut kino
 ```
 
-`mcp-video doctor` informa qué funciones están disponibles y qué falta instalar. La documentación completa está en inglés; los mensajes de error principales son bilingües.
+`kino doctor` informa qué funciones están disponibles y qué falta instalar. La documentación completa está en inglés; los mensajes de error principales son bilingües.
 
 ## Quick Start
 
@@ -253,8 +264,8 @@ claude mcp add mcp-video -- uvx --from mcp-video mcp-video
 From a clone of this repo, run the smallest confidence workflow before wiring an agent host:
 
 ```bash
-uv run --no-project --with mcp-video python workflows/05-confidence-baseline/workflow.py
-uv run --no-project --with mcp-video python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut python workflows/05-confidence-baseline/workflow.py
+uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The workflow generates a tiny source clip, creates a checked vertical video, runs quality/release checkpoint steps, and writes `workflows/05-confidence-baseline/output/video_receipt.json`.
@@ -264,7 +275,7 @@ Proof notes live in [`docs/proofs/`](docs/proofs/).
 ### Claude Code
 
 ```bash
-claude mcp add mcp-video -- uvx --from mcp-video mcp-video
+claude mcp add kinocut -- uvx --from kinocut kino
 ```
 
 ### Claude Desktop
@@ -272,9 +283,9 @@ claude mcp add mcp-video -- uvx --from mcp-video mcp-video
 ```json
 {
   "mcpServers": {
-    "mcp-video": {
+    "kinocut": {
       "command": "uvx",
-      "args": ["--from", "mcp-video", "mcp-video"]
+      "args": ["--from", "kinocut", "kino"]
     }
   }
 }
@@ -285,9 +296,9 @@ claude mcp add mcp-video -- uvx --from mcp-video mcp-video
 ```json
 {
   "mcpServers": {
-    "mcp-video": {
+    "kinocut": {
       "command": "uvx",
-      "args": ["--from", "mcp-video", "mcp-video"]
+      "args": ["--from", "kinocut", "kino"]
     }
   }
 }
@@ -299,12 +310,12 @@ Then ask your agent:
 
 ## Agent Skill
 
-mcp-video includes a public agent skill at [`skills/mcp-video/SKILL.md`](skills/mcp-video/SKILL.md). Use `$mcp-video` in compatible agent hosts when you want the agent to choose between the MCP server, CLI, and Python client while preserving the inspect, edit, verify, and human-review workflow.
+Kinocut includes a public agent skill at [`skills/kinocut/SKILL.md`](skills/kinocut/SKILL.md). Use `$kinocut` in compatible agent hosts when you want the agent to choose between the MCP server, CLI, and Python client while preserving the inspect, edit, verify, and human-review workflow.
 
 ## Python Client
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 editor = Client()
 
@@ -322,13 +333,13 @@ print(checkpoint["storyboard"])
 ## CLI
 
 ```bash
-mcp-video info interview.mp4
-mcp-video trim interview.mp4 -s 00:02:15 -d 45
-mcp-video video-ai-transcribe clip.mp4 --output captions.srt
-mcp-video subtitles clip.mp4 captions.srt
-mcp-video resize clip.mp4 --aspect-ratio 9:16
-mcp-video video-quality-check clip.mp4
-mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
+kino info interview.mp4
+kino trim interview.mp4 -s 00:02:15 -d 45
+kino video-ai-transcribe clip.mp4 --output captions.srt
+kino subtitles clip.mp4 captions.srt
+kino resize clip.mp4 --aspect-ratio 9:16
+kino video-quality-check clip.mp4
+kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 ```
 
 ## What Agents Can Do
@@ -346,7 +357,7 @@ mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-mcp-video currently registers **135 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
+kino currently registers **135 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -367,7 +378,7 @@ mcp-video currently registers **135 MCP tools**. The table below summarizes the 
 | Discovery | 1 | `search_tools` |
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 editor = Client()
 matches = editor.search_tools("subtitle")
@@ -381,7 +392,7 @@ Full reference: [docs/TOOLS.md](docs/TOOLS.md)
 For autonomous agents, the intended path is inspect, edit, verify, then ask a human to review release artifacts:
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 client = Client()
 
@@ -426,8 +437,8 @@ Development verification lives in [docs/TESTING.md](docs/TESTING.md). Keep publi
 ## Development
 
 ```bash
-git clone https://git.kyanitelabs.tech/KyaniteLabs/mcp-video.git
-cd mcp-video
+git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
+cd kinocut
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -e ".[dev]"
@@ -444,7 +455,7 @@ pytest tests/ -v -m "not slow and not hyperframes"
 - [Support](SUPPORT.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
-- [Forgejo issues](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/issues)
+- [Forgejo issues](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues)
 
 ## License
 
@@ -466,6 +477,6 @@ More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
 
 ---
 
-If mcp-video is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/mcp-video)** — it helps other agent builders find it.
+If Kinocut is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/kinocut)** — it helps other agent builders find it.
 
 Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.

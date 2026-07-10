@@ -8,7 +8,7 @@ body:
     id: question
     attributes:
       label: Question
-      description: What are you trying to do with mcp-video?
+      description: What are you trying to do with Kinocut?
     validations:
       required: true
   - type: textarea

@@ -19,5 +19,4 @@ Allow: /
 User-agent: Claude-User
 Allow: /
 
-Sitemap: https://kyanitelabs.github.io/mcp-video/sitemap.xml
-
+Sitemap: https://kinocut.dev/sitemap.xml

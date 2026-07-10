@@ -1,19 +1,19 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.KyaniteLabs/mcp-video",
-  "title": "mcp-video",
-  "description": "Guardrailed video editing MCP server: FFmpeg tools for subtitles, audio, effects, Hyperframes.",
-  "version": "1.6.0",
-  "websiteUrl": "https://kyanitelabs.github.io/mcp-video/",
+  "name": "io.github.KyaniteLabs/kinocut",
+  "title": "Kinocut",
+  "description": "Guardrailed video editing for AI agents: FFmpeg, captions, effects, Hyperframes, and receipts.",
+  "version": "1.7.0",
+  "websiteUrl": "https://kinocut.dev/",
   "repository": {
-    "url": "https://github.com/KyaniteLabs/mcp-video",
+    "url": "https://github.com/KyaniteLabs/kinocut",
     "source": "github"
   },
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "mcp-video",
-      "version": "1.6.0",
+      "identifier": "kinocut",
+      "version": "1.7.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

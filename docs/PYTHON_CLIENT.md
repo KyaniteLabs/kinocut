@@ -1,7 +1,7 @@
 # Python Client Reference
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 editor = Client()
 ```
@@ -43,7 +43,7 @@ The complete operation contracts are in [POST_RESCUE_FEATURES.md](POST_RESCUE_FE
 ### Pipeline chaining
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 client = Client()
 
@@ -260,7 +260,7 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `hyperframes_init(name, output_dir?, template?, video?, audio?, skip_transcribe?, model?, language?, tailwind?, resolution?)` | `HyperframesProjectResult` | Scaffold a new project |
 | `hyperframes_add_block(project_path, block_name, no_clipboard?)` | `HyperframesBlockResult` | Install a block from the catalog |
 | `hyperframes_validate(project_path)` | `HyperframesValidationResult` | Validate project for rendering readiness |
-| `hyperframes_to_mcpvideo(project_path, post_process, output?)` | `HyperframesPipelineResult` | Render then post-process with mcp-video |
+| `hyperframes_to_mcpvideo(project_path, post_process, output?)` | `HyperframesPipelineResult` | Render then post-process with Kinocut |
 
 ---
 
@@ -286,7 +286,7 @@ resume, and error details are in [RESCUE.md](RESCUE.md).
 | `rescue_inspect(receipt)` | `dict` | Read a plan or receipt and re-check package integrity without modifying media |
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 video = Client()
 plan = video.rescue_plan("media/clip.mov", "rescue-output", "rescue-output/plan.json")
@@ -324,7 +324,7 @@ are in [WORKFLOWS.md](WORKFLOWS.md); receipt shapes are in
 | `workflow_inspect(receipt)` | `dict` | Normalized read-only summary + integrity re-check of any `workflow`/`workflow_plan`/`layer_plan` receipt (legacy v1 tolerated) |
 
 ```python
-from mcp_video import Client
+from kinocut import Client
 
 video = Client()
 
