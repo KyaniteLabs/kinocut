@@ -59,6 +59,27 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
     assert checks["@hyperframes/core"]["ok"] is True
 
 
+def test_command_checks_resolve_the_executable_instead_of_the_display_name():
+    from mcp_video.doctor import run_diagnostics
+
+    looked_up: list[str] = []
+
+    def fake_which(name: str) -> str | None:
+        looked_up.append(name)
+        return "/usr/bin/python3" if name == "python3" else None
+
+    report = run_diagnostics(
+        which=fake_which,
+        version_runner=lambda command: "Python 3.14.5" if command == ["python3", "--version"] else None,
+        find_spec=lambda name: None,
+    )
+    checks = {check["name"]: check for check in report["checks"]}
+
+    assert checks["python"]["ok"] is True
+    assert checks["python"]["path"] == "/usr/bin/python3"
+    assert "python3" in looked_up
+
+
 def _node_only_which(name: str) -> str | None:
     return f"/usr/bin/{name}" if name in {"node", "npm", "npx"} else None
 

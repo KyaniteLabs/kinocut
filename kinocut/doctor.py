@@ -165,7 +165,7 @@ def _package_version(distribution_name: str) -> str | None:
 
 
 def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
-    path = which(definition["name"])
+    path = which(definition["command"][0])
     version = version_runner(definition["command"]) if path else None
     ok = path is not None and version is not None
     extra: dict[str, Any] = {}
