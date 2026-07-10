@@ -28,6 +28,8 @@ Kinocut 1.7.0 cutover.
 | Awesome MCP Servers | [Correction PR #9817](https://github.com/punkpeye/awesome-mcp-servers/pull/9817) open; checks pass | Complete Glama prerequisite, restore its score badge, and merge the replacement entry |
 | Smithery | No canonical listing; local stdio submission currently requires an MCPB bundle | Add MCPB packaging before submitting; do not publish an incompatible listing |
 | MCP.so | [Submission issue #3098](https://github.com/chatmcp/mcpso/issues/3098) open | Await directory review and verify the published record |
+| Vidocu video MCP roundup | Current article omits Kinocut | Outreach sent to the publisher on 2026-07-10; await editorial response |
+| ffpipe roundup | No matching public roundup was found; ffpipe's live site currently promotes its own MCP service | Recheck only if a roundup URL is supplied or published |
 | Enterprise DNA | Stale downstream record derived from Awesome MCP Servers | Allow upstream correction to propagate, then request recrawl |
 | Agent-CoreX | [Refresh issue #2](https://github.com/ankitpro/agent-corex/issues/2) open for the stale former name and 26-tool description | Await owner refresh and verify the public page |
 | Freshcrate | Stale former owner, package, and release; correction form is currently unconfigured | Retry when its contact inbox is operational or an owner channel is published |
@@ -48,6 +50,7 @@ Kinocut 1.7.0 cutover.
 - MCP.so: [submission issue #3098](https://github.com/chatmcp/mcpso/issues/3098)
 - MCP.Directory: canonical repository and PyPI package submitted for review on
   2026-07-10; the form confirmed publication review within 24 hours.
+- Vidocu: editorial inclusion request sent to the article publisher on 2026-07-10.
 - Docker MCP Registry: [catalog PR #4387](https://github.com/docker/mcp-registry/pull/4387)
 - Agent-CoreX: [refresh issue #2](https://github.com/ankitpro/agent-corex/issues/2)
 - Protodex: [refresh issue #26](https://github.com/LuciferForge/mcp-directory/issues/26)
