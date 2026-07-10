@@ -16,7 +16,7 @@ _SHA256_PATTERN = r"^sha256:[0-9a-f]{64}$"
 class StrictModel(BaseModel):
     """Forbid undeclared fields and mutation in planning artifacts."""
 
-    model_config = ConfigDict(extra="forbid", frozen=True)
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
 
 class NormalizedBox(StrictModel):
@@ -203,6 +203,12 @@ class VisualAnalysisPlan(StrictModel):
     landmark_capabilities: LandmarkCapabilities
     plan_sha256: str = Field(pattern=_SHA256_PATTERN)
 
+    @model_validator(mode="after")
+    def validate_plan_hash(self) -> VisualAnalysisPlan:
+        if self.plan_sha256 != canonical_sha256(self, exclude={"plan_sha256"}):
+            raise ValueError("visual analysis plan hash does not match canonical content")
+        return self
+
 
 class CropBudget(StrictModel):
     max_subject_loss: float = Field(ge=0.0, le=1.0)
@@ -272,6 +278,12 @@ class ReframePlan(StrictModel):
     variants: tuple[CropVariantPlan, ...]
     plan_sha256: str = Field(pattern=_SHA256_PATTERN)
 
+    @model_validator(mode="after")
+    def validate_plan_hash(self) -> ReframePlan:
+        if self.plan_sha256 != canonical_sha256(self, exclude={"plan_sha256"}):
+            raise ValueError("reframe plan hash does not match canonical content")
+        return self
+
 
 class StabilizationTransform(StrictModel):
     timestamp_seconds: float = Field(ge=0.0)
@@ -305,6 +317,12 @@ class StabilizationPlan(StrictModel):
     input_motion_score: float = Field(ge=0.0)
     expected_motion_reduction: float = Field(ge=0.0, le=1.0)
     plan_sha256: str = Field(pattern=_SHA256_PATTERN)
+
+    @model_validator(mode="after")
+    def validate_plan_hash(self) -> StabilizationPlan:
+        if self.plan_sha256 != canonical_sha256(self, exclude={"plan_sha256"}):
+            raise ValueError("stabilization plan hash does not match canonical content")
+        return self
 
 
 class CoverageSample(StrictModel):
@@ -354,5 +372,11 @@ def canonical_sha256(model: BaseModel, *, exclude: set[str] | None = None) -> st
     """Hash a model using a stable JSON representation."""
 
     payload = model.model_dump(mode="json", exclude=exclude or set())
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=True).encode()
+    encoded = json.dumps(
+        payload,
+        sort_keys=True,
+        separators=(",", ":"),
+        ensure_ascii=True,
+        allow_nan=False,
+    ).encode()
     return "sha256:" + hashlib.sha256(encoded).hexdigest()

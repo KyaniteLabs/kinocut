@@ -84,6 +84,7 @@ def _track_samples(
 
 def _representative_previews(samples: tuple[CropTrackSample, ...], preview_count: int) -> tuple[CropPreview, ...]:
     count = min(preview_count, len(samples))
+    indices: tuple[int, ...]
     if count == 1:
         indices = (0,)
     else:
@@ -175,17 +176,20 @@ def plan_subject_aware_reframe(
     if len({target.target_id for target in target_models}) != len(target_models):
         raise ValidationError("targets", "target ids must be unique")
     budget_model = CropBudget.model_validate(crop_budget)
-    payload = ReframePlan(
-        analysis_sha256=analysis_model.plan_sha256,
-        source=analysis_model.source,
-        primary_subject_id=analysis_model.primary_subject_id,
-        crop_budget=budget_model,
-        min_tracking_confidence=min_tracking_confidence,
-        max_center_step=max_center_step,
-        variants=tuple(
+    payload = {
+        "analysis_sha256": analysis_model.plan_sha256,
+        "source": analysis_model.source,
+        "primary_subject_id": analysis_model.primary_subject_id,
+        "crop_budget": budget_model,
+        "min_tracking_confidence": min_tracking_confidence,
+        "max_center_step": max_center_step,
+        "variants": tuple(
             _variant(analysis_model, target, budget_model, min_tracking_confidence, max_center_step, preview_count)
             for target in target_models
         ),
-        plan_sha256="sha256:" + "0" * 64,
+    }
+    prototype = ReframePlan.model_construct(**payload, plan_sha256="sha256:" + "0" * 64)
+    return ReframePlan(
+        **payload,
+        plan_sha256=canonical_sha256(prototype, exclude={"plan_sha256"}),
     )
-    return payload.model_copy(update={"plan_sha256": canonical_sha256(payload, exclude={"plan_sha256"})})

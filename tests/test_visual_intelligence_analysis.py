@@ -14,6 +14,7 @@ from mcp_video.visual_intelligence import (
     SafeRegionKind,
     SourceVideo,
     SubjectObservation,
+    VisualAnalysisPlan,
     plan_visual_analysis,
 )
 
@@ -177,3 +178,26 @@ def test_v1_public_api_accepts_json_compatible_inputs() -> None:
 
     assert actual == expected
     assert actual.model_dump(mode="json")["execution_mode"] == "planning_only"
+
+
+def test_v1_rejects_forged_digest_and_non_finite_motion() -> None:
+    source = SourceVideo(sha256=SOURCE_HASH, width=1920, height=1080, duration_seconds=2.0)
+    plan = plan_visual_analysis(
+        source=source,
+        frames=_analysis_frames(),
+        primary_subject_id="subject-1",
+    )
+    forged = plan.model_dump()
+    forged["plan_sha256"] = "sha256:" + "f" * 64
+
+    with pytest.raises(PydanticValidationError, match="plan hash"):
+        VisualAnalysisPlan.model_validate(forged)
+
+    invalid_frame = _analysis_frames()[0].model_dump()
+    invalid_frame["camera_motion"]["dx"] = float("nan")
+    with pytest.raises(PydanticValidationError):
+        plan_visual_analysis(
+            source=source,
+            frames=(invalid_frame,),
+            primary_subject_id="subject-1",
+        )

@@ -170,17 +170,23 @@ def plan_visual_analysis(
         face=any(subject.face_landmarks for frame in ordered for subject in frame.subjects),
         pose=any(subject.pose_landmarks for frame in ordered for subject in frame.subjects),
     )
-    payload = VisualAnalysisPlan(
-        source=source_model,
-        primary_subject_id=primary_subject_id,
-        frames=ordered,
-        subject_tracks=tracks,
-        tracking_losses=losses,
-        ambiguities=_ambiguities(ordered, ambiguity_confidence_delta),
-        camera_motion=camera_motion,
-        safe_regions=safe_regions,
-        crop_loss_estimates=_crop_losses(ordered, primary_subject_id),
-        landmark_capabilities=capabilities,
+    payload = {
+        "source": source_model,
+        "primary_subject_id": primary_subject_id,
+        "frames": ordered,
+        "subject_tracks": tracks,
+        "tracking_losses": losses,
+        "ambiguities": _ambiguities(ordered, ambiguity_confidence_delta),
+        "camera_motion": camera_motion,
+        "safe_regions": safe_regions,
+        "crop_loss_estimates": _crop_losses(ordered, primary_subject_id),
+        "landmark_capabilities": capabilities,
+    }
+    prototype = VisualAnalysisPlan.model_construct(
+        **payload,
         plan_sha256="sha256:" + "0" * 64,
     )
-    return payload.model_copy(update={"plan_sha256": canonical_sha256(payload, exclude={"plan_sha256"})})
+    return VisualAnalysisPlan(
+        **payload,
+        plan_sha256=canonical_sha256(prototype, exclude={"plan_sha256"}),
+    )

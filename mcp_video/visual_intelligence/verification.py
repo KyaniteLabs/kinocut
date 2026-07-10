@@ -117,6 +117,7 @@ def verify_motion_reduction(
     _threshold(minimum_reduction_fraction, "minimum_reduction_fraction")
     model = MotionMeasurement.model_validate(measurement)
     measured = (model.before_score - model.after_score) / model.before_score if model.before_score else 0.0
+    failures: tuple[str, ...]
     if model.before_score == 0.0:
         failures = ("motion_baseline_missing",)
     else:

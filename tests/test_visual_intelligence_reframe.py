@@ -13,6 +13,7 @@ from mcp_video.visual_intelligence import (
     plan_subject_aware_reframe,
     plan_visual_analysis,
 )
+from mcp_video.visual_intelligence.models import ReframePlan
 
 
 SOURCE_HASH = "sha256:" + "b" * 64
@@ -172,3 +173,27 @@ def test_v2_public_api_accepts_json_compatible_inputs_deterministically() -> Non
 
     assert json_plan == model_plan
     assert json_plan.plan_sha256.startswith("sha256:")
+    forged_plan = json_plan.model_dump(mode="json")
+    forged_plan["plan_sha256"] = "sha256:" + "e" * 64
+    with pytest.raises(ValueError, match="plan hash"):
+        ReframePlan.model_validate(forged_plan)
+
+
+def test_v2_rejects_forged_analysis_provenance() -> None:
+    forged = _analysis().model_dump(mode="json")
+    forged["plan_sha256"] = "sha256:" + "f" * 64
+
+    with pytest.raises(ValueError, match="plan hash"):
+        plan_subject_aware_reframe(
+            analysis=forged,
+            targets=(
+                CropTarget(
+                    target_id="square",
+                    aspect_width=1,
+                    aspect_height=1,
+                    output_width=1080,
+                    output_height=1080,
+                ),
+            ),
+            crop_budget=CropBudget(max_subject_loss=0.1, max_source_crop_fraction=0.5),
+        )

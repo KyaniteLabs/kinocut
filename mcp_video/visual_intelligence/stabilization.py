@@ -119,21 +119,24 @@ def plan_stabilization(
     )
     input_motion_score = _motion_score(analysis_model)
     expected_reduction = compensation_ratio if input_motion_score > 0.0 else 0.0
-    payload = StabilizationPlan(
-        analysis_sha256=analysis_model.plan_sha256,
-        source=analysis_model.source,
-        primary_subject_id=analysis_model.primary_subject_id,
-        crop_budget=budget_model,
-        min_tracking_confidence=min_tracking_confidence,
-        compensation_ratio=compensation_ratio,
-        status="abstained" if reasons else "ready",
-        abstention_reasons=reasons,
-        transforms=transforms,
-        required_crop_box=required_crop,
-        source_crop_fraction=source_crop_fraction,
-        maximum_subject_loss=maximum_subject_loss,
-        input_motion_score=input_motion_score,
-        expected_motion_reduction=expected_reduction,
-        plan_sha256="sha256:" + "0" * 64,
+    payload = {
+        "analysis_sha256": analysis_model.plan_sha256,
+        "source": analysis_model.source,
+        "primary_subject_id": analysis_model.primary_subject_id,
+        "crop_budget": budget_model,
+        "min_tracking_confidence": min_tracking_confidence,
+        "compensation_ratio": compensation_ratio,
+        "status": "abstained" if reasons else "ready",
+        "abstention_reasons": reasons,
+        "transforms": transforms,
+        "required_crop_box": required_crop,
+        "source_crop_fraction": source_crop_fraction,
+        "maximum_subject_loss": maximum_subject_loss,
+        "input_motion_score": input_motion_score,
+        "expected_motion_reduction": expected_reduction,
+    }
+    prototype = StabilizationPlan.model_construct(**payload, plan_sha256="sha256:" + "0" * 64)
+    return StabilizationPlan(
+        **payload,
+        plan_sha256=canonical_sha256(prototype, exclude={"plan_sha256"}),
     )
-    return payload.model_copy(update={"plan_sha256": canonical_sha256(payload, exclude={"plan_sha256"})})

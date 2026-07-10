@@ -12,6 +12,7 @@ from mcp_video.visual_intelligence import (
     plan_stabilization,
     plan_visual_analysis,
 )
+from mcp_video.visual_intelligence.models import StabilizationPlan
 
 
 SOURCE_HASH = "sha256:" + "c" * 64
@@ -117,3 +118,7 @@ def test_v3_public_api_accepts_json_compatible_inputs_deterministically() -> Non
 
     assert json_plan == model_plan
     assert json_plan.plan_sha256.startswith("sha256:")
+    forged = json_plan.model_dump(mode="json")
+    forged["plan_sha256"] = "sha256:" + "d" * 64
+    with pytest.raises(ValueError, match="plan hash"):
+        StabilizationPlan.model_validate(forged)
