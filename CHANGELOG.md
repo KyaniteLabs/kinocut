@@ -11,6 +11,8 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.6.0 - 2026-07-10
+
 ### Fixed
 
 - Audio-only normalization now uses an audio-aware output probe, so valid WAV results no longer fail with a misleading `No video stream found` error. Audio muxing continues to validate audio inputs without video-only warnings.
@@ -81,8 +83,6 @@ This project follows a simple release-note style:
   outside the workspace is now redacted to `<redacted-path>` in both the raised
   `MCPVideoError` and the receipt's recorded step error, closing a residual path leak beyond
   the workspace-prefix strip.
-
-## 1.6.0 - 2026-07-09
 
 ### Added
 
