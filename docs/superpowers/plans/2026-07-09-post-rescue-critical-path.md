@@ -1,6 +1,9 @@
 # MCP Video Post-Rescue Critical Path
 
-**Status:** Required program scope approved for staged implementation
+**Status:** Implemented for the approved 1.6.0 planning, retrieval, verification, and
+explicit-adapter scope. New media mutation remains restricted to separately approved vetted
+executors, as required by the surface-parity decision. See the
+[release receipt](../../proofs/release-1.6.0/RESCUE_POST_RESCUE_RECEIPT.md).
 
 **Starts after:** `2026-07-09-dedicated-rescue-pipeline.md` Task 10 and its required final review
 

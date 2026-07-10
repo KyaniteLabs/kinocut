@@ -32,4 +32,3 @@ def test_capability_extension_is_additive_and_does_not_mutate_base() -> None:
     assert extended["ffmpeg"] == base["ffmpeg"]
     assert extended["extension_registry"]["executors"][0]["id"] == "opencv.crop_tracker"
     assert extended["extension_registry"]["models"][0]["sha256"].startswith("sha256:")
-

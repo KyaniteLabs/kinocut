@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from enum import StrEnum
 from itertools import pairwise
-from typing import Any, Literal, Self
+from typing import Any, Literal, Self, cast
 
 from pydantic import Field, model_validator
 
@@ -102,9 +102,11 @@ class EditAction(FrozenModel):
             raise ValueError(f"invalid fields for {self.operation.value} edit")
         replacement_values = (self.replacement_start_seconds, self.replacement_end_seconds)
         if self.operation == EditOperation.REPLACE:
-            if any(value is None for value in replacement_values):
+            replacement_start = self.replacement_start_seconds
+            replacement_end = self.replacement_end_seconds
+            if replacement_start is None or replacement_end is None:
                 raise ValueError("replacement edits require an exact source range")
-            if self.replacement_end_seconds <= self.replacement_start_seconds:
+            if replacement_end <= replacement_start:
                 raise ValueError("replacement source range must have positive duration")
         elif any(value is not None for value in replacement_values):
             raise ValueError("replacement source range is only valid for replacement edits")
@@ -238,7 +240,7 @@ class TimelineDiff(FrozenModel):
 
     @classmethod
     def create(cls, *, timeline: SemanticTimeline, edl: EditDecisionList, approval: EditApproval) -> Self:
-        return plan_timeline_diff(timeline, edl, approval)
+        return cast(Self, plan_timeline_diff(timeline, edl, approval))
 
     @model_validator(mode="after")
     def validate_diff_hash(self) -> Self:
@@ -364,9 +366,12 @@ def _apply_reorders(segments: list[dict[str, Any]], actions: tuple[EditAction, .
         moved[action.edit_id] = [segment for segment in segments if segment["edit_id"] == action.edit_id]
     remaining = [segment for segment in segments if segment["edit_id"] not in moved]
     for action in sorted(actions, key=lambda item: (item.destination_index, item.edit_id)):
-        if action.destination_index > len(remaining):
+        destination_index = action.destination_index
+        if destination_index is None:
+            raise MCPValidationError("destination_index", "reorder edits require a destination index")
+        if destination_index > len(remaining):
             raise MCPValidationError("destination_index", "reorder destination exceeds output segment count")
-        remaining[action.destination_index : action.destination_index] = moved[action.edit_id]
+        remaining[destination_index:destination_index] = moved[action.edit_id]
     return remaining
 
 

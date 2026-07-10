@@ -36,4 +36,3 @@ __all__ = [
     "build_preview_diff",
     "extend_capability_snapshot",
 ]
-

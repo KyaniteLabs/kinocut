@@ -401,7 +401,7 @@ def canonical_payload(
 ) -> bytes:
     """Serialize action-bearing fields into stable UTF-8 JSON bytes."""
 
-    payload = model.model_dump(mode="json", exclude=excluded)
+    payload = model.model_dump(mode="json", exclude=set(excluded))
     return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
 
 

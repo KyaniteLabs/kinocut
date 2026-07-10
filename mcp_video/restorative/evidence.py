@@ -61,7 +61,7 @@ class AdvancedColorHDREvidence(RestorativeEvidence):
 class FrameRepairEvidence(RestorativeEvidence):
     feature: Literal[RestorativeFeature.FRAME_REPAIR] = RestorativeFeature.FRAME_REPAIR
     evidence_contract_id: Literal["frame_repair.evidence.v1"] = "frame_repair.evidence.v1"
-    model_provenance: ModelProvenance
+    model_provenance: ModelProvenance  # pyright: ignore[reportGeneralTypeIssues]
     repair_kind: Literal["deblur", "upscale", "frame_repair"]
     temporal_consistency_score: float = Field(ge=0.0, le=1.0)
     identity_continuity_score: float = Field(ge=0.0, le=1.0)
@@ -100,4 +100,3 @@ Evidence = (
     | BackgroundRepairEvidence
     | StyledCaptionEvidence
 )
-

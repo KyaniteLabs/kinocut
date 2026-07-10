@@ -34,7 +34,7 @@ def _source(value: SourceMedia | Mapping[str, Any]) -> SourceMedia:
 
 
 def _span(span_type: type[SpanT], value: SpanT | Mapping[str, Any], source: SourceMedia) -> SpanT:
-    if isinstance(value, span_type):
+    if not isinstance(value, Mapping):
         return value
     if "span_id" in value:
         return span_type.model_validate(value)
@@ -42,10 +42,22 @@ def _span(span_type: type[SpanT], value: SpanT | Mapping[str, Any], source: Sour
     provenance = AnalyzerProvenance.model_validate(payload.pop("provenance"))
     if span_type is KeyframeSpan:
         timestamp = payload.pop("timestamp_seconds", payload.pop("source_start_seconds", None))
-        return span_type.create(source=source, timestamp_seconds=timestamp, provenance=provenance, **payload)
+        return span_type._create(
+            source=source,
+            source_start_seconds=timestamp,
+            source_end_seconds=timestamp,
+            provenance=provenance,
+            **payload,
+        )
     start = payload.pop("start_seconds", payload.pop("source_start_seconds", None))
     end = payload.pop("end_seconds", payload.pop("source_end_seconds", None))
-    return span_type.create(source=source, start_seconds=start, end_seconds=end, provenance=provenance, **payload)
+    return span_type._create(
+        source=source,
+        source_start_seconds=start,
+        source_end_seconds=end,
+        provenance=provenance,
+        **payload,
+    )
 
 
 def _track(

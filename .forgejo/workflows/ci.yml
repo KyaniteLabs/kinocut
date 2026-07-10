@@ -129,7 +129,7 @@ jobs:
           python3 -m venv .venv
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
-      - name: Run compositor/workflow filtergraph render tests
+      - name: Run compositor, workflow, and rescue portability tests
         # The matrix guards the ACTIVELY-DEVELOPED compositor + workflow
         # filtergraph surface — where the scale2ref=w=rw:h=rh FFmpeg-6 parse bug
         # lived — across pinned FFmpeg 6/7/8. These files are proven portable on
@@ -139,10 +139,15 @@ jobs:
         # static-6.1.3 build-flag gaps) — they are covered by the `test` /
         # `test-slow` jobs on the runner's apt FFmpeg (the version that platform
         # actually ships). Runs slow AND not-slow: the masked-render regression is
-        # gated on ffmpeg presence, not the `slow` marker.
+        # gated on ffmpeg presence, not the `slow` marker. The rescue slice
+        # exercises the public plan -> render -> inspect path, MOV/WebM sharing
+        # copies, and reproducible render contracts on every supported major.
         run: |
           .venv/bin/pytest -q --tb=short -n 4 \
             tests/test_engine_composite_layers.py \
             tests/test_server_tools_composite_layers.py \
             tests/test_workflow_golden.py \
-            tests/test_engine_overlay.py
+            tests/test_engine_overlay.py \
+            tests/test_rescue_e2e.py::test_fix_this_clip_end_to_end \
+            tests/test_rescue_e2e.py::test_container_inputs_produce_verified_universal_package \
+            tests/test_rescue_e2e.py::test_plan_and_render_semantics_are_reproducible

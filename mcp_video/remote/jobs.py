@@ -364,16 +364,18 @@ def promote_downloaded_artifact(
     expected_verification = _model_digest(verification, exclude={"verification_sha256"})
     if verification.verification_sha256 != expected_verification:
         raise RemoteContractError("local verification receipt is not hash-valid")
-    values = {
-        "source_path": download.path,
-        "source_sha256": download.sha256,
-        "destination": destination,
-        "local_verification_sha256": verification.verification_sha256,
-    }
     draft = PromotionReceipt.model_construct(
-        **values, schema_version=1, receipt_kind="local_promotion"
+        source_path=download.path,
+        source_sha256=download.sha256,
+        destination=destination,
+        local_verification_sha256=verification.verification_sha256,
+        schema_version=1,
+        receipt_kind="local_promotion",
     )
     return PromotionReceipt(
-        **values,
+        source_path=download.path,
+        source_sha256=download.sha256,
+        destination=destination,
+        local_verification_sha256=verification.verification_sha256,
         promotion_sha256=_model_digest(draft, exclude={"promotion_sha256"}),
     )

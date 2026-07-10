@@ -37,7 +37,7 @@ _BLOCKED_OUTPUT_PREFIXES = (
     "/var/root",
 )
 _SENSITIVE_HOME_PARTS = {".aws", ".azure", ".config", ".docker", ".gnupg", ".kube", ".ssh"}
-_SAFE_EXISTING_OUTPUT_SUFFIXES = {
+_SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset({
     ".aac",
     ".ass",
     ".avi",
@@ -62,7 +62,7 @@ _SAFE_EXISTING_OUTPUT_SUFFIXES = {
     ".wav",
     ".webm",
     ".webp",
-}
+})
 
 
 def _validate_input_path(path: str) -> str:

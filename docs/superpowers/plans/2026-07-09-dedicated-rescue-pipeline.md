@@ -1,5 +1,10 @@
 # Dedicated Rescue Pipeline Implementation Plan
 
+**Status:** Implemented for MCP Video 1.6.0. Current release evidence is recorded in
+[`docs/proofs/release-1.6.0/RESCUE_POST_RESCUE_RECEIPT.md`](../../proofs/release-1.6.0/RESCUE_POST_RESCUE_RECEIPT.md).
+The unchecked task boxes below preserve the original TDD execution script; the receipt and
+commit map are the authoritative completion record.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Ship a local-only `plan -> approve -> render -> verify -> package` rescue workflow for one flawed talking-head clip across MCP, CLI, and Python without changing its timeline or silently inventing content.

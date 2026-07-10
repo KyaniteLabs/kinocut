@@ -320,6 +320,34 @@ def test_transcription_execution_failure_quarantines_package(tmp_path, sample_vi
     assert any(check["id"] == "caption_generation" and not check["passed"] for check in receipt["verification"])
 
 
+def test_unexpected_caption_failure_is_sanitized_and_quarantines_package(
+    tmp_path, sample_video, monkeypatch
+):
+    _, digest = _install_fake_local_whisper(tmp_path, monkeypatch)
+    capabilities = _caption_capabilities(available=True, model_sha256="sha256:" + digest)
+    _, plan_path, _ = _plan_with_capabilities(tmp_path, sample_video, monkeypatch, capabilities)
+    receipt_path = plan_path.parent / "unexpected-caption-failure.json"
+    private_path = tmp_path / "captions.txt"
+
+    def fail(*args, **kwargs):
+        raise RuntimeError(f"private failure at {private_path}")
+
+    monkeypatch.setattr("mcp_video.rescue.renderer.ai_transcribe", fail)
+
+    with pytest.raises(MCPVideoError) as caught:
+        render_rescue(str(plan_path), save_receipt=str(receipt_path))
+
+    receipt = json.loads(receipt_path.read_text(encoding="utf-8"))
+    check = next(item for item in receipt["verification"] if item["id"] == "caption_generation")
+    assert caught.value.code == "rescue_verification_failed"
+    assert receipt["status"] == "quarantined"
+    assert check["details"] == {
+        "error_code": "caption_generation_failed",
+        "exception_type": "RuntimeError",
+    }
+    assert str(private_path) not in json.dumps(receipt)
+
+
 def test_cancel_marker_prevents_promotion_and_records_receipt(tmp_path, sample_video):
     _, plan_path, _ = _planned_fixture(tmp_path, sample_video)
     cancel = tmp_path / "cancel"

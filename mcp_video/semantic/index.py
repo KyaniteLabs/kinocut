@@ -14,6 +14,7 @@ from mcp_video.errors import ValidationError as MCPValidationError
 from .models import AnalyzerProvenance, FrozenModel, SemanticTimeline, Sha256, SourceSpan, canonical_digest
 
 _SHA256_PATTERN = r"^sha256:[0-9a-f]{64}$"
+MatchMethod = Literal["lexical", "vector", "hybrid"]
 
 
 class EmbeddingRecord(FrozenModel):
@@ -90,7 +91,7 @@ class SemanticQueryHit(FrozenModel):
     source_end_seconds: float
     source_text: str | None
     confidence: float = Field(ge=0.0, le=1.0)
-    match_method: Literal["lexical", "vector", "hybrid"]
+    match_method: MatchMethod
 
 
 class SemanticQueryResponse(FrozenModel):
@@ -168,7 +169,7 @@ def _cosine(left: Sequence[float], right: Sequence[float]) -> float:
 
 def _score(
     document: IndexDocument, text_tokens: frozenset[str], embedding: tuple[float, ...] | None
-) -> tuple[float, str | None]:
+) -> tuple[float, MatchMethod | None]:
     lexical = 0.0
     if text_tokens and document.source_text:
         lexical = len(text_tokens & _tokens(document.source_text)) / len(text_tokens)
@@ -196,7 +197,7 @@ def query_semantic_index(
     vector = tuple(embedding) if embedding is not None else None
     if vector is not None and (index.dimensions is None or len(vector) != index.dimensions):
         raise MCPValidationError("embedding", "query dimension must match the local index")
-    ranked: list[tuple[float, IndexDocument, str]] = []
+    ranked: list[tuple[float, IndexDocument, MatchMethod]] = []
     for document in index.documents:
         confidence, method = _score(document, _tokens(text or ""), vector)
         if method is not None and confidence > 0 and confidence >= min_confidence:

@@ -25,4 +25,3 @@ def extend_capability_snapshot(
         "models": [item.model_dump(mode="json") for item in sorted(models, key=lambda item: item.id)],
     }
     return snapshot
-

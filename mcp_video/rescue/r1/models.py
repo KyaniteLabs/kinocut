@@ -156,4 +156,3 @@ def model_digest(model: BaseModel, *, exclude: set[str]) -> Sha256:
     """Return the canonical digest used by R1 envelope and approval contracts."""
 
     return _hash_payload(model, exclude=exclude)
-

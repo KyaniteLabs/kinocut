@@ -31,4 +31,3 @@ def test_preview_diff_and_approval_are_deterministic(rescue_plan) -> None:
     assert approval.plan_sha256 == rescue_plan.plan_sha256
     assert approval.selected_action_ids == ("crop:subject",)
     assert approval.preview_diff_sha256 == first.diff_sha256
-

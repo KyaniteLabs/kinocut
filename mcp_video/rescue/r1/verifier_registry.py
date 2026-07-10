@@ -44,4 +44,3 @@ class VerifierRegistry:
         except KeyError as exc:
             raise KeyError(f"unknown feature verifier: {exc.args[0]}") from exc
         return (*mandatory, *feature)
-

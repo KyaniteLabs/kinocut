@@ -5,11 +5,11 @@ from __future__ import annotations
 import hashlib
 import json
 import re
-import subprocess
 from pathlib import Path
 from typing import Any
 
-from ..ffmpeg_helpers import _run_ffprobe_json
+from ..errors import MCPVideoError
+from ..ffmpeg_helpers import _run_command, _run_ffprobe_json
 from .models import Metric, VerificationCheck
 
 CHECK_IDS = (
@@ -46,25 +46,35 @@ def _fps(raw: dict[str, Any]) -> float:
 
 def _decode(path: str) -> tuple[bool, str]:
     try:
-        result = subprocess.run(  # noqa: S603
-            ["ffmpeg", "-v", "error", "-i", path, "-map", "0", "-f", "null", "-"],  # noqa: S607
-            capture_output=True, text=True, timeout=120, check=False,
+        _run_command(
+            ["ffmpeg", "-v", "error", "-i", path, "-map", "0", "-f", "null", "-"],
+            timeout=120,
         )
-    except (OSError, subprocess.SubprocessError) as exc:
+    except MCPVideoError as exc:
+        return False, exc.code or type(exc).__name__
+    except OSError as exc:
         return False, type(exc).__name__
-    return result.returncode == 0, result.stderr[-500:]
+    return True, ""
 
 
 def _packets(path: str) -> list[dict[str, Any]]:
     try:
-        result = subprocess.run(  # noqa: S603
-            ["ffprobe",  # noqa: S607
-             "-v", "error", "-show_packets", "-show_entries",
-             "packet=stream_index,pts_time,dts_time,duration_time", "-of", "json", path],
-            capture_output=True, text=True, timeout=60, check=False,
+        result = _run_command(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_packets",
+                "-show_entries",
+                "packet=stream_index,pts_time,dts_time,duration_time",
+                "-of",
+                "json",
+                path,
+            ],
+            timeout=60,
         )
-        return json.loads(result.stdout).get("packets", [])[:5000] if result.returncode == 0 else []
-    except (OSError, subprocess.SubprocessError, json.JSONDecodeError):
+        return json.loads(result.stdout).get("packets", [])[:5000]
+    except (MCPVideoError, OSError, json.JSONDecodeError):
         return []
 
 
@@ -73,7 +83,7 @@ def _monotonic(packets: list[dict[str, Any]]) -> bool:
     for packet in packets:
         value = packet.get("dts_time", packet.get("pts_time"))
         try:
-            timestamp = float(value)
+            timestamp = float(0 if value is None else value)
             index = int(packet.get("stream_index", -1))
         except (TypeError, ValueError):
             continue
@@ -99,7 +109,9 @@ def _av_end_delta(raw: dict[str, Any], packets: list[dict[str, Any]]) -> float |
         if kind not in {"audio", "video"}:
             continue
         try:
-            end = float(packet.get("pts_time", packet.get("dts_time"))) + float(packet.get("duration_time", 0))
+            timestamp = packet.get("pts_time", packet.get("dts_time"))
+            duration = packet.get("duration_time", 0)
+            end = float(0 if timestamp is None else timestamp) + float(0 if duration is None else duration)
         except (TypeError, ValueError):
             continue
         ends[kind] = max(ends.get(kind, end), end)

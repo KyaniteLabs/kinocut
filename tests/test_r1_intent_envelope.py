@@ -23,4 +23,3 @@ def test_intent_envelope_does_not_change_nested_rescue_plan(rescue_plan) -> None
     assert envelope.base_plan.plan_sha256 == rescue_plan.plan_sha256
     assert envelope.base_plan.model_dump_json() == before_json
     assert canonical_payload(envelope.base_plan) == before_canonical
-

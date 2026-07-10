@@ -23,4 +23,3 @@ def test_feature_verifier_is_additive_to_mandatory_rescue_checks() -> None:
 def test_feature_verifier_cannot_override_mandatory_check() -> None:
     with pytest.raises(ValueError, match="mandatory rescue verifier"):
         VerifierRegistry((VerifierDefinition(id=CHECK_IDS[0], run=_toy_check),))
-

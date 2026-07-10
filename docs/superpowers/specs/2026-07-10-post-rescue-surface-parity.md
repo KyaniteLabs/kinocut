@@ -1,6 +1,7 @@
 # Post-Rescue Surface Parity
 
-**Status:** Approved for implementation
+**Status:** Implemented for MCP Video 1.6.0. Verification is recorded in the
+[release receipt](../../proofs/release-1.6.0/RESCUE_POST_RESCUE_RECEIPT.md).
 
 ## Decision
 

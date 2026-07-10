@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, TypeVar
+from typing import Any, TypeVar, cast
 
 from pydantic import BaseModel, ConfigDict
 
@@ -70,5 +70,5 @@ def evaluate_restoration(
         validated_evidence = None
     else:
         evidence_model = _EVIDENCE_MODELS[validated_plan.feature]
-        validated_evidence = _validated_model(evidence, evidence_model)
+        validated_evidence = cast(Evidence, _validated_model(evidence, evidence_model))
     return evaluate_promotion(validated_plan, validated_capability, validated_evidence)

@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+import shutil
+
+import mcp_video.engine_runtime_utils as runtime
 from mcp_video.engine_edit import trim
 from mcp_video.rescue.verifier import CHECK_IDS, verify_package
 
@@ -40,3 +43,20 @@ def test_every_numeric_verification_metric_has_units_and_definition(sample_video
         check.metric is None or (check.metric.unit and check.metric.definition)
         for check in checks
     )
+
+
+def test_verifier_uses_resolved_ffmpeg_binaries_when_path_is_empty(sample_video, monkeypatch):
+    ffmpeg = shutil.which("ffmpeg")
+    ffprobe = shutil.which("ffprobe")
+    assert ffmpeg is not None
+    assert ffprobe is not None
+    monkeypatch.setattr(runtime, "_ffmpeg", lambda: ffmpeg)
+    monkeypatch.setattr(runtime, "_ffprobe", lambda: ffprobe)
+    monkeypatch.setenv("PATH", "")
+
+    checks = verify_package(sample_video, sample_video, sample_video)
+    by_id = {check.id: check for check in checks}
+
+    assert by_id["master_full_decode"].passed is True
+    assert by_id["sharing_full_decode"].passed is True
+    assert by_id["monotonic_timestamps"].passed is True

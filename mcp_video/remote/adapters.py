@@ -22,9 +22,14 @@ from .jobs import (
 
 
 class ProviderAdapter(Protocol):
-    provider: str
-    adapter_version: str
-    kind: AdapterKind
+    @property
+    def provider(self) -> str: ...
+
+    @property
+    def adapter_version(self) -> str: ...
+
+    @property
+    def kind(self) -> AdapterKind: ...
 
     def map_approved_plan(
         self, local_plan: ApprovedLocalPlan, manifest: EgressManifest
@@ -32,15 +37,18 @@ class ProviderAdapter(Protocol):
 
 
 class RenderProviderAdapter(ProviderAdapter, Protocol):
-    kind: Literal["render"]
+    @property
+    def kind(self) -> Literal["render"]: ...
 
 
 class DeliveryProviderAdapter(ProviderAdapter, Protocol):
-    kind: Literal["delivery"]
+    @property
+    def kind(self) -> Literal["delivery"]: ...
 
 
 class HostingProviderAdapter(ProviderAdapter, Protocol):
-    kind: Literal["hosting"]
+    @property
+    def kind(self) -> Literal["hosting"]: ...
 
 
 @dataclass(frozen=True)

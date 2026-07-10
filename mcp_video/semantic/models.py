@@ -388,7 +388,7 @@ class SemanticTimeline(FrozenModel):
 
     @classmethod
     def create(cls, *, source: SourceMedia, **tracks: Any) -> Self:
-        canonical_tracks = {
+        canonical_tracks: dict[str, Any] = {
             name: tuple(
                 sorted(
                     tracks.get(name, ()),

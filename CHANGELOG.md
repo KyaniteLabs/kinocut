@@ -38,6 +38,9 @@ This project follows a simple release-note style:
   verified rescue package. Every successful video rescue includes a master, universal
   sharing copy, hashed receipt, and optional caption/transcript sidecars or explicit
   unavailable reasons. See `docs/RESCUE.md`.
+- **Rescue FFmpeg portability gate** - the pinned FFmpeg 6/7/8 CI matrix now exercises the
+  public rescue plan/render/inspect path, MOV/WebM sharing copies, and reproducible render
+  contracts in addition to compositor and workflow filtergraphs.
 - **`composite_layers` workflow op** — the workflow engine's allowlist grows to **7 ops**;
   a step may now compose an ordered layer stack (`op: "composite_layers"`) without leaving
   the workflow's safety envelope. Layer sources are expressed as workflow `@refs`

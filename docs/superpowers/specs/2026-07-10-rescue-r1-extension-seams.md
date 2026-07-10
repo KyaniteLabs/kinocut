@@ -27,4 +27,3 @@ A synthetic `toy_visual_crop@1` profile carries a crop-track payload and adds th
 `toy_crop_bounds` verifier. Creating that extension must leave the nested rescue
 plan's serialized bytes and canonical digest unchanged, preserve every mandatory
 rescue verifier, and produce stable preview and approval digests.
-

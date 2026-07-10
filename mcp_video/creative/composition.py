@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any, TypeVar
+from typing import Any, Protocol, TypeVar
 
 from pydantic import BaseModel
 
@@ -26,6 +26,10 @@ _ZERO_SHA256 = "sha256:" + "0" * 64
 ModelT = TypeVar("ModelT", bound=BaseModel)
 
 
+class _HasId(Protocol):
+    id: str
+
+
 def _validated(value: ModelT | Mapping[str, Any], model_type: type[ModelT]) -> ModelT:
     return value if isinstance(value, model_type) else model_type.model_validate(value)
 
@@ -40,7 +44,7 @@ def _require_digest(model: BaseModel, field_name: str, code: str) -> None:
         raise CreativeContractError(code, f"{field_name} does not match the canonical contract payload.")
 
 
-def _unique_ids(items: Sequence[BaseModel], label: str) -> None:
+def _unique_ids(items: Sequence[_HasId], label: str) -> None:
     ids = tuple(item.id for item in items)
     if len(ids) != len(set(ids)):
         raise CreativeContractError("duplicate_composition_id", f"{label} ids must be unique.")

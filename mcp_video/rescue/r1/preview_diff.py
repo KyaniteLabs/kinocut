@@ -32,4 +32,3 @@ def bind_approval(diff: PreviewDiff) -> ApprovalBinding:
     return draft.model_copy(
         update={"approval_sha256": model_digest(draft, exclude={"approval_sha256"})}
     )
-

@@ -1,5 +1,11 @@
 # mcp-video 1.6.0 — Release Trust Packet
 
+> **Historical pre-rescue packet.** This packet captures the 2026-07-09 workflow/compositor
+> candidate before the dedicated rescue and post-rescue work landed. The current 1.6.0
+> release evidence, counts, scope, and residual risks are in
+> [`RESCUE_POST_RESCUE_RECEIPT.md`](RESCUE_POST_RESCUE_RECEIPT.md). Where the two differ, the
+> current receipt is authoritative.
+
 Story 9 of the 1.6.0 release (RALPLAN-DR consensus plan §8). This packet records every
 release gate with its exact command and tail output, the fresh smoke evidence generated on
 novel inputs, the leak audit, residual risks and deferrals, and the reproducibility note.

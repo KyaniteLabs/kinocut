@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import importlib
 import json
+import logging
 import os
 import re
 import shutil
@@ -12,7 +14,7 @@ import uuid
 from collections.abc import Sequence
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 from ..errors import MCPVideoError
 from ..workflow._versions import versions
@@ -43,6 +45,8 @@ from .capabilities import snapshot_capabilities, whisper_model_path
 from .operations import OperationResult, execute_repair, make_master, make_universal_copy
 from .planner import read_plan
 from .verifier import verify_package
+
+logger = logging.getLogger(__name__)
 
 
 class RescueCancellation(Exception):
@@ -127,7 +131,7 @@ def _run_local_transcript(
     capabilities: dict[str, Any],
 ) -> tuple[Path, Path, OperationEntry]:
     try:
-        import whisper
+        whisper = importlib.import_module("whisper")
     except ImportError as exc:
         raise MCPVideoError(
             "planned Whisper executor is no longer installed",
@@ -141,6 +145,8 @@ def _run_local_transcript(
     actual = model_sha256.removeprefix("sha256:") if model_sha256 else None
     planned_model = capabilities.get("whisper_models", {}).get("base", {}).get("sha256")
     if not expected or actual != expected or model_sha256 != planned_model:
+        raise rescue_error("cached Whisper base model failed integrity validation", RESCUE_DEPENDENCY_MISMATCH)
+    if model_sha256 is None:
         raise rescue_error("cached Whisper base model failed integrity validation", RESCUE_DEPENDENCY_MISMATCH)
 
     captions = package_dir / "captions.srt"
@@ -172,7 +178,7 @@ def _run_local_transcript(
 
 def _base_receipt(
     plan: RescuePlan,
-    status: str,
+    status: Literal["completed", "failed", "cancelled", "quarantined"],
     approved: list[str],
     operations: list[OperationEntry],
     verification: list,
@@ -205,7 +211,11 @@ def _base_receipt(
         progress={"completed_stages": len(operations)},
         cleanup=CleanupState(
             work_dir=_relative(job_dir, output),
-            intermediates=[entry.output_path for entry in operations if entry.repair_id],
+            intermediates=[
+                entry.output_path
+                for entry in operations
+                if entry.repair_id and entry.output_path is not None
+            ],
             cleaned=[],
         ),
         resume=ResumeState(used=resume_used, receipt_path=resume_receipt_path, resumed_from=resume_receipt_path),
@@ -415,12 +425,19 @@ def render_rescue(
                         message="Local caption generation failed.",
                         details={"error_code": exc.code},
                     )
-            except Exception:
+            except Exception as exc:
+                logger.warning(
+                    "Local caption generation failed with %s; the package will be quarantined.",
+                    type(exc).__name__,
+                )
                 caption_failure = VerificationCheck(
                     id="caption_generation",
                     passed=False,
                     message="Local caption generation failed.",
-                    details={"error_code": "caption_generation_failed"},
+                    details={
+                        "error_code": "caption_generation_failed",
+                        "exception_type": type(exc).__name__,
+                    },
                 )
         elif captions_intent is not None:
             captions_unavailable_reason = captions_intent.reason
