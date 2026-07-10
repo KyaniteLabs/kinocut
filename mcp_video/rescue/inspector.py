@@ -15,6 +15,14 @@ def _hash(path: Path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
 
 
+def _confined(path: Path, root: Path) -> bool:
+    try:
+        path.relative_to(root)
+    except ValueError:
+        return False
+    return True
+
+
 def inspect_rescue(path: str) -> dict[str, Any]:
     """Inspect known v1 fields while tolerating future additive fields."""
     artifact = Path(os.path.realpath(path))
@@ -27,23 +35,39 @@ def inspect_rescue(path: str) -> dict[str, Any]:
     if not all(key in payload for key in ("tool", "status", "source")):
         raise rescue_error("rescue artifact is missing required v1 fields", INVALID_RESCUE_RECEIPT)
 
-    records = [payload.get("source", {})]
     package = payload.get("package", {})
-    if isinstance(package, dict):
-        records.extend(package.get("artifacts", []))
-    records.extend(payload.get("preview_artifacts", []))
+    kind = payload["receipt_kind"]
+    if kind == "rescue_plan":
+        workspace_base = Path(os.path.realpath(artifact.parent / payload.get("workspace_root", ".")))
+        if workspace_base == Path(workspace_base.anchor) or not _confined(artifact.parent, workspace_base):
+            raise rescue_error("rescue plan workspace reference is unsafe", INVALID_RESCUE_RECEIPT)
+        records = [(payload.get("source", {}), workspace_base)]
+        records.extend((record, workspace_base) for record in payload.get("preview_artifacts", []))
+    else:
+        package_path = package.get("path") if isinstance(package, dict) else None
+        packaged_receipt = isinstance(package_path, str) and artifact.parent.name == Path(package_path).name
+        output_base = artifact.parent.parent if packaged_receipt else artifact.parent
+        package_base = artifact.parent if packaged_receipt else output_base / package_path if package_path else output_base
+        workspace_base = Path(os.path.realpath(output_base / payload.get("workspace_root", ".")))
+        if workspace_base == Path(workspace_base.anchor) or not _confined(output_base, workspace_base):
+            raise rescue_error("rescue receipt workspace reference is unsafe", INVALID_RESCUE_RECEIPT)
+        package_base = Path(os.path.realpath(package_base))
+        if not _confined(package_base, output_base):
+            package_base = output_base / ".invalid-package-root"
+        records = [(payload.get("source", {}), workspace_base)]
+        if isinstance(package, dict):
+            records.extend((record, package_base) for record in package.get("artifacts", []))
     artifacts = []
-    for record in records:
+    for record, base in records:
         if not isinstance(record, dict) or not record.get("path"):
             continue
-        candidate = Path(os.path.realpath(artifact.parent / record["path"]))
-        confined = candidate == artifact.parent or artifact.parent in candidate.parents
-        present = confined and candidate.is_file()
+        candidate = Path(os.path.realpath(base / record["path"]))
+        present = _confined(candidate, base) and candidate.is_file()
         actual = _hash(candidate) if present else None
         expected = record.get("sha256")
         artifacts.append({"path": record["path"], "present": present, "matching": present and (expected is None or actual == expected), "expected_sha256": expected, "actual_sha256": actual})
     return {
-        "kind": payload["receipt_kind"], "schema_version": 1, "tool": payload["tool"], "status": payload["status"],
+        "kind": kind, "schema_version": 1, "tool": payload["tool"], "status": payload["status"],
         "dispositions": {name: len(payload.get(name, [])) for name in ("safe_repairs", "recommendations", "unavailable_repairs", "blocked_repairs")},
         "approved_repair_ids": payload.get("approved_repair_ids", []), "applied_repair_ids": payload.get("applied_repair_ids", []), "skipped_repair_ids": payload.get("skipped_repair_ids", []),
         "verification": payload.get("verification", []), "package": package, "privacy": payload.get("privacy", {}), "warnings": payload.get("warnings", []), "cleanup": payload.get("cleanup", {}), "resume": payload.get("resume", {}),

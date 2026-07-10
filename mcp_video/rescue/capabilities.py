@@ -3,12 +3,15 @@
 from __future__ import annotations
 
 import importlib.util
+import hashlib
+import os
 import shutil
 import subprocess
 from collections.abc import Callable
 from functools import lru_cache
 from importlib import metadata
 from typing import Any
+from pathlib import Path
 
 from ..workflow._versions import ffmpeg_version
 
@@ -18,6 +21,21 @@ def _package_version(name: str) -> str | None:
         return metadata.version(name)
     except metadata.PackageNotFoundError:
         return None
+
+
+def whisper_model_path(model: str = "base") -> Path:
+    cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache"))
+    return cache / "whisper" / f"{model}.pt"
+
+
+def _file_sha256(path: Path) -> str | None:
+    if not path.is_file():
+        return None
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 @lru_cache(maxsize=4)
@@ -56,6 +74,7 @@ def snapshot_capabilities(
     ffprobe_path = which("ffprobe")
     ffmpeg_available = bool(ffmpeg_path and ffprobe_path)
     whisper_spec = find_spec("whisper")
+    base_model_sha256 = _file_sha256(whisper_model_path()) if whisper_spec else None
     filters = _ffmpeg_filters(ffmpeg_path) if ffmpeg_available and ffmpeg_path else frozenset()
 
     return {
@@ -70,6 +89,9 @@ def snapshot_capabilities(
             "available": whisper_spec is not None,
             "version": package_version("openai-whisper") if whisper_spec else None,
             "executor": "openai-whisper",
+        },
+        "whisper_models": {
+            "base": {"available": base_model_sha256 is not None, "sha256": base_model_sha256},
         },
         "filters": {name: name in filters for name in ("loudnorm", "afftdn", "eq")},
     }

@@ -332,6 +332,8 @@ class RescueReceipt(_StrictModel):
     receipt_kind: Literal["rescue"] = "rescue"
     tool: Literal["video_rescue_render"] = "video_rescue_render"
     status: Literal["completed", "failed", "cancelled", "quarantined"]
+    workspace_root: str = "."
+    output_root: str = "."
     source: SourceIdentity
     plan_sha256: Sha256 = Field(pattern=_SHA256_PATTERN)
     policy: RescuePolicy = Field(default_factory=RescuePolicy)
@@ -355,6 +357,9 @@ class RescueReceipt(_StrictModel):
     receipt_path: str | None = None
     receipt_sha256: Sha256 | None = Field(default=None, pattern=_SHA256_PATTERN)
     error: dict[str, Any] | None = None
+
+    _validate_workspace_root = field_validator("workspace_root")(_relative_reference)
+    _validate_output_root = field_validator("output_root")(_relative_reference)
 
     @field_validator(
         "approved_repair_ids",

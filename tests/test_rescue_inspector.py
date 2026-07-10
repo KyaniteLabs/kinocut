@@ -61,3 +61,32 @@ def test_inspector_never_modifies_media(tmp_path):
     inspect_rescue(str(path))
 
     assert _sha(media) == before
+
+
+def test_inspector_does_not_follow_package_path_outside_output(tmp_path):
+    output = tmp_path / "output"
+    output.mkdir()
+    outside = tmp_path / "outside"
+    outside.mkdir()
+    media = outside / "secret.mp4"
+    media.write_bytes(b"secret")
+    receipt = {
+        "schema_version": 1,
+        "receipt_kind": "rescue",
+        "tool": "video_rescue_render",
+        "status": "completed",
+        "workspace_root": "..",
+        "source": {"path": "outside/secret.mp4", "sha256": _sha(media)},
+        "package": {
+            "path": "../outside",
+            "promoted": True,
+            "artifacts": [{"kind": "master", "status": "available", "path": "secret.mp4", "sha256": _sha(media)}],
+        },
+    }
+    path = output / "receipt.json"
+    path.write_text(json.dumps(receipt), encoding="utf-8")
+
+    inspected = inspect_rescue(str(path))
+
+    package_artifact = inspected["integrity"]["artifacts"][1]
+    assert package_artifact["present"] is False

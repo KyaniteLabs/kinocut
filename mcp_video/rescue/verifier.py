@@ -71,7 +71,7 @@ def _packets(path: str) -> list[dict[str, Any]]:
 def _monotonic(packets: list[dict[str, Any]]) -> bool:
     last: dict[int, float] = {}
     for packet in packets:
-        value = packet.get("pts_time", packet.get("dts_time"))
+        value = packet.get("dts_time", packet.get("pts_time"))
         try:
             timestamp = float(value)
             index = int(packet.get("stream_index", -1))

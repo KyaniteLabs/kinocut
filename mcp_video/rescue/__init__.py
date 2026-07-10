@@ -23,6 +23,7 @@ from .models import (
     canonical_payload,
 )
 from .planner import plan_rescue, read_plan
+from .renderer import render_rescue
 
 __all__ = [
     "CleanupState",
@@ -47,4 +48,5 @@ __all__ = [
     "canonical_payload",
     "plan_rescue",
     "read_plan",
+    "render_rescue",
 ]

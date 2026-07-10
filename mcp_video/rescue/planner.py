@@ -86,7 +86,14 @@ def _build_package_intents(analysis: AnalysisResult, capabilities: dict[str, Any
     ]
     has_audio = any(stream.get("codec_type") == "audio" for stream in analysis.source.streams)
     whisper = capabilities.get("whisper", {})
-    whisper_available = isinstance(whisper, dict) and whisper.get("available") is True
+    whisper_models = capabilities.get("whisper_models", {})
+    base_model = whisper_models.get("base", {}) if isinstance(whisper_models, dict) else {}
+    whisper_available = (
+        isinstance(whisper, dict)
+        and whisper.get("available") is True
+        and isinstance(base_model, dict)
+        and base_model.get("available") is True
+    )
     derived_available = has_audio and whisper_available
     if derived_available:
         intents.extend(
@@ -96,7 +103,7 @@ def _build_package_intents(analysis: AnalysisResult, capabilities: dict[str, Any
             ]
         )
     else:
-        reason = "Source has no audio stream." if not has_audio else "Local openai-whisper is unavailable."
+        reason = "Source has no audio stream." if not has_audio else "A verified local Whisper base model is unavailable."
         intents.extend(
             [
                 PackageIntent(kind="captions", required=False, status="unavailable", reason=reason),
