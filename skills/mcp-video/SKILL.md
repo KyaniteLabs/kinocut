@@ -14,6 +14,7 @@ Use mcp-video when an agent needs a structured video-editing surface instead of 
 - Read `../../docs/TOOLS.md` for MCP tool coverage.
 - Read `../../docs/PYTHON_CLIENT.md` when scripting multi-step workflows.
 - Read `../../docs/WORKFLOWS.md` for the agent workflow engine (job-spec, `@refs`, variants, resume, receipts).
+- Read `../../docs/RESCUE.md` for local diagnosis and content-preserving "fix this clip" work.
 - Run `mcp-video doctor` before media work that depends on FFmpeg, Hyperframes, image tools, or AI dependencies.
 
 ## Choose A Surface
@@ -21,6 +22,27 @@ Use mcp-video when an agent needs a structured video-editing surface instead of 
 - MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Configure `uvx --from mcp-video mcp-video`.
 - CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
 - Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
+
+## Dedicated Video Rescue
+
+Use `video_rescue_*`, `rescue-*`, or `Client.rescue_*` when the request is to fix one local
+clip while preserving its source, story, and timeline.
+
+Required sequence:
+
+1. Call plan and save the plan artifact.
+2. Present `safe_repairs`, `recommendations`, `unavailable_repairs`, `blocked_repairs`,
+   previews, package intents, capabilities, and estimate to the user.
+3. Inspect the plan before render. Obtain or infer explicit approval only for IDs in
+   `safe_repairs`; omitting the ID list means all safe IDs in the reviewed plan.
+4. Call render with exactly those approved safe IDs.
+5. Inspect the render receipt, then report package paths, unavailable sidecars, integrity,
+   gating verification, privacy, resume, and cleanup state.
+
+Never render directly from an unreviewed plan. Never add recommendation IDs, unavailable
+IDs, or blocked IDs to approval. Never use cloud tools, burn rescue captions, rewrite the
+source, or treat `unavailable` as automatic failure. A cancellation or verification failure
+must remain unpromoted or quarantined.
 
 ## Layered Compositing
 

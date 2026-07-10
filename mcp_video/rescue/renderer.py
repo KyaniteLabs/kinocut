@@ -467,7 +467,14 @@ def render_rescue(
         promoted_operations = _remap_operations(operations, package_dir, final_dir, workspace)
         resume_ref = _relative(resume_receipt, output) if resume_receipt else None
         receipt = _base_receipt(plan, "completed", approved, promoted_operations, checks, PackageManifest(path=final_name, promoted=True, artifacts=artifacts), workspace, output, job_dir, resume_used=resume_receipt is not None, resume_receipt_path=resume_ref)
-        _write_receipt(receipt, package_dir / "rescue-receipt.json")
+        packaged_receipt = package_dir / "rescue-receipt.json"
+        _write_receipt(receipt, packaged_receipt)
+        receipt = receipt.model_copy(
+            update={
+                "receipt_path": f"{final_name}/rescue-receipt.json",
+                "receipt_sha256": _sha(packaged_receipt),
+            }
+        )
         os.replace(package_dir, final_dir)
         if receipt_copy:
             _write_receipt(receipt, receipt_copy)

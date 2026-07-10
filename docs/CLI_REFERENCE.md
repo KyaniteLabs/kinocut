@@ -177,6 +177,42 @@ mcp-video workflow-inspect  --receipt receipt.json
 | `--save-receipt-dir` | render | With `--all-variants`, directory for per-variant receipts (`<dir>/<variant>.json`) |
 | `--receipt` | inspect | Path to the receipt JSON file to inspect (required) |
 
+## Dedicated Video Rescue
+
+Rescue is review-first and local-only. `rescue-plan` never renders, `rescue-render` accepts
+only safe IDs from that exact plan, and `rescue-inspect` reads either a plan or receipt. See
+[RESCUE.md](RESCUE.md) for policy, package, cancellation, resume, and stable error contracts.
+
+| Command | Description |
+|---------|-------------|
+| `rescue-plan` | Diagnose one local video and optionally save its immutable approval plan |
+| `rescue-render` | Render approved safe repairs and a verified package; quarantine failures |
+| `rescue-inspect` | Inspect a plan or receipt and re-check package integrity |
+
+```bash
+mcp-video rescue-plan --source media/clip.mov --output-dir rescue-output --save-plan rescue-output/plan.json
+mcp-video --format json rescue-inspect --receipt rescue-output/plan.json
+mcp-video rescue-render --plan rescue-output/plan.json --approve rotation:metadata --save-receipt rescue-output/render-receipt.json
+mcp-video rescue-inspect --receipt rescue-output/render-receipt.json
+```
+
+| Flag | Command | Description |
+|------|---------|-------------|
+| `--source` | plan | Readable local video source (required) |
+| `--output-dir` | plan | Confined output directory that cannot overwrite the source (required) |
+| `--save-plan` | plan | Optional JSON plan path inside `output-dir` |
+| `--policy` | plan | Policy ID; currently `local_content_preserving` |
+| `--plan` | render | Reviewed rescue plan JSON (required) |
+| `--approve` | render | Exact safe repair ID; repeat to select multiple IDs |
+| `--save-receipt` | render | Optional render or cancellation receipt path |
+| `--resume` | render | Compatible prior render receipt to resume |
+| `--cancel-file` | render | Marker path checked between render stages |
+| `--keep-intermediates` | render | Retain confined managed work files after success |
+| `--receipt` | inspect | Rescue plan or render receipt JSON (required) |
+
+Omitting `--approve` applies every safe repair in an already reviewed plan, never a
+recommendation. There is no combined `rescue` command.
+
 ## Audio-Video
 
 | Command | Description |

@@ -20,6 +20,13 @@ This project follows a simple release-note style:
 
 ### Added
 
+- **Dedicated video rescue pipeline** - three additive MCP tools
+  (`video_rescue_plan`, `video_rescue_render`, `video_rescue_inspect`), CLI commands
+  (`rescue-plan`, `rescue-render`, `rescue-inspect`), and Python client methods now diagnose
+  one local video, classify repair candidates, render approved safe IDs, and inspect a
+  verified rescue package. Every successful video rescue includes a master, universal
+  sharing copy, hashed receipt, and optional caption/transcript sidecars or explicit
+  unavailable reasons. See `docs/RESCUE.md`.
 - **`composite_layers` workflow op** — the workflow engine's allowlist grows to **7 ops**;
   a step may now compose an ordered layer stack (`op: "composite_layers"`) without leaving
   the workflow's safety envelope. Layer sources are expressed as workflow `@refs`
@@ -31,6 +38,20 @@ This project follows a simple release-note style:
   other op. The only tunable param is `canvas`; output uses the normal
   `@work`/`@outputs` binding + `output_hash`. This rides the existing `video_workflow_*`
   tools / `workflow-*` CLI (no new tool or command). See `docs/WORKFLOWS.md`.
+
+### Safety
+
+- Rescue is local-only, source-immutable, and timeline-locked. Plan/source/policy/dependency
+  staleness and invalid approvals fail closed; cancellation never promotes output;
+  verification failures are quarantined; resumable intermediates require matching hashes;
+  and all promoted artifacts have receipt hashes and explicit verification metrics/units.
+  Captions remain sidecars and rescue never downloads Whisper or invokes cloud processing.
+
+### Compatibility
+
+- Existing MCP, CLI, and Python APIs are unchanged. Whisper remains optional, the universal
+  sharing copy is additive to the high-quality master, and intentional 24 fps delivery
+  behavior elsewhere in MCP Video is unchanged.
 
 ### Security
 

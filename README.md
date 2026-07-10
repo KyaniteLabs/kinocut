@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://pypi.org/project/mcp-video/"><img src="https://img.shields.io/pypi/v/mcp-video.svg" alt="PyPI"></a>
   <a href="https://git.kyanitelabs.tech/KyaniteLabs/mcp-video/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-124%20tools-orange.svg" alt="124 MCP tools">
+  <img src="https://img.shields.io/badge/MCP-127%20tools-orange.svg" alt="127 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
   <a href="https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/mcp-video"><img src="https://img.shields.io/badge/MCP-Registry-blue.svg" alt="MCP Registry"></a>
@@ -29,6 +29,7 @@
   <a href="#what-agents-can-do">Agent Workflows</a> &bull;
   <a href="#tool-surface">Tools</a> &bull;
   <a href="docs/TOOLS.md">Tool Reference</a> &bull;
+  <a href="docs/RESCUE.md">Video Rescue</a> &bull;
   <a href="docs/AI_AGENT_DISCOVERY.md">AI Discovery</a> &bull;
   <a href="#agent-skill">Agent Skill</a> &bull;
   <a href="llms.txt">llms.txt</a> &bull;
@@ -124,6 +125,14 @@ job that failed with its intermediates kept (fail-closed on a changed spec). Ful
 [docs/WORKFLOWS.md](docs/WORKFLOWS.md); a runnable spec is in
 [examples/workflows/](examples/workflows/captioned-vertical-short/).
 
+## Dedicated Video Rescue
+
+For "fix this clip" requests where the story and timeline must remain unchanged, use the
+review-first rescue pipeline. Plan and inspect the diagnosis, approve only safe repair IDs,
+render, then inspect the verified package. The source stays immutable; master and universal
+sharing copy are always verified; optional captions remain sidecars. See
+[docs/RESCUE.md](docs/RESCUE.md) for CLI, MCP, Python, cancellation, resume, and stable errors.
+
 ## Layered Compositing
 
 `composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
@@ -213,7 +222,7 @@ Mix freely, e.g. `pip install "mcp-video[transcribe,image]"`. Run `mcp-video doc
 
 ## En español
 
-mcp-video es un servidor MCP de edición de video para agentes de IA: 124 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
+mcp-video es un servidor MCP de edición de video para agentes de IA: 127 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -337,12 +346,13 @@ mcp-video repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-mcp-video currently registers **124 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
+mcp-video currently registers **127 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
 | Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates, merge-compatibility guardrails |
 | Agent workflow engine | 4 | validate, plan, render, resume, inspect multi-step jobs with provenance receipts |
+| Dedicated rescue | 3 | diagnose, approve, render, verify, quarantine, and resume local content-preserving repairs |
 | Cinematic creation | 4 | project scaffold, style-pack parsing, storyboard parsing, shot prompt expansion |
 | AI-assisted media | 11 | transcription, scene detection, upscaling, stem separation, silence removal, color grading |
 | Hyperframes | 18 | init, preview, render, snapshots, inspect, catalog, website capture, local TTS, transcription, background removal, diagnostics, benchmark, post-process |

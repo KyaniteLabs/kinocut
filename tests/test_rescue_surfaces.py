@@ -4,12 +4,50 @@ from __future__ import annotations
 
 import json
 import sys
+from pathlib import Path
 
 import pytest
 
 from mcp_video.client import Client
 from mcp_video.cli.parser import build_parser
 from mcp_video.rescue._errors import RESCUE_VERIFICATION_FAILED, rescue_error
+
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def test_rescue_documentation_covers_surfaces_and_guardrails():
+    guide = (ROOT / "docs" / "RESCUE.md").read_text(encoding="utf-8").lower()
+
+    for name in (
+        "video_rescue_plan",
+        "video_rescue_render",
+        "video_rescue_inspect",
+        "rescue-plan",
+        "rescue-render",
+        "rescue-inspect",
+        "rescue_plan",
+        "rescue_render",
+        "rescue_inspect",
+    ):
+        assert name in guide
+    for contract in (
+        "local-only",
+        "source immutable",
+        "timeline locked",
+        "captions are not burned",
+        "missing whisper is nonfatal",
+        "plan approval is required",
+        "no one-command rescue",
+    ):
+        assert contract in guide
+
+
+def test_rescue_skill_requires_plan_inspection_before_render():
+    skill = (ROOT / "skills" / "mcp-video" / "SKILL.md").read_text(encoding="utf-8").lower()
+
+    assert "inspect the plan before render" in skill
+    assert "never add recommendation ids" in skill
 
 
 def test_rescue_plan_parser_preserves_policy_defaults():

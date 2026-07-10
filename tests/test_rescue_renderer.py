@@ -120,6 +120,18 @@ def test_renderer_executes_only_approved_safe_repairs(tmp_path, sample_video):
     assert inspected["integrity"]["all_matching"] is True
 
 
+def test_completed_receipt_points_to_hashed_packaged_receipt(tmp_path, sample_video):
+    _, plan_path, _ = _planned_fixture(tmp_path, sample_video)
+
+    receipt = render_rescue(str(plan_path), approved_repair_ids=[])
+
+    packaged_receipt = plan_path.parent / receipt["receipt_path"]
+    expected_hash = "sha256:" + hashlib.sha256(packaged_receipt.read_bytes()).hexdigest()
+    assert packaged_receipt.name == "rescue-receipt.json"
+    assert receipt["receipt_sha256"] == expected_hash
+    assert inspect_rescue(str(packaged_receipt))["integrity"]["all_matching"] is True
+
+
 def test_renderer_fails_closed_when_source_changes(tmp_path, sample_video):
     source, plan_path, _ = _planned_fixture(tmp_path, sample_video)
     source.write_bytes(source.read_bytes() + b"changed")

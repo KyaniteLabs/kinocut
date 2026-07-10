@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes 124 registered MCP tools across video editing, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+mcp-video exposes 127 registered MCP tools across video editing, dedicated rescue, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -48,6 +48,20 @@ shapes are in [VIDEO_RECEIPT.md](VIDEO_RECEIPT.md).
 | `video_workflow_plan` | Dry-run plan artifact (`receipt_kind: workflow_plan`): ordered op graph, per-source ffprobe + sha256 hashes where the file exists, output intents, variant summary; renders zero media (`save_plan`, `variant`) |
 | `video_workflow_render` | Execute allowlisted ops sequentially and emit a `workflow` provenance receipt (per-step input/output hashes, cleanup manifest, determinism caveat); supports `resume_receipt`, `save_receipt`, `keep_intermediates`, `variant`, `all_variants`, `save_receipt_dir` |
 | `video_workflow_inspect` | Summarize any receipt this project emits — `workflow`, `workflow_plan`, or `layer_plan` (v2 or legacy v1 without `receipt_kind`) — with a read-only integrity re-check, human-review pointers, and known limitations |
+
+---
+
+## Dedicated Video Rescue (3 tools)
+
+The rescue tools form one review-first local pipeline. Plan and inspect before render; pass
+only IDs from the plan's `safe_repairs`; inspect the final receipt before trusting the
+package. Full contracts and examples are in [RESCUE.md](RESCUE.md).
+
+| Tool | Description |
+|------|-------------|
+| `video_rescue_plan` | Analyze one local video without rendering; return evidence, previews, policy-classified safe/recommended/unavailable/blocked work, package intents, and an estimate |
+| `video_rescue_render` | Apply approved safe repair IDs from an immutable reviewed plan; fail closed on staleness, dependency drift, cancellation, or verification failure |
+| `video_rescue_inspect` | Inspect a plan or receipt and re-check promoted artifact hashes, verification, privacy, resume, and cleanup state without modifying media |
 
 ---
 

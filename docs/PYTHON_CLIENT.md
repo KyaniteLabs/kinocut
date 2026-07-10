@@ -255,6 +255,40 @@ print(checkpoint["quality_score"])  # Must pass min_score
 
 ---
 
+## Dedicated Video Rescue Methods
+
+The Python client mirrors the review-first MCP and CLI rescue contract. Inspect the plan
+before render and pass only IDs from `safe_repairs`. Full policy, package, cancellation,
+resume, and error details are in [RESCUE.md](RESCUE.md).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `rescue_plan(source, output_dir, save_plan?, policy?)` | `dict` | Local diagnosis, previews, dispositions, package intents, capabilities, and estimate; renders nothing |
+| `rescue_render(plan, approved_repair_ids?, save_receipt?, resume_receipt?, cancel_file?, keep_intermediates?)` | `dict` | Apply approved safe repairs and return a verified package receipt |
+| `rescue_inspect(receipt)` | `dict` | Read a plan or receipt and re-check package integrity without modifying media |
+
+```python
+from mcp_video import Client
+
+video = Client()
+plan = video.rescue_plan("media/clip.mov", "rescue-output", "rescue-output/plan.json")
+
+# Present every disposition and preview before selecting safe repair IDs.
+approved = [repair["id"] for repair in plan["safe_repairs"]]
+receipt = video.rescue_render(
+    "rescue-output/plan.json",
+    approved_repair_ids=approved,
+    save_receipt="rescue-output/render-receipt.json",
+)
+inspection = video.rescue_inspect("rescue-output/render-receipt.json")
+```
+
+`approved_repair_ids=None` applies all safe repairs from an already reviewed plan. It never
+applies recommendations. Missing local Whisper produces explicit unavailable caption and
+transcript artifacts rather than failing an otherwise valid rescue.
+
+---
+
 ## Agent Workflow Engine Methods
 
 Plan, validate, render, recover, and prove a multi-step local video job from one JSON
