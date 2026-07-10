@@ -241,12 +241,42 @@ jobs:
           if npm view "kinocut@$version" version >/dev/null 2>&1; then
             echo "kinocut@$version already exists; skipping on recovery attempt."
           else
-            npm publish npm-dist/kinocut-*.tgz --provenance --access public
+            npm publish ./npm-dist/kinocut-*.tgz --provenance --access public
+          fi
+
+  publish-npm-recovery:
+    name: Recover npm publication
+    if: github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    environment: npm
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e # v6
+        with:
+          node-version: '22'
+      - name: Build npm package
+        run: |
+          mkdir -p npm-dist
+          npm pack ./npm --pack-destination npm-dist
+      - name: Install trusted-publishing npm client
+        run: npm install --global npm@11.5.1
+      - name: Publish to npm with provenance
+        run: |
+          version="$(node -p "require('./npm/package.json').version")"
+          if npm view "kinocut@$version" version >/dev/null 2>&1; then
+            echo "kinocut@$version already exists; skipping on recovery attempt."
+          else
+            npm publish ./npm-dist/kinocut-*.tgz --provenance --access public
           fi
 
   publish-mcp-registry:
     name: Publish to MCP Registry
-    needs: [publish, publish-npm]
+    needs: [publish, publish-npm, publish-npm-recovery]
     if: >-
       ${{
         always() &&
@@ -257,7 +287,10 @@ jobs:
             needs.publish-npm.result == 'success' &&
             startsWith(github.event.release.tag_name, 'v')
           ) ||
-          github.event_name == 'workflow_dispatch'
+          (
+            github.event_name == 'workflow_dispatch' &&
+            needs.publish-npm-recovery.result == 'success'
+          )
         )
       }}
     runs-on: ubuntu-latest
