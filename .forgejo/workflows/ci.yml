@@ -89,12 +89,13 @@ jobs:
             # 7.1.0 (autobuild-2024-09-30) has an upstream `best_input >= 0`
             # assertion regression (ffmpeg_filter.c) that aborts on the glitch
             # engine's scale2ref+displace graphs; fixed by 7.1.5. Pin the fixed
-            # frozen build, not the buggy early release.
-            ffmpeg_tag: autobuild-2026-06-25-13-48
+            # month-end build, which BtbN retains for two years; daily builds
+            # expire after 14 days.
+            ffmpeg_tag: autobuild-2026-06-30-13-34
             ffmpeg_asset: ffmpeg-n7.1.5-1-g7d0e842004-linux64-gpl-7.1.tar.xz
           - major: "8"
-            ffmpeg_tag: autobuild-2026-06-25-13-48
-            ffmpeg_asset: ffmpeg-n8.1.2-linux64-gpl-8.1.tar.xz
+            ffmpeg_tag: autobuild-2026-06-30-13-34
+            ffmpeg_asset: ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz
     steps:
       - uses: actions/checkout@v4
       - name: Install Python toolchain
