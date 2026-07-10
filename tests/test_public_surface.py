@@ -432,8 +432,10 @@ def test_server_json_and_readme_match_registry_identity():
 
     assert server["name"] == "io.github.KyaniteLabs/mcp-video"
     assert server["websiteUrl"] == "https://kyanitelabs.github.io/mcp-video/"
-    assert server["repository"]["url"] == "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video"
-    assert server["repository"]["source"] == "forgejo"
+    # The registry's semantic validator currently accepts the GitHub mirror,
+    # while Forgejo remains the canonical repository on every other surface.
+    assert server["repository"]["url"] == "https://github.com/KyaniteLabs/mcp-video"
+    assert server["repository"]["source"] == "github"
     assert server["packages"][0]["identifier"] == "mcp-video"
     assert server["packages"][0]["runtimeHint"] == "uvx"
     assert server["packages"][0]["transport"]["type"] == "stdio"
@@ -471,11 +473,19 @@ def test_canonical_public_surfaces_point_to_forgejo_not_stale_github_repo():
         "v1.4.0",
     ]
 
-    offenders = {
-        path: fragment for path, text in _read_public_surfaces().items() for fragment in forbidden if fragment in text
-    }
+    checked_surfaces = _read_public_surfaces()
+    checked_surfaces.pop("server.json")
+    offenders = {path: fragment for path, text in checked_surfaces.items() for fragment in forbidden if fragment in text}
 
     assert offenders == {}
+
+
+def test_publish_workflow_has_registry_only_recovery_path():
+    workflow = (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+
+    assert "workflow_dispatch:" in workflow
+    assert "github.event_name == 'workflow_dispatch'" in workflow
+    assert "needs.publish.result == 'success'" in workflow
 
 
 def test_public_surface_manifest_covers_agent_discovery_files():

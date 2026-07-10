@@ -6,8 +6,8 @@
   "version": "1.6.0",
   "websiteUrl": "https://kyanitelabs.github.io/mcp-video/",
   "repository": {
-    "url": "https://git.kyanitelabs.tech/KyaniteLabs/mcp-video",
-    "source": "forgejo"
+    "url": "https://github.com/KyaniteLabs/mcp-video",
+    "source": "github"
   },
   "packages": [
     {

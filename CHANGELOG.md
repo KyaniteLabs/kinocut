@@ -11,6 +11,10 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+
+- MCP Registry metadata now uses the registry-supported GitHub mirror URL, while Forgejo remains canonical everywhere else. The publish workflow also supports a registry-only recovery dispatch, so a downstream registry rejection can be repaired without attempting to re-upload an immutable PyPI release.
+
 ## 1.6.0 - 2026-07-10
 
 ### Fixed

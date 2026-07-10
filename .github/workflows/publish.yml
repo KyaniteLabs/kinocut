@@ -3,17 +3,19 @@ name: Publish to PyPI
 on:
   release:
     types: [published]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.event.release.tag_name }}
+  group: publish-${{ github.event.release.tag_name || github.ref }}
   cancel-in-progress: false
 
 jobs:
   surface-audit:
     name: Check tracked release surface
+    if: github.event_name == 'release'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -30,6 +32,7 @@ jobs:
   build:
     name: Build package
     needs: surface-audit
+    if: github.event_name == 'release'
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -126,7 +129,7 @@ jobs:
   publish:
     name: Publish to PyPI
     needs: build
-    if: startsWith(github.event.release.tag_name, 'v')
+    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -144,7 +147,18 @@ jobs:
   publish-mcp-registry:
     name: Publish to MCP Registry
     needs: publish
-    if: startsWith(github.event.release.tag_name, 'v')
+    if: >-
+      ${{
+        always() &&
+        (
+          (
+            github.event_name == 'release' &&
+            needs.publish.result == 'success' &&
+            startsWith(github.event.release.tag_name, 'v')
+          ) ||
+          github.event_name == 'workflow_dispatch'
+        )
+      }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
