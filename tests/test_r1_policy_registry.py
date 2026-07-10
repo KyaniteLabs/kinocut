@@ -36,7 +36,7 @@ def test_policy_registry_rejects_duplicate_versions() -> None:
 @pytest.mark.parametrize(
     ("policy_id", "allowed", "required_check"),
     (
-        ("local_timeline_editing", {"timeline"}, "no_unapproved_removal"),
+        ("local_timeline_editing", {"timeline"}, "approved_removal_only"),
         ("local_visual_transform", {"crop"}, "crop_continuity"),
         ("local_restorative", set(), "restoration_feature_gates"),
         ("local_composition", {"timeline", "crop"}, "source_attribution"),
@@ -53,3 +53,26 @@ def test_post_rescue_policies_have_least_privilege_and_gating_checks(
     assert {name for name, value in permissions.items() if value} == allowed
     assert required_check in profile.gating_checks
     assert profile.permissions.source_overwrite is False
+
+
+def test_policy_gate_ids_match_semantic_and_visual_verifier_receipts() -> None:
+    timeline = POLICY_REGISTRY.resolve("local_timeline_editing", 1)
+    visual = POLICY_REGISTRY.resolve("local_visual_transform", 1)
+
+    assert timeline.gating_checks == (
+        "approval_hash",
+        "source_coverage",
+        "ordering",
+        "approved_removal_only",
+        "audio_video_sync",
+        "caption_remap",
+    )
+    assert visual.gating_checks == (
+        "subject_coverage",
+        "safe_zone_coverage",
+        "crop_continuity",
+        "crop_resolution",
+        "motion_reduction",
+        "borders",
+        "duration_and_sync",
+    )

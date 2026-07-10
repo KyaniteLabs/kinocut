@@ -16,6 +16,7 @@ from .cli.handlers_image import handle_image_commands
 from .cli.handlers_media import handle_media_commands
 from .cli.handlers_hyperframes import handle_hyperframes_commands
 from .cli.handlers_rescue import handle_rescue_commands
+from .cli.handlers_postrescue import handle_post_rescue_commands
 from .cli.handlers_transitions import handle_transition_command
 from .cli.handlers_workflow import handle_workflow_commands
 from .cli.parser import build_parser
@@ -64,6 +65,7 @@ def main() -> None:
             handle_initial_command(args, use_json=use_json)
             or handle_workflow_commands(args, use_json=use_json)
             or handle_rescue_commands(args, use_json=use_json)
+            or handle_post_rescue_commands(args, use_json=use_json)
             or handle_effect_command(args, use_json=use_json)
             or handle_transition_command(args, use_json=use_json)
             or handle_composition_command(args, use_json=use_json)

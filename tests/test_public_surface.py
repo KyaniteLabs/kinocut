@@ -152,6 +152,14 @@ EXPECTED_CLI_COMMANDS = {
     "rescue-plan",
     "rescue-render",
     "rescue-inspect",
+    "semantic-timeline",
+    "semantic-query",
+    "timeline-edit-plan",
+    "visual-transform-plan",
+    "restoration-plan",
+    "composition-plan",
+    "creative-autopilot-plan",
+    "remote-egress-plan",
 }
 
 EXPECTED_SERVER_TOOLS = {
@@ -267,6 +275,14 @@ EXPECTED_SERVER_TOOLS = {
     "video_rescue_plan",
     "video_rescue_render",
     "video_rescue_inspect",
+    "video_semantic_timeline",
+    "video_semantic_query",
+    "video_timeline_edit_plan",
+    "video_visual_transform_plan",
+    "video_restoration_plan",
+    "video_composition_plan",
+    "video_creative_autopilot_plan",
+    "video_remote_egress_plan",
 }
 
 
@@ -284,7 +300,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 106
+    assert len(EXPECTED_CLI_COMMANDS) == 114
 
 
 def test_agent_cookbook_dry_run():
@@ -306,7 +322,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 127
+    assert len(tool_names) == 135
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -331,7 +347,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "mcp-video"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 127
+        assert len(tool_names) == 135
 
     asyncio.run(check_server())
 

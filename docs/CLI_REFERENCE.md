@@ -213,6 +213,24 @@ mcp-video rescue-inspect --receipt rescue-output/render-receipt.json
 Omitting `--approve` applies every safe repair in an already reviewed plan, never a
 recommendation. There is no combined `rescue` command.
 
+## Post-Rescue Planning
+
+Each command accepts one positional UTF-8 JSON request artifact and emits a planning or
+verification artifact. These commands do not render or perform network I/O.
+
+| Command | Description |
+|---------|-------------|
+| `semantic-timeline REQUEST.json` | Build a source-backed semantic timeline |
+| `semantic-query REQUEST.json` | Query local semantic spans |
+| `timeline-edit-plan REQUEST.json` | Build a reviewable EDL and optional approved diff |
+| `visual-transform-plan REQUEST.json` | Plan analysis, reframing, or stabilization |
+| `restoration-plan REQUEST.json` | Plan or evaluate restorative work |
+| `composition-plan REQUEST.json` | Build or verify a source-backed composition artifact |
+| `creative-autopilot-plan REQUEST.json` | Coordinate available proven local planners |
+| `remote-egress-plan REQUEST.json` | Plan explicit egress and fake remote receipts |
+
+Use `--format json` for machine-readable output. Request files are capped at 4 MiB.
+
 ## Audio-Video
 
 | Command | Description |

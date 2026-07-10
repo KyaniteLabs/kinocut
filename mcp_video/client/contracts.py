@@ -334,4 +334,13 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "rescue_plan": {"category": "rescue", "return_type": "dict", "aliases": {}},
     "rescue_render": {"category": "rescue", "return_type": "dict", "aliases": {}},
     "rescue_inspect": {"category": "rescue", "return_type": "dict", "aliases": {}},
+    # Post-rescue planning
+    "semantic_timeline": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "semantic_query": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "timeline_edit_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "visual_transform_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "restoration_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "composition_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "creative_autopilot_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
+    "remote_egress_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
 }

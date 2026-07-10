@@ -18,6 +18,24 @@ editor = Client()
 Media-producing methods return an `EditResult`-compatible object with `.output_path`.
 Analysis methods return report models or dictionaries.
 
+## Post-Rescue Planning Methods
+
+These methods accept a JSON-compatible request mapping and return a dictionary. They plan
+or verify only and do not render media or perform network I/O.
+
+| Method | Description |
+|--------|-------------|
+| `semantic_timeline(request)` | Build a source-time semantic timeline |
+| `semantic_query(request)` | Query local source-backed spans |
+| `timeline_edit_plan(request)` | Build an EDL and optional approval-bound diff |
+| `visual_transform_plan(request)` | Plan analysis, reframing, or stabilization |
+| `restoration_plan(request)` | Plan or evaluate restorative work |
+| `composition_plan(request)` | Build or verify composition artifacts |
+| `creative_autopilot_plan(request)` | Coordinate declared proven planners or abstain |
+| `remote_egress_plan(request)` | Plan explicit remote egress without network I/O |
+
+The complete operation contracts are in [POST_RESCUE_FEATURES.md](POST_RESCUE_FEATURES.md).
+
 ---
 
 ## Usage Examples

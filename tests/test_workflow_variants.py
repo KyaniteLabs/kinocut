@@ -603,7 +603,7 @@ def test_variants_do_not_change_public_surface_counts():
     from mcp_video.server import mcp
 
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-    assert len(tool_names) == 127  # Variants add none; the rescue surface adds three.
+    assert len(tool_names) == 135  # Variants add none; rescue and post-rescue own their surfaces.
     assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
 
 
@@ -619,4 +619,4 @@ def test_variant_flags_do_not_add_cli_commands():
     assert result.returncode == 0
     command_lists = re.findall(r"\{([^}]+)\}", result.stdout)
     command_list = max(command_lists, key=lambda value: len(value.split(",")))
-    assert len(set(command_list.split(","))) == 106  # Variants add none; rescue adds three.
+    assert len(set(command_list.split(","))) == 114  # Variants add none; post-rescue adds eight.

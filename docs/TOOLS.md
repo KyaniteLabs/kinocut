@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-mcp-video exposes 127 registered MCP tools across video editing, dedicated rescue, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+mcp-video exposes 135 registered MCP tools across video editing, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -62,6 +62,25 @@ package. Full contracts and examples are in [RESCUE.md](RESCUE.md).
 | `video_rescue_plan` | Analyze one local video without rendering; return evidence, previews, policy-classified safe/recommended/unavailable/blocked work, package intents, and an estimate |
 | `video_rescue_render` | Apply approved safe repair IDs from an immutable reviewed plan; fail closed on staleness, dependency drift, cancellation, or verification failure |
 | `video_rescue_inspect` | Inspect a plan or receipt and re-check promoted artifact hashes, verification, privacy, resume, and cleanup state without modifying media |
+
+---
+
+## Post-Rescue Planning (8 tools)
+
+These JSON-compatible tools are side-effect-free planners and verifiers. They do not render,
+download models, contact providers, or submit jobs. See
+[POST_RESCUE_FEATURES.md](POST_RESCUE_FEATURES.md) for operations and guardrails.
+
+| Tool | Description |
+|------|-------------|
+| `video_semantic_timeline` | Build a source-time semantic timeline from supplied analyzer evidence |
+| `video_semantic_query` | Query local source-backed spans without invented descriptions |
+| `video_timeline_edit_plan` | Build an EDL, approval binding, visible diff, and verification |
+| `video_visual_transform_plan` | Plan analysis, subject-aware reframing, or stabilization |
+| `video_restoration_plan` | Plan or evaluate evidence-gated restorative work |
+| `video_composition_plan` | Build manifests, selections, compositions, previews, compiled plans, and checks |
+| `video_creative_autopilot_plan` | Coordinate declared proven local planners or abstain |
+| `video_remote_egress_plan` | Plan explicit remote egress and fake-adapter receipts without network I/O |
 
 ---
 

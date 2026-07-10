@@ -20,6 +20,13 @@ This project follows a simple release-note style:
 
 ### Added
 
+- **Post-rescue planning capabilities** - eight matching MCP, CLI, and Python client
+  surfaces now expose source-backed semantic timelines and local query, reviewable timeline
+  edit plans, subject-aware visual transforms, evidence-gated restoration, source-backed
+  composition, capability-gated creative autopilot, and explicit remote egress contracts.
+  These calls plan or verify only: they do not render, download models, submit remote jobs,
+  or silently broaden an approval. See `docs/POST_RESCUE_FEATURES.md`.
+
 - **Rescue R1 extension contracts** - immutable, versioned policy profiles; separately
   hashed feature-intent envelopes; additive verifier and capability registries; and
   deterministic preview/approval bindings now let new editing features reuse the rescue
