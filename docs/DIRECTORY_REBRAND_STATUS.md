@@ -29,10 +29,10 @@ Kinocut 1.7.0 cutover.
 | Smithery | No canonical listing; local stdio submission currently requires an MCPB bundle | Add MCPB packaging before submitting; do not publish an incompatible listing |
 | MCP.so | [Submission issue #3098](https://github.com/chatmcp/mcpso/issues/3098) open | Await directory review and verify the published record |
 | Enterprise DNA | Stale downstream record derived from Awesome MCP Servers | Allow upstream correction to propagate, then request recrawl |
-| Agent-CoreX | Stale former name and 26-tool description | Request owner refresh |
-| Freshcrate | Stale former owner, package, and release | Request repository re-index |
+| Agent-CoreX | [Refresh issue #2](https://github.com/ankitpro/agent-corex/issues/2) open for the stale former name and 26-tool description | Await owner refresh and verify the public page |
+| Freshcrate | Stale former owner, package, and release; correction form is currently unconfigured | Retry when its contact inbox is operational or an owner channel is published |
 | Remote OpenClaw | Stale former slug and 91-tool copy | Request repository re-index |
-| Protodex | Stale former name, 83-tool copy, and obsolete install commands | Request owner refresh |
+| Protodex | [Refresh issue #26](https://github.com/LuciferForge/mcp-directory/issues/26) open for the stale former name, 83-tool copy, and obsolete install commands | Await weekly re-index and verify the redirect |
 | Vibehackers | Stale registry ID, package, and release | Request owner refresh |
 | Neura Market | Stale personal namespace and 82-tool copy | Request owner refresh |
 | a-gnt | Stale personal namespace, old version, and 82-tool copy | Allow Awesome correction to propagate, then request recrawl |
@@ -46,7 +46,13 @@ Kinocut 1.7.0 cutover.
   deletion and non-fast-forward updates while preserving normal Forgejo mirror pushes.
 - Awesome MCP Servers: [correction PR #9817](https://github.com/punkpeye/awesome-mcp-servers/pull/9817)
 - MCP.so: [submission issue #3098](https://github.com/chatmcp/mcpso/issues/3098)
+- MCP.Directory: canonical repository and PyPI package submitted for review on
+  2026-07-10; the form confirmed publication review within 24 hours.
 - Docker MCP Registry: [catalog PR #4387](https://github.com/docker/mcp-registry/pull/4387)
+- Agent-CoreX: [refresh issue #2](https://github.com/ankitpro/agent-corex/issues/2)
+- Protodex: [refresh issue #26](https://github.com/LuciferForge/mcp-directory/issues/26)
+- Freshcrate: correction form attempted on 2026-07-10, but the site reported that
+  its contact inbox was not configured; no successful submission is claimed.
 
 Glama's public flow requires owner authentication and human verification. The
 canonical repository already contains `glama.json` with the maintainer identity and
