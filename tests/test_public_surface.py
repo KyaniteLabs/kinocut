@@ -48,6 +48,7 @@ CURRENT_KINOCUT_DOC_PATHS = (
     ROOT / "docs" / "AI_AGENT_DISCOVERY.md",
     ROOT / "docs" / "CLI_REFERENCE.md",
     ROOT / "docs" / "DESIGN_STANDARDS.md",
+    ROOT / "docs" / "DIRECTORY_REBRAND_STATUS.md",
     ROOT / "docs" / "INTEGRATION-ROADMAP.md",
     ROOT / "docs" / "LEGAL_REVIEW.md",
     ROOT / "docs" / "POST_RESCUE_FEATURES.md",
@@ -610,6 +611,17 @@ def test_publish_workflow_has_registry_only_recovery_path():
     assert "workflow_dispatch:" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
     assert "needs.publish.result == 'success'" in workflow
+
+
+def test_github_mirror_smoke_runs_on_master_without_private_runners():
+    workflow = (ROOT / ".github" / "workflows" / "mirror-smoke.yml").read_text(encoding="utf-8")
+
+    assert "branches: [master]" in workflow
+    assert "permissions:\n  contents: read" in workflow
+    assert "runs-on: ubuntu-latest" in workflow
+    assert "blacksmith" not in workflow.lower()
+    assert "python -m kinocut --version" in workflow
+    assert "tests/test_public_surface.py tests/test_doctor.py" in workflow
 
 
 def test_public_surface_manifest_covers_agent_discovery_files():

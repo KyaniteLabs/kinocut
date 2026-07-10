@@ -1,0 +1,35 @@
+name: Mirror smoke
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: mirror-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  canonical-surface:
+    name: Canonical package and public surface
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
+      - uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405 # v6.2.0
+        with:
+          python-version: "3.13"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Install base package and test runner
+        run: python -m pip install -e . pytest pytest-asyncio
+      - name: Verify canonical and compatibility commands
+        run: |
+          python -m kinocut --version
+          python -m mcp_video --version
+          kino --format json doctor | python -m json.tool >/tmp/kinocut-doctor.json
+      - name: Verify public and diagnostic surfaces
+        run: python -m pytest -q tests/test_public_surface.py tests/test_doctor.py
