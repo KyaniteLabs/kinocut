@@ -150,6 +150,15 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "skip-existing: true" in workflow
     assert re.search(r"publish-npm:\n(?:.*\n)*?    needs: publish\n", workflow)
     assert 'npm view "kinocut@$version" version' in workflow
-    assert "needs: [publish, publish-npm]" in workflow
+    assert "needs: [publish, publish-npm, publish-npm-recovery]" in workflow
     assert "needs.publish-npm.result == 'success'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
+
+
+def test_npm_publish_uses_local_tarball_and_has_oidc_recovery_dispatch() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+
+    assert "npm publish ./npm-dist/kinocut-*.tgz --provenance --access public" in workflow
+    assert "publish-npm-recovery:" in workflow
+    assert "if: github.event_name == 'workflow_dispatch'" in workflow
+    assert "needs.publish-npm-recovery.result == 'success'" in workflow
