@@ -87,4 +87,3 @@
   - **Real-time AI avatars replacing humans** — trust collapse and deepfake regulation limit deployment.
   - **Fully autonomous social-media content farms** — platform terms and regulation will strangle them.
   - **Voice-cloned "celebrity" narrators** — consent/legal minefield; brands will avoid.
-

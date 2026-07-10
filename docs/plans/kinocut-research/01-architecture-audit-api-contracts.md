@@ -335,4 +335,3 @@ This preserves the current differentiator—guardrails and proof—while moving 
 The repository does not define deployment concurrency, remote-worker trust boundaries, artifact-retention budgets, or the allowed VLM providers. Those are implementation policy decisions; they do not change the architectural diagnosis.
 
 Repository state remained clean. Epoch feedback was attempted, but the read-only sandbox prevented writing to `~/.epoch/`.
-
