@@ -6,6 +6,7 @@ import json
 import os
 import shutil
 import subprocess
+from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
@@ -40,14 +41,18 @@ def sign_export_with_c2pa(
     if not os.path.isfile(signed_tmp):
         raise C2PASigningError("c2patool completed without producing the signed output")
 
+    try:
+        verification = _verify_signed_asset(tool, signed_tmp)
+    except Exception:
+        if os.path.exists(signed_tmp):
+            os.remove(signed_tmp)
+        raise
+
     os.replace(signed_tmp, asset)
-    verification = _verify_signed_asset(tool, asset)
     return {
         "status": "signed",
         "verified": True,
-        "tool": tool,
-        "manifest_path": manifest,
-        "signer_path": signer_path,
+        "manifest_sha256": _sha256_file(manifest),
         "verification": verification,
     }
 
@@ -116,6 +121,29 @@ def _verify_signed_asset(tool: str, asset: str) -> dict[str, Any]:
     validation_status = payload.get("validation_status")
     if validation_status:
         raise C2PAVerificationError(json.dumps(validation_status, sort_keys=True))
-    if "active_manifest" not in payload and "manifests" not in payload and "signed" not in payload:
+    active_manifest = payload.get("active_manifest")
+    manifests = payload.get("manifests")
+    manifest_count = _manifest_count(manifests)
+    if not active_manifest and manifest_count == 0:
         raise C2PAVerificationError("c2patool verification output did not include a manifest")
-    return payload
+    return {
+        "active_manifest": bool(active_manifest),
+        "manifest_count": manifest_count,
+        "validation_status": [],
+    }
+
+
+def _manifest_count(manifests: Any) -> int:
+    if isinstance(manifests, dict):
+        return len(manifests)
+    if isinstance(manifests, list):
+        return len(manifests)
+    return 0
+
+
+def _sha256_file(path: str) -> str:
+    digest = sha256()
+    with open(path, "rb") as f:
+        for chunk in iter(lambda: f.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()

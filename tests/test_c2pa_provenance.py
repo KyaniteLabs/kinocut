@@ -15,14 +15,14 @@ from mcp_video.errors import MCPVideoError
 from mcp_video.models import EditResult
 
 
-def _fake_c2patool(path: Path, *, verify_failure: bool = False) -> Path:
+def _fake_c2patool(path: Path, *, verify_failure: bool = False, verify_payload: dict | None = None) -> Path:
     script = path / "fake-c2patool"
+    success_payload = verify_payload or {"active_manifest": {"label": "kinocut:test"}, "validation_status": []}
     script.write_text(
         "\n".join(
             [
                 "#!/usr/bin/env python3",
                 "import json",
-                "import shutil",
                 "import sys",
                 "from pathlib import Path",
                 "log = Path(__file__).with_suffix('.log')",
@@ -34,13 +34,13 @@ def _fake_c2patool(path: Path, *, verify_failure: bool = False) -> Path:
                 "        out = Path(args[args.index('--output') + 1])",
                 "    except ValueError:",
                 "        out = Path(args[args.index('-o') + 1])",
-                "    shutil.copyfile(src, out)",
+                "    out.write_bytes(src.read_bytes() + b'\\nC2PA-SIGNED')",
                 "    print(json.dumps({'signed': True, 'active_manifest': {'label': 'kinocut:test'}}))",
                 "    raise SystemExit(0)",
                 "if " + repr(verify_failure) + ":",
                 "    print(json.dumps({'validation_status': [{'code': 'claimSignature.mismatch'}]}))",
                 "    raise SystemExit(0)",
-                "print(json.dumps({'active_manifest': {'label': 'kinocut:test'}, 'validation_status': []}))",
+                "print(json.dumps(" + repr(success_payload) + "))",
             ]
         )
         + "\n",
@@ -92,8 +92,18 @@ def test_c2pa_provider_signs_then_verifies_with_fake_executable(tmp_path):
 
     assert result["status"] == "signed"
     assert result["verified"] is True
-    assert result["tool"] == str(tool)
-    assert result["manifest_path"] == str(manifest)
+    assert result["manifest_sha256"]
+    assert result["verification"] == {
+        "active_manifest": True,
+        "manifest_count": 0,
+        "validation_status": [],
+    }
+    assert "tool" not in result
+    assert "manifest_path" not in result
+    assert "signer_path" not in result
+    assert str(tool) not in json.dumps(result)
+    assert str(manifest) not in json.dumps(result)
+    assert "/opt/kinocut/signer" not in json.dumps(result)
     calls = [json.loads(line) for line in tool.with_suffix(".log").read_text(encoding="utf-8").splitlines()]
     assert calls[0] == [
         str(asset),
@@ -105,7 +115,8 @@ def test_c2pa_provider_signs_then_verifies_with_fake_executable(tmp_path):
         "--signer-path",
         "/opt/kinocut/signer",
     ]
-    assert calls[1] == [str(asset)]
+    assert calls[1] == [str(asset.with_name("final.c2pa-signing.mp4"))]
+    assert asset.read_bytes() == b"mp4 bytes\nC2PA-SIGNED"
 
 
 def test_c2pa_provider_fails_closed_when_verification_reports_errors(tmp_path):
@@ -114,12 +125,17 @@ def test_c2pa_provider_fails_closed_when_verification_reports_errors(tmp_path):
     tool = _fake_c2patool(tmp_path, verify_failure=True)
     manifest = _manifest(tmp_path)
     asset = tmp_path / "final.mp4"
-    asset.write_bytes(b"mp4 bytes")
+    original_bytes = b"original mp4 bytes"
+    asset.write_bytes(original_bytes)
 
     with pytest.raises(MCPVideoError) as exc:
         sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
 
     assert exc.value.code == "c2pa_verification_failed"
+    assert asset.read_bytes() == original_bytes
+    assert not asset.with_name("final.c2pa-signing.mp4").exists()
+    calls = [json.loads(line) for line in tool.with_suffix(".log").read_text(encoding="utf-8").splitlines()]
+    assert calls[1] == [str(asset.with_name("final.c2pa-signing.mp4"))]
 
 
 def test_c2pa_provider_fails_closed_when_verify_command_fails(tmp_path):
@@ -134,6 +150,23 @@ def test_c2pa_provider_fails_closed_when_verify_command_fails(tmp_path):
         sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
 
     assert exc.value.code == "c2pa_verification_failed"
+
+
+def test_c2pa_provider_rejects_signed_only_verification_payload(tmp_path):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(tmp_path, verify_payload={"signed": True, "validation_status": []})
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    original_bytes = b"original mp4 bytes"
+    asset.write_bytes(original_bytes)
+
+    with pytest.raises(MCPVideoError) as exc:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert exc.value.code == "c2pa_verification_failed"
+    assert asset.read_bytes() == original_bytes
+    assert not asset.with_name("final.c2pa-signing.mp4").exists()
 
 
 def test_c2pa_provider_requires_available_executable(tmp_path):
@@ -305,6 +338,13 @@ def test_cli_export_json_can_sign_with_fake_c2patool(sample_video, tmp_path):
     assert payload["operation"] == "export"
     assert payload["c2pa"]["status"] == "signed"
     assert payload["c2pa"]["verified"] is True
+    serialized = json.dumps(payload["c2pa"])
+    assert str(tool) not in serialized
+    assert str(manifest) not in serialized
+    assert str(tmp_path) not in serialized
+    assert "tool" not in payload["c2pa"]
+    assert "manifest_path" not in payload["c2pa"]
+    assert "signer_path" not in payload["c2pa"]
     assert output.is_file()
 
 
