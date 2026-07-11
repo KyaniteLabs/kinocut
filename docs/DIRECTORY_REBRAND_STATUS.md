@@ -26,7 +26,7 @@ Kinocut 1.7.0 cutover.
 | Official MCP Registry | Current and active | Verify after every release |
 | Glama | Canonical URL and score badge resolve, but the page displays stale former metadata | Refresh and redirect request sent to Glama support on 2026-07-10; await recrawl |
 | Awesome MCP Servers | [Correction PR #9817](https://github.com/punkpeye/awesome-mcp-servers/pull/9817) open; checks pass | Complete Glama prerequisite, restore its score badge, and merge the replacement entry |
-| Smithery | No canonical listing; local stdio submission currently requires an MCPB bundle | Add MCPB packaging before submitting; do not publish an incompatible listing |
+| Smithery | No canonical listing; the truthful staged MCPB foundation merged in PR #124 but is not self-contained | Complete and verify native runtime issue #125 before submitting; do not publish the staged launcher |
 | MCP.so | [Submission issue #3098](https://github.com/chatmcp/mcpso/issues/3098) open | Await directory review and verify the published record |
 | Vidocu video MCP roundup | Current article omits Kinocut | Outreach sent to the publisher on 2026-07-10; await editorial response |
 | ffpipe roundup | No matching public roundup was found; ffpipe's live site currently promotes its own MCP service | Recheck only if a roundup URL is supplied or published |
@@ -58,6 +58,9 @@ Kinocut 1.7.0 cutover.
 - Protodex: [refresh issue #26](https://github.com/LuciferForge/mcp-directory/issues/26)
 - Freshcrate: correction form attempted on 2026-07-10, but the site reported that
   its contact inbox was not configured; no successful submission is claimed.
+- MCPB: staged packaging foundation merged in Forgejo PR #124; self-contained native
+  runtime work and its release blockers are tracked in issue #125. No Smithery
+  submission is claimed.
 
 Glama's public flow requires owner authentication and human verification. The
 canonical repository already contains `glama.json` with the maintainer identity and
