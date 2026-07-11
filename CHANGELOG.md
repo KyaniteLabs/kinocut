@@ -11,6 +11,10 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Added
+
+- Added a path-based `skills/kinocut-repurpose` v1 skill, install notes, and a deterministic current-tools demo script for producing local short-clip repurpose packages without inventing commands or publishing externally.
+
 ## 1.7.0 - 2026-07-10
 
 ### Added
