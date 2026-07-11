@@ -65,7 +65,18 @@ def validate_manifest(manifest: dict[str, Any]) -> list[str]:
         errors.append("server.mcp_config.command must be node")
     if mcp_config.get("args") != ["${__dirname}/server/launcher.js"]:
         errors.append("server.mcp_config.args must launch the bundle-relative launcher")
+    expected_env = {
+        "KINOCUT_MCPB_PYTHON": "${user_config.pythonExecutable}",
+        "KINOCUT_MCPB_FFMPEG": "${user_config.ffmpegPath}",
+        "MCP_VIDEO_HYPERFRAMES_COMMAND": "${user_config.hyperframesCommand}",
+    }
+    if mcp_config.get("env") != expected_env:
+        errors.append("server.mcp_config.env must not expose unenforced root or optional-AI contracts")
     user_config = manifest.get("user_config", {})
+    prohibited_config = {"workspaceRoot", "outputRoot", "enableOptionalAi"}
+    prohibited_present = sorted(prohibited_config.intersection(user_config))
+    if prohibited_present:
+        errors.append(f"user_config has unenforced fields: {', '.join(prohibited_present)}")
     for key, config in user_config.items():
         if config.get("type") not in CONFIG_TYPES:
             errors.append(f"user_config.{key}.type is invalid")

@@ -5,7 +5,7 @@
   "display_name": "Kinocut",
   "version": "1.7.0",
   "description": "Local stdio MCP server for guarded FFmpeg video workflows.",
-  "long_description": "Kinocut exposes local video editing, analysis, workflow, rescue, and repurposing tools over MCP stdio. This MCPB package is a staged local launcher: it does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, optional AI packages, or model weights. Configure an existing Python environment with Kinocut installed, keep FFmpeg available on PATH or configured by path, and enable optional AI or Hyperframes capabilities only after installing their dependencies.",
+  "long_description": "Kinocut exposes local video editing, analysis, workflow, rescue, and repurposing tools over MCP stdio. This MCPB package is a staged local launcher: it does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, optional AI packages, or model weights. Configure an existing Python environment with Kinocut installed, keep FFmpeg available on PATH or configured by path, and install optional AI or Hyperframes dependencies only when you intend to use those capabilities.",
   "author": {
     "name": "Kyanite Labs",
     "url": "https://kinocut.dev/"
@@ -34,30 +34,13 @@
         "${__dirname}/server/launcher.js"
       ],
       "env": {
-        "KINOCUT_MCPB_ALLOWED_ROOT": "${user_config.workspaceRoot}",
-        "KINOCUT_MCPB_OUTPUT_ROOT": "${user_config.outputRoot}",
         "KINOCUT_MCPB_PYTHON": "${user_config.pythonExecutable}",
         "KINOCUT_MCPB_FFMPEG": "${user_config.ffmpegPath}",
-        "MCP_VIDEO_HYPERFRAMES_COMMAND": "${user_config.hyperframesCommand}",
-        "KINOCUT_MCPB_ENABLE_OPTIONAL_AI": "${user_config.enableOptionalAi}"
+        "MCP_VIDEO_HYPERFRAMES_COMMAND": "${user_config.hyperframesCommand}"
       }
     }
   },
   "user_config": {
-    "workspaceRoot": {
-      "type": "directory",
-      "title": "Workspace root",
-      "description": "Directory where Kinocut should read source media by default. MCPB itself does not sandbox access; choose the narrowest folder you plan to use.",
-      "default": "${HOME}/Movies",
-      "required": true
-    },
-    "outputRoot": {
-      "type": "directory",
-      "title": "Output root",
-      "description": "Directory where generated media should be written by default. Keep it separate from source media when possible.",
-      "default": "${HOME}/Movies/Kinocut",
-      "required": true
-    },
     "pythonExecutable": {
       "type": "string",
       "title": "Python executable",
@@ -77,13 +60,6 @@
       "title": "Hyperframes command",
       "description": "Optional Hyperframes command for Hyperframes-specific tools. Leave blank to keep those tools capability-gated.",
       "default": "",
-      "required": false
-    },
-    "enableOptionalAi": {
-      "type": "boolean",
-      "title": "Enable optional AI tools",
-      "description": "Set true only after installing the optional Kinocut AI extras and local model dependencies in the selected Python environment.",
-      "default": false,
       "required": false
     }
   },

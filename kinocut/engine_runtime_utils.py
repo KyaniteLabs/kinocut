@@ -28,6 +28,19 @@ logger = logging.getLogger(__name__)
 
 
 def _find_executable(name: str) -> str:
+    env_name = {
+        "ffmpeg": "KINOCUT_FFMPEG_EXECUTABLE",
+        "ffprobe": "KINOCUT_FFPROBE_EXECUTABLE",
+    }.get(name)
+    if env_name:
+        configured = os.environ.get(env_name, "").strip()
+        if configured:
+            expected = f"{name}.exe" if os.name == "nt" else name
+            if os.path.basename(configured).lower() == expected and os.path.isfile(configured) and os.access(
+                configured, os.X_OK
+            ):
+                return configured
+            raise FFmpegNotFoundError() if name == "ffmpeg" else FFprobeNotFoundError()
     path = shutil.which(name)
     if path is None:
         raise FFmpegNotFoundError() if name == "ffmpeg" else FFprobeNotFoundError()

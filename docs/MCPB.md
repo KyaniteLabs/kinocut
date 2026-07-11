@@ -8,18 +8,15 @@ MCPB does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, or AI model wei
 
 - Node.js 18 or newer, used only by the MCPB launcher.
 - Python 3.11 or newer with `kinocut==1.7.0` installed.
-- FFmpeg and ffprobe available on `PATH`, or FFmpeg configured through the installer field.
+- FFmpeg and ffprobe available on `PATH`, or an executable named `ffmpeg` configured through the installer field with an adjacent `ffprobe`.
 - Optional AI features require the matching Kinocut extras and local model dependencies.
 - Hyperframes tools require a resolvable Hyperframes command; leave the field blank if you do not use those tools.
 
-## Directory Configuration
+## Local Access Boundary
 
-The manifest asks for two directories:
+This staged manifest intentionally does not ask for workspace/output fields. Those fields would look like a security boundary, but Kinocut's legacy direct tools can still receive absolute paths from the client.
 
-- `workspaceRoot`: the source-media folder you intend to expose.
-- `outputRoot`: the folder for generated media.
-
-Choose the narrowest folders that fit the workflow. MCPB has no platform sandbox, so this configuration is an install-time safety prompt and documentation contract rather than an OS-enforced permission boundary. Kinocut's existing tool and workflow guardrails still validate their own paths, and workflow specs remain workspace-confined, but legacy direct tools can still receive absolute paths from the client.
+MCPB has no platform sandbox. Kinocut's existing tool and workflow guardrails still validate their own paths, and workflow specs remain workspace-confined, but this package must not be treated as an OS-enforced filesystem permission layer.
 
 ## Build And Validate
 
@@ -52,4 +49,4 @@ Do not publish this MCPB package externally until these gates are closed:
 - Test install on clean macOS, Linux, and Windows machines without repository-local imports.
 - Decide whether to keep this staged launcher or produce per-platform bundles that include Python, Kinocut, and FFmpeg.
 - Add enforced MCPB runtime confinement for direct-tool absolute paths, or keep the package clearly labeled as user-configured local access.
-- Verify optional AI and Hyperframes behavior with dependencies absent and present.
+- Verify dependency-driven optional AI and Hyperframes behavior with dependencies absent and present.
