@@ -15,9 +15,22 @@ from mcp_video.errors import MCPVideoError
 from mcp_video.models import EditResult
 
 
-def _fake_c2patool(path: Path, *, verify_failure: bool = False, verify_payload: dict | None = None) -> Path:
+_DEFAULT_VERIFY_PAYLOAD = object()
+
+
+def _fake_c2patool(
+    path: Path,
+    *,
+    verify_failure: bool = False,
+    verify_payload: object = _DEFAULT_VERIFY_PAYLOAD,
+) -> Path:
     script = path / "fake-c2patool"
-    success_payload = verify_payload or {"active_manifest": {"label": "kinocut:test"}, "validation_status": []}
+    success_payload = {
+        "active_manifest": "urn:uuid:kinocut-test",
+        "manifests": {"urn:uuid:kinocut-test": {"claim_generator": "Kinocut test"}},
+        "validation_state": "Valid",
+        "validation_status": [],
+    } if verify_payload is _DEFAULT_VERIFY_PAYLOAD else verify_payload
     script.write_text(
         "\n".join(
             [
@@ -54,8 +67,19 @@ def _fake_c2patool_nonzero_verify(path: Path) -> Path:
     script = _fake_c2patool(path)
     text = script.read_text(encoding="utf-8")
     text = text.replace(
-        "print(json.dumps({'active_manifest': {'label': 'kinocut:test'}, 'validation_status': []}))",
-        "print('verification crashed')\nraise SystemExit(9)",
+        "print(json.dumps("
+        + repr(
+            {
+                "active_manifest": "urn:uuid:kinocut-test",
+                "manifests": {"urn:uuid:kinocut-test": {"claim_generator": "Kinocut test"}},
+                "validation_state": "Valid",
+                "validation_status": [],
+            }
+        )
+        + "))",
+        "print('https://private.example/claim /Users/private/asset.mp4 PRIVATE-CERT-DATA')\n"
+        "print('signer=/opt/private/signer secret=SIGNING-MATERIAL', file=sys.stderr)\n"
+        "raise SystemExit(9)",
     )
     script.write_text(text, encoding="utf-8")
     return script
@@ -92,12 +116,9 @@ def test_c2pa_provider_signs_then_verifies_with_fake_executable(tmp_path):
 
     assert result["status"] == "signed"
     assert result["verified"] is True
-    assert result["manifest_sha256"]
-    assert result["verification"] == {
-        "active_manifest": True,
-        "manifest_count": 0,
-        "validation_status": [],
-    }
+    assert result["trusted"] is True
+    assert result["warning_codes"] == []
+    assert set(result) == {"status", "verified", "trusted", "warning_codes"}
     assert "tool" not in result
     assert "manifest_path" not in result
     assert "signer_path" not in result
@@ -119,6 +140,43 @@ def test_c2pa_provider_signs_then_verifies_with_fake_executable(tmp_path):
     assert asset.read_bytes() == b"mp4 bytes\nC2PA-SIGNED"
 
 
+def test_c2pa_provider_reports_untrusted_signing_credential_as_warning(tmp_path):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(
+        tmp_path,
+        verify_payload={
+            "active_manifest": "urn:uuid:kinocut-test",
+            "manifests": {"urn:uuid:test": {"claim_generator": "Kinocut test"}},
+            "validation_state": "Valid",
+            "validation_status": [
+                {
+                    "code": "signingCredential.untrusted",
+                    "explanation": "development signing certificate is not trusted",
+                    "url": "self#jumbf=/c2pa/test/c2pa.signature",
+                    "cert_chain": "PRIVATE-CERT-DATA",
+                }
+            ],
+        },
+    )
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"mp4 bytes")
+
+    result = sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert result["status"] == "signed"
+    assert result["verified"] is True
+    assert result["trusted"] is False
+    assert result["warning_codes"] == ["signing_credential_untrusted"]
+    assert set(result) == {"status", "verified", "trusted", "warning_codes"}
+    serialized = json.dumps(result)
+    assert "signingCredential.untrusted" not in serialized
+    assert "development signing certificate" not in serialized
+    assert "self#jumbf" not in serialized
+    assert "PRIVATE-CERT-DATA" not in serialized
+
+
 def test_c2pa_provider_fails_closed_when_verification_reports_errors(tmp_path):
     from mcp_video.c2pa import sign_export_with_c2pa
 
@@ -138,10 +196,180 @@ def test_c2pa_provider_fails_closed_when_verification_reports_errors(tmp_path):
     assert calls[1] == [str(asset.with_name("final.c2pa-signing.mp4"))]
 
 
+def test_c2pa_provider_fails_when_untrusted_status_has_invalid_validation_state(tmp_path):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(
+        tmp_path,
+        verify_payload={
+            "active_manifest": "urn:uuid:kinocut-test",
+            "validation_state": "Invalid",
+            "validation_status": [{"code": "signingCredential.untrusted"}],
+        },
+    )
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    original_bytes = b"original mp4 bytes"
+    asset.write_bytes(original_bytes)
+
+    with pytest.raises(MCPVideoError) as exc:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert exc.value.code == "c2pa_verification_failed"
+    assert asset.read_bytes() == original_bytes
+
+
+def test_c2pa_provider_fails_when_untrusted_status_is_not_the_only_status(tmp_path):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(
+        tmp_path,
+        verify_payload={
+            "active_manifest": "urn:uuid:kinocut-test",
+            "validation_state": "Valid",
+            "validation_status": [
+                {"code": "signingCredential.untrusted"},
+                {"code": "claimSignature.mismatch"},
+            ],
+        },
+    )
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    original_bytes = b"original mp4 bytes"
+    asset.write_bytes(original_bytes)
+
+    with pytest.raises(MCPVideoError) as exc:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert exc.value.code == "c2pa_verification_failed"
+    assert asset.read_bytes() == original_bytes
+
+
 def test_c2pa_provider_fails_closed_when_verify_command_fails(tmp_path):
     from mcp_video.c2pa import sign_export_with_c2pa
 
     tool = _fake_c2patool_nonzero_verify(tmp_path)
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"mp4 bytes")
+
+    with pytest.raises(MCPVideoError) as exc:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert exc.value.code == "c2pa_verification_failed"
+    assert str(exc.value) == "C2PA verification failed: c2patool verification command failed"
+    serialized = json.dumps(exc.value.to_dict())
+    for sensitive in (
+        "private.example",
+        "/Users/private",
+        "PRIVATE-CERT-DATA",
+        "/opt/private/signer",
+        "SIGNING-MATERIAL",
+        str(tool),
+        str(asset),
+    ):
+        assert sensitive not in serialized
+
+
+@pytest.mark.parametrize("validation_status", [{}, 0, False, ""])
+def test_c2pa_provider_rejects_present_non_list_validation_status(tmp_path, validation_status):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(
+        tmp_path,
+        verify_payload={
+            "active_manifest": "urn:uuid:kinocut-test",
+            "validation_state": "Valid",
+            "validation_status": validation_status,
+        },
+    )
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"mp4 bytes")
+
+    with pytest.raises(MCPVideoError) as exc:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert exc.value.code == "c2pa_verification_failed"
+
+
+def test_c2pa_provider_allows_missing_validation_status(tmp_path):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(
+        tmp_path,
+        verify_payload={
+            "active_manifest": "urn:uuid:kinocut-test",
+            "validation_state": "Valid",
+        },
+    )
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"mp4 bytes")
+
+    result = sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert result == {"status": "signed", "verified": True, "trusted": True, "warning_codes": []}
+
+
+@pytest.mark.parametrize(
+    "manifest_evidence",
+    [
+        {"active_manifest": "urn:uuid:kinocut-test"},
+        {"manifests": {"urn:uuid:kinocut-test": {}}},
+        {
+            "active_manifest": "urn:uuid:kinocut-test",
+            "manifests": {"urn:uuid:kinocut-test": {}},
+        },
+    ],
+)
+def test_c2pa_provider_accepts_structured_manifest_evidence(tmp_path, manifest_evidence):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    payload = {"validation_state": "Valid", "validation_status": [], **manifest_evidence}
+    tool = _fake_c2patool(tmp_path, verify_payload=payload)
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"mp4 bytes")
+
+    result = sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert result["status"] == "signed"
+
+
+@pytest.mark.parametrize(
+    "manifest_evidence",
+    [
+        {},
+        {"active_manifest": ""},
+        {"active_manifest": True},
+        {"active_manifest": {"label": "truthy but invalid"}},
+        {"manifests": {}},
+        {"manifests": []},
+        {"manifests": True},
+        {"manifests": {"": {}}},
+    ],
+)
+def test_c2pa_provider_rejects_invalid_manifest_evidence(tmp_path, manifest_evidence):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    payload = {"validation_state": "Valid", "validation_status": [], **manifest_evidence}
+    tool = _fake_c2patool(tmp_path, verify_payload=payload)
+    manifest = _manifest(tmp_path)
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"mp4 bytes")
+
+    with pytest.raises(MCPVideoError) as exc:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest), tool_path=str(tool))
+
+    assert exc.value.code == "c2pa_verification_failed"
+
+
+@pytest.mark.parametrize("payload", [[], False, 0, "verification"])
+def test_c2pa_provider_rejects_non_object_top_level_json(tmp_path, payload):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    tool = _fake_c2patool(tmp_path, verify_payload=payload)
     manifest = _manifest(tmp_path)
     asset = tmp_path / "final.mp4"
     asset.write_bytes(b"mp4 bytes")
@@ -225,6 +453,7 @@ def test_export_video_can_sign_final_mp4(monkeypatch, tmp_path):
     assert result.c2pa is not None
     assert result.c2pa["status"] == "signed"
     assert result.c2pa["verified"] is True
+    assert result.c2pa["trusted"] is True
     assert result.operation == "export"
 
 
@@ -338,6 +567,8 @@ def test_cli_export_json_can_sign_with_fake_c2patool(sample_video, tmp_path):
     assert payload["operation"] == "export"
     assert payload["c2pa"]["status"] == "signed"
     assert payload["c2pa"]["verified"] is True
+    assert payload["c2pa"]["trusted"] is True
+    assert payload["c2pa"]["warning_codes"] == []
     serialized = json.dumps(payload["c2pa"])
     assert str(tool) not in serialized
     assert str(manifest) not in serialized
@@ -372,3 +603,5 @@ def test_real_c2patool_signs_when_tool_and_manifest_are_available(sample_video, 
     assert result.c2pa is not None
     assert result.c2pa["status"] == "signed"
     assert result.c2pa["verified"] is True
+    assert result.c2pa["trusted"] in {True, False}
+    assert "warning_codes" in result.c2pa

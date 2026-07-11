@@ -6,13 +6,16 @@ import json
 import os
 import shutil
 import subprocess
-from hashlib import sha256
 from pathlib import Path
 from typing import Any
 
 from .defaults import DEFAULT_C2PA_TIMEOUT
 from .errors import C2PASigningError, C2PAToolNotFoundError, C2PAVerificationError, MCPVideoError
 from .ffmpeg_helpers import _validate_artifact_path, _validate_input_path, _validate_output_path
+
+
+_UNTRUSTED_SIGNING_CREDENTIAL_STATUS = "signingCredential.untrusted"
+_UNTRUSTED_SIGNING_CREDENTIAL_WARNING = "signing_credential_untrusted"
 
 
 def sign_export_with_c2pa(
@@ -52,8 +55,8 @@ def sign_export_with_c2pa(
     return {
         "status": "signed",
         "verified": True,
-        "manifest_sha256": _sha256_file(manifest),
-        "verification": verification,
+        "trusted": verification["trusted"],
+        "warning_codes": verification["warning_codes"],
     }
 
 
@@ -102,11 +105,11 @@ def _run_c2patool(
             raise C2PAVerificationError(f"{phase} timed out after {DEFAULT_C2PA_TIMEOUT}s") from exc
         raise C2PASigningError(f"{phase} timed out after {DEFAULT_C2PA_TIMEOUT}s", code="c2pa_timeout") from exc
     if result.returncode != 0:
+        if verification:
+            raise C2PAVerificationError("c2patool verification command failed")
         stderr = result.stderr[-500:] if result.stderr else ""
         stdout = result.stdout[-500:] if result.stdout else ""
         detail = stderr or stdout or f"c2patool exited with {result.returncode}"
-        if verification:
-            raise C2PAVerificationError(detail)
         raise C2PASigningError(detail)
     return result
 
@@ -117,33 +120,49 @@ def _verify_signed_asset(tool: str, asset: str) -> dict[str, Any]:
         payload = json.loads(result.stdout) if result.stdout.strip() else {}
     except json.JSONDecodeError as exc:
         raise C2PAVerificationError(f"c2patool returned non-JSON verification output: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise C2PAVerificationError("c2patool verification output was not a JSON object")
 
-    validation_status = payload.get("validation_status")
-    if validation_status:
-        raise C2PAVerificationError(json.dumps(validation_status, sort_keys=True))
     active_manifest = payload.get("active_manifest")
     manifests = payload.get("manifests")
+    has_active_manifest = isinstance(active_manifest, str) and bool(active_manifest.strip())
     manifest_count = _manifest_count(manifests)
-    if not active_manifest and manifest_count == 0:
+    if not has_active_manifest and manifest_count == 0:
         raise C2PAVerificationError("c2patool verification output did not include a manifest")
+    if payload.get("validation_state") != "Valid":
+        raise C2PAVerificationError("c2patool verification state was not Valid")
+
+    validation_status = payload.get("validation_status", [])
+    if not isinstance(validation_status, list):
+        raise C2PAVerificationError("c2patool verification status was not a list")
+    trusted = True
+    warning_codes: list[str] = []
+    if validation_status:
+        if _is_untrusted_signing_credential_only(validation_status):
+            trusted = False
+            warning_codes.append(_UNTRUSTED_SIGNING_CREDENTIAL_WARNING)
+        else:
+            raise C2PAVerificationError("c2patool verification reported fatal validation status")
     return {
-        "active_manifest": bool(active_manifest),
+        "active_manifest": has_active_manifest,
         "manifest_count": manifest_count,
-        "validation_status": [],
+        "trusted": trusted,
+        "warning_codes": warning_codes,
     }
+
+
+def _is_untrusted_signing_credential_only(validation_status: Any) -> bool:
+    if not isinstance(validation_status, list) or len(validation_status) != 1:
+        return False
+    status = validation_status[0]
+    return isinstance(status, dict) and status.get("code") == _UNTRUSTED_SIGNING_CREDENTIAL_STATUS
 
 
 def _manifest_count(manifests: Any) -> int:
     if isinstance(manifests, dict):
-        return len(manifests)
-    if isinstance(manifests, list):
-        return len(manifests)
+        return sum(
+            1
+            for label, manifest in manifests.items()
+            if isinstance(label, str) and bool(label.strip()) and isinstance(manifest, dict)
+        )
     return 0
-
-
-def _sha256_file(path: str) -> str:
-    digest = sha256()
-    with open(path, "rb") as f:
-        for chunk in iter(lambda: f.read(1024 * 1024), b""):
-            digest.update(chunk)
-    return digest.hexdigest()

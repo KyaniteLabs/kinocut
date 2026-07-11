@@ -2,7 +2,7 @@
 
 Kinocut can optionally add a C2PA manifest to final MP4 exports on the existing path-based `export` / `video_export` / `Client.export()` flow.
 
-Signing is off by default. Kinocut only reports `c2pa.status == "signed"` after `c2patool` signs the rendered MP4 and a follow-up `c2patool <asset>` verification read succeeds without validation errors. If `c2patool`, the manifest, a signer, or credentials are unavailable, the export does not claim signing.
+Signing is off by default. Kinocut only reports `c2pa.status == "signed"` after `c2patool` signs the rendered MP4 and a follow-up `c2patool <asset>` verification read proves a valid claim with manifest evidence. If `c2patool`, the manifest, a signer, or credentials are unavailable, the export does not claim signing.
 
 ## Requirements
 
@@ -47,6 +47,7 @@ result = Client().export(
 
 assert result.c2pa["status"] == "signed"
 assert result.c2pa["verified"] is True
+assert result.c2pa["trusted"] in {True, False}
 ```
 
 ## MCP
@@ -63,7 +64,12 @@ assert result.c2pa["verified"] is True
 - C2PA signing is currently limited to final MP4 exports.
 - Missing or non-executable `c2patool` raises `c2patool_not_found`.
 - `c2patool` signing failures raise `c2pa_signing_failed` or `c2pa_timeout`.
-- Verification output with validation problems raises `c2pa_verification_failed`.
+- Cryptographic verification and signer trust are reported separately:
+  - `verified: true` means the signed asset read-back had `validation_state == "Valid"` and manifest evidence.
+  - `trusted: true` means the verification read-back had no signer-trust warnings.
+  - `trusted: false` with `warning_codes: ["signing_credential_untrusted"]` means the only validation status was `signingCredential.untrusted`; this is expected for the built-in `c2patool` development certificate and is not treated as a cryptographic failure.
+- Any other validation status, any additional status alongside `signingCredential.untrusted`, missing manifest evidence, or a non-`Valid` validation state raises `c2pa_verification_failed`.
+- Public C2PA receipts contain exactly `status`, `verified`, `trusted`, and `warning_codes`. Manifest digests and nested verification evidence remain internal; public results do not include verifier URLs, explanations, certificate chains, local paths, signer commands, tool paths, or signing material.
 
 Run the focused fake-provider tests with:
 
