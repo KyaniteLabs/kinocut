@@ -183,11 +183,13 @@ only-include = [
     "/mcp_video.py",
     "/CHANGELOG.md",
     "/docs/MCPB.md",
+    "/docs/MCPB_SUPPLY_CHAIN.md",
     "/LICENSE",
     "/mcpb",
     "/README.md",
     "/pyproject.toml",
     "/scripts/build-mcpb.py",
+    "/scripts/mcpb",
     "/server.json",
 ]
 
