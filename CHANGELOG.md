@@ -15,6 +15,7 @@ This project follows a simple release-note style:
 
 - Added a path-based `skills/kinocut-repurpose` v1 skill, install notes, and a deterministic current-tools demo script for producing local short-clip repurpose packages without inventing commands or publishing externally.
 - Optional C2PA provenance signing for final MP4 exports on the existing path-based `export` / `video_export` / `Client.export()` flow. Signing remains off by default and only reports `signed` after `c2patool` signs and a follow-up verification read succeeds.
+- Added a staged Kinocut MCPB package (`mcpb/`) with a valid v0.4 manifest, Node stdio launcher, local build/validation script, user-facing install docs, and explicit release gates for bundled runtimes and runtime confinement.
 
 ## 1.7.0 - 2026-07-10
 

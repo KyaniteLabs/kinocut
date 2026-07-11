@@ -201,6 +201,16 @@ pip install kinocut
 kino doctor
 ```
 
+For Claude Desktop-style MCPB installs, Kinocut includes a staged local package at
+`mcpb/` and a local build script:
+
+```bash
+python3 scripts/build-mcpb.py
+```
+
+This package is honest about its runtime: it launches an existing Python environment with
+Kinocut installed and still requires local FFmpeg. See [docs/MCPB.md](docs/MCPB.md).
+
 Hyperframes tools additionally need Node.js 22+ and a resolvable Hyperframes CLI. Install/pin Hyperframes in the active Node package layout, add `hyperframes` to `PATH`, or set `MCP_VIDEO_HYPERFRAMES_COMMAND`.
 
 ### Which extra do I need?
