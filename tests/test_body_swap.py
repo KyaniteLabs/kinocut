@@ -188,7 +188,7 @@ def test_audio_fingerprint_covers_payload_after_first_5000_packets(tmp_path):
     (
         ("pad_video", 0.6, 1.0, "preserved"),
         ("trim_video", 1.0, 0.6, "preserved"),
-        ("trim_audio", 0.6, 1.0, "changed"),
+        ("trim_audio", 0.6, 1.0, "preserved"),
     ),
 )
 def test_explicit_duration_policies(tmp_path, policy, video_duration, audio_duration, expected_verdict):
@@ -419,3 +419,179 @@ def test_source_fingerprint_translates_read_failure(tmp_path, monkeypatch):
     monkeypatch.setattr("kinocut.source_identity.os.open", failed_open)
     with pytest.raises(InputFileError):
         _source_fingerprint(str(source))
+
+
+def _trim_audio_args(args: list) -> tuple[str, str, str]:
+    """Pull (video_input, bound, output) from a body_swap render argv list."""
+    inputs = [args[i + 1] for i, arg in enumerate(args) if arg == "-i"]
+    bound = next(args[i + 1] for i, arg in enumerate(args) if arg == "-t" and i + 1 < len(args))
+    return inputs[0], bound, args[-1]
+
+
+def test_trim_audio_rejects_substituted_audio_of_matching_duration(tmp_path, monkeypatch):
+    """RED: trim_audio must reject output whose audio is from a different source.
+
+    A hostile renderer swaps in a clip of the same trim duration and codec
+    topology; under the old whole-stream proof this passes because
+    preservation is not required for trim_audio. The bounded decoded-prefix
+    evidence must catch the substitution.
+    """
+    import kinocut.engine_body_swap as engine
+    from kinocut.ffmpeg_helpers import _run_ffmpeg as real_run_ffmpeg
+
+    short_video = _clip(tmp_path / "ta-sub-short-video.mp4", duration=0.6, color="blue")
+    long_audio = _clip(tmp_path / "ta-sub-long-audio.mp4", duration=1.0, base_frequency=440, color="red")
+    substitute = _clip(tmp_path / "ta-sub-substitute.mp4", duration=0.6, base_frequency=880, color="green")
+
+    def hostile_render(args, *, pass_fds=()):
+        video_input, bound, output = _trim_audio_args(args)
+        return real_run_ffmpeg(
+            [
+                "-i",
+                video_input,
+                "-i",
+                str(substitute),
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-c:v",
+                "copy",
+                "-c:a",
+                "copy",
+                "-t",
+                bound,
+                output,
+            ],
+            pass_fds=pass_fds,
+        )
+
+    monkeypatch.setattr(engine, "_run_ffmpeg", hostile_render)
+    with pytest.raises(MCPVideoError) as excinfo:
+        engine.body_swap(
+            str(short_video),
+            str(long_audio),
+            str(tmp_path / "ta-sub-hostile-output.mp4"),
+            duration_policy="trim_audio",
+        )
+    assert excinfo.value.code == "protected_element_change"
+
+
+def test_trim_audio_rejects_corrupt_audio_of_matching_duration(tmp_path, monkeypatch):
+    """RED: trim_audio must reject output whose audio samples are perturbed.
+
+    A hostile renderer re-encodes the approved audio with a tiny volume nudge,
+    preserving duration and codec topology but mutating the decoded samples.
+    """
+    import kinocut.engine_body_swap as engine
+    from kinocut.ffmpeg_helpers import _run_ffmpeg as real_run_ffmpeg
+
+    short_video = _clip(tmp_path / "ta-corr-short-video.mp4", duration=0.6, color="blue")
+    long_audio = _clip(tmp_path / "ta-corr-long-audio.mp4", duration=1.0, base_frequency=440, color="red")
+
+    def hostile_render(args, *, pass_fds=()):
+        inputs = [args[i + 1] for i, arg in enumerate(args) if arg == "-i"]
+        video_input, audio_input = inputs[0], inputs[1]
+        _, bound, output = _trim_audio_args(args)
+        return real_run_ffmpeg(
+            [
+                "-i",
+                video_input,
+                "-i",
+                audio_input,
+                "-filter_complex",
+                "[1:a]volume=1.05[a]",
+                "-map",
+                "0:v:0",
+                "-map",
+                "[a]",
+                "-c:v",
+                "copy",
+                "-c:a",
+                "aac",
+                "-t",
+                bound,
+                output,
+            ],
+            pass_fds=pass_fds,
+        )
+
+    monkeypatch.setattr(engine, "_run_ffmpeg", hostile_render)
+    with pytest.raises(MCPVideoError) as excinfo:
+        engine.body_swap(
+            str(short_video),
+            str(long_audio),
+            str(tmp_path / "ta-corr-corrupt-output.mp4"),
+            duration_policy="trim_audio",
+        )
+    assert excinfo.value.code == "protected_element_change"
+
+
+def test_trim_audio_rejects_substituted_audio_via_verified_descriptors(tmp_path, monkeypatch):
+    """RED: trim_audio must reject hostile renders reached through verified fds."""
+    import kinocut.engine_body_swap as engine
+    from kinocut.ffmpeg_helpers import _run_ffmpeg as real_run_ffmpeg
+    from kinocut.source_identity import stream_source_identity
+
+    short_video = _clip(tmp_path / "ta-ver-short-video.mp4", duration=0.6, color="blue")
+    long_audio = _clip(tmp_path / "ta-ver-long-audio.mp4", duration=1.0, base_frequency=440, color="red")
+    substitute = _clip(tmp_path / "ta-ver-substitute.mp4", duration=0.6, base_frequency=990, color="green")
+
+    def hostile_render(args, *, pass_fds=()):
+        video_input, bound, output = _trim_audio_args(args)
+        # Pass the inherited descriptors through so the legitimate fd-backed
+        # video is read; the substitute audio is a regular file the subprocess
+        # opens by path.
+        return real_run_ffmpeg(
+            [
+                "-i",
+                video_input,
+                "-i",
+                str(substitute),
+                "-map",
+                "0:v:0",
+                "-map",
+                "1:a:0",
+                "-c:v",
+                "copy",
+                "-c:a",
+                "copy",
+                "-t",
+                bound,
+                output,
+            ],
+            pass_fds=pass_fds,
+        )
+
+    monkeypatch.setattr(engine, "_run_ffmpeg", hostile_render)
+    with pytest.raises(MCPVideoError) as excinfo:
+        engine.body_swap(
+            str(short_video),
+            str(long_audio),
+            str(tmp_path / "ta-ver-hostile-output.mp4"),
+            duration_policy="trim_audio",
+            verified_source_identities=(
+                stream_source_identity(str(short_video)),
+                stream_source_identity(str(long_audio)),
+            ),
+        )
+    assert excinfo.value.code == "protected_element_change"
+    assert not list(tmp_path.glob(".body-swap.*"))
+
+
+def test_trim_audio_legitimate_cut_preserves_approved_prefix(tmp_path):
+    """GREEN contract: a faithful trim_audio cut returns a preserved prefix proof."""
+    from kinocut.engine_body_swap import body_swap
+
+    short_video = _clip(tmp_path / "ta-ok-short-video.mp4", duration=0.6, color="blue")
+    long_audio = _clip(tmp_path / "ta-ok-long-audio.mp4", duration=1.0, base_frequency=440, color="red")
+    result = body_swap(
+        str(short_video),
+        str(long_audio),
+        str(tmp_path / "ta-ok-output.mp4"),
+        duration_policy="trim_audio",
+    )
+    proof = result["preservation_proofs"][0]
+    assert proof["verdict"] == "preserved"
+    assert proof["expected"] == "approved_audio_prefix_preserved"
+    assert proof["source_fingerprint"] == proof["output_fingerprint"]

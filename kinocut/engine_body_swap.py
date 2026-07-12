@@ -115,6 +115,19 @@ def _audio_streams_with_counts(path: str, *, pass_fds: tuple[int, ...] = ()) -> 
     return streams
 
 
+def _parse_stream_hashes(stdout: str) -> list[str]:
+    """Normalize ffmpeg ``-f streamhash`` lines into ``sha256:`` tokens, in order."""
+    hashes: list[str] = []
+    for line in stdout.splitlines():
+        marker = "SHA256="
+        if marker not in line:
+            continue
+        value = line.split(marker, 1)[1].strip().lower()
+        if len(value) == 64 and all(character in "0123456789abcdef" for character in value):
+            hashes.append("sha256:" + value)
+    return hashes
+
+
 def _whole_audio_hashes(path: str, expected_streams: int, *, pass_fds: tuple[int, ...] = ()) -> list[str]:
     result = _run_command(
         [
@@ -136,16 +149,53 @@ def _whole_audio_hashes(path: str, expected_streams: int, *, pass_fds: tuple[int
         timeout=DEFAULT_FFMPEG_TIMEOUT,
         pass_fds=pass_fds,
     )
-    hashes = []
-    for line in result.stdout.splitlines():
-        marker = "SHA256="
-        if marker not in line:
-            continue
-        value = line.split(marker, 1)[1].strip().lower()
-        if len(value) == 64 and all(character in "0123456789abcdef" for character in value):
-            hashes.append("sha256:" + value)
+    hashes = _parse_stream_hashes(result.stdout)
     if len(hashes) != expected_streams:
         raise ProcessingError("ffmpeg whole audio stream hash", 0, "incomplete stream hashes")
+    return hashes
+
+
+def _bounded_audio_pcm_hashes(
+    path: str,
+    bound_seconds: float,
+    expected_streams: int,
+    *,
+    pass_fds: tuple[int, ...] = (),
+) -> list[str]:
+    """Hash the first ``bound_seconds`` of every audio stream as decoded PCM.
+
+    Re-decoding to ``pcm_s16le`` is independent of muxer packet layout, so this
+    catches sample-level substitution or re-encode corruption even when the
+    container-level packet sequence and stream topology look plausible. The
+    bound is shared between the approved source and the rendered output so a
+    legitimate ``-c:a copy -t`` cut produces identical per-stream hashes.
+    """
+    bound = str(_sanitize_ffmpeg_number(bound_seconds, "audio bound"))
+    result = _run_command(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            path,
+            "-map",
+            "0:a",
+            "-t",
+            bound,
+            "-c:a",
+            "pcm_s16le",
+            "-f",
+            "streamhash",
+            "-hash",
+            "sha256",
+            "-",
+        ],
+        timeout=DEFAULT_FFMPEG_TIMEOUT,
+        pass_fds=pass_fds,
+    )
+    hashes = _parse_stream_hashes(result.stdout)
+    if len(hashes) != expected_streams:
+        raise ProcessingError("ffmpeg bounded audio PCM hash", 0, "incomplete stream hashes")
     return hashes
 
 
@@ -258,7 +308,7 @@ def _proof(
         _audio_fingerprint(output_path, pass_fds=pass_fds) if pass_fds else _audio_fingerprint(output_path)
     )
     proof = PreservationProof(
-        expected="approved_audio_identical" if preservation_required else "approved_audio_trimmed",
+        expected="approved_audio_identical",
         method="whole_stream_and_packet_fingerprint",
         source_fingerprint=source_fingerprint,
         output_fingerprint=output_fingerprint,
@@ -267,6 +317,99 @@ def _proof(
     if preservation_required and proof.verdict != "preserved":
         raise _validation_error("approved audio preservation gate failed", "protected_element_change")
     return proof
+
+
+# Topology fields preserved by ``-c:a copy``: mutations here would let a
+# hostile renderer swap codec or channel layout while keeping samples
+# superficially plausible, so they are gated independently of the PCM hash.
+_AUDIO_TOPOLOGY_FIELDS = (
+    "codec_name",
+    "sample_fmt",
+    "sample_rate",
+    "channels",
+    "channel_layout",
+)
+
+
+def _require_matching_audio_topology(
+    source_identity: dict[str, Any],
+    output_identity: dict[str, Any],
+) -> None:
+    """Reject stream-count or per-stream topology drift under trim_audio."""
+    source_count = source_identity.get("audio_stream_count")
+    output_count = output_identity.get("audio_stream_count")
+    if source_count != output_count:
+        raise _validation_error(
+            "audio stream count changed under trim_audio",
+            "protected_element_change",
+        )
+    source_streams = source_identity.get("streams", [])
+    output_streams = output_identity.get("streams", [])
+    if len(source_streams) != len(output_streams):
+        raise _validation_error(
+            "audio stream metadata changed under trim_audio",
+            "protected_element_change",
+        )
+    for source_stream, output_stream in zip(source_streams, output_streams, strict=True):
+        for field in _AUDIO_TOPOLOGY_FIELDS:
+            if source_stream.get(field) != output_stream.get(field):
+                raise _validation_error(
+                    "audio stream topology changed under trim_audio",
+                    "protected_element_change",
+                )
+
+
+def _evidence_fingerprint(hashes: list[str]) -> str:
+    """Stable sha256 over a list of per-stream hashes for proof records."""
+    return _sha256("|".join(hashes).encode())
+
+
+def _trim_audio_proof(
+    source_path: str,
+    output_path: str,
+    bound_seconds: float,
+    *,
+    source_pass_fds: tuple[int, ...] = (),
+) -> PreservationProof:
+    """Prove the rendered output is a real bounded prefix of the approved audio.
+
+    The whole-stream hash cannot match under ``trim_audio`` (the output is
+    intentionally shorter), so the proof re-decodes the first ``bound_seconds``
+    of every audio stream from both source and output to canonical PCM and
+    requires per-stream equality. Topology fields (codec, sample rate, channel
+    layout) are gated independently so a stream swap that preserves samples but
+    mutates layout cannot slip through. Duration is bounded by the supplied
+    ``bound_seconds`` so the comparison window is the same on both sides.
+    """
+    source_identity = _audio_evidence(source_path, pass_fds=source_pass_fds)["identity"]
+    output_identity = _audio_evidence(output_path)["identity"]
+    _require_matching_audio_topology(source_identity, output_identity)
+    stream_count = int(source_identity["audio_stream_count"])
+    source_hashes = _bounded_audio_pcm_hashes(
+        source_path,
+        bound_seconds,
+        stream_count,
+        pass_fds=source_pass_fds,
+    )
+    output_hashes = _bounded_audio_pcm_hashes(
+        output_path,
+        bound_seconds,
+        stream_count,
+    )
+    source_fingerprint = _evidence_fingerprint(source_hashes)
+    output_fingerprint = _evidence_fingerprint(output_hashes)
+    if source_hashes != output_hashes:
+        raise _validation_error(
+            "approved audio trim prefix changed",
+            "protected_element_change",
+        )
+    return PreservationProof(
+        expected="approved_audio_prefix_preserved",
+        method="bounded_decoded_pcm_and_topology",
+        source_fingerprint=source_fingerprint,
+        output_fingerprint=output_fingerprint,
+        verdict="preserved",
+    )
 
 
 def _duration_policy_error(policy: str) -> MCPVideoError:
@@ -364,10 +507,17 @@ def _render_from_descriptors(
         pass_fds=pass_fds,
     )
     _assert_bound_identities(originals, (video.identity, audio.identity))
+    if duration_policy == "trim_audio":
+        return _trim_audio_proof(
+            audio.path,
+            str(rendered),
+            video_duration,
+            source_pass_fds=pass_fds,
+        )
     return _proof(
         source_fingerprint,
         str(rendered),
-        preservation_required=duration_policy != "trim_audio",
+        preservation_required=True,
     )
 
 
@@ -473,7 +623,6 @@ def body_swap(
         if mismatch and duration_policy is None:
             raise _validation_error("body-swap durations differ; choose an explicit policy")
         _precheck(project, video_source, audio_source, authorization_decision_ids, duration_policy)
-        source_fingerprint = _audio_fingerprint(audio_source)
         render_args = _render_args(
             video_source,
             audio_source,
@@ -483,11 +632,15 @@ def body_swap(
             audio_duration,
         )
         _run_ffmpeg(render_args)
-        proof = _proof(
-            source_fingerprint,
-            output_path,
-            preservation_required=duration_policy != "trim_audio",
-        )
+        if duration_policy == "trim_audio":
+            proof = _trim_audio_proof(audio_source, output_path, video_duration)
+        else:
+            source_fingerprint = _audio_fingerprint(audio_source)
+            proof = _proof(
+                source_fingerprint,
+                output_path,
+                preservation_required=True,
+            )
     return {
         "output_path": output_path,
         "duration_policy": duration_policy or "reject_mismatch",
