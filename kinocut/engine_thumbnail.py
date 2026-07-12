@@ -1,6 +1,7 @@
 """Thumbnail/frame extraction operations for the FFmpeg engine."""
 
 from __future__ import annotations
+import logging
 
 from .engine_edit import _time_to_seconds
 from .errors import MCPVideoError, ValidationError
@@ -10,19 +11,36 @@ from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg
 from .models import ThumbnailResult
 
+logger = logging.getLogger(__name__)
+
 
 def thumbnail(
     input_path: str,
     timestamp: float | str | None = None,
     output_path: str | None = None,
+    smart: bool = True,
 ) -> ThumbnailResult:
-    """Extract a single frame from a video."""
+    """Extract a single frame from a video.
+
+    When smart=True and timestamp is None, uses NIMA to find the most
+    aesthetically pleasing frame instead of defaulting to 10% of duration.
+    Falls back to 10% if NIMA is unavailable.
+    """
     input_path = _validate_input_path(input_path)
 
     if timestamp is None:
-        # Grab frame at 10% of video duration
-        dur = get_duration(input_path)
-        timestamp = dur * 0.1
+        if smart:
+            # NIMA smart selection — finds the most beautiful frame
+            try:
+                from .aesthetic.smart_thumbnail import find_best_thumbnail_timestamp
+
+                timestamp = find_best_thumbnail_timestamp(input_path)
+            except Exception as exc:
+                logger.warning("NIMA smart thumbnail unavailable (%s); using 10%% default", exc)
+        if timestamp is None:
+            # Default: 10% of video duration
+            dur = get_duration(input_path)
+            timestamp = dur * 0.1
     else:
         # Clamp to valid range
         dur = get_duration(input_path)
