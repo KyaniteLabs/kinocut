@@ -37,32 +37,34 @@ _BLOCKED_OUTPUT_PREFIXES = (
     "/var/root",
 )
 _SENSITIVE_HOME_PARTS = {".aws", ".azure", ".config", ".docker", ".gnupg", ".kube", ".ssh"}
-_SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset({
-    ".aac",
-    ".ass",
-    ".avi",
-    ".csv",
-    ".flac",
-    ".gif",
-    ".jpg",
-    ".jpeg",
-    ".json",
-    ".m3u8",
-    ".m4a",
-    ".m4v",
-    ".mkv",
-    ".mov",
-    ".mp3",
-    ".mp4",
-    ".png",
-    ".srt",
-    ".ts",
-    ".txt",
-    ".vtt",
-    ".wav",
-    ".webm",
-    ".webp",
-})
+_SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
+    {
+        ".aac",
+        ".ass",
+        ".avi",
+        ".csv",
+        ".flac",
+        ".gif",
+        ".jpg",
+        ".jpeg",
+        ".json",
+        ".m3u8",
+        ".m4a",
+        ".m4v",
+        ".mkv",
+        ".mov",
+        ".mp3",
+        ".mp4",
+        ".png",
+        ".srt",
+        ".ts",
+        ".txt",
+        ".vtt",
+        ".wav",
+        ".webm",
+        ".webp",
+    }
+)
 
 
 def _validate_input_path(path: str) -> str:
@@ -169,9 +171,7 @@ def _validate_output_path(path: str) -> str:
     projects and temp directories. It must not overwrite system files, symlink
     targets, sensitive home dotfiles, or obviously non-media source/config files.
     """
-    return _validate_write_path(
-        path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path"
-    )
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
 
 
 def _validate_artifact_path(path: str) -> str:
@@ -182,12 +182,15 @@ def _validate_artifact_path(path: str) -> str:
     receipt may only overwrite an existing ``.json`` artifact, never a media
     file or any other on-disk file.
     """
-    return _validate_write_path(
-        path, allowed_existing_suffixes=_SAFE_EXISTING_ARTIFACT_SUFFIXES, label="Artifact path"
-    )
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_ARTIFACT_SUFFIXES, label="Artifact path")
 
 
-def _run_command(cmd: list[str], timeout: int = DEFAULT_FFMPEG_TIMEOUT) -> subprocess.CompletedProcess[str]:
+def _run_command(
+    cmd: list[str],
+    timeout: int = DEFAULT_FFMPEG_TIMEOUT,
+    *,
+    pass_fds: tuple[int, ...] = (),
+) -> subprocess.CompletedProcess[str]:
     """Run an arbitrary command with timeout and error handling.
 
     Bare ``ffmpeg``/``ffprobe`` names are replaced with the resolved runtime
@@ -210,8 +213,17 @@ def _run_command(cmd: list[str], timeout: int = DEFAULT_FFMPEG_TIMEOUT) -> subpr
     cmd_str = " ".join(cmd)
     try:
         # cmd is always a list built from trusted internal ffmpeg/ffprobe paths; no shell=True
+        kwargs: dict[str, Any] = {}
+        if pass_fds:
+            kwargs["pass_fds"] = pass_fds
         result = subprocess.run(  # noqa: S603
-            cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=timeout
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            timeout=timeout,
+            **kwargs,
         )
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
@@ -220,7 +232,7 @@ def _run_command(cmd: list[str], timeout: int = DEFAULT_FFMPEG_TIMEOUT) -> subpr
     return result
 
 
-def _run_ffmpeg(args: list[str]) -> subprocess.CompletedProcess[str]:
+def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subprocess.CompletedProcess[str]:
     """Run FFmpeg with raw arguments; the resolved binary and ``-y`` are prepended.
 
     The previous dual-mode signature (raw args OR a full command) silently
@@ -236,6 +248,9 @@ def _run_ffmpeg(args: list[str]) -> subprocess.CompletedProcess[str]:
     cmd = [_ffmpeg(), "-y", *args]
     try:
         # cmd is always a list-form ffmpeg invocation; no shell=True
+        kwargs: dict[str, Any] = {}
+        if pass_fds:
+            kwargs["pass_fds"] = pass_fds
         proc = subprocess.run(  # noqa: S603
             cmd,
             capture_output=True,
@@ -243,12 +258,48 @@ def _run_ffmpeg(args: list[str]) -> subprocess.CompletedProcess[str]:
             encoding="utf-8",
             errors="replace",
             timeout=DEFAULT_FFMPEG_TIMEOUT,
+            **kwargs,
         )
     except subprocess.TimeoutExpired as e:
         raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from e
     if proc.returncode != 0:
         raise parse_ffmpeg_error(proc.stderr, command=cmd)
     return proc
+
+
+def _run_ffmpeg_bytes(args: list[str]) -> bytes:
+    """Run FFmpeg with a binary ``pipe:1`` output and return its bytes.
+
+    Derived artifact encoders use this no-path sink so FFmpeg never opens an
+    output filename and therefore cannot follow a planted or swap-time symlink.
+    Callers must include an explicit pipe muxer/codec and ``pipe:1`` output.
+    """
+
+    from .engine_runtime_utils import _ffmpeg
+
+    if not args or args[-1] != "pipe:1":
+        raise MCPVideoError(
+            "binary FFmpeg output must target pipe:1",
+            error_type="validation_error",
+            code="invalid_ffmpeg_pipe",
+        )
+    cmd = [_ffmpeg(), "-y", *args]
+    try:
+        proc = subprocess.run(  # noqa: S603
+            cmd,
+            capture_output=True,
+            timeout=DEFAULT_FFMPEG_TIMEOUT,
+        )
+    except subprocess.TimeoutExpired as exc:
+        raise ProcessingError(
+            " ".join(cmd),
+            -1,
+            f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
+        ) from exc
+    stderr = proc.stderr.decode("utf-8", errors="replace")
+    if proc.returncode != 0:
+        raise parse_ffmpeg_error(stderr, command=cmd)
+    return proc.stdout
 
 
 _TIME_RE = re.compile(r"time=(\d+:\d+:\d+\.\d+)")
@@ -462,7 +513,7 @@ def _escape_ffmpeg_filter_value(value: str) -> str:
     )
 
 
-def _get_video_duration(video_path: str) -> float:
+def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
     """Get video duration using ffprobe."""
     cmd = [
         "ffprobe",
@@ -474,7 +525,7 @@ def _get_video_duration(video_path: str) -> float:
         "default=noprint_wrappers=1:nokey=1",
         video_path,
     ]
-    result = _run_command(cmd)
+    result = _run_command(cmd, pass_fds=pass_fds) if pass_fds else _run_command(cmd)
     stdout = result.stdout.strip()
     if not stdout:
         raise ProcessingError(" ".join(cmd), result.returncode, result.stderr)
@@ -486,7 +537,7 @@ def _get_video_duration(video_path: str) -> float:
         ) from None
 
 
-def _run_ffprobe_json(path: str) -> dict[str, Any]:
+def _run_ffprobe_json(path: str, *, pass_fds: tuple[int, ...] = ()) -> dict[str, Any]:
     """Run ffprobe returning full JSON (format + streams)."""
     import json as _json
 
@@ -500,7 +551,11 @@ def _run_ffprobe_json(path: str) -> dict[str, Any]:
         "-show_streams",
         path,
     ]
-    result = _run_command(cmd, timeout=FFPROBE_TIMEOUT)
+    result = (
+        _run_command(cmd, timeout=FFPROBE_TIMEOUT, pass_fds=pass_fds)
+        if pass_fds
+        else _run_command(cmd, timeout=FFPROBE_TIMEOUT)
+    )
     try:
         return _json.loads(result.stdout)
     except _json.JSONDecodeError as e:

@@ -18,6 +18,40 @@ editor = Client()
 Media-producing methods return an `EditResult`-compatible object with `.output_path`.
 Analysis methods return report models or dictionaries.
 
+## Project-backed Inspection Methods
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `ingest(project_dir, source_path, lineage?, usage_rights_status?, usage_rights_evidence_ref?)` | `dict` | Ingest immutable bytes and validated generation/rights metadata |
+| `preflight(project_dir, asset_id)` | `dict` | Resolve the active stored record and persist unified media preflight |
+| `inspect_temporal(project_dir, asset_id, declared_regions?)` | `dict` | Build previews, sampled frames, declared-region crops, findings, manifest, and explicit provider availability |
+
+```python
+asset = editor.ingest("campaign-project", "incoming/clip.mov")
+package = editor.inspect_temporal("campaign-project", asset["asset_id"])
+print(package["inspection_manifest"])
+```
+
+The latter two methods require an existing project and accept only an `asset_id`, not an
+arbitrary media path or caller-constructed record. `inspect_temporal` is intentionally
+distinct from `inspect(method_name)`, which remains the client-introspection helper.
+
+## Governed AI-video Methods
+
+| Method | Returns | Purpose |
+|--------|---------|---------|
+| `verdict(project_dir, verdict)` | `dict` | Persist exact-asset analysis; approved dispositions require active exact human evidence |
+| `acceptance_eval(project_dir, acceptance_spec_id, verdict_ids)` | `dict` | Resolve active records and derive acceptance from per-requirement, role, artifact, verdict, and defect evidence |
+| `body_swap(project_dir, video_source, audio_source, output_path, *, duration_policy=None, authorization_decision_ids=None)` | `dict` | Require both source paths to resolve to active stored assets, replace video, and prove approved-audio preservation |
+| `salvage(project_dir, source_asset_id, recipe, policy, acceptance_spec_id, *, authorization_decision_ids=None)` | `dict` | Create a lineage-bound derivative with a fresh review slot |
+
+These are the same validated operations exposed by MCP and CLI. None accepts a force,
+override, bypass, projectless body-swap, caller-built acceptance evidence, or
+implicit-approval argument.
+
+See [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) for the complete safe
+operating sequence and failure conditions.
+
 ## Post-Rescue Planning Methods
 
 These methods accept a JSON-compatible request mapping and return a dictionary. They plan

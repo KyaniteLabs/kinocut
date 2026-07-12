@@ -1,6 +1,38 @@
 # MCP Tools Reference
 
-kino exposes 135 registered MCP tools across video editing, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success`, `output_path`, and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino exposes 142 registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+
+---
+
+## Project-backed Inspection (3 tools)
+
+These operations share one adapter with the Python client and CLI. Only ingest accepts a
+host source path. Later operations resolve the active stored record by `asset_id`; they do
+not accept a caller-supplied record or an arbitrary media path.
+
+| Tool | Description |
+|------|-------------|
+| `video_ingest` | Copy source bytes into a content-addressed private project and return the authoritative asset record |
+| `video_preflight` | Persist one technical, loudness, color, and full-decode report for a stored asset |
+| `video_inspect_temporal` | Persist sampled frames, a motion strip, frame differences, deterministic findings, explicit optional-provider availability, and the complete inspection manifest |
+
+`video_preflight` and `video_inspect_temporal` require an existing project. Optional visual
+providers are not contacted or downloaded implicitly; the default result explicitly marks
+both visual capabilities unavailable.
+
+## Governed AI-video Review and Salvage (4 tools)
+
+These operations share one validated boundary with the Python client and CLI. Protection
+has no force or bypass parameter; authorization accepts only stored human decision ids.
+The end-to-end sequence and stop conditions are in
+[AI_VIDEO_REVIEW_AND_SALVAGE.md](AI_VIDEO_REVIEW_AND_SALVAGE.md).
+
+| Tool | Description |
+|------|-------------|
+| `video_verdict` | Persist exact-asset analysis; approved dispositions require an active exact human decision and requirement-level evidence |
+| `video_acceptance_eval` | Resolve active stored spec/verdict ids and derive acceptance without creating an approval |
+| `video_body_swap` | Require a project and two active stored inputs, then replace video while preserving approved audio |
+| `video_salvage` | Create one content-addressed, lineage-bound salvage derivative with a fresh non-approved review slot |
 
 ---
 
@@ -105,7 +137,7 @@ download models, contact providers, or submit jobs. See
 | `video_filter` | Apply filters: blur, sharpen, grayscale, sepia, invert, brightness, contrast, saturation, denoise, deinterlace, ken_burns; numeric parameters are bounded/clamped before FFmpeg execution |
 | `video_chroma_key` | Remove solid color background (green screen) with bounded similarity/blend parameters |
 | `video_stabilize` | Stabilize shaky footage (requires FFmpeg with vidstab) |
-| `video_subtitles` | Burn SRT/VTT subtitles into video |
+| `video_subtitles` | Burn `.srt`/`.vtt`/authored `.ass` subtitles into video; optional `style` force_style override (omit to preserve authored ASS PlayRes/styles/positions). SRT/VTT are rendered dimension-aware via a synthesized ASS whose PlayResX/Y match the probed display size |
 | `video_subtitles_styled` | Burn subtitles with custom styling (font, size, color, outline) |
 | `video_generate_subtitles` | Create SRT from text entries, optionally burn in |
 | `video_watermark` | Add image watermark with validated opacity and positioning |

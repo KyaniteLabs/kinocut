@@ -104,6 +104,22 @@ def test_run_ffmpeg_prepends_runtime_binary_for_raw_args(monkeypatch):
     assert captured["cmd"] == ["/custom/ffmpeg", "-y", "-i", "input.mp4", "output.mp4"]
 
 
+def test_subprocess_helpers_propagate_inherited_descriptor_allowlist(monkeypatch):
+    from mcp_video import ffmpeg_helpers
+
+    inherited = []
+
+    def fake_run(cmd, **kwargs):
+        inherited.append(kwargs.get("pass_fds"))
+        return subprocess.CompletedProcess(cmd, 0, "", "")
+
+    monkeypatch.setattr(ffmpeg_helpers.subprocess, "run", fake_run)
+    ffmpeg_helpers._run_command(["ffprobe", "-version"], pass_fds=(17, 19))
+    ffmpeg_helpers._run_ffmpeg(["-version"], pass_fds=(23,))
+
+    assert inherited == [(17, 19), (23,)]
+
+
 def test_run_ffmpeg_rejects_full_ffprobe_command():
     """The dual-mode signature was removed: full commands belong to _run_command."""
     from mcp_video import ffmpeg_helpers

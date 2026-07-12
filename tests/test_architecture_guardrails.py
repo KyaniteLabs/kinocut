@@ -74,6 +74,21 @@ def test_engine_modules_stay_below_project_size_limit() -> None:
     assert oversized == {}
 
 
+def test_rescue_verifier_functions_stay_below_project_size_limit() -> None:
+    """Independent verification checks must remain cohesive and reviewable."""
+
+    path = PACKAGE / "rescue" / "verifier.py"
+    oversized = {
+        node.name: node.end_lineno - node.lineno + 1
+        for node in ast.walk(parse_module(path))
+        if isinstance(node, ast.FunctionDef | ast.AsyncFunctionDef)
+        and node.end_lineno is not None
+        and node.end_lineno - node.lineno + 1 > 80
+    }
+
+    assert oversized == {}
+
+
 def test_server_modules_stay_below_project_size_limit() -> None:
     """Server registration groups should remain reviewable and split by family."""
     oversized = {

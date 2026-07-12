@@ -16,7 +16,7 @@ Kinocut 1.7.0 cutover.
 - Description: Guardrailed video editing for AI agents with FFmpeg, captions,
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
-- Current tool count: 135 MCP tools
+- Current tool count: 142 MCP tools
 - Current release: 1.7.0
 
 ## Live Reconciliation

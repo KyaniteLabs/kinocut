@@ -1,6 +1,20 @@
 # Improvement Roadmap
 
-Kinocut 1.7.0 exposes 135 MCP tools and 114 CLI commands, with Hyperframes integration, repurposing workflows, layered compositing, dedicated rescue, and expanded preflight guardrails. Remotion has been fully removed; the current priority is a trusted execution layer for agentic media automation.
+The development branch currently exposes 142 MCP tools and 121 CLI commands. The released 1.7.0 surface is historical; the contract-first AI-video and sound program described below remains incomplete and unreleased. Remotion has been fully removed. The current priority is finishing governed review/salvage, then executing the remaining program through independently reviewed parallel lanes.
+
+## Current AI-video and sound program
+
+- [x] Wave 0 contract and project-store foundation.
+- [x] Field safety: loss-proof add-audio and authored/dimension-aware subtitles.
+- [x] Content-addressed ingest, unified preflight, temporal evidence, and defect checks.
+- [ ] Finish independent Wave 3 verdict/protection/body-swap/salvage review and frozen-source verification.
+- [ ] Audio continuity and subtitle/graphics QA.
+- [ ] Asset intelligence, editorial planning, review/approval, agent ergonomics, learning, and acceptance benchmark.
+- [ ] Standalone-capable `kinocut_sound` foundation through full-episode verification.
+- [ ] Protected-timeline kernel integration, blocked until its named upstream contract and explicit human gate are green.
+- [ ] Final whole-program verification and stop-before-release handoff.
+
+Current status and sequencing: [draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md) and [parallel execution plan](docs/plans/2026-07-12-wishlist-parallel-execution.md).
 
 ---
 

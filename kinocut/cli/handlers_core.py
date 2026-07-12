@@ -120,6 +120,7 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
             mix="mix",
             start_time="start_time",
             output_path="output",
+            duration_policy="duration_policy",
         ),
     )
     runner.register(

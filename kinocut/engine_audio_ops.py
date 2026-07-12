@@ -23,6 +23,7 @@ from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape
 from .audio_guardrails import validate_audio_mix
 from .errors import MCPVideoError
 from .models import EditResult
+from .validation import DURATION_POLICIES
 
 logger = logging.getLogger(__name__)
 
@@ -51,10 +52,28 @@ def _build_add_audio_args(
     start_time: float | None,
     source_has_audio: bool,
     output: str,
+    *,
+    duration_policy: str = "keep_video",
+    video_duration: float | None = None,
 ) -> list[str]:
-    """Construct FFmpeg argument list for add_audio operation."""
+    """Construct FFmpeg argument list for add_audio operation.
+
+    ``duration_policy`` decides how the replaced audio is reconciled with the
+    video length: every policy except ``shortest`` caps the output at the video's
+    duration (``-t``) so the outro is preserved; ``pad_audio`` adds silence,
+    ``loop_audio`` loops the audio input to fill, and ``shortest`` keeps the
+    legacy ``-shortest``. In mix mode the source-preserving ``amix`` duration is
+    ``longest`` (or ``shortest`` only under the explicit ``shortest`` policy).
+    """
+
     if mix and source_has_audio:
         af = ",".join(filters) if filters else "anull"
+        amix_duration = "shortest" if duration_policy == "shortest" else "longest"
+        # Output tail: shortest genuinely cuts to the shortest input; every other
+        # policy caps the mix at the video duration so a longer added track can
+        # never stretch the output past the video.
+        mix_tail = ["-shortest"] if duration_policy == "shortest" or video_duration is None \
+            else ["-t", _escape_ffmpeg_filter_value(f"{float(video_duration):.6f}")]
         # The added track is one chain: [1:a] -> optional adelay -> filters -> [a1].
         # Referencing [1:a] a second time mid-chain is invalid filtergraph syntax
         # even where some FFmpeg builds tolerate it.
@@ -63,84 +82,71 @@ def _build_add_audio_args(
             second_chain = f"[1:a]adelay={safe_delay}|{safe_delay},{af}[a1]"
         else:
             second_chain = f"[1:a]{af}[a1]"
-        filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration=longest[aout]"
+        filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}[aout]"
         return [
-            "-i",
-            video_path,
-            "-i",
-            audio_path,
-            "-filter_complex",
-            filter_complex,
-            "-map",
-            "0:v",
-            "-map",
-            "[aout]",
-            "-c:v",
-            "copy",
-            "-c:a",
-            "aac",
-            "-b:a",
-            DEFAULT_AUDIO_BITRATE,
-            *_movflags_args(output),
+            "-i", video_path, "-i", audio_path,
+            "-filter_complex", filter_complex,
+            "-map", "0:v", "-map", "[aout]",
+            "-c:v", "copy", "-c:a", "aac", "-b:a", DEFAULT_AUDIO_BITRATE,
+            *mix_tail, *_movflags_args(output),
             output,
         ]
 
-    # Replace audio (or add if no existing audio)
-    args = ["-i", video_path, "-i", audio_path]
+    # --- Replace audio (or add if no existing audio) ---
+    # Duration control (replace path only, so loop/pad never feed an unbounded
+    # stream into amix): non-shortest policies cap the output at the video length.
+    loop_prefix = ["-stream_loop", "-1"] if duration_policy == "loop_audio" else []
+    audio_filters = [*filters, "apad"] if duration_policy == "pad_audio" else list(filters)
+    if duration_policy == "shortest" or video_duration is None:
+        tail = ["-shortest"]
+    else:
+        tail = ["-t", _escape_ffmpeg_filter_value(f"{float(video_duration):.6f}")]
 
+    args = ["-i", video_path, *loop_prefix, "-i", audio_path]
     if start_time:
         # adelay and the volume/fade filters must share a single filtergraph:
         # FFmpeg forbids combining -filter_complex and -af on the same output
         # stream, so fold the filters into the complex chain after the delay.
         safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
         delay_chain = f"[1:a]adelay={safe_delay}|{safe_delay}"
-        if filters:
-            delay_chain += "," + ",".join(filters)
+        if audio_filters:
+            delay_chain += "," + ",".join(audio_filters)
         delay_chain += "[a]"
         args.extend(["-filter_complex", delay_chain])
         args.extend(["-map", "0:v:0", "-map", "[a]"])
     else:
         args.extend(["-map", "0:v:0", "-map", "1:a:0"])
-        if filters:
-            args.extend(["-af", ",".join(filters)])
+        if audio_filters:
+            args.extend(["-af", ",".join(audio_filters)])
 
-    args.extend(
-        [
-            "-c:v",
-            "copy",
-            "-c:a",
-            "aac",
-            "-b:a",
-            DEFAULT_AUDIO_BITRATE,
-            "-shortest",
-            *_movflags_args(output),
-            output,
-        ]
-    )
+    args.extend(["-c:v", "copy", "-c:a", "aac", "-b:a", DEFAULT_AUDIO_BITRATE, *tail, *_movflags_args(output), output])
     return args
 
 
-def add_audio(
-    video_path: str,
-    audio_path: str,
-    volume: float = 1.0,
-    fade_in: float = 0.0,
-    fade_out: float = 0.0,
-    mix: bool = False,
-    start_time: float | None = None,
-    output_path: str | None = None,
-) -> EditResult:
-    """Add or replace audio track on a video."""
-    video_path = _validate_input_path(video_path)
-    audio_path = _validate_input_path(audio_path)
-    output = output_path or _auto_output(video_path, "audio")
-    _validate_output_path(output)
+def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
+    """Validate the duration policy without echoing hostile input into errors."""
 
-    video_info = probe(video_path)
-    source_has_audio = _has_audio(_run_ffprobe_json(video_path))
+    if duration_policy not in DURATION_POLICIES:
+        # Never echo the raw (possibly hostile) value back into a public error.
+        raise MCPVideoError(
+            f"duration_policy must be one of {DURATION_POLICIES}",
+            error_type="validation_error",
+            code="invalid_duration_policy",
+        )
+    if mix and duration_policy in ("loop_audio", "pad_audio"):
+        # Looping/padding an added track feeds an unbounded stream into ``amix``;
+        # rather than hang or silently ignore the policy, fail closed.
+        raise MCPVideoError(
+            f"duration_policy={duration_policy!r} is not supported with mix=True; "
+            "use keep_video, trim_audio, or shortest",
+            error_type="validation_error",
+            code="unsupported_duration_policy_for_mix",
+        )
 
-    # --- Guardrails: audio mix validation ---
-    # Validate volume first (hard constraint, no probe needed)
+
+def _emit_add_audio_guardrails(video_info, audio_path: str, volume: float, start_time: float | None) -> None:
+    """Emit volume/mix guardrail warnings (and the hard volume<0 error)."""
+
     if volume < 0.0:
         raise MCPVideoError(
             f"volume must be >= 0, got {volume}",
@@ -153,29 +159,56 @@ def add_audio(
             f"near peak, this may cause digital clipping/distortion.",
             stacklevel=2,
         )
-    # Validate timing/probe-based checks. The attached audio is commonly an
-    # audio-only file (e.g. a voiceover WAV), so probe it with an audio-aware
-    # probe instead of the video-only ``probe`` — otherwise a valid WAV is
-    # misreported as "No video stream found" (issue #7).
+    # The attached audio is commonly an audio-only file (e.g. a voiceover WAV),
+    # so probe it with an audio-aware probe — otherwise a valid WAV is misreported
+    # as "No video stream found" (issue #7).
     try:
         audio_info = probe_audio_input(audio_path)
-        mix_warnings = validate_audio_mix(
-            video_info,
-            audio_info,
-            volume=volume,
-            start_time=start_time or 0.0,
-        )
+        mix_warnings = validate_audio_mix(video_info, audio_info, volume=volume, start_time=start_time or 0.0)
         for w in mix_warnings:
             _warnings.warn(f"[AUDIO GUARDRAIL] {w}", stacklevel=2)
     except Exception as e:
         message = f"[AUDIO GUARDRAIL] Could not validate audio mix: {e}"
         logger.warning(message, exc_info=True)
         _warnings.warn(message, stacklevel=2)
-    # --- End guardrails ---
+
+
+def add_audio(
+    video_path: str,
+    audio_path: str,
+    volume: float = 1.0,
+    fade_in: float = 0.0,
+    fade_out: float = 0.0,
+    mix: bool = False,
+    start_time: float | None = None,
+    output_path: str | None = None,
+    *,
+    duration_policy: str = "keep_video",
+) -> EditResult:
+    """Add or replace audio track on a video.
+
+    ``duration_policy`` (keyword-only, additive) controls how the audio length is
+    reconciled with the video: ``keep_video`` (default) holds the full video
+    duration; ``pad_audio`` pads short audio with silence; ``loop_audio`` loops
+    it; ``trim_audio`` caps long audio; ``shortest`` reproduces the legacy
+    ``-shortest`` behaviour (which can eat the outro) and appends a warning.
+    """
+    _validate_duration_policy(duration_policy, mix)
+    video_path = _validate_input_path(video_path)
+    audio_path = _validate_input_path(audio_path)
+    output = output_path or _auto_output(video_path, "audio")
+    _validate_output_path(output)
+
+    video_info = probe(video_path)
+    source_has_audio = _has_audio(_run_ffprobe_json(video_path))
+    _emit_add_audio_guardrails(video_info, audio_path, volume, start_time)
 
     with _timed_operation() as timing:
         filters = _build_audio_filters(volume, fade_in, fade_out, video_info.duration)
-        cmd = _build_add_audio_args(video_path, audio_path, filters, mix, start_time, source_has_audio, output)
+        cmd = _build_add_audio_args(
+            video_path, audio_path, filters, mix, start_time, source_has_audio, output,
+            duration_policy=duration_policy, video_duration=video_info.duration,
+        )
         _run_ffmpeg(cmd)
 
     warnings = []
@@ -183,6 +216,11 @@ def add_audio(
         warnings.append(
             "This operation will replace existing audio. Use mix=True to "
             "preserve source audio and listen before publishing."
+        )
+    if duration_policy == "shortest":
+        warnings.append(
+            "duration_policy='shortest' may shorten the output below the source "
+            "video duration (the outro can be trimmed). Use 'keep_video' to preserve it."
         )
 
     return _build_edit_result(output, "add_audio", timing).model_copy(update={"warnings": warnings})

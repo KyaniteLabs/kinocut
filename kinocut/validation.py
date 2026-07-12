@@ -7,6 +7,10 @@ import re
 from .errors import MCPVideoError
 from .limits import *  # noqa: F403 — re-export all limit constants
 
+# Closed severity ordering used by governed acceptance evaluation. Keeping the
+# policy here avoids each workflow inventing a subtly different comparison.
+DEFECT_SEVERITY_RANK = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+
 VALID_FORMATS = {"mp4", "webm", "gif", "mov", "hevc", "av1", "prores"}
 VALID_AUDIO_FORMATS = {"mp3", "aac", "wav", "ogg", "flac"}
 VALID_PRESETS = {"ultrafast", "fast", "medium", "slow", "veryslow"}
@@ -28,6 +32,38 @@ VALID_XFADE_TRANSITIONS = {
     "smoothdown",
 }
 VALID_WAVEFORMS = {"sine", "square", "sawtooth", "triangle", "noise", "pulse", "supersaw", "pluck", "fm"}
+
+# Subtitle ``force_style``: the closed set of accepted ASS style keys (compared
+# case-insensitively) plus the safe value character class. Values are validated
+# against this class and then FFmpeg-escaped as defense in depth before being
+# embedded in the subtitles filter.
+SUBTITLE_STYLE_KEYS = frozenset(
+    {
+        "fontname",
+        "fontsize",
+        "primarycolour",
+        "secondarycolour",
+        "outlinecolour",
+        "backcolour",
+        "bold",
+        "italic",
+        "underline",
+        "strikeout",
+        "scalex",
+        "scaley",
+        "spacing",
+        "angle",
+        "borderstyle",
+        "outline",
+        "shadow",
+        "alignment",
+        "marginl",
+        "marginr",
+        "marginv",
+        "encoding",
+    }
+)
+SUBTITLE_STYLE_VALUE_RE = re.compile(r"^[A-Za-z0-9&#.+\- ]+$")
 VALID_AUDIO_EFFECT_TYPES = {
     "lowpass",
     "highpass",
@@ -45,6 +81,12 @@ VALID_AUDIO_EFFECT_TYPES = {
 }
 VALID_SPATIAL_METHODS = {"hrtf", "panning"}
 VALID_MOGRAPH_STYLES = {"bar", "circle", "dots"}
+
+# Closed, ordered set of add-audio duration policies (first is the safe default).
+# Shared by the engine, the MCP surface, and the CLI parser so there is one
+# source of truth (no duplicated literal lists).
+DURATION_POLICIES = ("keep_video", "loop_audio", "pad_audio", "trim_audio", "shortest")
+BODY_SWAP_DURATION_POLICIES = ("pad_video", "trim_video", "trim_audio")
 VALID_LAYOUTS = {"side-by-side", "top-bottom"}
 VALID_HYPERFRAMES_TEMPLATES = {"blank", "warm-grain", "swiss-grid"}
 VALID_HYPERFRAMES_QUALITIES = {"draft", "standard", "high"}

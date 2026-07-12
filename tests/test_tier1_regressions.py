@@ -55,14 +55,18 @@ def test_subtitles_burn_in_succeeds_with_default_style(sample_video, sample_srt,
 
 def test_add_audio_mix_with_start_time_applies_delay(sample_video, sample_audio, tmp_path):
     """The old graph referenced [1:a] twice in one chain — invalid filtergraph
-    syntax that some FFmpeg builds tolerate. Pin the behavior: the 5s audio
-    delayed by 1s under duration=longest must yield a ~6s output."""
+    syntax that some FFmpeg builds tolerate. Pin the fixed graph: a delayed added
+    track still mixes and produces a valid AAC stream. Under the loss-proof
+    default (duration_policy='keep_video'), the output is capped at the source
+    video duration — the delayed added audio that extends past the video is
+    trimmed rather than stretching the output past the video."""
     out = str(tmp_path / "mixed.mp4")
     result = add_audio(sample_video, sample_audio, mix=True, start_time=1.0, output_path=out)
     assert result.success
     info = probe(out)
     assert info.audio_codec is not None
-    assert info.duration >= 5.5
+    video_duration = probe(sample_video).duration
+    assert abs(info.duration - video_duration) < 0.3  # capped at the video, not stretched
 
 
 # --- BUG-8 (issue #8): replace-branch start_time + volume/fade must coexist -----

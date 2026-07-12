@@ -4,7 +4,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`Kinocut` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 135 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
+`Kinocut` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed inspection, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 142 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
 
 ## Best Queries To Match
 
@@ -32,6 +32,9 @@ This document is the short, explicit discovery map for agents, answer engines, a
 - `README.md` - install, quick start, tools, CLI, Python client, workflows.
 - `docs/WORKFLOWS.md` - agent workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume semantics, cleanup, and privacy.
 - `docs/VIDEO_RECEIPT.md` - workflow/`layer_plan` receipt kinds, `schema_version` policy, and the `receipt_kind` discriminator.
+- `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` - exact-asset review, protection, body-swap, salvage, and re-review sequence.
+- `docs/status/2026-07-12-wishlist-draft-pr-status.md` - current incomplete implementation snapshot and non-release boundary.
+- `docs/plans/2026-07-12-wishlist-parallel-execution.md` - dependency graph and controller/author ownership for parallel work.
 - `skills/kinocut/SKILL.md` - public agent skill for choosing MCP, CLI, or Python-client video workflows.
 - `CLAUDE.md` - Layer 0 identity: what this project is, where to find staged pipelines.
 - `llms.txt` - compact machine-readable project map.
@@ -103,6 +106,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 - Do not add dependencies just to wrap a single command.
 - Do not write output next to source files; use temp directories or explicit output paths.
 - Do not claim ICM folder structure is used for core code; it is layered on top (`workflows/`).
+- Do not treat a draft implementation snapshot, automated finding, or repository test receipt as human creative approval or release authority.
 
 ## Registry And Directory Targets
 

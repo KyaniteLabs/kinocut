@@ -4,6 +4,21 @@ from __future__ import annotations
 
 import argparse
 
+from ...validation import DURATION_POLICIES
+
+
+def _duration_policy(value: str) -> str:
+    """Validate a duration policy without ever echoing the raw value.
+
+    argparse ``choices=`` would print the rejected (possibly hostile home/traversal)
+    value into stderr; a ``type=`` validator raises a bounded message listing only
+    the closed allowed values instead.
+    """
+
+    if value not in DURATION_POLICIES:
+        raise argparse.ArgumentTypeError(f"must be one of {', '.join(DURATION_POLICIES)}")
+    return value
+
 
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add effects subcommands to the CLI parser."""
@@ -44,6 +59,13 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     audio_p.add_argument("--fade-out", type=float, default=0.0, help="Fade out duration")
     audio_p.add_argument("--mix", action="store_true", help="Mix with existing audio instead of replacing")
     audio_p.add_argument("--start-time", type=float, help="When audio starts (seconds)")
+    audio_p.add_argument(
+        "--duration-policy",
+        default="keep_video",
+        type=_duration_policy,
+        help="Reconcile audio/video length: keep_video (default, preserves the outro), "
+             "pad_audio, loop_audio, trim_audio, or shortest (may trim the outro).",
+    )
     audio_p.add_argument("-o", "--output", help="Output file path")
 
     # watermark

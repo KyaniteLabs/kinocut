@@ -8,7 +8,6 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
-from dataclasses import dataclass, field
 from typing import Any
 import contextlib
 
@@ -16,31 +15,10 @@ from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
 from .errors import MCPVideoError, ProcessingError
 from .defaults import DEFAULT_QUALITY_GATE_SCORE
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
+from .quality_guardrail_checks import QualityChecksMixin
+from .quality_guardrail_types import QualityReport, _diagnostic, _metric
 
 logger = logging.getLogger(__name__)
-
-
-def _diagnostic(stage: str, message: str, **extra: Any) -> dict[str, Any]:
-    """Create a structured diagnostic payload for guardrail analysis fallbacks."""
-    payload: dict[str, Any] = {"stage": stage, "message": message}
-    payload.update(extra)
-    return payload
-
-
-def _metric(
-    name: str,
-    value: float | None,
-    unit: str,
-    **metadata: Any,
-) -> dict[str, Any]:
-    """Build the explicit metric contract shared by both quality surfaces."""
-    return {
-        "name": name,
-        "available": value is not None,
-        "value": value,
-        "unit": unit,
-        **metadata,
-    }
 
 
 def _escape_lavfi_path(path: str) -> str:
@@ -62,18 +40,7 @@ def _escape_lavfi_path(path: str) -> str:
     return path
 
 
-@dataclass
-class QualityReport:
-    """Report from a single quality check."""
-
-    check_name: str
-    passed: bool
-    score: float  # 0-100
-    message: str
-    details: dict[str, Any] = field(default_factory=dict)
-
-
-class VisualQualityGuardrails:
+class VisualQualityGuardrails(QualityChecksMixin):
     """Automated visual quality checks for video output."""
 
     # Quality thresholds
@@ -262,15 +229,15 @@ class VisualQualityGuardrails:
                 json_str = stderr[json_start:json_end]
                 return json.loads(json_str)
             diagnostic = _diagnostic("ffmpeg_loudnorm", "ffmpeg loudnorm returned no JSON payload")
-            logger.warning("ffmpeg loudnorm returned no JSON payload for %s", video)
+            logger.warning("ffmpeg loudnorm returned no JSON payload")
             return {"_error": diagnostic}
         except subprocess.TimeoutExpired:
             diagnostic = _diagnostic("ffmpeg_loudnorm", "ffmpeg loudnorm timed out")
-            logger.warning("ffmpeg loudnorm timed out for %s", video)
+            logger.warning("ffmpeg loudnorm timed out")
             return {"_error": diagnostic}
         except json.JSONDecodeError:
             diagnostic = _diagnostic("ffmpeg_loudnorm", "ffmpeg loudnorm returned invalid JSON")
-            logger.warning("ffmpeg loudnorm returned invalid JSON for %s", video)
+            logger.warning("ffmpeg loudnorm returned invalid JSON")
             return {"_error": diagnostic}
         except Exception as exc:
             diagnostic = _diagnostic(
@@ -278,7 +245,7 @@ class VisualQualityGuardrails:
                 "ffmpeg loudnorm failed",
                 error_type=type(exc).__name__,
             )
-            logger.warning("ffmpeg loudnorm failed for %s: %s: %s", video, type(exc).__name__, exc)
+            logger.warning("ffmpeg loudnorm failed: %s", type(exc).__name__)
             return {"_error": diagnostic}
 
     def _has_audio_stream(self, video: str) -> bool | None:
@@ -286,7 +253,7 @@ class VisualQualityGuardrails:
         try:
             probe = _run_ffprobe_json(video)
         except ProcessingError as exc:
-            logger.warning("ffprobe audio stream check failed for %s: %s: %s", video, type(exc).__name__, exc)
+            logger.warning("ffprobe audio stream check failed: %s", type(exc).__name__)
             return None
         return any(stream.get("codec_type") == "audio" for stream in probe.get("streams", []))
 
@@ -318,14 +285,14 @@ class VisualQualityGuardrails:
                     "ffprobe returned nonzero exit",
                     stderr_excerpt=result.stderr.strip()[:200],
                 )
-                logger.warning("ffprobe RGB means returned nonzero exit for %s: %s", video, result.stderr.strip()[:200])
+                logger.warning("ffprobe RGB means returned nonzero exit")
                 return {"_error": diagnostic}
 
             data = json.loads(result.stdout)
             frames = data.get("frames", [])
             if not frames:
                 diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe returned no frames")
-                logger.warning("ffprobe RGB means returned no frames for %s", video)
+                logger.warning("ffprobe RGB means returned no frames")
                 return {"_error": diagnostic}
 
             y_vals, u_vals, v_vals = [], [], []
@@ -343,7 +310,7 @@ class VisualQualityGuardrails:
 
             if not (y_vals and u_vals and v_vals):
                 diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe returned incomplete YUV values")
-                logger.warning("ffprobe RGB means returned incomplete YUV values for %s", video)
+                logger.warning("ffprobe RGB means returned incomplete YUV values")
                 return {"_error": diagnostic}
 
             y = sum(y_vals) / len(y_vals)
@@ -359,125 +326,16 @@ class VisualQualityGuardrails:
             }
         except subprocess.TimeoutExpired:
             diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe timed out")
-            logger.warning("ffprobe RGB means timed out for %s", video)
+            logger.warning("ffprobe RGB means timed out")
             return {"_error": diagnostic}
         except json.JSONDecodeError:
             diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe returned invalid JSON")
-            logger.warning("ffprobe RGB means returned invalid JSON for %s", video)
+            logger.warning("ffprobe RGB means returned invalid JSON")
             return {"_error": diagnostic}
         except Exception as exc:
             diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe RGB means failed", error_type=type(exc).__name__)
-            logger.warning("ffprobe RGB means failed for %s: %s: %s", video, type(exc).__name__, exc)
+            logger.warning("ffprobe RGB means failed: %s", type(exc).__name__)
             return {"_error": diagnostic}
-
-    def check_brightness(self, video: str) -> QualityReport:
-        """Check video brightness is in acceptable range."""
-        stats = self._run_ffprobe(video, "lavfi.signalstats.YAVG")
-
-        if not stats or "mean" not in stats:
-            # Try alternative method
-            stats = self._run_ffmpeg_signalstats(video)
-            if not stats or "yavg" not in stats:
-                return QualityReport(
-                    check_name="brightness",
-                    passed=False,
-                    score=0.0,
-                    message="Could not analyze brightness (no video stream or analysis failed)",
-                    details={"diagnostic": stats.get("_error")} if stats else {},
-                )
-            y_avg = stats["yavg"]
-        else:
-            y_avg = stats["mean"]
-
-        # Y values range from 0-255 in 8-bit video
-        passed = self.BRIGHTNESS_TARGET_MIN <= y_avg <= self.BRIGHTNESS_TARGET_MAX
-
-        # Calculate score (100 = perfect at 128, linear falloff)
-        target = 128
-        deviation = abs(y_avg - target)
-        score = float(max(0, 100 - (deviation / target) * 100))
-
-        if y_avg < self.BRIGHTNESS_MIN:
-            message = f"Video has crushed blacks (brightness: {y_avg:.1f}). Consider lifting shadows."
-        elif y_avg > self.BRIGHTNESS_MAX:
-            message = f"Video has blown highlights (brightness: {y_avg:.1f}). Consider lowering exposure."
-        elif y_avg < self.BRIGHTNESS_TARGET_MIN:
-            message = f"Video is quite dark (brightness: {y_avg:.1f}). Consider slight brightness increase."
-        elif y_avg > self.BRIGHTNESS_TARGET_MAX:
-            message = f"Video is quite bright (brightness: {y_avg:.1f}). Consider slight brightness decrease."
-        else:
-            message = f"Brightness is well-balanced (brightness: {y_avg:.1f})"
-
-        return QualityReport(
-            check_name="brightness",
-            passed=passed,
-            score=score,
-            message=message,
-            details={"y_avg": y_avg, "target_range": [self.BRIGHTNESS_TARGET_MIN, self.BRIGHTNESS_TARGET_MAX]},
-        )
-
-    def check_contrast(self, video: str) -> QualityReport:
-        """Check video has adequate contrast."""
-        y_high = self._mean_signalstat(video, "YHIGH")
-        y_low = self._mean_signalstat(video, "YLOW")
-        if y_high is None or y_low is None:
-            y_high = self._mean_signalstat(video, "YMAX")
-            y_low = self._mean_signalstat(video, "YMIN")
-        if y_high is None or y_low is None:
-            metric = _metric(
-                "ffmpeg.signalstats.YHIGH-YLOW",
-                None,
-                "percent_of_8bit_luma_range",
-            )
-            return QualityReport(
-                check_name="contrast",
-                passed=False,
-                score=0.0,
-                message="Could not analyze contrast (analysis failed)",
-                details={
-                    "diagnostic": _diagnostic("ffprobe_signalstats", "missing luminance range values"),
-                    "metric": metric,
-                },
-            )
-
-        y_std = max(0.0, (y_high - y_low) / 2.56)  # Approximate contrast on a 0-100 scale.
-        metric = _metric(
-            "ffmpeg.signalstats.YHIGH-YLOW",
-            y_std,
-            "percent_of_8bit_luma_range",
-            raw={"y_low": y_low, "y_high": y_high, "unit": "8bit_luma"},
-        )
-
-        # Standard deviation indicates contrast (higher = more contrast)
-        passed = self.CONTRAST_MIN <= y_std <= self.CONTRAST_MAX
-
-        # Calculate score
-        optimal_contrast = 50
-        deviation = abs(y_std - optimal_contrast)
-        score = float(max(0, 100 - (deviation / optimal_contrast) * 100))
-
-        if y_std < self.CONTRAST_MIN:
-            message = (
-                f"Video has low contrast (std dev: {y_std:.1f}). Image may appear flat. Consider increasing contrast."
-            )
-        elif y_std > self.CONTRAST_MAX:
-            message = f"Video has very high contrast (std dev: {y_std:.1f}). May lose detail in shadows/highlights."
-        else:
-            message = f"Contrast is good (std dev: {y_std:.1f})"
-
-        return QualityReport(
-            check_name="contrast",
-            passed=passed,
-            score=score,
-            message=message,
-            details={
-                "y_std": y_std,
-                "y_low": y_low,
-                "y_high": y_high,
-                "target_range": [self.CONTRAST_MIN, self.CONTRAST_MAX],
-                "metric": metric,
-            },
-        )
 
     def check_saturation(self, video: str) -> QualityReport:
         """Check saturation levels."""

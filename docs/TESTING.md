@@ -4,6 +4,39 @@
 
 Kinocut uses focused tests for public MCP tools, the Python client, CLI behavior, FFmpeg operations, AI features, cinematic creation helpers, Hyperframes integration, repurposing packages, security hardening, and engine internals. Some tests are environment-sensitive and may skip when optional dependencies or system capabilities are unavailable.
 
+## Required repository gate
+
+Every implementation change must pass the complete suite on the exact integrated commit:
+
+```bash
+python3 -m pytest tests/ -x -q --tb=short
+python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+```
+
+A focused pass is development evidence only. A full-suite result from an older commit is not
+current completion proof.
+
+## AI-video contract and media families
+
+The contract-first program adds focused coverage for:
+
+- canonical record IDs, strict schemas, migrations, append-only supersession, lock/atomicity,
+  path privacy, symlink/hard-link defenses, and content-addressed ingest;
+- loss-proof audio duration behavior, authored ASS preservation, dimension-aware subtitle burn,
+  and ASR EOF clamping;
+- unified preflight, full-decode integrity, deterministic sampled artifacts, motion strips,
+  declared-region crops, temporal defect intervals, and bounded optional providers;
+- exact-human-evidence verdicts, acceptance evaluation, protected-element collisions,
+  complete audio preservation, source snapshot identity, salvage lineage, and public surface parity.
+
+Run the focused families while developing, then run the repository gate:
+
+```bash
+python3 -m pytest tests/test_contracts_*.py tests/test_projectstore_*.py -q --tb=short
+python3 -m pytest tests/test_aivideo_*.py tests/test_body_swap.py tests/test_wave3_surfaces.py -q --tb=short
+python3 -m pytest tests/test_public_surface.py -q --tb=short
+```
+
 ## Test Suite: `tests/test_real_all_features.py`
 
 ### Running the Tests

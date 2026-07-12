@@ -16,7 +16,7 @@
 <p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-135%20tools-orange.svg" alt="135 MCP tools">
+  <img src="https://img.shields.io/badge/MCP-142%20tools-orange.svg" alt="142 MCP tools">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -116,6 +116,14 @@ manifest, all with workspace-relative paths:
   "render_determinism_scope": "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds"
 }
 ```
+
+## Governed AI-video review
+
+The current development surface adds content-addressed ingest, deterministic temporal evidence,
+exact-asset verdicts, protected edits, audio-preserving body swap, and lineage-bound salvage.
+Start with the [review and salvage operating guide](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md).
+The larger AI-video and sound program remains incomplete and unreleased; see the
+[commit-bound draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md).
 
 `--all-variants` emits N distinct outputs from one declaration, and `--resume` continues a
 job that failed with its intermediates kept (fail-closed on a changed spec). Full schema,
@@ -241,7 +249,7 @@ mcp-video doctor
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA: 135 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
+Kinocut es un servidor MCP de edición de video para agentes de IA: 142 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -365,13 +373,14 @@ kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-kino currently registers **135 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
+kino currently registers **142 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
 | Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates, merge-compatibility guardrails |
 | Agent workflow engine | 4 | validate, plan, render, resume, inspect multi-step jobs with provenance receipts |
 | Dedicated rescue | 3 | diagnose, approve, render, verify, quarantine, and resume local content-preserving repairs |
+| Governed AI-video | 4 | exact-asset verdicts, acceptance evaluation, audio-preserving body swaps, lineage-bound salvage |
 | Post-rescue planning | 8 | semantic timelines/query, EDLs, visual transforms, restoration, composition, autopilot, explicit egress |
 | Cinematic creation | 4 | project scaffold, style-pack parsing, storyboard parsing, shot prompt expansion |
 | AI-assisted media | 11 | transcription, scene detection, upscaling, stem separation, silence removal, color grading |

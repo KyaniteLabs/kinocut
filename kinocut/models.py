@@ -61,14 +61,19 @@ class VideoInfo(BaseModel):
         return f"{self.width}x{self.height}"
 
     @property
+    def normalized_rotation(self) -> int:
+        """Rotation normalized to the canonical ``0..359`` range."""
+        return self.rotation % 360
+
+    @property
     def display_width(self) -> int:
         """Width accounting for rotation (e.g. 90° rotates dimensions)."""
-        return self.height if self.rotation in (90, 270) else self.width
+        return self.height if self.normalized_rotation in (90, 270) else self.width
 
     @property
     def display_height(self) -> int:
         """Height accounting for rotation (e.g. 90° rotates dimensions)."""
-        return self.width if self.rotation in (90, 270) else self.height
+        return self.width if self.normalized_rotation in (90, 270) else self.height
 
     @property
     def display_resolution(self) -> str:

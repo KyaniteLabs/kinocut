@@ -16,6 +16,7 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 - Read `../../docs/WORKFLOWS.md` for the agent workflow engine (job-spec, `@refs`, variants, resume, receipts).
 - Read `../../docs/RESCUE.md` for local diagnosis and content-preserving "fix this clip" work.
 - Read `../../docs/POST_RESCUE_FEATURES.md` for semantic, visual, restorative, composition, autopilot, and egress planning.
+- Read `../../docs/AI_VIDEO_INSPECTION.md` for content-addressed ingest and deterministic temporal evidence.
 - Run `kino doctor` before media work that depends on FFmpeg, Hyperframes, image tools, or AI dependencies.
 
 ## Choose A Surface
@@ -44,6 +45,38 @@ Never render directly from an unreviewed plan. Never add recommendation IDs, una
 IDs, or blocked IDs to approval. Never use cloud tools, burn rescue captions, rewrite the
 source, or treat `unavailable` as automatic failure. A cancellation or verification failure
 must remain unpromoted or quarantined.
+
+## Deterministic AI-video Inspection
+
+Use `video_ingest`, `video_preflight`, and `video_inspect_temporal` (or their flat CLI and
+Python equivalents) when generated footage needs evidence before an edit decision. Ingest
+first, then address the asset by its returned hash. Never replace that asset id with a host
+path or construct an `AssetRecord` at the public boundary. Temporal inspection returns the
+full sampled-frame and motion-strip package, deterministic findings, and explicit unavailable
+provider capabilities. Provider absence is expected and must not trigger a download or a
+network fallback.
+
+## Governed AI-video Review and Salvage
+
+Use `video_verdict`, `video_acceptance_eval`, `video_body_swap`, and `video_salvage` (or
+their flat CLI and Python equivalents) for exact-asset editorial decisions and derivative
+recovery. A non-approved verdict may capture agent analysis, but an approved disposition
+must bind an active, exact human decision with explicit requirement, role, and artifact
+evidence. Acceptance evaluation is derived rather than an approval action, and every
+salvage output starts in a fresh non-approved review slot.
+
+Never invent a decision id, pass an unstored approval, or look for a force/override route.
+Body swap rejects duration mismatch unless the caller chooses an explicit policy. Salvage
+requires an existing private project, a stored source asset, a bounded recipe policy, and
+an exact acceptance-spec id.
+
+Acceptance evaluation takes active stored `acceptance_spec_id` and `verdict_ids`, never
+caller-built evidence objects. Public body swap always takes `project_dir` first and both
+source paths must resolve to active assets in that exact project.
+
+Read `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` before operating this workflow. Treat every
+derivative as new non-approved work and keep the explicit human visual/audio gate before
+publication.
 
 ## Post-Rescue Planning
 
@@ -108,6 +141,9 @@ kino --format json info interview.mp4
 kino trim interview.mp4 -s 00:02:15 -d 45
 kino video-ai-transcribe clip.mp4 --output captions.srt
 kino subtitles clip.mp4 captions.srt
+# subtitles accept .srt, .vtt, or authored .ass; SRT/VTT render dimension-aware.
+# Add --style "FontSize=24,PrimaryColour=&H00FFFFFF&" to override force_style;
+# omit --style to preserve an authored .ass file's PlayRes, styles, and positions.
 kino resize clip.mp4 --aspect-ratio 9:16
 kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
 kino composite-layers --spec layers.json -o composite.mp4 --save-layer-plan layer-plan.json

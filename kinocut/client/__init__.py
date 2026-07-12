@@ -14,6 +14,8 @@ from .meta import ClientMetaMixin
 from .rescue import ClientRescueMixin
 from .postrescue import ClientPostRescueMixin
 from .workflow import ClientWorkflowMixin
+from .inspection import ClientInspectionMixin
+from .aivideo import ClientAIVideoMixin
 
 
 class Client(
@@ -29,6 +31,8 @@ class Client(
     ClientWorkflowMixin,
     ClientRescueMixin,
     ClientPostRescueMixin,
+    ClientInspectionMixin,
+    ClientAIVideoMixin,
 ):
     """mcp-video client for programmatic video editing.
 

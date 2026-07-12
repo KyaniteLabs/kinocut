@@ -121,17 +121,23 @@ def video_subtitles(
     input_path: str,
     subtitle_path: str,
     output_path: str | None = None,
+    style: str | None = None,
 ) -> dict[str, Any]:
-    """Burn subtitles (SRT/VTT) into a video.
+    """Burn subtitles (SRT/VTT/authored ASS) into a video.
 
     Args:
         input_path: Absolute path to the input video.
-        subtitle_path: Absolute path to the subtitle file (.srt or .vtt).
+        subtitle_path: Absolute path to the subtitle file (.srt, .vtt, or .ass).
         output_path: Where to save the output. Auto-generated if omitted.
+        style: Optional force_style override applied to any subtitle format including
+            authored ASS (e.g. "FontSize=24,PrimaryColour=&H00FFFFFF"). Omit to preserve
+            an authored ASS file's own styling/positioning.
     """
     input_path = _validate_input_path(input_path)
     subtitle_path = _validate_input_path(subtitle_path)
-    return _result(subtitles(input_path, subtitle_path=subtitle_path, output_path=output_path))
+    return _result(
+        subtitles(input_path, subtitle_path=subtitle_path, output_path=output_path, style=style)
+    )
 
 
 @mcp.tool(

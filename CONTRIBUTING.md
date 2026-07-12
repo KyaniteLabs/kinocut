@@ -25,7 +25,7 @@ pytest tests/test_engine.py -v
 kinocut/
 ├── __init__.py             # Canonical public API
 ├── __main__.py             # kino/kinocut/mcp-video CLI entry point
-├── server.py               # MCP registration assembly (135 tools)
+├── server.py               # MCP registration assembly (142 tools)
 ├── server_app.py           # Shared FastMCP app and result helpers
 ├── server_tools_*.py       # Thin public MCP registration modules
 ├── engine_*.py             # Focused FFmpeg/media operations

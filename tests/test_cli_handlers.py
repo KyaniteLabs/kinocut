@@ -508,17 +508,43 @@ def _reload_and_dispatch(handler_module_name, command, args, monkeypatch):
         "_format_hyperframes_validate",
         "_format_hyperframes_pipeline",
     ]
-    with (
-        patch("mcp_video.cli.runner._resolve_engine", return_value=lambda *a, **k: "ok"),
-        patch("mcp_video.cli.common._with_spinner", return_value="ok"),
-        patch("mcp_video.cli.runner._out"),
-        patch.multiple("mcp_video.cli.formatting", **{name: MagicMock() for name in formatters}),
-    ):
-        mod = importlib.import_module(handler_module_name)
-        importlib.reload(mod)
-        monkeypatch.setattr(mod, "CommandRunner", FakeCommandRunner)
-        fn_name = next(n for n in dir(mod) if n.startswith("handle_") and callable(getattr(mod, n)))
-        return getattr(mod, fn_name)(args, use_json=False)
+    try:
+        with (
+            patch("mcp_video.cli.runner._resolve_engine", return_value=lambda *a, **k: "ok"),
+            patch("mcp_video.cli.common._with_spinner", return_value="ok"),
+            patch("mcp_video.cli.runner._out"),
+            patch.multiple("mcp_video.cli.formatting", **{name: MagicMock() for name in formatters}),
+        ):
+            mod = importlib.import_module(handler_module_name)
+            importlib.reload(mod)
+            monkeypatch.setattr(mod, "CommandRunner", FakeCommandRunner)
+            fn_name = next(n for n in dir(mod) if n.startswith("handle_") and callable(getattr(mod, n)))
+            return getattr(mod, fn_name)(args, use_json=False)
+    finally:
+        # The reload above rebinds this module's _with_spinner/_out/formatter
+        # globals to the active mocks; reload again OUTSIDE the patch context so
+        # they are restored to the real functions and never leak into sibling
+        # tests. Runs even if dispatch raised.
+        importlib.reload(importlib.import_module(handler_module_name))
+
+
+def test_reload_and_dispatch_restores_module_globals(monkeypatch):
+    """_reload_and_dispatch must not leak mock globals into a reloaded handler module.
+
+    The helper reloads the module under patched dependencies; if it does not reload
+    it back afterwards, ``handlers_core._with_spinner``/``_out`` stay bound to mocks
+    and every later test that dispatches through this module silently skips the real
+    engine (regression: subtitle style-forwarding test then "DID NOT RAISE").
+    """
+    import kinocut.cli.common as common
+    import kinocut.cli.handlers_core as handlers_core
+
+    args = _make_args(command="subtitles", input="in.mp4", subtitle="c.srt", output="o.mp4", style=None)
+    _reload_and_dispatch("mcp_video.cli.handlers_core", "subtitles", args, monkeypatch)
+
+    assert not isinstance(handlers_core._with_spinner, MagicMock)   # no mock leak
+    assert handlers_core._with_spinner is common._with_spinner       # real function restored
+    assert not isinstance(handlers_core._out, MagicMock)
 
 
 class TestDispatchEngineCmd:

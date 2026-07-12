@@ -2,6 +2,7 @@
 
 __version__ = "1.7.0"
 
+from . import contracts  # stable re-export of the Wave 0 record/receipt contracts
 from .client import Client
 from .ai_engine import (
     ai_remove_silence,
@@ -72,6 +73,7 @@ __all__ = [
     "audio_spatial",
     "audio_synthesize",
     "auto_chapters",
+    "contracts",
     "design_quality_check",
     "effect_chromatic_aberration",
     "effect_glow",

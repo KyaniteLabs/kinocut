@@ -2,7 +2,7 @@
 
 > Guardrailed video editing MCP server, Python library, and CLI for AI agents.
 
-kino gives AI agents 135 structured tools for FFmpeg-based video editing, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, layered compositing with full-canvas blend modes and rotation, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
+kino gives AI agents 142 structured MCP tools and 121 CLI commands for FFmpeg-based video editing, governed AI-video review and salvage, deterministic project-backed inspection, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, video analysis, subtitles, resizing, transcoding, audio workflows, effects, layered compositing with full-canvas blend modes and rotation, quality checkpoints, Hyperframes code-driven video creation, and local repurposing packages. Preflight guardrails warn or fail early on risky filter, merge, audio, overlay, chroma, text, grid, and split-screen settings before FFmpeg can silently render bad output.
 
 ## Use cases
 - Claude Code / Cursor video editing tools
@@ -25,6 +25,9 @@ kino gives AI agents 135 structured tools for FFmpeg-based video editing, an age
 - `docs/WORKFLOWS.md`: agent workflow engine (job-spec, @refs, variants, resume, receipts)
 - `docs/VIDEO_RECEIPT.md`: receipt kinds and schema policy
 - `docs/AI_AGENT_DISCOVERY.md`: agent discovery guidance
+- `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md`: governed review and derivative workflow
+- `docs/status/2026-07-12-wishlist-draft-pr-status.md`: current incomplete draft status and release stop
+- `docs/plans/2026-07-12-wishlist-parallel-execution.md`: parallel implementation DAG and ownership
 - `skills/kinocut/SKILL.md`: public agent skill for guarded video workflows
 - `kinocut/creation_engine.py`: cinematic project, style-pack, storyboard, and shot-prompt helpers
 - `kinocut/engine_repurpose.py`: local platform package planning and rendering

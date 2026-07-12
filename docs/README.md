@@ -15,6 +15,8 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Design standards](DESIGN_STANDARDS.md) - visual metrics, units, and guardrails.
 - [Licensing notes](LEGAL_REVIEW.md) - project and dependency obligations.
 - [Agent discovery](AI_AGENT_DISCOVERY.md) - concise capability and setup summary.
+- [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
+- [Current wishlist draft status](status/2026-07-12-wishlist-draft-pr-status.md) - commit-bound implementation state and release stop.
 
 ## Strategy And Roadmap
 
@@ -24,6 +26,13 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Integration roadmap](INTEGRATION-ROADMAP.md) - completed and deferred integrations.
 - [Feature roadmap](KINOCUT-FEATURES-ROADMAP.md) - detailed feature history and backlog.
 - [Audio feature design](KINOCUT-AUDIO-FEATURES.md) - procedural-audio design record.
+- [Wishlist parallel execution plan](plans/2026-07-12-wishlist-parallel-execution.md) - dependency waves, ownership, integration gates, and stop rules.
+- [`kinocut_sound` plan index](superpowers/plans/2026-07-12-kinocut-sound-plan-index.md) - standalone-capable sound-module sequencing.
+
+## Current Proof
+
+- [Wishlist draft verification receipt](proofs/wishlist-draft/VERIFICATION_RECEIPT.md) - exact-SHA pre-PR checks and required final gates.
+- [Wishlist input manifest](evidence/2026-07-10-wishlist-input-manifest.md) - public-safe source traceability.
 
 ## Historical Evidence
 

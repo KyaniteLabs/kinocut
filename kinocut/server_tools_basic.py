@@ -13,11 +13,27 @@ import anyio
 from mcp.server.fastmcp import Context
 
 from .engine import add_audio, add_text, add_texts, convert, merge, probe, resize, speed, trim
+from .contracts.receipt_ai_video import AiVideoReceiptSection
+from .receipts_ai_video import attach_ai_video_section
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
 from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation_error, mcp
-from .validation import VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
+from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
+
+
+def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> dict[str, Any]:
+    """Record the chosen duration_policy (and any preservation warning) in the receipt.
+
+    Additive only: an ``ai_video`` section is attached without touching any legacy
+    result field. ``shortest`` records the ``outro_may_be_trimmed`` warning code.
+    """
+
+    if not isinstance(result, dict) or not result.get("success"):
+        return result
+    warnings = ("outro_may_be_trimmed",) if duration_policy == "shortest" else ()
+    section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
+    return attach_ai_video_section(result, section)
 
 ExistingVideoPath = Annotated[
     str,
@@ -318,6 +334,11 @@ def video_add_audio(
         Field(description="Optional start offset in seconds where the inserted audio begins."),
     ] = None,
     output_path: OptionalOutputVideoPath = None,
+    duration_policy: Annotated[
+        str,
+        Field(description="How to reconcile audio and video length: keep_video (default, preserves the "
+              "full video/outro), pad_audio, loop_audio, trim_audio, or shortest (may trim the outro)."),
+    ] = "keep_video",
 ) -> dict[str, Any]:
     """Add, replace, or mix an audio track into a video.
 
@@ -341,7 +362,12 @@ def video_add_audio(
         return _validation_error(f"fade_in must be non-negative, got {fade_in}")
     if fade_out is not None and fade_out < 0:
         return _validation_error(f"fade_out must be non-negative, got {fade_out}")
-    return _result(
+    if duration_policy not in DURATION_POLICIES:
+        # Never echo the raw (possibly hostile) value back into a public error.
+        return _validation_error(
+            f"duration_policy must be one of {DURATION_POLICIES}", code="invalid_duration_policy"
+        )
+    result = _result(
         add_audio(
             video_path,
             audio_path=audio_path,
@@ -351,8 +377,10 @@ def video_add_audio(
             mix=mix,
             start_time=start_time,
             output_path=output_path,
+            duration_policy=duration_policy,
         )
     )
+    return _attach_add_audio_receipt(result, duration_policy)
 
 
 @mcp.tool()
@@ -508,7 +536,7 @@ def search_tools(query: str) -> dict[str, Any]:
     """Search registered MCP tools by keyword.
 
     Use this when you need to find the right tool for a task without reading
-    all 91 tool descriptions. Returns matching tools with their names,
+    every registered tool description. Returns matching tools with their names,
     descriptions, and required parameters.
 
     Args:
@@ -518,6 +546,7 @@ def search_tools(query: str) -> dict[str, Any]:
     # We import sibling modules (not the facade) to populate the registry.
     from . import (  # noqa: F401
         server_tools_advanced,
+        server_tools_aivideo,
         server_tools_ai,
         server_tools_audio,
         server_tools_creation,

@@ -58,11 +58,14 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     storyboard_p.add_argument("-n", "--frames", type=int, default=8, help="Number of frames (default: 8)")
 
     # subtitles
-    subs_p = subparsers.add_parser("subtitles", help="Burn subtitles into video")
+    subs_p = subparsers.add_parser("subtitles", help="Burn .srt/.vtt/authored .ass subtitles into video")
     subs_p.add_argument("input", help="Input video file")
-    subs_p.add_argument("subtitle", help="Subtitle file (.srt or .vtt)")
+    subs_p.add_argument("subtitle", help="Subtitle file (.srt, .vtt, or authored .ass)")
     subs_p.add_argument(
-        "--style", help="Subtitle style as FFmpeg force_style string (e.g. FontSize=24,PrimaryColour=&H00FFFFFF)"
+        "--style",
+        help="force_style override applied to any subtitle format including authored .ass "
+        "(e.g. FontSize=24,PrimaryColour=&H00FFFFFF); omit to preserve an authored .ass "
+        "file's own styles/positions",
     )
     subs_p.add_argument("-o", "--output", help="Output file path")
 

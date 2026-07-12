@@ -13,10 +13,23 @@ This project follows a simple release-note style:
 
 ### Added
 
+- Added the contract-first AI-video foundation: strict canonical records, append-only private project storage, immutable content-addressed ingest, unified media preflight, temporal evidence packages, deterministic defect findings, and fail-soft optional visual providers.
+- Added governed AI-video review and salvage surfaces across MCP, Python, and CLI: exact-asset verdicts and acceptance evaluation, protected-element checks, audio-preserving body swap, and lineage-bound salvage derivatives that always require fresh review.
+- Added loss-proof add-audio duration policies and authored ASS plus dimension-aware SRT/VTT subtitle rendering.
+- Added public operating, status, provenance, verification, and parallel-execution documentation for the unfinished AI-video and `kinocut_sound` program.
 - Added a path-based `skills/kinocut-repurpose` v1 skill, install notes, and a deterministic current-tools demo script for producing local short-clip repurpose packages without inventing commands or publishing externally.
 - Optional C2PA provenance signing for final MP4 exports on the existing path-based `export` / `video_export` / `Client.export()` flow. Signing remains off by default and only reports `signed` after `c2patool` signs and a follow-up verification read succeeds.
 - Added a staged Kinocut MCPB package (`mcpb/`) with a valid v0.4 manifest, Node stdio launcher, local build/validation script, user-facing install docs, and explicit release gates for bundled runtimes and runtime confinement.
 - Added the fail-closed native MCPB builder foundation: strict digest-pinned runtime locks, bounded portable archive extraction, target-specific manifests, and a bundle-contained launcher. Native packages remain blocked from publication pending the documented FFmpeg provenance, licensing, and clean-machine gates.
+
+### Changed
+
+- Approved AI-video dispositions now require active exact human decisions with requirement-level evidence; analyzer output alone cannot create approval.
+- Body-swap and salvage resolve verified stored source identities and reject stale, ambiguous, aliased, or protected inputs rather than trusting ambient paths.
+
+### Release status
+
+- These changes are under draft review. No version bump, tag, package upload, directory submission, deployment, release, or announcement is authorized.
 
 ## 1.7.0 - 2026-07-10
 

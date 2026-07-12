@@ -10,6 +10,34 @@ kino [command] [options]
 |---------|-------------|
 | `doctor` | Check FFmpeg, Hyperframes, image, and AI dependencies |
 
+## Project-backed Inspection
+
+| Command | Description |
+|---------|-------------|
+| `video-ingest PROJECT SOURCE` | Ingest immutable source bytes plus optional `--lineage-json`, `--usage-rights-status`, and private `--usage-rights-evidence-ref` metadata |
+| `video-preflight PROJECT ASSET_ID` | Persist unified technical, loudness, color, and decode preflight for the active asset |
+| `video-inspect-temporal PROJECT ASSET_ID` | Build the complete temporal package; optional `--regions-json` declares bounded normalized text/logo crops |
+
+Use `--format json` before the command for the same JSON-compatible envelope returned by
+MCP and Python. Preflight and inspection never create a missing project and never accept an
+arbitrary source path in place of a stored asset.
+
+## Governed AI-video Review and Salvage
+
+| Command | Description |
+|---------|-------------|
+| `video-verdict PROJECT --verdict-json JSON` | Persist exact-asset analysis; approvals require active exact human evidence |
+| `video-acceptance-eval PROJECT ACCEPTANCE_SPEC_ID [--verdict-id ID ...]` | Resolve active stored spec/verdict records and evaluate them without creating an approval |
+| `video-body-swap PROJECT VIDEO_SOURCE AUDIO_SOURCE OUTPUT` | Require both inputs to be active stored project assets, then preserve approved audio under an explicit mismatch policy |
+| `video-salvage PROJECT ASSET_ID RECIPE SPEC_ID --policy-json JSON` | Create a lineage-bound derivative and a fresh non-approved review slot |
+
+All four commands use the same boundary as MCP and Python. There is no force, override,
+or bypass flag. Repeat `--authorization-decision-id` only for stored human decisions.
+Acceptance accepts record ids rather than caller-built verdict/spec objects, and body swap
+never offers a projectless public mode.
+See [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) for the required ingest,
+inspection, decision, protection, derivative, and re-review sequence.
+
 ## Core Editing
 
 | Command | Description |
@@ -26,7 +54,7 @@ kino [command] [options]
 | `extract-frame` | Extract a single frame (with --time flag) |
 | `preview` | Generate fast low-res preview |
 | `storyboard` | Extract key frames as storyboard |
-| `subtitles` | Burn subtitles into video |
+| `subtitles` | Burn `.srt`/`.vtt`/authored `.ass` subtitles into video; `--style` sets a force_style override (omit to preserve authored ASS styles/positions; SRT/VTT render dimension-aware) |
 | `generate-subtitles` | Create SRT subtitles from text |
 | `watermark` | Add image watermark |
 | `crop` | Crop to rectangular region |

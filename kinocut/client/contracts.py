@@ -13,6 +13,17 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "inspect": {"category": "report", "return_type": "dict", "aliases": {}},
     "pipeline": {"category": "media", "return_type": MEDIA_RETURN, "aliases": {"output": "output_path"}},
     "search_tools": {"category": "report", "return_type": "dict", "aliases": {}},
+    "ingest": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "preflight": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "inspect_temporal": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "verdict": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "acceptance_eval": {
+        "category": "report",
+        "return_type": REPORT_RETURN,
+        "aliases": {},
+    },
+    "body_swap": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "salvage": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
     # Media editing
     "trim": {
         "category": "media",

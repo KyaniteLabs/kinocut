@@ -137,8 +137,14 @@ class ClientMediaMixin:
         mix: bool = False,
         start_time: float | None = None,
         output: str | None = None,
+        duration_policy: str = "keep_video",
     ) -> EditResult:
-        """Add or replace audio track."""
+        """Add or replace audio track.
+
+        ``duration_policy`` (default ``keep_video``) preserves the full video
+        duration so a shorter audio clip cannot eat the outro; see
+        :func:`kinocut.engine_audio_ops.add_audio` for the full policy set.
+        """
         return _add_audio(
             video,
             audio_path=audio,
@@ -148,6 +154,7 @@ class ClientMediaMixin:
             mix=mix,
             start_time=start_time,
             output_path=output,
+            duration_policy=duration_policy,
         )
 
     def resize(
@@ -258,9 +265,15 @@ class ClientMediaMixin:
         video: str,
         subtitle_file: str,
         output: str | None = None,
+        style: str | None = None,
     ) -> EditResult:
-        """Burn subtitles into a video."""
-        return _subtitles(video, subtitle_path=subtitle_file, output_path=output)
+        """Burn subtitles into a video.
+
+        ``style`` is an optional force_style override applied to any subtitle
+        format including authored ASS; omit it to preserve an authored ASS
+        file's own styling/positioning.
+        """
+        return _subtitles(video, subtitle_path=subtitle_file, output_path=output, style=style)
 
     def watermark(
         self,
