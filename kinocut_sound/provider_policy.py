@@ -5,16 +5,19 @@ from __future__ import annotations
 from dataclasses import dataclass
 from itertools import islice
 import logging
-from typing import Protocol
+from typing import Protocol, TypeVar
 
-from pydantic import Field, StrictBool, field_validator, model_validator
+from pydantic import Field, PrivateAttr, StrictBool, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, canonical_digest
 from kinocut_sound.authorization import AuthorizationContext, AuthorizationError, ConsentLedger
-from kinocut_sound.capability import AdapterLocality, CostDisclosure
+from kinocut_sound.capability import AdapterDescriptor, AdapterLocality, CapabilityResult, CostDisclosure
 from kinocut_sound.defaults import (
     DEFAULT_PROVIDER_CONNECT_TIMEOUT_SECONDS,
     DEFAULT_PROVIDER_MAX_CONCURRENCY,
+    DEFAULT_PROVIDER_MAX_DURATION_SECONDS,
+    DEFAULT_PROVIDER_MAX_INPUT_BYTES,
+    DEFAULT_PROVIDER_MAX_OUTPUT_BYTES,
     DEFAULT_PROVIDER_MAX_RETRIES,
     DEFAULT_PROVIDER_RATE_LIMIT_PER_MINUTE,
     DEFAULT_PROVIDER_READ_TIMEOUT_SECONDS,
@@ -23,22 +26,29 @@ from kinocut_sound.defaults import (
 from kinocut_sound.limits import (
     MAX_PROVIDER_CONCURRENCY,
     MAX_PROVIDER_CONNECT_TIMEOUT_SECONDS,
+    MAX_PROVIDER_DURATION_SECONDS,
+    MAX_PROVIDER_INPUT_BYTES,
+    MAX_PROVIDER_OUTPUT_BYTES,
     MAX_PROVIDER_RATE_LIMIT_PER_MINUTE,
     MAX_PROVIDER_READ_TIMEOUT_SECONDS,
     MAX_PROVIDER_RETRIES,
     MAX_PROVIDER_TOTAL_TIMEOUT_SECONDS,
     MAX_S3_REGISTRY_ADAPTERS,
     MIN_COST_USD,
+    MIN_PROVIDER_BYTES,
     MIN_PROVIDER_CONCURRENCY,
     MIN_PROVIDER_RATE_LIMIT_PER_MINUTE,
     MIN_PROVIDER_RETRIES,
     MIN_RETENTION_DAYS,
     MIN_TIME_SECONDS,
 )
-from kinocut_sound.registry import AdapterRegistry, RegistryError, ResolvedAdapter
+from kinocut_sound.registry import Adapter, AdapterRegistry, RegistryError, ResolvedAdapter
 from kinocut_sound.validation import ISO8601_RE, TERRITORY_RE
 
 logger = logging.getLogger(__name__)
+
+_ModelT = TypeVar("_ModelT", bound=FrozenModel)
+_APPROVAL_ISSUER = object()
 
 
 def _error(message: str, code: str) -> RegistryError:
@@ -59,8 +69,14 @@ def _codes(values: object, *, allow_empty: bool = False) -> tuple[str, ...]:
     return tuple(sorted(checked))
 
 
+def _plain_fields(value: object, model_type: type[_ModelT]) -> dict[str, object]:
+    if not isinstance(value, model_type):
+        raise TypeError("contract instance type mismatch")
+    return {name: getattr(value, name) for name in model_type.model_fields}
+
+
 class ProviderExecutionLimits(FrozenModel):
-    """Typed network and retry limits for one provider request."""
+    """Typed network, resource, and retry limits for one provider request."""
 
     connect_timeout_seconds: float = Field(
         default=DEFAULT_PROVIDER_CONNECT_TIMEOUT_SECONDS,
@@ -76,6 +92,21 @@ class ProviderExecutionLimits(FrozenModel):
         default=DEFAULT_PROVIDER_TOTAL_TIMEOUT_SECONDS,
         gt=MIN_TIME_SECONDS,
         le=MAX_PROVIDER_TOTAL_TIMEOUT_SECONDS,
+    )
+    max_input_bytes: int = Field(
+        default=DEFAULT_PROVIDER_MAX_INPUT_BYTES,
+        gt=MIN_PROVIDER_BYTES,
+        le=MAX_PROVIDER_INPUT_BYTES,
+    )
+    max_output_bytes: int = Field(
+        default=DEFAULT_PROVIDER_MAX_OUTPUT_BYTES,
+        gt=MIN_PROVIDER_BYTES,
+        le=MAX_PROVIDER_OUTPUT_BYTES,
+    )
+    max_duration_seconds: float = Field(
+        default=DEFAULT_PROVIDER_MAX_DURATION_SECONDS,
+        gt=MIN_TIME_SECONDS,
+        le=MAX_PROVIDER_DURATION_SECONDS,
     )
     cancellation_required: StrictBool = True
     max_retries: int = Field(
@@ -97,7 +128,14 @@ class ProviderExecutionLimits(FrozenModel):
     )
     redirects_allowed: StrictBool = False
 
-    @field_validator("max_retries", "max_concurrency", "rate_limit_per_minute", mode="before")
+    @field_validator(
+        "max_input_bytes",
+        "max_output_bytes",
+        "max_retries",
+        "max_concurrency",
+        "rate_limit_per_minute",
+        mode="before",
+    )
     @classmethod
     def _strict_ints(cls, value: object) -> object:
         if isinstance(value, bool) or not isinstance(value, int):
@@ -108,12 +146,13 @@ class ProviderExecutionLimits(FrozenModel):
         "connect_timeout_seconds",
         "read_timeout_seconds",
         "total_timeout_seconds",
+        "max_duration_seconds",
         mode="before",
     )
     @classmethod
     def _strict_numbers(cls, value: object) -> object:
         if isinstance(value, bool) or not isinstance(value, (int, float)):
-            raise ValueError("provider timeout must be numeric")
+            raise ValueError("provider time limit must be numeric")
         return value
 
     @model_validator(mode="after")
@@ -260,7 +299,7 @@ class ProviderRequest(FrozenModel):
 
 
 class CloudExecutionApproval(FrozenModel):
-    """Immutable receipt for the exact approved request, route, and policy."""
+    """Internally issued receipt for exact approved request, route, and limits."""
 
     provider_id: str
     region: str
@@ -270,35 +309,118 @@ class CloudExecutionApproval(FrozenModel):
     retention_days: int
     territory: str
     grant_ids: tuple[str, ...]
+    request_snapshot: ProviderRequest
+    route_snapshot: CloudRouteBinding
+    limits_snapshot: ProviderExecutionLimits
+    policy_snapshot: ExecutionPolicy
     request_digest: Sha256
     route_digest: Sha256
+    limits_digest: Sha256
     policy_digest: Sha256
     confirmed: StrictBool
+    _issuer_token: object | None = PrivateAttr(default=None)
+
+    @field_validator("provider_id", "region", "egress_host", "credential_handle")
+    @classmethod
+    def _bounded(cls, value: str) -> str:
+        return BoundedCode(value)
+
+    @field_validator("data_classes", "grant_ids", mode="before")
+    @classmethod
+    def _code_lists(cls, value: object) -> tuple[str, ...]:
+        return _codes(value)
+
+    @field_validator("territory")
+    @classmethod
+    def _territory(cls, value: str) -> str:
+        if not TERRITORY_RE.match(value):
+            raise ValueError("territory must be bounded")
+        return value
+
+    @field_validator("retention_days", mode="before")
+    @classmethod
+    def _strict_retention(cls, value: object) -> object:
+        if isinstance(value, bool) or not isinstance(value, int):
+            raise ValueError("retention_days must be an integer")
+        return value
 
 
 @dataclass(frozen=True)
 class AdapterSelection:
-    """One validated adapter plus optional exact cloud approval."""
+    """One validated adapter plus immutable execution-limit evidence."""
 
     resolved: ResolvedAdapter
+    limits_snapshot: ProviderExecutionLimits
+    limits_digest: Sha256
     cloud_approval: CloudExecutionApproval | None = None
 
     @property
-    def instance(self) -> object:
+    def instance(self) -> Adapter:
         return self.resolved.instance
 
     @property
-    def descriptor(self):  # type: ignore[no-untyped-def]
+    def descriptor(self) -> AdapterDescriptor:
         return self.resolved.descriptor
 
     @property
-    def capability(self):  # type: ignore[no-untyped-def]
+    def capability(self) -> CapabilityResult:
         return self.resolved.capability
 
 
 class _AuthorizationLedger(Protocol):
     def authorize_cloud_egress(self, **kwargs: object) -> tuple[str, ...]:
         """Authorize exact cloud egress scope."""
+
+
+def _sanitize_limits(value: object) -> ProviderExecutionLimits:
+    return ProviderExecutionLimits.model_validate(_plain_fields(value, ProviderExecutionLimits))
+
+
+def _sanitize_route(value: object) -> CloudRouteBinding:
+    return CloudRouteBinding.model_validate(_plain_fields(value, CloudRouteBinding))
+
+
+def _sanitize_policy(value: object) -> ExecutionPolicy:
+    try:
+        raw = _plain_fields(value, ExecutionPolicy)
+        raw_routes = tuple(islice(iter(raw["routes"]), MAX_S3_REGISTRY_ADAPTERS + 1))  # type: ignore[arg-type]
+        if len(raw_routes) > MAX_S3_REGISTRY_ADAPTERS:
+            raise ValueError("route ceiling exceeded")
+        payload = {
+            "allow_cloud": raw["allow_cloud"],
+            "cloud_execution_confirmed": raw["cloud_execution_confirmed"],
+            "routes": tuple(_sanitize_route(route) for route in raw_routes),
+            "limits": _sanitize_limits(raw["limits"]),
+        }
+        return ExecutionPolicy.model_validate(payload)
+    except Exception:
+        logger.warning("execution policy ingress validation failed")
+        raise _error("execution policy is invalid", "invalid_execution_policy") from None
+
+
+def _sanitize_context(value: object) -> AuthorizationContext:
+    if not isinstance(value, AuthorizationContext):
+        raise TypeError("authorization context type mismatch")
+    codes = {
+        "operation": value.operation,
+        "project_id": value.project_id,
+        "character_id": value.character_id,
+        "provider_class": value.provider_class,
+    }
+    checked = {name: BoundedCode(item) if item is not None else None for name, item in codes.items()}
+    if value.territory is not None and not TERRITORY_RE.match(value.territory):
+        raise ValueError("authorization territory is invalid")
+    return AuthorizationContext(**checked, territory=value.territory)
+
+
+def _sanitize_request(value: object) -> ProviderRequest:
+    try:
+        raw = _plain_fields(value, ProviderRequest)
+        raw["context"] = _sanitize_context(raw["context"])
+        return ProviderRequest.model_validate(raw)
+    except Exception:
+        logger.warning("provider request ingress validation failed")
+        raise _error("provider request is invalid", "invalid_provider_request") from None
 
 
 def _candidate_ids(values: object) -> tuple[str, ...]:
@@ -331,16 +453,15 @@ def _matching_route(
 
 
 def _check_execution_limits(
-    policy: ExecutionPolicy,
+    limits: ProviderExecutionLimits,
     route: CloudRouteBinding,
     request: ProviderRequest,
 ) -> None:
-    limits = policy.limits
     denied = (
         (limits.idempotency_key_required and not request.idempotency_key)
         or (limits.cancellation_required and not request.cancellation_handle)
         or (
-            limits.max_retries > 0
+            limits.max_retries > MIN_PROVIDER_RETRIES
             and limits.transient_idempotent_retries_only
             and (not request.request_is_idempotent or request.retry_class != "transient")
         )
@@ -402,7 +523,8 @@ def _cloud_approval(
     policy: ExecutionPolicy,
     grants: tuple[str, ...],
 ) -> CloudExecutionApproval:
-    return CloudExecutionApproval(
+    limits = policy.limits
+    approval = CloudExecutionApproval(
         provider_id=disclosure.provider_id,
         region=disclosure.region,
         egress_host=request.egress_host,
@@ -411,27 +533,91 @@ def _cloud_approval(
         retention_days=request.retention_days,
         territory=request.territory,
         grant_ids=grants,
+        request_snapshot=request,
+        route_snapshot=route,
+        limits_snapshot=limits,
+        policy_snapshot=policy,
         request_digest=canonical_digest(request),
         route_digest=canonical_digest(route),
+        limits_digest=canonical_digest(limits),
         policy_digest=canonical_digest(policy),
         confirmed=True,
     )
+    approval.__pydantic_private__["_issuer_token"] = _APPROVAL_ISSUER
+    return approval
+
+
+def _sanitize_approval(value: object) -> CloudExecutionApproval:
+    raw = _plain_fields(value, CloudExecutionApproval)
+    raw["request_snapshot"] = _sanitize_request(raw["request_snapshot"])
+    raw["route_snapshot"] = _sanitize_route(raw["route_snapshot"])
+    raw["limits_snapshot"] = _sanitize_limits(raw["limits_snapshot"])
+    raw["policy_snapshot"] = _sanitize_policy(raw["policy_snapshot"])
+    return CloudExecutionApproval.model_validate(raw)
+
+
+def _approval_is_coherent(
+    approval: CloudExecutionApproval,
+    policy: ExecutionPolicy | None,
+) -> bool:
+    request = approval.request_snapshot
+    route = approval.route_snapshot
+    limits = approval.limits_snapshot
+    policy_snapshot = approval.policy_snapshot
+    exact = (
+        approval.confirmed
+        and approval.provider_id == route.provider_id
+        and approval.region == route.region
+        and approval.egress_host == request.egress_host == route.egress_host
+        and approval.credential_handle == request.credential_handle == route.credential_handle
+        and approval.data_classes == request.data_classes
+        and set(approval.data_classes) <= set(route.data_classes)
+        and approval.retention_days == request.retention_days <= route.retention_ceiling_days
+        and approval.territory == request.territory == request.context.territory
+        and approval.grant_ids == request.grant_ids
+        and approval.request_digest == canonical_digest(request)
+        and approval.route_digest == canonical_digest(route)
+        and approval.limits_digest == canonical_digest(limits)
+        and approval.policy_digest == canonical_digest(policy_snapshot)
+        and limits == policy_snapshot.limits
+        and any(route == candidate for candidate in policy_snapshot.routes)
+    )
+    if policy is None:
+        return exact
+    return exact and policy_snapshot == policy
 
 
 def validate_cloud_approval(
     approval: CloudExecutionApproval,
-    policy: ExecutionPolicy,
+    policy: ExecutionPolicy | None = None,
 ) -> None:
-    """Revalidate an original approval against the exact current policy."""
+    """Verify private issuance proof and exact request, route, policy, and limits."""
 
     try:
-        checked = CloudExecutionApproval.model_validate(approval.model_dump(mode="python"))
+        if not isinstance(approval, CloudExecutionApproval):
+            raise TypeError("approval type mismatch")
+        if approval._issuer_token is not _APPROVAL_ISSUER:
+            raise ValueError("approval was not internally issued")
+        checked_policy = _sanitize_policy(policy) if policy is not None else None
+        checked = _sanitize_approval(approval)
+        if not _approval_is_coherent(checked, checked_policy):
+            raise ValueError("approval snapshot mismatch")
     except Exception:
-        raise _error("cloud approval is invalid", "cloud_policy_changed") from None
-    if not checked.confirmed or checked.policy_digest != canonical_digest(policy):
-        raise _error("cloud execution policy changed", "cloud_policy_changed")
-    if not any(canonical_digest(route) == checked.route_digest for route in policy.routes):
-        raise _error("cloud execution route changed", "cloud_policy_changed")
+        logger.warning("cloud approval validation failed")
+        raise _error("cloud execution policy changed", "cloud_policy_changed") from None
+
+
+def _selection(
+    resolved: ResolvedAdapter,
+    limits: ProviderExecutionLimits,
+    approval: CloudExecutionApproval | None = None,
+) -> AdapterSelection:
+    return AdapterSelection(
+        resolved=resolved,
+        limits_snapshot=limits,
+        limits_digest=canonical_digest(limits),
+        cloud_approval=approval,
+    )
 
 
 def select_adapter(
@@ -443,8 +629,10 @@ def select_adapter(
     ledger: ConsentLedger | _AuthorizationLedger | None = None,
     request: ProviderRequest | None = None,
 ) -> AdapterSelection:
-    """Select healthy local first; construct cloud only when no local is declared."""
+    """Validate ingress, select healthy local first, and issue exact cloud proof."""
 
+    checked_policy = _sanitize_policy(policy)
+    checked_request = _sanitize_request(request) if request is not None else None
     candidates = _candidate_ids(candidate_ids)
     descriptors = tuple((item, registry.declared_descriptor(item)) for item in candidates)
     local_ids = tuple(item for item, descriptor in descriptors if descriptor.locality is AdapterLocality.LOCAL)
@@ -452,27 +640,23 @@ def select_adapter(
         for adapter_id in local_ids:
             resolved = registry.resolve(adapter_id, kind=kind, locality=AdapterLocality.LOCAL)
             if resolved.capability.available:
-                return AdapterSelection(resolved=resolved)
+                return _selection(resolved, checked_policy.limits)
         raise _error("local capability is unavailable", "local_capability_unavailable")
-    if not policy.allow_cloud or not policy.cloud_execution_confirmed:
+    if not checked_policy.allow_cloud or not checked_policy.cloud_execution_confirmed:
         raise _error("cloud execution was not explicitly confirmed", "cloud_execution_denied")
-    if request is None:
+    if checked_request is None:
         raise _error("cloud authorization request is required", "cloud_authorization_required")
     for adapter_id, descriptor in descriptors:
-        if descriptor.locality is not AdapterLocality.CLOUD:
+        if descriptor.locality is not AdapterLocality.CLOUD or descriptor.cost_disclosure is None:
             continue
         disclosure = descriptor.cost_disclosure
-        if disclosure is None:
-            continue
-        route = _matching_route(disclosure, request, policy)
-        _check_route_scope(disclosure, route, request)
-        _check_execution_limits(policy, route, request)
+        route = _matching_route(disclosure, checked_request, checked_policy)
+        _check_route_scope(disclosure, route, checked_request)
+        _check_execution_limits(checked_policy.limits, route, checked_request)
         resolved = registry.resolve(adapter_id, kind=kind, locality=AdapterLocality.CLOUD)
         if not resolved.capability.available:
             continue
-        grants = _authorize_cloud(disclosure, ledger, request)
-        return AdapterSelection(
-            resolved=resolved,
-            cloud_approval=_cloud_approval(disclosure, route, request, policy, grants),
-        )
+        grants = _authorize_cloud(disclosure, ledger, checked_request)
+        approval = _cloud_approval(disclosure, route, checked_request, checked_policy, grants)
+        return _selection(resolved, checked_policy.limits, approval)
     raise _error("cloud capability is unavailable", "adapter_unavailable")

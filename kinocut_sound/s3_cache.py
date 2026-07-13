@@ -7,7 +7,7 @@ from itertools import islice
 import logging
 from typing import Protocol
 
-from pydantic import StrictBool, TypeAdapter, field_validator
+from pydantic import StrictBool, TypeAdapter, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
 from kinocut_sound._errors import SoundContractError
@@ -43,12 +43,26 @@ class AuthorizedLineage(FrozenModel):
 
     pre_recorded_output: StrictBool = False
     parent_asset_ids: tuple[str, ...] = ()
+    actor_id: str | None = None
     lease_id: str | None = None
 
     @field_validator("parent_asset_ids", mode="before")
     @classmethod
     def _parents(cls, value: object) -> tuple[str, ...]:
         return _bounded_codes(value, allow_empty=True)
+
+    @field_validator("actor_id")
+    @classmethod
+    def _actor(cls, value: str | None) -> str | None:
+        return BoundedCode(value) if value is not None else None
+
+    @model_validator(mode="after")
+    def _lease_actor_coherence(self) -> AuthorizedLineage:
+        if self.lease_id is not None and self.actor_id is None:
+            raise ValueError("leased lineage requires an actor")
+        if self.lease_id is None and self.actor_id is not None:
+            raise ValueError("lineage actor requires a lease")
+        return self
 
     @field_validator("lease_id")
     @classmethod
@@ -124,22 +138,27 @@ def _trusted_grants(
     context: AuthorizationContext,
     at_iso: str,
 ) -> tuple[str, ...]:
-    choices = int(lineage.pre_recorded_output) + bool(lineage.parent_asset_ids) + (lineage.lease_id is not None)
+    choices = (
+        int(lineage.pre_recorded_output)
+        + (lineage.lease_id is not None)
+        + (bool(lineage.parent_asset_ids) and lineage.lease_id is None)
+    )
     if choices != 1:
         raise _error("trusted output lineage is required", "trusted_lineage_required")
     try:
-        if lineage.parent_asset_ids:
+        if lineage.lease_id is not None:
+            ledger.commit_lease(
+                lineage.lease_id,
+                output_asset_id=artifact_id,
+                parent_asset_ids=lineage.parent_asset_ids,
+                at_iso=at_iso,
+                actor_id=lineage.actor_id,
+            )
+        elif lineage.parent_asset_ids:
             ledger.record_asset(
                 artifact_id,
                 direct_grant_ids=(),
                 parent_asset_ids=lineage.parent_asset_ids,
-                context=context,
-                at_iso=at_iso,
-            )
-        elif lineage.lease_id is not None:
-            ledger.commit_lease(
-                lineage.lease_id,
-                artifact_id=artifact_id,
                 context=context,
                 at_iso=at_iso,
             )
@@ -247,8 +266,11 @@ class AuthorizationAwareCache:
             checked_lineage = AuthorizedLineage.model_validate(lineage.model_dump(mode="python"))
         except Exception:
             raise _error("trusted output lineage is invalid", "trusted_lineage_required") from None
-        if cloud_approval is not None and not cloud_approval.confirmed:
-            raise _error("cloud approval is unconfirmed", "cache_cloud_unconfirmed")
+        if cloud_approval is not None:
+            try:
+                validate_cloud_approval(cloud_approval)
+            except RegistryError:
+                raise _error("cloud approval is invalid", "cache_cloud_unconfirmed") from None
         grants = _trusted_grants(ledger, BoundedCode(artifact_id), checked_lineage, context, at_iso)
         return self._store_entry(
             fingerprint,

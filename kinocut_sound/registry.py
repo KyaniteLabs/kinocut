@@ -29,7 +29,7 @@ def _registry_id(value: object) -> str:
     if not isinstance(value, str):
         raise ValueError("adapter identifier must be a string")
     checked = BoundedCode(value)
-    if ":" in checked:
+    if ":" in checked or "." in checked or checked != checked.lower():
         raise ValueError("adapter identifiers cannot be import or class paths")
     return checked
 
