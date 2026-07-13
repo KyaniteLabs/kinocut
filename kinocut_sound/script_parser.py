@@ -23,7 +23,12 @@ from kinocut_sound._canonical import (
     location_violation,
 )
 from kinocut_sound._errors import SoundContractError
-from kinocut_sound._input_bounds import validate_wf_name, validate_wf_routes
+from kinocut_sound._input_bounds import (
+    normalize_ingress,
+    script_validation_code as _validation_code,
+    validate_wf_name,
+    validate_wf_routes,
+)
 from kinocut_sound._model_boundary import dump_revalidate_index
 from kinocut_sound._script_integrity import (
     validate_script_relationships,
@@ -465,15 +470,6 @@ def _parse_error(message: str, code: str) -> ScriptParseError:
     return ScriptParseError(message, code=code, suggested_action={"auto_fix": False})
 
 
-def _validation_code(exc: ValidationError) -> str:
-    locations = tuple(part for error in exc.errors() for part in error["loc"])
-    if "lines" in locations or "text" in locations:
-        return "invalid_line"
-    if "scene_id" in locations:
-        return "invalid_scene"
-    return "invalid_script"
-
-
 def _spatial_preset(route: ActorRoute, kind: ScriptLineKind) -> str:
     return {
         ScriptLineKind.DIALOGUE: route.dialogue_spatial_preset,
@@ -606,7 +602,10 @@ def parse_episode_script(
 ) -> ParsedScript:
     """Parse structured episode data into a canonical, privacy-safe record."""
 
-    if script_limit_violation(document):
+    if normalize_ingress(
+        lambda: script_limit_violation(document),
+        lambda _: _parse_error("script traversal failed strict validation", "invalid_script"),
+    ):
         raise _parse_error("script exceeds a named resource ceiling", "invalid_script")
     try:
         actor_map = dump_revalidate_index(actors, ActorRoute, "actor_id")
@@ -740,7 +739,10 @@ def parse_wf_episode_script(
 ) -> ParsedScript:
     """Parse bounded WF scenes and turns while retaining narrator cards as metadata."""
 
-    if script_limit_violation(document, wf=True):
+    if normalize_ingress(
+        lambda: script_limit_violation(document, wf=True),
+        lambda _: _parse_error("WF script traversal failed strict validation", "invalid_script"),
+    ):
         raise _parse_error("WF script exceeds a named resource ceiling", "invalid_script")
     try:
         narrator_character = validate_wf_name(narrator_character)
