@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping
+import traceback
+
 import pytest
 from pydantic import ValidationError
 
@@ -12,6 +15,7 @@ from kinocut_sound.limits import (
     MAX_SCRIPT_BEATS_PER_SCENE,
     MAX_SCRIPT_EVENTS_PER_SCENE,
     MAX_SCRIPT_LINES_PER_SCENE,
+    MAX_SCRIPT_NAME_LENGTH_CHARS,
     MAX_SCRIPT_SCENES,
     MAX_SCRIPT_TEXT_LENGTH_CHARS,
     MAX_SCRIPT_TURNS_PER_SCENE,
@@ -624,3 +628,134 @@ def test_generator_inputs_cannot_bypass_script_resource_ceilings(ceiling):
             created_by="agent:worker_1",
             actors=(_actor("actor_0000", "voice_a"),),
         )
+
+
+def _assert_raw_marker_absent(error, marker):
+    assert marker not in str(error)
+    assert marker not in str(error.__cause__)
+    assert marker not in "".join(traceback.format_exception(error))
+
+
+def test_generic_parser_validation_traceback_never_exposes_raw_input():
+    marker = "RAW_GENERIC_SCRIPT_MARKER"
+    document = _generic_document()
+    document["scenes"][0]["lines"][0]["pause_after_seconds"] = marker
+
+    with pytest.raises(parser.ScriptParseError) as caught:
+        parser.parse_episode_script(
+            document,
+            project_id="project_alpha",
+            created_by="agent:worker_1",
+            actors=(
+                _actor("narrator", "voice_narrator"),
+                _actor("actor_a", "voice_a"),
+            ),
+        )
+
+    _assert_raw_marker_absent(caught.value, marker)
+
+
+def test_wf_parser_validation_traceback_never_exposes_raw_input():
+    marker = "RAW_WF_SCRIPT_MARKER"
+    document = {
+        "episode_id": "wf_raw_marker",
+        "scenes": [
+            {
+                "scene_id": "wf_scene",
+                "turns": [
+                    {
+                        "character": "Narrator",
+                        "text": "Chapter",
+                        "confessional": marker,
+                    }
+                ],
+            }
+        ],
+    }
+
+    with pytest.raises(parser.ScriptParseError) as caught:
+        parser.parse_wf_episode_script(
+            document,
+            project_id="project_alpha",
+            created_by="agent:worker_1",
+            actors=(),
+            character_routes={},
+            narrator_character="Narrator",
+        )
+
+    _assert_raw_marker_absent(caught.value, marker)
+
+
+class _OversizedRoutes(Mapping):
+    marker = "RAW_ROUTE_TRAVERSAL_MARKER"
+
+    def __len__(self):
+        return MAX_SCRIPT_ACTORS + 2
+
+    def __iter__(self):
+        raise AssertionError(self.marker)
+
+    def __getitem__(self, key):
+        raise AssertionError(self.marker)
+
+    def items(self):
+        raise AssertionError(self.marker)
+
+
+def test_wf_rejects_258_routes_before_traversing_mapping_entries():
+    with pytest.raises(parser.ScriptParseError) as caught:
+        parser.parse_wf_episode_script(
+            {"episode_id": "wf_routes", "scenes": []},
+            project_id="project_alpha",
+            created_by="agent:worker_1",
+            actors=(),
+            character_routes=_OversizedRoutes(),
+            narrator_character="Narrator",
+        )
+
+    _assert_raw_marker_absent(caught.value, _OversizedRoutes.marker)
+    assert caught.value.code == "invalid_actor_roster"
+
+
+@pytest.mark.parametrize(
+    ("boundary", "expected_code"),
+    [
+        ("route_key", "invalid_actor_roster"),
+        ("route_value", "invalid_actor_roster"),
+        ("narrator", "invalid_script"),
+        ("turn_character", "invalid_script"),
+    ],
+)
+def test_wf_names_enforce_the_exported_name_ceiling(boundary, expected_code):
+    long_name = "N" * 20_001
+    character = long_name if boundary == "turn_character" else "Alice"
+    routes = {"Alice": "actor_a"}
+    narrator = "Narrator"
+    if boundary == "route_key":
+        routes = {long_name: "actor_a"}
+    elif boundary == "route_value":
+        routes = {"Alice": long_name}
+    elif boundary == "narrator":
+        narrator = long_name
+    document = {
+        "episode_id": "wf_name_limit",
+        "scenes": [
+            {
+                "scene_id": "wf_scene",
+                "turns": [{"character": character, "text": "Hello", "confessional": False}],
+            }
+        ],
+    }
+
+    with pytest.raises(parser.ScriptParseError) as caught:
+        parser.parse_wf_episode_script(
+            document,
+            project_id="project_alpha",
+            created_by="agent:worker_1",
+            actors=(_actor("actor_a", "voice_a"),),
+            character_routes=routes,
+            narrator_character=narrator,
+        )
+
+    assert caught.value.code == expected_code
+    assert len(long_name) > MAX_SCRIPT_NAME_LENGTH_CHARS

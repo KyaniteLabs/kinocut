@@ -7,6 +7,7 @@ an authoritative timeline and explicit routing plan.
 
 from __future__ import annotations
 
+from collections.abc import Iterable
 from typing import Literal
 
 from pydantic import Field, ValidationError, field_validator, model_validator
@@ -21,16 +22,20 @@ from kinocut_sound._canonical import (
     location_violation,
 )
 from kinocut_sound._errors import SoundContractError
-from kinocut_sound._model_boundary import (
-    dump_revalidate_model,
-    dump_revalidate_tuple,
-)
+from kinocut_sound._input_bounds import bounded_model_iterable
+from kinocut_sound._model_boundary import dump_revalidate_model
 from kinocut_sound._timeline_identity import (
     bounded_pause_cue_id as _bounded_pause_cue_id,
 )
 
 from kinocut_sound.lines import ProfileRef
-from kinocut_sound.limits import MIN_TIME_SECONDS
+from kinocut_sound.limits import (
+    MAX_ASSEMBLY_CLIPS,
+    MAX_ASSEMBLY_FOLEY_INTENTS,
+    MAX_ASSEMBLY_SILENCE_INTENTS,
+    MAX_ASSEMBLY_TIMELINE_CUES,
+    MIN_TIME_SECONDS,
+)
 from kinocut_sound.script_parser import (
     BeatKind,
     ChapterCard,
@@ -357,9 +362,9 @@ def _build_timeline(
 def plan_episode_assembly(
     parsed: ParsedScript,
     *,
-    clips: tuple[ClipRef, ...],
-    foley_cues: tuple[FoleyCueIntent, ...] = (),
-    designed_silences: tuple[DesignedSilenceIntent, ...] = (),
+    clips: Iterable[ClipRef],
+    foley_cues: Iterable[FoleyCueIntent] = (),
+    designed_silences: Iterable[DesignedSilenceIntent] = (),
     created_by: str,
     cancellation_requested: bool,
 ) -> EpisodeAssembly:
@@ -371,11 +376,14 @@ def plan_episode_assembly(
         raise _planning_error("episode assembly planning was cancelled", "assembly_cancelled")
     try:
         parsed = dump_revalidate_model(parsed, ParsedScript)
-        clips = dump_revalidate_tuple(clips, ClipRef)
-        foley_cues = dump_revalidate_tuple(foley_cues, FoleyCueIntent)
-        designed_silences = dump_revalidate_tuple(designed_silences, DesignedSilenceIntent)
-    except (AttributeError, TypeError, ValueError, ValidationError) as exc:
-        raise _planning_error("assembly inputs failed strict boundary validation", "invalid_assembly") from exc
+        clips = bounded_model_iterable(clips, ClipRef, MAX_ASSEMBLY_CLIPS)
+        foley_cues = bounded_model_iterable(foley_cues, FoleyCueIntent, MAX_ASSEMBLY_FOLEY_INTENTS)
+        designed_silences = bounded_model_iterable(
+            designed_silences, DesignedSilenceIntent, MAX_ASSEMBLY_SILENCE_INTENTS
+        )
+        _validate_projected_cue_count(parsed, foley_cues, designed_silences)
+    except (AttributeError, TypeError, ValueError, ValidationError):
+        raise _planning_error("assembly inputs failed strict boundary validation", "invalid_assembly") from None
     clip_index = _unique_index(clips)
     expected_line_ids = tuple(item.line.line_id for item in parsed.parsed_lines)
     if set(clip_index) != set(expected_line_ids):
@@ -408,5 +416,22 @@ def plan_episode_assembly(
             foley_cue_ids=foley_cue_ids,
             chapter_cards=parsed.chapter_cards,
         )
-    except (ValidationError, KeyError) as exc:
-        raise _planning_error("episode timeline failed canonical validation", "invalid_assembly") from exc
+    except (ValidationError, KeyError):
+        raise _planning_error("episode timeline failed canonical validation", "invalid_assembly") from None
+
+
+def _validate_projected_cue_count(
+    parsed: ParsedScript,
+    foley_cues: tuple[FoleyCueIntent, ...],
+    designed_silences: tuple[DesignedSilenceIntent, ...],
+) -> None:
+    projected = (
+        len(parsed.parsed_lines)
+        + len(parsed.beats)
+        + sum(item.pause_after_seconds > MIN_TIME_SECONDS for item in parsed.parsed_lines)
+        + sum(scene.pause_after_seconds > MIN_TIME_SECONDS for scene in parsed.scenes)
+        + len(foley_cues)
+        + len(designed_silences)
+    )
+    if projected > MAX_ASSEMBLY_TIMELINE_CUES:
+        raise ValueError("projected timeline exceeds the cue ceiling")

@@ -23,10 +23,8 @@ from kinocut_sound._canonical import (
     location_violation,
 )
 from kinocut_sound._errors import SoundContractError
-from kinocut_sound._model_boundary import (
-    dump_revalidate_index,
-    validate_string_mapping,
-)
+from kinocut_sound._input_bounds import validate_wf_name, validate_wf_routes
+from kinocut_sound._model_boundary import dump_revalidate_index
 from kinocut_sound._script_integrity import (
     validate_script_relationships,
     validate_target_id_uniqueness,
@@ -417,7 +415,7 @@ class _ScriptInput(FrozenModel):
 
 
 class _WfTurnInput(FrozenModel):
-    character: str = Field(min_length=1)
+    character: str = Field(min_length=1, max_length=SCRIPT_LIMITS.name, strict=True)
     text: str = Field(min_length=1, max_length=SCRIPT_LIMITS.text)
     confessional: bool = Field(strict=True)
 
@@ -612,13 +610,13 @@ def parse_episode_script(
         raise _parse_error("script exceeds a named resource ceiling", "invalid_script")
     try:
         actor_map = dump_revalidate_index(actors, ActorRoute, "actor_id")
-    except (AttributeError, TypeError, ValueError, ValidationError) as exc:
-        raise _parse_error("actor roster failed strict validation", "invalid_actor_roster") from exc
+    except (AttributeError, TypeError, ValueError, ValidationError):
+        raise _parse_error("actor roster failed strict validation", "invalid_actor_roster") from None
 
     try:
         script = _ScriptInput.model_validate(document)
     except ValidationError as exc:
-        raise _parse_error("script input failed strict structural validation", _validation_code(exc)) from exc
+        raise _parse_error("script input failed strict structural validation", _validation_code(exc)) from None
     scene_ids = tuple(scene.scene_id for scene in script.scenes)
     if len(set(scene_ids)) != len(scene_ids):
         raise _parse_error("episode contains duplicate scene ids", "invalid_scene")
@@ -647,8 +645,8 @@ def parse_episode_script(
             chapter_cards=(),
             events=tuple(events),
         )
-    except ValidationError as exc:
-        raise _parse_error("parsed script failed canonical validation", "invalid_script") from exc
+    except ValidationError:
+        raise _parse_error("parsed script failed canonical validation", "invalid_script") from None
 
 
 def _wf_character_map(
@@ -657,12 +655,10 @@ def _wf_character_map(
 ) -> dict[str, str]:
     resolved: dict[str, str] = {}
     for character, actor_id in character_routes.items():
-        if not character.strip() or any(ord(char) < 0x20 for char in character):
-            raise _parse_error("WF character route contains an invalid name", "invalid_actor_roster")
         try:
             bounded_actor_id = BoundedCode(actor_id)
-        except (TypeError, ValueError) as exc:
-            raise _parse_error("WF character route contains an invalid actor id", "invalid_actor_roster") from exc
+        except (TypeError, ValueError):
+            raise _parse_error("WF character route contains an invalid actor id", "invalid_actor_roster") from None
         if bounded_actor_id not in actors:
             raise _parse_error("WF character route references an unknown actor id", "unknown_actor")
         resolved[character] = bounded_actor_id
@@ -746,23 +742,21 @@ def parse_wf_episode_script(
 
     if script_limit_violation(document, wf=True):
         raise _parse_error("WF script exceeds a named resource ceiling", "invalid_script")
-    if (
-        not isinstance(narrator_character, str)
-        or not narrator_character.strip()
-        or any(ord(char) < 0x20 for char in narrator_character)
-    ):
-        raise _parse_error("WF narrator character is invalid", "invalid_script")
+    try:
+        narrator_character = validate_wf_name(narrator_character)
+    except (TypeError, ValueError):
+        raise _parse_error("WF narrator character is invalid", "invalid_script") from None
     try:
         actor_map = dump_revalidate_index(actors, ActorRoute, "actor_id")
-        character_routes = validate_string_mapping(character_routes)
-    except (AttributeError, TypeError, ValueError, ValidationError) as exc:
-        raise _parse_error("actor roster failed strict validation", "invalid_actor_roster") from exc
+        character_routes = validate_wf_routes(character_routes)
+    except (AttributeError, TypeError, ValueError, ValidationError):
+        raise _parse_error("actor roster failed strict validation", "invalid_actor_roster") from None
 
     route_map = _wf_character_map(character_routes, actor_map)
     try:
         script = _WfScriptInput.model_validate(document)
     except ValidationError as exc:
-        raise _parse_error("WF script failed strict structural validation", _validation_code(exc)) from exc
+        raise _parse_error("WF script failed strict structural validation", _validation_code(exc)) from None
     scene_ids = tuple(scene.scene_id for scene in script.scenes)
     if len(set(scene_ids)) != len(scene_ids):
         raise _parse_error("WF episode contains duplicate scene ids", "invalid_scene")
@@ -795,5 +789,5 @@ def parse_wf_episode_script(
             chapter_cards=tuple(cards),
             events=tuple(events),
         )
-    except ValidationError as exc:
-        raise _parse_error("WF parsed script failed canonical validation", "invalid_script") from exc
+    except ValidationError:
+        raise _parse_error("WF parsed script failed canonical validation", "invalid_script") from None

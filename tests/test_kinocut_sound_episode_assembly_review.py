@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
+import traceback
+
 import pytest
 from pydantic import ValidationError
 
 from kinocut_sound import episode_assembly as assembly
 from kinocut_sound import script_parser as parser
 from kinocut_sound.lines import Emotion, ProfileRef, Prosody
+from kinocut_sound.limits import (
+    MAX_ASSEMBLY_CLIPS,
+    MAX_ASSEMBLY_FOLEY_INTENTS,
+    MAX_ASSEMBLY_SILENCE_INTENTS,
+    MAX_ASSEMBLY_TIMELINE_CUES,
+)
 from kinocut_sound.timeline import CueKind
 
 
@@ -191,3 +199,173 @@ def test_episode_assembly_rejects_artifact_timeline_integrity_defects(defect):
 
     with pytest.raises(ValidationError):
         assembly.EpisodeAssembly.model_validate(payload)
+
+
+def _assert_assembly_marker_absent(error, marker):
+    assert marker not in str(error)
+    assert marker not in str(error.__cause__)
+    assert marker not in "".join(traceback.format_exception(error))
+
+
+def test_assembly_validation_traceback_never_exposes_raw_input():
+    marker = "RAW_ASSEMBLY_MARKER"
+    parsed = _parsed()
+    poisoned = assembly.ClipRef.model_construct(
+        line_id=parsed.parsed_lines[0].line.line_id,
+        artifact_hash=marker,
+        source_ref="clips/poisoned.wav",
+        duration_seconds=1.0,
+    )
+    clips = (poisoned, *_clips(parsed)[1:])
+
+    with pytest.raises(assembly.AssemblyPlanningError) as caught:
+        assembly.plan_episode_assembly(
+            parsed,
+            clips=clips,
+            created_by="agent:worker_1",
+            cancellation_requested=False,
+        )
+
+    _assert_assembly_marker_absent(caught.value, marker)
+
+
+def test_planner_accepts_a_bounded_clip_generator():
+    parsed = _parsed()
+
+    plan = assembly.plan_episode_assembly(
+        parsed,
+        clips=(clip for clip in _clips(parsed)),
+        created_by="agent:worker_1",
+        cancellation_requested=False,
+    )
+
+    assert len(plan.clip_hashes) == len(parsed.parsed_lines)
+
+
+@pytest.mark.parametrize(
+    ("field", "limit", "count"),
+    [
+        ("clips", MAX_ASSEMBLY_CLIPS, MAX_ASSEMBLY_CLIPS + 2),
+        ("foley_cues", MAX_ASSEMBLY_FOLEY_INTENTS, 5_000),
+        (
+            "designed_silences",
+            MAX_ASSEMBLY_SILENCE_INTENTS,
+            MAX_ASSEMBLY_SILENCE_INTENTS + 2,
+        ),
+    ],
+)
+def test_planner_bounded_consumes_over_limit_iterables(field, limit, count):
+    parsed = _parsed()
+    line_id = parsed.parsed_lines[0].line.line_id
+    values = {
+        "clips": _clips(parsed)[0],
+        "foley_cues": assembly.FoleyCueIntent(
+            cue_id="external_foley",
+            after_line_id=line_id,
+            asset_ref="foley/external.wav",
+            asset_hash="sha256:" + "f" * 64,
+            duration_seconds=0.1,
+        ),
+        "designed_silences": assembly.DesignedSilenceIntent(
+            cue_id="external_silence",
+            after_line_id=line_id,
+            quality="dead",
+            duration_seconds=0.1,
+        ),
+    }
+    consumed = 0
+
+    def over_limit():
+        nonlocal consumed
+        for _ in range(count):
+            consumed += 1
+            yield values[field]
+
+    kwargs = {
+        "clips": _clips(parsed),
+        "foley_cues": (),
+        "designed_silences": (),
+    }
+    kwargs[field] = over_limit()
+
+    with pytest.raises(assembly.AssemblyPlanningError):
+        assembly.plan_episode_assembly(
+            parsed,
+            **kwargs,
+            created_by="agent:worker_1",
+            cancellation_requested=False,
+        )
+
+    assert consumed == limit + 1
+
+
+def test_planner_rejects_projected_timeline_above_exported_cue_ceiling():
+    lines_per_scene = MAX_ASSEMBLY_CLIPS // 2
+    document = {
+        "episode_id": "projected_cue_limit",
+        "scenes": [
+            {
+                "scene_id": f"scene_{scene_index}",
+                "pause_after_seconds": 0.1,
+                "lines": [
+                    {
+                        "actor_id": "actor_a",
+                        "text": f"Line {line_index}",
+                        "kind": "dialogue",
+                        "pause_after_seconds": 0.1,
+                    }
+                    for line_index in range(lines_per_scene)
+                ],
+            }
+            for scene_index in range(2)
+        ],
+    }
+    parsed = parser.parse_episode_script(
+        document,
+        project_id="project_alpha",
+        created_by="agent:worker_1",
+        actors=(_actor(),),
+    )
+    clips = tuple(
+        assembly.ClipRef(
+            line_id=item.line.line_id,
+            artifact_hash="sha256:" + "a" * 64,
+            source_ref=f"clips/{item.line.line_id}.wav",
+            duration_seconds=0.1,
+        )
+        for item in parsed.parsed_lines
+    )
+    line_id = parsed.parsed_lines[0].line.line_id
+    foley_cues = tuple(
+        assembly.FoleyCueIntent(
+            cue_id=f"external_foley_{index}",
+            after_line_id=line_id,
+            asset_ref=f"foley/external_{index}.wav",
+            asset_hash="sha256:" + "f" * 64,
+            duration_seconds=0.1,
+        )
+        for index in range(MAX_ASSEMBLY_FOLEY_INTENTS)
+    )
+    silences = tuple(
+        assembly.DesignedSilenceIntent(
+            cue_id=f"external_silence_{index}",
+            after_line_id=line_id,
+            quality="dead",
+            duration_seconds=0.1,
+        )
+        for index in range(MAX_ASSEMBLY_SILENCE_INTENTS)
+    )
+    projected = len(parsed.parsed_lines) * 2 + len(parsed.scenes) + len(foley_cues) + len(silences)
+    assert projected > MAX_ASSEMBLY_TIMELINE_CUES
+
+    with pytest.raises(assembly.AssemblyPlanningError) as caught:
+        assembly.plan_episode_assembly(
+            parsed,
+            clips=clips,
+            foley_cues=foley_cues,
+            designed_silences=silences,
+            created_by="agent:worker_1",
+            cancellation_requested=False,
+        )
+
+    assert caught.value.code == "invalid_assembly"
