@@ -111,3 +111,21 @@ DEFAULT_GRID_CELL_HEIGHT = 480
 # NIMA aesthetic scoring defaults
 DEFAULT_NIMA_CANDIDATES = 8
 DEFAULT_NIMA_MIN_DURATION = 3.0
+
+# Shared hashing/serialization chunk size for streaming SHA-256 over files.
+# Centralized so every caller hashes at the same I/O granularity.
+DEFAULT_HASH_CHUNK_BYTES = 1 << 20  # 1 MiB
+
+# Graphics canvas defaults (applied when the caller omits the field).
+DEFAULT_GRAPHICS_CANVAS_FPS = 24.0
+DEFAULT_GRAPHICS_CANVAS_DURATION = 2.0
+DEFAULT_GRAPHICS_CANVAS_BACKGROUND = "#000000"
+
+# Graphics layer defaults (applied when the caller omits the field).
+DEFAULT_GRAPHICS_LAYER_COLOR = "#FFFFFF"
+DEFAULT_GRAPHICS_LAYER_OPACITY = 1.0
+# Default graphics-layer position stored as immutable coordinate constants so
+# the per-instance dict factory in GraphicsLayer cannot share mutable state
+# across instances (frozen models don't deep-freeze mutable containers).
+DEFAULT_GRAPHICS_LAYER_POSITION_X = 0.0
+DEFAULT_GRAPHICS_LAYER_POSITION_Y = 0.0

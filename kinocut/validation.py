@@ -269,6 +269,48 @@ _CSS_COLOR_NAMES = frozenset(
 _HEX_COLOR_RE = re.compile(r"^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$")
 _FFMPEG_SPECIAL_CHARS = set(":=;'[]\\")
 
+# Graphics hex-color regex (optional ``#``, 6 hex digits, optional 2 alpha).
+# Distinct from the stricter ``_HEX_COLOR_RE`` used by ``_validate_color`` — the
+# graphics pipeline rejects the 3-digit short form to keep receipt determinism
+# stable across color-formatting variations.
+GRAPHICS_HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
+
+# Graphics layers must be exact deterministic editor layers — these are the
+# forbidden generative-routing fields. Closed set; adding a field requires a
+# policy update so callers can never smuggle generative intent past the boundary.
+GRAPHICS_GENERATIVE_FIELD_HINTS = frozenset(
+    {
+        "prompt",
+        "model",
+        "seed",
+        "provider",
+        "generator",
+        "diffusion",
+        "inpaint",
+        "outpaint",
+        "text_to_image",
+        "image_to_image",
+    }
+)
+
+# Closed field set for a graphics layer; any other key is rejected at the public
+# boundary so the receipt schema stays stable and reviewable.
+GRAPHICS_LAYER_BASE_FIELDS = frozenset(
+    {
+        "kind",
+        "text",
+        "color",
+        "size",
+        "position",
+        "start",
+        "duration",
+        "src",
+        "opacity",
+        "width",
+        "height",
+    }
+)
+
 
 # --------------------------------------------------------------------------- #
 # Subtitle safe-area profile data (immutable source of truth)

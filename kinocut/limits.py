@@ -53,3 +53,7 @@ MAX_SPEED_CHAIN_COUNT = 20
 # Workflow-engine bounds (fail closed above these)
 MAX_WORKFLOW_STEPS = 64
 MAX_WORKFLOW_VARIANTS = 32
+
+# Graphics composition bounds (receipt-bound editor layer stack).
+MAX_GRAPHICS_LAYERS = 32
+MAX_GRAPHICS_CANVAS_DURATION = 60.0  # seconds; protects the receipt output window
