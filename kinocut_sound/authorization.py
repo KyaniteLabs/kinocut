@@ -143,9 +143,7 @@ class DerivativeOutcome:
 
 @dataclass(frozen=True)
 class _PendingRevocation:
-    grant_id: str
     actor_id: str
-    requested_at_iso: str
 
 
 def _authorization_error(message: str, code: str) -> AuthorizationError:
@@ -215,11 +213,6 @@ class ConsentLedger:
         """Return an immutable view of the append-only event stream."""
 
         return tuple(self._events)
-
-    def grant_history(self, grant_id: str) -> tuple[ConsentGrant, ...]:
-        """Return immutable compare-before-replace revisions for one grant."""
-
-        return tuple(self._grant_revisions.get(_code(grant_id), ()))
 
     def current_grant(self, grant_id: str) -> ConsentGrant:
         """Return the current revision or fail closed without echoing the id."""
@@ -416,7 +409,7 @@ class ConsentLedger:
             raise _authorization_error("consent state changed", "consent_state_conflict")
         active = self._active_lease_ids(grant_id, at_iso)
         if policy is RevocationPolicy.WAIT and active:
-            self._pending[grant_id] = _PendingRevocation(grant_id, actor_id, at_iso)
+            self._pending[grant_id] = _PendingRevocation(actor_id)
             self._append_event(
                 "revocation_waiting",
                 at_iso,

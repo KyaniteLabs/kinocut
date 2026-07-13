@@ -51,9 +51,7 @@ def test_blend_requires_voice_blend_operation_on_every_grant() -> None:
 
 def test_invalid_calendar_grant_expiry_fails_closed_at_registration() -> None:
     ledger = ConsentLedger(max_lease_seconds=30)
-    malformed = _grant("grant_bad").model_copy(
-        update={"expiry_iso": "2027-99-99T99:99:99Z"}
-    )
+    malformed = _grant("grant_bad").model_copy(update={"expiry_iso": "2027-99-99T99:99:99Z"})
 
     with pytest.raises(AuthorizationError) as exc_info:
         ledger.register_grant(malformed, at_iso=_NOW, actor_id="reviewer_001")
@@ -139,7 +137,6 @@ def test_wait_expiry_emits_exactly_one_expired_event() -> None:
     assert [event.event for event in ledger.events].count("lease_expired") == 1
 
 
-
 def test_null_operation_context_is_rejected_with_custom_error() -> None:
     ledger = ConsentLedger(max_lease_seconds=30)
     _register(ledger, _grant("grant_a"))
@@ -205,11 +202,7 @@ def test_blend_rejects_disjoint_source_project_scope() -> None:
     ledger = ConsentLedger(max_lease_seconds=30)
     source_a = _grant("grant_a", operations=("voice_blend",))
     source_b = _grant("grant_b", operations=("voice_blend",)).model_copy(
-        update={
-            "scope": _grant("scope_template").scope.model_copy(
-                update={"project_ids": ("project_beta",)}
-            )
-        }
+        update={"scope": _grant("scope_template").scope.model_copy(update={"project_ids": ("project_beta",)})}
     )
     composite = _grant("grant_blend", operations=("voice_blend",)).model_copy(
         update={
@@ -231,4 +224,3 @@ def test_blend_rejects_disjoint_source_project_scope() -> None:
     with pytest.raises(AuthorizationError) as exc_info:
         ledger.authorize_blend("grant_blend", context=context, at_iso=_NOW)
     assert exc_info.value.code == "grant_scope_denied"
-
