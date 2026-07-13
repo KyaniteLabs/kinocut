@@ -7,7 +7,6 @@ import pytest
 
 from kinocut_sound import Emotion, Line, ProfileRef, Prosody
 from kinocut_sound.authorization import (
-    AuthorizationBoundary,
     AuthorizationContext,
     AuthorizationError,
     ConsentLedger,
@@ -131,9 +130,7 @@ def test_blend_profile_requires_two_or_three_sources():
             profile_id="blend_composite_a",
             composite_subject_id="subject_blend_a",
             composite_grant_id="grant_blend",
-            sources=(
-                BlendSource(profile_id="clone_a", grant_id="grant_a", eq_preset="neutral"),
-            ),
+            sources=(BlendSource(profile_id="clone_a", grant_id="grant_a", eq_preset="neutral"),),
         )
     with pytest.raises(VoiceError):
         BlendProfile(
@@ -141,8 +138,7 @@ def test_blend_profile_requires_two_or_three_sources():
             composite_subject_id="subject_blend_a",
             composite_grant_id="grant_blend",
             sources=tuple(
-                BlendSource(profile_id=f"clone_{i}", grant_id=f"grant_{i}", eq_preset="neutral")
-                for i in range(4)
+                BlendSource(profile_id=f"clone_{i}", grant_id=f"grant_{i}", eq_preset="neutral") for i in range(4)
             ),
         )
 
@@ -204,7 +200,7 @@ def _registered_blend_ledger() -> tuple[ConsentLedger, BlendAuthorization]:
 def test_blend_render_succeeds_with_live_source_and_composite_grants():
     from kinocut_sound.voice.blend import BlendProfile, BlendRenderer, BlendSource
 
-    ledger, blend = _registered_blend_ledger()
+    ledger, _blend = _registered_blend_ledger()
     profile = BlendProfile(
         profile_id="blend_composite_a",
         composite_subject_id="subject_blend_a",
@@ -301,7 +297,7 @@ def test_blend_render_fails_closed_when_source_grant_revoked():
 def test_blend_render_receipt_contains_every_source_grant_plus_composite():
     from kinocut_sound.voice.blend import BlendProfile, BlendRenderer, BlendSource
 
-    ledger, blend = _registered_blend_ledger()
+    ledger, _blend = _registered_blend_ledger()
     profile = BlendProfile(
         profile_id="blend_composite_a",
         composite_subject_id="subject_blend_a",
@@ -330,7 +326,7 @@ def test_blend_render_receipt_contains_every_source_grant_plus_composite():
 def test_blend_per_source_eq_changes_output_hash():
     from kinocut_sound.voice.blend import BlendProfile, BlendRenderer, BlendSource
 
-    ledger, blend = _registered_blend_ledger()
+    ledger, _blend = _registered_blend_ledger()
     profile_a = BlendProfile(
         profile_id="blend_composite_a",
         composite_subject_id="subject_blend_a",
@@ -370,7 +366,7 @@ def test_blend_per_source_eq_changes_output_hash():
 def test_blend_unknown_eq_preset_fails_closed():
     from kinocut_sound.voice.blend import BlendProfile, BlendRenderer, BlendSource
 
-    ledger, blend = _registered_blend_ledger()
+    ledger, _blend = _registered_blend_ledger()
     profile = BlendProfile(
         profile_id="blend_composite_a",
         composite_subject_id="subject_blend_a",
@@ -400,7 +396,7 @@ def test_blend_unknown_eq_preset_fails_closed():
 def test_blend_revocation_race_quarantines_derivative():
     from kinocut_sound.voice.blend import BlendProfile, BlendRenderer, BlendSource
 
-    ledger, blend = _registered_blend_ledger()
+    ledger, _blend = _registered_blend_ledger()
     profile = BlendProfile(
         profile_id="blend_composite_a",
         composite_subject_id="subject_blend_a",

@@ -10,7 +10,6 @@ import pytest
 
 from kinocut_sound import Emotion, Line, ProfileRef, Prosody
 from kinocut_sound.authorization import (
-    AuthorizationBoundary,
     AuthorizationContext,
     AuthorizationError,
     ConsentLedger,
@@ -464,7 +463,7 @@ def test_clone_cloud_egress_denied_without_explicit_cloud_egress_grant():
         at_iso=_NOW,
         actor_id="reviewer_001",
     )
-    profile = CloneProfile(
+    CloneProfile(
         profile_id="clone_subject_a",
         subject_id="subject_a",
         grant_id="grant_a",
@@ -504,7 +503,7 @@ def test_clone_cloud_egress_succeeds_with_matching_cloud_egress_grant():
         at_iso=_NOW,
         actor_id="reviewer_001",
     )
-    profile = CloneProfile(
+    CloneProfile(
         profile_id="clone_subject_a",
         subject_id="subject_a",
         grant_id="grant_a",
