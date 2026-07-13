@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Callable, Mapping
+from dataclasses import dataclass
 from itertools import islice
 import logging
 from types import MappingProxyType
@@ -10,11 +11,7 @@ from typing import Protocol, runtime_checkable
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel
 from kinocut_sound._errors import SoundContractError
-from kinocut_sound.capability import (
-    AdapterDescriptor,
-    AdapterLocality,
-    CapabilityResult,
-)
+from kinocut_sound.capability import AdapterDescriptor, AdapterLocality, CapabilityResult
 from kinocut_sound.limits import MAX_S3_REGISTRY_ADAPTERS
 
 logger = logging.getLogger(__name__)
@@ -28,7 +25,9 @@ def _error(message: str, code: str) -> RegistryError:
     return RegistryError(message, code=code, suggested_action={"auto_fix": False})
 
 
-def _registry_id(value: str) -> str:
+def _registry_id(value: object) -> str:
+    if not isinstance(value, str):
+        raise ValueError("adapter identifier must be a string")
     checked = BoundedCode(value)
     if ":" in checked:
         raise ValueError("adapter identifiers cannot be import or class paths")
@@ -42,10 +41,33 @@ class Adapter(Protocol):
     descriptor: AdapterDescriptor
 
     def probe(self) -> CapabilityResult:
-        """Report capability availability without performing a render."""
+        """Report capability availability without rendering."""
 
 
 AdapterConstructor = Callable[[], Adapter]
+
+
+@dataclass(frozen=True)
+class AdapterRegistration:
+    """Code-owned constructor plus immutable declared descriptor."""
+
+    descriptor: AdapterDescriptor
+    constructor: AdapterConstructor
+
+
+@dataclass(frozen=True)
+class ResolvedAdapter:
+    """One instantiated and probed adapter with a validated descriptor snapshot."""
+
+    instance: Adapter
+    descriptor: AdapterDescriptor
+    capability: CapabilityResult
+
+
+@dataclass(frozen=True)
+class _StoredRegistration:
+    descriptor: AdapterDescriptor | None
+    constructor: AdapterConstructor
 
 
 class CapabilityManifestReport(FrozenModel):
@@ -55,6 +77,28 @@ class CapabilityManifestReport(FrozenModel):
     required_unavailable: tuple[str, ...]
     advisory_unavailable: tuple[str, ...]
     results: tuple[CapabilityResult, ...]
+
+
+def _bounded_items(values: object) -> tuple[tuple[object, object], ...]:
+    try:
+        items = tuple(
+            islice(values.items(), MAX_S3_REGISTRY_ADAPTERS + 1)  # type: ignore[attr-defined]
+        )
+    except Exception:
+        logger.warning("registry mapping traversal failed")
+        raise _error("adapter registry is invalid", "invalid_registry") from None
+    if len(items) > MAX_S3_REGISTRY_ADAPTERS:
+        raise _error("adapter registry exceeds its ceiling", "registry_too_large")
+    return items
+
+
+def _descriptor_snapshot(value: object) -> AdapterDescriptor:
+    try:
+        payload = value.model_dump(mode="python")  # type: ignore[attr-defined]
+        return AdapterDescriptor.model_validate(payload)
+    except Exception:
+        logger.warning("adapter descriptor validation failed")
+        raise _error("adapter descriptor is invalid", "adapter_contract_invalid") from None
 
 
 def _checked_ids(values: object) -> tuple[str, ...]:
@@ -75,53 +119,116 @@ def _checked_ids(values: object) -> tuple[str, ...]:
 
 
 class AdapterRegistry:
-    """Immutable constructor allowlist copied from code, never from config."""
+    """Sealed static constructor registry; configuration can only select ids."""
 
-    def __init__(self, constructors: Mapping[str, AdapterConstructor]) -> None:
+    def __init__(
+        self,
+        constructors: Mapping[str, AdapterRegistration | AdapterConstructor],
+    ) -> None:
         if not isinstance(constructors, Mapping):
             raise _error("adapter registry must be a code mapping", "invalid_registry")
-        if len(constructors) > MAX_S3_REGISTRY_ADAPTERS:
-            raise _error("adapter registry exceeds its ceiling", "registry_too_large")
-        copied: dict[str, AdapterConstructor] = {}
-        for adapter_id, constructor in constructors.items():
+        copied: dict[str, _StoredRegistration] = {}
+        for raw_id, value in _bounded_items(constructors):
             try:
-                checked_id = _registry_id(adapter_id)
+                adapter_id = _registry_id(raw_id)
             except (TypeError, ValueError):
                 raise _error("adapter registry identifier is invalid", "invalid_registry") from None
-            if not callable(constructor):
-                raise _error("adapter constructor must be callable", "invalid_registry")
-            copied[checked_id] = constructor
-        self._constructors = MappingProxyType(copied)
+            if adapter_id in copied:
+                raise _error("adapter registry identifiers must be unique", "invalid_registry")
+            copied[adapter_id] = self._normalize_registration(adapter_id, value)
+        self._registrations = MappingProxyType(copied)
+
+    @staticmethod
+    def _normalize_registration(
+        adapter_id: str,
+        value: object,
+    ) -> _StoredRegistration:
+        if isinstance(value, AdapterRegistration):
+            descriptor = _descriptor_snapshot(value.descriptor)
+            if descriptor.adapter_id != adapter_id or not callable(value.constructor):
+                raise _error("adapter registration is inconsistent", "invalid_registry")
+            return _StoredRegistration(descriptor=descriptor, constructor=value.constructor)
+        if not callable(value):
+            raise _error("adapter constructor must be callable", "invalid_registry")
+        return _StoredRegistration(descriptor=None, constructor=value)
 
     @property
     def adapter_ids(self) -> tuple[str, ...]:
-        """Return the sealed, sorted code-owned identifiers."""
+        """Return sealed sorted identifiers."""
 
-        return tuple(sorted(self._constructors))
+        return tuple(sorted(self._registrations))
 
-    def _instantiate(self, adapter_id: str) -> Adapter:
+    def contains(self, adapter_id: str) -> bool:
+        """Return whether an identifier is compiled into the sealed registry."""
+
         try:
-            adapter_id = _registry_id(adapter_id)
+            checked = _registry_id(adapter_id)
+        except (TypeError, ValueError):
+            return False
+        return checked in self._registrations
+
+    def declared_descriptor(self, adapter_id: str) -> AdapterDescriptor:
+        """Return static metadata without constructing or probing the adapter."""
+
+        checked = self._checked_id(adapter_id)
+        registration = self._registrations.get(checked)
+        if registration is None:
+            raise _error("adapter is not compiled into the registry", "adapter_unlisted")
+        if registration.descriptor is None:
+            raise _error("static adapter descriptor is required", "static_descriptor_required")
+        return registration.descriptor
+
+    def _checked_id(self, adapter_id: str) -> str:
+        try:
+            return _registry_id(adapter_id)
         except (TypeError, ValueError):
             raise _error("adapter identifier is invalid", "invalid_adapter_id") from None
-        constructor = self._constructors.get(adapter_id)
-        if constructor is None:
+
+    def _registration(self, adapter_id: str) -> tuple[str, _StoredRegistration]:
+        checked = self._checked_id(adapter_id)
+        registration = self._registrations.get(checked)
+        if registration is None:
             raise _error("adapter is not compiled into the registry", "adapter_unlisted")
+        return checked, registration
+
+    def _instantiate(
+        self,
+        adapter_id: str,
+        registration: _StoredRegistration,
+    ) -> tuple[Adapter, AdapterDescriptor]:
         try:
-            adapter = constructor()
-        except Exception:
-            logger.warning("adapter constructor failed")
-            raise _error("adapter constructor failed", "adapter_constructor_failed") from None
-        try:
-            if not isinstance(adapter, Adapter):
+            instance = registration.constructor()
+            if not isinstance(instance, Adapter):
                 raise TypeError("adapter protocol mismatch")
-            descriptor = AdapterDescriptor.model_validate(adapter.descriptor.model_dump(mode="python"))
+            descriptor = _descriptor_snapshot(instance.descriptor)
+        except RegistryError:
+            raise
         except Exception:
-            logger.warning("adapter contract validation failed")
-            raise _error("adapter does not satisfy the typed contract", "adapter_contract_invalid") from None
-        if descriptor.adapter_id != adapter_id:
-            raise _error("adapter descriptor identifier mismatch", "adapter_contract_invalid")
-        return adapter
+            logger.warning("adapter construction or descriptor access failed")
+            raise _error("adapter contract is invalid", "adapter_contract_invalid") from None
+        expected = registration.descriptor
+        if descriptor.adapter_id != adapter_id or (expected is not None and descriptor != expected):
+            raise _error("adapter descriptor mismatch", "adapter_contract_invalid")
+        return instance, descriptor
+
+    @staticmethod
+    def _probe_instance(instance: Adapter, descriptor: AdapterDescriptor) -> CapabilityResult:
+        try:
+            raw_result = instance.probe()
+            payload = raw_result.model_dump(mode="python")
+            result = CapabilityResult.model_validate(payload)
+        except Exception:
+            logger.warning("adapter capability probe failed validation")
+            raise _error("adapter probe contract is invalid", "probe_contract_invalid") from None
+        if result.adapter_id != descriptor.adapter_id:
+            raise _error("adapter probe identifier mismatch", "probe_contract_invalid")
+        return result
+
+    def _resolve_and_probe(self, adapter_id: str) -> ResolvedAdapter:
+        checked, registration = self._registration(adapter_id)
+        instance, descriptor = self._instantiate(checked, registration)
+        capability = self._probe_instance(instance, descriptor)
+        return ResolvedAdapter(instance=instance, descriptor=descriptor, capability=capability)
 
     def resolve(
         self,
@@ -129,49 +236,35 @@ class AdapterRegistry:
         *,
         kind: str,
         locality: AdapterLocality | None = None,
-    ) -> Adapter:
-        """Resolve one compiled adapter and verify its descriptor exactly."""
+    ) -> ResolvedAdapter:
+        """Instantiate once, snapshot, probe, and verify descriptor selectors."""
 
-        adapter = self._instantiate(adapter_id)
-        if adapter.descriptor.kind != kind:
+        resolved = self._resolve_and_probe(adapter_id)
+        if resolved.descriptor.kind != kind:
             raise _error("adapter kind mismatch", "adapter_contract_invalid")
-        if locality is not None and adapter.descriptor.locality is not locality:
+        if locality is not None and resolved.descriptor.locality is not locality:
             raise _error("adapter locality mismatch", "adapter_contract_invalid")
-        return adapter
+        return resolved
 
     def probe(self, adapter_id: str) -> CapabilityResult:
-        """Probe one compiled adapter; every failure becomes explicit unavailable."""
+        """Probe one adapter; ordinary failures become explicit unavailable."""
 
         try:
-            adapter = self._instantiate(adapter_id)
-        except RegistryError as exc:
-            if exc.code == "invalid_adapter_id":
+            return self._resolve_and_probe(adapter_id).capability
+        except RegistryError as error:
+            if error.code == "invalid_adapter_id":
                 raise
-            reason = "adapter_unlisted" if exc.code == "adapter_unlisted" else "constructor_failed"
+            reason = {
+                "adapter_unlisted": "adapter_unlisted",
+                "adapter_contract_invalid": "adapter_contract_invalid",
+                "probe_contract_invalid": "probe_contract_invalid",
+            }.get(error.code, "constructor_failed")
             return CapabilityResult(
-                adapter_id=BoundedCode(adapter_id),
+                adapter_id=self._checked_id(adapter_id),
                 available=False,
                 reason_code=reason,
-                remediation="Select an installed allowlisted adapter.",
+                remediation="Select or repair an installed allowlisted adapter.",
             )
-        try:
-            result = adapter.probe()
-        except Exception:
-            logger.warning("adapter capability probe failed")
-            return CapabilityResult(
-                adapter_id=adapter.descriptor.adapter_id,
-                available=False,
-                reason_code="probe_failed",
-                remediation="Check the optional adapter dependency.",
-            )
-        if result.adapter_id != adapter.descriptor.adapter_id:
-            return CapabilityResult(
-                adapter_id=adapter.descriptor.adapter_id,
-                available=False,
-                reason_code="probe_contract_invalid",
-                remediation="Repair the adapter capability probe.",
-            )
-        return result
 
     def require(
         self,
@@ -179,19 +272,18 @@ class AdapterRegistry:
         *,
         kind: str,
         locality: AdapterLocality | None = None,
-    ) -> Adapter:
-        """Resolve and require an available adapter for demanded work."""
+    ) -> ResolvedAdapter:
+        """Return the same validated instance that was capability-probed."""
 
         try:
-            adapter = self.resolve(adapter_id, kind=kind, locality=locality)
-        except RegistryError as exc:
-            if exc.code == "adapter_unlisted":
+            resolved = self.resolve(adapter_id, kind=kind, locality=locality)
+        except RegistryError as error:
+            if error.code == "adapter_unlisted":
                 raise _error("required adapter is unavailable", "adapter_unavailable") from None
             raise
-        result = self.probe(adapter_id)
-        if not result.available:
+        if not resolved.capability.available:
             raise _error("required adapter is unavailable", "adapter_unavailable")
-        return adapter
+        return resolved
 
     def probe_manifest(
         self,
@@ -200,7 +292,7 @@ class AdapterRegistry:
         advisory_ids: object,
         demanded_render: bool,
     ) -> CapabilityManifestReport:
-        """Probe required and advisory capabilities before any render starts."""
+        """Probe required and advisory capabilities before rendering."""
 
         required = _checked_ids(required_ids)
         advisory = _checked_ids(advisory_ids)
@@ -211,10 +303,7 @@ class AdapterRegistry:
         required_missing = tuple(item for item in required if not by_id[item].available)
         advisory_missing = tuple(item for item in advisory if not by_id[item].available)
         if demanded_render and required_missing:
-            raise _error(
-                "required capability is unavailable",
-                "required_capability_unavailable",
-            )
+            raise _error("required capability is unavailable", "required_capability_unavailable")
         return CapabilityManifestReport(
             ready=not required_missing,
             required_unavailable=required_missing,

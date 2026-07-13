@@ -26,13 +26,13 @@ MAX_PAN_POSITION: float = 1.0
 # --- Ducking sidechain envelope ---
 MIN_DUCKING_ATTENUATION_DB: float = 0.0  # gt: strictly positive attenuation
 MAX_DUCKING_ATTENUATION_DB: float = 24.0
-MIN_DUCKING_TIME_MS: float = 0.0         # gt: strictly positive time
+MIN_DUCKING_TIME_MS: float = 0.0  # gt: strictly positive time
 MAX_DUCKING_ATTACK_MS: float = 1000.0
 MAX_DUCKING_RELEASE_MS: float = 5000.0
 MAX_DUCKING_RECOVERY_MS: float = 10000.0
 
 # --- Prosody envelope ---
-MIN_PROSODY_RATE: float = 0.0            # gt: strictly positive
+MIN_PROSODY_RATE: float = 0.0  # gt: strictly positive
 MAX_PROSODY_RATE: float = 2.0
 MIN_PROSODY_PITCH_SEMITONES: float = -12.0
 MAX_PROSODY_PITCH_SEMITONES: float = 12.0  # lt: exclusive ceiling
@@ -44,20 +44,20 @@ MIN_NORMALIZED_LEVEL: float = 0.0
 MAX_NORMALIZED_LEVEL: float = 1.0
 
 # --- Loudness verification (receipt) ---
-MAX_LOUDNESS_LUFS: float = 0.0           # lt: must be negative
-MAX_TRUE_PEAK_DBTP: float = 0.0          # lt: must be negative
-MIN_LOUDNESS_RANGE_LU: float = 0.0       # ge: LRA floor
-MAX_LOUDNESS_RANGE_LU: float = 24.0      # le: LRA ceiling
+MAX_LOUDNESS_LUFS: float = 0.0  # lt: must be negative
+MAX_TRUE_PEAK_DBTP: float = 0.0  # lt: must be negative
+MIN_LOUDNESS_RANGE_LU: float = 0.0  # ge: LRA floor
+MAX_LOUDNESS_RANGE_LU: float = 24.0  # le: LRA ceiling
 
 # --- Loudness target (delivery) ---
-MIN_LOUDNESS_TOLERANCE_LU: float = 0.0   # gt: strictly positive
+MIN_LOUDNESS_TOLERANCE_LU: float = 0.0  # gt: strictly positive
 MAX_LOUDNESS_TOLERANCE_LU: float = 2.0
 
 # --- Versioning / identity ---
-MIN_VERSION: int = 1                     # ge: positive integer versions
+MIN_VERSION: int = 1  # ge: positive integer versions
 
 # --- Text length ---
-MIN_TEXT_LENGTH_CHARS: int = 0           # ge: non-negative character count
+MIN_TEXT_LENGTH_CHARS: int = 0  # ge: non-negative character count
 
 # --- Standalone script resource ceilings ---
 MAX_SCRIPT_ACTORS: int = 256
@@ -82,10 +82,21 @@ MAX_S3_CACHE_ENTRIES: int = 128
 MAX_FINGERPRINT_ITEMS: int = 256
 MAX_FINGERPRINT_VERSION_CHARS: int = 128
 
+# --- Provider execution policy ceilings ---
+MIN_PROVIDER_RETRIES: int = 0
+MIN_PROVIDER_CONCURRENCY: int = 1
+MIN_PROVIDER_RATE_LIMIT_PER_MINUTE: int = 1
+MAX_PROVIDER_CONNECT_TIMEOUT_SECONDS: float = 60.0
+MAX_PROVIDER_READ_TIMEOUT_SECONDS: float = 600.0
+MAX_PROVIDER_TOTAL_TIMEOUT_SECONDS: float = 1200.0
+MAX_PROVIDER_RETRIES: int = 5
+MAX_PROVIDER_CONCURRENCY: int = 64
+MAX_PROVIDER_RATE_LIMIT_PER_MINUTE: int = 10_000
+
 # --- Resource floors ---
-MIN_RETENTION_DAYS: int = 0              # ge: non-negative retention
-MIN_COST_USD: float = 0.0                # ge: non-negative cost
-MIN_SAMPLE_RATE_HZ: int = 0              # gt: strictly positive rate
+MIN_RETENTION_DAYS: int = 0  # ge: non-negative retention
+MIN_COST_USD: float = 0.0  # ge: non-negative cost
+MIN_SAMPLE_RATE_HZ: int = 0  # gt: strictly positive rate
 
 # --- Capability timeout ceiling ---
 MAX_ADAPTER_TIMEOUT_SECONDS: float = 600.0

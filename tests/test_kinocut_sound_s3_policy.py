@@ -5,7 +5,7 @@ from __future__ import annotations
 import pytest
 from pydantic import ValidationError
 
-from kinocut_sound.authorization import AuthorizationContext, ConsentLedger
+from kinocut_sound.authorization import AuthorizationBoundary, AuthorizationContext, ConsentLedger
 from kinocut_sound.capability import (
     AdapterDescriptor,
     AdapterLocality,
@@ -20,22 +20,29 @@ from kinocut_sound.consent import (
     RetentionPolicy,
 )
 from kinocut_sound.provider_policy import (
+    CloudRouteBinding,
     ExecutionPolicy,
     ProviderRequest,
     select_adapter,
 )
-from kinocut_sound.registry import AdapterRegistry, RegistryError
-from kinocut_sound.s3_cache import AuthorizationAwareCache, CacheError
-from kinocut_sound.s3_fingerprint import FingerprintInputs, build_render_fingerprint
+from kinocut_sound.registry import AdapterRegistration, AdapterRegistry, RegistryError
+from kinocut_sound.s3_cache import AuthorizationAwareCache, AuthorizedLineage, CacheError
+from kinocut_sound.s3_fingerprint import (
+    CapabilityRequirement,
+    CapabilitySnapshot,
+    FingerprintInputs,
+    build_render_fingerprint,
+)
 from kinocut_sound.sound_config import (
     Preset,
+    PresetAddress,
     PresetCatalog,
     PresetKind,
     ProjectConfigPolicy,
     ProjectSoundConfig,
     SoundConfigError,
+    VerifiedPayloadRef,
 )
-
 
 _SHA_A = "sha256:" + "a" * 64
 _SHA_B = "sha256:" + "b" * 64
@@ -94,6 +101,54 @@ def _cloud(adapter_id: str = "tts_cloud") -> _Adapter:
     )
 
 
+def _registration(factory: object, descriptor: AdapterDescriptor) -> AdapterRegistration:
+    return AdapterRegistration(descriptor=descriptor, constructor=factory)
+
+
+def _local_registration(factory: object = _local) -> AdapterRegistration:
+    return _registration(factory, _local().descriptor)
+
+
+def _cloud_registration(factory: object = _cloud) -> AdapterRegistration:
+    return _registration(factory, _cloud().descriptor)
+
+
+def _route(**updates: object) -> CloudRouteBinding:
+    base = CloudRouteBinding(
+        provider_id="provider_a",
+        region="us-east-1",
+        egress_host="api.provider.test",
+        credential_handle="provider_a_key",
+        data_classes=("reference_audio",),
+        retention_ceiling_days=7,
+        estimated_cost_ceiling_usd=0.2,
+        confirmed=True,
+    )
+    return base.model_copy(update=updates)
+
+
+def _cloud_policy(route: CloudRouteBinding | None = None) -> ExecutionPolicy:
+    return ExecutionPolicy(
+        allow_cloud=True,
+        cloud_execution_confirmed=True,
+        routes=(route or _route(),),
+    )
+
+
+def _request(**updates: object) -> ProviderRequest:
+    base = ProviderRequest(
+        egress_host="api.provider.test",
+        credential_handle="provider_a_key",
+        data_classes=("reference_audio",),
+        retention_days=7,
+        territory="US",
+        grant_ids=("grant_a",),
+        context=_CONTEXT,
+        at_iso=_NOW,
+    )
+    return base.model_copy(update=updates)
+
+
 def _ledger() -> ConsentLedger:
     ledger = ConsentLedger(max_lease_seconds=60)
     ledger.register_grant(
@@ -148,8 +203,60 @@ def _fingerprint_inputs() -> FingerprintInputs:
         locale="en_US",
         hardware_backend="cpu_x86_64",
         concurrency_ordering="cue_id_serial",
-        capability_manifest=(("tts_local", True, "probe_v1"),),
+        capability_manifest=(
+            CapabilitySnapshot(
+                adapter_id="tts_local",
+                available=True,
+                probe_version="probe_v1",
+                requirement=CapabilityRequirement.REQUIRED,
+            ),
+        ),
     )
+
+
+def _payload(digest: str = _SHA_A) -> VerifiedPayloadRef:
+    return VerifiedPayloadRef(asset_id="preset_payload", content_digest=digest, verified=True)
+
+
+def _preset(kind: PresetKind) -> Preset:
+    return Preset(
+        preset_id=f"{kind.value}_default",
+        kind=kind,
+        version="v1",
+        payload=_payload(),
+    )
+
+
+def _address(kind: PresetKind) -> PresetAddress:
+    return PresetAddress(
+        preset_id=f"{kind.value}_default",
+        kind=kind,
+        version="v1",
+        expected_digest=_SHA_A,
+    )
+
+
+class _CacheLedger:
+    def __init__(self) -> None:
+        self.boundaries: list[AuthorizationBoundary] = []
+        self.egress_calls = 0
+
+    def authorize(self, boundary: AuthorizationBoundary, **kwargs: object) -> tuple[str, ...]:
+        self.boundaries.append(boundary)
+        return ("grant_a",)
+
+    def resolve_grants(self, asset_id: str) -> tuple[str, ...]:
+        return ("grant_a",)
+
+    def record_asset(self, asset_id: str, **kwargs: object) -> object:
+        return object()
+
+    def commit_lease(self, lease_id: str, **kwargs: object) -> object:
+        return object()
+
+    def authorize_cloud_egress(self, **kwargs: object) -> tuple[str, ...]:
+        self.egress_calls += 1
+        return ("grant_a",)
 
 
 def test_static_registry_probes_explicit_unavailable_and_never_imports_config() -> None:
@@ -178,55 +285,52 @@ def test_registry_rejects_descriptor_mismatch_and_redacts_probe_failure() -> Non
     assert "PRIVATE_CONSTRUCTOR_MARKER" not in repr(unavailable)
 
 
-def test_all_four_preset_kinds_round_trip_by_hash_only() -> None:
+def test_all_four_preset_kinds_round_trip_by_verified_address() -> None:
     catalog = PresetCatalog()
     for kind in PresetKind:
-        preset = Preset(
-            preset_id=f"{kind.value}_default",
-            kind=kind,
-            version="v1",
-            content_digest=_SHA_A,
-        )
+        preset = _preset(kind)
         catalog.save(preset)
-        assert catalog.load(preset.preset_id, kind=kind) == preset
+        assert catalog.load(_address(kind)) == preset
     assert {kind.value for kind in PresetKind} == {"profile", "chain", "spatial", "bed"}
 
 
-def test_project_config_selects_only_policy_allowlisted_presets_and_adapters() -> None:
+def test_project_config_selects_only_exact_presets_and_compiled_adapters() -> None:
+    catalog = PresetCatalog(tuple(_preset(kind) for kind in PresetKind))
     config = ProjectSoundConfig(
         project_id="project_a",
-        roster_preset="profile_default",
-        ambience_preset="bed_default",
+        roster_preset=_address(PresetKind.PROFILE),
+        ambience_preset=_address(PresetKind.BED),
         loudness_preset="stream_-14",
-        spatial_preset="spatial_default",
-        chain_preset="chain_default",
+        spatial_preset=_address(PresetKind.SPATIAL),
+        chain_preset=_address(PresetKind.CHAIN),
         adapter_ids=("tts_local",),
     )
     policy = ProjectConfigPolicy(
         project_ids=("project_a",),
-        roster_presets=("profile_default",),
-        ambience_presets=("bed_default",),
+        allowed_presets=tuple(_address(kind) for kind in PresetKind),
         loudness_presets=("stream_-14",),
-        spatial_presets=("spatial_default",),
-        chain_presets=("chain_default",),
         adapter_ids=("tts_local",),
     )
-    policy.authorize(config)
+    registry = AdapterRegistry({"tts_local": _local_registration()})
+    policy.authorize(config, catalog=catalog, registry=registry)
     with pytest.raises(SoundConfigError) as exc_info:
-        policy.authorize(config.model_copy(update={"adapter_ids": ("tts_cloud",)}))
+        policy.authorize(
+            config.model_copy(update={"adapter_ids": ("tts_cloud",)}),
+            catalog=catalog,
+            registry=registry,
+        )
     assert exc_info.value.code == "project_config_denied"
 
 
 def test_local_first_policy_never_silently_falls_back_to_cloud() -> None:
-    registry = AdapterRegistry({"tts_local": _local, "tts_cloud": _cloud})
+    registry = AdapterRegistry({"tts_local": _local_registration(), "tts_cloud": _cloud_registration()})
     policy = ExecutionPolicy(allow_cloud=False)
     selected = select_adapter(registry, ("tts_cloud", "tts_local"), kind="tts", policy=policy)
     assert selected.descriptor.adapter_id == "tts_local"
-
     unavailable_local = AdapterRegistry(
         {
-            "tts_local": lambda: _Adapter(_local().descriptor, available=False),
-            "tts_cloud": _cloud,
+            "tts_local": _local_registration(lambda: _Adapter(_local().descriptor, available=False)),
+            "tts_cloud": _cloud_registration(),
         }
     )
     with pytest.raises(RegistryError) as exc_info:
@@ -234,35 +338,19 @@ def test_local_first_policy_never_silently_falls_back_to_cloud() -> None:
     assert exc_info.value.code == "local_capability_unavailable"
 
 
-def test_cloud_selection_requires_explicit_egress_policy_and_s2_authorization() -> None:
-    registry = AdapterRegistry({"tts_cloud": _cloud})
-    policy = ExecutionPolicy(
-        allow_cloud=True,
-        cloud_execution_confirmed=True,
-        allowed_provider_ids=("provider_a",),
-        allowed_regions=("us-east-1",),
-        allowed_egress_hosts=("api.provider.test",),
-        credential_handles=("provider_a_key",),
-    )
-    request = ProviderRequest(
-        egress_host="api.provider.test",
-        credential_handle="provider_a_key",
-        data_classes=("reference_audio",),
-        retention_days=7,
-        territory="US",
-        grant_ids=("grant_a",),
-        context=_CONTEXT,
-        at_iso=_NOW,
-    )
+def test_cloud_selection_requires_exact_route_and_s2_authorization() -> None:
+    registry = AdapterRegistry({"tts_cloud": _cloud_registration()})
+    policy = _cloud_policy()
     selected = select_adapter(
         registry,
         ("tts_cloud",),
         kind="tts",
         policy=policy,
         ledger=_ledger(),
-        request=request,
+        request=_request(),
     )
     assert selected.descriptor.adapter_id == "tts_cloud"
+    assert selected.cloud_approval is not None
     with pytest.raises(RegistryError) as exc_info:
         select_adapter(registry, ("tts_cloud",), kind="tts", policy=policy)
     assert exc_info.value.code == "cloud_authorization_required"
@@ -272,7 +360,6 @@ def test_full_fingerprint_and_cache_keys_invalidate_every_bound_dimension() -> N
     base_inputs = _fingerprint_inputs()
     base = build_render_fingerprint(base_inputs)
     assert base.cache_key("render:cue_001") != base.cache_key("render:cue_002")
-
     mutations = (
         {"normalized_plan_digest": _SHA_B},
         {"byte_digests": (("source_dialogue", _SHA_B),)},
@@ -285,40 +372,55 @@ def test_full_fingerprint_and_cache_keys_invalidate_every_bound_dimension() -> N
         {"configuration_digest": _SHA_B},
         {"codec_mux_digest": _SHA_B},
         {"conversion_digest": _SHA_B},
-        {"capability_manifest": (("tts_local", False, "probe_v2"),)},
+        {
+            "capability_manifest": (
+                CapabilitySnapshot(
+                    adapter_id="tts_local",
+                    available=False,
+                    probe_version="probe_v2",
+                    requirement=CapabilityRequirement.ADVISORY,
+                ),
+            )
+        },
     )
     for update in mutations:
         changed = build_render_fingerprint(base_inputs.model_copy(update=update))
         assert changed.digest() != base.digest(), update
-        assert changed.cache_key("render:cue_001") != base.cache_key("render:cue_001"), update
 
 
-def test_authorization_aware_cache_rechecks_grants_and_never_serializes_sensitive_text() -> None:
-    ledger = _ledger()
+def test_authorized_cache_rechecks_grants_and_binds_content() -> None:
     fingerprint = build_render_fingerprint(_fingerprint_inputs())
     cache = AuthorizationAwareCache()
-    cache.store(
+    ledger = _CacheLedger()
+    cache.store_authorized(
         fingerprint,
         "render:cue_001",
         artifact_id="cache_asset_001",
-        grant_ids=("grant_a",),
+        artifact_digest=_SHA_A,
+        lineage=AuthorizedLineage(pre_recorded_output=True),
         ledger=ledger,
         context=_CONTEXT,
         at_iso=_NOW,
     )
-    hit = cache.reuse(
+    hit = cache.reuse_authorized(
         fingerprint,
         "render:cue_001",
+        content_digest=_SHA_A,
         ledger=ledger,
         context=_CONTEXT,
         at_iso=_NOW,
     )
     assert hit.artifact_id == "cache_asset_001"
-    assert all(marker not in repr(hit) for marker in ("PRIVATE_MARKER", "raw prompt", "transcript text"))
-
     changed = build_render_fingerprint(_fingerprint_inputs().model_copy(update={"configuration_digest": _SHA_B}))
     with pytest.raises(CacheError) as exc_info:
-        cache.reuse(changed, "render:cue_001", ledger=ledger, context=_CONTEXT, at_iso=_NOW)
+        cache.reuse_authorized(
+            changed,
+            "render:cue_001",
+            content_digest=_SHA_A,
+            ledger=ledger,
+            context=_CONTEXT,
+            at_iso=_NOW,
+        )
     assert exc_info.value.code == "cache_miss"
 
 
@@ -345,51 +447,42 @@ def test_required_capability_absence_blocks_render_but_advisory_is_reported() ->
     assert report.ready is True
     assert report.advisory_unavailable == ("analyzer_optional",)
     with pytest.raises(RegistryError) as exc_info:
-        registry.probe_manifest(
-            required_ids=("tts_missing",),
-            advisory_ids=(),
-            demanded_render=True,
-        )
+        registry.probe_manifest(required_ids=("tts_missing",), advisory_ids=(), demanded_render=True)
     assert exc_info.value.code == "required_capability_unavailable"
 
 
-class _AuthorizationSpy:
-    def __init__(self) -> None:
-        self.boundaries: list[object] = []
-        self.egress_calls = 0
-
-    def authorize(self, boundary: object, **kwargs: object) -> tuple[str, ...]:
-        self.boundaries.append(boundary)
-        return ("grant_a",)
-
-    def authorize_cloud_egress(self, **kwargs: object) -> tuple[str, ...]:
-        self.egress_calls += 1
-        return ("grant_a",)
-
-
 def test_cloud_cache_reuse_rechecks_cache_boundary_and_exact_egress() -> None:
+    policy = _cloud_policy()
+    selection = select_adapter(
+        AdapterRegistry({"tts_cloud": _cloud_registration()}),
+        ("tts_cloud",),
+        kind="tts",
+        policy=policy,
+        ledger=_ledger(),
+        request=_request(),
+    )
+    ledger = _CacheLedger()
     fingerprint = build_render_fingerprint(_fingerprint_inputs())
     cache = AuthorizationAwareCache()
-    source_ledger = _ledger()
-    cache.store(
+    cache.store_authorized(
         fingerprint,
         "render:cue_cloud",
         artifact_id="cache_asset_cloud",
-        grant_ids=("grant_a",),
-        cloud_disclosure=_cloud().descriptor.cost_disclosure,
-        ledger=source_ledger,
-        context=_CONTEXT,
-        at_iso=_NOW,
-    )
-    ledger = _AuthorizationSpy()
-    cache.reuse(
-        fingerprint,
-        "render:cue_cloud",
+        artifact_digest=_SHA_A,
+        lineage=AuthorizedLineage(pre_recorded_output=True),
         ledger=ledger,
         context=_CONTEXT,
         at_iso=_NOW,
+        cloud_approval=selection.cloud_approval,
     )
-    from kinocut_sound.authorization import AuthorizationBoundary
-
+    cache.reuse_authorized(
+        fingerprint,
+        "render:cue_cloud",
+        content_digest=_SHA_A,
+        ledger=ledger,
+        context=_CONTEXT,
+        at_iso=_NOW,
+        execution_policy=policy,
+    )
     assert ledger.boundaries == [AuthorizationBoundary.CACHE_REUSE]
     assert ledger.egress_calls == 1

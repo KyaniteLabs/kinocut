@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+from enum import StrEnum
 from itertools import islice
 import logging
 from typing import Any
 
-from pydantic import Field, field_validator
+from pydantic import Field, StrictBool, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, canonical_digest
+from kinocut_sound._errors import SoundContractError
 from kinocut_sound.limits import MAX_FINGERPRINT_ITEMS, MAX_FINGERPRINT_VERSION_CHARS
 from kinocut_sound.render_fingerprint import (
     DeterminismClass,
@@ -34,6 +37,40 @@ S3_REQUIRED_COMPONENT_ROLES = frozenset(
         "capability_manifest",
     }
 )
+
+
+class FingerprintError(SoundContractError):
+    """Stable complete-fingerprint construction failure."""
+
+
+def _error(message: str, code: str) -> FingerprintError:
+    return FingerprintError(message, code=code, suggested_action={"auto_fix": False})
+
+
+class CapabilityRequirement(StrEnum):
+    """Whether unavailable capability blocks the render."""
+
+    REQUIRED = "required"
+    ADVISORY = "advisory"
+
+
+class CapabilitySnapshot(FrozenModel):
+    """Bounded capability probe input with explicit requirement class."""
+
+    adapter_id: str = Field(min_length=1)
+    available: StrictBool
+    probe_version: str = Field(min_length=1)
+    requirement: CapabilityRequirement
+
+    @field_validator("adapter_id")
+    @classmethod
+    def _adapter(cls, value: str) -> str:
+        return BoundedCode(value)
+
+    @field_validator("probe_version")
+    @classmethod
+    def _version(cls, value: str) -> str:
+        return _safe_version(value)
 
 
 def _bounded_rows(value: object, label: str) -> tuple[object, ...]:
@@ -81,19 +118,14 @@ def _normalize_pairs(value: object, label: str, *, digests: bool = False) -> tup
     return tuple(sorted(normalized))
 
 
-def _normalize_capabilities(value: object) -> tuple[tuple[str, bool, str], ...]:
-    normalized: list[tuple[str, bool, str]] = []
+def _normalize_capabilities(value: object) -> tuple[CapabilitySnapshot, ...]:
+    normalized: list[CapabilitySnapshot] = []
     for row in _bounded_rows(value, "capability"):
-        if not isinstance(row, (tuple, list)) or len(row) != 3:
-            raise ValueError("capability entries must be triples")
-        adapter_id, available, probe_version = row
-        if not isinstance(available, bool):
-            raise ValueError("capability availability must be boolean")
-        normalized.append((BoundedCode(adapter_id), available, _safe_version(probe_version)))
-    names = tuple(name for name, _, _ in normalized)
+        normalized.append(CapabilitySnapshot.model_validate(row, from_attributes=True))
+    names = tuple(item.adapter_id for item in normalized)
     if len(set(names)) != len(names):
         raise ValueError("capability identifiers must be unique")
-    return tuple(sorted(normalized))
+    return tuple(sorted(normalized, key=lambda item: item.adapter_id))
 
 
 class FingerprintInputs(FrozenModel):
@@ -114,7 +146,7 @@ class FingerprintInputs(FrozenModel):
     locale: str = Field(min_length=1)
     hardware_backend: str = Field(min_length=1)
     concurrency_ordering: str = Field(min_length=1)
-    capability_manifest: tuple[tuple[str, bool, str], ...] = Field(min_length=1)
+    capability_manifest: tuple[CapabilitySnapshot, ...] = Field(min_length=1)
     determinism_class: DeterminismClass = DeterminismClass.SIGNAL_EQUIVALENT
 
     @field_validator("byte_digests", mode="before")
@@ -137,7 +169,7 @@ class FingerprintInputs(FrozenModel):
 
     @field_validator("capability_manifest", mode="before")
     @classmethod
-    def _capabilities(cls, value: object) -> tuple[tuple[str, bool, str], ...]:
+    def _capabilities(cls, value: object) -> tuple[CapabilitySnapshot, ...]:
         return _normalize_capabilities(value)
 
     @field_validator("seed")
@@ -155,41 +187,83 @@ def _vector_digest(value: object) -> Sha256:
     return canonical_digest({"items": value})
 
 
-def build_render_fingerprint(inputs: FingerprintInputs) -> RenderFingerprint:
-    """Build a complete fingerprint; permissive partial contracts cannot enter cache."""
+_TOKEN = object()
 
-    checked = FingerprintInputs.model_validate({name: getattr(inputs, name) for name in FingerprintInputs.model_fields})
-    components = (
-        FingerprintComponent(role="plan_normalized", digest=checked.normalized_plan_digest),
-        FingerprintComponent(role="bytes_manifest", digest=_vector_digest(checked.byte_digests)),
-        FingerprintComponent(role="profile_versions", digest=_vector_digest(checked.profile_versions)),
-        FingerprintComponent(role="preset_versions", digest=_vector_digest(checked.preset_versions)),
-        FingerprintComponent(
-            role="adapter_code_versions",
-            digest=_vector_digest(checked.adapter_code_versions),
-        ),
-        FingerprintComponent(role="model_versions", digest=_vector_digest(checked.model_versions)),
-        FingerprintComponent(
-            role="consent_state_versions",
-            digest=_vector_digest(checked.consent_state_versions),
-        ),
-        FingerprintComponent(role="config_normalized", digest=checked.configuration_digest),
-        FingerprintComponent(role="codec_mux", digest=checked.codec_mux_digest),
-        FingerprintComponent(role="conversions", digest=checked.conversion_digest),
-        FingerprintComponent(
-            role="capability_manifest",
-            digest=_vector_digest(checked.capability_manifest),
+
+@dataclass(frozen=True)
+class CompleteRenderFingerprint:
+    """Opaque validated fingerprint admitted to S3 cache APIs."""
+
+    _fingerprint: RenderFingerprint
+    _token: object
+
+    def __post_init__(self) -> None:
+        if self._token is not _TOKEN:
+            raise _error("complete fingerprint token is invalid", "incomplete_render_fingerprint")
+
+    @property
+    def components(self):  # type: ignore[no-untyped-def]
+        return self._fingerprint.components
+
+    @property
+    def required_capability_manifest(self) -> tuple[str, ...]:
+        return self._fingerprint.required_capability_manifest
+
+    def digest(self) -> Sha256:
+        return self._fingerprint.digest()
+
+    def cache_key(self, stage_cue_id: str) -> Sha256:
+        return self._fingerprint.cache_key(stage_cue_id)
+
+
+def _components(checked: FingerprintInputs) -> tuple[FingerprintComponent, ...]:
+    vectors = (
+        ("plan_normalized", checked.normalized_plan_digest),
+        ("bytes_manifest", _vector_digest(checked.byte_digests)),
+        ("profile_versions", _vector_digest(checked.profile_versions)),
+        ("preset_versions", _vector_digest(checked.preset_versions)),
+        ("adapter_code_versions", _vector_digest(checked.adapter_code_versions)),
+        ("model_versions", _vector_digest(checked.model_versions)),
+        ("consent_state_versions", _vector_digest(checked.consent_state_versions)),
+        ("config_normalized", checked.configuration_digest),
+        ("codec_mux", checked.codec_mux_digest),
+        ("conversions", checked.conversion_digest),
+        (
+            "capability_manifest",
+            _vector_digest(tuple(item.model_dump(mode="json") for item in checked.capability_manifest)),
         ),
     )
-    return RenderFingerprint(
+    return tuple(FingerprintComponent(role=role, digest=digest) for role, digest in vectors)
+
+
+def build_render_fingerprint(inputs: FingerprintInputs) -> CompleteRenderFingerprint:
+    """Build the only fingerprint type admitted to the S3 cache."""
+
+    try:
+        checked = FingerprintInputs.model_validate(inputs.model_dump(mode="python"))
+    except Exception:
+        logger.warning("complete fingerprint input validation failed")
+        raise _error("render fingerprint inputs are invalid", "invalid_fingerprint_inputs") from None
+    unavailable = tuple(
+        item.adapter_id
+        for item in checked.capability_manifest
+        if item.requirement is CapabilityRequirement.REQUIRED and not item.available
+    )
+    if unavailable:
+        raise _error("required capability is unavailable", "required_capability_unavailable")
+    required = tuple(
+        item.adapter_id for item in checked.capability_manifest if item.requirement is CapabilityRequirement.REQUIRED
+    )
+    fingerprint = RenderFingerprint(
         determinism_class=checked.determinism_class,
         seed=checked.seed,
         locale=checked.locale,
         hardware_backend=checked.hardware_backend,
         concurrency_ordering=checked.concurrency_ordering,
-        components=components,
+        components=_components(checked),
         toolchain_versions=tuple(
             ToolchainVersion(component=name, version=version) for name, version in checked.toolchain_versions
         ),
-        required_capability_manifest=tuple(name for name, _, _ in checked.capability_manifest),
+        required_capability_manifest=required,
     )
+    return CompleteRenderFingerprint(fingerprint, _TOKEN)

@@ -1,4 +1,4 @@
-"""Authorization-aware, fingerprint-bound S3 cache index."""
+"""Authorization-aware, content-bound S3 cache index."""
 
 from __future__ import annotations
 
@@ -7,7 +7,9 @@ from itertools import islice
 import logging
 from typing import Protocol
 
-from kinocut_sound._canonical import BoundedCode
+from pydantic import StrictBool, TypeAdapter, field_validator
+
+from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
 from kinocut_sound._errors import SoundContractError
 from kinocut_sound.authorization import (
     AuthorizationBoundary,
@@ -16,13 +18,14 @@ from kinocut_sound.authorization import (
     DerivativeDisposition,
     DerivativeOutcome,
 )
-from kinocut_sound.capability import CostDisclosure
-from kinocut_sound.limits import (
-    MAX_FINGERPRINT_ITEMS,
-    MAX_S3_CACHE_ENTRIES,
+from kinocut_sound.limits import MAX_FINGERPRINT_ITEMS, MAX_S3_CACHE_ENTRIES
+from kinocut_sound.provider_policy import (
+    CloudExecutionApproval,
+    ExecutionPolicy,
+    validate_cloud_approval,
 )
-from kinocut_sound.render_fingerprint import RenderFingerprint
-from kinocut_sound.s3_fingerprint import S3_REQUIRED_COMPONENT_ROLES
+from kinocut_sound.registry import RegistryError
+from kinocut_sound.s3_fingerprint import CompleteRenderFingerprint
 
 logger = logging.getLogger(__name__)
 
@@ -35,12 +38,36 @@ def _error(message: str, code: str) -> CacheError:
     return CacheError(message, code=code, suggested_action={"auto_fix": False})
 
 
+class AuthorizedLineage(FrozenModel):
+    """Trusted S2 lineage source; caller-supplied grants are never accepted."""
+
+    pre_recorded_output: StrictBool = False
+    parent_asset_ids: tuple[str, ...] = ()
+    lease_id: str | None = None
+
+    @field_validator("parent_asset_ids", mode="before")
+    @classmethod
+    def _parents(cls, value: object) -> tuple[str, ...]:
+        return _bounded_codes(value, allow_empty=True)
+
+    @field_validator("lease_id")
+    @classmethod
+    def _lease(cls, value: str | None) -> str | None:
+        return BoundedCode(value) if value is not None else None
+
+
 class _Ledger(Protocol):
     def authorize(self, boundary: AuthorizationBoundary, **kwargs: object) -> tuple[str, ...]:
         """Authorize a protected cache boundary."""
 
+    def resolve_grants(self, asset_id: str) -> tuple[str, ...]:
+        """Resolve effective grants from recorded lineage."""
+
     def record_asset(self, asset_id: str, **kwargs: object) -> object:
         """Record cache artifact lineage."""
+
+    def commit_lease(self, lease_id: str, **kwargs: object) -> object:
+        """Commit a trusted leased output."""
 
     def authorize_cloud_egress(self, **kwargs: object) -> tuple[str, ...]:
         """Authorize exact cloud data reuse."""
@@ -54,66 +81,76 @@ class CacheEntry:
     fingerprint_digest: str
     stage_cue_id: str
     artifact_id: str
-    grant_ids: tuple[str, ...]
-    cloud_disclosure: CostDisclosure | None = None
+    artifact_digest: str
+    protected: bool
+    grant_ids: tuple[str, ...] = ()
+    cloud_approval: CloudExecutionApproval | None = None
 
 
-def _bounded_codes(values: object) -> tuple[str, ...]:
+def _bounded_codes(values: object, *, allow_empty: bool = False) -> tuple[str, ...]:
     try:
         items = tuple(islice(iter(values), MAX_FINGERPRINT_ITEMS + 1))  # type: ignore[arg-type]
     except Exception:
-        logger.warning("cache grant traversal failed")
-        raise _error("cache grant lineage is invalid", "invalid_cache_lineage") from None
-    if not items or len(items) > MAX_FINGERPRINT_ITEMS:
-        raise _error("cache grant lineage is invalid", "invalid_cache_lineage")
+        logger.warning("cache lineage traversal failed")
+        raise _error("cache lineage is invalid", "invalid_cache_lineage") from None
+    if len(items) > MAX_FINGERPRINT_ITEMS or (not items and not allow_empty):
+        raise _error("cache lineage is invalid", "invalid_cache_lineage")
     try:
         checked = tuple(BoundedCode(item) for item in items)
     except (TypeError, ValueError):
-        raise _error("cache grant lineage is invalid", "invalid_cache_lineage") from None
+        raise _error("cache lineage is invalid", "invalid_cache_lineage") from None
     if len(set(checked)) != len(checked):
-        raise _error("cache grant lineage must be unique", "invalid_cache_lineage")
+        raise _error("cache lineage must be unique", "invalid_cache_lineage")
     return tuple(sorted(checked))
 
 
-def _require_complete(fingerprint: RenderFingerprint) -> None:
+def _digest(value: object) -> str:
     try:
-        components = tuple(islice(iter(fingerprint.components), MAX_FINGERPRINT_ITEMS + 1))
-        roles = {BoundedCode(component.role) for component in components}
+        return TypeAdapter(Sha256).validate_python(value)
     except Exception:
-        logger.warning("cache fingerprint validation failed")
-        raise _error("cache fingerprint is invalid", "incomplete_render_fingerprint") from None
-    if len(components) > MAX_FINGERPRINT_ITEMS or not roles >= S3_REQUIRED_COMPONENT_ROLES:
+        raise _error("cache content digest is invalid", "invalid_cache_content") from None
+
+
+def _require_complete(value: object) -> CompleteRenderFingerprint:
+    if not isinstance(value, CompleteRenderFingerprint):
         raise _error("cache fingerprint is incomplete", "incomplete_render_fingerprint")
+    return value
 
 
-def _authorize_store(
+def _trusted_grants(
     ledger: _Ledger,
     artifact_id: str,
-    grant_ids: tuple[str, ...],
+    lineage: AuthorizedLineage,
     context: AuthorizationContext,
     at_iso: str,
-) -> None:
+) -> tuple[str, ...]:
+    choices = int(lineage.pre_recorded_output) + bool(lineage.parent_asset_ids) + (lineage.lease_id is not None)
+    if choices != 1:
+        raise _error("trusted output lineage is required", "trusted_lineage_required")
     try:
-        ledger.authorize(
-            AuthorizationBoundary.COMMIT,
-            grant_ids=grant_ids,
-            context=context,
-            at_iso=at_iso,
-        )
-        ledger.record_asset(
-            artifact_id,
-            direct_grant_ids=grant_ids,
-            parent_asset_ids=(),
-            context=context,
-            at_iso=at_iso,
-        )
-    except AuthorizationError:
-        logger.warning("cache store authorization denied")
+        if lineage.parent_asset_ids:
+            ledger.record_asset(
+                artifact_id,
+                direct_grant_ids=(),
+                parent_asset_ids=lineage.parent_asset_ids,
+                context=context,
+                at_iso=at_iso,
+            )
+        elif lineage.lease_id is not None:
+            ledger.commit_lease(
+                lineage.lease_id,
+                artifact_id=artifact_id,
+                context=context,
+                at_iso=at_iso,
+            )
+        return _bounded_codes(ledger.resolve_grants(artifact_id))
+    except (AuthorizationError, AttributeError, TypeError, ValueError, CacheError):
+        logger.warning("cache trusted lineage resolution denied")
         raise _error("cache authorization was denied", "cache_authorization_denied") from None
 
 
 class AuthorizationAwareCache:
-    """Bounded cache whose every hit rechecks live S2 authorization."""
+    """Bounded cache with explicit public/protected APIs and live S2 rechecks."""
 
     def __init__(self, *, max_entries: int = MAX_S3_CACHE_ENTRIES) -> None:
         if (
@@ -127,70 +164,144 @@ class AuthorizationAwareCache:
 
     @property
     def entry_count(self) -> int:
-        """Return the number of stage/cue aliases in the index."""
-
         return len(self._entries)
 
-    def store(
+    def _identity(
         self,
-        fingerprint: RenderFingerprint,
+        fingerprint: object,
         stage_cue_id: str,
-        *,
         artifact_id: str,
-        grant_ids: object,
-        ledger: _Ledger,
-        context: AuthorizationContext,
-        at_iso: str,
-        cloud_disclosure: CostDisclosure | None = None,
-    ) -> CacheEntry:
-        """Authorize and store one complete fingerprint/stage/cue binding."""
-
-        _require_complete(fingerprint)
+        artifact_digest: object,
+    ) -> tuple[CompleteRenderFingerprint, str, str, str, str]:
+        checked = _require_complete(fingerprint)
         try:
-            artifact_id = BoundedCode(artifact_id)
-            stage_cue_id = BoundedCode(stage_cue_id)
+            stage = BoundedCode(stage_cue_id)
+            artifact = BoundedCode(artifact_id)
         except (TypeError, ValueError):
             raise _error("cache identity is invalid", "invalid_cache_identity") from None
-        checked_grants = _bounded_codes(grant_ids)
-        key = fingerprint.cache_key(stage_cue_id)
+        digest = _digest(artifact_digest)
+        key = checked.cache_key(stage)
         if key not in self._entries and len(self._entries) >= self._max_entries:
             raise _error("cache capacity exceeded", "cache_capacity_exceeded")
-        _authorize_store(ledger, artifact_id, checked_grants, context, at_iso)
+        return checked, stage, artifact, digest, key
+
+    def _store_entry(
+        self,
+        fingerprint: object,
+        stage_cue_id: str,
+        artifact_id: str,
+        artifact_digest: object,
+        *,
+        protected: bool,
+        grant_ids: tuple[str, ...] = (),
+        cloud_approval: CloudExecutionApproval | None = None,
+    ) -> CacheEntry:
+        checked, stage, artifact, digest, key = self._identity(fingerprint, stage_cue_id, artifact_id, artifact_digest)
         entry = CacheEntry(
             cache_key=key,
-            fingerprint_digest=fingerprint.digest(),
-            stage_cue_id=stage_cue_id,
-            artifact_id=artifact_id,
-            grant_ids=checked_grants,
-            cloud_disclosure=cloud_disclosure,
+            fingerprint_digest=checked.digest(),
+            stage_cue_id=stage,
+            artifact_id=artifact,
+            artifact_digest=digest,
+            protected=protected,
+            grant_ids=grant_ids,
+            cloud_approval=cloud_approval,
         )
         self._entries[key] = entry
         return entry
 
-    def _validate_hit(
+    def store_unprotected(
         self,
-        entry: CacheEntry,
-        key: str,
-        fingerprint: RenderFingerprint,
+        fingerprint: object,
         stage_cue_id: str,
-    ) -> None:
-        expected_digest = fingerprint.digest()
-        valid = (
-            entry.cache_key == key
-            and entry.fingerprint_digest == expected_digest
-            and entry.stage_cue_id == stage_cue_id
-            and fingerprint.cache_key(entry.stage_cue_id) == key
-        )
-        if not valid:
-            self._entries.pop(key, None)
-            raise _error("cache entry failed integrity validation", "cache_tampered")
+        *,
+        artifact_id: str,
+        artifact_digest: object,
+    ) -> CacheEntry:
+        """Store explicitly public/unprotected output without an S2 grant."""
 
-    def _authorize_hit(
+        return self._store_entry(
+            fingerprint,
+            stage_cue_id,
+            artifact_id,
+            artifact_digest,
+            protected=False,
+        )
+
+    def store_authorized(
+        self,
+        fingerprint: object,
+        stage_cue_id: str,
+        *,
+        artifact_id: str,
+        artifact_digest: object,
+        lineage: AuthorizedLineage,
+        ledger: _Ledger,
+        context: AuthorizationContext,
+        at_iso: str,
+        cloud_approval: CloudExecutionApproval | None = None,
+    ) -> CacheEntry:
+        """Store protected output using only pre-existing trusted S2 lineage."""
+
+        try:
+            checked_lineage = AuthorizedLineage.model_validate(lineage.model_dump(mode="python"))
+        except Exception:
+            raise _error("trusted output lineage is invalid", "trusted_lineage_required") from None
+        if cloud_approval is not None and not cloud_approval.confirmed:
+            raise _error("cloud approval is unconfirmed", "cache_cloud_unconfirmed")
+        grants = _trusted_grants(ledger, BoundedCode(artifact_id), checked_lineage, context, at_iso)
+        return self._store_entry(
+            fingerprint,
+            stage_cue_id,
+            artifact_id,
+            artifact_digest,
+            protected=True,
+            grant_ids=grants,
+            cloud_approval=cloud_approval,
+        )
+
+    def _hit(
+        self,
+        fingerprint: object,
+        stage_cue_id: str,
+        content_digest: object,
+        *,
+        protected: bool,
+    ) -> CacheEntry:
+        checked = _require_complete(fingerprint)
+        try:
+            stage = BoundedCode(stage_cue_id)
+        except (TypeError, ValueError):
+            raise _error("cache identity is invalid", "invalid_cache_identity") from None
+        key = checked.cache_key(stage)
+        entry = self._entries.get(key)
+        if entry is None or entry.protected is not protected:
+            raise _error("cache entry was not found", "cache_miss")
+        valid = entry.cache_key == key and entry.fingerprint_digest == checked.digest() and entry.stage_cue_id == stage
+        if not valid:
+            self.evict_asset(entry.artifact_id)
+            raise _error("cache entry failed integrity validation", "cache_tampered")
+        if entry.artifact_digest != _digest(content_digest):
+            self.evict_asset(entry.artifact_id)
+            raise _error("cache content digest changed", "cache_content_mismatch")
+        return entry
+
+    def reuse_unprotected(
+        self,
+        fingerprint: object,
+        stage_cue_id: str,
+        *,
+        content_digest: object,
+    ) -> CacheEntry:
+        return self._hit(fingerprint, stage_cue_id, content_digest, protected=False)
+
+    def _reauthorize(
         self,
         entry: CacheEntry,
         ledger: _Ledger,
         context: AuthorizationContext,
         at_iso: str,
+        execution_policy: ExecutionPolicy | None,
     ) -> None:
         try:
             ledger.authorize(
@@ -200,54 +311,51 @@ class AuthorizationAwareCache:
                 context=context,
                 at_iso=at_iso,
             )
-            if entry.cloud_disclosure is not None:
-                disclosure = entry.cloud_disclosure
+            if entry.cloud_approval is not None:
+                if execution_policy is None:
+                    raise RegistryError("policy missing", code="cloud_policy_changed")
+                validate_cloud_approval(entry.cloud_approval, execution_policy)
+                approval = entry.cloud_approval
                 ledger.authorize_cloud_egress(
                     grant_ids=entry.grant_ids,
-                    provider_id=disclosure.provider_id,
-                    data_classes=disclosure.data_classes,
-                    territory=context.territory,
-                    retention_days=disclosure.retention_ceiling_days,
+                    provider_id=approval.provider_id,
+                    data_classes=approval.data_classes,
+                    territory=approval.territory,
+                    retention_days=approval.retention_days,
                     at_iso=at_iso,
                     context=context,
                 )
+        except RegistryError:
+            self.evict_asset(entry.artifact_id)
+            raise _error("cached cloud policy changed", "cache_cloud_policy_changed") from None
         except AuthorizationError:
             logger.warning("cache reuse authorization denied")
             self.evict_asset(entry.artifact_id)
             raise _error("cache authorization was denied", "cache_authorization_denied") from None
 
-    def reuse(
+    def reuse_authorized(
         self,
-        fingerprint: RenderFingerprint,
+        fingerprint: object,
         stage_cue_id: str,
         *,
+        content_digest: object,
         ledger: _Ledger,
         context: AuthorizationContext,
         at_iso: str,
+        execution_policy: ExecutionPolicy | None = None,
     ) -> CacheEntry:
-        """Recompute the key, validate integrity, then reauthorize immediately."""
-
-        _require_complete(fingerprint)
-        try:
-            stage_cue_id = BoundedCode(stage_cue_id)
-        except (TypeError, ValueError):
-            raise _error("cache identity is invalid", "invalid_cache_identity") from None
-        key = fingerprint.cache_key(stage_cue_id)
-        entry = self._entries.get(key)
-        if entry is None:
-            raise _error("cache entry was not found", "cache_miss")
-        self._validate_hit(entry, key, fingerprint, stage_cue_id)
-        self._authorize_hit(entry, ledger, context, at_iso)
+        entry = self._hit(fingerprint, stage_cue_id, content_digest, protected=True)
+        self._reauthorize(entry, ledger, context, at_iso, execution_policy)
         return entry
 
     def evict_asset(self, artifact_id: str) -> int:
         """Evict every stage/cue alias for one opaque artifact id."""
 
         try:
-            artifact_id = BoundedCode(artifact_id)
+            checked = BoundedCode(artifact_id)
         except (TypeError, ValueError):
             raise _error("cache artifact id is invalid", "invalid_cache_identity") from None
-        keys = tuple(key for key, entry in self._entries.items() if entry.artifact_id == artifact_id)
+        keys = tuple(key for key, entry in self._entries.items() if entry.artifact_id == checked)
         for key in keys:
             del self._entries[key]
         return len(keys)
