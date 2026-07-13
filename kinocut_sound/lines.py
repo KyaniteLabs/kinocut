@@ -16,13 +16,31 @@ from __future__ import annotations
 from pydantic import Field, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
+from kinocut_sound.defaults import (
+    DEFAULT_PROSODY_EMPHASIS,
+    DEFAULT_PROSODY_PITCH_SEMITONES,
+    DEFAULT_PROSODY_RATE,
+    DEFAULT_PROSODY_VOLUME_DB,
+)
+from kinocut_sound.limits import (
+    MAX_NORMALIZED_LEVEL,
+    MAX_PROSODY_PITCH_SEMITONES,
+    MAX_PROSODY_RATE,
+    MAX_PROSODY_VOLUME_DB,
+    MIN_NORMALIZED_LEVEL,
+    MIN_PROSODY_PITCH_SEMITONES,
+    MIN_PROSODY_RATE,
+    MIN_PROSODY_VOLUME_DB,
+    MIN_TEXT_LENGTH_CHARS,
+    MIN_VERSION,
+)
 
 
 class ProfileRef(FrozenModel):
     """A typed, versioned reference to a VoiceProfile owned elsewhere."""
 
     profile_id: str = Field(min_length=1)
-    version: int = Field(ge=1)
+    version: int = Field(ge=MIN_VERSION)
 
     @field_validator("profile_id")
     @classmethod
@@ -45,17 +63,17 @@ class Prosody(FrozenModel):
     a dB offset. Emphasis is a 0..1 intensity.
     """
 
-    rate: float = Field(default=1.0, gt=0.0, le=2.0)
-    pitch: float = Field(default=0.0, ge=-12.0, lt=12.0)
-    volume_db: float = Field(default=0.0, ge=-24.0, le=12.0)
-    emphasis: float = Field(default=0.0, ge=0.0, le=1.0)
+    rate: float = Field(default=DEFAULT_PROSODY_RATE, gt=MIN_PROSODY_RATE, le=MAX_PROSODY_RATE)
+    pitch: float = Field(default=DEFAULT_PROSODY_PITCH_SEMITONES, ge=MIN_PROSODY_PITCH_SEMITONES, lt=MAX_PROSODY_PITCH_SEMITONES)
+    volume_db: float = Field(default=DEFAULT_PROSODY_VOLUME_DB, ge=MIN_PROSODY_VOLUME_DB, le=MAX_PROSODY_VOLUME_DB)
+    emphasis: float = Field(default=DEFAULT_PROSODY_EMPHASIS, ge=MIN_NORMALIZED_LEVEL, le=MAX_NORMALIZED_LEVEL)
 
 
 class Emotion(FrozenModel):
     """A bounded emotion label paired with a 0..1 intensity."""
 
     label: str = Field(min_length=1)
-    intensity: float = Field(ge=0.0, le=1.0)
+    intensity: float = Field(ge=MIN_NORMALIZED_LEVEL, le=MAX_NORMALIZED_LEVEL)
 
     @field_validator("label")
     @classmethod
@@ -98,7 +116,7 @@ class Line(FrozenModel):
     character_id: str = Field(min_length=1)
     profile: ProfileRef
     text_hash: Sha256
-    text_length_chars: int = Field(ge=0)
+    text_length_chars: int = Field(ge=MIN_TEXT_LENGTH_CHARS)
     prosody: Prosody
     emotion: Emotion
     spatial_preset: str = Field(min_length=1)

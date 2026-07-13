@@ -14,12 +14,12 @@ import pytest
 from pydantic import ValidationError
 
 from kinocut_sound.capability import (
-    ADAPTER_KINDS,
     AdapterDescriptor,
     AdapterLocality,
     CapabilityResult,
     CostDisclosure,
 )
+from kinocut_sound.validation import ADAPTER_KINDS
 
 
 def test_adapter_locality_is_closed():

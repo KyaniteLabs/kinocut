@@ -19,12 +19,19 @@ from enum import StrEnum
 from pydantic import Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel
-
-# Numeric defaults (design §"RenderFingerprint & numeric mix policy").
-LOUDNESS_TOLERANCE_LU = 1.0
-STREAM_PODCAST_TRUE_PEAK_DBTP = -1.0
-BROADCAST_TRUE_PEAK_DBTP = -2.0
-STEM_RECOMBINATION_TOLERANCE_LSB_24BIT = 1
+from kinocut_sound.defaults import (
+    DEFAULT_BROADCAST_TRUE_PEAK_DBTP,
+    DEFAULT_LOUDNESS_TOLERANCE_LU,
+    DEFAULT_STREAM_PODCAST_TRUE_PEAK_DBTP,
+)
+from kinocut_sound.limits import (
+    MAX_LOUDNESS_TOLERANCE_LU,
+    MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT,
+    MAX_TRUE_PEAK_DBTP,
+    MIN_LOUDNESS_TOLERANCE_LU,
+    MIN_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT,
+    MAX_LOUDNESS_LUFS,
+)
 
 
 class DeliveryPreset(StrEnum):
@@ -48,19 +55,19 @@ _PRESET_LUFS: dict[DeliveryPreset, float] = {
 
 # Per-preset true-peak ceilings: stream/podcast use -1.0, broadcast uses -2.0.
 _PRESET_TRUE_PEAK_DBTP: dict[DeliveryPreset, float] = {
-    DeliveryPreset.STREAM_MINUS_14: STREAM_PODCAST_TRUE_PEAK_DBTP,
-    DeliveryPreset.PODCAST_MINUS_16: STREAM_PODCAST_TRUE_PEAK_DBTP,
-    DeliveryPreset.BROADCAST_EBU_R128_MINUS_23: BROADCAST_TRUE_PEAK_DBTP,
-    DeliveryPreset.BROADCAST_ATSC_A85_MINUS_24: BROADCAST_TRUE_PEAK_DBTP,
+    DeliveryPreset.STREAM_MINUS_14: DEFAULT_STREAM_PODCAST_TRUE_PEAK_DBTP,
+    DeliveryPreset.PODCAST_MINUS_16: DEFAULT_STREAM_PODCAST_TRUE_PEAK_DBTP,
+    DeliveryPreset.BROADCAST_EBU_R128_MINUS_23: DEFAULT_BROADCAST_TRUE_PEAK_DBTP,
+    DeliveryPreset.BROADCAST_ATSC_A85_MINUS_24: DEFAULT_BROADCAST_TRUE_PEAK_DBTP,
 }
 
 
 class LoudnessTarget(FrozenModel):
     """One loudness target with integrated LUFS, tolerance, and true-peak."""
 
-    integrated_lufs: float = Field(lt=0.0)
-    tolerance_lu: float = Field(default=LOUDNESS_TOLERANCE_LU, gt=0.0, le=2.0)
-    true_peak_dbtp: float = Field(lt=0.0)
+    integrated_lufs: float = Field(lt=MAX_LOUDNESS_LUFS)
+    tolerance_lu: float = Field(default=DEFAULT_LOUDNESS_TOLERANCE_LU, gt=MIN_LOUDNESS_TOLERANCE_LU, le=MAX_LOUDNESS_TOLERANCE_LU)
+    true_peak_dbtp: float = Field(lt=MAX_TRUE_PEAK_DBTP)
 
     @field_validator("integrated_lufs", "tolerance_lu", "true_peak_dbtp")
     @classmethod
@@ -73,7 +80,7 @@ class LoudnessTarget(FrozenModel):
     def for_preset(cls, preset: DeliveryPreset) -> LoudnessTarget:
         return cls(
             integrated_lufs=_PRESET_LUFS[preset],
-            tolerance_lu=LOUDNESS_TOLERANCE_LU,
+            tolerance_lu=DEFAULT_LOUDNESS_TOLERANCE_LU,
             true_peak_dbtp=_PRESET_TRUE_PEAK_DBTP[preset],
         )
 
@@ -102,7 +109,7 @@ class StemRecombinationPolicy(FrozenModel):
     the master-only chain can be bypassed for the equality proof.
     """
 
-    tolerance_lsb_at_24bit: int = Field(default=STEM_RECOMBINATION_TOLERANCE_LSB_24BIT, ge=0, le=STEM_RECOMBINATION_TOLERANCE_LSB_24BIT)
+    tolerance_lsb_at_24bit: int = Field(default=MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT, ge=MIN_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT, le=MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT)
     comparison_reference: str = "pre_master"
 
     @field_validator("comparison_reference")
@@ -125,7 +132,7 @@ class DeliveryPolicy(FrozenModel):
 
     preset: DeliveryPreset = DEFAULT_PRESET
     loudness: LoudnessTarget = Field(default_factory=lambda: LoudnessTarget.for_preset(DEFAULT_PRESET))
-    true_peak_ceiling_dbtp: float = Field(default=STREAM_PODCAST_TRUE_PEAK_DBTP, le=0.0)
+    true_peak_ceiling_dbtp: float = Field(default=DEFAULT_STREAM_PODCAST_TRUE_PEAK_DBTP, le=MAX_TRUE_PEAK_DBTP)
     stems: StemLayout = Field(default_factory=StemLayout)
     recombination: StemRecombinationPolicy = Field(default_factory=StemRecombinationPolicy)
     metadata_codes: tuple[str, ...] = ()

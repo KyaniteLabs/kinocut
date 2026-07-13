@@ -18,9 +18,8 @@ from enum import StrEnum
 from pydantic import Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, location_violation
-
-# Cue/master sync tolerance default — overridden via Timeline.gap_tolerance_seconds.
-DEFAULT_GAP_TOLERANCE_SECONDS = 0.010
+from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS
+from kinocut_sound.limits import MIN_TIME_SECONDS
 
 
 class CueKind(StrEnum):
@@ -37,12 +36,12 @@ class Cue(FrozenModel):
     """One ordered cue on the timeline. Duration is authoritative."""
 
     cue_id: str = Field(min_length=1)
-    start_seconds: float = Field(ge=0.0)
-    duration_seconds: float = Field(gt=0.0)
+    start_seconds: float = Field(ge=MIN_TIME_SECONDS)
+    duration_seconds: float = Field(gt=MIN_TIME_SECONDS)
     kind: CueKind
     source_ref: str = Field(min_length=1)
-    in_point_seconds: float | None = Field(default=None, ge=0.0)
-    out_point_seconds: float | None = Field(default=None, ge=0.0)
+    in_point_seconds: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
+    out_point_seconds: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
     transit_kind: str | None = None
 
     @field_validator("cue_id")
@@ -90,8 +89,8 @@ class Timeline(FrozenModel):
     """
 
     cues: tuple[Cue, ...] = ()
-    tail_seconds: float = Field(default=0.0, ge=0.0)
-    gap_tolerance_seconds: float = Field(default=DEFAULT_GAP_TOLERANCE_SECONDS, ge=0.0)
+    tail_seconds: float = Field(default=DEFAULT_TAIL_SECONDS, ge=MIN_TIME_SECONDS)
+    gap_tolerance_seconds: float = Field(default=DEFAULT_GAP_TOLERANCE_SECONDS, ge=MIN_TIME_SECONDS)
     require_at_least_one_cue: bool = True
 
     @field_validator("cues")

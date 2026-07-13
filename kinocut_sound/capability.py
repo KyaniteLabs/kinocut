@@ -14,20 +14,19 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
-import re
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel
-
-# Short advisory human text: bounded, no control chars, host paths, URLs, or
-# shell metacharacters — spaces and ordinary punctuation are fine.
-_ADVISORY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ,.\-_'()]{0,199}$")
-
-# Closed set of adapter kinds. A requested kind outside this set is a contract
-# error, never a dynamic load.
-ADAPTER_KINDS: frozenset[str] = frozenset({"tts", "processor", "spatializer", "asset", "analyzer"})
+from kinocut_sound.defaults import DEFAULT_ADAPTER_TIMEOUT_SECONDS
+from kinocut_sound.limits import (
+    MAX_ADAPTER_TIMEOUT_SECONDS,
+    MIN_COST_USD,
+    MIN_RETENTION_DAYS,
+    MIN_TIME_SECONDS,
+)
+from kinocut_sound.validation import ADAPTER_KINDS, ADVISORY_RE, REGION_RE
 
 
 class AdapterLocality(StrEnum):
@@ -48,8 +47,8 @@ class CostDisclosure(FrozenModel):
     provider_id: str = Field(min_length=1)
     region: str = Field(min_length=1)
     data_classes: tuple[str, ...] = Field(min_length=1)
-    retention_ceiling_days: int = Field(ge=0)
-    estimated_cost_usd_per_call: float = Field(ge=0.0)
+    retention_ceiling_days: int = Field(ge=MIN_RETENTION_DAYS)
+    estimated_cost_usd_per_call: float = Field(ge=MIN_COST_USD)
     confirmed: bool
 
     @field_validator("provider_id")
@@ -60,7 +59,7 @@ class CostDisclosure(FrozenModel):
     @field_validator("region")
     @classmethod
     def _region_bounded(cls, value: str) -> str:
-        if not re.match(r"^[A-Za-z0-9_.-]{1,32}$", value):
+        if not REGION_RE.match(value):
             raise ValueError("region must be a bounded code (no spaces or paths)")
         return value
 
@@ -96,7 +95,11 @@ class AdapterDescriptor(FrozenModel):
     locality: AdapterLocality
     provider_class: str = Field(min_length=1)
     cost_disclosure: CostDisclosure | None = None
-    timeout_seconds: float = Field(default=60.0, gt=0.0, le=600.0)
+    timeout_seconds: float = Field(
+        default=DEFAULT_ADAPTER_TIMEOUT_SECONDS,
+        gt=MIN_TIME_SECONDS,
+        le=MAX_ADAPTER_TIMEOUT_SECONDS,
+    )
 
     @field_validator("adapter_id", "provider_class")
     @classmethod
@@ -145,7 +148,7 @@ class CapabilityResult(FrozenModel):
     @field_validator("remediation")
     @classmethod
     def _remediation_advisory(cls, value: str | None) -> str | None:
-        if value is not None and not _ADVISORY_RE.match(value):
+        if value is not None and not ADVISORY_RE.match(value):
             raise ValueError("remediation must be short and free of paths, URLs, or metacharacters")
         return value
 

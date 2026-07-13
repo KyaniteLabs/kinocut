@@ -17,17 +17,13 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
-import re
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
-
-# Short intended-use summary: bounded length, no path/control chars. Allows
-# spaces so a human-readable scope can summarize, but rejects URLs/host paths.
-_USE_SUMMARY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9 ,.\-_'()]{0,199}$")
-_ISO8601_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$")
+from kinocut_sound.limits import MIN_RETENTION_DAYS
+from kinocut_sound.validation import ADVISORY_RE, ISO8601_RE, TERRITORY_RE
 
 
 class ConsentState(StrEnum):
@@ -74,7 +70,7 @@ class ConsentScope(FrozenModel):
     @classmethod
     def _territory_is_bounded(cls, value: str) -> str:
         # Territory is a short UN M49 / ISO 3166-style code; letters/digits only.
-        if not re.match(r"^[A-Za-z0-9]{2,16}$", value):
+        if not TERRITORY_RE.match(value):
             raise ValueError("territory must be a bounded code (2-16 alphanumeric chars)")
         return value
 
@@ -83,7 +79,7 @@ class ConsentScope(FrozenModel):
     def _use_summary_is_advisory(cls, value: str | None) -> str | None:
         if value is None:
             return value
-        if not _USE_SUMMARY_RE.match(value):
+        if not ADVISORY_RE.match(value):
             raise ValueError("intended_use_summary must be short and free of paths, URLs, or metacharacters")
         return value
 
@@ -103,7 +99,7 @@ class AuditEvent(FrozenModel):
     @field_validator("at_iso")
     @classmethod
     def _iso8601(cls, value: str) -> str:
-        if not _ISO8601_RE.match(value):
+        if not ISO8601_RE.match(value):
             raise ValueError("at_iso must be a UTC ISO-8601 timestamp (YYYY-MM-DDTHH:MM:SSZ)")
         return value
 
@@ -114,7 +110,7 @@ class CloudEgressGrant(FrozenModel):
     provider_id: str = Field(min_length=1)
     data_classes: tuple[str, ...] = Field(min_length=1)
     territory: str = Field(min_length=1)
-    retention_ceiling_days: int = Field(ge=0)
+    retention_ceiling_days: int = Field(ge=MIN_RETENTION_DAYS)
     expiry_iso: str
 
     @field_validator("provider_id")
@@ -134,7 +130,7 @@ class CloudEgressGrant(FrozenModel):
     @field_validator("territory")
     @classmethod
     def _territory_bounded(cls, value: str) -> str:
-        if not re.match(r"^[A-Za-z0-9]{2,16}$", value):
+        if not TERRITORY_RE.match(value):
             raise ValueError("territory must be a bounded code (2-16 alphanumeric chars)")
         return value
 
@@ -148,7 +144,7 @@ class CloudEgressGrant(FrozenModel):
     @field_validator("expiry_iso")
     @classmethod
     def _expiry_iso8601(cls, value: str) -> str:
-        if not _ISO8601_RE.match(value):
+        if not ISO8601_RE.match(value):
             raise ValueError("expiry_iso must be a UTC ISO-8601 timestamp")
         return value
 
@@ -206,7 +202,7 @@ class ConsentGrant(FrozenModel):
     @field_validator("issue_iso", "expiry_iso")
     @classmethod
     def _iso8601(cls, value: str) -> str:
-        if not _ISO8601_RE.match(value):
+        if not ISO8601_RE.match(value):
             raise ValueError("timestamps must be UTC ISO-8601 (YYYY-MM-DDTHH:MM:SSZ)")
         return value
 

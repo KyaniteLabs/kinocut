@@ -31,6 +31,7 @@ from kinocut_sound import (
     Line,
     LoudnessVerification,
     OrderedInput,
+    PanLaw,
     PlanProvenance,
     ProfileRef,
     PronunciationOverride,
@@ -49,6 +50,7 @@ from kinocut_sound import (
 from kinocut_sound._canonical import canonical_digest
 
 _SHA = "sha256:" + "9" * 64
+_GRANT_HASH = "sha256:" + "a" * 64
 
 
 def _format() -> AudioFormat:
@@ -104,7 +106,7 @@ def _plan() -> SoundPlan:
             tracks=(
                 Track(
                     track_id="track_dialog_001", destination_bus_id="bus_dialog",
-                    gain_db=-1.5, pan_law=__import__("kinocut_sound.routing", fromlist=["PanLaw"]).PanLaw.LINEAR,
+                    gain_db=-1.5, pan_law=PanLaw.LINEAR,
                     muted=False, soloed=False,
                 ),
             ),
@@ -209,6 +211,8 @@ def test_receipt_serializes_sound_section_without_leaks():
 
 def test_consent_grant_does_not_carry_biometric_material_into_plan_provenance():
     # A ConsentGrant's subject_id is referenced only by opaque id in a plan.
+    # Use a hash distinct from the plan's transcript hash so the assertion is
+    # non-tautological (the plan uses _SHA for its transcript_hashes).
     grant = ConsentGrant(
         grant_id="grant_001",
         subject_id="subject_001",
@@ -220,8 +224,8 @@ def test_consent_grant_does_not_carry_biometric_material_into_plan_provenance():
             provider_classes=("local",),
             territory="US",
         ),
-        reference_evidence_hash=_SHA,
-        transcript_evidence_hash=_SHA,
+        reference_evidence_hash=_GRANT_HASH,
+        transcript_evidence_hash=_GRANT_HASH,
         reviewer_id="reviewer_001",
         issue_iso="2026-01-01T00:00:00Z",
         expiry_iso="2027-01-01T00:00:00Z",
@@ -233,10 +237,10 @@ def test_consent_grant_does_not_carry_biometric_material_into_plan_provenance():
     assert "grant_001" in plan.model_dump_json()
     # The plan's serialized form does NOT carry subject_id, biometric material,
     # or the grant's reference/transcript evidence hashes (only the plan-level
-    # transcript hash is present).
+    # transcript hash _SHA is present, which is distinct from _GRANT_HASH).
     plan_json = plan.model_dump_json()
     assert "subject_001" not in plan_json
-    assert grant.reference_evidence_hash not in plan_json or grant.reference_evidence_hash == _SHA
+    assert _GRANT_HASH not in plan_json
     # The grant itself does carry reference_evidence_hash by design (it is the
     # private ledger artifact, not the durable plan). The grant carries the
     # *policy* on biometric retention but never raw biometric bytes — assert

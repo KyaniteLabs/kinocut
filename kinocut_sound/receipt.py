@@ -21,7 +21,14 @@ from typing import Any, Literal
 
 from pydantic import ConfigDict, Field, field_validator, model_validator
 
-from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, location_violation
+from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, canonical_digest, location_violation
+from kinocut_sound.limits import (
+    MAX_LOUDNESS_LUFS,
+    MAX_LOUDNESS_RANGE_LU,
+    MAX_TRUE_PEAK_DBTP,
+    MIN_LOUDNESS_RANGE_LU,
+    MIN_TIME_SECONDS,
+)
 
 # Revalidate embedded value objects so a payload that bypassed validation
 # (e.g. via ``model_construct``) is fully re-checked at the receipt boundary.
@@ -65,9 +72,9 @@ class OrderedInput(FrozenModel):
 
     asset_id: Sha256
     input_hash: Sha256
-    in_point: float | None = Field(default=None, ge=0.0)
-    out_point: float | None = Field(default=None, ge=0.0)
-    probed_duration: float | None = Field(default=None, ge=0.0)
+    in_point: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
+    out_point: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
+    probed_duration: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
     role: str = Field(min_length=1)
     safe_display_name: str = Field(min_length=1)
 
@@ -118,7 +125,7 @@ class Transformation(FrozenModel):
     operation: str = Field(min_length=1)
     params_hash: Sha256 | None = None
     toolchain_versions: tuple[str, ...] = ()
-    output_duration: float | None = Field(default=None, ge=0.0)
+    output_duration: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
     output_hash: Sha256 | None = None
     warnings: tuple[str, ...] = ()
 
@@ -160,9 +167,9 @@ class LoudnessVerification(FrozenModel):
     model_config = _STRICT
 
     preset: str = Field(min_length=1)
-    integrated_lufs: float = Field(lt=0.0)
-    true_peak_dbtp: float = Field(lt=0.0)
-    lra_lu: float = Field(ge=0.0, le=24.0)
+    integrated_lufs: float = Field(lt=MAX_LOUDNESS_LUFS)
+    true_peak_dbtp: float = Field(lt=MAX_TRUE_PEAK_DBTP)
+    lra_lu: float = Field(ge=MIN_LOUDNESS_RANGE_LU, le=MAX_LOUDNESS_RANGE_LU)
     within_tolerance: bool
 
     @field_validator("preset")
@@ -237,10 +244,9 @@ class SoundReceipt(FrozenModel):
     schema_version: Literal[1] = 1
     operation: str = Field(min_length=1)
     normalized_parameters_hash: Sha256 | None = None
-    normalized_parameters: dict[str, Any] = Field(default_factory=dict)
     inputs: tuple[OrderedInput, ...] = ()
     output_hash: Sha256
-    output_duration: float | None = Field(default=None, ge=0.0)
+    output_duration: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
     warnings: tuple[str, ...] = ()
     sound: SoundReceiptSection
 
@@ -263,8 +269,17 @@ class SoundReceipt(FrozenModel):
 
     @classmethod
     def from_legacy(cls, legacy: dict[str, Any], section: SoundReceiptSection) -> SoundReceipt:
-        """Build a :class:`SoundReceipt` from a legacy v1 dict plus the sound section."""
+        """Build a :class:`SoundReceipt` from a legacy v1 dict plus the sound section.
+
+        Privacy-safe: the legacy ``normalized_parameters`` dict is canonical-
+        hashed into ``normalized_parameters_hash`` and the raw values are
+        **never** stored on the receipt. If the legacy dict already carries a
+        ``normalized_parameters_hash``, that explicit hash is preserved.
+        """
 
         payload = dict(legacy)
+        raw_params = payload.pop("normalized_parameters", None)
+        if raw_params is not None and "normalized_parameters_hash" not in payload:
+            payload["normalized_parameters_hash"] = canonical_digest(raw_params)
         payload["sound"] = section
         return cls.model_validate(payload)

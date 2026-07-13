@@ -22,9 +22,11 @@ from kinocut_sound._canonical import (
     BoundedCode,
     FrozenModel,
     RecordBase,
+    Sha256,
     canonical_record_id,
 )
 from kinocut_sound.delivery import DeliveryPolicy
+from kinocut_sound.limits import MIN_VERSION
 from kinocut_sound.format import AudioFormat
 from kinocut_sound.lines import Line
 from kinocut_sound.routing import Routing
@@ -35,31 +37,18 @@ from kinocut_sound.timeline import Timeline
 _STRICT_EMBED = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False, revalidate_instances="always")
 
 
-def _is_sha256(value: str) -> bool:
-    """True when ``value`` is a ``sha256:<64 hex>`` digest."""
-
-    return value.startswith("sha256:") and len(value) == len("sha256:") + 64
-
-
 class AssetLicenseRef(FrozenModel):
     """A typed license reference: bounded id + licensed asset hash."""
 
     model_config = _STRICT_EMBED
 
     license_id: str = Field(min_length=1)
-    asset_hash: str = Field(min_length=1)
+    asset_hash: Sha256
 
     @field_validator("license_id")
     @classmethod
     def _license_bounded(cls, value: str) -> str:
         return BoundedCode(value)
-
-    @field_validator("asset_hash")
-    @classmethod
-    def _asset_hash_is_sha(cls, value: str) -> str:
-        if not _is_sha256(value):
-            raise ValueError("asset_hash must be a sha256 digest")
-        return value
 
 
 class ProcessingPresetRef(FrozenModel):
@@ -68,19 +57,12 @@ class ProcessingPresetRef(FrozenModel):
     model_config = _STRICT_EMBED
 
     preset_id: str = Field(min_length=1)
-    preset_hash: str = Field(min_length=1)
+    preset_hash: Sha256
 
     @field_validator("preset_id")
     @classmethod
     def _preset_bounded(cls, value: str) -> str:
         return BoundedCode(value)
-
-    @field_validator("preset_hash")
-    @classmethod
-    def _preset_hash_is_sha(cls, value: str) -> str:
-        if not _is_sha256(value):
-            raise ValueError("preset_hash must be a sha256 digest")
-        return value
 
 
 class ModelRef(FrozenModel):
@@ -89,20 +71,13 @@ class ModelRef(FrozenModel):
     model_config = _STRICT_EMBED
 
     model_id: str = Field(min_length=1)
-    model_hash: str = Field(min_length=1)
-    model_version: int = Field(ge=1)
+    model_hash: Sha256
+    model_version: int = Field(ge=MIN_VERSION)
 
     @field_validator("model_id")
     @classmethod
     def _model_bounded(cls, value: str) -> str:
         return BoundedCode(value)
-
-    @field_validator("model_hash")
-    @classmethod
-    def _model_hash_is_sha(cls, value: str) -> str:
-        if not _is_sha256(value):
-            raise ValueError("model_hash must be a sha256 digest")
-        return value
 
     @field_validator("model_version", mode="before")
     @classmethod
@@ -126,8 +101,8 @@ class PlanProvenance(FrozenModel):
     asset_license_refs: tuple[AssetLicenseRef, ...] = ()
     processing_preset_refs: tuple[ProcessingPresetRef, ...] = ()
     model_refs: tuple[ModelRef, ...] = ()
-    prompt_hashes: tuple[str, ...] = ()
-    transcript_hashes: tuple[str, ...] = ()
+    prompt_hashes: tuple[Sha256, ...] = ()
+    transcript_hashes: tuple[Sha256, ...] = ()
 
     @field_validator("consent_grant_refs")
     @classmethod
@@ -140,10 +115,7 @@ class PlanProvenance(FrozenModel):
 
     @field_validator("prompt_hashes", "transcript_hashes")
     @classmethod
-    def _hash_lists_are_sha(cls, value: tuple[str, ...]) -> tuple[str, ...]:
-        for code in value:
-            if not _is_sha256(code):
-                raise ValueError("hashes must be sha256 digests")
+    def _hash_lists_unique(cls, value: tuple[str, ...]) -> tuple[str, ...]:
         if len(set(value)) != len(value):
             raise ValueError("hashes must be unique")
         return value

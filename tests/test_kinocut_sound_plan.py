@@ -16,7 +16,7 @@ from kinocut_sound.consent import ConsentState
 from kinocut_sound.delivery import DeliveryPolicy
 from kinocut_sound.format import AudioFormat, ChannelLayout, ConversionPolicy, DitherPolicy, SampleFormat, TimeBase
 from kinocut_sound.lines import Emotion, Line, ProfileRef, Prosody
-from kinocut_sound.routing import Bus, LatencyCompensation, Routing, Track
+from kinocut_sound.routing import Bus, LatencyCompensation, PanLaw, Routing, Track
 from kinocut_sound.sound_plan import (
     AssetLicenseRef,
     PlanProvenance,
@@ -47,7 +47,7 @@ def _routing() -> Routing:
                 track_id="track_dialog_001",
                 destination_bus_id="bus_dialog",
                 gain_db=0.0,
-                pan_law=__import__("kinocut_sound.routing", fromlist=["PanLaw"]).PanLaw.LINEAR,
+                pan_law=PanLaw.LINEAR,
                 muted=False,
                 soloed=False,
             ),
@@ -185,3 +185,39 @@ def test_sound_plan_serialization_excludes_subject_pii():
     plan = _plan()
     assert "subject_id" not in plan.model_dump_json()
     assert ConsentState.LIVE.value == "live"
+
+
+# Hostile non-hex tests: the old _is_sha256 only checked prefix + length,
+# accepting ``sha256:`` + 64 non-hex chars. The canonical Sha256 type enforces
+# strict lowercase-hex.
+_NON_HEX = "sha256:" + "z" * 64  # 'z' is not a hex digit
+_UPPER_HEX = "sha256:" + "A" * 64  # uppercase rejected (canonical = lowercase)
+_BAD_PREFIX = "sha384:" + "0" * 64  # wrong algorithm prefix
+
+
+def test_asset_license_ref_rejects_non_hex_hash():
+    for bad in (_NON_HEX, _UPPER_HEX, _BAD_PREFIX):
+        with pytest.raises(ValidationError):
+            AssetLicenseRef(license_id="cc_by_4.0", asset_hash=bad)
+
+
+def test_processing_preset_ref_rejects_non_hex_hash():
+    for bad in (_NON_HEX, _UPPER_HEX, _BAD_PREFIX):
+        with pytest.raises(ValidationError):
+            ProcessingPresetRef(preset_id="denoise_v1", preset_hash=bad)
+
+
+def test_model_ref_rejects_non_hex_hash():
+    from kinocut_sound.sound_plan import ModelRef
+
+    for bad in (_NON_HEX, _UPPER_HEX, _BAD_PREFIX):
+        with pytest.raises(ValidationError):
+            ModelRef(model_id="voice_a", model_hash=bad, model_version=1)
+
+
+def test_plan_provenance_rejects_non_hex_prompt_and_transcript_hashes():
+    for bad in (_NON_HEX, _UPPER_HEX, _BAD_PREFIX):
+        with pytest.raises(ValidationError):
+            PlanProvenance(prompt_hashes=(bad,))
+        with pytest.raises(ValidationError):
+            PlanProvenance(transcript_hashes=(bad,))

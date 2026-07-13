@@ -15,6 +15,7 @@ from enum import StrEnum
 from pydantic import Field, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel
+from kinocut_sound.limits import MIN_SAMPLE_RATE_HZ
 
 
 class ChannelLayout(StrEnum):
@@ -94,7 +95,7 @@ class AudioFormat(FrozenModel):
     """One typed audio format binding for an input, bus, stem, or master."""
 
     channel_layout: ChannelLayout
-    sample_rate_hz: int = Field(gt=0)
+    sample_rate_hz: int = Field(gt=MIN_SAMPLE_RATE_HZ)
     sample_format: SampleFormat
     time_base: TimeBase
     conversion: ConversionPolicy

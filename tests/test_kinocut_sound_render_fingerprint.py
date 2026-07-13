@@ -13,12 +13,12 @@ import pytest
 from pydantic import ValidationError
 
 from kinocut_sound.render_fingerprint import (
-    DETERMINISM_CLASSES,
     DeterminismClass,
     FingerprintComponent,
     RenderFingerprint,
     ToolchainVersion,
 )
+from kinocut_sound.validation import DETERMINISM_CLASSES
 
 
 _SHA = "sha256:" + "0" * 64

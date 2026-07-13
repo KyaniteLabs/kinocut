@@ -143,7 +143,7 @@ def test_sound_receipt_wraps_legacy_v1_and_attaches_additive_sound_section():
     legacy = {
         "schema_version": 1,
         "operation": "video_edit",
-        "normalized_parameters": {},
+        "normalized_parameters": {"preset": "standard"},
         "inputs": [],
         "output_hash": _SHA,
         "warnings": [],
@@ -164,8 +164,18 @@ def test_sound_receipt_wraps_legacy_v1_and_attaches_additive_sound_section():
     assert receipt.sound.plan_hash == _SHA
     serialized = receipt.model_dump_json()
     assert "sound" in serialized
-    # The legacy keys are preserved unchanged.
-    assert "normalized_parameters" in serialized
+    # The legacy normalized_parameters are canonical-hashed, never stored raw.
+    # ``normalized_parameters`` (the raw dict key) must NOT be a key in the
+    # serialized form — only ``normalized_parameters_hash`` appears.
+    import json as _json
+
+    payload = _json.loads(serialized)
+    assert "normalized_parameters" not in payload
+    assert "normalized_parameters_hash" in payload
+    assert receipt.normalized_parameters_hash is not None
+    assert receipt.normalized_parameters_hash.startswith("sha256:")
+    # The raw value must not leak through serialization.
+    assert "standard" not in serialized
 
 
 def test_sound_receipt_rejects_unbounded_operation_and_legacy_path_leakage():
@@ -173,7 +183,6 @@ def test_sound_receipt_rejects_unbounded_operation_and_legacy_path_leakage():
         SoundReceipt(
             schema_version=1,
             operation="with space",
-            normalized_parameters={},
             inputs=(),
             output_hash=_SHA,
             warnings=(),
@@ -188,3 +197,140 @@ def test_sound_receipt_rejects_unbounded_operation_and_legacy_path_leakage():
                 human_review_required=False,
             ),
         )
+
+
+def test_sound_receipt_rejects_raw_normalized_parameters_field():
+    """The normalized_parameters field must be structurally unrepresentable."""
+    with pytest.raises(ValidationError):
+        SoundReceipt(
+            schema_version=1,
+            operation="video_edit",
+            inputs=(),
+            output_hash=_SHA,
+            warnings=(),
+            sound=SoundReceiptSection(
+                plan_hash=_SHA,
+                profile_versions=(),
+                consent_grant_refs=(),
+                loudness=LoudnessVerification(
+                    preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
+                    lra_lu=7.0, within_tolerance=True,
+                ),
+                human_review_required=False,
+            ),
+            normalized_parameters={"secret": "leaks"},  # type: ignore[call-arg]
+        )
+
+
+def _section() -> SoundReceiptSection:
+    return SoundReceiptSection(
+        plan_hash=_SHA,
+        profile_versions=(),
+        consent_grant_refs=(),
+        loudness=LoudnessVerification(
+            preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
+            lra_lu=7.0, within_tolerance=True,
+        ),
+        human_review_required=False,
+    )
+
+
+def test_from_legacy_does_not_store_raw_normalized_parameters():
+    """from_legacy hashes normalized_parameters; raw values never serialize."""
+    hostile = {
+        "api_key": "sk-1234567890abcdef",
+        "aws_key": "AKIAIOSFODNN7EXAMPLE",
+        "password": "secret123",
+        "host_path": "/etc/passwd",
+        "email": "user@example.com",
+        "subject_pii": "subject_001",
+        "raw_prompt": "clone this voice",
+    }
+    legacy = {
+        "schema_version": 1,
+        "operation": "episode_render",
+        "normalized_parameters": hostile,
+        "inputs": [],
+        "output_hash": _SHA,
+        "warnings": [],
+    }
+    receipt = SoundReceipt.from_legacy(legacy, _section())
+    serialized = receipt.model_dump_json()
+    # None of the hostile content may appear in the serialized receipt.
+    for forbidden in hostile.values():
+        assert str(forbidden) not in serialized
+    # Keys from the raw dict must not appear either.
+    for key in hostile:
+        assert key not in serialized
+    # The raw field name must not be a key in the serialized JSON (the hash
+    # field name ``normalized_parameters_hash`` is the only ``normalized_*``
+    # key present).
+    import json as _json
+
+    payload = _json.loads(serialized)
+    assert "normalized_parameters" not in payload
+    # The hash is present instead.
+    assert receipt.normalized_parameters_hash is not None
+    assert receipt.normalized_parameters_hash.startswith("sha256:")
+
+
+def test_from_legacy_recursively_hashes_nested_pii_without_storing_raw():
+    """Deeply nested PII inside normalized_parameters must not leak."""
+    hostile = {
+        "config": {
+            "nested": {
+                "deep_path": "/home/user/secret.key",
+                "credential": "password123",
+                "email": "admin@corp.com",
+            }
+        }
+    }
+    legacy = {
+        "schema_version": 1,
+        "operation": "episode_render",
+        "normalized_parameters": hostile,
+        "inputs": [],
+        "output_hash": _SHA,
+        "warnings": [],
+    }
+    receipt = SoundReceipt.from_legacy(legacy, _section())
+    serialized = receipt.model_dump_json()
+    assert "/home/user/secret.key" not in serialized
+    assert "password123" not in serialized
+    assert "admin@corp.com" not in serialized
+    assert "credential" not in serialized
+    assert "config" not in serialized
+    import json as _json
+
+    payload = _json.loads(serialized)
+    assert "normalized_parameters" not in payload
+
+
+def test_from_legacy_preserves_explicit_hash_over_raw_parameters():
+    """If legacy already carries normalized_parameters_hash, it wins."""
+    legacy = {
+        "schema_version": 1,
+        "operation": "episode_render",
+        "normalized_parameters": {"secret": "data"},
+        "normalized_parameters_hash": _SHA,
+        "inputs": [],
+        "output_hash": _SHA,
+        "warnings": [],
+    }
+    receipt = SoundReceipt.from_legacy(legacy, _section())
+    assert receipt.normalized_parameters_hash == _SHA
+    serialized = receipt.model_dump_json()
+    assert "secret" not in serialized
+
+
+def test_from_legacy_without_parameters_leaves_hash_unset():
+    """A legacy receipt without normalized_parameters leaves hash as None."""
+    legacy = {
+        "schema_version": 1,
+        "operation": "video_edit",
+        "inputs": [],
+        "output_hash": _SHA,
+        "warnings": [],
+    }
+    receipt = SoundReceipt.from_legacy(legacy, _section())
+    assert receipt.normalized_parameters_hash is None

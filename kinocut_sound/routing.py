@@ -20,10 +20,27 @@ from enum import StrEnum
 from pydantic import Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel
-
-# Latency compensation residual ceiling (design §"RenderFingerprint & numeric
-# mix policy"): at most one sample of residual latency after compensation.
-MAX_LATENCY_RESIDUAL_SAMPLES = 1
+from kinocut_sound.defaults import (
+    DEFAULT_BUS_GAIN_DB,
+    DEFAULT_LATENCY_RESIDUAL_SAMPLES,
+    DEFAULT_PAN_POSITION,
+    DEFAULT_SEND_GAIN_DB,
+)
+from kinocut_sound.limits import (
+    MAX_DUCKING_ATTACK_MS,
+    MAX_DUCKING_ATTENUATION_DB,
+    MAX_DUCKING_RECOVERY_MS,
+    MAX_DUCKING_RELEASE_MS,
+    MAX_GAIN_DB,
+    MAX_LATENCY_RESIDUAL_SAMPLES,
+    MAX_PAN_POSITION,
+    MIN_DUCKING_ATTENUATION_DB,
+    MIN_DUCKING_TIME_MS,
+    MIN_GAIN_DB,
+    MIN_LATENCY_RESIDUAL_SAMPLES,
+    MIN_PAN_POSITION,
+    MIN_TIME_SECONDS,
+)
 
 
 class PanLaw(StrEnum):
@@ -39,9 +56,9 @@ class Track(FrozenModel):
 
     track_id: str = Field(min_length=1)
     destination_bus_id: str = Field(min_length=1)
-    gain_db: float = Field(ge=-120.0, le=12.0)
+    gain_db: float = Field(ge=MIN_GAIN_DB, le=MAX_GAIN_DB)
     pan_law: PanLaw
-    pan_position: float = Field(default=0.0, ge=-1.0, le=1.0)
+    pan_position: float = Field(default=DEFAULT_PAN_POSITION, ge=MIN_PAN_POSITION, le=MAX_PAN_POSITION)
     muted: bool
     soloed: bool
 
@@ -63,7 +80,7 @@ class Bus(FrozenModel):
 
     bus_id: str = Field(min_length=1)
     kind: str = Field(min_length=1)
-    gain_db: float = Field(default=0.0, ge=-120.0, le=12.0)
+    gain_db: float = Field(default=DEFAULT_BUS_GAIN_DB, ge=MIN_GAIN_DB, le=MAX_GAIN_DB)
     pan_law: PanLaw = PanLaw.LINEAR
 
     @field_validator("bus_id", "kind")
@@ -85,7 +102,7 @@ class SendReturn(FrozenModel):
     send_id: str = Field(min_length=1)
     source_bus_id: str = Field(min_length=1)
     destination_bus_id: str = Field(min_length=1)
-    gain_db: float = Field(default=-6.0, ge=-120.0, le=12.0)
+    gain_db: float = Field(default=DEFAULT_SEND_GAIN_DB, ge=MIN_GAIN_DB, le=MAX_GAIN_DB)
     post_fader: bool = True
 
     @field_validator("send_id", "source_bus_id", "destination_bus_id")
@@ -112,10 +129,10 @@ class DuckingSidechain(FrozenModel):
 
     source_bus_id: str = Field(min_length=1)
     target_bus_id: str = Field(min_length=1)
-    attenuation_db: float = Field(gt=0.0, le=24.0)
-    attack_ms: float = Field(gt=0.0, le=1000.0)
-    release_ms: float = Field(gt=0.0, le=5000.0)
-    recovery_ms: float = Field(gt=0.0, le=10000.0)
+    attenuation_db: float = Field(gt=MIN_DUCKING_ATTENUATION_DB, le=MAX_DUCKING_ATTENUATION_DB)
+    attack_ms: float = Field(gt=MIN_DUCKING_TIME_MS, le=MAX_DUCKING_ATTACK_MS)
+    release_ms: float = Field(gt=MIN_DUCKING_TIME_MS, le=MAX_DUCKING_RELEASE_MS)
+    recovery_ms: float = Field(gt=MIN_DUCKING_TIME_MS, le=MAX_DUCKING_RECOVERY_MS)
 
     @field_validator("source_bus_id", "target_bus_id")
     @classmethod
@@ -141,7 +158,7 @@ class DuckingSidechain(FrozenModel):
 class AutomationPoint(FrozenModel):
     """One sample-accurate automation point: time + parameter value."""
 
-    time_seconds: float = Field(ge=0.0)
+    time_seconds: float = Field(ge=MIN_TIME_SECONDS)
     value: float
 
     @field_validator("time_seconds", "value")
@@ -178,7 +195,7 @@ class LatencyCompensation(FrozenModel):
     """The latency compensation policy and measured residual."""
 
     policy: str
-    residual_samples: int = Field(default=0, ge=0, le=MAX_LATENCY_RESIDUAL_SAMPLES)
+    residual_samples: int = Field(default=DEFAULT_LATENCY_RESIDUAL_SAMPLES, ge=MIN_LATENCY_RESIDUAL_SAMPLES, le=MAX_LATENCY_RESIDUAL_SAMPLES)
 
     @field_validator("policy")
     @classmethod

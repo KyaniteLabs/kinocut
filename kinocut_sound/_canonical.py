@@ -21,38 +21,25 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 from pydantic_core import PydanticSerializationError
 
 from kinocut_sound._errors import INVALID_RECORD, contract_error
+from kinocut_sound.validation import (
+    CODE_RE,
+    CREATED_BY_PATTERN,
+    INFORMATIONAL_FIELDS,
+    RECORD_KIND_PATTERN,
+    SCHEME_RE,
+    SHA256_PATTERN,
+)
 
 # A lowercase-hex sha256 digest carrying its algorithm prefix.
-_SHA256_PATTERN = r"^sha256:[0-9a-f]{64}$"
-Sha256 = Annotated[str, Field(pattern=_SHA256_PATTERN)]
+Sha256 = Annotated[str, Field(pattern=SHA256_PATTERN)]
 
-# ``created_by`` is a bounded actor role, optionally qualified by a short id.
-_CREATED_BY_PATTERN = r"^(human|agent|tool)(:[a-z0-9][a-z0-9_.-]{0,63})?$"
-
-# ``record_kind`` is a bounded lowercase identifier safe for filename use.
-_RECORD_KIND_PATTERN = r"^[a-z][a-z0-9_]{0,63}$"
-
-# Bounded code: letter start, then alnum / underscore / dot / colon / hyphen,
-# up to 64 chars. No spaces, slashes, or control characters — prose, paths,
-# URLs, and shell metacharacters simply cannot match. A leading digit would
-# collide with numeric values, so codes must start with a letter.
-_CODE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_.:-]{0,63}$")
-
-# A leading ``scheme:`` (http, file, data, ...) or a Windows drive letter.
-_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.\-]*:")
-
-# Fields excluded from the canonical record id by default: informational only.
-# This set may never contain a semantic field; excluding one would let two
-# logically distinct records collide on the same id.
-_INFORMATIONAL_FIELDS = frozenset({"created_at"})
-_DEFAULT_EXCLUDE = _INFORMATIONAL_FIELDS
+_DEFAULT_EXCLUDE = INFORMATIONAL_FIELDS
 
 
 class FrozenModel(BaseModel):
@@ -73,11 +60,11 @@ class RecordBase(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
     schema_version: Literal[1] = 1
-    record_kind: str = Field(pattern=_RECORD_KIND_PATTERN)
+    record_kind: str = Field(pattern=RECORD_KIND_PATTERN)
     record_id: Sha256 | None = None
     project_id: str = Field(min_length=1)
     created_at: str | None = None
-    created_by: str = Field(pattern=_CREATED_BY_PATTERN)
+    created_by: str = Field(pattern=CREATED_BY_PATTERN)
     supersedes: Sha256 | None = None
     source_record_ids: tuple[Sha256, ...] = ()
 
@@ -106,7 +93,7 @@ def BoundedCode(value: str) -> str:
     ``BeforeValidator`` or called directly from a contract module.
     """
 
-    if not _CODE_RE.match(value):
+    if not CODE_RE.match(value):
         raise ValueError("value must be a bounded code (no spaces, paths, URLs, or prose)")
     return value
 
@@ -123,7 +110,7 @@ def location_violation(value: str) -> str | None:
         return "location must not be empty"
     if any(ord(char) < 0x20 for char in value):
         return "location must not contain control characters"
-    if "://" in value or _SCHEME_RE.match(value):
+    if "://" in value or SCHEME_RE.match(value):
         return "location must not be a URL or scheme"
     if value.startswith(("/", "~", "\\")):
         return "location must be project-relative, not absolute"
@@ -171,7 +158,7 @@ def canonical_record_id(
 
     if not isinstance(model, RecordBase):
         raise TypeError("canonical_record_id requires a RecordBase instance")
-    if not frozenset(exclude) <= _INFORMATIONAL_FIELDS:
+    if not frozenset(exclude) <= INFORMATIONAL_FIELDS:
         raise ValueError("exclude may only contain informational fields")
     try:
         payload = model.model_dump(

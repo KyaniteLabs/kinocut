@@ -15,20 +15,12 @@ from __future__ import annotations
 
 import hashlib
 import json
-import re
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
-
-# Closed set of determinism classes. A stage declares exactly one.
-DETERMINISM_CLASSES: frozenset[str] = frozenset(
-    {"byte_deterministic", "signal_equivalent", "non_reproducible"}
-)
-
-# Locale is a bounded UN/LIBC-style identifier (e.g. ``en_US``, ``es_ES.UTF-8``).
-_LOCALE_RE = re.compile(r"^[A-Za-z][A-Za-z0-9_.@+=-]{0,63}$")
+from kinocut_sound.validation import LOCALE_RE
 
 
 class DeterminismClass(StrEnum):
@@ -84,7 +76,7 @@ class RenderFingerprint(FrozenModel):
     @field_validator("locale")
     @classmethod
     def _locale_bounded(cls, value: str) -> str:
-        if not _LOCALE_RE.match(value):
+        if not LOCALE_RE.match(value):
             raise ValueError("locale must be a bounded identifier (no spaces or paths)")
         return value
 
