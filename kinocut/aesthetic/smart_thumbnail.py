@@ -51,7 +51,7 @@ def _select_best_with_nima(
 ) -> float | None:
     """Run NIMA selection. Returns the best timestamp, or None if unavailable."""
     try:
-        from mcp_video.aesthetic import NimaScorer, is_available
+        from kinocut.aesthetic import NimaScorer, is_available
     except ImportError:
         logger.debug("NIMA module not importable")
         return None

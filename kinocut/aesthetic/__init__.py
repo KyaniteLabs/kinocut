@@ -6,7 +6,7 @@ a VGG16 model trained on 250K human-rated photos (AVA dataset).
 Direct Python import — no HTTP bridge needed. The model loads once as a singleton.
 
 Usage:
-    from mcp_video.aesthetic import NimaScorer
+    from kinocut.aesthetic import NimaScorer
 
     scorer = NimaScorer.get()
     score = scorer.score_frame("thumb.jpg")       # → 6.28 (1-10 scale)
