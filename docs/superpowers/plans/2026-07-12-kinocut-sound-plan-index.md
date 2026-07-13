@@ -45,7 +45,11 @@ the public Kinocut adapter is a serialized controller-owned join.
 Current critical path:
 
 ```text
-S3 registry/config/provider policy/cache -> S5 base voice -> S6/S9/S10 -> S11 -> S12/S13 -> S14 -> S15
+S3 -> (S5 base voice || S7 post/spatial || S8 ambience)
+S5 -> (S6 cloning/blending || S10 voice consistency)
+(S5 + S7 + S8) -> S9 assembly/mix/stems
+(S4 + S7 + S9) -> S11 QA/metadata
+(implemented S4-S11) -> S12 public parity -> S13 host joins -> S14 benchmark -> S15 acceptance
 ```
 
 S7 can begin after S3. S8 can begin after S3 because S2 and S4 are complete.
