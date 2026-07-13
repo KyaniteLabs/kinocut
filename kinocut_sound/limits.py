@@ -67,6 +67,13 @@ MAX_SCRIPT_BEATS_PER_SCENE: int = 2048
 MAX_SCRIPT_TURNS_PER_SCENE: int = 4096
 MAX_SCRIPT_EVENTS_PER_SCENE: int = 4096
 MAX_SCRIPT_TEXT_LENGTH_CHARS: int = 20_000
+MAX_SCRIPT_NAME_LENGTH_CHARS: int = 256
+
+# --- Pure episode-assembly input ceilings ---
+MAX_ASSEMBLY_CLIPS: int = 4096
+MAX_ASSEMBLY_FOLEY_INTENTS: int = 4096
+MAX_ASSEMBLY_SILENCE_INTENTS: int = 4096
+MAX_ASSEMBLY_TIMELINE_CUES: int = 16_384
 
 # --- Resource floors ---
 MIN_RETENTION_DAYS: int = 0              # ge: non-negative retention
