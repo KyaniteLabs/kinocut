@@ -2,7 +2,7 @@
 
 **Status:** decision-complete repo-native manifest; audit only — no implementation, push, merge, tag, publish, deploy, or release authorized by this document.
 
-**Audit base:** `c0032d8` on `codex/niko-plan-audit` (this branch).
+**Audit base:** `c0032d8` on `codex/niko-plan-audit`.
 
 **Source documents used (public):**
 - `AGENTS.md`
@@ -21,39 +21,39 @@
 - `docs/DIRECTORY_REBRAND_STATUS.md`, `docs/MCPB.md`, `docs/MCPB_SUPPLY_CHAIN.md`, `docs/C2PA_PROVENANCE.md`
 - Public Forgejo issue trackers (#54, #55, #85, #88, #90, #126) and merged PRs (#118–#127) as referenced from the above repo docs.
 
-**Audit method:** every claimed capability was checked against the source/test tree at `c0032d8` before being marked closed. Items marked open cite the exact file/function gap. The three current PR blockers were verified by reading `kinocut/aivideo/salvage.py`, `kinocut/aivideo/protection.py`, `kinocut/engine_body_swap.py`, and the focused tests.
+**Audit method:** every claimed capability was checked against the source/test tree at `c0032d8` before being marked closed. Items marked open cite the exact file/function gap. The three G006 blockers were verified by reading `kinocut/aivideo/salvage.py`, `kinocut/aivideo/protection.py`, `kinocut/engine_body_swap.py`, and the focused tests. They are now closed on `codex/niko-close-open-loops` at reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`).
 
 **Release stop:** non-negotiable. This manifest authorizes no version bump, tag, package upload, registry submission, deployment, release creation, or announcement. It records the open-loop inventory and the order in which the controller should close it.
 
 ## 1. The three current PR blockers (G006)
 
-The draft PR status (`docs/status/2026-07-12-wishlist-draft-pr-status.md`) and the verification receipt (`docs/proofs/wishlist-draft/VERIFICATION_RECEIPT.md`) record three evidence-integrity blockers on the Wave 3 tip. The latest code/security review verdict is REQUEST CHANGES; no merge or release is authorized.
+The draft PR status (`docs/status/2026-07-12-wishlist-draft-pr-status.md`) and the verification receipt (`docs/proofs/wishlist-draft/VERIFICATION_RECEIPT.md`) record the G006 closeout on the Wave 3 tip. The architecture review is APPROVE (279 focused pass); the security review is CLEAR (102 + 57 focused pass). The whole repository suite passed on the reviewed implementation tip: 3088 passed, 18 skipped, 8 warnings, 552.04s. This is a merge-ready bounded checkpoint; no release, tag, package, deploy, or announcement is authorized.
 
 ### 1.1 Persisted mutation fingerprint and authorization references are absent from salvage lineage
 
 - **Status at audit base (`c0032d8`):** open.
-- **Status at this manifest update:** closed by this commit on `codex/niko-salvage-lineage` (tip recorded in §1.4 below). The manifest schema is bumped to v2; `mutation_fingerprint(intent)` and `authorization_decision_ids` are persisted in `kinocut/aivideo/salvage_lineage.py::manifest_payload`. `_read_prior_derivative` recomputes the same descriptor/audio-bound intent via `_mutation_intent` + `_salvage_audio_fingerprint` and rejects any persisted manifest whose recomputed fingerprint differs from the stored value, whose authorization refs are missing/stale/superseded/not human-bound to that fingerprint, or where a protected lock now requires fresh approval (`assert_no_protected_collision` is re-run on replay). Schema-v1 backward behavior is explicit: v1 manifests are accepted on read but treated as unauthenticated, so they cannot bypass current authorization. Hostile tests cover fingerprint tamper, authorization-ref tamper, stale/superseded auth replay, protected-state changes after render, v1 idempotent replay, v1 plus new lock, and successful idempotent v2 replay through a protected lock. Privacy: authorization IDs are record IDs (already `sha256:` digests); no host paths, prose, or credentials enter the manifest. The fresh independent review and the full combined gate (§7) are **not** claimed by this update.
+- **Status at this manifest update:** closed by `345c2dc fix(aivideo): persist salvage mutation_fingerprint and authorization refs` on `codex/niko-close-open-loops`. The manifest schema is bumped to v2; `mutation_fingerprint(intent)` and `authorization_decision_ids` are persisted in `kinocut/aivideo/salvage_lineage.py::manifest_payload`. `_read_prior_derivative` recomputes the same descriptor/audio-bound intent via `_mutation_intent` + `_salvage_audio_fingerprint` and rejects any persisted manifest whose recomputed fingerprint differs from the stored value, whose authorization refs are missing/stale/superseded/not human-bound to that fingerprint, or where a protected lock now requires fresh approval (`assert_no_protected_collision` is re-run on replay). Schema-v1 backward behavior is explicit: v1 manifests are accepted on read but treated as unauthenticated, so they cannot bypass current authorization. Hostile tests cover fingerprint tamper, authorization-ref tamper, stale/superseded auth replay, protected-state changes after render, v1 idempotent replay, v1 plus new lock, and successful idempotent v2 replay through a protected lock. Privacy: authorization IDs are record IDs (already `sha256:` digests); no host paths, prose, or credentials enter the manifest. The `target_ref` binding gap in the replay resolver was subsequently closed by `7d16d52 fix(aivideo): unify salvage authorization resolver with protection gate`, which exposes a single `protection.active_human_approval_bound_to` consumed by both `_authorized` and salvage-lineage replay verification.
 - **Original gap (for reference).** `kinocut/aivideo/salvage.py::create_salvage_derivative` built a `MutationIntent` via `_mutation_intent(...)` and passed it to `assert_no_protected_collision`, but the exact `mutation_fingerprint(intent)` and the claimed `authorization_decision_ids` were not written into the persisted salvage-lineage manifest, and `_read_prior_derivative` re-derived intent from `policy_hash` only.
 - **Owner.** Wave 3 salvage owner (`kinocut/aivideo/salvage.py`, `kinocut/aivideo/salvage_lineage.py`).
 
 ### 1.2 `trim_audio` body-swap proof does not bind to the declared trim of the approved source
 
 - **Status at audit base (`c0032d8`):** open.
-- **Status at this manifest update:** closed by `aed4245 fix(aivideo): prove approved-source trim_audio prefix` on this branch. `_declared_trim_proof` verifies the output audio packet sequence is a bounded prefix of the approved source within tolerance; the `trim_audio` verdict is `approved_audio_trimmed`; hostile tests cover equal-length substitution, volume-scaled re-encode, descriptor-backed hostile render, and faithful `-c:a copy -t cut`.
+- **Status at this manifest update:** closed by `c80c579 fix(aivideo): prove approved-source trim_audio prefix` on `codex/niko-close-open-loops`. `_declared_trim_proof` verifies the output audio packet sequence is a bounded prefix of the approved source within tolerance; the `trim_audio` verdict is `approved_audio_trimmed`; hostile tests cover equal-length substitution, volume-scaled re-encode, descriptor-backed hostile render, and faithful `-c:a copy -t cut`.
 - **Original gap (for reference).** `_proof` compared source and output `_audio_fingerprint` values and accepted any "changed" verdict, so unrelated audio of the correct length could pass the `trim_audio` path.
 - **Owner.** Wave 3 body-swap owner (`kinocut/engine_body_swap.py`).
 
 ### 1.3 Independent origin proofs for region-crop and still-frame salvage are missing (freeze prefix, freeze tail, clean-edges, and background are closed)
 
 - **Status at audit base (`c0032d8`):** open (region-crop origin and still-frame origin); the freeze prefix check was also missing (only the tail and extension were bound).
-- **Status at this manifest update:** closed by `e885d9f fix(aivideo): bind entire salvage frame range to descriptor` on this branch. `_region_crop_origin_check` independently re-renders the declared crop and compares every frame hash; `_still_frame_origin_check` re-extracts the declared timestamp in a common rgb24 space and compares pixels; `_freeze_checks` now compares every pre-transition, transition, and extension frame against the source hash stream (the prefix loop was the missing piece at audit base). `_background_origin_check` keeps the existing FFV1-backed comparison. Hostile tests cover wrong-offset region crop, synthetic still, and prefix-frame forgery.
+- **Status at this manifest update:** closed by `a3b51fc fix(aivideo): bind entire salvage frame range to descriptor` on `codex/niko-close-open-loops`. `_region_crop_origin_check` independently re-renders the declared crop and compares every frame hash; `_still_frame_origin_check` re-extracts the declared timestamp in a common rgb24 space and compares pixels; `_freeze_checks` now compares every pre-transition, transition, and extension frame against the source hash stream (the prefix loop was the missing piece at audit base). `BACKGROUND_ONLY` uses the existing 3-frame `_crop_origin_check` (start/mid/end timestamps), not a separate FFV1-backed comparison. This is noted as a defense-in-depth limitation — only three representative frames are verified, not every frame — without reopening the scoped G006 blocker. Hostile tests cover wrong-offset region crop, synthetic still, and prefix-frame forgery.
 - **Already closed before this wave (do not redo):**
-  - **clean_edges** — `_clean_edges_origin_check` independently re-selects the source interval and compares frame hashes; `cd1ede6 fix(aivideo): verify clean-edge origin independently` plus `test_clean_edges_rejects_same_duration_from_wrong_source_interval` and `test_clean_edges_rejects_systematic_trim_interval_defect` cover it. `a6171c3 fix(aivideo): keep salvage sources descriptor-bound` and `eccd293 fix(aivideo): bind body-swap authorization policy` plus `8240ba8 test(aivideo): exercise descriptor-bound hostile renders` close the descriptor-bound hostile-render loop.
+  - **clean_edges** — `_clean_edges_origin_check` independently re-selects the source interval and compares frame hashes; `32acd80 fix(aivideo): verify clean-edge origin independently` plus `test_clean_edges_rejects_same_duration_from_wrong_source_interval` and `test_clean_edges_rejects_systematic_trim_interval_defect` cover it. `dbb87e4 fix(aivideo): keep salvage sources descriptor-bound` and `41bc543 fix(aivideo): bind body-swap authorization policy` plus `6fe7995 test(aivideo): exercise descriptor-bound hostile renders` close the descriptor-bound hostile-render loop.
 - **Owner.** Wave 3 salvage owner (`kinocut/aivideo/salvage.py`, `kinocut/aivideo/salvage_checks.py`).
 
 ### 1.4 Wave 3 PR unblock sequence
 
-§1.1, §1.2, and §1.3 are now closed on `codex/niko-salvage-lineage`. The integration order was 1.2 (`aed4245`) → 1.3 (`e885d9f`) → 1.1 (this commit). Each unit landed as one TDD commit on the Wave 3 follow-up branch off `c0032d8`. The controller must still rerun the full gate (§7) on the exact new tip, request a fresh independent security/architecture review, and only then describe the draft PR as merge-ready. This manifest update does **not** claim review completion or a passing combined gate.
+§1.1, §1.2, and §1.3 are closed on `codex/niko-close-open-loops`. The integration order was 1.2 (`c80c579`) → 1.3 (`a3b51fc`) → 1.1 (`345c2dc`) → resolver (`7d16d52`). Each unit landed as one TDD commit on the Wave 3 follow-up branch off `c0032d8`. The whole gate ran on the reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`): architecture APPROVE (279 focused pass), security CLEAR (102 + 57 focused pass), whole suite 3088 passed, 18 skipped, 8 warnings, 552.04s. The import/diff/forbidden/readiness/leak gates are recorded as pass. This is a merge-ready bounded checkpoint; it is not release-ready, publish-ready, or deploy-ready.
 
 ## 2. Closed versus open items (program inventory)
 
@@ -79,8 +79,8 @@ Closed = shipped on `c0032d8` with focused tests. Open = unimplemented, partiall
 | 14 | Frozen/Black/Corrupt Detection | closed | `_black_findings`/`_frozen_findings`/`_corrupt_findings`, `tests/test_inspection_temporal_checks.py` | 01 / PR 2.3 |
 | 15 | Motion Intent Check | closed (optional) | `analyze_optional_visual_findings` returns `provider_not_configured` deterministically; `tests/test_inspection_providers.py` | 01 / PR 2.4 |
 | 16 | Generative Defect Report | closed (optional) | optional visual provider hook + deterministic findings aggregation | 01 / PRs 2.3–2.4 |
-| 17 | Body Swap | closed | `kinocut/engine_body_swap.py::body_swap` ships pad/trim/reject with descriptor-bound `_declared_trim_proof` (`aed4245`); §1.2 trim proof closed | 02 / PR 3.2 |
-| 18 | Salvage Clip | closed | `kinocut/aivideo/salvage.py::create_salvage_derivative` ships 5 recipes with descriptor-bound origin checks (`e885d9f`) and v2 salvage-lineage schema persisting `mutation_fingerprint` + `authorization_decision_ids` (this commit); §1.1 and §1.3 closed | 02 / PR 3.3 |
+| 17 | Body Swap | closed | `kinocut/engine_body_swap.py::body_swap` ships pad/trim/reject with descriptor-bound `_declared_trim_proof` (`c80c579`); §1.2 trim proof closed | 02 / PR 3.2 |
+| 18 | Salvage Clip | closed | `kinocut/aivideo/salvage.py::create_salvage_derivative` ships 5 recipes with descriptor-bound origin checks (`a3b51fc`) and v2 salvage-lineage schema persisting `mutation_fingerprint` + `authorization_decision_ids` (`345c2dc`); §1.1 and §1.3 closed | 02 / PR 3.3 |
 | 19 | Continuity Assistant | open | no adjacent-clip rubric; optional VLM/embedding findings not wired | 03 / PR 7.2 |
 | 20 | Approved Clip Reuse | open | semantic index exists (`kinocut/semantic/index.py`); no verdict/rights-filtered approved-clip registry query | 03 / PR 6.1 |
 | 21 | Protected Timeline Regions | deferred | blocked behind kernel wave (Plan 05 / PR K.1) — contract not implemented | 05 |
@@ -90,7 +90,7 @@ Closed = shipped on `c0032d8` with focused tests. Open = unimplemented, partiall
 | 25 | Voice Style Check | open | no pace/pitch/cadence/silence seam metric | 02 / PR 4.2 |
 | 26 | Voice Identity Check | open | no speaker-embedding provider | 02 / PR 4.2 |
 | 27 | ASR Timestamp Clamp | open | transcription parses segments (`kinocut/ai_engine/transcribe.py`) but no canonical EOF clamp before derived metrics | 01/02 / PRs 1.2, 4.2 |
-| 28 | Audio Preservation Verification | closed | `_audio_evidence`/`_audio_fingerprint` exist (`kinocut/engine_body_swap.py`); `_declared_trim_proof` strengthens the `trim_audio` case (`aed4245`) | 02 / PR 3.2 |
+| 28 | Audio Preservation Verification | closed | `_audio_evidence`/`_audio_fingerprint` exist (`kinocut/engine_body_swap.py`); `_declared_trim_proof` strengthens the `trim_audio` case (`c80c579`) | 02 / PR 3.2 |
 | 29 | Audio Duration Safety | closed | `add_audio(..., duration_policy=...)` (`kinocut/engine_audio_ops.py`, `tests/test_add_audio_duration_policy.py`) | 01 / PR 1.1 |
 | 30 | Audio Seam Report | open | composition over #25–29; no seam report | 02 / PR 4.2 |
 | 31 | ASS Subtitle Support | closed | `kinocut/engine_subtitles.py`, `kinocut/subtitles_common.py`, `tests/test_subtitles_ass_and_dimension.py` | 01 / PR 1.2 |
@@ -100,7 +100,7 @@ Closed = shipped on `c0032d8` with focused tests. Open = unimplemented, partiall
 | 35 | Deterministic Graphics Layer | open | text/overlay/compositor primitives exist; no governed recipe bound to source assets/fonts and receipt hashes | 02 / PR 5.2 |
 | 36 | Clip Index | open | semantic index has stable IDs; no persistent approved-asset `ClipRecord` registry | 03 / PR 6.1 |
 | 37 | Semantic Clip Search | closed | `video_semantic_query`/`kinocut/semantic/index.py` | 03 / PR 6.2 (extend for clips) |
-| 38 | Generation Lineage | partial | `GenerationLineage` contract + salvage lineage (`a6171c3`); cross-reference family graph not built | 03 / PR 6.1 |
+| 38 | Generation Lineage | partial | `GenerationLineage` contract + salvage lineage (`dbb87e4`); cross-reference family graph not built | 03 / PR 6.1 |
 | 39 | Duplicate/Near-Duplicate Detection | open | exact-hash duplicate detection only; no perceptual similarity | 03 / PR 6.2 |
 | 40 | Prompt Outcome Memory | open | `PromptOutcome` contract exists (`kinocut/contracts/learning.py`); no writer/query surface | 03 / PR 6.3 |
 | 41 | Reusable Bed Registry | open | no bed registry schema | 03 / PR 6.1 |
@@ -125,7 +125,7 @@ Closed = shipped on `c0032d8` with focused tests. Open = unimplemented, partiall
 | 60 | Production Cost Ledger | open | `CostEvent` contract exists; no append-only event writer or derived totals | 04 / PR 10.1 |
 | 61 | Acceptance Benchmark | partial | broad golden/real-FFmpeg fixtures exist; no versioned AI-video benchmark corpus | 04 / PR 10.2 |
 
-**Closed:** 24 of 61 (including 2 closed-optional: #15, #16). **Partial:** 11. **Open:** 23. **Deferred (kernel/data):** 3 (#21, #44, #58). Wave 3 trio §1.1/§1.2/§1.3 is closed on `codex/niko-salvage-lineage`; items #8, #17, #18, and #28 move from partial to closed. The fresh independent review and the full combined gate (§7) on the exact tip are still required before any of these items can be described as merge-ready.
+**Closed:** 24 of 61 (including 2 closed-optional: #15, #16). **Partial:** 11. **Open:** 23. **Deferred (kernel/data):** 3 (#21, #44, #58). Wave 3 trio §1.1/§1.2/§1.3 is closed on `codex/niko-close-open-loops`; items #17 and #18 move from partial to closed. The G006 review is complete: architecture APPROVE (279 focused pass), security CLEAR (102 + 57 focused pass), whole suite 3088 passed, 18 skipped, 8 warnings, 552.04s on reviewed tip `7d16d525121f5bf8e9e427798304e89057844051`. This is a merge-ready bounded checkpoint; it is not release-ready, publish-ready, or deploy-ready.
 
 ### 2.2 Sound (`kinocut_sound`) program
 
@@ -159,8 +159,8 @@ The DAG below is the controller-merged projection of `docs/superpowers/plans/202
 Wave 0  ✓ canonical records + private store + receipt/capability contracts  (PRs 0.1, 0.2)
 Wave 1  ✓ field safety (add-audio duration policy, ASS + dimension-aware subtitles)  (PRs 1.1, 1.2)
 Wave 2  ✓ ingest + preflight + temporal inspection + optional visual findings  (PRs 2.1–2.4)
-Wave 3  ◻ verdict + protection + body swap + salvage  (PRs 3.1 ✓, 3.2 partial, 3.3 partial)
-            └─ §1 blockers (mutation/auth persistence, trim proof, region/still origin)
+Wave 3  ✓ verdict + protection + body swap + salvage  (PRs 3.1 ✓, 3.2 ✓, 3.3 ✓) — G006 closed, merge-ready checkpoint
+            └─ §1 blockers (mutation/auth persistence, trim proof, region/still origin) — closed
 Wave 4  ◻ audio continuity (audio-bed, audition, voice style/identity, ASR clamp, seam report)
 Wave 5  ◻ subtitle/graphics QA (safe-area, temporal QA, deterministic graphics)
 Wave 6  ◻ asset intelligence (clip index, semantic/near-duplicate retrieval, prompt outcome, bed registry)
@@ -203,7 +203,7 @@ These are the controller-enforced module boundaries for downstream work. An auth
 
 ## 5. Integration order (controller-enforced)
 
-1. **Wave 3 follow-ups** — close §1.1, §1.2, §1.3 as three TDD commits on a Wave 3 follow-up branch off `c0032d8`. Rerun the full gate (§7) on the new tip. Request fresh independent security/architecture review. Only then advance the draft PR state in `docs/status/2026-07-12-wishlist-draft-pr-status.md` and `docs/proofs/wishlist-draft/VERIFICATION_RECEIPT.md`.
+1. **Wave 3 follow-ups** — §1.1, §1.2, §1.3 are closed on `codex/niko-close-open-loops` (commits `c80c579`, `a3b51fc`, `345c2dc`, `7d16d52`). The full gate ran on the reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`): architecture APPROVE (279 focused pass), security CLEAR (102 + 57 focused pass), whole suite 3088 passed, 18 skipped, 8 warnings, 552.04s. The draft PR status and verification receipt are updated with the closeout evidence. This is a merge-ready bounded checkpoint; it is not release-ready, publish-ready, or deploy-ready.
 2. **Wave 4 audio continuity** — after Wave 3 closes; PRs 4.1 (bed + audition) and 4.2 (voice style/identity + seam report + ASR clamp) can start in parallel once their contracts stabilize.
 3. **Wave 5 subtitle/graphics QA** — PRs 5.1 (safe-area + temporal QA) parallel to 4.1; 5.2 (deterministic graphics) after Wave 0.
 4. **Wave 6 asset intelligence** — PRs 6.1 (registries), 6.2 (semantic + near-duplicate retrieval), 6.3 (prompt outcome memory). 6.2/6.3 parallel after 6.1.
@@ -223,14 +223,14 @@ Every closed and every open item carries the same gate shape:
 3. **Privacy** — receipts/manifests carry project-relative paths and hashes only; raw prompts, host paths, and credentials are structurally unrepresentable; the public leak audit (`scripts/git-professional-audit.sh`, `scripts/repo-readiness-audit.py`, `.github/scripts/check-forbidden-artifacts.py`) is clean.
 4. **Surface parity** — MCP tool, Python client method, and flat CLI command call the same adapter; `tests/test_public_surface.py` pins the expected counts and identities.
 5. **Tests** — focused unit + real-FFmpeg integration; privacy/integrity/hostility cases; idempotency and tamper-fail-closed cases; backward readers for prior receipt/record versions.
-6. **Review** — independent author/reviewer roles; the author does not self-approve; final architecture + security review recorded as WATCH/REQUEST CHANGES/APPROVE with exact tip SHA.
+6. **Review** — independent author/reviewer roles; the author does not self-approve; final architecture + security review recorded as APPROVE/CLEAR with exact tip SHA `7d16d525121f5bf8e9e427798304e89057844051`.
 7. **Receipts** — issue/PR receipts cite exact commit, focused/full test counts, skips/warnings, elapsed time, CI status, compatibility risks, and remaining external gates. The controller replaces task-local receipts with exact-tip receipts before describing a draft as merge-ready.
 
 For the §1 blockers specifically:
 
-- **§1.1 acceptance (closed on `codex/niko-salvage-lineage`):** manifest schema bumped to v2; persisted `mutation_fingerprint` and `authorization_decision_ids`; `kinocut/aivideo/salvage_lineage.py::read_prior_derivative` rejects mismatched or stale-authorization manifests, re-runs `assert_no_protected_collision` on replay, and defines explicit safe v1 backward behavior; hostile tests cover fingerprint tamper, auth-ref tamper, stale/superseded auth replay, new protected lock after render, v1 idempotent replay, v1 + new lock, and successful idempotent v2 replay through a fresh protected lock.
-- **§1.2 acceptance (closed by `aed4245`):** `_declared_trim_proof` verifies output audio is a bounded prefix of the approved source within tolerance; `expected="approved_audio_trimmed"`; hostile-prefix tests for equal-length substitution, volume-scaled re-encode, descriptor-backed hostile render, and faithful copy.
-- **§1.3 acceptance (closed by `e885d9f`):** `_region_crop_origin_check` and `_still_frame_origin_check` ship with hostile tests for same-dimension wrong-region crop and synthetic still substitution; `_freeze_checks` now binds the entire frame range (prefix + transition + extension); existing clean-edges/background checks remain green.
+- **§1.1 acceptance (closed by `345c2dc` on `codex/niko-close-open-loops`):** manifest schema bumped to v2; persisted `mutation_fingerprint` and `authorization_decision_ids`; `kinocut/aivideo/salvage_lineage.py::read_prior_derivative` rejects mismatched or stale-authorization manifests, re-runs `assert_no_protected_collision` on replay, and defines explicit safe v1 backward behavior; hostile tests cover fingerprint tamper, auth-ref tamper, stale/superseded auth replay, new protected lock after render, v1 idempotent replay, v1 + new lock, and successful idempotent v2 replay through a fresh protected lock. The replay resolver `target_ref` binding was subsequently unified with the protection gate by `7d16d52`.
+- **§1.2 acceptance (closed by `c80c579`):** `_declared_trim_proof` verifies output audio is a bounded prefix of the approved source within tolerance; `expected="approved_audio_trimmed"`; hostile-prefix tests for equal-length substitution, volume-scaled re-encode, descriptor-backed hostile render, and faithful copy.
+- **§1.3 acceptance (closed by `a3b51fc`):** `_region_crop_origin_check` and `_still_frame_origin_check` ship with hostile tests for same-dimension wrong-region crop and synthetic still substitution; `_freeze_checks` now binds the entire frame range (prefix + transition + extension); `BACKGROUND_ONLY` uses the existing 3-frame `_crop_origin_check` (start/mid/end), noted as a defense-in-depth limitation without reopening the scoped G006 blocker.
 
 ## 7. Release stop (non-negotiable)
 
@@ -239,7 +239,7 @@ This manifest records open loops and the order to close them. It does **not** au
 - any version bump, git tag, release branch, or CHANGELOG release entry;
 - any package upload, registry submission, or directory submission (including Smithery, Glama, or any new directory);
 - any deployment, release creation, or announcement;
-- any merge of the Wave 3 draft PR until §1 is closed and a fresh independent review is recorded;
+- any merge of the Wave 3 draft PR until the controller confirms the G006 closeout and publishes the final receipt set;
 - any kernel-wave implementation until the human kernel-gate is reconciled;
 - any bypass of the public-surface count tests in `tests/test_public_surface.py`.
 
@@ -247,8 +247,9 @@ After the open items close, the controller must publish a final coverage matrix,
 
 ## 8. Audit unblock checklist (controller)
 
-- [x] Wave 3 follow-up branch off `c0032d8` closes §1.1, §1.2, §1.3 in TDD order (`aed4245`, `e885d9f`, this commit on `codex/niko-salvage-lineage`).
-- [ ] `docs/status/2026-07-12-wishlist-draft-pr-status.md` and `docs/proofs/wishlist-draft/VERIFICATION_RECEIPT.md` updated with the new tip, exact test counts, and the fresh independent review verdict (controller step; not claimed by this commit).
+- [x] Wave 3 follow-up branch off `c0032d8` closes §1.1, §1.2, §1.3 in TDD order (`c80c579`, `a3b51fc`, `345c2dc`, `7d16d52` on `codex/niko-close-open-loops`).
+- [x] `docs/status/2026-07-12-wishlist-draft-pr-status.md` and `docs/proofs/wishlist-draft/VERIFICATION_RECEIPT.md` updated with the reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`), exact test counts, and the review verdicts (architecture APPROVE, security CLEAR).
+- [x] Whole-gate checklist complete on the reviewed implementation tip: 3088 passed, 18 skipped, 8 warnings, 552.04s; architecture 279 focused pass; security 102 + 57 focused pass; body-swap focused 22 (not 24); import/diff/forbidden/readiness/leak gates as recorded.
 - [ ] Public-surface counts in `tests/test_public_surface.py` revisited only when a new Wave lands new commands/tools (none authorized by this manifest).
 - [ ] `docs/superpowers/plans/2026-07-11-kinocut-ai-video-plan-index.md` checkbox progress updated for each closed/open transition.
 - [ ] Sound program has a fresh Epoch estimate per leaf before each foundation/voice/post/assembly/ambience/QA/orchestration/scalability/adapter/benchmark story starts, and an actual-duration receipt after each closes.

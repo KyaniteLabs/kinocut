@@ -2,21 +2,22 @@
 
 **Snapshot date:** 2026-07-12
 
-**Implementation head reviewed for this snapshot:** `c88f8efa21709d5d073ddab6667ffa3def64ee4f`
+**Implementation/security-review tip:** `7d16d525121f5bf8e9e427798304e89057844051`
 
-**Documentation-complete integration head verified:** `7911d1ed10ebbc047356a525d8980b29a7962fa1`
+**Hygiene tip:** `47731e9`
 
-**G006 remediation checkpoint:** `2815314`
+**G006 remediation checkpoint:** `7d16d525121f5bf8e9e427798304e89057844051` (reviewed implementation tip); hygiene closeout `47731e9`
 
-**State:** draft review only; incomplete; not released
+**State:** G006 merge-ready bounded checkpoint; not released
 
 ## Executive summary
 
 The branch contains the contract and project-store foundation, the first field-safety fixes,
-deterministic ingest/inspection, and an initial governed Wave 3 review-and-salvage surface. It is
-ready to be exposed as a **draft, do-not-merge review snapshot**, not as a release candidate.
+deterministic ingest/inspection, and a governed Wave 3 review-and-salvage surface with the G006
+evidence-integrity blockers closed. It is a **merge-ready bounded checkpoint**, not a release
+candidate.
 
-The draft must remain unreleased. It does not authorize a version bump, tag, package upload,
+The checkpoint must remain unreleased. It does not authorize a version bump, tag, package upload,
 registry submission, deployment, release creation, or announcement.
 
 ## Implemented in the snapshot
@@ -31,22 +32,38 @@ registry submission, deployment, release creation, or announcement.
   swap, lineage-bound salvage derivatives, and MCP/Python/CLI surfaces.
 - Store-identity and exact-human-acceptance hardening at the snapshot head.
 
-## Still open before Wave 3 is complete
+## G006 closeout — Wave 3 evidence-integrity blockers resolved
 
-- Close the final independent security findings: prove full freeze-prefix, region-crop, and
-  still-frame origin; prove `trim_audio` is the declared trim of the approved source; and bind the
-  exact mutation fingerprint plus authorization references into persisted salvage lineage.
-- Re-run the complete repository gate on the final integrated source and attach immutable
-  receipts; earlier task-local reports are not current-branch proof.
-- Test and quality-guardrail modules were decomposed below the 800-line repository limit; retain
-  the architecture/size gate on every downstream integration.
-- Obtain an independent security/architecture review of the frozen Wave 3 tip.
+The three G006 blockers are closed on `codex/niko-close-open-loops` at the reviewed implementation
+tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`):
 
-The G006 checkpoint repaired authorization replay across body-swap duration policies, retained a
-verified anonymous source descriptor through salvage authorization/render/proof, and replaced the
-self-referential clean-edge verifier with an independent source-interval selection path. The final
-architecture review is non-blocking WATCH. The final security review remains REQUEST CHANGES for
-the three evidence-integrity items above, so this draft is not merge-ready.
+- `c80c579` — `trim_audio` proof binds the output audio to a bounded prefix of the approved source.
+- `a3b51fc` — region-crop, still-frame, and full freeze-prefix/tail/extension origin checks bind
+  the entire salvage frame range to the descriptor. `BACKGROUND_ONLY` uses the existing 3-frame
+  `_crop_origin_check` (start/mid/end), noted as a defense-in-depth limitation — only three
+  representative frames are verified, not every frame — without reopening the scoped G006 blocker.
+- `345c2dc` — `mutation_fingerprint` and `authorization_decision_ids` are persisted in the v2
+  salvage-lineage manifest; replay rejects tampered, stale, or superseded authorization.
+- `7d16d52` — the salvage authorization resolver is unified with the protection gate so that
+  `target_ref` binding is enforced identically on initial render and lineage replay.
+
+### Review verdicts and whole-gate evidence
+
+- **Architecture review:** APPROVE — 279 focused pass.
+- **Security review:** CLEAR — 102 + 57 focused pass (security/source/body-swap/salvage suite).
+- **Body-swap focused tests:** 22 (not 24).
+- **Whole repository suite on the reviewed implementation tip:** 3088 passed, 18 skipped, 8
+  warnings, 552.04s.
+- **Import/diff/forbidden/readiness/leak gates:** all recorded as pass on the reviewed tip (import
+  alias, `git diff --check`, forbidden-artifact scan, repository-readiness audit, gitleaks
+  working-tree scan).
+
+This is a merge-ready bounded checkpoint for Wave 3. It is **not** release-ready, publish-ready, or
+deploy-ready. The explicit stop-before-release gate remains in force: no tag, package, deploy,
+announcement, or release creation is authorized. Human visual/audio review of any generated media
+is a separate required decision that no automated receipt satisfies.
+
+Later waves (4–10, Sound, Kernel) remain open and are not claimed as complete by this checkpoint.
 
 ## Program state after Wave 3
 

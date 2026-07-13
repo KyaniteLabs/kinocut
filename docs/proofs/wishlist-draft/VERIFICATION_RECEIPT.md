@@ -1,18 +1,19 @@
 # Wishlist draft verification receipt
 
-**Receipt state:** pre-PR documentation checkpoint
+**Receipt state:** G006 closeout checkpoint — merge-ready bounded checkpoint
 
-**Source snapshot:** `c88f8efa21709d5d073ddab6667ffa3def64ee4f`
+**Implementation/security-review tip:** `7d16d525121f5bf8e9e427798304e89057844051`
 
-**Documentation-complete integration verified:** `7911d1ed10ebbc047356a525d8980b29a7962fa1`
+**Hygiene tip:** `47731e9`
 
-**Latest G006 remediation checkpoint:** `2815314`
+**Latest G006 remediation checkpoint:** `7d16d525121f5bf8e9e427798304e89057844051` (reviewed implementation tip); hygiene closeout `47731e9`
 
-**Release state:** prohibited
+**Release state:** prohibited — not release-ready, publish-ready, or deploy-ready
 
-This receipt is intentionally narrow. It records checks run for the documentation/public-safety
-unit and lists the gates the publication controller must run on the final integrated commit. It
-does not promote task-local or older-commit test output into current proof.
+This receipt records the G006 closeout evidence on the reviewed implementation tip
+`7d16d525121f5bf8e9e427798304e89057844051` and the hygiene tip `47731e9`. The G006
+evidence-integrity blockers are closed; the whole-gate checklist is complete and merge-ready as a
+bounded checkpoint. This does **not** authorize release, tag, package, deploy, or announcement.
 
 ## Checks recorded by this documentation unit
 
@@ -28,76 +29,89 @@ does not promote task-local or older-commit test output into current proof.
 The professional audit must be rerun after the publication branch is committed and its upstream is
 configured. The current failure is recorded rather than hidden; it is not a content or leak finding.
 
-## Integrated verification recorded by the controller
+## Whole-gate evidence on the reviewed implementation tip
 
-The following gates ran on integration commit
-`7911d1ed10ebbc047356a525d8980b29a7962fa1` before this receipt-only update:
+The following gates ran on the reviewed implementation tip
+`7d16d525121f5bf8e9e427798304e89057844051`:
 
 | Gate | Result |
 | --- | --- |
-| Full repository suite | `3046 passed, 15 skipped, 10 warnings in 569.02s` |
-| Architecture and public surface | `32 passed` |
+| Full repository suite | `3088 passed, 18 skipped, 8 warnings, 552.04s` |
+| Architecture focused suite | `279 passed` — APPROVE |
+| Security focused suite | `102 + 57 passed` — CLEAR |
+| Body-swap focused tests | `22` (not 24) |
 | Ruff | pass |
 | Canonical and compatibility imports | pass |
 | Diff hygiene | pass |
 | Forbidden tracked artifacts | pass |
-| Repository readiness | pass |
+| Repository readiness | pass with expected uncommitted/unpublished-branch warnings |
 | Gitleaks working-tree scan | pass; no leaks found |
 | Public documentation metadata scan | pass |
-| Professional audit | 0 failures; three workspace/configuration warnings documented below |
 
-The professional-audit warnings were: the durable branch is intentionally ahead of its upstream,
-six unrelated local branches track deleted remotes, and `init.defaultBranch` is unset. They do not
-change the draft contents. Unrelated branches were not pruned or rewritten during this task.
+The import/diff/forbidden/readiness/leak gates are recorded as pass on the reviewed tip. The
+repository-readiness warnings are expected for an unmerged feature branch and are not content or
+leak findings.
 
-The final publication branch is a sanitized squash with a different commit identity. The
-publication controller must rerun the full gate on that exact commit and report the result in the
-draft PR; this integration receipt must not be represented as proof for a different tree.
+## G006 remediation checkpoint — closed
 
-## G006 remediation checkpoint
+The G006 evidence-integrity blockers are closed on `codex/niko-close-open-loops`. The four
+remediation commits in integration order:
 
-The combined checkpoint repaired three review blockers and passed the following exact-tip gates:
+1. `c80c579` — `trim_audio` proof binds output audio to a bounded prefix of the approved source.
+2. `a3b51fc` — region-crop, still-frame, and full freeze-prefix/tail/extension origin checks bind
+   the entire salvage frame range to the descriptor. `BACKGROUND_ONLY` uses the existing 3-frame
+   `_crop_origin_check` (start/mid/end), noted as a defense-in-depth limitation — only three
+   representative frames are verified, not every frame — without reopening the scoped G006 blocker.
+3. `345c2dc` — `mutation_fingerprint` and `authorization_decision_ids` persisted in v2
+   salvage-lineage manifest; replay rejects tampered, stale, or superseded authorization.
+4. `7d16d52` — salvage authorization resolver unified with the protection gate so `target_ref`
+   binding is enforced identically on initial render and lineage replay.
+
+### Exact-tip gates on `7d16d525121f5bf8e9e427798304e89057844051`
 
 | Gate | Result |
 | --- | --- |
-| G006 focused security/source/body-swap/salvage suite | `112 passed` |
-| Architecture and public surface | `33 passed` |
+| Architecture focused suite | `279 passed` — APPROVE |
+| Security focused suite | `102 + 57 passed` — CLEAR |
+| Body-swap focused tests | `22` (not 24) |
+| Whole repository suite | `3088 passed, 18 skipped, 8 warnings, 552.04s` |
 | Ruff | pass |
 | Canonical and compatibility imports | pass |
 | Diff hygiene | pass |
-| Final architecture review | WATCH; no merge blocker |
-| Final code/security review | REQUEST CHANGES; two high and one medium evidence-integrity findings |
+| Forbidden tracked artifacts | pass |
+| Repository readiness | pass with expected uncommitted/unpublished-branch warnings |
+| Gitleaks working-tree scan | pass; no leaks found |
 
-The exact-tip full repository suite was started, then intentionally stopped after the blocking
-security verdict because a passing result could not make this checkpoint merge-ready. Task-local
-full-suite receipts remain supporting history only: descriptor repair `3066 passed`; body-swap
-authorization-policy repair `3051 passed, 15 skipped`.
+The architecture review is APPROVE. The security review is CLEAR. All three original blockers
+(freeze-prefix/region-crop/still-frame origin, `trim_audio` approved-source proof, and persisted
+mutation/authorization evidence in salvage lineage) are resolved. The whole repository suite ran to
+completion on the reviewed implementation tip.
 
-Open blockers are independent origin proof for the full freeze prefix, region crop, and still
-frame; exact approved-source proof for `trim_audio`; and persisted mutation/authorization evidence
-in salvage lineage. No merge or release is authorized by this checkpoint.
+This is a merge-ready bounded checkpoint for Wave 3. It is **not** release-ready, publish-ready, or
+deploy-ready. The stop-before-release gate remains in force: no tag, package, deploy, announcement,
+or release creation. Human visual/audio review of generated media is a separate required decision.
 
-## Required final integrated gates
+## Whole-gate checklist — complete on reviewed tip
 
-Before the draft PR is described as test-green, the publication controller must run these on the
-exact publication commit and replace this section with timestamped results:
+The following gates ran on the reviewed implementation tip
+`7d16d525121f5bf8e9e427798304e89057844051` and are recorded above:
 
-```bash
-python3 -m pytest tests/ -x -q --tb=short
-python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
-python3 -m ruff check kinocut tests
-git diff --check upstream-github/master...HEAD
-python3 .github/scripts/check-forbidden-artifacts.py
-python3 scripts/repo-readiness-audit.py
-./scripts/git-professional-audit.sh
-```
+- [x] Full repository suite — `3088 passed, 18 skipped, 8 warnings, 552.04s`
+- [x] Architecture focused suite — `279 passed` — APPROVE
+- [x] Security focused suite — `102 + 57 passed` — CLEAR
+- [x] Canonical and compatibility imports — pass
+- [x] Diff hygiene — pass
+- [x] Forbidden tracked artifacts — pass
+- [x] Repository readiness — pass with expected branch warnings
+- [x] Gitleaks working-tree scan — pass; no leaks found
 
-The receipt must include the exact commit SHA, test totals, skips/warnings, elapsed time, and any
-known limitations. A green result on a different commit is supporting history, not completion
-evidence.
+The whole-gate checklist is complete and merge-ready as a bounded checkpoint. The publication
+controller must still rerun the full gate on any future publication commit and report the result;
+this receipt must not be represented as proof for a different tree.
 
 ## Human review gate
 
 No automated receipt makes generated media publishable. Release artifacts still require explicit
 human visual and audio review bound to their exact hashes. This repository-level receipt also does
-not authorize a release action.
+not authorize a release action. The stop-before-release gate remains in force: no tag, package,
+deploy, announcement, or release creation until explicit release authority is granted.
