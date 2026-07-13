@@ -1,6 +1,6 @@
 """RED-first tests for S10 voice consistency package.
 
-Covers W5.1–W5.6 and preserved G18/G19 D42 ports:
+Covers W5.1-W5.6 and preserved G18/G19 D42 ports:
 * Versioned voice profile library (save/load/list/digest).
 * Consistency checking via fake D42 style port.
 * A/B reel construction referencing reference + render hashes.
@@ -41,9 +41,7 @@ from kinocut_sound import (
 )
 from kinocut_sound.voice import (
     BatchPlanner,
-    BatchResult,
     LocalSynthesisAdapter,
-    VoiceRoster,
     default_roster,
 )
 from kinocut_sound.voice_consistency import (
@@ -62,9 +60,7 @@ from kinocut_sound.voice_consistency import (
 from kinocut_sound.voice_consistency.d42_port import UnavailableStyleAdapter
 from kinocut_sound.voice_consistency._errors import (
     CONSISTENCY_D42_UNAVAILABLE,
-    CONSISTENCY_DRIFT_DETECTED,
     CONSISTENCY_LIBRARY_INVALID,
-    CONSISTENCY_PROFILE_INVALID,
     VoiceConsistencyError,
 )
 
@@ -190,7 +186,7 @@ def _pcm_samples(wav_bytes: bytes) -> tuple[int, ...]:
     assert wav_bytes[:4] == b"RIFF"
     assert wav_bytes[20:22] == struct.pack("<H", 1)  # PCM
     channel_count = struct.unpack_from("<H", wav_bytes, 22)[0]
-    sample_rate = struct.unpack_from("<I", wav_bytes, 24)[0]
+    struct.unpack_from("<I", wav_bytes, 24)[0]
     bits_per_sample = struct.unpack_from("<H", wav_bytes, 34)[0]
     assert channel_count == 1
     assert bits_per_sample == 16
@@ -328,9 +324,8 @@ def test_identity_check_returns_high_similarity_for_same_audio():
     port = default_fake_d42_port()
     audio_hash = "sha256:" + "a" * 64
     from kinocut_sound.voice_consistency.d42_port import IdentityCheckSpec
-    result = port.identity.compare_identity(
-        IdentityCheckSpec(audio_hash_a=audio_hash, audio_hash_b=audio_hash)
-    )
+
+    result = port.identity.compare_identity(IdentityCheckSpec(audio_hash_a=audio_hash, audio_hash_b=audio_hash))
     assert result.similarity == pytest.approx(1.0)
 
 
