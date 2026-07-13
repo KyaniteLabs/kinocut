@@ -8,10 +8,10 @@
 > for exact evidence. Unamended open/closed counts below are historical and must not be used as the
 > current completion claim.
 >
-> **Sound amendment:** S1 is merged, and S2 authorization plus S4 generic/WF parsing and pure
-> episode planning are complete on the reviewed 2026-07-13 integration checkpoint. See
+> **Sound amendment:** S1-S4 are complete on reviewed 2026-07-13 checkpoints. See
 > [`../status/2026-07-13-sound-s2-s4-integration-checkpoint.md`](../status/2026-07-13-sound-s2-s4-integration-checkpoint.md).
-> S3 is the next blocking leaf; the historical sound inventory below is superseded.
+> and [`../status/2026-07-13-sound-s3-integration-checkpoint.md`](../status/2026-07-13-sound-s3-integration-checkpoint.md).
+> S5, S7, and S8 are next; the historical sound inventory below is superseded.
 
 **Status:** decision-complete repo-native manifest; audit only — no implementation, push, merge, tag, publish, deploy, or release authorized by this document.
 
@@ -150,10 +150,12 @@ The historical statement that this program is entirely open is superseded. Curre
   format, line, and render-fingerprint contracts.
 - **S2 complete:** authorization ledger, leases, revocation race handling, transitive lineage,
   privacy-safe audit context, per-source blend/cloud egress, and quarantine/deletion outcomes.
+- **S3 complete:** sealed adapter registry, versioned presets/config, exact local/cloud provider
+  policy, complete render fingerprint, and authorization-aware cache with real S2 lineage.
 - **S4 complete:** strict generic/WF parsing and deterministic pure episode planning for dialogue,
   narration, action, voiceover, chapter cards, beats, pacing, silence, routing, and Foley contracts.
-- **S3 and S5-S15 open:** S3 is next; S5 voice depends on S3 and S4. S7 may proceed after S3;
-  S8 depends on S2, S3, and S4.
+- **S5-S15 open:** S5 voice, S7 post/spatial, and S8 ambience are parallel-ready. S6/S10 depend on
+  S5; S9 depends on S5+S7+S8; S11 depends on S4+S7+S9.
 
 No sound-specific public CLI command or MCP tool is registered. Public parity and concrete host
 binding remain the serialized S12/S13 joins. Existing Kinocut audio bridges remain downstream
@@ -184,8 +186,8 @@ Wave 8  ◻ review and approval (review package, timestamped decisions, human ga
 Wave 9  ◻ CLI/agent ergonomics (namespaced CLI, agent-mode output, capability discovery, next action, doctor migrations)
 Wave 10 ◻ learning and benchmark (recipe capture, cost ledger, learning report, defect-to-prompt, acceptance benchmark)
 Wave K  ◻ protected-timeline kernel — GATED behind human kernel-gate reconciliation
-Sound   ◻ 15-leaf `kinocut_sound` program — S1/S2/S4 ✓; S3 next → S5/S7/S8 → S6/S9/S10 →
-            S11 QA/metadata → S12 public parity → S13 host joins → S14 benchmark → S15 acceptance
+Sound   ◻ 15-leaf `kinocut_sound` program — S1-S4 ✓; S5/S7/S8 next → S6/S9/S10 → S11 QA/metadata →
+            S12 public parity → S13 host joins → S14 benchmark → S15 acceptance
             (S9 waits for S5+S7+S8; S11 waits for S4+S7+S9)
 ```
 
@@ -229,8 +231,8 @@ These are the controller-enforced module boundaries for downstream work. An auth
 6. **Wave 8 review/approval** — PRs 8.1 (review package + timestamped decisions + limitation ledger), 8.2 (human gate + generalized approval invalidation).
 7. **Wave 9 CLI/agent ergonomics** — PRs 9.1 (namespaced CLI + agent-mode output) and 9.2 (capability discovery + next action + doctor migrations) parallel after their contracts.
 8. **Wave 10 learning/benchmark** — PR 10.1 (recipe + cost + learning reports) after 6.x and 8.x; PR 10.2 (acceptance benchmark) after all feature waves.
-9. **Sound program** — authoritative 15-leaf graph; S3 next, then S12 public parity and S13 host
-   joins before the S14 benchmark and S15 final acceptance.
+9. **Sound program** — authoritative 15-leaf graph; S5/S7/S8 next, then dependent S6/S9/S10/S11,
+   followed by S12 public parity and S13 host joins before the S14 benchmark and S15 acceptance.
 10. **Kernel wave (gated)** — PR K.1 (protected timeline regions + stage reuse) only after explicit human kernel-gate reconciliation; the durable kernel contract named in `docs/plans/2026-07-09-kinocut-trusted-execution-layer.md` must exist first.
 
 ## 6. Per-item acceptance gates

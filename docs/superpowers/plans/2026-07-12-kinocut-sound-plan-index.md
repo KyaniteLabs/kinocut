@@ -1,6 +1,6 @@
 # `kinocut_sound` implementation plan index
 
-**Status:** S1, S2, and S4 implemented; S3 and S5-S15 incomplete; release prohibited
+**Status:** S1-S4 implemented; S5-S15 incomplete; release prohibited
 
 **Design:** [Sonic World audio-play production design](../specs/2026-07-11-kinocut-sound-sonic-world-design.md)
 
@@ -9,14 +9,15 @@
 - **S1 complete:** backend-neutral foundation contracts.
 - **S2 complete:** fail-closed authorization, provenance, privacy, leases, revocation, lineage,
   blend/cloud scope, and quarantine/deletion runtime.
+- **S3 complete:** sealed registry, versioned presets/config, local/cloud provider policy, complete
+  render fingerprints, and authorization-aware cache with real S2 lineage.
 - **S4 complete:** strict generic/WF parser plus deterministic pure episode planning against typed
   fakes, including pacing, designed silence, routing intent, and Foley cue contracts.
-- **S3 next:** static registry, config, provider policy, render fingerprint, and
-  authorization-aware cache.
 - **S5-S15 open:** proceed only when their named dependencies in the design are green.
 
-Exact S2/S4 implementation, review, test, and release-stop evidence is recorded in the
-[2026-07-13 checkpoint](../../status/2026-07-13-sound-s2-s4-integration-checkpoint.md).
+Exact implementation, review, test, and release-stop evidence is recorded in the
+[S2/S4 checkpoint](../../status/2026-07-13-sound-s2-s4-integration-checkpoint.md) and the
+[S3 checkpoint](../../status/2026-07-13-sound-s3-integration-checkpoint.md).
 
 The 15 bounded S1-S15 leaves in the design are the authoritative dependency graph. The older
 ten-module summary below remains a product-area overview, not implementation status.
@@ -45,14 +46,14 @@ the public Kinocut adapter is a serialized controller-owned join.
 Current critical path:
 
 ```text
-S3 -> (S5 base voice || S7 post/spatial || S8 ambience)
+(S5 base voice || S7 post/spatial || S8 ambience)
 S5 -> (S6 cloning/blending || S10 voice consistency)
 (S5 + S7 + S8) -> S9 assembly/mix/stems
 (S4 + S7 + S9) -> S11 QA/metadata
 (implemented S4-S11) -> S12 public parity -> S13 host joins -> S14 benchmark -> S15 acceptance
 ```
 
-S7 can begin after S3. S8 can begin after S3 because S2 and S4 are complete.
+S5, S7, and S8 are now parallel-ready because S1-S4 are complete.
 
 See [the full parallel execution plan](../../plans/2026-07-12-wishlist-parallel-execution.md) for
 ownership, branch, integration, verification, and release-stop rules.

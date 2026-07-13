@@ -122,6 +122,8 @@ class AdapterDescriptor(FrozenModel):
 
     @model_validator(mode="after")
     def _cloud_requires_disclosure(self) -> AdapterDescriptor:
+        if self.locality is AdapterLocality.LOCAL and self.cost_disclosure is not None:
+            raise ValueError("local locality must not carry cloud disclosure")
         if self.locality is AdapterLocality.CLOUD and self.cost_disclosure is None:
             raise ValueError("cloud locality requires cost_disclosure")
         return self
