@@ -110,7 +110,10 @@ class ConvolutionReverbAdapter:
         dry = bounded_float(p.get("dry", 1.0), lo=MIN_DRY, hi=MAX_DRY, name="dry")
         ir_path = ctx.work_dir / f"ir_{preset}.wav"
         _ensure_ir(ir_path, preset=preset, sample_rate_hz=ctx.sample_rate_hz)
-        filt = f"[0:a][1:a]afir=wet={ffmpeg_filter_number(wet)}:dry={ffmpeg_filter_number(dry)}:gtype=0"
+        # gtype=4 (rms auto-gain) prevents the convolution from changing the
+        # overall signal level drastically. With peak auto-gain (gtype=0) the
+        # output is near-silent for synthetic noise-based IRs.
+        filt = f"[0:a][1:a]afir=wet={ffmpeg_filter_number(wet)}:dry={ffmpeg_filter_number(dry)}:gtype=4"
         run_ffmpeg(
             [
                 "-i",

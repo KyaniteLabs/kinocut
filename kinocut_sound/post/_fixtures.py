@@ -171,6 +171,83 @@ def synthetic_ir(
     return write_wav(path, ir, sample_rate_hz)
 
 
+def synthetic_transient_clip(
+    path: str | Path,
+    *,
+    duration_s: float = 3.0,
+    burst_s: float = 0.3,
+    sample_rate_hz: int = FIXTURE_SAMPLE_RATE_HZ,
+    seed: int = 42,
+    frequencies: Sequence[float] = (440.0, 2000.0, 6000.0),
+) -> Path:
+    """Generate a transient burst followed by silence for reverb testing.
+
+    The signal has energy in the first ``burst_s`` seconds, then near-silence.
+    A reverberant version will fill the silent tail with reverb decay energy.
+    """
+
+    n = int(duration_s * sample_rate_hz)
+    burst_n = int(burst_s * sample_rate_hz)
+    rng = np.random.default_rng(seed)
+    t = np.arange(n, dtype=np.float64) / sample_rate_hz
+    signal = np.zeros(n, dtype=np.float64)
+    for freq in frequencies:
+        signal[:burst_n] += 0.2 * np.sin(2.0 * np.pi * freq * t[:burst_n])
+    signal[:burst_n] += 0.03 * rng.standard_normal(burst_n)
+    # Apply a fast decay at the burst boundary to create a transient.
+    decay_len = int(0.05 * sample_rate_hz)
+    if burst_n > decay_len:
+        signal[burst_n - decay_len : burst_n] *= np.linspace(1.0, 0.0, decay_len)
+    # Normalize burst region.
+    peak = float(np.max(np.abs(signal)))
+    if peak > 0.0:
+        signal = signal * (0.3 / peak)
+    return write_wav(path, signal, sample_rate_hz)
+
+
+def synthetic_dynamic_clip(
+    path: str | Path,
+    *,
+    duration_s: float = 4.0,
+    sample_rate_hz: int = FIXTURE_SAMPLE_RATE_HZ,
+    seed: int = 99,
+    frequencies: Sequence[float] = (220.0, 1000.0, 4000.0),
+) -> Path:
+    """Generate an amplitude-modulated clip with high LRA for compressor testing.
+
+    The signal alternates between loud and quiet segments, creating a wide
+    loudness range that dynamic compression should reduce.
+    """
+
+    n = int(duration_s * sample_rate_hz)
+    rng = np.random.default_rng(seed)
+    t = np.arange(n, dtype=np.float64) / sample_rate_hz
+    signal = np.zeros(n, dtype=np.float64)
+    for freq in frequencies:
+        signal += 0.15 * np.sin(2.0 * np.pi * freq * t)
+    signal += 0.01 * rng.standard_normal(n)
+    # Create alternating loud/quiet segments.
+    segment_len = int(0.5 * sample_rate_hz)
+    gain_envelope = np.ones(n)
+    for i in range(0, n, segment_len):
+        segment_idx = i // segment_len
+        end = min(i + segment_len, n)
+        if segment_idx % 2 == 0:
+            gain_envelope[i:end] = 1.0
+        else:
+            gain_envelope[i:end] = 0.15  # ~-16 dB quieter
+    # Smooth the segment transitions.
+    smooth_len = int(0.02 * sample_rate_hz)
+    if smooth_len > 0:
+        kernel = np.ones(smooth_len) / smooth_len
+        gain_envelope = np.convolve(gain_envelope, kernel, mode="same")
+    signal *= gain_envelope
+    peak = float(np.max(np.abs(signal)))
+    if peak > 0.0:
+        signal = signal * (0.25 / peak)
+    return write_wav(path, signal, sample_rate_hz)
+
+
 def _ffmpeg_query_stderr(args: list[str], *, timeout: float = 15.0) -> str:
     """Run an ffmpeg measurement query and return its stderr (log output)."""
 
@@ -312,6 +389,37 @@ def measure_reverb_tail_energy(path: str | Path) -> float:
     return rms
 
 
+def measure_rms_variation_db(
+    path: str | Path,
+    *,
+    window_ms: float = 200.0,
+    sample_rate_hz: int | None = None,
+) -> float:
+    """Measure the dB range of short-window RMS levels (LRA proxy).
+
+    Splits the signal into ``window_ms`` windows, computes RMS of each, and
+    returns ``max(window_rms_db) - min(window_rms_db)``. A dynamic-range
+    compressor should reduce this value. This is more reliable than ebur128
+    LRA for short synthetic clips.
+    """
+
+    data, rate = read_wav(path) if sample_rate_hz is None else (read_wav(path)[0], sample_rate_hz)
+    n = len(data)
+    win_len = max(1, int(window_ms / 1000.0 * rate))
+    if n < win_len:
+        return 0.0
+    n_windows = n // win_len
+    trimmed = data[: n_windows * win_len]
+    windows = trimmed.reshape(n_windows, win_len)
+    rms_per_window = np.sqrt(np.mean(windows**2, axis=1))
+    # Filter out near-silent windows.
+    audible = rms_per_window[rms_per_window > 1e-8]
+    if len(audible) < 2:
+        return 0.0
+    rms_db = 20.0 * np.log10(audible)
+    return float(np.max(rms_db) - np.min(rms_db))
+
+
 def sha256_of_file(path: str | Path) -> str:
     """Return ``sha256:<hex>`` of a file's bytes."""
 
@@ -333,10 +441,13 @@ __all__ = [
     "measure_loudness",
     "measure_reverb_tail_energy",
     "measure_rms",
+    "measure_rms_variation_db",
     "measure_true_peak_dbtp",
     "read_wav",
     "sha256_of_file",
     "synthetic_clip",
+    "synthetic_dynamic_clip",
     "synthetic_ir",
+    "synthetic_transient_clip",
     "write_wav",
 ]
