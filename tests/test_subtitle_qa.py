@@ -485,6 +485,115 @@ def test_qa_bad_cue_timing_raises():
     assert exc.value.code == "invalid_subtitle_qa_input"
 
 
+@pytest.mark.parametrize(
+    ("start", "end"),
+    [
+        (float("nan"), 1.0),
+        (0.0, float("nan")),
+        (float("inf"), 1.0),
+        (False, 1.0),
+    ],
+)
+def test_qa_rejects_non_finite_or_boolean_cue_times(start, end):
+    from kinocut.aivideo.subtitle_qa import SubtitleCue, qa_subtitle_temporal
+
+    cues = (SubtitleCue(index=0, start=start, end=end, text="bad"),)
+    with pytest.raises(MCPVideoError) as exc:
+        qa_subtitle_temporal(
+            cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
+        )
+    assert exc.value.code == "invalid_subtitle_qa_input"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"reading_speed_cps_threshold": float("nan")},
+        {"reading_speed_cps_threshold": 0.0},
+        {"gap_seconds_threshold": float("inf")},
+        {"gap_seconds_threshold": -1.0},
+    ],
+)
+def test_qa_rejects_invalid_temporal_thresholds(kwargs):
+    from kinocut.aivideo.subtitle_qa import SubtitleCue, qa_subtitle_temporal
+
+    cues = (SubtitleCue(index=0, start=0.0, end=1.0, text="ok"),)
+    with pytest.raises(MCPVideoError) as exc:
+        qa_subtitle_temporal(
+            cues, eof_seconds=10.0, project_id=_PROJECT, **kwargs
+        )
+    assert exc.value.code == "invalid_subtitle_qa_input"
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"target_id": "sha256:x"},
+        {"created_by": "bad user"},
+    ],
+)
+def test_qa_rejects_invalid_record_metadata(kwargs):
+    from kinocut.aivideo.subtitle_qa import SubtitleCue, qa_subtitle_temporal
+
+    cues = (
+        SubtitleCue(index=0, start=0.0, end=2.0, text="first"),
+        SubtitleCue(index=1, start=1.0, end=3.0, text="second"),
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        qa_subtitle_temporal(cues, eof_seconds=5.0, project_id=_PROJECT, **kwargs)
+    assert exc.value.code == "invalid_subtitle_qa_input"
+
+
+@pytest.mark.parametrize(
+    ("field", "value"),
+    [
+        ("display_width", 0),
+        ("display_height", -1),
+        ("title_safe_margin_pct", float("nan")),
+        ("subtitle_anchor_x_pct", 1.1),
+        ("subtitle_anchor_y_pct", -0.1),
+        ("subtitle_font_size_px", 0),
+        ("max_chars_per_line", 0),
+        ("max_lines", 0),
+    ],
+)
+def test_qa_rejects_invalid_safe_area_profile(field, value):
+    from dataclasses import replace
+
+    from kinocut.aivideo.subtitle_qa import (
+        PLATFORM_PROFILES,
+        SubtitleCue,
+        qa_subtitle_safe_area,
+    )
+
+    profile = replace(PLATFORM_PROFILES["horizontal"], **{field: value})
+    cues = (SubtitleCue(index=0, start=0.0, end=1.0, text="ok"),)
+    with pytest.raises(MCPVideoError) as exc:
+        qa_subtitle_safe_area(cues, profile=profile, project_id=_PROJECT)
+    assert exc.value.code == "invalid_subtitle_qa_input"
+
+
+@pytest.mark.parametrize(
+    "overlay",
+    [
+        {"x": "bad", "y": 0.0, "width": 0.1, "height": 0.1},
+        {"x": float("nan"), "y": 0.0, "width": 0.1, "height": 0.1},
+        {"x": 0.95, "y": 0.0, "width": 0.1, "height": 0.1},
+        {"x": 0.0, "y": 0.0, "width": 0.0, "height": 0.1},
+    ],
+)
+def test_qa_rejects_malformed_overlay_geometry(overlay):
+    from kinocut.aivideo.subtitle_qa import PLATFORM_PROFILES, SubtitleCue, qa_subtitle_safe_area
+
+    cues = (SubtitleCue(index=0, start=0.0, end=1.0, text="ok"),)
+    with pytest.raises(MCPVideoError) as exc:
+        qa_subtitle_safe_area(
+            cues, profile=PLATFORM_PROFILES["horizontal"],
+            project_id=_PROJECT, overlay_regions=(overlay,),
+        )
+    assert exc.value.code == "invalid_subtitle_qa_input"
+
+
 # --------------------------------------------------------------------------- #
 # End-to-end with real media (FFmpeg required)
 # --------------------------------------------------------------------------- #
@@ -772,3 +881,9 @@ def test_qa_platform_profiles_not_hardcoded_in_subtitle_qa():
         "PLATFORM_PROFILES must be a dict comprehension built from "
         "SUBTITLE_SAFE_AREA_PROFILES, not hardcoded literals"
     )
+
+
+def test_subtitle_qa_module_under_800_lines():
+    from kinocut.aivideo import subtitle_qa
+
+    assert len(Path(subtitle_qa.__file__).read_text().splitlines()) <= 800

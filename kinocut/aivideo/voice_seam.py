@@ -44,6 +44,9 @@ _NO_PROVIDER_ID = "kinocut.voice_seam.none"
 #: Stable error code surfaced when the clamp rejects malformed ASR input.
 _INVALID_CLAMP = "invalid_eof_clamp"
 
+#: Privacy-safe provider identity used when a provider exposes an invalid id.
+_FAILED_PROVIDER_ID = "kinocut.voice_seam.provider_failed"
+
 # Deterministic metric bounds (no ML; calibrated for explainer-length voice beds).
 DEFAULT_PACE_MIN_WPM = 60.0
 DEFAULT_PACE_MAX_WPM = 240.0
@@ -256,6 +259,60 @@ class SpeakerIdentityProvider(Protocol):
 def _clamp_error(message: str) -> MCPVideoError:
     """Wrap the canonical clamp error code; never echoes the raw segment."""
     return MCPVideoError(message, error_type="validation_error", code=_INVALID_CLAMP)
+
+
+def _parameter_error(name: str) -> MCPVideoError:
+    """Return one stable, public-safe voice-seam parameter error."""
+
+    return MCPVideoError(
+        f"{name} is invalid",
+        error_type="validation_error",
+        code="invalid_voice_seam_parameter",
+    )
+
+
+def _finite_parameter(
+    value: object, name: str, *, minimum: float | None = None, maximum: float | None = None
+) -> float:
+    """Return a finite real parameter inside optional inclusive bounds."""
+
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise _parameter_error(name)
+    number = float(value)
+    if not math.isfinite(number):
+        raise _parameter_error(name)
+    if minimum is not None and number < minimum:
+        raise _parameter_error(name)
+    if maximum is not None and number > maximum:
+        raise _parameter_error(name)
+    return number
+
+
+def _ordered_bounds(value: object, name: str, *, minimum: float | None = None) -> None:
+    """Require a finite two-number interval ordered from low to high."""
+
+    if not isinstance(value, tuple) or len(value) != 2:
+        raise _parameter_error(name)
+    low = _finite_parameter(value[0], name, minimum=minimum)
+    high = _finite_parameter(value[1], name, minimum=minimum)
+    if low >= high:
+        raise _parameter_error(name)
+
+
+def _validate_analysis_parameters(
+    identity_threshold: object,
+    pace_bounds: object,
+    cadence_bounds: object,
+    loudness_bounds: object,
+    silence_seam_seconds: object,
+) -> None:
+    """Fail closed before any analyzer consumes caller-controlled thresholds."""
+
+    _finite_parameter(identity_threshold, "identity_threshold", minimum=0.0, maximum=1.0)
+    _ordered_bounds(pace_bounds, "pace_bounds", minimum=0.0)
+    _ordered_bounds(cadence_bounds, "cadence_bounds", minimum=0.0)
+    _ordered_bounds(loudness_bounds, "loudness_bounds")
+    _finite_parameter(silence_seam_seconds, "silence_seam_seconds", minimum=0.0)
 
 
 def _validated_audio(audio_path: str) -> str:
@@ -515,22 +572,58 @@ def _resolve_speaker_identity(
 
     if provider is None:
         return _capability_unavailable_identity()
+    provider_id = _safe_provider_id(provider)
     try:
         result = provider.identify(audio_path)
     except Exception as exc:  # provider boundary; fail soft
-        logger.warning("speaker identity provider %s raised: %s", provider.provider_id, type(exc).__name__)
+        logger.warning(
+            "speaker identity provider %s raised: %s",
+            provider_id,
+            type(exc).__name__,
+        )
         return SpeakerIdentityResult(
-            provider_id=provider.provider_id,
+            provider_id=provider_id,
             availability=SpeakerIdentityAvailability.PROVIDER_FAILED,
             reason_code="provider_raised_exception",
         )
     if type(result) is not SpeakerIdentityResult:
         return SpeakerIdentityResult(
-            provider_id=getattr(provider, "provider_id", _NO_PROVIDER_ID),
+            provider_id=provider_id,
             availability=SpeakerIdentityAvailability.PROVIDER_FAILED,
             reason_code="provider_returned_wrong_type",
         )
-    return result
+    try:
+        validated = SpeakerIdentityResult.model_validate(result.model_dump(mode="python"))
+    except Exception as exc:
+        logger.warning(
+            "speaker identity provider %s returned invalid data: %s",
+            provider_id,
+            type(exc).__name__,
+        )
+        return SpeakerIdentityResult(
+            provider_id=provider_id,
+            availability=SpeakerIdentityAvailability.PROVIDER_FAILED,
+            reason_code="provider_returned_invalid_result",
+        )
+    if validated.provider_id != provider_id:
+        logger.warning("speaker identity provider returned a mismatched provider id")
+        return SpeakerIdentityResult(
+            provider_id=provider_id,
+            availability=SpeakerIdentityAvailability.PROVIDER_FAILED,
+            reason_code="provider_returned_invalid_result",
+        )
+    return validated
+
+
+def _safe_provider_id(provider: object) -> str:
+    """Return a bounded provider code without leaking hostile metadata."""
+
+    try:
+        value = getattr(provider, "provider_id", None)
+    except Exception as exc:
+        logger.warning("speaker identity provider metadata raised: %s", type(exc).__name__)
+        return _FAILED_PROVIDER_ID
+    return value if isinstance(value, str) and _CODE_RE.fullmatch(value) else _FAILED_PROVIDER_ID
 
 
 def _identity_findings(
@@ -613,6 +706,13 @@ def analyze_voice_seam(
     measurements; no raw transcript text, PII, or host paths escape.
     """
 
+    _validate_analysis_parameters(
+        identity_threshold,
+        pace_bounds,
+        cadence_bounds,
+        loudness_bounds,
+        silence_seam_seconds,
+    )
     validated = _validated_audio(audio_path)
 
     # 1. Canonical EOF clamp BEFORE any derived metric (single source of truth).

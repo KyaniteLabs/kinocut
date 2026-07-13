@@ -34,7 +34,7 @@ def test_kinocut_is_the_canonical_distribution_with_compatible_commands() -> Non
         "mcp-video": "kinocut.__main__:main",
     }
     wheel = project["tool"]["hatch"]["build"]["targets"]["wheel"]
-    assert wheel["packages"] == ["kinocut"]
+    assert wheel["packages"] == ["kinocut", "kinocut_sound"]
     assert wheel["force-include"] == {"mcp_video.py": "mcp_video.py"}
 
 
@@ -168,6 +168,7 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     assert "enableOptionalAi" not in manifest["user_config"]
     sdist_includes = set(project["tool"]["hatch"]["build"]["targets"]["sdist"]["only-include"])
     assert {"/mcpb", "/docs/MCPB.md", "/scripts/build-mcpb.py"} <= sdist_includes
+    assert "/kinocut_sound" in sdist_includes
     assert "[\"-m\", \"kinocut\", \"--mcp\"]" in launcher
     assert "shell: false" in launcher
     assert "require(\"node:child_process\")" in launcher

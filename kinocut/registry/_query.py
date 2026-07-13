@@ -22,10 +22,11 @@ from collections.abc import Iterable
 from dataclasses import dataclass
 
 from kinocut.contracts._common import canonical_record_id
-from kinocut.contracts.asset import UsageRightsStatus
+from kinocut.contracts.asset import AssetRecord, UsageRightsStatus
 from kinocut.contracts.review import DecisionType, ReviewDecision
 from kinocut.contracts.verdict import ClipVerdict
 from kinocut.projectstore.store import Project, read_records
+from kinocut.errors import MCPVideoError
 from kinocut.contracts.registry import BedRecord, ClipRecord
 
 #: The default rights posture required to enter an approved-only result.
@@ -48,21 +49,75 @@ class QueryPage:
 def _validate_pagination(limit: int, offset: int) -> None:
     """Enforce bounded, non-negative pagination parameters."""
 
+    if isinstance(limit, bool) or not isinstance(limit, int):
+        raise MCPVideoError(
+            "limit must be an integer", error_type="validation_error", code="invalid_pagination"
+        )
+    if isinstance(offset, bool) or not isinstance(offset, int):
+        raise MCPVideoError(
+            "offset must be an integer", error_type="validation_error", code="invalid_pagination"
+        )
     if limit < 1:
-        raise ValueError("limit must be at least one")
+        raise MCPVideoError(
+            "limit must be at least one", error_type="validation_error", code="invalid_pagination"
+        )
     if limit > _MAX_LIMIT:
-        raise ValueError(f"limit must not exceed {_MAX_LIMIT}")
+        raise MCPVideoError(
+            f"limit must not exceed {_MAX_LIMIT}", error_type="validation_error", code="invalid_pagination"
+        )
     if offset < 0:
-        raise ValueError("offset must be non-negative")
+        raise MCPVideoError(
+            "offset must be non-negative", error_type="validation_error", code="invalid_pagination"
+        )
 
+
+
+def _active_records(project: Project, kind: str, model: type) -> list:
+    """Return only unsuperseded records of the exact expected type."""
+
+    records = [
+        record
+        for record in read_records(project, kind)
+        if type(record) is model
+    ]
+    superseded = {
+        record.supersedes
+        for record in records
+        if record.supersedes is not None
+    }
+    return [
+        record for record in records if canonical_record_id(record) not in superseded
+    ]
+
+
+def _index_active_assets(project: Project) -> dict[str, AssetRecord]:
+    """Index uniquely active asset records, omitting ambiguous asset identities."""
+
+    indexed: dict[str, AssetRecord] = {}
+    ambiguous: set[str] = set()
+    for asset in _active_records(project, "asset_record", AssetRecord):
+        if asset.asset_id in indexed:
+            indexed.pop(asset.asset_id)
+            ambiguous.add(asset.asset_id)
+        elif asset.asset_id not in ambiguous:
+            indexed[asset.asset_id] = asset
+    return indexed
+
+
+def _active_asset_rights_allowed(
+    asset_id: str, assets: dict[str, AssetRecord], rights: frozenset[UsageRightsStatus]
+) -> bool:
+    """Require one active asset record whose current rights are allowed."""
+
+    asset = assets.get(asset_id)
+    return asset is not None and asset.usage_rights_status in rights
 
 def _index_verdicts(project: Project) -> dict[str, ClipVerdict]:
     """Return a canonical-id → verdict index of all clip verdicts."""
 
     return {
         canonical_record_id(verdict): verdict
-        for verdict in read_records(project, "clip_verdict")
-        if isinstance(verdict, ClipVerdict)
+        for verdict in _active_records(project, "clip_verdict", ClipVerdict)
     }
 
 
@@ -71,8 +126,7 @@ def _index_decisions(project: Project) -> dict[str, ReviewDecision]:
 
     return {
         canonical_record_id(decision): decision
-        for decision in read_records(project, "review_decision")
-        if isinstance(decision, ReviewDecision)
+        for decision in _active_records(project, "review_decision", ReviewDecision)
     }
 
 
@@ -110,9 +164,11 @@ def _matches_tags(tags: tuple[str, ...], wanted: frozenset[str] | None) -> bool:
     return wanted.issubset(set(tags))
 
 
+
 def query_approved_clips(
     project: Project,
     *,
+
     tags: Iterable[str] | None = None,
     rights_filter: Iterable[UsageRightsStatus] | None = None,
     limit: int = 50,
@@ -131,14 +187,15 @@ def query_approved_clips(
     rights = _rights_or_default(rights_filter)
     verdicts = _index_verdicts(project)
     decisions = _index_decisions(project)
+    assets = _index_active_assets(project)
 
-    all_clips = [
-        record for record in read_records(project, "clip_record") if isinstance(record, ClipRecord)
-    ]
+    all_clips = _active_records(project, "clip_record", ClipRecord)
     matched = [
         clip
         for clip in all_clips
         if clip.usage_rights_status in rights
+        and _active_asset_rights_allowed(clip.asset_id, assets, rights)
+        and _active_asset_rights_allowed(clip.source_asset_id, assets, rights)
         and _verdict_is_approved(verdicts.get(clip.verdict_id))
         and _consent_is_valid(
             decisions.get(clip.review_decision_id), target_asset=clip.asset_id
@@ -161,16 +218,16 @@ def query_reusable_beds(
 
     _validate_pagination(limit, offset)
     wanted = frozenset(tags) if tags is not None else None
+    assets = _index_active_assets(project)
     rights = _rights_or_default(rights_filter)
     decisions = _index_decisions(project)
 
-    all_beds = [
-        record for record in read_records(project, "bed_record") if isinstance(record, BedRecord)
-    ]
+    all_beds = _active_records(project, "bed_record", BedRecord)
     matched = [
         bed
         for bed in all_beds
         if bed.usage_rights_status in rights
+        and _active_asset_rights_allowed(bed.asset_id, assets, rights)
         and _consent_is_valid(decisions.get(bed.review_decision_id), target_asset=bed.asset_id)
         and _matches_tags(bed.tags, wanted)
         and (mood is None or bed.mood == mood)

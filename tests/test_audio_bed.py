@@ -246,6 +246,29 @@ def test_receipt_content_hashes_match_file_bytes(tmp_path, media):
     assert receipt["inputs"][1]["content_sha256"] == _file_sha256(media["bed_5s"])
     assert receipt["output_content_sha256"] == _file_sha256(str(out))
 
+def test_renderer_consumes_verified_snapshots_not_mutable_sources(
+    tmp_path, media, monkeypatch
+):
+    import kinocut.engine_audio_bed as engine
+
+    original_run = engine._run_ffmpeg
+    consumed_inputs: list[str] = []
+
+    def capture_run(args, **kwargs):
+        for index, value in enumerate(args[:-1]):
+            if value == "-i":
+                consumed_inputs.append(args[index + 1])
+        return original_run(args, **kwargs)
+
+    monkeypatch.setattr(engine, "_run_ffmpeg", capture_run)
+    out = tmp_path / "verified-sources.mp4"
+    audio_bed(media["video_5s"], media["bed_5s"], str(out))
+
+    assert media["video_5s"] not in consumed_inputs
+    assert media["bed_5s"] not in consumed_inputs
+
+
+
 
 def test_receipt_hash_is_deterministic(tmp_path, media, tmp_path_factory):
     """Same inputs and parameters → same receipt_sha256."""
@@ -256,6 +279,21 @@ def test_receipt_hash_is_deterministic(tmp_path, media, tmp_path_factory):
     r1 = audio_bed(media["video_5s"], media["bed_5s"], str(out1))
     r2 = audio_bed(media["video_5s"], media["bed_5s"], str(out2))
     assert r1["receipt"]["receipt_sha256"] == r2["receipt"]["receipt_sha256"]
+
+
+def test_receipt_hash_binds_music_volume(tmp_path_factory, media):
+    """Different render-affecting volume values must produce different intents."""
+    d1 = tmp_path_factory.mktemp("volume1")
+    d2 = tmp_path_factory.mktemp("volume2")
+    r1 = audio_bed(
+        media["video_5s"], media["bed_5s"], str(d1 / "a.mp4"), music_volume=0.5
+    )
+    r2 = audio_bed(
+        media["video_5s"], media["bed_5s"], str(d2 / "a.mp4"), music_volume=1.0
+    )
+    assert r1["receipt"]["parameters"]["music_volume"] == 0.5
+    assert r2["receipt"]["parameters"]["music_volume"] == 1.0
+    assert r1["receipt"]["receipt_sha256"] != r2["receipt"]["receipt_sha256"]
 
 
 def test_receipt_has_no_absolute_paths(tmp_path, media):
@@ -339,6 +377,10 @@ def test_same_inputs_produce_same_duration_and_receipt(tmp_path, media, tmp_path
     ({"fade_out": 100.0}, "invalid_fade_out"),
     ({"music_volume": 3.0}, "invalid_music_volume"),
     ({"music_volume": -0.5}, "invalid_music_volume"),
+    ({"duration_tolerance": float("nan")}, "invalid_duration_tolerance"),
+    ({"duration_tolerance": -0.1}, "invalid_duration_tolerance"),
+    ({"loop": "false"}, "invalid_loop"),
+    ({"loop": 1}, "invalid_loop"),
 ])
 def test_hostile_parameters_rejected(tmp_path, media, kwargs, error_code):
     out = tmp_path / "x.mp4"
@@ -515,6 +557,59 @@ def test_all_functions_under_80_lines():
             if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
                 lines = node.end_lineno - node.lineno + 1
                 assert lines <= 80, f"{module_path}:{node.name} is {lines} lines"
+
+
+def test_audio_bed_configuration_is_centralized():
+    import ast
+    import inspect
+
+    from kinocut import engine_audio_bed
+    from kinocut import defaults
+    from kinocut.defaults import DEFAULT_AUDIO_BED_MUSIC_VOLUME, DEFAULT_HASH_CHUNK_BYTES
+
+    tree = ast.parse(Path(engine_audio_bed.__file__).read_text())
+    assignments = {
+        target.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Assign)
+        for target in node.targets
+        if isinstance(target, ast.Name)
+    }
+    assert assignments.isdisjoint(
+        {"_TRUE_PEAK_DBTP", "_HASH_CHUNK", "_SAFE_DISPLAY_RE"}
+    )
+    assert (
+        inspect.signature(audio_bed).parameters["music_volume"].default
+        == DEFAULT_AUDIO_BED_MUSIC_VOLUME
+    )
+    assert engine_audio_bed.DEFAULT_HASH_CHUNK_BYTES == DEFAULT_HASH_CHUNK_BYTES
+    assert not hasattr(defaults, "DEFAULT_AUDIO_BED_HASH_CHUNK_BYTES")
+
+
+def test_audio_bed_contract_reuses_canonical_limits_and_patterns():
+    import ast
+
+    from kinocut.contracts import audio_bed as contract
+
+    source = Path(contract.__file__).read_text()
+    assert "re.compile" not in source
+    tree = ast.parse(source)
+    parameters = next(
+        node
+        for node in tree.body
+        if isinstance(node, ast.ClassDef) and node.name == "AudioBedParameters"
+    )
+    for call in (node for node in ast.walk(parameters) if isinstance(node, ast.Call)):
+        for keyword in call.keywords:
+            if keyword.arg in {"ge", "gt", "le", "lt"}:
+                assert isinstance(keyword.value, ast.Name)
+
+
+def test_audio_bed_display_name_pattern_is_exact_and_bounded():
+    from kinocut.engine_audio_bed import _safe_display_name
+
+    assert _safe_display_name("a" * 128) == "a" * 128
+    assert _safe_display_name("a" * 129) == "input"
 
 
 def test_audio_bed_receipt_contract_validates():

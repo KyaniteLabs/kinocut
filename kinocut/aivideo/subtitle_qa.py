@@ -19,6 +19,15 @@ from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from itertools import pairwise
 
+from kinocut.aivideo.subtitle_qa_validation import (
+    normalized_overlay as _normalized_overlay,
+    qa_error as _qa_error,
+    validate_created_by as _validate_created_by,
+    validate_project_id as _validate_project_id,
+    validate_safe_area_profile as _validate_safe_area_profile,
+    validate_target_id as _validate_target_id,
+    validate_threshold as _validate_threshold,
+)
 from kinocut.contracts.defect import DefectCode, DefectFinding, Severity
 from kinocut.defaults import (
     DEFAULT_SUBTITLE_QA_CHAR_WIDTH_FACTOR as _CHAR_WIDTH_FACTOR,
@@ -50,7 +59,7 @@ from kinocut.validation import SUBTITLE_SAFE_AREA_PROFILES
 # magic number or a tunable value, so they stay at point of use.
 
 _DETECTOR_PREFIX = "deterministic:subtitle_qa"
-_ERR_CODE = "invalid_subtitle_qa_input"
+
 _AGENT_IDENTITY = "agent:subtitle_qa"
 
 #: Numeric encoding for clamp warnings (Measurement.value must be float).
@@ -135,10 +144,6 @@ PLATFORM_PROFILES: dict[str, SafeAreaProfile] = {
 # --------------------------------------------------------------------------- #
 
 
-def _qa_error(message: str) -> MCPVideoError:
-    """Build a validation MCPVideoError with the stable subtitle-QA code."""
-    return MCPVideoError(message, error_type="validation_error", code=_ERR_CODE)
-
 
 def _compute_target_id(cues: Sequence[SubtitleCue]) -> str:
     """Deterministic sha256 asset id from cue content (never echoes raw text)."""
@@ -186,7 +191,13 @@ def _validate_cues(cues: object) -> tuple[SubtitleCue, ...]:
     for item in cues:
         if not isinstance(item, SubtitleCue):
             raise _qa_error("each cue must be a SubtitleCue instance")
-        if item.start < 0.0 or item.end <= item.start:
+        times = (item.start, item.end)
+        if any(
+            isinstance(value, bool)
+            or not isinstance(value, (int, float))
+            or not math.isfinite(float(value))
+            for value in times
+        ) or item.start < 0.0 or item.end <= item.start:
             raise _qa_error("each cue time_range must be positive and non-negative")
         if not isinstance(item.text, str):
             raise _qa_error("cue text must be a string")
@@ -197,8 +208,7 @@ def _validate_cues(cues: object) -> tuple[SubtitleCue, ...]:
 def _resolve_target_id(cues: Sequence[SubtitleCue], target_id: str | None) -> str:
     """Use the caller-provided target_id or compute one deterministically."""
     if target_id is not None:
-        if not isinstance(target_id, str) or not target_id.startswith("sha256:"):
-            raise _qa_error("target_id must be a sha256-prefixed asset id")
+        _validate_target_id(target_id)
         return target_id
     return _compute_target_id(cues)
 
@@ -262,6 +272,9 @@ def qa_subtitle_temporal(
     """
     valid = _validate_cues(cues)
     eof = _validate_eof(eof_seconds)
+    _validate_threshold(reading_speed_cps_threshold, "reading_speed_cps_threshold")
+    _validate_threshold(gap_seconds_threshold, "gap_seconds_threshold", allow_zero=True)
+    _validate_created_by(created_by)
     _validate_project_id(project_id)
     tid = _resolve_target_id(valid, target_id)
 
@@ -295,10 +308,6 @@ def _validate_eof(eof_seconds: object) -> float:
         raise _qa_error("eof_seconds must be a positive, finite number")
     return val
 
-
-def _validate_project_id(project_id: object) -> None:
-    if not isinstance(project_id, str) or not project_id.strip():
-        raise _qa_error("project_id must be a non-empty string")
 
 
 def _eof_time_range(cue: SubtitleCue, eof: float) -> tuple[float, float]:
@@ -516,6 +525,8 @@ def qa_subtitle_safe_area(
     _validate_project_id(project_id)
     if not isinstance(profile, SafeAreaProfile):
         raise _qa_error("profile must be a SafeAreaProfile instance")
+    _validate_safe_area_profile(profile)
+    _validate_created_by(created_by)
     tid = _resolve_target_id(valid, target_id)
 
     findings: list[DefectFinding] = []
@@ -540,6 +551,7 @@ class _PixelBox:
 
     x: int
     y: int
+
     width: int
     height: int
 
@@ -630,10 +642,11 @@ def _overlay_collision_findings(
     for index, region in enumerate(overlay_regions):
         if not isinstance(region, Mapping):
             raise _qa_error("each overlay region must be a mapping")
-        ox = round(float(region.get("x", 0.0)) * profile.display_width)
-        oy = round(float(region.get("y", 0.0)) * profile.display_height)
-        ow = round(float(region.get("width", 0.0)) * profile.display_width)
-        oh = round(float(region.get("height", 0.0)) * profile.display_height)
+        normalized = _normalized_overlay(region)
+        ox = round(normalized.x * profile.display_width)
+        oy = round(normalized.y * profile.display_height)
+        ow = round(normalized.width * profile.display_width)
+        oh = round(normalized.height * profile.display_height)
         overlap_w = max(0, min(box.x + box.width, ox + ow) - max(box.x, ox))
         overlap_h = max(0, min(box.y + box.height, oy + oh) - max(box.y, oy))
         if overlap_w > 0 and overlap_h > 0:
@@ -708,6 +721,7 @@ def subtitle_qa(
             probed display dimensions.
         overlay_regions: Optional normalized overlay regions for collision checks.
     """
+    _validate_created_by(created_by)
     _validate_project_id(project_id)
     media_path = _validate_input_path(media_path)
     subtitle_path = _validate_input_path(subtitle_path)
@@ -731,6 +745,7 @@ def subtitle_qa(
         qa_subtitle_safe_area(
             cues,
             profile=profile_obj,
+
             project_id=project_id,
             target_id=tid,
             created_by=created_by,

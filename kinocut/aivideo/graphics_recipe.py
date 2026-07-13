@@ -105,10 +105,16 @@ class GraphicsResult(ValueObject):
     layer_artifact_ids: tuple[Sha256, ...]
 
 
-def _mutation_intent(recipe_hash: str) -> MutationIntent:
+def _mutation_intent(
+    recipe_hash: str, authorization_decision_ids: tuple[str, ...] = ()
+) -> MutationIntent:
     """Build the engine-owned EDIT_GRAPHIC dependency footprint for the recipe."""
 
-    return MutationIntent(operation=MutationOperation.EDIT_GRAPHIC, graphic=recipe_hash)
+    return MutationIntent(
+        operation=MutationOperation.EDIT_GRAPHIC,
+        graphic=recipe_hash,
+        authorization_decision_ids=authorization_decision_ids,
+    )
 
 
 def _validate_sha256(value: str, label: str) -> None:
@@ -504,7 +510,9 @@ def compose_graphics_recipe(
     parameter_hash, recipe_hash = _compute_intent(
         source.asset_id, font_hash, validated_layers, canvas_dict, logo_hashes
     )
-    assert_no_protected_collision(project, _mutation_intent(recipe_hash))
+    assert_no_protected_collision(
+        project, _mutation_intent(recipe_hash, authorization_decision_ids)
+    )
     prior = _prior_publication(project, recipe_hash)
     if prior is not None:
         return prior

@@ -16,6 +16,10 @@ VALID_FORMATS = {"mp4", "webm", "gif", "mov", "hevc", "av1", "prores"}
 VALID_AUDIO_FORMATS = {"mp3", "aac", "wav", "ogg", "flac"}
 VALID_PRESETS = {"ultrafast", "fast", "medium", "slow", "veryslow"}
 VALID_CODECS = {"h264", "h265", "vp8", "vp9", "prores", "gif"}
+AUDIO_BED_SAFE_DISPLAY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
+AUDIO_BED_SAFE_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
+AUDIO_BED_SAFE_TOOLCHAIN_KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+
 VALID_XFADE_TRANSITIONS = {
     "fade",
     "dissolve",

@@ -156,6 +156,33 @@ class _FailingSpeaker(SpeakerIdentityProvider):
         raise RuntimeError("speaker model could not load")
 
 
+class _HostileIdFailingSpeaker(SpeakerIdentityProvider):
+    provider_id = "/private/provider/path"
+
+    def identify(self, audio_path: str) -> SpeakerIdentityResult:
+        raise RuntimeError("speaker model could not load")
+
+
+class _RaisingIdSpeaker(SpeakerIdentityProvider):
+    @property
+    def provider_id(self) -> str:
+        raise RuntimeError("provider metadata unavailable")
+
+    def identify(self, audio_path: str) -> SpeakerIdentityResult:
+        raise RuntimeError("speaker model could not load")
+
+
+class _ConstructedHostileResultSpeaker(SpeakerIdentityProvider):
+    provider_id = "test.speaker.hostile_result"
+
+    def identify(self, audio_path: str) -> SpeakerIdentityResult:
+        return SpeakerIdentityResult.model_construct(
+            provider_id="/private/provider/path",
+            availability=SpeakerIdentityAvailability.PROVIDER_FAILED,
+            reason_code="provider_raised_exception",
+        )
+
+
 # --------------------------------------------------------------------------- #
 # 1. EOF clamp before metrics
 # --------------------------------------------------------------------------- #
@@ -430,6 +457,62 @@ def test_voice_seam_speaker_identity_threshold_is_respected(speech_audio):
     loose_codes = {f.code for f in report_loose.findings}
     assert VoiceSeamFindingCode.VOICE_IDENTITY_MISMATCH in strict_codes
     assert VoiceSeamFindingCode.VOICE_IDENTITY_MISMATCH not in loose_codes
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    [
+        {"identity_threshold": float("nan")},
+        {"identity_threshold": -0.1},
+        {"identity_threshold": 1.1},
+        {"pace_bounds": (float("nan"), 240.0)},
+        {"cadence_bounds": (60.0, 5.0)},
+        {"loudness_bounds": (-10.0, -23.0)},
+        {"silence_seam_seconds": float("inf")},
+    ],
+)
+def test_voice_seam_rejects_non_finite_or_unordered_thresholds(
+    speech_audio, kwargs
+):
+    with pytest.raises(MCPVideoError) as exc:
+        analyze_voice_seam(
+            speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0, **kwargs
+        )
+    assert exc.value.code == "invalid_voice_seam_parameter"
+
+
+def test_voice_seam_sanitizes_hostile_provider_id_on_failure(speech_audio):
+    report = analyze_voice_seam(
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
+        speaker_provider=_HostileIdFailingSpeaker(),
+    )
+    assert report.speaker_identity.availability is SpeakerIdentityAvailability.PROVIDER_FAILED
+    assert report.speaker_identity.provider_id == "kinocut.voice_seam.provider_failed"
+
+
+def test_voice_seam_revalidates_constructed_provider_result(speech_audio):
+    report = analyze_voice_seam(
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
+        speaker_provider=_ConstructedHostileResultSpeaker(),
+    )
+    assert report.speaker_identity.availability is SpeakerIdentityAvailability.PROVIDER_FAILED
+    assert report.speaker_identity.provider_id == "test.speaker.hostile_result"
+    assert "/private/provider/path" not in json.dumps(report.model_dump(mode="json"))
+
+
+def test_voice_seam_fails_soft_when_provider_id_property_raises(speech_audio):
+    report = analyze_voice_seam(
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
+        speaker_provider=_RaisingIdSpeaker(),
+    )
+    assert report.speaker_identity.availability is SpeakerIdentityAvailability.PROVIDER_FAILED
+    assert report.speaker_identity.provider_id == "kinocut.voice_seam.provider_failed"
 
 
 # --------------------------------------------------------------------------- #

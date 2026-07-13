@@ -17,6 +17,7 @@ from kinocut.contracts.registry import BedRecord, ClipRecord
 from kinocut.contracts.review import ReviewDecision
 from kinocut.contracts.verdict import ClipVerdict, Disposition
 from kinocut.projectstore import append_record, open_project
+from kinocut.errors import MCPVideoError
 from kinocut.registry import (
     query_approved_clips,
     query_reusable_beds,
@@ -253,12 +254,173 @@ def test_query_deterministic_order(tmp_path):
 
 def test_query_pagination_validation(tmp_path):
     proj = open_project(tmp_path / "proj")
-    with pytest.raises(ValueError):
+    with pytest.raises(MCPVideoError):
         query_approved_clips(proj, limit=0)
-    with pytest.raises(ValueError):
+    with pytest.raises(MCPVideoError):
         query_approved_clips(proj, offset=-1)
-    with pytest.raises(ValueError):
+    with pytest.raises(MCPVideoError):
         query_approved_clips(proj, limit=99999)
+
+
+def test_query_excludes_clip_when_approval_is_superseded(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "1" * 64
+    _seed_asset(proj, asset_id)
+    verdict_id = _seed_verdict(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    _make_clip(proj, asset_id, verdict_id, approval_id)
+    append_record(
+        proj,
+        ReviewDecision(
+            **review_decision_kwargs(
+                project_id=proj.project_id,
+                target_ref=asset_id,
+                decision="reject",
+            ),
+            supersedes=approval_id,
+        ),
+    )
+
+    assert query_approved_clips(proj).total == 0
+
+
+def test_query_excludes_clip_when_verdict_is_superseded(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "2" * 64
+    _seed_asset(proj, asset_id)
+    verdict_id = _seed_verdict(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    _make_clip(proj, asset_id, verdict_id, approval_id)
+    append_record(
+        proj,
+        ClipVerdict(
+            **verdict_kwargs(
+                project_id=proj.project_id,
+                asset_hash=asset_id,
+                disposition=Disposition.REJECTED.value,
+                acceptance_spec_id=_SHA,
+            ),
+            supersedes=verdict_id,
+        ),
+    )
+
+    assert query_approved_clips(proj).total == 0
+
+
+def test_query_uses_only_active_clip_record(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "3" * 64
+    _seed_asset(proj, asset_id)
+    verdict_id = _seed_verdict(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    original = _make_clip(proj, asset_id, verdict_id, approval_id)
+    _make_clip(
+        proj,
+        asset_id,
+        verdict_id,
+        approval_id,
+        rights="restricted",
+        supersedes=original.record_id,
+    )
+
+    assert query_approved_clips(proj).total == 0
+
+
+def test_query_excludes_clip_when_active_asset_rights_are_restricted(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "5" * 64
+    asset = _seed_asset(proj, asset_id)
+    verdict_id = _seed_verdict(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    _make_clip(proj, asset_id, verdict_id, approval_id)
+    append_record(
+        proj,
+        AssetRecord(
+            **asset_record_kwargs(
+                project_id=proj.project_id,
+                asset_id=asset_id,
+                original_location=asset.original_location,
+                usage_rights_status="restricted",
+                lineage=None,
+            ),
+            supersedes=asset.record_id,
+        ),
+    )
+
+    assert query_approved_clips(proj).total == 0
+
+
+def test_query_excludes_clip_when_source_asset_rights_are_restricted(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "7" * 64
+    source_id = "sha256:" + "8" * 64
+    _seed_asset(proj, asset_id)
+    source = _seed_asset(proj, source_id)
+    verdict_id = _seed_verdict(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    _make_clip(
+        proj, asset_id, verdict_id, approval_id, source_asset_id=source_id
+    )
+    append_record(
+        proj,
+        AssetRecord(
+            **asset_record_kwargs(
+                project_id=proj.project_id,
+                asset_id=source_id,
+                original_location=source.original_location,
+                usage_rights_status="restricted",
+                lineage=None,
+            ),
+            supersedes=source.record_id,
+        ),
+    )
+
+    assert query_approved_clips(proj).total == 0
+def test_query_excludes_bed_when_active_asset_rights_are_restricted(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "6" * 64
+    asset = _seed_asset(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    _make_bed(proj, asset_id, approval_id)
+    append_record(
+        proj,
+        AssetRecord(
+            **asset_record_kwargs(
+                project_id=proj.project_id,
+                asset_id=asset_id,
+                original_location=asset.original_location,
+                usage_rights_status="restricted",
+                lineage=None,
+            ),
+            supersedes=asset.record_id,
+        ),
+    )
+
+    assert query_reusable_beds(proj).total == 0
+
+
+
+
+def test_query_excludes_bed_when_approval_is_superseded(tmp_path):
+    proj = open_project(tmp_path / "proj")
+    asset_id = "sha256:" + "4" * 64
+    _seed_asset(proj, asset_id)
+    approval_id = _seed_decision(proj, asset_id)
+    _make_bed(proj, asset_id, approval_id)
+    append_record(
+        proj,
+        ReviewDecision(
+            **review_decision_kwargs(
+                project_id=proj.project_id,
+                target_ref=asset_id,
+                decision="reject",
+            ),
+            supersedes=approval_id,
+
+        ),
+    )
+
+    assert query_reusable_beds(proj).total == 0
 
 
 # ---- Reusable-bed query --------------------------------------------------

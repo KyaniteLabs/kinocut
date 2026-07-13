@@ -172,7 +172,7 @@ exclude = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["kinocut"]
+packages = ["kinocut", "kinocut_sound"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "mcp_video.py" = "mcp_video.py"
@@ -180,6 +180,7 @@ packages = ["kinocut"]
 [tool.hatch.build.targets.sdist]
 only-include = [
     "/kinocut",
+    "/kinocut_sound",
     "/mcp_video.py",
     "/CHANGELOG.md",
     "/docs/MCPB.md",

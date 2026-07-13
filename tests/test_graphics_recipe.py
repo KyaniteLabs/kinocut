@@ -13,12 +13,19 @@ import pytest
 from kinocut.aivideo.graphics_recipe import (
     GraphicsResult,
     compose_graphics_recipe,
+    _mutation_intent,
 )
-from kinocut.aivideo.protection import MutationOperation, protect, touched_dependencies
+from kinocut.aivideo.protection import (
+    MutationOperation,
+    mutation_fingerprint,
+    protect,
+    touched_dependencies,
+)
 from kinocut.contracts.protection import ProtectedElement
+from kinocut.contracts.review import ReviewDecision
 from kinocut.errors import MCPVideoError
-from kinocut.projectstore import ingest_asset, open_project
-from tests.contracts_fixtures import protection_kwargs
+from kinocut.projectstore import append_record, ingest_asset, open_project
+from tests.contracts_fixtures import protection_kwargs, review_decision_kwargs
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -259,6 +266,111 @@ def test_graphics_recipe_uses_edit_graphic_operation_footprint():
     assert {("graphic", fingerprint) for _kind, fingerprint in touched_dependencies(intent)} == {
         ("graphic", value) for _kind, value in touched
     }
+
+
+def test_graphics_recipe_carries_authorization_decision_ids():
+    recipe_hash = "sha256:" + "0" * 64
+    decision_id = "sha256:" + "1" * 64
+    assert _mutation_intent(recipe_hash, (decision_id,)).authorization_decision_ids == (decision_id,)
+
+
+
+def _protect_recipe_with_original(project, recipe_hash):
+    original = append_record(
+        project,
+        ReviewDecision(
+            **review_decision_kwargs(
+                project_id=project.project_id,
+                target_ref=recipe_hash,
+                dependency_fingerprint=recipe_hash,
+            )
+        ),
+    )
+    lock = protect(
+        project,
+        ProtectedElement(
+            **protection_kwargs(
+                project_id=project.project_id,
+                element_type="graphic",
+                dependency_fingerprint=recipe_hash,
+                human_approval_ref=original.record_id,
+            )
+        ),
+    )
+    return lock, original
+
+
+def _graphics_approval(project, recipe_hash, lock, original, **overrides):
+    fingerprint = mutation_fingerprint(_mutation_intent(recipe_hash))
+    values = review_decision_kwargs(
+        project_id=project.project_id,
+        target_ref=fingerprint,
+        dependency_fingerprint=fingerprint,
+        source_record_ids=(lock.record_id, original.record_id),
+    )
+    values.update(overrides)
+    return append_record(project, ReviewDecision(**values))
+
+
+def test_recipe_accepts_fresh_exact_authorization(source, font_path, logo_path):
+    project, asset = source
+    layers = _basic_layers(logo_path)
+    first = compose_graphics_recipe(
+        project, background_asset_id=asset.asset_id, font_path=font_path,
+        layers=layers, canvas=_canvas(),
+    )
+    lock, original = _protect_recipe_with_original(project, first.recipe_hash)
+    approval = _graphics_approval(project, first.recipe_hash, lock, original)
+
+    result = compose_graphics_recipe(
+        project, background_asset_id=asset.asset_id, font_path=font_path,
+        layers=layers, canvas=_canvas(),
+        authorization_decision_ids=(approval.record_id,),
+    )
+    assert result.recipe_hash == first.recipe_hash
+
+
+def test_recipe_rejects_superseded_authorization(source, font_path, logo_path):
+    project, asset = source
+    layers = _basic_layers(logo_path)
+    first = compose_graphics_recipe(
+        project, background_asset_id=asset.asset_id, font_path=font_path,
+        layers=layers, canvas=_canvas(),
+    )
+    lock, original = _protect_recipe_with_original(project, first.recipe_hash)
+    approval = _graphics_approval(project, first.recipe_hash, lock, original)
+    _graphics_approval(
+        project, first.recipe_hash, lock, original,
+        decision="reject", supersedes=approval.record_id,
+    )
+
+    with pytest.raises(MCPVideoError):
+        compose_graphics_recipe(
+            project, background_asset_id=asset.asset_id, font_path=font_path,
+            layers=layers, canvas=_canvas(),
+            authorization_decision_ids=(approval.record_id,),
+        )
+
+
+def test_recipe_rejects_wrong_fingerprint_authorization(source, font_path, logo_path):
+    project, asset = source
+    layers = _basic_layers(logo_path)
+    first = compose_graphics_recipe(
+        project, background_asset_id=asset.asset_id, font_path=font_path,
+        layers=layers, canvas=_canvas(),
+    )
+    lock, original = _protect_recipe_with_original(project, first.recipe_hash)
+    approval = _graphics_approval(
+        project, first.recipe_hash, lock, original,
+        target_ref="sha256:" + "9" * 64,
+        dependency_fingerprint="sha256:" + "9" * 64,
+    )
+    with pytest.raises(MCPVideoError):
+        compose_graphics_recipe(
+            project, background_asset_id=asset.asset_id, font_path=font_path,
+            layers=layers, canvas=_canvas(),
+            authorization_decision_ids=(approval.record_id,),
+        )
 
 
 def test_recipe_collides_with_protected_recipe(source, font_path, logo_path):

@@ -14,23 +14,35 @@ canonicalised for the deterministic receipt hash without mutation risk.
 
 from __future__ import annotations
 
-import re
+
 from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from kinocut.contracts._common import Sha256
-
-# A bounded safe display name: basename only, alphanumerics plus a small set of
-# separator characters. No slashes, no absolute paths, no spaces — a host path
-# or URL simply cannot match this pattern, enforcing privacy structurally.
-_SAFE_DISPLAY_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$")
-
-# Bounded warning codes: alphanumerics plus underscore/hyphen, no prose.
-_SAFE_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_-]{0,63}$")
-
-# Bounded toolchain key.
-_SAFE_TOOLCHAIN_KEY_RE = re.compile(r"^[a-z][a-z0-9_]{0,31}$")
+from kinocut.limits import (
+    MAX_AUDIO_BED_DUCK_ATTACK_MS,
+    MAX_AUDIO_BED_DUCK_RATIO,
+    MAX_AUDIO_BED_DUCK_RELEASE_MS,
+    MAX_AUDIO_BED_DUCK_THRESHOLD,
+    MAX_AUDIO_BED_FADE_SECONDS,
+    MAX_AUDIO_BED_LOOP_CROSSFADE_SECONDS,
+    MAX_AUDIO_BED_MUSIC_VOLUME,
+    MAX_AUDIO_BED_TARGET_LUFS,
+    MIN_AUDIO_BED_DUCK_ATTACK_MS,
+    MIN_AUDIO_BED_DUCK_RATIO,
+    MIN_AUDIO_BED_DUCK_RELEASE_MS,
+    MIN_AUDIO_BED_DUCK_THRESHOLD,
+    MIN_AUDIO_BED_FADE_SECONDS,
+    MIN_AUDIO_BED_LOOP_CROSSFADE_SECONDS,
+    MIN_AUDIO_BED_MUSIC_VOLUME,
+    MIN_AUDIO_BED_TARGET_LUFS,
+)
+from kinocut.validation import (
+    AUDIO_BED_SAFE_CODE_RE,
+    AUDIO_BED_SAFE_DISPLAY_RE,
+    AUDIO_BED_SAFE_TOOLCHAIN_KEY_RE,
+)
 
 
 class AudioBedInput(BaseModel):
@@ -47,7 +59,7 @@ class AudioBedInput(BaseModel):
     @field_validator("display_name")
     @classmethod
     def _safe_display(cls, value: str) -> str:
-        if not _SAFE_DISPLAY_NAME_RE.match(value):
+        if AUDIO_BED_SAFE_DISPLAY_RE.fullmatch(value) is None:
             raise ValueError("display_name must be a bounded basename (no paths or prose)")
         return value
 
@@ -58,14 +70,34 @@ class AudioBedParameters(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
     loop: bool
-    loop_crossfade_seconds: float = Field(ge=0.0, le=30.0)
-    fade_in_seconds: float = Field(ge=0.0, le=30.0)
-    fade_out_seconds: float = Field(ge=0.0, le=30.0)
-    target_lufs: float = Field(ge=-70.0, le=-5.0)
-    duck_threshold: float = Field(gt=0.0, le=1.0)
-    duck_ratio: float = Field(ge=1.0, le=20.0)
-    duck_attack_ms: float = Field(ge=1.0, le=2000.0)
-    duck_release_ms: float = Field(ge=1.0, le=9000.0)
+    music_volume: float = Field(
+        ge=MIN_AUDIO_BED_MUSIC_VOLUME, le=MAX_AUDIO_BED_MUSIC_VOLUME
+    )
+    loop_crossfade_seconds: float = Field(
+        ge=MIN_AUDIO_BED_LOOP_CROSSFADE_SECONDS,
+        le=MAX_AUDIO_BED_LOOP_CROSSFADE_SECONDS,
+    )
+    fade_in_seconds: float = Field(
+        ge=MIN_AUDIO_BED_FADE_SECONDS, le=MAX_AUDIO_BED_FADE_SECONDS
+    )
+    fade_out_seconds: float = Field(
+        ge=MIN_AUDIO_BED_FADE_SECONDS, le=MAX_AUDIO_BED_FADE_SECONDS
+    )
+    target_lufs: float = Field(
+        ge=MIN_AUDIO_BED_TARGET_LUFS, le=MAX_AUDIO_BED_TARGET_LUFS
+    )
+    duck_threshold: float = Field(
+        ge=MIN_AUDIO_BED_DUCK_THRESHOLD, le=MAX_AUDIO_BED_DUCK_THRESHOLD
+    )
+    duck_ratio: float = Field(
+        ge=MIN_AUDIO_BED_DUCK_RATIO, le=MAX_AUDIO_BED_DUCK_RATIO
+    )
+    duck_attack_ms: float = Field(
+        ge=MIN_AUDIO_BED_DUCK_ATTACK_MS, le=MAX_AUDIO_BED_DUCK_ATTACK_MS
+    )
+    duck_release_ms: float = Field(
+        ge=MIN_AUDIO_BED_DUCK_RELEASE_MS, le=MAX_AUDIO_BED_DUCK_RELEASE_MS
+    )
     duration_policy: Literal["keep_video"] = "keep_video"
 
 
@@ -92,7 +124,7 @@ class AudioBedReceipt(BaseModel):
     @field_validator("output_display_name")
     @classmethod
     def _safe_output_display(cls, value: str) -> str:
-        if not _SAFE_DISPLAY_NAME_RE.match(value):
+        if AUDIO_BED_SAFE_DISPLAY_RE.fullmatch(value) is None:
             raise ValueError("output_display_name must be a bounded basename (no paths or prose)")
         return value
 
@@ -100,7 +132,7 @@ class AudioBedReceipt(BaseModel):
     @classmethod
     def _safe_warnings(cls, values: tuple[str, ...]) -> tuple[str, ...]:
         for v in values:
-            if not _SAFE_CODE_RE.match(v):
+            if AUDIO_BED_SAFE_CODE_RE.fullmatch(v) is None:
                 raise ValueError("warning codes must be bounded identifiers")
         return values
 
@@ -108,6 +140,6 @@ class AudioBedReceipt(BaseModel):
     @classmethod
     def _safe_toolchain(cls, values: tuple[tuple[str, str | None], ...]) -> tuple[tuple[str, str | None], ...]:
         for key, _val in values:
-            if not _SAFE_TOOLCHAIN_KEY_RE.match(key):
+            if AUDIO_BED_SAFE_TOOLCHAIN_KEY_RE.fullmatch(key) is None:
                 raise ValueError("toolchain keys must be bounded identifiers")
         return values

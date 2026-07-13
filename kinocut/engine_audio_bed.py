@@ -19,13 +19,18 @@ import json
 import logging
 import math
 import os
-import re
 import tempfile
 import uuid
-from contextlib import suppress
+from contextlib import ExitStack, contextmanager, suppress
 from pathlib import Path
+from collections.abc import Iterator
 from typing import Any
 
+from .audio_bed_validation import (
+    reject_output_alias as _reject_output_alias,
+    validate_audio_bed_params as _validate_audio_bed_params,
+    validation_error as _validation_error,
+)
 from .contracts.audio_bed import AudioBedInput, AudioBedParameters, AudioBedReceipt
 from .defaults import (
     DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
@@ -33,6 +38,9 @@ from .defaults import (
     DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
     DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
     DEFAULT_AUDIO_BED_DURATION_TOLERANCE_SECONDS,
+    DEFAULT_HASH_CHUNK_BYTES,
+    DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+    DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP,
     DEFAULT_AUDIO_BED_FADE_IN,
     DEFAULT_AUDIO_BED_FADE_OUT,
     DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
@@ -53,95 +61,59 @@ from .ffmpeg_helpers import (
     _validate_input_path,
     _validate_output_path,
 )
+from .source_identity import (
+    VerifiedSource,
+    copy_verified_snapshot,
+    stream_source_identity,
+)
 
+from .validation import AUDIO_BED_SAFE_DISPLAY_RE
 logger = logging.getLogger(__name__)
 
-_TRUE_PEAK_DBTP = -1.5
 
 
-# ---------------------------------------------------------------------------
-# Parameter validation
-# ---------------------------------------------------------------------------
-
-
-def _validation_error(message: str, code: str = "invalid_parameter") -> MCPVideoError:
-    return MCPVideoError(message, error_type="validation_error", code=code)
-
-
-def _validate_numeric(
-    value: float, name: str, lo: float, hi: float,
-) -> float:
-    """Validate a numeric parameter is a finite number in [lo, hi]."""
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise _validation_error(f"{name} must be a finite number, got {value!r}", f"invalid_{name}")
-    if value < lo or value > hi:
-        raise _validation_error(f"{name} must be between {lo} and {hi}, got {value}", f"invalid_{name}")
-    return float(value)
-
-
-def _validate_audio_bed_params(
-    *,
-    loop_crossfade: float,
-    fade_in: float,
-    fade_out: float,
-    target_lufs: float,
-    duck_threshold: float,
-    duck_ratio: float,
-    duck_attack: float,
-    duck_release: float,
-    music_volume: float,
-) -> None:
-    """Validate every parameter before touching FFmpeg or the filesystem."""
-    _validate_numeric(loop_crossfade, "loop_crossfade", 0.0, 30.0)
-    _validate_numeric(fade_in, "fade_in", 0.0, 30.0)
-    _validate_numeric(fade_out, "fade_out", 0.0, 30.0)
-    _validate_numeric(target_lufs, "target_lufs", -70.0, -5.0)
-    _validate_numeric(duck_threshold, "duck_threshold", 0.001, 1.0)
-    _validate_numeric(duck_ratio, "duck_ratio", 1.0, 20.0)
-    _validate_numeric(duck_attack, "duck_attack", 1.0, 2000.0)
-    _validate_numeric(duck_release, "duck_release", 1.0, 9000.0)
-    _validate_numeric(music_volume, "music_volume", 0.0, 2.0)
-
-
-# ---------------------------------------------------------------------------
-# Path safety
-# ---------------------------------------------------------------------------
-
-
-def _reject_output_alias(output_path: str, inputs: tuple[str, ...]) -> None:
-    """Reject output paths that resolve to or hardlink an input file."""
-    output_resolved = os.path.realpath(output_path)
-    for src in inputs:
-        if output_resolved == os.path.realpath(src):
-            raise _validation_error("output path aliases an input", "invalid_output_path")
-        if not os.path.exists(output_path):
-            continue
-        try:
-            if os.path.samefile(output_path, src):
-                raise _validation_error("output path aliases an input", "invalid_output_path")
-        except OSError:
-            raise _validation_error("cannot safely verify output identity", "invalid_output_path") from None
-
-
+@contextmanager
+def _verified_audio_sources(
+    voice_source: str, music_path: str, output_path: str
+) -> Iterator[tuple[VerifiedSource, VerifiedSource]]:
+    """Yield immutable descriptors bound to the exact validated source bytes."""
+    voice_identity = stream_source_identity(voice_source)
+    music_identity = stream_source_identity(music_path)
+    with ExitStack() as stack:
+        workspace = stack.enter_context(
+            tempfile.TemporaryDirectory(
+                dir=Path(output_path).parent, prefix=".audio-bed.sources."
+            )
+        )
+        root = Path(workspace)
+        voice = copy_verified_snapshot(
+            voice_source, root / "voice-source", voice_identity
+        )
+        stack.callback(voice.close)
+        music = copy_verified_snapshot(
+            music_path, root / "music-source", music_identity
+        )
+        stack.callback(music.close)
+        yield voice, music
 # ---------------------------------------------------------------------------
 # Probing helpers
 # ---------------------------------------------------------------------------
 
 
-def _has_video_stream(path: str) -> bool:
-    data = _run_ffprobe_json(path)
+def _has_video_stream(path: str, *, pass_fds: tuple[int, ...] = ()) -> bool:
+    data = _run_ffprobe_json(path, pass_fds=pass_fds)
     return any(s.get("codec_type") == "video" for s in data.get("streams", []))
 
 
-def _has_audio_stream(path: str) -> bool:
-    data = _run_ffprobe_json(path)
+def _has_audio_stream(path: str, *, pass_fds: tuple[int, ...] = ()) -> bool:
+    data = _run_ffprobe_json(path, pass_fds=pass_fds)
     return any(s.get("codec_type") == "audio" for s in data.get("streams", []))
 
 
-def _probe_duration(path: str) -> float:
+def _probe_duration(path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
     """Probe a media file's duration using the shared ffprobe helper."""
     try:
-        return _get_video_duration(path)
+        return _get_video_duration(path, pass_fds=pass_fds)
     except (ProcessingError, MCPVideoError):
         raise _validation_error("could not probe source duration", "probe_failed") from None
 
@@ -150,19 +122,13 @@ def _probe_duration(path: str) -> float:
 # Hashing and receipt helpers
 # ---------------------------------------------------------------------------
 
-_HASH_CHUNK = 1024 * 1024
-
-
 def _file_sha256(path: str) -> str:
     """Compute ``sha256:<hex>`` over file bytes."""
     digest = hashlib.sha256()
     with open(path, "rb") as f:
-        while chunk := f.read(_HASH_CHUNK):
+        while chunk := f.read(DEFAULT_HASH_CHUNK_BYTES):
             digest.update(chunk)
     return "sha256:" + digest.hexdigest()
-
-
-_SAFE_DISPLAY_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*")
 
 
 def _safe_display_name(path: str) -> str:
@@ -173,7 +139,7 @@ def _safe_display_name(path: str) -> str:
     never carry an absolute source path.
     """
     base = os.path.basename(path)
-    match = _SAFE_DISPLAY_RE.match(base)
+    match = AUDIO_BED_SAFE_DISPLAY_RE.fullmatch(base)
     if not match:
         return "input"
     return match.group()[:128]
@@ -209,7 +175,7 @@ def _build_duck_filtergraph(
     atk = _n(duck_attack, "duck_attack")
     rel = _n(duck_release, "duck_release")
     lufs = _n(target_lufs, "target_lufs")
-    tp = _n(_TRUE_PEAK_DBTP, "true_peak")
+    tp = _n(DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP, "true_peak")
     lra = _n(DEFAULT_LRA_TARGET, "lra")
     parts = [
         f"[1:a]volume={vol}[bg];",
@@ -236,7 +202,7 @@ def _build_no_duck_filtergraph(
     fade_start = max(0.0, target_duration - fade_out)
     vol = _n(music_volume, "music_volume")
     lufs = _n(target_lufs, "target_lufs")
-    tp = _n(_TRUE_PEAK_DBTP, "true_peak")
+    tp = _n(DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP, "true_peak")
     lra = _n(DEFAULT_LRA_TARGET, "lra")
     pad = "apad," if needs_pad else ""
     chain = (
@@ -331,6 +297,7 @@ def _prepare_looped_bed(
     target_duration: float,
     loop_crossfade: float,
     workspace: Path,
+    pass_fds: tuple[int, ...] = (),
 ) -> str:
     """Generate a crossfaded seamless-loop bed in a cancellation-safe temp file."""
     filter_graph, plays = _build_loop_filtergraph(bed_duration, target_duration, loop_crossfade)
@@ -343,7 +310,8 @@ def _prepare_looped_bed(
             "-t", _n(target_duration, "target_duration"),
             "-c:a", "pcm_s16le",
             str(looped_path),
-        ]
+        ],
+        pass_fds=pass_fds,
     )
     logger.debug("audio_bed: looped bed with %d plays -> %s", plays, looped_path)
     return str(looped_path)
@@ -400,6 +368,7 @@ def _guarded_render(
     loop: bool,
     loop_crossfade: float,
     bed_duration: float,
+    pass_fds: tuple[int, ...] = (),
 ) -> str:
     """Render to a staging file in the output dir, then atomically publish.
 
@@ -418,6 +387,7 @@ def _guarded_render(
             workspace = Path(workspace_dir)
             bed_input = _resolve_bed_input(
                 music_path, bed_duration, target_duration, loop, loop_crossfade, workspace,
+                pass_fds=pass_fds,
             )
             fc = _select_filtergraph(
                 voice_has_audio=voice_has_audio, bed_duration=bed_duration,
@@ -435,7 +405,7 @@ def _guarded_render(
                 filter_complex=fc,
                 map_video=True,
             )
-            _run_ffmpeg(args)
+            _run_ffmpeg(args, pass_fds=pass_fds)
         os.replace(staging, output_path)
         return output_path
     except BaseException:
@@ -451,11 +421,13 @@ def _resolve_bed_input(
     loop: bool,
     loop_crossfade: float,
     workspace: Path,
+    pass_fds: tuple[int, ...] = (),
 ) -> str:
     """Return the bed path to use: looped if needed, otherwise the original."""
     if loop and bed_duration < target_duration and loop_crossfade > 0:
         return _prepare_looped_bed(
             music_path, bed_duration, target_duration, loop_crossfade, workspace,
+            pass_fds=pass_fds,
         )
     return music_path
 
@@ -499,6 +471,8 @@ def _build_receipt(
     *,
     voice_source: str,
     music_path: str,
+    voice_content_sha256: str,
+    music_content_sha256: str,
     output_path: str,
     voice_duration: float,
     bed_duration: float,
@@ -510,6 +484,7 @@ def _build_receipt(
     fade_in: float,
     fade_out: float,
     target_lufs: float,
+    music_volume: float,
     duck_threshold: float,
     duck_ratio: float,
     duck_attack: float,
@@ -519,14 +494,14 @@ def _build_receipt(
     """Build the deterministic edit-receipt from verified render evidence."""
     voice_input = AudioBedInput(
         role="voice_source",
-        content_sha256=_file_sha256(voice_source),
+        content_sha256=voice_content_sha256,
         probed_duration_seconds=voice_duration,
         display_name=_safe_display_name(voice_source),
         has_audio_stream=voice_has_audio,
     )
     music_input = AudioBedInput(
         role="music_bed",
-        content_sha256=_file_sha256(music_path),
+        content_sha256=music_content_sha256,
         probed_duration_seconds=bed_duration,
         display_name=_safe_display_name(music_path),
         has_audio_stream=music_has_audio,
@@ -536,6 +511,7 @@ def _build_receipt(
         loop_crossfade_seconds=loop_crossfade,
         fade_in_seconds=fade_in,
         fade_out_seconds=fade_out,
+        music_volume=music_volume,
         target_lufs=target_lufs,
         duck_threshold=duck_threshold,
         duck_ratio=duck_ratio,
@@ -607,14 +583,16 @@ class _BedProbe:
         self.music_has_audio = music_has_audio
 
 
-def _probe_sources(voice_source: str, music_path: str) -> _BedProbe:
+def _probe_sources(
+    voice_source: str, music_path: str, *, pass_fds: tuple[int, ...] = ()
+) -> _BedProbe:
     """Probe durations and stream topology for both audio-bed sources."""
     return _BedProbe(
-        voice_duration=_probe_duration(voice_source),
-        bed_duration=_probe_duration(music_path),
-        voice_has_audio=_has_audio_stream(voice_source),
-        voice_has_video=_has_video_stream(voice_source),
-        music_has_audio=_has_audio_stream(music_path),
+        voice_duration=_probe_duration(voice_source, pass_fds=pass_fds),
+        bed_duration=_probe_duration(music_path, pass_fds=pass_fds),
+        voice_has_audio=_has_audio_stream(voice_source, pass_fds=pass_fds),
+        voice_has_video=_has_video_stream(voice_source, pass_fds=pass_fds),
+        music_has_audio=_has_audio_stream(music_path, pass_fds=pass_fds),
     )
 
 
@@ -667,6 +645,11 @@ def _finalize_audio_bed(
     *,
     voice_source: str,
     music_path: str,
+    voice_display_path: str,
+    music_display_path: str,
+    voice_content_sha256: str,
+    music_content_sha256: str,
+    pass_fds: tuple[int, ...],
     output_path: str,
     probe: _BedProbe,
     target_duration: float,
@@ -697,6 +680,7 @@ def _finalize_audio_bed(
             fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
             loop=loop, loop_crossfade=loop_crossfade,
             bed_duration=probe.bed_duration,
+            pass_fds=pass_fds,
         )
     try:
         output_duration = _verify_output_duration(
@@ -707,10 +691,13 @@ def _finalize_audio_bed(
             Path(output_path).unlink(missing_ok=True)
         raise
     receipt = _build_receipt(
-        voice_source=voice_source, music_path=music_path, output_path=output_path,
+        voice_source=voice_display_path, music_path=music_display_path,
+        voice_content_sha256=voice_content_sha256,
+        music_content_sha256=music_content_sha256, output_path=output_path,
         voice_duration=probe.voice_duration, bed_duration=probe.bed_duration,
         output_duration=output_duration, voice_has_audio=probe.voice_has_audio,
         music_has_audio=probe.music_has_audio,
+        music_volume=music_volume,
         loop=loop, loop_crossfade=loop_crossfade,
         fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
         duck_threshold=duck_threshold, duck_ratio=duck_ratio,
@@ -748,16 +735,18 @@ def audio_bed(
     duck_ratio: float = DEFAULT_AUDIO_BED_DUCK_RATIO,
     duck_attack: float = DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
     duck_release: float = DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
-    music_volume: float = 1.0,
+    music_volume: float = DEFAULT_AUDIO_BED_MUSIC_VOLUME,
     duration_tolerance: float = DEFAULT_AUDIO_BED_DURATION_TOLERANCE_SECONDS,
     save_receipt: str | None = None,
 ) -> dict[str, Any]:
     """Governed one-shot audio-bed: duck music under voice, normalize, receipt."""
     _validate_audio_bed_params(
+        loop=loop,
         loop_crossfade=loop_crossfade, fade_in=fade_in, fade_out=fade_out,
         target_lufs=target_lufs, duck_threshold=duck_threshold,
         duck_ratio=duck_ratio, duck_attack=duck_attack, duck_release=duck_release,
         music_volume=music_volume,
+        duration_tolerance=duration_tolerance,
     )
     voice_source = _validate_input_path(voice_source)
     music_path = _validate_input_path(music_path)
@@ -765,28 +754,37 @@ def audio_bed(
     _reject_output_alias(output_path, (voice_source, music_path))
     if save_receipt is not None:
         _validate_artifact_path(save_receipt)
-    probe = _probe_sources(voice_source, music_path)
-    if not probe.music_has_audio:
-        raise _validation_error(
-            "music bed must contain an audio stream", "missing_audio_stream",
+    with _verified_audio_sources(voice_source, music_path, output_path) as sources:
+        voice_snapshot, music_snapshot = sources
+        pass_fds = voice_snapshot.pass_fds + music_snapshot.pass_fds
+        probe = _probe_sources(
+            voice_snapshot.path, music_snapshot.path, pass_fds=pass_fds
         )
-    _require_filters(probe.voice_has_audio)
-    target_duration = probe.voice_duration
-    needs_loop = _validate_loop_bounds(
-        probe.bed_duration, target_duration, loop, loop_crossfade,
-    )
-    warnings = _compute_warnings(
-        voice_has_audio=probe.voice_has_audio,
-        bed_duration=probe.bed_duration,
-        target_duration=target_duration, loop=loop,
-    )
-    return _finalize_audio_bed(
-        voice_source=voice_source, music_path=music_path, output_path=output_path,
-        probe=probe, target_duration=target_duration, music_volume=music_volume,
-        duck_threshold=duck_threshold, duck_ratio=duck_ratio,
-        duck_attack=duck_attack, duck_release=duck_release,
-        fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
-        loop=loop, loop_crossfade=loop_crossfade,
-        duration_tolerance=duration_tolerance, save_receipt=save_receipt,
-        warnings=warnings, needs_loop=needs_loop,
-    )
+        if not probe.music_has_audio:
+            raise _validation_error(
+                "music bed must contain an audio stream", "missing_audio_stream",
+            )
+        _require_filters(probe.voice_has_audio)
+        target_duration = probe.voice_duration
+        needs_loop = _validate_loop_bounds(
+            probe.bed_duration, target_duration, loop, loop_crossfade,
+        )
+        warnings = _compute_warnings(
+            voice_has_audio=probe.voice_has_audio,
+            bed_duration=probe.bed_duration,
+            target_duration=target_duration, loop=loop,
+        )
+        return _finalize_audio_bed(
+            voice_source=voice_snapshot.path, music_path=music_snapshot.path,
+            voice_display_path=voice_source, music_display_path=music_path,
+            voice_content_sha256=voice_snapshot.identity.asset_id,
+            music_content_sha256=music_snapshot.identity.asset_id,
+            pass_fds=pass_fds, output_path=output_path,
+            probe=probe, target_duration=target_duration, music_volume=music_volume,
+            duck_threshold=duck_threshold, duck_ratio=duck_ratio,
+            duck_attack=duck_attack, duck_release=duck_release,
+            fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
+            loop=loop, loop_crossfade=loop_crossfade,
+            duration_tolerance=duration_tolerance, save_receipt=save_receipt,
+            warnings=warnings, needs_loop=needs_loop,
+        )
