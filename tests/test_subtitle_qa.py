@@ -756,9 +756,12 @@ def test_qa_platform_profiles_not_hardcoded_in_subtitle_qa():
             for target in node.targets:
                 if isinstance(target, ast.Name) and target.id == "PLATFORM_PROFILES":
                     profile_value = node.value
-        elif isinstance(node, ast.AnnAssign):
-            if isinstance(node.target, ast.Name) and node.target.id == "PLATFORM_PROFILES":
-                profile_value = node.value
+        elif (
+            isinstance(node, ast.AnnAssign)
+            and isinstance(node.target, ast.Name)
+            and node.target.id == "PLATFORM_PROFILES"
+        ):
+            profile_value = node.value
     assert "SUBTITLE_SAFE_AREA_PROFILES" in imported_from_validation, (
         "subtitle_qa must import SUBTITLE_SAFE_AREA_PROFILES from validation"
     )
