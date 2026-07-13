@@ -59,6 +59,22 @@ MIN_VERSION: int = 1                     # ge: positive integer versions
 # --- Text length ---
 MIN_TEXT_LENGTH_CHARS: int = 0           # ge: non-negative character count
 
+# --- Standalone script resource ceilings ---
+MAX_SCRIPT_ACTORS: int = 256
+MAX_SCRIPT_SCENES: int = 512
+MAX_SCRIPT_LINES_PER_SCENE: int = 2048
+MAX_SCRIPT_BEATS_PER_SCENE: int = 2048
+MAX_SCRIPT_TURNS_PER_SCENE: int = 4096
+MAX_SCRIPT_EVENTS_PER_SCENE: int = 4096
+MAX_SCRIPT_TEXT_LENGTH_CHARS: int = 20_000
+MAX_SCRIPT_NAME_LENGTH_CHARS: int = 256
+
+# --- Pure episode-assembly input ceilings ---
+MAX_ASSEMBLY_CLIPS: int = 4096
+MAX_ASSEMBLY_FOLEY_INTENTS: int = 4096
+MAX_ASSEMBLY_SILENCE_INTENTS: int = 4096
+MAX_ASSEMBLY_TIMELINE_CUES: int = 16_384
+
 # --- Resource floors ---
 MIN_RETENTION_DAYS: int = 0              # ge: non-negative retention
 MIN_COST_USD: float = 0.0                # ge: non-negative cost

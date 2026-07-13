@@ -7,6 +7,11 @@
 > [`../status/2026-07-12-ready-units-integration-checkpoint.md`](../status/2026-07-12-ready-units-integration-checkpoint.md)
 > for exact evidence. Unamended open/closed counts below are historical and must not be used as the
 > current completion claim.
+>
+> **Sound amendment:** S1 is merged, and S2 authorization plus S4 generic/WF parsing and pure
+> episode planning are complete on the reviewed 2026-07-13 integration checkpoint. See
+> [`../status/2026-07-13-sound-s2-s4-integration-checkpoint.md`](../status/2026-07-13-sound-s2-s4-integration-checkpoint.md).
+> S3 is the next blocking leaf; the historical sound inventory below is superseded.
 
 **Status:** decision-complete repo-native manifest; audit only — no implementation, push, merge, tag, publish, deploy, or release authorized by this document.
 
@@ -139,20 +144,20 @@ Closed = shipped on `c0032d8` with focused tests. Open = unimplemented, partiall
 
 ### 2.2 Sound (`kinocut_sound`) program
 
-The Sonic World audio-play program is **entirely open**. The design (`docs/superpowers/specs/2026-07-11-kinocut-sound-sonic-world-design.md`) and plan index (`docs/superpowers/plans/2026-07-12-kinocut-sound-plan-index.md`) are decision-complete; no `kinocut_sound/` module exists on this branch. All ten module-sequence leaves in the sound plan index are unstarted:
+The historical statement that this program is entirely open is superseded. Current reviewed state:
 
-1. SoundPlan foundation contracts — open.
-2. Voice providers and profiles — open.
-3. Restoration/post/spatial chain — open.
-4. Script parser and episode assembly — open.
-5. Ambience, Foley, and world-building — open.
-6. Voice consistency and roster management — open.
-7. QA, metadata, loudness, true-peak, provenance — open.
-8. Orchestration, cancellation/resume, caching — open.
-9. Scalability and the representative benchmark — open.
-10. Standalone Python/CLI plus serialized Kinocut/MCP adapters — open.
+- **S1 complete:** standalone plans, timeline, routing, delivery, consent, receipt, capability,
+  format, line, and render-fingerprint contracts.
+- **S2 complete:** authorization ledger, leases, revocation race handling, transitive lineage,
+  privacy-safe audit context, per-source blend/cloud egress, and quarantine/deletion outcomes.
+- **S4 complete:** strict generic/WF parsing and deterministic pure episode planning for dialogue,
+  narration, action, voiceover, chapter cards, beats, pacing, silence, routing, and Foley contracts.
+- **S3 and S5-S15 open:** S3 is next; S5 voice depends on S3 and S4. S7 may proceed after S3;
+  S8 depends on S2, S3, and S4.
 
-Existing bridges that will compose into sound: `kinocut/audio_engine/{core,sequencing,synthesis,spatial,stem}.py`, `kinocut/ai_engine/transcribe.py`, and `kinocut/audio_guardrails.py`. No sound-specific public CLI command or MCP tool is registered; `tests/test_public_surface.py` pins the public surface at 121 CLI commands / 142 MCP tools, none of which are sound-program commands.
+No sound-specific public CLI command or MCP tool is registered. Public parity and concrete host
+binding remain the serialized S12/S13 joins. Existing Kinocut audio bridges remain downstream
+composition targets, not proof that those joins are complete.
 
 ### 2.3 Distribution, C2PA, and post-rescue loops
 
@@ -179,13 +184,16 @@ Wave 8  ◻ review and approval (review package, timestamped decisions, human ga
 Wave 9  ◻ CLI/agent ergonomics (namespaced CLI, agent-mode output, capability discovery, next action, doctor migrations)
 Wave 10 ◻ learning and benchmark (recipe capture, cost ledger, learning report, defect-to-prompt, acceptance benchmark)
 Wave K  ◻ protected-timeline kernel — GATED behind human kernel-gate reconciliation
-Sound   ◻ ten-leaf `kinocut_sound` program — foundation → voice → post/spatial → assembly → ambience →
-            voice-mgmt → QA → orchestration → scalability → adapters → benchmark → Kinocut integration
+Sound   ◻ 15-leaf `kinocut_sound` program — S1/S2/S4 ✓; S3 next → S5/S7/S8 → S6/S9/S10 →
+            S11 QA/metadata → S12 public parity → S13 host joins → S14 benchmark → S15 acceptance
+            (S9 waits for S5+S7+S8; S11 waits for S4+S7+S9)
 ```
 
 **Hard parallelism rule** (from `docs/plans/2026-07-12-wishlist-parallel-execution.md`): at most four disjoint feature authors plus one controller/reviewer. Public-surface joins (MCP registry, CLI parser/dispatch, Python client aggregate surfaces, shared defaults/validation/limits, package exports, public-surface count tests, program ledger) are controller-serialized; one integration at a time.
 
-**Sound program serialization:** sound work cannot be merged into the Kinocut public surface until its own foundation, voice, post/spatial, assembly, ambience, voice-management, QA, orchestration, scalability, and benchmark leaves are individually verified. The Kinocut adapter is the final serialized controller join.
+**Sound program serialization:** the authoritative program has 15 bounded leaves. S12 serializes
+public parity after implemented use cases freeze; S13 then binds Kinocut/WF/legacy hosts before the
+S14 benchmark and S15 final acceptance. The adapter cannot be deferred until after benchmarking.
 
 ## 4. Exact file ownership boundaries
 
@@ -221,7 +229,8 @@ These are the controller-enforced module boundaries for downstream work. An auth
 6. **Wave 8 review/approval** — PRs 8.1 (review package + timestamped decisions + limitation ledger), 8.2 (human gate + generalized approval invalidation).
 7. **Wave 9 CLI/agent ergonomics** — PRs 9.1 (namespaced CLI + agent-mode output) and 9.2 (capability discovery + next action + doctor migrations) parallel after their contracts.
 8. **Wave 10 learning/benchmark** — PR 10.1 (recipe + cost + learning reports) after 6.x and 8.x; PR 10.2 (acceptance benchmark) after all feature waves.
-9. **Sound program** — ten-leaf sequence per §2.2; serialized Kinocut adapter is the final join.
+9. **Sound program** — authoritative 15-leaf graph; S3 next, then S12 public parity and S13 host
+   joins before the S14 benchmark and S15 final acceptance.
 10. **Kernel wave (gated)** — PR K.1 (protected timeline regions + stage reuse) only after explicit human kernel-gate reconciliation; the durable kernel contract named in `docs/plans/2026-07-09-kinocut-trusted-execution-layer.md` must exist first.
 
 ## 6. Per-item acceptance gates
