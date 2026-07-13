@@ -8,6 +8,11 @@ from contextlib import suppress
 from dataclasses import dataclass
 from pathlib import Path
 
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - unavailable on Windows
+    fcntl = None
+
 from kinocut.defaults import DEFAULT_BODY_SWAP_HASH_BUFFER_BYTES
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_input_path
@@ -119,6 +124,40 @@ def _stream_fd_identity(fd: int) -> SourceIdentity:
     return SourceIdentity("sha256:" + digest.hexdigest(), size)
 
 
+def _sealed_snapshot_fd(source_fd: int) -> int:
+    """Copy one descriptor into an immutable memfd when the kernel supports it."""
+
+    os_names = ("memfd_create", "MFD_ALLOW_SEALING")
+    fcntl_names = ("F_ADD_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW", "F_SEAL_SHRINK", "F_SEAL_SEAL")
+    if (
+        fcntl is None
+        or not all(hasattr(os, name) for name in os_names)
+        or not all(hasattr(fcntl, name) for name in fcntl_names)
+    ):
+        raise _identity_error("immutable verified source snapshots are unavailable")
+
+    flags = os.MFD_ALLOW_SEALING | getattr(os, "MFD_CLOEXEC", 0)
+    sealed_fd = os.memfd_create("kinocut-verified-source", flags)
+    try:
+        os.lseek(source_fd, 0, os.SEEK_SET)
+        while chunk := os.read(source_fd, DEFAULT_BODY_SWAP_HASH_BUFFER_BYTES):
+            remaining = memoryview(chunk)
+            while remaining:
+                written = os.write(sealed_fd, remaining)
+                if written <= 0:
+                    raise OSError("verified source snapshot write failed")
+                remaining = remaining[written:]
+        os.fchmod(sealed_fd, 0o400)
+        seals = fcntl.F_SEAL_WRITE | fcntl.F_SEAL_GROW | fcntl.F_SEAL_SHRINK | fcntl.F_SEAL_SEAL
+        fcntl.fcntl(sealed_fd, fcntl.F_ADD_SEALS, seals)
+        os.lseek(sealed_fd, 0, os.SEEK_SET)
+        return sealed_fd
+    except OSError:
+        with suppress(OSError):
+            os.close(sealed_fd)
+        raise
+
+
 def copy_verified_snapshot(source_path: str, destination: Path, expected: SourceIdentity) -> VerifiedSource:
     """Copy, verify, reopen read-only, unlink, and return a held descriptor."""
 
@@ -153,7 +192,11 @@ def copy_verified_snapshot(source_path: str, destination: Path, expected: Source
             after.st_mtime_ns,
             after.st_ctime_ns,
         )
-        held_fd = os.open(destination, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        snapshot_fd = os.open(destination, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        try:
+            held_fd = _sealed_snapshot_fd(snapshot_fd)
+        finally:
+            os.close(snapshot_fd)
         completed = _stream_fd_identity(held_fd)
         if not stable or copied != expected or completed != expected:
             raise _identity_error("source changed while creating verified snapshot")

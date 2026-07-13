@@ -559,10 +559,12 @@ def test_body_swap_renderer_consumes_verified_private_snapshots(
         observed_input = renderer_input
         try:
             writable_fd = os.open(renderer_input, os.O_WRONLY)
+            try:
+                os.write(writable_fd, b"hostile")
+            finally:
+                os.close(writable_fd)
         except OSError:
             rewritable = False
-        else:
-            os.close(writable_fd)
         renamed = Path(str(renderer_input) + ".hostile")
         try:
             renderer_input.rename(renamed)

@@ -80,6 +80,44 @@ def test_verified_snapshot_identity_is_bound_to_exact_returned_fd(monkeypatch, t
     assert not destination.exists()
 
 
+def test_verified_snapshot_fails_closed_without_kernel_seals(monkeypatch, tmp_path):
+    import kinocut.source_identity as identity
+
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"verified-source-bytes")
+    expected = identity.stream_source_identity(str(source))
+    destination = tmp_path / "snapshot.mp4"
+    monkeypatch.setattr(identity, "fcntl", None)
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        identity.copy_verified_snapshot(str(source), destination, expected)
+
+    assert excinfo.value.code == "source_identity_changed"
+    assert not destination.exists()
+
+
+def test_verified_snapshot_is_kernel_write_sealed(tmp_path):
+    fcntl = pytest.importorskip("fcntl")
+    required_os = ("memfd_create", "MFD_ALLOW_SEALING")
+    required_fcntl = ("F_GET_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW", "F_SEAL_SHRINK")
+    if not all(hasattr(os, name) for name in required_os) or not all(hasattr(fcntl, name) for name in required_fcntl):
+        pytest.skip("kernel write seals are unavailable")
+
+    import kinocut.source_identity as identity
+
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"sealed-source-bytes")
+    expected = identity.stream_source_identity(str(source))
+    handle = identity.copy_verified_snapshot(str(source), tmp_path / "snapshot.mp4", expected)
+    try:
+        seals = fcntl.fcntl(handle.fd, fcntl.F_GET_SEALS)
+        assert seals & fcntl.F_SEAL_WRITE
+        assert seals & fcntl.F_SEAL_GROW
+        assert seals & fcntl.F_SEAL_SHRINK
+    finally:
+        handle.close()
+
+
 def test_verified_snapshot_fd_starts_at_zero_and_remains_inheritable(tmp_path):
     import kinocut.source_identity as identity
 

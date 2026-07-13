@@ -320,6 +320,111 @@ def test_real_media_detects_black_frozen_duplicate_and_broken_loop(tmp_path):
     assert findings(result, DefectCode.BROKEN_LOOP)
 
 
+def test_integrity_scan_accepts_ffmpeg5_showinfo_without_duration(monkeypatch):
+    import kinocut.aivideo.inspection.temporal_checks as temporal
+
+    stderr = "\n".join(
+        (
+            "[mpeg2video @ 0x1234] corrupt decoded frame in stream 0",
+            "[Parsed_showinfo_0] n: 2 pts: 18000 pts_time:0.2 pos: 7000",
+        )
+    )
+    completed = subprocess.CompletedProcess(args=(), returncode=0, stdout="", stderr=stderr)
+    monkeypatch.setattr(temporal, "_run_command", lambda *args, **kwargs: completed)
+
+    intervals = temporal._integrity_scan("descriptor-backed-source", 0.3, 0.3)
+
+    assert len(intervals) == 1
+    assert intervals[0].start == 0.2
+    assert intervals[0].end > intervals[0].start
+    assert intervals[0].reason_code == "decode_error"
+
+
+def test_integrity_scan_clamps_missing_duration_at_expected_end(monkeypatch):
+    import kinocut.aivideo.inspection.temporal_checks as temporal
+
+    stderr = "\n".join(
+        (
+            "[mpeg2video @ 0x1234] corrupt decoded frame in stream 0",
+            "[Parsed_showinfo_0] n: 2 pts: 17100 pts_time:0.19 pos: 7000",
+        )
+    )
+    completed = subprocess.CompletedProcess(args=(), returncode=0, stdout="", stderr=stderr)
+    monkeypatch.setattr(temporal, "_run_command", lambda *args, **kwargs: completed)
+
+    intervals = temporal._integrity_scan("descriptor-backed-source", 0.2, 0.2)
+
+    assert len(intervals) == 1
+    assert intervals[0].end == pytest.approx(0.2)
+
+
+def test_integrity_scan_ignores_non_showinfo_timestamps(monkeypatch):
+    import kinocut.aivideo.inspection.temporal_checks as temporal
+
+    stderr = "\n".join(
+        (
+            "[mpeg2video @ 0x1234] corrupt decoded frame in stream 0",
+            "[unrelated] pkt_pts_time:0.2 duration_time:9.0",
+        )
+    )
+    completed = subprocess.CompletedProcess(args=(), returncode=0, stdout="", stderr=stderr)
+    monkeypatch.setattr(temporal, "_run_command", lambda *args, **kwargs: completed)
+
+    intervals = temporal._integrity_scan("descriptor-backed-source", 0.3, 0.3)
+
+    assert intervals == ()
+
+
+@pytest.mark.parametrize(
+    "source_name",
+    (
+        "damaged-client-source.mov",
+        "invalid frame.mov",
+        "corrupt decoded frame.mov",
+        "ac-tex damaged.mov",
+        "header damaged.mov",
+        "slice damaged.mov",
+        "concealing client.mov",
+        "error while decoding.mov",
+    ),
+)
+def test_integrity_scan_ignores_corruption_phrases_in_source_name(monkeypatch, source_name):
+    import kinocut.aivideo.inspection.temporal_checks as temporal
+
+    stderr = "\n".join(
+        (
+            f"Input #0, mov, from '/tmp/{source_name}':",
+            "[Parsed_showinfo_0] n: 0 pts: 0 pts_time:0.0 pos: 1",
+        )
+    )
+    completed = subprocess.CompletedProcess(args=(), returncode=0, stdout="", stderr=stderr)
+    monkeypatch.setattr(temporal, "_run_command", lambda *args, **kwargs: completed)
+
+    intervals = temporal._integrity_scan("descriptor-backed-source", 0.1, 0.1)
+
+    assert intervals == ()
+
+
+@pytest.mark.parametrize(
+    "diagnostic",
+    (
+        "[hls @ 0x1234] Opening /tmp/invalid frame.mov for reading",
+        "[file @ 0x1234] Opening /tmp/header damaged.mov",
+        "[mov @ 0x1234] metadata title=concealing client",
+    ),
+)
+def test_integrity_scan_ignores_marker_phrases_inside_component_context(monkeypatch, diagnostic):
+    import kinocut.aivideo.inspection.temporal_checks as temporal
+
+    stderr = f"{diagnostic}\n[Parsed_showinfo_0] n: 0 pts: 0 pts_time:0.0 pos: 1"
+    completed = subprocess.CompletedProcess(args=(), returncode=0, stdout="", stderr=stderr)
+    monkeypatch.setattr(temporal, "_run_command", lambda *args, **kwargs: completed)
+
+    intervals = temporal._integrity_scan("descriptor-backed-source", 0.1, 0.1)
+
+    assert intervals == ()
+
+
 def test_real_corrupt_media_yields_bounded_privacy_safe_finding(tmp_path):
     source = tmp_path / "damaged-client-source.ts"
     render(

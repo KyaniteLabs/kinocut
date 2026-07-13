@@ -35,11 +35,18 @@ from kinocut.limits import (
 
 _REASON_CODES = frozenset({"decode_error", "missing_frame", "invalid_timestamp"})
 _REGION_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
-_SHOWINFO_TIME_RE = re.compile(r"pts_time:(?P<start>-?[0-9.]+).*duration_time:(?P<duration>[0-9.]+)")
+_SHOWINFO_TIME_RE = re.compile(r"\[Parsed_showinfo_[^]]+].*\bpts_time:(?P<start>-?[0-9.]+)")
+_SHOWINFO_DURATION_RE = re.compile(r"duration_time:(?P<duration>[0-9.]+)")
+_DECODER_COMPONENT_RE = re.compile(r"^\[[^]@]+ @ 0x[0-9a-fA-F]+]\s*(?P<message>.*)$")
+_CORRUPT_DECODED_FRAME_RE = re.compile(r":\s*(?P<message>corrupt decoded frame in stream \d+)\s*$", re.I)
+_STREAM_DECODE_ERROR_RE = re.compile(r"^(?P<message>error while decoding stream #\d+:\d+.*)$", re.I)
 _CORRUPTION_MARKERS = (
     "corrupt decoded frame",
     "error while decoding",
-    "damaged",
+    "ac-tex damaged",
+    "header damaged",
+    "slice damaged",
+    "concealing ",
     "invalid frame",
 )
 logger = logging.getLogger(__name__)
@@ -483,6 +490,14 @@ def _probe_frames(
     )
 
 
+def _decoder_diagnostic_message(line: str) -> str:
+    for pattern in (_DECODER_COMPONENT_RE, _CORRUPT_DECODED_FRAME_RE, _STREAM_DECODE_ERROR_RE):
+        match = pattern.search(line)
+        if match is not None:
+            return match.group("message").lower()
+    return ""
+
+
 def _integrity_scan(path: str, decoded_end: float, expected_end: float) -> tuple[CorruptInterval, ...]:
     command = [
         "ffmpeg",
@@ -504,17 +519,19 @@ def _integrity_scan(path: str, decoded_end: float, expected_end: float) -> tuple
     pending = False
     intervals: list[CorruptInterval] = []
     for line in stderr.splitlines():
-        lowered = line.lower()
-        pending = pending or any(marker in lowered for marker in _CORRUPTION_MARKERS)
+        diagnostic = _decoder_diagnostic_message(line)
+        pending = pending or any(diagnostic.startswith(marker) for marker in _CORRUPTION_MARKERS)
         match = _SHOWINFO_TIME_RE.search(line)
         if pending and match is not None:
             start = float(match.group("start"))
-            duration = float(match.group("duration"))
-            if start >= 0.0 and duration > 0.0:
+            duration_match = _SHOWINFO_DURATION_RE.search(line)
+            duration = float(duration_match.group("duration")) if duration_match is not None else 1.0 / DEFAULT_FPS
+            end = min(start + duration, expected_end)
+            if start >= 0.0 and end > start:
                 intervals.append(
                     CorruptInterval(
                         start=start,
-                        end=start + duration,
+                        end=end,
                         reason_code="decode_error",
                     )
                 )
