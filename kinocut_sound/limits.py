@@ -75,6 +75,13 @@ MAX_ASSEMBLY_FOLEY_INTENTS: int = 4096
 MAX_ASSEMBLY_SILENCE_INTENTS: int = 4096
 MAX_ASSEMBLY_TIMELINE_CUES: int = 16_384
 
+# --- S3 registry, configuration, fingerprint, and cache ceilings ---
+MAX_S3_REGISTRY_ADAPTERS: int = 64
+MAX_S3_PRESETS: int = 64
+MAX_S3_CACHE_ENTRIES: int = 128
+MAX_FINGERPRINT_ITEMS: int = 256
+MAX_FINGERPRINT_VERSION_CHARS: int = 128
+
 # --- Resource floors ---
 MIN_RETENTION_DAYS: int = 0              # ge: non-negative retention
 MIN_COST_USD: float = 0.0                # ge: non-negative cost
