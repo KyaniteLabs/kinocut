@@ -8,6 +8,7 @@ import pytest
 
 from kinocut_sound.authorization import (
     AuthorizationBoundary,
+    AuthorizationContext,
     AuthorizationError,
     ConsentLedger,
     RevocationPolicy,
@@ -44,7 +45,7 @@ def test_blend_requires_voice_blend_operation_on_every_grant() -> None:
     _register(ledger, source_a, source_b, composite)
 
     with pytest.raises(AuthorizationError) as exc_info:
-        ledger.authorize_blend("grant_blend", at_iso=_NOW)
+        ledger.authorize_blend("grant_blend", context=_CONTEXT, at_iso=_NOW)
     assert exc_info.value.code == "grant_scope_denied"
 
 
@@ -136,4 +137,98 @@ def test_wait_expiry_emits_exactly_one_expired_event() -> None:
             actor_id="worker_001",
         )
     assert [event.event for event in ledger.events].count("lease_expired") == 1
+
+
+
+def test_null_operation_context_is_rejected_with_custom_error() -> None:
+    ledger = ConsentLedger(max_lease_seconds=30)
+    _register(ledger, _grant("grant_a"))
+
+    invalid = AuthorizationContext(  # type: ignore[arg-type]
+        operation=None,
+        project_id="project_alpha",
+        character_id="character_a",
+        provider_class="local",
+        territory="US",
+    )
+    with pytest.raises(AuthorizationError) as exc_info:
+        ledger.authorize(
+            AuthorizationBoundary.GENERATION,
+            grant_ids=("grant_a",),
+            context=invalid,
+            at_iso=_NOW,
+        )
+    assert exc_info.value.code == "grant_scope_invalid"
+
+
+def test_omitted_restricted_context_dimension_fails_closed() -> None:
+    ledger = ConsentLedger(max_lease_seconds=30)
+    _register(ledger, _grant("grant_a"))
+
+    omitted_project = AuthorizationContext(
+        operation="voice_clone",
+        character_id="character_a",
+        provider_class="local",
+        territory="US",
+    )
+    with pytest.raises(AuthorizationError) as exc_info:
+        ledger.authorize(
+            AuthorizationBoundary.GENERATION,
+            grant_ids=("grant_a",),
+            context=omitted_project,
+            at_iso=_NOW,
+        )
+    assert exc_info.value.code == "grant_scope_denied"
+
+
+def test_future_issued_live_grant_is_not_yet_authorized() -> None:
+    ledger = ConsentLedger(max_lease_seconds=30)
+    future = _grant("grant_future").model_copy(
+        update={
+            "issue_iso": "2027-01-01T00:00:00Z",
+            "expiry_iso": "2028-01-01T00:00:00Z",
+        }
+    )
+    _register(ledger, future)
+
+    with pytest.raises(AuthorizationError) as exc_info:
+        ledger.authorize(
+            AuthorizationBoundary.EXPORT,
+            grant_ids=("grant_future",),
+            context=_CONTEXT,
+            at_iso=_NOW,
+        )
+    assert exc_info.value.code == "grant_not_yet_valid"
+
+
+def test_blend_rejects_disjoint_source_project_scope() -> None:
+    ledger = ConsentLedger(max_lease_seconds=30)
+    source_a = _grant("grant_a", operations=("voice_blend",))
+    source_b = _grant("grant_b", operations=("voice_blend",)).model_copy(
+        update={
+            "scope": _grant("scope_template").scope.model_copy(
+                update={"project_ids": ("project_beta",)}
+            )
+        }
+    )
+    composite = _grant("grant_blend", operations=("voice_blend",)).model_copy(
+        update={
+            "blend": BlendAuthorization(
+                source_grant_ids=("grant_a", "grant_b"),
+                composite_subject_id="subject_blend",
+            )
+        }
+    )
+    _register(ledger, source_a, source_b, composite)
+
+    context = AuthorizationContext(
+        operation="voice_blend",
+        project_id="project_alpha",
+        character_id="character_a",
+        provider_class="local",
+        territory="US",
+    )
+    with pytest.raises(AuthorizationError) as exc_info:
+        ledger.authorize_blend("grant_blend", context=context, at_iso=_NOW)
+    assert exc_info.value.code == "grant_scope_denied"
 

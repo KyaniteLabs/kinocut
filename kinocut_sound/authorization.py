@@ -502,9 +502,17 @@ class ConsentLedger:
         return outcome
 
     @_locked
-    def authorize_blend(self, blend_grant_id: str, *, at_iso: str) -> tuple[str, ...]:
+    def authorize_blend(
+        self,
+        blend_grant_id: str,
+        *,
+        context: AuthorizationContext,
+        at_iso: str,
+    ) -> tuple[str, ...]:
         """Require the composite grant and every named source grant independently."""
 
+        if context.operation != "voice_blend":
+            raise _authorization_error("blend scope is denied", "grant_scope_denied")
         grant = self.current_grant(blend_grant_id)
         if grant.blend is None:
             raise _authorization_error("blend authorization is missing", "blend_grant_missing")
@@ -512,7 +520,7 @@ class ConsentLedger:
         self._authorize_grants(
             grant_ids,
             at_iso=at_iso,
-            context=AuthorizationContext(operation="voice_blend"),
+            context=context,
         )
         return grant_ids
 
@@ -587,6 +595,8 @@ class ConsentLedger:
             grant = revisions[-1]
             if grant.state is ConsentState.REVOKED:
                 raise _authorization_error("required consent grant is not authorized", "grant_revoked")
+            if now < _parse_time(grant.issue_iso):
+                raise _authorization_error("consent grant is not yet valid", "grant_not_yet_valid")
             if grant.state in {ConsentState.EXPIRED, ConsentState.MISSING} or now >= _parse_time(grant.expiry_iso):
                 code = "grant_missing" if grant.state is ConsentState.MISSING else "grant_expired"
                 raise _authorization_error("required consent grant is not authorized", code)
@@ -597,21 +607,29 @@ class ConsentLedger:
             self._enforce_scope(grant, context)
 
     def _enforce_scope(self, grant: ConsentGrant, context: AuthorizationContext) -> None:
-        requested = (
-            (context.operation, grant.scope.operations),
-            (context.project_id, grant.scope.project_ids),
-            (context.character_id, grant.scope.character_ids),
-            (context.provider_class, grant.scope.provider_classes),
-        )
+        if not isinstance(context, AuthorizationContext) or not isinstance(context.operation, str):
+            raise _authorization_error("consent scope is invalid", "grant_scope_invalid")
         try:
-            denied = any(
-                value is not None and _code(value) not in allowed
-                for value, allowed in requested
+            requested = (
+                (_code(context.operation), grant.scope.operations),
+                (
+                    _code(context.project_id) if context.project_id is not None else None,
+                    grant.scope.project_ids,
+                ),
+                (
+                    _code(context.character_id) if context.character_id is not None else None,
+                    grant.scope.character_ids,
+                ),
+                (
+                    _code(context.provider_class) if context.provider_class is not None else None,
+                    grant.scope.provider_classes,
+                ),
             )
-            if context.territory is not None:
-                denied = denied or _code(context.territory) != grant.scope.territory
+            territory = _code(context.territory) if context.territory is not None else None
         except AuthorizationError as exc:
-            raise _authorization_error("consent scope is denied", "grant_scope_denied") from exc
+            raise _authorization_error("consent scope is invalid", "grant_scope_invalid") from exc
+        denied = any(allowed and (value is None or value not in allowed) for value, allowed in requested)
+        denied = denied or territory is None or territory != grant.scope.territory
         if denied:
             raise _authorization_error("consent scope is denied", "grant_scope_denied")
 

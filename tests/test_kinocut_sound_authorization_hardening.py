@@ -25,7 +25,13 @@ from kinocut_sound.consent import (
 
 _SHA = "sha256:" + "c" * 64
 _NOW = "2026-07-13T12:00:00Z"
-_CONTEXT = AuthorizationContext(operation="voice_clone", provider_class="local", territory="US")
+_CONTEXT = AuthorizationContext(
+    operation="voice_clone",
+    project_id="project_alpha",
+    character_id="character_a",
+    provider_class="local",
+    territory="US",
+)
 
 
 def _grant(

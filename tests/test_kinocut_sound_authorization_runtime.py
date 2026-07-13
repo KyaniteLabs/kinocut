@@ -25,6 +25,9 @@ from kinocut_sound.consent import (
 _SHA = "sha256:" + "b" * 64
 _NOW = "2026-07-13T12:00:00Z"
 _CONTEXT = AuthorizationContext(operation="voice_clone", provider_class="local", territory="US")
+_BLEND_CONTEXT = AuthorizationContext(
+    operation="voice_blend", provider_class="local", territory="US"
+)
 
 
 def _grant(
@@ -231,7 +234,9 @@ def test_blend_and_cloud_egress_require_each_exact_grant_scope() -> None:
         at_iso=_NOW,
         actor_id="reviewer_001",
     )
-    assert ledger.authorize_blend("grant_blend", at_iso=_NOW) == (
+    assert ledger.authorize_blend(
+        "grant_blend", context=_BLEND_CONTEXT, at_iso=_NOW
+    ) == (
         "grant_a",
         "grant_b",
         "grant_blend",
@@ -266,5 +271,9 @@ def test_blend_and_cloud_egress_require_each_exact_grant_scope() -> None:
         actor_id="reviewer_001",
     )
     with pytest.raises(AuthorizationError) as exc_info:
-        ledger.authorize_blend("grant_blend", at_iso="2026-07-13T12:00:11Z")
+        ledger.authorize_blend(
+            "grant_blend",
+            context=_BLEND_CONTEXT,
+            at_iso="2026-07-13T12:00:11Z",
+        )
     assert exc_info.value.code == "grant_revoked"
