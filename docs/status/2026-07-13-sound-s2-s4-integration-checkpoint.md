@@ -2,7 +2,7 @@
 
 **Snapshot date:** 2026-07-13
 
-**Reviewed implementation tip:** 7234b9b
+**Reviewed implementation tip:** 006a50b
 
 **State:** integrated and verified on Niko; independently approved; unreleased
 
@@ -49,32 +49,34 @@ The new standalone planning path provides:
 - source-order cue spotting, pacing, designed silence, routing intent, and Foley cue contracts;
 - exact clip-set and timeline/artifact integrity with all-or-nothing cancellation;
 - constructed-model and hostile runtime-type revalidation at public Python boundaries; and
-- enforced actor/scene/line/beat/turn/event/text resource ceilings, including generator inputs.
+- enforced actor/scene/line/beat/turn/event/text resource ceilings, including bounded generators
+  and caller-controlled mappings counted by their actual yielded entries;
+- privacy-safe custom-error normalization for unexpected iterable and mapping traversal failures.
 
-The exact reviewed author tip was d49d842. Its independently reviewed sequence, including the
-controller-owned limit/export joins, was replayed onto integration as 89bc196 through 7234b9b.
+The final independently reviewed author tip was 1e44aed. Its reviewed sequence, including the
+controller-owned limit/export joins and two adversarial boundary-remediation rounds, was replayed
+onto integration as 89bc196 through 006a50b.
 
 ## Verification receipt
 
-- Combined focused S2/S4/centralization integration suite: **115 passed**.
-- All kinocut_sound tests on the combined tip: **219 passed**.
-- Serialized full repository suite on 7234b9b: **3606 passed, 18 skipped, 8 warnings in
-  678.37s**.
+- All kinocut_sound tests on the combined tip: **237 passed**.
+- Serialized full repository suite on 006a50b: **3624 passed, 18 skipped, 8 warnings in 611.90s**.
 - Canonical compatibility import: pass.
 - Ruff on kinocut_sound and its tests: pass.
 - Git diff check: pass.
 - Focused leak/credential scans: pass.
 - S2 independent review: **APPROVE / ARCHITECTURE CLEAR**.
 - S4 independent review: **APPROVE / CLEAR**.
-- Module limits: authorization.py 783 LOC, script_parser.py 799 LOC, episode_assembly.py 412 LOC;
-  no changed function exceeds 80 lines.
+- Module limits: authorization.py 783 LOC, script_parser.py 795 LOC, episode_assembly.py 437 LOC,
+  and _input_bounds.py 80 LOC; no changed function exceeds 80 lines.
 
 All leaf and review-remediation estimates recorded actuals through the latest installed Epoch
 runtime. Key feedback receipts include:
 
 - S2 author/hardening: d26477d2, a8a3b180, cfbdba28, 775eaaa9;
-- S4 author/hardening: 928e1973, 97f45695, b162ffec, f9b8614e, da6c9971, e1a73a93, 3565440e; and
-- controller limit/export joins: 2a6bd734, 915973b4.
+- S4 author/hardening: 928e1973, 97f45695, b162ffec, f9b8614e, da6c9971, e1a73a93,
+  3565440e, 85120e20, and 2db63917; and
+- controller limit/export joins: 2a6bd734, 915973b4, and 686408d3.
 
 ## Deliberate boundaries and next dependency
 
