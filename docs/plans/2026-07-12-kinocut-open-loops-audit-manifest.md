@@ -53,7 +53,7 @@ The draft PR status (`docs/status/2026-07-12-wishlist-draft-pr-status.md`) and t
 
 ### 1.4 Wave 3 PR unblock sequence
 
-§1.1, §1.2, and §1.3 are closed on `codex/niko-close-open-loops`. The integration order was 1.2 (`c80c579`) → 1.3 (`a3b51fc`) → 1.1 (`345c2dc`) → resolver (`7d16d52`). Each unit landed as one TDD commit on the Wave 3 follow-up branch off `c0032d8`. The whole gate ran on the reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`): architecture APPROVE (279 focused pass), security CLEAR (102 + 57 focused pass), whole suite 3088 passed, 18 skipped, 8 warnings, 552.04s. The import/diff/forbidden/readiness/leak gates are recorded as pass. This is a merge-ready bounded checkpoint; it is not release-ready, publish-ready, or deploy-ready.
+G006 sections 1.1, 1.2, and 1.3 are closed on `codex/niko-close-open-loops`. The integration order was 1.2 (`c80c579`) → 1.3 (`a3b51fc`) → 1.1 (`345c2dc`) → resolver (`7d16d52`). The audit snapshot was `c0032d8`; the remediation sequence was integrated onto canonical base `4b3a8af`, not branched from the audit snapshot. The whole gate ran on the reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`): architecture APPROVE (279 focused pass), security CLEAR (102 + 57 focused pass), whole suite 3088 passed, 18 skipped, 8 warnings, 552.04s. The import/diff/forbidden/readiness/leak gates are recorded as pass. This is a merge-ready bounded checkpoint; it is not release-ready, publish-ready, or deploy-ready.
 
 ## 2. Closed versus open items (program inventory)
 
@@ -247,7 +247,7 @@ After the open items close, the controller must publish a final coverage matrix,
 
 ## 8. Audit unblock checklist (controller)
 
-- [x] Wave 3 follow-up branch off `c0032d8` closes §1.1, §1.2, §1.3 in TDD order (`c80c579`, `a3b51fc`, `345c2dc`, `7d16d52` on `codex/niko-close-open-loops`).
+- [x] Wave 3 remediation closes G006 sections 1.1, 1.2, and 1.3 in TDD order (`c80c579`, `a3b51fc`, `345c2dc`, `7d16d52` on `codex/niko-close-open-loops`), using `c0032d8` as the audit snapshot and `4b3a8af` as the canonical integration base.
 - [x] `docs/status/2026-07-12-wishlist-draft-pr-status.md` and `docs/proofs/wishlist-draft/VERIFICATION_RECEIPT.md` updated with the reviewed implementation tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`), exact test counts, and the review verdicts (architecture APPROVE, security CLEAR).
 - [x] Whole-gate checklist complete on the reviewed implementation tip: 3088 passed, 18 skipped, 8 warnings, 552.04s; architecture 279 focused pass; security 102 + 57 focused pass; body-swap focused 22 (not 24); import/diff/forbidden/readiness/leak gates as recorded.
 - [ ] Public-surface counts in `tests/test_public_surface.py` revisited only when a new Wave lands new commands/tools (none authorized by this manifest).

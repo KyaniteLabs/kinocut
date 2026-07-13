@@ -77,7 +77,7 @@ dependency graph, ownership boundaries, merge order, and final stop-before-relea
 
 ## Review rules for this draft
 
-1. Treat the PR as an umbrella snapshot for early review; do not merge it as one giant unit.
+1. Merge this bounded Wave 3 checkpoint only after its exact-tip gates pass; keep every follow-on wave in a separate reviewed change unit.
 2. Split follow-on implementation into bounded, independently reviewed change units.
 3. Keep controller-owned public registries, schemas, defaults, CLI dispatch, and documentation
    joins serialized.
