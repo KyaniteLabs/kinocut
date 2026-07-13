@@ -6,6 +6,17 @@ import pytest
 from pydantic import ValidationError
 
 from kinocut_sound.lines import Emotion, ProfileRef, Prosody
+from kinocut_sound import episode_assembly as assembly
+from kinocut_sound.limits import (
+    MAX_SCRIPT_ACTORS,
+    MAX_SCRIPT_BEATS_PER_SCENE,
+    MAX_SCRIPT_EVENTS_PER_SCENE,
+    MAX_SCRIPT_LINES_PER_SCENE,
+    MAX_SCRIPT_SCENES,
+    MAX_SCRIPT_TEXT_LENGTH_CHARS,
+    MAX_SCRIPT_TURNS_PER_SCENE,
+)
+
 from kinocut_sound import script_parser as parser
 
 
@@ -402,6 +413,153 @@ def test_parsed_script_rejects_source_event_order_contradictions(defect):
         beat_event = payload["events"].pop(1)
         payload["events"].insert(0, beat_event)
         payload["scenes"][0]["event_ids"] = [item["event_id"] for item in payload["events"]]
+
+    with pytest.raises(ValidationError):
+        parser.ParsedScript.model_validate(payload)
+
+
+def _limit_line(text="Line"):
+    return {
+        "actor_id": "actor_0000",
+        "text": text,
+        "kind": "dialogue",
+        "pause_after_seconds": 0.0,
+    }
+
+
+def _limit_beat():
+    return {
+        "kind": "pace",
+        "text": "Beat",
+        "after_line_index": 1,
+        "duration_seconds": 0.1,
+    }
+
+
+@pytest.mark.parametrize(
+    "ceiling",
+    ["actor", "scene", "line", "beat", "turn", "event", "text"],
+)
+def test_every_exported_script_resource_ceiling_rejects_with_custom_error(ceiling):
+    actor = _actor("actor_0000", "voice_a")
+    actors = (actor,)
+    document = {
+        "episode_id": "episode_limits",
+        "scenes": [
+            {
+                "scene_id": "scene_0000",
+                "pause_after_seconds": 0.0,
+                "lines": [_limit_line()],
+            }
+        ],
+    }
+    if ceiling == "actor":
+        actors = tuple(_actor(f"actor_{index:04d}", "voice_a") for index in range(MAX_SCRIPT_ACTORS + 1))
+    elif ceiling == "scene":
+        document["scenes"] = [
+            {
+                "scene_id": f"scene_{index:04d}",
+                "pause_after_seconds": 0.0,
+                "lines": [_limit_line()],
+            }
+            for index in range(MAX_SCRIPT_SCENES + 1)
+        ]
+    elif ceiling == "line":
+        document["scenes"][0]["lines"] = [_limit_line() for _ in range(MAX_SCRIPT_LINES_PER_SCENE + 1)]
+    elif ceiling == "beat":
+        document["scenes"][0]["beats"] = [_limit_beat() for _ in range(MAX_SCRIPT_BEATS_PER_SCENE + 1)]
+    elif ceiling == "event":
+        document["scenes"][0]["lines"] = [_limit_line() for _ in range(MAX_SCRIPT_LINES_PER_SCENE)]
+        beat_count = MAX_SCRIPT_EVENTS_PER_SCENE - MAX_SCRIPT_LINES_PER_SCENE + 1
+        document["scenes"][0]["beats"] = [_limit_beat() for _ in range(beat_count)]
+    elif ceiling == "text":
+        document["scenes"][0]["lines"][0]["text"] = "x" * (MAX_SCRIPT_TEXT_LENGTH_CHARS + 1)
+    else:
+        wf_document = {
+            "episode_id": "wf_limits",
+            "scenes": [
+                {
+                    "scene_id": "wf_scene",
+                    "turns": [
+                        {
+                            "character": "Narrator",
+                            "text": "Chapter",
+                            "confessional": False,
+                        }
+                        for _ in range(MAX_SCRIPT_TURNS_PER_SCENE + 1)
+                    ],
+                }
+            ],
+        }
+        with pytest.raises(parser.ScriptParseError):
+            parser.parse_wf_episode_script(
+                wf_document,
+                project_id="project_alpha",
+                created_by="agent:worker_1",
+                actors=(),
+                character_routes={},
+                narrator_character="Narrator",
+            )
+        return
+
+    with pytest.raises(parser.ScriptParseError):
+        parser.parse_episode_script(
+            document,
+            project_id="project_alpha",
+            created_by="agent:worker_1",
+            actors=actors,
+        )
+
+
+@pytest.mark.parametrize(
+    "character_routes",
+    [object(), {1: "actor_a"}, {"Alice": 1}],
+)
+def test_wf_character_routes_runtime_types_are_bounded_custom_errors(character_routes):
+    document = {
+        "episode_id": "wf_routes",
+        "scenes": [
+            {
+                "scene_id": "wf_scene",
+                "turns": [{"character": "Alice", "text": "Hello.", "confessional": False}],
+            }
+        ],
+    }
+
+    with pytest.raises(parser.ScriptParseError):
+        parser.parse_wf_episode_script(
+            document,
+            project_id="project_alpha",
+            created_by="agent:worker_1",
+            actors=(_actor("actor_a", "voice_a"),),
+            character_routes=character_routes,
+            narrator_character="Narrator",
+        )
+
+
+def _rename_beat_id(payload, new_id):
+    old_id = payload["beats"][0]["beat_id"]
+    payload["beats"][0]["beat_id"] = new_id
+    next(item for item in payload["events"] if item["event_id"] == old_id)["event_id"] = new_id
+    scene_event_ids = payload["scenes"][0]["event_ids"]
+    scene_event_ids[scene_event_ids.index(old_id)] = new_id
+
+
+@pytest.mark.parametrize("collision", ["line_cue_beat", "line_pause_beat", "scene_pause_beat"])
+def test_parsed_script_rejects_every_timeline_emitting_id_collision(collision):
+    payload = _generic_parsed().model_dump(mode="json")
+    if collision == "line_cue_beat":
+        beat_id = payload["beats"][0]["beat_id"]
+        payload["parsed_lines"][0]["cue_id"] = beat_id
+        payload["cue_order"][0] = beat_id
+    elif collision == "line_pause_beat":
+        payload["parsed_lines"][0]["pause_after_seconds"] = 0.5
+        line_id = payload["parsed_lines"][0]["line"]["line_id"]
+        _rename_beat_id(payload, assembly._bounded_pause_cue_id("line", line_id))
+    else:
+        payload["scenes"][0]["pause_after_seconds"] = 0.5
+        scene_id = payload["scenes"][0]["scene_id"]
+        _rename_beat_id(payload, assembly._bounded_pause_cue_id("scene", scene_id))
 
     with pytest.raises(ValidationError):
         parser.ParsedScript.model_validate(payload)

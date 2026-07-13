@@ -7,7 +7,6 @@ an authoritative timeline and explicit routing plan.
 
 from __future__ import annotations
 
-import base64
 from typing import Literal
 
 from pydantic import Field, ValidationError, field_validator, model_validator
@@ -18,7 +17,6 @@ from kinocut_sound._canonical import (
     FrozenModel,
     RecordBase,
     Sha256,
-    canonical_digest,
     canonical_record_id,
     location_violation,
 )
@@ -27,6 +25,10 @@ from kinocut_sound._model_boundary import (
     dump_revalidate_model,
     dump_revalidate_tuple,
 )
+from kinocut_sound._timeline_identity import (
+    bounded_pause_cue_id as _bounded_pause_cue_id,
+)
+
 from kinocut_sound.lines import ProfileRef
 from kinocut_sound.limits import MIN_TIME_SECONDS
 from kinocut_sound.script_parser import (
@@ -238,12 +240,6 @@ def _line_route(item: ParsedLine) -> AssemblyRoute:
     )
 
 
-def _bounded_pause_cue_id(kind: str, source_id: str) -> str:
-    digest = canonical_digest({"kind": kind, "source_id": source_id}).removeprefix("sha256:")
-    token = base64.b32encode(bytes.fromhex(digest)).decode("ascii").rstrip("=").lower()
-    return f"pause_{token}"
-
-
 def _append_beat(beat: ParsedBeat, current: float, cues: list[Cue]) -> float:
     if beat.kind == BeatKind.FOLEY:
         if beat.asset_ref is None:
@@ -278,7 +274,7 @@ def _plan_line_extras(
     if item.pause_after_seconds > MIN_TIME_SECONDS:
         current = _append_cue(
             cues,
-            cue_id=f"pause_{item.line.line_id}",
+            cue_id=_bounded_pause_cue_id("line", item.line.line_id),
             start_seconds=current,
             duration_seconds=item.pause_after_seconds,
             kind=CueKind.SILENCE,

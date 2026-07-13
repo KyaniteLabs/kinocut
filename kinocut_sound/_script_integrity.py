@@ -5,6 +5,8 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
+from kinocut_sound._timeline_identity import timeline_emitting_ids
+
 
 def validate_target_id_uniqueness(
     *,
@@ -29,6 +31,9 @@ def validate_script_relationships(
     events: Sequence[Any],
 ) -> None:
     """Reject cross-object ownership and event-type inconsistencies."""
+    cue_ids = timeline_emitting_ids(scenes=scenes, parsed_lines=parsed_lines, beats=beats)
+    if len(cue_ids) != len(set(cue_ids)):
+        raise ValueError("timeline-emitting ids must be globally unique")
     targets = {item.line.line_id: ("line", item.scene_id) for item in parsed_lines}
     targets.update({item.beat_id: ("beat", item.scene_id) for item in beats})
     targets.update({item.chapter_id: ("chapter_card", item.scene_id) for item in chapter_cards})

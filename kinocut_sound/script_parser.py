@@ -23,11 +23,15 @@ from kinocut_sound._canonical import (
     location_violation,
 )
 from kinocut_sound._errors import SoundContractError
-from kinocut_sound._model_boundary import dump_revalidate_index
+from kinocut_sound._model_boundary import (
+    dump_revalidate_index,
+    validate_string_mapping,
+)
 from kinocut_sound._script_integrity import (
     validate_script_relationships,
     validate_target_id_uniqueness,
 )
+from kinocut_sound._script_resource_limits import script_limit_violation
 from kinocut_sound.lines import Emotion, Line, ProfileRef, Prosody
 from kinocut_sound.limits import MIN_TEXT_LENGTH_CHARS, MIN_TIME_SECONDS, MIN_VERSION
 
@@ -602,6 +606,8 @@ def parse_episode_script(
 ) -> ParsedScript:
     """Parse structured episode data into a canonical, privacy-safe record."""
 
+    if script_limit_violation(document):
+        raise _parse_error("script exceeds a named resource ceiling", "invalid_script")
     try:
         actor_map = dump_revalidate_index(actors, ActorRoute, "actor_id")
     except (AttributeError, TypeError, ValueError, ValidationError) as exc:
@@ -736,6 +742,8 @@ def parse_wf_episode_script(
 ) -> ParsedScript:
     """Parse bounded WF scenes and turns while retaining narrator cards as metadata."""
 
+    if script_limit_violation(document, wf=True):
+        raise _parse_error("WF script exceeds a named resource ceiling", "invalid_script")
     if (
         not isinstance(narrator_character, str)
         or not narrator_character.strip()
@@ -744,6 +752,7 @@ def parse_wf_episode_script(
         raise _parse_error("WF narrator character is invalid", "invalid_script")
     try:
         actor_map = dump_revalidate_index(actors, ActorRoute, "actor_id")
+        character_routes = validate_string_mapping(character_routes)
     except (AttributeError, TypeError, ValueError, ValidationError) as exc:
         raise _parse_error("actor roster failed strict validation", "invalid_actor_roster") from exc
 
