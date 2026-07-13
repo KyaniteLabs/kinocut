@@ -14,8 +14,8 @@ from unittest import mock
 
 import pytest
 
-from mcp_video.aesthetic import smart_thumbnail
-from mcp_video.aesthetic.smart_thumbnail import (
+from kinocut.aesthetic import smart_thumbnail
+from kinocut.aesthetic.smart_thumbnail import (
     _default_timestamp,
     find_best_thumbnail_timestamp,
 )
@@ -51,13 +51,13 @@ class TestFallbackToDefault:
     """NIMA-unavailable and failure paths must always return 10% of duration."""
 
     def test_falls_back_to_10pct_when_nima_unavailable(self, fake_video):
-        with _patch_duration(), mock.patch("mcp_video.aesthetic.is_available", return_value=False):
+        with _patch_duration(), mock.patch("kinocut.aesthetic.is_available", return_value=False):
             ts = find_best_thumbnail_timestamp(fake_video)
         assert ts == pytest.approx(DURATION * 0.1)
 
     def test_falls_back_for_short_video(self, fake_video):
         """Videos below DEFAULT_NIMA_MIN_DURATION skip smart selection."""
-        with _patch_duration(2.0), mock.patch("mcp_video.aesthetic.is_available", return_value=True):
+        with _patch_duration(2.0), mock.patch("kinocut.aesthetic.is_available", return_value=True):
             ts = find_best_thumbnail_timestamp(fake_video)
         assert ts == pytest.approx(2.0 * 0.1)
 
@@ -67,8 +67,8 @@ class TestFallbackToDefault:
         scorer.score_frames.side_effect = RuntimeError("model blew up")
         with (
             _patch_duration(),
-            mock.patch("mcp_video.aesthetic.is_available", return_value=True),
-            mock.patch("mcp_video.aesthetic.NimaScorer") as nima_cls,
+            mock.patch("kinocut.aesthetic.is_available", return_value=True),
+            mock.patch("kinocut.aesthetic.NimaScorer") as nima_cls,
             mock.patch.object(smart_thumbnail, "_run_ffmpeg", side_effect=_make_frame_writer()),
         ):
             nima_cls.get.return_value = scorer
@@ -80,8 +80,8 @@ class TestFallbackToDefault:
 
         with (
             _patch_duration(),
-            mock.patch("mcp_video.aesthetic.is_available", return_value=True),
-            mock.patch("mcp_video.aesthetic.NimaScorer"),
+            mock.patch("kinocut.aesthetic.is_available", return_value=True),
+            mock.patch("kinocut.aesthetic.NimaScorer"),
             mock.patch.object(smart_thumbnail, "_run_ffmpeg", side_effect=ProcessingError("ff", 1, "x")),
         ):
             ts = find_best_thumbnail_timestamp(fake_video)
@@ -121,8 +121,8 @@ class TestFrameSelection:
 
         with (
             _patch_duration(),
-            mock.patch("mcp_video.aesthetic.is_available", return_value=True),
-            mock.patch("mcp_video.aesthetic.NimaScorer") as nima_cls,
+            mock.patch("kinocut.aesthetic.is_available", return_value=True),
+            mock.patch("kinocut.aesthetic.NimaScorer") as nima_cls,
             mock.patch.object(smart_thumbnail, "_run_ffmpeg", side_effect=_make_frame_writer()),
         ):
             nima_cls.get.return_value = scorer
@@ -157,8 +157,8 @@ class TestFrameSelection:
 
         with (
             _patch_duration(),
-            mock.patch("mcp_video.aesthetic.is_available", return_value=True),
-            mock.patch("mcp_video.aesthetic.NimaScorer") as nima_cls,
+            mock.patch("kinocut.aesthetic.is_available", return_value=True),
+            mock.patch("kinocut.aesthetic.NimaScorer") as nima_cls,
             mock.patch.object(smart_thumbnail, "_run_ffmpeg", side_effect=flaky_run),
         ):
             nima_cls.get.return_value = scorer
@@ -184,8 +184,8 @@ class TestFrameSelection:
 
         with (
             _patch_duration(),
-            mock.patch("mcp_video.aesthetic.is_available", return_value=True),
-            mock.patch("mcp_video.aesthetic.NimaScorer") as nima_cls,
+            mock.patch("kinocut.aesthetic.is_available", return_value=True),
+            mock.patch("kinocut.aesthetic.NimaScorer") as nima_cls,
             mock.patch.object(smart_thumbnail, "_run_ffmpeg", side_effect=tracking_writer),
         ):
             nima_cls.get.return_value = scorer
@@ -201,7 +201,7 @@ class TestInputValidation:
         with (
             mock.patch.object(smart_thumbnail, "_validate_input_path", wraps=lambda p: p) as validated,
             _patch_duration(),
-            mock.patch("mcp_video.aesthetic.is_available", return_value=False),
+            mock.patch("kinocut.aesthetic.is_available", return_value=False),
         ):
             find_best_thumbnail_timestamp(fake_video)
         validated.assert_called_once_with(fake_video)
@@ -235,7 +235,7 @@ class TestEngineIntegration:
         """An explicit timestamp must skip the smart-selection path entirely."""
         from mcp_video.engine_thumbnail import thumbnail
 
-        with mock.patch("mcp_video.aesthetic.smart_thumbnail.find_best_thumbnail_timestamp") as smart:
+        with mock.patch("kinocut.aesthetic.smart_thumbnail.find_best_thumbnail_timestamp") as smart:
             result = thumbnail(sample_video, timestamp=1.0)
         smart.assert_not_called()
         assert result.timestamp == 1.0
