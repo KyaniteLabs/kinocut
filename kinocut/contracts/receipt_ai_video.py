@@ -51,45 +51,6 @@ def _strict_contract_version(value: Any) -> Any:
         raise ValueError("contract_version must be the integer 1")
     return value
 
-# A bounded identifier: alphanumeric start, then alnum / underscore / dot /
-# colon / hyphen, up to 64 chars. No spaces, slashes, or control characters —
-# arbitrary prose and host paths simply cannot match.
-_CODE_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9_.:-]{0,63}$")
-
-
-def _reject_non_code(value: str) -> str:
-    """Field-validator body: require a bounded code, not prose or a path."""
-
-    if not _CODE_RE.match(value):
-        raise ValueError("value must be a bounded code (no spaces, paths, URLs, or prose)")
-    return value
-
-
-def _reject_non_codes(values: tuple[str, ...]) -> tuple[str, ...]:
-    """Field-validator body for a tuple of bounded codes."""
-
-    for value in values:
-        _reject_non_code(value)
-    return values
-
-
-def _strict_contract_version(value: Any) -> Any:
-    """Reject coerced versions (``True``, ``1.0``, ``"1"``) before the literal."""
-
-    if isinstance(value, bool) or not isinstance(value, int):
-        raise ValueError("contract_version must be the integer 1")
-    return value
-
-
-def _strict_number(value: Any) -> Any:
-    """Reject non-numeric (e.g. string ``"1.0"``) or boolean time/duration values."""
-
-    if value is None:
-        return value
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise ValueError("time/duration must be a number, not a string or boolean")
-    return value
-
 
 def _strict_number(value: Any) -> Any:
     """Reject non-numeric (e.g. string ``"1.0"``) or boolean time/duration values."""

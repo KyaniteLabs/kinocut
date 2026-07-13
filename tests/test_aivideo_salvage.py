@@ -22,7 +22,7 @@ from kinocut.contracts.review import ReviewDecision
 from kinocut.engine_body_swap import _audio_fingerprint
 from kinocut.engine_probe import probe
 from kinocut.errors import MCPVideoError
-from kinocut.projectstore import append_record, ingest_asset, open_project, read_records
+from kinocut.projectstore import Project, append_record, ingest_asset, open_project, read_records
 from tests.contracts_fixtures import protection_kwargs, review_decision_kwargs
 
 _ACCEPTANCE_SPEC = "sha256:" + "a" * 64
@@ -893,7 +893,7 @@ def test_stale_authorization_ref_fails_closed_after_supersession(source):
 def test_new_protected_lock_blocks_idempotent_replay(source):
     """A protected element added after render blocks replay (fresh approval needed)."""
 
-    project, original, source_path = source
+    project, original, _source_path = source
     kwargs = dict(
         source_asset_id=original.asset_id,
         recipe="still_frame",
