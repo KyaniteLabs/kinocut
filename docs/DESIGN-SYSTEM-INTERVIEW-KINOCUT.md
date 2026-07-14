@@ -4,7 +4,7 @@
 **Site:** https://kinocut.dev/  
 **Interview authority:** `design-system-interview` (latest in `~/.grok/skills/design-system-interview/`, 2026-07-13)  
 **Date:** 2026-07-14  
-**State:** `approval-ready` — answers are **Kinocut-specific commitments** ready for Simon confirmation before implementation redesign. Not KyaniteLabs generic marketing.
+**State:** `approved` (Simon, 2026-07-14) — answers are **Kinocut-specific commitments** ready for Simon confirmation before implementation redesign. Not KyaniteLabs generic marketing.
 
 **What I see:** Kinocut sells **trust after an agent edit** (preflight → render → receipt → human gate), not “AI magic video.”  
 **My recommendation:** Instrument-bench / edit-suite dark UI where the **Video Receipt** is the hero object and density beats lifestyle whitespace.  
@@ -182,16 +182,16 @@ Motion should feel like a **transport control**, not a brand film.
 
 | ID | Evidence | Decision | Consequence | State |
 | --- | --- | --- | --- | --- |
-| reference | MCP/CLI/FFmpeg product; receipt JTBD | Edit bay + NLE inspector | Dense instrument UI | **committed recommendation** |
-| personality | Publish risk; operator users | cool/serious/dense/refined | No playful SaaS tone | **committed recommendation** |
-| aesthetic | Trust triad preflight/receipt/quality | “Agent edit bay on basalt…” | Cyan/amber/magenta roles | **committed recommendation** |
-| type | CLI+receipt+EN/ES | Space Grotesk / Plus Jakarta / JetBrains | Mono elevated | **committed recommendation** |
-| color_mode | Dark edit rooms; existing tokens | Dark-only; cyan/amber/magenta jobs | No light marketing default | **committed recommendation** |
-| density_shape | 135 tools, docs depth | Dense, 4–8px, flat | Ledger not cards | **committed recommendation** |
-| structure_rhythm | Timeline metaphor; multi-page hub | Asymmetric hero + sheet bands | Timecode/gate rails | **committed recommendation** |
-| signature | Product differentiator | Video Receipt panel | One boldness budget | **committed recommendation** |
-| imagery_iconography | Local-first; no stock | Tableau once; Lucide only | No AI-slop photos | **committed recommendation** |
-| motion | Operator annoyance risk | Restrained + reduced-motion | Playhead ambient | **committed recommendation** |
+| reference | MCP/CLI/FFmpeg product; receipt JTBD | Edit bay + NLE inspector | Dense instrument UI | **committed (approved)** |
+| personality | Publish risk; operator users | cool/serious/dense/refined | No playful SaaS tone | **committed (approved)** |
+| aesthetic | Trust triad preflight/receipt/quality | “Agent edit bay on basalt…” | Cyan/amber/magenta roles | **committed (approved)** |
+| type | CLI+receipt+EN/ES | Space Grotesk / Plus Jakarta / JetBrains | Mono elevated | **committed (approved)** |
+| color_mode | Dark edit rooms; existing tokens | Dark-only; cyan/amber/magenta jobs | No light marketing default | **committed (approved)** |
+| density_shape | 135 tools, docs depth | Dense, 4–8px, flat | Ledger not cards | **committed (approved)** |
+| structure_rhythm | Timeline metaphor; multi-page hub | Asymmetric hero + sheet bands | Timecode/gate rails | **committed (approved)** |
+| signature | Product differentiator | Video Receipt panel | One boldness budget | **committed (approved)** |
+| imagery_iconography | Local-first; no stock | Tableau once; Lucide only | No AI-slop photos | **committed (approved)** |
+| motion | Operator annoyance risk | Restrained + reduced-motion | Playhead ambient | **committed (approved)** |
 
 **Readiness:** `approval-ready` — Simon can mark `approved` in one pass; implementation redesign should not start until that stamp (tastecheck below is against **current live artifact**, not a new build).
 
