@@ -1,0 +1,34 @@
+{
+  "fixture_version": "sound-bench-v1",
+  "clip_count": 64,
+  "max_minutes": 30,
+  "classes": [
+    {
+      "hardware_class": "x86_linux",
+      "host": "Niko NUCBox",
+      "machine": "x86_64",
+      "platform": "Linux-6.17.0-1028-oem-x86_64-with-glibc2.39",
+      "cold_seconds": 0.3957,
+      "warm_seconds": 0.3862,
+      "status": "ok",
+      "digest": "sha256:02fe5aedace835cadc7e80ef0f2eb0774940898a6d74bfe72dd113d6daf792bb"
+    },
+    {
+      "hardware_class": "apple_silicon",
+      "host": "Liam Mac mini",
+      "machine": "arm64",
+      "platform": "macOS-26.5-arm64-arm-64bit-Mach-O",
+      "cold_seconds": 0.0743,
+      "warm_seconds": 0.0737,
+      "status": "ok",
+      "digest": "sha256:d600f954dfe5340ee82bb1eb0dda6e487f320916ec51cd3dfa235322896a1a22"
+    }
+  ],
+  "required_capabilities": {
+    "d41_bed": true,
+    "d41_audition": true,
+    "d42_style": true,
+    "d42_identity": true
+  },
+  "release": "NOT_AUTHORIZED"
+}
