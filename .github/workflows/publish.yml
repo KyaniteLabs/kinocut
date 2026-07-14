@@ -4,6 +4,17 @@ on:
   release:
     types: [published]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: "Release tag to recover (for example, v1.8.0)"
+        required: false
+        type: string
+      recovery_scope:
+        description: "Recover only npm or the complete release publication path"
+        required: true
+        default: npm
+        type: choice
+        options: [npm, full]
 
 permissions:
   contents: read
@@ -15,7 +26,7 @@ concurrency:
 jobs:
   surface-audit:
     name: Check tracked release surface
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.recovery_scope == 'full')
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -32,7 +43,7 @@ jobs:
   build:
     name: Build release artifacts
     needs: surface-audit
-    if: github.event_name == 'release'
+    if: github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.recovery_scope == 'full')
     runs-on: blacksmith-2vcpu-ubuntu-2404
     permissions:
       contents: read
@@ -53,8 +64,9 @@ jobs:
         run: .venv/bin/pip install build jsonschema twine
       - name: Verify release versions are publishable
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
           RELEASE_ATTEMPT: ${{ github.run_attempt }}
+          RELEASE_RECOVERY: ${{ github.event_name == 'workflow_dispatch' }}
         run: |
           .venv/bin/python - <<'PY'
           import json
@@ -78,6 +90,7 @@ jobs:
           server = json.loads(Path("server.json").read_text())
           tag = os.environ["RELEASE_TAG"]
           release_attempt = int(os.environ["RELEASE_ATTEMPT"])
+          recovery = os.environ["RELEASE_RECOVERY"].lower() == "true"
 
           failures = []
           if project["name"] != "kinocut":
@@ -105,10 +118,10 @@ jobs:
                   if exc.code != 404:
                       raise
               else:
-                  if release_attempt == 1:
+                  if not recovery and release_attempt == 1:
                       failures.append(f"{label} already exists")
                   else:
-                      print(f"Recovery attempt {release_attempt}: {label} already exists and will be skipped.")
+                      print(f"Recovery attempt: {label} already exists and will be skipped.")
 
           require_missing_on_first_attempt(
               f"https://pypi.org/pypi/kinocut/{version}/json",
@@ -196,7 +209,9 @@ jobs:
   publish:
     name: Publish to PyPI
     needs: build
-    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
+    if: >-
+      (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.recovery_scope == 'full')) &&
+      startsWith(github.event.release.tag_name || inputs.release_tag, 'v')
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
@@ -216,7 +231,9 @@ jobs:
   publish-npm:
     name: Publish to npm
     needs: publish
-    if: github.event_name == 'release' && startsWith(github.event.release.tag_name, 'v')
+    if: >-
+      (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.recovery_scope == 'full')) &&
+      startsWith(github.event.release.tag_name || inputs.release_tag, 'v')
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -235,7 +252,7 @@ jobs:
         run: npm install --global npm@11.5.1
       - name: Publish to npm with provenance
         env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
+          RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}
         run: |
           version="${RELEASE_TAG#v}"
           if npm view "kinocut@$version" version >/dev/null 2>&1; then
@@ -246,7 +263,7 @@ jobs:
 
   publish-npm-recovery:
     name: Recover npm publication
-    if: github.event_name == 'workflow_dispatch'
+    if: github.event_name == 'workflow_dispatch' && inputs.recovery_scope == 'npm'
     runs-on: ubuntu-latest
     environment: npm
     permissions:
@@ -282,13 +299,14 @@ jobs:
         always() &&
         (
           (
-            github.event_name == 'release' &&
+            (github.event_name == 'release' || (github.event_name == 'workflow_dispatch' && inputs.recovery_scope == 'full')) &&
             needs.publish.result == 'success' &&
             needs.publish-npm.result == 'success' &&
-            startsWith(github.event.release.tag_name, 'v')
+            startsWith(github.event.release.tag_name || inputs.release_tag, 'v')
           ) ||
           (
             github.event_name == 'workflow_dispatch' &&
+            inputs.recovery_scope == 'npm' &&
             needs.publish-npm-recovery.result == 'success'
           )
         )

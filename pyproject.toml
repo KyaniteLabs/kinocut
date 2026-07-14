@@ -183,8 +183,6 @@ only-include = [
     "/kinocut_sound",
     "/mcp_video.py",
     "/CHANGELOG.md",
-    "/docs/MCPB.md",
-    "/docs/MCPB_SUPPLY_CHAIN.md",
     "/LICENSE",
     "/mcpb",
     "/README.md",

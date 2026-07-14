@@ -167,7 +167,9 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     assert manifest["user_config"]["pythonExecutable"]["required"] is False
     assert "enableOptionalAi" not in manifest["user_config"]
     sdist_includes = set(project["tool"]["hatch"]["build"]["targets"]["sdist"]["only-include"])
-    assert {"/mcpb", "/docs/MCPB.md", "/scripts/build-mcpb.py"} <= sdist_includes
+    assert {"/mcpb", "/scripts/build-mcpb.py"} <= sdist_includes
+    assert "/docs/MCPB.md" not in sdist_includes
+    assert "/docs/MCPB_SUPPLY_CHAIN.md" not in sdist_includes
     assert "/kinocut_sound" in sdist_includes
     assert '["-m", "kinocut", "--mcp"]' in launcher
     assert "shell: false" in launcher
@@ -278,6 +280,10 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "mcp-video==1.6.0" in workflow
     assert "pip uninstall --yes mcp-video" in workflow
     assert "RELEASE_ATTEMPT: ${{ github.run_attempt }}" in workflow
+    assert "recovery_scope:" in workflow
+    assert "inputs.recovery_scope == 'full'" in workflow
+    assert "RELEASE_TAG: ${{ github.event.release.tag_name || inputs.release_tag }}" in workflow
+    assert "RELEASE_RECOVERY: ${{ github.event_name == 'workflow_dispatch' }}" in workflow
     assert "skip-existing: true" in workflow
     assert re.search(r"publish-npm:\n(?:.*\n)*?    needs: publish\n", workflow)
     assert 'npm view "kinocut@$version" version' in workflow
@@ -285,6 +291,15 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "needs.publish-npm.result == 'success'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
     assert "build-mcpb.py" not in workflow
+
+
+def test_release_workflow_embedded_version_verifier_is_syntactically_valid() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+    start = workflow.index("          def require_missing_on_first_attempt")
+    end = workflow.index("          require_missing_on_first_attempt(", start)
+    source = workflow[start:end].replace("          ", "", 1)
+
+    compile(source, "<publish-version-verifier>", "exec")
 
 
 def test_npm_publish_uses_local_tarball_and_has_oidc_recovery_dispatch() -> None:
