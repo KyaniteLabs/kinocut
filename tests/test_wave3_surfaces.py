@@ -11,6 +11,7 @@ from pathlib import Path
 import pytest
 
 from kinocut.errors import MCPVideoError
+from kinocut.source_identity import immutable_verified_snapshot_available
 
 _MAX_AUTH_IDS, _MAX_JSON_BYTES = 64, 65_536
 
@@ -510,6 +511,10 @@ def test_body_swap_catches_source_mutation_during_renderer_handoff(
 
 @pytest.mark.parametrize("source_name", ("video", "audio"))
 @pytest.mark.parametrize("attack", ("mutate_restore", "replace_restore"))
+@pytest.mark.skipif(
+    not immutable_verified_snapshot_available(),
+    reason="immutable verified source snapshots are unavailable",
+)
 def test_body_swap_renderer_consumes_verified_private_snapshots(
     monkeypatch, tmp_path, sample_video, sample_audio, source_name, attack
 ):

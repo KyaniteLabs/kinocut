@@ -29,6 +29,7 @@ def test_public_claims_file_is_complete(claims: dict) -> None:
     required = (
         "package_name",
         "published_version",
+        "release_candidate_version",
         "published_mcp_tools",
         "published_cli_commands",
         "development_mcp_tools",
@@ -49,10 +50,11 @@ def test_public_claims_file_is_complete(claims: dict) -> None:
     assert claims["registry_id"] == "io.github.KyaniteLabs/kinocut"
 
 
-def test_pyproject_version_matches_published_claim(claims: dict) -> None:
+def test_pyproject_version_matches_release_candidate_claim(claims: dict) -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     assert project["name"] == claims["package_name"]
-    assert project["version"] == claims["published_version"]
+    assert project["version"] == claims["release_candidate_version"]
+    assert claims["published_version"] != claims["release_candidate_version"]
 
 
 def test_server_json_matches_public_claims(claims: dict) -> None:
