@@ -2,7 +2,7 @@
 
 import { spawnSync } from "node:child_process";
 
-const args = ["--from", "kinocut==1.7.0", "kino", ...process.argv.slice(2)];
+const args = ["--from", "kinocut==1.8.0", "kino", ...process.argv.slice(2)];
 const result = spawnSync("uvx", args, { stdio: "inherit" });
 
 if (result.error?.code === "ENOENT") {

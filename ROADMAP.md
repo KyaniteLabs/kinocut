@@ -1,6 +1,6 @@
 # Improvement Roadmap
 
-The development branch currently exposes 142 MCP tools and 121 CLI commands. The released 1.7.0 surface is historical; the contract-first AI-video and sound program described below remains incomplete and unreleased. Remotion has been fully removed. The current priority is finishing governed review/salvage, then executing the remaining program through independently reviewed parallel lanes.
+The development branch currently exposes 142 MCP tools and 121 CLI commands. The released 1.8.0 surface is historical; the contract-first AI-video and sound program described below remains incomplete and unreleased. Remotion has been fully removed. The current priority is finishing governed review/salvage, then executing the remaining program through independently reviewed parallel lanes.
 
 ## Current AI-video and sound program
 

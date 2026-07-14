@@ -3,7 +3,7 @@
   "name": "io.github.KyaniteLabs/kinocut",
   "title": "Kinocut",
   "description": "Guardrailed video editing for AI agents: FFmpeg, captions, effects, Hyperframes, and receipts.",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "websiteUrl": "https://kinocut.dev/",
   "repository": {
     "url": "https://github.com/KyaniteLabs/kinocut",
@@ -13,7 +13,7 @@
     {
       "registryType": "pypi",
       "identifier": "kinocut",
-      "version": "1.7.0",
+      "version": "1.8.0",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

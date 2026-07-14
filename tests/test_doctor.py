@@ -37,14 +37,14 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
         which=fake_which,
         version_runner=fake_version,
         find_spec=fake_find_spec,
-        package_version=lambda name: "1.7.0" if name == "kinocut" else ("1.0.0" if name in present_packages else None),
+        package_version=lambda name: "1.8.0" if name == "kinocut" else ("1.0.0" if name in present_packages else None),
     )
 
     checks = {check["name"]: check for check in report["checks"]}
     assert report["success"] is True
     assert report["summary"]["required_ok"] is True
     assert checks["mcp-video"]["ok"] is True
-    assert checks["mcp-video"]["version"] == "1.7.0"
+    assert checks["mcp-video"]["version"] == "1.8.0"
     assert checks["mcp-video"]["path"] == "/env/site-packages/kinocut/__init__.py"
     assert checks["ffmpeg"]["ok"] is True
     assert checks["ffprobe"]["ok"] is True

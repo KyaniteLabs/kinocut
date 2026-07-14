@@ -3,7 +3,7 @@
   "manifest_version": "0.4",
   "name": "kinocut",
   "display_name": "Kinocut",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Local stdio MCP server for guarded FFmpeg video workflows.",
   "long_description": "Kinocut exposes local video editing, analysis, workflow, rescue, and repurposing tools over MCP stdio. This MCPB package is a staged local launcher: it does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, optional AI packages, or model weights. Configure an existing Python environment with Kinocut installed, keep FFmpeg available on PATH or configured by path, and install optional AI or Hyperframes dependencies only when you intend to use those capabilities.",
   "author": {
@@ -44,7 +44,7 @@
     "pythonExecutable": {
       "type": "string",
       "title": "Python executable",
-      "description": "Optional Python command or absolute executable path for an environment with kinocut==1.7.0 installed. Leave blank to try python3 then python.",
+      "description": "Optional Python command or absolute executable path for an environment with kinocut==1.8.0 installed. Leave blank to try python3 then python.",
       "default": "",
       "required": false
     },

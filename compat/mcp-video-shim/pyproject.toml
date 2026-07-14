@@ -4,12 +4,12 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-video"
-version = "1.6.1"
+version = "1.6.2"
 description = "Compatibility installer for Kinocut, formerly mcp-video."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
-dependencies = ["kinocut==1.7.0"]
+dependencies = ["kinocut==1.8.0"]
 
 [project.scripts]
 mcp-video = "kinocut.__main__:main"

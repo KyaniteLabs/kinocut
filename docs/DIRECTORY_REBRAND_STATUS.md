@@ -2,7 +2,7 @@
 
 This ledger tracks external discovery surfaces that may retain the former `mcp-video`
 name, repository slug, package instructions, description, or feature counts after the
-Kinocut 1.7.0 cutover.
+Kinocut 1.8.0 release.
 
 ## Canonical Listing Data
 
@@ -17,7 +17,7 @@ Kinocut 1.7.0 cutover.
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
 - Current tool count: 142 MCP tools
-- Current release: 1.7.0
+- Current release: 1.8.0
 
 ## Live Reconciliation
 
