@@ -25,7 +25,6 @@ REQUIRED_FILES = [
     "sitemap.xml",
     "server.json",
     ".github/CODEOWNERS",
-    ".github/dependabot.yml",
     ".github/pull_request_template.md",
     ".github/DISCUSSION_TEMPLATE/ideas.yml",
     ".github/DISCUSSION_TEMPLATE/q-a.yml",
@@ -63,18 +62,23 @@ def git_stdout(*args: str) -> str:
     return result.stdout.strip()
 
 
-def dependabot_groups_by_ecosystem() -> dict[tuple[str, str], set[str]]:
-    """Return Dependabot group names keyed by package ecosystem and directory.
+def dependabot_groups_by_ecosystem() -> dict[tuple[str, str], set[str]] | None:
+    """Return configured Dependabot groups, or ``None`` when it is disabled.
 
-    This intentionally uses a tiny parser for the limited Dependabot shape used
-    in this repo so the readiness audit has no extra CI dependencies.
+    A missing ``.github/dependabot.yml`` is an explicit repository policy: this
+    project has Dependabot disabled. When the file exists, its expected groups
+    remain subject to the readiness checks below.
     """
+    dependabot_path = ROOT / ".github/dependabot.yml"
+    if not dependabot_path.exists():
+        return None
+
     grouped: dict[tuple[str, str], set[str]] = {}
     current_key: tuple[str, str] | None = None
     in_groups = False
     ecosystem = ""
     directory = ""
-    for raw_line in read(".github/dependabot.yml").splitlines():
+    for raw_line in dependabot_path.read_text(encoding="utf-8").splitlines():
         line = raw_line.strip()
         if line.startswith("- package-ecosystem:"):
             ecosystem = line.split(":", 1)[1].strip().strip('"')
@@ -241,17 +245,20 @@ def main() -> int:
 
     print("\n== Dependabot checks ==")
     dependabot_groups = dependabot_groups_by_ecosystem()
-    for ecosystem, directory, group_name in [
-        ("uv", "/", "python-runtime"),
-        ("github-actions", "/", "github-actions"),
-    ]:
-        check(
-            group_name in dependabot_groups.get((ecosystem, directory), set()),
-            f"Dependabot groups {ecosystem} updates in {directory} as {group_name}",
-            f"Dependabot should group {ecosystem} updates in {directory} as {group_name}",
-            failures=failures,
-            warnings=warnings,
-        )
+    if dependabot_groups is None:
+        print("PASS Dependabot is explicitly disabled (no .github/dependabot.yml)")
+    else:
+        for ecosystem, directory, group_name in [
+            ("uv", "/", "python-runtime"),
+            ("github-actions", "/", "github-actions"),
+        ]:
+            check(
+                group_name in dependabot_groups.get((ecosystem, directory), set()),
+                f"Dependabot groups {ecosystem} updates in {directory} as {group_name}",
+                f"Dependabot should group {ecosystem} updates in {directory} as {group_name}",
+                failures=failures,
+                warnings=warnings,
+            )
 
     print("\n== Architecture guardrail checks ==")
     for relative_path, max_lines in [

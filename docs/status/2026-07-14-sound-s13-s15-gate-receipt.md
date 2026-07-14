@@ -37,9 +37,9 @@ Remaining optional host surfaces (not blocking this join): full WF text-card nar
 - Evidence file: `docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json`
 - Digests: see evidence file (x86 `02fe5aed…`, apple `d600f954…`)
 
-## S15 — Acceptance STOP
+## S15 — Acceptance STOP (historic record)
 
-**Status:** STOP before release.
+**Historic status:** STOP before release.
 
 Performed:
 
@@ -55,3 +55,9 @@ Still required before any ship (human gates, not engineering green claims):
 - Optional full-season real-media acceptance beyond the synthetic fixture
 
 **No version bump, tag, package upload, directory submission, deploy, or announce.**
+
+## 1.8.0 RC authorization supersession
+
+The S15 STOP above remains the historical sound-program gate record. For the explicitly authorized Kinocut 1.8.0 release candidate only, that historic release stop is superseded by the RC authorization.
+
+This supersession does **not** authorize external MCPB publication. The MCPB external non-publication gate remains in force: no MCPB registry or directory submission, upload, or public release may occur unless separately and explicitly authorized.
