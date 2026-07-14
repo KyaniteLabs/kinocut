@@ -1,0 +1,320 @@
+{
+  "captured_at": "2026-07-14T06:38:55.220445+00:00",
+  "github": {
+    "clones": {
+      "clones": [
+        {
+          "count": 26,
+          "timestamp": "2026-06-30T00:00:00Z",
+          "uniques": 22
+        },
+        {
+          "count": 29,
+          "timestamp": "2026-07-01T00:00:00Z",
+          "uniques": 22
+        },
+        {
+          "count": 26,
+          "timestamp": "2026-07-02T00:00:00Z",
+          "uniques": 22
+        },
+        {
+          "count": 27,
+          "timestamp": "2026-07-03T00:00:00Z",
+          "uniques": 19
+        },
+        {
+          "count": 22,
+          "timestamp": "2026-07-04T00:00:00Z",
+          "uniques": 16
+        },
+        {
+          "count": 52,
+          "timestamp": "2026-07-05T00:00:00Z",
+          "uniques": 34
+        },
+        {
+          "count": 202,
+          "timestamp": "2026-07-06T00:00:00Z",
+          "uniques": 45
+        },
+        {
+          "count": 205,
+          "timestamp": "2026-07-07T00:00:00Z",
+          "uniques": 56
+        },
+        {
+          "count": 34,
+          "timestamp": "2026-07-08T00:00:00Z",
+          "uniques": 29
+        },
+        {
+          "count": 107,
+          "timestamp": "2026-07-09T00:00:00Z",
+          "uniques": 36
+        },
+        {
+          "count": 300,
+          "timestamp": "2026-07-10T00:00:00Z",
+          "uniques": 78
+        },
+        {
+          "count": 159,
+          "timestamp": "2026-07-11T00:00:00Z",
+          "uniques": 58
+        },
+        {
+          "count": 73,
+          "timestamp": "2026-07-12T00:00:00Z",
+          "uniques": 41
+        },
+        {
+          "count": 305,
+          "timestamp": "2026-07-13T00:00:00Z",
+          "uniques": 93
+        }
+      ],
+      "count": 1567,
+      "uniques": 475
+    },
+    "community_prs": [
+      {
+        "html_url": "https://github.com/KyaniteLabs/kinocut/pull/361",
+        "merged_at": "2026-07-13T21:06:33Z",
+        "number": 361,
+        "state": "closed",
+        "title": "fix(hyperframes): prevent init from hanging under MCP (no TTY)",
+        "user": "betsmayank"
+      }
+    ],
+    "contributors": [
+      {
+        "contributions": 635,
+        "login": "simongonzalezdc"
+      },
+      {
+        "contributions": 30,
+        "login": "claude"
+      },
+      {
+        "contributions": 27,
+        "login": "noreply"
+      },
+      {
+        "contributions": 27,
+        "login": "dependabot[bot]"
+      },
+      {
+        "contributions": 8,
+        "login": "github-actions[bot]"
+      },
+      {
+        "contributions": 3,
+        "login": "kyanitelabs[bot]"
+      },
+      {
+        "contributions": 1,
+        "login": "Codex-Agent"
+      },
+      {
+        "contributions": 1,
+        "login": "simon"
+      },
+      {
+        "contributions": 1,
+        "login": "betsmayank"
+      }
+    ],
+    "forks": 20,
+    "open_issues": 0,
+    "popular_paths": [
+      {
+        "count": 480,
+        "path": "/KyaniteLabs/mcp-video",
+        "title": "Overview",
+        "uniques": 314
+      },
+      {
+        "count": 186,
+        "path": "/KyaniteLabs/kinocut",
+        "title": "Overview",
+        "uniques": 126
+      },
+      {
+        "count": 12,
+        "path": "/KyaniteLabs/kinocut/tree/master",
+        "title": "/tree/master",
+        "uniques": 3
+      },
+      {
+        "count": 8,
+        "path": "/KyaniteLabs/mcp-video/tree/master/demo",
+        "title": "/tree/master/demo",
+        "uniques": 8
+      },
+      {
+        "count": 8,
+        "path": "/KyaniteLabs/mcp-video/tree/master/mcp_video",
+        "title": "/tree/master/mcp_video",
+        "uniques": 8
+      },
+      {
+        "count": 8,
+        "path": "/KyaniteLabs/mcp-video/blob/master/skills/mcp-video/SKILL.md",
+        "title": "/blob/master/skills/mcp-video/SKILL.md",
+        "uniques": 6
+      },
+      {
+        "count": 6,
+        "path": "/kyanitelabs/mcp-video",
+        "title": "Overview",
+        "uniques": 6
+      },
+      {
+        "count": 5,
+        "path": "/KyaniteLabs/mcp-video/blob/master/demo/demo_script.py",
+        "title": "/blob/master/demo/demo_script.py",
+        "uniques": 5
+      },
+      {
+        "count": 5,
+        "path": "/KyaniteLabs/kinocut/tree/master/kinocut",
+        "title": "/tree/master/kinocut",
+        "uniques": 3
+      },
+      {
+        "count": 5,
+        "path": "/KyaniteLabs/kinocut/tree/master/mcpb",
+        "title": "/tree/master/mcpb",
+        "uniques": 3
+      }
+    ],
+    "pushed_at": "2026-07-14T06:32:49Z",
+    "stars": 77,
+    "views": {
+      "count": 884,
+      "uniques": 465,
+      "views": [
+        {
+          "count": 53,
+          "timestamp": "2026-06-30T00:00:00Z",
+          "uniques": 34
+        },
+        {
+          "count": 42,
+          "timestamp": "2026-07-01T00:00:00Z",
+          "uniques": 30
+        },
+        {
+          "count": 38,
+          "timestamp": "2026-07-02T00:00:00Z",
+          "uniques": 31
+        },
+        {
+          "count": 71,
+          "timestamp": "2026-07-03T00:00:00Z",
+          "uniques": 54
+        },
+        {
+          "count": 51,
+          "timestamp": "2026-07-04T00:00:00Z",
+          "uniques": 34
+        },
+        {
+          "count": 77,
+          "timestamp": "2026-07-05T00:00:00Z",
+          "uniques": 43
+        },
+        {
+          "count": 38,
+          "timestamp": "2026-07-06T00:00:00Z",
+          "uniques": 30
+        },
+        {
+          "count": 54,
+          "timestamp": "2026-07-07T00:00:00Z",
+          "uniques": 35
+        },
+        {
+          "count": 81,
+          "timestamp": "2026-07-08T00:00:00Z",
+          "uniques": 46
+        },
+        {
+          "count": 54,
+          "timestamp": "2026-07-09T00:00:00Z",
+          "uniques": 27
+        },
+        {
+          "count": 68,
+          "timestamp": "2026-07-10T00:00:00Z",
+          "uniques": 48
+        },
+        {
+          "count": 77,
+          "timestamp": "2026-07-11T00:00:00Z",
+          "uniques": 47
+        },
+        {
+          "count": 69,
+          "timestamp": "2026-07-12T00:00:00Z",
+          "uniques": 46
+        },
+        {
+          "count": 111,
+          "timestamp": "2026-07-13T00:00:00Z",
+          "uniques": 45
+        }
+      ]
+    }
+  },
+  "pypi": {
+    "kinocut_recent": {
+      "data": {
+        "last_day": 845,
+        "last_month": 3227,
+        "last_week": 3227
+      },
+      "package": "kinocut",
+      "type": "recent_downloads"
+    },
+    "mcp_video_recent": {
+      "_error": "HTTP Error 429: Too Many Requests"
+    }
+  },
+  "registry": {
+    "_meta": {
+      "io.modelcontextprotocol.registry/official": {
+        "isLatest": true,
+        "publishedAt": "2026-07-10T20:33:06.875828Z",
+        "status": "active",
+        "statusChangedAt": "2026-07-10T20:33:06.875828Z",
+        "updatedAt": "2026-07-10T20:33:06.875828Z"
+      }
+    },
+    "server": {
+      "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      "description": "Guardrailed video editing for AI agents: FFmpeg, captions, effects, Hyperframes, and receipts.",
+      "name": "io.github.KyaniteLabs/kinocut",
+      "packages": [
+        {
+          "identifier": "kinocut",
+          "registryType": "pypi",
+          "runtimeHint": "uvx",
+          "transport": {
+            "type": "stdio"
+          },
+          "version": "1.7.0"
+        }
+      ],
+      "repository": {
+        "source": "github",
+        "url": "https://github.com/KyaniteLabs/kinocut"
+      },
+      "title": "Kinocut",
+      "version": "1.7.0",
+      "websiteUrl": "https://kinocut.dev/"
+    }
+  },
+  "repo": "KyaniteLabs/kinocut"
+}
