@@ -8,7 +8,11 @@
 
 ---
 
-# HOLD — 4 blockers (content hub expanded faster than design system discipline)
+# Historical HOLD — superseded by the final production recheck
+
+> This snapshot records the pre-remediation findings. All four release blockers were
+> closed and production-verified later on 2026-07-14. See
+> [the final TasteCheck recheck](2026-07-14-tastecheck-recheck.md) for current status.
 
 **What passed:** Product story, SEO/GEO bones, bilingual intent, receipt as conceptual signature, dark basalt field, no purple-slop hero.  
 **Ship blockers:** TC-STRUCT-01 doc-page chrome vs signature system; TC-A11Y-01 doc-nav density/keyboard; TC-DESLOP-01 multi-page template drift; TC-I18N-01 ES parity incomplete on new routes.  

@@ -45,7 +45,7 @@ Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
 Compatibility:
 
 ```bash
-pip install --upgrade mcp-video   # 1.6.1 shim → kinocut 1.7.0
+pip install --upgrade mcp-video   # 1.6.2 shim → kinocut 1.8.0
 ```
 
 ## Canonical links

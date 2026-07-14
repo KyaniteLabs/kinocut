@@ -2,6 +2,10 @@
 
 **Date:** 2026-07-13
 
+> **Historical pre-release snapshot:** This handoff predates the published 1.8.0
+> release. It records the then-current stop condition and does not state current
+> release authorization.
+
 **Audience:** follow-on implementation agents and controller
 
 **Release state:** unreleased; no release action is authorized
@@ -76,7 +80,7 @@ authorization, and timeline utilities; do not clone them inside a leaf.
 
 ## Per-leaf execution recipe
 
-1. Verify live Niko identity, clean `master`, canonical Forgejo remote, and no stale worktree.
+1. Verify the live validation-runner identity, clean `master`, canonical Forgejo remote, and no stale worktree.
 2. Run the latest installed Epoch estimate and retain its feedback token.
 3. Branch from current `master` with a `codex/` name. One leaf equals one change unit.
 4. Write focused RED tests from the design acceptance rows before production code.

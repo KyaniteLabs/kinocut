@@ -3,7 +3,8 @@
 > **Successor status:** This historical Wave-3 checkpoint is superseded by
 > [`2026-07-12-ready-units-integration-checkpoint.md`](2026-07-12-ready-units-integration-checkpoint.md),
 > which records the reviewed audio, registry, subtitle, graphics, and `kinocut_sound` foundation
-> integration at `090424c`. The release stop remains unchanged.
+> integration at `090424c`. It is pre-release evidence and does not override the
+> published 1.8.0 release state.
 
 **Snapshot date:** 2026-07-12
 
@@ -39,8 +40,8 @@ registry submission, deployment, release creation, or announcement.
 
 ## G006 closeout — Wave 3 evidence-integrity blockers resolved
 
-The three G006 blockers are closed on `codex/niko-close-open-loops` at the reviewed implementation
-tip `7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`):
+The three G006 blockers are closed on the reviewed implementation branch at tip
+`7d16d525121f5bf8e9e427798304e89057844051` (hygiene tip `47731e9`):
 
 - `c80c579` — `trim_audio` proof binds the output audio to a bounded prefix of the approved source.
 - `a3b51fc` — region-crop, still-frame, and full freeze-prefix/tail/extension origin checks bind
@@ -77,7 +78,7 @@ media end. Evidence on the successor tip:
 
 - exact Debian/root/FFmpeg 5 reproductions: 22 passed;
 - independent code/security/architecture review: APPROVE / CLEAR, 49 focused passed;
-- whole repository suite on Niko: 3104 passed, 18 skipped, 8 warnings, 536.51s;
+- whole repository suite in the recorded validation environment: 3104 passed, 18 skipped, 8 warnings, 536.51s;
 - Ruff, canonical import alias, diff hygiene, forbidden-artifact scan, and public leak scan: pass.
 
 The successor must still receive a green exact-tip Forgejo run before merge. Platforms without

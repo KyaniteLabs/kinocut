@@ -1,21 +1,24 @@
-# Kinocut 1.8.0 — release cutover checklist
+# Kinocut 1.8.0 — completed release cutover record
 
-**Status:** PREP (not released). Do **not** bump package version, tag, publish, or flip
-marketing claims until human go-ahead **and** the freeze gates below pass.
+**Status:** COMPLETE — published 2026-07-14. The [GitHub release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.8.0), PyPI package, npm package, and MCP Registry all resolve to 1.8.0.
+
+This page preserves the pre-publication cutover procedure as an audit record. All
+imperative language and pre-release values below are historical; do not rerun its
+publish steps for this completed release.
 
 **Authority:** [`public_claims.json`](public_claims.json) · [`RELEASE_RITUAL.md`](RELEASE_RITUAL.md) ·
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml)
 
-**Tip surface (as of prep, 2026-07-14):** 142 MCP tools · 121 CLI commands  
-**Current published:** 1.7.0 · 135 MCP / 114 CLI
+**Tip surface at freeze:** 142 MCP tools · 121 CLI commands
+**Published result:** 1.8.0 · 142 MCP / 121 CLI
 
-When 1.8.0 ships, **published counts become the release-tag tip counts** (expected
-142 / 121 unless the freeze re-measures different numbers). At tag time set
-`development_* == published_*` unless post-tag master already moved.
+At tag time, `development_* == published_*`; the release-tag counts were 142 / 121.
 
 ---
 
-## 0. Freeze gates (must be green before cutover)
+## Historical pre-release checklist
+
+### 0. Freeze gates (must be green before cutover)
 
 | Gate | Check | Owner |
 | --- | --- | --- |
@@ -80,7 +83,7 @@ The script updates:
 | `kinocut/__init__.py` | `__version__` |
 | `server.json` | top-level + package versions |
 | `npm/package.json` | version |
-| `compat/mcp-video-shim/pyproject.toml` | all `kinocut==…` pins (shim package version stays `1.6.1` unless you intentionally cut a new shim) |
+| `compat/mcp-video-shim/pyproject.toml` | all `kinocut==…` pins (the completed 1.8 cut used shim version `1.6.2`) |
 | `mcpb/manifest.json` | version + kinocut pin wording |
 | `demo/golden-pack/sample_video_receipt.json` | `kinocut_published_version` |
 | `llms.txt` | published line + counts |
@@ -111,7 +114,7 @@ Three agent-facing bullets (also GitHub Release + site changelog):
 2. What got safer  
 3. Compat note  
 
-Draft content lives in [`status/2026-07-14-1.8-release-notes-draft.md`](status/2026-07-14-1.8-release-notes-draft.md).
+Published content lives in [`status/2026-07-14-1.8-release-notes.md`](status/2026-07-14-1.8-release-notes.md).
 
 ---
 
@@ -131,7 +134,7 @@ python scripts/golden_path.py
 
 1. Merge cutover PR to `master` (Forgejo canonical; GitHub mirror).  
 2. Create GitHub Release tag **`v1.8.0`** (triggers [publish.yml](../.github/workflows/publish.yml)).  
-3. Confirm PyPI `kinocut==1.8.0`, npm `kinocut@1.8.0`, MCP Registry version, shim still installs (`mcp-video==1.6.1` → `kinocut==1.8.0` after pin update).  
+3. Confirm PyPI `kinocut==1.8.0`, npm `kinocut@1.8.0`, MCP Registry version, shim still installs (`mcp-video==1.6.2` → `kinocut==1.8.0` after pin update).
 4. Do **not** re-upload immutable artifacts; use registry-only recovery if needed.
 
 ---

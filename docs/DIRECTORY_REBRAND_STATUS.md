@@ -1,8 +1,9 @@
 # Directory Rebrand Status
 
-This ledger tracks external discovery surfaces that may retain the former `mcp-video`
+This ledger records external discovery surfaces that may retain the former `mcp-video`
 name, repository slug, package instructions, description, or feature counts after the
-Kinocut 1.7.0 cutover.
+Kinocut rename. The reconciliation table is a 2026-07-10 snapshot, not a live claim
+about third-party pages; verify an external page before acting on its listed state.
 
 ## Canonical Listing Data
 
@@ -17,9 +18,9 @@ Kinocut 1.7.0 cutover.
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
 - Current tool count: 142 MCP tools
-- Current release: 1.7.0
+- Current release: 1.8.0 (published 2026-07-14)
 
-## Live Reconciliation
+## Reconciliation Snapshot (2026-07-10)
 
 | Surface | State at 2026-07-10 | Required action |
 | --- | --- | --- |

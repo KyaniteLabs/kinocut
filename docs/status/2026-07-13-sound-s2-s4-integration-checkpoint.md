@@ -2,9 +2,12 @@
 
 **Snapshot date:** 2026-07-13
 
+> **Historical pre-release snapshot:** This checkpoint predates the published 1.8.0
+> release and is retained as implementation evidence, not current release guidance.
+
 **Reviewed implementation tip:** 006a50b
 
-**State:** integrated and verified on Niko; independently approved; unreleased
+**State:** integrated and verified in the recorded local validation environment; independently approved; unreleased at the snapshot date
 
 ## Executive summary
 

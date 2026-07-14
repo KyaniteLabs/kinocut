@@ -64,11 +64,16 @@ def write_wav(
 def read_wav(path: str | Path) -> tuple[np.ndarray, int]:
     """Read a mono PCM WAV into a float64 array plus its sample rate."""
 
-    with wave.open(str(path), "rb") as wav:
-        n_channels = wav.getnchannels()
-        sample_rate = wav.getframerate()
-        sampwidth = wav.getsampwidth()
-        raw = wav.readframes(wav.getnframes())
+    try:
+        with wave.open(str(path), "rb") as wav:
+            n_channels = wav.getnchannels()
+            sample_rate = wav.getframerate()
+            sampwidth = wav.getsampwidth()
+            raw = wav.readframes(wav.getnframes())
+    except wave.Error as exc:
+        if "unknown format: 65534" not in str(exc):
+            raise
+        return _read_wave_extensible(path)
     if sampwidth == 2:
         data = np.frombuffer(raw, dtype="<i2").astype(np.float64) / 32768.0
     elif sampwidth == 4:
@@ -78,6 +83,22 @@ def read_wav(path: str | Path) -> tuple[np.ndarray, int]:
     if n_channels > 1:
         data = data.reshape(-1, n_channels).mean(axis=1)
     return data, sample_rate
+
+
+def _read_wave_extensible(path: str | Path) -> tuple[np.ndarray, int]:
+    """Read PCM WAVE_FORMAT_EXTENSIBLE on Python versions before 3.12."""
+    from scipy.io import wavfile
+
+    sample_rate, raw = wavfile.read(path)
+    data = np.asarray(raw)
+    if np.issubdtype(data.dtype, np.integer):
+        scale = float(max(abs(np.iinfo(data.dtype).min), np.iinfo(data.dtype).max))
+        data = data.astype(np.float64) / scale
+    else:
+        data = data.astype(np.float64)
+    if data.ndim > 1:
+        data = data.mean(axis=1)
+    return data, int(sample_rate)
 
 
 def synthetic_clip(

@@ -139,11 +139,11 @@ Post-1.8 product work (not a published package version):
 
 ### Upcoming pipeline (in progress)
 
-Two coordinated programs sit between today’s tip and a releaseable 1.8:
+Two coordinated programs remain after the published 1.8.0 release:
 
 #### 1. AI-video + review/salvage finish
 
-Contract-first media identity → inspection → human-gated verdict → bounded derivatives. Remaining work includes independent Wave-3 verification freeze, audio continuity, subtitle/graphics QA depth, asset intelligence, editorial planning, learning reports, and whole-program acceptance. Sequencing: [wishlist parallel execution](docs/plans/2026-07-12-wishlist-parallel-execution.md) · live ledger: [draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md).
+Contract-first media identity → inspection → human-gated verdict → bounded derivatives. Remaining work includes independent Wave-3 verification freeze, audio continuity, subtitle/graphics QA depth, asset intelligence, editorial planning, learning reports, and whole-program acceptance. Sequencing: [wishlist parallel execution](docs/plans/2026-07-12-wishlist-parallel-execution.md) · current status: [post-1.8 program status](docs/status/2026-07-14-post-1.8-program-status.md).
 
 #### 2. `kinocut_sound` (Sonic World) — full-episode audio production
 

@@ -70,7 +70,7 @@ def test_server_json_matches_public_claims(claims: dict) -> None:
 def test_pages_stub_points_at_canonical_website(claims: dict) -> None:
     site = (ROOT / "index.html").read_text(encoding="utf-8")
     assert f'href="{claims["website"]}"' in site or f'href="{claims["website"].rstrip("/")}/"' in site
-    assert f'url={claims["website"]}' in site or f'url={claims["website"].rstrip("/")}/' in site
+    assert f"url={claims['website']}" in site or f"url={claims['website'].rstrip('/')}/" in site
     assert claims["github"] in site or "KyaniteLabs/kinocut" in site
     # Stale personal or old-slug Pages URLs must not return.
     assert "pastorsimon1798" not in site
@@ -105,8 +105,7 @@ def test_readme_states_published_version_and_tip_counts(claims: dict) -> None:
     major_s, minor_s, *_rest = claims["published_version"].split(".")
     next_minor = f"{major_s}.{int(minor_s) + 1}.0"
     assert re.search(rf"\b{re.escape(next_minor)}\b", readme) is None, (
-        f"README must not claim unreleased {next_minor} while published is "
-        f"{claims['published_version']}"
+        f"README must not claim unreleased {next_minor} while published is {claims['published_version']}"
     )
     assert f"pip install kinocut=={major_s}.{int(minor_s) + 1}" not in readme
 
@@ -119,6 +118,34 @@ def test_llms_txt_matches_public_claims(claims: dict) -> None:
     assert str(claims["published_mcp_tools"]) in text
     assert str(claims["development_mcp_tools"]) in text
     assert "github.com/KyaniteLabs/mcp-video" not in text
+
+
+def test_current_release_docs_and_compatibility_shim_match_claims(claims: dict) -> None:
+    """Keep the current documentation set aligned with the published release."""
+    published = claims["published_version"]
+    shim = tomllib.loads((ROOT / "compat" / "mcp-video-shim" / "pyproject.toml").read_text(encoding="utf-8"))["project"]
+    shim_version = shim["version"]
+
+    assert f"kinocut=={published}" in shim["dependencies"]
+    assert f"mcp-video=={shim_version}" in (ROOT / "README.md").read_text(encoding="utf-8")
+    assert f"{shim_version} shim → kinocut {published}" in (ROOT / "llms.txt").read_text(encoding="utf-8")
+
+    roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
+    assert f"Kinocut {published} is published" in roadmap
+    assert "released 1.7.0 surface" not in roadmap
+
+    checklist = (ROOT / "docs" / "RELEASE_1.8_CHECKLIST.md").read_text(encoding="utf-8")
+    assert "**Status:** COMPLETE" in checklist
+    assert f"**Published result:** {published}" in checklist
+
+    release_notes = (ROOT / "docs" / "status" / "2026-07-14-1.8-release-notes.md").read_text(encoding="utf-8")
+    assert "**Published:**" in release_notes
+    assert "**Not published.**" not in release_notes
+    assert f"mcp-video=={shim_version}" in release_notes
+
+    docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
+    assert "post-1.8 program status" in docs_index
+    assert "`docs/status/` entries are snapshots" in docs_index
 
 
 def test_public_surface_expected_counts_match_development_claims(claims: dict) -> None:

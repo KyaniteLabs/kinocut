@@ -1,6 +1,6 @@
 # Kinocut usage metrics snapshot
 
-**Captured:** 2026-07-14 (approx. 06:15–06:35 UTC)  
+**Captured:** 2026-07-14 (traffic and download metrics, approx. 06:15–06:35 UTC; release metadata reconciled after the 1.8.0 publication)
 **Scope:** product identity **Kinocut** (formerly mcp-video), not the KyaniteLabs org aggregate.  
 **Method:** GitHub REST traffic + contributors + PRs; PyPI Stats API; MCP Registry JSON.
 
@@ -18,8 +18,8 @@ Refresh: `python scripts/collect_usage_metrics.py`
 | GitHub clones (≈14d) | **1,567** clones / **475** uniques | traffic/clones |
 | PyPI `kinocut` recent | **845** last day · **3,227** last week · **3,227** last month | pypistats recent |
 | PyPI `mcp-video` (compat) | **596** last day · **4,266** last week · **11,617** last month | pypistats recent |
-| Latest published package | **1.7.0** (2026-07-10) | PyPI + GitHub release + MCP Registry |
-| MCP Registry | **active** `io.github.KyaniteLabs/kinocut` @ 1.7.0 | registry API |
+| Latest published package | **1.8.0** (2026-07-14) | PyPI + GitHub release + MCP Registry |
+| MCP Registry | **active** `io.github.KyaniteLabs/kinocut` @ 1.8.0 | registry API |
 | Community human PR | **#361** `betsmayank` — hyperframes MCP hang fix, **merged 2026-07-13** | GitHub PR |
 
 **Reading:** Install/clone volume is strong relative to stars (clones ≈20× stars in the traffic window). Dual package traffic (`kinocut` + legacy `mcp-video`) means discovery still splits across the rename.

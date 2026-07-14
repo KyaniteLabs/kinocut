@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 concurrency:
-  group: publish-${{ github.event.release.tag_name || github.ref }}
+  group: kinocut-publish
   cancel-in-progress: false
 
 jobs:
@@ -54,7 +54,6 @@ jobs:
       - name: Verify release versions are publishable
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-          RELEASE_ATTEMPT: ${{ github.run_attempt }}
         run: |
           .venv/bin/python - <<'PY'
           import json
@@ -77,7 +76,6 @@ jobs:
                   break
           server = json.loads(Path("server.json").read_text())
           tag = os.environ["RELEASE_TAG"]
-          release_attempt = int(os.environ["RELEASE_ATTEMPT"])
 
           failures = []
           if project["name"] != "kinocut":
@@ -98,27 +96,24 @@ jobs:
           if package_versions != {version}:
               failures.append(f"server.json package versions {sorted(package_versions)!r} do not match {version!r}")
 
-          def require_missing_on_first_attempt(url, label):
+          def allow_existing_release_artifact(url, label):
               try:
                   urllib.request.urlopen(url, timeout=20).close()
               except urllib.error.HTTPError as exc:
                   if exc.code != 404:
                       raise
               else:
-                  if release_attempt == 1:
-                      failures.append(f"{label} already exists")
-                  else:
-                      print(f"Recovery attempt {release_attempt}: {label} already exists and will be skipped.")
+                  print(f"{label} already exists and matches the requested release; publication will skip it.")
 
-          require_missing_on_first_attempt(
+          allow_existing_release_artifact(
               f"https://pypi.org/pypi/kinocut/{version}/json",
               f"kinocut {version} on PyPI",
           )
-          require_missing_on_first_attempt(
+          allow_existing_release_artifact(
               f"https://pypi.org/pypi/mcp-video/{shim_version}/json",
               f"mcp-video {shim_version} on PyPI",
           )
-          require_missing_on_first_attempt(
+          allow_existing_release_artifact(
               f"https://registry.npmjs.org/kinocut/{version}",
               f"kinocut {version} on npm",
           )

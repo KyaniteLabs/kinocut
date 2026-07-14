@@ -570,30 +570,14 @@ def _validate_loop_bounds(
 
 def _finalize_audio_bed(
     *,
-    voice_source: str,
-    music_path: str,
-    voice_display_path: str,
-    music_display_path: str,
-    voice_content_sha256: str,
-    music_content_sha256: str,
-    pass_fds: tuple[int, ...],
-    output_path: str,
-    probe: _BedProbe,
-    target_duration: float,
-    music_volume: float,
-    duck_threshold: float,
-    duck_ratio: float,
-    duck_attack: float,
-    duck_release: float,
-    fade_in: float,
-    fade_out: float,
-    target_lufs: float,
-    loop: bool,
-    loop_crossfade: float,
-    duration_tolerance: float,
-    save_receipt: str | None,
-    warnings: list[str],
-    needs_loop: bool,
+    voice_source: str, music_path: str, voice_display_path: str,
+    music_display_path: str, voice_content_sha256: str, music_content_sha256: str,
+    pass_fds: tuple[int, ...], output_path: str, probe: _BedProbe,
+    target_duration: float, music_volume: float, duck_threshold: float,
+    duck_ratio: float, duck_attack: float, duck_release: float,
+    fade_in: float, fade_out: float, target_lufs: float,
+    loop: bool, loop_crossfade: float, duration_tolerance: float,
+    save_receipt: str | None, warnings: list[str], needs_loop: bool,
 ) -> dict[str, Any]:
     """Render, verify, build receipt, and return the structured result."""
     with _timed_operation() as timing:
@@ -660,33 +644,21 @@ def _finalize_audio_bed(
         needs_loop,
         timing.get("elapsed_ms") or 0.0,
     )
-    return {
-        "output_path": output_path,
-        "output_duration": output_duration,
-        "ducking_engaged": probe.voice_has_audio,
-        "warnings": tuple(warnings),
-        "elapsed_ms": timing.get("elapsed_ms"),
-        "receipt": receipt.model_dump(mode="json"),
-    }
+    return {"output_path": output_path, "output_duration": output_duration,
+            "ducking_engaged": probe.voice_has_audio, "warnings": tuple(warnings),
+            "elapsed_ms": timing.get("elapsed_ms"), "receipt": receipt.model_dump(mode="json")}
 
 
 def audio_bed(
-    voice_source: str,
-    music_path: str,
-    output_path: str,
+    voice_source: str, music_path: str, output_path: str,
     *,
-    loop: bool = True,
-    loop_crossfade: float = DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
-    fade_in: float = DEFAULT_AUDIO_BED_FADE_IN,
-    fade_out: float = DEFAULT_AUDIO_BED_FADE_OUT,
+    loop: bool = True, loop_crossfade: float = DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+    fade_in: float = DEFAULT_AUDIO_BED_FADE_IN, fade_out: float = DEFAULT_AUDIO_BED_FADE_OUT,
     target_lufs: float = DEFAULT_AUDIO_BED_TARGET_LUFS,
-    duck_threshold: float = DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
-    duck_ratio: float = DEFAULT_AUDIO_BED_DUCK_RATIO,
-    duck_attack: float = DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
-    duck_release: float = DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+    duck_threshold: float = DEFAULT_AUDIO_BED_DUCK_THRESHOLD, duck_ratio: float = DEFAULT_AUDIO_BED_DUCK_RATIO,
+    duck_attack: float = DEFAULT_AUDIO_BED_DUCK_ATTACK_MS, duck_release: float = DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
     music_volume: float = DEFAULT_AUDIO_BED_MUSIC_VOLUME,
-    duration_tolerance: float = DEFAULT_AUDIO_BED_DURATION_TOLERANCE_SECONDS,
-    save_receipt: str | None = None,
+    duration_tolerance: float = DEFAULT_AUDIO_BED_DURATION_TOLERANCE_SECONDS, save_receipt: str | None = None,
 ) -> dict[str, Any]:
     """Governed one-shot audio-bed: duck music under voice, normalize, receipt."""
     _validate_audio_bed_params(

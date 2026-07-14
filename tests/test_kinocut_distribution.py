@@ -280,7 +280,10 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "Verify clean install and mcp-video upgrade compatibility" in workflow
     assert "mcp-video==1.6.0" in workflow
     assert "pip uninstall --yes mcp-video" in workflow
-    assert "RELEASE_ATTEMPT: ${{ github.run_attempt }}" in workflow
+    assert "RELEASE_ATTEMPT" not in workflow
+    assert "already exists and matches the requested release; publication will skip it" in workflow
+    assert "group: kinocut-publish" in workflow
+    assert "cancel-in-progress: false" in workflow
     assert "skip-existing: true" in workflow
     assert re.search(r"publish-npm:\n(?:.*\n)*?    needs: publish\n", workflow)
     assert 'npm view "kinocut@$version" version' in workflow

@@ -189,6 +189,29 @@ class TestConvolutionReverb:
             ConvolutionReverbAdapter().process(base_clip, tmp_path / "bad.wav", ctx=ctx, params={"preset": "cathedral"})
 
 
+def test_fixture_reader_falls_back_for_wave_extensible(monkeypatch, tmp_path):
+    import wave
+
+    import numpy as np
+    from scipy.io import wavfile
+
+    from kinocut_sound.post import _fixtures
+
+    path = tmp_path / "extensible.wav"
+    path.write_bytes(b"placeholder")
+
+    def reject_extensible(_path, _mode):
+        raise wave.Error("unknown format: 65534")
+
+    monkeypatch.setattr(_fixtures.wave, "open", reject_extensible)
+    monkeypatch.setattr(wavfile, "read", lambda _path: (44100, np.array([0, 32767], dtype="<i4")))
+
+    samples, sample_rate = _fixtures.read_wav(path)
+
+    assert sample_rate == 44100
+    assert samples.tolist() == pytest.approx([0.0, 32767 / 2147483648.0])
+
+
 class TestDistance:
     """W2.6 — Distance simulation: far reduces HF vs close."""
 
