@@ -13,9 +13,9 @@ Kinocut is a free, open-source Model Context Protocol (MCP) server that gives AI
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.7.0 (2026-07-10)
-- **Published surface (1.7.0 cutover):** 135 MCP tools / 114 CLI commands
-- **Development tip (master):** 142 MCP tools / 121 CLI commands — includes unreleased AI-video work; **not** a published 1.8 package
+- **Latest published release:** 1.8.0 (2026-07-14)
+- **Published surface (1.8.0):** 142 MCP tools / 121 CLI commands
+- **Development tip (master):** 142 MCP tools / 121 CLI commands — matches published 1.8.0 at cutover
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
