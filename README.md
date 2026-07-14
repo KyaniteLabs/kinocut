@@ -388,6 +388,19 @@ claude mcp add kinocut -- uvx --from kinocut kino
 
 ## Quick Start
 
+### Golden path (60 seconds)
+
+Prove the install works before wiring an agent host:
+
+```bash
+pip install -e .          # or: pip install kinocut
+kino doctor               # required checks must pass
+python scripts/golden_path.py
+```
+
+Success criteria and failure recovery: [`docs/GOLDEN_PATH.md`](docs/GOLDEN_PATH.md).  
+Shareable pack (receipt + quality + media): `python scripts/generate_golden_pack.py` → [`demo/golden-pack/`](demo/golden-pack/).
+
 ### Try the receipt-backed proof first
 
 From a clone of this repo, run the smallest confidence workflow before wiring an agent host:
@@ -399,7 +412,7 @@ uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_be
 
 The workflow generates a tiny source clip, creates a checked vertical video, runs quality/release checkpoint steps, and writes `workflows/05-confidence-baseline/output/video_receipt.json`.
 
-Proof notes live in [`docs/proofs/`](docs/proofs/).
+Proof notes live in [`docs/proofs/`](docs/proofs/). Public marketing claims (version, tool counts, URLs) live in [`docs/public_claims.json`](docs/public_claims.json) and are CI-guarded.
 
 ### Claude Code
 
@@ -611,6 +624,9 @@ More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](http
 - [Sound program status](docs/status/2026-07-13-sound-program-strategic-handoff.md)
 - [AI agent discovery guide](docs/AI_AGENT_DISCOVERY.md)
 - [FAQ](docs/faq.md)
+- [Golden path (first-run proof)](docs/GOLDEN_PATH.md)
+- [Public claims (version / counts)](docs/public_claims.json)
+- [Golden demo pack](demo/golden-pack/README.md)
 - [Changelog](CHANGELOG.md)
 - [llms.txt](llms.txt)
 

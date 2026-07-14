@@ -99,7 +99,7 @@ def main() -> None:
     print("\n[3/7] Adding proof caption...")
     captioned = client.add_text(
         _value(vertical, "output_path"),
-        text="MCP video proof",
+        text="Kinocut proof",
         position="top-center",
         size=42,
         color="#CCFF00",
