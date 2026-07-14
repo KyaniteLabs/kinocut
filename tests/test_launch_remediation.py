@@ -6,6 +6,7 @@ import builtins
 import logging
 import runpy
 import tarfile
+import tomllib
 import zipfile
 from pathlib import Path
 
@@ -151,6 +152,23 @@ def test_built_artifact_checker_normalizes_wheel_root_paths(tmp_path):
 
     assert ".github/workflows/publish.yml" in offenders
     assert "dogfood_artifacts/showcase.mp4" in offenders
+
+
+def test_sdist_only_include_agrees_with_artifact_checker():
+    checker = runpy.run_path(".github/scripts/check-built-artifacts.py")
+    config = tomllib.loads(Path("pyproject.toml").read_text(encoding="utf-8"))
+    includes = config["tool"]["hatch"]["build"]["targets"]["sdist"]["only-include"]
+
+    offenders = [
+        entry
+        for entry in includes
+        if any(
+            fragment in f"/{entry.lstrip('/')}"
+            for fragment in checker["FORBIDDEN_SUBSTRINGS"]
+        )
+    ]
+
+    assert offenders == []
 
 
 def test_text_measurement_quietly_uses_fallback_without_pillow(monkeypatch, caplog):
