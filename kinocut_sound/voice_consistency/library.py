@@ -16,7 +16,6 @@ from kinocut_sound._canonical import Sha256, canonical_digest
 from kinocut_sound.voice_consistency._errors import (
     CONSISTENCY_LIBRARY_INVALID,
     CONSISTENCY_PROFILE_INVALID,
-    VoiceConsistencyError,
     bounded_consistency_error,
 )
 from kinocut_sound.voice_consistency.profile import VoiceProfile

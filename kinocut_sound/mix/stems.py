@@ -29,13 +29,14 @@ def build_stem_bundle(
     if set(stem_wavs) != set(layout.stem_ids):
         raise mix_error("stem_wavs keys must match layout.stem_ids exactly", MIX_INPUT_INVALID)
     rate = None
-    for stem_id, wav in stem_wavs.items():
+    for wav in stem_wavs.values():
         _, r = parse_wav(wav)
         if rate is None:
             rate = r
         elif r != rate:
             raise mix_error("all stems must share sample rate", MIX_INPUT_INVALID)
-    assert rate is not None
+    if rate is None:
+        raise mix_error("stem bundle is empty", MIX_INPUT_INVALID)
     return StemBundle(layout=layout, stems=dict(stem_wavs), sample_rate_hz=rate)
 
 

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from array import array
 from dataclasses import dataclass
+from itertools import pairwise
 
 from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS
 from kinocut_sound.delivery import DeliveryPolicy, StemLayout
@@ -17,9 +18,7 @@ from kinocut_sound.mix._wav import (
     DEFAULT_SAMPLE_RATE_HZ,
     parse_wav,
     pcm_to_wav,
-    silence_wav,
 )
-from kinocut_sound.mix.crossfade import crossfade_pair
 from kinocut_sound.mix.ducking import duck_bed_under_speech
 from kinocut_sound.mix.placement import PlacementPlan, place_clips
 from kinocut_sound.mix.seam import SeamReport, SeamEvent
@@ -98,7 +97,7 @@ class MixRenderer:
             gap_tolerance_seconds=self.gap_tolerance_seconds,
         )
         declared = placement.timeline_duration_seconds + self.tail_seconds
-        total_samples = max(1, int(round(declared * self.sample_rate_hz)))
+        total_samples = max(1, round(declared * self.sample_rate_hz))
 
         stem_ids = delivery.stems.stem_ids or ("dialogue", "ambience", "sfx")
         canvases = {sid: _blank(total_samples) for sid in stem_ids}
@@ -108,19 +107,22 @@ class MixRenderer:
         ordered = sorted(placement.placements, key=lambda p: p.start_seconds)
         rendered_wavs: dict[str, bytes] = {c.cue_id: c.wav_bytes for c in clips}
         if crossfade_seconds > 0 and len(ordered) >= 2:
-            for left, right in zip(ordered, ordered[1:]):
-                if left.stem_id == right.stem_id == "dialogue":
-                    if left.cue_id in rendered_wavs and right.cue_id in rendered_wavs:
-                        # Only record seam; actual overlay uses truncated windows.
-                        seams.append(
-                            SeamEvent(
-                                kind="crossfade",
-                                at_seconds=right.start_seconds,
-                                left_cue_id=left.cue_id,
-                                right_cue_id=right.cue_id,
-                                duration_seconds=crossfade_seconds,
-                            )
+            for left, right in pairwise(ordered):
+                if (
+                    left.stem_id == right.stem_id == "dialogue"
+                    and left.cue_id in rendered_wavs
+                    and right.cue_id in rendered_wavs
+                ):
+                    # Only record seam; actual overlay uses truncated windows.
+                    seams.append(
+                        SeamEvent(
+                            kind="crossfade",
+                            at_seconds=right.start_seconds,
+                            left_cue_id=left.cue_id,
+                            right_cue_id=right.cue_id,
+                            duration_seconds=crossfade_seconds,
                         )
+                    )
 
         for placed in ordered:
             clip = clip_map.get(placed.cue_id)
@@ -129,14 +131,14 @@ class MixRenderer:
             samples, rate = parse_wav(rendered_wavs[placed.cue_id])
             if rate != self.sample_rate_hz:
                 raise mix_error("clip sample rate mismatch", MIX_INPUT_INVALID)
-            window_n = int(round(placed.duration_seconds * self.sample_rate_hz))
+            window_n = round(placed.duration_seconds * self.sample_rate_hz)
             if len(samples) < window_n:
                 padded = array("h", samples)
                 padded.extend([0] * (window_n - len(samples)))
                 samples = padded
             else:
                 samples = samples[:window_n]
-            start = int(round(placed.start_seconds * self.sample_rate_hz))
+            start = round(placed.start_seconds * self.sample_rate_hz)
             stem = placed.stem_id if placed.stem_id in canvases else stem_ids[0]
             _overlay(canvases[stem], samples, start)
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from kinocut_sound.delivery import DeliveryPolicy, LoudnessTarget
+from kinocut_sound.delivery import DeliveryPolicy
 from kinocut_sound.mix._wav import parse_wav
 from kinocut_sound.qa._errors import QA_LOUDNESS_FAIL, qa_error
 import math
@@ -33,9 +33,6 @@ def measure_loudness(wav_bytes: bytes) -> tuple[float, float, float]:
 def check_loudness(wav_bytes: bytes, delivery: DeliveryPolicy | None = None) -> LoudnessReport:
     delivery = delivery or DeliveryPolicy()
     lufs, tp, lra = measure_loudness(wav_bytes)
-    target = float(delivery.loudness.integrated_lufs)
-    tol = float(delivery.loudness.tolerance_lu)
-    ceiling = delivery.true_peak_ceiling_dbtp
     within = True  # synthetic local fixtures use proxy meter; gate rejects only empty/invalid via parse
     report = LoudnessReport(
         integrated_lufs=lufs,

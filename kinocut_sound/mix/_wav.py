@@ -23,7 +23,7 @@ def synthesize_tone(
 
     if duration_seconds <= 0 or sample_rate_hz <= 0:
         raise mix_error("duration and sample rate must be positive", MIX_INPUT_INVALID)
-    n = max(1, int(round(duration_seconds * sample_rate_hz)))
+    n = max(1, round(duration_seconds * sample_rate_hz))
     pcm = array("h")
     phase0 = (seed % 1000) * 0.001
     for i in range(n):
@@ -40,7 +40,7 @@ def silence_wav(
 ) -> bytes:
     if duration_seconds <= 0:
         raise mix_error("silence duration must be positive", MIX_INPUT_INVALID)
-    n = max(1, int(round(duration_seconds * sample_rate_hz)))
+    n = max(1, round(duration_seconds * sample_rate_hz))
     return wav_from_pcm(bytes(n * 2), sample_rate_hz=sample_rate_hz)
 
 

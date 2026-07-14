@@ -13,7 +13,7 @@ import json
 import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -86,7 +86,7 @@ def main() -> int:
         ra["storyboard"] = [Path(f).name if isinstance(f, str) else f for f in frames]
     packed_receipt["review_artifacts"] = ra
     packed_receipt["pack"] = {
-        "generated_at": datetime.now(timezone.utc).isoformat(),
+        "generated_at": datetime.now(UTC).isoformat(),
         "kinocut_published_version": claims.get("published_version"),
         "generator": "scripts/generate_golden_pack.py",
     }

@@ -22,7 +22,7 @@ def crossfade_pair(
     samples_b, rate_b = parse_wav(wav_b)
     if rate_a != rate_b:
         raise mix_error("crossfade requires matching sample rates", MIX_CROSSFADE_INVALID)
-    fade_n = int(round(fade_seconds * rate_a))
+    fade_n = round(fade_seconds * rate_a)
     if fade_n <= 0:
         raise mix_error("fade window too short", MIX_CROSSFADE_INVALID)
     if len(samples_a) < fade_n or len(samples_b) < fade_n:

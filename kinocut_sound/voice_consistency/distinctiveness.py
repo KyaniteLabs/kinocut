@@ -76,12 +76,11 @@ def _features(samples: tuple[int, ...], sample_rate: int) -> tuple[float, float,
         1 for i in range(1, n) if (samples[i - 1] >= 0) != (samples[i] >= 0)
     )
     zcr = crossings / n
-    if n > 1:
-        highband = sum(abs(samples[i] - samples[i - 1]) for i in range(1, n)) / (
-            (n - 1) * 65536.0
-        )
-    else:
-        highband = 0.0
+    highband = (
+        sum(abs(samples[i] - samples[i - 1]) for i in range(1, n)) / ((n - 1) * 65536.0)
+        if n > 1
+        else 0.0
+    )
 
     # Fast pitch proxy via decimated samples and a short lag window.
     factor = max(1, sample_rate // 5512)

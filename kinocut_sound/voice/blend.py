@@ -68,7 +68,7 @@ class BlendSource:
 
 @dataclass(frozen=True)
 class BlendProfile:
-    """Composite blend profile with 2–3 uniquely authorized sources."""
+    """Composite blend profile with 2-3 uniquely authorized sources."""
 
     profile_id: str
     composite_subject_id: str
@@ -110,7 +110,7 @@ class BlendRenderReceipt:
 class BlendRenderer:
     """Authorize and render multi-source blended voice output."""
 
-    __slots__ = ("_adapter", "_roster", "_base_slot")
+    __slots__ = ("_adapter", "_base_slot", "_roster")
 
     def __init__(
         self,

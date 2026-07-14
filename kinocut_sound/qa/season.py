@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from kinocut_sound.qa.loudness import LoudnessReport
-from kinocut_sound.qa.artifact import ArtifactReport
 
 
 @dataclass(frozen=True)

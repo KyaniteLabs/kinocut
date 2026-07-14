@@ -1,7 +1,6 @@
 """Python adapter surface with privacy-safe JSON-friendly results."""
 
 from __future__ import annotations
-from dataclasses import asdict, is_dataclass
 from typing import Any
 from kinocut_sound.public.discovery import discover_sound_capabilities
 from kinocut_sound.qa import check_loudness
