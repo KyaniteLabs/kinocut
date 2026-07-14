@@ -4,13 +4,9 @@ on:
   pull_request:
 jobs:
   lint:
-    # Light job: ruff static analysis only — no ffmpeg, no package build (~30s).
-    # Routed to the `light` runner label -> the capacity-1 VPS runner, which
-    # co-hosts the production Forgejo git server and is sized for cheap work.
-    # Runs ahead of `test`, giving fast style feedback while the capacity-1
-    # runner processes jobs sequentially. ruff pinned to match the `[dev]` extra
-    # (no latest drift).
-    runs-on: light
+    # Runs on `heavy`: its successful release matrix confirms that label is
+    # available, while the required `light` queue is currently unavailable.
+    runs-on: heavy
     steps:
       - uses: actions/checkout@v4
       - name: Install ruff
@@ -22,12 +18,9 @@ jobs:
         run: .venv-lint/bin/ruff check .
   test:
     # PR-safe test job: ffmpeg + full dependency tree + the "not slow" suite.
-    # Route to `light`, the known-live VPS runner label, instead of broad
-    # `ubuntu-latest` (which can also match stale/offline runners) or the
-    # optional `heavy` label. This keeps protected-branch PR checks from staying
-    # pending when heavyweight runners are offline. xdist is capped at 4 workers
-    # to keep the capacity-1 fallback runner responsive.
-    runs-on: light
+    # Route to the confirmed-active `heavy` label so this required protected-
+    # branch check cannot remain queued behind the unavailable `light` runner.
+    runs-on: heavy
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
@@ -41,12 +34,10 @@ jobs:
         run: .venv/bin/pytest tests/ -q -m "not slow" -n 4
   test-slow:
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
-    # on push to master. Route to `light` so post-merge checks stay on the
-    # known-live VPS runner instead of waiting forever on optional/stale
-    # heavyweight runners. Kept serial (no -n) because these tests do heavier
-    # real I/O.
+    # on push to master. Route to the confirmed-active `heavy` runner. Kept
+    # serial (no -n) because these tests do heavier real I/O.
     if: ${{ github.event_name == 'push' }}
-    runs-on: light
+    runs-on: heavy
     steps:
       - uses: actions/checkout@v4
       - name: Install system dependencies
