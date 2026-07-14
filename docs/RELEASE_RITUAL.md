@@ -2,6 +2,12 @@
 
 Minimum marketing steps when cutting a public Kinocut release. Engineering release process remains in CI/publish workflows.
 
+**For the 1.8.0 cutover** use the ordered checklist and automation:
+
+- [`RELEASE_1.8_CHECKLIST.md`](RELEASE_1.8_CHECKLIST.md)
+- [`scripts/apply_public_release_cutover.py`](../scripts/apply_public_release_cutover.py)
+- Draft bullets: [`status/2026-07-14-1.8-release-notes-draft.md`](status/2026-07-14-1.8-release-notes-draft.md)
+
 ## 1. Freeze claims
 
 Update [`public_claims.json`](public_claims.json):
