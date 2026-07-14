@@ -95,10 +95,11 @@ def is_positioned_blend(layer: Any) -> bool:
 def positioned_blend_chains(layer: Any, previous: str, layer_label: str) -> tuple[list[str], str]:
     """Build the positioned-blend filtergraph chains.
 
-    Crops the running base to the layer rectangle, blends same-size with the
-    scaled layer input, and overlays the blended tile back onto the running
-    base at the same position. All geometry is integral and validated; values
-    are formatted as integers and escaped, never interpolated raw.
+    Splits the running base into keep and crop-source streams, crops the latter
+    to the layer rectangle, blends same-size with the scaled layer input, and
+    overlays the blended tile onto the kept stream at the same position. All
+    geometry is integral and validated; values are formatted as integers and
+    escaped, never interpolated raw.
 
     Returns ``(extra_chains, overlay_step)`` where ``extra_chains`` carries the
     crop + blend chains and ``overlay_step`` is the final re-overlay (without the
@@ -110,11 +111,14 @@ def positioned_blend_chains(layer: Any, previous: str, layer_label: str) -> tupl
     h = _escape_ffmpeg_filter_value(str(int(layer.height)))
     # Mode is resolved through the allowlist dict, never interpolated raw.
     mode = BLEND_ALL_MODES[layer.blend]
+    keep_label = f"{layer_label}keep"
+    crop_source_label = f"{layer_label}cropsource"
     crop_label = f"{layer_label}base"
     blend_label = f"{layer_label}blend"
     extra = [
-        f"[{previous}]crop={w}:{h}:{x}:{y}[{crop_label}]",
+        f"[{previous}]split=2[{keep_label}][{crop_source_label}]",
+        f"[{crop_source_label}]crop={w}:{h}:{x}:{y}[{crop_label}]",
         f"[{crop_label}][{layer_label}]blend=all_mode={mode}[{blend_label}]",
     ]
-    step = f"[{previous}][{blend_label}]overlay={x}:{y}:format=auto:eof_action=pass"
+    step = f"[{keep_label}][{blend_label}]overlay={x}:{y}:format=auto:eof_action=pass"
     return extra, step

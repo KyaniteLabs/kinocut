@@ -436,14 +436,17 @@ def test_composite_layers_accepts_positioned_blend(tmp_path, monkeypatch, mode):
     assert result.layer_plan["layers"][1]["blend"] == mode
 
 
-def test_composite_layers_positioned_blend_filtergraph_crops_base_blends_and_overlays_back(tmp_path, monkeypatch):
+def test_composite_layers_positioned_blend_filtergraph_splits_base_before_crop_and_overlay(tmp_path, monkeypatch):
     _result, graph = _render_graph(tmp_path, _positioned_blend_spec("overlay"), monkeypatch)
 
-    # The base region is cropped, blended same-size with the scaled layer, and
-    # the blended tile is overlaid back onto the running base at the same x/y.
-    assert "[base1]crop=24:32:8:16[layer2base]" in graph
+    # The running base is split so each output is consumed exactly once: one is
+    # kept for the final overlay and the other is cropped for the tile blend.
+    assert "[base1]split=2[layer2keep][layer2cropsource]" in graph
+    assert "[layer2cropsource]crop=24:32:8:16[layer2base]" in graph
     assert "[layer2base][layer2]blend=all_mode=overlay[layer2blend]" in graph
-    assert "[base1][layer2blend]overlay=8:16:format=auto:eof_action=pass" in graph
+    assert "[layer2keep][layer2blend]overlay=8:16:format=auto:eof_action=pass" in graph
+    assert "[base1]crop=" not in graph
+    assert "[base1][layer2blend]overlay=" not in graph
 
 
 def test_composite_layers_positioned_blend_at_origin_is_valid(tmp_path, monkeypatch):
