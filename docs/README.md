@@ -6,6 +6,8 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 
 ## Current Guidance
 
+- [Golden path (first-run proof)](GOLDEN_PATH.md) - doctor → baseline → receipt success criteria.
+- [Public claims](public_claims.json) - version, tool/CLI counts, registry id, canonical URLs.
 - [CLI reference](CLI_REFERENCE.md) - canonical `kino` commands and flags.
 - [MCP tools](TOOLS.md) - public tool categories and contracts.
 - [Python client](PYTHON_CLIENT.md) - canonical `from kinocut import Client` usage.
@@ -31,6 +33,7 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 
 ## Current Proof
 
+- [Golden demo pack](../demo/golden-pack/README.md) - regenerate shareable receipt + quality artifacts.
 - [Wishlist draft verification receipt](proofs/wishlist-draft/VERIFICATION_RECEIPT.md) - exact-SHA pre-PR checks and required final gates.
 - [Wishlist input manifest](evidence/2026-07-10-wishlist-input-manifest.md) - public-safe source traceability.
 
