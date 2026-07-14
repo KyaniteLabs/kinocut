@@ -40,6 +40,16 @@ Each workflow has:
 4. Write `workflow.py` using the Kinocut client
 5. Update `workflows/CONTEXT.md` routing table
 
+## Golden path (preferred first run)
+
+From the **repository root**:
+
+```bash
+python scripts/golden_path.py
+```
+
+That runs `kino doctor`, the confidence baseline, and artifact checks. Details: [`docs/GOLDEN_PATH.md`](../docs/GOLDEN_PATH.md).
+
 ## Confidence baseline
 
 Use `05-confidence-baseline` when you need a clean proof run without private media:
