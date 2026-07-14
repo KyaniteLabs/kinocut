@@ -178,13 +178,14 @@ packages = ["kinocut", "kinocut_sound"]
 "mcp_video.py" = "mcp_video.py"
 
 [tool.hatch.build.targets.sdist]
+# Do not ship /docs/ in the sdist — publish artifact check forbids that path
+# (GitHub Release 1.8.0 failed on kinocut-1.8.0.tar.gz including MCPB docs).
+# MCPB operator docs remain in-repo and under mcpb/README.md.
 only-include = [
     "/kinocut",
     "/kinocut_sound",
     "/mcp_video.py",
     "/CHANGELOG.md",
-    "/docs/MCPB.md",
-    "/docs/MCPB_SUPPLY_CHAIN.md",
     "/LICENSE",
     "/mcpb",
     "/README.md",

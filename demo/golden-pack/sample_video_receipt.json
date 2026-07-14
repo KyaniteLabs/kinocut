@@ -19,7 +19,7 @@
   "pack": {
     "generated_at": "2026-07-14T06:09:07.729630+00:00",
     "generator": "scripts/generate_golden_pack.py",
-    "kinocut_published_version": "1.7.0"
+    "kinocut_published_version": "1.8.0"
   },
   "quality": {
     "all_passed": true,
