@@ -9,7 +9,7 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 1.8.0 - 2026-07-14
 
 ### Added
 
@@ -31,11 +31,7 @@ This project follows a simple release-note style:
 
 - `hyperframes_init` no longer hangs when Kinocut runs as an MCP server. Project scaffolding now always invokes the Hyperframes CLI non-interactively and with `HYPERFRAMES_SKIP_SKILLS=1` (the CLI ignores the `--skip-skills` flag and otherwise runs a blocking network AI-skills check on `init`), and every Hyperframes subprocess is run with a closed stdin so a missing TTY can never block on an interactive prompt.
 
-### Release status
-
-- Future work remains under draft review and is not included in the 1.8.0 release.
-
-## 1.8.0 - 2026-07-14
+### Release preparation
 
 ### Fixed
 
