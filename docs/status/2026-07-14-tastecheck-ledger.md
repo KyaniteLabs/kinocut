@@ -60,3 +60,7 @@
 ## Note on “latest pack”
 
 Executed against the **installed** `tastecheck-pass` + sibling foundation skills under `~/.grok/skills/` dated **2026-07-13** (newest tastecheck-related tree present on this machine). Direction interview used the same day’s `design-system-interview` contract (9 dimensions + motion).
+
+---
+
+**Canonical pack path (latest):** `~/workspaces/tastecheck` (skills + `contracts/v1/interviews/{greenfield,brownfield}.json`). Claude/Grok skill dirs symlink or copy from this tree (2026-07-13).

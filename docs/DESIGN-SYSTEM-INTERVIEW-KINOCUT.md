@@ -218,3 +218,7 @@ Motion should feel like a **transport control**, not a brand film.
 1. Re-token `kinocut-site` strictly to this map (it already mostly matches — close gaps from multi-page doc chrome).  
 2. Re-run `tastecheck-pass` on **home + install + receipt** as the three critical surfaces.  
 3. Only then visual redesign work.
+
+---
+
+**Canonical pack path (latest):** `~/workspaces/tastecheck` (skills + `contracts/v1/interviews/{greenfield,brownfield}.json`). Claude/Grok skill dirs symlink or copy from this tree (2026-07-13).
