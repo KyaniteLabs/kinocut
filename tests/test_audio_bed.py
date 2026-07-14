@@ -20,8 +20,15 @@ from kinocut.contracts.audio_bed import AudioBedReceipt
 from kinocut.engine_audio_bed import audio_bed
 from kinocut.errors import MCPVideoError, ProcessingError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json
+from kinocut.source_identity import immutable_verified_snapshot_available
 
-pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg not installed")
+pytestmark = [
+    pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg not installed"),
+    pytest.mark.skipif(
+        not immutable_verified_snapshot_available(),
+        reason="immutable verified source snapshots are unavailable",
+    ),
+]
 
 
 def _ffmpeg(args: list[str]) -> None:

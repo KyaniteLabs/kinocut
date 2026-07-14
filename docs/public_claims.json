@@ -2,10 +2,11 @@
   "schema_version": 1,
   "package_name": "kinocut",
   "cli_names": ["kino", "kinocut", "mcp-video"],
-  "published_version": "1.7.0",
-  "published_date": "2026-07-10",
-  "published_mcp_tools": 135,
-  "published_cli_commands": 114,
+  "published_version": "1.8.0",
+  "published_date": "2026-07-14",
+  "release_candidate_version": "1.8.0",
+  "published_mcp_tools": 142,
+  "published_cli_commands": 121,
   "development_mcp_tools": 142,
   "development_cli_commands": 121,
   "registry_id": "io.github.KyaniteLabs/kinocut",
@@ -16,8 +17,9 @@
   "license": "Apache-2.0",
   "formerly": "mcp-video",
   "notes": [
-    "published_* counts describe the last released package (pip install kinocut).",
-    "development_* counts describe the current repository tip (master), including unreleased surfaces.",
-    "Never present development counts as a published PyPI version number."
+    "published_* counts describe the last published package (pip install kinocut).",
+    "release_candidate_version tracks the package version on master (equals published after cutover).",
+    "development_* counts describe the current repository tip (master).",
+    "Never present development counts as a published PyPI version when they diverge."
   ]
 }

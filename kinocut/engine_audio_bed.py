@@ -17,7 +17,6 @@ from __future__ import annotations
 import hashlib
 import json
 import logging
-import math
 import os
 import tempfile
 import uuid
@@ -40,23 +39,25 @@ from .defaults import (
     DEFAULT_AUDIO_BED_DURATION_TOLERANCE_SECONDS,
     DEFAULT_HASH_CHUNK_BYTES,
     DEFAULT_AUDIO_BED_MUSIC_VOLUME,
-    DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP,
     DEFAULT_AUDIO_BED_FADE_IN,
     DEFAULT_AUDIO_BED_FADE_OUT,
     DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
-    DEFAULT_AUDIO_BED_LOOP_MAX_PLAYS,
     DEFAULT_AUDIO_BED_TARGET_LUFS,
     DEFAULT_AUDIO_BITRATE,
-    DEFAULT_LRA_TARGET,
 )
 from .engine_runtime_utils import _check_filter_available, _movflags_args, _timed_operation
+from .engine_audio_bed_filters import (
+    _build_duck_filtergraph,
+    _build_loop_filtergraph,
+    _build_no_duck_filtergraph,
+    _compute_loop_plays,
+    _n,
+)
 from .errors import MCPVideoError, ProcessingError
 from .ffmpeg_helpers import (
-    _escape_ffmpeg_filter_value,
     _get_video_duration,
     _run_ffmpeg,
     _run_ffprobe_json,
-    _sanitize_ffmpeg_number,
     _validate_artifact_path,
     _validate_input_path,
     _validate_output_path,
@@ -140,124 +141,6 @@ def _safe_display_name(path: str) -> str:
     if not match:
         return "input"
     return match.group()[:128]
-
-
-# ---------------------------------------------------------------------------
-# Filtergraph builders
-# ---------------------------------------------------------------------------
-
-
-def _n(value: Any, name: str) -> str:
-    """Sanitize, then escape a numeric filter argument."""
-    return _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, name)))
-
-
-def _build_duck_filtergraph(
-    *,
-    music_volume: float,
-    duck_threshold: float,
-    duck_ratio: float,
-    duck_attack: float,
-    duck_release: float,
-    fade_in: float,
-    fade_out: float,
-    target_duration: float,
-    target_lufs: float,
-) -> str:
-    """Build the sidechain-duck + fade + loudnorm filtergraph (voice present)."""
-    fade_start = max(0.0, target_duration - fade_out)
-    vol = _n(music_volume, "music_volume")
-    thr = _n(duck_threshold, "duck_threshold")
-    rat = _n(duck_ratio, "duck_ratio")
-    atk = _n(duck_attack, "duck_attack")
-    rel = _n(duck_release, "duck_release")
-    lufs = _n(target_lufs, "target_lufs")
-    tp = _n(DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP, "true_peak")
-    lra = _n(DEFAULT_LRA_TARGET, "lra")
-    parts = [
-        f"[1:a]volume={vol}[bg];",
-        f"[bg][0:a]sidechaincompress=threshold={thr}:ratio={rat}",
-        f":attack={atk}:release={rel}[ducked];",
-        f"[ducked]afade=t=in:st=0:d={_n(fade_in, 'fade_in')}",
-        f",afade=t=out:st={_n(fade_start, 'fade_start')}:d={_n(fade_out, 'fade_out')}[faded];",
-        "[0:a][faded]amix=inputs=2:duration=first:normalize=0[mixed];",
-        f"[mixed]loudnorm=I={lufs}:TP={tp}:LRA={lra}[aout]",
-    ]
-    return "".join(parts)
-
-
-def _build_no_duck_filtergraph(
-    *,
-    music_volume: float,
-    fade_in: float,
-    fade_out: float,
-    target_duration: float,
-    target_lufs: float,
-    needs_pad: bool,
-) -> str:
-    """Build fade + loudnorm filtergraph for the no-voice case (no ducking)."""
-    fade_start = max(0.0, target_duration - fade_out)
-    vol = _n(music_volume, "music_volume")
-    lufs = _n(target_lufs, "target_lufs")
-    tp = _n(DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP, "true_peak")
-    lra = _n(DEFAULT_LRA_TARGET, "lra")
-    pad = "apad," if needs_pad else ""
-    chain = (
-        f"[1:a]{pad}volume={vol}"
-        f",afade=t=in:st=0:d={_n(fade_in, 'fade_in')}"
-        f",afade=t=out:st={_n(fade_start, 'fade_start')}:d={_n(fade_out, 'fade_out')}"
-        f",loudnorm=I={lufs}:TP={tp}:LRA={lra}[aout]"
-    )
-    return chain
-
-
-def _compute_loop_plays(bed_duration: float, target_duration: float, crossfade: float) -> int:
-    """Number of bed plays needed to fill ``target_duration`` with crossfaded seams.
-
-    Each join costs ``crossfade`` seconds of overlap: n_plays * bed_duration
-    - (n_plays - 1) * crossfade >= target_duration.
-    """
-    if bed_duration <= crossfade:
-        raise _validation_error(
-            "loop_crossfade must be smaller than the bed duration",
-            "invalid_loop_crossfade",
-        )
-    raw = (target_duration + crossfade) / (bed_duration - crossfade)
-    plays = max(2, math.ceil(raw))
-    if plays > DEFAULT_AUDIO_BED_LOOP_MAX_PLAYS:
-        raise _validation_error(
-            "bed is too short for the target duration under the loop cap",
-            "loop_limit_exceeded",
-        )
-    return plays
-
-
-def _build_loop_filtergraph(
-    bed_duration: float,
-    target_duration: float,
-    crossfade: float,
-) -> tuple[str, int]:
-    """Build a crossfaded seamless-loop filtergraph for a short bed.
-
-    Uses ``-stream_loop -1`` on the input and ``asplit`` to create N bed plays,
-    then chains ``acrossfade`` between each pair so every seam is smoothed.
-    Returns the filtergraph string and the number of plays.
-    """
-    plays = _compute_loop_plays(bed_duration, target_duration, crossfade)
-    safe_bed = _n(bed_duration, "bed_duration")
-    safe_xfade = _n(crossfade, "loop_crossfade")
-    safe_target = _n(target_duration, "target_duration")
-    split_labels = "".join(f"[s{i}]" for i in range(plays))
-    parts = [f"[0:a]asplit={plays}{split_labels}"]
-    for i in range(plays):
-        parts.append(f"[s{i}]atrim=0:{safe_bed},asetpts=PTS-STARTPTS[p{i}]")
-    prev = "p0"
-    for i in range(1, plays):
-        out_label = f"x{i}" if i < plays - 1 else "looped"
-        parts.append(f"[{prev}][p{i}]acrossfade=d={safe_xfade}[{out_label}]")
-        prev = out_label
-    parts.append(f"[{prev}]atrim=0:{safe_target},asetpts=PTS-STARTPTS[out]")
-    return ";".join(parts), plays
 
 
 # ---------------------------------------------------------------------------

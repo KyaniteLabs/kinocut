@@ -23,9 +23,15 @@ from kinocut.engine_body_swap import _audio_fingerprint
 from kinocut.engine_probe import probe
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import Project, append_record, ingest_asset, open_project, read_records
+from kinocut.source_identity import immutable_verified_snapshot_available
 from tests.contracts_fixtures import protection_kwargs, review_decision_kwargs
 
 _ACCEPTANCE_SPEC = "sha256:" + "a" * 64
+
+pytestmark = pytest.mark.skipif(
+    not immutable_verified_snapshot_available(),
+    reason="immutable verified source snapshots are unavailable",
+)
 
 
 def _sha(path: str | Path) -> str:

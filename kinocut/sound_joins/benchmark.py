@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import platform
 import time
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 from typing import Any
 
 from kinocut.sound_joins.d41_bind import default_kinocut_d41_port
@@ -56,7 +55,18 @@ class BenchmarkReceipt:
     status: str = "ok"
 
     def to_payload(self) -> dict[str, Any]:
-        return asdict(self)
+        capability_keys = ("d41_bed", "d41_audition", "d42_style", "d42_identity")
+        return {
+            "fixture_version": self.fixture_version,
+            "hardware_class": self.hardware_class,
+            "clip_count": self.clip_count,
+            "cold_seconds": self.cold_seconds,
+            "warm_seconds": self.warm_seconds,
+            "cold_ok": self.cold_ok,
+            "warm_ok": self.warm_ok,
+            "under_30m": self.under_30m,
+            "required_capabilities": {key: bool(self.required_capabilities.get(key, False)) for key in capability_keys},
+        }
 
     def digest(self) -> str:
         body = json.dumps(self.to_payload(), sort_keys=True, separators=(",", ":")).encode()
@@ -64,6 +74,8 @@ class BenchmarkReceipt:
 
 
 def detect_benchmark_class() -> BenchmarkClass:
+    import platform
+
     machine = platform.machine().lower()
     system = platform.system().lower()
     if machine in {"arm64", "aarch64"} and system == "darwin":

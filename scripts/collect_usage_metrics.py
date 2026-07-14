@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import json
 import subprocess
-import sys
 import urllib.error
 import urllib.request
-from datetime import datetime, timezone
+from datetime import datetime, UTC
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -46,7 +45,7 @@ def _gh_json(args: list[str]) -> dict | list | None:
 
 
 def main() -> int:
-    now = datetime.now(timezone.utc).isoformat()
+    now = datetime.now(UTC).isoformat()
     repo = _gh_json([f"repos/{REPO}"]) or {}
     views = _gh_json([f"repos/{REPO}/traffic/views"]) or {}
     clones = _gh_json([f"repos/{REPO}/traffic/clones"]) or {}
@@ -91,7 +90,7 @@ def main() -> int:
             "pushed_at": repo.get("pushed_at") if isinstance(repo, dict) else None,
             "views": views if isinstance(views, dict) else {"_error": views},
             "clones": clones if isinstance(clones, dict) else {"_error": clones},
-            "popular_paths": paths if isinstance(paths, list) else paths,
+            "popular_paths": paths,
             "contributors": [
                 {"login": c.get("login"), "contributions": c.get("contributions")}
                 for c in (contrib if isinstance(contrib, list) else [])

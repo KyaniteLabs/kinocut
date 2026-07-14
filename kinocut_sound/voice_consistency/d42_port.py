@@ -26,7 +26,6 @@ from kinocut_sound.capability import (
 
 from kinocut_sound.voice_consistency._errors import (
     CONSISTENCY_D42_UNAVAILABLE,
-    CONSISTENCY_METRIC_INVALID,
     bounded_consistency_error,
 )
 

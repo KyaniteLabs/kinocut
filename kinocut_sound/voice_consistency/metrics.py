@@ -20,7 +20,6 @@ from kinocut_sound.voice_consistency._errors import (
 from kinocut_sound.voice_consistency.d42_port import (
     FakeD42Port,
     IdentityCheckSpec,
-    StyleCheckResult,
     StyleCheckSpec,
 )
 

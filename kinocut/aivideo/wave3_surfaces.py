@@ -259,15 +259,23 @@ def _run_body_swap(
     auth = _active_authorizations(project, auth)
     video_path, _, video_identity = _asset_for_input(project, video_source, "video source")
     audio_path, _, audio_identity = _asset_for_input(project, audio_source, "audio source")
-    result = body_swap(
-        video_path,
-        audio_path,
-        output,
-        duration_policy=duration_policy,
-        project=project,
-        authorization_decision_ids=auth,
-        verified_source_identities=(video_identity, audio_identity),
-    )
+    try:
+        result = body_swap(
+            video_path,
+            audio_path,
+            output,
+            duration_policy=duration_policy,
+            project=project,
+            authorization_decision_ids=auth,
+            verified_source_identities=(video_identity, audio_identity),
+        )
+    except MCPVideoError as exc:
+        if exc.code == "source_identity_changed":
+            raise _error(
+                "body-swap source integrity cannot be verified",
+                "wave3_asset_integrity_failed",
+            ) from exc
+        raise
     return {"success": True, "operation": "body_swap", **result}
 
 

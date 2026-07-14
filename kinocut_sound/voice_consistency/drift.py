@@ -9,12 +9,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from kinocut_sound._canonical import Sha256, canonical_digest
+from kinocut_sound._canonical import Sha256
 from kinocut_sound.lines import Line
 from kinocut_sound.sound_plan import SoundPlan
 
 from kinocut_sound.voice_consistency._errors import (
-    CONSISTENCY_DRIFT_DETECTED,
     CONSISTENCY_METRIC_INVALID,
     CONSISTENCY_PROFILE_INVALID,
     bounded_consistency_error,

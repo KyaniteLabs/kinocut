@@ -1,6 +1,6 @@
 {
   "name": "kinocut",
-  "version": "1.7.0",
+  "version": "1.8.0",
   "description": "Thin uvx launcher for Kinocut, the trusted execution layer for agentic video.",
   "license": "Apache-2.0",
   "homepage": "https://kinocut.dev/",

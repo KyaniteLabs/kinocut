@@ -15,8 +15,8 @@ import mcp_video
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.7.0"
-SHIM_VERSION = "1.6.1"
+KINOCUT_VERSION = "1.8.0"
+SHIM_VERSION = "1.6.2"
 
 
 def _toml(path: Path) -> dict:
@@ -167,7 +167,10 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     assert manifest["user_config"]["pythonExecutable"]["required"] is False
     assert "enableOptionalAi" not in manifest["user_config"]
     sdist_includes = set(project["tool"]["hatch"]["build"]["targets"]["sdist"]["only-include"])
-    assert {"/mcpb", "/docs/MCPB.md", "/scripts/build-mcpb.py"} <= sdist_includes
+    # MCPB operator docs stay in-repo (docs/MCPB.md) but are not shipped under /docs/
+    # in the sdist — publish artifact checks forbid that path.
+    assert {"/mcpb", "/scripts/build-mcpb.py"} <= sdist_includes
+    assert "/docs/MCPB.md" not in sdist_includes
     assert "/kinocut_sound" in sdist_includes
     assert '["-m", "kinocut", "--mcp"]' in launcher
     assert "shell: false" in launcher
@@ -180,6 +183,7 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     assert "directory fields" not in docs
     assert "enableOptionalAi" not in docs
     assert "Release Gate Before External Publication" in docs
+    assert "staged/local-only" in docs
 
     out_dir = tmp_path / "dist"
     result = subprocess.run(
@@ -283,6 +287,7 @@ def test_release_workflow_builds_and_publishes_canonical_shim_and_npm_packages()
     assert "needs: [publish, publish-npm, publish-npm-recovery]" in workflow
     assert "needs.publish-npm.result == 'success'" in workflow
     assert "github.event_name == 'workflow_dispatch'" in workflow
+    assert "build-mcpb.py" not in workflow
 
 
 def test_npm_publish_uses_local_tarball_and_has_oidc_recovery_dispatch() -> None:

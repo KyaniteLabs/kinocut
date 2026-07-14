@@ -65,7 +65,6 @@ from kinocut_sound.voice_consistency.regeneration import (
 __version__ = "0.1.0"
 
 __all__ = [
-    "AbReel",
     "CONSISTENCY_COLLISION_DETECTED",
     "CONSISTENCY_D42_UNAVAILABLE",
     "CONSISTENCY_DRIFT_DETECTED",
@@ -73,6 +72,7 @@ __all__ = [
     "CONSISTENCY_METRIC_INVALID",
     "CONSISTENCY_PROFILE_INVALID",
     "CONSISTENCY_REGENERATION_FAILED",
+    "AbReel",
     "DistinctivenessReport",
     "DriftEvent",
     "DriftReport",

@@ -9,7 +9,7 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 1.8.0 - 2026-07-14
 
 ### Added
 
@@ -31,9 +31,17 @@ This project follows a simple release-note style:
 
 - `hyperframes_init` no longer hangs when Kinocut runs as an MCP server. Project scaffolding now always invokes the Hyperframes CLI non-interactively and with `HYPERFRAMES_SKIP_SKILLS=1` (the CLI ignores the `--skip-skills` flag and otherwise runs a blocking network AI-skills check on `init`), and every Hyperframes subprocess is run with a closed stdin so a missing TTY can never block on an interactive prompt.
 
-### Release status
+### Release preparation
 
-- These changes are under draft review. No version bump, tag, package upload, directory submission, deployment, release, or announcement is authorized.
+### Fixed
+
+- Public S14 benchmark receipts now use an explicit allowlist and exclude machine, processor, platform, notes, status, and unknown capability data.
+- The staged MCPB identity and the `mcp-video` compatibility shim now align with Kinocut 1.8.0. Native MCPB bundles remain staged/local-only and are not published.
+- Thanks to @betsmayank for the Hyperframes MCP no-TTY initialization fix (#361).
+
+### Compatibility
+
+- `mcp-video==1.6.2` is a metadata-only upgrade shim that installs `kinocut==1.8.0` and forwards every optional extra.
 
 ## 1.7.0 - 2026-07-10
 
