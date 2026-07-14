@@ -75,3 +75,16 @@ Yes. Kinocut has comprehensive error handling with structured error types, input
 ## How do I contribute?
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) for the full guide. The short version: fork, branch, write tests, submit a PR. All PRs need passing CI.
+
+
+## Who is Kinocut for?
+
+1. **Agent users** — Claude Code / Cursor operators who want structured video tools.
+2. **Media operators** — podcast/social teams automating cuts with human approval.
+3. **Stack evaluators** — platform engineers comparing local MCP video options.
+
+See [RECOMMEND.md](RECOMMEND.md) and [COMPARE.md](COMPARE.md).
+
+## Is there a paid enterprise tier?
+
+Not as of the published open-source core. Apache-2.0; see [ENTERPRISE.md](ENTERPRISE.md) for commercial clarity.
