@@ -1,63 +1,51 @@
 # Sound program S13–S15 gate receipt
 
-**Date:** 2026-07-14  
-**Hosts:** Niko (x86 Linux), Liam Mac mini (Apple silicon)  
+**Document date:** 2026-07-14  
+**Integrity status:** This is a future-dated planning and gate record relative to a 2026-07-13 review. It is not current verified release evidence.  
+**Release scope:** Sound S13–S15 is unfinished, non-release evidence and is excluded from the Kinocut 1.8.0 release scope.  
 **Release:** NOT AUTHORIZED / NOT PERFORMED
 
-## S13 — Host joins (COMPLETE)
+## S13 — Host joins (UNFINISHED)
 
-**Status:** `complete` — in-repo D41/D42 owners bound under `kinocut.sound_joins`.
+**Status:** unfinished.
 
-Owners used (not invented):
+This receipt does not assert or evidence real D41 or D42 execution. Any in-repository interfaces or adapters remain unvalidated implementation material; they are not host-integration proof.
 
-1. **D41** — `kinocut.engine_audio_bed.audio_bed` via `KinocutBedAdapter` / `KinocutAuditionAdapter`
-2. **D42** — `kinocut.aivideo.voice_seam` / audio fingerprint path via `KinocutStyleAdapter` / `KinocutIdentityAdapter`
+Required before this gate can be considered complete:
 
-Sidecar boundary preserved: `kinocut_sound` still imports no `kinocut.*`. Host joins live under `kinocut/sound_joins/`.
+1. Verifiable owner-approved D41 execution evidence
+2. Verifiable owner-approved D42 execution evidence
+3. Host review, learning, and benchmark join contracts from their owning program waves
 
-Evidence:
+## S14 — Benchmark (UNFINISHED / NO VERIFIED EVIDENCE)
 
-- Focused tests: `tests/test_kinocut_sound_joins_s13.py` green on Niko
-- Real adapter ids: `d41_bed_kinocut_audio_bed`, `d41_audition_kinocut`, `d42_style_kinocut_voice_seam`, `d42_identity_kinocut_voice_seam`
-- Probe requires local ffmpeg (+ sidechaincompress/loudnorm for D41 bed)
+**Status:** unfinished.
 
-Remaining optional host surfaces (not blocking this join): full WF text-card narrator wire-through, review-package/learning controller registration, CLI/MCP tool registration of the bound ports.
+This receipt provides no verified benchmark result. It does not claim:
 
-## S14 — Benchmark (DUAL-CLASS GREEN)
+- a 64-clip or other benchmark fixture result;
+- cross-class execution evidence;
+- cold or warm timings;
+- a hard scheduler ceiling; or
+- a benchmark-derived release decision.
 
-**Status:** complete for the versioned synthetic 64-clip fixture on both required classes.
+A future benchmark must be captured and reviewed under its owning program's evidence process before it can be used for any release decision.
 
-| Class | Host | Cold (s) | Warm (s) | Under 30m | Status |
-| --- | --- | ---: | ---: | --- | --- |
-| x86_linux | Niko NUCBox | 0.3957 | 0.3862 | yes | ok |
-| apple_silicon | Liam Mac mini | 0.0743 | 0.0737 | yes | ok |
+## S15 — Acceptance STOP
 
-- Fixture: `sound-bench-v1`, 64 clips (within 50–80 band)
-- Scheduler: `BoundedProcessPool` with max workers, max tasks, wall-clock ceiling, cancel/resume
-- Evidence file: `docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json`
-- Digests: see evidence file (x86 `02fe5aed…`, apple `d600f954…`)
+**Status:** STOP before release.
 
-## S15 — Acceptance STOP (historic record)
+The S13–S15 sound program has no release authorization. It cannot supersede, satisfy, or imply authorization for Kinocut 1.8.0 or any release candidate.
 
-**Historic status:** STOP before release.
+Required before any future sound-program ship:
 
-Performed:
-
-- S1–S14 implementable path closed with this change unit (S13/S14 code + dual-class evidence)
-- Focused S13/S14 suites green
-- Dual-class cold/warm under 30 minutes
-- Privacy: receipts omit host paths and secrets
-
-Still required before any ship (human gates, not engineering green claims):
-
-- Independent architecture review package on the full sound program
+- Completed and independently reviewed S13 host-join evidence
+- Completed and independently reviewed S14 benchmark evidence
+- Independent architecture review of the full sound program
 - Explicit human release authorization
-- Optional full-season real-media acceptance beyond the synthetic fixture
 
-**No version bump, tag, package upload, directory submission, deploy, or announce.**
+**No version bump, tag, package upload, directory submission, deploy, announcement, or release authorization is granted by this receipt.**
 
-## 1.8.0 RC authorization supersession
+## Native MCPB external non-publication gate
 
-The S15 STOP above remains the historical sound-program gate record. For the explicitly authorized Kinocut 1.8.0 release candidate only, that historic release stop is superseded by the RC authorization.
-
-This supersession does **not** authorize external MCPB publication. The MCPB external non-publication gate remains in force: no MCPB registry or directory submission, upload, or public release may occur unless separately and explicitly authorized.
+The native MCPB external non-publication gate remains in force. No MCPB registry or directory submission, upload, or public release may occur unless separately and explicitly authorized.
