@@ -181,6 +181,8 @@ class ConvolutionReverbAdapter:
                 str(ctx.sample_rate_hz),
                 "-ac",
                 str(ctx.channel_count),
+                "-c:a",
+                "pcm_s32le",
                 str(output_path),
             ],
             timeout=self.descriptor.timeout_seconds,

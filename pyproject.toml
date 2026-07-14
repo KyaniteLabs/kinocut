@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "kinocut"
-version = "1.7.0"
+version = "1.8.0"
 description = "Trusted, guardrailed video editing for AI agents. FFmpeg, Hyperframes, repurposing tools, Python client, CLI, and MCP server."
 readme = "README.md"
 license = "Apache-2.0"

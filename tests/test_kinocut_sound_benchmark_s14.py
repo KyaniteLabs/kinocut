@@ -8,6 +8,7 @@ import time
 import pytest
 
 from kinocut.sound_joins.benchmark import (
+    BenchmarkReceipt,
     FixtureSpec,
     detect_benchmark_class,
     run_cold_warm_benchmark,
@@ -76,6 +77,37 @@ def test_cold_warm_benchmark_small_fixture():
     assert "/home/" not in text
     assert "password" not in text.lower()
     assert receipt.digest().startswith("sha256:")
+
+
+def test_benchmark_public_payload_is_an_explicit_allowlist():
+    receipt = BenchmarkReceipt(
+        fixture_version="sound-bench-v1",
+        hardware_class="apple_silicon",
+        machine="private-machine",
+        processor="private-processor",
+        platform="private-platform",
+        clip_count=8,
+        cold_seconds=1.0,
+        warm_seconds=0.5,
+        cold_ok=True,
+        warm_ok=True,
+        under_30m=True,
+        required_capabilities={"safe": True, "unknown": False},
+        notes=("unsafe private note",),
+        status="unsafe private status",
+    )
+
+    assert receipt.to_payload() == {
+        "fixture_version": "sound-bench-v1",
+        "hardware_class": "apple_silicon",
+        "clip_count": 8,
+        "cold_seconds": 1.0,
+        "warm_seconds": 0.5,
+        "cold_ok": True,
+        "warm_ok": True,
+        "under_30m": True,
+        "required_capabilities": {"d41_bed": False, "d41_audition": False, "d42_style": False, "d42_identity": False},
+    }
 
 
 def test_pool_wall_clock_ceiling_is_enforced():

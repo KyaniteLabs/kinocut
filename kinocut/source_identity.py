@@ -124,16 +124,19 @@ def _stream_fd_identity(fd: int) -> SourceIdentity:
     return SourceIdentity("sha256:" + digest.hexdigest(), size)
 
 
+def immutable_verified_snapshot_available() -> bool:
+    """Return whether this host can make a kernel-immutable verified snapshot."""
+    os_names = ("memfd_create", "MFD_ALLOW_SEALING")
+    fcntl_names = ("F_ADD_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW", "F_SEAL_SHRINK", "F_SEAL_SEAL")
+    return fcntl is not None and all(hasattr(os, name) for name in os_names) and all(
+        hasattr(fcntl, name) for name in fcntl_names
+    )
+
+
 def _sealed_snapshot_fd(source_fd: int) -> int:
     """Copy one descriptor into an immutable memfd when the kernel supports it."""
 
-    os_names = ("memfd_create", "MFD_ALLOW_SEALING")
-    fcntl_names = ("F_ADD_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW", "F_SEAL_SHRINK", "F_SEAL_SEAL")
-    if (
-        fcntl is None
-        or not all(hasattr(os, name) for name in os_names)
-        or not all(hasattr(fcntl, name) for name in fcntl_names)
-    ):
+    if not immutable_verified_snapshot_available():
         raise _identity_error("immutable verified source snapshots are unavailable")
 
     flags = os.MFD_ALLOW_SEALING | getattr(os, "MFD_CLOEXEC", 0)

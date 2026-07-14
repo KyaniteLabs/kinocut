@@ -29,6 +29,7 @@ def test_public_claims_file_is_complete(claims: dict) -> None:
     required = (
         "package_name",
         "published_version",
+        "release_candidate_version",
         "published_mcp_tools",
         "published_cli_commands",
         "development_mcp_tools",
@@ -49,10 +50,11 @@ def test_public_claims_file_is_complete(claims: dict) -> None:
     assert claims["registry_id"] == "io.github.KyaniteLabs/kinocut"
 
 
-def test_pyproject_version_matches_published_claim(claims: dict) -> None:
+def test_pyproject_version_matches_release_candidate_claim(claims: dict) -> None:
     project = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     assert project["name"] == claims["package_name"]
-    assert project["version"] == claims["published_version"]
+    assert project["version"] == claims["release_candidate_version"]
+    assert claims["published_version"] != claims["release_candidate_version"]
 
 
 def test_server_json_matches_public_claims(claims: dict) -> None:
@@ -97,17 +99,9 @@ def test_readme_states_published_version_and_tip_counts(claims: dict) -> None:
     assert str(claims["development_mcp_tools"]) in readme
     assert str(claims["development_cli_commands"]) in readme
 
-    # Do not claim the *next* unreleased X.Y.0 as shipped.
-    # published 1.7.0 → forbid bare 1.8.0; published 1.8.0 → forbid 1.9.0; etc.
-    published = claims["published_version"]
-    major_s, minor_s, *_rest = published.split(".")
-    next_minor = f"{major_s}.{int(minor_s) + 1}.0"
-    assert re.search(rf"\b{re.escape(next_minor)}\b", readme) is None, (
-        f"README must not claim unreleased {next_minor} while published is {published}"
-    )
-    next_minor_short = f"{major_s}.{int(minor_s) + 1}"
-    assert f"pip install kinocut=={next_minor_short}" not in readme
-    assert f"pip install kinocut=={next_minor}" not in readme
+    # Do not claim an unreleased major.minor package as shipped.
+    assert re.search(r"\b1\.8\.0\b", readme) is None
+    assert "pip install kinocut==1.8" not in readme
 
 
 def test_llms_txt_matches_public_claims(claims: dict) -> None:

@@ -4,6 +4,7 @@
   "cli_names": ["kino", "kinocut", "mcp-video"],
   "published_version": "1.7.0",
   "published_date": "2026-07-10",
+  "release_candidate_version": "1.8.0",
   "published_mcp_tools": 135,
   "published_cli_commands": 114,
   "development_mcp_tools": 142,
@@ -16,7 +17,8 @@
   "license": "Apache-2.0",
   "formerly": "mcp-video",
   "notes": [
-    "published_* counts describe the last released package (pip install kinocut).",
+    "published_* counts describe the last published package (pip install kinocut).",
+    "release_candidate_version is not a publication claim and requires live registry verification.",
     "development_* counts describe the current repository tip (master), including unreleased surfaces.",
     "Never present development counts as a published PyPI version number."
   ]

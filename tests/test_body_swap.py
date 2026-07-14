@@ -12,6 +12,13 @@ import pytest
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.engine_runtime_utils import _ffmpeg, _ffprobe
 from kinocut.ffmpeg_helpers import _get_video_duration, _run_ffprobe_json
+from kinocut.source_identity import immutable_verified_snapshot_available
+
+
+pytestmark = pytest.mark.skipif(
+    not immutable_verified_snapshot_available(),
+    reason="immutable verified source snapshots are unavailable",
+)
 
 
 def _clip(

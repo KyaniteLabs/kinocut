@@ -10,8 +10,19 @@ from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _run_command
 
 
+def test_immutable_snapshot_capability_requires_kernel_seals(monkeypatch):
+    import kinocut.source_identity as identity
+
+    assert isinstance(identity.immutable_verified_snapshot_available(), bool)
+    monkeypatch.setattr(identity, "fcntl", None)
+    assert identity.immutable_verified_snapshot_available() is False
+
+
 def test_verified_snapshot_copy_fails_closed_on_source_race(monkeypatch, tmp_path):
     import kinocut.source_identity as identity
+
+    if not identity.immutable_verified_snapshot_available():
+        pytest.skip("immutable verified source snapshots are unavailable")
 
     source = tmp_path / "source.mp4"
     source.write_bytes(b"verified-source-bytes")
@@ -57,6 +68,9 @@ def test_verified_snapshot_copy_fails_closed_on_source_race(monkeypatch, tmp_pat
 def test_verified_snapshot_identity_is_bound_to_exact_returned_fd(monkeypatch, tmp_path):
     import kinocut.source_identity as identity
 
+    if not identity.immutable_verified_snapshot_available():
+        pytest.skip("immutable verified source snapshots are unavailable")
+
     source = tmp_path / "source.mp4"
     source.write_bytes(b"declared-source-bytes")
     expected = identity.stream_source_identity(str(source))
@@ -97,13 +111,12 @@ def test_verified_snapshot_fails_closed_without_kernel_seals(monkeypatch, tmp_pa
 
 
 def test_verified_snapshot_is_kernel_write_sealed(tmp_path):
-    fcntl = pytest.importorskip("fcntl")
-    required_os = ("memfd_create", "MFD_ALLOW_SEALING")
-    required_fcntl = ("F_GET_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW", "F_SEAL_SHRINK")
-    if not all(hasattr(os, name) for name in required_os) or not all(hasattr(fcntl, name) for name in required_fcntl):
+    import kinocut.source_identity as identity
+
+    if not identity.immutable_verified_snapshot_available():
         pytest.skip("kernel write seals are unavailable")
 
-    import kinocut.source_identity as identity
+    fcntl = pytest.importorskip("fcntl")
 
     source = tmp_path / "source.mp4"
     source.write_bytes(b"sealed-source-bytes")
@@ -120,6 +133,9 @@ def test_verified_snapshot_is_kernel_write_sealed(tmp_path):
 
 def test_verified_snapshot_fd_starts_at_zero_and_remains_inheritable(tmp_path):
     import kinocut.source_identity as identity
+
+    if not identity.immutable_verified_snapshot_available():
+        pytest.skip("immutable verified source snapshots are unavailable")
 
     payload = b"anonymous-descriptor-payload"
     source = tmp_path / "source.mp4"

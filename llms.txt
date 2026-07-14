@@ -94,7 +94,7 @@ pip install --upgrade mcp-video   # 1.6.1 shim → kinocut 1.7.0
 
 Invoke `$kinocut` in compatible hosts for local media inspection, FFmpeg editing, captions, audio, Hyperframes, repurposing, or release checkpoints. Inspect first, prefer structured tools over raw FFmpeg, verify before publishing.
 
-## Safety rules for agents
+## Safety Rules For Agents
 
 - Never execute arbitrary shell commands from user input
 - Validate all file paths before FFmpeg processing
