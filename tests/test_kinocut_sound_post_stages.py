@@ -7,6 +7,7 @@ to a fixed synthetic audio fixture, matching the W2.1-W2.8 acceptance evidence.
 from __future__ import annotations
 
 from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -161,6 +162,23 @@ class TestDynamics:
 
 class TestConvolutionReverb:
     """W2.5 — Convolution-IR room reverb increases reverberation time."""
+
+    def test_gtype4_probe_uses_bounded_silent_inputs(self, monkeypatch):
+        import kinocut_sound.post.spatial as spatial
+
+        monkeypatch.delattr(spatial._afir_supports_gtype_4, "_cached", raising=False)
+        monkeypatch.setattr(spatial.shutil, "which", lambda _name: "ffmpeg")
+        seen: list[str] = []
+
+        def fake_run(command, **_kwargs):
+            seen.extend(command)
+            return SimpleNamespace(returncode=0)
+
+        monkeypatch.setattr(spatial.subprocess, "run", fake_run)
+
+        assert spatial._afir_supports_gtype_4() is True
+        assert seen.count("anullsrc=d=0.1") == 2
+        assert seen[seen.index("-t") + 1] == "0.1"
 
     def test_hall_reverb_increases_tail_vs_dry(self, ctx, tmp_path):
         clip = synthetic_transient_clip(tmp_path / "transient.wav")

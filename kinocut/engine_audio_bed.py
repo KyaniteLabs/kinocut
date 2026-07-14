@@ -5,7 +5,6 @@ loop/crossfade, fade-in/fade-out, EBU R128 loudness normalization, exact
 output-duration policy (``keep_video``), deterministic edit-receipt, privacy-safe
 project-relative identity, and cancellation-safe temp output.
 
-Engine facade only — MCP/CLI/client registration is owned by the controller.
 Imports shared helpers (never duplicates); every FFmpeg value is escaped; all
 subprocess calls are bounded; custom errors only; fail-closed when sidechain
 or loudnorm is unavailable; receipts carry only content hashes and safe basename
@@ -14,13 +13,10 @@ display names (absolute paths are structurally excluded by the contract).
 
 from __future__ import annotations
 
-import hashlib
-import json
 import logging
 import math
 import os
 import tempfile
-import uuid
 from contextlib import ExitStack, contextmanager, suppress
 from pathlib import Path
 from collections.abc import Iterator
@@ -31,14 +27,20 @@ from .audio_bed_validation import (
     validate_audio_bed_params as _validate_audio_bed_params,
     validation_error as _validation_error,
 )
-from .contracts.audio_bed import AudioBedInput, AudioBedParameters, AudioBedReceipt
+from .audio_bed_receipts import (
+    _build_receipt,
+    _file_sha256,
+    _receipt_hash,
+    _safe_display_name,
+    _write_receipt,
+)
 from .defaults import (
     DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
     DEFAULT_AUDIO_BED_DUCK_RATIO,
     DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
     DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
     DEFAULT_AUDIO_BED_DURATION_TOLERANCE_SECONDS,
-    DEFAULT_HASH_CHUNK_BYTES,
+    DEFAULT_HASH_CHUNK_BYTES as DEFAULT_HASH_CHUNK_BYTES,
     DEFAULT_AUDIO_BED_MUSIC_VOLUME,
     DEFAULT_AUDIO_BED_TRUE_PEAK_DBTP,
     DEFAULT_AUDIO_BED_FADE_IN,
@@ -57,7 +59,6 @@ from .ffmpeg_helpers import (
     _run_ffmpeg,
     _run_ffprobe_json,
     _sanitize_ffmpeg_number,
-    _validate_artifact_path,
     _validate_input_path,
     _validate_output_path,
 )
@@ -67,7 +68,6 @@ from .source_identity import (
     stream_source_identity,
 )
 
-from .validation import AUDIO_BED_SAFE_DISPLAY_RE
 
 logger = logging.getLogger(__name__)
 
@@ -112,34 +112,6 @@ def _probe_duration(path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
         return _get_video_duration(path, pass_fds=pass_fds)
     except (ProcessingError, MCPVideoError):
         raise _validation_error("could not probe source duration", "probe_failed") from None
-
-
-# ---------------------------------------------------------------------------
-# Hashing and receipt helpers
-# ---------------------------------------------------------------------------
-
-
-def _file_sha256(path: str) -> str:
-    """Compute ``sha256:<hex>`` over file bytes."""
-    digest = hashlib.sha256()
-    with open(path, "rb") as f:
-        while chunk := f.read(DEFAULT_HASH_CHUNK_BYTES):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
-
-
-def _safe_display_name(path: str) -> str:
-    """Return a privacy-safe basename for receipt display.
-
-    Strips directory components entirely and sanitizes to the bounded display
-    name alphabet (alphanumerics, dot, underscore, hyphen). The receipt must
-    never carry an absolute source path.
-    """
-    base = os.path.basename(path)
-    match = AUDIO_BED_SAFE_DISPLAY_RE.fullmatch(base)
-    if not match:
-        return "input"
-    return match.group()[:128]
 
 
 # ---------------------------------------------------------------------------
@@ -490,109 +462,6 @@ def _verify_output_duration(
 
 
 # ---------------------------------------------------------------------------
-# Receipt construction
-# ---------------------------------------------------------------------------
-
-
-def _toolchain() -> tuple[tuple[str, str | None], ...]:
-    """Return the bounded toolchain fingerprint for the receipt."""
-    from .workflow._versions import ffmpeg_version, mcp_video_version
-
-    return (
-        ("mcp_video", mcp_video_version()),
-        ("ffmpeg", ffmpeg_version()),
-    )
-
-
-def _build_receipt(
-    *,
-    voice_source: str,
-    music_path: str,
-    voice_content_sha256: str,
-    music_content_sha256: str,
-    output_path: str,
-    voice_duration: float,
-    bed_duration: float,
-    output_duration: float,
-    voice_has_audio: bool,
-    music_has_audio: bool,
-    loop: bool,
-    loop_crossfade: float,
-    fade_in: float,
-    fade_out: float,
-    target_lufs: float,
-    music_volume: float,
-    duck_threshold: float,
-    duck_ratio: float,
-    duck_attack: float,
-    duck_release: float,
-    warnings: tuple[str, ...],
-) -> AudioBedReceipt:
-    """Build the deterministic edit-receipt from verified render evidence."""
-    voice_input = AudioBedInput(
-        role="voice_source",
-        content_sha256=voice_content_sha256,
-        probed_duration_seconds=voice_duration,
-        display_name=_safe_display_name(voice_source),
-        has_audio_stream=voice_has_audio,
-    )
-    music_input = AudioBedInput(
-        role="music_bed",
-        content_sha256=music_content_sha256,
-        probed_duration_seconds=bed_duration,
-        display_name=_safe_display_name(music_path),
-        has_audio_stream=music_has_audio,
-    )
-    params = AudioBedParameters(
-        loop=loop,
-        loop_crossfade_seconds=loop_crossfade,
-        fade_in_seconds=fade_in,
-        fade_out_seconds=fade_out,
-        music_volume=music_volume,
-        target_lufs=target_lufs,
-        duck_threshold=duck_threshold,
-        duck_ratio=duck_ratio,
-        duck_attack_ms=duck_attack,
-        duck_release_ms=duck_release,
-    )
-    receipt = AudioBedReceipt(
-        inputs=(voice_input, music_input),
-        parameters=params,
-        output_content_sha256=_file_sha256(output_path),
-        output_duration_seconds=output_duration,
-        output_display_name=_safe_display_name(output_path),
-        ducking_engaged=voice_has_audio,
-        warnings=warnings,
-        toolchain=_toolchain(),
-    )
-    return receipt.model_copy(update={"receipt_sha256": _receipt_hash(receipt)})
-
-
-def _receipt_hash(receipt: AudioBedReceipt) -> str:
-    """Deterministic sha256 over operation identity (inputs + parameters).
-
-    Excludes the derived hash itself plus output-specific result fields whose
-    values vary across renders (AAC encoding is not byte-deterministic). The
-    output is still verifiable via ``output_content_sha256`` independently.
-    """
-    payload = receipt.model_dump(
-        mode="json",
-        exclude={"receipt_sha256", "output_content_sha256", "output_duration_seconds"},
-    )
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()
-    return "sha256:" + hashlib.sha256(encoded).hexdigest()
-
-
-def _write_receipt(path: str, receipt: AudioBedReceipt) -> None:
-    """Write the receipt as pretty-printed JSON via an atomic temp-and-rename."""
-    validated = _validate_artifact_path(path)
-    temporary = Path(validated).with_name(f".{Path(validated).name}.{uuid.uuid4().hex}.tmp")
-    payload = receipt.model_dump_json(indent=2)
-    temporary.write_text(payload + "\n", encoding="utf-8")
-    os.replace(temporary, validated)
-
-
-# ---------------------------------------------------------------------------
 # Public engine facade
 # ---------------------------------------------------------------------------
 
@@ -685,6 +554,98 @@ def _validate_loop_bounds(
     return needs_loop
 
 
+def _prepare_bed(
+    voice_snapshot: VerifiedSource,
+    music_snapshot: VerifiedSource,
+    *,
+    loop: bool,
+    loop_crossfade: float,
+) -> tuple[_BedProbe, tuple[int, ...], float, bool, list[str]]:
+    """Probe verified sources and prepare the bounded render plan."""
+    pass_fds = voice_snapshot.pass_fds + music_snapshot.pass_fds
+    probe = _probe_sources(voice_snapshot.path, music_snapshot.path, pass_fds=pass_fds)
+    if not probe.music_has_audio:
+        raise _validation_error("music bed must contain an audio stream", "missing_audio_stream")
+    _require_filters(probe.voice_has_audio)
+    target_duration = probe.voice_duration
+    needs_loop = _validate_loop_bounds(probe.bed_duration, target_duration, loop, loop_crossfade)
+    warnings = _compute_warnings(
+        voice_has_audio=probe.voice_has_audio,
+        bed_duration=probe.bed_duration,
+        target_duration=target_duration,
+        loop=loop,
+    )
+    return probe, pass_fds, target_duration, needs_loop, warnings
+
+
+def _receipt_result(
+    *,
+    voice_display_path: str,
+    music_display_path: str,
+    voice_content_sha256: str,
+    music_content_sha256: str,
+    output_path: str,
+    probe: _BedProbe,
+    output_duration: float,
+    music_volume: float,
+    duck_threshold: float,
+    duck_ratio: float,
+    duck_attack: float,
+    duck_release: float,
+    fade_in: float,
+    fade_out: float,
+    target_lufs: float,
+    loop: bool,
+    loop_crossfade: float,
+    warnings: list[str],
+    needs_loop: bool,
+    elapsed_ms: float | None,
+    save_receipt: str | None,
+) -> dict[str, Any]:
+    """Build, optionally persist, and return the receipt-backed render result."""
+    receipt = _build_receipt(
+        voice_source=voice_display_path,
+        music_path=music_display_path,
+        voice_content_sha256=voice_content_sha256,
+        music_content_sha256=music_content_sha256,
+        output_path=output_path,
+        voice_duration=probe.voice_duration,
+        bed_duration=probe.bed_duration,
+        output_duration=output_duration,
+        voice_has_audio=probe.voice_has_audio,
+        music_has_audio=probe.music_has_audio,
+        music_volume=music_volume,
+        loop=loop,
+        loop_crossfade=loop_crossfade,
+        fade_in=fade_in,
+        fade_out=fade_out,
+        target_lufs=target_lufs,
+        duck_threshold=duck_threshold,
+        duck_ratio=duck_ratio,
+        duck_attack=duck_attack,
+        duck_release=duck_release,
+        warnings=tuple(warnings),
+    )
+    if save_receipt is not None:
+        _write_receipt(save_receipt, receipt)
+    logger.info(
+        "audio_bed: rendered %s (%.3fs, ducking=%s, loop=%s) in %.0fms",
+        output_path,
+        output_duration,
+        probe.voice_has_audio,
+        needs_loop,
+        elapsed_ms or 0.0,
+    )
+    return {
+        "output_path": output_path,
+        "output_duration": output_duration,
+        "ducking_engaged": probe.voice_has_audio,
+        "warnings": tuple(warnings),
+        "elapsed_ms": elapsed_ms,
+        "receipt": receipt.model_dump(mode="json"),
+    }
+
+
 def _finalize_audio_bed(
     *,
     voice_source: str,
@@ -735,56 +696,34 @@ def _finalize_audio_bed(
             pass_fds=pass_fds,
         )
     try:
-        output_duration = _verify_output_duration(
-            output_path,
-            target_duration,
-            duration_tolerance,
-        )
+        output_duration = _verify_output_duration(output_path, target_duration, duration_tolerance)
     except ProcessingError:
         with suppress(OSError):
             Path(output_path).unlink(missing_ok=True)
         raise
-    receipt = _build_receipt(
-        voice_source=voice_display_path,
-        music_path=music_display_path,
+    return _receipt_result(
+        voice_display_path=voice_display_path,
+        music_display_path=music_display_path,
         voice_content_sha256=voice_content_sha256,
         music_content_sha256=music_content_sha256,
         output_path=output_path,
-        voice_duration=probe.voice_duration,
-        bed_duration=probe.bed_duration,
+        probe=probe,
         output_duration=output_duration,
-        voice_has_audio=probe.voice_has_audio,
-        music_has_audio=probe.music_has_audio,
         music_volume=music_volume,
-        loop=loop,
-        loop_crossfade=loop_crossfade,
-        fade_in=fade_in,
-        fade_out=fade_out,
-        target_lufs=target_lufs,
         duck_threshold=duck_threshold,
         duck_ratio=duck_ratio,
         duck_attack=duck_attack,
         duck_release=duck_release,
-        warnings=tuple(warnings),
+        fade_in=fade_in,
+        fade_out=fade_out,
+        target_lufs=target_lufs,
+        loop=loop,
+        loop_crossfade=loop_crossfade,
+        warnings=warnings,
+        needs_loop=needs_loop,
+        elapsed_ms=timing.get("elapsed_ms"),
+        save_receipt=save_receipt,
     )
-    if save_receipt is not None:
-        _write_receipt(save_receipt, receipt)
-    logger.info(
-        "audio_bed: rendered %s (%.3fs, ducking=%s, loop=%s) in %.0fms",
-        output_path,
-        output_duration,
-        probe.voice_has_audio,
-        needs_loop,
-        timing.get("elapsed_ms") or 0.0,
-    )
-    return {
-        "output_path": output_path,
-        "output_duration": output_duration,
-        "ducking_engaged": probe.voice_has_audio,
-        "warnings": tuple(warnings),
-        "elapsed_ms": timing.get("elapsed_ms"),
-        "receipt": receipt.model_dump(mode="json"),
-    }
 
 
 def audio_bed(
@@ -827,26 +766,11 @@ def audio_bed(
         _validate_artifact_path(save_receipt)
     with _verified_audio_sources(voice_source, music_path, output_path) as sources:
         voice_snapshot, music_snapshot = sources
-        pass_fds = voice_snapshot.pass_fds + music_snapshot.pass_fds
-        probe = _probe_sources(voice_snapshot.path, music_snapshot.path, pass_fds=pass_fds)
-        if not probe.music_has_audio:
-            raise _validation_error(
-                "music bed must contain an audio stream",
-                "missing_audio_stream",
-            )
-        _require_filters(probe.voice_has_audio)
-        target_duration = probe.voice_duration
-        needs_loop = _validate_loop_bounds(
-            probe.bed_duration,
-            target_duration,
-            loop,
-            loop_crossfade,
-        )
-        warnings = _compute_warnings(
-            voice_has_audio=probe.voice_has_audio,
-            bed_duration=probe.bed_duration,
-            target_duration=target_duration,
+        probe, pass_fds, target_duration, needs_loop, warnings = _prepare_bed(
+            voice_snapshot,
+            music_snapshot,
             loop=loop,
+            loop_crossfade=loop_crossfade,
         )
         return _finalize_audio_bed(
             voice_source=voice_snapshot.path,

@@ -376,15 +376,18 @@ def measure_reverb_tail_energy(path: str | Path) -> float:
     """Measure the total energy in the tail region of the signal.
 
     A reverberant signal has more energy in its decay tail than a dry signal.
-    We measure the RMS of the last 30% of the clip as a reverberation proxy.
+    The synthetic transient ends in the first 10% of the clip and hall decay
+    can finish before final silence padding, so measure the stable post-onset
+    window from 40% through 70% rather than the final 30%.
     """
 
     data, _ = read_wav(path)
     n = len(data)
     if n < 10:
         return 0.0
-    tail_start = int(n * 0.7)
-    tail = data[tail_start:]
+    tail_start = int(n * 0.4)
+    tail_end = int(n * 0.7)
+    tail = data[tail_start:tail_end]
     rms = float(np.sqrt(np.mean(tail**2)))
     return rms
 

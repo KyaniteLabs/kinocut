@@ -23,6 +23,7 @@ from kinocut.engine_body_swap import _audio_fingerprint
 from kinocut.engine_probe import probe
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import Project, append_record, ingest_asset, open_project, read_records
+from kinocut.source_identity import immutable_verified_snapshot_available
 from tests.contracts_fixtures import protection_kwargs, review_decision_kwargs
 
 _ACCEPTANCE_SPEC = "sha256:" + "a" * 64
@@ -34,6 +35,8 @@ def _sha(path: str | Path) -> str:
 
 @pytest.fixture
 def source(tmp_path, sample_video):
+    if not immutable_verified_snapshot_available():
+        pytest.skip("immutable verified source snapshots are unavailable")
     project = open_project(tmp_path / "project")
     asset = ingest_asset(project, sample_video)
     stored = project.root / asset.original_location
