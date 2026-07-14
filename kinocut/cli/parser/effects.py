@@ -64,7 +64,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         default="keep_video",
         type=_duration_policy,
         help="Reconcile audio/video length: keep_video (default, preserves the outro), "
-             "pad_audio, loop_audio, trim_audio, or shortest (may trim the outro).",
+        "pad_audio, loop_audio, trim_audio, or shortest (may trim the outro).",
     )
     audio_p.add_argument("-o", "--output", help="Output file path")
 

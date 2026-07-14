@@ -28,9 +28,7 @@ from .limits import (
 )
 
 
-def validation_error(
-    message: str, code: str = "invalid_parameter"
-) -> MCPVideoError:
+def validation_error(message: str, code: str = "invalid_parameter") -> MCPVideoError:
     """Return the stable typed validation error used by the engine."""
 
     return MCPVideoError(message, error_type="validation_error", code=code)
@@ -39,18 +37,10 @@ def validation_error(
 def _validate_numeric(value: float, name: str, lo: float, hi: float) -> float:
     """Validate a numeric parameter is a finite number in the closed range."""
 
-    if (
-        isinstance(value, bool)
-        or not isinstance(value, (int, float))
-        or not math.isfinite(value)
-    ):
-        raise validation_error(
-            f"{name} must be a finite number, got {value!r}", f"invalid_{name}"
-        )
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise validation_error(f"{name} must be a finite number, got {value!r}", f"invalid_{name}")
     if value < lo or value > hi:
-        raise validation_error(
-            f"{name} must be between {lo} and {hi}, got {value}", f"invalid_{name}"
-        )
+        raise validation_error(f"{name} must be between {lo} and {hi}, got {value}", f"invalid_{name}")
     return float(value)
 
 
@@ -107,6 +97,4 @@ def reject_output_alias(output_path: str, inputs: tuple[str, ...]) -> None:
             if os.path.samefile(output_path, source):
                 raise validation_error("output path aliases an input", "invalid_output_path")
         except OSError:
-            raise validation_error(
-                "cannot safely verify output identity", "invalid_output_path"
-            ) from None
+            raise validation_error("cannot safely verify output identity", "invalid_output_path") from None

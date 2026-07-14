@@ -36,8 +36,7 @@ class VerifierRegistry:
 
     def resolve_with_mandatory(self, feature_ids: tuple[str, ...]) -> tuple[VerifierDefinition, ...]:
         mandatory = tuple(
-            VerifierDefinition(id=check_id, run=_unbound_mandatory, gating=True)
-            for check_id in CHECK_IDS
+            VerifierDefinition(id=check_id, run=_unbound_mandatory, gating=True) for check_id in CHECK_IDS
         )
         try:
             feature = tuple(self._definitions[check_id] for check_id in feature_ids)

@@ -78,9 +78,7 @@ _ALLOWED_LAYER_FIELDS = frozenset(
 )
 
 
-def validate_composite_inputs(
-    step: Any, source_ids: set[str], work_produced: set[str]
-) -> dict[str, Any]:
+def validate_composite_inputs(step: Any, source_ids: set[str], work_produced: set[str]) -> dict[str, Any]:
     """Structurally validate a composite step's ``inputs.layers`` (fail closed).
 
     Enforces the ``@ref``-only rule for every layer source and returns the verdict
@@ -244,9 +242,7 @@ def render_composite_step(
     and removed after the render.
     """
     if output_abs is None:  # defensive: validator requires an output for composite
-        raise workflow_error(
-            f"step {step.id!r} ({COMPOSITE_OP}) requires an output target", INVALID_WORKFLOW_SPEC
-        )
+        raise workflow_error(f"step {step.id!r} ({COMPOSITE_OP}) requires an output target", INVALID_WORKFLOW_SPEC)
     # Re-validate the layers against the executor's own read (not the validator's), so a
     # matte/unlisted path field injected between the two reads fails closed before it can
     # reach the engine (and before anything is resolved or hashed from it).

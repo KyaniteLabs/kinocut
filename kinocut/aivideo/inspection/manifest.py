@@ -150,9 +150,7 @@ def _canonical_bytes(package: InspectionPackage) -> bytes:
     ).encode("utf-8")
 
 
-def persist_inspection_package(
-    project: Project, package: InspectionPackage
-) -> ArtifactRef:
+def persist_inspection_package(project: Project, package: InspectionPackage) -> ArtifactRef:
     """Persist canonical manifest bytes at their content-derived location."""
 
     content = _canonical_bytes(package)

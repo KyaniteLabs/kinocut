@@ -8,6 +8,7 @@ import sys
 import pytest
 
 from kinocut.errors import MCPVideoError
+
 _MAX_AUTH_IDS = 64
 _MAX_JSON_BYTES = 65_536
 

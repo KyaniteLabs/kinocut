@@ -17,9 +17,7 @@ from kinocut.errors import MCPVideoError
 from kinocut.projectstore import open_project
 
 
-def test_motion_strip_uses_all_truthful_samples_and_persists_one_tiled_image(
-    tmp_path, sample_video
-):
+def test_motion_strip_uses_all_truthful_samples_and_persists_one_tiled_image(tmp_path, sample_video):
     project = open_project(tmp_path / "project")
     samples = sample_decoded_timestamps(sample_video)
     frames = extract_sampled_frames(project, sample_video, samples)
@@ -33,11 +31,7 @@ def test_motion_strip_uses_all_truthful_samples_and_persists_one_tiled_image(
     assert output.is_file()
     assert output.stat().st_size > 0
     assert strip.artifact.artifact_id == "sha256:" + hashlib.sha256(output.read_bytes()).hexdigest()
-    video = next(
-        stream
-        for stream in _run_ffprobe_json(str(output))["streams"]
-        if stream["codec_type"] == "video"
-    )
+    video = next(stream for stream in _run_ffprobe_json(str(output))["streams"] if stream["codec_type"] == "video")
     assert int(video["width"]) > int(video["height"])
 
 
@@ -67,9 +61,7 @@ def test_motion_strip_supports_a_single_decodable_sample(tmp_path, sample_video)
 
 def test_motion_strip_rejects_unordered_samples_before_rendering(tmp_path, sample_video):
     project = open_project(tmp_path / "project")
-    frames = extract_sampled_frames(
-        project, sample_video, sample_decoded_timestamps(sample_video)
-    )
+    frames = extract_sampled_frames(project, sample_video, sample_decoded_timestamps(sample_video))
     before = set((project.root / ".kinocut" / "artifacts").rglob("motion_strip.jpg"))
 
     with pytest.raises(MCPVideoError) as exc:
@@ -80,13 +72,9 @@ def test_motion_strip_rejects_unordered_samples_before_rendering(tmp_path, sampl
     assert after == before
 
 
-def test_motion_strip_cannot_overwrite_a_symlinked_staging_target(
-    tmp_path, sample_video, monkeypatch
-):
+def test_motion_strip_cannot_overwrite_a_symlinked_staging_target(tmp_path, sample_video, monkeypatch):
     project = open_project(tmp_path / "project")
-    frames = extract_sampled_frames(
-        project, sample_video, sample_decoded_timestamps(sample_video)[:1]
-    )
+    frames = extract_sampled_frames(project, sample_video, sample_decoded_timestamps(sample_video)[:1])
     outside = tmp_path / "outside.jpg"
     outside.write_bytes(b"DO NOT REPLACE")
     trap = project.root / ".kinocut" / "artifacts" / "sha256" / ".render.trap.jpg"

@@ -37,9 +37,9 @@ _SUPPORTED_SCHEMAS = {_V1_SCHEMA, SALVAGE_LINEAGE_SCHEMA_VERSION}
 
 
 def _canonical(payload: dict[str, Any]) -> bytes:
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
-    ).encode("utf-8")
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode(
+        "utf-8"
+    )
 
 
 def _digest(payload: bytes) -> str:
@@ -130,9 +130,7 @@ def _parse_checks(payload: dict[str, Any]) -> tuple[PreservationCheck, ...]:
     if schema not in _SUPPORTED_SCHEMAS:
         raise _salvage_error("lineage artifact schema is unsupported", "salvage_integrity_failed")
     try:
-        checks = tuple(
-            PreservationCheck.model_validate(item) for item in payload["preservation_checks"]
-        )
+        checks = tuple(PreservationCheck.model_validate(item) for item in payload["preservation_checks"])
     except (KeyError, TypeError, ValidationError) as exc:
         raise _salvage_error("lineage artifact is invalid", "salvage_integrity_failed") from exc
     return checks
@@ -250,9 +248,7 @@ def read_prior_derivative(
         stored_refs = ()
 
     if not all(check.passed for check in checks):
-        raise _salvage_error(
-            "lineage artifact records failed preservation", "salvage_integrity_failed"
-        )
+        raise _salvage_error("lineage artifact records failed preservation", "salvage_integrity_failed")
 
     # Enforce current protected state on replay. A protected lock that now
     # requires fresh approval blocks the replay even if the original render

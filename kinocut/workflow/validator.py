@@ -228,9 +228,7 @@ def _validate_inputs(
     return {adapter.input_key: resolved}
 
 
-def _resolve_ref(
-    step_id: str, ref: Any, workspace_root: Path, source_ids: set[str], work_produced: set[str]
-) -> str:
+def _resolve_ref(step_id: str, ref: Any, workspace_root: Path, source_ids: set[str], work_produced: set[str]) -> str:
     if not isinstance(ref, str) or not ref:
         raise workflow_error(f"step {step_id!r} has a non-string or empty input reference", INVALID_WORKFLOW_SPEC)
     if ref.startswith(_SOURCE_PREFIX):
@@ -296,9 +294,7 @@ def _validate_output(step: Any, adapter: OpAdapter, output_ids: set[str], work_p
     elif step.output.startswith(_OUTPUT_PREFIX):
         output_id = step.output[len(_OUTPUT_PREFIX) :]
         if output_id not in output_ids:
-            raise workflow_error(
-                f"step {step.id!r} writes to undeclared output {step.output!r}", UNKNOWN_WORKFLOW_REF
-            )
+            raise workflow_error(f"step {step.id!r} writes to undeclared output {step.output!r}", UNKNOWN_WORKFLOW_REF)
     else:
         raise workflow_error(
             f"step {step.id!r} output must be @work/<name> or @outputs.<id>, got {step.output!r}",

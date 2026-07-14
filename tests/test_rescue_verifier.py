@@ -39,10 +39,7 @@ def test_universal_copy_contract_is_explicit(sample_video):
 def test_every_numeric_verification_metric_has_units_and_definition(sample_video):
     checks = verify_package(sample_video, sample_video, sample_video)
 
-    assert all(
-        check.metric is None or (check.metric.unit and check.metric.definition)
-        for check in checks
-    )
+    assert all(check.metric is None or (check.metric.unit and check.metric.definition) for check in checks)
 
 
 def test_verifier_uses_resolved_ffmpeg_binaries_when_path_is_empty(sample_video, monkeypatch):

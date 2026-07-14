@@ -50,9 +50,7 @@ def test_sanitized_asset_path_neutralizes_traversal_in_name():
 
 
 def test_records_path_is_kind_scoped_jsonl():
-    assert layout.records_relative_path("clip_verdict") == PurePosixPath(
-        ".kinocut", "records", "clip_verdict.jsonl"
-    )
+    assert layout.records_relative_path("clip_verdict") == PurePosixPath(".kinocut", "records", "clip_verdict.jsonl")
 
 
 def test_records_path_rejects_unsafe_kind():

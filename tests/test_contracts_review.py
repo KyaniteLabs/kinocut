@@ -75,9 +75,7 @@ def _approved_bundle(*, state: str = "approved", integrity_passed: bool = True):
     """An approval plus the resolved, freshly-bound human decision it requires."""
 
     decision = ReviewDecision(
-        **review_decision_kwargs(
-            decision="approve", dependency_fingerprint=_FINGERPRINT, target_ref=_ARTIFACT
-        )
+        **review_decision_kwargs(decision="approve", dependency_fingerprint=_FINGERPRINT, target_ref=_ARTIFACT)
     )
     rid = canonical_record_id(decision)
     approval = ApprovalState(

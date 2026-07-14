@@ -61,9 +61,7 @@ def _probe_failed(exc: Exception) -> MCPVideoError:
     """
 
     logger.warning("preflight probe failed: %s", type(exc).__name__)
-    return MCPVideoError(
-        _PROBE_FAILED, error_type="input_error", code="preflight_probe_failed"
-    )
+    return MCPVideoError(_PROBE_FAILED, error_type="input_error", code="preflight_probe_failed")
 
 
 class StreamInfo(ValueObject):
@@ -211,9 +209,7 @@ def _integrity(path: str) -> IntegrityInfo:
     try:
         proc = _run_ffmpeg(["-v", "error", "-i", path, "-f", "null", "-"])
     except (InputFileError, ProcessingError) as exc:
-        raise MCPVideoError(
-            _DECODE_FAILED, error_type="input_error", code="preflight_decode_failed"
-        ) from exc
+        raise MCPVideoError(_DECODE_FAILED, error_type="input_error", code="preflight_decode_failed") from exc
     errors = [line for line in proc.stderr.splitlines() if line.strip()]
     return IntegrityInfo(fully_decoded=not errors, decode_error_count=len(errors))
 
@@ -231,9 +227,7 @@ def build_preflight_report(path: str) -> PreflightReport:
         validated = _validate_input_path(path)
     except Exception as exc:
         logger.warning("preflight input validation failed: %s", type(exc).__name__)
-        raise MCPVideoError(
-            _INPUT_FAILED, error_type="input_error", code="preflight_input_failed"
-        ) from exc
+        raise MCPVideoError(_INPUT_FAILED, error_type="input_error", code="preflight_input_failed") from exc
     guard = VisualQualityGuardrails()
     return PreflightReport(
         technical=_technical(validated),
@@ -308,9 +302,7 @@ def _install_or_verify_artifact(artifact_path: Any, line: str) -> bool:
         ) from exc
 
 
-def _persist_preflight(
-    project: Project, asset: AssetRecord, report: PreflightReport
-) -> AssetRecord:
+def _persist_preflight(project: Project, asset: AssetRecord, report: PreflightReport) -> AssetRecord:
     """Install the report and append its record as one locked transaction."""
 
     artifact_id, line = _canonical_artifact(report)

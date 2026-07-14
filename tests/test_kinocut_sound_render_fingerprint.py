@@ -27,7 +27,9 @@ _SHA = "sha256:" + "0" * 64
 def test_determinism_classes_are_closed():
     assert frozenset({"byte_deterministic", "signal_equivalent", "non_reproducible"}) == DETERMINISM_CLASSES
     assert {d.value for d in DeterminismClass} == {
-        "byte_deterministic", "signal_equivalent", "non_reproducible",
+        "byte_deterministic",
+        "signal_equivalent",
+        "non_reproducible",
     }
 
 
@@ -82,7 +84,10 @@ def test_render_fingerprint_rejects_unbounded_codes_and_unsafe_locale():
         with pytest.raises(ValidationError):
             RenderFingerprint(
                 determinism_class=DeterminismClass.BYTE_DETERMINISTIC,
-                seed="0", locale=bad, hardware_backend="cpu", concurrency_ordering="serial",
+                seed="0",
+                locale=bad,
+                hardware_backend="cpu",
+                concurrency_ordering="serial",
                 components=(FingerprintComponent(role="plan_normalized", digest=_SHA),),
                 toolchain_versions=(),
                 required_capability_manifest=(),
@@ -93,7 +98,10 @@ def test_render_fingerprint_requires_unique_component_roles_and_manifest():
     with pytest.raises(ValidationError):
         RenderFingerprint(
             determinism_class=DeterminismClass.BYTE_DETERMINISTIC,
-            seed="0", locale="en_US", hardware_backend="cpu", concurrency_ordering="serial",
+            seed="0",
+            locale="en_US",
+            hardware_backend="cpu",
+            concurrency_ordering="serial",
             components=(
                 FingerprintComponent(role="dup", digest=_SHA),
                 FingerprintComponent(role="dup", digest=_SHA),
@@ -104,7 +112,10 @@ def test_render_fingerprint_requires_unique_component_roles_and_manifest():
     with pytest.raises(ValidationError):
         RenderFingerprint(
             determinism_class=DeterminismClass.BYTE_DETERMINISTIC,
-            seed="0", locale="en_US", hardware_backend="cpu", concurrency_ordering="serial",
+            seed="0",
+            locale="en_US",
+            hardware_backend="cpu",
+            concurrency_ordering="serial",
             components=(FingerprintComponent(role="plan_normalized", digest=_SHA),),
             toolchain_versions=(),
             required_capability_manifest=("dup", "dup"),

@@ -54,9 +54,7 @@ def op_spies(monkeypatch):
             calls[name] += 1
             if sabotage["op"] == name and not sabotage["fired"]:
                 sabotage["fired"] = True
-                raise MCPVideoError(
-                    "sabotaged step", error_type="processing_error", code="sabotaged_step"
-                )
+                raise MCPVideoError("sabotaged step", error_type="processing_error", code="sabotaged_step")
             return real(*args, **kwargs)
 
         return replace(adapter, engine_fn=spy)
@@ -286,8 +284,16 @@ def test_cli_render_resume(tmp_path, sample_video, op_spies):
 
     completed = subprocess.run(
         [
-            sys.executable, "-m", "mcp_video", "--format", "json",
-            "workflow-render", "--spec", spec_path, "--resume", str(ws / "fail.json"),
+            sys.executable,
+            "-m",
+            "mcp_video",
+            "--format",
+            "json",
+            "workflow-render",
+            "--spec",
+            spec_path,
+            "--resume",
+            str(ws / "fail.json"),
         ],
         capture_output=True,
         text=True,

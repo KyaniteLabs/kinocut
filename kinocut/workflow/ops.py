@@ -78,8 +78,7 @@ class OpAdapter:
             if not _value_matches(value, kinds):
                 expected = " | ".join(sorted(kinds))
                 raise workflow_error(
-                    f"step {step_id!r} ({self.name}) param {name!r} must be {expected}, "
-                    f"got {type(value).__name__}",
+                    f"step {step_id!r} ({self.name}) param {name!r} must be {expected}, got {type(value).__name__}",
                     INVALID_WORKFLOW_PARAMS,
                 )
 

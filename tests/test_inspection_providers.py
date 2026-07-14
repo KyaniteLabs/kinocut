@@ -35,9 +35,7 @@ def _package() -> InspectionPackage:
     return InspectionPackage(
         source_asset_id=_ASSET,
         preview=_artifact(_EVIDENCE_A, "preview.mp4", "preview"),
-        frame_difference_measurements=(
-            _artifact(_EVIDENCE_B, "frame_differences.json", "frame_differences"),
-        ),
+        frame_difference_measurements=(_artifact(_EVIDENCE_B, "frame_differences.json", "frame_differences"),),
     )
 
 
@@ -146,10 +144,7 @@ def test_present_provider_normalizes_orders_and_keeps_findings_suspected():
     assert all(finding.target_id == _ASSET for finding in result.findings)
     assert all(finding.status is DefectStatus.SUSPECTED for finding in result.findings)
     assert all(finding.human_decision_id is None for finding in result.findings)
-    assert all(
-        finding.detector == "provider.fixture_visual.visual.generative_defects"
-        for finding in result.findings
-    )
+    assert all(finding.detector == "provider.fixture_visual.visual.generative_defects" for finding in result.findings)
     assert provider.calls == 1
 
 
@@ -229,9 +224,7 @@ def test_result_serialization_is_deterministic_and_privacy_safe():
                     "time_range": [1.0, 2.0],
                     "severity": "high",
                     "confidence": 0.8,
-                    "measurements": [
-                        {"name": "host-secret-location", "value": 1.0, "unit": "score"}
-                    ],
+                    "measurements": [{"name": "host-secret-location", "value": 1.0, "unit": "score"}],
                     "evidence_artifact_ids": [_EVIDENCE_A],
                 }
             ],
@@ -296,9 +289,7 @@ def test_provider_constructor_failure_is_redacted_and_fails_soft():
     def fail_factory():
         raise ImportError("optional model missing at host_secret_location")
 
-    registry = ProviderRegistry(
-        (ProviderDefinition(provider_id="fixture_visual", factory=fail_factory),)
-    )
+    registry = ProviderRegistry((ProviderDefinition(provider_id="fixture_visual", factory=fail_factory),))
 
     result = analyze_optional_visual_findings(
         _package(),

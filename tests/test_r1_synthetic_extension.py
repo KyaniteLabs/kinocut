@@ -27,9 +27,7 @@ def test_toy_non_rescue_extension_preserves_rescue_v1_bytes(rescue_plan) -> None
         (
             VerifierDefinition(
                 id="toy_crop_bounds",
-                run=lambda _: VerificationCheck(
-                    id="toy_crop_bounds", passed=True, message="Crop remains in bounds."
-                ),
+                run=lambda _: VerificationCheck(id="toy_crop_bounds", passed=True, message="Crop remains in bounds."),
             ),
         )
     )

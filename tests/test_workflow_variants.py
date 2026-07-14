@@ -382,9 +382,7 @@ def test_variant_resume_isolated_from_sibling_variant(tmp_path, sample_video, op
     assert fail["work_dir"] != a["work_dir"]  # B has its own run dir
 
     # Resume B from its own receipt -> completes into B's output only.
-    resume = render_workflow(
-        spec_path, resume_receipt=str(ws / "narrow_fail.json"), variant="narrow"
-    )
+    resume = render_workflow(spec_path, resume_receipt=str(ws / "narrow_fail.json"), variant="narrow")
     narrow_out = ws / "output" / "final.narrow.mp4"
     assert narrow_out.is_file()
     assert probe(str(narrow_out)).width == 160
@@ -408,9 +406,7 @@ def test_resume_variant_mismatch_fails_closed(tmp_path, sample_video):
     spec_hash = "sha256:" + hashlib.sha256(Path(spec_path).read_bytes()).hexdigest()
     prior = ws / "narrow.json"
     prior.write_text(
-        json.dumps(
-            {"spec_hash": spec_hash, "work_dir": "work/x", "steps": [], "workflow": {"variant": "narrow"}}
-        ),
+        json.dumps({"spec_hash": spec_hash, "work_dir": "work/x", "steps": [], "workflow": {"variant": "narrow"}}),
         encoding="utf-8",
     )
     # Resuming it while asking for a DIFFERENT variant fails closed.
@@ -543,9 +539,17 @@ def test_cli_render_all_variants(tmp_path, sample_video):
 
     completed = subprocess.run(
         [
-            sys.executable, "-m", "mcp_video", "--format", "json",
-            "workflow-render", "--spec", spec_path,
-            "--all-variants", "--save-receipt-dir", str(receipt_dir),
+            sys.executable,
+            "-m",
+            "mcp_video",
+            "--format",
+            "json",
+            "workflow-render",
+            "--spec",
+            spec_path,
+            "--all-variants",
+            "--save-receipt-dir",
+            str(receipt_dir),
         ],
         capture_output=True,
         text=True,
@@ -566,8 +570,15 @@ def test_cli_render_variant_keep_intermediates_text(tmp_path, sample_video):
 
     completed = subprocess.run(
         [
-            sys.executable, "-m", "mcp_video",
-            "workflow-render", "--spec", spec_path, "--variant", "wide", "--keep-intermediates",
+            sys.executable,
+            "-m",
+            "mcp_video",
+            "workflow-render",
+            "--spec",
+            spec_path,
+            "--variant",
+            "wide",
+            "--keep-intermediates",
         ],
         capture_output=True,
         text=True,
@@ -584,8 +595,14 @@ def test_cli_plan_variant_text(tmp_path, sample_video):
     ws = _workspace(tmp_path, sample_video)
     completed = subprocess.run(
         [
-            sys.executable, "-m", "mcp_video",
-            "workflow-plan", "--spec", _write_spec(ws, _variant_spec()), "--variant", "wide",
+            sys.executable,
+            "-m",
+            "mcp_video",
+            "workflow-plan",
+            "--spec",
+            _write_spec(ws, _variant_spec()),
+            "--variant",
+            "wide",
         ],
         capture_output=True,
         text=True,

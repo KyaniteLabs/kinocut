@@ -74,10 +74,20 @@ def _linear_spec() -> dict:
         "sources": {"hero": {"path": "input/hero.mp4"}},
         "steps": [
             {"id": "probe-hero", "op": "probe", "inputs": {"src": "@sources.hero"}},
-            {"id": "trim-hero", "op": "trim", "inputs": {"src": "@sources.hero"},
-             "params": {"start": 0, "duration": 1}, "output": "@work/hero_trim.mp4"},
-            {"id": "caption", "op": "add_text", "inputs": {"src": "@work/hero_trim.mp4"},
-             "params": {"text": "Watch this"}, "output": "@outputs.master"},
+            {
+                "id": "trim-hero",
+                "op": "trim",
+                "inputs": {"src": "@sources.hero"},
+                "params": {"start": 0, "duration": 1},
+                "output": "@work/hero_trim.mp4",
+            },
+            {
+                "id": "caption",
+                "op": "add_text",
+                "inputs": {"src": "@work/hero_trim.mp4"},
+                "params": {"text": "Watch this"},
+                "output": "@outputs.master",
+            },
         ],
         "outputs": {"master": {"path": "output/final.mp4"}},
     }

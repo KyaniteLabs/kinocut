@@ -45,9 +45,7 @@ def test_preflight_uses_the_shared_canonical_artifact_layout(tmp_path, sample_vi
 
     enriched = run_preflight(project, asset)
 
-    expected = layout.artifact_relative_path(
-        enriched.preflight_artifact_id, "preflight.json"
-    )
+    expected = layout.artifact_relative_path(enriched.preflight_artifact_id, "preflight.json")
     assert (project.root / expected).is_file()
 
 
@@ -153,9 +151,7 @@ def test_manifest_read_failure_maps_to_a_private_custom_error(tmp_path, monkeypa
     assert str(tmp_path) not in str(exc.value)
 
 
-def test_artifact_first_create_rolls_back_on_post_replace_fsync_failure(
-    tmp_path, monkeypatch
-):
+def test_artifact_first_create_rolls_back_on_post_replace_fsync_failure(tmp_path, monkeypatch):
     project = open_project(tmp_path / "private-project")
     content = b"derived evidence"
     artifact_id = "sha256:" + hashlib.sha256(content).hexdigest()

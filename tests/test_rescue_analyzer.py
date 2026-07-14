@@ -29,16 +29,9 @@ def test_analyzer_is_read_only_and_emits_explicit_units(tmp_path, sample_video):
 
     assert _sha256(source) == before
     assert result.source.sha256 == f"sha256:{before}"
+    assert all(metric.unit and metric.definition for finding in result.findings for metric in finding.evidence)
     assert all(
-        metric.unit and metric.definition
-        for finding in result.findings
-        for metric in finding.evidence
-    )
-    assert all(
-        metric.value is None
-        for finding in result.findings
-        for metric in finding.evidence
-        if not metric.available
+        metric.value is None for finding in result.findings for metric in finding.evidence if not metric.available
     )
     assert [preview.timestamp_ratio for preview in result.previews] == [0.1, 0.5, 0.9]
     assert all((tmp_path / preview.path).is_file() for preview in result.previews)

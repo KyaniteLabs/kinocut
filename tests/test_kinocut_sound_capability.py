@@ -40,12 +40,18 @@ def test_adapter_descriptor_requires_bounded_codes_and_locality():
     for bad_id in ("with space", "../x", "1lead"):
         with pytest.raises(ValidationError):
             AdapterDescriptor(
-                adapter_id=bad_id, kind="tts", locality=AdapterLocality.LOCAL, provider_class="local",
+                adapter_id=bad_id,
+                kind="tts",
+                locality=AdapterLocality.LOCAL,
+                provider_class="local",
             )
     for bad_kind in ("unknown", "tts-local"):
         with pytest.raises(ValidationError):
             AdapterDescriptor(
-                adapter_id="x", kind=bad_kind, locality=AdapterLocality.LOCAL, provider_class="local",
+                adapter_id="x",
+                kind=bad_kind,
+                locality=AdapterLocality.LOCAL,
+                provider_class="local",
             )
 
 
@@ -88,13 +94,21 @@ def test_cost_disclosure_rejects_unbounded_codes_and_negative_cost():
     for bad in ("with space", "../x"):
         with pytest.raises(ValidationError):
             CostDisclosure(
-                provider_id=bad, region="us-east-1", data_classes=("reference_audio",),
-                retention_ceiling_days=30, estimated_cost_usd_per_call=0.05, confirmed=False,
+                provider_id=bad,
+                region="us-east-1",
+                data_classes=("reference_audio",),
+                retention_ceiling_days=30,
+                estimated_cost_usd_per_call=0.05,
+                confirmed=False,
             )
     with pytest.raises(ValidationError):
         CostDisclosure(
-            provider_id="x", region="us-east-1", data_classes=("reference_audio",),
-            retention_ceiling_days=30, estimated_cost_usd_per_call=-0.01, confirmed=False,
+            provider_id="x",
+            region="us-east-1",
+            data_classes=("reference_audio",),
+            retention_ceiling_days=30,
+            estimated_cost_usd_per_call=-0.01,
+            confirmed=False,
         )
 
 
@@ -117,14 +131,20 @@ def test_capability_result_is_fail_closed_with_reason_when_unavailable():
         CapabilityResult(adapter_id="x", available=False, reason_code=None, remediation=None)
     with pytest.raises(ValidationError):
         CapabilityResult(
-            adapter_id="x", available=True, reason_code="x", remediation="y",
+            adapter_id="x",
+            available=True,
+            reason_code="x",
+            remediation="y",
         )
 
 
 def test_capability_result_rejects_unbounded_codes_and_unsafe_advisory():
     with pytest.raises(ValidationError):
         CapabilityResult(
-            adapter_id="with space", available=False, reason_code="x", remediation="install it",
+            adapter_id="with space",
+            available=False,
+            reason_code="x",
+            remediation="install it",
         )
     with pytest.raises(ValidationError):
         CapabilityResult(

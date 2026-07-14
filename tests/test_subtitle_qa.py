@@ -25,9 +25,7 @@ from kinocut.subtitles_eof import ClampWarning
 _PROJECT = "proj-subtitle-qa"
 _FFMPEG = shutil.which("ffmpeg")
 _FFPROBE = shutil.which("ffprobe")
-requires_ffmpeg = pytest.mark.skipif(
-    not (_FFMPEG and _FFPROBE), reason="ffmpeg/ffprobe not installed"
-)
+requires_ffmpeg = pytest.mark.skipif(not (_FFMPEG and _FFPROBE), reason="ffmpeg/ffprobe not installed")
 
 
 # --------------------------------------------------------------------------- #
@@ -136,9 +134,7 @@ def test_qa_detects_cue_overlap():
         SubtitleCue(index=0, start=0.0, end=3.0, text="first cue"),
         SubtitleCue(index=1, start=2.0, end=4.0, text="second cue"),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     overlaps = [f for f in findings if f.detector.endswith(":overlap")]
     assert len(overlaps) == 1
     assert overlaps[0].defect_code == DefectCode.SUBTITLE_TIMING
@@ -155,9 +151,7 @@ def test_qa_clean_cues_no_overlap_finding():
         SubtitleCue(index=0, start=0.0, end=2.0, text="first"),
         SubtitleCue(index=1, start=2.0, end=4.0, text="second"),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     assert not [f for f in findings if f.detector.endswith(":overlap")]
 
 
@@ -173,9 +167,7 @@ def test_qa_detects_meaningful_gap():
         SubtitleCue(index=0, start=0.0, end=2.0, text="first"),
         SubtitleCue(index=1, start=10.0, end=12.0, text="second"),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=15.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=15.0, project_id=_PROJECT, target_id=_target_id(cues))
     gaps = [f for f in findings if f.detector.endswith(":gap")]
     assert len(gaps) == 1
     assert gaps[0].defect_code == DefectCode.SUBTITLE_TIMING
@@ -211,9 +203,7 @@ def test_qa_detects_reading_speed_violation():
     # 30 chars in 0.5 seconds = 60 cps — well above any standard threshold.
     text = "x" * 30
     cues = (SubtitleCue(index=0, start=0.0, end=0.5, text=text),)
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     speed_findings = [f for f in findings if f.detector.endswith(":reading_speed")]
     assert len(speed_findings) == 1
     assert speed_findings[0].defect_code == DefectCode.SUBTITLE_TIMING
@@ -227,9 +217,7 @@ def test_qa_normal_reading_speed_not_flagged():
 
     # 20 chars in 2 seconds = 10 cps — well within standard thresholds.
     cues = (SubtitleCue(index=0, start=0.0, end=2.0, text="x" * 20),)
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     assert not [f for f in findings if f.detector.endswith(":reading_speed")]
 
 
@@ -245,9 +233,7 @@ def test_qa_detects_missing_lines_empty_text():
         SubtitleCue(index=0, start=0.0, end=2.0, text=""),
         SubtitleCue(index=1, start=2.0, end=4.0, text="   "),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     missing = [f for f in findings if f.detector.endswith(":missing_text")]
     assert len(missing) == 2
 
@@ -256,9 +242,7 @@ def test_qa_nonempty_text_no_missing_finding():
     from kinocut.aivideo.subtitle_qa import SubtitleCue, qa_subtitle_temporal
 
     cues = (SubtitleCue(index=0, start=0.0, end=2.0, text="real content"),)
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     assert not [f for f in findings if f.detector.endswith(":missing_text")]
 
 
@@ -271,9 +255,7 @@ def test_qa_detects_eof_overflow_clamped():
     from kinocut.aivideo.subtitle_qa import SubtitleCue, qa_subtitle_temporal
 
     cues = (SubtitleCue(index=0, start=7.0, end=12.0, text="past end"),)
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     eof_findings = [f for f in findings if f.detector.endswith(":eof_overflow")]
     assert len(eof_findings) == 1
     assert eof_findings[0].defect_code == DefectCode.SUBTITLE_OVERFLOW
@@ -289,9 +271,7 @@ def test_qa_detects_eof_overflow_dropped():
         SubtitleCue(index=0, start=0.0, end=2.0, text="ok"),
         SubtitleCue(index=1, start=10.5, end=12.0, text="after eof"),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     eof_findings = [f for f in findings if f.detector.endswith(":eof_overflow")]
     assert len(eof_findings) == 1
     clamp_measure = next(m for m in eof_findings[0].measurements if m.name == "clamp_warning")
@@ -303,9 +283,7 @@ def test_qa_exact_eof_not_flagged():
     from kinocut.aivideo.subtitle_qa import SubtitleCue, qa_subtitle_temporal
 
     cues = (SubtitleCue(index=0, start=0.0, end=10.0, text="exact"),)
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     assert not [f for f in findings if f.detector.endswith(":eof_overflow")]
 
 
@@ -321,9 +299,7 @@ def test_qa_clean_cues_produce_no_findings():
         SubtitleCue(index=0, start=0.0, end=2.0, text="Hello world."),
         SubtitleCue(index=1, start=2.5, end=4.5, text="Goodbye world."),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     assert findings == ()
 
 
@@ -357,9 +333,7 @@ def test_qa_safe_area_vertical_overflow():
     profile = PLATFORM_PROFILES["vertical"]
     # Very long single-line text that exceeds the safe width at full resolution.
     cues = (SubtitleCue(index=0, start=0.0, end=2.0, text="X" * 200),)
-    findings = qa_subtitle_safe_area(
-        cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_safe_area(cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues))
     assert len(findings) >= 1
     finding = findings[0]
     assert finding.defect_code == DefectCode.SUBTITLE_OVERFLOW
@@ -376,9 +350,7 @@ def test_qa_safe_area_horizontal_normal_text_ok():
 
     profile = PLATFORM_PROFILES["horizontal"]
     cues = (SubtitleCue(index=0, start=0.0, end=2.0, text="Short caption"),)
-    findings = qa_subtitle_safe_area(
-        cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_safe_area(cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues))
     assert findings == ()
 
 
@@ -387,9 +359,7 @@ def test_qa_safe_area_square_overflow():
 
     profile = PLATFORM_PROFILES["square"]
     cues = (SubtitleCue(index=0, start=0.0, end=2.0, text="Y" * 150),)
-    findings = qa_subtitle_safe_area(
-        cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_safe_area(cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues))
     assert len(findings) >= 1
     assert findings[0].defect_code == DefectCode.SUBTITLE_OVERFLOW
 
@@ -399,9 +369,7 @@ def test_qa_safe_area_collision_evidence_full_resolution():
 
     profile = PLATFORM_PROFILES["vertical"]
     cues = (SubtitleCue(index=0, start=0.0, end=2.0, text="Z" * 100),)
-    findings = qa_subtitle_safe_area(
-        cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_safe_area(cues, profile=profile, project_id=_PROJECT, target_id=_target_id(cues))
     assert len(findings) == 1
     finding = findings[0]
     measurements = _measurements_dict(finding)
@@ -499,9 +467,7 @@ def test_qa_rejects_non_finite_or_boolean_cue_times(start, end):
 
     cues = (SubtitleCue(index=0, start=start, end=end, text="bad"),)
     with pytest.raises(MCPVideoError) as exc:
-        qa_subtitle_temporal(
-            cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-        )
+        qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     assert exc.value.code == "invalid_subtitle_qa_input"
 
 
@@ -519,9 +485,7 @@ def test_qa_rejects_invalid_temporal_thresholds(kwargs):
 
     cues = (SubtitleCue(index=0, start=0.0, end=1.0, text="ok"),)
     with pytest.raises(MCPVideoError) as exc:
-        qa_subtitle_temporal(
-            cues, eof_seconds=10.0, project_id=_PROJECT, **kwargs
-        )
+        qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, **kwargs)
     assert exc.value.code == "invalid_subtitle_qa_input"
 
 
@@ -588,8 +552,10 @@ def test_qa_rejects_malformed_overlay_geometry(overlay):
     cues = (SubtitleCue(index=0, start=0.0, end=1.0, text="ok"),)
     with pytest.raises(MCPVideoError) as exc:
         qa_subtitle_safe_area(
-            cues, profile=PLATFORM_PROFILES["horizontal"],
-            project_id=_PROJECT, overlay_regions=(overlay,),
+            cues,
+            profile=PLATFORM_PROFILES["horizontal"],
+            project_id=_PROJECT,
+            overlay_regions=(overlay,),
         )
     assert exc.value.code == "invalid_subtitle_qa_input"
 
@@ -602,10 +568,21 @@ def test_qa_rejects_malformed_overlay_geometry(overlay):
 def _make_video(path, width, height, seconds=3):
     subprocess.run(
         [
-            _FFMPEG, "-y", "-f", "lavfi", "-i",
+            _FFMPEG,
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
             f"testsrc=size={width}x{height}:duration={seconds}:rate=15",
-            "-c:v", "libx264", "-preset", "ultrafast", "-crf", "28",
-            "-pix_fmt", "yuv420p", str(path),
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "28",
+            "-pix_fmt",
+            "yuv420p",
+            str(path),
         ],
         capture_output=True,
         timeout=60,
@@ -681,9 +658,7 @@ def test_qa_all_findings_are_valid_defect_records():
         SubtitleCue(index=0, start=0.0, end=3.0, text="overlap"),
         SubtitleCue(index=1, start=2.0, end=4.0, text="speed test " * 10),
     )
-    findings = qa_subtitle_temporal(
-        cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues)
-    )
+    findings = qa_subtitle_temporal(cues, eof_seconds=10.0, project_id=_PROJECT, target_id=_target_id(cues))
     for finding in findings:
         assert isinstance(finding, DefectFinding)
         assert finding.project_id == _PROJECT
@@ -726,31 +701,16 @@ def test_qa_defaults_sourced_from_shared_defaults_module():
 
     # Public function default args must bind to the same shared objects.
     sig_temporal = inspect.signature(subtitle_qa.qa_subtitle_temporal)
-    assert (
-        sig_temporal.parameters["reading_speed_cps_threshold"].default
-        is DEFAULT_SUBTITLE_QA_READING_SPEED_CPS
-    )
-    assert (
-        sig_temporal.parameters["gap_seconds_threshold"].default
-        is DEFAULT_SUBTITLE_QA_GAP_SECONDS_THRESHOLD
-    )
+    assert sig_temporal.parameters["reading_speed_cps_threshold"].default is DEFAULT_SUBTITLE_QA_READING_SPEED_CPS
+    assert sig_temporal.parameters["gap_seconds_threshold"].default is DEFAULT_SUBTITLE_QA_GAP_SECONDS_THRESHOLD
 
     sig_full = inspect.signature(subtitle_qa.subtitle_qa)
-    assert (
-        sig_full.parameters["reading_speed_cps_threshold"].default
-        is DEFAULT_SUBTITLE_QA_READING_SPEED_CPS
-    )
-    assert (
-        sig_full.parameters["gap_seconds_threshold"].default
-        is DEFAULT_SUBTITLE_QA_GAP_SECONDS_THRESHOLD
-    )
+    assert sig_full.parameters["reading_speed_cps_threshold"].default is DEFAULT_SUBTITLE_QA_READING_SPEED_CPS
+    assert sig_full.parameters["gap_seconds_threshold"].default is DEFAULT_SUBTITLE_QA_GAP_SECONDS_THRESHOLD
 
     # Private helper confidence default must also bind to the shared object.
     sig_finding = inspect.signature(subtitle_qa._make_finding)
-    assert (
-        sig_finding.parameters["confidence"].default
-        is DEFAULT_SUBTITLE_QA_DETECTOR_CONFIDENCE
-    )
+    assert sig_finding.parameters["confidence"].default is DEFAULT_SUBTITLE_QA_DETECTOR_CONFIDENCE
 
 
 def test_qa_defaults_module_does_not_redefine_shared_numeric_values():
@@ -792,9 +752,7 @@ def test_qa_defaults_module_does_not_redefine_shared_numeric_values():
             for target in targets:
                 if isinstance(target, ast.Name) and target.id in rebound:
                     offenders.append(target.id)
-    assert offenders == [], (
-        f"subtitle_qa redefines shared-default aliases locally: {offenders}"
-    )
+    assert offenders == [], f"subtitle_qa redefines shared-default aliases locally: {offenders}"
 
     # The shared names must be imported from defaults, not defined inline.
     imported_from_defaults: set[str] = set()
@@ -803,8 +761,7 @@ def test_qa_defaults_module_does_not_redefine_shared_numeric_values():
             for alias in node.names:
                 imported_from_defaults.add(alias.name)
     assert shared_names <= imported_from_defaults, (
-        f"subtitle_qa missing required shared-default imports: "
-        f"{shared_names - imported_from_defaults}"
+        f"subtitle_qa missing required shared-default imports: {shared_names - imported_from_defaults}"
     )
 
 
@@ -878,8 +835,7 @@ def test_qa_platform_profiles_not_hardcoded_in_subtitle_qa():
     # The dict must be built via comprehension over the imported data, not a
     # literal dict with SafeAreaProfile calls using hardcoded numbers.
     assert isinstance(profile_value, ast.DictComp), (
-        "PLATFORM_PROFILES must be a dict comprehension built from "
-        "SUBTITLE_SAFE_AREA_PROFILES, not hardcoded literals"
+        "PLATFORM_PROFILES must be a dict comprehension built from SUBTITLE_SAFE_AREA_PROFILES, not hardcoded literals"
     )
 
 

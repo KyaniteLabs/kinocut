@@ -97,9 +97,8 @@ class GraphicsLayer(ValueObject):
 
     @model_validator(mode="after")
     def _kind_invariants(self) -> GraphicsLayer:
-        if (
-            self.kind in (GraphicsLayerKind.TEXT, GraphicsLayerKind.CAPTION)
-            and (self.text is None or not self.text.strip())
+        if self.kind in (GraphicsLayerKind.TEXT, GraphicsLayerKind.CAPTION) and (
+            self.text is None or not self.text.strip()
         ):
             raise ValueError(f"{self.kind.value} layer requires non-empty text")
         if self.kind is GraphicsLayerKind.LOGO and self.src is None:
@@ -125,9 +124,9 @@ def _graphics_error(message: str, code: str) -> MCPVideoError:
 
 
 def _canonical(payload: dict[str, Any]) -> bytes:
-    return json.dumps(
-        payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
-    ).encode("utf-8")
+    return json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode(
+        "utf-8"
+    )
 
 
 def _digest(payload: bytes | dict[str, Any]) -> str:
@@ -157,9 +156,7 @@ def _parse_position(raw: Any, offset: int) -> dict[str, float]:
 
 def _validate_color(value: Any, offset: int) -> str:
     if not isinstance(value, str) or not GRAPHICS_HEX_COLOR_RE.fullmatch(value):
-        raise _graphics_error(
-            f"layer {offset} color must be a hex color like #FFFFFF", _PARAMETER_ERROR_CODE
-        )
+        raise _graphics_error(f"layer {offset} color must be a hex color like #FFFFFF", _PARAMETER_ERROR_CODE)
     return value if value.startswith("#") else f"#{value}"
 
 
@@ -169,13 +166,9 @@ def _validate_logo_src(src: str | None, offset: int) -> None:
     if not src or not src.strip():
         raise _graphics_error(f"layer {offset} logo src is empty", _PARAMETER_ERROR_CODE)
     if "://" in src or re.match(r"^[A-Za-z][A-Za-z0-9+.\-]*:", src):
-        raise _graphics_error(
-            f"layer {offset} logo src must be a local file path", _PARAMETER_ERROR_CODE
-        )
+        raise _graphics_error(f"layer {offset} logo src must be a local file path", _PARAMETER_ERROR_CODE)
     if ".." in re.split(r"[\\/]+", src):
-        raise _graphics_error(
-            f"layer {offset} logo src must not traverse parent directories", _PARAMETER_ERROR_CODE
-        )
+        raise _graphics_error(f"layer {offset} logo src must not traverse parent directories", _PARAMETER_ERROR_CODE)
 
 
 def _validate_graphics_layer(raw: Any, offset: int) -> GraphicsLayer:
@@ -183,15 +176,12 @@ def _validate_graphics_layer(raw: Any, offset: int) -> GraphicsLayer:
         raise _graphics_error(f"layer {offset} must be an object", _PARAMETER_ERROR_CODE)
     if GRAPHICS_GENERATIVE_FIELD_HINTS & set(raw):
         raise _graphics_error(
-            f"layer {offset} contains a forbidden generative field; "
-            "exact text/logos are deterministic editor layers",
+            f"layer {offset} contains a forbidden generative field; exact text/logos are deterministic editor layers",
             _PARAMETER_ERROR_CODE,
         )
     unknown = set(raw) - GRAPHICS_LAYER_BASE_FIELDS
     if unknown:
-        raise _graphics_error(
-            f"layer {offset} uses unsupported field(s): {sorted(unknown)}", _PARAMETER_ERROR_CODE
-        )
+        raise _graphics_error(f"layer {offset} uses unsupported field(s): {sorted(unknown)}", _PARAMETER_ERROR_CODE)
     try:
         kind = GraphicsLayerKind(raw.get("kind"))
     except (KeyError, ValueError) as exc:
@@ -223,9 +213,7 @@ def _validated_layers(layers: Any) -> list[GraphicsLayer]:
     if not isinstance(layers, list) or not layers:
         raise _graphics_error("layers must be a non-empty list", _PARAMETER_ERROR_CODE)
     if len(layers) > MAX_GRAPHICS_LAYERS:
-        raise _graphics_error(
-            f"layers must not exceed {MAX_GRAPHICS_LAYERS} entries", _PARAMETER_ERROR_CODE
-        )
+        raise _graphics_error(f"layers must not exceed {MAX_GRAPHICS_LAYERS} entries", _PARAMETER_ERROR_CODE)
     return [_validate_graphics_layer(raw, i) for i, raw in enumerate(layers, start=1)]
 
 
@@ -250,9 +238,7 @@ def _normalized_canvas(raw: dict[str, Any] | None, source_path: str) -> dict[str
     if not isinstance(height, int) or height <= 0:
         raise _graphics_error("canvas.height must be a positive integer", _PARAMETER_ERROR_CODE)
     if width > MAX_RESOLUTION or height > MAX_RESOLUTION:
-        raise _graphics_error(
-            f"canvas dimensions must not exceed {MAX_RESOLUTION}px", _PARAMETER_ERROR_CODE
-        )
+        raise _graphics_error(f"canvas dimensions must not exceed {MAX_RESOLUTION}px", _PARAMETER_ERROR_CODE)
     fps = float(raw.get("fps", DEFAULT_GRAPHICS_CANVAS_FPS))
     duration = float(raw.get("duration", DEFAULT_GRAPHICS_CANVAS_DURATION))
     if fps <= 0:
@@ -333,11 +319,7 @@ def _build_layer_spec(index: int, layer: GraphicsLayer, src: str) -> dict[str, A
     if layer.kind is GraphicsLayerKind.CAPTION:
         entry["start"] = layer.start
         entry["duration"] = layer.duration
-    if (
-        layer.kind is GraphicsLayerKind.LOGO
-        and layer.width is not None
-        and layer.height is not None
-    ):
+    if layer.kind is GraphicsLayerKind.LOGO and layer.width is not None and layer.height is not None:
         entry["width"] = layer.width
         entry["height"] = layer.height
     return entry
@@ -393,13 +375,9 @@ def _verify_workspace_copies(
     """Re-hash every workspace copy after render to fail closed on TOCTOU."""
 
     if sha256(background_copy) != background_hash:
-        raise _graphics_error(
-            "background copy changed during render", "graphics_source_changed"
-        )
+        raise _graphics_error("background copy changed during render", "graphics_source_changed")
     if sha256(font_copy) != font_hash:
         raise _graphics_error("font copy changed during render", "graphics_source_changed")
     for logo_copy, logo_hash in logo_copies.values():
         if sha256(logo_copy) != logo_hash:
-            raise _graphics_error(
-                "logo copy changed during render", "graphics_source_changed"
-            )
+            raise _graphics_error("logo copy changed during render", "graphics_source_changed")

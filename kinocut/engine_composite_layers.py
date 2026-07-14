@@ -13,7 +13,11 @@ from pydantic import BaseModel, Field
 from .defaults import DEFAULT_CRF, DEFAULT_PRESET
 from .engine_composite_layers_blend import BLEND_ALL_MODES, SUPPORTED_BLEND_MODES, validate_blend_geometry
 from .engine_composite_layers_rotate import (
-    has_transform, overlay_position, receipt_transform, rotate_filter, validate_rotation,
+    has_transform,
+    overlay_position,
+    receipt_transform,
+    rotate_filter,
+    validate_rotation,
 )
 from .engine_composite_layers_source import _receipt_source, resolve_layer_source, resolve_mask_source
 from .engine_runtime_utils import _timed_operation
@@ -504,9 +508,7 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             chains.append(f"[{layer.mask_input_index}:v]format=gray[{mask_label}raw]")
             # Bare scale2ref scales the mask to the layer size on all FFmpeg
             # versions; the rw/rh form only parses on FFmpeg 7+ (breaks FFmpeg 6).
-            chains.append(
-                f"[{mask_label}raw][{layer_label}raw]scale2ref[{mask_label}][{layer_ref_label}]"
-            )
+            chains.append(f"[{mask_label}raw][{layer_label}raw]scale2ref[{mask_label}][{layer_ref_label}]")
             chains.append(f"[{layer_ref_label}][{mask_label}]alphamerge[{layer_label}]")
         else:
             chains.append(f"[{layer_label}raw]null[{layer_label}]")
@@ -575,7 +577,9 @@ def _build_layer_plan(
     if any(layer.blend != "normal" for layer in layers):
         summary.append("full-canvas non-normal blend layers use blend=all_mode against the running base")
     if any(layer.rotation is not None for layer in layers):
-        summary.append("rotated layers use transparent-fill rotate (scale -> rotate -> opacity -> position); pivot sets the reference point")
+        summary.append(
+            "rotated layers use transparent-fill rotate (scale -> rotate -> opacity -> position); pivot sets the reference point"
+        )
     return {
         "schema_version": 2,
         "receipt_kind": "layer_plan",

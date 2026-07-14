@@ -69,9 +69,7 @@ def test_sampler_models_reject_noncanonical_labels_before_rendering():
         )
 
 
-def test_real_ffmpeg_sampler_and_frame_extraction_persist_canonical_artifacts(
-    tmp_path, sample_video
-):
+def test_real_ffmpeg_sampler_and_frame_extraction_persist_canonical_artifacts(tmp_path, sample_video):
     project = open_project(tmp_path / "project")
 
     samples = sample_decoded_timestamps(sample_video)
@@ -88,9 +86,7 @@ def test_real_ffmpeg_sampler_and_frame_extraction_persist_canonical_artifacts(
         assert absolute.stat().st_size > 0
 
 
-def test_normalized_region_crop_uses_source_pixels_and_carries_timestamp(
-    tmp_path, sample_video
-):
+def test_normalized_region_crop_uses_source_pixels_and_carries_timestamp(tmp_path, sample_video):
     project = open_project(tmp_path / "project")
     samples = sample_decoded_timestamps(sample_video)[:1]
     region = DeclaredRegion(
@@ -108,9 +104,7 @@ def test_normalized_region_crop_uses_source_pixels_and_carries_timestamp(
     assert _video_dimensions(crop_path) == (source_width // 2, source_height // 2)
 
 
-def test_malformed_source_dimensions_raise_a_private_custom_error(
-    tmp_path, sample_video, monkeypatch
-):
+def test_malformed_source_dimensions_raise_a_private_custom_error(tmp_path, sample_video, monkeypatch):
     project = open_project(tmp_path / "project")
     sample = sample_decoded_timestamps(sample_video)[:1]
     region = DeclaredRegion(
@@ -130,20 +124,14 @@ def test_malformed_source_dimensions_raise_a_private_custom_error(
     assert str(tmp_path) not in str(exc.value)
 
 
-def test_frame_extraction_cannot_overwrite_a_symlinked_staging_target(
-    tmp_path, sample_video, monkeypatch
-):
+def test_frame_extraction_cannot_overwrite_a_symlinked_staging_target(tmp_path, sample_video, monkeypatch):
     project = open_project(tmp_path / "project")
     outside = tmp_path / "outside.jpg"
     outside.write_bytes(b"DO NOT REPLACE")
     trap = project.root / ".kinocut" / "artifacts" / "sha256" / ".render.trap.jpg"
     trap.symlink_to(outside)
-    monkeypatch.setattr(
-        samplers, "staging_path", lambda *_args, **_kwargs: trap, raising=False
-    )
+    monkeypatch.setattr(samplers, "staging_path", lambda *_args, **_kwargs: trap, raising=False)
 
-    extract_sampled_frames(
-        project, sample_video, sample_decoded_timestamps(sample_video)[:1]
-    )
+    extract_sampled_frames(project, sample_video, sample_decoded_timestamps(sample_video)[:1])
 
     assert outside.read_bytes() == b"DO NOT REPLACE"

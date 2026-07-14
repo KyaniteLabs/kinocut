@@ -30,18 +30,30 @@ def _sample_section(**overrides) -> AiVideoReceiptSection:
         "project_id": "proj-alpha",
         "acceptance_spec_id": _SHA,
         "ordered_inputs": (
-            OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0,
-                         probed_duration=1.0, role="hero"),
+            OrderedInput(
+                asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0, probed_duration=1.0, role="hero"
+            ),
         ),
         "transformations": (
-            Transformation(tool="ffmpeg", operation="trim", params_hash=_SHA,
-                           toolchain_versions=("ffmpeg-7.0",), output_duration=1.0,
-                           output_hash=_SHA, warnings=()),
+            Transformation(
+                tool="ffmpeg",
+                operation="trim",
+                params_hash=_SHA,
+                toolchain_versions=("ffmpeg-7.0",),
+                output_duration=1.0,
+                output_hash=_SHA,
+                warnings=(),
+            ),
         ),
         "duration_policy": "preserve",
         "preservation_proofs": (
-            PreservationProof(expected="audio_stream_identical", method="packet_fingerprint",
-                              source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="preserved"),
+            PreservationProof(
+                expected="audio_stream_identical",
+                method="packet_fingerprint",
+                source_fingerprint=_SHA,
+                output_fingerprint=_SHA,
+                verdict="preserved",
+            ),
         ),
         "finding_ids": (),
         "review_artifact_ids": (),
@@ -112,8 +124,11 @@ def test_contract_version_frozen_to_one():
 
 def test_preservation_proof_states_expected_and_verdict():
     proof = PreservationProof(
-        expected="audio_stream_identical", method="packet_fingerprint",
-        source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="preserved",
+        expected="audio_stream_identical",
+        method="packet_fingerprint",
+        source_fingerprint=_SHA,
+        output_fingerprint=_SHA,
+        verdict="preserved",
     )
     assert proof.verdict in {"preserved", "changed"}
 
@@ -122,8 +137,7 @@ def test_preservation_proof_verdict_is_closed():
     from pydantic import ValidationError
 
     with pytest.raises(ValidationError):
-        PreservationProof(expected="x", method="m", source_fingerprint=_SHA,
-                          output_fingerprint=_SHA, verdict="maybe")
+        PreservationProof(expected="x", method="m", source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="maybe")
 
 
 def test_section_rejects_unknown_field_on_construction():
@@ -153,16 +167,16 @@ def test_contract_version_is_strict_integer():
 
 def test_ordered_input_points_must_be_nonnegative_and_ordered():
     with pytest.raises(ValidationError):
-        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=-0.1, out_point=1.0,
-                     probed_duration=1.0, role="hero")
+        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=-0.1, out_point=1.0, probed_duration=1.0, role="hero")
     with pytest.raises(ValidationError):
-        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=1.0, out_point=1.0,
-                     probed_duration=1.0, role="hero")  # not ordered / zero length
+        OrderedInput(
+            asset_id=_ASSET, input_hash=_SHA, in_point=1.0, out_point=1.0, probed_duration=1.0, role="hero"
+        )  # not ordered / zero length
     with pytest.raises(ValidationError):
-        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0,
-                     probed_duration=-1.0, role="hero")  # negative duration
-    ok = OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0,
-                      probed_duration=1.0, role="hero")
+        OrderedInput(
+            asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0, probed_duration=-1.0, role="hero"
+        )  # negative duration
+    ok = OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0, probed_duration=1.0, role="hero")
     assert ok.out_point == 1.0
 
 
@@ -176,15 +190,21 @@ def test_transformation_output_duration_must_be_nonnegative():
 @pytest.mark.parametrize(
     "field,value",
     [
-        ("role", "a\x00b"),                 # NUL / control char
-        ("tool", "/Users/victim/ffmpeg"),   # host path
+        ("role", "a\x00b"),  # NUL / control char
+        ("tool", "/Users/victim/ffmpeg"),  # host path
         ("operation", "http://evil.test"),  # URL scheme
-        ("method", "../../etc/passwd"),      # traversal
+        ("method", "../../etc/passwd"),  # traversal
     ],
 )
 def test_hostile_free_text_is_rejected(field, value):
-    kwargs = {"asset_id": _ASSET, "input_hash": _SHA, "in_point": 0.0, "out_point": 1.0,
-              "probed_duration": 1.0, "role": "hero"}
+    kwargs = {
+        "asset_id": _ASSET,
+        "input_hash": _SHA,
+        "in_point": 0.0,
+        "out_point": 1.0,
+        "probed_duration": 1.0,
+        "role": "hero",
+    }
     if field == "role":
         kwargs["role"] = value
         with pytest.raises(ValidationError):
@@ -194,21 +214,25 @@ def test_hostile_free_text_is_rejected(field, value):
             Transformation(**{"tool": "ffmpeg", "operation": "trim", field: value})
     else:  # method
         with pytest.raises(ValidationError):
-            PreservationProof(expected="ok", method=value, source_fingerprint=_SHA,
-                              output_fingerprint=_SHA, verdict="preserved")
+            PreservationProof(
+                expected="ok", method=value, source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="preserved"
+            )
 
 
 def test_warning_strings_reject_host_paths():
     with pytest.raises(ValidationError):
-        Transformation(tool="ffmpeg", operation="trim",
-                       warnings=("clip failed at /home/victim/secret.mp4",))
+        Transformation(tool="ffmpeg", operation="trim", warnings=("clip failed at /home/victim/secret.mp4",))
 
 
 def test_preservation_expected_rejects_secret_like_text():
     with pytest.raises(ValidationError):
-        PreservationProof(expected="token ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345",
-                          method="packet_fingerprint", source_fingerprint=_SHA,
-                          output_fingerprint=_SHA, verdict="preserved")
+        PreservationProof(
+            expected="token ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ012345",
+            method="packet_fingerprint",
+            source_fingerprint=_SHA,
+            output_fingerprint=_SHA,
+            verdict="preserved",
+        )
 
 
 def test_attach_rejects_wrong_section_type():
@@ -233,25 +257,25 @@ def test_attach_deep_copy_independence():
 
 def test_string_time_values_are_rejected():
     with pytest.raises(ValidationError):
-        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point="0.0", out_point=1.0,
-                     probed_duration=1.0, role="hero")
+        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point="0.0", out_point=1.0, probed_duration=1.0, role="hero")
     with pytest.raises(ValidationError):
         Transformation(tool="ffmpeg", operation="trim", output_duration="2.0")
 
 
 def test_out_point_must_not_exceed_probed_duration():
     with pytest.raises(ValidationError):
-        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=2.0,
-                     probed_duration=1.0, role="hero")  # out beyond probed length
-    ok = OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0,
-                      probed_duration=1.0, role="hero")
+        OrderedInput(
+            asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=2.0, probed_duration=1.0, role="hero"
+        )  # out beyond probed length
+    ok = OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=0.0, out_point=1.0, probed_duration=1.0, role="hero")
     assert ok.out_point == 1.0
 
 
 def test_in_point_must_not_exceed_probed_duration_even_without_out():
     with pytest.raises(ValidationError):
-        OrderedInput(asset_id=_ASSET, input_hash=_SHA, in_point=2.0, out_point=None,
-                     probed_duration=1.0, role="hero")  # in beyond probed length, no out
+        OrderedInput(
+            asset_id=_ASSET, input_hash=_SHA, in_point=2.0, out_point=None, probed_duration=1.0, role="hero"
+        )  # in beyond probed length, no out
 
 
 @pytest.mark.parametrize(
@@ -273,12 +297,14 @@ def test_embedded_host_path_or_prompt_text_rejected(text):
 def test_warnings_must_be_structured_codes_not_prose():
     # Arbitrary prose (e.g. a raw prompt) cannot serialize as a warning.
     with pytest.raises(ValidationError):
-        Transformation(tool="ffmpeg", operation="trim",
-                       warnings=("cinematic portrait of a private client in her bedroom, warm light",))
+        Transformation(
+            tool="ffmpeg",
+            operation="trim",
+            warnings=("cinematic portrait of a private client in her bedroom, warm light",),
+        )
     with pytest.raises(ValidationError):
         Transformation(tool="ffmpeg", operation="trim", warnings=("/Volumes/Private/x.mov",))
-    ok = Transformation(tool="ffmpeg", operation="trim",
-                        warnings=("audio_style_seam", "resolution_mismatch"))
+    ok = Transformation(tool="ffmpeg", operation="trim", warnings=("audio_style_seam", "resolution_mismatch"))
     assert ok.warnings == ("audio_style_seam", "resolution_mismatch")
 
 
@@ -304,11 +330,21 @@ def test_unlabeled_prompt_prose_rejected_across_all_fields():
     with pytest.raises(ValidationError):
         Transformation(tool="ffmpeg", operation="trim", warnings=(_PROSE,))
     with pytest.raises(ValidationError):
-        PreservationProof(expected=_PROSE, method="packet_fingerprint",
-                          source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="preserved")
+        PreservationProof(
+            expected=_PROSE,
+            method="packet_fingerprint",
+            source_fingerprint=_SHA,
+            output_fingerprint=_SHA,
+            verdict="preserved",
+        )
     with pytest.raises(ValidationError):
-        PreservationProof(expected="audio_stream_identical", method=_PROSE,
-                          source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="preserved")
+        PreservationProof(
+            expected="audio_stream_identical",
+            method=_PROSE,
+            source_fingerprint=_SHA,
+            output_fingerprint=_SHA,
+            verdict="preserved",
+        )
     with pytest.raises(ValidationError):
         _sample_section(project_id=_PROSE)
     with pytest.raises(ValidationError):
@@ -317,6 +353,7 @@ def test_unlabeled_prompt_prose_rejected_across_all_fields():
 
 def test_bounded_codes_accept_normal_identifiers():
     # Sanity: real code-shaped values still validate.
-    ok = Transformation(tool="ffmpeg", operation="trim", toolchain_versions=("ffmpeg-7.0", "libx264-r3"),
-                        warnings=("audio_style_seam",))
+    ok = Transformation(
+        tool="ffmpeg", operation="trim", toolchain_versions=("ffmpeg-7.0", "libx264-r3"), warnings=("audio_style_seam",)
+    )
     assert ok.tool == "ffmpeg"

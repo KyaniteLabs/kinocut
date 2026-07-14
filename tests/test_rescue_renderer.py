@@ -46,9 +46,7 @@ def _caption_capabilities(*, available: bool, model_sha256: str | None = None):
         "version": "20250625" if available else None,
         "executor": "openai-whisper",
     }
-    capabilities["whisper_models"] = {
-        "base": {"available": available, "sha256": model_sha256 if available else None}
-    }
+    capabilities["whisper_models"] = {"base": {"available": available, "sha256": model_sha256 if available else None}}
     return capabilities
 
 
@@ -195,13 +193,9 @@ def test_renderer_rejects_unknown_approval(tmp_path, sample_video):
     assert caught.value.code == "rescue_approval_invalid"
 
 
-def test_missing_whisper_records_unavailable_sidecars_without_transcribing(
-    tmp_path, sample_video, monkeypatch
-):
+def test_missing_whisper_records_unavailable_sidecars_without_transcribing(tmp_path, sample_video, monkeypatch):
     capabilities = _caption_capabilities(available=False)
-    _, plan_path, plan = _plan_with_capabilities(
-        tmp_path, sample_video, monkeypatch, capabilities
-    )
+    _, plan_path, plan = _plan_with_capabilities(tmp_path, sample_video, monkeypatch, capabilities)
     monkeypatch.setattr(
         "mcp_video.rescue.renderer.ai_transcribe",
         lambda *args, **kwargs: pytest.fail("unavailable Whisper must not be invoked"),
@@ -224,9 +218,7 @@ def test_missing_whisper_records_unavailable_sidecars_without_transcribing(
     assert receipt["status"] == "completed"
 
 
-def test_local_whisper_writes_verified_sidecars_without_burning_them(
-    tmp_path, sample_video, monkeypatch
-):
+def test_local_whisper_writes_verified_sidecars_without_burning_them(tmp_path, sample_video, monkeypatch):
     model_path, digest = _install_fake_local_whisper(tmp_path, monkeypatch)
     capabilities = _caption_capabilities(
         available=True,
@@ -320,9 +312,7 @@ def test_transcription_execution_failure_quarantines_package(tmp_path, sample_vi
     assert any(check["id"] == "caption_generation" and not check["passed"] for check in receipt["verification"])
 
 
-def test_unexpected_caption_failure_is_sanitized_and_quarantines_package(
-    tmp_path, sample_video, monkeypatch
-):
+def test_unexpected_caption_failure_is_sanitized_and_quarantines_package(tmp_path, sample_video, monkeypatch):
     _, digest = _install_fake_local_whisper(tmp_path, monkeypatch)
     capabilities = _caption_capabilities(available=True, model_sha256="sha256:" + digest)
     _, plan_path, _ = _plan_with_capabilities(tmp_path, sample_video, monkeypatch, capabilities)
@@ -405,8 +395,11 @@ def test_resume_reuses_matching_completed_repair(tmp_path, sample_video, monkeyp
     monkeypatch.undo()
     calls: list[str] = []
     from mcp_video.rescue import renderer
+
     original = renderer.execute_repair
-    monkeypatch.setattr(renderer, "execute_repair", lambda repair, *a, **k: calls.append(repair.id) or original(repair, *a, **k))
+    monkeypatch.setattr(
+        renderer, "execute_repair", lambda repair, *a, **k: calls.append(repair.id) or original(repair, *a, **k)
+    )
 
     receipt = render_rescue(str(plan_path), resume_receipt=str(receipt_path))
 

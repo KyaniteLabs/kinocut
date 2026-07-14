@@ -130,12 +130,10 @@ _LIMITS_NAMES = {
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def _contract_modules() -> list[Path]:
     """Return every ``.py`` file in the package except the three central modules."""
-    return sorted(
-        p for p in PACKAGE_ROOT.glob("*.py")
-        if p.name not in _CENTRAL_MODULES
-    )
+    return sorted(p for p in PACKAGE_ROOT.glob("*.py") if p.name not in _CENTRAL_MODULES)
 
 
 def _assigned_names(tree: ast.Module) -> set[str]:
@@ -152,9 +150,8 @@ def _assigned_names(tree: ast.Module) -> set[str]:
 def _is_field_call(node: ast.Call) -> bool:
     """True when *node* is a ``Field(...)`` call (bare or attribute)."""
     func = node.func
-    return (
-        (isinstance(func, ast.Name) and func.id == "Field")
-        or (isinstance(func, ast.Attribute) and func.attr == "Field")
+    return (isinstance(func, ast.Name) and func.id == "Field") or (
+        isinstance(func, ast.Attribute) and func.attr == "Field"
     )
 
 
@@ -169,11 +166,15 @@ def _literal_numeric(value: ast.AST) -> float | None:
 # Name-based divergence tests
 # ---------------------------------------------------------------------------
 
-@pytest.mark.parametrize("central_name, forbidden_names", [
-    ("validation.py", _VALIDATION_NAMES),
-    ("defaults.py", _DEFAULTS_NAMES),
-    ("limits.py", _LIMITS_NAMES),
-])
+
+@pytest.mark.parametrize(
+    "central_name, forbidden_names",
+    [
+        ("validation.py", _VALIDATION_NAMES),
+        ("defaults.py", _DEFAULTS_NAMES),
+        ("limits.py", _LIMITS_NAMES),
+    ],
+)
 def test_centralized_names_not_reassigned_in_contract_modules(central_name, forbidden_names):
     """No contract module may re-define a centralized constant."""
     offenders: dict[str, list[str]] = {}
@@ -182,14 +183,13 @@ def test_centralized_names_not_reassigned_in_contract_modules(central_name, forb
         found = _assigned_names(tree) & forbidden_names
         if found:
             offenders[module_path.name] = sorted(found)
-    assert offenders == {}, (
-        f"constants from {central_name} must be imported, not re-defined: " + repr(offenders)
-    )
+    assert offenders == {}, f"constants from {central_name} must be imported, not re-defined: " + repr(offenders)
 
 
 # ---------------------------------------------------------------------------
 # AST divergence test: forbidden literal numeric Field defaults/bounds
 # ---------------------------------------------------------------------------
+
 
 def test_no_literal_numeric_field_defaults_or_bounds_in_contract_modules():
     """Every numeric Field default/bound in a contract module must be a named constant.
@@ -216,9 +216,7 @@ def test_no_literal_numeric_field_defaults_or_bounds_in_contract_modules():
                 key = (module_path.name, kw.arg, num)
                 if key in _FIELD_LITERAL_ALLOWLIST:
                     continue
-                offenders.append(
-                    f"{module_path.name}: Field({kw.arg}={num!r})"
-                )
+                offenders.append(f"{module_path.name}: Field({kw.arg}={num!r})")
     assert not offenders, (
         "literal numeric Field default/bound outside central modules — "
         "route through defaults.py or limits.py:\n  " + "\n  ".join(offenders)
@@ -228,6 +226,7 @@ def test_no_literal_numeric_field_defaults_or_bounds_in_contract_modules():
 # ---------------------------------------------------------------------------
 # AST divergence test: forbidden inline regex patterns
 # ---------------------------------------------------------------------------
+
 
 def test_no_inline_regex_patterns_in_contract_modules():
     """Every regex pattern in a contract module must be imported from validation.py.
@@ -251,8 +250,7 @@ def test_no_inline_regex_patterns_in_contract_modules():
                 if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
                     offenders.append(f"{module_path.name}: re.{func.attr}(r'{arg.value}')")
     assert not offenders, (
-        "inline regex pattern outside validation.py — "
-        "move to validation.py and import:\n  " + "\n  ".join(offenders)
+        "inline regex pattern outside validation.py — move to validation.py and import:\n  " + "\n  ".join(offenders)
     )
 
 
@@ -260,14 +258,17 @@ def test_no_inline_regex_patterns_in_contract_modules():
 # Central module independence test
 # ---------------------------------------------------------------------------
 
+
 def test_centralized_modules_do_not_import_kinocut_runtime():
     """defaults/validation/limits must not import the kinocut runtime."""
     for name in ("defaults.py", "validation.py", "limits.py"):
         path = PACKAGE_ROOT / name
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and (
-                node.module == "kinocut" or node.module.startswith("kinocut.")
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and (node.module == "kinocut" or node.module.startswith("kinocut."))
             ):
                 if node.module == "kinocut_sound" or node.module.startswith("kinocut_sound."):
                     continue  # intra-package imports are fine
@@ -284,16 +285,20 @@ def test_centralized_modules_do_not_import_each_other():
         path = PACKAGE_ROOT / name
         tree = ast.parse(path.read_text(encoding="utf-8"), filename=str(path))
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and (
-                node.module.startswith("kinocut_sound.defaults")
-                or node.module.startswith("kinocut_sound.limits")
-                or node.module.startswith("kinocut_sound.validation")
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and (
+                    node.module.startswith("kinocut_sound.defaults")
+                    or node.module.startswith("kinocut_sound.limits")
+                    or node.module.startswith("kinocut_sound.validation")
+                )
             ):
-                if (name == "validation.py" and node.module.startswith("kinocut_sound.validation")):
+                if name == "validation.py" and node.module.startswith("kinocut_sound.validation"):
                     continue
-                if (name == "defaults.py" and node.module.startswith("kinocut_sound.defaults")):
+                if name == "defaults.py" and node.module.startswith("kinocut_sound.defaults"):
                     continue
-                if (name == "limits.py" and node.module.startswith("kinocut_sound.limits")):
+                if name == "limits.py" and node.module.startswith("kinocut_sound.limits"):
                     continue
                 raise AssertionError(f"{name} imports another central module: {node.module}")
 
@@ -301,6 +306,7 @@ def test_centralized_modules_do_not_import_each_other():
 # ---------------------------------------------------------------------------
 # __init__ export tests
 # ---------------------------------------------------------------------------
+
 
 def test_all_exports_have_no_duplicates():
     """__all__ must not contain duplicate entries."""
@@ -328,17 +334,16 @@ def test_centralized_constants_are_exported():
 
     all_set = set(kinocut_sound.__all__)
     defaults_exports = {
-        name for name, val in vars(d).items()
+        name
+        for name, val in vars(d).items()
         if not name.startswith("_") and isinstance(val, (int, float)) and name.isupper()
     }
     limits_exports = {
-        name for name, val in vars(lm).items()
+        name
+        for name, val in vars(lm).items()
         if not name.startswith("_") and isinstance(val, (int, float)) and name.isupper()
     }
-    validation_exports = {
-        name for name, val in vars(v).items()
-        if not name.startswith("_") and name.isupper()
-    }
+    validation_exports = {name for name, val in vars(v).items() if not name.startswith("_") and name.isupper()}
     all_central = defaults_exports | limits_exports | validation_exports
     missing = all_central - all_set
     assert not missing, f"centralized constants not exported in __all__: {sorted(missing)}"
@@ -347,6 +352,7 @@ def test_centralized_constants_are_exported():
 # ---------------------------------------------------------------------------
 # Spot-check: centralized values match actual Field metadata
 # ---------------------------------------------------------------------------
+
 
 def test_centralized_defaults_match_field_metadata():
     """Spot-check that centralized defaults are the actual Field defaults used."""
@@ -437,17 +443,13 @@ def test_no_unused_imports_of_re_in_contract_modules():
         tree = ast.parse(source, filename=str(module_path))
         # Find ``import re``.
         has_re_import = any(
-            isinstance(node, ast.Import)
-            and any(alias.name == "re" for alias in node.names)
-            for node in ast.walk(tree)
+            isinstance(node, ast.Import) and any(alias.name == "re" for alias in node.names) for node in ast.walk(tree)
         )
         if not has_re_import:
             continue
         # Check if ``re.`` is actually used.
         uses_re = any(
-            isinstance(node, ast.Attribute)
-            and isinstance(node.value, ast.Name)
-            and node.value.id == "re"
+            isinstance(node, ast.Attribute) and isinstance(node.value, ast.Name) and node.value.id == "re"
             for node in ast.walk(tree)
         )
         assert uses_re, f"{module_path.name} imports ``re`` but never uses it"

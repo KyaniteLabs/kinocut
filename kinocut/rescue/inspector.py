@@ -31,7 +31,11 @@ def inspect_rescue(path: str) -> dict[str, Any]:
         payload = json.loads(artifact.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError) as exc:
         raise rescue_error("rescue artifact is not readable JSON", INVALID_RESCUE_RECEIPT) from exc
-    if not isinstance(payload, dict) or payload.get("schema_version") != 1 or payload.get("receipt_kind") not in {"rescue_plan", "rescue"}:
+    if (
+        not isinstance(payload, dict)
+        or payload.get("schema_version") != 1
+        or payload.get("receipt_kind") not in {"rescue_plan", "rescue"}
+    ):
         raise rescue_error("unsupported rescue artifact", INVALID_RESCUE_RECEIPT)
     if not all(key in payload for key in ("tool", "status", "source")):
         raise rescue_error("rescue artifact is missing required v1 fields", INVALID_RESCUE_RECEIPT)
@@ -48,7 +52,9 @@ def inspect_rescue(path: str) -> dict[str, Any]:
         package_path = package.get("path") if isinstance(package, dict) else None
         packaged_receipt = isinstance(package_path, str) and artifact.parent.name == Path(package_path).name
         output_base = artifact.parent.parent if packaged_receipt else artifact.parent
-        package_base = artifact.parent if packaged_receipt else output_base / package_path if package_path else output_base
+        package_base = (
+            artifact.parent if packaged_receipt else output_base / package_path if package_path else output_base
+        )
         workspace_base = Path(os.path.realpath(output_base / payload.get("workspace_root", ".")))
         if workspace_base == Path(workspace_base.anchor) or not _confined(output_base, workspace_base):
             raise rescue_error("rescue receipt workspace reference is unsafe", INVALID_RESCUE_RECEIPT)
@@ -83,11 +89,36 @@ def inspect_rescue(path: str) -> dict[str, Any]:
         else:
             actual = _hash(candidate) if present else None
         expected = record.get("sha256")
-        artifacts.append({"path": record["path"], "present": present, "matching": present and (expected is None or actual == expected), "expected_sha256": expected, "actual_sha256": actual})
+        artifacts.append(
+            {
+                "path": record["path"],
+                "present": present,
+                "matching": present and (expected is None or actual == expected),
+                "expected_sha256": expected,
+                "actual_sha256": actual,
+            }
+        )
     return {
-        "kind": kind, "schema_version": 1, "tool": payload["tool"], "status": payload["status"],
-        "dispositions": {name: len(payload.get(name, [])) for name in ("safe_repairs", "recommendations", "unavailable_repairs", "blocked_repairs")},
-        "approved_repair_ids": payload.get("approved_repair_ids", []), "applied_repair_ids": payload.get("applied_repair_ids", []), "skipped_repair_ids": payload.get("skipped_repair_ids", []),
-        "verification": payload.get("verification", []), "package": package, "privacy": payload.get("privacy", {}), "warnings": payload.get("warnings", []), "cleanup": payload.get("cleanup", {}), "resume": payload.get("resume", {}),
-        "integrity": {"all_present": all(item["present"] for item in artifacts), "all_matching": all(item["matching"] for item in artifacts), "artifacts": artifacts},
+        "kind": kind,
+        "schema_version": 1,
+        "tool": payload["tool"],
+        "status": payload["status"],
+        "dispositions": {
+            name: len(payload.get(name, []))
+            for name in ("safe_repairs", "recommendations", "unavailable_repairs", "blocked_repairs")
+        },
+        "approved_repair_ids": payload.get("approved_repair_ids", []),
+        "applied_repair_ids": payload.get("applied_repair_ids", []),
+        "skipped_repair_ids": payload.get("skipped_repair_ids", []),
+        "verification": payload.get("verification", []),
+        "package": package,
+        "privacy": payload.get("privacy", {}),
+        "warnings": payload.get("warnings", []),
+        "cleanup": payload.get("cleanup", {}),
+        "resume": payload.get("resume", {}),
+        "integrity": {
+            "all_present": all(item["present"] for item in artifacts),
+            "all_matching": all(item["matching"] for item in artifacts),
+            "artifacts": artifacts,
+        },
     }

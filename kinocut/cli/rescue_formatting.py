@@ -110,8 +110,7 @@ def format_rescue_inspect(result: Any) -> None:
     lines = [
         f"[bold green]Status:[/bold green] {escape(str(data.get('status')))}",
         f"[bold green]Integrity:[/bold green] all matching={integrity.get('all_matching')}",
-        f"[bold green]Verification failures:[/bold green] "
-        f"{escape(', '.join(failures)) if failures else '(none)'}",
+        f"[bold green]Verification failures:[/bold green] {escape(', '.join(failures)) if failures else '(none)'}",
         f"[bold green]Local only:[/bold green] {privacy.get('local_only')}",
         f"[bold green]Resumable:[/bold green] {resumable}",
         f"[bold green]Intermediates retained:[/bold green] {retained}",

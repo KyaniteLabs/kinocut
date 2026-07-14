@@ -206,9 +206,7 @@ class TestVisualQualityGuardrails:
         technical = quality_check(video_path)
         design = design_quality_check(video_path)
 
-        technical_metric = next(c for c in technical["checks"] if c["name"] == "saturation")["details"][
-            "metric"
-        ]
+        technical_metric = next(c for c in technical["checks"] if c["name"] == "saturation")["details"]["metric"]
         design_metric = design["metrics"]["saturation"]
         assert technical_metric["name"] == design_metric["name"] == "ffmpeg.signalstats.SATAVG"
         assert technical_metric["unit"] == design_metric["unit"] == "percent_of_8bit_yuv_saturation_range"

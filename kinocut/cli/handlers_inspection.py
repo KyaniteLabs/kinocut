@@ -16,9 +16,7 @@ def handle_inspection_commands(args: Any, *, use_json: bool) -> bool:
 
         if operation == "ingest":
             lineage = (
-                _parse_json_arg(a.lineage_json, "lineage-json", output_json)
-                if a.lineage_json is not None
-                else None
+                _parse_json_arg(a.lineage_json, "lineage-json", output_json) if a.lineage_json is not None else None
             )
             kwargs = {
                 "source_path": a.source_path,
@@ -39,7 +37,5 @@ def handle_inspection_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-ingest", lambda a, out: _run("ingest", a, out))
     runner.register("video-preflight", lambda a, out: _run("preflight", a, out))
-    runner.register(
-        "video-inspect-temporal", lambda a, out: _run("inspect_temporal", a, out)
-    )
+    runner.register("video-inspect-temporal", lambda a, out: _run("inspect_temporal", a, out))
     return runner.dispatch()

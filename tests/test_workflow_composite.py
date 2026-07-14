@@ -202,8 +202,16 @@ def test_synth_spec_symlink_escape_fails_closed(tmp_path):
     )
     with pytest.raises(MCPVideoError) as exc:
         render_composite_step(
-            adapter, step, ws, {}, {}, run_dir, ws / "out.mp4",
-            _resolve_confined_input, set(), set(),
+            adapter,
+            step,
+            ws,
+            {},
+            {},
+            run_dir,
+            ws / "out.mp4",
+            _resolve_confined_input,
+            set(),
+            set(),
         )
     assert exc.value.code == "unsafe_workflow_source"
     assert called["engine"] is False

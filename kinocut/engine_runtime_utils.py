@@ -36,8 +36,10 @@ def _find_executable(name: str) -> str:
         configured = os.environ.get(env_name, "").strip()
         if configured:
             expected = f"{name}.exe" if os.name == "nt" else name
-            if os.path.basename(configured).lower() == expected and os.path.isfile(configured) and os.access(
-                configured, os.X_OK
+            if (
+                os.path.basename(configured).lower() == expected
+                and os.path.isfile(configured)
+                and os.access(configured, os.X_OK)
             ):
                 return configured
             raise FFmpegNotFoundError() if name == "ffmpeg" else FFprobeNotFoundError()

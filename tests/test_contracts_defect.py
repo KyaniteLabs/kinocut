@@ -70,9 +70,7 @@ def test_non_suspected_status_requires_human_decision():
 
 
 def test_non_suspected_status_accepts_human_decision():
-    finding = DefectFinding(
-        **defect_kwargs(status="confirmed", human_decision_id="sha256:" + "d" * 64)
-    )
+    finding = DefectFinding(**defect_kwargs(status="confirmed", human_decision_id="sha256:" + "d" * 64))
     assert finding.status is DefectStatus.CONFIRMED
 
 

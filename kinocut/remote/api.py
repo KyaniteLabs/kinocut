@@ -63,15 +63,11 @@ def _map_with_adapter(
     elif adapter_kind == "delivery":
         if destination is None:
             raise RemoteContractError("delivery destination is required")
-        adapter = FakeDeliveryAdapter(
-            provider=parsed_manifest.location.provider, destination=destination
-        )
+        adapter = FakeDeliveryAdapter(provider=parsed_manifest.location.provider, destination=destination)
     elif adapter_kind == "hosting":
         if destination is None:
             raise RemoteContractError("hosting destination is required")
-        adapter = FakeHostingAdapter(
-            provider=parsed_manifest.location.provider, destination=destination
-        )
+        adapter = FakeHostingAdapter(provider=parsed_manifest.location.provider, destination=destination)
     else:
         raise RemoteContractError(f"unknown adapter kind: {adapter_kind}")
     job = prepare_remote_job(

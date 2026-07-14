@@ -14,9 +14,7 @@ from .. import __version__ as _MCP_VIDEO_VERSION
 
 # Single source of truth for the determinism caveat every workflow artifact
 # (plan + render receipt) records, so the two can never drift apart.
-RENDER_DETERMINISM_SCOPE = (
-    "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds"
-)
+RENDER_DETERMINISM_SCOPE = "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds"
 
 _ffmpeg_version_cache: str | None = None
 _ffmpeg_version_probed = False

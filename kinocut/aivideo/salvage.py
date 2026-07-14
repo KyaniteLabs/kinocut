@@ -245,9 +245,7 @@ def _checks(
             )
         )
         checks.append(
-            _crop_origin_check(
-                source, output, region, claim="declared_background_region_pixels", pass_fds=pass_fds
-            )
+            _crop_origin_check(source, output, region, claim="declared_background_region_pixels", pass_fds=pass_fds)
         )
         checks.append(_audio_removed_check(output_info))
         checks.append(_duration_check(output_info.duration, source_info.duration))
@@ -260,9 +258,7 @@ def _checks(
                 observed="decodable_image" if output_info.width > 0 else "invalid",
             )
         )
-        checks.append(
-            _still_frame_origin_check(source, output, policy["timestamp"], pass_fds=pass_fds)
-        )
+        checks.append(_still_frame_origin_check(source, output, policy["timestamp"], pass_fds=pass_fds))
     if not all(check.passed for check in checks):
         raise _salvage_error("render did not satisfy its preservation claims", "salvage_verification_failed")
     verified_source.verify()

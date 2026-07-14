@@ -39,25 +39,38 @@ def test_ordered_input_rejects_host_path_role_and_unbounded_prose():
     for bad in ("with space", "../x", "https://x"):
         with pytest.raises(ValidationError):
             OrderedInput(
-                asset_id=_SHA, input_hash=_SHA, role=bad, safe_display_name="x",
+                asset_id=_SHA,
+                input_hash=_SHA,
+                role=bad,
+                safe_display_name="x",
             )
     for bad in ("/etc/passwd", "~/home", "https://host/x"):
         with pytest.raises(ValidationError):
             OrderedInput(
-                asset_id=_SHA, input_hash=_SHA, role="ok", safe_display_name=bad,
+                asset_id=_SHA,
+                input_hash=_SHA,
+                role="ok",
+                safe_display_name=bad,
             )
 
 
 def test_ordered_input_rejects_out_of_order_points_and_non_numeric():
     with pytest.raises(ValidationError):
         OrderedInput(
-            asset_id=_SHA, input_hash=_SHA, in_point=1.0, out_point=0.5,
-            role="ok", safe_display_name="x",
+            asset_id=_SHA,
+            input_hash=_SHA,
+            in_point=1.0,
+            out_point=0.5,
+            role="ok",
+            safe_display_name="x",
         )
     with pytest.raises(ValidationError):
         OrderedInput(
-            asset_id=_SHA, input_hash=_SHA, in_point="0.5",  # type: ignore[arg-type]
-            role="ok", safe_display_name="x",
+            asset_id=_SHA,
+            input_hash=_SHA,
+            in_point="0.5",  # type: ignore[arg-type]
+            role="ok",
+            safe_display_name="x",
         )
 
 
@@ -90,13 +103,19 @@ def test_preservation_proof_requires_bounded_expected_and_method():
     for bad in ("with space", "../x"):
         with pytest.raises(ValidationError):
             PreservationProof(
-                expected=bad, method="probe_duration",
-                source_fingerprint=_SHA, output_fingerprint=_SHA, verdict="preserved",
+                expected=bad,
+                method="probe_duration",
+                source_fingerprint=_SHA,
+                output_fingerprint=_SHA,
+                verdict="preserved",
             )
     with pytest.raises(ValidationError):
         PreservationProof(
-            expected="duration", method="probe", source_fingerprint=_SHA,
-            output_fingerprint=_SHA, verdict="unknown_verdict",
+            expected="duration",
+            method="probe",
+            source_fingerprint=_SHA,
+            output_fingerprint=_SHA,
+            verdict="unknown_verdict",
         )
 
 
@@ -110,8 +129,11 @@ def test_loudness_verification_captures_measurement_and_pass_state():
     )
     with pytest.raises(ValidationError):
         LoudnessVerification(
-            preset="stream_-14", integrated_lufs=0.0, true_peak_dbtp=-1.0,
-            lra_lu=7.5, within_tolerance=True,
+            preset="stream_-14",
+            integrated_lufs=0.0,
+            true_peak_dbtp=-1.0,
+            lra_lu=7.5,
+            within_tolerance=True,
         )
 
 
@@ -121,8 +143,11 @@ def test_sound_receipt_section_carries_plan_hash_and_grant_refs_only():
         profile_versions=(("voice_a", 1),),
         consent_grant_refs=("grant_001",),
         loudness=LoudnessVerification(
-            preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
-            lra_lu=7.0, within_tolerance=True,
+            preset="stream_-14",
+            integrated_lufs=-14.0,
+            true_peak_dbtp=-1.0,
+            lra_lu=7.0,
+            within_tolerance=True,
         ),
         ordered_inputs=(OrderedInput(asset_id=_SHA, input_hash=_SHA, role="dialog", safe_display_name="line_001"),),
         transformations=(),
@@ -133,6 +158,7 @@ def test_sound_receipt_section_carries_plan_hash_and_grant_refs_only():
     assert section.consent_grant_refs == ("grant_001",)
     # No subject identity or PII field is representable.
     import kinocut_sound.receipt as r
+
     field_names = set(r.SoundReceiptSection.model_fields.keys())
     assert "subject_id" not in field_names
     assert "biometric" not in field_names
@@ -153,8 +179,11 @@ def test_sound_receipt_wraps_legacy_v1_and_attaches_additive_sound_section():
         profile_versions=(),
         consent_grant_refs=(),
         loudness=LoudnessVerification(
-            preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
-            lra_lu=7.0, within_tolerance=True,
+            preset="stream_-14",
+            integrated_lufs=-14.0,
+            true_peak_dbtp=-1.0,
+            lra_lu=7.0,
+            within_tolerance=True,
         ),
         human_review_required=False,
     )
@@ -191,8 +220,11 @@ def test_sound_receipt_rejects_unbounded_operation_and_legacy_path_leakage():
                 profile_versions=(),
                 consent_grant_refs=(),
                 loudness=LoudnessVerification(
-                    preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
-                    lra_lu=7.0, within_tolerance=True,
+                    preset="stream_-14",
+                    integrated_lufs=-14.0,
+                    true_peak_dbtp=-1.0,
+                    lra_lu=7.0,
+                    within_tolerance=True,
                 ),
                 human_review_required=False,
             ),
@@ -213,8 +245,11 @@ def test_sound_receipt_rejects_raw_normalized_parameters_field():
                 profile_versions=(),
                 consent_grant_refs=(),
                 loudness=LoudnessVerification(
-                    preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
-                    lra_lu=7.0, within_tolerance=True,
+                    preset="stream_-14",
+                    integrated_lufs=-14.0,
+                    true_peak_dbtp=-1.0,
+                    lra_lu=7.0,
+                    within_tolerance=True,
                 ),
                 human_review_required=False,
             ),
@@ -228,8 +263,11 @@ def _section() -> SoundReceiptSection:
         profile_versions=(),
         consent_grant_refs=(),
         loudness=LoudnessVerification(
-            preset="stream_-14", integrated_lufs=-14.0, true_peak_dbtp=-1.0,
-            lra_lu=7.0, within_tolerance=True,
+            preset="stream_-14",
+            integrated_lufs=-14.0,
+            true_peak_dbtp=-1.0,
+            lra_lu=7.0,
+            within_tolerance=True,
         ),
         human_review_required=False,
     )

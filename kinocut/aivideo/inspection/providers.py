@@ -76,8 +76,7 @@ class ProviderFindingProposal(ValueObject):
         if not self.evidence_artifact_ids:
             raise ValueError("provider findings require inspection evidence")
         if any(
-            _PROVIDER_ID_RE.fullmatch(item.name) is None
-            or _PROVIDER_ID_RE.fullmatch(item.unit) is None
+            _PROVIDER_ID_RE.fullmatch(item.name) is None or _PROVIDER_ID_RE.fullmatch(item.unit) is None
             for item in self.measurements
         ):
             raise ValueError("measurement names and units must be bounded codes")
@@ -197,21 +196,15 @@ def analyze_optional_visual_findings(
     if capability_id not in VISUAL_CAPABILITIES:
         raise _provider_error("inspection_capability_invalid")
     if provider_id is None:
-        return _unavailable(
-            capability_id, None, trusted_end, "provider_not_configured"
-        )
+        return _unavailable(capability_id, None, trusted_end, "provider_not_configured")
     definition = registry.resolve(provider_id)
     if definition is None:
-        return _unavailable(
-            capability_id, provider_id, trusted_end, "provider_not_installed"
-        )
+        return _unavailable(capability_id, provider_id, trusted_end, "provider_not_installed")
     provider = _construct_provider(definition)
     if provider is None:
         return _unavailable(capability_id, provider_id, trusted_end, "provider_failed")
     if capability_id not in provider.capability_ids:
-        return _unavailable(
-            capability_id, provider_id, trusted_end, "capability_not_supported"
-        )
+        return _unavailable(capability_id, provider_id, trusted_end, "capability_not_supported")
     try:
         raw_batch = provider.analyze(package, capability_id)
     except Exception as exc:
@@ -221,9 +214,7 @@ def analyze_optional_visual_findings(
             type(exc).__name__,
         )
         return _unavailable(capability_id, provider_id, trusted_end, "provider_failed")
-    batch = _validate_batch(
-        raw_batch, provider_id, capability_id, package, trusted_end
-    )
+    batch = _validate_batch(raw_batch, provider_id, capability_id, package, trusted_end)
     try:
         findings = _normalize_findings(batch, package, project_id, created_by)
     except ValidationError as exc:
@@ -283,12 +274,8 @@ def _validate_batch(
         raise _provider_error("inspection_provider_output_invalid") from exc
     evidence_ids = _inspection_artifact_ids(package)
     valid_binding = batch.provider_id == provider_id and batch.capability_id == capability_id
-    valid_evidence = all(
-        set(proposal.evidence_artifact_ids) <= evidence_ids for proposal in batch.findings
-    )
-    valid_times = all(
-        proposal.time_range[1] <= playable_end for proposal in batch.findings
-    )
+    valid_evidence = all(set(proposal.evidence_artifact_ids) <= evidence_ids for proposal in batch.findings)
+    valid_times = all(proposal.time_range[1] <= playable_end for proposal in batch.findings)
     if not valid_binding or not valid_evidence or not valid_times:
         raise _provider_error("inspection_provider_output_invalid")
     return batch

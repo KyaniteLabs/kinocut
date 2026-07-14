@@ -24,7 +24,10 @@ from kinocut_sound.format import (
 
 def test_channel_layouts_are_closed_and_map_to_counts():
     assert {layout.value for layout in ChannelLayout} == {
-        "mono", "stereo", "surround_5_1", "surround_7_1",
+        "mono",
+        "stereo",
+        "surround_5_1",
+        "surround_7_1",
     }
     assert CHANNEL_COUNT[ChannelLayout.MONO] == 1
     assert CHANNEL_COUNT[ChannelLayout.STEREO] == 2
@@ -34,7 +37,10 @@ def test_channel_layouts_are_closed_and_map_to_counts():
 
 def test_sample_formats_are_closed():
     assert {fmt.value for fmt in SampleFormat} == {
-        "pcm_s16le", "pcm_s24le", "pcm_s32le", "float_32",
+        "pcm_s16le",
+        "pcm_s24le",
+        "pcm_s32le",
+        "float_32",
     }
 
 

@@ -51,9 +51,7 @@ def test_rescue_skill_requires_plan_inspection_before_render():
 
 
 def test_rescue_plan_parser_preserves_policy_defaults():
-    args = build_parser().parse_args(
-        ["rescue-plan", "--source", "clip.mov", "--output-dir", "rescue-output"]
-    )
+    args = build_parser().parse_args(["rescue-plan", "--source", "clip.mov", "--output-dir", "rescue-output"])
 
     assert args.source == "clip.mov"
     assert args.output_dir == "rescue-output"

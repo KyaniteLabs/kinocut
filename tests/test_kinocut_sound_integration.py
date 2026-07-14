@@ -15,7 +15,6 @@ This test exercises the canonical S1 use case end-to-end:
 from __future__ import annotations
 
 
-
 from kinocut_sound import (
     AudioFormat,
     ChannelLayout,
@@ -74,9 +73,7 @@ def _line() -> Line:
         prosody=Prosody(rate=0.95, pitch=-1.0),
         emotion=Emotion(label="confessional_dread", intensity=0.6),
         spatial_preset="close_mic_dry",
-        pronunciation_overrides=(
-            PronunciationOverride(term_hash=_SHA, ipa="kon.fɛ.ʃən.al"),
-        ),
+        pronunciation_overrides=(PronunciationOverride(term_hash=_SHA, ipa="kon.fɛ.ʃən.al"),),
         inherit_loudness=True,
     )
 
@@ -89,12 +86,18 @@ def _plan() -> SoundPlan:
         timeline=Timeline(
             cues=(
                 Cue(
-                    cue_id="cue_001", start_seconds=0.0, duration_seconds=12.5,
-                    kind=CueKind.LINE, source_ref="lines/line_001.json",
+                    cue_id="cue_001",
+                    start_seconds=0.0,
+                    duration_seconds=12.5,
+                    kind=CueKind.LINE,
+                    source_ref="lines/line_001.json",
                 ),
                 Cue(
-                    cue_id="cue_silence_001", start_seconds=12.5, duration_seconds=0.5,
-                    kind=CueKind.SILENCE, source_ref="silence/room_tone.json",
+                    cue_id="cue_silence_001",
+                    start_seconds=12.5,
+                    duration_seconds=0.5,
+                    kind=CueKind.SILENCE,
+                    source_ref="silence/room_tone.json",
                 ),
             ),
             tail_seconds=1.0,
@@ -105,9 +108,12 @@ def _plan() -> SoundPlan:
         routing=Routing(
             tracks=(
                 Track(
-                    track_id="track_dialog_001", destination_bus_id="bus_dialog",
-                    gain_db=-1.5, pan_law=PanLaw.LINEAR,
-                    muted=False, soloed=False,
+                    track_id="track_dialog_001",
+                    destination_bus_id="bus_dialog",
+                    gain_db=-1.5,
+                    pan_law=PanLaw.LINEAR,
+                    muted=False,
+                    soloed=False,
                 ),
             ),
             buses=(Bus(bus_id="bus_dialog", kind="dialog"),),
@@ -136,8 +142,10 @@ def test_sidecar_boundary_kinocut_sound_does_not_import_kinocut_runtime():
         tree = ast.parse(module_path.read_text(encoding="utf-8"), filename=str(module_path))
         bad: list[str] = []
         for node in ast.walk(tree):
-            if isinstance(node, ast.ImportFrom) and node.module and (
-                node.module == "kinocut" or node.module.startswith("kinocut.")
+            if (
+                isinstance(node, ast.ImportFrom)
+                and node.module
+                and (node.module == "kinocut" or node.module.startswith("kinocut."))
             ):
                 bad.append(f"from {node.module} import ...")
             if isinstance(node, ast.Import):
@@ -146,8 +154,8 @@ def test_sidecar_boundary_kinocut_sound_does_not_import_kinocut_runtime():
                         bad.append(f"import {alias.name}")
         if bad:
             offenders[module_path.name] = bad
-    assert offenders == {}, (
-        "kinocut_sound must not import the kinocut runtime; sidecar boundary broken: " + repr(offenders)
+    assert offenders == {}, "kinocut_sound must not import the kinocut runtime; sidecar boundary broken: " + repr(
+        offenders
     )
 
 
@@ -167,14 +175,21 @@ def test_receipt_serializes_sound_section_without_leaks():
         profile_versions=(("voice_narrator", 2),),
         consent_grant_refs=("grant_001",),
         loudness=LoudnessVerification(
-            preset="stream_-14", integrated_lufs=-14.02, true_peak_dbtp=-1.05,
-            lra_lu=7.5, within_tolerance=True,
+            preset="stream_-14",
+            integrated_lufs=-14.02,
+            true_peak_dbtp=-1.05,
+            lra_lu=7.5,
+            within_tolerance=True,
         ),
         ordered_inputs=(
             OrderedInput(
-                asset_id=_SHA, input_hash=_SHA, role="dialog_clip",
+                asset_id=_SHA,
+                input_hash=_SHA,
+                role="dialog_clip",
                 safe_display_name="lines/line_001",
-                in_point=0.0, out_point=12.5, probed_duration=12.5,
+                in_point=0.0,
+                out_point=12.5,
+                probed_duration=12.5,
             ),
         ),
         warnings=(),

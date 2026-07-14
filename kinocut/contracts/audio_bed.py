@@ -70,34 +70,18 @@ class AudioBedParameters(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
     loop: bool
-    music_volume: float = Field(
-        ge=MIN_AUDIO_BED_MUSIC_VOLUME, le=MAX_AUDIO_BED_MUSIC_VOLUME
-    )
+    music_volume: float = Field(ge=MIN_AUDIO_BED_MUSIC_VOLUME, le=MAX_AUDIO_BED_MUSIC_VOLUME)
     loop_crossfade_seconds: float = Field(
         ge=MIN_AUDIO_BED_LOOP_CROSSFADE_SECONDS,
         le=MAX_AUDIO_BED_LOOP_CROSSFADE_SECONDS,
     )
-    fade_in_seconds: float = Field(
-        ge=MIN_AUDIO_BED_FADE_SECONDS, le=MAX_AUDIO_BED_FADE_SECONDS
-    )
-    fade_out_seconds: float = Field(
-        ge=MIN_AUDIO_BED_FADE_SECONDS, le=MAX_AUDIO_BED_FADE_SECONDS
-    )
-    target_lufs: float = Field(
-        ge=MIN_AUDIO_BED_TARGET_LUFS, le=MAX_AUDIO_BED_TARGET_LUFS
-    )
-    duck_threshold: float = Field(
-        ge=MIN_AUDIO_BED_DUCK_THRESHOLD, le=MAX_AUDIO_BED_DUCK_THRESHOLD
-    )
-    duck_ratio: float = Field(
-        ge=MIN_AUDIO_BED_DUCK_RATIO, le=MAX_AUDIO_BED_DUCK_RATIO
-    )
-    duck_attack_ms: float = Field(
-        ge=MIN_AUDIO_BED_DUCK_ATTACK_MS, le=MAX_AUDIO_BED_DUCK_ATTACK_MS
-    )
-    duck_release_ms: float = Field(
-        ge=MIN_AUDIO_BED_DUCK_RELEASE_MS, le=MAX_AUDIO_BED_DUCK_RELEASE_MS
-    )
+    fade_in_seconds: float = Field(ge=MIN_AUDIO_BED_FADE_SECONDS, le=MAX_AUDIO_BED_FADE_SECONDS)
+    fade_out_seconds: float = Field(ge=MIN_AUDIO_BED_FADE_SECONDS, le=MAX_AUDIO_BED_FADE_SECONDS)
+    target_lufs: float = Field(ge=MIN_AUDIO_BED_TARGET_LUFS, le=MAX_AUDIO_BED_TARGET_LUFS)
+    duck_threshold: float = Field(ge=MIN_AUDIO_BED_DUCK_THRESHOLD, le=MAX_AUDIO_BED_DUCK_THRESHOLD)
+    duck_ratio: float = Field(ge=MIN_AUDIO_BED_DUCK_RATIO, le=MAX_AUDIO_BED_DUCK_RATIO)
+    duck_attack_ms: float = Field(ge=MIN_AUDIO_BED_DUCK_ATTACK_MS, le=MAX_AUDIO_BED_DUCK_ATTACK_MS)
+    duck_release_ms: float = Field(ge=MIN_AUDIO_BED_DUCK_RELEASE_MS, le=MAX_AUDIO_BED_DUCK_RELEASE_MS)
     duration_policy: Literal["keep_video"] = "keep_video"
 
 

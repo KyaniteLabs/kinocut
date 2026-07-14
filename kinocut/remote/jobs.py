@@ -221,9 +221,7 @@ class RemoteJobReceipt(_FrozenModel):
 
     @field_validator("downloads")
     @classmethod
-    def validate_downloads(
-        cls, downloads: tuple[DownloadedArtifact, ...]
-    ) -> tuple[DownloadedArtifact, ...]:
+    def validate_downloads(cls, downloads: tuple[DownloadedArtifact, ...]) -> tuple[DownloadedArtifact, ...]:
         paths = tuple(item.path for item in downloads)
         if len(paths) != len(set(paths)):
             raise ValueError("download paths must be unique")
@@ -268,9 +266,7 @@ class RemoteJobReceipt(_FrozenModel):
             "deletion": deletion,
             "provider_metadata": redact_credentials(dict(provider_metadata or {})),
         }
-        draft = cls.model_construct(
-            **values, schema_version=1, receipt_kind="remote_job_receipt"
-        )
+        draft = cls.model_construct(**values, schema_version=1, receipt_kind="remote_job_receipt")
         return cls(**values, receipt_sha256=_model_digest(draft, exclude={"receipt_sha256"}))
 
 
@@ -319,9 +315,7 @@ class LocalArtifactVerification(_FrozenModel):
             "checks": checks,
             "verified_at": verified_at,
         }
-        draft = cls.model_construct(
-            **values, schema_version=1, receipt_kind="local_artifact_verification"
-        )
+        draft = cls.model_construct(**values, schema_version=1, receipt_kind="local_artifact_verification")
         return cls(
             **values,
             verification_sha256=_model_digest(draft, exclude={"verification_sha256"}),

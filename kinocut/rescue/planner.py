@@ -117,13 +117,13 @@ def _build_package_intents(analysis: AnalysisResult, capabilities: dict[str, Any
 
 
 def _partition_repairs(repairs: list[Repair]) -> dict[Disposition, list[Repair]]:
-    return {disposition: [repair for repair in repairs if repair.disposition is disposition] for disposition in Disposition}
+    return {
+        disposition: [repair for repair in repairs if repair.disposition is disposition] for disposition in Disposition
+    }
 
 
 def _validate_policy_classification(plan: RescuePlan) -> None:
-    expected = _partition_repairs(
-        [evaluate_finding(finding, plan.capabilities) for finding in plan.findings]
-    )
+    expected = _partition_repairs([evaluate_finding(finding, plan.capabilities) for finding in plan.findings])
     actual = {
         Disposition.SAFE_REPAIR: plan.safe_repairs,
         Disposition.RECOMMENDATION: plan.recommendations,

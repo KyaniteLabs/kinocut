@@ -50,9 +50,11 @@ def _make_bed(path, duration: float, *, freq: int = 110) -> str:
 def _loudness(path: str) -> dict[str, str]:
     """Probe EBU R128 loudness values via ffmpeg's loudnorm filter metadata."""
     result = subprocess.run(
-        ["ffmpeg", "-hide_banner", "-i", path, "-af", "loudnorm=print_format=json",
-         "-f", "null", "-"],
-        check=True, capture_output=True, text=True, timeout=60,
+        ["ffmpeg", "-hide_banner", "-i", path, "-af", "loudnorm=print_format=json", "-f", "null", "-"],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=60,
     )
     stderr = result.stderr
     start = stderr.find("{")
@@ -246,9 +248,8 @@ def test_receipt_content_hashes_match_file_bytes(tmp_path, media):
     assert receipt["inputs"][1]["content_sha256"] == _file_sha256(media["bed_5s"])
     assert receipt["output_content_sha256"] == _file_sha256(str(out))
 
-def test_renderer_consumes_verified_snapshots_not_mutable_sources(
-    tmp_path, media, monkeypatch
-):
+
+def test_renderer_consumes_verified_snapshots_not_mutable_sources(tmp_path, media, monkeypatch):
     import kinocut.engine_audio_bed as engine
 
     original_run = engine._run_ffmpeg
@@ -268,8 +269,6 @@ def test_renderer_consumes_verified_snapshots_not_mutable_sources(
     assert media["bed_5s"] not in consumed_inputs
 
 
-
-
 def test_receipt_hash_is_deterministic(tmp_path, media, tmp_path_factory):
     """Same inputs and parameters → same receipt_sha256."""
     d1 = tmp_path_factory.mktemp("det1")
@@ -285,12 +284,8 @@ def test_receipt_hash_binds_music_volume(tmp_path_factory, media):
     """Different render-affecting volume values must produce different intents."""
     d1 = tmp_path_factory.mktemp("volume1")
     d2 = tmp_path_factory.mktemp("volume2")
-    r1 = audio_bed(
-        media["video_5s"], media["bed_5s"], str(d1 / "a.mp4"), music_volume=0.5
-    )
-    r2 = audio_bed(
-        media["video_5s"], media["bed_5s"], str(d2 / "a.mp4"), music_volume=1.0
-    )
+    r1 = audio_bed(media["video_5s"], media["bed_5s"], str(d1 / "a.mp4"), music_volume=0.5)
+    r2 = audio_bed(media["video_5s"], media["bed_5s"], str(d2 / "a.mp4"), music_volume=1.0)
     assert r1["receipt"]["parameters"]["music_volume"] == 0.5
     assert r2["receipt"]["parameters"]["music_volume"] == 1.0
     assert r1["receipt"]["receipt_sha256"] != r2["receipt"]["receipt_sha256"]
@@ -366,22 +361,25 @@ def test_same_inputs_produce_same_duration_and_receipt(tmp_path, media, tmp_path
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("kwargs,error_code", [
-    ({"target_lufs": 5.0}, "invalid_target_lufs"),
-    ({"target_lufs": -100.0}, "invalid_target_lufs"),
-    ({"duck_threshold": 0.0}, "invalid_duck_threshold"),
-    ({"duck_threshold": 2.0}, "invalid_duck_threshold"),
-    ({"duck_ratio": 0.5}, "invalid_duck_ratio"),
-    ({"duck_ratio": 30.0}, "invalid_duck_ratio"),
-    ({"fade_out": -1.0}, "invalid_fade_out"),
-    ({"fade_out": 100.0}, "invalid_fade_out"),
-    ({"music_volume": 3.0}, "invalid_music_volume"),
-    ({"music_volume": -0.5}, "invalid_music_volume"),
-    ({"duration_tolerance": float("nan")}, "invalid_duration_tolerance"),
-    ({"duration_tolerance": -0.1}, "invalid_duration_tolerance"),
-    ({"loop": "false"}, "invalid_loop"),
-    ({"loop": 1}, "invalid_loop"),
-])
+@pytest.mark.parametrize(
+    "kwargs,error_code",
+    [
+        ({"target_lufs": 5.0}, "invalid_target_lufs"),
+        ({"target_lufs": -100.0}, "invalid_target_lufs"),
+        ({"duck_threshold": 0.0}, "invalid_duck_threshold"),
+        ({"duck_threshold": 2.0}, "invalid_duck_threshold"),
+        ({"duck_ratio": 0.5}, "invalid_duck_ratio"),
+        ({"duck_ratio": 30.0}, "invalid_duck_ratio"),
+        ({"fade_out": -1.0}, "invalid_fade_out"),
+        ({"fade_out": 100.0}, "invalid_fade_out"),
+        ({"music_volume": 3.0}, "invalid_music_volume"),
+        ({"music_volume": -0.5}, "invalid_music_volume"),
+        ({"duration_tolerance": float("nan")}, "invalid_duration_tolerance"),
+        ({"duration_tolerance": -0.1}, "invalid_duration_tolerance"),
+        ({"loop": "false"}, "invalid_loop"),
+        ({"loop": 1}, "invalid_loop"),
+    ],
+)
 def test_hostile_parameters_rejected(tmp_path, media, kwargs, error_code):
     out = tmp_path / "x.mp4"
     with pytest.raises(MCPVideoError) as excinfo:
@@ -475,7 +473,8 @@ def test_loudnorm_unavailable_fails_closed(tmp_path, media, monkeypatch):
 
     real_check = engine._check_filter_available
     monkeypatch.setattr(
-        engine, "_check_filter_available",
+        engine,
+        "_check_filter_available",
         lambda name: False if name == "loudnorm" else real_check(name),
     )
     out = tmp_path / "x.mp4"
@@ -535,12 +534,14 @@ def test_verify_output_duration_unit_raises_on_mismatch(tmp_path, media):
 
 def test_engine_module_under_800_lines():
     from kinocut import engine_audio_bed
+
     path = Path(engine_audio_bed.__file__)
     assert len(path.read_text().splitlines()) <= 800
 
 
 def test_contract_module_under_800_lines():
     from kinocut.contracts import audio_bed as contract
+
     path = Path(contract.__file__)
     assert len(path.read_text().splitlines()) <= 800
 
@@ -575,13 +576,8 @@ def test_audio_bed_configuration_is_centralized():
         for target in node.targets
         if isinstance(target, ast.Name)
     }
-    assert assignments.isdisjoint(
-        {"_TRUE_PEAK_DBTP", "_HASH_CHUNK", "_SAFE_DISPLAY_RE"}
-    )
-    assert (
-        inspect.signature(audio_bed).parameters["music_volume"].default
-        == DEFAULT_AUDIO_BED_MUSIC_VOLUME
-    )
+    assert assignments.isdisjoint({"_TRUE_PEAK_DBTP", "_HASH_CHUNK", "_SAFE_DISPLAY_RE"})
+    assert inspect.signature(audio_bed).parameters["music_volume"].default == DEFAULT_AUDIO_BED_MUSIC_VOLUME
     assert engine_audio_bed.DEFAULT_HASH_CHUNK_BYTES == DEFAULT_HASH_CHUNK_BYTES
     assert not hasattr(defaults, "DEFAULT_AUDIO_BED_HASH_CHUNK_BYTES")
 
@@ -595,9 +591,7 @@ def test_audio_bed_contract_reuses_canonical_limits_and_patterns():
     assert "re.compile" not in source
     tree = ast.parse(source)
     parameters = next(
-        node
-        for node in tree.body
-        if isinstance(node, ast.ClassDef) and node.name == "AudioBedParameters"
+        node for node in tree.body if isinstance(node, ast.ClassDef) and node.name == "AudioBedParameters"
     )
     for call in (node for node in ast.walk(parameters) if isinstance(node, ast.Call)):
         for keyword in call.keywords:

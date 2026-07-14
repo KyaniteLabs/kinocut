@@ -17,9 +17,7 @@ class InstalledArtifact:
     location: str
 
 
-def install_bytes(
-    project: store.Project, content: bytes, *, name: str
-) -> InstalledArtifact:
+def install_bytes(project: store.Project, content: bytes, *, name: str) -> InstalledArtifact:
     """Atomically install trusted encoder bytes at their canonical hash path."""
 
     artifact_id = "sha256:" + hashlib.sha256(content).hexdigest()
@@ -35,9 +33,7 @@ def install_bytes(
                         code="artifact_identity_mismatch",
                     )
             else:
-                store._write_atomically(
-                    destination, lambda writer: writer.write(content), binary=True
-                )
+                store._write_atomically(destination, lambda writer: writer.write(content), binary=True)
     except MCPVideoError as exc:
         if exc.code == "artifact_identity_mismatch":
             raise

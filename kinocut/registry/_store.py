@@ -78,9 +78,7 @@ def _validate_clip_refs(project: Project, record: ClipRecord) -> None:
     """
 
     _check_same_project(record.project_id, project)
-    _find_record_by_id(
-        read_records(project, "clip_verdict"), record.verdict_id, ClipVerdict, "clip verdict"
-    )
+    _find_record_by_id(read_records(project, "clip_verdict"), record.verdict_id, ClipVerdict, "clip verdict")
     _find_record_by_id(
         read_records(project, "review_decision"),
         record.review_decision_id,
@@ -112,9 +110,7 @@ def _validate_lineage_refs(project: Project, record: LineageLink) -> None:
     known = _known_asset_ids(project)
     for asset_id in (record.derivative_asset_id, *record.source_asset_ids):
         if asset_id not in known:
-            raise contract_error(
-                "lineage link references an unknown asset", INVALID_RECORD
-            )
+            raise contract_error("lineage link references an unknown asset", INVALID_RECORD)
 
 
 def _check_same_project(record_project_id: str, project: Project) -> None:
@@ -124,17 +120,13 @@ def _check_same_project(record_project_id: str, project: Project) -> None:
         raise contract_error("record belongs to another project store", INVALID_RECORD)
 
 
-def _find_record_by_id(
-    records, target_id: str, model_cls, label: str
-):
+def _find_record_by_id(records, target_id: str, model_cls, label: str):
     """Return the one record whose canonical id matches ``target_id``."""
 
     for record in records:
         if canonical_record_id(record) == target_id:
             if type(record) is not model_cls:
-                raise contract_error(
-                    f"referenced {label} is the wrong record type", INVALID_RECORD
-                )
+                raise contract_error(f"referenced {label} is the wrong record type", INVALID_RECORD)
             return record
     raise contract_error(f"referenced {label} does not exist", INVALID_RECORD)
 
@@ -154,7 +146,5 @@ def _known_asset_ids(project: Project) -> frozenset[str]:
     """Return the set of all known asset ids in the project store."""
 
     return frozenset(
-        record.asset_id
-        for record in read_records(project, "asset_record")
-        if isinstance(record, AssetRecord)
+        record.asset_id for record in read_records(project, "asset_record") if isinstance(record, AssetRecord)
     )

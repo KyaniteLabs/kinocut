@@ -29,6 +29,4 @@ def bind_approval(diff: PreviewDiff) -> ApprovalBinding:
         preview_diff_sha256=diff.diff_sha256,
         approval_sha256="sha256:" + "0" * 64,
     )
-    return draft.model_copy(
-        update={"approval_sha256": model_digest(draft, exclude={"approval_sha256"})}
-    )
+    return draft.model_copy(update={"approval_sha256": model_digest(draft, exclude={"approval_sha256"})})

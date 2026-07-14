@@ -35,9 +35,7 @@ def video_workflow_validate(spec_path: str) -> dict[str, Any]:
 
 @mcp.tool()
 @_safe_tool
-def video_workflow_plan(
-    spec_path: str, save_plan: str | None = None, variant: str | None = None
-) -> dict[str, Any]:
+def video_workflow_plan(spec_path: str, save_plan: str | None = None, variant: str | None = None) -> dict[str, Any]:
     """Produce a no-render plan for an agent workflow job-spec.
 
     Validates the spec first (fail-closed) and then builds a dry-run plan

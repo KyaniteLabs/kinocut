@@ -105,9 +105,7 @@ class GraphicsResult(ValueObject):
     layer_artifact_ids: tuple[Sha256, ...]
 
 
-def _mutation_intent(
-    recipe_hash: str, authorization_decision_ids: tuple[str, ...] = ()
-) -> MutationIntent:
+def _mutation_intent(recipe_hash: str, authorization_decision_ids: tuple[str, ...] = ()) -> MutationIntent:
     """Build the engine-owned EDIT_GRAPHIC dependency footprint for the recipe."""
 
     return MutationIntent(
@@ -163,9 +161,7 @@ def _verified_file_copy(src: str | Path, dst: Path, expected_hash: str) -> Path:
         raise _graphics_error("source changed during verified copy", "graphics_source_changed")
     actual = "sha256:" + hasher.hexdigest()
     if actual != expected_hash:
-        raise _graphics_error(
-            "verified copy does not match its expected hash", "graphics_source_changed"
-        )
+        raise _graphics_error("verified copy does not match its expected hash", "graphics_source_changed")
     return dst
 
 
@@ -192,15 +188,20 @@ def _pre_render_text_layer(
         f"fontsize={safe_size}:fontcolor={safe_color}:"
         f"fontfile={safe_font}:x=0:y=0"
     )
-    canvas_filter = (
-        f"color=c=black@0.0:size={int(canvas['width'])}x{int(canvas['height'])}:"
-        f"duration=0.04,format=rgba"
-    )
+    canvas_filter = f"color=c=black@0.0:size={int(canvas['width'])}x{int(canvas['height'])}:duration=0.04,format=rgba"
     _run_ffmpeg(
         [
-            "-f", "lavfi", "-i", canvas_filter,
-            "-frames:v", "1", "-update", "1",
-            "-vf", vf, str(output),
+            "-f",
+            "lavfi",
+            "-i",
+            canvas_filter,
+            "-frames:v",
+            "1",
+            "-update",
+            "1",
+            "-vf",
+            vf,
+            str(output),
         ]
     )
 
@@ -211,9 +212,7 @@ def _build_composite_spec(
     layer_specs: list[dict[str, Any]],
     output_path: str,
 ) -> dict[str, Any]:
-    layers = [
-        {"id": "background", "type": "video", "src": background_src, "position": {"x": 0, "y": 0}}
-    ]
+    layers = [{"id": "background", "type": "video", "src": background_src, "position": {"x": 0, "y": 0}}]
     layers.extend(layer_specs)
     return {"canvas": canvas, "layers": layers, "output": {"path": output_path, "format": "mp4"}}
 
@@ -240,13 +239,9 @@ def _active_source(project: Project, asset_id: str) -> tuple[AssetRecord, Path]:
 
     records = [r for r in read_records(project, "asset_record") if type(r) is AssetRecord]
     superseded = {r.supersedes for r in records if r.supersedes is not None}
-    matches = [
-        r for r in records if r.asset_id == asset_id and r.record_id not in superseded
-    ]
+    matches = [r for r in records if r.asset_id == asset_id and r.record_id not in superseded]
     if len(matches) != 1:
-        raise _graphics_error(
-            "background asset is missing or ambiguous", "graphics_integrity_failed"
-        )
+        raise _graphics_error("background asset is missing or ambiguous", "graphics_integrity_failed")
     source = matches[0]
     if source.media_kind is not MediaKind.VIDEO:
         raise _graphics_error("background asset must be a video", "graphics_integrity_failed")
@@ -254,9 +249,7 @@ def _active_source(project: Project, asset_id: str) -> tuple[AssetRecord, Path]:
     if not path.is_file():
         raise _graphics_error("background asset file is missing", "graphics_integrity_failed")
     if _sha256(path) != source.asset_id:
-        raise _graphics_error(
-            "background asset integrity check failed", "graphics_integrity_failed"
-        )
+        raise _graphics_error("background asset integrity check failed", "graphics_integrity_failed")
     return source, path
 
 
@@ -272,9 +265,7 @@ def _install_receipt(project: Project, payload: dict[str, Any]) -> tuple[str, st
         exists = destination.exists()
     if exists:
         if _sha256(destination) != artifact_id:
-            raise _graphics_error(
-                "receipt artifact integrity check failed", "graphics_integrity_failed"
-            )
+            raise _graphics_error("receipt artifact integrity check failed", "graphics_integrity_failed")
         return artifact_id, str(rel)
     with store._mapped_os_errors():
         fd, name = tempfile.mkstemp(dir=destination.parent, prefix=".graphics.", suffix=".tmp")
@@ -298,15 +289,10 @@ def _install_receipt(project: Project, payload: dict[str, Any]) -> tuple[str, st
     return artifact_id, str(rel)
 
 
-def _enrich_asset(
-    project: Project, asset: AssetRecord, source: AssetRecord, artifact_id: str
-) -> AssetRecord:
+def _enrich_asset(project: Project, asset: AssetRecord, source: AssetRecord, artifact_id: str) -> AssetRecord:
     """Bind the published asset to its source and receipt artifact (idempotent)."""
 
-    if (
-        asset.parent_asset_id == source.asset_id
-        and artifact_id in asset.derived_artifact_ids
-    ):
+    if asset.parent_asset_id == source.asset_id and artifact_id in asset.derived_artifact_ids:
         return asset
     enriched = asset.model_copy(
         update={
@@ -322,11 +308,7 @@ def _enrich_asset(
     except MCPVideoError:
         records = [r for r in read_records(project, "asset_record") if type(r) is AssetRecord]
         superseded = {r.supersedes for r in records if r.supersedes is not None}
-        matches = [
-            r
-            for r in records
-            if r.asset_id == asset.asset_id and r.record_id not in superseded
-        ]
+        matches = [r for r in records if r.asset_id == asset.asset_id and r.record_id not in superseded]
         if (
             len(matches) == 1
             and matches[0].parent_asset_id == source.asset_id
@@ -356,9 +338,7 @@ def _prior_publication(project: Project, recipe_hash: str) -> GraphicsResult | N
     rel = layout.artifact_relative_path(artifact_id, _RECEIPT_NAME)
     artifact = store.safe_target(project, rel)
     if not artifact.is_file() or _sha256(artifact) != artifact_id:
-        raise _graphics_error(
-            "receipt artifact integrity check failed", "graphics_integrity_failed"
-        )
+        raise _graphics_error("receipt artifact integrity check failed", "graphics_integrity_failed")
     try:
         payload = json.loads(artifact.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
@@ -398,14 +378,10 @@ def _render_in_workspace(
     """Render the composition in a private workspace and return output + hashes."""
 
     work_root = store.safe_target(project, layout.artifacts_dir())
-    with store._mapped_os_errors(), tempfile.TemporaryDirectory(
-        dir=work_root, prefix=".graphics-render."
-    ) as work:
+    with store._mapped_os_errors(), tempfile.TemporaryDirectory(dir=work_root, prefix=".graphics-render.") as work:
         workspace = Path(work)
         font_copy = _verified_file_copy(font_validated, workspace / "font.ttf", font_hash)
-        background_copy = _verified_file_copy(
-            source_path, workspace / "background.mp4", source.asset_id
-        )
+        background_copy = _verified_file_copy(source_path, workspace / "background.mp4", source.asset_id)
         logo_copies: dict[int, tuple[Path, str]] = {}
         for logo_index, logo_validated in logo_path_pairs:
             logo_dst = workspace / f"logo-{logo_index}.png"
@@ -436,9 +412,7 @@ def _render_in_workspace(
         spec_path = workspace / "spec.json"
         spec_path.write_text(json.dumps(spec), encoding="utf-8")
         _render_composition(spec_path, output_path)
-        _verify_workspace_copies(
-            background_copy, source.asset_id, font_copy, font_hash, logo_copies, _sha256
-        )
+        _verify_workspace_copies(background_copy, source.asset_id, font_copy, font_hash, logo_copies, _sha256)
         output_hash = _sha256(output_path)
         published = work_root / f".graphics-published-{output_hash}.mp4"
         with store._mapped_os_errors():
@@ -476,9 +450,7 @@ def _install_and_ingest(
     asset = _enrich_asset(project, asset, source, artifact_id)
     stored_output = store.safe_target(project, asset.original_location)
     if not stored_output.is_file() or _sha256(stored_output) != asset.asset_id:
-        raise _graphics_error(
-            "published composition integrity check failed", "graphics_integrity_failed"
-        )
+        raise _graphics_error("published composition integrity check failed", "graphics_integrity_failed")
     return asset
 
 
@@ -510,9 +482,7 @@ def compose_graphics_recipe(
     parameter_hash, recipe_hash = _compute_intent(
         source.asset_id, font_hash, validated_layers, canvas_dict, logo_hashes
     )
-    assert_no_protected_collision(
-        project, _mutation_intent(recipe_hash, authorization_decision_ids)
-    )
+    assert_no_protected_collision(project, _mutation_intent(recipe_hash, authorization_decision_ids))
     prior = _prior_publication(project, recipe_hash)
     if prior is not None:
         return prior

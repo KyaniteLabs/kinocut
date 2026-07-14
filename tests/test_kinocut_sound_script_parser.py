@@ -127,9 +127,7 @@ def test_parser_rejects_actor_line_scene_and_shape_errors_with_bounded_safe_erro
     mutate(document)
 
     with pytest.raises(api.ScriptParseError) as exc_info:
-        api.parse_episode_script(
-            document, project_id="project_alpha", created_by="agent:worker_1", actors=actors
-        )
+        api.parse_episode_script(document, project_id="project_alpha", created_by="agent:worker_1", actors=actors)
 
     payload = exc_info.value.to_dict()
     assert payload["code"] == code
@@ -143,8 +141,6 @@ def test_parser_rejects_duplicate_actor_routes_before_reading_lines():
     actors = (_actor(api, "actor_a", "voice_a"), _actor(api, "actor_a", "voice_b"))
 
     with pytest.raises(api.ScriptParseError) as exc_info:
-        api.parse_episode_script(
-            _document(), project_id="project_alpha", created_by="agent:worker_1", actors=actors
-        )
+        api.parse_episode_script(_document(), project_id="project_alpha", created_by="agent:worker_1", actors=actors)
 
     assert exc_info.value.code == "invalid_actor_roster"

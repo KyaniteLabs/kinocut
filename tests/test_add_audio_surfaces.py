@@ -171,6 +171,7 @@ def test_cli_add_audio_dispatch_forwards_duration_policy_to_engine(monkeypatch):
             captured["engine_fn"] = engine_fn
             captured.update(k)
             return "ok"
+
         return _engine
 
     monkeypatch.setattr(runner, "_resolve_engine", _fake_resolve)
@@ -179,8 +180,16 @@ def test_cli_add_audio_dispatch_forwards_duration_policy_to_engine(monkeypatch):
     monkeypatch.setattr(handlers_core, "CommandRunner", _FakeCommandRunner)
 
     args = SimpleNamespace(
-        command="add-audio", video="v.mp4", audio="a.wav", volume=1.0, fade_in=0.0,
-        fade_out=0.0, mix=False, start_time=None, output="o.mp4", duration_policy="pad_audio",
+        command="add-audio",
+        video="v.mp4",
+        audio="a.wav",
+        volume=1.0,
+        fade_in=0.0,
+        fade_out=0.0,
+        mix=False,
+        start_time=None,
+        output="o.mp4",
+        duration_policy="pad_audio",
     )
     handlers_core.handle_initial_command(args, use_json=True)
     assert captured["engine_fn"] == "mcp_video.engine:add_audio"

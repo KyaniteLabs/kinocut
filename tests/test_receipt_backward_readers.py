@@ -39,34 +39,59 @@ def _workflow_receipt() -> dict:
     # Producer-shaped: mirrors kinocut/workflow/executor.py:_render_one output,
     # with sources as a list of resolved entries carrying source hashes.
     return {
-        "schema_version": 1, "receipt_kind": "workflow", "tool": "video_workflow_render",
-        "versions": {"ffmpeg": "7.0", "kinocut": "0.1.0"}, "spec_hash": _SHA,
+        "schema_version": 1,
+        "receipt_kind": "workflow",
+        "tool": "video_workflow_render",
+        "versions": {"ffmpeg": "7.0", "kinocut": "0.1.0"},
+        "spec_hash": _SHA,
         "workflow": {"name": "captioned", "variant": None},
-        "sources": [{"id": "hero", "resolved": "input/hero.mp4", "source_hash": _SHA,
-                     "probe": {"duration": 1.0, "streams": ["video"]}}],
+        "sources": [
+            {
+                "id": "hero",
+                "resolved": "input/hero.mp4",
+                "source_hash": _SHA,
+                "probe": {"duration": 1.0, "streams": ["video"]},
+            }
+        ],
         "steps": [
             {"id": "probe", "op": "probe", "status": "ok"},
-            {"id": "trim", "op": "trim", "status": "ok", "output": "work/trim.mp4",
-             "output_hash": _SHA},
+            {"id": "trim", "op": "trim", "status": "ok", "output": "work/trim.mp4", "output_hash": _SHA},
         ],
         "outputs": [{"id": "master", "path": "output/final.mp4", "hash": _SHA}],
         "work_dir": "work/run-1",
         "cleanup_manifest": {"intermediates": [], "cleaned": [], "policy": "keep"},
         "resume_cursor": None,
         "feature_flags": {"variants": False, "resume_used": False, "resumed_from": None},
-        "warnings": [], "status": "completed", "render_determinism_scope": "single_host",
+        "warnings": [],
+        "status": "completed",
+        "render_determinism_scope": "single_host",
     }
 
 
 def _workflow_batch_receipt() -> dict:
     return {
-        "schema_version": 1, "receipt_kind": "workflow_batch", "tool": "video_workflow_render",
-        "versions": {"ffmpeg": "7.0"}, "spec_hash": _SHA,
-        "workflow": {"name": "captioned"}, "status": "completed",
-        "sources": [{"id": "hero", "resolved": "input/hero.mp4", "source_hash": _SHA,
-                     "probe": {"duration": 1.0, "streams": ["video"]}}],
-        "variants": [{"variant": "vertical", "status": "completed",
-                      "outputs": [{"id": "master", "path": "output/vertical.mp4", "hash": _SHA}]}],
+        "schema_version": 1,
+        "receipt_kind": "workflow_batch",
+        "tool": "video_workflow_render",
+        "versions": {"ffmpeg": "7.0"},
+        "spec_hash": _SHA,
+        "workflow": {"name": "captioned"},
+        "status": "completed",
+        "sources": [
+            {
+                "id": "hero",
+                "resolved": "input/hero.mp4",
+                "source_hash": _SHA,
+                "probe": {"duration": 1.0, "streams": ["video"]},
+            }
+        ],
+        "variants": [
+            {
+                "variant": "vertical",
+                "status": "completed",
+                "outputs": [{"id": "master", "path": "output/vertical.mp4", "hash": _SHA}],
+            }
+        ],
         "outputs": [{"id": "master", "path": "output/vertical.mp4", "hash": _SHA}],
         "warnings": [],
     }
@@ -75,8 +100,12 @@ def _workflow_batch_receipt() -> dict:
 def _rescue_receipt() -> dict:
     # Built from the real producer model so it validates against RescueReceipt.
     return RescueReceipt(
-        status="quarantined", source=_source_identity(), plan_sha256=_SHA1, policy_sha256=_SHA1,
-        package=PackageManifest(promoted=False), cleanup=CleanupState(work_dir="work"),
+        status="quarantined",
+        source=_source_identity(),
+        plan_sha256=_SHA1,
+        policy_sha256=_SHA1,
+        package=PackageManifest(promoted=False),
+        cleanup=CleanupState(work_dir="work"),
         created_at=datetime(2026, 1, 1, tzinfo=UTC),
     ).model_dump(mode="json")
 
@@ -84,9 +113,12 @@ def _rescue_receipt() -> dict:
 def _rescue_plan_receipt() -> dict:
     # Built from the real producer model so it validates against RescuePlan.
     return RescuePlan(
-        workspace_root=".", output_root="rescue-output", source=_source_identity(),
+        workspace_root=".",
+        output_root="rescue-output",
+        source=_source_identity(),
         estimate=RescueEstimate(seconds=0.0, hardware={}, confidence="high"),
-        capabilities={"local_only": True}, created_at=datetime(2026, 1, 1, tzinfo=UTC),
+        capabilities={"local_only": True},
+        created_at=datetime(2026, 1, 1, tzinfo=UTC),
         observed_planning_seconds=0.0,
     ).model_dump(mode="json")
 
@@ -95,10 +127,12 @@ def _layer_plan_receipt() -> dict:
     # Built by the real producer (_build_layer_plan) so it is exactly the v2
     # output and cannot drift. A solid layer needs no source file.
     canvas = _Canvas(width=1920, height=1080, fps=30.0, duration=5.0)
-    layer = _ResolvedLayer(id="bg", type="solid", opacity=1.0, position={"x": 0.0, "y": 0.0},
-                           color="#000000", input_index=0)
-    return _build_layer_plan(b'{"canvas":{"width":1920}}', canvas, [layer],
-                             "color=c=black[bg]", "output/final.mp4", Path("."))
+    layer = _ResolvedLayer(
+        id="bg", type="solid", opacity=1.0, position={"x": 0.0, "y": 0.0}, color="#000000", input_index=0
+    )
+    return _build_layer_plan(
+        b'{"canvas":{"width":1920}}', canvas, [layer], "color=c=black[bg]", "output/final.mp4", Path(".")
+    )
 
 
 _RECEIPTS = {
@@ -110,10 +144,17 @@ _RECEIPTS = {
 }
 
 _SECTION = {
-    "contract_version": 1, "project_id": "proj", "acceptance_spec_id": None,
-    "ordered_inputs": [], "transformations": [], "duration_policy": "preserve",
-    "preservation_proofs": [], "finding_ids": [], "review_artifact_ids": [],
-    "approval_state_id": None, "warnings": [],
+    "contract_version": 1,
+    "project_id": "proj",
+    "acceptance_spec_id": None,
+    "ordered_inputs": [],
+    "transformations": [],
+    "duration_policy": "preserve",
+    "preservation_proofs": [],
+    "finding_ids": [],
+    "review_artifact_ids": [],
+    "approval_state_id": None,
+    "warnings": [],
 }
 
 
@@ -140,13 +181,35 @@ def test_rescue_fixtures_validate_against_producer_models():
 
 # Exact producer v2 top-level keys — a drift guard against a hand-shaped fixture.
 _LAYER_PLAN_V2_KEYS = {
-    "schema_version", "receipt_kind", "tool", "spec_hash", "canvas", "layers",
-    "filtergraph_summary", "filtergraph_hash", "output_path", "output_hash",
-    "audio_policy", "features", "render_determinism_scope",
+    "schema_version",
+    "receipt_kind",
+    "tool",
+    "spec_hash",
+    "canvas",
+    "layers",
+    "filtergraph_summary",
+    "filtergraph_hash",
+    "output_path",
+    "output_hash",
+    "audio_policy",
+    "features",
+    "render_determinism_scope",
 }
 _LAYER_V2_LAYER_KEYS = {
-    "id", "type", "resolved_src", "source_hash", "opacity", "position", "transform",
-    "timing", "mask", "mask_hash", "blend", "color", "input_index", "mask_input_index",
+    "id",
+    "type",
+    "resolved_src",
+    "source_hash",
+    "opacity",
+    "position",
+    "transform",
+    "timing",
+    "mask",
+    "mask_hash",
+    "blend",
+    "color",
+    "input_index",
+    "mask_input_index",
 }
 
 

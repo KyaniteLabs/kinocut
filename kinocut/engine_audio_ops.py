@@ -72,8 +72,11 @@ def _build_add_audio_args(
         # Output tail: shortest genuinely cuts to the shortest input; every other
         # policy caps the mix at the video duration so a longer added track can
         # never stretch the output past the video.
-        mix_tail = ["-shortest"] if duration_policy == "shortest" or video_duration is None \
+        mix_tail = (
+            ["-shortest"]
+            if duration_policy == "shortest" or video_duration is None
             else ["-t", _escape_ffmpeg_filter_value(f"{float(video_duration):.6f}")]
+        )
         # The added track is one chain: [1:a] -> optional adelay -> filters -> [a1].
         # Referencing [1:a] a second time mid-chain is invalid filtergraph syntax
         # even where some FFmpeg builds tolerate it.
@@ -84,11 +87,24 @@ def _build_add_audio_args(
             second_chain = f"[1:a]{af}[a1]"
         filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}[aout]"
         return [
-            "-i", video_path, "-i", audio_path,
-            "-filter_complex", filter_complex,
-            "-map", "0:v", "-map", "[aout]",
-            "-c:v", "copy", "-c:a", "aac", "-b:a", DEFAULT_AUDIO_BITRATE,
-            *mix_tail, *_movflags_args(output),
+            "-i",
+            video_path,
+            "-i",
+            audio_path,
+            "-filter_complex",
+            filter_complex,
+            "-map",
+            "0:v",
+            "-map",
+            "[aout]",
+            "-c:v",
+            "copy",
+            "-c:a",
+            "aac",
+            "-b:a",
+            DEFAULT_AUDIO_BITRATE,
+            *mix_tail,
+            *_movflags_args(output),
             output,
         ]
 
@@ -206,8 +222,15 @@ def add_audio(
     with _timed_operation() as timing:
         filters = _build_audio_filters(volume, fade_in, fade_out, video_info.duration)
         cmd = _build_add_audio_args(
-            video_path, audio_path, filters, mix, start_time, source_has_audio, output,
-            duration_policy=duration_policy, video_duration=video_info.duration,
+            video_path,
+            audio_path,
+            filters,
+            mix,
+            start_time,
+            source_has_audio,
+            output,
+            duration_policy=duration_policy,
+            video_duration=video_info.duration,
         )
         _run_ffmpeg(cmd)
 

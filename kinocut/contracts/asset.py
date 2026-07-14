@@ -45,9 +45,7 @@ class GenerationLineage(ValueObject):
     # Revalidate instances so a lineage that bypassed validation (e.g. via
     # ``model_construct``) and is passed straight into an ``AssetRecord`` payload
     # is fully re-checked at the store boundary rather than trusted as-is.
-    model_config = ConfigDict(
-        extra="forbid", frozen=True, allow_inf_nan=False, revalidate_instances="always"
-    )
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False, revalidate_instances="always")
 
     generator_model: str
     provider_id: str

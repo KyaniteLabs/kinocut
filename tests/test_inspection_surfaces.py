@@ -35,9 +35,17 @@ def _assert_ingest_transports(client, tool, monkeypatch, capsys, project, source
     expected = client.ingest(project, source, **kwargs)
     assert tool(project, source, **kwargs) == expected
     code, cli_result = _run_cli(
-        monkeypatch, capsys, "video-ingest", project, source,
-        "--lineage-json", json.dumps(lineage), "--usage-rights-status", "pending",
-        "--usage-rights-evidence-ref", "evidence/rights.json",
+        monkeypatch,
+        capsys,
+        "video-ingest",
+        project,
+        source,
+        "--lineage-json",
+        json.dumps(lineage),
+        "--usage-rights-status",
+        "pending",
+        "--usage-rights-evidence-ref",
+        "evidence/rights.json",
     )
     assert code == 0 and cli_result == expected
     assert expected["ingest_options"] == kwargs
@@ -46,21 +54,22 @@ def _assert_ingest_transports(client, tool, monkeypatch, capsys, project, source
 def _assert_preflight_transports(client, tool, monkeypatch, capsys, project, asset_id):
     expected = client.preflight(project, asset_id)
     assert tool(project, asset_id) == expected
-    code, cli_result = _run_cli(
-        monkeypatch, capsys, "video-preflight", project, asset_id
-    )
+    code, cli_result = _run_cli(monkeypatch, capsys, "video-preflight", project, asset_id)
     assert code == 0 and cli_result == expected
 
 
 def _assert_inspect_transports(client, tool, monkeypatch, capsys, project, asset_id):
-    regions = [
-        {"name": "title", "region": {"x": 0.1, "y": 0.1, "width": 0.4, "height": 0.2}}
-    ]
+    regions = [{"name": "title", "region": {"x": 0.1, "y": 0.1, "width": 0.4, "height": 0.2}}]
     expected = client.inspect_temporal(project, asset_id, declared_regions=regions)
     assert tool(project, asset_id, declared_regions=regions) == expected
     code, cli_result = _run_cli(
-        monkeypatch, capsys, "video-inspect-temporal", project, asset_id,
-        "--regions-json", json.dumps(regions),
+        monkeypatch,
+        capsys,
+        "video-inspect-temporal",
+        project,
+        asset_id,
+        "--regions-json",
+        json.dumps(regions),
     )
     assert code == 0 and cli_result == expected
 
@@ -91,19 +100,19 @@ def test_all_transports_delegate_to_one_adapter(monkeypatch, tmp_path, capsys):
     asset_id = "sha256:" + "b" * 64
 
     client = Client()
-    _assert_ingest_transports(
-        client, video_ingest, monkeypatch, capsys, project, source
-    )
-    _assert_preflight_transports(
-        client, video_preflight, monkeypatch, capsys, project, asset_id
-    )
-    _assert_inspect_transports(
-        client, video_inspect_temporal, monkeypatch, capsys, project, asset_id
-    )
+    _assert_ingest_transports(client, video_ingest, monkeypatch, capsys, project, source)
+    _assert_preflight_transports(client, video_preflight, monkeypatch, capsys, project, asset_id)
+    _assert_inspect_transports(client, video_inspect_temporal, monkeypatch, capsys, project, asset_id)
     assert [item[0] for item in calls] == [
-        "ingest", "ingest", "ingest",
-        "preflight", "preflight", "preflight",
-        "inspect_temporal", "inspect_temporal", "inspect_temporal",
+        "ingest",
+        "ingest",
+        "ingest",
+        "preflight",
+        "preflight",
+        "preflight",
+        "inspect_temporal",
+        "inspect_temporal",
+        "inspect_temporal",
     ]
 
 
@@ -112,9 +121,7 @@ def test_missing_project_is_not_created(tmp_path):
 
     missing = tmp_path / "missing"
     with pytest.raises(MCPVideoError) as exc:
-        run_inspection_operation(
-            "preflight", str(missing), asset_id="sha256:" + "a" * 64
-        )
+        run_inspection_operation("preflight", str(missing), asset_id="sha256:" + "a" * 64)
     assert exc.value.code == "inspection_project_missing"
     assert not missing.exists()
 
@@ -128,9 +135,7 @@ def test_existing_project_refuses_symlinked_store_root(tmp_path):
     external.mkdir()
     (project / ".kinocut").symlink_to(external, target_is_directory=True)
     with pytest.raises(MCPVideoError) as exc:
-        run_inspection_operation(
-            "preflight", str(project), asset_id="sha256:" + "a" * 64
-        )
+        run_inspection_operation("preflight", str(project), asset_id="sha256:" + "a" * 64)
     assert exc.value.code == "inspection_project_missing"
 
 
@@ -152,9 +157,7 @@ def test_unknown_and_superseded_assets_fail_closed(tmp_path, sample_video):
 
     # The public boundary accepts only asset_id and resolves the active stored
     # record; callers cannot forge or select the superseded record.
-    envelope = run_inspection_operation(
-        "preflight", str(project_dir), asset_id=active.asset_id
-    )
+    envelope = run_inspection_operation("preflight", str(project_dir), asset_id=active.asset_id)
     assert envelope["asset"]["record_id"] != original.record_id
     assert envelope["asset"]["record_id"] == active.record_id
 
@@ -164,23 +167,15 @@ def test_preflight_rejects_missing_or_tampered_referenced_artifact(tmp_path, sam
     from kinocut.projectstore import layout
 
     project_dir = tmp_path / "project"
-    ingested = run_inspection_operation(
-        "ingest", str(project_dir), source_path=sample_video
-    )
-    first = run_inspection_operation(
-        "preflight", str(project_dir), asset_id=ingested["asset_id"]
-    )
+    ingested = run_inspection_operation("ingest", str(project_dir), source_path=sample_video)
+    first = run_inspection_operation("preflight", str(project_dir), asset_id=ingested["asset_id"])
     artifact_id = first["asset"]["preflight_artifact_id"]
-    artifact = project_dir / layout.artifact_relative_path(
-        artifact_id, "preflight.json"
-    )
+    artifact = project_dir / layout.artifact_relative_path(artifact_id, "preflight.json")
     original_content = artifact.read_text(encoding="utf-8")
     artifact.unlink()
 
     with pytest.raises(MCPVideoError) as missing:
-        run_inspection_operation(
-            "preflight", str(project_dir), asset_id=ingested["asset_id"]
-        )
+        run_inspection_operation("preflight", str(project_dir), asset_id=ingested["asset_id"])
     assert missing.value.code == "inspection_preflight_invalid"
     assert str(tmp_path) not in str(missing.value)
 
@@ -189,9 +184,7 @@ def test_preflight_rejects_missing_or_tampered_referenced_artifact(tmp_path, sam
     tampered_payload["technical"]["duration"] /= 2
     artifact.write_text(json.dumps(tampered_payload), encoding="utf-8")
     with pytest.raises(MCPVideoError) as tampered:
-        run_inspection_operation(
-            "preflight", str(project_dir), asset_id=ingested["asset_id"]
-        )
+        run_inspection_operation("preflight", str(project_dir), asset_id=ingested["asset_id"])
     assert tampered.value.code == "inspection_preflight_invalid"
     assert str(tmp_path) not in str(tampered.value)
 
@@ -201,9 +194,7 @@ def test_concurrent_fresh_preflight_converges_on_active_record(tmp_path, sample_
     from kinocut.client import Client
 
     project_dir = tmp_path / "project"
-    ingested = run_inspection_operation(
-        "ingest", str(project_dir), source_path=sample_video
-    )
+    ingested = run_inspection_operation("ingest", str(project_dir), source_path=sample_video)
 
     def preflight() -> dict:
         return Client().preflight(str(project_dir), ingested["asset_id"])
@@ -228,12 +219,11 @@ def _assert_package_shape(result: dict, asset_id: str) -> None:
     assert package["frame_difference_measurements"]
     assert package["findings"] == result["temporal_findings"]
     assert package["unavailable_capabilities"] == [
-        "visual.motion_intent", "visual.generative_defects",
+        "visual.motion_intent",
+        "visual.generative_defects",
     ]
     expected_capabilities = ("visual.motion_intent", "visual.generative_defects")
-    for analysis, capability_id in zip(
-        result["provider_analyses"], expected_capabilities, strict=True
-    ):
+    for analysis, capability_id in zip(result["provider_analyses"], expected_capabilities, strict=True):
         assert analysis == {
             "status": "capability_unavailable",
             "provider_id": None,
@@ -253,8 +243,14 @@ def _preview_stream_types(project_dir, package: dict) -> list[list[str]]:
         artifact = project_dir / package[key]["location"]
         probe = subprocess.run(
             [
-                "ffprobe", "-v", "error", "-show_entries", "stream=codec_type",
-                "-of", "json", str(artifact),
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "stream=codec_type",
+                "-of",
+                "json",
+                str(artifact),
             ],
             check=True,
             capture_output=True,
@@ -269,9 +265,7 @@ def test_temporal_surface_returns_full_deterministic_package(tmp_path, sample_vi
     from kinocut.aivideo.surfaces import run_inspection_operation
 
     project_dir = tmp_path / "project"
-    ingested = run_inspection_operation(
-        "ingest", str(project_dir), source_path=sample_video
-    )
+    ingested = run_inspection_operation("ingest", str(project_dir), source_path=sample_video)
     regions = [
         {
             "name": "title",
@@ -287,9 +281,7 @@ def test_temporal_surface_returns_full_deterministic_package(tmp_path, sample_vi
 
     package = result["inspection_package"]
     _assert_package_shape(result, ingested["asset_id"])
-    assert result["inspection_manifest"]["location"].startswith(
-        ".kinocut/artifacts/sha256/"
-    )
+    assert result["inspection_manifest"]["location"].startswith(".kinocut/artifacts/sha256/")
     preview_types = _preview_stream_types(project_dir, package)
     assert preview_types[0] == ["video", "audio"]
     assert preview_types[1] == ["video"]
@@ -306,18 +298,32 @@ def test_temporal_surface_returns_full_deterministic_package(tmp_path, sample_vi
     assert repeated["inspection_manifest"] == result["inspection_manifest"]
 
 
-def test_audio_longer_surface_parity_uses_playable_video_end(
-    monkeypatch, tmp_path, capsys
-):
+def test_audio_longer_surface_parity_uses_playable_video_end(monkeypatch, tmp_path, capsys):
     from kinocut.client import Client
     from kinocut.server_tools_inspection import video_inspect_temporal
 
     source = tmp_path / "long-audio.mkv"
     subprocess.run(
         [
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=red:s=32x32:r=10:d=1",
-            "-f", "lavfi", "-i", "sine=frequency=440:duration=3", "-map", "0:v:0",
-            "-map", "1:a:0", "-c:v", "ffv1", "-c:a", "pcm_s16le", str(source),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=red:s=32x32:r=10:d=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=3",
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-c:v",
+            "ffv1",
+            "-c:a",
+            "pcm_s16le",
+            str(source),
         ],
         check=True,
         capture_output=True,
@@ -350,9 +356,15 @@ def test_odd_dimension_source_produces_playable_even_previews(tmp_path):
     source = tmp_path / "odd.mkv"
     subprocess.run(
         [
-            "ffmpeg", "-y", "-f", "lavfi", "-i",
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
             "testsrc=size=321x241:rate=10:duration=1,format=bgr0",
-            "-c:v", "ffv1", str(source),
+            "-c:v",
+            "ffv1",
+            str(source),
         ],
         check=True,
         capture_output=True,
@@ -360,8 +372,16 @@ def test_odd_dimension_source_produces_playable_even_previews(tmp_path):
     )
     source_probe = subprocess.run(
         [
-            "ffprobe", "-v", "error", "-select_streams", "v:0",
-            "-show_entries", "stream=width,height", "-of", "json", str(source),
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=width,height",
+            "-of",
+            "json",
+            str(source),
         ],
         check=True,
         capture_output=True,
@@ -372,15 +392,21 @@ def test_odd_dimension_source_produces_playable_even_previews(tmp_path):
     assert (source_stream["width"], source_stream["height"]) == (321, 241)
     project = tmp_path / "project"
     asset = run_inspection_operation("ingest", str(project), source_path=str(source))
-    result = run_inspection_operation(
-        "inspect_temporal", str(project), asset_id=asset["asset_id"]
-    )
+    result = run_inspection_operation("inspect_temporal", str(project), asset_id=asset["asset_id"])
     for key in ("preview", "muted_preview"):
         preview = project / result["inspection_package"][key]["location"]
         probe = subprocess.run(
             [
-                "ffprobe", "-v", "error", "-select_streams", "v:0",
-                "-show_entries", "stream=width,height", "-of", "json", str(preview),
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-show_entries",
+                "stream=width,height",
+                "-of",
+                "json",
+                str(preview),
             ],
             check=True,
             capture_output=True,
@@ -421,21 +447,14 @@ def test_ingest_lineage_is_validated_and_preserved(tmp_path, sample_video):
     "regions",
     [
         [{"name": "title,drawtext", "region": {"x": 0, "y": 0, "width": 1, "height": 1}}],
-        [
-            {"name": f"region_{index}", "region": {"x": 0, "y": 0, "width": 1, "height": 1}}
-            for index in range(33)
-        ],
+        [{"name": f"region_{index}", "region": {"x": 0, "y": 0, "width": 1, "height": 1}} for index in range(33)],
     ],
 )
-def test_declared_regions_are_bounded_and_privacy_safe(
-    tmp_path, sample_video, regions
-):
+def test_declared_regions_are_bounded_and_privacy_safe(tmp_path, sample_video, regions):
     from kinocut.aivideo.surfaces import run_inspection_operation
 
     project = tmp_path / "private-project"
-    asset = run_inspection_operation(
-        "ingest", str(project), source_path=sample_video
-    )
+    asset = run_inspection_operation("ingest", str(project), source_path=sample_video)
     with pytest.raises(MCPVideoError) as exc:
         run_inspection_operation(
             "inspect_temporal",

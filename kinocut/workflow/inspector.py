@@ -145,9 +145,7 @@ def _inspect_workflow(
         if isinstance(src, dict)
     ]
     step_output_entries = [
-        _integrity_entry(
-            raw.get("id"), raw.get("output"), raw.get("output_hash"), base_dir, hash_cache, cleaned_paths
-        )
+        _integrity_entry(raw.get("id"), raw.get("output"), raw.get("output_hash"), base_dir, hash_cache, cleaned_paths)
         for raw in raw_steps
         if isinstance(raw, dict) and raw.get("output")
     ]
@@ -187,9 +185,7 @@ def _inspect_layer_plan(
                     f"{layer.get('id')}:mask", layer.get("mask"), layer.get("mask_hash"), base_dir, hash_cache
                 )
             )
-    output_entries = (
-        [_integrity_entry(None, output_path, output_hash, base_dir, hash_cache)] if output_path else []
-    )
+    output_entries = [_integrity_entry(None, output_path, output_hash, base_dir, hash_cache)] if output_path else []
     integrity = _integrity_report(source_entries, [], output_entries)
     outputs = [{"id": None, "path": output_path, "output_hash": output_hash}] if output_path else []
     return status, integrity, outputs
@@ -266,9 +262,7 @@ def _integrity_report(
 # --- Human review + known limitations ----------------------------------------
 
 
-def _human_review(
-    kind: str, kind_inferred: bool, status: dict[str, Any], integrity: dict[str, Any]
-) -> list[str]:
+def _human_review(kind: str, kind_inferred: bool, status: dict[str, Any], integrity: dict[str, Any]) -> list[str]:
     """Pointers an agent/human should verify before trusting this receipt."""
     notes: list[str] = []
     if kind_inferred:
@@ -284,9 +278,7 @@ def _human_review(
             "a persisted file may have been modified since the run."
         )
     if summary["missing"]:
-        notes.append(
-            f"{summary['missing']} recorded file(s) with a hash are no longer present on disk."
-        )
+        notes.append(f"{summary['missing']} recorded file(s) with a hash are no longer present on disk.")
     return notes
 
 

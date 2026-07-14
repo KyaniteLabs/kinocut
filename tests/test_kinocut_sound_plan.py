@@ -64,8 +64,11 @@ def _timeline() -> Timeline:
     return Timeline(
         cues=(
             Cue(
-                cue_id="cue_001", start_seconds=0.0, duration_seconds=2.5,
-                kind=CueKind.LINE, source_ref="lines/line_001.json",
+                cue_id="cue_001",
+                start_seconds=0.0,
+                duration_seconds=2.5,
+                kind=CueKind.LINE,
+                source_ref="lines/line_001.json",
             ),
         ),
         tail_seconds=0.5,
