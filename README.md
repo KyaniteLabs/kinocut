@@ -10,31 +10,59 @@
 
 <p align="center">
   <strong>Guardrailed video editing MCP server for AI agents.</strong><br>
-  Structured tools for FFmpeg video editing, cinematic prompt planning, media analysis, subtitles, audio, effects, Hyperframes video creation, local repurposing packages, and preflight validation that helps prevent silent bad media output.
+  Local-first FFmpeg tools, Video Receipts, quality gates, Hyperframes, and Shorts/Reels repurposing —
+  for Claude Code, Cursor, and any MCP client. Free, Apache-2.0. Formerly mcp-video.
 </p>
 
 <p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
+  <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-142%20tools-orange.svg" alt="142 MCP tools">
+  <img src="https://img.shields.io/badge/MCP-142%20tools-orange.svg" alt="142 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/CLI-121%20commands-orange.svg" alt="121 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
 
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
-  <a href="#install">Install</a> &bull;
+  <a href="#status-and-releases">Status</a> &bull;
+  <a href="#whats-in-170-latest-release">1.7.0</a> &bull;
+  <a href="#heading-toward-18">Toward 1.8</a> &bull;
+  <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
-  <a href="#what-agents-can-do">Agent Workflows</a> &bull;
-  <a href="#tool-surface">Tools</a> &bull;
+  <a href="#mcp-tools">Tools</a> &bull;
   <a href="docs/TOOLS.md">Tool Reference</a> &bull;
-  <a href="docs/RESCUE.md">Video Rescue</a> &bull;
-  <a href="docs/AI_AGENT_DISCOVERY.md">AI Discovery</a> &bull;
+  <a href="docs/RESCUE.md">Rescue</a> &bull;
+  <a href="docs/AI_VIDEO_REVIEW_AND_SALVAGE.md">AI-video</a> &bull;
   <a href="#agent-skill">Agent Skill</a> &bull;
+  <a href="https://kinocut.dev/">kinocut.dev</a> &bull;
+  <a href="#what-is-kinocut">What is Kinocut?</a> &bull;
+  <a href="#faq">FAQ</a> &bull;
   <a href="llms.txt">llms.txt</a>
 </p>
 
 ---
+
+## What is Kinocut?
+
+**Kinocut** is a free, open-source **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server**, Python library, and **`kino` CLI** that gives AI agents a **guardrailed local video-editing surface**. It wraps **FFmpeg** (and optional Hyperframes / Whisper extras) with typed tools, preflight validation, **Video Receipt** provenance, and quality/release checkpoints so agent-produced media can be inspected before publish.
+
+| | |
+| --- | --- |
+| **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
+| **Latest published release** | **[1.7.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.7.0)** (2026-07-10) |
+| **Product site** | [kinocut.dev](https://kinocut.dev/) |
+| **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
+| **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) · [Forgejo (canonical)](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) |
+| **License** | Apache-2.0 |
+| **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
+| **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
+
+**Best-fit searches:** video editing MCP server · AI agent video editing · FFmpeg MCP · Claude Code video tools · Cursor MCP video · Shorts/Reels automation · local AI video workflow · guardrailed agentic media.
+
+Machine-readable brief for AI crawlers: [`llms.txt`](llms.txt) · site: [kinocut.dev/llms.txt](https://kinocut.dev/llms.txt).
 
 ## See It Work
 
@@ -61,13 +89,90 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 - **Podcast & interview cuts** — find the strongest segment, normalize audio, add chapters, and export.
 - **Agent-driven media in CI** — repeatable, reviewable edits from Claude Code, Cursor, Codex-style clients, or scripts.
 
+## Status and releases
+
+| Surface | Version / tip | What it means |
+| --- | --- | --- |
+| **PyPI / npm / GitHub Release** | **[1.7.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.7.0)** (2026-07-10) | Latest **published** Kinocut identity cutover. Install with `pip install kinocut`. |
+| **This repository (`master`)** | development tip · **142 MCP tools / 121 CLI commands** | Includes post-1.7 work: governed AI-video, C2PA hooks, MCPB foundations, and the in-progress `kinocut_sound` program. |
+| **Next public release** | **toward 1.8** | Not tagged, not on PyPI. Draft-only until whole-program verification and an explicit human release authorization. |
+
+Install from PyPI when you want the stable package. Clone or install from `master` only when you intentionally need unreleased surfaces. The badge counts above describe the **development tip**, not a 1.8 package version.
+
+## What's in 1.7.0 (latest release)
+
+Kinocut **1.7.0** is the rename and identity release. It is what you get from `pip install kinocut` today:
+
+- Canonical package **`kinocut`**, CLI entry points **`kino`** / **`kinocut`**, and a preserved **`mcp-video`** compatibility command
+- Thin **`kinocut` npm** launcher (`uvx` → `kino`) and MCP Registry identity **`io.github.KyaniteLabs/kinocut`**
+- Public agent skill at [`skills/kinocut/SKILL.md`](skills/kinocut/SKILL.md) (`$kinocut`); [`skills/mcp-video`](skills/mcp-video/SKILL.md) remains a compatibility pointer
+- Project, docs, package metadata, and discovery surfaces pointed at **[kinocut.dev](https://kinocut.dev/)**
+- Compatibility window: `mcp-video==1.6.1` installs `kinocut==1.7.0`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **through at least Kinocut 1.8.x**
+
+Also already on the published line from the **1.6.x** surface that 1.7 inherits:
+
+- Agent **workflow engine** (`video_workflow_*` / `workflow-*`) with plan, render, resume, variants, and hashed receipts
+- Dedicated **video rescue** plan/render/inspect pipeline ([docs/RESCUE.md](docs/RESCUE.md))
+- **Post-rescue planning** tools (semantic timelines, EDLs, transforms, restoration, composition, autopilot, egress contracts)
+- **Layered compositing** with full-canvas blend modes, rotation/pivot, and `layer_plan` v2 receipts
+- Expanded preflight guardrails for filters, merge, audio, overlay/chroma, text, and layout mismatches
+
+Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.7.0 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.7.0)
+
+## Heading toward 1.8
+
+**1.8 is not released.** The work below is on `master` (or still gated), tracked as draft, and **must not** be treated as a published package. No version bump, tag, PyPI/npm upload, directory submission, deploy, or announcement is authorized until the program’s final verification and a human release go-ahead.
+
+### Already on the development tip (draft)
+
+| Area | What landed on `master` | Start here |
+| --- | --- | --- |
+| **Governed AI-video** | Content-addressed `video_ingest`, unified `video_preflight`, temporal evidence (`video_inspect_temporal`), exact-asset `video_verdict` / `video_acceptance_eval`, audio-preserving `video_body_swap`, lineage-bound `video_salvage` | [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md) |
+| **Project store / contracts** | Append-only private project storage, strict canonical records, protected-element checks, fail-soft optional visual providers | [docs/AI_VIDEO_CONTRACTS.md](docs/AI_VIDEO_CONTRACTS.md) · [docs/AI_VIDEO_INSPECTION.md](docs/AI_VIDEO_INSPECTION.md) |
+| **Field safety** | Loss-proof add-audio duration policies; authored ASS + dimension-aware SRT/VTT subtitles | [CHANGELOG.md](CHANGELOG.md) Unreleased |
+| **C2PA provenance** | Optional signing on path-based `export` / `Client.export()` via `c2patool` (off by default; only reports signed after verify) | [docs/C2PA_PROVENANCE.md](docs/C2PA_PROVENANCE.md) |
+| **MCPB packaging** | Staged Desktop package + fail-closed native builder foundation; **not** a published self-contained runtime yet | [docs/MCPB.md](docs/MCPB.md) |
+| **Repurpose skill** | Path-based [`skills/kinocut-repurpose`](skills/kinocut-repurpose/SKILL.md) + deterministic current-tools demo (marketing seed, not the final kernel-backed product) | [docs/REPURPOSE_SKILL.md](docs/REPURPOSE_SKILL.md) |
+| **Hyperframes under MCP** | `hyperframes_init` no longer hangs without a TTY (non-interactive init + closed stdin) | [CHANGELOG.md](CHANGELOG.md) Unreleased |
+
+### Upcoming pipeline (in progress)
+
+Two coordinated programs sit between today’s tip and a releaseable 1.8:
+
+#### 1. AI-video + review/salvage finish
+
+Contract-first media identity → inspection → human-gated verdict → bounded derivatives. Remaining work includes independent Wave-3 verification freeze, audio continuity, subtitle/graphics QA depth, asset intelligence, editorial planning, learning reports, and whole-program acceptance. Sequencing: [wishlist parallel execution](docs/plans/2026-07-12-wishlist-parallel-execution.md) · live ledger: [draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md).
+
+#### 2. `kinocut_sound` (Sonic World) — full-episode audio production
+
+Standalone-capable sound package **inside this repo** (`kinocut_sound/`): plan/timeline/routing/consent → voice → post/spatial → ambience/world → mix/stems → QA/metadata → thin public adapters → host joins → dual-class benchmark → STOP.
+
+| Slice | Focus | Status (as of 2026-07-14) |
+| --- | --- | --- |
+| S1–S4 | Contracts, authorization, registry/policy, script/episode planning | Implemented foundation leaves |
+| S5 / S7 / S8 | Base voice, post/spatial chain, ambience/world | Integrated leaves on master |
+| S6 / S10 | Consent-gated clone/blend; voice consistency | Integrated leaves on master |
+| S9 / S11 | Mix assembly/stems; QA + metadata | Integrated leaves on master |
+| S12 | Thin public discovery / Python adapters | Integrated (capability discovery surface) |
+| **S13** | Kinocut/host joins (D41/D42 production bindings) | **Blocked** — external owner receipts incomplete |
+| **S14** | Dual-class benchmark (Apple silicon + x86 Linux) | **Partial** — x86 available; Apple class `external_host_unavailable` |
+| **S15** | Adversarial acceptance + release STOP | **STOP** — no ship without dual-class S14, S13 receipts, independent review, human authorization |
+
+Authoritative receipts: [sound program handoff](docs/status/2026-07-13-sound-program-strategic-handoff.md) · [S13–S15 gate](docs/status/2026-07-14-sound-s13-s15-gate-receipt.md) · [sound plan index](docs/superpowers/plans/2026-07-12-kinocut-sound-plan-index.md).
+
+#### 3. Trusted execution kernel (post-program, gated)
+
+The approved [trusted execution layer plan](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md) still defines the durable product path after the current program: durable edit projects, async render/resume wrapping `video_workflow_*`, receipt lineage, then kernel-backed repurposing as the “made just by prompting” moment. The protected-timeline kernel **does not start** merely because sound/AI-video leaves land — it needs the named upstream contract and an explicit human gate.
+
+Product checklist: [ROADMAP.md](ROADMAP.md).
+
 ## Agent Workflow Engine
 
 Agents can **plan, validate, render, recover, and prove** a multi-step local video job from
 a single JSON job-spec — through MCP (`video_workflow_*`), the CLI (`workflow-*`), or the
 Python client (`Client.workflow_*`) — with receipts strong enough for another agent or a
 human to trust before *and* after a render. Ops are a small allowlist
-(`probe | trim | resize | convert | merge | add_text`) mapped 1:1 to the same vetted engine
+(`probe | trim | resize | convert | merge | add_text | composite_layers`) mapped 1:1 to the same vetted engine
 functions the individual tools use; media references are symbolic and workspace-confined;
 everything fails closed.
 
@@ -117,19 +222,22 @@ manifest, all with workspace-relative paths:
 }
 ```
 
-## Governed AI-video review
-
-The current development surface adds content-addressed ingest, deterministic temporal evidence,
-exact-asset verdicts, protected edits, audio-preserving body swap, and lineage-bound salvage.
-Start with the [review and salvage operating guide](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md).
-The larger AI-video and sound program remains incomplete and unreleased; see the
-[commit-bound draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md).
-
 `--all-variants` emits N distinct outputs from one declaration, and `--resume` continues a
 job that failed with its intermediates kept (fail-closed on a changed spec). Full schema,
 `@ref` grammar, variants, resume, and cleanup are in
 [docs/WORKFLOWS.md](docs/WORKFLOWS.md); a runnable spec is in
 [examples/workflows/](examples/workflows/captioned-vertical-short/).
+
+## Governed AI-video review
+
+On the **development tip**, Kinocut adds a contract-first path for agent-edited media that must stay attributable and reviewable:
+
+1. **Ingest** the source into a private content-addressed project (`video_ingest` / `video-ingest`)
+2. **Preflight + temporal inspection** on the stored asset (`video_preflight`, `video_inspect_temporal`)
+3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
+4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
+
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are part of the unreleased 1.8-bound program — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -152,22 +260,22 @@ Use `composite-layers` when an agent needs a planned stack of overlays, mattes, 
 
 ## Public Discovery
 
-**Kinocut** is a free, open-source **Model Context Protocol (MCP) server**, Python library, and CLI that gives AI agents a real video-editing surface. It wraps FFmpeg, PUSHING CREATION-style planning, media analysis, quality checks, subtitles, audio generation, effects, Hyperframes rendering, local repurposing packages, and guardrails for risky edit parameters behind structured tool schemas.
+Kinocut is built to be **findable and citable** by both search engines and AI answer engines:
 
-Best-fit searches:
+- Canonical product URL: **https://kinocut.dev/**
+- GitHub README + [`llms.txt`](llms.txt) with entity facts, install commands, and safety rules
+- Official MCP Registry record under `io.github.KyaniteLabs/kinocut`
+- FAQ answers in this README and [docs/faq.md](docs/faq.md) (answer-first, versioned claims)
 
-- video editing MCP server
-- AI agent video editing
-- FFmpeg MCP tools
-- Claude Code video editing
-- Cursor MCP video tools
-- Python video editing library
-- subtitle automation
-- reels and shorts automation
-- agentic media pipeline
-- local AI video workflow
-- Hyperframes video creation
-- YouTube Shorts repurposing
+### Kinocut vs raw FFmpeg (and vs cloud editors)
+
+| | Kinocut | Raw FFmpeg in agent shell | Typical cloud editor API |
+| --- | --- | --- | --- |
+| Interface | Typed MCP / Python / CLI | Free-form flags | Hosted HTTP API |
+| Preflight | Guardrails before render | Agent invents flags | Vendor-specific |
+| Provenance | Video Receipts + hashes | Ad-hoc logs | Vendor dashboard |
+| Media location | Local-first | Local | Upload required |
+| Core cost | Free (Apache-2.0) | Free | Often metered |
 
 ## Why It Exists
 
@@ -217,7 +325,12 @@ python3 scripts/build-mcpb.py
 ```
 
 This package is honest about its runtime: it launches an existing Python environment with
-Kinocut installed and still requires local FFmpeg. See [docs/MCPB.md](docs/MCPB.md).
+Kinocut installed and still requires local FFmpeg. Native self-contained bundles remain blocked
+pending FFmpeg provenance, licensing, and clean-machine gates. See [docs/MCPB.md](docs/MCPB.md).
+
+Optional **C2PA** signing for final MP4 exports is available on the development tip when
+`c2patool` and a manifest/signer are configured. Signing is off by default and only reports
+`signed` after a verification read succeeds. See [docs/C2PA_PROVENANCE.md](docs/C2PA_PROVENANCE.md).
 
 Hyperframes tools additionally need Node.js 22+ and a resolvable Hyperframes CLI. Install/pin Hyperframes in the active Node package layout, add `hyperframes` to `PATH`, or set `MCP_VIDEO_HYPERFRAMES_COMMAND`.
 
@@ -249,7 +362,7 @@ mcp-video doctor
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA: 142 herramientas estructuradas sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) que planifica, valida, renderiza, reanuda y prueba trabajos de varios pasos con recibos verificables, y barreras de seguridad que detectan parámetros riesgosos antes de renderizar.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.7.0** (`pip install kinocut`). En la punta de desarrollo hay **142 herramientas MCP** y **121 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada (en borrador hacia 1.8) y barreras de seguridad antes de renderizar. **1.8 aún no está publicado.**
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -328,6 +441,8 @@ Then ask your agent:
 
 Kinocut includes a public agent skill at [`skills/kinocut/SKILL.md`](skills/kinocut/SKILL.md). Use `$kinocut` in compatible agent hosts when you want the agent to choose between the MCP server, CLI, and Python client while preserving the inspect, edit, verify, and human-review workflow.
 
+For path-based short-form packages from **current tools only** (no invented commands, no external publish), see [`skills/kinocut-repurpose/SKILL.md`](skills/kinocut-repurpose/SKILL.md). That skill is an explicit marketing seed; the durable kernel-backed repurposing product is still on the trusted-execution roadmap.
+
 ## Python Client
 
 ```python
@@ -370,17 +485,20 @@ kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 | Batch automation | "Convert this folder of clips to web-ready MP4 with consistent loudness." |
 | Code-created video | "Scaffold a Hyperframes composition, inspect it, render it, then add subtitles and a watermark." |
 | Local repurposing | "Turn this master clip into Shorts, Reels, TikTok, and YouTube assets with thumbnails and a manifest." |
+| Video rescue | "Diagnose this damaged clip, propose only safe repairs, render an approved package, and verify the receipt." |
+| Governed review (dev tip) | "Ingest this export into a project, run preflight and temporal inspection, write a verdict, and salvage only the broken region." |
 
 ## MCP Tools
 
-kino currently registers **142 MCP tools**. The table below summarizes the documented core categories; `search_tools` lets agents discover the exact operation they need without loading every tool description into context.
+On the **development tip**, kino registers **142 MCP tools** and **121 CLI commands**. The published **1.7.0** package surface is smaller (the 1.7 cutover documented **135 tools / 114 commands**); install from source or wait for 1.8 if you need the AI-video rows below. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
 | Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates, merge-compatibility guardrails |
+| Project-backed inspection | 3 | content-addressed ingest, unified preflight, temporal evidence packages |
+| Governed AI-video | 4 | exact-asset verdicts, acceptance evaluation, audio-preserving body swaps, lineage-bound salvage |
 | Agent workflow engine | 4 | validate, plan, render, resume, inspect multi-step jobs with provenance receipts |
 | Dedicated rescue | 3 | diagnose, approve, render, verify, quarantine, and resume local content-preserving repairs |
-| Governed AI-video | 4 | exact-asset verdicts, acceptance evaluation, audio-preserving body swaps, lineage-bound salvage |
 | Post-rescue planning | 8 | semantic timelines/query, EDLs, visual transforms, restoration, composition, autopilot, explicit egress |
 | Cinematic creation | 4 | project scaffold, style-pack parsing, storyboard parsing, shot prompt expansion |
 | AI-assisted media | 11 | transcription, scene detection, upscaling, stem separation, silence removal, color grading |
@@ -436,16 +554,64 @@ Safety contract:
 - Tool discovery is available through `search_tools()` and `Client.inspect()`.
 - Unexpected keyword errors are converted into actionable `MCPVideoError` guidance.
 - Do not publish agent-generated video without `video_quality_check`, `video_release_checkpoint`, and human visual/audio inspection.
+- For governed AI-video derivatives (dev tip), require stored identities, active human decision evidence, and a fresh review slot after every salvage or body-swap — never raw FFmpeg workarounds labeled as governed.
+
+## FAQ
+
+### What is Kinocut?
+
+Kinocut is a free, open-source MCP server, Python library, and `kino` CLI for AI-agent video editing. It wraps FFmpeg (and optional Hyperframes/Whisper extras) with preflight guardrails, Video Receipts, and quality checkpoints. It was formerly named **mcp-video**.
+
+### How do I install it?
+
+```bash
+brew install ffmpeg   # or apt install ffmpeg
+pip install kinocut
+kino doctor
+claude mcp add kinocut -- uvx --from kinocut kino
+```
+
+### Is it free and local-first?
+
+Yes. Apache-2.0, runs on your machine, no Kinocut account or API key required for the core surface, and media is not uploaded to a Kinocut cloud.
+
+### Which agents work with it?
+
+Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor, Windsurf, Cline, and similar). You can also use the Python client or CLI without an agent.
+
+### How many tools are there?
+
+Published **1.7.0** documented **135 MCP tools / 114 CLI commands**. The development tip currently registers **142 MCP tools / 121 CLI commands** (includes unreleased AI-video surfaces). Do not treat the tip counts as a released 1.8 package.
+
+### Was it called mcp-video?
+
+Yes. `mcp-video==1.6.1` installs `kinocut==1.7.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported through at least Kinocut 1.8.x.
+
+More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](https://kinocut.dev/#faq)
 
 ## Documentation
 
 - [Documentation map](docs/README.md)
+- [Product site](https://kinocut.dev/)
 - [Tool reference](docs/TOOLS.md)
 - [Python client reference](docs/PYTHON_CLIENT.md)
-- [Post-rescue planning](docs/POST_RESCUE_FEATURES.md)
 - [CLI reference](docs/CLI_REFERENCE.md)
+- [Agent workflow engine](docs/WORKFLOWS.md)
+- [Video receipts](docs/VIDEO_RECEIPT.md)
+- [Video rescue](docs/RESCUE.md)
+- [Post-rescue planning](docs/POST_RESCUE_FEATURES.md)
+- [AI-video review and salvage](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md)
+- [AI-video contracts](docs/AI_VIDEO_CONTRACTS.md)
+- [AI-video inspection](docs/AI_VIDEO_INSPECTION.md)
+- [C2PA provenance](docs/C2PA_PROVENANCE.md)
+- [MCPB packaging](docs/MCPB.md)
+- [Product roadmap](ROADMAP.md)
+- [Trusted execution layer plan](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)
+- [Wishlist / 1.8 program parallel plan](docs/plans/2026-07-12-wishlist-parallel-execution.md)
+- [Sound program status](docs/status/2026-07-13-sound-program-strategic-handoff.md)
 - [AI agent discovery guide](docs/AI_AGENT_DISCOVERY.md)
 - [FAQ](docs/faq.md)
+- [Changelog](CHANGELOG.md)
 - [llms.txt](llms.txt)
 
 ## Testing

@@ -3,4 +3,13 @@
   <url>
     <loc>https://kinocut.dev/</loc>
   </url>
+  <url>
+    <loc>https://kinocut.dev/llms.txt</loc>
+  </url>
+  <url>
+    <loc>https://github.com/KyaniteLabs/kinocut</loc>
+  </url>
+  <url>
+    <loc>https://pypi.org/project/kinocut/</loc>
+  </url>
 </urlset>
