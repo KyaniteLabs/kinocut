@@ -83,11 +83,15 @@ short = video.resize(captioned.output_path, aspect_ratio="9:16")
 video.release_checkpoint(short.output_path)  # thumbnail + quality gate before you publish
 ```
 
+**Primary job:** turn a local interview or podcast into **captioned vertical clips with a Video Receipt** agents can re-run and humans can approve.
+
 **Three things people use it for**
 
 - **Repurposing** — one recording into captioned Shorts, Reels, and TikTok packages with manifests and review artifacts.
 - **Podcast & interview cuts** — find the strongest segment, normalize audio, add chapters, and export.
 - **Agent-driven media in CI** — repeatable, reviewable edits from Claude Code, Cursor, Codex-style clients, or scripts.
+
+**Paths:** [Install matrix](docs/INSTALL.md) · [Golden path](docs/GOLDEN_PATH.md) · [Prompts](docs/PROMPTS.md) · [Tutorial](docs/TUTORIAL_PODCAST_TO_SHORTS.md) · [Compare](docs/COMPARE.md) · [When to recommend](docs/RECOMMEND.md)
 
 ## Status and releases
 

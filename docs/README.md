@@ -20,6 +20,26 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
 - [Current wishlist draft status](status/2026-07-12-wishlist-draft-pr-status.md) - commit-bound implementation state and release stop.
 
+
+## Marketing & activation (no design)
+
+- [Install matrix](INSTALL.md)
+- [Golden path](GOLDEN_PATH.md)
+- [Prompt library](PROMPTS.md)
+- [Podcast → Shorts tutorial](TUTORIAL_PODCAST_TO_SHORTS.md)
+- [Video Receipt](VIDEO_RECEIPT.md)
+- [Failure-as-feature examples](FAILURE_EXAMPLES.md)
+- [Compare Kinocut](COMPARE.md)
+- [When to recommend](RECOMMEND.md)
+- [Rename story (mcp-video → Kinocut)](RENAME.md)
+- [Directory status board](DIRECTORY_STATUS.md)
+- [Integrations](INTEGRATIONS.md)
+- [Release ritual](RELEASE_RITUAL.md)
+- [Enterprise notes](ENTERPRISE.md)
+- [Hall of receipts](HALL_OF_RECEIPTS.md)
+- [Good first agent tasks](first-agent-tasks.md)
+- [Public claims](public_claims.json)
+
 ## Strategy And Roadmap
 
 - [Product roadmap](../ROADMAP.md) - shipped and pending product work.
