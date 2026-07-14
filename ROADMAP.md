@@ -1,6 +1,6 @@
 # Improvement Roadmap
 
-The development branch currently exposes 142 MCP tools and 121 CLI commands. The released 1.7.0 surface is historical; the contract-first AI-video and sound program described below remains incomplete and unreleased. Remotion has been fully removed. The current priority is finishing governed review/salvage, then executing the remaining program through independently reviewed parallel lanes.
+Kinocut 1.8.0 is published with 142 MCP tools and 121 CLI commands. The 1.7.0 identity cutover is historical; the contract-first AI-video and sound program described below is post-release work that remains incomplete. Remotion has been fully removed. The current priority is finishing governed review/salvage, then executing the remaining program through independently reviewed parallel lanes.
 
 ## Current AI-video and sound program
 
@@ -14,7 +14,7 @@ The development branch currently exposes 142 MCP tools and 121 CLI commands. The
 - [ ] Protected-timeline kernel integration, blocked until its named upstream contract and explicit human gate are green.
 - [ ] Final whole-program verification and stop-before-release handoff.
 
-Current status and sequencing: [draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md) and [parallel execution plan](docs/plans/2026-07-12-wishlist-parallel-execution.md).
+Current status and sequencing: [post-1.8 program status](docs/status/2026-07-14-post-1.8-program-status.md) and [parallel execution plan](docs/plans/2026-07-12-wishlist-parallel-execution.md). The earlier [draft-status checkpoint](docs/status/2026-07-12-wishlist-draft-pr-status.md) is preserved as pre-release evidence.
 
 ---
 

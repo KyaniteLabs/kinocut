@@ -18,7 +18,7 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Licensing notes](LEGAL_REVIEW.md) - project and dependency obligations.
 - [Agent discovery](AI_AGENT_DISCOVERY.md) - concise capability and setup summary.
 - [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
-- [Current wishlist draft status](status/2026-07-12-wishlist-draft-pr-status.md) - commit-bound implementation state and release stop.
+- [Post-1.8 program status](status/2026-07-14-post-1.8-program-status.md) - current published-release and remaining-program boundary.
 
 
 ## Marketing & activation (no design)
@@ -51,17 +51,22 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Wishlist parallel execution plan](plans/2026-07-12-wishlist-parallel-execution.md) - dependency waves, ownership, integration gates, and stop rules.
 - [`kinocut_sound` plan index](superpowers/plans/2026-07-12-kinocut-sound-plan-index.md) - standalone-capable sound-module sequencing.
 
-## Current Proof
+## Release Evidence And Historical Snapshots
 
 - [Golden demo pack](../demo/golden-pack/README.md) - regenerate shareable receipt + quality artifacts.
-- [Wishlist draft verification receipt](proofs/wishlist-draft/VERIFICATION_RECEIPT.md) - exact-SHA pre-PR checks and required final gates.
+- [1.8.0 release packet](proofs/release-1.8.0/RELEASE_PACKET.md) - dated release evidence and final-gate record.
+- [Wishlist draft verification receipt](proofs/wishlist-draft/VERIFICATION_RECEIPT.md) - historical exact-SHA pre-PR checks and then-required final gates.
 - [Wishlist input manifest](evidence/2026-07-10-wishlist-input-manifest.md) - public-safe source traceability.
 
 ## Historical Evidence
 
 - `docs/proofs/` contains dated release and confidence receipts.
-- Dated audits, handoffs, plans, and `docs/internal/` research are snapshots, not
-  current install or source-layout instructions.
+- Date-prefixed audits, handoffs, plans, and `docs/status/` entries are snapshots,
+  not current install or source-layout instructions, unless they explicitly identify
+  themselves as the current release record. For current release and program state,
+  use [post-1.8 program status](status/2026-07-14-post-1.8-program-status.md).
+- `docs/internal/` research is also historical operating evidence, not public product
+  guidance.
 - `CHANGELOG.md` is intentionally historical and retains former package names.
 
 ## Compatibility Names

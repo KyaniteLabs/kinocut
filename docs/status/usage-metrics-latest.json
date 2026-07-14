@@ -304,7 +304,7 @@
           "transport": {
             "type": "stdio"
           },
-          "version": "1.7.0"
+          "version": "1.8.0"
         }
       ],
       "repository": {
@@ -312,7 +312,7 @@
         "url": "https://github.com/KyaniteLabs/kinocut"
       },
       "title": "Kinocut",
-      "version": "1.7.0",
+      "version": "1.8.0",
       "websiteUrl": "https://kinocut.dev/"
     }
   },

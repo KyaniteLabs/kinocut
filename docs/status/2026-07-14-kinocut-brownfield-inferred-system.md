@@ -6,6 +6,10 @@
 **Artifact:** https://kinocut.dev/ (live, 2026-07-14)  
 **Product:** Kinocut only (not KyaniteLabs org marketing)
 
+> **Historical snapshot:** This inference record captures the site observed on
+> 2026-07-14 before the 1.8.0 release reconciliation. It is not current product
+> release guidance; use the root README and `docs/public_claims.json` for that.
+
 ---
 
 ## Evidence summary (EVIDENCE)
@@ -18,7 +22,7 @@
 | Bilingual EN/ES toggle on home | home header |
 | Multi-page marketing hub (install, prompts, …) | `/install.html` etc. |
 | Doc pages use separate `pages.css` utility chrome | live compare home vs install |
-| Product claims 1.7.0 / local-first / formerly mcp-video | home, llms, FAQ |
+| Product claims at capture: 1.7.0 / local-first / formerly mcp-video | home, llms, FAQ |
 | No forms, no analytics cookies | live |
 
 ## Inferred brand signals (INFERRED)

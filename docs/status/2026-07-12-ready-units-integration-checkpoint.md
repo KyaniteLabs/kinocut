@@ -2,9 +2,12 @@
 
 **Snapshot date:** 2026-07-12
 
+> **Historical pre-release snapshot:** This checkpoint predates the published 1.8.0
+> release and is retained as implementation evidence, not current release guidance.
+
 **Reviewed implementation tip:** `090424c`
 
-**State:** local integration gates green on Niko; independently approved; unreleased
+**State:** local integration gates green in the recorded validation environment; independently approved; unreleased at the snapshot date
 
 ## Executive summary
 
