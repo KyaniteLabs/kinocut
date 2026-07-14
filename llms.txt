@@ -111,3 +111,17 @@ Identifier: `io.github.KyaniteLabs/kinocut`. Metadata lives in `server.json`. Co
 ## Keywords
 
 video editing MCP server, guardrailed video editing MCP server, AI agent video editing, safe agentic media automation, FFmpeg MCP, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, Video Receipt, local TTS, video background removal, subtitles, reels automation, shorts automation, TikTok automation, video repurposing, video rescue, mcp-video, kino CLI
+
+
+## Marketing docs hub
+
+- Install matrix: docs/INSTALL.md
+- Prompts: docs/PROMPTS.md
+- Tutorial: docs/TUTORIAL_PODCAST_TO_SHORTS.md
+- Compare: docs/COMPARE.md
+- Recommend: docs/RECOMMEND.md
+- Receipt: docs/VIDEO_RECEIPT.md
+- Failures: docs/FAILURE_EXAMPLES.md
+- Directories: docs/DIRECTORY_STATUS.md
+- Enterprise: docs/ENTERPRISE.md
+- Rename: docs/RENAME.md
