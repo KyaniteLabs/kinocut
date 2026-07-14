@@ -135,9 +135,7 @@ def video_subtitles(
     """
     input_path = _validate_input_path(input_path)
     subtitle_path = _validate_input_path(subtitle_path)
-    return _result(
-        subtitles(input_path, subtitle_path=subtitle_path, output_path=output_path, style=style)
-    )
+    return _result(subtitles(input_path, subtitle_path=subtitle_path, output_path=output_path, style=style))
 
 
 @mcp.tool(
@@ -256,7 +254,9 @@ def video_export(
     ] = None,
     c2pa_tool_path: Annotated[
         str | None,
-        Field(description="Optional path to the c2patool executable. Defaults to KINOCUT_C2PATOOL/MCP_VIDEO_C2PATOOL/PATH."),
+        Field(
+            description="Optional path to the c2patool executable. Defaults to KINOCUT_C2PATOOL/MCP_VIDEO_C2PATOOL/PATH."
+        ),
     ] = None,
     c2pa_signer_path: Annotated[
         str | None,

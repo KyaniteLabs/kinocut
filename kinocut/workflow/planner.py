@@ -130,13 +130,9 @@ def _plan_steps(
         # composite carries its layer sources inside structured layer objects, so its
         # @refs are extracted per-layer (layers[i].src/mask) instead of the flat inputs.
         ref_pairs = (
-            iter_composite_refs(step["inputs"])
-            if step["op"] == "composite_layers"
-            else _iter_step_refs(step["inputs"])
+            iter_composite_refs(step["inputs"]) if step["op"] == "composite_layers" else _iter_step_refs(step["inputs"])
         )
-        input_hashes = {
-            key: _hash_ref(ref, workspace_root, source_paths, hash_cache) for key, ref in ref_pairs
-        }
+        input_hashes = {key: _hash_ref(ref, workspace_root, source_paths, hash_cache) for key, ref in ref_pairs}
         steps.append(
             {
                 "id": step["id"],

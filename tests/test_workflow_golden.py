@@ -28,9 +28,26 @@ pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg n
 
 def _gen_source(path: Path, lavfi: str = "testsrc2=size=160x120:rate=10:duration=1") -> None:
     subprocess.run(
-        ["ffmpeg", "-y", "-f", "lavfi", "-i", lavfi, "-pix_fmt", "yuv420p",
-         "-c:v", "libx264", "-preset", "ultrafast", "-crf", "23", str(path)],
-        check=True, capture_output=True, timeout=60,
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            lavfi,
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-crf",
+            "23",
+            str(path),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=60,
     )
 
 
@@ -46,10 +63,20 @@ def _render_workflow_golden(workspace: Path) -> Path:
         "sources": {"src": {"path": "input/src.mp4"}},
         "steps": [
             {"id": "probe", "op": "probe", "inputs": {"src": "@sources.src"}},
-            {"id": "trim", "op": "trim", "inputs": {"src": "@sources.src"},
-             "params": {"start": 0, "duration": 1}, "output": "@work/t.mp4"},
-            {"id": "resize", "op": "resize", "inputs": {"src": "@work/t.mp4"},
-             "params": {"width": 120, "height": 120}, "output": "@outputs.master"},
+            {
+                "id": "trim",
+                "op": "trim",
+                "inputs": {"src": "@sources.src"},
+                "params": {"start": 0, "duration": 1},
+                "output": "@work/t.mp4",
+            },
+            {
+                "id": "resize",
+                "op": "resize",
+                "inputs": {"src": "@work/t.mp4"},
+                "params": {"width": 120, "height": 120},
+                "output": "@outputs.master",
+            },
         ],
         "outputs": {"master": {"path": "output/final.mp4"}},
     }
@@ -64,8 +91,15 @@ def _composite_golden_spec() -> dict:
         "canvas": {"width": 160, "height": 120, "background": "#101820", "fps": 10, "duration": 1.0},
         "layers": [
             {"id": "background", "type": "video", "src": "bg.mp4", "position": {"x": 0, "y": 0}},
-            {"id": "tint", "type": "solid", "color": "#3050ff", "opacity": 0.6,
-             "width": 80, "height": 60, "position": {"x": 40, "y": 30}},
+            {
+                "id": "tint",
+                "type": "solid",
+                "color": "#3050ff",
+                "opacity": 0.6,
+                "width": 80,
+                "height": 60,
+                "position": {"x": 40, "y": 30},
+            },
         ],
         "output": {"format": "mp4"},
     }
@@ -141,8 +175,13 @@ def test_convert_op_runs_end_to_end(tmp_path):
         "name": "convert-smoke",
         "sources": {"src": {"path": "input/src.mp4"}},
         "steps": [
-            {"id": "conv", "op": "convert", "inputs": {"src": "@sources.src"},
-             "params": {"format": "webm"}, "output": "@outputs.out"},
+            {
+                "id": "conv",
+                "op": "convert",
+                "inputs": {"src": "@sources.src"},
+                "params": {"format": "webm"},
+                "output": "@outputs.out",
+            },
         ],
         "outputs": {"out": {"path": "output/converted.webm"}},
     }

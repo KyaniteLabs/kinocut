@@ -573,10 +573,7 @@ def test_current_documentation_uses_canonical_kinocut_identity():
 
 
 def test_current_docs_link_to_the_live_mcp_registry_version():
-    registry_url = (
-        "https://registry.modelcontextprotocol.io/v0/servers/"
-        "io.github.KyaniteLabs%2Fkinocut/versions/latest"
-    )
+    registry_url = "https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest"
     checked_paths = (
         ROOT / "docs" / "AI_AGENT_DISCOVERY.md",
         ROOT / "docs" / "faq.md",

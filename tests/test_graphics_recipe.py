@@ -49,9 +49,7 @@ def _imports_from(path: Path, module_substr: str) -> set[str]:
     return {
         alias.name
         for node in ast.walk(tree)
-        if isinstance(node, ast.ImportFrom)
-        and node.module
-        and module_substr in node.module
+        if isinstance(node, ast.ImportFrom) and node.module and module_substr in node.module
         for alias in node.names
     }
 
@@ -82,9 +80,16 @@ def logo_path(tmp_path) -> str:
     logo = tmp_path / "logo.png"
     subprocess.run(
         [
-            "ffmpeg", "-y",
-            "-f", "lavfi", "-i", "color=c=red:size=64x48:duration=0.04",
-            "-frames:v", "1", "-update", "1",
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:size=64x48:duration=0.04",
+            "-frames:v",
+            "1",
+            "-update",
+            "1",
             str(logo),
         ],
         check=True,
@@ -95,16 +100,19 @@ def logo_path(tmp_path) -> str:
 
 def _basic_layers(logo: str | None = None) -> list[dict]:
     layers: list[dict] = [
-        {"kind": "text", "text": "HELLO", "color": "#FFFFFF", "size": 48,
-         "position": {"x": 10, "y": 10}},
-        {"kind": "caption", "text": "World", "color": "#FFFF00", "size": 36,
-         "position": {"x": 10, "y": 420}, "start": 0.0, "duration": 1.0},
+        {"kind": "text", "text": "HELLO", "color": "#FFFFFF", "size": 48, "position": {"x": 10, "y": 10}},
+        {
+            "kind": "caption",
+            "text": "World",
+            "color": "#FFFF00",
+            "size": 36,
+            "position": {"x": 10, "y": 420},
+            "start": 0.0,
+            "duration": 1.0,
+        },
     ]
     if logo is not None:
-        layers.append(
-            {"kind": "logo", "src": logo, "position": {"x": 560, "y": 10},
-             "width": 64, "height": 48}
-        )
+        layers.append({"kind": "logo", "src": logo, "position": {"x": 560, "y": 10}, "width": 64, "height": 48})
     return layers
 
 
@@ -116,12 +124,18 @@ def test_graphics_recipe_is_deterministic_and_idempotent(source, font_path, logo
     project, asset = source
     layers = _basic_layers(logo_path)
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     second = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
 
     assert isinstance(first, GraphicsResult)
@@ -137,8 +151,11 @@ def test_graphics_recipe_is_deterministic_and_idempotent(source, font_path, logo
 def test_receipt_binds_source_font_output_and_receipt_hashes(source, font_path, logo_path):
     project, asset = source
     result = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=_basic_layers(logo_path), canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=_basic_layers(logo_path),
+        canvas=_canvas(),
     )
     assert asset.asset_id in result.source_asset_hashes
     assert result.font_hash == _sha(font_path)
@@ -159,8 +176,11 @@ def test_recipe_rejects_generative_fields(source, font_path, field):
     layers = [{"kind": "text", "text": "HI", field: "value", "position": {"x": 0, "y": 0}}]
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
-            layers=layers, canvas=_canvas(),
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
+            layers=layers,
+            canvas=_canvas(),
         )
     assert exc.value.code == "invalid_graphics_layer"
 
@@ -169,7 +189,9 @@ def test_recipe_rejects_unknown_layer_kind(source, font_path):
     project, asset = source
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
             layers=[{"kind": "generated_overlay", "text": "x", "position": {"x": 0, "y": 0}}],
             canvas=_canvas(),
         )
@@ -180,7 +202,9 @@ def test_recipe_rejects_logo_with_traversal(source, font_path):
     project, asset = source
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
             layers=[{"kind": "logo", "src": "../../etc/passwd", "position": {"x": 0, "y": 0}}],
             canvas=_canvas(),
         )
@@ -191,7 +215,9 @@ def test_recipe_rejects_text_layer_with_empty_text(source, font_path):
     project, asset = source
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
             layers=[{"kind": "text", "text": "   ", "position": {"x": 0, "y": 0}}],
             canvas=_canvas(),
         )
@@ -211,8 +237,11 @@ def test_recipe_fails_closed_on_source_substitution(source, font_path, logo_path
     monkeypatch.setattr(gr, "_verified_file_copy", mutate_then_copy)
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
-            layers=_basic_layers(logo_path), canvas=_canvas(),
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
+            layers=_basic_layers(logo_path),
+            canvas=_canvas(),
         )
     assert exc.value.code == "graphics_source_changed"
     assert exc.value.error_type == "integrity_error"
@@ -234,8 +263,11 @@ def test_recipe_fails_closed_on_font_substitution(source, font_path, logo_path, 
     monkeypatch.setattr(gr, "_verified_file_copy", mutate_font_on_second_call)
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
-            layers=_basic_layers(logo_path), canvas=_canvas(),
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
+            layers=_basic_layers(logo_path),
+            canvas=_canvas(),
         )
     assert exc.value.code == "graphics_source_changed"
 
@@ -245,12 +277,18 @@ def test_user_text_with_ffmpeg_special_chars_renders_deterministically(source, f
     tricky = "50%{off} semi:colon 'quote' back\\slash"
     layers = [{"kind": "text", "text": tricky, "position": {"x": 10, "y": 10}}]
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     second = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     assert first.output_hash == second.output_hash
     assert first.recipe_hash == second.recipe_hash
@@ -272,7 +310,6 @@ def test_graphics_recipe_carries_authorization_decision_ids():
     recipe_hash = "sha256:" + "0" * 64
     decision_id = "sha256:" + "1" * 64
     assert _mutation_intent(recipe_hash, (decision_id,)).authorization_decision_ids == (decision_id,)
-
 
 
 def _protect_recipe_with_original(project, recipe_hash):
@@ -316,15 +353,21 @@ def test_recipe_accepts_fresh_exact_authorization(source, font_path, logo_path):
     project, asset = source
     layers = _basic_layers(logo_path)
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     lock, original = _protect_recipe_with_original(project, first.recipe_hash)
     approval = _graphics_approval(project, first.recipe_hash, lock, original)
 
     result = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
         authorization_decision_ids=(approval.record_id,),
     )
     assert result.recipe_hash == first.recipe_hash
@@ -334,20 +377,30 @@ def test_recipe_rejects_superseded_authorization(source, font_path, logo_path):
     project, asset = source
     layers = _basic_layers(logo_path)
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     lock, original = _protect_recipe_with_original(project, first.recipe_hash)
     approval = _graphics_approval(project, first.recipe_hash, lock, original)
     _graphics_approval(
-        project, first.recipe_hash, lock, original,
-        decision="reject", supersedes=approval.record_id,
+        project,
+        first.recipe_hash,
+        lock,
+        original,
+        decision="reject",
+        supersedes=approval.record_id,
     )
 
     with pytest.raises(MCPVideoError):
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
-            layers=layers, canvas=_canvas(),
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
+            layers=layers,
+            canvas=_canvas(),
             authorization_decision_ids=(approval.record_id,),
         )
 
@@ -356,19 +409,28 @@ def test_recipe_rejects_wrong_fingerprint_authorization(source, font_path, logo_
     project, asset = source
     layers = _basic_layers(logo_path)
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     lock, original = _protect_recipe_with_original(project, first.recipe_hash)
     approval = _graphics_approval(
-        project, first.recipe_hash, lock, original,
+        project,
+        first.recipe_hash,
+        lock,
+        original,
         target_ref="sha256:" + "9" * 64,
         dependency_fingerprint="sha256:" + "9" * 64,
     )
     with pytest.raises(MCPVideoError):
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
-            layers=layers, canvas=_canvas(),
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
+            layers=layers,
+            canvas=_canvas(),
             authorization_decision_ids=(approval.record_id,),
         )
 
@@ -377,8 +439,11 @@ def test_recipe_collides_with_protected_recipe(source, font_path, logo_path):
     project, asset = source
     layers = _basic_layers(logo_path)
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     protect(
         project,
@@ -392,8 +457,11 @@ def test_recipe_collides_with_protected_recipe(source, font_path, logo_path):
     )
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id=asset.asset_id, font_path=font_path,
-            layers=layers, canvas=_canvas(),
+            project,
+            background_asset_id=asset.asset_id,
+            font_path=font_path,
+            layers=layers,
+            canvas=_canvas(),
         )
     assert exc.value.code == "protected_element_change"
 
@@ -402,8 +470,11 @@ def test_recipe_honors_exact_allowed_operation(source, font_path, logo_path):
     project, asset = source
     layers = _basic_layers(logo_path)
     first = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     protect(
         project,
@@ -417,8 +488,11 @@ def test_recipe_honors_exact_allowed_operation(source, font_path, logo_path):
         ),
     )
     second = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=layers, canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=layers,
+        canvas=_canvas(),
     )
     assert second.asset.record_id == first.asset.record_id
 
@@ -426,8 +500,11 @@ def test_recipe_honors_exact_allowed_operation(source, font_path, logo_path):
 def test_receipt_does_not_leak_absolute_paths(source, font_path, logo_path, tmp_path):
     project, asset = source
     result = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=_basic_layers(logo_path), canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=_basic_layers(logo_path),
+        canvas=_canvas(),
     )
     artifact = (project.root / result.receipt_artifact_location).read_text(encoding="utf-8")
     assert str(project.root) not in artifact
@@ -439,8 +516,11 @@ def test_recipe_rejects_missing_background_asset(source, font_path, logo_path):
     project, _asset = source
     with pytest.raises(MCPVideoError) as exc:
         compose_graphics_recipe(
-            project, background_asset_id="sha256:" + "0" * 64, font_path=font_path,
-            layers=_basic_layers(logo_path), canvas=_canvas(),
+            project,
+            background_asset_id="sha256:" + "0" * 64,
+            font_path=font_path,
+            layers=_basic_layers(logo_path),
+            canvas=_canvas(),
         )
     assert exc.value.code == "graphics_integrity_failed"
 
@@ -450,8 +530,11 @@ def test_receipt_records_layer_kind_set(source, font_path, logo_path):
 
     project, asset = source
     result = compose_graphics_recipe(
-        project, background_asset_id=asset.asset_id, font_path=font_path,
-        layers=_basic_layers(logo_path), canvas=_canvas(),
+        project,
+        background_asset_id=asset.asset_id,
+        font_path=font_path,
+        layers=_basic_layers(logo_path),
+        canvas=_canvas(),
     )
     artifact = (project.root / result.receipt_artifact_location).read_text(encoding="utf-8")
     payload = json.loads(artifact)
@@ -539,9 +622,7 @@ def test_graphics_enforcement_follows_shared_max_layers(monkeypatch) -> None:
     import kinocut.aivideo.graphics_recipe_checks as checks
     import kinocut.limits as limits
 
-    layers = [
-        {"kind": "text", "text": "X", "position": {"x": 0, "y": 0}} for _ in range(3)
-    ]
+    layers = [{"kind": "text", "text": "X", "position": {"x": 0, "y": 0}} for _ in range(3)]
     checks._validated_layers(layers)  # 3 layers under default 32 — passes
     monkeypatch.setattr(limits, "MAX_GRAPHICS_LAYERS", 2)
     monkeypatch.setattr(checks, "MAX_GRAPHICS_LAYERS", 2)
@@ -670,9 +751,7 @@ def test_graphics_modules_reject_forbidden_literal_defaults() -> None:
                 if kw.arg == "default" and _is_tunable_literal(kw.value):
                     violations.append(f"{label}:L{node.lineno} Field(default=<literal>)")
                 if kw.arg == "default_factory" and isinstance(kw.value, ast.Lambda):
-                    violations.append(
-                        f"{label}:L{node.lineno} Field(default_factory=lambda:...) — use a named factory"
-                    )
+                    violations.append(f"{label}:L{node.lineno} Field(default_factory=lambda:...) — use a named factory")
 
         # 2. Class-body AnnAssign (model field defaults): color/opacity/etc. must
         #    reference a named constant. Only direct children of ClassDef are
@@ -688,8 +767,7 @@ def test_graphics_modules_reject_forbidden_literal_defaults() -> None:
                     and _is_tunable_literal(child.value)
                 ):
                     violations.append(
-                        f"{label}:L{child.lineno} {child.target.id}: ... = <literal> "
-                        "— import from defaults.py"
+                        f"{label}:L{child.lineno} {child.target.id}: ... = <literal> — import from defaults.py"
                     )
 
         # 3. Function defaults: no tunable literal values in default arguments.
@@ -699,9 +777,7 @@ def test_graphics_modules_reject_forbidden_literal_defaults() -> None:
             defaults = list(node.args.defaults) + [d for d in node.args.kw_defaults if d is not None]
             for default in defaults:
                 if _is_tunable_literal(default):
-                    violations.append(
-                        f"{label}:L{node.lineno} {node.name}() has tunable literal default arg"
-                    )
+                    violations.append(f"{label}:L{node.lineno} {node.name}() has tunable literal default arg")
 
         # 4. Module-level constants: only stable identifiers may be literals.
         for node in ast.iter_child_nodes(tree):

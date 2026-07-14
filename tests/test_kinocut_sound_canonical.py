@@ -94,9 +94,12 @@ def test_semantic_drift_changes_canonical_record_id():
 def test_canonical_digest_is_sort_key_safe_and_unicode_stable():
     payload = {"b": 1, "a": "café-🎬", "nested": {"y": [1, 2], "x": True}}
     digest = canonical_digest(payload)
-    expected = "sha256:" + hashlib.sha256(
-        json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
-    ).hexdigest()
+    expected = (
+        "sha256:"
+        + hashlib.sha256(
+            json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+        ).hexdigest()
+    )
     assert digest == expected
 
 
@@ -189,6 +192,4 @@ def test_canonical_record_id_golden_vector_locks_serialization():
         supersedes="sha256:" + "1" * 64,
         source_record_ids=("sha256:" + "2" * 64, "sha256:" + "3" * 64),
     )
-    assert canonical_record_id(rec) == (
-        "sha256:7e971cb7e228b87033c5f799f898496375c501b2de85a7042d96c9bed0e9abe8"
-    )
+    assert canonical_record_id(rec) == ("sha256:7e971cb7e228b87033c5f799f898496375c501b2de85a7042d96c9bed0e9abe8")

@@ -166,9 +166,6 @@ class LineageLink(RecordBase):
             raise ValueError("lineage link must reference at least one source asset")
         if len(set(self.source_asset_ids)) != len(self.source_asset_ids):
             raise ValueError("source_asset_ids must not contain duplicates")
-        if (
-            self.relation is not LineageRelation.FAMILY_MEMBER
-            and self.derivative_asset_id in self.source_asset_ids
-        ):
+        if self.relation is not LineageRelation.FAMILY_MEMBER and self.derivative_asset_id in self.source_asset_ids:
             raise ValueError("a derivative may not be its own source")
         return self

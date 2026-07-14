@@ -53,8 +53,7 @@ def main() -> None:
             mcp.run()
         except ImportError:
             err_console.print(
-                "[red]MCP mode requires the 'mcp' package.[/red]\n"
-                "Install with: [bold]pip install kinocut[/bold]",
+                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut[/bold]",
             )
             sys.exit(1)
         return

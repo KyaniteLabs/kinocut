@@ -144,7 +144,6 @@ PLATFORM_PROFILES: dict[str, SafeAreaProfile] = {
 # --------------------------------------------------------------------------- #
 
 
-
 def _compute_target_id(cues: Sequence[SubtitleCue]) -> str:
     """Deterministic sha256 asset id from cue content (never echoes raw text)."""
     payload = json.dumps(
@@ -192,12 +191,14 @@ def _validate_cues(cues: object) -> tuple[SubtitleCue, ...]:
         if not isinstance(item, SubtitleCue):
             raise _qa_error("each cue must be a SubtitleCue instance")
         times = (item.start, item.end)
-        if any(
-            isinstance(value, bool)
-            or not isinstance(value, (int, float))
-            or not math.isfinite(float(value))
-            for value in times
-        ) or item.start < 0.0 or item.end <= item.start:
+        if (
+            any(
+                isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value))
+                for value in times
+            )
+            or item.start < 0.0
+            or item.end <= item.start
+        ):
             raise _qa_error("each cue time_range must be positive and non-negative")
         if not isinstance(item.text, str):
             raise _qa_error("cue text must be a string")
@@ -235,10 +236,7 @@ def parse_subtitle_cues(path: str) -> tuple[SubtitleCue, ...]:
             code="unsupported_subtitle_format",
         )
     raw = _caption_segments(path)
-    cues = tuple(
-        SubtitleCue(index=i, start=start, end=end, text=text)
-        for i, (start, end, text) in enumerate(raw)
-    )
+    cues = tuple(SubtitleCue(index=i, start=start, end=end, text=text) for i, (start, end, text) in enumerate(raw))
     return cues
 
 
@@ -279,23 +277,11 @@ def qa_subtitle_temporal(
     tid = _resolve_target_id(valid, target_id)
 
     findings: list[DefectFinding] = []
-    findings.extend(
-        _eof_findings(valid, eof, project_id, tid, created_by)
-    )
-    findings.extend(
-        _overlap_findings(valid, project_id, tid, created_by)
-    )
-    findings.extend(
-        _gap_findings(valid, gap_seconds_threshold, project_id, tid, created_by)
-    )
-    findings.extend(
-        _reading_speed_findings(
-            valid, reading_speed_cps_threshold, project_id, tid, created_by
-        )
-    )
-    findings.extend(
-        _missing_text_findings(valid, project_id, tid, created_by)
-    )
+    findings.extend(_eof_findings(valid, eof, project_id, tid, created_by))
+    findings.extend(_overlap_findings(valid, project_id, tid, created_by))
+    findings.extend(_gap_findings(valid, gap_seconds_threshold, project_id, tid, created_by))
+    findings.extend(_reading_speed_findings(valid, reading_speed_cps_threshold, project_id, tid, created_by))
+    findings.extend(_missing_text_findings(valid, project_id, tid, created_by))
     return tuple(findings)
 
 
@@ -307,7 +293,6 @@ def _validate_eof(eof_seconds: object) -> float:
     if not math.isfinite(val) or val <= 0.0:
         raise _qa_error("eof_seconds must be a positive, finite number")
     return val
-
 
 
 def _eof_time_range(cue: SubtitleCue, eof: float) -> tuple[float, float]:
@@ -532,16 +517,10 @@ def qa_subtitle_safe_area(
     findings: list[DefectFinding] = []
     for cue in valid:
         box = _estimate_subtitle_box(cue.text, profile)
-        finding = _safe_area_overflow_finding(
-            cue, box, profile, project_id, tid, created_by
-        )
+        finding = _safe_area_overflow_finding(cue, box, profile, project_id, tid, created_by)
         if finding is not None:
             findings.append(finding)
-        findings.extend(
-            _overlay_collision_findings(
-                cue, box, profile, overlay_regions, project_id, tid, created_by
-            )
-        )
+        findings.extend(_overlay_collision_findings(cue, box, profile, overlay_regions, project_id, tid, created_by))
     return tuple(findings)
 
 
@@ -567,9 +546,7 @@ def _estimate_subtitle_box(text: str, profile: SafeAreaProfile) -> _PixelBox:
     chars = len(stripped)
     if chars == 0:
         chars = 1
-    effective_lines = min(
-        math.ceil(chars / profile.max_chars_per_line), profile.max_lines
-    )
+    effective_lines = min(math.ceil(chars / profile.max_chars_per_line), profile.max_lines)
     chars_in_longest_line = min(chars, profile.max_chars_per_line)
     box_w = math.ceil(chars_in_longest_line * profile.subtitle_font_size_px * _CHAR_WIDTH_FACTOR)
     box_h = math.ceil(effective_lines * profile.subtitle_font_size_px * _LINE_HEIGHT_FACTOR)
@@ -745,7 +722,6 @@ def subtitle_qa(
         qa_subtitle_safe_area(
             cues,
             profile=profile_obj,
-
             project_id=project_id,
             target_id=tid,
             created_by=created_by,
@@ -764,9 +740,7 @@ def _resolve_profile(profile: str | None, media_path: str) -> SafeAreaProfile:
     """Return the named profile or infer one from the media's display size."""
     if profile is not None:
         if profile not in PLATFORM_PROFILES:
-            raise _qa_error(
-                "profile must be one of: vertical, horizontal, square"
-            )
+            raise _qa_error("profile must be one of: vertical, horizontal, square")
         return PLATFORM_PROFILES[profile]
     raw = _run_ffprobe_json(media_path)
     video = next(

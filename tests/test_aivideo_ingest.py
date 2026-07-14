@@ -134,9 +134,7 @@ def test_absolute_rights_evidence_reference_is_rejected(tmp_path):
     proj = open_project(tmp_path / "proj")
     src = _write_clip(tmp_path / "clip.mp4")
     with pytest.raises(MCPVideoError):
-        ingest_project_asset(
-            proj, src, usage_rights_evidence_ref="/Users/someone/rights.json"
-        )
+        ingest_project_asset(proj, src, usage_rights_evidence_ref="/Users/someone/rights.json")
 
 
 def test_enriched_record_persists_and_reads_back(tmp_path):

@@ -102,9 +102,7 @@ class IntentPlanEnvelope(_FrozenModel):
             created_at=datetime.now(UTC),
             intent_sha256="sha256:" + "0" * 64,
         )
-        return draft.model_copy(
-            update={"intent_sha256": _hash_payload(draft, exclude={"created_at", "intent_sha256"})}
-        )
+        return draft.model_copy(update={"intent_sha256": _hash_payload(draft, exclude={"created_at", "intent_sha256"})})
 
 
 class ExecutorCapability(_FrozenModel):

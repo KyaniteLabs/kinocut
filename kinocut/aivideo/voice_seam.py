@@ -271,9 +271,7 @@ def _parameter_error(name: str) -> MCPVideoError:
     )
 
 
-def _finite_parameter(
-    value: object, name: str, *, minimum: float | None = None, maximum: float | None = None
-) -> float:
+def _finite_parameter(value: object, name: str, *, minimum: float | None = None, maximum: float | None = None) -> float:
     """Return a finite real parameter inside optional inclusive bounds."""
 
     if isinstance(value, bool) or not isinstance(value, (int, float)):
@@ -370,9 +368,7 @@ def _pace_metric_and_finding(
 
     if timing.words_per_minute is None:
         return (), ()
-    metric = VoiceSeamMetric(
-        name="pace_words_per_minute", value=timing.words_per_minute, unit="wpm"
-    )
+    metric = VoiceSeamMetric(name="pace_words_per_minute", value=timing.words_per_minute, unit="wpm")
     lo, hi = bounds
     if timing.words_per_minute < lo or timing.words_per_minute > hi:
         severity = (
@@ -400,9 +396,7 @@ def _cadence_metric_and_finding(
     if timing.total_speech_seconds <= 0.0 or timing.segment_count == 0:
         return (), ()
     spm = timing.segment_count / timing.total_speech_seconds * 60.0
-    metric = VoiceSeamMetric(
-        name="cadence_segments_per_minute", value=spm, unit="segments/min"
-    )
+    metric = VoiceSeamMetric(name="cadence_segments_per_minute", value=spm, unit="segments/min")
     lo, hi = bounds
     if spm < lo or spm > hi:
         finding = VoiceSeamFinding(
@@ -434,11 +428,7 @@ def _silence_seam_findings(
                     severity=VoiceSeamSeverity.LOW,
                     detector=f"{ANALYZER_VERSION}.silence",
                     time_range=(previous.end, current.start),
-                    measurements=(
-                        VoiceSeamMetric(
-                            name="silence_gap_seconds", value=gap, unit="s"
-                        ),
-                    ),
+                    measurements=(VoiceSeamMetric(name="silence_gap_seconds", value=gap, unit="s"),),
                 )
             )
     return tuple(findings)
@@ -480,9 +470,7 @@ def _voice_style_report(
             *findings,
         )
     metrics = (*pace_metrics, *cadence_metrics)
-    return VoiceStyleReport(
-        metrics=metrics, findings=findings, transcript_timing=timing
-    )
+    return VoiceStyleReport(metrics=metrics, findings=findings, transcript_timing=timing)
 
 
 def _loudness_summary(audio_path: str) -> LoudnessSummary:
@@ -494,8 +482,15 @@ def _loudness_summary(audio_path: str) -> LoudnessSummary:
     """
 
     cmd = [
-        "ffmpeg", "-hide_banner", "-i", audio_path,
-        "-af", "loudnorm=print_format=json", "-f", "null", "-",
+        "ffmpeg",
+        "-hide_banner",
+        "-i",
+        audio_path,
+        "-af",
+        "loudnorm=print_format=json",
+        "-f",
+        "null",
+        "-",
     ]
     try:
         result = _run_command(cmd, timeout=QUALITY_GUARDRAILS_TIMEOUT)
@@ -507,7 +502,7 @@ def _loudness_summary(audio_path: str) -> LoudnessSummary:
     if start < 0 or end <= start:
         return LoudnessSummary(analysis_available=False)
     try:
-        payload = json.loads(stderr[start:end + 1])
+        payload = json.loads(stderr[start : end + 1])
     except json.JSONDecodeError:
         return LoudnessSummary(analysis_available=False)
     return LoudnessSummary(
@@ -540,9 +535,7 @@ def _loudness_findings(
     lo, hi = bounds
     value = loudness.integrated_lufs
     if value < lo or value > hi:
-        metric = VoiceSeamMetric(
-            name="integrated_lufs", value=value, unit="LUFS"
-        )
+        metric = VoiceSeamMetric(name="integrated_lufs", value=value, unit="LUFS")
         return (
             VoiceSeamFinding(
                 code=VoiceSeamFindingCode.LOUDNESS_SEAM,
@@ -647,9 +640,7 @@ def _identity_findings(
     if score is None or score < threshold:
         measurements: tuple[VoiceSeamMetric, ...] = ()
         if score is not None:
-            measurements = (
-                VoiceSeamMetric(name="speaker_similarity", value=score, unit="cosine"),
-            )
+            measurements = (VoiceSeamMetric(name="speaker_similarity", value=score, unit="cosine"),)
         return (
             VoiceSeamFinding(
                 code=VoiceSeamFindingCode.VOICE_IDENTITY_MISMATCH,
@@ -724,13 +715,9 @@ def analyze_voice_seam(
         raise _clamp_error(str(exc)) from exc
 
     segments = clamp_result.segments
-    timing = _transcript_timing(
-        segments, len(clamp_result.warnings), clamp_result.clamped, clamp_result.dropped
-    )
+    timing = _transcript_timing(segments, len(clamp_result.warnings), clamp_result.clamped, clamp_result.dropped)
 
-    style = _voice_style_report(
-        segments, timing, pace_bounds, cadence_bounds, silence_seam_seconds
-    )
+    style = _voice_style_report(segments, timing, pace_bounds, cadence_bounds, silence_seam_seconds)
     loudness = _loudness_summary(validated)
     loudness_findings = _loudness_findings(loudness, loudness_bounds)
 

@@ -302,9 +302,7 @@ def approve_egress(
     return approval.model_dump(mode="json")
 
 
-def validate_egress_approval(
-    manifest: Mapping[str, Any], approval: Mapping[str, Any]
-) -> Literal[True]:
+def validate_egress_approval(manifest: Mapping[str, Any], approval: Mapping[str, Any]) -> Literal[True]:
     """Validate JSON-compatible egress and approval documents."""
 
     assert_network_approval(

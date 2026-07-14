@@ -24,7 +24,10 @@ from kinocut_sound.delivery import (
 
 def test_delivery_presets_are_closed_and_match_named_targets():
     assert {p.value for p in DeliveryPreset} == {
-        "stream_-14", "podcast_-16", "broadcast_ebu_r128_-23", "broadcast_atsc_a85_-24",
+        "stream_-14",
+        "podcast_-16",
+        "broadcast_ebu_r128_-23",
+        "broadcast_atsc_a85_-24",
     }
     assert DEFAULT_PRESET is DeliveryPreset.STREAM_MINUS_14
     for preset, target in (
@@ -85,7 +88,8 @@ def test_delivery_policy_requires_pre_master_reference_when_master_only_limiting
     policy = DeliveryPolicy(
         master_only_limiting_enabled=True,
         recombination=StemRecombinationPolicy(
-            tolerance_lsb_at_24bit=1, comparison_reference="pre_master",
+            tolerance_lsb_at_24bit=1,
+            comparison_reference="pre_master",
         ),
     )
     assert policy.master_only_limiting_enabled is True
@@ -93,6 +97,7 @@ def test_delivery_policy_requires_pre_master_reference_when_master_only_limiting
         DeliveryPolicy(
             master_only_limiting_enabled=True,
             recombination=StemRecombinationPolicy(
-                tolerance_lsb_at_24bit=1, comparison_reference="post_master",
+                tolerance_lsb_at_24bit=1,
+                comparison_reference="post_master",
             ),
         )

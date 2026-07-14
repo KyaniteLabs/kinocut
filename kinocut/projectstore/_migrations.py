@@ -57,11 +57,7 @@ def migrate_raw(record_kind: str, raw: dict[str, Any]) -> dict[str, Any]:
             )
         current = _apply_migrator(migrator, current, record_kind, version)
         next_version = current.get("schema_version")
-        if (
-            not isinstance(next_version, int)
-            or isinstance(next_version, bool)
-            or next_version <= version
-        ):
+        if not isinstance(next_version, int) or isinstance(next_version, bool) or next_version <= version:
             raise contract_error("reader migration did not advance schema_version", INVALID_RECORD)
         version = next_version
     return current

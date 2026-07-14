@@ -180,6 +180,4 @@ def test_canonical_id_golden_vector_locks_unicode_and_nested_serialization():
         supersedes="sha256:" + "1" * 64,
         source_record_ids=("sha256:" + "2" * 64, "sha256:" + "3" * 64),
     )
-    assert canonical_record_id(rec) == (
-        "sha256:6a17ce367257017a4db24d04bf23d678242ef815d94dc2360a956582e27ffc11"
-    )
+    assert canonical_record_id(rec) == ("sha256:6a17ce367257017a4db24d04bf23d678242ef815d94dc2360a956582e27ffc11")

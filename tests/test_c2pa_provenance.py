@@ -25,12 +25,16 @@ def _fake_c2patool(
     verify_payload: object = _DEFAULT_VERIFY_PAYLOAD,
 ) -> Path:
     script = path / "fake-c2patool"
-    success_payload = {
-        "active_manifest": "urn:uuid:kinocut-test",
-        "manifests": {"urn:uuid:kinocut-test": {"claim_generator": "Kinocut test"}},
-        "validation_state": "Valid",
-        "validation_status": [],
-    } if verify_payload is _DEFAULT_VERIFY_PAYLOAD else verify_payload
+    success_payload = (
+        {
+            "active_manifest": "urn:uuid:kinocut-test",
+            "manifests": {"urn:uuid:kinocut-test": {"claim_generator": "Kinocut test"}},
+            "validation_state": "Valid",
+            "validation_status": [],
+        }
+        if verify_payload is _DEFAULT_VERIFY_PAYLOAD
+        else verify_payload
+    )
     script.write_text(
         "\n".join(
             [

@@ -174,10 +174,7 @@ def _region_crop_origin_check(
         )
         expected_hashes = _decoded_frame_hashes(expected)
     observed_hashes = _decoded_frame_hashes(output)
-    mismatches = sum(
-        expected != observed
-        for expected, observed in zip(expected_hashes, observed_hashes, strict=False)
-    )
+    mismatches = sum(expected != observed for expected, observed in zip(expected_hashes, observed_hashes, strict=False))
     passed = mismatches == 0 and len(expected_hashes) == len(observed_hashes)
     return PreservationCheck(
         claim="requested_region_pixels",

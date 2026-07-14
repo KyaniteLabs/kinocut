@@ -57,9 +57,7 @@ def test_egress_manifest_is_exact_canonical_and_hash_bound() -> None:
         "inputs/z-source.mp4",
         "plans/approved.json",
     )
-    assert first.location == ProviderLocation(
-        provider="fake-render", region_known=True, region="us-west-2"
-    )
+    assert first.location == ProviderLocation(provider="fake-render", region_known=True, region="us-west-2")
     assert first.retention == RetentionPolicy(mode="delete_after_download", maximum_days=1)
     assert first.estimated_cost == Money(amount=Decimal("1.25"), currency="USD")
     assert first.manifest_sha256 == second.manifest_sha256

@@ -212,9 +212,7 @@ def _base_receipt(
         cleanup=CleanupState(
             work_dir=_relative(job_dir, output),
             intermediates=[
-                entry.output_path
-                for entry in operations
-                if entry.repair_id and entry.output_path is not None
+                entry.output_path for entry in operations if entry.repair_id and entry.output_path is not None
             ],
             cleaned=[],
         ),
@@ -365,7 +363,14 @@ def render_rescue(
     operations: list[OperationEntry] = list(prior_operations)
 
     def persist() -> None:
-        _atomic_json(state_path, {"plan_sha256": plan.plan_sha256, "approved_repair_ids": approved, "operations": [entry.model_dump(mode="json") for entry in operations]})
+        _atomic_json(
+            state_path,
+            {
+                "plan_sha256": plan.plan_sha256,
+                "approved_repair_ids": approved,
+                "operations": [entry.model_dump(mode="json") for entry in operations],
+            },
+        )
 
     try:
         _check_cancel(cancel)
@@ -394,6 +399,7 @@ def render_rescue(
         _check_cancel(cancel)
 
         sharing = package_dir / f"{stem}-sharing.mp4"
+
         def progress_cancel(_: float) -> None:
             _check_cancel(cancel)
 
@@ -453,14 +459,38 @@ def render_rescue(
             checks.append(caption_failure)
         failed = [check for check in checks if check.gating and not check.passed]
         artifacts = [
-            PackageArtifact(kind="master", status="available", path=master.name, sha256=_sha(master), size_bytes=master.stat().st_size),
-            PackageArtifact(kind="sharing_copy", status="available", path=sharing.name, sha256=_sha(sharing), size_bytes=sharing.stat().st_size),
+            PackageArtifact(
+                kind="master",
+                status="available",
+                path=master.name,
+                sha256=_sha(master),
+                size_bytes=master.stat().st_size,
+            ),
+            PackageArtifact(
+                kind="sharing_copy",
+                status="available",
+                path=sharing.name,
+                sha256=_sha(sharing),
+                size_bytes=sharing.stat().st_size,
+            ),
         ]
         if captions is not None and transcript is not None:
             artifacts.extend(
                 [
-                    PackageArtifact(kind="captions", status="available", path=captions.name, sha256=_sha(captions), size_bytes=captions.stat().st_size),
-                    PackageArtifact(kind="transcript", status="available", path=transcript.name, sha256=_sha(transcript), size_bytes=transcript.stat().st_size),
+                    PackageArtifact(
+                        kind="captions",
+                        status="available",
+                        path=captions.name,
+                        sha256=_sha(captions),
+                        size_bytes=captions.stat().st_size,
+                    ),
+                    PackageArtifact(
+                        kind="transcript",
+                        status="available",
+                        path=transcript.name,
+                        sha256=_sha(transcript),
+                        size_bytes=transcript.stat().st_size,
+                    ),
                 ]
             )
         else:
@@ -477,7 +507,20 @@ def render_rescue(
             os.replace(job_dir, quarantine)
             quarantined_operations = _remap_operations(operations, job_dir, quarantine, workspace)
             resume_ref = _relative(resume_receipt, output) if resume_receipt else None
-            receipt = _base_receipt(plan, "quarantined", approved, quarantined_operations, checks, PackageManifest(path=None, promoted=False, artifacts=[], quarantine_path=_relative(quarantine, output)), workspace, output, quarantine, resume_used=resume_receipt is not None, resume_receipt_path=resume_ref, error={"code": RESCUE_VERIFICATION_FAILED})
+            receipt = _base_receipt(
+                plan,
+                "quarantined",
+                approved,
+                quarantined_operations,
+                checks,
+                PackageManifest(path=None, promoted=False, artifacts=[], quarantine_path=_relative(quarantine, output)),
+                workspace,
+                output,
+                quarantine,
+                resume_used=resume_receipt is not None,
+                resume_receipt_path=resume_ref,
+                error={"code": RESCUE_VERIFICATION_FAILED},
+            )
             _write_receipt(receipt, quarantine / "rescue-receipt.json")
             if receipt_copy:
                 _write_receipt(receipt, receipt_copy)
@@ -494,15 +537,23 @@ def render_rescue(
                 sha256=placeholder_hash,
             )
         )
-        receipt = _base_receipt(plan, "completed", approved, promoted_operations, checks, PackageManifest(path=final_name, promoted=True, artifacts=artifacts), workspace, output, job_dir, resume_used=resume_receipt is not None, resume_receipt_path=resume_ref)
-        receipt = receipt.model_copy(
-            update={"receipt_path": receipt_ref, "receipt_sha256": placeholder_hash}
+        receipt = _base_receipt(
+            plan,
+            "completed",
+            approved,
+            promoted_operations,
+            checks,
+            PackageManifest(path=final_name, promoted=True, artifacts=artifacts),
+            workspace,
+            output,
+            job_dir,
+            resume_used=resume_receipt is not None,
+            resume_receipt_path=resume_ref,
         )
+        receipt = receipt.model_copy(update={"receipt_path": receipt_ref, "receipt_sha256": placeholder_hash})
         receipt_hash = receipt_integrity_sha256(receipt)
         finalized_artifacts = [
-            artifact.model_copy(update={"sha256": receipt_hash})
-            if artifact.kind == "receipt"
-            else artifact
+            artifact.model_copy(update={"sha256": receipt_hash}) if artifact.kind == "receipt" else artifact
             for artifact in receipt.package.artifacts
         ]
         receipt = receipt.model_copy(
@@ -523,7 +574,20 @@ def render_rescue(
         shutil.rmtree(package_dir, ignore_errors=True)
         operations = [entry for entry in operations if entry.repair_id]
         resume_ref = _relative(resume_receipt, output) if resume_receipt else None
-        receipt = _base_receipt(plan, "cancelled", approved, operations, [], PackageManifest(path=None, promoted=False, artifacts=[]), workspace, output, job_dir, resume_used=resume_receipt is not None, resume_receipt_path=resume_ref, error={"code": RESCUE_CANCELLED})
+        receipt = _base_receipt(
+            plan,
+            "cancelled",
+            approved,
+            operations,
+            [],
+            PackageManifest(path=None, promoted=False, artifacts=[]),
+            workspace,
+            output,
+            job_dir,
+            resume_used=resume_receipt is not None,
+            resume_receipt_path=resume_ref,
+            error={"code": RESCUE_CANCELLED},
+        )
         persist()
         if receipt_copy:
             _write_receipt(receipt, receipt_copy)

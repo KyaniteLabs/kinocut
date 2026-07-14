@@ -56,9 +56,7 @@ class ClampedSegment(Mapping[str, object]):
 
     __slots__ = ("_end", "_fields", "_start")
 
-    def __init__(
-        self, start: float, end: float, fields: Mapping[str, object] = _EMPTY_FIELDS
-    ) -> None:
+    def __init__(self, start: float, end: float, fields: Mapping[str, object] = _EMPTY_FIELDS) -> None:
         object.__setattr__(self, "_start", start)
         object.__setattr__(self, "_end", end)
         object.__setattr__(self, "_fields", _freeze_fields(fields))
@@ -97,10 +95,7 @@ class ClampedSegment(Mapping[str, object]):
         raise AttributeError("ClampedSegment is immutable")
 
     def __repr__(self) -> str:
-        return (
-            f"ClampedSegment(start={self._start!r}, end={self._end!r}, "
-            f"fields={dict(self._fields)!r})"
-        )
+        return f"ClampedSegment(start={self._start!r}, end={self._end!r}, fields={dict(self._fields)!r})"
 
 
 @dataclass(frozen=True)
@@ -202,11 +197,7 @@ def _validate_segment(segment: object) -> tuple[float, float, Mapping[str, objec
             if not isinstance(key, str):
                 raise _error("segment keys must be strings")
         start, end = _validate_times(segment["start"], segment["end"])
-        extras = {
-            key: _freeze_metadata(segment[key], frozenset())
-            for key in segment
-            if key not in ("start", "end")
-        }
+        extras = {key: _freeze_metadata(segment[key], frozenset()) for key in segment if key not in ("start", "end")}
         fields: Mapping[str, object] = MappingProxyType(extras) if extras else _EMPTY_FIELDS
         return start, end, fields
     if isinstance(segment, (tuple, list)) and len(segment) == 2:

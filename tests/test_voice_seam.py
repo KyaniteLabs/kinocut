@@ -58,9 +58,7 @@ def speech_audio(tmp_path_factory) -> str:
     if not _has_ffmpeg():
         pytest.skip("FFmpeg not installed")
     path = str(tmp_path_factory.mktemp("voice") / "speech.wav")
-    _run_ffmpeg(
-        ["-f", "lavfi", "-i", "sine=frequency=440:duration=6", "-ac", "1", "-ar", "16000", path]
-    )
+    _run_ffmpeg(["-f", "lavfi", "-i", "sine=frequency=440:duration=6", "-ac", "1", "-ar", "16000", path])
     return path
 
 
@@ -72,8 +70,17 @@ def quiet_audio(tmp_path_factory) -> str:
     path = str(tmp_path_factory.mktemp("voice") / "quiet.wav")
     _run_ffmpeg(
         [
-            "-f", "lavfi", "-i", "sine=frequency=440:duration=6",
-            "-af", "volume=0.005", "-ac", "1", "-ar", "16000", path,
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=6",
+            "-af",
+            "volume=0.005",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            path,
         ]
     )
     return path
@@ -87,8 +94,17 @@ def loud_audio(tmp_path_factory) -> str:
     path = str(tmp_path_factory.mktemp("voice") / "loud.wav")
     _run_ffmpeg(
         [
-            "-f", "lavfi", "-i", "sine=frequency=440:duration=6",
-            "-af", "volume=2.0", "-ac", "1", "-ar", "16000", path,
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=6",
+            "-af",
+            "volume=2.0",
+            "-ac",
+            "1",
+            "-ar",
+            "16000",
+            path,
         ]
     )
     return path
@@ -412,7 +428,9 @@ def test_voice_seam_speaker_provider_never_fakes_identity_when_absent(speech_aud
 def test_voice_seam_0519_like_identity_mismatch_produces_finding(speech_audio):
     """The canonical 0.519 similarity falls below the default threshold."""
     report = analyze_voice_seam(
-        speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0,
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
         speaker_provider=_MismatchSpeaker(),
     )
     assert report.speaker_identity.availability is SpeakerIdentityAvailability.IDENTIFIED
@@ -423,7 +441,9 @@ def test_voice_seam_0519_like_identity_mismatch_produces_finding(speech_audio):
 
 def test_voice_seam_matching_speaker_produces_no_mismatch_finding(speech_audio):
     report = analyze_voice_seam(
-        speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0,
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
         speaker_provider=_MatchingSpeaker(),
     )
     assert report.speaker_identity.similarity_score == pytest.approx(0.92)
@@ -433,7 +453,9 @@ def test_voice_seam_matching_speaker_produces_no_mismatch_finding(speech_audio):
 
 def test_voice_seam_failing_speaker_provider_fails_soft(speech_audio):
     report = analyze_voice_seam(
-        speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0,
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
         speaker_provider=_FailingSpeaker(),
     )
     assert report.speaker_identity.availability is SpeakerIdentityAvailability.PROVIDER_FAILED
@@ -446,12 +468,18 @@ def test_voice_seam_speaker_identity_threshold_is_respected(speech_audio):
     """A 0.6 similarity with threshold 0.7 is a mismatch; threshold 0.5 is not."""
     provider = _SixtyPctSpeaker()
     report_strict = analyze_voice_seam(
-        speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0,
-        speaker_provider=provider, identity_threshold=0.7,
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
+        speaker_provider=provider,
+        identity_threshold=0.7,
     )
     report_loose = analyze_voice_seam(
-        speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0,
-        speaker_provider=provider, identity_threshold=0.5,
+        speech_audio,
+        [_phrase(0, 0.0, 3.0, "hi")],
+        6.0,
+        speaker_provider=provider,
+        identity_threshold=0.5,
     )
     strict_codes = {f.code for f in report_strict.findings}
     loose_codes = {f.code for f in report_loose.findings}
@@ -471,13 +499,9 @@ def test_voice_seam_speaker_identity_threshold_is_respected(speech_audio):
         {"silence_seam_seconds": float("inf")},
     ],
 )
-def test_voice_seam_rejects_non_finite_or_unordered_thresholds(
-    speech_audio, kwargs
-):
+def test_voice_seam_rejects_non_finite_or_unordered_thresholds(speech_audio, kwargs):
     with pytest.raises(MCPVideoError) as exc:
-        analyze_voice_seam(
-            speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0, **kwargs
-        )
+        analyze_voice_seam(speech_audio, [_phrase(0, 0.0, 3.0, "hi")], 6.0, **kwargs)
     assert exc.value.code == "invalid_voice_seam_parameter"
 
 
@@ -554,7 +578,7 @@ def test_voice_seam_report_audio_fingerprint_is_sha256(speech_audio):
     fp = report.audio_fingerprint
     assert fp.startswith("sha256:")
     assert len(fp) == len("sha256:") + 64
-    assert all(c in "0123456789abcdef" for c in fp[len("sha256:"):])  # type: ignore[index]
+    assert all(c in "0123456789abcdef" for c in fp[len("sha256:") :])  # type: ignore[index]
 
 
 # --------------------------------------------------------------------------- #
@@ -630,8 +654,13 @@ def test_voice_seam_metric_value_object_carries_unit(speech_audio):
 
 def test_voice_seam_finding_code_enum_is_closed():
     expected = {
-        "pace_outlier", "cadence_outlier", "silence_seam", "loudness_seam",
-        "voice_identity_mismatch", "pitch_proxy_unavailable",
-        "speaker_provider_failed", "transcript_empty",
+        "pace_outlier",
+        "cadence_outlier",
+        "silence_seam",
+        "loudness_seam",
+        "voice_identity_mismatch",
+        "pitch_proxy_unavailable",
+        "speaker_provider_failed",
+        "transcript_empty",
     }
     assert {code.value for code in VoiceSeamFindingCode} == expected

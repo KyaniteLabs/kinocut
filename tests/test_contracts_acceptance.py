@@ -54,7 +54,5 @@ def test_acceptance_spec_exact_text_hash_must_be_sha256():
 def test_acceptance_spec_declared_region_must_be_normalized():
     with pytest.raises(ValidationError):
         GenerationAcceptanceSpec(
-            **acceptance_spec_kwargs(
-                declared_text_region={"x": 1.5, "y": 0.1, "width": 0.2, "height": 0.1}
-            )
+            **acceptance_spec_kwargs(declared_text_region={"x": 1.5, "y": 0.1, "width": 0.2, "height": 0.1})
         )

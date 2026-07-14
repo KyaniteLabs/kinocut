@@ -43,9 +43,7 @@ def _synthesis_workdir(output_path: str) -> str:
     return os.path.dirname(os.path.abspath(output_path))
 
 
-def _fill_burn_source(
-    fd: int, subtitle_format: str, subtitle_path: str, input_path: str
-) -> None:
+def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_path: str) -> None:
     """Write the subtitle content burned by the filter into the open temp-ASS ``fd``.
 
     Authored ASS is copied byte-for-byte so a hostile subtitle filename never

@@ -786,8 +786,17 @@ def test_composite_layers_renders_rotated_image_over_solid_canvas(tmp_path):
     plan = tmp_path / "plan.json"
     subprocess.run(
         [
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=red:s=24x16:d=0.1",
-            "-frames:v", "1", "-pix_fmt", "rgba", str(plate),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=24x16:d=0.1",
+            "-frames:v",
+            "1",
+            "-pix_fmt",
+            "rgba",
+            str(plate),
         ],
         check=True,
         capture_output=True,
@@ -825,8 +834,17 @@ def test_composite_layers_rotation_is_ssim_stable_across_renders(tmp_path):
     plate = tmp_path / "plate.png"
     subprocess.run(
         [
-            "ffmpeg", "-y", "-f", "lavfi", "-i", "color=c=red:s=24x16:d=0.1",
-            "-frames:v", "1", "-pix_fmt", "rgba", str(plate),
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=24x16:d=0.1",
+            "-frames:v",
+            "1",
+            "-pix_fmt",
+            "rgba",
+            str(plate),
         ],
         check=True,
         capture_output=True,

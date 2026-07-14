@@ -56,12 +56,7 @@ def _error(message: str, code: str) -> MCPVideoError:
 def _existing_project(project_dir: str) -> Project:
     root = Path(project_dir)
     store_root = root / ".kinocut"
-    if (
-        not root.is_dir()
-        or root.is_symlink()
-        or not store_root.is_dir()
-        or store_root.is_symlink()
-    ):
+    if not root.is_dir() or root.is_symlink() or not store_root.is_dir() or store_root.is_symlink():
         raise _error("inspection project does not exist", "inspection_project_missing")
     return open_project(root)
 
@@ -69,17 +64,9 @@ def _existing_project(project_dir: str) -> Project:
 def _active_asset(project: Project, asset_id: str | None) -> AssetRecord:
     if asset_id is None:
         raise _error("inspection requires an asset id", "inspection_asset_required")
-    records = [
-        item
-        for item in store.read_records(project, "asset_record")
-        if isinstance(item, AssetRecord)
-    ]
+    records = [item for item in store.read_records(project, "asset_record") if isinstance(item, AssetRecord)]
     superseded = {item.supersedes for item in records if item.supersedes is not None}
-    matches = [
-        item
-        for item in records
-        if item.asset_id == asset_id and item.record_id not in superseded
-    ]
+    matches = [item for item in records if item.asset_id == asset_id and item.record_id not in superseded]
     if not matches:
         raise _error("inspection asset was not found", "inspection_asset_not_found")
     if len(matches) != 1:
@@ -148,15 +135,24 @@ def _regions(
 
 def _preview_args(media: Path, *, muted: bool, duration: float) -> list[str]:
     args = [
-        "-i", str(media), "-map", "0:v:0", "-map", "0:a:0?",
-        "-t", f"{min(duration, DEFAULT_INSPECTION_PREVIEW_MAX_SECONDS):.6f}",
+        "-i",
+        str(media),
+        "-map",
+        "0:v:0",
+        "-map",
+        "0:a:0?",
+        "-t",
+        f"{min(duration, DEFAULT_INSPECTION_PREVIEW_MAX_SECONDS):.6f}",
         "-vf",
-        (
-            "scale=w='max(2,trunc(min("
-            f"{DEFAULT_INSPECTION_PREVIEW_WIDTH},iw)/2)*2)':h=-2"
-        ),
-        "-c:v", "libx264", "-preset", DEFAULT_INSPECTION_PREVIEW_PRESET,
-        "-crf", str(DEFAULT_INSPECTION_PREVIEW_CRF), "-pix_fmt", "yuv420p",
+        (f"scale=w='max(2,trunc(min({DEFAULT_INSPECTION_PREVIEW_WIDTH},iw)/2)*2)':h=-2"),
+        "-c:v",
+        "libx264",
+        "-preset",
+        DEFAULT_INSPECTION_PREVIEW_PRESET,
+        "-crf",
+        str(DEFAULT_INSPECTION_PREVIEW_CRF),
+        "-pix_fmt",
+        "yuv420p",
     ]
     args.extend(["-an"] if muted else ["-c:a", "aac"])
     return [*args, "-movflags", "+frag_keyframe+empty_moov", "-f", "mp4", "pipe:1"]
@@ -244,9 +240,7 @@ def _measurement_artifact(project: Project, result: Any) -> ArtifactRef:
 def _persist_findings(project: Project, findings: tuple[DefectFinding, ...]) -> tuple[str, ...]:
     with store._project_lock(project):
         existing = {
-            item.record_id
-            for item in store.read_records(project, "defect_finding")
-            if isinstance(item, DefectFinding)
+            item.record_id for item in store.read_records(project, "defect_finding") if isinstance(item, DefectFinding)
         }
         ids: list[str] = []
         for finding in findings:
@@ -274,15 +268,9 @@ def _inspect(
     technical, _validated_preflight = _preflight_ref(project, asset)
     samples = sample_decoded_timestamps(str(media))
     frames = extract_sampled_frames(project, str(media), samples)
-    region_crops = (
-        extract_region_crops(project, str(media), samples, declared_regions)
-        if declared_regions
-        else ()
-    )
+    region_crops = extract_region_crops(project, str(media), samples, declared_regions) if declared_regions else ()
     strip = build_motion_strip(project, frames)
-    temporal = inspect_temporal_media(
-        str(media), target_id=asset.asset_id, project_id=asset.project_id
-    )
+    temporal = inspect_temporal_media(str(media), target_id=asset.asset_id, project_id=asset.project_id)
     finding_ids = _persist_findings(project, temporal.findings)
     measurements = _measurement_artifact(project, temporal)
     preview = _preview(project, media, muted=False, duration=temporal.playable_end)

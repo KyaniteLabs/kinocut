@@ -69,9 +69,7 @@ def _render(project: Project, frames: tuple[TimestampedArtifactRef, ...]) -> byt
     )
 
 
-def build_motion_strip(
-    project: Project, frames: tuple[TimestampedArtifactRef, ...]
-) -> MotionStripArtifactRef:
+def build_motion_strip(project: Project, frames: tuple[TimestampedArtifactRef, ...]) -> MotionStripArtifactRef:
     """Tile every sampled frame left-to-right and install the strip canonically."""
 
     if not frames:

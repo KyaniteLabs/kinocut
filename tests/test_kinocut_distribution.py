@@ -169,9 +169,9 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     sdist_includes = set(project["tool"]["hatch"]["build"]["targets"]["sdist"]["only-include"])
     assert {"/mcpb", "/docs/MCPB.md", "/scripts/build-mcpb.py"} <= sdist_includes
     assert "/kinocut_sound" in sdist_includes
-    assert "[\"-m\", \"kinocut\", \"--mcp\"]" in launcher
+    assert '["-m", "kinocut", "--mcp"]' in launcher
     assert "shell: false" in launcher
-    assert "require(\"node:child_process\")" in launcher
+    assert 'require("node:child_process")' in launcher
     assert "import " not in launcher
     assert "env.PATH =" not in launcher
     assert "KINOCUT_FFMPEG_EXECUTABLE" in launcher

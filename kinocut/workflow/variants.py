@@ -55,9 +55,7 @@ def apply_variant_overrides(spec_data: dict[str, Any], variant_id: str) -> dict[
     variant = _find_variant(spec_data, variant_id)
     overrides = variant.get("overrides") or {}
     if not isinstance(overrides, dict):
-        raise workflow_error(
-            f"variant {variant_id!r} overrides must be an object", INVALID_WORKFLOW_VARIANT
-        )
+        raise workflow_error(f"variant {variant_id!r} overrides must be an object", INVALID_WORKFLOW_VARIANT)
     merged = copy.deepcopy(spec_data)
     overridden_outputs: set[str] = set()
     for key, value in overrides.items():
@@ -80,9 +78,7 @@ def _apply_override(
     merged: dict[str, Any], variant_id: str, key: Any, value: Any, overridden_outputs: set[str]
 ) -> None:
     if not isinstance(key, str) or not key:
-        raise workflow_error(
-            f"variant {variant_id!r} has a non-string/empty override key", INVALID_WORKFLOW_VARIANT
-        )
+        raise workflow_error(f"variant {variant_id!r} has a non-string/empty override key", INVALID_WORKFLOW_VARIANT)
     parts = key.split(".")
     if parts[0] == _STEPS:
         _apply_step_override(merged, variant_id, key, parts, value)
@@ -96,9 +92,7 @@ def _apply_override(
         )
 
 
-def _apply_step_override(
-    merged: dict[str, Any], variant_id: str, key: str, parts: list[str], value: Any
-) -> None:
+def _apply_step_override(merged: dict[str, Any], variant_id: str, key: str, parts: list[str], value: Any) -> None:
     if len(parts) < 3:
         raise workflow_error(
             f"variant {variant_id!r} override key {key!r} must be steps.<id>.params[.<name>] or steps.<id>.output",

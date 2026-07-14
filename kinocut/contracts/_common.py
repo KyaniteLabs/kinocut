@@ -96,6 +96,7 @@ class RecordBase(BaseModel):
         if isinstance(value, bool) or not isinstance(value, int):
             raise ValueError("schema_version must be the integer 1")
         return value
+
     record_id: Sha256 | None = None
     project_id: str = Field(min_length=1)
     created_at: str | None = None
@@ -117,9 +118,7 @@ class RecordBase(BaseModel):
         return self
 
 
-def canonical_record_id(
-    model: RecordBase, *, exclude: frozenset[str] = _DEFAULT_EXCLUDE
-) -> Sha256:
+def canonical_record_id(model: RecordBase, *, exclude: frozenset[str] = _DEFAULT_EXCLUDE) -> Sha256:
     """Return ``sha256:<hex>`` over a record's canonical semantic content.
 
     Only a :class:`RecordBase` has a canonical identity, and ``exclude`` may name
@@ -134,9 +133,7 @@ def canonical_record_id(
     if not frozenset(exclude) <= _INFORMATIONAL_FIELDS:
         raise ValueError("exclude may only contain informational fields")
     try:
-        payload: dict[str, Any] = model.model_dump(
-            mode="json", exclude=set(exclude) | {"record_id"}
-        )
+        payload: dict[str, Any] = model.model_dump(mode="json", exclude=set(exclude) | {"record_id"})
         encoded = json.dumps(
             payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False
         ).encode("utf-8")

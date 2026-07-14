@@ -109,9 +109,7 @@ def test_malformed_input_raises_private_error(tmp_path):
     assert "not-a-real-video.mp4" not in message
 
 
-def test_run_preflight_stores_artifact_and_supersedes_without_mutation(
-    tmp_path, sample_video
-):
+def test_run_preflight_stores_artifact_and_supersedes_without_mutation(tmp_path, sample_video):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     digest_dir = _asset_digest_dir(proj.root, original.asset_id)
@@ -272,9 +270,7 @@ def test_confirmed_absent_audio_stays_has_audio_false(monkeypatch):
     ("rotation", "normalized"),
     [(-90, 270), (-270, 90), (450, 90)],
 )
-def test_negative_and_wrapped_rotations_use_normalized_display_geometry(
-    monkeypatch, rotation, normalized
-):
+def test_negative_and_wrapped_rotations_use_normalized_display_geometry(monkeypatch, rotation, normalized):
     info = _stub_probe(rotation)
     assert info.normalized_rotation == normalized
     assert (info.display_width, info.display_height) == (1080, 1920)
@@ -332,9 +328,7 @@ def test_probe_warning_logs_exception_type_without_sensitive_content(monkeypatch
         raise RuntimeError(f"{_MARKER_RAW_RUNTIME} {_MARKER_HOST_PATH} {_MARKER_STDERR}")
 
     monkeypatch.setattr(preflight, "probe", _boom)
-    with caplog.at_level("WARNING", logger=preflight.__name__), pytest.raises(
-        MCPVideoError
-    ) as exc:
+    with caplog.at_level("WARNING", logger=preflight.__name__), pytest.raises(MCPVideoError) as exc:
         preflight._technical(_MARKER_HOST_PATH)
     assert exc.value.error_type == "input_error"
     assert exc.value.code == "preflight_probe_failed"
@@ -439,9 +433,7 @@ def test_color_analysis_failure_logs_no_path_or_raw_stderr(monkeypatch, caplog, 
     assert _MARKER_STDERR not in caplog.text
 
 
-def test_run_preflight_rejects_unpersisted_asset_before_probe(
-    tmp_path, sample_video, monkeypatch
-):
+def test_run_preflight_rejects_unpersisted_asset_before_probe(tmp_path, sample_video, monkeypatch):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     unpersisted = original.model_copy(update={"record_id": None})
@@ -460,9 +452,7 @@ def test_run_preflight_rejects_unpersisted_asset_before_probe(
     assert exc.value.code == "preflight_asset_unpersisted"
 
 
-def test_run_preflight_rejects_caller_record_that_differs_from_persisted_asset(
-    tmp_path, sample_video, monkeypatch
-):
+def test_run_preflight_rejects_caller_record_that_differs_from_persisted_asset(tmp_path, sample_video, monkeypatch):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     forged = original.model_copy(update={"byte_size": original.byte_size + 1})
@@ -477,9 +467,7 @@ def test_run_preflight_rejects_caller_record_that_differs_from_persisted_asset(
     assert exc.value.code == "preflight_asset_mismatch"
 
 
-def test_append_failure_removes_newly_created_preflight_artifact(
-    tmp_path, sample_video, monkeypatch
-):
+def test_append_failure_removes_newly_created_preflight_artifact(tmp_path, sample_video, monkeypatch):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     report = build_preflight_report(sample_video)
@@ -497,9 +485,7 @@ def test_append_failure_removes_newly_created_preflight_artifact(
     assert not artifact.exists()
 
 
-def test_append_failure_preserves_preexisting_content_addressed_artifact(
-    tmp_path, sample_video, monkeypatch
-):
+def test_append_failure_preserves_preexisting_content_addressed_artifact(tmp_path, sample_video, monkeypatch):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     report = build_preflight_report(sample_video)
@@ -518,9 +504,7 @@ def test_append_failure_preserves_preexisting_content_addressed_artifact(
     assert artifact.read_text(encoding="utf-8") == line
 
 
-def test_run_preflight_refuses_preexisting_artifact_with_different_bytes(
-    tmp_path, sample_video, monkeypatch
-):
+def test_run_preflight_refuses_preexisting_artifact_with_different_bytes(tmp_path, sample_video, monkeypatch):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     report = build_preflight_report(sample_video)
@@ -539,9 +523,7 @@ def test_run_preflight_refuses_preexisting_artifact_with_different_bytes(
     assert len(read_records(proj, "asset_record")) == 1
 
 
-def test_artifact_install_and_record_append_hold_one_project_lock(
-    tmp_path, sample_video, monkeypatch
-):
+def test_artifact_install_and_record_append_hold_one_project_lock(tmp_path, sample_video, monkeypatch):
     proj = open_project(tmp_path / "proj")
     original = ingest_project_asset(proj, sample_video)
     report = build_preflight_report(sample_video)

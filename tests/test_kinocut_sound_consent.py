@@ -51,7 +51,10 @@ def test_consent_scope_rejects_unbounded_codes_and_unsafe_text():
         with pytest.raises(ValidationError):
             kwargs = {"territory": "US", field: ("with space",)}
             all_fields = dict(
-                project_ids=("p",), character_ids=("c",), operations=("o",), provider_classes=("l",),
+                project_ids=("p",),
+                character_ids=("c",),
+                operations=("o",),
+                provider_classes=("l",),
             )
             all_fields.update(kwargs)
             ConsentScope(**all_fields)

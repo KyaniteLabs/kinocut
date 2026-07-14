@@ -29,7 +29,11 @@ def _cue(cue_id: str = "cue_001", start: float = 0.0, duration: float = 1.5, **k
 
 def test_cue_kinds_are_closed():
     assert {k.value for k in CueKind} == {
-        "line", "silence", "foley", "bed", "chapter_marker",
+        "line",
+        "silence",
+        "foley",
+        "bed",
+        "chapter_marker",
     }
 
 

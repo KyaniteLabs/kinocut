@@ -68,8 +68,8 @@ from .source_identity import (
 )
 
 from .validation import AUDIO_BED_SAFE_DISPLAY_RE
-logger = logging.getLogger(__name__)
 
+logger = logging.getLogger(__name__)
 
 
 @contextmanager
@@ -81,20 +81,16 @@ def _verified_audio_sources(
     music_identity = stream_source_identity(music_path)
     with ExitStack() as stack:
         workspace = stack.enter_context(
-            tempfile.TemporaryDirectory(
-                dir=Path(output_path).parent, prefix=".audio-bed.sources."
-            )
+            tempfile.TemporaryDirectory(dir=Path(output_path).parent, prefix=".audio-bed.sources.")
         )
         root = Path(workspace)
-        voice = copy_verified_snapshot(
-            voice_source, root / "voice-source", voice_identity
-        )
+        voice = copy_verified_snapshot(voice_source, root / "voice-source", voice_identity)
         stack.callback(voice.close)
-        music = copy_verified_snapshot(
-            music_path, root / "music-source", music_identity
-        )
+        music = copy_verified_snapshot(music_path, root / "music-source", music_identity)
         stack.callback(music.close)
         yield voice, music
+
+
 # ---------------------------------------------------------------------------
 # Probing helpers
 # ---------------------------------------------------------------------------
@@ -121,6 +117,7 @@ def _probe_duration(path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
 # ---------------------------------------------------------------------------
 # Hashing and receipt helpers
 # ---------------------------------------------------------------------------
+
 
 def _file_sha256(path: str) -> str:
     """Compute ``sha256:<hex>`` over file bytes."""
@@ -222,7 +219,8 @@ def _compute_loop_plays(bed_duration: float, target_duration: float, crossfade: 
     """
     if bed_duration <= crossfade:
         raise _validation_error(
-            "loop_crossfade must be smaller than the bed duration", "invalid_loop_crossfade",
+            "loop_crossfade must be smaller than the bed duration",
+            "invalid_loop_crossfade",
         )
     raw = (target_duration + crossfade) / (bed_duration - crossfade)
     plays = max(2, math.ceil(raw))
@@ -235,7 +233,9 @@ def _compute_loop_plays(bed_duration: float, target_duration: float, crossfade: 
 
 
 def _build_loop_filtergraph(
-    bed_duration: float, target_duration: float, crossfade: float,
+    bed_duration: float,
+    target_duration: float,
+    crossfade: float,
 ) -> tuple[str, int]:
     """Build a crossfaded seamless-loop filtergraph for a short bed.
 
@@ -304,11 +304,18 @@ def _prepare_looped_bed(
     looped_path = workspace / "looped_bed.wav"
     _run_ffmpeg(
         [
-            "-stream_loop", "-1", "-i", music_path,
-            "-filter_complex", filter_graph,
-            "-map", "[out]",
-            "-t", _n(target_duration, "target_duration"),
-            "-c:a", "pcm_s16le",
+            "-stream_loop",
+            "-1",
+            "-i",
+            music_path,
+            "-filter_complex",
+            filter_graph,
+            "-map",
+            "[out]",
+            "-t",
+            _n(target_duration, "target_duration"),
+            "-c:a",
+            "pcm_s16le",
             str(looped_path),
         ],
         pass_fds=pass_fds,
@@ -336,15 +343,23 @@ def _select_filtergraph(
     """Choose and build the duck or no-duck filtergraph for the render pass."""
     if voice_has_audio:
         return _build_duck_filtergraph(
-            music_volume=music_volume, duck_threshold=duck_threshold,
-            duck_ratio=duck_ratio, duck_attack=duck_attack,
-            duck_release=duck_release, fade_in=fade_in, fade_out=fade_out,
-            target_duration=target_duration, target_lufs=target_lufs,
+            music_volume=music_volume,
+            duck_threshold=duck_threshold,
+            duck_ratio=duck_ratio,
+            duck_attack=duck_attack,
+            duck_release=duck_release,
+            fade_in=fade_in,
+            fade_out=fade_out,
+            target_duration=target_duration,
+            target_lufs=target_lufs,
         )
     needs_pad = bed_duration < target_duration and not (loop and loop_crossfade > 0)
     return _build_no_duck_filtergraph(
-        music_volume=music_volume, fade_in=fade_in, fade_out=fade_out,
-        target_duration=target_duration, target_lufs=target_lufs,
+        music_volume=music_volume,
+        fade_in=fade_in,
+        fade_out=fade_out,
+        target_duration=target_duration,
+        target_lufs=target_lufs,
         needs_pad=needs_pad,
     )
 
@@ -378,7 +393,9 @@ def _guarded_render(
     """
     parent = Path(output_path).parent
     staging_fd, staging_name = tempfile.mkstemp(
-        dir=parent, prefix=".audio-bed.publish.", suffix=Path(output_path).suffix,
+        dir=parent,
+        prefix=".audio-bed.publish.",
+        suffix=Path(output_path).suffix,
     )
     os.close(staging_fd)
     staging = Path(staging_name)
@@ -386,19 +403,33 @@ def _guarded_render(
         with tempfile.TemporaryDirectory(dir=parent, prefix=".audio-bed.") as workspace_dir:
             workspace = Path(workspace_dir)
             bed_input = _resolve_bed_input(
-                music_path, bed_duration, target_duration, loop, loop_crossfade, workspace,
+                music_path,
+                bed_duration,
+                target_duration,
+                loop,
+                loop_crossfade,
+                workspace,
                 pass_fds=pass_fds,
             )
             fc = _select_filtergraph(
-                voice_has_audio=voice_has_audio, bed_duration=bed_duration,
-                target_duration=target_duration, music_volume=music_volume,
-                duck_threshold=duck_threshold, duck_ratio=duck_ratio,
-                duck_attack=duck_attack, duck_release=duck_release,
-                fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
-                loop=loop, loop_crossfade=loop_crossfade,
+                voice_has_audio=voice_has_audio,
+                bed_duration=bed_duration,
+                target_duration=target_duration,
+                music_volume=music_volume,
+                duck_threshold=duck_threshold,
+                duck_ratio=duck_ratio,
+                duck_attack=duck_attack,
+                duck_release=duck_release,
+                fade_in=fade_in,
+                fade_out=fade_out,
+                target_lufs=target_lufs,
+                loop=loop,
+                loop_crossfade=loop_crossfade,
             )
             args = _render_args(
-                voice_source, bed_input, str(staging),
+                voice_source,
+                bed_input,
+                str(staging),
                 voice_has_audio=voice_has_audio,
                 voice_has_video=voice_has_video,
                 target_duration=target_duration,
@@ -426,7 +457,11 @@ def _resolve_bed_input(
     """Return the bed path to use: looped if needed, otherwise the original."""
     if loop and bed_duration < target_duration and loop_crossfade > 0:
         return _prepare_looped_bed(
-            music_path, bed_duration, target_duration, loop_crossfade, workspace,
+            music_path,
+            bed_duration,
+            target_duration,
+            loop_crossfade,
+            workspace,
             pass_fds=pass_fds,
         )
     return music_path
@@ -438,7 +473,9 @@ def _resolve_bed_input(
 
 
 def _verify_output_duration(
-    output_path: str, target_duration: float, tolerance: float,
+    output_path: str,
+    target_duration: float,
+    tolerance: float,
 ) -> float:
     """Probe the rendered output and fail closed if duration policy is violated."""
     actual = _get_video_duration(output_path)
@@ -564,8 +601,11 @@ class _BedProbe:
     """Probe result bundle for the two audio-bed sources."""
 
     __slots__ = (
-        "bed_duration", "music_has_audio",
-        "voice_duration", "voice_has_audio", "voice_has_video",
+        "bed_duration",
+        "music_has_audio",
+        "voice_duration",
+        "voice_has_audio",
+        "voice_has_video",
     )
 
     def __init__(
@@ -583,9 +623,7 @@ class _BedProbe:
         self.music_has_audio = music_has_audio
 
 
-def _probe_sources(
-    voice_source: str, music_path: str, *, pass_fds: tuple[int, ...] = ()
-) -> _BedProbe:
+def _probe_sources(voice_source: str, music_path: str, *, pass_fds: tuple[int, ...] = ()) -> _BedProbe:
     """Probe durations and stream topology for both audio-bed sources."""
     return _BedProbe(
         voice_duration=_probe_duration(voice_source, pass_fds=pass_fds),
@@ -600,8 +638,7 @@ def _require_filters(voice_has_audio: bool) -> None:
     """Fail closed if the sidechain or loudnorm filters are unavailable."""
     if voice_has_audio and not _check_filter_available("sidechaincompress"):
         raise MCPVideoError(
-            "sidechaincompress filter is unavailable; audio_bed refuses to "
-            "silently substitute the simpler mixer.",
+            "sidechaincompress filter is unavailable; audio_bed refuses to silently substitute the simpler mixer.",
             error_type="dependency_error",
             code="missing_filter_sidechaincompress",
         )
@@ -614,7 +651,11 @@ def _require_filters(voice_has_audio: bool) -> None:
 
 
 def _compute_warnings(
-    *, voice_has_audio: bool, bed_duration: float, target_duration: float, loop: bool,
+    *,
+    voice_has_audio: bool,
+    bed_duration: float,
+    target_duration: float,
+    loop: bool,
 ) -> list[str]:
     """Collect non-fatal warning codes for the receipt."""
     warnings: list[str] = []
@@ -627,7 +668,10 @@ def _compute_warnings(
 
 
 def _validate_loop_bounds(
-    bed_duration: float, target_duration: float, loop: bool, loop_crossfade: float,
+    bed_duration: float,
+    target_duration: float,
+    loop: bool,
+    loop_crossfade: float,
 ) -> bool:
     """Validate loop parameters and return whether looping is actually needed."""
     needs_loop = loop and bed_duration < target_duration and loop_crossfade > 0
@@ -671,44 +715,66 @@ def _finalize_audio_bed(
     """Render, verify, build receipt, and return the structured result."""
     with _timed_operation() as timing:
         _guarded_render(
-            voice_source, music_path, output_path,
+            voice_source,
+            music_path,
+            output_path,
             voice_has_audio=probe.voice_has_audio,
             voice_has_video=probe.voice_has_video,
-            target_duration=target_duration, music_volume=music_volume,
-            duck_threshold=duck_threshold, duck_ratio=duck_ratio,
-            duck_attack=duck_attack, duck_release=duck_release,
-            fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
-            loop=loop, loop_crossfade=loop_crossfade,
+            target_duration=target_duration,
+            music_volume=music_volume,
+            duck_threshold=duck_threshold,
+            duck_ratio=duck_ratio,
+            duck_attack=duck_attack,
+            duck_release=duck_release,
+            fade_in=fade_in,
+            fade_out=fade_out,
+            target_lufs=target_lufs,
+            loop=loop,
+            loop_crossfade=loop_crossfade,
             bed_duration=probe.bed_duration,
             pass_fds=pass_fds,
         )
     try:
         output_duration = _verify_output_duration(
-            output_path, target_duration, duration_tolerance,
+            output_path,
+            target_duration,
+            duration_tolerance,
         )
     except ProcessingError:
         with suppress(OSError):
             Path(output_path).unlink(missing_ok=True)
         raise
     receipt = _build_receipt(
-        voice_source=voice_display_path, music_path=music_display_path,
+        voice_source=voice_display_path,
+        music_path=music_display_path,
         voice_content_sha256=voice_content_sha256,
-        music_content_sha256=music_content_sha256, output_path=output_path,
-        voice_duration=probe.voice_duration, bed_duration=probe.bed_duration,
-        output_duration=output_duration, voice_has_audio=probe.voice_has_audio,
+        music_content_sha256=music_content_sha256,
+        output_path=output_path,
+        voice_duration=probe.voice_duration,
+        bed_duration=probe.bed_duration,
+        output_duration=output_duration,
+        voice_has_audio=probe.voice_has_audio,
         music_has_audio=probe.music_has_audio,
         music_volume=music_volume,
-        loop=loop, loop_crossfade=loop_crossfade,
-        fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
-        duck_threshold=duck_threshold, duck_ratio=duck_ratio,
-        duck_attack=duck_attack, duck_release=duck_release,
+        loop=loop,
+        loop_crossfade=loop_crossfade,
+        fade_in=fade_in,
+        fade_out=fade_out,
+        target_lufs=target_lufs,
+        duck_threshold=duck_threshold,
+        duck_ratio=duck_ratio,
+        duck_attack=duck_attack,
+        duck_release=duck_release,
         warnings=tuple(warnings),
     )
     if save_receipt is not None:
         _write_receipt(save_receipt, receipt)
     logger.info(
         "audio_bed: rendered %s (%.3fs, ducking=%s, loop=%s) in %.0fms",
-        output_path, output_duration, probe.voice_has_audio, needs_loop,
+        output_path,
+        output_duration,
+        probe.voice_has_audio,
+        needs_loop,
         timing.get("elapsed_ms") or 0.0,
     )
     return {
@@ -742,9 +808,14 @@ def audio_bed(
     """Governed one-shot audio-bed: duck music under voice, normalize, receipt."""
     _validate_audio_bed_params(
         loop=loop,
-        loop_crossfade=loop_crossfade, fade_in=fade_in, fade_out=fade_out,
-        target_lufs=target_lufs, duck_threshold=duck_threshold,
-        duck_ratio=duck_ratio, duck_attack=duck_attack, duck_release=duck_release,
+        loop_crossfade=loop_crossfade,
+        fade_in=fade_in,
+        fade_out=fade_out,
+        target_lufs=target_lufs,
+        duck_threshold=duck_threshold,
+        duck_ratio=duck_ratio,
+        duck_attack=duck_attack,
+        duck_release=duck_release,
         music_volume=music_volume,
         duration_tolerance=duration_tolerance,
     )
@@ -757,34 +828,49 @@ def audio_bed(
     with _verified_audio_sources(voice_source, music_path, output_path) as sources:
         voice_snapshot, music_snapshot = sources
         pass_fds = voice_snapshot.pass_fds + music_snapshot.pass_fds
-        probe = _probe_sources(
-            voice_snapshot.path, music_snapshot.path, pass_fds=pass_fds
-        )
+        probe = _probe_sources(voice_snapshot.path, music_snapshot.path, pass_fds=pass_fds)
         if not probe.music_has_audio:
             raise _validation_error(
-                "music bed must contain an audio stream", "missing_audio_stream",
+                "music bed must contain an audio stream",
+                "missing_audio_stream",
             )
         _require_filters(probe.voice_has_audio)
         target_duration = probe.voice_duration
         needs_loop = _validate_loop_bounds(
-            probe.bed_duration, target_duration, loop, loop_crossfade,
+            probe.bed_duration,
+            target_duration,
+            loop,
+            loop_crossfade,
         )
         warnings = _compute_warnings(
             voice_has_audio=probe.voice_has_audio,
             bed_duration=probe.bed_duration,
-            target_duration=target_duration, loop=loop,
+            target_duration=target_duration,
+            loop=loop,
         )
         return _finalize_audio_bed(
-            voice_source=voice_snapshot.path, music_path=music_snapshot.path,
-            voice_display_path=voice_source, music_display_path=music_path,
+            voice_source=voice_snapshot.path,
+            music_path=music_snapshot.path,
+            voice_display_path=voice_source,
+            music_display_path=music_path,
             voice_content_sha256=voice_snapshot.identity.asset_id,
             music_content_sha256=music_snapshot.identity.asset_id,
-            pass_fds=pass_fds, output_path=output_path,
-            probe=probe, target_duration=target_duration, music_volume=music_volume,
-            duck_threshold=duck_threshold, duck_ratio=duck_ratio,
-            duck_attack=duck_attack, duck_release=duck_release,
-            fade_in=fade_in, fade_out=fade_out, target_lufs=target_lufs,
-            loop=loop, loop_crossfade=loop_crossfade,
-            duration_tolerance=duration_tolerance, save_receipt=save_receipt,
-            warnings=warnings, needs_loop=needs_loop,
+            pass_fds=pass_fds,
+            output_path=output_path,
+            probe=probe,
+            target_duration=target_duration,
+            music_volume=music_volume,
+            duck_threshold=duck_threshold,
+            duck_ratio=duck_ratio,
+            duck_attack=duck_attack,
+            duck_release=duck_release,
+            fade_in=fade_in,
+            fade_out=fade_out,
+            target_lufs=target_lufs,
+            loop=loop,
+            loop_crossfade=loop_crossfade,
+            duration_tolerance=duration_tolerance,
+            save_receipt=save_receipt,
+            warnings=warnings,
+            needs_loop=needs_loop,
         )

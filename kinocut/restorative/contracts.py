@@ -41,9 +41,7 @@ class VerificationContract(_FrozenModel):
     required_gate_ids: tuple[str, ...]
 
 
-EVIDENCE_CONTRACT_IDS = MappingProxyType({
-    feature: f"{feature.value}.evidence.v1" for feature in RestorativeFeature
-})
+EVIDENCE_CONTRACT_IDS = MappingProxyType({feature: f"{feature.value}.evidence.v1" for feature in RestorativeFeature})
 VERIFICATION_CONTRACTS = MappingProxyType(
     {
         RestorativeFeature.SPEECH_DENOISE: VerificationContract(

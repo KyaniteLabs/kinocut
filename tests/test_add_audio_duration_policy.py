@@ -41,20 +41,41 @@ def _make_audio(path, duration: float) -> str:
 
 def _make_multistream_video(path, duration: float) -> str:
     """A video carrying TWO audio streams (e.g. voice + music)."""
-    _ffmpeg([
-        "-f", "lavfi", "-i", f"color=c=green:s=320x240:r=15:d={duration}",
-        "-f", "lavfi", "-i", f"sine=frequency=330:sample_rate=44100:d={duration}",
-        "-f", "lavfi", "-i", f"sine=frequency=660:sample_rate=44100:d={duration}",
-        "-map", "0:v", "-map", "1:a", "-map", "2:a", "-shortest", "-pix_fmt", "yuv420p", str(path),
-    ])
+    _ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            f"color=c=green:s=320x240:r=15:d={duration}",
+            "-f",
+            "lavfi",
+            "-i",
+            f"sine=frequency=330:sample_rate=44100:d={duration}",
+            "-f",
+            "lavfi",
+            "-i",
+            f"sine=frequency=660:sample_rate=44100:d={duration}",
+            "-map",
+            "0:v",
+            "-map",
+            "1:a",
+            "-map",
+            "2:a",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p",
+            str(path),
+        ]
+    )
     return str(path)
 
 
 def _audio_stream_count(path: str) -> int:
     out = subprocess.run(
-        ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index",
-         "-of", "csv=p=0", path],
-        check=True, capture_output=True, text=True,
+        ["ffprobe", "-v", "error", "-select_streams", "a", "-show_entries", "stream=index", "-of", "csv=p=0", path],
+        check=True,
+        capture_output=True,
+        text=True,
     ).stdout
     return len([line for line in out.splitlines() if line.strip()])
 
@@ -124,8 +145,7 @@ def test_mix_mode_preserves_video_duration_by_default(tmp_path, media):
 
 def test_invalid_duration_policy_is_rejected(tmp_path, media):
     with pytest.raises(MCPVideoError):
-        add_audio(media["video_10s"], media["audio_3s"], duration_policy="bogus",
-                  output_path=str(tmp_path / "x.mp4"))
+        add_audio(media["video_10s"], media["audio_3s"], duration_policy="bogus", output_path=str(tmp_path / "x.mp4"))
 
 
 def test_mix_keep_video_caps_longer_added_audio(tmp_path, media):
@@ -136,8 +156,7 @@ def test_mix_keep_video_caps_longer_added_audio(tmp_path, media):
 
 def test_mix_shortest_actually_shortens(tmp_path, media):
     out = tmp_path / "mixshort.mp4"
-    res = add_audio(media["video_10s"], media["audio_3s"], mix=True,
-                    duration_policy="shortest", output_path=str(out))
+    res = add_audio(media["video_10s"], media["audio_3s"], mix=True, duration_policy="shortest", output_path=str(out))
     assert _get_video_duration(str(out)) < 4.0  # genuinely shortened, not held at 10s
     assert any("duration" in w.lower() for w in res.warnings)
 
@@ -145,30 +164,37 @@ def test_mix_shortest_actually_shortens(tmp_path, media):
 @pytest.mark.parametrize("policy", ["loop_audio", "pad_audio"])
 def test_mix_loop_or_pad_fails_closed(tmp_path, media, policy):
     with pytest.raises(MCPVideoError):
-        add_audio(media["video_10s"], media["audio_3s"], mix=True,
-                  duration_policy=policy, output_path=str(tmp_path / "x.mp4"))
+        add_audio(
+            media["video_10s"], media["audio_3s"], mix=True, duration_policy=policy, output_path=str(tmp_path / "x.mp4")
+        )
 
 
 def test_invalid_policy_error_does_not_echo_raw_text(tmp_path, media):
     hostile = "../../etc/passwd <script>"
     with pytest.raises(MCPVideoError) as excinfo:
-        add_audio(media["video_10s"], media["audio_3s"], duration_policy=hostile,
-                  output_path=str(tmp_path / "x.mp4"))
+        add_audio(media["video_10s"], media["audio_3s"], duration_policy=hostile, output_path=str(tmp_path / "x.mp4"))
     assert hostile not in str(excinfo.value)  # raw invalid input never echoed
 
 
 def test_start_time_replace_keep_video_preserves_outro(tmp_path, media):
     out = tmp_path / "st_replace.mp4"
-    res = add_audio(media["video_10s"], media["audio_3s"], start_time=1.0,
-                    duration_policy="keep_video", output_path=str(out))
+    res = add_audio(
+        media["video_10s"], media["audio_3s"], start_time=1.0, duration_policy="keep_video", output_path=str(out)
+    )
     assert abs(_get_video_duration(str(out)) - 10.0) < 0.3  # delayed audio, outro kept
     assert _audio_stream_count(res.output_path) == 1
 
 
 def test_start_time_mix_keep_video_caps_at_video(tmp_path, media):
     out = tmp_path / "st_mix.mp4"
-    add_audio(media["video_10s"], media["audio_15s"], mix=True, start_time=1.0,
-              duration_policy="keep_video", output_path=str(out))
+    add_audio(
+        media["video_10s"],
+        media["audio_15s"],
+        mix=True,
+        start_time=1.0,
+        duration_policy="keep_video",
+        output_path=str(out),
+    )
     assert abs(_get_video_duration(str(out)) - 10.0) < 0.3  # delayed + longer audio, still capped
 
 
@@ -179,24 +205,29 @@ def test_multistream_source_video_probe_has_two_audio(media):
 @pytest.mark.parametrize("policy", ["keep_video", "trim_audio", "pad_audio", "loop_audio"])
 def test_multistream_source_replace_keeps_video_duration(tmp_path, media, policy):
     out = tmp_path / f"multi_{policy}.mp4"
-    res = add_audio(media["video_multistream"], media["audio_3s"],
-                    duration_policy=policy, output_path=str(out))
+    res = add_audio(media["video_multistream"], media["audio_3s"], duration_policy=policy, output_path=str(out))
     assert abs(_get_video_duration(str(out)) - 10.0) < 0.3
     assert _audio_stream_count(res.output_path) == 1  # replaced to a single mapped track
 
 
 def test_multistream_source_mix_keep_video_caps(tmp_path, media):
     out = tmp_path / "multi_mix.mp4"
-    add_audio(media["video_multistream"], media["audio_15s"], mix=True,
-              duration_policy="keep_video", output_path=str(out))
+    add_audio(
+        media["video_multistream"], media["audio_15s"], mix=True, duration_policy="keep_video", output_path=str(out)
+    )
     assert abs(_get_video_duration(str(out)) - 10.0) < 0.3
 
 
 @pytest.mark.parametrize("policy", ["loop_audio", "pad_audio"])
 def test_multistream_mix_loop_or_pad_fails_closed(tmp_path, media, policy):
     with pytest.raises(MCPVideoError):
-        add_audio(media["video_multistream"], media["audio_3s"], mix=True,
-                  duration_policy=policy, output_path=str(tmp_path / "x.mp4"))
+        add_audio(
+            media["video_multistream"],
+            media["audio_3s"],
+            mix=True,
+            duration_policy=policy,
+            output_path=str(tmp_path / "x.mp4"),
+        )
 
 
 def test_add_audio_remains_backward_compatible(tmp_path, media):

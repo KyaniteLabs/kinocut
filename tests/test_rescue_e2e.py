@@ -73,9 +73,7 @@ def test_fix_this_clip_end_to_end(tmp_path):
     assert plan["status"] == "planned"
     assert receipt["status"] == "completed"
     assert {"master", "sharing_copy"} <= {
-        artifact["kind"]
-        for artifact in receipt["package"]["artifacts"]
-        if artifact["status"] == "available"
+        artifact["kind"] for artifact in receipt["package"]["artifacts"] if artifact["status"] == "available"
     }
     assert inspection["integrity"]["all_matching"] is True
     assert all(check["passed"] for check in receipt["verification"] if check["gating"])
@@ -296,9 +294,7 @@ def test_planning_performance_receipt_has_required_context(tmp_path, capsys):
         "local_model_available": plans[0]["capabilities"]["whisper_models"]["base"]["available"],
         "predicted_seconds": plans[0]["estimate"]["seconds"],
         "actual_seconds": plans[0]["observed_planning_seconds"],
-        "absolute_estimate_error": abs(
-            plans[0]["estimate"]["seconds"] - plans[0]["observed_planning_seconds"]
-        ),
+        "absolute_estimate_error": abs(plans[0]["estimate"]["seconds"] - plans[0]["observed_planning_seconds"]),
         "target_seconds": 30,
     }
     report_path = tmp_path / "rescue-planning-performance.json"

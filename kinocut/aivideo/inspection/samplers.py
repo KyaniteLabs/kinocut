@@ -92,10 +92,7 @@ def choose_sample_timestamps(decoded: tuple[float, ...]) -> tuple[TimestampSampl
     grouped: dict[float, list[str]] = {}
     for timestamp, label in zip(selected, _LABELS, strict=True):
         grouped.setdefault(timestamp, []).append(label)
-    return tuple(
-        TimestampSample(timestamp=timestamp, labels=tuple(labels))
-        for timestamp, labels in grouped.items()
-    )
+    return tuple(TimestampSample(timestamp=timestamp, labels=tuple(labels)) for timestamp, labels in grouped.items())
 
 
 def _decoded_timestamps(path: str) -> tuple[float, ...]:
@@ -165,9 +162,7 @@ def _render_frame(input_path: str, timestamp: float, crop: str | None = None) ->
     return _run_ffmpeg_bytes(args)
 
 
-def _install_frame(
-    project: Project, input_path: str, sample: TimestampSample, index: int
-) -> TimestampedArtifactRef:
+def _install_frame(project: Project, input_path: str, sample: TimestampSample, index: int) -> TimestampedArtifactRef:
     rendered = _render_frame(input_path, sample.timestamp)
     installed = install_bytes(project, rendered, name=f"frame_{index:02d}.jpg")
     return TimestampedArtifactRef(
@@ -187,10 +182,7 @@ def extract_sampled_frames(
     """Extract each sample through real FFmpeg and install it canonically."""
 
     validated = _validate_input_path(path)
-    return tuple(
-        _install_frame(project, validated, sample, index)
-        for index, sample in enumerate(samples)
-    )
+    return tuple(_install_frame(project, validated, sample, index) for index, sample in enumerate(samples))
 
 
 def _source_dimensions(path: str) -> tuple[int, int]:
@@ -236,9 +228,7 @@ def _install_crop(
         sample.timestamp,
         _pixel_crop(declared.region, *dimensions),
     )
-    installed = install_bytes(
-        project, rendered, name=f"crop_{declared.name}_{index:02d}.jpg"
-    )
+    installed = install_bytes(project, rendered, name=f"crop_{declared.name}_{index:02d}.jpg")
     return RegionCropArtifactRef(
         artifact=ArtifactRef(
             artifact_id=installed.artifact_id,

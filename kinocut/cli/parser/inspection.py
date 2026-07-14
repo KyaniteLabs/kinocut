@@ -21,9 +21,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     preflight.add_argument("project_dir")
     preflight.add_argument("asset_id")
 
-    inspect = subparsers.add_parser(
-        "video-inspect-temporal", help="Build the complete temporal inspection package"
-    )
+    inspect = subparsers.add_parser("video-inspect-temporal", help="Build the complete temporal inspection package")
     inspect.add_argument("project_dir")
     inspect.add_argument("asset_id")
     inspect.add_argument("--regions-json", default=None)

@@ -301,9 +301,7 @@ class CleanupState(_StrictModel):
     _validate_intermediates = field_validator("intermediates")(
         lambda paths: [_relative_reference(path) for path in paths]
     )
-    _validate_cleaned = field_validator("cleaned")(
-        lambda paths: [_relative_reference(path) for path in paths]
-    )
+    _validate_cleaned = field_validator("cleaned")(lambda paths: [_relative_reference(path) for path in paths])
 
 
 class ResumeState(_StrictModel):

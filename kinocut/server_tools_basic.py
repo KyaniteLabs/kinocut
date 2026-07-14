@@ -35,6 +35,7 @@ def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> d
     section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
     return attach_ai_video_section(result, section)
 
+
 ExistingVideoPath = Annotated[
     str,
     Field(description="Absolute path to an existing local video file. The input file is read only."),
@@ -336,8 +337,10 @@ def video_add_audio(
     output_path: OptionalOutputVideoPath = None,
     duration_policy: Annotated[
         str,
-        Field(description="How to reconcile audio and video length: keep_video (default, preserves the "
-              "full video/outro), pad_audio, loop_audio, trim_audio, or shortest (may trim the outro)."),
+        Field(
+            description="How to reconcile audio and video length: keep_video (default, preserves the "
+            "full video/outro), pad_audio, loop_audio, trim_audio, or shortest (may trim the outro)."
+        ),
     ] = "keep_video",
 ) -> dict[str, Any]:
     """Add, replace, or mix an audio track into a video.
@@ -364,9 +367,7 @@ def video_add_audio(
         return _validation_error(f"fade_out must be non-negative, got {fade_out}")
     if duration_policy not in DURATION_POLICIES:
         # Never echo the raw (possibly hostile) value back into a public error.
-        return _validation_error(
-            f"duration_policy must be one of {DURATION_POLICIES}", code="invalid_duration_policy"
-        )
+        return _validation_error(f"duration_policy must be one of {DURATION_POLICIES}", code="invalid_duration_policy")
     result = _result(
         add_audio(
             video_path,

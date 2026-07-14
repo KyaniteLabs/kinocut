@@ -542,8 +542,8 @@ def test_reload_and_dispatch_restores_module_globals(monkeypatch):
     args = _make_args(command="subtitles", input="in.mp4", subtitle="c.srt", output="o.mp4", style=None)
     _reload_and_dispatch("mcp_video.cli.handlers_core", "subtitles", args, monkeypatch)
 
-    assert not isinstance(handlers_core._with_spinner, MagicMock)   # no mock leak
-    assert handlers_core._with_spinner is common._with_spinner       # real function restored
+    assert not isinstance(handlers_core._with_spinner, MagicMock)  # no mock leak
+    assert handlers_core._with_spinner is common._with_spinner  # real function restored
     assert not isinstance(handlers_core._out, MagicMock)
 
 

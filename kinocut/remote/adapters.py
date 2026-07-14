@@ -31,9 +31,7 @@ class ProviderAdapter(Protocol):
     @property
     def kind(self) -> AdapterKind: ...
 
-    def map_approved_plan(
-        self, local_plan: ApprovedLocalPlan, manifest: EgressManifest
-    ) -> AdapterMapping: ...
+    def map_approved_plan(self, local_plan: ApprovedLocalPlan, manifest: EgressManifest) -> AdapterMapping: ...
 
 
 class RenderProviderAdapter(ProviderAdapter, Protocol):
@@ -57,9 +55,7 @@ class FakeRenderAdapter:
     adapter_version: str = "fake-v1"
     kind: Literal["render"] = field(default="render", init=False)
 
-    def map_approved_plan(
-        self, local_plan: ApprovedLocalPlan, manifest: EgressManifest
-    ) -> AdapterMapping:
+    def map_approved_plan(self, local_plan: ApprovedLocalPlan, manifest: EgressManifest) -> AdapterMapping:
         return AdapterMapping(
             approved_plan=local_plan.plan,
             parameters={
@@ -79,9 +75,7 @@ class FakeDeliveryAdapter:
     def __post_init__(self) -> None:
         _relative_path(self.destination)
 
-    def map_approved_plan(
-        self, local_plan: ApprovedLocalPlan, manifest: EgressManifest
-    ) -> AdapterMapping:
+    def map_approved_plan(self, local_plan: ApprovedLocalPlan, manifest: EgressManifest) -> AdapterMapping:
         return AdapterMapping(
             approved_plan=local_plan.plan,
             parameters={"operation": "delivery", "destination": self.destination},
@@ -98,9 +92,7 @@ class FakeHostingAdapter:
     def __post_init__(self) -> None:
         _relative_path(self.destination)
 
-    def map_approved_plan(
-        self, local_plan: ApprovedLocalPlan, manifest: EgressManifest
-    ) -> AdapterMapping:
+    def map_approved_plan(self, local_plan: ApprovedLocalPlan, manifest: EgressManifest) -> AdapterMapping:
         return AdapterMapping(
             approved_plan=local_plan.plan,
             parameters={"operation": "hosting", "destination": self.destination},
@@ -117,17 +109,13 @@ def prepare_remote_job(
 ) -> RemoteJobSpec:
     """Map an explicitly selected, approved local plan without broadening intent."""
 
-    parsed_manifest = (
-        manifest if isinstance(manifest, EgressManifest) else EgressManifest.model_validate(manifest)
-    )
+    parsed_manifest = manifest if isinstance(manifest, EgressManifest) else EgressManifest.model_validate(manifest)
     assert_network_approval(parsed_manifest, network_approval)
     if adapter.provider != parsed_manifest.location.provider or selection.provider != adapter.provider:
         raise RemoteContractError("adapter provider does not match approved remote selection")
     if adapter.kind != selection.kind:
         raise RemoteContractError("adapter kind does not match explicit remote selection")
-    mapping = adapter.map_approved_plan(
-        local_plan.model_copy(deep=True), parsed_manifest.model_copy(deep=True)
-    )
+    mapping = adapter.map_approved_plan(local_plan.model_copy(deep=True), parsed_manifest.model_copy(deep=True))
     if not isinstance(mapping, AdapterMapping):
         mapping = AdapterMapping.model_validate(mapping)
     if mapping.approved_plan != local_plan.plan:

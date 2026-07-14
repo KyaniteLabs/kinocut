@@ -107,9 +107,7 @@ def render_workflow(
     """
     if all_variants:
         if variant is not None:
-            raise workflow_error(
-                "pass either variant=<name> or all_variants=True, not both", INVALID_WORKFLOW_SPEC
-            )
+            raise workflow_error("pass either variant=<name> or all_variants=True, not both", INVALID_WORKFLOW_SPEC)
         if resume_receipt is not None:
             raise workflow_error(
                 "all_variants cannot be combined with resume; resume a single variant's receipt",
@@ -142,9 +140,7 @@ def _render_one(
 
     resuming = resume_receipt is not None
     if resuming:
-        prior_by_id, run_dir_rel, run_dir_abs = _load_resume(
-            resume_receipt, spec_hash, workspace_root, variant
-        )
+        prior_by_id, run_dir_rel, run_dir_abs = _load_resume(resume_receipt, spec_hash, workspace_root, variant)
     else:
         prior_by_id = {}
         run_dir_rel, run_dir_abs = _make_run_dir(workspace_root, spec_hash)
@@ -174,8 +170,14 @@ def _render_one(
                 intermediates.append(output_rel)
             steps_receipt.append(
                 _step_entry(
-                    step, "completed", input_hashes, output_rel, output_hash,
-                    prior.get("started_at"), prior.get("ended_at"), skipped=True,
+                    step,
+                    "completed",
+                    input_hashes,
+                    output_rel,
+                    output_hash,
+                    prior.get("started_at"),
+                    prior.get("ended_at"),
+                    skipped=True,
                 )
             )
             continue
@@ -191,7 +193,13 @@ def _render_one(
             err = exc if isinstance(exc, MCPVideoError) else _wrap_engine_exception(exc, step, workspace_root)
             steps_receipt.append(
                 _step_entry(
-                    step, "failed", input_hashes, output_rel, None, started_at, _utcnow(),
+                    step,
+                    "failed",
+                    input_hashes,
+                    output_rel,
+                    None,
+                    started_at,
+                    _utcnow(),
                     error=_sanitize_error(err, workspace_root),
                 )
             )
@@ -254,9 +262,7 @@ def _render_one(
 # --- Batch variants ----------------------------------------------------------
 
 
-def _render_all_variants(
-    spec_path: str, save_receipt_dir: str | None, keep_intermediates: bool
-) -> dict[str, Any]:
+def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_intermediates: bool) -> dict[str, Any]:
     """Render EVERY declared variant in turn; return a ``workflow_batch`` summary.
 
     Each variant renders into its OWN unique ``@work`` run dir (no cross-variant
@@ -270,9 +276,7 @@ def _render_all_variants(
     data = load_spec(resolved)
     ids = variant_ids(data)
     if not ids:
-        raise workflow_error(
-            "all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC
-        )
+        raise workflow_error("all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC)
     spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
     workspace_root = Path(os.path.realpath(resolved.parent))
     _reject_variant_output_collisions(spec_path, ids)
@@ -376,9 +380,7 @@ def _load_resume(
     try:
         run_dir_abs.relative_to(workspace_root)
     except ValueError:
-        raise workflow_error(
-            "resume receipt work_dir escapes the workspace root", UNSAFE_WORKFLOW_SOURCE
-        ) from None
+        raise workflow_error("resume receipt work_dir escapes the workspace root", UNSAFE_WORKFLOW_SOURCE) from None
     run_dir_abs.mkdir(parents=True, exist_ok=True)  # recreated if the prior dir was deleted (steps then re-run)
     return prior_by_id, work_dir_rel, run_dir_abs
 
@@ -429,8 +431,16 @@ def _run_step(
         # composite synthesizes a workspace-confined nested layer spec from its @refs.
         # source_ids/work_ids drive the render-time re-validation (validate/render TOCTOU guard).
         render_composite_step(
-            adapter, step, workspace_root, source_paths, work_paths, run_dir_abs, output_abs,
-            _resolve_confined_input, set(source_paths), set(work_paths),
+            adapter,
+            step,
+            workspace_root,
+            source_paths,
+            work_paths,
+            run_dir_abs,
+            output_abs,
+            _resolve_confined_input,
+            set(source_paths),
+            set(work_paths),
         )
         return
     resolved_input = _resolve_engine_input(adapter, step.inputs, workspace_root, source_paths, work_paths)
@@ -450,9 +460,7 @@ def _resolve_confined_input(
     so a composite layer source is confined identically to any other op's source (a symlink
     swapped in after validation still fails closed at execution time).
     """
-    return _confine_to_workspace(
-        _resolve_ref_path(ref, workspace_root, source_paths, work_paths), workspace_root, ref
-    )
+    return _confine_to_workspace(_resolve_ref_path(ref, workspace_root, source_paths, work_paths), workspace_root, ref)
 
 
 def _resolve_engine_input(
@@ -511,9 +519,7 @@ def _hash_inputs(
     """Real sha256 for every consumed input (``src`` / ``srcs[i]`` / composite layer slots)."""
     # composite records one hash per layer source (layers[i].src/mask); every other op
     # hashes its flat src/srcs refs. Both drive complete per-step provenance.
-    ref_pairs = (
-        iter_composite_refs(inputs) if isinstance(adapter, CompositeOpAdapter) else _iter_step_refs(inputs)
-    )
+    ref_pairs = iter_composite_refs(inputs) if isinstance(adapter, CompositeOpAdapter) else _iter_step_refs(inputs)
     hashes: dict[str, str | None] = {}
     for key, ref in ref_pairs:
         path = _resolve_ref_path(ref, workspace_root, source_paths, work_paths)
@@ -697,9 +703,7 @@ def _wrap_engine_exception(exc: Exception, step: WorkflowStep, workspace_root: P
     AttributeError, ...). The message is sanitized so a receipt or MCP envelope
     never leaks the absolute workspace path OR any other out-of-workspace path.
     """
-    message = _sanitize_message(
-        f"step {step.id!r} ({step.op}) failed: {type(exc).__name__}: {exc}", workspace_root
-    )
+    message = _sanitize_message(f"step {step.id!r} ({step.op}) failed: {type(exc).__name__}: {exc}", workspace_root)
     return workflow_error(message, WORKFLOW_STEP_FAILED)
 
 

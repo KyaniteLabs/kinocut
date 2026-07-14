@@ -65,8 +65,12 @@ def test_availability_states_are_closed():
 def test_unavailable_requires_reason_code():
     with pytest.raises(ValidationError):
         _report(availability="unavailable", reason_code=None)
-    ok = _report(availability="unavailable", reason_code="missing_dependency",
-                 remediation="Install ffmpeg and retry.", surfaces=SurfaceAvailability(mcp=False, python=False, cli=False))
+    ok = _report(
+        availability="unavailable",
+        reason_code="missing_dependency",
+        remediation="Install ffmpeg and retry.",
+        surfaces=SurfaceAvailability(mcp=False, python=False, cli=False),
+    )
     assert ok.reason_code == "missing_dependency"
 
 
@@ -86,33 +90,36 @@ def test_capability_id_and_codes_are_bounded():
 
 def test_remediation_rejects_host_paths_and_urls():
     with pytest.raises(ValidationError):
-        _report(availability="degraded", reason_code="slow",
-                remediation="see /Users/victim/notes for the fix")
+        _report(availability="degraded", reason_code="slow", remediation="see /Users/victim/notes for the fix")
     with pytest.raises(ValidationError):
-        _report(availability="degraded", reason_code="slow",
-                remediation="visit http://evil.test/fix")
+        _report(availability="degraded", reason_code="slow", remediation="visit http://evil.test/fix")
 
 
 def test_next_action_command_template_is_advisory_only():
-    action = NextAction(action_code="ingest_first",
-                        summary="Ingest the source asset before verdict.",
-                        command_template="kino assets ingest --source <path>",
-                        blocking_record_ids=())
+    action = NextAction(
+        action_code="ingest_first",
+        summary="Ingest the source asset before verdict.",
+        command_template="kino assets ingest --source <path>",
+        blocking_record_ids=(),
+    )
     assert action.command_template.startswith("kino ")  # advisory string only
 
 
 def test_next_action_command_template_cannot_carry_a_real_path():
     with pytest.raises(ValidationError):
-        NextAction(action_code="ingest_first", summary="do it",
-                   command_template="kino assets ingest --source /Users/victim/clip.mov")
+        NextAction(
+            action_code="ingest_first",
+            summary="do it",
+            command_template="kino assets ingest --source /Users/victim/clip.mov",
+        )
     with pytest.raises(ValidationError):
-        NextAction(action_code="ingest_first", summary="do it",
-                   command_template="rm -rf /")  # not a bounded kino template
+        NextAction(
+            action_code="ingest_first", summary="do it", command_template="rm -rf /"
+        )  # not a bounded kino template
 
 
 def test_next_action_blocking_ids_are_hashes():
-    action = NextAction(action_code="review_first", summary="Await review.",
-                        blocking_record_ids=(_SHA,))
+    action = NextAction(action_code="review_first", summary="Await review.", blocking_record_ids=(_SHA,))
     assert action.blocking_record_ids == (_SHA,)
     with pytest.raises(ValidationError):
         NextAction(action_code="review_first", summary="x", blocking_record_ids=("not-a-hash",))
@@ -175,8 +182,9 @@ def test_command_template_requires_a_placeholder():
     # A fully concrete, runnable command is rejected; only a template is advisory.
     with pytest.raises(ValidationError):
         NextAction(action_code="inspect", summary="Inspect it.", command_template="kino inspect")
-    ok = NextAction(action_code="ingest_first", summary="Ingest first.",
-                    command_template="kino assets ingest --source <path>")
+    ok = NextAction(
+        action_code="ingest_first", summary="Ingest first.", command_template="kino assets ingest --source <path>"
+    )
     assert "<" in ok.command_template and ">" in ok.command_template
 
 
@@ -211,19 +219,18 @@ def test_reject_duplicate_supported_formats():
 
 def test_reject_duplicate_blocking_record_ids():
     with pytest.raises(ValidationError):
-        NextAction(action_code="review_first", summary="Await review.",
-                   blocking_record_ids=(_SHA, _SHA))
+        NextAction(action_code="review_first", summary="Await review.", blocking_record_ids=(_SHA, _SHA))
 
 
 @pytest.mark.parametrize(
     "template",
     [
-        "kino inspect",                              # no placeholder
-        "kino x <a> stray>",                         # stray closing bracket
-        "kino x <a><b>",                             # adjacent, unseparated brackets
-        "kino x <a>b",                               # trailing chars glued to placeholder
-        "kino x <>",                                 # empty placeholder name
-        "kino x <A>",                                # non-lowercase placeholder
+        "kino inspect",  # no placeholder
+        "kino x <a> stray>",  # stray closing bracket
+        "kino x <a><b>",  # adjacent, unseparated brackets
+        "kino x <a>b",  # trailing chars glued to placeholder
+        "kino x <>",  # empty placeholder name
+        "kino x <A>",  # non-lowercase placeholder
     ],
 )
 def test_command_template_rejects_stray_or_missing_placeholders(template):
@@ -232,8 +239,7 @@ def test_command_template_rejects_stray_or_missing_placeholders(template):
 
 
 def test_command_template_accepts_multiple_named_placeholders():
-    ok = NextAction(action_code="x", summary="do it",
-                    command_template="kino render --in <src> --out <dst>")
+    ok = NextAction(action_code="x", summary="do it", command_template="kino render --in <src> --out <dst>")
     assert ok.command_template.count("<") == 2
 
 

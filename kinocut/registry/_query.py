@@ -50,44 +50,25 @@ def _validate_pagination(limit: int, offset: int) -> None:
     """Enforce bounded, non-negative pagination parameters."""
 
     if isinstance(limit, bool) or not isinstance(limit, int):
-        raise MCPVideoError(
-            "limit must be an integer", error_type="validation_error", code="invalid_pagination"
-        )
+        raise MCPVideoError("limit must be an integer", error_type="validation_error", code="invalid_pagination")
     if isinstance(offset, bool) or not isinstance(offset, int):
-        raise MCPVideoError(
-            "offset must be an integer", error_type="validation_error", code="invalid_pagination"
-        )
+        raise MCPVideoError("offset must be an integer", error_type="validation_error", code="invalid_pagination")
     if limit < 1:
-        raise MCPVideoError(
-            "limit must be at least one", error_type="validation_error", code="invalid_pagination"
-        )
+        raise MCPVideoError("limit must be at least one", error_type="validation_error", code="invalid_pagination")
     if limit > _MAX_LIMIT:
         raise MCPVideoError(
             f"limit must not exceed {_MAX_LIMIT}", error_type="validation_error", code="invalid_pagination"
         )
     if offset < 0:
-        raise MCPVideoError(
-            "offset must be non-negative", error_type="validation_error", code="invalid_pagination"
-        )
-
+        raise MCPVideoError("offset must be non-negative", error_type="validation_error", code="invalid_pagination")
 
 
 def _active_records(project: Project, kind: str, model: type) -> list:
     """Return only unsuperseded records of the exact expected type."""
 
-    records = [
-        record
-        for record in read_records(project, kind)
-        if type(record) is model
-    ]
-    superseded = {
-        record.supersedes
-        for record in records
-        if record.supersedes is not None
-    }
-    return [
-        record for record in records if canonical_record_id(record) not in superseded
-    ]
+    records = [record for record in read_records(project, kind) if type(record) is model]
+    superseded = {record.supersedes for record in records if record.supersedes is not None}
+    return [record for record in records if canonical_record_id(record) not in superseded]
 
 
 def _index_active_assets(project: Project) -> dict[str, AssetRecord]:
@@ -112,13 +93,11 @@ def _active_asset_rights_allowed(
     asset = assets.get(asset_id)
     return asset is not None and asset.usage_rights_status in rights
 
+
 def _index_verdicts(project: Project) -> dict[str, ClipVerdict]:
     """Return a canonical-id → verdict index of all clip verdicts."""
 
-    return {
-        canonical_record_id(verdict): verdict
-        for verdict in _active_records(project, "clip_verdict", ClipVerdict)
-    }
+    return {canonical_record_id(verdict): verdict for verdict in _active_records(project, "clip_verdict", ClipVerdict)}
 
 
 def _index_decisions(project: Project) -> dict[str, ReviewDecision]:
@@ -164,11 +143,9 @@ def _matches_tags(tags: tuple[str, ...], wanted: frozenset[str] | None) -> bool:
     return wanted.issubset(set(tags))
 
 
-
 def query_approved_clips(
     project: Project,
     *,
-
     tags: Iterable[str] | None = None,
     rights_filter: Iterable[UsageRightsStatus] | None = None,
     limit: int = 50,
@@ -197,9 +174,7 @@ def query_approved_clips(
         and _active_asset_rights_allowed(clip.asset_id, assets, rights)
         and _active_asset_rights_allowed(clip.source_asset_id, assets, rights)
         and _verdict_is_approved(verdicts.get(clip.verdict_id))
-        and _consent_is_valid(
-            decisions.get(clip.review_decision_id), target_asset=clip.asset_id
-        )
+        and _consent_is_valid(decisions.get(clip.review_decision_id), target_asset=clip.asset_id)
         and _matches_tags(clip.tags, wanted)
     ]
     return _paginate(matched, limit, offset, key=lambda clip: clip.record_id)

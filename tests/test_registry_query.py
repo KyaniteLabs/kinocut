@@ -358,9 +358,7 @@ def test_query_excludes_clip_when_source_asset_rights_are_restricted(tmp_path):
     source = _seed_asset(proj, source_id)
     verdict_id = _seed_verdict(proj, asset_id)
     approval_id = _seed_decision(proj, asset_id)
-    _make_clip(
-        proj, asset_id, verdict_id, approval_id, source_asset_id=source_id
-    )
+    _make_clip(proj, asset_id, verdict_id, approval_id, source_asset_id=source_id)
     append_record(
         proj,
         AssetRecord(
@@ -376,6 +374,8 @@ def test_query_excludes_clip_when_source_asset_rights_are_restricted(tmp_path):
     )
 
     assert query_approved_clips(proj).total == 0
+
+
 def test_query_excludes_bed_when_active_asset_rights_are_restricted(tmp_path):
     proj = open_project(tmp_path / "proj")
     asset_id = "sha256:" + "6" * 64
@@ -399,8 +399,6 @@ def test_query_excludes_bed_when_active_asset_rights_are_restricted(tmp_path):
     assert query_reusable_beds(proj).total == 0
 
 
-
-
 def test_query_excludes_bed_when_approval_is_superseded(tmp_path):
     proj = open_project(tmp_path / "proj")
     asset_id = "sha256:" + "4" * 64
@@ -416,7 +414,6 @@ def test_query_excludes_bed_when_approval_is_superseded(tmp_path):
                 decision="reject",
             ),
             supersedes=approval_id,
-
         ),
     )
 

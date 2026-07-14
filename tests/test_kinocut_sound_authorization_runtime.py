@@ -25,9 +25,7 @@ from kinocut_sound.consent import (
 _SHA = "sha256:" + "b" * 64
 _NOW = "2026-07-13T12:00:00Z"
 _CONTEXT = AuthorizationContext(operation="voice_clone", provider_class="local", territory="US")
-_BLEND_CONTEXT = AuthorizationContext(
-    operation="voice_blend", provider_class="local", territory="US"
-)
+_BLEND_CONTEXT = AuthorizationContext(operation="voice_blend", provider_class="local", territory="US")
 
 
 def _grant(
@@ -188,8 +186,12 @@ def test_transitive_lineage_deletes_every_reachable_derivative() -> None:
         actor_id="reviewer_001",
     )
     ledger.record_asset("asset_clip", direct_grant_ids=("grant_a",), parent_asset_ids=(), context=_CONTEXT, at_iso=_NOW)
-    ledger.record_asset("asset_stem", direct_grant_ids=(), parent_asset_ids=("asset_clip",), context=_CONTEXT, at_iso=_NOW)
-    ledger.record_asset("asset_mix", direct_grant_ids=(), parent_asset_ids=("asset_stem",), context=_CONTEXT, at_iso=_NOW)
+    ledger.record_asset(
+        "asset_stem", direct_grant_ids=(), parent_asset_ids=("asset_clip",), context=_CONTEXT, at_iso=_NOW
+    )
+    ledger.record_asset(
+        "asset_mix", direct_grant_ids=(), parent_asset_ids=("asset_stem",), context=_CONTEXT, at_iso=_NOW
+    )
     assert ledger.resolve_grants("asset_mix") == ("grant_a",)
 
     ledger.revoke(
@@ -199,10 +201,9 @@ def test_transitive_lineage_deletes_every_reachable_derivative() -> None:
         at_iso="2026-07-13T12:00:10Z",
         actor_id="reviewer_001",
     )
-    assert {
-        ledger.outcome_for(asset_id).disposition
-        for asset_id in ("asset_clip", "asset_stem", "asset_mix")
-    } == {DerivativeDisposition.DELETE}
+    assert {ledger.outcome_for(asset_id).disposition for asset_id in ("asset_clip", "asset_stem", "asset_mix")} == {
+        DerivativeDisposition.DELETE
+    }
     with pytest.raises(AuthorizationError):
         ledger.authorize(
             AuthorizationBoundary.EXPORT,
@@ -234,9 +235,7 @@ def test_blend_and_cloud_egress_require_each_exact_grant_scope() -> None:
         at_iso=_NOW,
         actor_id="reviewer_001",
     )
-    assert ledger.authorize_blend(
-        "grant_blend", context=_BLEND_CONTEXT, at_iso=_NOW
-    ) == (
+    assert ledger.authorize_blend("grant_blend", context=_BLEND_CONTEXT, at_iso=_NOW) == (
         "grant_a",
         "grant_b",
         "grant_blend",

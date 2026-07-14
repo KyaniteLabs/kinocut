@@ -40,8 +40,7 @@ _SCRIPT_INFO_HEADER = re.compile(r"(?i)^\s*\[Script Info\]\s*$")
 def _style_error() -> MCPVideoError:
     # Never echo the raw hostile value — only the closed, safe key list.
     return MCPVideoError(
-        "invalid subtitle style; expected comma-separated Key=Value pairs from the "
-        "allowed style keys with safe values",
+        "invalid subtitle style; expected comma-separated Key=Value pairs from the allowed style keys with safe values",
         error_type="validation_error",
         code="invalid_subtitle_style",
     )
