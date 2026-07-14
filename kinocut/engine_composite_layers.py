@@ -11,7 +11,13 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from .defaults import DEFAULT_CRF, DEFAULT_PRESET
-from .engine_composite_layers_blend import BLEND_ALL_MODES, SUPPORTED_BLEND_MODES, validate_blend_geometry
+from .engine_composite_layers_blend import (
+    BLEND_ALL_MODES,
+    SUPPORTED_BLEND_MODES,
+    is_positioned_blend,
+    positioned_blend_chains,
+    validate_blend_geometry,
+)
 from .engine_composite_layers_rotate import (
     has_transform,
     overlay_position,
@@ -131,16 +137,18 @@ def composite_layers(
     The compositor supports normal alpha compositing, per-layer opacity,
     x/y positioning, scale/width/height transforms, timeline enable windows,
     image/video/solid layers, optional mask/matte alpha sources, full-canvas
-    non-normal blend modes (see ``validate_blend_geometry``), transparent-fill
-    rotation with a ``pivot`` reference point (see
-    ``engine_composite_layers_rotate``), and a deterministic layer-plan receipt.
-    Per-layer effect routing, positioned/masked blend, and rotation combined
-    with a mask remain deferred and fail closed.
+    non-normal blend modes, positioned in-canvas non-normal blend (crop running
+    base to the layer rectangle, blend same-size, overlay back; see
+    ``validate_blend_geometry``), transparent-fill rotation with a ``pivot``
+    reference point (see ``engine_composite_layers_rotate``), and a
+    deterministic layer-plan receipt. Per-layer effect routing, positioned
+    masked/timed/scaled/rotated blend, and rotation combined with a mask remain
+    deferred and fail closed.
     """
     spec_resolved = _validate_spec_path(spec_path)
     spec_data, spec_bytes = _load_spec(spec_resolved)
     canvas = _parse_canvas(spec_data.get("canvas"))
-    layers = _parse_layers(spec_data, spec_resolved.parent)
+    layers = _parse_layers(spec_data, spec_resolved.parent, canvas)
     output = _resolve_output_path(output_path, spec_resolved, spec_data)
     layer_plan_output = _resolve_layer_plan_path(save_layer_plan, output)
 
@@ -234,7 +242,7 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
     return canvas
 
 
-def _parse_layers(spec_data: dict[str, Any], spec_dir: Path) -> list[_ResolvedLayer]:
+def _parse_layers(spec_data: dict[str, Any], spec_dir: Path, canvas: _Canvas) -> list[_ResolvedLayer]:
     unsupported = sorted(_UNSUPPORTED_TOP_LEVEL & set(spec_data))
     if unsupported:
         raise MCPVideoError(
@@ -252,7 +260,7 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path) -> list[_ResolvedLa
         if not isinstance(raw, dict):
             raise MCPVideoError("each layer must be an object", error_type="validation_error", code="invalid_layer")
         _reject_unknown_layer_fields(raw, offset)
-        layer = _parse_layer(raw)
+        layer = _parse_layer(raw, canvas)
         if layer.id in seen:
             raise MCPVideoError(
                 f"duplicate layer id: {layer.id}",
@@ -300,7 +308,7 @@ def _reject_unknown_layer_fields(raw: dict[str, Any], offset: int) -> None:
         )
 
 
-def _parse_layer(raw: dict[str, Any]) -> _Layer:
+def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
     data = dict(raw)
     data["position"] = _extract_position(data)
     try:
@@ -336,7 +344,7 @@ def _parse_layer(raw: dict[str, Any]) -> _Layer:
     _validate_layer_timing(layer)
     layer.rotation = validate_rotation(layer)
     if layer.blend != "normal":
-        validate_blend_geometry(layer)
+        validate_blend_geometry(layer, canvas)
     if layer.type == "solid":
         layer.color = _validate_color(layer.color or "#000000", f"{layer.id}.color")
     elif not layer.src:
@@ -495,7 +503,7 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
         layer_label = f"layer{idx}"
         out_label = "vout" if idx == len(layers) else f"base{idx}"
         chain = _layer_filter_chain(layer)
-        if layer.blend != "normal":
+        if layer.blend != "normal" and not is_positioned_blend(layer):
             # Full-canvas only (validated in _validate_blend_geometry). blend=
             # requires matching-size inputs, so force the source to canvas size.
             width = _escape_ffmpeg_filter_value(str(canvas.width))
@@ -516,6 +524,9 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             x, y = overlay_position(layer)
             step = f"[{previous}][{layer_label}]overlay={x}:{y}:format=auto:eof_action=pass"
             step = f"{step}{_enable_expression(layer)}"
+        elif is_positioned_blend(layer):
+            positioned_chains, step = positioned_blend_chains(layer, previous, layer_label)
+            chains.extend(positioned_chains)
         else:
             # Mode is resolved through the allowlist dict, never interpolated from
             # the raw spec value.
@@ -574,8 +585,10 @@ def _build_layer_plan(
         "mask/matte inputs are scaled to the transformed layer and applied as alpha with alphamerge",
         "start/duration windows are enforced with overlay enable expressions",
     ]
-    if any(layer.blend != "normal" for layer in layers):
+    if any(layer.blend != "normal" and not is_positioned_blend(layer) for layer in layers):
         summary.append("full-canvas non-normal blend layers use blend=all_mode against the running base")
+    if any(is_positioned_blend(layer) for layer in layers):
+        summary.append("positioned non-normal blend layers crop base, blend same-size, and overlay back")
     if any(layer.rotation is not None for layer in layers):
         summary.append(
             "rotated layers use transparent-fill rotate (scale -> rotate -> opacity -> position); pivot sets the reference point"
@@ -617,6 +630,7 @@ def _build_layer_plan(
             "timing_windows": any(layer.start is not None for layer in layers),
             "masks": any(layer.mask_src is not None for layer in layers),
             "blend_modes": sorted({layer.blend for layer in layers}),
+            "positioned_blend": any(is_positioned_blend(layer) for layer in layers),
             "audio": "dropped",
         },
         "render_determinism_scope": (

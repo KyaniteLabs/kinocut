@@ -251,14 +251,14 @@ sharing copy are always verified; optional captions remain sidecars. See
 
 ## Layered Compositing
 
-`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
+`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus allowlisted **full-canvas and positioned blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
 
 ```bash
 kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
 kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
-Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer must be full-canvas (position `{0,0}`, full opacity, no scale/mask/timing) or it fails closed; output is video-only. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are tracked as later phases so this surface stays deterministic and preflightable.
+Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer may remain full-canvas, or it may use the positioned allowlist: explicit `width` **and** `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing window. Positioned blend crops the running base to the rectangle, blends the same-size layer, then overlays the result back at that position. Other blend geometry fails closed with `unsupported_blend_geometry`; output is video-only.
 
 ## Public Discovery
 

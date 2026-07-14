@@ -139,7 +139,7 @@ inspection, decision, protection, derivative, and re-review sequence.
 |---------|-------------|
 | `video-layout-grid` | Arrange multiple videos in a grid |
 | `video-layout-pip` | Picture-in-picture with border |
-| `composite-layers` | Spec-driven ordered image/video layer compositing with transforms, masks, timing windows, full-canvas blend modes, rotation/pivot, dry-run plans, and `layer_plan` v2 receipts |
+| `composite-layers` | Spec-driven ordered image/video layer compositing with transforms, masks, timing windows, full-canvas and allowlisted positioned blend modes, rotation/pivot, dry-run plans, and `layer_plan` v2 receipts |
 
 
 ### `composite-layers` spec
@@ -170,7 +170,7 @@ kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan
 }
 ```
 
-The compositor supports normal alpha compositing, per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources. It also supports **full-canvas** blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten` — a non-`normal` blend layer must be full-canvas: position `{0,0}`, full opacity, no scale/mask/timing, else it fails closed with `unsupported_blend_geometry`) and **rotation** (`rotation` in degrees within `[-360, 360]` with a new `pivot` reference point — `center` default, `top_left`, `top_right`, `bottom_left`, `bottom_right`; ordering is scale → rotate → opacity → position). The existing `anchor` field stays a position alias, distinct from `pivot`. Output is video-only (`audio_policy: dropped_video_only`). Relative `src`, `mask`, and `matte` paths resolve relative to the spec file and must stay inside that directory. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are deferred and fail closed.
+The compositor supports normal alpha compositing, per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources. It also supports allowlisted blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) in full-canvas form and in a bounded positioned form. Positioned blend requires explicit `width` **and** `height`, an integral nonnegative `position` whose rectangle stays inside the canvas, full opacity, and no scale, rotation/pivot, mask/matte, or start/duration timing. It crops the running base, blends the same-size layer, and overlays the result back; unsupported geometry fails closed with `unsupported_blend_geometry`. Rotation remains available for normal-blend layers (`rotation` in degrees within `[-360, 360]` with `pivot`: `center` default, `top_left`, `top_right`, `bottom_left`, or `bottom_right`; ordering is scale → rotate → opacity → position). The existing `anchor` field stays a position alias, distinct from `pivot`. Output is video-only (`audio_policy: dropped_video_only`). Relative `src`, `mask`, and `matte` paths resolve relative to the spec file and must stay inside that directory. Rotation + mask and per-layer effect routing remain deferred and fail closed.
 
 ## Workflow Engine
 

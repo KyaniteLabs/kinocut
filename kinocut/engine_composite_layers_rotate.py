@@ -6,8 +6,8 @@ line limit (see
 tests/test_architecture_guardrails.py::test_engine_modules_stay_below_project_size_limit).
 
 Rotation composes with the OVERLAY (normal-blend) path only; a non-normal blend
-layer with rotation/pivot is rejected by ``validate_blend_geometry`` (blend stays
-full-canvas-only this release). Rotation combined with a mask/matte is deferred
+layer with rotation/pivot is rejected by ``validate_blend_geometry`` (both
+full-canvas and positioned blend require no rotation). Rotation combined with a mask/matte is deferred
 and fails closed. Rotation degrees are validated as a finite float in
 ``[ROTATION_MIN, ROTATION_MAX]`` and formatted with bounded precision into a
 radian literal — never interpolated raw.

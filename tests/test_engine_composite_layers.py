@@ -391,6 +391,207 @@ def test_composite_layers_full_canvas_blend_is_ssim_stable_across_renders(tmp_pa
     assert quality.metrics["ssim"] >= 0.98
 
 
+# --- Story P1: positioned in-canvas non-normal blend -----------------------
+
+
+def _positioned_blend_spec(mode, x=8, y=16, width=24, height=32):
+    """Base solid plus a positioned in-canvas solid using ``mode``.
+
+    The blend layer carries an explicit integral width/height and an integral,
+    non-negative position whose rectangle sits fully inside the 64x64 canvas."""
+    return {
+        "canvas": {"width": 64, "height": 64, "background": "#000000", "fps": 5, "duration": 0.5},
+        "layers": [
+            {"id": "base", "type": "solid", "color": "#204060"},
+            {
+                "id": "tint",
+                "type": "solid",
+                "color": "#a0c0e0",
+                "blend": mode,
+                "position": {"x": x, "y": y},
+                "width": width,
+                "height": height,
+            },
+        ],
+        "output": {"format": "mp4"},
+    }
+
+
+@pytest.mark.parametrize("mode", _BLEND_MODES)
+def test_composite_layers_accepts_positioned_blend(tmp_path, monkeypatch, mode):
+    result, graph = _render_graph(tmp_path, _positioned_blend_spec(mode), monkeypatch)
+
+    # base crop (crop=W:H:X:Y), same-size blend, then overlay back at X:Y
+    assert "crop=24:32:8:16" in graph
+    assert f"blend=all_mode={mode}" in graph
+    assert "overlay=8:16" in graph
+    # the layer is scaled to the rectangle, never force-scaled to full canvas
+    assert "scale=24:32" in graph
+    assert "scale=64:64" not in graph
+    # base normal overlay + the positioned re-overlay
+    assert graph.count("overlay=") == 2
+    assert graph.count("blend=all_mode=") == 1
+    assert graph.count("crop=") == 1
+    assert graph.endswith(",format=yuv420p[vout]")
+    assert result.layer_plan["layers"][1]["blend"] == mode
+
+
+def test_composite_layers_positioned_blend_filtergraph_crops_base_blends_and_overlays_back(tmp_path, monkeypatch):
+    _result, graph = _render_graph(tmp_path, _positioned_blend_spec("overlay"), monkeypatch)
+
+    # The base region is cropped, blended same-size with the scaled layer, and
+    # the blended tile is overlaid back onto the running base at the same x/y.
+    assert "[base1]crop=24:32:8:16[layer2base]" in graph
+    assert "[layer2base][layer2]blend=all_mode=overlay[layer2blend]" in graph
+    assert "[base1][layer2blend]overlay=8:16:format=auto:eof_action=pass" in graph
+
+
+def test_composite_layers_positioned_blend_at_origin_is_valid(tmp_path, monkeypatch):
+    # position {0,0} with an explicit sub-canvas rectangle is a valid positioned blend.
+    _result, graph = _render_graph(tmp_path, _positioned_blend_spec("multiply", x=0, y=0), monkeypatch)
+
+    assert "crop=24:32:0:0" in graph
+    assert "overlay=0:0" in graph
+    assert "blend=all_mode=multiply" in graph
+
+
+def test_composite_layers_positioned_blend_rectangle_equal_to_canvas_is_valid(tmp_path, monkeypatch):
+    # A rectangle that exactly fills the canvas is still fully inside it.
+    _result, graph = _render_graph(
+        tmp_path, _positioned_blend_spec("screen", x=0, y=0, width=64, height=64), monkeypatch
+    )
+
+    assert "crop=64:64:0:0" in graph
+    assert "blend=all_mode=screen" in graph
+
+
+@pytest.mark.parametrize("mode", _BLEND_MODES)
+def test_composite_layers_positioned_blend_receipt_uses_existing_geometry_fields(tmp_path, monkeypatch, mode):
+    result, _graph = _render_graph(tmp_path, _positioned_blend_spec(mode), monkeypatch)
+
+    layer = result.layer_plan["layers"][1]
+    assert layer["position"] == {"x": 8.0, "y": 16.0}
+    assert layer["transform"]["width"] == 24
+    assert layer["transform"]["height"] == 32
+    assert "blend_geometry" not in layer
+    assert result.layer_plan["features"]["positioned_blend"] is True
+    assert result.layer_plan["features"]["blend_modes"] == sorted(["normal", mode])
+
+
+def test_composite_layers_full_canvas_blend_receipt_preserves_layer_keys(tmp_path, monkeypatch):
+    result, _graph = _render_graph(tmp_path, _full_canvas_blend_spec("multiply"), monkeypatch)
+
+    assert "blend_geometry" not in result.layer_plan["layers"][1]
+    assert result.layer_plan["features"]["positioned_blend"] is False
+
+
+def test_composite_layers_positioned_blend_summary_note(tmp_path, monkeypatch):
+    result, _graph = _render_graph(tmp_path, _positioned_blend_spec("darken"), monkeypatch)
+
+    assert any("positioned" in line.lower() and "blend" in line.lower() for line in result.layer_plan["filtergraph_summary"])
+
+
+@pytest.mark.parametrize(
+    "mutator",
+    [
+        lambda layer: layer.update({"position": {"x": 8.5, "y": 16}}),  # fractional x
+        lambda layer: layer.update({"position": {"x": 8, "y": 16.25}}),  # fractional y
+        lambda layer: layer.update({"position": {"x": 48, "y": 16}}),  # x + width > canvas.width
+        lambda layer: layer.update({"position": {"x": 8, "y": 48}}),  # y + height > canvas.height
+        lambda layer: layer.update({"width": 80}),  # over-canvas width
+        lambda layer: layer.update({"height": 80}),  # over-canvas height
+        lambda layer: layer.pop("height"),  # width without height -> underivable rectangle
+        lambda layer: layer.pop("width"),  # height without width -> underivable rectangle
+        lambda layer: layer.update({"mask": "mask.png"}),  # positioned + mask deferred
+        lambda layer: layer.update({"matte": "mask.png"}),  # positioned + matte deferred
+        lambda layer: layer.update({"rotation": 45}),  # positioned + rotation deferred
+        lambda layer: layer.update({"start": 0.1}),  # positioned + timing deferred
+        lambda layer: layer.update({"start": 0.1, "duration": 0.2}),
+        lambda layer: layer.update({"opacity": 0.5}),  # blend opacity stays full this release
+    ],
+)
+def test_composite_layers_rejects_invalid_positioned_blend(tmp_path, mutator):
+    _write_minimal_assets(tmp_path)
+    spec = _positioned_blend_spec("multiply")
+    mutator(spec["layers"][1])
+    spec_path = _write_spec(tmp_path, spec)
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        composite_layers(str(spec_path), output_path=str(tmp_path / "out.mp4"))
+
+    assert excinfo.value.code == "unsupported_blend_geometry"
+
+
+def test_composite_layers_positioned_blend_with_video_layer_source(tmp_path, monkeypatch):
+    # Positioned blend is not limited to solids: a video layer with an explicit
+    # in-canvas rectangle and a non-normal blend is accepted too.
+    _write_minimal_assets(tmp_path)
+    spec = {
+        "canvas": {"width": 320, "height": 180, "background": "#000000", "fps": 12, "duration": 1.0},
+        "layers": [
+            {"id": "background", "type": "video", "src": "bg.mp4", "position": {"x": 0, "y": 0}},
+            {
+                "id": "grain",
+                "type": "video",
+                "src": "bg.mp4",
+                "blend": "overlay",
+                "position": {"x": 40, "y": 30},
+                "width": 120,
+                "height": 90,
+            },
+        ],
+        "output": {"format": "mp4"},
+    }
+    _result, graph = _render_graph(tmp_path, spec, monkeypatch)
+
+    assert "crop=120:90:40:30" in graph
+    assert "blend=all_mode=overlay" in graph
+    assert "overlay=40:30" in graph
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="requires ffmpeg")
+@pytest.mark.parametrize("mode", _BLEND_MODES)
+def test_composite_layers_renders_positioned_blend(tmp_path, mode):
+    spec = _positioned_blend_spec(mode)
+    output = tmp_path / f"positioned_{mode}.mp4"
+    plan = tmp_path / "plan.json"
+    spec_path = _write_spec(tmp_path, spec)
+
+    result = composite_layers(str(spec_path), output_path=str(output), save_layer_plan=str(plan))
+
+    assert output.is_file()
+    assert output.stat().st_size > 0
+    assert result.success is True
+    assert result.resolution == "64x64"
+    layer = result.layer_plan["layers"][1]
+    assert layer["position"] == {"x": 8.0, "y": 16.0}
+    assert layer["transform"]["width"] == 24
+    assert layer["transform"]["height"] == 32
+    assert result.layer_plan["features"]["positioned_blend"] is True
+    assert result.layer_plan["output_hash"].startswith("sha256:")
+    assert plan.is_file()
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="requires ffmpeg")
+def test_composite_layers_positioned_blend_is_ssim_stable_across_renders(tmp_path):
+    """Two independent renders of the same positioned blend spec must be near-identical."""
+    from mcp_video.engine_compare_quality import compare_quality
+
+    spec = _positioned_blend_spec("multiply")
+    spec_path = _write_spec(tmp_path, spec)
+    out_a = tmp_path / "run_a.mp4"
+    out_b = tmp_path / "run_b.mp4"
+
+    composite_layers(str(spec_path), output_path=str(out_a))
+    composite_layers(str(spec_path), output_path=str(out_b))
+
+    quality = compare_quality(str(out_a), str(out_b), metrics=["ssim"])
+
+    assert quality.metrics["ssim"] >= 0.98
+
+
 @pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="requires ffmpeg")
 def test_composite_layers_renders_video_with_transparent_png_overlays(tmp_path):
     bg = tmp_path / "bg.mp4"
