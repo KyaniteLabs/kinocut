@@ -45,6 +45,10 @@ package-lock.json
 .stitch/
 out/
 
+# Golden path / demo pack local media (JSON samples may be committed)
+demo/golden-pack/artifacts/
+workflows/*/output/
+
 .omc/
 
 # Internal development artifacts — keep these out of the repo root

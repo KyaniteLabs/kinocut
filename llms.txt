@@ -31,6 +31,17 @@ kino doctor
 claude mcp add kinocut -- uvx --from kinocut kino
 ```
 
+## Golden path (first-run proof)
+
+```bash
+pip install -e .   # from a clone
+python scripts/golden_path.py
+```
+
+Pass: doctor required OK + final_clip.mp4 + video_receipt.json (tool_calls, human_review pending).
+Docs: https://github.com/KyaniteLabs/kinocut/blob/master/docs/GOLDEN_PATH.md
+Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
+
 Compatibility:
 
 ```bash

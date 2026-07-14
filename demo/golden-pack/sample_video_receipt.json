@@ -1,0 +1,67 @@
+{
+  "edits_applied": [
+    "trimmed source clip",
+    "resized to 9:16",
+    "added proof caption",
+    "normalized audio",
+    "exported final MP4",
+    "created release checkpoint"
+  ],
+  "human_review": {
+    "instructions": "Open the thumbnail/storyboard and inspect the final video before publishing.",
+    "required": true,
+    "status": "pending"
+  },
+  "known_limitations": [
+    "Automated quality checks do not replace visual/audio review.",
+    "Synthetic source media proves plumbing, not creative quality."
+  ],
+  "pack": {
+    "generated_at": "2026-07-14T06:09:07.729630+00:00",
+    "generator": "scripts/generate_golden_pack.py",
+    "kinocut_published_version": "1.7.0"
+  },
+  "quality": {
+    "all_passed": true,
+    "overall_score": 70.3,
+    "recommendations": []
+  },
+  "tool_calls": [
+    {
+      "output": "01_trimmed.mp4",
+      "stage": "01-trim",
+      "tool": "Client.trim"
+    },
+    {
+      "output": "02_vertical.mp4",
+      "stage": "02-resize",
+      "tool": "Client.resize"
+    },
+    {
+      "output": "03_captioned.mp4",
+      "stage": "03-caption",
+      "tool": "Client.add_text"
+    },
+    {
+      "output": "04_normalized.mp4",
+      "stage": "04-normalize",
+      "tool": "Client.normalize_audio"
+    },
+    {
+      "output": "final_clip.mp4",
+      "stage": "05-export",
+      "tool": "Client.convert"
+    },
+    {
+      "output": "quality.json",
+      "stage": "06-quality",
+      "tool": "Client.quality_check"
+    },
+    {
+      "output": "checkpoint",
+      "stage": "06-checkpoint",
+      "tool": "Client.release_checkpoint"
+    }
+  ],
+  "user_intent": "Prove Kinocut can produce a checked vertical video from generated or local source media."
+}
