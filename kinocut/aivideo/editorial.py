@@ -126,10 +126,65 @@ def coverage_report(project: Project, spec_id: str) -> CoverageReport:
     )
 
 
+class ContinuityFinding(ValueObject):
+    """One shot's continuity status against approved clip material (#19)."""
+
+    shot_id: str
+    status: str  # satisfied | incomplete | violation
+    unmet_subjects: tuple[str, ...] = ()
+    violated_forbiddens: tuple[str, ...] = ()
+
+
+class ContinuityReport(ValueObject):
+    """Deterministic continuity findings; optional VLM enrichment is fail-soft."""
+
+    acceptance_spec_id: str
+    findings: tuple[ContinuityFinding, ...] = ()
+    optional_provider_status: str = "provider_not_configured"
+
+
+def continuity_assistant(project: Project, spec_id: str) -> ContinuityReport:
+    """Compare the active continuity plan against approved clip material (#19).
+
+    Core deterministic check over tags: each expectation is ``satisfied`` when
+    its expected subjects are present and no forbidden change appears in approved
+    clips, ``incomplete`` when an expected subject is missing, or ``violation``
+    when a forbidden change is present. Optional VLM/embedding enrichment is
+    capability-gated and returns ``provider_not_configured`` deterministically.
+    """
+
+    plans = continuity_plans_for_spec(project, spec_id)
+    plan = plans[-1] if plans else None
+    available, _ = _approved_clip_subjects(project)
+    findings: list[ContinuityFinding] = []
+    if plan is not None:
+        for expectation in plan.expectations:
+            unmet = tuple(s for s in expectation.expected_subjects if s not in available)
+            violated = tuple(c for c in expectation.forbidden_changes if c in available)
+            if violated:
+                status = "violation"
+            elif unmet:
+                status = "incomplete"
+            else:
+                status = "satisfied"
+            findings.append(
+                ContinuityFinding(
+                    shot_id=expectation.shot_id,
+                    status=status,
+                    unmet_subjects=unmet,
+                    violated_forbiddens=violated,
+                )
+            )
+    return ContinuityReport(acceptance_spec_id=spec_id, findings=tuple(findings))
+
+
 __all__ = [
     "BeatCoverage",
+    "ContinuityFinding",
+    "ContinuityReport",
     "CoverageReport",
     "beat_maps_for_spec",
+    "continuity_assistant",
     "continuity_plans_for_spec",
     "coverage_report",
     "record_beat_map",

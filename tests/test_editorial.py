@@ -7,6 +7,7 @@ import pytest
 from kinocut.aivideo.editorial import (
     beat_maps_for_spec,
     continuity_plans_for_spec,
+    continuity_assistant,
     coverage_report,
     record_beat_map,
     record_continuity_plan,
@@ -207,3 +208,56 @@ def test_coverage_report_flags_beat_with_unmet_required_subject(project):
     beat = report.beats[0]
     assert beat.covered is False
     assert beat.missing_subjects == ("logo",)
+
+
+# --- #19 continuity assistant ---
+
+
+def _continuity_project(project, spec, **plan_overrides):
+    record_continuity_plan(project, _continuity_plan(project, spec.record_id, **plan_overrides))
+
+
+def test_continuity_assistant_satisfied_when_subjects_present_and_no_forbidden(project):
+    spec = append_record(project, _spec(project))
+    _continuity_project(
+        project,
+        spec,
+        expectations=(ContinuityExpectation(shot_id="shot_a", expected_subjects=("product",)),),
+    )
+    append_record(project, _clip(project, tags=("product",), source_asset_id="sha256:" + "3" * 64))
+    report = continuity_assistant(project, spec.record_id)
+    assert report.optional_provider_status == "provider_not_configured"
+    assert len(report.findings) == 1
+    assert report.findings[0].status == "satisfied"
+
+
+def test_continuity_assistant_incomplete_when_expected_subject_missing(project):
+    spec = append_record(project, _spec(project))
+    _continuity_project(
+        project,
+        spec,
+        expectations=(ContinuityExpectation(shot_id="shot_a", expected_subjects=("product", "logo")),),
+    )
+    append_record(project, _clip(project, tags=("product",), source_asset_id="sha256:" + "4" * 64))
+    report = continuity_assistant(project, spec.record_id)
+    assert report.findings[0].status == "incomplete"
+    assert report.findings[0].unmet_subjects == ("logo",)
+
+
+def test_continuity_assistant_violation_when_forbidden_change_present(project):
+    spec = append_record(project, _spec(project))
+    _continuity_project(
+        project,
+        spec,
+        expectations=(ContinuityExpectation(shot_id="shot_a", forbidden_changes=("wardrobe",)),),
+    )
+    append_record(project, _clip(project, tags=("wardrobe",), source_asset_id="sha256:" + "5" * 64))
+    report = continuity_assistant(project, spec.record_id)
+    assert report.findings[0].status == "violation"
+    assert report.findings[0].violated_forbiddens == ("wardrobe",)
+
+
+def test_continuity_assistant_empty_when_no_plan(project):
+    spec = append_record(project, _spec(project))
+    report = continuity_assistant(project, spec.record_id)
+    assert report.findings == ()
