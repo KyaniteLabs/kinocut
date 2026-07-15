@@ -7,6 +7,7 @@ import pytest
 from kinocut.aivideo.editorial import (
     beat_maps_for_spec,
     continuity_plans_for_spec,
+    coverage_report,
     record_beat_map,
     record_continuity_plan,
 )
@@ -146,3 +147,63 @@ def test_continuity_plan_rejects_duplicate_shot_ids(project):
                 ),
             ),
         )
+
+
+# --- #43 coverage report ---
+
+
+def _clip(project, **overrides):
+    from kinocut.contracts.registry import ClipRecord
+    from tests.registry_fixtures import clip_record_kwargs
+
+    return ClipRecord(**clip_record_kwargs(project_id=project.project_id, **overrides))
+
+
+def test_coverage_report_empty_when_no_beat_map(project):
+    spec = append_record(project, _spec(project))
+    report = coverage_report(project, spec.record_id)
+    assert report.total_beats == 0
+    assert report.covered_count == 0
+    assert report.beats == ()
+
+
+def test_coverage_report_covers_beat_whose_subjects_are_in_approved_clip_tags(project):
+    spec = append_record(project, _spec(project))
+    record_beat_map(
+        project,
+        _beat_map(
+            project,
+            spec.record_id,
+            beats=(
+                BeatRequirement(beat_id="intro", label="Open", required_subjects=("product",)),
+                BeatRequirement(beat_id="cta", label="Call to action"),
+            ),
+        ),
+    )
+    append_record(project, _clip(project, tags=("product",), source_asset_id="sha256:" + "1" * 64))
+    report = coverage_report(project, spec.record_id)
+    assert report.total_beats == 2
+    assert report.covered_count == 2  # intro has product; cta has no requirements
+    assert all(beat.covered for beat in report.beats)
+    assert report.approved_clip_count == 1
+
+
+def test_coverage_report_flags_beat_with_unmet_required_subject(project):
+    spec = append_record(project, _spec(project))
+    record_beat_map(
+        project,
+        _beat_map(
+            project,
+            spec.record_id,
+            beats=(
+                BeatRequirement(beat_id="logo", label="Logo beat", required_subjects=("logo", "product")),
+            ),
+        ),
+    )
+    append_record(project, _clip(project, tags=("product",), source_asset_id="sha256:" + "2" * 64))
+    report = coverage_report(project, spec.record_id)
+    assert report.total_beats == 1
+    assert report.covered_count == 0
+    beat = report.beats[0]
+    assert beat.covered is False
+    assert beat.missing_subjects == ("logo",)

@@ -7,9 +7,13 @@ query returns active (non-superseded) maps for a spec.
 
 from __future__ import annotations
 
+from pydantic import Field
+
+from kinocut.contracts._common import ValueObject
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.acceptance import GenerationAcceptanceSpec
 from kinocut.contracts.editorial import BeatMap, ContinuityPlan
+from kinocut.contracts.registry import ClipRecord
 from kinocut.projectstore import Project, append_record, read_records
 
 
@@ -52,9 +56,82 @@ def continuity_plans_for_spec(project: Project, spec_id: str) -> list[Continuity
     return [item for item in _active(project, "continuity_plan", ContinuityPlan) if item.acceptance_spec_id == spec_id]  # type: ignore[return-value]
 
 
+class BeatCoverage(ValueObject):
+    """One beat's coverage state against approved clip material (#43)."""
+
+    beat_id: str
+    label: str
+    covered: bool
+    missing_subjects: tuple[str, ...] = ()
+
+
+class CoverageReport(ValueObject):
+    """Deterministic coverage projection: beats vs approved clip subjects (#43)."""
+
+    acceptance_spec_id: str
+    total_beats: int = Field(ge=0)
+    covered_count: int = Field(ge=0)
+    approved_clip_count: int = Field(ge=0)
+    beats: tuple[BeatCoverage, ...] = ()
+
+
+def _approved_clip_subjects(project: Project) -> tuple[frozenset[str], int]:
+    clips = [item for item in read_records(project, "clip_record") if type(item) is ClipRecord]
+    superseded = {item.supersedes for item in clips if item.supersedes is not None}
+    active = [item for item in clips if item.record_id not in superseded]
+    tags: set[str] = set()
+    for clip in active:
+        tags.update(clip.tags)
+    return frozenset(tags), len(active)
+
+
+def coverage_report(project: Project, spec_id: str) -> CoverageReport:
+    """Project each beat of the active beat map against approved clip subjects.
+
+    A beat is covered when every ``required_subject`` is present in the union of
+    approved clip tags. Read-only; never a source of truth.
+    """
+
+    maps = beat_maps_for_spec(project, spec_id)
+    beat_map = maps[-1] if maps else None
+    available, clip_count = _approved_clip_subjects(project)
+    if beat_map is None:
+        return CoverageReport(
+            acceptance_spec_id=spec_id,
+            total_beats=0,
+            covered_count=0,
+            approved_clip_count=clip_count,
+            beats=(),
+        )
+    rows: list[BeatCoverage] = []
+    covered = 0
+    for beat in beat_map.beats:
+        missing = tuple(s for s in beat.required_subjects if s not in available)
+        is_covered = not missing
+        covered += int(is_covered)
+        rows.append(
+            BeatCoverage(
+                beat_id=beat.beat_id,
+                label=beat.label,
+                covered=is_covered,
+                missing_subjects=missing,
+            )
+        )
+    return CoverageReport(
+        acceptance_spec_id=spec_id,
+        total_beats=len(rows),
+        covered_count=covered,
+        approved_clip_count=clip_count,
+        beats=tuple(rows),
+    )
+
+
 __all__ = [
+    "BeatCoverage",
+    "CoverageReport",
     "beat_maps_for_spec",
     "continuity_plans_for_spec",
+    "coverage_report",
     "record_beat_map",
     "record_continuity_plan",
 ]
