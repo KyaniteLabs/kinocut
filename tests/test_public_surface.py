@@ -92,7 +92,6 @@ def _maintained_markdown_paths() -> list[Path]:
 
 
 EXPECTED_CLI_COMMANDS = {
-    "aivideo",
     "video-verdict",
     "video-acceptance-eval",
     "video-body-swap",
@@ -361,7 +360,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 122
+    assert len(EXPECTED_CLI_COMMANDS) == 121
 
 
 def test_agent_cookbook_dry_run():

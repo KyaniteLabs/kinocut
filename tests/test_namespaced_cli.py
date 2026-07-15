@@ -28,17 +28,3 @@ def test_namespaced_groups_lists_actions_per_group():
     for actions in groups.values():
         assert list(actions) == sorted(actions)
         assert len(actions) == len(set(actions))
-
-
-def test_aivideo_namespace_subcommand_parses_to_the_flat_operation():
-    from kinocut.cli.handlers_aivideo import _AIVIDEO_NAMESPACE_OPS
-    from kinocut.cli.parser import build_parser
-
-    parser = build_parser()
-    args = parser.parse_args(["aivideo", "verdict", "/tmp/proj", "--verdict-json", "{}"])
-    assert args.command == "aivideo"
-    assert args.aivideo_command == "verdict"
-    assert args.project_dir == "/tmp/proj"
-    # resolver + handler agree on the flat target / operation
-    assert resolve_namespaced("aivideo", "verdict") == "video-verdict"
-    assert _AIVIDEO_NAMESPACE_OPS["verdict"] == "verdict"

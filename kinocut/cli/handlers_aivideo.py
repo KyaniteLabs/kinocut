@@ -51,25 +51,3 @@ def handle_aivideo_commands(args: Any, *, use_json: bool) -> bool:
     runner.register("video-salvage", lambda a, out: _run("salvage", a, out))
     return runner.dispatch()
 
-
-# Namespace alias -> flat operation. Each namespace sub-action mirrors the flat
-# command's args, so the same _run(operation, args, use_json) handles it.
-_AIVIDEO_NAMESPACE_OPS = {
-    "verdict": "verdict",
-    "acceptance": "acceptance_eval",
-    "body-swap": "body_swap",
-    "salvage": "salvage",
-}
-
-
-def handle_aivideo_namespace(args: Any, *, use_json: bool) -> bool:
-    """Dispatch ``kino aivideo <action>`` aliases to the same Wave-3 handler (#52)."""
-
-    if getattr(args, "command", None) != "aivideo":
-        return False
-    operation = _AIVIDEO_NAMESPACE_OPS.get(getattr(args, "aivideo_command", None))
-    if operation is None:
-        return False
-    _run(operation, args, use_json)
-    return True
-
