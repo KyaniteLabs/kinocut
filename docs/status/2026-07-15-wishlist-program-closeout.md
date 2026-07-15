@@ -1,10 +1,12 @@
 # Kinocut remaining-wishlist program — closeout (2026-07-15)
 
-**Canonical master:** `881c5dd09953` (PR #156 merged). **Prior base:** `a05b02e` (1.8.0). **No release action taken.**
+**Canonical master:** `bc39321` (PR #159 — public surfaces). **Prior:** `881c5dd` (PR #156 wishlist engines), `a05b02e` (1.8.0). **No release action taken.**
 
 ## BLUF
 
 Implementation is **100% complete and on master**. Twenty-three wishlist nodes shipped via PR #156 (`881c5dd`), CI-green (`lint`, `test`, `test-ffmpeg-matrix` 6/7/8). PR #155 (bounded positioned blends) merged separately and is included. Every named wishlist occurrence has exactly one normalized disposition; nothing is dangling.
+
+**Follow-on (PR #159, `bc39321`, same day):** the 8 highest-value engines from #156 now also have public **MCP + CLI + client** surfaces (`video_review_package`, `video_publish_gate`, `video_review_decision`, `video_learning_report`, `video_cost_ledger`, `video_recipe_capture`, `video_capabilities`, `video_benchmark_run`). The published-1.8.0 count-parity invariant was deliberately broken and re-synced to **150 MCP tools / 129 CLI commands** (3 count tests + 6 doc claims + the `CLIENT_METHOD_CONTRACTS` client registry + the `server.py` thin-facade line cap). The program is implementation-complete and release-ready; the **release gate (1.9.0) remains the explicit human-authorized next step.**
 
 ## What shipped this program (PR #156, merge `881c5dd`)
 
@@ -16,7 +18,7 @@ Implementation is **100% complete and on master**. Twenty-three wishlist nodes s
 | Capability/CLI | #54 capability-report, #55 next-action, #56 doctor-migrations, #53 agent-mode output (`--format auto`), #52 namespace resolver |
 | Audio | #24 bed-audition (labeled per-section beds) |
 
-All are internal record/query engines or additive opt-in surfaces; **public-surface parity preserved** (142 MCP tools / 121 CLI commands — unchanged, matching published 1.8.0).
+All are internal record/query engines or additive opt-in surfaces. At PR #156 the public surface stayed at **142 MCP / 121 CLI** (matching published 1.8.0). **PR #159 then exposed 8 of them publicly → 150 MCP / 129 CLI**, with every parity invariant re-synced.
 
 ## Verification
 
