@@ -354,4 +354,13 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "composition_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
     "creative_autopilot_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
     "remote_egress_plan": {"category": "planning", "return_type": "dict", "aliases": {}},
+    # Release-artifact policy (public surfaces)
+    "review_package": {"category": "report", "return_type": "dict", "aliases": {}},
+    "publish_gate": {"category": "report", "return_type": "dict", "aliases": {}},
+    "review_decision": {"category": "report", "return_type": "dict", "aliases": {}},
+    "learning_report": {"category": "report", "return_type": "dict", "aliases": {}},
+    "cost_ledger": {"category": "report", "return_type": "dict", "aliases": {}},
+    "recipe_capture": {"category": "report", "return_type": "dict", "aliases": {}},
+    "capabilities": {"category": "report", "return_type": "dict", "aliases": {}},
+    "benchmark_run": {"category": "report", "return_type": "dict", "aliases": {}},
 }

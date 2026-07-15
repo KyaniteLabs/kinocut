@@ -21,6 +21,7 @@ from .cli.handlers_transitions import handle_transition_command
 from .cli.handlers_workflow import handle_workflow_commands
 from .cli.handlers_inspection import handle_inspection_commands
 from .cli.handlers_aivideo import handle_aivideo_commands
+from .cli.handlers_release import handle_release_commands
 from .cli.parser import build_parser
 from .cli.formatting import _format_error, console, err_console
 
@@ -67,6 +68,7 @@ def main() -> None:
         if (
             handle_initial_command(args, use_json=use_json)
             or handle_aivideo_commands(args, use_json=use_json)
+            or handle_release_commands(args, use_json=use_json)
             or handle_inspection_commands(args, use_json=use_json)
             or handle_workflow_commands(args, use_json=use_json)
             or handle_rescue_commands(args, use_json=use_json)
