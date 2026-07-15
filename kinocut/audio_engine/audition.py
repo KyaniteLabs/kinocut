@@ -105,6 +105,47 @@ def _default_mix_policy(**overrides: Any) -> dict[str, Any]:
     return policy
 
 
+def _resolve_labels(count: int, labels: list[str] | None) -> list[str]:
+    """Default to ``Bed 1..N``; validate explicit labels are bounded and unique."""
+
+    if labels is None:
+        return [f"Bed {i + 1}" for i in range(count)]
+    if len(labels) != count:
+        raise MCPVideoError(
+            "labels must match the candidate count", error_type="validation_error", code="label_count_mismatch"
+        )
+    values = [_safe_label(lbl) for lbl in labels]
+    if len(set(values)) != len(values):
+        raise MCPVideoError(
+            "audition labels must be unique", error_type="validation_error", code="duplicate_label"
+        )
+    return values
+
+
+def _concat_section_beds(section_outputs: list[str], output_path: str) -> None:
+    """Concatenate per-section beds via the concat filter (uniform 44100 Hz mono).
+
+    The filter path re-encodes and recomputes duration from real samples, unlike
+    the concat demuxer + ``-c copy`` which truncated the reported wav duration on
+    some FFmpeg builds.
+    """
+
+    count = len(section_outputs)
+    inputs: list[str] = []
+    for path in section_outputs:
+        inputs += ["-i", path]
+    chains = [
+        f"[{i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=mono[a{i}]"
+        for i in range(count)
+    ]
+    labels = "".join(f"[a{i}]" for i in range(count))
+    filter_complex = ";".join(chains) + f";{labels}concat=n={count}:v=0:a=1[out]"
+    _run_ffmpeg(
+        ["-y", "-loglevel", "error", *inputs, "-filter_complex", filter_complex,
+         "-map", "[out]", "-ar", "44100", "-c:a", "pcm_s16le", output_path]
+    )
+
+
 def plan_bed_audition(
     voice_source: str,
     candidates: list[str],
@@ -139,18 +180,7 @@ def plan_bed_audition(
             "candidate beds must be distinct", error_type="validation_error", code="duplicate_candidate"
         )
 
-    if labels is not None:
-        if len(labels) != len(candidates):
-            raise MCPVideoError(
-                "labels must match the candidate count", error_type="validation_error", code="label_count_mismatch"
-            )
-        label_values = [_safe_label(lbl) for lbl in labels]
-        if len(set(label_values)) != len(label_values):
-            raise MCPVideoError(
-                "audition labels must be unique", error_type="validation_error", code="duplicate_label"
-            )
-    else:
-        label_values = [f"Bed {i + 1}" for i in range(len(candidates))]
+    label_values = _resolve_labels(len(candidate_paths), labels)
 
     if not isinstance(section_seconds, (int, float)) or section_seconds <= 0:
         raise MCPVideoError(
@@ -273,14 +303,13 @@ def render_bed_audition(
                 }
             )
 
-        concat_list = os.path.join(tmp, "concat.txt")
-        with open(concat_list, "w", encoding="utf-8") as handle:
-            for path in section_outputs:
-                safe = path.replace("'", r"\'")
-                handle.write(f"file '{safe}'\n")
-        _run_ffmpeg(
-            ["-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", concat_list, "-c", "copy", output_path]
-        )
+        # Concatenate the per-section beds with the concat *filter* (not the
+        # demuxer + `-c copy`): each section is normalized to a uniform
+        # 44100 Hz mono layout, then joined and re-encoded. The demuxer + copy
+        # path produced a wav whose container header only reflected the first
+        # segment on some FFmpeg builds, truncating the reported duration; the
+        # filter path re-encodes and recomputes the duration from real samples.
+        _concat_section_beds(section_outputs, output_path)
 
     from kinocut.ffmpeg_helpers import _run_ffprobe_json
 
