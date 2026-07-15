@@ -18,7 +18,7 @@ from kinocut.aivideo.review import (
 from kinocut.contracts._common import canonical_record_id
 from kinocut.contracts.review import ApprovalState, ApprovalStateValue, KnownLimitation, ReviewDecision
 from kinocut.errors import MCPVideoError
-from kinocut.projectstore import open_project
+from kinocut.projectstore import append_record, open_project
 from tests.contracts_fixtures import approval_state_kwargs, known_limitation_kwargs, review_decision_kwargs
 
 _ASSET = "sha256:" + "a" * 64
@@ -184,3 +184,40 @@ def test_publish_gate_fail_closed_with_no_approval_state(project):
     result = evaluate_publish_gate(project, _ASSET, blocking_findings=())
     assert result.publishable is False
     assert any("approval" in r.lower() for r in result.reasons)
+
+
+# --- #47 review package assembly ---
+
+
+def test_review_package_assembles_a_publishable_candidate(project):
+    from kinocut.aivideo.review import review_package
+
+    fp = "sha256:" + "b" * 64
+    decision = record_review_decision(project, _decision(project, target_ref=_ASSET, dependency_fingerprint=fp))
+    record_approval_state(project, _approved_state(project, decision.record_id, fp))
+    pkg = review_package(project, _ASSET, blocking_findings=())
+    assert pkg.candidate_artifact == _ASSET
+    assert pkg.publishable is True
+    assert decision.record_id in pkg.review_decision_ids
+    assert pkg.human_review_required is True
+
+
+def test_review_package_non_publishable_with_blocking_finding(project):
+    from kinocut.aivideo.review import review_package
+
+    fp = "sha256:" + "b" * 64
+    decision = record_review_decision(project, _decision(project, target_ref=_ASSET, dependency_fingerprint=fp))
+    record_approval_state(project, _approved_state(project, decision.record_id, fp))
+    pkg = review_package(project, _ASSET, blocking_findings=("sha256:" + "f" * 64,))
+    assert pkg.publishable is False
+    assert pkg.publish_gate_reasons
+
+
+def test_review_package_lists_open_defects(project):
+    from kinocut.aivideo.review import review_package
+    from kinocut.contracts.defect import DefectFinding
+    from tests.contracts_fixtures import defect_kwargs
+
+    append_record(project, DefectFinding(**defect_kwargs(project_id=project.project_id)))
+    pkg = review_package(project, _ASSET)
+    assert len(pkg.open_defect_ids) == 1

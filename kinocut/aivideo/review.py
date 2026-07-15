@@ -12,6 +12,7 @@ from pydantic import Field
 
 from kinocut.contracts._common import ValueObject
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
+from kinocut.contracts.defect import DefectFinding, DefectStatus
 from kinocut.contracts.review import (
     ApprovalState,
     ApprovalStateValue,
@@ -19,6 +20,8 @@ from kinocut.contracts.review import (
     ReviewDecision,
 )
 from kinocut.projectstore import Project, append_record, read_records
+
+_NON_BLOCKING_DEFECT_STATUSES = frozenset({DefectStatus.RESOLVED, DefectStatus.FALSE_POSITIVE})
 
 
 def _active(project: Project, kind: str, model: type) -> list[object]:
@@ -130,6 +133,55 @@ class PublishGateResult(ValueObject):
     reasons: tuple[str, ...] = Field(default=())
 
 
+class ReviewPackage(ValueObject):
+    """A governed review manifest assembling the evidence for a candidate (#47).
+
+    Read-only projection over the review ledger: the derived publish verdict, the
+    active review decisions, accepted limitations, and unresolved blocking
+    defects for one candidate artifact. Never a stored approval boolean.
+    """
+
+    candidate_artifact: str
+    publishable: bool
+    publish_gate_reasons: tuple[str, ...] = ()
+    review_decision_ids: tuple[str, ...] = ()
+    known_limitation_ids: tuple[str, ...] = ()
+    open_defect_ids: tuple[str, ...] = ()
+    human_review_required: bool = True
+
+
+def _active_defects(project: Project) -> list[DefectFinding]:
+    rows = [item for item in read_records(project, "defect_finding") if type(item) is DefectFinding]
+    superseded = {item.supersedes for item in rows if item.supersedes is not None}
+    return [item for item in rows if item.record_id not in superseded]
+
+
+def review_package(
+    project: Project,
+    candidate_artifact: str,
+    *,
+    blocking_findings: tuple[str, ...] = (),
+) -> ReviewPackage:
+    """Assemble the review manifest for ``candidate_artifact`` (#47)."""
+
+    gate = evaluate_publish_gate(project, candidate_artifact, blocking_findings=blocking_findings)
+    decisions = review_decisions_for_target(project, candidate_artifact)
+    limitations = known_limitations(project)
+    open_defects = [
+        finding.record_id
+        for finding in _active_defects(project)
+        if finding.status not in _NON_BLOCKING_DEFECT_STATUSES
+    ]
+    return ReviewPackage(
+        candidate_artifact=candidate_artifact,
+        publishable=gate.publishable,
+        publish_gate_reasons=gate.reasons,
+        review_decision_ids=tuple(decision.record_id for decision in decisions),
+        known_limitation_ids=tuple(item.record_id for item in limitations),
+        open_defect_ids=tuple(open_defects),
+    )
+
+
 def evaluate_publish_gate(
     project: Project,
     candidate_artifact: str,
@@ -165,6 +217,7 @@ def evaluate_publish_gate(
 
 __all__ = [
     "PublishGateResult",
+    "ReviewPackage",
     "evaluate_publish_gate",
     "invalidate_approval",
     "known_limitations",
@@ -172,4 +225,5 @@ __all__ = [
     "record_known_limitation",
     "record_review_decision",
     "review_decisions_for_target",
+    "review_package",
 ]
