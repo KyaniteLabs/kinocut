@@ -109,7 +109,7 @@ pytestmark_render = [
     not immutable_verified_snapshot_available(),
     reason="immutable verified source snapshots are unavailable",
 )
-def test_render_bed_audition_produces_labeled_reel(tmp_path):
+def test_render_bed_audition_produces_labeled_sections(tmp_path):
     from kinocut.audio_engine.audition import bed_audition
 
     def _ffmpeg(args: list[str]) -> None:
@@ -122,14 +122,21 @@ def test_render_bed_audition_produces_labeled_reel(tmp_path):
     _ffmpeg(["-f", "lavfi", "-i", "sine=frequency=110:sample_rate=44100:d=3", str(bed_a)])
     _ffmpeg(["-f", "lavfi", "-i", "sine=frequency=330:sample_rate=44100:d=3", str(bed_b)])
 
-    out = tmp_path / "audition.wav"
+    out_dir = tmp_path / "audition"
     receipt = bed_audition(
-        str(voice), [str(bed_a), str(bed_b)], str(out),
+        str(voice), [str(bed_a), str(bed_b)], str(out_dir),
         labels=["Calm", "Bright"], section_seconds=3.0,
         output_display_name="audition",
     )
-    assert out.exists()
+    # One labeled, equal-duration bed file per candidate (no concatenation);
+    # each section composes only over audio_bed, which is proven on the CI
+    # FFmpeg matrix, so this avoids the version-specific concat quirks.
     assert receipt["operation"] == "bed_audition"
     assert [s["label"] for s in receipt["sections"]] == ["Calm", "Bright"]
-    assert receipt["output_duration_seconds"] == pytest.approx(6.0, abs=0.25)
+    assert len(receipt["sections"]) == 2
+    for section in receipt["sections"]:
+        bed = out_dir / section["bed_output_name"]
+        assert bed.exists()
+        assert section["bed_output_sha256"].startswith("sha256:")
+        assert section["bed_output_duration_seconds"] == pytest.approx(3.0, abs=0.25)
     assert receipt["voice_content_sha256"].startswith("sha256:")

@@ -14,6 +14,7 @@ snapshots and is exercised by the CI-gated integration test, exactly like
 
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 from pathlib import Path
@@ -122,30 +123,6 @@ def _resolve_labels(count: int, labels: list[str] | None) -> list[str]:
     return values
 
 
-def _concat_section_beds(section_outputs: list[str], output_path: str) -> None:
-    """Concatenate per-section beds via the concat filter (uniform 44100 Hz mono).
-
-    The filter path re-encodes and recomputes duration from real samples, unlike
-    the concat demuxer + ``-c copy`` which truncated the reported wav duration on
-    some FFmpeg builds.
-    """
-
-    count = len(section_outputs)
-    inputs: list[str] = []
-    for path in section_outputs:
-        inputs += ["-i", path]
-    chains = [
-        f"[{i}:a]aformat=sample_fmts=fltp:sample_rates=44100:channel_layouts=mono[a{i}]"
-        for i in range(count)
-    ]
-    labels = "".join(f"[a{i}]" for i in range(count))
-    filter_complex = ";".join(chains) + f";{labels}concat=n={count}:v=0:a=1[out]"
-    _run_ffmpeg(
-        ["-y", "-loglevel", "error", *inputs, "-filter_complex", filter_complex,
-         "-map", "[out]", "-ar", "44100", "-c:a", "pcm_s16le", output_path]
-    )
-
-
 def plan_bed_audition(
     voice_source: str,
     candidates: list[str],
@@ -231,10 +208,8 @@ class AuditionReceipt(BaseModel):
     receipt_kind: str = "edit"
     operation: str = "bed_audition"
     voice_content_sha256: str
-    sections: tuple[dict[str, Any], ...]
-    output_content_sha256: str
-    output_duration_seconds: float = Field(ge=0.0)
     output_display_name: str
+    sections: tuple[dict[str, Any], ...]
     warnings: tuple[str, ...] = ()
     human_review_required: bool = True
     receipt_sha256: str | None = None
@@ -250,88 +225,82 @@ def _file_sha256(path: str) -> str:
     return "sha256:" + digest.hexdigest()
 
 
+def _slug(label: str) -> str:
+    import re
+
+    return re.sub(r"[^A-Za-z0-9._-]", "_", label).strip("_") or "bed"
+
+
 def render_bed_audition(
     plan: AuditionPlan,
-    output_path: str,
+    output_dir: str,
     *,
     save_receipt: str | None = None,
 ) -> dict[str, Any]:
-    """Render the audition reel. Requires FFmpeg + immutable source snapshots.
+    """Render one labeled equal-duration bed per candidate into ``output_dir``.
 
-    For each section: extract the equal-duration voice slice, render a governed
-    bed via :func:`audio_bed`, then concatenate the sections into one reel.
+    No concatenation: each section is a standalone governed :func:`audio_bed`
+    over its own equal-duration voice slice, written as a labeled file. This
+    composes only over ``audio_bed`` (proven across the CI FFmpeg matrix) and
+    avoids the version-specific concat demuxer/filter quirks that truncated the
+    reel on the CI system FFmpeg. Requires FFmpeg + immutable source snapshots.
     """
 
-    from kinocut.engine_audio_bed import audio_bed  # local import: heavy, FFmpeg-backed
-
-    output_path = _validate_output_path(output_path)
-    if save_receipt is not None:
-        _validate_output_path(save_receipt)
-
-    voice_hash = _file_sha256(plan.voice_source)
-    section_outputs: list[str] = []
-    section_records: list[dict[str, Any]] = []
-    with tempfile.TemporaryDirectory() as tmp:
-        for section in plan.sections:
-            voice_slice = os.path.join(tmp, f"voice_{section.index}.wav")
-            _run_ffmpeg(
-                [
-                    "-y", "-loglevel", "error",
-                    "-ss", str(section.voice_start_seconds),
-                    "-t", str(section.duration_seconds),
-                    "-i", plan.voice_source,
-                    "-vn", "-acodec", "pcm_s16le",
-                    voice_slice,
-                ]
-            )
-            bed_out = os.path.join(tmp, f"bed_{section.index}.wav")
-            audio_bed(
-                voice_slice,
-                section.music_path,
-                bed_out,
-                **plan.mix_policy,
-            )
-            section_outputs.append(bed_out)
-            section_records.append(
-                {
-                    "index": section.index,
-                    "label": section.label,
-                    "music_content_sha256": _file_sha256(section.music_path),
-                    "voice_start_seconds": section.voice_start_seconds,
-                    "voice_end_seconds": section.voice_end_seconds,
-                    "duration_seconds": section.duration_seconds,
-                }
-            )
-
-        # Concatenate the per-section beds with the concat *filter* (not the
-        # demuxer + `-c copy`): each section is normalized to a uniform
-        # 44100 Hz mono layout, then joined and re-encoded. The demuxer + copy
-        # path produced a wav whose container header only reflected the first
-        # segment on some FFmpeg builds, truncating the reported duration; the
-        # filter path re-encodes and recomputes the duration from real samples.
-        _concat_section_beds(section_outputs, output_path)
-
+    from kinocut.engine_audio_bed import audio_bed
     from kinocut.ffmpeg_helpers import _run_ffprobe_json
 
-    probe = _run_ffprobe_json(output_path)
-    duration = float(probe.get("format", {}).get("duration") or 0.0)
+    output_dir = _validate_output_path(output_dir)
+    if save_receipt is not None:
+        _validate_output_path(save_receipt)
+    Path(output_dir).mkdir(parents=True, exist_ok=True)
+
+    voice_hash = _file_sha256(plan.voice_source)
+    records: list[dict[str, Any]] = []
+    for section in plan.sections:
+        with tempfile.TemporaryDirectory() as tmp:
+            # Output seeking (``-i … -ss … -t …``): accurate and consistent
+            # across FFmpeg versions, unlike input seeking.
+            voice_slice = os.path.join(tmp, f"voice_{section.index}.wav")
+            _run_ffmpeg(
+                ["-y", "-loglevel", "error", "-i", plan.voice_source,
+                 "-ss", str(section.voice_start_seconds),
+                 "-t", str(section.duration_seconds),
+                 "-vn", "-acodec", "pcm_s16le", voice_slice]
+            )
+            bed_name = f"{plan.output_display_name}_{section.index:02d}_{_slug(section.label)}.wav"
+            bed_path = _validate_output_path(os.path.join(output_dir, bed_name))
+            audio_bed(voice_slice, section.music_path, bed_path, **plan.mix_policy)
+        probe = _run_ffprobe_json(bed_path)
+        records.append(
+            {
+                "index": section.index,
+                "label": section.label,
+                "music_content_sha256": _file_sha256(section.music_path),
+                "voice_start_seconds": section.voice_start_seconds,
+                "voice_end_seconds": section.voice_end_seconds,
+                "duration_seconds": section.duration_seconds,
+                "bed_output_name": bed_name,
+                "bed_output_sha256": _file_sha256(bed_path),
+                "bed_output_duration_seconds": float(
+                    probe.get("format", {}).get("duration") or 0.0
+                ),
+            }
+        )
     receipt = AuditionReceipt(
         voice_content_sha256=voice_hash,
-        sections=tuple(section_records),
-        output_content_sha256=_file_sha256(output_path),
-        output_duration_seconds=duration,
         output_display_name=plan.output_display_name,
+        sections=tuple(records),
     )
     payload = receipt.model_dump(mode="json")
     if save_receipt is not None:
-        Path(save_receipt).write_text(__import__("json").dumps(payload, indent=2), encoding="utf-8")
+        Path(save_receipt).write_text(json.dumps(payload, indent=2), encoding="utf-8")
     return payload
 
 
 def bed_audition(
     voice_source: str,
     candidates: list[str],
-    output_path: str,
+    output_dir: str,
     *,
     labels: list[str] | None = None,
     section_seconds: float,
@@ -339,7 +308,7 @@ def bed_audition(
     save_receipt: str | None = None,
     **mix_policy: Any,
 ) -> dict[str, Any]:
-    """Plan then render an audition reel in one call (convenience wrapper)."""
+    """Plan then render labeled equal-duration audition beds in one call."""
 
     plan = plan_bed_audition(
         voice_source,
@@ -349,7 +318,7 @@ def bed_audition(
         output_display_name=output_display_name,
         **mix_policy,
     )
-    return render_bed_audition(plan, output_path, save_receipt=save_receipt)
+    return render_bed_audition(plan, output_dir, save_receipt=save_receipt)
 
 
 __all__ = [
