@@ -16,6 +16,7 @@ Public-ish surface (within the package):
 
 from __future__ import annotations
 
+from kinocut.registry._duplicate import DuplicateGroup, DuplicateReport, duplicate_clip_groups
 from kinocut.registry._lineage import LineageGraph
 from kinocut.registry._query import QueryPage, query_approved_clips, query_reusable_beds
 from kinocut.contracts.registry import (
@@ -33,10 +34,13 @@ __all__ = [
     "BedTechnicalMetadata",
     "ClipRecord",
     "ClipTechnicalMetadata",
+    "DuplicateGroup",
+    "DuplicateReport",
     "LineageGraph",
     "LineageLink",
     "LineageRelation",
     "QueryPage",
+    "duplicate_clip_groups",
     "query_approved_clips",
     "query_reusable_beds",
     "register_bed",

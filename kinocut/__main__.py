@@ -58,7 +58,9 @@ def main() -> None:
             sys.exit(1)
         return
 
-    use_json = args.format == "json"
+    from .cli.runner import resolve_use_json
+
+    use_json = resolve_use_json(args.format, sys.stdout.isatty())
 
     # CLI command dispatch chain
     try:

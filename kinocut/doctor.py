@@ -375,6 +375,64 @@ def _check_hyperframes_core(which: WhichFn, version_runner: VersionRunner) -> di
     }
 
 
+def _check_alias_identity() -> dict[str, Any]:
+    """Verify the kinocut <-> mcp_video rename preserved one shared Client (#56).
+
+    A read-only migration signal: after the 1.7 identity cutover, importing
+    ``kinocut`` and ``mcp_video`` must yield the same ``Client`` object. A
+    divergent alias means a stale or partial install that will surface as a
+    confusing "two clients" failure downstream.
+    """
+
+    try:
+        import kinocut
+        import mcp_video
+    except Exception:  # pragma: no cover - defensive: a broken install is the signal
+        return {
+            "name": "alias_identity",
+            "category": "migration",
+            "ok": False,
+            "detail": "unable to import kinocut/mcp_video",
+            "remediation": "Reinstall the package: pip install --force-reinstall kinocut",
+        }
+    ok = getattr(kinocut, "Client", None) is getattr(mcp_video, "Client", None)
+    return {
+        "name": "alias_identity",
+        "category": "migration",
+        "ok": ok,
+        "detail": "kinocut.Client is mcp_video.Client" if ok else "Client objects diverged after rename",
+        "remediation": (
+            "The 1.7 rename must keep one Client. Reinstall kinocut so that "
+            "mcp_video.Client is kinocut.Client."
+        ),
+    }
+
+
+def _check_legacy_env_paths() -> dict[str, Any]:
+    """Flag stale pre-rename env vars and paths awaiting migration (#56)."""
+
+    stale_env = os.environ.get("MCP_VIDEO_CRUSH_PATH")
+    legacy_dir = Path.home() / ".mcp-video"
+    findings: list[str] = []
+    if stale_env:
+        findings.append(f"env MCP_VIDEO_CRUSH_PATH={stale_env}")
+    if legacy_dir.exists():
+        findings.append(f"legacy path {legacy_dir}")
+    ok = not findings
+    return {
+        "name": "legacy_env_paths",
+        "category": "migration",
+        "ok": ok,
+        "detail": "; ".join(findings) if findings else "clean",
+        "remediation": (
+            "No stale pre-rename paths."
+            if ok
+            else "Remove stale pre-1.7 state: unset MCP_VIDEO_CRUSH_PATH and delete "
+            "~/.mcp-video (kinocut now uses KINOCUT_* / ~/.kinocut)."
+        ),
+    }
+
+
 def _summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
     required = [check for check in checks if check["required"]]
     optional = [check for check in checks if not check["required"]]
@@ -443,4 +501,5 @@ def run_diagnostics(
         "summary": _summary(checks),
         "checks": checks,
         "rescue": _rescue_summary(checks),
+        "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
     }

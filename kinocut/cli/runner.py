@@ -9,6 +9,22 @@ from collections.abc import Callable
 from .common import _with_spinner, output_json
 
 
+def resolve_use_json(fmt: str, stdout_isatty: bool) -> bool:
+    """Central output policy (#53): when to emit JSON.
+
+    ``json`` is always JSON; ``auto`` switches to JSON when stdout is not a TTY
+    (piped/agent) so non-interactive callers get machine-readable output without
+    an explicit flag; ``text`` (the default) stays human-readable. An explicit
+    ``--format`` always wins over auto detection.
+    """
+
+    if fmt == "json":
+        return True
+    if fmt == "auto":
+        return not stdout_isatty
+    return False
+
+
 class CommandRunner:
     """Dispatches CLI commands to registered handlers."""
 

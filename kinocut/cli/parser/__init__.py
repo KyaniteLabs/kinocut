@@ -34,9 +34,9 @@ def build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--format",
-        choices=["text", "json"],
+        choices=["text", "json", "auto"],
         default="text",
-        help="Output format (default: text)",
+        help="Output format: text (default), json, or auto (json when stdout is piped)",
     )
     parser.add_argument(
         "--version",
