@@ -91,6 +91,16 @@ class CASManifestRecord(RecordBase):
         return self
 
 
+class CASGCReceiptRecord(RecordBase):
+    """Append-only receipt for one bounded CAS garbage-collection pass."""
+
+    record_kind: Literal["cas_gc"] = "cas_gc"
+    budget_bytes: int = Field(ge=0)
+    deleted_digests: tuple[Sha256, ...] = ()
+    deleted_bytes: int = Field(ge=0)
+    retained_reachable: int = Field(ge=0)
+
+
 class ReceiptLineage(ValueObject):
     edit_project_id: EditProjectId
     revision_id: Sha256

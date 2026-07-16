@@ -66,6 +66,8 @@ def resolve_blob(project: store.Project, digest: str) -> Path:
     manifest = _manifest(project, digest)
     if manifest is None:
         raise contract_error("CAS digest is not recorded in this project", INVALID_RECORD)
+    if digest in _deleted_digests(project):
+        raise contract_error("CAS blob was deleted by garbage collection", INVALID_RECORD)
     target, actual, size = store.safe_target(project, manifest.blob_location), hashlib.sha256(), 0
     try:
         with target.open("rb") as reader:
@@ -77,6 +79,15 @@ def resolve_blob(project: store.Project, digest: str) -> Path:
     if "sha256:" + actual.hexdigest() != digest or size != manifest.byte_size:
         raise contract_error("CAS blob failed its manifest integrity check", INVALID_RECORD)
     return target
+
+
+def _deleted_digests(project: store.Project) -> set[str]:
+    """Return every digest removed by a prior append-only ``cas_gc`` receipt."""
+
+    deleted: set[str] = set()
+    for receipt in store.read_records(project, "cas_gc"):
+        deleted.update(receipt.deleted_digests)
+    return deleted
 
 
 __all__ = ["ingest_blob", "resolve_blob"]
