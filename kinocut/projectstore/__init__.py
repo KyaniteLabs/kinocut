@@ -24,6 +24,16 @@ The internal Phase-1 edit-project repository adds
 from __future__ import annotations
 
 from kinocut.projectstore.cas import ingest_blob, resolve_blob
+from kinocut.projectstore.compat import (
+    CAS_PRODUCER_KINDS,
+    CLOSED_KINDS,
+    NormalizedOperation,
+    WorkflowSpecSynthesis,
+    compile_operations,
+    compile_repurpose_slice,
+    materialize_workflow_sources,
+    synthesize_workflow_spec,
+)
 from kinocut.projectstore.edit_projects import (
     append_revision,
     create_edit_project,
@@ -51,11 +61,17 @@ from kinocut.projectstore.store import (
 )
 
 __all__ = [
+    "CAS_PRODUCER_KINDS",
+    "CLOSED_KINDS",
+    "NormalizedOperation",
     "Project",
+    "WorkflowSpecSynthesis",
     "append_event",
     "append_record",
     "append_revision",
     "cancel_render_job",
+    "compile_operations",
+    "compile_repurpose_slice",
     "create_edit_project",
     "event_poll",
     "get_edit_project",
@@ -63,6 +79,7 @@ __all__ = [
     "ingest_asset",
     "ingest_blob",
     "job_spec_path",
+    "materialize_workflow_sources",
     "open_project",
     "read_records",
     "rebuild_indexes",
@@ -72,5 +89,6 @@ __all__ = [
     "resume_render_job",
     "start_render_job",
     "submit_render_job",
+    "synthesize_workflow_spec",
     "terminate_render_job",
 ]
