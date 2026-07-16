@@ -26,6 +26,7 @@ KINOCUT_DIR = ".kinocut"
 # Subtrees under ``.kinocut/``.
 _ASSETS = "assets"
 _ARTIFACTS = "artifacts"
+_BLOBS = "blobs"
 _RECORDS = "records"
 _INDEXES = "indexes"
 _LOCKS = "locks"
@@ -87,6 +88,15 @@ def artifact_relative_path(artifact_id: str, name: str) -> PurePosixPath:
     )
 
 
+def blob_relative_path(digest: str) -> PurePosixPath:
+    """Canonical project-relative path for one immutable CAS blob."""
+
+    match = _ASSET_ID_RE.match(digest)
+    if match is None:
+        raise contract_error(f"malformed digest: {digest!r}", INVALID_RECORD)
+    return PurePosixPath(KINOCUT_DIR, _BLOBS, "sha256", match.group(1))
+
+
 def records_relative_path(kind: str) -> PurePosixPath:
     """Project-relative JSONL path for a record ``kind``."""
 
@@ -111,6 +121,12 @@ def artifacts_dir() -> PurePosixPath:
     """Project-relative root of the derived artifact store."""
 
     return PurePosixPath(KINOCUT_DIR, _ARTIFACTS, "sha256")
+
+
+def blobs_dir() -> PurePosixPath:
+    """Project-relative root of the canonical content-addressed blob store."""
+
+    return PurePosixPath(KINOCUT_DIR, _BLOBS, "sha256")
 
 
 def index_dir() -> PurePosixPath:

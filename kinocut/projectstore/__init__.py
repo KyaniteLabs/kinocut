@@ -3,8 +3,8 @@
 The project store is the durable home for canonical AI-video records and their
 content-addressed media assets. Its guarantees:
 
-* **Content-addressed** — an asset's identity is the sha256 of its bytes; the
-  same bytes always resolve to one location under ``.kinocut/assets/sha256/``.
+* **Content-addressed** — assets retain their compatible named layout while
+  canonical CAS blobs have exactly one immutable path per sha256 digest.
 * **Append-only** — records are never edited or deleted; a correction is a new
   record that supersedes an earlier one by ``record_id``.
 * **Lock-guarded & atomic** — every mutation holds an exclusive project lock and
@@ -14,12 +14,13 @@ content-addressed media assets. Its guarantees:
   username, or absolute host path is ever stored.
 
 Public surface: :func:`open_project`, :func:`append_record`,
-:func:`read_records`, :func:`ingest_asset`, :func:`rebuild_indexes`, and the
-:class:`Project` handle.
+:func:`read_records`, :func:`ingest_asset`, :func:`ingest_blob`,
+:func:`resolve_blob`, :func:`rebuild_indexes`, and the :class:`Project` handle.
 """
 
 from __future__ import annotations
 
+from kinocut.projectstore.cas import ingest_blob, resolve_blob
 from kinocut.projectstore.ingest import ingest_asset
 from kinocut.projectstore.store import (
     Project,
@@ -33,7 +34,9 @@ __all__ = [
     "Project",
     "append_record",
     "ingest_asset",
+    "ingest_blob",
     "open_project",
     "read_records",
     "rebuild_indexes",
+    "resolve_blob",
 ]

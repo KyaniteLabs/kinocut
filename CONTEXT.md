@@ -38,11 +38,21 @@ _Avoid_: Using "command" to mean FFmpeg command-line invocation in CLI-related c
 
 **Timeline**:
 A JSON specification describing a multi-track video edit with clips, overlays, transitions, and export settings.
-_Avoid_: project, composition, sequence
+_Avoid_: composition, sequence. Use **project** only with one of the qualified meanings below.
+
+**Creation project**:
+The cinematic generation concept owned by `creation_engine.py`.
+**Hyperframes project**:
+The Hyperframes-specific project concept owned by `hyperframes_engine.py`.
+**Edit project**:
+The durable trusted-execution kernel identity and its append-only revision history. Public kernel API nouns use `edit_project_*`.
+**Render runner**:
+The detached process that executes a persistent render job.
+_Avoid_: worker
 
 ## Relationships
 
-- A **Tool** validates inputs and delegates to exactly one **Engine** function.
+- A **Tool** validates inputs and either delegates to exactly one **Engine** function or compiles typed operations into the editing kernel: **Tool → (Engine | kernel-compile)**.
 - An **Engine** assembles **Pipeline** operations and executes them via `_run_ffmpeg()`.
 - A **Probe** reads video metadata via ffprobe.
 - A **Guardrail** evaluates video quality; may trigger auto-fixes via **Engine** functions.
@@ -62,3 +72,4 @@ _Avoid_: project, composition, sequence
 - "engine" was used to mean both the Python module (`effects_engine.py`) and FFmpeg's internal processing engine — resolved: "Engine" is the Python module only.
 - "filter" means both FFmpeg filter expressions and Python list/dict filters — resolved: in FFmpeg context, always say "Filter"; in Python context, say "list comprehension" or "predicate".
 - "command" means both CLI subcommand and FFmpeg command-line invocation — resolved: "Command" is the CLI subcommand; "FFmpeg invocation" is the subprocess call.
+- "project" has three deliberate, qualified meanings — creation project, Hyperframes project, and edit project — so unqualified use remains ambiguous and should be avoided.

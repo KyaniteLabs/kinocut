@@ -54,6 +54,13 @@ from kinocut.contracts.protection import ProtectedElement
 from kinocut.contracts.registry import BedRecord, ClipRecord, LineageLink
 from kinocut.contracts.review import ApprovalState, KnownLimitation, ReviewDecision
 from kinocut.contracts.verdict import ClipVerdict
+from kinocut.contracts.trusted_execution import (
+    CASManifestRecord,
+    EditProjectRecord,
+    EditRevisionRecord,
+    KernelEventRecord,
+    RenderJobRecord,
+)
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import layout
 from kinocut.projectstore._migrations import migrate_raw
@@ -67,7 +74,7 @@ _PROJECT_METADATA_FIELDS = frozenset({"schema_version", "project_id"})
 # the write boundary — independently of any model validator — so a record
 # smuggled past validation (e.g. via ``model_copy``) still cannot persist an
 # absolute, traversing, URL, or control-char path.
-_PATH_FIELDS = ("original_location", "usage_rights_evidence_ref")
+_PATH_FIELDS = ("original_location", "usage_rights_evidence_ref", "blob_location")
 
 # Every canonical record kind maps to the model that reads it back with full
 # strict validation. Adding a record kind means adding one registry entry.
@@ -89,6 +96,11 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "lineage_link": LineageLink,
     "beat_map": BeatMap,
     "continuity_plan": ContinuityPlan,
+    "edit_project": EditProjectRecord,
+    "edit_revision": EditRevisionRecord,
+    "render_job": RenderJobRecord,
+    "cas_manifest": CASManifestRecord,
+    "kernel_event": KernelEventRecord,
 }
 
 
@@ -115,6 +127,7 @@ def open_project(project_dir: str | Path) -> Project:
             layout.records_dir(),
             layout.assets_dir(),
             layout.artifacts_dir(),
+            layout.blobs_dir(),
             layout.index_dir(),
             layout.lock_dir(),
         ):
@@ -142,6 +155,7 @@ def _has_legacy_store_content(project: Project) -> bool:
             layout.records_dir(),
             layout.assets_dir(),
             layout.artifacts_dir(),
+            layout.blobs_dir(),
             layout.index_dir(),
         ):
             directory = safe_target(project, relative)
