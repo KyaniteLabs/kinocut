@@ -156,6 +156,42 @@ def _render_one(
     still_reusing = resuming
     resumed_from: str | None = None
 
+    def _persist_progress(*, status: str) -> None:
+        """Atomically persist a progressive (partial) workflow receipt.
+
+        Builds it with the SAME ``_build_receipt`` the terminal receipt uses and
+        writes it through the SAME atomic ``_write_receipt`` (stage-then-swap), so a
+        resumed run reads one authoritative cursor: completed stages carry their real
+        input/output hashes, and every not-yet-run stage is appended as ``pending``
+        so the resume cursor and completed-stage count stay correct mid-run. No-op
+        when no ``save_receipt`` was requested."""
+        if save_receipt is None:
+            return
+        snapshot = list(steps_receipt) + [
+            _step_entry(step, "pending", {}, step.output, None, None, None) for step in spec.steps[len(steps_receipt) :]
+        ]
+        _write_receipt(
+            _build_receipt(
+                verdict=verdict,
+                variant=variant,
+                spec_hash=spec_hash,
+                spec_steps=spec.steps,
+                sources=sources,
+                steps_receipt=snapshot,
+                workspace_root=workspace_root,
+                hash_cache=hash_cache,
+                run_dir_rel=run_dir_rel,
+                intermediates=intermediates,
+                cleaned=False,
+                keep_intermediates=keep_intermediates,
+                resuming=resuming,
+                resumed_from=resumed_from,
+                status=status,
+            ),
+            save_receipt,
+            workspace_root,
+        )
+
     for index, step in enumerate(spec.steps):
         adapter = OP_ADAPTERS[step.op]
         output_rel, output_abs = _resolve_output(
@@ -180,6 +216,7 @@ def _render_one(
                     skipped=True,
                 )
             )
+            _persist_progress(status="in_progress")
             continue
 
         if still_reusing:  # first step that could not be reused = the resume point
@@ -212,6 +249,7 @@ def _render_one(
         steps_receipt.append(
             _step_entry(step, "completed", input_hashes, output_rel, output_hash, started_at, _utcnow())
         )
+        _persist_progress(status="in_progress")
 
     if failure is not None:
         for step in spec.steps[failed_index + 1 :]:
@@ -220,35 +258,23 @@ def _render_one(
     cleaned = _apply_cleanup(
         run_dir_abs, intermediates, workspace_root, success=failure is None, keep_intermediates=keep_intermediates
     )
-    outputs = _build_outputs(verdict, workspace_root, hash_cache)
-
-    receipt = {
-        "schema_version": 1,
-        "receipt_kind": "workflow",
-        "tool": "video_workflow_render",
-        "versions": versions(),
-        "spec_hash": spec_hash,
-        "workflow": {"name": verdict["name"], "variant": variant},
-        "sources": sources,
-        "steps": steps_receipt,
-        "outputs": outputs,
-        "work_dir": run_dir_rel,
-        "cleanup_manifest": {
-            "intermediates": intermediates,
-            "cleaned": cleaned,
-            "policy": _cleanup_policy(keep_intermediates),
-        },
-        "resume_cursor": _resume_cursor(steps_receipt),
-        "feature_flags": {
-            "variants": bool(verdict["variants"]),
-            "resume_used": resuming,
-            "resumed_from": resumed_from,
-            "ops": [step.op for step in spec.steps],
-        },
-        "warnings": [],
-        "status": "failed" if failure is not None else "completed",
-        "render_determinism_scope": RENDER_DETERMINISM_SCOPE,
-    }
+    receipt = _build_receipt(
+        verdict=verdict,
+        variant=variant,
+        spec_hash=spec_hash,
+        spec_steps=spec.steps,
+        sources=sources,
+        steps_receipt=steps_receipt,
+        workspace_root=workspace_root,
+        hash_cache=hash_cache,
+        run_dir_rel=run_dir_rel,
+        intermediates=intermediates,
+        cleaned=cleaned,
+        keep_intermediates=keep_intermediates,
+        resuming=resuming,
+        resumed_from=resumed_from,
+        status="failed" if failure is not None else "completed",
+    )
 
     if save_receipt is not None:
         _write_receipt(receipt, save_receipt, workspace_root)
@@ -695,6 +721,69 @@ def _resume_cursor(steps: list[dict[str, Any]]) -> dict[str, str | None]:
     return {"last_completed_step": last_completed, "next_step": next_step}
 
 
+def _build_receipt(
+    *,
+    verdict: dict[str, Any],
+    variant: str | None,
+    spec_hash: str,
+    spec_steps: list[WorkflowStep],
+    sources: list[dict[str, Any]],
+    steps_receipt: list[dict[str, Any]],
+    workspace_root: Path,
+    hash_cache: dict[str, str | None],
+    run_dir_rel: str,
+    intermediates: list[str],
+    cleaned: bool,
+    keep_intermediates: bool,
+    resuming: bool,
+    resumed_from: str | None,
+    status: str,
+) -> dict[str, Any]:
+    """Assemble ONE workflow receipt (§5a schema) — the single source of truth.
+
+    Used for both the final terminal receipt and every progressive partial
+    receipt written after a completed stage, so a resumed run reads the SAME
+    schema/spec_hash/step hashes/work_dir/cleanup semantics/resume cursor it
+    would read from the terminal receipt. No second cursor or protocol exists.
+    """
+    # Progressive (status == "in_progress") receipts are written BEFORE later
+    # stages have produced their declared outputs, so ``_hash_if_exists`` would
+    # memoize None for those still-absent output paths into the shared
+    # ``hash_cache`` — and that None would then be served to the terminal
+    # receipt even after the file appears, poisoning the authoritative output
+    # hash. Isolate the progressive output hashes in a cache COPY so absent
+    # outputs never leak into the shared cache; the terminal receipt keeps
+    # using the shared cache unchanged (real hashes only).
+    outputs_cache: dict[str, str | None] = hash_cache if status != "in_progress" else dict(hash_cache)
+    return {
+        "schema_version": 1,
+        "receipt_kind": "workflow",
+        "tool": "video_workflow_render",
+        "versions": versions(),
+        "spec_hash": spec_hash,
+        "workflow": {"name": verdict["name"], "variant": variant},
+        "sources": sources,
+        "steps": steps_receipt,
+        "outputs": _build_outputs(verdict, workspace_root, outputs_cache),
+        "work_dir": run_dir_rel,
+        "cleanup_manifest": {
+            "intermediates": list(intermediates),
+            "cleaned": cleaned,
+            "policy": _cleanup_policy(keep_intermediates),
+        },
+        "resume_cursor": _resume_cursor(steps_receipt),
+        "feature_flags": {
+            "variants": bool(verdict["variants"]),
+            "resume_used": resuming,
+            "resumed_from": resumed_from,
+            "ops": [step.op for step in spec_steps],
+        },
+        "warnings": [],
+        "status": status,
+        "render_determinism_scope": RENDER_DETERMINISM_SCOPE,
+    }
+
+
 def _wrap_engine_exception(exc: Exception, step: WorkflowStep, workspace_root: Path) -> MCPVideoError:
     """Wrap an arbitrary engine exception as a fail-closed ``MCPVideoError``.
 
@@ -743,10 +832,21 @@ def _utcnow() -> str:
 
 
 def _write_receipt(receipt: dict[str, Any], save_receipt: str, workspace_root: Path | None = None) -> None:
-    """Write the receipt as pretty, stable JSON (matches the plan writer)."""
+    """Atomically write the receipt as pretty, stable JSON (matches the plan writer).
+
+    Stage-then-swap: serialize to a same-directory temp file, then ``os.replace`` it
+    onto the target. ``os.replace`` is atomic on POSIX/Windows for same-filesystem
+    renames, and the temp lives next to the target so the existing path-confinement
+    guard covers it. A SIGKILL mid-write can therefore never leave a torn receipt —
+    a reader (including a resumed run) always sees either the prior complete receipt
+    or the new complete receipt, which is what makes kill/reopen/resume safe."""
     if not isinstance(save_receipt, str) or not save_receipt:
         raise workflow_error("save_receipt must be a non-empty file path", INVALID_WORKFLOW_SPEC)
     _validate_artifact_path(save_receipt)  # traversal / symlink / system-dir / dotfile / overwrite-non-json guard
     if workspace_root is not None:
         _confine_artifact_path(save_receipt, workspace_root, "save_receipt")
-    Path(save_receipt).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    payload = json.dumps(receipt, indent=2, sort_keys=True) + "\n"
+    target = Path(save_receipt)
+    tmp = target.parent / f".{target.name}.{uuid.uuid4().hex[:8]}.tmp"
+    tmp.write_text(payload, encoding="utf-8")
+    os.replace(tmp, target)
