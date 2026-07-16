@@ -17,6 +17,8 @@ from __future__ import annotations
 import argparse
 import contextlib
 import fcntl
+from typing import Any
+from pathlib import Path
 import os
 import sys
 import time
@@ -33,6 +35,7 @@ from kinocut.projectstore.render_jobs import (
 )
 from kinocut.projectstore.store import Project, open_project
 from kinocut.server_tools_workflow import video_workflow_render
+from kinocut.workflow.executor import attach_receipt_lineage
 
 __all__ = ["run_job", "start_render_job"]
 
@@ -62,6 +65,13 @@ def run_job(project: Project, job_id: str) -> str:
         mark_failed(project, job_id, "render_failed", repr(exc)[:256])
         return "failed"
     if isinstance(result, dict) and result.get("success"):
+        try:
+            # The synchronous engine returns the authoritative workflow receipt (plus
+            # ``success``); derive/persist lineage directly from it — never reread the file.
+            result = _attach_job_lineage(project, job_id, receipt_path, result)
+        except Exception:  # lineage is required provenance: never succeed without it
+            mark_failed(project, job_id, "lineage_failed", "workflow receipt lineage could not be attached")
+            return "failed"
         mark_succeeded(project, job_id, result)
         return "succeeded"
     error = result.get("error") if isinstance(result, dict) else None
@@ -72,6 +82,29 @@ def run_job(project: Project, job_id: str) -> str:
         (error or {}).get("message") or "",
     )
     return "failed"
+
+
+def _attach_job_lineage(project: Project, job_id: str, receipt_path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
+    """Fail-closed: attach a validated ``ReceiptLineage`` to the returned receipt.
+
+    Derives lineage from the authoritative receipt the synchronous engine already
+    returned (carrying its recorded source/output hashes and ``versions``) and the
+    persisted job identity, then atomically rewrites the canonical receipt path —
+    strictly additive (per-step hashes and the cleanup manifest are preserved) and
+    confined to the project workspace. Lineage is REQUIRED provenance for a
+    detached render job: any derive/write failure propagates to the caller so the
+    job is failed rather than recorded as succeeded without valid lineage. Returns
+    the enriched receipt.
+    """
+    head = get_render_job(project, job_id)
+    return attach_receipt_lineage(
+        receipt,
+        edit_project_id=head.edit_project_id,
+        revision_id=head.revision_id,
+        job_id=head.job_id,
+        save_receipt=str(receipt_path),
+        workspace_root=project.root,
+    )
 
 
 def _await_running_identity(project: Project, job_id: str) -> None:

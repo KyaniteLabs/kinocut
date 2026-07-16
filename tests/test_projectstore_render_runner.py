@@ -98,6 +98,9 @@ import os
 import sys
 import time
 
+if "-version" in sys.argv[1:]:
+    sys.stdout.write("ffmpeg version kinocut-fake-1.0.0 (kinocut test shim)\\n")
+    sys.exit(0)
 token = os.environ.get("KINOCUT_TEST_FFMPEG_BLOCK_TOKEN", "")
 if token and os.path.exists(token):
     while True:
@@ -154,8 +157,14 @@ def test_run_job_passes_render_contract_and_marks_succeeded(tmp_path, monkeypatc
     project = open_project(tmp_path / "proj")
     job = _job(project, running=True)
     captured = {}
+    src_hash = "sha256:" + "a" * 64
+    out_hash = "sha256:" + "b" * 64
     receipt = {
         "success": True,
+        "status": "completed",
+        "sources": [{"id": "src1", "source_hash": src_hash}],
+        "outputs": [{"id": "out1", "output_hash": out_hash}],
+        "versions": {"mcp_video": "1.8.0", "ffmpeg": "7.1.1"},
         "steps": [
             {"id": "s1", "status": "completed", "output_hash": "sha256:" + "a" * 64},
             {"id": "s2", "status": "completed", "output_hash": "sha256:" + "b" * 64},
@@ -176,6 +185,16 @@ def test_run_job_passes_render_contract_and_marks_succeeded(tmp_path, monkeypatc
     assert head.status.value == "succeeded"
     assert head.completed_artifacts == ("sha256:" + "a" * 64, "sha256:" + "b" * 64)
     assert head.stage_index == 2  # progress carried forward from the receipt
+    # Lineage is derived from the authoritative returned receipt (plus ``success``)
+    # and atomically persisted before SUCCEEDED/event emission, using the persisted
+    # job identity — never by rereading the receipt file.
+    persisted = json.loads(render_jobs.job_receipt_path(project, job.job_id).read_text(encoding="utf-8"))
+    lineage = persisted["lineage"]
+    assert lineage["edit_project_id"] == job.edit_project_id
+    assert lineage["revision_id"] == job.revision_id
+    assert lineage["job_id"] == job.job_id
+    assert lineage["source_digests"] == [src_hash]
+    assert lineage["output_digest"] == out_hash
 
 
 def test_run_job_resumes_from_existing_receipt(tmp_path, monkeypatch):

@@ -31,6 +31,9 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+from pydantic import ValidationError
+
+from ..contracts.trusted_execution import ReceiptLineage
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_artifact_path
 from ._errors import (
@@ -850,3 +853,127 @@ def _write_receipt(receipt: dict[str, Any], save_receipt: str, workspace_root: P
     tmp = target.parent / f".{target.name}.{uuid.uuid4().hex[:8]}.tmp"
     tmp.write_text(payload, encoding="utf-8")
     os.replace(tmp, target)
+
+
+# --- Receipt lineage ---------------------------------------------------------
+
+
+_LINEAGE_SHA256_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
+
+
+def attach_receipt_lineage(
+    receipt: dict[str, Any],
+    *,
+    edit_project_id: str,
+    revision_id: str,
+    job_id: str,
+    save_receipt: str | None = None,
+    workspace_root: Path | None = None,
+) -> dict[str, Any]:
+    """Derive a validated ``ReceiptLineage`` from a successful receipt and attach it.
+
+    Compact internal helper (NOT part of the public workflow surface): given an
+    already-successful workflow receipt plus exact edit-project/revision/job
+    identity, it derives ``source_digests`` (each recorded source hash, in spec
+    order), ``output_digest`` (the recorded output hash for a single output, else a
+    deterministic sha256 over the sorted output hashes), and a canonical
+    ``toolchain_fingerprint`` (sha256 over the receipt's
+    recorded ``versions``), validates the bundle through ``ReceiptLineage``
+    (fail-closed on any missing/malformed hash or invalid identity), attaches a
+    ``lineage`` object to the receipt, and — when ``save_receipt`` names the same
+    path the receipt was written to — atomically rewrites that file in place.
+
+    Lineage is strictly additive: existing receipt fields (per-step hashes, the
+    cleanup manifest, …) are never touched, and a legacy synchronous receipt is
+    byte/schema unchanged unless this helper is explicitly called. No lineage
+    argument is added to the public ``video_workflow_render`` surface.
+    """
+    receipt["lineage"] = _derive_receipt_lineage(
+        receipt,
+        edit_project_id=edit_project_id,
+        revision_id=revision_id,
+        job_id=job_id,
+    )
+    if save_receipt is not None:
+        _write_receipt(receipt, save_receipt, workspace_root)
+    return receipt
+
+
+def _derive_receipt_lineage(
+    receipt: dict[str, Any],
+    *,
+    edit_project_id: str,
+    revision_id: str,
+    job_id: str,
+) -> dict[str, Any]:
+    """Build a validated lineage dict purely from a completed workflow receipt.
+
+    Derivation reads only the receipt's recorded source/output hashes and its
+    ``versions`` object — it never re-hashes disk bytes — so lineage is a stable
+    function of an already-successful receipt plus its identity.
+    """
+    if not isinstance(receipt, dict):
+        raise workflow_error("lineage requires a workflow receipt", INVALID_WORKFLOW_RECEIPT)
+    if receipt.get("status") != "completed":
+        raise workflow_error("lineage may only be attached to a completed receipt", INVALID_WORKFLOW_RECEIPT)
+    try:
+        lineage = ReceiptLineage(
+            edit_project_id=edit_project_id,
+            revision_id=revision_id,
+            job_id=job_id,
+            source_digests=_lineage_source_digests(receipt),
+            output_digest=_lineage_output_digest(receipt),
+            toolchain_fingerprint=_lineage_toolchain_fingerprint(receipt),
+        )
+    except ValidationError as exc:
+        raise workflow_error(f"invalid receipt lineage: {exc}", INVALID_WORKFLOW_RECEIPT) from exc
+    data = lineage.model_dump()
+    data["source_digests"] = list(data["source_digests"])
+    return data
+
+
+def _lineage_source_digests(receipt: dict[str, Any]) -> list[str]:
+    """Each recorded source hash, in spec order; fail-closed on any gap or malformation."""
+    sources = receipt.get("sources")
+    if not isinstance(sources, list) or not sources:
+        raise workflow_error("receipt has no sources for lineage", INVALID_WORKFLOW_RECEIPT)
+    digests: list[str] = []
+    for entry in sources:
+        digest = entry.get("source_hash") if isinstance(entry, dict) else None
+        if not isinstance(digest, str) or not _LINEAGE_SHA256_RE.match(digest):
+            raise workflow_error("receipt source hash missing or malformed for lineage", INVALID_WORKFLOW_RECEIPT)
+        digests.append(digest)
+    return digests
+
+
+def _lineage_output_digest(receipt: dict[str, Any]) -> str:
+    """The artifact digest when one output; a deterministic aggregate over sorted hashes otherwise.
+
+    Fail-closed on any gap or malformation. A single-output workflow records the
+    artifact's own hash directly (the output IS the digest). When a workflow
+    declares several outputs the lineage contract still carries a single
+    ``output_digest``, so the recorded hashes are sorted then folded into one
+    canonical sha256 (order-stable regardless of declaration order).
+    """
+    outputs = receipt.get("outputs")
+    if not isinstance(outputs, list) or not outputs:
+        raise workflow_error("receipt has no outputs for lineage", INVALID_WORKFLOW_RECEIPT)
+    hashes: list[str] = []
+    for entry in outputs:
+        digest = entry.get("output_hash") if isinstance(entry, dict) else None
+        if not isinstance(digest, str) or not _LINEAGE_SHA256_RE.match(digest):
+            raise workflow_error("receipt output hash missing or malformed for lineage", INVALID_WORKFLOW_RECEIPT)
+        hashes.append(digest)
+    if len(hashes) == 1:
+        return hashes[0]
+    encoded = json.dumps(sorted(hashes), separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
+
+
+def _lineage_toolchain_fingerprint(receipt: dict[str, Any]) -> str:
+    """Canonical sha256 over the receipt's recorded ``versions`` object."""
+    versions = receipt.get("versions")
+    if not isinstance(versions, dict) or not versions:
+        raise workflow_error("receipt has no versions for lineage", INVALID_WORKFLOW_RECEIPT)
+    encoded = json.dumps(versions, sort_keys=True, separators=(",", ":"))
+    return "sha256:" + hashlib.sha256(encoded.encode("utf-8")).hexdigest()
