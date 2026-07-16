@@ -56,6 +56,7 @@ from kinocut.contracts.review import ApprovalState, KnownLimitation, ReviewDecis
 from kinocut.contracts.verdict import ClipVerdict
 from kinocut.contracts.trusted_execution import (
     CASManifestRecord,
+    CASGCReceiptRecord,
     EditProjectRecord,
     EditRevisionRecord,
     KernelEventRecord,
@@ -100,6 +101,7 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "edit_revision": EditRevisionRecord,
     "render_job": RenderJobRecord,
     "cas_manifest": CASManifestRecord,
+    "cas_gc": CASGCReceiptRecord,
     "kernel_event": KernelEventRecord,
 }
 
