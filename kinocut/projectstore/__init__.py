@@ -30,6 +30,17 @@ from kinocut.projectstore.edit_projects import (
     get_edit_project,
 )
 from kinocut.projectstore.ingest import ingest_asset
+from kinocut.projectstore.render_jobs import (
+    cancel_render_job,
+    get_render_job,
+    job_spec_path,
+    reconcile_render_jobs,
+    render_job_status,
+    resume_render_job,
+    submit_render_job,
+    terminate_render_job,
+)
+from kinocut.projectstore.render_runner import start_render_job
 from kinocut.projectstore.store import (
     Project,
     append_record,
@@ -42,12 +53,21 @@ __all__ = [
     "Project",
     "append_record",
     "append_revision",
+    "cancel_render_job",
     "create_edit_project",
     "get_edit_project",
+    "get_render_job",
     "ingest_asset",
     "ingest_blob",
+    "job_spec_path",
     "open_project",
     "read_records",
     "rebuild_indexes",
+    "reconcile_render_jobs",
+    "render_job_status",
     "resolve_blob",
+    "resume_render_job",
+    "start_render_job",
+    "submit_render_job",
+    "terminate_render_job",
 ]
