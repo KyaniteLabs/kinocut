@@ -95,10 +95,19 @@ def _attach_job_lineage(project: Project, job_id: str, receipt_path: Path, recei
     detached render job: any derive/write failure propagates to the caller so the
     job is failed rather than recorded as succeeded without valid lineage. Returns
     the enriched receipt.
+
+    The synchronous engine wraps the workflow receipt in a result envelope that
+    sets the MCP ``success`` key; that envelope-only key is not a receipt field, so
+    lineage attaches to — and the receipt path is rewritten from — a receipt-only
+    copy without ``success``. The persisted async receipt is therefore the engine
+    receipt plus exactly ``lineage``, never the envelope's ``success``.
     """
     head = get_render_job(project, job_id)
+    # Strip the envelope-only ``success`` before lineage so the persisted receipt
+    # gains exactly ``lineage`` — never MCP envelope metadata.
+    receipt_only = {key: value for key, value in receipt.items() if key != "success"}
     return attach_receipt_lineage(
-        receipt,
+        receipt_only,
         edit_project_id=head.edit_project_id,
         revision_id=head.revision_id,
         job_id=head.job_id,

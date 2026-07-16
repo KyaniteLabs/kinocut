@@ -336,10 +336,47 @@ def test_run_job_attaches_lineage_from_persisted_identity(tmp_path, monkeypatch)
     assert persisted["steps"] == receipt["steps"]
     assert persisted["cleanup_manifest"] == receipt["cleanup_manifest"]
     assert persisted["status"] == "completed"
-    # Lineage is attached to the authoritative RETURNED receipt (the success
-    # envelope) and atomically persisted before SUCCEEDED/event emission — never by
-    # rereading the file: the persisted result carries ``success``.
-    assert persisted["success"] is True
+    # Lineage attaches to a receipt-only copy (not the envelope) and is atomically
+    # persisted before SUCCEEDED/event emission; the async receipt gains exactly
+    # ``lineage`` and never the MCP envelope's ``success``.
+    assert "success" not in persisted
+
+
+def test_run_job_persisted_receipt_is_receipt_plus_lineage_not_envelope(tmp_path, monkeypatch):
+    """Regression: async persistence adds exactly ``lineage`` — never ``success``.
+
+    The synchronous engine wraps the workflow receipt in a result envelope that
+    sets ``success``; the detached runner derives/persists lineage from a
+    receipt-only copy, so the persisted async receipt equals the engine receipt
+    plus exactly ``lineage`` (never the MCP envelope's ``success``) while every
+    original workflow receipt field is preserved unchanged.
+    """
+    project = open_project(tmp_path / "proj")
+    job = _job(project)
+    render_jobs.mark_running(project, job.job_id, 424242)
+    receipt_path = render_jobs.job_receipt_path(project, job.job_id)
+    receipt = _completed_receipt()
+    snapshot = copy.deepcopy(receipt)
+
+    def fake_render(**kwargs):
+        # mimic the real engine: persist the canonical receipt, return the success envelope
+        save = kwargs.get("save_receipt")
+        if save:
+            Path(save).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+        return {**receipt, "success": True}
+
+    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    assert render_runner.run_job(project, job.job_id) == "succeeded"
+
+    persisted = json.loads(receipt_path.read_text(encoding="utf-8"))
+    # lineage is attached ...
+    assert "lineage" in persisted
+    # ... but the MCP envelope's ``success`` never leaks into the persisted receipt
+    assert "success" not in persisted
+    # the async receipt is the engine receipt plus exactly ``lineage``: no keys
+    # added or removed beyond lineage, and every original field is preserved
+    assert set(persisted) == set(snapshot) | {"lineage"}
+    assert all(persisted[key] == snapshot[key] for key in snapshot)
 
 
 def test_run_job_fails_when_lineage_result_not_completed(tmp_path, monkeypatch):
