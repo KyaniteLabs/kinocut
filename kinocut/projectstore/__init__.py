@@ -29,6 +29,7 @@ from kinocut.projectstore.edit_projects import (
     create_edit_project,
     get_edit_project,
 )
+from kinocut.projectstore.events import append_event, event_poll
 from kinocut.projectstore.ingest import ingest_asset
 from kinocut.projectstore.render_jobs import (
     cancel_render_job,
@@ -51,10 +52,12 @@ from kinocut.projectstore.store import (
 
 __all__ = [
     "Project",
+    "append_event",
     "append_record",
     "append_revision",
     "cancel_render_job",
     "create_edit_project",
+    "event_poll",
     "get_edit_project",
     "get_render_job",
     "ingest_asset",

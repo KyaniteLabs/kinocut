@@ -18,10 +18,12 @@ from typing import Any
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import RenderJobRecord, RenderJobStatus, can_transition_job
-from kinocut.projectstore.edit_projects import get_edit_project
+from kinocut.projectstore.edit_projects import _append_transaction, get_edit_project
+from kinocut.projectstore.events import _build_event_locked
 from kinocut.projectstore.store import (
     Project,
     _project_lock,
+    _with_record_id,
     _write_atomically,
     append_record_locked,
     read_records,
@@ -84,8 +86,11 @@ def _job_heads(project: Project) -> dict[str, RenderJobRecord]:
     return heads
 
 
-def _append_from(project: Project, head: RenderJobRecord, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
-    """Append a frozen successor of ``head`` (lock held by caller). Progress carries forward unless overridden; the failure summary resets and the active stage clears on re-queue."""
+def _build_from(project: Project, head: RenderJobRecord, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
+    """Build and validate a frozen successor of ``head`` (lock held by caller, no append);
+    returns the record with its canonical ``record_id`` populated so a paired record (the
+    success event) can reference it before the append. Progress carries forward unless
+    overridden; the failure summary resets and the active stage clears on re-queue."""
     fields: dict[str, Any] = head.model_dump(mode="json")
     fields["record_id"] = None
     fields.update(
@@ -99,7 +104,13 @@ def _append_from(project: Project, head: RenderJobRecord, target: RenderJobStatu
         created_at=_now(),
         supersedes=head.record_id,
     )
-    return append_record_locked(project, validate_record(RenderJobRecord, fields))
+    record, _ = _with_record_id(validate_record(RenderJobRecord, fields))
+    return record
+
+
+def _append_from(project: Project, head: RenderJobRecord, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
+    """Append a frozen successor of ``head`` (lock held by caller); see :func:`_build_from`."""
+    return append_record_locked(project, _build_from(project, head, target, **changes))
 
 
 def _transition(project: Project, job_id: str, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
@@ -170,16 +181,43 @@ def mark_running(project: Project, job_id: str, pid: int) -> RenderJobRecord:
 
 
 def mark_succeeded(project: Project, job_id: str, receipt: dict[str, Any]) -> RenderJobRecord:
+    """Advance a RUNNING job to SUCCEEDED and append exactly one ``render.completed``
+    kernel event, both under one project lock and one exception-atomic append
+    transaction over the distinct ``render_job`` and ``kernel_event`` kinds. A repeat
+    call fails closed on the illegal SUCCEEDED -> SUCCEEDED transition before any
+    append, so the event is never duplicated. The successor and the event are
+    validated/built before the transactional append, so a raised second append rolls
+    both record logs back to their pre-call bytes (exception-atomic, not
+    crash-atomic) and a retry produces exactly one succeeded head and one event."""
     artifacts, completed = _extract_progress(receipt)
-    return _transition(
-        project,
-        job_id,
-        RenderJobStatus.SUCCEEDED,
-        stage="completed",
-        stage_index=completed,
-        completed_artifacts=artifacts,
-        runner_pid=None,
-    )
+    with _project_lock(project):
+        head = _job_heads(project).get(job_id)
+        if head is None:
+            raise contract_error("render job not found", INVALID_RECORD)
+        if not can_transition_job(head.status, RenderJobStatus.SUCCEEDED):
+            raise contract_error(
+                f"illegal render-job transition {head.status.value} -> {RenderJobStatus.SUCCEEDED.value}",
+                INVALID_RECORD,
+            )
+        succeeded = _build_from(
+            project,
+            head,
+            RenderJobStatus.SUCCEEDED,
+            stage="completed",
+            stage_index=completed,
+            completed_artifacts=artifacts,
+            runner_pid=None,
+        )
+        event = _build_event_locked(
+            project,
+            "render.completed",
+            edit_project_id=head.edit_project_id,
+            revision_id=head.revision_id,
+            job_id=job_id,
+            subject_record_id=succeeded.record_id,
+        )
+        _append_transaction(project, [succeeded, event])
+        return succeeded
 
 
 def mark_failed(project: Project, job_id: str, code: str, message: str) -> RenderJobRecord:
