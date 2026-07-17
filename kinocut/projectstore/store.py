@@ -57,6 +57,7 @@ from kinocut.contracts.verdict import ClipVerdict
 from kinocut.contracts.trusted_execution import (
     CASManifestRecord,
     CASGCReceiptRecord,
+    BranchRecord,
     EditProjectRecord,
     EditRevisionRecord,
     KernelEventRecord,
@@ -98,6 +99,7 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "beat_map": BeatMap,
     "continuity_plan": ContinuityPlan,
     "edit_project": EditProjectRecord,
+    "branch": BranchRecord,
     "edit_revision": EditRevisionRecord,
     "render_job": RenderJobRecord,
     "cas_manifest": CASManifestRecord,

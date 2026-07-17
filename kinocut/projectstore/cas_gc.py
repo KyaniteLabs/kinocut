@@ -9,6 +9,7 @@ from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import (
     CASGCReceiptRecord,
     CASManifestRecord,
+    BranchRecord,
     EditProjectRecord,
     EditRevisionRecord,
 )
@@ -22,35 +23,50 @@ _GC_TARGET_FRACTION = 0.8
 
 
 def _reachable_digests(project: store.Project) -> set[str]:
-    """Derive reachable blob digests from each active edit-project head revision.
-
-    A digest is reachable when it appears among the ``operation_ids`` of the
-    single head revision for an edit project. Ambiguous heads (more than one
-    unsuperseded record per identity) or corrupt heads (a ``head_revision_id``
-    resolving to zero/multiple revisions) fail closed rather than risk evicting
-    live data.
-    """
-
-    by_id: dict[str, list[EditProjectRecord]] = {}
+    """Union operation digests across every branch ancestry, including legacy main."""
+    project_heads: dict[str, str | None] = {}
+    by_project: dict[str, list[EditProjectRecord]] = {}
     for record in store.read_records(project, "edit_project"):
-        by_id.setdefault(record.edit_project_id, []).append(record)
-    head_revision_ids: set[str] = set()
-    for records in by_id.values():
-        superseded = {r.supersedes for r in records if r.supersedes}
-        heads = [r for r in records if r.record_id not in superseded]
+        by_project.setdefault(record.edit_project_id, []).append(record)
+    for edit_project_id, records in by_project.items():
+        superseded = {record.supersedes for record in records if record.supersedes}
+        heads = [record for record in records if record.record_id not in superseded]
         if len(heads) != 1:
             raise contract_error("edit project has an ambiguous head", INVALID_RECORD)
-        if heads[0].head_revision_id is not None:
-            head_revision_ids.add(heads[0].head_revision_id)
-    by_rev: dict[str, list[EditRevisionRecord]] = {}
+        project_heads[edit_project_id] = heads[0].head_revision_id
+
+    branch_heads: dict[tuple[str, str], str | None] = {}
+    by_branch: dict[tuple[str, str], list[BranchRecord]] = {}
+    for record in store.read_records(project, "branch"):
+        by_branch.setdefault((record.edit_project_id, record.branch_name), []).append(record)
+    for key, records in by_branch.items():
+        superseded = {record.supersedes for record in records if record.supersedes}
+        heads = [record for record in records if record.record_id not in superseded]
+        if len(heads) != 1:
+            raise contract_error("branch has an ambiguous head", INVALID_RECORD)
+        branch_heads[key] = heads[0].head_revision_id
+    for edit_project_id, head in project_heads.items():
+        branch_heads.setdefault((edit_project_id, "main"), head)
+
+    revisions: dict[str, EditRevisionRecord] = {}
     for record in store.read_records(project, "edit_revision"):
-        by_rev.setdefault(record.record_id, []).append(record)
+        if record.record_id in revisions:
+            raise contract_error("duplicate revision identity", INVALID_RECORD)
+        revisions[record.record_id] = record
+    if any(head is not None and head not in revisions for head in project_heads.values()):
+        raise contract_error("edit project head references an invalid revision", INVALID_RECORD)
+
     reachable: set[str] = set()
-    for head_rev_id in head_revision_ids:
-        matches = by_rev.get(head_rev_id, [])
-        if len(matches) != 1:
-            raise contract_error("edit project head references an invalid revision", INVALID_RECORD)
-        reachable.update(matches[0].operation_ids)
+    for head_revision_id in branch_heads.values():
+        seen: set[str] = set()
+        revision_id = head_revision_id
+        while revision_id is not None:
+            if revision_id in seen or revision_id not in revisions:
+                raise contract_error("branch head references an invalid revision graph", INVALID_RECORD)
+            seen.add(revision_id)
+            revision = revisions[revision_id]
+            reachable.update(revision.operation_ids)
+            revision_id = revision.parent_revision_id
     return reachable
 
 

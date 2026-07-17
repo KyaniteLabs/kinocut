@@ -13,10 +13,16 @@ from kinocut.contracts._common import canonical_record_id
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import (
     append_revision,
+    checkout,
     create_edit_project,
+    diff_revisions,
+    fork_revision,
+    get_branch,
     get_edit_project,
+    list_branches,
     open_project,
     read_records,
+    undo,
 )
 
 _OP1 = "sha256:" + "1" * 64
@@ -197,3 +203,77 @@ def test_rollback_unlink_oserror_is_mapped_without_host_path_leak(project, monke
     with pytest.raises(MCPVideoError) as exc:
         append_revision(project, ep.edit_project_id, operation_ids=(_OP1,))
     assert "ROLLBACK-MARKER" not in str(exc.value) and host_path_marker not in str(exc.value)
+
+
+def test_legacy_history_synthesizes_main_without_writing(project):
+    edit = create_edit_project(project)
+    revision = append_revision(project, edit.edit_project_id, operation_ids=(_OP1,))
+    before = list(read_records(project, "branch"))
+    branch = get_branch(project, edit.edit_project_id)
+    assert branch.branch_name == "main"
+    assert branch.head_revision_id == revision.record_id
+    assert list(read_records(project, "branch")) == before
+
+
+def test_fork_append_checkout_diff_and_global_numbering(project):
+    edit = create_edit_project(project)
+    first = append_revision(project, edit.edit_project_id, operation_ids=(_OP1,))
+    fork_revision(project, edit.edit_project_id, "alternate", revision_id=first.record_id)
+    main_second = append_revision(
+        project, edit.edit_project_id, operation_ids=(_OP2,), base_revision_id=first.record_id
+    )
+    alternate_op = "sha256:" + "3" * 64
+    alternate = append_revision(
+        project,
+        edit.edit_project_id,
+        branch_name="alternate",
+        operation_ids=(alternate_op,),
+        base_revision_id=first.record_id,
+    )
+    assert main_second.revision_number == 2
+    assert alternate.revision_number == 3
+    assert checkout(project, edit.edit_project_id, "alternate") == alternate
+    assert {branch.branch_name for branch in list_branches(project, edit.edit_project_id)} == {
+        "alternate",
+        "main",
+    }
+    assert diff_revisions(project, main_second.record_id, alternate.record_id) == {
+        "added": (alternate_op,),
+        "removed": (_OP2,),
+    }
+
+
+def test_branch_stale_head_and_revision_event_vocabulary(project):
+    edit = create_edit_project(project)
+    first = append_revision(project, edit.edit_project_id, operation_ids=(_OP1,))
+    fork_revision(project, edit.edit_project_id, "alternate", revision_id=first.record_id)
+    append_revision(
+        project,
+        edit.edit_project_id,
+        branch_name="alternate",
+        operation_ids=(_OP2,),
+        base_revision_id=first.record_id,
+    )
+    with pytest.raises(MCPVideoError):
+        append_revision(
+            project,
+            edit.edit_project_id,
+            branch_name="alternate",
+            operation_ids=(_OP2,),
+            base_revision_id=first.record_id,
+        )
+    assert {event.event_kind for event in read_records(project, "kernel_event")} == {"revision.created"}
+
+
+def test_undo_appends_compensating_delta(project):
+    edit = create_edit_project(project)
+    first = append_revision(project, edit.edit_project_id, operation_ids=(_OP1,))
+    compensating = "sha256:" + "4" * 64
+    undone = undo(
+        project,
+        edit.edit_project_id,
+        compensating_operation_ids=(compensating,),
+        base_revision_id=first.record_id,
+    )
+    assert undone.parent_revision_id == first.record_id
+    assert undone.operation_ids == (compensating,)

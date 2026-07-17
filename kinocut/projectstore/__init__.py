@@ -36,8 +36,14 @@ from kinocut.projectstore.compat import (
 )
 from kinocut.projectstore.edit_projects import (
     append_revision,
+    checkout,
     create_edit_project,
+    diff_revisions,
+    fork_revision,
+    get_branch,
     get_edit_project,
+    list_branches,
+    undo,
 )
 from kinocut.projectstore.events import append_event, event_poll
 from kinocut.projectstore.ingest import ingest_asset
@@ -70,15 +76,20 @@ __all__ = [
     "append_record",
     "append_revision",
     "cancel_render_job",
+    "checkout",
     "compile_operations",
     "compile_repurpose_slice",
     "create_edit_project",
+    "diff_revisions",
     "event_poll",
+    "fork_revision",
+    "get_branch",
     "get_edit_project",
     "get_render_job",
     "ingest_asset",
     "ingest_blob",
     "job_spec_path",
+    "list_branches",
     "materialize_workflow_sources",
     "open_project",
     "read_records",
@@ -91,4 +102,5 @@ __all__ = [
     "submit_render_job",
     "synthesize_workflow_spec",
     "terminate_render_job",
+    "undo",
 ]

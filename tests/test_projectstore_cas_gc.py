@@ -13,6 +13,7 @@ from kinocut.projectstore import (
     append_record,
     append_revision,
     create_edit_project,
+    fork_revision,
     get_edit_project,
     ingest_asset,
     ingest_blob,
@@ -142,3 +143,25 @@ def test_legacy_assets_are_not_touched_by_cas_gc(tmp_path):
     assert (project.root / asset.original_location).exists()  # legacy asset untouched
     with pytest.raises(MCPVideoError):  # only the CAS blob was garbage-collected
         resolve_blob(project, cas.digest)
+
+
+def test_branch_only_blob_survives_gc_pressure(tmp_path):
+    project = open_project(tmp_path / "project")
+    shared = _ingest(project, tmp_path, "shared.bin", b"shared")
+    branch_only = _ingest(project, tmp_path, "branch.bin", b"branch-only")
+    stale = _ingest(project, tmp_path, "stale.bin", b"stale")
+    edit = create_edit_project(project)
+    first = append_revision(project, edit.edit_project_id, operation_ids=(shared.digest,))
+    fork_revision(project, edit.edit_project_id, "alternate", revision_id=first.record_id)
+    append_revision(
+        project,
+        edit.edit_project_id,
+        branch_name="alternate",
+        operation_ids=(branch_only.digest,),
+        base_revision_id=first.record_id,
+    )
+    receipt = collect_cas_garbage(project, budget_bytes=0)
+    assert receipt is not None
+    assert branch_only.digest not in receipt.deleted_digests
+    assert stale.digest in receipt.deleted_digests
+    assert resolve_blob(project, branch_only.digest).read_bytes() == b"branch-only"
