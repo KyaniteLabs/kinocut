@@ -274,6 +274,8 @@ def test_verify_spec_cache_accepts_a_fresh_match():
     )
     assert verified.spec_hash == compiled.spec_hash
     assert verified.dag_identity == compiled.dag_identity
+    assert verified.spec == compiled.spec
+    assert serialize_spec(verified.spec) == verified.spec_bytes
 
 
 def test_verify_spec_cache_rejects_stale_identity():
