@@ -206,3 +206,18 @@ def test_global_head_is_gc_root_during_branch_write_crash_window(tmp_path):
     assert newest_blob.digest not in receipt.deleted_digests
     assert stale.digest in receipt.deleted_digests
     assert resolve_blob(project, newest_blob.digest).read_bytes() == b"newest"
+
+
+def test_legacy_opaque_operation_ids_conservatively_retain_all_blobs(tmp_path):
+    project = open_project(tmp_path / "project")
+    first = _ingest(project, tmp_path, "first.bin", b"first")
+    second = _ingest(project, tmp_path, "second.bin", b"second")
+    edit = create_edit_project(project)
+    append_revision(
+        project,
+        edit.edit_project_id,
+        operation_ids=("sha256:" + "f" * 64,),
+    )
+    assert collect_cas_garbage(project, budget_bytes=0) is None
+    assert resolve_blob(project, first.digest).read_bytes() == b"first"
+    assert resolve_blob(project, second.digest).read_bytes() == b"second"

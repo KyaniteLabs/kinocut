@@ -80,7 +80,7 @@ def _restore_bytes(path, prior: bytes | None) -> None:
 
 
 def _append_transaction(project: Project, records: list) -> None:
-    """Append each record to its own JSONL file with exception-atomic rollback; records target distinct kinds."""
+    """Append records with exception-atomic rollback; duplicate target kinds are supported."""
     targets = [safe_target(project, layout.records_relative_path(r.record_kind)) for r in records]
     with _mapped_os_errors():
         snapshots = [(t, (t.read_bytes() if t.exists() else None)) for t in targets]

@@ -108,7 +108,7 @@ def test_each_revision_appends_exactly_one_ordered_event(project):
     ].subject_record_id == r1.record_id
 
 
-@pytest.mark.parametrize("fail_at_call", [1, 2, 3, 4])
+@pytest.mark.parametrize("fail_at_call", [1, 2, 3, 4, 5])
 def test_failed_write_rolls_back_the_whole_transaction(project, monkeypatch, fail_at_call):
     ep = create_edit_project(project)
     real_append = store._atomic_append
@@ -116,15 +116,16 @@ def test_failed_write_rolls_back_the_whole_transaction(project, monkeypatch, fai
 
     def flaky(path, line):
         calls["n"] += 1
-        if calls["n"] == fail_at_call:  # revision (1), event (2), edit-project head (3), branch head (4)
+        if calls["n"] == fail_at_call:  # revision, event, sources, edit-project head, branch head
             raise MCPVideoError("simulated write failure")
         return real_append(path, line)
 
     monkeypatch.setattr(store, "_atomic_append", flaky)
     with pytest.raises(MCPVideoError):
-        append_revision(project, ep.edit_project_id, operation_ids=(_OP1,))
+        append_revision(project, ep.edit_project_id, operation_ids=(_OP1,), source_digests=(_OP1,))
     assert read_records(project, "edit_revision") == []
     assert read_records(project, "kernel_event") == []
+    assert read_records(project, "revision_sources") == []
     assert get_edit_project(project, ep.edit_project_id).revision_number == 0
     assert len(read_records(project, "edit_project")) == 1
 
