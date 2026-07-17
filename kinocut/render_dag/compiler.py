@@ -39,7 +39,7 @@ from kinocut.render_dag.validation import (
     node_dependency_edges,
     validate_dag,
 )
-from kinocut.workflow.spec import WorkflowSpec, parse_spec
+from kinocut.workflow.spec import parse_spec
 
 
 @dataclass(frozen=True)
@@ -289,14 +289,14 @@ def verify_spec_cache(
             "corrupt_dag_cache",
         ) from exc
     try:
-        spec_model: WorkflowSpec = parse_spec(decoded)
+        parse_spec(decoded)
     except (ValidationError, MCPVideoError) as exc:
         raise dag_error(
             f"corrupt cache: spec bytes do not parse as a schema_version:1 spec ({exc})",
             "corrupt_dag_cache",
         ) from exc
     return VerifiedCache(
-        spec=spec_model.model_dump(mode="json"),
+        spec=decoded,
         spec_bytes=spec_bytes,
         spec_hash=recomputed,
         dag_identity=current_identity,
