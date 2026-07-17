@@ -62,6 +62,7 @@ from kinocut.contracts.trusted_execution import (
     EditRevisionRecord,
     KernelEventRecord,
     RenderJobRecord,
+    RevisionSourcesRecord,
 )
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import layout
@@ -105,6 +106,7 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "cas_manifest": CASManifestRecord,
     "cas_gc": CASGCReceiptRecord,
     "kernel_event": KernelEventRecord,
+    "revision_sources": RevisionSourcesRecord,
 }
 
 

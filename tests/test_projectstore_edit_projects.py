@@ -108,7 +108,7 @@ def test_each_revision_appends_exactly_one_ordered_event(project):
     ].subject_record_id == r1.record_id
 
 
-@pytest.mark.parametrize("fail_at_call", [2, 3, 4])
+@pytest.mark.parametrize("fail_at_call", [1, 2, 3, 4])
 def test_failed_write_rolls_back_the_whole_transaction(project, monkeypatch, fail_at_call):
     ep = create_edit_project(project)
     real_append = store._atomic_append

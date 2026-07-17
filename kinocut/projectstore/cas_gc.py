@@ -12,6 +12,7 @@ from kinocut.contracts.trusted_execution import (
     BranchRecord,
     EditProjectRecord,
     EditRevisionRecord,
+    RevisionSourcesRecord,
 )
 from kinocut.projectstore import layout, store
 from kinocut.projectstore.cas import _deleted_digests
@@ -23,7 +24,7 @@ _GC_TARGET_FRACTION = 0.8
 
 
 def _reachable_digests(project: store.Project) -> set[str]:
-    """Union operation digests across every branch ancestry, including legacy main."""
+    """Resolve source CAS digests across every branch and crash-recovery head."""
     project_heads: dict[str, str | None] = {}
     by_project: dict[str, list[EditProjectRecord]] = {}
     for record in store.read_records(project, "edit_project"):
@@ -56,8 +57,20 @@ def _reachable_digests(project: store.Project) -> set[str]:
     if any(head is not None and head not in revisions for head in project_heads.values()):
         raise contract_error("edit project head references an invalid revision", INVALID_RECORD)
 
+    source_records: dict[str, RevisionSourcesRecord] = {}
+    for record in store.read_records(project, "revision_sources"):
+        if record.revision_id in source_records:
+            raise contract_error("duplicate revision source mapping", INVALID_RECORD)
+        if record.revision_id not in revisions:
+            raise contract_error("revision source mapping references a missing revision", INVALID_RECORD)
+        source_records[record.revision_id] = record
+    manifest_digests = {
+        record.digest for record in store.read_records(project, "cas_manifest") if isinstance(record, CASManifestRecord)
+    }
+
     reachable: set[str] = set()
-    for head_revision_id in branch_heads.values():
+    roots = set(branch_heads.values()) | set(project_heads.values())
+    for head_revision_id in roots:
         seen: set[str] = set()
         revision_id = head_revision_id
         while revision_id is not None:
@@ -65,7 +78,16 @@ def _reachable_digests(project: store.Project) -> set[str]:
                 raise contract_error("branch head references an invalid revision graph", INVALID_RECORD)
             seen.add(revision_id)
             revision = revisions[revision_id]
-            reachable.update(revision.operation_ids)
+            sources = source_records.get(revision_id)
+            if sources is not None:
+                reachable.update(sources.source_digests)
+            else:
+                direct_digests = set(revision.operation_ids) & manifest_digests
+                reachable.update(direct_digests)
+                if len(direct_digests) != len(set(revision.operation_ids)):
+                    # Legacy opaque operation hashes cannot be resolved to their source
+                    # blobs. Conservatively retain the store rather than risk data loss.
+                    reachable.update(manifest_digests)
             revision_id = revision.parent_revision_id
     return reachable
 

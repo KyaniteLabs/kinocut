@@ -282,8 +282,16 @@ def compile_repurpose_slice(
     Delegates to :func:`append_revision`: head advances by one, a ``revision.created``
     event fires, and a stale ``base_revision_id`` fails closed (no new public surface).
     """
-    operation_ids = compile_operations(operations)
-    return append_revision(project, edit_project_id, operation_ids=operation_ids, base_revision_id=base_revision_id)
+    normalized = tuple(_normalize_operation(descriptor, index) for index, descriptor in enumerate(operations))
+    operation_ids = tuple(_operation_id(operation) for operation in normalized)
+    source_digests = tuple(dict.fromkeys(digest for operation in normalized for digest in operation.sources))
+    return append_revision(
+        project,
+        edit_project_id,
+        operation_ids=operation_ids,
+        source_digests=source_digests,
+        base_revision_id=base_revision_id,
+    )
 
 
 def _source_ref(digest: str, source_ids: dict[str, str]) -> str:
