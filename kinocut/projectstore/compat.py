@@ -22,7 +22,7 @@ from typing import Any
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.trusted_execution import CASManifestRecord, EditRevisionRecord
 from kinocut.projectstore.cas import resolve_blob
-from kinocut.projectstore.edit_projects import append_revision, get_edit_project
+from kinocut.projectstore.edit_projects import append_revision, get_branch
 from kinocut.projectstore.render_jobs import job_spec_path
 from kinocut.projectstore.store import Project, read_records
 
@@ -361,9 +361,9 @@ def synthesize_workflow_spec(
     exactly equal that revision's stored ids, so a receipt can never claim a revision the
     operations did not build.
     """
-    head = get_edit_project(project, edit_project_id)
+    head = get_branch(project, edit_project_id)
     if base_revision_id is None or base_revision_id != head.head_revision_id:
-        raise contract_error("supplied base revision does not match the current head", INVALID_RECORD)
+        raise contract_error("supplied base revision does not match the main branch head", INVALID_RECORD)
     # Bind the lowering to the durable revision it claims: the record must exist, belong to this
     # edit project, and the canonical ids of the passed operations must equal its stored ids.
     revision = next((r for r in read_records(project, "edit_revision") if r.record_id == base_revision_id), None)

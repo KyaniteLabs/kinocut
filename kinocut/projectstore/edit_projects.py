@@ -198,9 +198,10 @@ def fork_revision(
     with _project_lock(project):
         if _find_branch_record(project, edit_project_id, branch_name) is not None or branch_name == "main":
             raise contract_error("branch already exists", INVALID_RECORD)
-        base = revision_id or get_branch(project, edit_project_id).head_revision_id
-        if base is not None:
-            _revision_by_id(project, base)
+        main = get_branch(project, edit_project_id)
+        base = revision_id or main.head_revision_id
+        if base is not None and _revision_by_id(project, base).edit_project_id != edit_project_id:
+            raise contract_error("revision belongs to a different edit project", INVALID_RECORD)
         record = validate_record(
             BranchRecord,
             {
@@ -212,6 +213,9 @@ def fork_revision(
                 "created_at": _now(),
             },
         )
+        if _find_branch_record(project, edit_project_id, "main") is None:
+            _append_transaction(project, [main, record])
+            return get_branch(project, edit_project_id, branch_name)
         return append_record_locked(project, record)
 
 
