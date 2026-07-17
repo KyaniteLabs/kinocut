@@ -60,6 +60,8 @@ from kinocut.contracts.trusted_execution import (
     BranchRecord,
     EditProjectRecord,
     EditRevisionRecord,
+    EventCursorRecord,
+    EventRetentionRecord,
     KernelEventRecord,
     RenderJobRecord,
     RevisionSourcesRecord,
@@ -107,6 +109,8 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "cas_gc": CASGCReceiptRecord,
     "kernel_event": KernelEventRecord,
     "revision_sources": RevisionSourcesRecord,
+    "event_cursor": EventCursorRecord,
+    "event_retention": EventRetentionRecord,
 }
 
 
