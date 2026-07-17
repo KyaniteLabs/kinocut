@@ -432,6 +432,38 @@ def test_event_summary_redacts_paths_secrets_and_controls(project):
     assert "alice" not in event.summary and "very-secret" not in event.summary
 
 
+def test_event_contract_rejects_unsanitized_summary_bypass(project):
+    with pytest.raises(MCPVideoError):
+        append_record(
+            project,
+            validate_record(
+                KernelEventRecord,
+                {
+                    "event_id": 1,
+                    "event_kind": "branch.created",
+                    "edit_project_id": _EP,
+                    "subject_record_id": _sub(1),
+                    "summary": "token=raw-secret /Users/alice/private.mov",
+                    "project_id": project.project_id,
+                    "created_by": "tool",
+                },
+            ),
+        )
+    with pytest.raises(MCPVideoError):
+        validate_record(
+            KernelEventRecord,
+            {
+                "event_id": 2,
+                "event_kind": "branch.created",
+                "edit_project_id": _EP,
+                "subject_record_id": _sub(2),
+                "summary": "/Users/alice/private.mov token=raw-secret",
+                "project_id": project.project_id,
+                "created_by": "tool",
+            },
+        )
+
+
 def test_malformed_event_or_cursor_store_fails_closed(project):
     _seed(project)
     event_path = project.root / ".kinocut" / "records" / "kernel_event.jsonl"
