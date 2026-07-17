@@ -393,6 +393,25 @@ def test_cursor_rejects_missing_event_and_ambiguous_head(project):
         get_event_cursor(project, "worker-1")
 
 
+def test_cursor_rejects_cross_consumer_supersession(project):
+    _seed(project)
+    first = ack_events(project, "worker-1", 1)
+    with pytest.raises(MCPVideoError):
+        append_record(
+            project,
+            validate_record(
+                type(first),
+                {
+                    "consumer_id": "worker-2",
+                    "ack_event_id": 2,
+                    "supersedes": first.record_id,
+                    "project_id": project.project_id,
+                    "created_by": "tool",
+                },
+            ),
+        )
+
+
 def test_retention_waits_for_slowest_cursor_and_then_bounds_log(project):
     _seed(project)
     ack_events(project, "fast", 4)
