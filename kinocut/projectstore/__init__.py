@@ -45,7 +45,15 @@ from kinocut.projectstore.edit_projects import (
     list_branches,
     undo,
 )
-from kinocut.projectstore.events import append_event, event_poll
+from kinocut.projectstore.event_retention import retain_events
+from kinocut.projectstore.events import (
+    ack_events,
+    append_event,
+    event_poll,
+    get_event_cursor,
+    poll_for_consumer,
+    sanitize_event_summary,
+)
 from kinocut.projectstore.ingest import ingest_asset
 from kinocut.projectstore.render_jobs import (
     cancel_render_job,
@@ -72,6 +80,7 @@ __all__ = [
     "NormalizedOperation",
     "Project",
     "WorkflowSpecSynthesis",
+    "ack_events",
     "append_event",
     "append_record",
     "append_revision",
@@ -85,6 +94,7 @@ __all__ = [
     "fork_revision",
     "get_branch",
     "get_edit_project",
+    "get_event_cursor",
     "get_render_job",
     "ingest_asset",
     "ingest_blob",
@@ -92,12 +102,15 @@ __all__ = [
     "list_branches",
     "materialize_workflow_sources",
     "open_project",
+    "poll_for_consumer",
     "read_records",
     "rebuild_indexes",
     "reconcile_render_jobs",
     "render_job_status",
     "resolve_blob",
     "resume_render_job",
+    "retain_events",
+    "sanitize_event_summary",
     "start_render_job",
     "submit_render_job",
     "synthesize_workflow_spec",
