@@ -426,6 +426,17 @@ def test_retention_waits_for_slowest_cursor_and_then_bounds_log(project):
     assert [event.event_id for event in poll_for_consumer(project, "slow")] == [4, 5]
 
 
+def test_poll_registers_consumer_before_retention(project):
+    _seed(project)
+    assert [event.event_id for event in poll_for_consumer(project, "pending", limit=2)] == [1, 2]
+    assert get_event_cursor(project, "pending").ack_event_id == 0
+    receipt = retain_events(project, max_events=2)
+    assert receipt.pruned_count == 0
+    ack_events(project, "pending", 2)
+    receipt = retain_events(project, max_events=2)
+    assert receipt.pruned_count == 2
+
+
 def test_retention_receipt_failure_restores_exact_event_log(project, monkeypatch):
     _seed(project)
     before = [event.record_id for event in event_poll(project)]
@@ -447,8 +458,24 @@ def test_event_summary_redacts_paths_secrets_and_controls(project):
         subject_record_id=_sub(1),
         summary="token=very-secret /Users/alice/private.mov\nready",
     )
-    assert event.summary == "<redacted-secret> <redacted-path> ready"
+    assert event.summary == "<redacted-secret>"
     assert "alice" not in event.summary and "very-secret" not in event.summary
+    bearer = append_event(
+        project,
+        "branch.created",
+        edit_project_id=_EP,
+        subject_record_id=_sub(2),
+        summary="Authorization: Bearer ey.secret.jwt",
+    )
+    assert bearer.summary == "<redacted-secret>"
+    home = append_event(
+        project,
+        "branch.created",
+        edit_project_id=_EP,
+        subject_record_id=_sub(3),
+        summary="source ~/alice/private.mov",
+    )
+    assert home.summary == "source <redacted-path>"
 
 
 def test_event_contract_rejects_unsanitized_summary_bypass(project):

@@ -181,10 +181,10 @@ class KernelEventRecord(RecordBase):
             return None
         if re.search(r"[\x00-\x1f\x7f]", value):
             raise ValueError("event summary must not contain control characters")
-        if re.search(r"(?:[A-Za-z]:[\\/]|/)[^\s:'\"<>]+", value):
+        if re.search(r"(?:[A-Za-z]:[\\/]|/|~/)[^\s:'\"<>]+", value):
             raise ValueError("event summary must not contain absolute paths")
         if re.search(
-            r"(?i)\b(?:authorization|api[_-]?key|token|password|secret)\b\s*[:=]\s*[^\s,;]+",
+            r"(?i)\b(?:authorization|api[_-]?key|token|password|secret)\b\s*[:=]\s*[^\r\n]*",
             value,
         ):
             raise ValueError("event summary must not contain secrets")
