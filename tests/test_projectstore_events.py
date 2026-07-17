@@ -18,14 +18,19 @@ from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import KernelEventRecord
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import (
+    ack_events,
     append_event,
     append_revision,
     create_edit_project,
     event_poll,
+    get_event_cursor,
     open_project,
+    poll_for_consumer,
+    retain_events,
     submit_render_job,
 )
 from kinocut.projectstore import render_jobs
+from kinocut.projectstore import event_retention
 import kinocut.projectstore.edit_projects as edit_projects
 from kinocut.projectstore.store import append_record, read_records
 
@@ -156,7 +161,7 @@ def test_poll_limit_is_bounded_and_positive(project):
 def test_poll_rejects_unsupported_or_malformed_kinds(project):
     _seed(project)
     with pytest.raises(MCPVideoError):
-        event_poll(project, event_kinds=("render.started",))
+        event_poll(project, event_kinds=("unknown.kind",))
     with pytest.raises(MCPVideoError):
         event_poll(project, event_kinds="render.completed")  # a bare string is not a kind iterable
 
@@ -172,7 +177,7 @@ def test_poll_rejects_non_positive_after_and_limit(project):
 
 
 def test_append_rejects_unsupported_kind(project):
-    for bad in ("render.started", "RENDER.completed", "render.completed "):
+    for bad in ("unknown.kind", "RENDER.completed", "render.completed "):
         with pytest.raises(MCPVideoError):
             append_event(project, bad, edit_project_id=_EP, subject_record_id=_sub(1), revision_id=_REV)
     assert event_poll(project) == []  # nothing persisted on rejection
@@ -311,3 +316,126 @@ def test_mark_succeeded_rolls_back_event_append_then_retry_emits_one(tmp_path, m
     assert completed[0].subject_record_id == head.record_id  # event ties to the one succeeded head
     assert render_jobs.get_render_job(project, job.job_id).status.value == "succeeded"
     assert len(read_records(project, "render_job")) == 3  # queued + running + one succeeded head
+
+
+def test_expanded_vocabulary_is_closed_and_persisted(project):
+    kinds = (
+        "render.queued",
+        "render.started",
+        "render.failed",
+        "render.cancelled",
+    )
+    for index, kind in enumerate(kinds, 1):
+        append_event(
+            project,
+            kind,
+            edit_project_id=_EP,
+            subject_record_id=_sub(index),
+            revision_id=_REV,
+            job_id=_JOB,
+        )
+    append_event(
+        project,
+        "quality.gate.passed",
+        edit_project_id=_EP,
+        subject_record_id=_sub(10),
+        job_id=_JOB,
+    )
+    append_event(project, "branch.created", edit_project_id=_EP, subject_record_id=_sub(11))
+    append_event(
+        project,
+        "dag.compiled",
+        edit_project_id=_EP,
+        subject_record_id=_sub(12),
+        revision_id=_REV,
+    )
+    assert [event.event_kind for event in event_poll(project)] == [
+        *kinds,
+        "quality.gate.passed",
+        "branch.created",
+        "dag.compiled",
+    ]
+
+
+def test_consumer_cursor_gives_at_least_once_delivery_and_dedup(project):
+    _seed(project)
+    first = poll_for_consumer(project, "worker-1", limit=2)
+    assert [event.event_id for event in first] == [1, 2]
+    assert [event.record_id for event in poll_for_consumer(project, "worker-1", limit=2)] == [
+        event.record_id for event in first
+    ]
+    cursor = ack_events(project, "worker-1", 2)
+    assert cursor.ack_event_id == 2
+    assert get_event_cursor(open_project(project.root), "worker-1").record_id == cursor.record_id
+    assert [event.event_id for event in poll_for_consumer(project, "worker-1")] == [3, 4, 5]
+    with pytest.raises(MCPVideoError):
+        ack_events(project, "worker-1", 1)
+
+
+def test_cursor_rejects_missing_event_and_ambiguous_head(project):
+    _seed(project)
+    with pytest.raises(MCPVideoError):
+        ack_events(project, "worker-1", 99)
+    first = ack_events(project, "worker-1", 1)
+    append_record(
+        project,
+        validate_record(
+            type(first),
+            {
+                "consumer_id": "worker-1",
+                "ack_event_id": 2,
+                "project_id": project.project_id,
+                "created_by": "tool",
+            },
+        ),
+    )
+    with pytest.raises(MCPVideoError):
+        get_event_cursor(project, "worker-1")
+
+
+def test_retention_waits_for_slowest_cursor_and_then_bounds_log(project):
+    _seed(project)
+    ack_events(project, "fast", 4)
+    ack_events(project, "slow", 2)
+    first = retain_events(project, max_events=2)
+    assert first.pruned_count == 2
+    assert [event.event_id for event in event_poll(project)] == [3, 4, 5]
+    ack_events(project, "slow", 3)
+    second = retain_events(project, max_events=2)
+    assert second.pruned_count == 1
+    assert [event.event_id for event in event_poll(project)] == [4, 5]
+    assert [event.event_id for event in poll_for_consumer(project, "slow")] == [4, 5]
+
+
+def test_retention_receipt_failure_restores_exact_event_log(project, monkeypatch):
+    _seed(project)
+    before = [event.record_id for event in event_poll(project)]
+
+    def fail_receipt(*args, **kwargs):
+        raise MCPVideoError("simulated receipt failure")
+
+    monkeypatch.setattr(event_retention, "append_record_locked", fail_receipt)
+    with pytest.raises(MCPVideoError):
+        retain_events(project, max_events=2)
+    assert [event.record_id for event in event_poll(project)] == before
+
+
+def test_event_summary_redacts_paths_secrets_and_controls(project):
+    event = append_event(
+        project,
+        "branch.created",
+        edit_project_id=_EP,
+        subject_record_id=_sub(1),
+        summary="token=very-secret /Users/alice/private.mov\nready",
+    )
+    assert event.summary == "<redacted-secret> <redacted-path> ready"
+    assert "alice" not in event.summary and "very-secret" not in event.summary
+
+
+def test_malformed_event_or_cursor_store_fails_closed(project):
+    _seed(project)
+    event_path = project.root / ".kinocut" / "records" / "kernel_event.jsonl"
+    with event_path.open("a", encoding="utf-8") as handle:
+        handle.write("{broken json\n")
+    with pytest.raises(MCPVideoError):
+        event_poll(project)
