@@ -144,6 +144,22 @@ def test_wrong_input_key_fails_closed():
         )
 
 
+def test_single_input_requires_ref_string():
+    with pytest.raises(MCPVideoError):
+        RenderDAG(
+            sources={"hero": _src()},
+            nodes=(DAGNode(id="n", kind="trim", inputs={"src": 123}, output="@work/n"),),
+        )
+
+
+def test_multi_input_requires_nonempty_ref_list():
+    with pytest.raises(MCPVideoError):
+        RenderDAG(
+            sources={"hero": _src()},
+            nodes=(DAGNode(id="n", kind="merge", inputs={"srcs": "@sources.hero"}, output="@work/n"),),
+        )
+
+
 def test_multi_input_merge_accepts_srcs_list():
     dag = RenderDAG(
         sources={"a": DAGSource(path="a.mp4"), "b": DAGSource(path="b.mp4")},

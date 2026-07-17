@@ -93,6 +93,22 @@ def _validate_node_op(node: DAGNode) -> None:
             f"node {node.id!r} ({node.kind}) has unexpected input key(s) {extra}; expected only {expected_key!r}",
             INVALID_DAG_SPEC,
         )
+    input_value = node.inputs[expected_key]
+    if expected_key == "srcs":
+        if (
+            not isinstance(input_value, list)
+            or not input_value
+            or not all(isinstance(ref, str) and ref for ref in input_value)
+        ):
+            raise dag_error(
+                f"node {node.id!r} input {expected_key!r} must be a non-empty list of refs",
+                INVALID_DAG_SPEC,
+            )
+    elif node.kind != "composite_layers" and (not isinstance(input_value, str) or not input_value):
+        raise dag_error(
+            f"node {node.id!r} input {expected_key!r} must be a non-empty ref string",
+            INVALID_DAG_SPEC,
+        )
     if not isinstance(node.params, dict):
         raise dag_error(f"node {node.id!r} params must be an object", INVALID_DAG_PARAMS)
     accepted = adapter.accepted_params()
