@@ -42,11 +42,11 @@ def project(tmp_path):
     return open_project(tmp_path / "proj")
 
 
-def _cas(project, data: bytes = b"x") -> str:
-    """Ingest deterministic bytes into CAS and return the digest."""
-    src = project.root / f"_src_{hash(data) & 0xFFFFFFFF:08x}"
+def _cas(project, data: bytes = b"x", *, media_type: str | None = "video/mp4") -> str:
+    """Ingest deterministic bytes into CAS and return the digest (default video/mp4)."""
+    src = project.root / f"_src_{abs(hash((data, media_type))) & 0xFFFFFFFF:08x}"
     src.write_bytes(data)
-    return ingest_blob(project, src, media_type="video/mp4").digest
+    return ingest_blob(project, src, media_type=media_type).digest
 
 
 def _project_files(root):
@@ -157,7 +157,7 @@ def test_synthesis_lowering_and_validator_acceptance(project):
     assert set(verdict["ops"]) == {"trim", "merge", "resize"}
 
 
-def test_burn_in_and_crop_reported_honestly_as_unrendered(project):
+def test_burn_in_and_crop_lowered_to_agreed_workflow_ops(project):
     d1, d2 = _cas(project, b"a"), _cas(project, b"b")
     ep = create_edit_project(project)
     ops = [
@@ -167,8 +167,20 @@ def test_burn_in_and_crop_reported_honestly_as_unrendered(project):
     ]
     rev = compile_repurpose_slice(project, ep.edit_project_id, ops)
     syn = synthesize_workflow_spec(project, ep.edit_project_id, ops, base_revision_id=rev.record_id)
-    assert syn.unrendered_kinds == ("burn_in", "crop")  # in operation order, renderable trim excluded
-    assert [s["op"] for s in syn.spec["steps"]] == ["trim"]  # only trim lowered
+    # crop and burn_in are now renderable: nothing is reported unrendered, all three lower.
+    assert syn.unrendered_kinds == ()
+    assert [s["op"] for s in syn.spec["steps"]] == ["trim", "burn_in", "crop"]
+    digest_to_id = {digest: sid for sid, digest in syn.source_digests.items()}
+    burn_step = next(s for s in syn.spec["steps"] if s["op"] == "burn_in")
+    # burn_in lowers video + subtitle as an ordered multi-source input over the agreed op name.
+    assert list(burn_step["inputs"]["srcs"]) == [
+        "@sources." + digest_to_id[d1],
+        "@sources." + digest_to_id[d2],
+    ]
+    assert burn_step["params"] == {}
+    crop_step = next(s for s in syn.spec["steps"] if s["op"] == "crop")
+    assert crop_step["inputs"] == {"src": "@sources." + digest_to_id[d1]}
+    assert crop_step["params"] == {"x": 0, "y": 0, "width": 10, "height": 10}
 
 
 def test_synthesis_rejects_operations_not_matching_revision(project):
@@ -413,9 +425,140 @@ def test_materialize_rejects_forged_source_ids_fail_closed(project):
             materialize_workflow_sources,
             project,
             job.job_id,
-            WorkflowSpecSynthesis(spec={}, unrendered_kinds=(), source_digests={forged: digest}),
+            WorkflowSpecSynthesis(spec={"sources": {}}, unrendered_kinds=(), source_digests={forged: digest}),
         )
     assert (
         sorted(p.name for p in job_dir.iterdir()) == ["sources", "spec.json"]
         and list((job_dir / "sources").iterdir()) == []
     )
+
+
+def test_crop_modes_compile_and_reject_mixed_incomplete():
+    pix = {"kind": "crop", "source": _D, "width": 100, "height": 80}
+    pix_xy = {"kind": "crop", "source": _D, "x": 4, "y": 2, "width": 100, "height": 80}
+    pct = {"kind": "crop", "source": _D, "crop_percent": 50}
+    assert compile_operations([pix])  # pixel mode compiles
+    assert compile_operations([pct])  # percent mode compiles
+    assert compile_operations([pix]) != compile_operations([pct])  # distinct modes bind distinct ids
+    assert compile_operations([pix]) != compile_operations([pix_xy])  # x/y bind into the id
+    # input dict key order is irrelevant (canonical normalization)
+    assert compile_operations([pix]) == compile_operations([{"height": 80, "kind": "crop", "source": _D, "width": 100}])
+    # crop_percent normalizes int/float to the same id
+    assert compile_operations([{"kind": "crop", "source": _D, "crop_percent": 50}]) == compile_operations(
+        [{"kind": "crop", "source": _D, "crop_percent": 50.0}]
+    )
+    # mixed modes / incomplete groups / x-y-without-pixels all fail closed
+    _raise(compile_operations, [{"kind": "crop", "source": _D, "width": 1, "height": 1, "crop_percent": 50}])
+    _raise(compile_operations, [{"kind": "crop", "source": _D, "width": 1}])  # missing height
+    _raise(compile_operations, [{"kind": "crop", "source": _D, "height": 1}])  # missing width
+    _raise(compile_operations, [{"kind": "crop", "source": _D}])  # neither mode
+    _raise(compile_operations, [{"kind": "crop", "source": _D, "crop_percent": 50, "x": 0}])  # x needs pixels
+    _raise(compile_operations, [{"kind": "crop", "source": _D, "crop_percent": 50, "y": 0}])  # y needs pixels
+    # crop_percent must be a finite number in (0, 100]
+    for bad in [0, 0.0, -1, 100.5, 101, True, "50", None, float("inf"), float("nan")]:
+        _raise(compile_operations, [{"kind": "crop", "source": _D, "crop_percent": bad}])
+
+
+def test_crop_percent_mode_lowered_and_centered_pixel_omits_xy(project):
+    d = _cas(project, b"crop-src")
+    ep = create_edit_project(project)
+    ops = [
+        {"kind": "crop", "source": d, "x": 1, "y": 2, "width": 100, "height": 80},
+        {"kind": "crop", "source": d, "width": 64, "height": 48},  # centered: x/y omitted
+        {"kind": "crop", "source": d, "crop_percent": 25},
+    ]
+    rev = compile_repurpose_slice(project, ep.edit_project_id, ops)
+    syn = synthesize_workflow_spec(project, ep.edit_project_id, ops, base_revision_id=rev.record_id)
+    crop_steps = [s for s in syn.spec["steps"] if s["op"] == "crop"]
+    assert len(crop_steps) == 3
+    assert crop_steps[0]["params"] == {"x": 1, "y": 2, "width": 100, "height": 80}
+    assert crop_steps[1]["params"] == {"width": 64, "height": 48}  # no x/y -> engine centers
+    assert crop_steps[2]["params"] == {"crop_percent": 25.0}  # percent normalized to float
+    for step in crop_steps:
+        assert set(step["inputs"]) == {"src"}
+
+
+def test_source_extensions_derived_from_media_type_and_subtitle_role(project):
+    video = _cas(project, b"video", media_type="video/mp4")
+    webm = _cas(project, b"webm", media_type="video/webm")
+    srt = _cas(project, b"sub-srt", media_type="application/x-subrip")
+    vtt = _cas(project, b"sub-vtt", media_type="text/vtt")
+    ass = _cas(project, b"sub-ass", media_type="application/x-ass")
+    raw_sub = _cas(project, b"raw-sub", media_type=None)  # no media_type -> role fallback
+    ep = create_edit_project(project)
+    ops = [
+        {"kind": "crop", "source": video, "width": 2, "height": 2},
+        {"kind": "burn_in", "source": webm, "subtitle": srt},
+        {"kind": "burn_in", "source": video, "subtitle": vtt},
+        {"kind": "burn_in", "source": webm, "subtitle": ass},
+        {"kind": "burn_in", "source": video, "subtitle": raw_sub},
+    ]
+    rev = compile_repurpose_slice(project, ep.edit_project_id, ops)
+    syn = synthesize_workflow_spec(project, ep.edit_project_id, ops, base_revision_id=rev.record_id)
+    digest_to_path = {syn.source_digests[sid]: entry["path"] for sid, entry in syn.spec["sources"].items()}
+    # CAS media_type is the primary determinant; subtitle tracks keep .srt/.vtt/.ass verbatim.
+    assert digest_to_path[video].endswith(".mp4")
+    assert digest_to_path[webm].endswith(".webm")
+    assert digest_to_path[srt].endswith(".srt")
+    assert digest_to_path[vtt].endswith(".vtt")
+    assert digest_to_path[ass].endswith(".ass")
+    # a media-type-less subtitle source falls back to the subtitle role (.srt)
+    assert digest_to_path[raw_sub].endswith(".srt")
+    # every declared source path is confined under the opaque sources/ job-relative directory
+    for path in digest_to_path.values():
+        parts = path.split("/")
+        assert parts[0] == "sources" and ".." not in parts and len(parts) == 2
+
+
+def test_synthesis_spec_is_deterministic_including_extensions(tmp_path):
+    """Same inputs lower to the same spec (paths/extensions/steps) across projects."""
+
+    def build(tag):
+        project = open_project(tmp_path / f"proj-{tag}")
+        video = _cas(project, b"v", media_type="video/webm")
+        sub = _cas(project, b"s", media_type="text/vtt")
+        ep = create_edit_project(project)
+        local_ops = [
+            {"kind": "trim", "source": video, "start": 0.0, "end": 1.0},
+            {"kind": "burn_in", "source": video, "subtitle": sub},
+            {"kind": "crop", "source": video, "crop_percent": 50},
+        ]
+        rev = compile_repurpose_slice(project, ep.edit_project_id, local_ops)
+        return synthesize_workflow_spec(project, ep.edit_project_id, local_ops, base_revision_id=rev.record_id)
+
+    a, b = build("a"), build("b")
+    assert a.spec == b.spec  # identical incl. media-type-derived source paths and lowered steps
+    assert a.source_digests == b.source_digests
+
+
+def test_materialize_hardlinks_non_mp4_subtitle_source(project):
+    video = _cas(project, b"vid", media_type="video/mp4")
+    sub = _cas(project, b"cap", media_type="application/x-subrip")
+    ep = create_edit_project(project)
+    # a validator-known trim spec creates a real frozen job (and job dir) we can materialize into.
+    trim_ops = [{"kind": "trim", "source": video, "start": 0.0, "end": 1.0}]
+    rev = compile_repurpose_slice(project, ep.edit_project_id, trim_ops)
+    trim_syn = synthesize_workflow_spec(project, ep.edit_project_id, trim_ops, base_revision_id=rev.record_id)
+    (project.root / "spec.json").write_text(json.dumps(trim_syn.spec))
+    job = submit_render_job(
+        project,
+        edit_project_id=ep.edit_project_id,
+        revision_id=rev.record_id,
+        spec_path=str(project.root / "spec.json"),
+    )
+    # materialize reads declared paths from the passed synthesis (shared source map), so a
+    # subtitle-track (.srt) source is hard-linked at its media-type-derived suffix.
+    sub_syn = WorkflowSpecSynthesis(
+        spec={"sources": {"src0": {"path": "sources/src0.srt"}}},
+        unrendered_kinds=(),
+        source_digests={"src0": sub},
+    )
+    materialize_workflow_sources(project, job.job_id, sub_syn)
+    job_dir = render_jobs.job_spec_path(project, job.job_id).parent
+    linked = job_dir / "sources" / "src0.srt"
+    assert linked.is_file() and linked.stat().st_nlink >= 2  # hard-linked into CAS, not copied
+    materialize_workflow_sources(project, job.job_id, sub_syn)  # idempotent: repeat is a no-op
+    linked.unlink()  # detach the materialized hardlink so the CAS inode itself stays intact
+    linked.write_bytes(b"corrupt")  # separate corrupt regular file at the declared .srt path
+    assert linked.stat().st_nlink == 1  # regular file, not hard-linked into the CAS blob
+    _raise(materialize_workflow_sources, project, job.job_id, sub_syn)  # fail closed, no silent overwrite

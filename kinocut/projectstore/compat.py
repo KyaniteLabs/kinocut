@@ -2,7 +2,8 @@
 
 Compiles closed kinds (trim/merge/burn_in/reframe/crop/silence_cut) into durable ``sha256:<hex>``
 ids without a timeline IR/DAG or public-surface change (analysis ops stay CAS producers).
-``synthesize_workflow_spec`` lowers only the renderable subset, reporting burn_in/crop in ``unrendered_kinds``.
+``synthesize_workflow_spec`` lowers the renderable subset (trim/merge/reframe/silence_cut plus
+crop/burn_in over the agreed workflow op names), reporting only the genuinely unrenderable kinds.
 """
 
 from __future__ import annotations
@@ -19,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
-from kinocut.contracts.trusted_execution import EditRevisionRecord
+from kinocut.contracts.trusted_execution import CASManifestRecord, EditRevisionRecord
 from kinocut.projectstore.cas import resolve_blob
 from kinocut.projectstore.edit_projects import append_revision, get_edit_project
 from kinocut.projectstore.render_jobs import job_spec_path
@@ -40,7 +41,7 @@ __all__ = [
 CLOSED_KINDS: tuple[str, ...] = ("trim", "merge", "burn_in", "reframe", "crop", "silence_cut")
 #: Analysis operations that remain CAS producers and may never be compiled here.
 CAS_PRODUCER_KINDS: frozenset[str] = frozenset({"transcribe", "highlight_detect", "scene_detect"})
-_RENDERABLE_KINDS: frozenset[str] = frozenset({"trim", "merge", "reframe", "silence_cut"})
+_RENDERABLE_KINDS: frozenset[str] = frozenset({"trim", "merge", "reframe", "silence_cut", "crop", "burn_in"})
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _SOURCE_PREFIX = "@sources."
 _WORK_PREFIX = "@work/"
@@ -48,13 +49,35 @@ _OUTPUT_PREFIX = "@outputs."
 _SOURCES_DIR = "sources"  # opaque job-relative directory for materialized source blobs
 _SOURCE_ID_RE = re.compile(r"^src[0-9]+$")  # only synthesis-generated src<digits> ids may materialize
 _CHUNK = 1 << 20  # streaming chunk for hard-linked target integrity re-checks
+#: media_type -> declared source path extension (primary determinant of a source's suffix).
+_MEDIA_TYPE_EXT: dict[str, str] = {
+    "video/mp4": ".mp4",
+    "video/webm": ".webm",
+    "video/quicktime": ".mov",
+    "video/x-matroska": ".mkv",
+    "audio/mpeg": ".mp3",
+    "audio/wav": ".wav",
+    "audio/x-wav": ".wav",
+    "audio/aac": ".aac",
+    "audio/flac": ".flac",
+    "audio/ogg": ".ogg",
+    "image/png": ".png",
+    "image/jpeg": ".jpg",
+    "image/gif": ".gif",
+    "application/x-subrip": ".srt",
+    "text/vtt": ".vtt",
+    "text/x-ssa": ".ass",
+    "application/x-ass": ".ass",
+}
+_DEFAULT_VIDEO_EXT = ".mp4"  # consuming-op fallback when a video-role source has no mapped media_type
+_DEFAULT_SUBTITLE_EXT = ".srt"  # consuming-op fallback when a subtitle-role source has no mapped media_type
 
 # Per-kind descriptor key allowlist (mirrors extra="forbid"); typos never silently change an operation id.
 _ALLOWED_KEYS: dict[str, frozenset[str]] = {
     "trim": frozenset({"kind", "source", "start", "end"}),
     "merge": frozenset({"kind", "sources"}),
     "reframe": frozenset({"kind", "source", "width", "height"}),
-    "crop": frozenset({"kind", "source", "x", "y", "width", "height"}),
+    "crop": frozenset({"kind", "source", "x", "y", "width", "height", "crop_percent"}),
     "burn_in": frozenset({"kind", "source", "subtitle"}),
     "silence_cut": frozenset({"kind", "source", "keep_segments"}),
 }
@@ -125,6 +148,42 @@ def _keep_segments(descriptor: Mapping[str, Any]) -> list[list[float]]:
     return segments
 
 
+def _crop_percent(value: Any, label: str) -> float:
+    """Normalize a centered crop percentage (mirrors engine ``crop_percent``: 0 < p <= 100)."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise contract_error(f"{label} must be a finite number in (0, 100]", INVALID_RECORD)
+    number = float(value)
+    if not math.isfinite(number) or not (0.0 < number <= 100.0):
+        raise contract_error(f"{label} must be a finite number in (0, 100]", INVALID_RECORD)
+    return number
+
+
+def _cas_media_type(project: Project, digest: str) -> str | None:
+    """Return the stored CAS ``media_type`` for ``digest`` (None when absent/unverifiable)."""
+    matches = [
+        record
+        for record in read_records(project, "cas_manifest")
+        if isinstance(record, CASManifestRecord) and record.digest == digest
+    ]
+    if len(matches) != 1:
+        return None
+    return matches[0].media_type
+
+
+def _source_extension(project: Project, digest: str, *, subtitle_role: bool) -> str:
+    """Deterministic source suffix: CAS ``media_type`` primary, consuming-op role as fallback.
+
+    Subtitle suffixes (.srt/.vtt/.ass) round-trip from a mapped subtitle media type; a
+    media-type-less source falls back to its consuming role (subtitle track vs. video).
+    """
+    media_type = _cas_media_type(project, digest)
+    if media_type is not None:
+        mapped = _MEDIA_TYPE_EXT.get(media_type)
+        if mapped is not None:
+            return mapped
+    return _DEFAULT_SUBTITLE_EXT if subtitle_role else _DEFAULT_VIDEO_EXT
+
+
 def _normalize_operation(descriptor: Any, order: int) -> NormalizedOperation:
     if not isinstance(descriptor, Mapping):
         raise contract_error("operation descriptor must be a mapping", INVALID_RECORD)
@@ -165,12 +224,26 @@ def _normalize_operation(descriptor: Any, order: int) -> NormalizedOperation:
                 "height": _int(_field(descriptor, "height"), "reframe height", minimum=1),
             }
         elif kind == "crop":
-            params = {
-                "x": _int(_field(descriptor, "x"), "crop x", minimum=0),
-                "y": _int(_field(descriptor, "y"), "crop y", minimum=0),
-                "width": _int(_field(descriptor, "width"), "crop width", minimum=1),
-                "height": _int(_field(descriptor, "height"), "crop height", minimum=1),
-            }
+            # Exactly one mode: width+height (x/y optional, centered when omitted) OR crop_percent.
+            has_percent = "crop_percent" in descriptor
+            has_pixels = "width" in descriptor or "height" in descriptor
+            if has_percent and has_pixels:
+                raise contract_error("crop: use either width+height or crop_percent, not both", INVALID_RECORD)
+            if has_percent:
+                if "x" in descriptor or "y" in descriptor:
+                    raise contract_error("crop: x/y are only valid with the width+height mode", INVALID_RECORD)
+                params = {"crop_percent": _crop_percent(_field(descriptor, "crop_percent"), "crop crop_percent")}
+            elif "width" in descriptor and "height" in descriptor:
+                params = {
+                    "width": _int(descriptor["width"], "crop width", minimum=1),
+                    "height": _int(descriptor["height"], "crop height", minimum=1),
+                }
+                if "x" in descriptor:
+                    params["x"] = _int(descriptor["x"], "crop x", minimum=0)
+                if "y" in descriptor:
+                    params["y"] = _int(descriptor["y"], "crop y", minimum=0)
+            else:
+                raise contract_error("crop requires width+height or crop_percent", INVALID_RECORD)
         else:  # silence_cut
             params = {"keep_segments": _keep_segments(descriptor)}
     return NormalizedOperation(kind=kind, sources=sources, params=params, order=order)
@@ -231,6 +304,11 @@ def _lower_operation(
             _step(f"merge_{output_id}", "merge", {"srcs": [_source_ref(d, source_ids) for d in op.sources]}, {}, out)
         )
         return
+    if op.kind == "burn_in":  # burn_in -> multi-source video + subtitle over the agreed op name
+        video_ref = _source_ref(op.sources[0], source_ids)
+        subtitle_ref = _source_ref(op.sources[1], source_ids)
+        steps.append(_step(f"burn_in_{output_id}", "burn_in", {"srcs": [video_ref, subtitle_ref]}, {}, out))
+        return
     src = _source_ref(op.sources[0], source_ids)
     if op.kind == "trim":
         steps.append(
@@ -248,6 +326,8 @@ def _lower_operation(
                 out,
             )
         )
+    elif op.kind == "crop":  # crop -> agreed "crop" op; canonical params pass straight through
+        steps.append(_step(f"crop_{output_id}", "crop", {"src": src}, dict(op.params), out))
     else:  # silence_cut -> ordered trim work steps + merge
         names: list[str] = []
         for index, (start, end) in enumerate(op.params["keep_segments"]):
@@ -273,11 +353,13 @@ def synthesize_workflow_spec(
 ) -> WorkflowSpecSynthesis:
     """Lower the renderable subset of ``operations`` to a validator-safe workflow spec.
 
-    trim/merge/reframe(->resize)/silence_cut(->trim+merge) become workspace-relative
-    steps over verified CAS sources; burn_in and crop stay compiled and are reported, in
-    operation order, in ``unrendered_kinds``. ``base_revision_id`` must be the current head and
-    the lowered operations' canonical ids must exactly equal that revision's stored ids, so a
-    receipt can never claim a revision the operations did not build.
+    trim/merge/reframe(->resize)/silence_cut(->trim+merge), crop and burn_in become workspace-relative
+    steps over verified CAS sources; each source path's extension is derived from its CAS
+    ``media_type`` (subtitle tracks keep .srt/.vtt/.ass) with a consuming-op role fallback. Any
+    genuinely unrenderable kind is reported, in operation order, in ``unrendered_kinds``.
+    ``base_revision_id`` must be the current head and the lowered operations' canonical ids must
+    exactly equal that revision's stored ids, so a receipt can never claim a revision the
+    operations did not build.
     """
     head = get_edit_project(project, edit_project_id)
     if base_revision_id is None or base_revision_id != head.head_revision_id:
@@ -293,7 +375,10 @@ def synthesize_workflow_spec(
         raise contract_error("supplied operations do not match the base revision", INVALID_RECORD)
 
     renderable = [op for op in normalized if op.kind in _RENDERABLE_KINDS]
-    # Declare only sources read by the lowered steps, verified + addressed by opaque job-relative paths.
+    # burn_in's second source is the subtitle track: it picks up a subtitle extension when the
+    # CAS media_type does not already name one. Declare only sources read by the lowered steps,
+    # verified and addressed by opaque job-relative paths with media-type-derived extensions.
+    subtitle_digests = {op.sources[1] for op in renderable if op.kind == "burn_in"}
     unique_digests = sorted({digest for op in renderable for digest in op.sources})
     source_ids: dict[str, str] = {}
     source_digests: dict[str, str] = {}
@@ -303,7 +388,8 @@ def synthesize_workflow_spec(
         source_id = f"src{index}"
         source_ids[digest] = source_id
         source_digests[source_id] = digest
-        sources[source_id] = {"path": f"{_SOURCES_DIR}/{source_id}.mp4"}
+        ext = _source_extension(project, digest, subtitle_role=digest in subtitle_digests)
+        sources[source_id] = {"path": f"{_SOURCES_DIR}/{source_id}{ext}"}
     steps: list[dict[str, Any]] = []
     outputs: dict[str, dict[str, str]] = {}
     for renderable_index, op in enumerate(renderable):
@@ -332,6 +418,29 @@ def _file_sha256(path: Path) -> str:
     return "sha256:" + hasher.hexdigest()
 
 
+def _declared_source_path(source_id: str, spec_entry: Any, job_dir: Path, resolved_sources: Path) -> Path:
+    """Resolve a spec-declared source path, re-confined under ``sources/`` with a closed name.
+
+    The declared path is workspace-relative (``sources/<id>.<ext>``); binding + confinement are
+    re-derived here (never trusting the spec blindly) so materialization links at exactly the
+    path synthesis declared and a tampered spec cannot escape the sources directory.
+    """
+    if not isinstance(spec_entry, Mapping) or not isinstance(spec_entry.get("path"), str):
+        raise contract_error(f"source {source_id} has no declared path in the workflow spec", INVALID_RECORD)
+    raw_path = spec_entry["path"]
+    if not raw_path:
+        raise contract_error(f"source {source_id} declares an empty path", INVALID_RECORD)
+    declared = job_dir / raw_path  # workspace-relative path bound to the job dir
+    # The basename must be exactly <source_id>.<ext>; the path must stay strictly under sources/.
+    if declared.stem != source_id or not declared.suffix:
+        raise contract_error("declared source path name does not match the closed-form source id", INVALID_RECORD)
+    if declared.is_symlink() or (declared.exists() and not declared.is_file()):
+        raise contract_error("declared source path already exists as a non-file or symlink", INVALID_RECORD)
+    if resolved_sources not in declared.resolve().parents and declared.resolve() != resolved_sources:
+        raise contract_error("declared source path escapes the sources directory", INVALID_RECORD)
+    return declared
+
+
 def materialize_workflow_sources(
     project: Project,
     job_id: str,
@@ -339,10 +448,12 @@ def materialize_workflow_sources(
 ) -> None:
     """Hard-link each declared source's integrity-checked CAS blob into the frozen job dir.
 
-    :func:`synthesize_workflow_spec` declares opaque job-relative paths (``sources/<id>.mp4``)
-    to avoid leaking the CAS layout; this seam resolves them at render time via
-    :func:`job_spec_path` + :func:`resolve_blob` and hard-links each blob. CAS and the job
-    dir share one filesystem, so a hard link is always achievable and NO copy fallback exists.
+    :func:`synthesize_workflow_spec` declares opaque job-relative paths
+    (``sources/<id>.<ext>`` with the extension derived from each source's CAS ``media_type``)
+    to avoid leaking the CAS layout; this seam re-reads those declared paths from the spec,
+    re-confines them, and hard-links each integrity-checked CAS blob. Declaration and
+    materialization share the one spec source map; CAS and the job dir share one filesystem, so a
+    hard link is always achievable and NO copy fallback exists.
 
     Fail-closed and idempotent: a matching preexisting target is accepted; any wrong
     content/type, symlinked component, non-closed-form id, or escaping path raises
@@ -352,6 +463,11 @@ def materialize_workflow_sources(
         raise contract_error("synthesis must be a WorkflowSpecSynthesis", INVALID_RECORD)
     if not isinstance(synthesis.source_digests, Mapping):
         raise contract_error("synthesis.source_digests must be a mapping", INVALID_RECORD)
+    if not isinstance(synthesis.spec, Mapping):
+        raise contract_error("synthesis.spec must be a mapping", INVALID_RECORD)
+    spec_sources = synthesis.spec.get("sources")
+    if not isinstance(spec_sources, Mapping):
+        raise contract_error("synthesis.spec.sources must be a mapping", INVALID_RECORD)
     job_dir = job_spec_path(project, job_id).parent
     sources_root = job_dir / _SOURCES_DIR
     if sources_root.is_symlink():
@@ -363,11 +479,7 @@ def materialize_workflow_sources(
             raise contract_error("source id must be a synthesis-generated closed form (src<digits>)", INVALID_RECORD)
         _require_digest(digest, "source digest")
         cas_path = resolve_blob(project, digest)  # integrity-checked CAS blob
-        declared = sources_root / f"{source_id}.mp4"
-        if declared.is_symlink() or (declared.exists() and not declared.is_file()):
-            raise contract_error("declared source path already exists as a non-file or symlink", INVALID_RECORD)
-        if resolved_sources not in declared.resolve().parents and declared.resolve() != resolved_sources:
-            raise contract_error("declared source path escapes the sources directory", INVALID_RECORD)
+        declared = _declared_source_path(source_id, spec_sources.get(source_id), job_dir, resolved_sources)
         if declared.exists():
             if _file_sha256(declared) != digest:
                 raise contract_error("declared source path already exists with different content", INVALID_RECORD)
