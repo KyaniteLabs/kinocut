@@ -49,7 +49,7 @@ from ._errors import (
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
 from .composite import iter_composite_refs, render_composite_step
 from .inspector import read_receipt
-from .ops import OP_ADAPTERS, CompositeOpAdapter, OpAdapter
+from .ops import OP_ADAPTERS, BurnInOpAdapter, CompositeOpAdapter, OpAdapter
 from .planner import _confine_artifact_path, _hash_if_exists, _iter_step_refs, _probe_source
 from .spec import WorkflowStep, load_spec, parse_spec, validate_spec_path
 from .validator import validate_workflow_spec
@@ -471,6 +471,27 @@ def _run_step(
             set(source_paths),
             set(work_paths),
         )
+        return
+    if isinstance(adapter, BurnInOpAdapter):
+        # burn_in binds TWO typed path inputs: srcs[0] -> input_path (video),
+        # srcs[1] -> subtitle_path (subtitle). Both ride the SAME confined multi-input
+        # resolution as merge's clips (workspace confinement + per-element hashing);
+        # ``style`` is the only tunable and was value-checked above.
+        resolved_srcs = [
+            str(_resolve_confined_input(ref, workspace_root, source_paths, work_paths))
+            for ref in step.inputs[adapter.input_key]
+        ]
+        if len(resolved_srcs) != 2:
+            raise workflow_error(
+                f"step {step.id!r} (burn_in) requires exactly two srcs refs: [video, subtitle]",
+                INVALID_WORKFLOW_SPEC,
+            )
+        kwargs = dict(step.params)
+        kwargs[adapter.engine_input_param] = resolved_srcs[0]
+        kwargs[adapter.engine_subtitle_param] = resolved_srcs[1]
+        if adapter.has_output:
+            kwargs["output_path"] = str(output_abs)
+        adapter.engine_fn(**kwargs)
         return
     resolved_input = _resolve_engine_input(adapter, step.inputs, workspace_root, source_paths, work_paths)
     kwargs: dict[str, Any] = dict(step.params)

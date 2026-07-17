@@ -22,6 +22,8 @@ from typing import Any, Literal, Union, get_args, get_origin, get_type_hints
 
 from ..engine import add_text, convert, merge, probe, resize, trim
 from ..engine_composite_layers import composite_layers
+from ..engine_crop import crop
+from ..engine_subtitles import subtitles
 from ._errors import INVALID_WORKFLOW_PARAMS, workflow_error
 
 
@@ -103,6 +105,38 @@ class CompositeOpAdapter(OpAdapter):
         if canvas is not None and not isinstance(canvas, dict):
             raise workflow_error(
                 f"step {step_id!r} (composite_layers) param 'canvas' must be an object",
+                INVALID_WORKFLOW_PARAMS,
+            )
+
+
+class BurnInOpAdapter(OpAdapter):
+    """Bespoke adapter for the subtitle ``burn_in`` op.
+
+    Burn-in consumes TWO typed media paths — the primary video and a subtitle
+    file — bound to the engine's ``input_path`` and ``subtitle_path`` params. It
+    rides the existing multi-input (``srcs``) binding so BOTH sources are
+    workspace-confined and per-element hashed by the SAME validator/planner/
+    executor machinery as ``merge`` (no bespoke input-validation branch needed).
+    The executor splits the two-element ``srcs`` list into the engine's two named
+    path params (``isinstance(adapter, BurnInOpAdapter)`` in ``_run_step``).
+
+    The ONLY tunable is ``style`` (a ``force_style`` override string); every other
+    engine param (``input_path`` / ``subtitle_path`` / ``output_path``) is input-
+    or executor-bound. The subtitle is therefore a confined input excluded from
+    tunables but included in input hashing/reuse, exactly like the primary video.
+    """
+
+    #: Engine positional param receiving the resolved subtitle path (``srcs[1]``).
+    engine_subtitle_param: str = "subtitle_path"
+
+    def accepted_params(self) -> frozenset[str]:
+        return frozenset({"style"})
+
+    def validate_param_values(self, params: dict[str, Any], step_id: str) -> None:
+        style = params.get("style")
+        if style is not None and not isinstance(style, str):
+            raise workflow_error(
+                f"step {step_id!r} (burn_in) param 'style' must be a string",
                 INVALID_WORKFLOW_PARAMS,
             )
 
@@ -198,6 +232,7 @@ OP_ADAPTERS: dict[str, OpAdapter] = {
     "trim": OpAdapter("trim", trim, input_key="src", engine_input_param="input_path"),
     "resize": OpAdapter("resize", resize, input_key="src", engine_input_param="input_path"),
     "convert": OpAdapter("convert", convert, input_key="src", engine_input_param="input_path"),
+    "crop": OpAdapter("crop", crop, input_key="src", engine_input_param="input_path"),
     "add_text": OpAdapter(
         "add_text",
         add_text,
@@ -215,5 +250,15 @@ OP_ADAPTERS: dict[str, OpAdapter] = {
         input_key="layers",
         engine_input_param="spec_path",
         has_output=True,
+    ),
+    # burn_in rides the multi-input (srcs) binding: srcs[0] -> input_path (video),
+    # srcs[1] -> subtitle_path (subtitle). Both are workspace-confined + hashed like merge;
+    # the executor branch (_run_step) splits the list into the engine's two path params.
+    "burn_in": BurnInOpAdapter(
+        "burn_in",
+        subtitles,
+        input_key="srcs",
+        engine_input_param="input_path",
+        multi_input=True,
     ),
 }
