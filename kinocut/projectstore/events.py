@@ -51,8 +51,8 @@ _REQUIRED_IDENTITIES: dict[str, tuple[str, ...]] = {
     "dag.compiled": ("revision_id",),
 }
 _JOB_FORBIDDEN = frozenset({"revision.created", "branch.created", "dag.compiled"})
-_ABSOLUTE_PATH_RE = re.compile(r"(?:[A-Za-z]:[\\/]|/)[^\s:'\"<>]+")
-_SECRET_RE = re.compile(r"(?i)\b(?:authorization|api[_-]?key|token|password|secret)\b\s*[:=]\s*[^\s,;]+")
+_ABSOLUTE_PATH_RE = re.compile(r"(?:[A-Za-z]:[\\/]|/|~/)[^\s:'\"<>]+")
+_SECRET_RE = re.compile(r"(?i)\b(?:authorization|api[_-]?key|token|password|secret)\b\s*[:=]\s*[^\r\n]*")
 _CONTROL_RE = re.compile(r"[\x00-\x1f\x7f]+")
 _SUMMARY_CAP = 200
 
@@ -259,13 +259,28 @@ def poll_for_consumer(
     event_kinds: Iterable[str] | None = None,
     limit: int | None = None,
 ) -> list[KernelEventRecord]:
-    cursor = get_event_cursor(project, consumer_id)
-    return event_poll(
-        project,
-        after_event_id=None if cursor is None or cursor.ack_event_id == 0 else cursor.ack_event_id,
-        event_kinds=event_kinds,
-        limit=limit,
-    )
+    with _project_lock(project):
+        cursor = get_event_cursor(project, consumer_id)
+        if cursor is None:
+            cursor = append_record_locked(
+                project,
+                validate_record(
+                    EventCursorRecord,
+                    {
+                        "consumer_id": consumer_id,
+                        "ack_event_id": 0,
+                        "project_id": project.project_id,
+                        "created_by": "agent",
+                        "created_at": _now(),
+                    },
+                ),
+            )
+        return event_poll(
+            project,
+            after_event_id=None if cursor.ack_event_id == 0 else cursor.ack_event_id,
+            event_kinds=event_kinds,
+            limit=limit,
+        )
 
 
 def ack_events(
