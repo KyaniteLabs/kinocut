@@ -315,6 +315,8 @@ def _validate_supersedes_integrity(record: RecordBase, existing: list[dict[str, 
         raise contract_error("supersedes must reference exactly one existing record", INVALID_RECORD)
     if targets[0].get("project_id") != record.project_id:
         raise contract_error("supersedes must target a same-project record", INVALID_RECORD)
+    if record.record_kind == "event_cursor" and targets[0].get("consumer_id") != getattr(record, "consumer_id", None):
+        raise contract_error("event cursor may supersede only the same consumer", INVALID_RECORD)
     if any(obj.get("supersedes") == target_id for obj in existing):
         raise contract_error("the target record is already superseded", INVALID_RECORD)
 

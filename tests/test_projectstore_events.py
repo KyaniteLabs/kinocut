@@ -393,6 +393,25 @@ def test_cursor_rejects_missing_event_and_ambiguous_head(project):
         get_event_cursor(project, "worker-1")
 
 
+def test_cursor_rejects_cross_consumer_supersession(project):
+    _seed(project)
+    first = ack_events(project, "worker-1", 1)
+    with pytest.raises(MCPVideoError):
+        append_record(
+            project,
+            validate_record(
+                type(first),
+                {
+                    "consumer_id": "worker-2",
+                    "ack_event_id": 2,
+                    "supersedes": first.record_id,
+                    "project_id": project.project_id,
+                    "created_by": "tool",
+                },
+            ),
+        )
+
+
 def test_retention_waits_for_slowest_cursor_and_then_bounds_log(project):
     _seed(project)
     ack_events(project, "fast", 4)
@@ -405,6 +424,17 @@ def test_retention_waits_for_slowest_cursor_and_then_bounds_log(project):
     assert second.pruned_count == 1
     assert [event.event_id for event in event_poll(project)] == [4, 5]
     assert [event.event_id for event in poll_for_consumer(project, "slow")] == [4, 5]
+
+
+def test_poll_registers_consumer_before_retention(project):
+    _seed(project)
+    assert [event.event_id for event in poll_for_consumer(project, "pending", limit=2)] == [1, 2]
+    assert get_event_cursor(project, "pending").ack_event_id == 0
+    receipt = retain_events(project, max_events=2)
+    assert receipt.pruned_count == 0
+    ack_events(project, "pending", 2)
+    receipt = retain_events(project, max_events=2)
+    assert receipt.pruned_count == 2
 
 
 def test_retention_receipt_failure_restores_exact_event_log(project, monkeypatch):
@@ -428,8 +458,56 @@ def test_event_summary_redacts_paths_secrets_and_controls(project):
         subject_record_id=_sub(1),
         summary="token=very-secret /Users/alice/private.mov\nready",
     )
-    assert event.summary == "<redacted-secret> <redacted-path> ready"
+    assert event.summary == "<redacted-secret>"
     assert "alice" not in event.summary and "very-secret" not in event.summary
+    bearer = append_event(
+        project,
+        "branch.created",
+        edit_project_id=_EP,
+        subject_record_id=_sub(2),
+        summary="Authorization: Bearer ey.secret.jwt",
+    )
+    assert bearer.summary == "<redacted-secret>"
+    home = append_event(
+        project,
+        "branch.created",
+        edit_project_id=_EP,
+        subject_record_id=_sub(3),
+        summary="source ~/alice/private.mov",
+    )
+    assert home.summary == "source <redacted-path>"
+
+
+def test_event_contract_rejects_unsanitized_summary_bypass(project):
+    with pytest.raises(MCPVideoError):
+        append_record(
+            project,
+            validate_record(
+                KernelEventRecord,
+                {
+                    "event_id": 1,
+                    "event_kind": "branch.created",
+                    "edit_project_id": _EP,
+                    "subject_record_id": _sub(1),
+                    "summary": "token=raw-secret /Users/alice/private.mov",
+                    "project_id": project.project_id,
+                    "created_by": "tool",
+                },
+            ),
+        )
+    with pytest.raises(MCPVideoError):
+        validate_record(
+            KernelEventRecord,
+            {
+                "event_id": 2,
+                "event_kind": "branch.created",
+                "edit_project_id": _EP,
+                "subject_record_id": _sub(2),
+                "summary": "/Users/alice/private.mov token=raw-secret",
+                "project_id": project.project_id,
+                "created_by": "tool",
+            },
+        )
 
 
 def test_malformed_event_or_cursor_store_fails_closed(project):

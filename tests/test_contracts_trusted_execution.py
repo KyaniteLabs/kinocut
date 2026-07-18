@@ -80,10 +80,21 @@ def test_receipt_lineage_is_frozen_and_digest_typed():
         ReceiptLineage(**(lineage.model_dump() | {"source_digests": ("bad",)}))
 
 
-def test_event_contract_allows_only_phase_one_kinds():
-    for kind in ("revision.created", "render.completed", "quality.gate.failed"):
+def test_event_contract_allows_only_closed_audit_vocabulary():
+    for kind in (
+        "revision.created",
+        "render.queued",
+        "render.started",
+        "render.completed",
+        "render.failed",
+        "render.cancelled",
+        "quality.gate.passed",
+        "quality.gate.failed",
+        "branch.created",
+        "dag.compiled",
+    ):
         KernelEventRecord(**_BASE, event_id=1, event_kind=kind, edit_project_id=_PROJECT, subject_record_id=_SHA)
     with pytest.raises(ValidationError):
         KernelEventRecord(
-            **_BASE, event_id=1, event_kind="render.started", edit_project_id=_PROJECT, subject_record_id=_SHA
+            **_BASE, event_id=1, event_kind="render.unknown", edit_project_id=_PROJECT, subject_record_id=_SHA
         )
