@@ -1,11 +1,12 @@
 """Frozen Phase-1 contracts for Kinocut's trusted execution layer."""
 
 from __future__ import annotations
+import re
 
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from kinocut.contracts._common import RecordBase, Sha256, ValueObject
 
@@ -152,8 +153,77 @@ class ReceiptLineage(ValueObject):
 class KernelEventRecord(RecordBase):
     record_kind: Literal["kernel_event"] = "kernel_event"
     event_id: int = Field(ge=1)
-    event_kind: Literal["revision.created", "render.completed", "quality.gate.failed"]
+    event_kind: Literal[
+        "revision.created",
+        "render.queued",
+        "render.started",
+        "render.completed",
+        "render.failed",
+        "render.cancelled",
+        "quality.gate.passed",
+        "quality.gate.failed",
+        "branch.created",
+        "dag.compiled",
+    ]
     edit_project_id: EditProjectId
     revision_id: Sha256 | None = None
     job_id: JobId | None = None
     subject_record_id: Sha256
+    # Privacy-safe, caller-supplied audit note. ``events.sanitize_event_summary``
+    # redacts secrets/paths/control characters and bounds length before this is
+    # persisted; the model bound is a defense-in-depth ceiling.
+    summary: str | None = Field(default=None, max_length=200)
+
+    @field_validator("summary")
+    @classmethod
+    def _privacy_safe_summary(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if re.search(r"[\x00-\x1f\x7f]", value):
+            raise ValueError("event summary must not contain control characters")
+        if re.search(r"(?:[A-Za-z]:[\\/]|/|~/)[^\s:'\"<>]+", value):
+            raise ValueError("event summary must not contain absolute paths")
+        if re.search(
+            r"(?i)\b(?:authorization|api[_-]?key|token|password|secret)\b\s*[:=]\s*[^\r\n]*",
+            value,
+        ):
+            raise ValueError("event summary must not contain secrets")
+        return value
+
+
+#: Bounded identifier for a poll-first audit consumer (a filename-safe label).
+EventConsumerId = Annotated[str, Field(pattern=r"^[a-z0-9][a-z0-9_.-]{0,63}$")]
+
+
+class EventCursorRecord(RecordBase):
+    """Persisted at-least-once consumer position: the highest contiguous acked event id.
+
+    A consumer advances its cursor by appending a successor that supersedes the
+    current head — append-only and therefore auditable. ``poll_for_consumer``
+    returns events strictly after ``ack_event_id`` (the deduplication watermark),
+    so an already-acked event is never re-delivered; a crash before an ack leaves
+    the cursor unchanged and the same events are re-delivered on the next poll
+    (at-least-once). ``ack_event_id`` of 0 means nothing has been acknowledged.
+    """
+
+    record_kind: Literal["event_cursor"] = "event_cursor"
+    consumer_id: EventConsumerId
+    ack_event_id: int = Field(ge=0)
+
+
+class EventRetentionRecord(RecordBase):
+    """Append-only receipt for one bounded event-log compaction pass.
+
+    Mirrors the CAS GC receipt pattern: each prune appends exactly one receipt
+    recording what was removed and the cursor watermark that authorized it.
+    Events are physically removed from the append-only log only once every
+    registered consumer has acknowledged past them, so a live cursor can never be
+    silently stranded.
+    """
+
+    record_kind: Literal["event_retention"] = "event_retention"
+    keep_from_event_id: int = Field(ge=1)
+    pruned_count: int = Field(ge=0)
+    pruned_max_event_id: int = Field(ge=0)
+    watermark_event_id: int = Field(ge=0)
+    surviving_min_event_id: int | None = None
