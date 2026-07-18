@@ -29,7 +29,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     cost_ledger = subparsers.add_parser("video-cost-ledger", help="Sum known USD cost events by category")
     cost_ledger.add_argument("project_dir")
 
-    recipe_capture = subparsers.add_parser("video-recipe-capture", help="Capture a workflow recipe (idempotent by digest)")
+    recipe_capture = subparsers.add_parser(
+        "video-recipe-capture", help="Capture a workflow recipe (idempotent by digest)"
+    )
     recipe_capture.add_argument("project_dir")
     recipe_capture.add_argument("--recipe-json", required=True)
 

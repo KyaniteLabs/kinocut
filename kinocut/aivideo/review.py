@@ -60,9 +60,7 @@ def record_known_limitation(project: Project, limitation: KnownLimitation) -> Kn
     """Persist one accepted limitation, bound to its authorizing decision."""
 
     if not _decision_exists(project, limitation.accepted_by_decision_id):
-        raise contract_error(
-            "known limitation references no authorizing review decision", INVALID_RECORD
-        )
+        raise contract_error("known limitation references no authorizing review decision", INVALID_RECORD)
     appended = append_record(project, limitation)
     return appended  # type: ignore[return-value]
 
@@ -107,8 +105,11 @@ def invalidate_approval(project: Project, prior_state_id: str, reason: str) -> A
     """
 
     prior = next(
-        (item for item in read_records(project, "approval_state")
-         if type(item) is ApprovalState and item.record_id == prior_state_id),
+        (
+            item
+            for item in read_records(project, "approval_state")
+            if type(item) is ApprovalState and item.record_id == prior_state_id
+        ),
         None,
     )
     if prior is None:
@@ -168,9 +169,7 @@ def review_package(
     decisions = review_decisions_for_target(project, candidate_artifact)
     limitations = known_limitations(project)
     open_defects = [
-        finding.record_id
-        for finding in _active_defects(project)
-        if finding.status not in _NON_BLOCKING_DEFECT_STATUSES
+        finding.record_id for finding in _active_defects(project) if finding.status not in _NON_BLOCKING_DEFECT_STATUSES
     ]
     return ReviewPackage(
         candidate_artifact=candidate_artifact,
@@ -206,9 +205,7 @@ def evaluate_publish_gate(
     if active.invalidation_reasons:
         reasons.append("candidate approval is invalidated/superseded")
     states = _states_for_candidate(project, candidate_artifact)
-    decisions = [
-        item for item in read_records(project, "review_decision") if type(item) is ReviewDecision
-    ]
+    decisions = [item for item in read_records(project, "review_decision") if type(item) is ReviewDecision]
     publishable = active.is_publishable(decisions, states, blocking_findings=blocking_findings)
     if not publishable and not reasons:
         reasons.append("publish conditions not satisfied (approval/integrity/decision checks)")

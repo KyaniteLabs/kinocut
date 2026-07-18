@@ -24,11 +24,9 @@ from kinocut.doctor import run_diagnostics
 # Dep *codes* are code-friendly (underscores); _DEP_CHECK maps them to the
 # diagnostics check name (which may use hyphens, e.g. openai-whisper).
 _CATALOG: tuple[dict[str, Any], ...] = (
-    {"id": "video_edit", "required": ("ffmpeg",),
-     "formats": ("mp4", "mov", "webm", "mkv", "avi")},
+    {"id": "video_edit", "required": ("ffmpeg",), "formats": ("mp4", "mov", "webm", "mkv", "avi")},
     {"id": "subtitles", "required": ("ffmpeg",), "formats": ("srt", "vtt", "ass")},
-    {"id": "audio", "required": ("ffmpeg",),
-     "formats": ("wav", "mp3", "aac", "flac", "ogg")},
+    {"id": "audio", "required": ("ffmpeg",), "formats": ("wav", "mp3", "aac", "flac", "ogg")},
     {"id": "ai_transcribe", "required": ("openai_whisper",), "formats": ("srt", "vtt")},
     {"id": "c2pa_signing", "required": (), "optional": ("c2patool",), "formats": ()},
 )
@@ -57,10 +55,7 @@ def capability_report(diagnostics: dict[str, Any] | None = None) -> list[Capabil
         required = tuple(capability["required"])
         optional = tuple(capability.get("optional", ()))
         formats = tuple(capability.get("formats", ()))
-        missing = [
-            dep for dep in required
-            if not checks.get(_DEP_CHECK.get(dep, dep), {}).get("ok", False)
-        ]
+        missing = [dep for dep in required if not checks.get(_DEP_CHECK.get(dep, dep), {}).get("ok", False)]
         if not missing:
             reports.append(
                 CapabilityReport(
@@ -83,7 +78,8 @@ def capability_report(diagnostics: dict[str, Any] | None = None) -> list[Capabil
                     availability=AvailabilityState.UNAVAILABLE,
                     reason_code="required_dep_missing",
                     remediation=(
-                        "required dependency " + " and ".join(missing)
+                        "required dependency "
+                        + " and ".join(missing)
                         + " is missing, install it to enable this capability"
                     ),
                 )

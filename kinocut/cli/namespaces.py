@@ -36,7 +36,7 @@ def namespaced_groups() -> dict[str, tuple[str, ...]]:
     """Return each namespace group with its sorted action aliases."""
 
     groups: dict[str, list[str]] = {}
-    for (group, action) in NAMESPACED_ALIASES:
+    for group, action in NAMESPACED_ALIASES:
         groups.setdefault(group, []).append(action)
     return {group: tuple(sorted(actions)) for group, actions in sorted(groups.items())}
 

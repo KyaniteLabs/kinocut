@@ -117,9 +117,7 @@ def _resolve_labels(count: int, labels: list[str] | None) -> list[str]:
         )
     values = [_safe_label(lbl) for lbl in labels]
     if len(set(values)) != len(values):
-        raise MCPVideoError(
-            "audition labels must be unique", error_type="validation_error", code="duplicate_label"
-        )
+        raise MCPVideoError("audition labels must be unique", error_type="validation_error", code="duplicate_label")
     return values
 
 
@@ -262,10 +260,21 @@ def render_bed_audition(
             # across FFmpeg versions, unlike input seeking.
             voice_slice = os.path.join(tmp, f"voice_{section.index}.wav")
             _run_ffmpeg(
-                ["-y", "-loglevel", "error", "-i", plan.voice_source,
-                 "-ss", str(section.voice_start_seconds),
-                 "-t", str(section.duration_seconds),
-                 "-vn", "-acodec", "pcm_s16le", voice_slice]
+                [
+                    "-y",
+                    "-loglevel",
+                    "error",
+                    "-i",
+                    plan.voice_source,
+                    "-ss",
+                    str(section.voice_start_seconds),
+                    "-t",
+                    str(section.duration_seconds),
+                    "-vn",
+                    "-acodec",
+                    "pcm_s16le",
+                    voice_slice,
+                ]
             )
             bed_name = f"{plan.output_display_name}_{section.index:02d}_{_slug(section.label)}.wav"
             bed_path = _validate_output_path(os.path.join(output_dir, bed_name))
@@ -281,9 +290,7 @@ def render_bed_audition(
                 "duration_seconds": section.duration_seconds,
                 "bed_output_name": bed_name,
                 "bed_output_sha256": _file_sha256(bed_path),
-                "bed_output_duration_seconds": float(
-                    probe.get("format", {}).get("duration") or 0.0
-                ),
+                "bed_output_duration_seconds": float(probe.get("format", {}).get("duration") or 0.0),
             }
         )
     receipt = AuditionReceipt(

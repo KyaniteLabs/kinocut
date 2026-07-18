@@ -60,7 +60,9 @@ AIVIDEO_CORPUS = BenchmarkCorpus(
         BenchmarkItem(item_id="burn_subtitles", capability_id="subtitles", description="Burn SRT VTT ASS subtitles"),
         BenchmarkItem(item_id="audio_bed", capability_id="audio", description="Compose a governed audio bed"),
         BenchmarkItem(item_id="transcribe", capability_id="ai_transcribe", description="ASR transcription to SRT"),
-        BenchmarkItem(item_id="c2pa_sign", capability_id="c2pa_signing", description="Optional C2PA provenance signing"),
+        BenchmarkItem(
+            item_id="c2pa_sign", capability_id="c2pa_signing", description="Optional C2PA provenance signing"
+        ),
     ),
 )
 

@@ -98,7 +98,9 @@ def defect_prompt_feedback(project: Project) -> list[PromptDefectFeedback]:
     by_prompt: dict[str, set[str]] = {}
     for outcome in outcomes:
         codes = {
-            defects[did].defect_code.value if hasattr(defects[did].defect_code, "value") else str(defects[did].defect_code)
+            defects[did].defect_code.value
+            if hasattr(defects[did].defect_code, "value")
+            else str(defects[did].defect_code)
             for did in outcome.defect_ids
             if did in defects
         }
