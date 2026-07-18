@@ -51,7 +51,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.8.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.8.0)** (2026-07-14) |
+| **Latest published release** | **[1.9.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.9.0)** (2026-07-15) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -364,7 +364,7 @@ mcp-video doctor
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.8.0** (`pip install kinocut`) con **142 herramientas MCP** y **121 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.9.0** (`pip install kinocut`) con **150 herramientas MCP** y **129 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -505,7 +505,7 @@ kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-Published **1.8.0** registers **142 MCP tools** and **121 CLI commands** (including governed AI-video surfaces). The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+Published **1.9.0** registers **150 MCP tools** and **129 CLI commands** (including governed AI-video surfaces). The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -596,7 +596,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.8.0** documents **142 MCP tools / 121 CLI commands**. Historical **1.7.0** cutover was **135 / 114**.
+Published **1.9.0** documents **150 MCP tools / 129 CLI commands**. Historical **1.7.0** cutover was **135 / 114**.
 
 ### Was it called mcp-video?
 
