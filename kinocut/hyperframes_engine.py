@@ -394,11 +394,15 @@ _SCHEMA: dict[str, dict[str, Any]] = {
         },
         "switches": {
             "tailwind": "tailwind",
+            # Opt-in: emit the skip flag only when the caller requests it via
+            # create_project(skip_transcribe=True).
+            "skip-transcribe": "skip_transcribe",
         },
         # `init` prompts interactively by default and can implicitly launch
-        # Whisper; always pass --non-interactive and --skip-transcribe so the
-        # MCP subprocess scaffolds a project without ever blocking on input.
-        "fixed": ["--non-interactive", "--skip-skills", "--skip-transcribe"],
+        # Whisper; always pass --non-interactive so the MCP subprocess scaffolds
+        # a project without ever blocking on input. --skip-transcribe is opt-in
+        # above, so the public default (skip_transcribe=False) omits it.
+        "fixed": ["--non-interactive", "--skip-skills"],
         "cwd_key": "output_dir",
         "timeout": 120,
     },

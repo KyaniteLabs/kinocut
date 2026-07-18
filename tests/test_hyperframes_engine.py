@@ -1223,24 +1223,44 @@ class TestInitNonInteractiveHang:
 
     An MCP server has no TTY, so an interactive prompt -- or the network
     AI-skills check that ``--skip-skills`` does not actually disable -- would
-    hang the tool call indefinitely. ``init`` must always run non-interactively
-    and skip transcription, and every Hyperframes subprocess must run with a
+    hang the tool call indefinitely. ``init`` must always run non-interactively,
+    ``--skip-transcribe`` is opt-in via ``skip_transcribe`` (false omits it, true
+    emits it exactly once), and every Hyperframes subprocess must run with a
     closed stdin and ``HYPERFRAMES_SKIP_SKILLS=1``.
     """
 
-    def test_init_forces_non_interactive_and_skip_transcribe(self, tmp_path):
-        """init passes --non-interactive and --skip-transcribe even when not requested."""
+    def test_init_default_omits_skip_transcribe(self, tmp_path):
+        """skip_transcribe=False (the public default) omits --skip-transcribe."""
         with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run:
             mock_run.return_value = _make_completed_process(stdout="initialized")
 
-            # skip_transcribe defaults to False, yet both flags must still be forced.
+            # The default must not silently disable transcription.
             create_project("regression-project", output_dir=str(tmp_path), template="blank")
+
+            cmd = mock_run.call_args[0][0]
+            assert _hyperframes_subcommand(cmd) == "init"
+            # The no-TTY hang fix stays in force.
+            assert "--non-interactive" in cmd
+            assert "--skip-transcribe" not in cmd
+            assert cmd.count("--skip-transcribe") == 0
+
+    def test_init_skip_transcribe_true_emits_flag_once(self, tmp_path):
+        """skip_transcribe=True emits --skip-transcribe exactly once."""
+        with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run") as mock_run:
+            mock_run.return_value = _make_completed_process(stdout="initialized")
+
+            create_project(
+                "regression-project",
+                output_dir=str(tmp_path),
+                template="blank",
+                skip_transcribe=True,
+            )
 
             cmd = mock_run.call_args[0][0]
             assert _hyperframes_subcommand(cmd) == "init"
             assert "--non-interactive" in cmd
             assert "--skip-transcribe" in cmd
-            # Forced exactly once -- the removed switch must not double it up.
+            # The switch must not double up with any leftover fixed entry.
             assert cmd.count("--skip-transcribe") == 1
 
     def test_subprocess_closes_stdin_and_skips_skills(self, tmp_path):
