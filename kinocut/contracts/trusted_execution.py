@@ -1,11 +1,12 @@
 """Frozen Phase-1 contracts for Kinocut's trusted execution layer."""
 
 from __future__ import annotations
+import re
 
 from enum import StrEnum
 from typing import Annotated, Literal
 
-from pydantic import Field, model_validator
+from pydantic import Field, field_validator, model_validator
 
 from kinocut.contracts._common import RecordBase, Sha256, ValueObject
 
@@ -172,6 +173,22 @@ class KernelEventRecord(RecordBase):
     # redacts secrets/paths/control characters and bounds length before this is
     # persisted; the model bound is a defense-in-depth ceiling.
     summary: str | None = Field(default=None, max_length=200)
+
+    @field_validator("summary")
+    @classmethod
+    def _privacy_safe_summary(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        if re.search(r"[\x00-\x1f\x7f]", value):
+            raise ValueError("event summary must not contain control characters")
+        if re.search(r"(?:[A-Za-z]:[\\/]|/|~/)[^\s:'\"<>]+", value):
+            raise ValueError("event summary must not contain absolute paths")
+        if re.search(
+            r"(?i)\b(?:authorization|api[_-]?key|token|password|secret)\b\s*[:=]\s*[^\r\n]*",
+            value,
+        ):
+            raise ValueError("event summary must not contain secrets")
+        return value
 
 
 #: Bounded identifier for a poll-first audit consumer (a filename-safe label).
