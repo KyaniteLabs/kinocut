@@ -60,7 +60,7 @@ def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_p
     try:
         if subtitle_format == "ass":
             width, height = probe_display_dimensions(input_path)
-            with open(subtitle_path, "r", encoding="utf-8") as handle:
+            with open(subtitle_path, "r", encoding="utf-8", errors="replace") as handle:
                 content = handle.read()
             # Normalize PlayRes to match video dimensions
             content = _normalize_playres(content, width, height)
