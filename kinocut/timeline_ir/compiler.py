@@ -35,9 +35,9 @@ def parse_timeline_ir(raw: dict[str, Any]) -> TimelineIR:
     """Back-read v0 drafts by adding only the formerly implicit schema version."""
     candidate = deepcopy(raw)
     version = candidate.get("ir_schema_version")
-    if version in (None, 0):
+    if version is None or (isinstance(version, int) and not isinstance(version, bool) and version == 0):
         candidate["ir_schema_version"] = 1
-    elif version != 1:
+    elif version != 1 or isinstance(version, bool) or not isinstance(version, int):
         raise ir_error(f"unsupported ir_schema_version: {version!r}")
     return TimelineIR.model_validate(candidate)
 

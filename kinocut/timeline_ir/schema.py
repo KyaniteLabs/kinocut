@@ -84,6 +84,26 @@ class IRNode(ValueObject):
         unknown = set(self.params) - allowed
         if unknown:
             raise ir_error(f"unsupported {self.kind} semantics: {sorted(unknown)}")
+        expected_key = {
+            "clip": "src",
+            "resize": "src",
+            "crop": "src",
+            "text": "src",
+            "subtitles": "srcs",
+            "merge": "srcs",
+            "composite": "layers",
+        }[self.kind]
+        if set(self.inputs) != {expected_key}:
+            raise ir_error(f"{self.kind} inputs must contain only {expected_key!r}")
+        value = self.inputs[expected_key]
+        if expected_key == "src" and (not isinstance(value, str) or not value):
+            raise ir_error(f"{self.kind} input must be a ref string")
+        if expected_key == "srcs" and (
+            not isinstance(value, list) or not value or not all(isinstance(ref, str) and ref for ref in value)
+        ):
+            raise ir_error(f"{self.kind} inputs must be a non-empty ref list")
+        if expected_key == "layers" and (not isinstance(value, list) or not value):
+            raise ir_error("composite layers must be a non-empty list")
         if self.kind == "clip":
             for name in ("start", "duration"):
                 if name in self.params:
@@ -96,7 +116,10 @@ class TimelineIR(ValueObject):
 
     ir_schema_version: Literal[1] = IR_SCHEMA_VERSION
     name: str | None = Field(default=None, max_length=255)
-    timebase: RationalTime = RationalTime(numerator=1, denominator=1)
+    timebase: RationalTime = Field(
+        default=RationalTime(numerator=1, denominator=1),
+        description="Exact seconds per timeline tick (the reciprocal of frame rate).",
+    )
     sources: dict[str, IRSource]
     nodes: tuple[IRNode, ...]
     outputs: dict[str, IROutput] = Field(default_factory=dict)
@@ -131,5 +154,7 @@ DAG_KIND_BY_IR_KIND = {
     "merge": "merge",
     "composite": "composite_layers",
 }
+if set(DAG_KIND_BY_IR_KIND) != set(IR_KINDS):
+    raise RuntimeError("Timeline IR kind declarations drifted")
 if not set(DAG_KIND_BY_IR_KIND.values()) <= set(DAG_NODE_KINDS):
     raise RuntimeError("Timeline IR kinds drifted from Render DAG allowlist")

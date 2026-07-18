@@ -122,6 +122,14 @@ def test_unknown_future_version_fails_closed():
         parse_timeline_ir(raw)
 
 
+@pytest.mark.parametrize("bad_version", [False, 0.0, "0"])
+def test_migration_rejects_coerced_versions(bad_version):
+    raw = _ir().model_dump(mode="json")
+    raw["ir_schema_version"] = bad_version
+    with pytest.raises(MCPVideoError):
+        parse_timeline_ir(raw)
+
+
 def test_duplicate_and_missing_dependencies_fail_closed():
     ir = _ir()
     with pytest.raises(MCPVideoError):
@@ -134,3 +142,43 @@ def test_duplicate_and_missing_dependencies_fail_closed():
             sources=ir.sources,
             nodes=(ir.nodes[0].model_copy(update={"depends_on": ("ghost",)}),),
         )
+
+
+@pytest.mark.parametrize(
+    ("kind", "inputs", "dag_kind"),
+    [
+        ("clip", {"src": "@sources.a"}, "trim"),
+        ("resize", {"src": "@sources.a"}, "resize"),
+        ("crop", {"src": "@sources.a"}, "crop"),
+        ("text", {"src": "@sources.a"}, "add_text"),
+        ("subtitles", {"srcs": ["@sources.a", "@sources.b"]}, "burn_in"),
+        ("merge", {"srcs": ["@sources.a", "@sources.b"]}, "merge"),
+        (
+            "composite",
+            {"layers": [{"id": "base", "type": "video", "src": "@sources.a"}]},
+            "composite_layers",
+        ),
+    ],
+)
+def test_every_closed_kind_compiles_to_expected_dag_kind(kind, inputs, dag_kind):
+    ir = TimelineIR(
+        sources={
+            "a": IRSource(path="a.mp4"),
+            "b": IRSource(path="b.srt"),
+        },
+        nodes=(
+            IRNode(
+                id="node",
+                kind=kind,
+                inputs=inputs,
+                output="@outputs.out",
+            ),
+        ),
+        outputs={"out": IROutput(path="out.mp4")},
+    )
+    assert compile_ir_to_dag(ir).nodes[0].kind == dag_kind
+
+
+def test_input_shapes_fail_at_ir_boundary():
+    with pytest.raises(MCPVideoError):
+        IRNode(id="bad", kind="merge", inputs={"srcs": "@sources.a"})
