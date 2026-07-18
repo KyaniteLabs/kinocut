@@ -18,7 +18,7 @@ from typing import Any
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import RenderJobRecord, RenderJobStatus, can_transition_job
-from kinocut.projectstore.edit_projects import _append_transaction, get_edit_project
+from kinocut.projectstore.edit_projects import _append_transaction, get_branch
 from kinocut.projectstore.events import _build_event_locked
 from kinocut.projectstore.store import (
     Project,
@@ -247,9 +247,9 @@ def submit_render_job(
     from kinocut.workflow import validate_workflow_spec
 
     with _project_lock(project):
-        head = get_edit_project(project, edit_project_id)
+        head = get_branch(project, edit_project_id)
         if head.head_revision_id is None or revision_id != head.head_revision_id:
-            raise contract_error("revision_id must match the current edit-project head", INVALID_RECORD)
+            raise contract_error("revision_id must match the current main branch head", INVALID_RECORD)
         spec_abs = _resolve_spec(project, spec_path)
         verdict = validate_workflow_spec(str(spec_abs))  # fail closed on an unsafe/invalid spec
         spec_bytes = spec_abs.read_bytes()

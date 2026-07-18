@@ -53,6 +53,14 @@ class EditRevisionRecord(RecordBase):
         return self
 
 
+class RevisionSourcesRecord(RecordBase):
+    """Source CAS digests used by one revision's opaque operation descriptors."""
+
+    record_kind: Literal["revision_sources"] = "revision_sources"
+    revision_id: Sha256
+    source_digests: tuple[Sha256, ...] = ()
+
+
 class RenderJobStatus(StrEnum):
     QUEUED = "queued"
     RUNNING = "running"

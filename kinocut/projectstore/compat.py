@@ -22,7 +22,7 @@ from typing import Any
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.trusted_execution import CASManifestRecord, EditRevisionRecord
 from kinocut.projectstore.cas import resolve_blob
-from kinocut.projectstore.edit_projects import append_revision, get_edit_project
+from kinocut.projectstore.edit_projects import append_revision, get_branch
 from kinocut.projectstore.render_jobs import job_spec_path
 from kinocut.projectstore.store import Project, read_records
 
@@ -282,8 +282,16 @@ def compile_repurpose_slice(
     Delegates to :func:`append_revision`: head advances by one, a ``revision.created``
     event fires, and a stale ``base_revision_id`` fails closed (no new public surface).
     """
-    operation_ids = compile_operations(operations)
-    return append_revision(project, edit_project_id, operation_ids=operation_ids, base_revision_id=base_revision_id)
+    normalized = tuple(_normalize_operation(descriptor, index) for index, descriptor in enumerate(operations))
+    operation_ids = tuple(_operation_id(operation) for operation in normalized)
+    source_digests = tuple(dict.fromkeys(digest for operation in normalized for digest in operation.sources))
+    return append_revision(
+        project,
+        edit_project_id,
+        operation_ids=operation_ids,
+        source_digests=source_digests,
+        base_revision_id=base_revision_id,
+    )
 
 
 def _source_ref(digest: str, source_ids: dict[str, str]) -> str:
@@ -361,9 +369,9 @@ def synthesize_workflow_spec(
     exactly equal that revision's stored ids, so a receipt can never claim a revision the
     operations did not build.
     """
-    head = get_edit_project(project, edit_project_id)
+    head = get_branch(project, edit_project_id)
     if base_revision_id is None or base_revision_id != head.head_revision_id:
-        raise contract_error("supplied base revision does not match the current head", INVALID_RECORD)
+        raise contract_error("supplied base revision does not match the main branch head", INVALID_RECORD)
     # Bind the lowering to the durable revision it claims: the record must exist, belong to this
     # edit project, and the canonical ids of the passed operations must equal its stored ids.
     revision = next((r for r in read_records(project, "edit_revision") if r.record_id == base_revision_id), None)

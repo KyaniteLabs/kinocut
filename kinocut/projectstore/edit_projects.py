@@ -1,7 +1,8 @@
-"""Phase-1 durable edit-project repository (internal, additive). A revision append writes three JSONL
-files (revision, event, head) with exception-atomic rollback only: targets are snapshotted and fully restored
-when an append raises. It is not cross-file crash-atomic — a process crash can leave unreferenced pre-head
-revision/event records persisted before the head advanced, while the superseding head remains the source of truth."""
+"""Durable edit-project repository with append-only global and per-branch heads.
+
+Revision appends use exception-atomic multi-file rollback. They are not cross-file
+crash-atomic; GC therefore treats both global and branch heads as reachability roots.
+"""
 
 from __future__ import annotations
 
@@ -17,9 +18,10 @@ from kinocut.contracts.trusted_execution import (
     BranchRecord,
     EditProjectRecord,
     EditRevisionRecord,
-    KernelEventRecord,
+    RevisionSourcesRecord,
 )
 from kinocut.projectstore import layout
+from kinocut.projectstore.events import _build_event_locked
 from kinocut.projectstore.store import (
     Project,
     _mapped_os_errors,
@@ -68,12 +70,6 @@ def _find_edit_project(project: Project, edit_project_id: str) -> EditProjectRec
     return heads[0]
 
 
-def _next_event_id(project: Project) -> int:
-    """Next monotonic kernel event id for this project store."""
-    events = read_records(project, "kernel_event")
-    return 1 if not events else max(e.event_id for e in events) + 1
-
-
 def _restore_bytes(path, prior: bytes | None) -> None:
     """Restore ``path`` to its pre-transaction bytes, or remove it if absent then."""
     if prior is None:
@@ -84,7 +80,7 @@ def _restore_bytes(path, prior: bytes | None) -> None:
 
 
 def _append_transaction(project: Project, records: list) -> None:
-    """Append each record to its own JSONL file with exception-atomic rollback; records target distinct kinds."""
+    """Append records with exception-atomic rollback; duplicate target kinds are supported."""
     targets = [safe_target(project, layout.records_relative_path(r.record_kind)) for r in records]
     with _mapped_os_errors():
         snapshots = [(t, (t.read_bytes() if t.exists() else None)) for t in targets]
@@ -198,9 +194,10 @@ def fork_revision(
     with _project_lock(project):
         if _find_branch_record(project, edit_project_id, branch_name) is not None or branch_name == "main":
             raise contract_error("branch already exists", INVALID_RECORD)
-        base = revision_id or get_branch(project, edit_project_id).head_revision_id
-        if base is not None:
-            _revision_by_id(project, base)
+        main = get_branch(project, edit_project_id)
+        base = revision_id or main.head_revision_id
+        if base is not None and _revision_by_id(project, base).edit_project_id != edit_project_id:
+            raise contract_error("revision belongs to a different edit project", INVALID_RECORD)
         record = validate_record(
             BranchRecord,
             {
@@ -212,6 +209,9 @@ def fork_revision(
                 "created_at": _now(),
             },
         )
+        if _find_branch_record(project, edit_project_id, "main") is None:
+            _append_transaction(project, [main, record])
+            return get_branch(project, edit_project_id, branch_name)
         return append_record_locked(project, record)
 
 
@@ -242,9 +242,11 @@ def diff_revisions(
 ) -> dict[str, tuple[str, ...]]:
     left = _operations_to_root(project, left_revision_id)
     right = _operations_to_root(project, right_revision_id)
+    left_set = set(left)
+    right_set = set(right)
     return {
-        "added": tuple(operation for operation in right if operation not in left),
-        "removed": tuple(operation for operation in left if operation not in right),
+        "added": tuple(operation for operation in right if operation not in left_set),
+        "removed": tuple(operation for operation in left if operation not in right_set),
     }
 
 
@@ -255,6 +257,7 @@ def append_revision(
     operation_ids: tuple[str, ...] = (),
     branch_name: str = "main",
     base_revision_id: str | None = None,
+    source_digests: tuple[str, ...] | None = None,
     created_by: str = "agent",
 ) -> EditRevisionRecord:
     """Append an immutable operation delta and advance one branch head."""
@@ -281,19 +284,27 @@ def append_revision(
             },
         )
         revision, revision_id = _with_record_id(revision)
-        event = validate_record(
-            KernelEventRecord,
-            {
-                "event_id": _next_event_id(project),
-                "event_kind": "revision.created",
-                "edit_project_id": edit_project_id,
-                "revision_id": revision_id,
-                "job_id": None,
-                "subject_record_id": revision_id,
-                "project_id": project.project_id,
-                "created_by": created_by,
-                "created_at": _now(),
-            },
+        event = _build_event_locked(
+            project,
+            "revision.created",
+            edit_project_id=edit_project_id,
+            revision_id=revision_id,
+            subject_record_id=revision_id,
+            created_by=created_by,
+        )
+        sources = (
+            validate_record(
+                RevisionSourcesRecord,
+                {
+                    "revision_id": revision_id,
+                    "source_digests": source_digests,
+                    "project_id": project.project_id,
+                    "created_by": created_by,
+                    "created_at": _now(),
+                },
+            )
+            if source_digests is not None
+            else None
         )
         new_head = validate_record(
             EditProjectRecord,
@@ -320,7 +331,11 @@ def append_revision(
                 **({"supersedes": prior_branch.record_id} if prior_branch is not None else {}),
             },
         )
-        _append_transaction(project, [revision, event, new_head, new_branch])
+        records = [revision, event]
+        if sources is not None:
+            records.append(sources)
+        records.extend((new_head, new_branch))
+        _append_transaction(project, records)
         return revision
 
 
