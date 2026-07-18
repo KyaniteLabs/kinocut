@@ -128,8 +128,10 @@ def immutable_verified_snapshot_available() -> bool:
     """Return whether this host can make a kernel-immutable verified snapshot."""
     os_names = ("memfd_create", "MFD_ALLOW_SEALING")
     fcntl_names = ("F_ADD_SEALS", "F_SEAL_WRITE", "F_SEAL_GROW", "F_SEAL_SHRINK", "F_SEAL_SEAL")
-    return fcntl is not None and all(hasattr(os, name) for name in os_names) and all(
-        hasattr(fcntl, name) for name in fcntl_names
+    return (
+        fcntl is not None
+        and all(hasattr(os, name) for name in os_names)
+        and all(hasattr(fcntl, name) for name in fcntl_names)
     )
 
 

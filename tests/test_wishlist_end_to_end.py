@@ -77,9 +77,7 @@ def project(tmp_path):
 
 
 def _seed_spec(project):
-    return append_record(
-        project, GenerationAcceptanceSpec(**acceptance_spec_kwargs(project_id=project.project_id))
-    )
+    return append_record(project, GenerationAcceptanceSpec(**acceptance_spec_kwargs(project_id=project.project_id)))
 
 
 def _seed_asset(project, asset_id):
@@ -142,12 +140,20 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
 
     # Real register_clip (validates verdict/decision/asset refs).
     clip_a = _register_clip(
-        project, asset_id=_ASSET, source_asset_id=_ASSET,
-        verdict_id=verdict_ok.record_id, decision_id=decision.record_id, tags=("product",),
+        project,
+        asset_id=_ASSET,
+        source_asset_id=_ASSET,
+        verdict_id=verdict_ok.record_id,
+        decision_id=decision.record_id,
+        tags=("product",),
     )
     clip_b = _register_clip(
-        project, asset_id=_ASSET, source_asset_id=_ASSET_B,
-        verdict_id=verdict_ok.record_id, decision_id=decision.record_id, tags=("product", "logo"),
+        project,
+        asset_id=_ASSET,
+        source_asset_id=_ASSET_B,
+        verdict_id=verdict_ok.record_id,
+        decision_id=decision.record_id,
+        tags=("product", "logo"),
     )
     assert clip_a.record_id != clip_b.record_id
 
@@ -165,9 +171,7 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
         ),
     )
     assert prompt_outcomes_for_asset(project, _ASSET) == [outcome]
-    record_cost_event(
-        project, CostEvent(**cost_event_kwargs(project_id=project.project_id, amount=4.25, source="inv"))
-    )
+    record_cost_event(project, CostEvent(**cost_event_kwargs(project_id=project.project_id, amount=4.25, source="inv")))
     totals = cost_totals(project)
     assert totals.known_total_usd == pytest.approx(4.25)
 
@@ -193,8 +197,10 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
 
     # #48 review decisions + #49 publish gate + #47 review package.
     review_decision = record_review_decision(
-        project, ReviewDecision(**review_decision_kwargs(
-            project_id=project.project_id, target_ref=_ASSET, dependency_fingerprint=_FP))
+        project,
+        ReviewDecision(
+            **review_decision_kwargs(project_id=project.project_id, target_ref=_ASSET, dependency_fingerprint=_FP)
+        ),
     )
     assert review_decision.record_id in {d.record_id for d in review_decisions_for_target(project, _ASSET)}
     approval = record_approval_state(project, _approval(project, review_decision.record_id))
@@ -222,15 +228,15 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
     assert limitation.record_id in {lim.record_id for lim in known_limitations(project)}
 
     # #58 defect-to-prompt feedback: real defect linked to the real prompt outcome.
-    defect = append_record(
-        project, DefectFinding(**defect_kwargs(project_id=project.project_id, target_id=_ASSET))
-    )
+    defect = append_record(project, DefectFinding(**defect_kwargs(project_id=project.project_id, target_id=_ASSET)))
     record_prompt_outcome(
         project,
         PromptOutcome(
             **prompt_outcome_kwargs(
-                project_id=project.project_id, asset_ids=(_ASSET,),
-                verdict_ids=(verdict_ok.record_id,), defect_ids=(defect.record_id,),
+                project_id=project.project_id,
+                asset_ids=(_ASSET,),
+                verdict_ids=(verdict_ok.record_id,),
+                defect_ids=(defect.record_id,),
             )
         ),
     )
@@ -243,9 +249,7 @@ def test_real_pipeline_drives_every_wishlist_engine(project):
     assert regeneration_advice(project, verdict_ok.record_id).recommend_regenerate is False
 
     # #59 workflow recipe through the real writer.
-    recipe = record_workflow_recipe(
-        project, WorkflowRecipe(**workflow_recipe_kwargs(project_id=project.project_id))
-    )
+    recipe = record_workflow_recipe(project, WorkflowRecipe(**workflow_recipe_kwargs(project_id=project.project_id)))
     assert recipes_for_template(project, recipe.template) == [recipe]
 
 
@@ -254,7 +258,9 @@ def _beat_map(project, spec_id):
 
     return BeatMap(
         **{
-            "project_id": project.project_id, "created_by": "human", "acceptance_spec_id": spec_id,
+            "project_id": project.project_id,
+            "created_by": "human",
+            "acceptance_spec_id": spec_id,
             "beats": (
                 BeatRequirement(beat_id="product", label="Product beat", required_subjects=("product",)),
                 BeatRequirement(beat_id="logo", label="Logo beat", required_subjects=("logo",)),
@@ -268,10 +274,10 @@ def _continuity_plan(project, spec_id):
 
     return ContinuityPlan(
         **{
-            "project_id": project.project_id, "created_by": "human", "acceptance_spec_id": spec_id,
-            "expectations": (
-                ContinuityExpectation(shot_id="shot_a", expected_subjects=("product",)),
-            ),
+            "project_id": project.project_id,
+            "created_by": "human",
+            "acceptance_spec_id": spec_id,
+            "expectations": (ContinuityExpectation(shot_id="shot_a", expected_subjects=("product",)),),
         }
     )
 

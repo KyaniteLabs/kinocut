@@ -402,8 +402,7 @@ def _check_alias_identity() -> dict[str, Any]:
         "ok": ok,
         "detail": "kinocut.Client is mcp_video.Client" if ok else "Client objects diverged after rename",
         "remediation": (
-            "The 1.7 rename must keep one Client. Reinstall kinocut so that "
-            "mcp_video.Client is kinocut.Client."
+            "The 1.7 rename must keep one Client. Reinstall kinocut so that mcp_video.Client is kinocut.Client."
         ),
     }
 

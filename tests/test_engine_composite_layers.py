@@ -491,7 +491,9 @@ def test_composite_layers_full_canvas_blend_receipt_preserves_layer_keys(tmp_pat
 def test_composite_layers_positioned_blend_summary_note(tmp_path, monkeypatch):
     result, _graph = _render_graph(tmp_path, _positioned_blend_spec("darken"), monkeypatch)
 
-    assert any("positioned" in line.lower() and "blend" in line.lower() for line in result.layer_plan["filtergraph_summary"])
+    assert any(
+        "positioned" in line.lower() and "blend" in line.lower() for line in result.layer_plan["filtergraph_summary"]
+    )
 
 
 @pytest.mark.parametrize(

@@ -24,9 +24,7 @@ def _run_review_package(
     return {"success": True, "operation": "review_package", "review_package": _dump(package)}
 
 
-def _run_publish_gate(
-    project_dir: str, candidate_artifact: str, blocking_findings: tuple[str, ...]
-) -> dict[str, Any]:
+def _run_publish_gate(project_dir: str, candidate_artifact: str, blocking_findings: tuple[str, ...]) -> dict[str, Any]:
     from .review import evaluate_publish_gate
 
     project = _existing_project(project_dir)

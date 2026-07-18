@@ -50,4 +50,3 @@ def handle_aivideo_commands(args: Any, *, use_json: bool) -> bool:
     runner.register("video-body-swap", lambda a, out: _run("body_swap", a, out))
     runner.register("video-salvage", lambda a, out: _run("salvage", a, out))
     return runner.dispatch()
-

@@ -196,9 +196,7 @@ def test_coverage_report_flags_beat_with_unmet_required_subject(project):
         _beat_map(
             project,
             spec.record_id,
-            beats=(
-                BeatRequirement(beat_id="logo", label="Logo beat", required_subjects=("logo", "product")),
-            ),
+            beats=(BeatRequirement(beat_id="logo", label="Logo beat", required_subjects=("logo", "product")),),
         ),
     )
     append_record(project, _clip(project, tags=("product",), source_asset_id="sha256:" + "2" * 64))

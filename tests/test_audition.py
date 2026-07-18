@@ -124,8 +124,11 @@ def test_render_bed_audition_produces_labeled_sections(tmp_path):
 
     out_dir = tmp_path / "audition"
     receipt = bed_audition(
-        str(voice), [str(bed_a), str(bed_b)], str(out_dir),
-        labels=["Calm", "Bright"], section_seconds=3.0,
+        str(voice),
+        [str(bed_a), str(bed_b)],
+        str(out_dir),
+        labels=["Calm", "Bright"],
+        section_seconds=3.0,
         output_display_name="audition",
     )
     # One labeled, equal-duration bed file per candidate (no concatenation);
