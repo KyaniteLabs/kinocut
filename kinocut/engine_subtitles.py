@@ -1,7 +1,8 @@
 """Subtitle burn-in operation for the FFmpeg engine.
 
-Authored ASS is burned verbatim (its PlayRes/styles/positions are preserved and
-its source bytes are never rewritten); SRT/VTT is converted to a dimensioned ASS
+Authored ASS is read, normalized to have PlayRes matching the video
+dimensions, and written so captions render correctly across
+vertical/horizontal/square videos. SRT/VTT is converted to a dimensioned ASS
 whose single PlayResX/Y equals the probed display size so captions render
 correctly across vertical/horizontal/square. A user ``style`` is optional and is
 validated through the closed ``force_style`` parser before being applied.
@@ -35,6 +36,7 @@ from .subtitles_common import (
     parse_force_style,
     probe_display_dimensions,
     synthesize_dimensioned_ass,
+    _normalize_playres,
 )
 
 
@@ -46,20 +48,24 @@ def _synthesis_workdir(output_path: str) -> str:
 def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_path: str) -> None:
     """Write the subtitle content burned by the filter into the open temp-ASS ``fd``.
 
-    Authored ASS is copied byte-for-byte so a hostile subtitle filename never
-    reaches the filtergraph (the FFmpeg subtitles filter cannot reliably consume a
-    quote or other filter metacharacters in its path) and the source is never
-    modified; SRT/VTT is converted to a dimensioned ASS. The temp file itself is
-    owned (and cleaned up) by the caller, but this helper always closes ``fd`` on
-    every path — including when probe/synthesis fails before it is wrapped by
-    ``os.fdopen`` — and wraps any staging ``OSError`` (either format) as a private
-    ``subtitle_prepare_failed``. Custom ``MCPVideoError`` from probe/synthesis is
-    preserved unchanged.
+    Authored ASS is read, normalized to have PlayRes matching the video
+    dimensions, and written so captions render correctly across
+    vertical/horizontal/square videos. SRT/VTT is converted to a dimensioned ASS.
+    The temp file itself is owned (and cleaned up) by the caller, but this
+    helper always closes ``fd`` on every path — including when probe/synthesis
+    fails before it is wrapped by ``os.fdopen`` — and wraps any staging
+    ``OSError`` (either format) as a private ``subtitle_prepare_failed``.
+    Custom ``MCPVideoError`` from probe/synthesis is preserved unchanged.
     """
     try:
         if subtitle_format == "ass":
-            with os.fdopen(fd, "wb") as dst, open(subtitle_path, "rb") as src:
-                shutil.copyfileobj(src, dst)
+            width, height = probe_display_dimensions(input_path)
+            with open(subtitle_path, "r", encoding="utf-8") as handle:
+                content = handle.read()
+            # Normalize PlayRes to match video dimensions
+            content = _normalize_playres(content, width, height)
+            with os.fdopen(fd, "w", encoding="utf-8") as dst:
+                dst.write(content)
         else:
             width, height = probe_display_dimensions(input_path)
             content = synthesize_dimensioned_ass(subtitle_path, (width, height))
