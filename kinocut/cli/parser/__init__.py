@@ -30,7 +30,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=(
             "Namespaced aliases: `kino <group> <action> ...` rewrites to the matching "
             "flat command (e.g. `kino aivideo verdict` -> `kino video-verdict`). "
-            "The flat command set above is unchanged."
+            "Groups: aivideo, audio, qa, edit. The flat command set above is unchanged."
         ),
     )
     parser.add_argument(

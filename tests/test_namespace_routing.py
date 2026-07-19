@@ -1,11 +1,11 @@
-"""Behavior tests for the namespaced CLI argv router (#388, T7a; #390, T7b; #391, T7c).
+"""Behavior tests for the namespaced CLI argv router (#388, T7a; #390, T7b; #391, T7c; #392, T7d).
 
 These tests exercise the ``kino <group> <action> ...`` -> ``kino <flat> ...`` rewrite
 that ``kinocut.__main__._rewrite_namespaced_argv`` performs before
 ``build_parser().parse_args()`` runs. They do NOT depend on a new argparse subparser
 being added; the flat 130-command surface stays authoritative. T7a added the seven
 ``aivideo`` aliases; T7b adds the nine ``audio`` aliases; T7c adds the five ``qa``
-aliases on top of the merged router.
+aliases; T7d adds the ten ``edit`` aliases on top of the merged router.
 """
 
 from __future__ import annotations
@@ -50,9 +50,9 @@ def test_no_dangling_aliases_every_target_is_a_registered_flat_command():
 def test_every_namespaced_alias_rewrites_to_its_flat_target(group: str, action: str, flat: str):
     """Every (group, action) alias rewrites to its flat command, preserving trailing argv.
 
-    Covers all 21 aliases: the seven ``aivideo`` paths (T7a), the nine ``audio``
-    paths (T7b), and the five ``qa`` paths (T7c). Group/action-specific counts are
-    pinned by the dedicated tests below.
+    Covers all 31 aliases: the seven ``aivideo`` paths (T7a), the nine ``audio``
+    paths (T7b), the five ``qa`` paths (T7c), and the ten ``edit`` paths (T7d).
+    Group/action-specific counts are pinned by the dedicated tests below.
     """
 
     rewritten = _rewrite_namespaced_argv([group, action, "PROJECT", "--extra", "value"])
@@ -89,6 +89,19 @@ QA_ALIASES: dict[tuple[str, str], str] = {
     ("qa", "check"): "video-quality-check",
     ("qa", "design-check"): "video-design-quality-check",
     ("qa", "fix-design"): "video-fix-design-issues",
+}
+
+EDIT_ALIASES: dict[tuple[str, str], str] = {
+    ("edit", "trim"): "trim",
+    ("edit", "merge"): "merge",
+    ("edit", "info"): "info",
+    ("edit", "extract-frame"): "extract-frame",
+    ("edit", "convert"): "convert",
+    ("edit", "resize"): "resize",
+    ("edit", "speed"): "speed",
+    ("edit", "add-text"): "add-text",
+    ("edit", "subtitles"): "subtitles",
+    ("edit", "add-audio"): "add-audio",
 }
 
 
@@ -134,6 +147,30 @@ def test_qa_group_keeps_exactly_five_aliases():
     qa = {k: v for k, v in NAMESPACED_ALIASES.items() if k[0] == "qa"}
     assert qa == QA_ALIASES
     assert len(qa) == 5
+
+
+@pytest.mark.parametrize(
+    ("action", "flat"),
+    [(action, flat) for (_, action), flat in sorted(EDIT_ALIASES.items())],
+    ids=[f"edit-{action}" for _, action in sorted(EDIT_ALIASES)],
+)
+def test_every_edit_alias_rewrites_to_its_flat_target(action: str, flat: str):
+    """All ten T7d edit aliases route to the matching flat command, preserving trailing argv."""
+
+    rewritten = _rewrite_namespaced_argv(["edit", action, "PROJECT", "--extra", "value"])
+    assert rewritten == [flat, "PROJECT", "--extra", "value"]
+    # The flat target is still directly parseable as a registered subcommand.
+    assert flat in EXPECTED_CLI_COMMANDS
+
+
+def test_edit_group_keeps_exactly_ten_aliases():
+    """The T7d edit group is exactly its ten known aliases, all flat-one-word commands."""
+
+    edit = {k: v for k, v in NAMESPACED_ALIASES.items() if k[0] == "edit"}
+    assert edit == EDIT_ALIASES
+    assert len(edit) == 10
+    # All ten flat targets remain directly available on the 130-command surface.
+    assert set(edit.values()) <= EXPECTED_CLI_COMMANDS
 
 
 def test_format_json_before_group_is_preserved():
@@ -214,13 +251,14 @@ def test_flat_command_set_remains_130():
 
     Namespace aliases are pure argv rewrites to existing flat commands, never new
     subcommands: 7 aivideo aliases (T7a) + 9 audio aliases (T7b) + 5 qa aliases
-    (T7c) = 21 grouped paths over the unchanged 130-command parser.
+    (T7c) + 10 edit aliases (T7d) = 31 grouped paths over the unchanged
+    130-command parser.
     """
 
     assert len(EXPECTED_CLI_COMMANDS) == 130
-    assert len(NAMESPACED_ALIASES) == 21
+    assert len(NAMESPACED_ALIASES) == 31
     groups = namespaced_groups()
-    assert set(groups) == {"aivideo", "audio", "qa"}
+    assert set(groups) == {"aivideo", "audio", "qa", "edit"}
     assert groups["aivideo"] == (
         "acceptance",
         "body-swap",
@@ -248,10 +286,22 @@ def test_flat_command_set_remains_130():
         "fix-design",
         "info-detailed",
     )
+    assert groups["edit"] == (
+        "add-audio",
+        "add-text",
+        "convert",
+        "extract-frame",
+        "info",
+        "merge",
+        "resize",
+        "speed",
+        "subtitles",
+        "trim",
+    )
 
 
 def test_parser_does_not_register_a_namespace_group_subparser():
-    """Grouped routing reuses flat subparsers; no `aivideo`, `audio`, or `qa` subparser is created."""
+    """Grouped routing reuses flat subparsers; no group subparser is created."""
 
     import argparse as _argparse
 
@@ -261,6 +311,7 @@ def test_parser_does_not_register_a_namespace_group_subparser():
     assert "aivideo" not in choices
     assert "audio" not in choices
     assert "qa" not in choices
+    assert "edit" in choices  # Existing flat timeline command, not an added group parser.
     assert choices == EXPECTED_CLI_COMMANDS
 
 
@@ -294,8 +345,36 @@ def test_grouped_qa_check_route_exposes_flat_video_quality_check_help():
     assert "--fail-on-warning" in result.stdout
 
 
+def test_grouped_edit_trim_route_exposes_flat_trim_help():
+    """`kino edit trim --help` rewrites so argparse prints the flat trim command's help."""
+
+    result = _cli("edit", "trim", "--help")
+    assert result.returncode == 0, result.stderr
+    # The flat trim command's help is shown — its prog line and distinctive options appear verbatim.
+    assert "trim" in result.stdout
+    assert "--start" in result.stdout
+    assert "--duration" in result.stdout
+
+
+def test_edit_collision_input_keeps_flat_edit_timeline_parser():
+    """`kino edit timeline.json --help` must NOT rewrite: timeline.json is not an edit action.
+
+    The flat `edit` command parses a timeline JSON positional. An unknown edit
+    action falls through unchanged so the existing flat timeline-edit parser
+    handles the path verbatim — the namespaced router never shadows it.
+    """
+
+    argv = ["edit", "timeline.json", "--help"]
+    assert _rewrite_namespaced_argv(list(argv)) == argv
+    result = _cli(*argv)
+    assert result.returncode == 0, result.stderr
+    # The flat timeline-edit parser answers, surfacing its timeline positional and prog line.
+    assert "edit" in result.stdout
+    assert "timeline" in result.stdout
+
+
 def test_group_help_does_not_add_namespace_groups_to_top_level_command_list():
-    """`kino --help` still lists exactly the flat 130 commands — no aivideo, audio, or qa entry."""
+    """`kino --help` mentions all four groups yet lists exactly the flat 130 commands."""
 
     result = _cli("--help")
     assert result.returncode == 0, result.stderr
@@ -306,3 +385,7 @@ def test_group_help_does_not_add_namespace_groups_to_top_level_command_list():
     assert "aivideo" not in help_commands
     assert "audio" not in help_commands
     assert "qa" not in help_commands
+    assert "edit" in help_commands  # Existing flat command remains visible.
+    # Grouped help names all four namespace groups in the epilog without adding commands.
+    for group in ("aivideo", "audio", "qa", "edit"):
+        assert group in result.stdout
