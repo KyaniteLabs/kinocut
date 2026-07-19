@@ -245,12 +245,9 @@ jobs:
         run: .venv/bin/pytest tests/ -q -m "slow" --tb=short
 
   hyperframes-integration:
-    name: Hyperframes integration (informational)
+    name: Hyperframes integration
     needs: changes
     runs-on: blacksmith-2vcpu-ubuntu-2404
-    # Informational until runner compatibility is proven: failures are logged
-    # in the run, not blocking. Promote to a hard gate once stable.
-    continue-on-error: true
     steps:
       - name: Skip hyperframes integration
         if: needs.changes.outputs.code != 'true'
