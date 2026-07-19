@@ -267,7 +267,7 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
         "aliases": {"video": "input_path", "output": "output_path"},
     },
     "audio_bed": {
-        "category": "media",
+        "category": "workflow",
         "return_type": "dict",
         "aliases": {"voice": "voice_source", "music": "music_path", "output": "output_path"},
     },
