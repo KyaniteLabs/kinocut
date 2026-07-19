@@ -129,4 +129,34 @@ def handle_audio_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-audio-spatial", _spatial)
 
+    def _audio_bed(a, j):
+        from ..engine_audio_bed import audio_bed
+
+        r = _with_spinner(
+            "Rendering audio bed...",
+            audio_bed,
+            a.voice_source,
+            a.music_path,
+            a.output,
+            loop=a.loop,
+            loop_crossfade=a.loop_crossfade,
+            fade_in=a.fade_in,
+            fade_out=a.fade_out,
+            target_lufs=a.target_lufs,
+            duck_threshold=a.duck_threshold,
+            duck_ratio=a.duck_ratio,
+            duck_attack=a.duck_attack,
+            duck_release=a.duck_release,
+            music_volume=a.music_volume,
+            save_receipt=a.save_receipt,
+        )
+        _out(
+            r,
+            j,
+            lambda res: _format_path_panel("Audio bed rendered", res),
+            json_transform=lambda res: {"success": True, **res},
+        )
+
+    runner.register("audio-bed", _audio_bed)
+
     return runner.dispatch()

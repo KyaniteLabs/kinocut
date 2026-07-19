@@ -2,6 +2,17 @@
 
 from __future__ import annotations
 
+from ...defaults import (
+    DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
+    DEFAULT_AUDIO_BED_DUCK_RATIO,
+    DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+    DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
+    DEFAULT_AUDIO_BED_FADE_IN,
+    DEFAULT_AUDIO_BED_FADE_OUT,
+    DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+    DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+    DEFAULT_AUDIO_BED_TARGET_LUFS,
+)
 import argparse
 
 
@@ -85,4 +96,77 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     aspat_p.add_argument(
         "--method", default="hrtf", choices=["hrtf", "vbap", "simple"], help="Spatialization method (default: hrtf)"
+    )
+
+    # audio-bed
+    abed_p = subparsers.add_parser(
+        "audio-bed",
+        help="Duck a music bed under voice and normalize loudness (governed one-shot mix)",
+    )
+    abed_p.add_argument("voice_source", help="Voice/video source defining the target duration")
+    abed_p.add_argument("music_path", help="Music bed audio/video mixed under the voice")
+    abed_p.add_argument("-o", "--output", required=True, help="Output file path")
+    abed_p.add_argument(
+        "--loop",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Loop the bed to match the voice duration (default: on; use --no-loop to pad/trim instead)",
+    )
+    abed_p.add_argument(
+        "--loop-crossfade",
+        type=float,
+        default=DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+        help=f"Crossfade seconds between bed loops (default: {DEFAULT_AUDIO_BED_LOOP_CROSSFADE})",
+    )
+    abed_p.add_argument(
+        "--fade-in",
+        type=float,
+        default=DEFAULT_AUDIO_BED_FADE_IN,
+        help=f"Mix fade-in seconds (default: {DEFAULT_AUDIO_BED_FADE_IN})",
+    )
+    abed_p.add_argument(
+        "--fade-out",
+        type=float,
+        default=DEFAULT_AUDIO_BED_FADE_OUT,
+        help=f"Mix fade-out seconds (default: {DEFAULT_AUDIO_BED_FADE_OUT})",
+    )
+    abed_p.add_argument(
+        "--target-lufs",
+        type=float,
+        default=DEFAULT_AUDIO_BED_TARGET_LUFS,
+        help=f"Target integrated loudness in LUFS (default: {DEFAULT_AUDIO_BED_TARGET_LUFS})",
+    )
+    abed_p.add_argument(
+        "--duck-threshold",
+        type=float,
+        default=DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
+        help=f"Sidechain duck threshold (default: {DEFAULT_AUDIO_BED_DUCK_THRESHOLD})",
+    )
+    abed_p.add_argument(
+        "--duck-ratio",
+        type=float,
+        default=DEFAULT_AUDIO_BED_DUCK_RATIO,
+        help=f"Sidechain duck ratio (default: {DEFAULT_AUDIO_BED_DUCK_RATIO})",
+    )
+    abed_p.add_argument(
+        "--duck-attack",
+        type=float,
+        default=DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
+        help=f"Sidechain duck attack in ms (default: {DEFAULT_AUDIO_BED_DUCK_ATTACK_MS})",
+    )
+    abed_p.add_argument(
+        "--duck-release",
+        type=float,
+        default=DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+        help=f"Sidechain duck release in ms (default: {DEFAULT_AUDIO_BED_DUCK_RELEASE_MS})",
+    )
+    abed_p.add_argument(
+        "--music-volume",
+        type=float,
+        default=DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+        help=f"Music bed volume gain (default: {DEFAULT_AUDIO_BED_MUSIC_VOLUME})",
+    )
+    abed_p.add_argument(
+        "--save-receipt",
+        help="Optional path to write the AudioBedReceipt JSON alongside the render",
     )

@@ -237,6 +237,7 @@ print(checkpoint["quality_score"])  # Must pass min_score
 | `audio_effects(input_path, output, effects)` | `EditResult` | Apply effects chain: lowpass, reverb, normalize, fade |
 | `add_generated_audio(video, audio_config, output)` | `EditResult` | Generate audio and add it to a video |
 | `audio_spatial(video, output, positions, method?)` | `EditResult` | 3D spatial audio positioning |
+| `audio_bed(voice_source, music_path, output_path, *, loop?, loop_crossfade?, fade_in?, fade_out?, target_lufs?, duck_threshold?, duck_ratio?, duck_attack?, duck_release?, music_volume?, save_receipt?)` | `dict` | Governed one-shot audio-bed: duck a music bed under the voice track, normalize to EBU R128, loop with crossfade, and emit a deterministic `AudioBedReceipt` (operation `"audio_bed"`, fixed `keep_video` duration policy). The engine result dict is returned unchanged — `result["receipt"]` is top-level. The method mirrors `video_audio_bed` (MCP) and `audio-bed` (CLI); there is no authorization, duration-policy, or duration-tolerance parameter. |
 
 ---
 

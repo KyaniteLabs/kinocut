@@ -108,6 +108,7 @@ from .server_tools_audio import (
     audio_preset as audio_preset,
     audio_sequence as audio_sequence,
     audio_synthesize as audio_synthesize,
+    video_audio_bed as video_audio_bed,
     video_add_generated_audio as video_add_generated_audio,
     video_audio_spatial as video_audio_spatial,
 )

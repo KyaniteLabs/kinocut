@@ -7,7 +7,18 @@ import tempfile
 from typing import Any
 
 from .errors import MCPVideoError
-from .defaults import DEFAULT_PROCEDURAL_AUDIO_BED_WARNING_SECONDS
+from .defaults import (
+    DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
+    DEFAULT_AUDIO_BED_DUCK_RATIO,
+    DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+    DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
+    DEFAULT_AUDIO_BED_FADE_IN,
+    DEFAULT_AUDIO_BED_FADE_OUT,
+    DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+    DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+    DEFAULT_AUDIO_BED_TARGET_LUFS,
+    DEFAULT_PROCEDURAL_AUDIO_BED_WARNING_SECONDS,
+)
 from .limits import MAX_FREQUENCY, MIN_FREQUENCY
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .ffmpeg_helpers import _validate_input_path
@@ -368,5 +379,73 @@ def video_duck_audio(
             ratio=ratio,
             attack=attack,
             release=release,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_audio_bed(
+    voice_source: str,
+    music_path: str,
+    output_path: str,
+    *,
+    loop: bool = True,
+    loop_crossfade: float = DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+    fade_in: float = DEFAULT_AUDIO_BED_FADE_IN,
+    fade_out: float = DEFAULT_AUDIO_BED_FADE_OUT,
+    target_lufs: float = DEFAULT_AUDIO_BED_TARGET_LUFS,
+    duck_threshold: float = DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
+    duck_ratio: float = DEFAULT_AUDIO_BED_DUCK_RATIO,
+    duck_attack: float = DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
+    duck_release: float = DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+    music_volume: float = DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+    save_receipt: str | None = None,
+) -> dict[str, Any]:
+    """Mix a looped music bed under a voice source with ducking and loudness normalization.
+
+    The voice drives sidechain ducking and loudness normalization. A deterministic
+    AudioBedReceipt is returned, and output duration stays locked to the voice source.
+
+    Args:
+        voice_source: Video/audio whose existing audio (voice/dialog) drives ducking
+            and sets output duration.
+        music_path: Background music or ambience to mix underneath; looped when shorter
+            than the voice.
+        output_path: Absolute path for the rendered output file.
+        loop: Loop the music bed when it is shorter than the voice. Default True.
+        loop_crossfade: Crossfade seconds between loop iterations. Default 1.5.
+        fade_in: Output fade-in seconds. Default 0.0.
+        fade_out: Output fade-out seconds. Default 2.2.
+        target_lufs: Loudness normalization target in LUFS. Default -16.0.
+        duck_threshold: Sidechain level above which ducking engages. Default 0.02.
+        duck_ratio: Compression ratio applied while voice plays. Default 5.0.
+        duck_attack: Duck attack in milliseconds. Default 25.0.
+        duck_release: Duck release in milliseconds. Default 450.0.
+        music_volume: Base music level before ducking. Default 1.0.
+        save_receipt: Optional absolute path to write the AudioBedReceipt JSON.
+
+    Returns:
+        Dict with success status, output_path, output_duration, ducking_engaged,
+        warnings, elapsed_ms, and the structured receipt.
+    """
+    from .engine_audio_bed import audio_bed as _audio_bed
+
+    return _result(
+        _audio_bed(
+            voice_source,
+            music_path,
+            output_path,
+            loop=loop,
+            loop_crossfade=loop_crossfade,
+            fade_in=fade_in,
+            fade_out=fade_out,
+            target_lufs=target_lufs,
+            duck_threshold=duck_threshold,
+            duck_ratio=duck_ratio,
+            duck_attack=duck_attack,
+            duck_release=duck_release,
+            music_volume=music_volume,
+            save_receipt=save_receipt,
         )
     )

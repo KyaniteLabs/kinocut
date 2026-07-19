@@ -228,7 +228,7 @@ Create local YouTube/social media packages from one source video. Publishing and
 
 ---
 
-## Audio Synthesis (8 tools)
+## Audio Synthesis (9 tools)
 
 Generate audio from code — no external audio files needed. Pure NumPy, no extra dependencies.
 
@@ -242,6 +242,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 | `video_add_generated_audio` | Generate audio and add it to a video in one call |
 | `video_audio_spatial` | 3D spatial audio positioning (azimuth + elevation) |
 | `video_duck_audio` | Mix background music under a video's voice with automatic sidechain ducking; music dips while speech plays and recovers in pauses |
+| `video_audio_bed` | Governed one-shot audio-bed: duck a music bed under a voice track, normalize to EBU R128 `target_lufs`, optionally loop with crossfade, and emit a deterministic edit-receipt (`AudioBedReceipt`, `operation: "audio_bed"`, fixed `keep_video` duration policy). The receipt lands at top-level `result["receipt"]`; no authorization, duration-policy, or duration-tolerance parameter is exposed. |
 
 ---
 

@@ -221,6 +221,7 @@ EXPECTED_CLI_COMMANDS = {
     "video-recipe-capture",
     "video-capabilities",
     "video-benchmark-run",
+    "audio-bed",
 }
 
 EXPECTED_SERVER_TOOLS = {
@@ -351,6 +352,7 @@ EXPECTED_SERVER_TOOLS = {
     "video_composition_plan",
     "video_creative_autopilot_plan",
     "video_remote_egress_plan",
+    "video_audio_bed",
 }
 
 
@@ -368,7 +370,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 129
+    assert len(EXPECTED_CLI_COMMANDS) == 130
 
 
 def test_agent_cookbook_dry_run():
@@ -390,7 +392,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 150
+    assert len(tool_names) == 151
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -415,7 +417,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 150
+        assert len(tool_names) == 151
 
     asyncio.run(check_server())
 

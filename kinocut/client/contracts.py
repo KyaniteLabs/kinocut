@@ -266,6 +266,11 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
         "return_type": MEDIA_RETURN,
         "aliases": {"video": "input_path", "output": "output_path"},
     },
+    "audio_bed": {
+        "category": "media",
+        "return_type": "dict",
+        "aliases": {"voice": "voice_source", "music": "music_path", "output": "output_path"},
+    },
     # AI
     "ai_remove_silence": {
         "category": "media",

@@ -41,6 +41,18 @@ from ..engine import (
     watermark as _watermark,
     write_metadata as _write_metadata,
 )
+from ..defaults import (
+    DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
+    DEFAULT_AUDIO_BED_DUCK_RATIO,
+    DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+    DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
+    DEFAULT_AUDIO_BED_FADE_IN,
+    DEFAULT_AUDIO_BED_FADE_OUT,
+    DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+    DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+    DEFAULT_AUDIO_BED_TARGET_LUFS,
+)
+from ..engine_audio_bed import audio_bed as _audio_bed
 from ..errors import MCPVideoError
 from ..models import (
     EditResult,
@@ -155,6 +167,50 @@ class ClientMediaMixin:
             start_time=start_time,
             output_path=output,
             duration_policy=duration_policy,
+        )
+
+    def audio_bed(
+        self,
+        voice_source: str,
+        music_path: str,
+        output_path: str,
+        *,
+        loop: bool = True,
+        loop_crossfade: float = DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
+        fade_in: float = DEFAULT_AUDIO_BED_FADE_IN,
+        fade_out: float = DEFAULT_AUDIO_BED_FADE_OUT,
+        target_lufs: float = DEFAULT_AUDIO_BED_TARGET_LUFS,
+        duck_threshold: float = DEFAULT_AUDIO_BED_DUCK_THRESHOLD,
+        duck_ratio: float = DEFAULT_AUDIO_BED_DUCK_RATIO,
+        duck_attack: float = DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
+        duck_release: float = DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
+        music_volume: float = DEFAULT_AUDIO_BED_MUSIC_VOLUME,
+        save_receipt: str | None = None,
+    ) -> dict[str, Any]:
+        """Governed one-shot audio-bed: duck music under voice, normalize, receipt.
+
+        Composes a music bed under a voice source with sidechain ducking and
+        loudness normalization, then emits a deterministic edit receipt under
+        the ``receipt`` key (an ``AudioBedReceipt`` as JSON). The bed is looped
+        to the voice duration under the fixed ``keep_video`` policy; the
+        internal ``duration_tolerance`` is not part of the public surface. See
+        :func:`kinocut.engine_audio_bed.audio_bed` for the full policy.
+        """
+        return _audio_bed(
+            voice_source,
+            music_path,
+            output_path,
+            loop=loop,
+            loop_crossfade=loop_crossfade,
+            fade_in=fade_in,
+            fade_out=fade_out,
+            target_lufs=target_lufs,
+            duck_threshold=duck_threshold,
+            duck_ratio=duck_ratio,
+            duck_attack=duck_attack,
+            duck_release=duck_release,
+            music_volume=music_volume,
+            save_receipt=save_receipt,
         )
 
     def resize(
