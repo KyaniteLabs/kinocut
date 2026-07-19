@@ -6,7 +6,7 @@ resolution layer the namespaced parser routing builds on: it keeps flat commands
 as the source of truth and lets an agent use a grouped path
 (e.g. ``("aivideo", "verdict")`` -> ``video_verdict``) without a second
 implementation. The full ``kino <group> <action>`` parser wiring is a
-controller-serialized follow-on over this map; the flat 121-command surface is
+controller-serialized follow-on over this map; the flat 130-command surface is
 unchanged.
 """
 

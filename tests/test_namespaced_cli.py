@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from tests.test_public_surface import EXPECTED_CLI_COMMANDS
+
 from kinocut.cli.namespaces import NAMESPACED_ALIASES, namespaced_groups, resolve_namespaced
 
 
@@ -15,9 +17,9 @@ def test_resolve_returns_none_for_an_unknown_path():
     assert resolve_namespaced("unknown", "verdict") is None
 
 
-def test_every_alias_targets_a_nonempty_flat_command():
+def test_every_alias_targets_a_registered_flat_command():
     for (group, action), flat in NAMESPACED_ALIASES.items():
-        assert isinstance(flat, str) and flat.startswith("video-"), (group, action, flat)
+        assert isinstance(flat, str) and flat in EXPECTED_CLI_COMMANDS, (group, action, flat)
 
 
 def test_namespaced_groups_lists_actions_per_group():

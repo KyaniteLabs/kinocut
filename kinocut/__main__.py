@@ -28,9 +28,53 @@ from .cli.formatting import _format_error, console, err_console
 logger = logging.getLogger(__name__)
 
 
+def _rewrite_namespaced_argv(argv: list[str]) -> list[str]:
+    """Rewrite a namespaced ``group action`` argv prefix to the matching flat command.
+
+    Scans ``argv`` (the tail past the program name) over the recognized global
+    options — boolean ``-v``/``--verbose``/``--mcp``/``--version`` and the value-taking
+    ``--format VALUE`` (also ``--format=VALUE``). When the first positional token is a
+    namespace group whose following token resolves via
+    :func:`kinocut.cli.namespaces.resolve_namespaced`, the ``(group, action)`` pair is
+    replaced by the flat command name and every other token is preserved verbatim.
+    Anything else — an unrecognized option, no action following the group, an unknown
+    group/action, or an option value in the action slot — returns ``argv`` unchanged so
+    argparse handles it natively. The flat command set is never modified.
+    """
+
+    from .cli.namespaces import resolve_namespaced
+
+    boolean_globals = {"-v", "--verbose", "--mcp", "--version"}
+    i = 0
+    n = len(argv)
+    while i < n:
+        arg = argv[i]
+        if arg in boolean_globals:
+            i += 1
+            continue
+        if arg == "--format":
+            if i + 1 >= n:
+                return argv  # malformed --format; defer to argparse
+            i += 2
+            continue
+        if arg.startswith("--format="):
+            i += 1
+            continue
+        if arg.startswith("-"):
+            # Unknown option: never risk treating its value as the group.
+            return argv
+        if i + 1 >= n:
+            return argv  # group present without a paired action
+        flat = resolve_namespaced(arg, argv[i + 1])
+        if flat is None:
+            return argv  # unknown group/action — fall through unchanged
+        return [*argv[:i], flat, *argv[i + 2 :]]
+    return argv
+
+
 def main() -> None:
     parser = build_parser()
-    args = parser.parse_args()
+    args = parser.parse_args(_rewrite_namespaced_argv(sys.argv[1:]))
 
     if args.verbose:
         logging.basicConfig(
