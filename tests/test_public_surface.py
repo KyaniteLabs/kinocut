@@ -571,6 +571,9 @@ def test_github_sync_is_fast_forward_only_and_ref_scoped():
     workflow = (ROOT / ".forgejo" / "workflows" / "sync-github.yml").read_text(encoding="utf-8")
 
     assert "git merge-base --is-ancestor github-mirror/master HEAD" in workflow
+    assert "refs/heads/master:refs/remotes/github-mirror/master" in workflow
+    assert "exit 1" in workflow
+    assert workflow.count("git push ") == 1
     assert "git push github-mirror HEAD:refs/heads/master" in workflow
     assert all(flag not in workflow for flag in ("--mirror", "--force", "--prune"))
 
