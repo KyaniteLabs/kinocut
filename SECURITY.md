@@ -10,7 +10,7 @@ Security fixes target the repository's default branch and the latest published p
 
 Please do not open a public issue for vulnerabilities.
 
-Follow the private support path in `SUPPORT.md` and include only the minimum detail needed to establish contact.
+Report privately through [GitHub private vulnerability reporting](https://github.com/KyaniteLabs/kinocut/security/advisories/new) and include only the minimum detail needed to establish contact.
 
 Helpful reports include:
 

@@ -70,6 +70,20 @@ CURRENT_KINOCUT_DOC_PATHS = (
     ROOT / "workflows" / "GOLDEN_WORKFLOWS.md",
 )
 
+EXTERNAL_CONTRIBUTOR_PATHS = (
+    ROOT / ".github" / "ISSUE_TEMPLATE" / "config.yml",
+    ROOT / "README.md",
+    ROOT / "CONTRIBUTING.md",
+    ROOT / "SUPPORT.md",
+    ROOT / "SECURITY.md",
+    ROOT / "pyproject.toml",
+    ROOT / "compat" / "mcp-video-shim" / "pyproject.toml",
+    ROOT / "docs" / "ENTERPRISE.md",
+    ROOT / "docs" / "MCPB.md",
+    ROOT / "docs" / "MCPB_SUPPLY_CHAIN.md",
+    ROOT / "docs" / "launch-checklist.md",
+)
+
 
 def _public_surface_paths() -> list[Path]:
     """Return every maintained public/discovery surface covered by drift guards."""
@@ -502,14 +516,30 @@ def test_server_json_and_readme_match_registry_identity():
 
     assert server["name"] == "io.github.KyaniteLabs/kinocut"
     assert server["websiteUrl"] == "https://kinocut.dev/"
-    # The registry's semantic validator currently accepts the GitHub mirror,
-    # while Forgejo remains the canonical repository on every other surface.
+    # GitHub is the canonical public repository and contribution surface.
     assert server["repository"]["url"] == "https://github.com/KyaniteLabs/kinocut"
     assert server["repository"]["source"] == "github"
     assert server["packages"][0]["identifier"] == "kinocut"
     assert server["packages"][0]["runtimeHint"] == "uvx"
     assert server["packages"][0]["transport"]["type"] == "stdio"
     assert f"mcp-name: {server['name']}" in readme
+
+
+def test_external_contributor_surfaces_route_exclusively_to_github():
+    offenders = {
+        str(path.relative_to(ROOT)): fragment
+        for path in EXTERNAL_CONTRIBUTOR_PATHS
+        for fragment in ("git.kyanitelabs.tech", "Forgejo")
+        if fragment in path.read_text(encoding="utf-8")
+    }
+
+    assert offenders == {}
+
+    project_urls = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["urls"]
+    assert all(
+        project_urls[key].startswith("https://github.com/KyaniteLabs/kinocut")
+        for key in ("Documentation", "Repository", "Bug Tracker", "Changelog", "Discussions")
+    )
 
 
 def test_public_tree_does_not_track_local_agent_state_artifacts():

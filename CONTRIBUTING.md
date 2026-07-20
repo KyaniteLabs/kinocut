@@ -1,12 +1,13 @@
 # Contributing to Kinocut
 
 Thanks for your interest in improving Kinocut. This is a focused project: every tool should work reliably, and every change should maintain that standard.
+External issues and pull requests belong on **[GitHub](https://github.com/KyaniteLabs/kinocut)** — that is the tracked public surface for bugs, features, questions, and contributions.
 
 ## Quick Start
 
 ```bash
 # Clone and install dev dependencies
-git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
+git clone https://github.com/KyaniteLabs/kinocut.git
 cd kinocut
 python3 -m venv .venv
 source .venv/bin/activate
@@ -142,7 +143,7 @@ For workspace cleanup (stale worktrees/branches), run:
 ./scripts/git-workspace-cleanup.sh
 ```
 
-To monitor the GitHub mirror CI and review comments on mirrored PRs, run:
+To monitor CI and review comments on pull requests, run:
 
 ```bash
 ./scripts/github-pr-monitor.py --owner KyaniteLabs --repo kinocut
@@ -168,7 +169,7 @@ When reporting a bug, include:
 
 ## Questions?
 
-Open a Forgejo issue with the `question` label.
+Open a [GitHub Q&A discussion](https://github.com/KyaniteLabs/kinocut/discussions/new?category=q-a).
 
 <!-- EMPOWER_ORCHESTRATOR:START -->
 ## Agent-law contribution rule

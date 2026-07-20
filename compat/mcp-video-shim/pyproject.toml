@@ -35,7 +35,7 @@ dev = ["kinocut[dev]==1.9.0"]
 
 [project.urls]
 Homepage = "https://kinocut.dev/"
-Repository = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
+Repository = "https://github.com/KyaniteLabs/kinocut"
 
 [tool.hatch.build.targets.wheel]
 bypass-selection = true

@@ -91,7 +91,7 @@ Also works as a CLI: `kino trim video.mp4 -s 0:30 -d 15`
 
 pip install kinocut
 
-Source: git.kyanitelabs.tech/KyaniteLabs/kinocut
+Source: https://github.com/KyaniteLabs/kinocut
 Apache 2.0. Contributions welcome.
 
 If you build with MCP, I'd love to hear what tools you need.
@@ -137,7 +137,7 @@ Quick setup:
 
 pip install kinocut
 
-Source: https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+Source: https://github.com/KyaniteLabs/kinocut
 
 ---
 
@@ -181,7 +181,7 @@ Local tools. Apache 2.0.
 
 What tools would you want to see in a video editing MCP server?
 
-Source: https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+Source: https://github.com/KyaniteLabs/kinocut
 
 ---
 
@@ -218,7 +218,7 @@ Everything runs locally. No cloud, no API keys, no per-minute billing. Your vide
 
 pip install kinocut
 
-https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+https://github.com/KyaniteLabs/kinocut
 
 ---
 
@@ -244,7 +244,7 @@ What's different:
 
 Apache 2.0. pip install kinocut.
 
-https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+https://github.com/KyaniteLabs/kinocut
 
 ---
 
@@ -258,7 +258,7 @@ Structured tools (trim, merge, text, audio, resize, crop, rotate, fade, convert,
 
 Would love your feedback if you get a chance to try it. What video editing capabilities would be most useful in your workflows?
 
-Source: https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+Source: https://github.com/KyaniteLabs/kinocut
 
 ### DM Template 2 (AI content creators)
 
@@ -276,4 +276,4 @@ The architecture is: MCP server wrapping FFmpeg, cinematic planning helpers, Hyp
 
 Curious if you've thought about adding video capabilities to [their project]? Would be happy to collaborate or share what I've learned about the MCP tool-building patterns.
 
-Source: https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+Source: https://github.com/KyaniteLabs/kinocut

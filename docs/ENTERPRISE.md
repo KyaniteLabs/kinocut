@@ -13,7 +13,7 @@ Local-first, Apache-2.0 video execution for **AI agents and automation**, with p
 | Telemetry | No phoning home in core product path |
 | Media | Stays on your machine unless **you** send it elsewhere |
 | Cloud keys | Not required for core FFmpeg tools |
-| Support | Community via Forgejo/GitHub issues; no paid SLA claimed here |
+| Support | Community via [GitHub issues](https://github.com/KyaniteLabs/kinocut/issues); no paid SLA claimed here |
 
 ## Not claimed
 

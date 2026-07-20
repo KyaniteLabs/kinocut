@@ -1,6 +1,6 @@
 # MCPB Runtime Supply Chain
 
-Kinocut's native MCPB work is tracked in [issue #125](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/125).
+Kinocut's native MCPB work is tracked as an internal native-runtime workstream (historically referenced as issue #125).
 This document defines the evidence required before a self-contained bundle can be
 published. It does not authorize a release.
 

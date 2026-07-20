@@ -140,11 +140,11 @@ mcp-video = "kinocut.__main__:main"
 
 [project.urls]
 Homepage = "https://kinocut.dev/"
-Documentation = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut#readme"
-Repository = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
-"Bug Tracker" = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues"
-Changelog = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/src/branch/master/CHANGELOG.md"
-Discussions = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues"
+Documentation = "https://github.com/KyaniteLabs/kinocut#readme"
+Repository = "https://github.com/KyaniteLabs/kinocut"
+"Bug Tracker" = "https://github.com/KyaniteLabs/kinocut/issues"
+Changelog = "https://github.com/KyaniteLabs/kinocut/blob/master/CHANGELOG.md"
+Discussions = "https://github.com/KyaniteLabs/kinocut/discussions"
 
 [tool.hatch.build]
 exclude = [

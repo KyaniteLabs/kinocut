@@ -51,9 +51,9 @@ Do not publish this MCPB package externally until these gates are closed:
 - Add enforced MCPB runtime confinement for direct-tool absolute paths, or keep the package clearly labeled as user-configured local access.
 - Verify dependency-driven optional AI and Hyperframes behavior with dependencies absent and present.
 
-The self-contained native runtime implementation is tracked in
-[issue #125](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues/125). Its pinned
+The self-contained native runtime implementation is tracked as an internal
+native-runtime workstream (historically referenced as issue #125). Its pinned
 runtime and licensing contract is documented in
 [MCPB_SUPPLY_CHAIN.md](MCPB_SUPPLY_CHAIN.md). The staged package on `master` remains
-non-publishable until that issue's native build, clean-machine, supply-chain, and human
+non-publishable until the native build, clean-machine, supply-chain, and human
 review gates are complete.

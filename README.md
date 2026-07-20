@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
-  <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
+  <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/KyaniteLabs/kinocut/ci.yml?branch=master&label=CI" alt="CI"></a>
   <img src="https://img.shields.io/badge/MCP-151%20tools-orange.svg" alt="151 MCP tools on development tip">
   <img src="https://img.shields.io/badge/CLI-130%20commands-orange.svg" alt="130 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
@@ -55,7 +55,7 @@
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
-| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) · [Forgejo (canonical)](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) |
+| **Source** | [GitHub (canonical)](https://github.com/KyaniteLabs/kinocut) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
 | **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
@@ -639,7 +639,7 @@ Development verification lives in [docs/TESTING.md](docs/TESTING.md). Keep publi
 ## Development
 
 ```bash
-git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
+git clone https://github.com/KyaniteLabs/kinocut.git
 cd kinocut
 python3 -m venv .venv
 source .venv/bin/activate
@@ -657,7 +657,7 @@ pytest tests/ -v -m "not slow and not hyperframes"
 - [Support](SUPPORT.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
-- [Forgejo issues](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues)
+- [GitHub issues](https://github.com/KyaniteLabs/kinocut/issues)
 
 ## License
 
@@ -679,6 +679,6 @@ More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
 
 ---
 
-If Kinocut is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/kinocut)** — it helps other agent builders find it.
+If Kinocut is useful to you, **[star or watch it](https://github.com/KyaniteLabs/kinocut)** — it helps other agent builders find it.
 
 Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.
