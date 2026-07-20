@@ -55,7 +55,8 @@
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
-| **Source** | [GitHub (canonical)](https://github.com/KyaniteLabs/kinocut) |
+| **Canonical source** | [Forgejo — `git.kyanitelabs.tech`](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (source of truth; accepted commits land here first) |
+| **Public collaboration** | [GitHub — `KyaniteLabs/kinocut`](https://github.com/KyaniteLabs/kinocut) (clone, stars, issues, discussions, security reports, CI) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
 | **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
@@ -646,6 +647,8 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 pytest tests/ -v -m "not slow and not hyperframes"
 ```
+
+Clone from GitHub (`https://github.com/KyaniteLabs/kinocut`) — it is the public mirror of the [Forgejo canonical source](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) and the only repository external contributors need. See [CONTRIBUTING.md](CONTRIBUTING.md) for the topology and merge flow.
 
 ## Community
 

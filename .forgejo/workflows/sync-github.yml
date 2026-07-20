@@ -1,0 +1,52 @@
+name: Sync GitHub collaboration mirror
+
+on:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: sync-github-master
+  cancel-in-progress: false
+
+jobs:
+  sync-master:
+    runs-on: heavy
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fast-forward GitHub master
+        env:
+          GITHUB_MIRROR_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
+        run: |
+          set -eu
+          : "${GITHUB_MIRROR_TOKEN:?MIRROR_GITHUB_TOKEN is required}"
+
+          askpass="$(mktemp)"
+          trap 'rm -f "$askpass"' EXIT
+          printf '%s\n' \
+            '#!/bin/sh' \
+            'case "$1" in' \
+            '  *Username*) printf "%s\\n" "x-access-token" ;;' \
+            '  *) printf "%s\\n" "$GITHUB_MIRROR_TOKEN" ;;' \
+            'esac' >"$askpass"
+          chmod 700 "$askpass"
+          export GIT_ASKPASS="$askpass"
+          export GIT_TERMINAL_PROMPT=0
+
+          git remote add github-mirror https://github.com/KyaniteLabs/kinocut.git
+          git fetch --no-tags github-mirror \
+            refs/heads/master:refs/remotes/github-mirror/master
+
+          if ! git merge-base --is-ancestor github-mirror/master HEAD; then
+            echo "GitHub master contains commits not yet integrated into canonical Forgejo master." >&2
+            echo "Import those commits through a Forgejo pull request; refusing to rewind GitHub." >&2
+            exit 1
+          fi
+
+          git push github-mirror HEAD:refs/heads/master

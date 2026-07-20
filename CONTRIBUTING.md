@@ -1,7 +1,16 @@
 # Contributing to Kinocut
 
 Thanks for your interest in improving Kinocut. This is a focused project: every tool should work reliably, and every change should maintain that standard.
-External issues and pull requests belong on **[GitHub](https://github.com/KyaniteLabs/kinocut)** — that is the tracked public surface for bugs, features, questions, and contributions.
+External issues and pull requests belong on **[GitHub](https://github.com/KyaniteLabs/kinocut)** — that is the tracked public surface for bugs, features, questions, security reports, and contributions.
+
+### Repository topology
+
+Kinocut runs a two-repository topology:
+
+- **Canonical source** — [Forgejo (`git.kyanitelabs.tech`)](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) is the source of truth. Accepted commits integrate here first.
+- **Public mirror** — [GitHub (`KyaniteLabs/kinocut`)](https://github.com/KyaniteLabs/kinocut) is the public clone and collaboration surface. It receives accepted commits from Forgejo through a constrained `master`-only mirror and is the only repository external contributors touch.
+
+You do **not** need Forgejo access to contribute. Open issues, draft pull requests, start discussions, and report security vulnerabilities on GitHub exactly as you would for any GitHub project. Maintainers merge accepted work into Forgejo canonical, and the `master`-only mirror carries it back to GitHub — contributors never need an account or push access on the canonical side.
 
 ## Quick Start
 

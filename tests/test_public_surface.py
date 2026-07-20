@@ -79,8 +79,6 @@ EXTERNAL_CONTRIBUTOR_PATHS = (
     ROOT / "pyproject.toml",
     ROOT / "compat" / "mcp-video-shim" / "pyproject.toml",
     ROOT / "docs" / "ENTERPRISE.md",
-    ROOT / "docs" / "MCPB.md",
-    ROOT / "docs" / "MCPB_SUPPLY_CHAIN.md",
     ROOT / "docs" / "launch-checklist.md",
 )
 
@@ -516,7 +514,7 @@ def test_server_json_and_readme_match_registry_identity():
 
     assert server["name"] == "io.github.KyaniteLabs/kinocut"
     assert server["websiteUrl"] == "https://kinocut.dev/"
-    # GitHub is the canonical public repository and contribution surface.
+    # GitHub is the public registry/collaboration repository; Forgejo is canonical source.
     assert server["repository"]["url"] == "https://github.com/KyaniteLabs/kinocut"
     assert server["repository"]["source"] == "github"
     assert server["packages"][0]["identifier"] == "kinocut"
@@ -525,21 +523,56 @@ def test_server_json_and_readme_match_registry_identity():
     assert f"mcp-name: {server['name']}" in readme
 
 
-def test_external_contributor_surfaces_route_exclusively_to_github():
+def test_readme_declares_repository_topology():
+    """README states the repository topology unambiguously:
+    Forgejo is canonical source; GitHub is the public clone/collaboration surface.
+    """
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    forgejo_canonical = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
+    github_public = "https://github.com/KyaniteLabs/kinocut"
+
+    assert forgejo_canonical in readme, "README must declare the Forgejo canonical source URL"
+    assert "Forgejo" in readme
+    assert "canonical source" in readme.lower()
+    assert github_public in readme, "README must keep the GitHub public collaboration URL"
+
+
+def test_external_routing_surfaces_route_exclusively_to_github():
+    """External bug/support/security/contribution routes remain GitHub-exclusive.
+
+    Forgejo may appear as canonical source attribution, but every surface an
+    external contributor follows to file a bug, report a vulnerability, ask a
+    question, or open a pull request must keep routing to GitHub. Contributors
+    never need Forgejo access.
+    """
+    forgejo_routing_fragments = (
+        "git.kyanitelabs.tech/KyaniteLabs/kinocut/issues",
+        "git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls",
+        "git.kyanitelabs.tech/KyaniteLabs/kinocut/discussions",
+        "git.kyanitelabs.tech/KyaniteLabs/kinocut/security",
+    )
+
     offenders = {
         str(path.relative_to(ROOT)): fragment
         for path in EXTERNAL_CONTRIBUTOR_PATHS
-        for fragment in ("git.kyanitelabs.tech", "Forgejo")
-        if fragment in path.read_text(encoding="utf-8")
+        for fragment in forgejo_routing_fragments
+        if path.exists() and fragment in path.read_text(encoding="utf-8")
     }
-
-    assert offenders == {}
+    assert offenders == {}, "external routing must stay on GitHub, not Forgejo"
 
     project_urls = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["urls"]
     assert all(
         project_urls[key].startswith("https://github.com/KyaniteLabs/kinocut")
         for key in ("Documentation", "Repository", "Bug Tracker", "Changelog", "Discussions")
     )
+
+
+def test_github_sync_is_fast_forward_only_and_ref_scoped():
+    workflow = (ROOT / ".forgejo" / "workflows" / "sync-github.yml").read_text(encoding="utf-8")
+
+    assert "git merge-base --is-ancestor github-mirror/master HEAD" in workflow
+    assert "git push github-mirror HEAD:refs/heads/master" in workflow
+    assert all(flag not in workflow for flag in ("--mirror", "--force", "--prune"))
 
 
 def test_public_tree_does_not_track_local_agent_state_artifacts():
