@@ -63,16 +63,16 @@ Create `decisions.json` using candidate ids from the proposal:
 }
 ```
 
-Record the review without rendering:
+Record the review from the exact saved plan without rendering or reopening the source media:
 
 ```bash
-uv run --frozen kino --format json shorts /path/to/recording.mp4 \
+uv run --frozen kino --format json shorts \
   --resume-job-id shorts_JOB_ID \
   --decisions decisions.json \
   --output-dir ./out/shorts
 ```
 
-Other supported decisions are `preview`, `reject`, `title_hook_edit`, and `sensitive_unsuitable`.
+Both `--resume-job-id` and `--output-dir` are required. Together they identify the single saved plan at `./out/shorts/shorts_JOB_ID.plan.json`; editorial review does not require the original recording path or rerun transcription. Other supported decisions are `preview`, `reject`, `title_hook_edit`, and `sensitive_unsuitable`.
 
 ### 3. Render the approved candidate
 

@@ -32,6 +32,16 @@ executes FFmpeg. The render op cursor (``kinocut.workflow.ops.burn_in``) is
 the only path that may actually burn subtitles into a video, and the plan's
 ``safe_area`` field carries the normalised ``[0, 1]`` exclusion zones the
 reviewer agreed to so the burn-in call inherits them without re-derivation.
+The optional :class:`BurnInPlan` is a *drafting* artefact only: it never
+executes FFmpeg. The render op cursor (``kinocut.workflow.ops.burn_in``) is
+the only path that may actually burn subtitles into a video, and the plan's
+``safe_area`` field carries the normalised ``[0, 1]`` exclusion zones the
+reviewer agreed to so the burn-in call inherits them without re-derivation.
+
+Companion clip planning helpers in :mod:`kinocut.product.clip_pipeline` are
+library-level pure functions for callers that need a serializable planning
+contract; the captions layer does not depend on them and the current
+orchestrator does not invoke them.
 """
 
 from __future__ import annotations
@@ -42,6 +52,7 @@ from typing import Any, Literal
 from pydantic import Field, ValidationError, model_validator
 from pydantic_core import InitErrorDetails, PydanticCustomError
 
+from ..ffmpeg_helpers import _seconds_to_srt_time
 from .models import _StrictModel
 
 
@@ -140,7 +151,7 @@ class PhraseCue(_StrictModel):
     text: str = Field(min_length=0)
     words: tuple[WordTiming, ...]
     source: CaptionCueSource = "asr"
-    confidence: float = Field(ge=0.0, le=1.0)
+    confidence: float | None = Field(default=None, ge=0.0, le=1.0)
 
     @model_validator(mode="after")
     def _validate_invariants(self) -> PhraseCue:
@@ -274,24 +285,6 @@ class CaptionConfig(_StrictModel):
 # --- Helpers exposed for tests and downstream consumers ------------------- #
 
 
-def _seconds_to_srt_time(seconds: float) -> str:
-    """Render a non-negative float seconds value as ``HH:MM:SS,mmm``.
-
-    Centralised here so the caption layer has no dependency on
-    ``kinocut.ffmpeg_helpers`` (kept out of the strict base). Milliseconds
-    are rounded to the nearest integer so two equivalent timings collapse to
-    the same string.
-    """
-
-    if seconds < 0.0:
-        raise ValueError("seconds must be non-negative")
-    hours = int(seconds // 3600)
-    minutes = int((seconds % 3600) // 60)
-    secs = int(seconds % 60)
-    millis = round((seconds - int(seconds)) * 1000)
-    return f"{hours:02d}:{minutes:02d}:{secs:02d},{millis:03d}"
-
-
 def _is_clause_terminal(text: str) -> bool:
     """True when ``text`` ends with ``.``/``!``/``?`` (with optional closing
     quote/bracket and trailing whitespace). Used by the grouper to end a
@@ -335,17 +328,20 @@ def _visible_text_for_word(
     return word.word
 
 
-def _cue_confidence(words: Sequence[WordTiming]) -> float:
+def _cue_confidence(words: Sequence[WordTiming]) -> float | None:
     """Mean per-word probability, ignoring tokens that did not declare one.
 
-    A phrase whose every word has ``probability=None`` falls back to 1.0 so
-    the caption layer never silently rates manually-authored cues as
-    zero-confidence — that would mislead the review surface.
+    Returns ``None`` when every word omitted its probability so the caption
+    layer never silently rates manually-authored cues as 100% confident —
+    that would mislead the review surface and mask upstream silence.
+    Reviewers who need a numeric confidence for an unknown-probability cue
+    must supply it explicitly via a downstream re-derivation; the grouper
+    refuses to invent one.
     """
 
     probs = [w.probability for w in words if w.probability is not None]
     if not probs:
-        return 1.0
+        return None
     return sum(probs) / len(probs)
 
 
@@ -404,7 +400,7 @@ def _group_words(
     buffer_chars = 0
     buffer_words = 0
 
-    def _flush() -> None:
+    def _flush() -> int:
         nonlocal buffer, buffer_chars, buffer_words
         if not buffer:
             return 0

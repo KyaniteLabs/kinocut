@@ -710,12 +710,21 @@ def transcribe_longform(
             prev_chunk_end = float(chunk.end)
 
     # Monotonic enforcement: a slipped timestamp earlier than the previous
-    # word's start would break downstream consumers; snap forward.
+    # word's start would break downstream consumers; snap forward. The snap
+    # must also preserve a strictly-positive word width: when the original
+    # ``end`` was already <= ``prev.end`` we forward the start to ``prev.end``
+    # AND nudge ``end`` past that point by a 1ms floor so the word stays
+    # positively wide. Without the nudge a slipped timestamp would silently
+    # produce a zero-width ``LongformWord`` that violates the strict model's
+    # ``end > start`` invariant downstream consumers depend on.
+    _MIN_WORD_WIDTH_SECONDS = 0.001
     for i in range(1, len(accumulated_words)):
         prev = accumulated_words[i - 1]
         cur = accumulated_words[i]
         if cur.start < prev.end:
-            accumulated_words[i] = cur.model_copy(update={"start": prev.end, "end": max(prev.end, cur.end)})
+            new_start = prev.end
+            new_end = max(cur.end, new_start + _MIN_WORD_WIDTH_SECONDS)
+            accumulated_words[i] = cur.model_copy(update={"start": new_start, "end": new_end})
 
     full_text = " ".join(w.word for w in accumulated_words).strip()
     if not full_text:

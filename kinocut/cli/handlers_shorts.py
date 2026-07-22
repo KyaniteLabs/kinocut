@@ -314,28 +314,22 @@ def _import_product_shorts() -> Any:
 
 def _call_review(
     review_callable: Callable[..., Any],
-    job_id: str,
+    plan_path: str,
     proposal_id: str,
     decision: str,
     evidence_ref: Any,
 ) -> Any:
-    """Invoke ``shorts_review`` with the orchestrator's documented signature.
-
-    Tries keyword form first (matches the documented public signature). If
-    that raises :class:`TypeError` (positional-only parameters in a later
-    build), falls back to positional invocation so a future signature tweak
-    does not silently break the CLI.
-    """
+    """Invoke ``shorts_review`` against one exact saved plan path."""
 
     try:
         return review_callable(
-            job_id,
+            plan_path,
             proposal_id,
             decision=decision,
             evidence_ref=evidence_ref,
         )
     except TypeError:
-        return review_callable(job_id, proposal_id, decision, evidence_ref)
+        return review_callable(plan_path, proposal_id, decision, evidence_ref)
 
 
 def handle_shorts_commands(args: Any, *, use_json: bool) -> bool:
@@ -432,7 +426,28 @@ def _plan_only(args: Any, use_json: bool) -> None:
 
 
 def _review_only(args: Any, use_json: bool) -> None:
-    """Apply review decisions to a prior proposal without rendering."""
+    """Apply review decisions to one exact saved plan without rendering."""
+
+    job_id = getattr(args, "resume_job_id", None)
+    if not isinstance(job_id, str) or not job_id:
+        raise _problem(
+            "Recording decisions requires --resume-job-id so the orchestrator knows which proposal to update.",
+            code="missing_resume_job_id",
+            suggested_action=(
+                "Re-run as `kino shorts --decisions decisions.json --resume-job-id <prior-job-id> "
+                "--output-dir <saved-plan-directory>`."
+            ),
+        )
+    output_dir = getattr(args, "output_dir", None)
+    if not isinstance(output_dir, str) or not output_dir:
+        raise _problem(
+            "Recording decisions requires --output-dir to locate the saved plan.",
+            code="missing_output_dir",
+            suggested_action=(
+                "Pass the same --output-dir used to create the proposal; the CLI will review "
+                "<output-dir>/<job-id>.plan.json without reopening the source media."
+            ),
+        )
 
     product_shorts = _import_product_shorts()
     if not hasattr(product_shorts, "shorts_review"):
@@ -447,27 +462,7 @@ def _review_only(args: Any, use_json: bool) -> None:
 
     payload = _load_decisions_file(args.decisions)
     entries = _coerce_decision_entries(payload)
-
-    job_id = getattr(args, "resume_job_id", None)
-    if not isinstance(job_id, str) or not job_id:
-        raise _problem(
-            "Recording decisions requires --resume-job-id so the orchestrator knows which proposal to update.",
-            code="missing_resume_job_id",
-            suggested_action=(
-                "Re-run as `kino shorts <input> --decisions decisions.json --resume-job-id <prior-job-id>`."
-            ),
-        )
-
-    # Re-hydrate the prior plan so reviewers can attach decisions to a known job.
-    plan_kwargs = _build_plan_kwargs(args)
-    plan_kwargs["resume_job_id"] = job_id
-    plan_result = product_shorts.shorts_plan(args.input, **plan_kwargs)
-
-    if hasattr(plan_result, "model_dump"):
-        plan_result = plan_result.model_dump()
-    if not isinstance(plan_result, dict):
-        plan_result = {"value": plan_result}
-
+    plan_path = os.path.join(output_dir, f"{job_id}.plan.json")
     propose_callable = getattr(product_shorts, "shorts_propose", None)
     review_callable = product_shorts.shorts_review
 
@@ -490,7 +485,7 @@ def _review_only(args: Any, use_json: bool) -> None:
                 edit = dict(edit_payload)
                 if evidence_ref is not None:
                     edit["evidence_ref"] = evidence_ref
-                edited = propose_callable(job_id, proposal_id, edit=edit)
+                edited = propose_callable(plan_path, proposal_id, edit=edit)
             except Exception as exc:
                 _record_failure(
                     failures,
@@ -511,7 +506,7 @@ def _review_only(args: Any, use_json: bool) -> None:
             )
             continue
         try:
-            review = _call_review(review_callable, job_id, proposal_id, decision, evidence_ref)
+            review = _call_review(review_callable, plan_path, proposal_id, decision, evidence_ref)
         except Exception as exc:
             _record_failure(
                 failures,
@@ -537,7 +532,7 @@ def _review_only(args: Any, use_json: bool) -> None:
         "proposal_id": entries[0].get("proposal_id") if entries else None,
         "decisions": aggregated,
         "failures": failures,
-        "plan": plan_result,
+        "plan_path": plan_path,
         "last_review": last_review,
     }
 

@@ -983,3 +983,72 @@ def test_merge_keeps_word_probability_none_when_unavailable() -> None:
     _merge_chunk(words, segments, fake, chunk, overlap_seconds=5, prev_chunk_end=None)
     assert words
     assert words[0].probability is None
+
+
+# ---------------------------------------------------------------------------
+# GLM L1 — overlap monotonic snapping must preserve positive word width
+# ---------------------------------------------------------------------------
+
+
+def test_transcribe_longform_snap_preserves_positive_word_width(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """When two consecutive words overlap (cur.start < prev.end) the monotonic
+    snap must preserve a strictly-positive word width.
+
+    Without the minimum-width floor the snap would set ``start = prev.end``
+    and ``end = max(prev.end, cur.end)`` — producing a zero-width word when
+    the slipped word's original ``end`` was already <= ``prev.end``. The
+    orchestrator then leaks a zero-width ``LongformWord`` to downstream
+    consumers who depend on ``end > start``.
+    """
+    _make_probe_stub(monkeypatch, 60.0)
+    _make_input_path_stub(monkeypatch, "/tmp/_any.mp4")
+    _stub_scene_anchors(monkeypatch, [])
+
+    # Word "alpha" ends at 1.0; word "beta" starts at 0.5 with end 0.7
+    # (entirely inside "alpha"). The snap must push "beta" to start at
+    # exactly 1.0 and lift its end past that point by at least 1ms so the
+    # final ``LongformWord`` keeps a strictly-positive width.
+    chunk_results = [
+        {
+            "transcript": "alpha beta",
+            "language": "en",
+            "segments": [
+                {
+                    "id": 0,
+                    "start": 0.0,
+                    "end": 1.0,
+                    "text": "alpha",
+                    "tokens": [],
+                    "words": [{"word": "alpha", "start": 0.0, "end": 1.0}],
+                },
+                {
+                    "id": 1,
+                    "start": 0.5,
+                    "end": 0.7,
+                    "text": "beta",
+                    "tokens": [],
+                    "words": [{"word": "beta", "start": 0.5, "end": 0.7}],
+                },
+            ],
+        }
+    ]
+    _stub_transcribe_chunk(monkeypatch, chunk_results)
+
+    result = transcribe_longform(
+        "/tmp/_any.mp4",
+        model="base",
+        chunk_seconds=600,
+        overlap_seconds=0,
+        scene_aware=False,
+    )
+
+    assert len(result.words) == 2
+    alpha, beta = result.words
+    assert alpha.end == 1.0
+    # Monotonic snap forward; ``beta.start`` must not regress.
+    assert beta.start >= alpha.end
+    # The snapped ``beta`` must retain a strictly positive width.
+    assert beta.end > beta.start, f"snapped word has zero or negative width: start={beta.start}, end={beta.end}"
+    assert beta.end - beta.start >= 0.001 - 1e-9, f"snapped word width below 1ms floor: {beta.end - beta.start}s"

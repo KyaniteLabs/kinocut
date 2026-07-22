@@ -116,7 +116,6 @@ def main() -> None:
             or handle_release_commands(args, use_json=use_json)
             or handle_shorts_commands(args, use_json=use_json)
             or handle_inspection_commands(args, use_json=use_json)
-            or handle_inspection_commands(args, use_json=use_json)
             or handle_workflow_commands(args, use_json=use_json)
             or handle_rescue_commands(args, use_json=use_json)
             or handle_post_rescue_commands(args, use_json=use_json)

@@ -167,7 +167,7 @@ def test_shared_ffmpeg_helpers_remain_canonical_for_core_utilities() -> None:
     }
     definitions = {name: set() for name in allowed_definitions}
 
-    for path in sorted(PACKAGE.glob("*.py")):
+    for path in sorted(PACKAGE.rglob("*.py")):
         if path.name.startswith("._"):
             continue  # macOS AppleDouble artifacts in tar/Finder-copied trees
         tree = parse_module(path)
@@ -176,3 +176,20 @@ def test_shared_ffmpeg_helpers_remain_canonical_for_core_utilities() -> None:
                 definitions[node.name].add(path.relative_to(ROOT).as_posix())
 
     assert definitions == allowed_definitions
+
+    # Recursive-guard intent: the canonical-helper scan must reach nested
+    # packages (e.g. ``kinocut/product/``) rather than stopping at the package
+    # root, so a future duplicate cannot evade detection simply by living in
+    # a sub-package.
+    nested_module_paths = [
+        p.relative_to(ROOT).as_posix()
+        for p in PACKAGE.rglob("*.py")
+        if not p.name.startswith("._") and p.parent != PACKAGE
+    ]
+    assert nested_module_paths, "test fixture must include nested packages"
+
+    # Focused regression: a historic second ``_seconds_to_srt_time`` lived in
+    # ``kinocut/product/captions.py``. Even if the package-equals-allowed
+    # comparison above were ever loosened, this dedicated assertion pins the
+    # nested-package location so a future duplicate cannot reappear silently.
+    assert "kinocut/product/captions.py" not in definitions["_seconds_to_srt_time"]

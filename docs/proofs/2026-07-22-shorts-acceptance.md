@@ -72,6 +72,7 @@ Measured results:
 
 - Integrated loudness: −14.30 to −14.53 LUFS
 - True peak: −0.95 to −0.71 dBTP
+- AAC encoding overshot the configured −1.0 dBTP target by at most 0.29 dB; every measured peak remained below 0 dBTP, so no automated clipping was detected.
 - A/V duration delta: 0.077–0.091 seconds
 - Full report: `/tmp/kinocut-acceptance/over-hour-audio-video-report.json`
 - Boundary fades are applied before final two-pass loudness normalization.
@@ -106,8 +107,8 @@ Every platform directory contains `vertical.mp4`, `captions.srt`, `thumbnail.jpg
 
 ## Automated verification
 
-- Focused remediation suite: 215 passed.
-- Final full repository suite: **4569 passed, 172 skipped** in 947.14 seconds.
+- Focused remediation suites: 215 passed, then 136 passed after the second adversarial review fixes.
+- Final full repository suite: **4576 passed, 172 skipped** in 513.42 seconds.
 - Ruff passed across `kinocut`, `tests`, and `scripts`.
 - All changed Python files pass `ruff format --check`.
 - `git diff --check` passed.

@@ -1,22 +1,13 @@
 """Reusable platform-aware clipping helpers for the shorts orchestrator.
 
-The orchestrator feeds candidate moments (start/end time ranges) into this
-module and receives a deterministic, strict-model plan that:
+The shorts orchestrator consumes :func:`clip_moment` to enforce each platform's
+hard duration limit while preserving the approved source range in review
+history. The batch and static-composition plan helpers are library-level pure
+functions for callers that need a serializable planning contract; the current
+shorts renderer does not invoke those helpers.
 
-* clips each moment to the platform's hard maximum duration (YouTube Shorts =
-  180 s, Instagram Reels = 90 s);
-* preserves the original complete-thought time range whenever the source
-  moment already fits inside the platform maximum;
-* falls back to a safe static composition (a single neutral centre crop
-  covering the whole trimmed range) whenever the moment cannot be lowered or
-  the platform budget cannot honour the original range — never silently crops
-  the subject out and never raises when a safe fallback is possible;
-* returns a deterministic, JSON-stable plan suitable for the orchestrator
-  pipeline.
-
-The module is planning-only: it never invokes FFmpeg, never mutates state, and
-only depends on ``kinocut.contracts._common`` for the immutable strict-model
-base. All operations are pure functions of their inputs.
+The module is planning-only: it never invokes FFmpeg or mutates state. All
+operations are pure functions of their inputs.
 
 Platform budget table — the authoritative values used by the orchestrator and
 declared here so the orchestrator never has to re-derive them:

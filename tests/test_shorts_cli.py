@@ -89,6 +89,7 @@ def _install_fake_orchestrator(
         "plan_calls": [],
         "review_calls": [],
         "propose_calls": [],
+        "transcription_calls": [],
         "plan_result": plan_result,
         "plan_kwargs_capture": plan_kwargs_capture,
         "review_kwargs_capture": review_kwargs_capture,
@@ -110,9 +111,18 @@ def _install_fake_orchestrator(
             "manifest_path": "/tmp/manifest.json",
         }
 
-    def fake_review(job_id: str, proposal_id: str, decision: str, evidence_ref):
+    def fake_transcribe(*args: Any, **kwargs: Any):
+        captured["transcription_calls"].append((args, kwargs))
+        raise AssertionError("editorial review must not transcribe source media")
+
+    def fake_review(plan_path: str, proposal_id: str, decision: str, evidence_ref):
         captured["review_calls"].append(
-            {"job_id": job_id, "proposal_id": proposal_id, "decision": decision, "evidence_ref": evidence_ref}
+            {
+                "plan_path": plan_path,
+                "proposal_id": proposal_id,
+                "decision": decision,
+                "evidence_ref": evidence_ref,
+            }
         )
         if raise_on_review is not None:
             raise raise_on_review
@@ -120,8 +130,8 @@ def _install_fake_orchestrator(
             review_kwargs_capture.update(captured["review_calls"][-1])
         return review_result if review_result is not None else {"status": "reviewed"}
 
-    def fake_propose(job_id: str, proposal_id: str, **kwargs: Any):
-        captured["propose_calls"].append({"job_id": job_id, "proposal_id": proposal_id, **kwargs})
+    def fake_propose(plan_path: str, proposal_id: str, **kwargs: Any):
+        captured["propose_calls"].append({"plan_path": plan_path, "proposal_id": proposal_id, **kwargs})
         return {"status": "reviewed", "proposal_id": proposal_id}
 
     def fake_render(job_id: str, candidate_id: str, **kwargs: Any):
@@ -133,6 +143,7 @@ def _install_fake_orchestrator(
         return {"job_id": job_id, "candidate_id": candidate_id, "status": "packaged", "external_posting": False}
 
     fake_module = types.ModuleType("kinocut.product.shorts")
+    fake_module._transcribe = fake_transcribe  # type: ignore[attr-defined]
     fake_module.shorts_plan = fake_plan  # type: ignore[attr-defined]
     fake_module.shorts_review = fake_review  # type: ignore[attr-defined]
     fake_module.shorts_propose = fake_propose  # type: ignore[attr-defined]
@@ -485,13 +496,15 @@ def test_decisions_path_records_review_without_rendering(monkeypatch, capsys, tm
     )
     capture = _install_fake_orchestrator(monkeypatch)
 
-    argv = _build_shorts_argv(
+    argv = [
+        "shorts",
         "--decisions",
         str(decisions_path),
         "--resume-job-id",
         "job-99",
-        input_path=str(tmp_path / "source.mp4"),
-    )
+        "--output-dir",
+        str(tmp_path / "plans"),
+    ]
     code, payload = _run_cli(monkeypatch, capsys, *argv)
 
     assert code == 0
@@ -499,9 +512,22 @@ def test_decisions_path_records_review_without_rendering(monkeypatch, capsys, tm
     assert payload["proposal_id"] == "p1"
     assert {d["decision"] for d in payload["decisions"]} == {"approve", "reject"}
     assert payload["failures"] == []
-    assert len(capture["review_calls"]) == 2
-    # The plan was re-hydrated once via resume_job_id.
-    assert len(capture["plan_calls"]) == 1
+    assert capture["review_calls"] == [
+        {
+            "plan_path": str(tmp_path / "plans" / "job-99.plan.json"),
+            "proposal_id": "p1",
+            "decision": "approve",
+            "evidence_ref": "ev-1",
+        },
+        {
+            "plan_path": str(tmp_path / "plans" / "job-99.plan.json"),
+            "proposal_id": "p2",
+            "decision": "reject",
+            "evidence_ref": "ev-2",
+        },
+    ]
+    assert capture["plan_calls"] == []
+    assert capture["transcription_calls"] == []
 
 
 def test_edit_decision_is_recorded_once_without_duplicate_review(monkeypatch, capsys, tmp_path):
@@ -524,18 +550,21 @@ def test_edit_decision_is_recorded_once_without_duplicate_review(monkeypatch, ca
         monkeypatch,
         capsys,
         "shorts",
-        str(tmp_path / "source.mp4"),
         "--decisions",
         str(decisions_path),
         "--resume-job-id",
         "job-edit",
+        "--output-dir",
+        str(tmp_path / "plans"),
     )
     assert code == 0
     assert payload["failures"] == []
     assert capture["review_calls"] == []
+    assert capture["plan_calls"] == []
+    assert capture["transcription_calls"] == []
     assert capture["propose_calls"] == [
         {
-            "job_id": "job-edit",
+            "plan_path": str(tmp_path / "plans" / "job-edit.plan.json"),
             "proposal_id": "p-trim",
             "edit": {
                 "action": "trim",
@@ -561,18 +590,22 @@ def test_decisions_path_accepts_wrapped_payload(monkeypatch, capsys, tmp_path):
     )
     capture = _install_fake_orchestrator(monkeypatch)
 
-    argv = _build_shorts_argv(
+    argv = [
+        "shorts",
         "--decisions",
         str(decisions_path),
         "--resume-job-id",
         "job-w",
-        input_path=str(tmp_path / "source.mp4"),
-    )
+        "--output-dir",
+        str(tmp_path / "plans"),
+    ]
     code, payload = _run_cli(monkeypatch, capsys, *argv)
 
     assert code == 0
     assert payload["decisions"][0]["proposal_id"] == "p-wrapped"
     assert capture["review_calls"][0]["proposal_id"] == "p-wrapped"
+    assert capture["review_calls"][0]["plan_path"] == str(tmp_path / "plans" / "job-w.plan.json")
+    assert capture["plan_calls"] == []
 
 
 def test_decisions_path_requires_resume_job_id(monkeypatch, capsys, tmp_path):
@@ -593,6 +626,30 @@ def test_decisions_path_requires_resume_job_id(monkeypatch, capsys, tmp_path):
     message = payload["error"]["message"].lower()
     assert "decisions" in message
     assert "resume-job-id" in message
+
+
+def test_decisions_path_requires_output_dir(monkeypatch, capsys, tmp_path):
+    decisions_path = tmp_path / "decisions.json"
+    decisions_path.write_text("[]", encoding="utf-8")
+    capture = _install_fake_orchestrator(monkeypatch)
+
+    code, payload = _run_cli(
+        monkeypatch,
+        capsys,
+        "shorts",
+        "--decisions",
+        str(decisions_path),
+        "--resume-job-id",
+        "job-no-dir",
+    )
+
+    assert code == 1
+    assert payload["error"]["code"] == "missing_output_dir"
+    assert "--output-dir" in payload["error"]["message"]
+    assert "saved plan" in payload["error"]["message"].lower()
+    assert capture["plan_calls"] == []
+    assert capture["review_calls"] == []
+    assert capture["propose_calls"] == []
 
 
 # --------------------------------------------------------------------------- #
@@ -632,13 +689,15 @@ def test_shorts_decisions_emits_the_decisions_payload_in_json_mode(monkeypatch, 
         review_result={"status": "reviewed", "proposal_id": "p-dec"},
     )
 
-    argv = _build_shorts_argv(
+    argv = [
+        "shorts",
         "--decisions",
         str(decisions_path),
         "--resume-job-id",
         "job-dec",
-        input_path=str(tmp_path / "source.mp4"),
-    )
+        "--output-dir",
+        str(tmp_path / "plans"),
+    ]
     code, payload = _run_cli(monkeypatch, capsys, *argv)
 
     assert code == 0
@@ -659,13 +718,15 @@ def test_decisions_path_rejects_unknown_decision_kind(monkeypatch, capsys, tmp_p
     decisions_path.write_text('[{"proposal_id": "p1", "decision": "ship-it-now"}]', encoding="utf-8")
     _install_fake_orchestrator(monkeypatch)
 
-    argv = _build_shorts_argv(
+    argv = [
+        "shorts",
         "--decisions",
         str(decisions_path),
         "--resume-job-id",
         "job-bad",
-        input_path=str(tmp_path / "source.mp4"),
-    )
+        "--output-dir",
+        str(tmp_path / "plans"),
+    ]
     code, payload = _run_cli(monkeypatch, capsys, *argv)
 
     assert code == 1
@@ -677,13 +738,15 @@ def test_decisions_path_rejects_unknown_decision_kind(monkeypatch, capsys, tmp_p
 def test_decisions_path_surfaces_missing_file_with_recovery(monkeypatch, capsys, tmp_path):
     _install_fake_orchestrator(monkeypatch)
 
-    argv = _build_shorts_argv(
+    argv = [
+        "shorts",
         "--decisions",
         str(tmp_path / "does-not-exist.json"),
         "--resume-job-id",
         "job-missing",
-        input_path=str(tmp_path / "source.mp4"),
-    )
+        "--output-dir",
+        str(tmp_path / "plans"),
+    ]
     code, payload = _run_cli(monkeypatch, capsys, *argv)
 
     assert code == 1
@@ -697,13 +760,15 @@ def test_decisions_path_surfaces_invalid_json_with_recovery(monkeypatch, capsys,
     decisions_path.write_text("{ this is not json", encoding="utf-8")
     _install_fake_orchestrator(monkeypatch)
 
-    argv = _build_shorts_argv(
+    argv = [
+        "shorts",
         "--decisions",
         str(decisions_path),
         "--resume-job-id",
         "job-junk",
-        input_path=str(tmp_path / "source.mp4"),
-    )
+        "--output-dir",
+        str(tmp_path / "plans"),
+    ]
     code, payload = _run_cli(monkeypatch, capsys, *argv)
 
     assert code == 1

@@ -190,7 +190,7 @@ def test_capt_build_cue_confidence_is_mean_of_present_probabilities():
     assert artifact.cues[0].confidence == pytest.approx(0.7)
 
 
-def test_capt_build_cue_confidence_defaults_to_one_when_all_missing():
+def test_capt_build_cue_confidence_is_none_when_all_probabilities_missing():
     artifact = build_caption_artifact(
         list(
             _words(
@@ -199,9 +199,33 @@ def test_capt_build_cue_confidence_defaults_to_one_when_all_missing():
             )
         )
     )
-    # Manually authored (no probability) cues default to 1.0 confidence so
-    # the review surface never silently flags them as low-confidence.
-    assert artifact.cues[0].confidence == 1.0
+    # Truthful default: a cue whose every word omitted its probability
+    # surfaces as ``None`` rather than fabricating a 1.0. The caption layer
+    # never silently rates manually-authored or upstream-silent cues as
+    # 100% confident — that would mislead the review surface and mask the
+    # fact that confidence is actually unknown.
+    assert artifact.cues[0].confidence is None
+
+
+def test_capt_build_cue_confidence_preserves_explicit_probabilities():
+    """Explicit per-word probabilities flow through to ``PhraseCue.confidence``.
+
+    A reviewer-supplied cue (or a downstream re-derivation that knows
+    upstream confidence) must surface its probabilities verbatim; the
+    grouper MUST NOT invent a number that disagrees with the per-word
+    metadata that already lives on the cue.
+    """
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("a", 0.0, 0.2, 0.25),
+                ("b", 0.2, 0.4, 0.75),
+            )
+        )
+    )
+    assert artifact.cues[0].confidence == pytest.approx(0.5)
+    # Every per-word probability is preserved on the cue's word metadata.
+    assert [w.probability for w in artifact.cues[0].words] == [0.25, 0.75]
 
 
 def test_capt_build_assigns_bounded_phrase_ids_in_order():
@@ -538,3 +562,116 @@ def test_capt_artifact_payload_is_json_stable_and_sorted():
     # All cues must be list-typed (deep-coerced from a tuple by ``mode="json"``).
     assert isinstance(payload["cues"], list)
     assert isinstance(payload["cues"][0]["words"], list)
+
+
+# --------------------------------------------------------------------------- #
+# GLM L2 / L4 — cue-level confidence truthfulness + _flush return contract
+# --------------------------------------------------------------------------- #
+
+
+def test_capt_phrase_cue_accepts_none_confidence():
+    """``PhraseCue.confidence`` is ``float | None``.
+
+    The strict model must accept ``None`` so cues whose every word omitted
+    its probability can surface truthfully. A cue must never be forced into
+    a numeric confidence the upstream emitter never produced.
+    """
+    cue = PhraseCue(
+        cue_index=0,
+        phrase_id="cue_0000",
+        start=0.0,
+        end=0.5,
+        text="hello",
+        words=(_word("hello", 0.0, 0.5, None),),
+        confidence=None,
+    )
+    assert cue.confidence is None
+
+
+def test_capt_phrase_cue_payload_serializes_none_confidence_as_null():
+    """JSON serialization of a ``None`` confidence emits the canonical ``null``.
+
+    Reviewers and downstream consumers MUST be able to distinguish "unknown"
+    (the new contract) from "0% confident" (which would be a fabricated
+    value). The strict model's ``mode="json"`` payload uses ``None``.
+    """
+    cue = PhraseCue(
+        cue_index=0,
+        phrase_id="cue_0000",
+        start=0.0,
+        end=0.5,
+        text="hello",
+        words=(_word("hello", 0.0, 0.5, None),),
+        confidence=None,
+    )
+    payload = cue.model_dump(mode="json")
+    assert payload["confidence"] is None
+    # JSON round-trip preserves ``None``.
+    raw = json.dumps(payload)
+    reloaded = PhraseCue.model_validate_json(raw)
+    assert reloaded.confidence is None
+
+
+def test_capt_phrase_cue_accepts_explicit_numeric_confidence():
+    """Explicit numeric confidence is preserved verbatim.
+
+    A cue whose per-word probabilities are all declared gets the mean; the
+    resulting strict model must keep that numeric value rather than
+    collapsing it to ``None``.
+    """
+    cue = PhraseCue(
+        cue_index=0,
+        phrase_id="cue_0000",
+        start=0.0,
+        end=0.5,
+        text="hello world",
+        words=(
+            _word("hello", 0.0, 0.25, 0.6),
+            _word("world", 0.25, 0.5, 0.8),
+        ),
+        confidence=0.7,
+    )
+    assert cue.confidence == pytest.approx(0.7)
+
+
+def test_capt_low_conf_omit_dropped_phrase_count_propagates_through_public_api():
+    """``_flush``'s dropped-phrase count must propagate to ``dropped_word_count``.
+
+    Exercise the contract through the public ``build_caption_artifact``
+    surface: under ``omit`` policy with a phrase whose every word falls
+    below the threshold, the grouper drops the phrase entirely. ``_flush``
+    returns the count, which the caller adds to ``dropped_word_count`` and
+    appends the canonical warning.
+    """
+    cfg = CaptionConfig(
+        low_confidence_policy="omit",
+        low_confidence_threshold=0.5,
+        max_chars_per_phrase=64,
+        max_words_per_phrase=18,
+        max_gap_seconds=0.6,
+    )
+    # Two phrases separated by a >gap. The first is all-kept, the second
+    # is all-low-confidence -> dropped entirely. ``_flush`` returns the
+    # dropped-phrase count, which the caller adds to ``dropped_word_count``
+    # and surfaces as the canonical "low_confidence_words_dropped_phrase"
+    # warning.
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("kept1", 0.0, 0.3, 0.9),
+                ("kept2", 0.3, 0.6, 0.9),
+                # >0.6s gap forces a phrase boundary; the new phrase is
+                # entirely low-confidence and gets dropped.
+                ("drop1", 2.0, 2.2, 0.1),
+                ("drop2", 2.2, 2.4, 0.1),
+            )
+        ),
+        config=cfg,
+    )
+    # Only the kept phrase survives as a cue.
+    assert len(artifact.cues) == 1
+    assert artifact.cues[0].text == "kept1 kept2"
+    # ``_flush`` reported 2 dropped words; the audit counter captures it.
+    assert artifact.dropped_word_count == 2
+    # The canonical warning emitted by the ``_flush`` int-return path.
+    assert "low_confidence_words_dropped_phrase" in artifact.review_warnings
