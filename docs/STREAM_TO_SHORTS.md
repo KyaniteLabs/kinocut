@@ -30,14 +30,13 @@ A cloud provider is optional and must be configured by the operator. The local/o
 ### 1. Propose clips; do not render
 
 ```bash
-uv run --frozen kino shorts /path/to/recording.mp4 \
+uv run --frozen kino --format json shorts /path/to/recording.mp4 \
   --platform youtube-shorts \
   --platform instagram-reel \
   --min-clip-seconds 15 \
   --max-clip-seconds 60 \
   --captions-editable \
-  --output-dir ./out/shorts \
-  --format json
+  --output-dir ./out/shorts
 ```
 
 The response includes a job id and candidate list. The command stops for review.
@@ -67,24 +66,37 @@ Create `decisions.json` using candidate ids from the proposal:
 Record the review without rendering:
 
 ```bash
-uv run --frozen kino shorts /path/to/recording.mp4 \
+uv run --frozen kino --format json shorts /path/to/recording.mp4 \
   --resume-job-id shorts_JOB_ID \
   --decisions decisions.json \
-  --output-dir ./out/shorts \
-  --format json
+  --output-dir ./out/shorts
 ```
 
 Other supported decisions are `preview`, `reject`, `title_hook_edit`, and `sensitive_unsuitable`.
 
-### 3. Render and package approved clips
+### 3. Render the approved candidate
 
-MCP and the Python client expose the same shared orchestrator:
+```bash
+uv run --frozen kino --format json shorts --render \
+  --resume-job-id shorts_JOB_ID \
+  --candidate-id candidate-id \
+  --output-dir ./out/shorts \
+  --output ./out/shorts/rendered
+```
 
-- `shorts_render(project_dir, candidate_id, output_path)`
-- `shorts_package(project_dir, candidate_id, package_dir)`
-- existing `get_render_job` for job status
+Rendering fails closed unless the candidate has current approval. Inspect the vertical framing, captions, and audio boundaries; the command does not claim subject-aware framing or completed human audio review.
 
-Python callers may use `kinocut.product.shorts.shorts_render()` and `shorts_package()` directly with the saved job id. Repeating an unchanged render returns `cache_hit: true`.
+### 4. Package the rendered candidate
+
+```bash
+uv run --frozen kino --format json shorts --package \
+  --resume-job-id shorts_JOB_ID \
+  --candidate-id candidate-id \
+  --output-dir ./out/shorts \
+  --output ./out/shorts/package
+```
+
+The package is a local artifact for manual publishing. These commands use the shared `shorts_render` and `shorts_package` functions, do not authenticate, and never post publicly.
 
 ## Configuration defaults
 
@@ -92,7 +104,7 @@ Python callers may use `kinocut.product.shorts.shorts_render()` and `shorts_pack
 - Editable subtitles: enabled
 - Burned captions: disabled
 - Loudness target: −14 LUFS
-- True peak: approximately −1.5 dBTP
+- True peak: approximately −1.0 dBTP
 - Boundary fade: 50 ms
 - Noise reduction: bypassed
 - Subject tracking unavailable/uncertain: safe padded composition, requiring manual framing review

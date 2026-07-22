@@ -180,3 +180,78 @@ def test_sensitive_unsuitable_candidate_cannot_render(planned, tmp_path):
     with pytest.raises(MCPVideoError) as exc:
         shorts.shorts_render(payload["job_id"], candidate_id, output_path=str(tmp_path / "render"))
     assert exc.value.code == "shorts_candidate_unsuitable"
+
+
+def test_audio_finishing_config_defaults_are_evidence_backed():
+    """AudioFinishingConfig only exposes knobs the orchestrator actually threads through.
+
+    The orchestrator's render path currently reads ``lufs`` (loudness
+    target) and ``fade_seconds`` (clip-edge fade) and nothing else.
+    Historical fields such as ``true_peak_dbtp``, ``declick_seconds``,
+    ``noise_reduction_key``, and ``bypass_noise_reduction`` were
+    silently inert because no consumer was wired up to act on them.
+    ``extra="forbid"`` on the strict base now rejects them.
+    """
+    from kinocut.product.config import AudioFinishingConfig
+
+    cfg = AudioFinishingConfig()
+    assert cfg.lufs == -14.0
+    assert cfg.fade_seconds == 0.05
+    # The strict base rejects unknown fields; ensure the inert knobs
+    # cannot sneak back in via the public surface.
+    for inert_name in (
+        "true_peak_dbtp",
+        "declick_seconds",
+        "noise_reduction_key",
+        "bypass_noise_reduction",
+    ):
+        with pytest.raises(ValueError):
+            AudioFinishingConfig(**{inert_name: -1.0})  # type: ignore[arg-type]
+
+
+def test_audio_finishing_config_validates_lufs_bounds():
+    """``lufs`` must stay inside the documented ``[-36, -6]`` window."""
+    from kinocut.product.config import AudioFinishingConfig
+
+    # In-range is preserved verbatim.
+    cfg = AudioFinishingConfig(lufs=-23.0)
+    assert cfg.lufs == -23.0
+    # Out-of-range raises a pydantic ValidationError, which is exposed
+    # to callers via the existing MCPVideoError surface.
+    with pytest.raises(ValueError):
+        AudioFinishingConfig(lufs=0.0)
+    with pytest.raises(ValueError):
+        AudioFinishingConfig(lufs=-40.0)
+    # ``fade_seconds`` is clamped to ``[0, 2]`` for clip-edge safety.
+    with pytest.raises(ValueError):
+        AudioFinishingConfig(fade_seconds=-0.1)
+    with pytest.raises(ValueError):
+        AudioFinishingConfig(fade_seconds=3.0)
+
+
+def test_render_audio_section_uses_only_evidence_backed_keys(planned):
+    """The plan payload must only serialise the orchestrator-consumed audio knobs."""
+    from kinocut.product.config import AudioFinishingConfig
+
+    _source, payload = planned
+    audio_section = payload["config"]["render"]["audio"]
+    # The orchestrator's render path only honours ``lufs`` and
+    # ``fade_seconds`` today; asserting on exact keys guards against
+    # accidental re-introduction of inert knobs.
+    assert set(audio_section.keys()) == {"lufs", "fade_seconds"}
+    # The default config matches the orchestrator's documented defaults.
+    assert audio_section == AudioFinishingConfig().model_dump(mode="json")
+
+
+def test_shorts_config_rejects_inert_audio_fields(planned):
+    """Inert audio-finishing fields are rejected at the strict pydantic layer."""
+    from kinocut.product.config import config_from_mapping
+
+    with pytest.raises(ValueError):
+        config_from_mapping({"render": {"audio": {"noise_reduction_key": "highway"}}})
+    with pytest.raises(ValueError):
+        config_from_mapping({"render": {"audio": {"bypass_noise_reduction": False}}})
+    with pytest.raises(ValueError):
+        config_from_mapping({"render": {"audio": {"declick_seconds": 0.5}}})
+    with pytest.raises(ValueError):
+        config_from_mapping({"render": {"audio": {"true_peak_dbtp": -1.5}}})

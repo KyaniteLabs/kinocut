@@ -21,8 +21,11 @@ Design constraints (from the orchestrator contract):
 from __future__ import annotations
 
 import logging
+import math
 import os
 import tempfile
+
+
 from contextlib import suppress
 from typing import Any
 
@@ -94,6 +97,7 @@ class LongformWord(BaseModel):
     start: float = Field(ge=0.0)
     end: float = Field(ge=0.0)
     chunk_index: int = Field(ge=0)
+    probability: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class LongformSegment(BaseModel):
@@ -105,6 +109,8 @@ class LongformSegment(BaseModel):
     end: float = Field(ge=0.0)
     text: str
     chunk_index: int = Field(ge=0)
+    avg_logprob: float | None = Field(default=None, le=0.0)
+    no_speech_prob: float | None = Field(default=None, ge=0.0, le=1.0)
 
 
 class LongformTranscribeResult(BaseModel):
@@ -398,7 +404,6 @@ def _transcribe_chunk(
         # ``ai_transcribe`` is the public entry point, so we need a small
         # helper.  We re-use the same ffmpeg -> whisper -> segment format
         # pipeline without re-probing source duration.
-        from .transcribe import _format_json_transcript  # local import to avoid cycle at module load
 
         try:
             import whisper  # type: ignore
@@ -429,15 +434,26 @@ def _transcribe_chunk(
         # Whisper doesn't always honour ``word_timestamps`` for every model;
         # fall back to segment-level when no words are present and just keep
         # the segment times.
-        return _format_json_transcript(
-            result_data.get("text", "").strip(),
-            result_data.get("segments", []),
-            result_data.get("language", "unknown"),
-        )
+        return _format_chunk_result(result_data)
     finally:
         if audio_path is not None:
             with suppress(OSError):
                 os.unlink(audio_path)
+
+
+def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
+    """Normalize Whisper output while preserving real per-word timing data."""
+    from .transcribe import _format_json_transcript
+
+    raw_segments = list(result_data.get("segments", []))
+    formatted = _format_json_transcript(
+        str(result_data.get("text", "")).strip(),
+        raw_segments,
+        str(result_data.get("language", "unknown")),
+    )
+    for normalized, raw in zip(formatted["segments"], raw_segments, strict=True):
+        normalized["words"] = list(raw.get("words") or ())
+    return formatted
 
 
 # ---------------------------------------------------------------------------
@@ -445,17 +461,86 @@ def _transcribe_chunk(
 # ---------------------------------------------------------------------------
 
 
-def _extract_segment_words(segment: dict[str, Any]) -> list[tuple[str, float, float]]:
-    """Return ``[(word, start, end), ...]`` from a whisper segment, if available."""
+def _extract_segment_words(
+    segment: dict[str, Any],
+) -> list[tuple[str, float, float, float | None]]:
+    """Return ``[(word, start, end, probability), ...]`` from a Whisper segment.
+
+    ``probability`` is the per-token confidence in ``[0.0, 1.0]`` when
+    available; ``None`` when Whisper did not emit one. Callers MUST treat a
+    ``None`` probability as "unknown" rather than defaulting to a synthetic
+    value (e.g. ``1.0``) so downstream stages never fabricate a confidence
+    they cannot justify.
+    """
     words = segment.get("words") or []
-    out: list[tuple[str, float, float]] = []
+    out: list[tuple[str, float, float, float | None]] = []
     for w in words:
         text = str(w.get("word", "")).strip()
         start = float(w.get("start", 0.0) or 0.0)
         end = float(w.get("end", start) or start)
-        if text:
-            out.append((text, start, end))
+        if not text:
+            continue
+        out.append((text, start, end, _word_probability(w)))
     return out
+
+
+def _word_probability(word: dict[str, Any]) -> float | None:
+    """Translate a Whisper word entry into a probability in ``[0.0, 1.0]``.
+
+    Honours ``probability`` when present and in range; falls back to
+    ``exp(avg_logprob)`` (Whisper's per-token log-likelihood is the
+    authoritative fallback for older outputs); returns ``None`` when neither
+    signal is available so the caller can keep the word without inventing a
+    confidence value.
+    """
+    raw_prob = word.get("probability")
+    if raw_prob is not None:
+        try:
+            value = float(raw_prob)
+        except (TypeError, ValueError):
+            value = float("nan")
+        if 0.0 <= value <= 1.0:
+            return value
+    logprob = word.get("avg_logprob")
+    if logprob is None:
+        return None
+    try:
+        value = float(logprob)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, min(1.0, math.exp(value)))
+
+
+def _segment_confidence(seg: dict[str, Any]) -> float | None:
+    """Translate a Whisper segment ``avg_logprob`` into ``[0.0, 1.0]`` confidence.
+
+    Returns ``None`` when the segment did not carry a log probability. The
+    result is clamped because ``exp`` can numerically overshoot on degenerate
+    inputs and we never want a confidence value outside ``[0.0, 1.0]`` to
+    leak into the orchestrator's strict models.
+    """
+    logprob = seg.get("avg_logprob")
+    if logprob is None:
+        return None
+    try:
+        value = float(logprob)
+    except (TypeError, ValueError):
+        return None
+    return max(0.0, min(1.0, math.exp(value)))
+
+
+def _segment_no_speech_prob(seg: dict[str, Any]) -> float | None:
+    """Return ``no_speech_prob`` when present and well-formed."""
+    raw = seg.get("no_speech_prob")
+    if raw is None:
+        return None
+    try:
+        value = float(raw)
+    except (TypeError, ValueError):
+        return None
+    if 0.0 <= value <= 1.0:
+        return value
+    return None
 
 
 def _build_dedup_tail(
@@ -504,11 +589,12 @@ def _merge_chunk(
         local_start = float(seg.get("start", 0.0) or 0.0)
         local_end = float(seg.get("end", local_start) or local_start)
         text = str(seg.get("text", "")).strip()
+        segment_no_speech_prob = _segment_no_speech_prob(seg)
 
         # Per-word remap + dedup.
         words = _extract_segment_words(seg)
         if words:
-            for word_text, ws, we in words:
+            for word_text, ws, we, word_probability in words:
                 global_start = ws + chunk_offset
                 global_end = we + chunk_offset
                 # Skip words that fall in the overlap tail *and* whose
@@ -523,6 +609,7 @@ def _merge_chunk(
                         start=global_start,
                         end=global_end,
                         chunk_index=chunk.index,
+                        probability=word_probability,
                     )
                 )
 
@@ -532,10 +619,19 @@ def _merge_chunk(
                 end=local_end + chunk_offset,
                 text=text,
                 chunk_index=chunk.index,
+                avg_logprob=seg.get("avg_logprob"),
+                no_speech_prob=segment_no_speech_prob,
             )
         )
-
     accumulated_words.extend(new_words)
+
+
+# ``LongformSegment.avg_logprob`` (set above) is the canonical source for
+# downstream consumers (the shorts orchestrator / ``_segments`` mapper),
+# which translate it to a ``[0.0, 1.0]`` ``TranscriptSegment.confidence``
+# via ``exp(avg_logprob)``. We deliberately do NOT store a derived
+# confidence on the strict model itself: the strict model stays a pure
+# value object and the orchestrator owns the translation.
 
 
 # ---------------------------------------------------------------------------

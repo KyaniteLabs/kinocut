@@ -121,38 +121,28 @@ class _StrictModel(BaseModel):
 
 
 class AudioFinishingConfig(_StrictModel):
-    """Restrained audio-finishing knobs the orchestrator passes downstream.
+    """Evidence-backed audio-finishing knobs the orchestrator passes downstream.
 
     These are *configuration* — never a new workflow op. The values are
     carried on the plan so the render path can opt in without re-deriving
-    them, but the orchestrator itself never executes any audio DSP. ``True
-    peak`` (dBTP) is the canonical loudness-bound check the render path may
-    use to fail closed; ``lufs`` is the integrated loudness target the
-    render path will normalise to when present. Boundary ``fade_seconds``
-    and ``declick_seconds`` are applied symmetrically at clip edges; a
-    zero value disables the corresponding process. Noise reduction uses an
-    optional key that the renderer can interpret as a filter preset; when
-    ``bypass_noise_reduction`` is ``True`` the renderer MUST NOT apply any
-    noise reduction regardless of ``noise_reduction_key``.
+    them, but the orchestrator itself never executes any audio DSP.
+    ``lufs`` is the integrated-loudness target the render path will
+    normalise to via :func:`kinocut.engine_audio_normalize.normalize_audio`;
+    ``fade_seconds`` is the symmetric clip-edge fade the render path
+    currently applies after loudness normalisation. Each field maps to a
+    concrete knob the orchestrator's render path consumes today; removed
+    historical fields are deliberately omitted so the configuration
+    never advertises behaviour the orchestrator cannot deliver.
     """
 
+    # Only fields the orchestrator actively threads into the render path
+    # are exposed here. Historical fields that no consumer wired up (true
+    # peak / declick / noise reduction) were removed in favour of
+    # ``evidence-backed controls''; the engine accepts more knobs but the
+    # public configuration never promises behaviour it cannot deliver
+    # through the orchestrator's current contract.
     lufs: float = Field(default=-14.0, ge=-36.0, le=-6.0)
-    true_peak_dbtp: float = Field(default=-1.0, ge=-12.0, le=0.0)
     fade_seconds: float = Field(default=0.05, ge=0.0, le=2.0)
-    declick_seconds: float = Field(default=0.0, ge=0.0, le=2.0)
-    noise_reduction_key: str | None = Field(default=None, min_length=1, max_length=64)
-    bypass_noise_reduction: bool = True
-
-    @model_validator(mode="after")
-    def _validate_finishing(self) -> AudioFinishingConfig:
-        # ``bypass_noise_reduction`` is a *positive* signal: when False, the
-        # caller has actively opted into the (optional) noise-reduction
-        # pass and must therefore supply a key so the renderer does not
-        # have to guess. Default is True — the orchestrator never silently
-        # engages an aggressive denoiser on caller-supplied material.
-        if not self.bypass_noise_reduction and not self.noise_reduction_key:
-            raise ValueError("noise_reduction_key is required when bypass_noise_reduction is false")
-        return self
 
 
 # --- Intake (source) configuration ------------------------------------------
@@ -189,12 +179,16 @@ class RenderConfig(_StrictModel):
 
     The orchestrator itself does not execute renders: it records the
     options a future render call should honour so a re-run produces a
-    byte-identical plan. ``subject_reframe`` defaults to ``False`` so the
-    default plan never silently invokes the reframe lowerer; callers opt
-    in explicitly.
+    byte-identical plan. ``burned_captions`` and ``captions_editable``
+    record the canonical caption contract; ``audio`` carries the
+    evidence-backed loudness and fade knobs the render path consumes
+    today. Deliberately omitted: any knob whose only consumer was a
+    removed visual branch (e.g. ``subject_reframe``). Strict
+    ``extra="forbid"`` ensures legacy mappings that still carry the
+    removed flag fail closed at validation time instead of silently
+    no-oping.
     """
 
-    subject_reframe: bool = False
     burned_captions: bool = False
     captions_editable: bool = True
     audio: AudioFinishingConfig = Field(default_factory=AudioFinishingConfig)

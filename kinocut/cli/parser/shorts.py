@@ -57,7 +57,8 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
 
     parser.add_argument(
         "input",
-        help="Path to the source long-form video file",
+        nargs="?",
+        help="Path to the source long-form video file (required for proposal and review)",
     )
 
     parser.add_argument(
@@ -94,15 +95,11 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
 
-    parser.add_argument(
-        "--subject-reframe",
-        action="store_true",
-        help=(
-            "When set, propose a reframed vertical layout that re-centres on a "
-            "detected subject (off by default). Subject detection runs locally; "
-            "no model download is required."
-        ),
-    )
+    # NOTE: there is intentionally NO ``--subject-reframe`` flag. The previous
+    # public knob advertised automatic subject tracking, but no current render
+    # path consumes the value — it was inert. Safe padded 9:16 composition is
+    # the only honest current behavior; operators must inspect framing before
+    # packaging (that warning is documented in the proposal manifest).
 
     burned_captions = parser.add_mutually_exclusive_group()
     burned_captions.add_argument(
@@ -147,13 +144,32 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
 
-    parser.add_argument(
+    stage = parser.add_mutually_exclusive_group()
+    stage.add_argument(
         "--decisions",
         default=None,
         metavar="PATH",
-        help=(
-            "Optional path to a UTF-8 JSON file of human review decisions "
-            "against a prior proposal. With this flag the command records the "
-            "decisions and stops — it does not render any media."
-        ),
+        help="Path to a UTF-8 JSON file of human review decisions; records them without rendering.",
+    )
+    stage.add_argument(
+        "--render",
+        action="store_true",
+        help="Render one approved candidate locally; never posts it.",
+    )
+    stage.add_argument(
+        "--package",
+        action="store_true",
+        help="Package one rendered candidate for manual publishing; never posts it.",
+    )
+    parser.add_argument(
+        "--candidate-id",
+        default=None,
+        metavar="ID",
+        help="Candidate identifier required by --render and --package.",
+    )
+    parser.add_argument(
+        "--output",
+        default=None,
+        metavar="PATH",
+        help="Output path required by --render, or package directory required by --package.",
     )

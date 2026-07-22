@@ -95,7 +95,32 @@ class TranscriptSegment(_StrictModel):
         return self
 
 
-# --- Optional signals --------------------------------------------------------
+class TranscriptWord(_StrictModel):
+    """One timed word/token emitted by the long-form transcription slice.
+
+    Preserved through the orchestrator so caption generation can use real
+    Whisper word timings instead of evenly synthesizing them when no real
+    timings are available. ``segment_id`` ties the word back to its parent
+    :class:`TranscriptSegment` for the caption grouper, which needs the
+    segment boundary to clip each word against the candidate window.
+    ``probability`` is the per-token log-probability translated to a
+    probability in ``[0.0, 1.0]``; ``None`` when the upstream emitter did
+    not supply one. Times are source-time seconds and remain absolute —
+    caption generation offsets them to the candidate window.
+    """
+
+    word: str = Field(min_length=1)
+    start: float = Field(ge=0.0)
+    end: float = Field(gt=0.0)
+    segment_id: str = Field(pattern=_SEGMENT_ID_PATTERN)
+    probability: float | None = Field(default=None, ge=0.0, le=1.0)
+    chunk_index: int | None = Field(default=None, ge=0)
+
+    @model_validator(mode="after")
+    def _validate_time_range(self) -> TranscriptWord:
+        if self.end <= self.start:
+            raise ValueError("transcript word end must be strictly greater than start")
+        return self
 
 
 class SourceSignal(_StrictModel):

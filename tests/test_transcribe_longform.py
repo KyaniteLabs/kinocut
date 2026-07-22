@@ -40,11 +40,15 @@ from mcp_video.ai_engine.transcribe_longform import (
     LongformTranscribeResult,
     LongformWord,
     _merge_chunk,
+    _format_chunk_result,
+    _segment_confidence,
     _validate_chunk_seconds,
     _validate_overlap_seconds,
+    _word_probability,
     plan_longform_transcription,
     transcribe_longform,
 )
+
 from mcp_video.ai_engine.transcribe import (
     _validate_transcribe_duration,
 )
@@ -57,6 +61,34 @@ from mcp_video.limits import (
     MAX_VIDEO_DURATION,
     MIN_LONGFORM_TRANSCRIBE_CHUNK_SECONDS,
 )
+
+
+def test_format_chunk_result_preserves_whisper_word_timings() -> None:
+    result = _format_chunk_result(
+        {
+            "text": "hello world",
+            "language": "en",
+            "segments": [
+                {
+                    "id": 0,
+                    "start": 1.0,
+                    "end": 2.0,
+                    "text": "hello world",
+                    "avg_logprob": -0.25,
+                    "words": [
+                        {"word": "hello", "start": 1.0, "end": 1.4, "probability": 0.9},
+                        {"word": "world", "start": 1.5, "end": 2.0, "probability": 0.8},
+                    ],
+                }
+            ],
+        }
+    )
+    assert result["segments"][0]["words"][1] == {
+        "word": "world",
+        "start": 1.5,
+        "end": 2.0,
+        "probability": 0.8,
+    }
 
 
 def has_ffmpeg() -> bool:
@@ -796,3 +828,158 @@ def test_longform_path_rejects_null_byte(monkeypatch: pytest.MonkeyPatch) -> Non
             overlap_seconds=10,
             scene_aware=False,
         )
+
+
+# ---------------------------------------------------------------------------
+# Confidence conversion (GLM A8)
+# ---------------------------------------------------------------------------
+
+
+def test_segment_confidence_translates_avg_logprob_via_exp() -> None:
+    """``_segment_confidence`` must use ``exp(avg_logprob)``.
+
+    Whisper emits non-positive log-likelihoods; the correct probability is
+    ``exp(avg_logprob)``. The previous implementation used ``1 + avg_logprob``
+    which produced nonsense values (e.g. ``avg_logprob=-0.5`` -> ``0.5``).
+    """
+    assert _segment_confidence({"avg_logprob": 0.0}) == 1.0
+    import math as _math
+
+    assert _segment_confidence({"avg_logprob": -0.5}) == _math.exp(-0.5)
+    assert _segment_confidence({"avg_logprob": -1.0}) == _math.exp(-1.0)
+    # No logprob at all -> ``None`` (NEVER 1.0; that would mask missing signal).
+    assert _segment_confidence({}) is None
+    assert _segment_confidence({"avg_logprob": None}) is None
+    assert _segment_confidence({"avg_logprob": "not-a-number"}) is None
+
+
+def test_word_probability_uses_exp_fallback_for_legacy_whisper() -> None:
+    """``_word_probability`` must use the literal ``probability`` field first,
+    fall back to ``exp(avg_logprob)`` when only the legacy log-likelihood is
+    present, and return ``None`` when neither is available (NEVER 1.0)."""
+    import math as _math
+
+    assert _word_probability({"probability": 0.42}) == 0.42
+    assert _word_probability({"avg_logprob": -0.5}) == _math.exp(-0.5)
+    # Out-of-range probability is rejected; falls back to logprob.
+    assert _word_probability({"probability": 1.7, "avg_logprob": -1.0}) == _math.exp(-1.0)
+    # No signal at all -> ``None``.
+    assert _word_probability({}) is None
+    assert _word_probability({"probability": "oops"}) is None
+
+
+def test_longform_segment_preserves_avg_logprob_from_whisper() -> None:
+    """The merger must round-trip ``avg_logprob`` so the orchestrator can
+    compute truthful confidence instead of defaulting to 1.0."""
+    words: list[LongformWord] = []
+    segments: list[LongformSegment] = []
+
+    chunk = _make_chunk(0, 0.0, 5.0)
+    fake = {
+        "transcript": "hello world",
+        "language": "en",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 5.0,
+                "text": "hello world",
+                "avg_logprob": -0.5,
+                "no_speech_prob": 0.01,
+                "words": [
+                    {"word": "hello", "start": 0.0, "end": 1.0, "probability": 0.9},
+                    {"word": "world", "start": 1.5, "end": 2.5, "avg_logprob": -0.2},
+                ],
+            }
+        ],
+    }
+    _merge_chunk(words, segments, fake, chunk, overlap_seconds=5, prev_chunk_end=None)
+
+    assert segments
+    assert segments[0].avg_logprob == -0.5
+    assert segments[0].no_speech_prob == 0.01
+    # Per-word probabilities are preserved through the merger.
+    assert words[0].probability == 0.9
+    import math as _math
+
+    assert words[1].probability == _math.exp(-0.2)
+
+
+def test_longform_segment_omits_avg_logprob_when_whisper_did_not_emit_one() -> None:
+    """When the upstream Whisper segment lacks ``avg_logprob`` the strict
+    segment's field must remain ``None`` (NEVER 1.0); downstream consumers
+    then leave ``TranscriptSegment.confidence`` as ``None``."""
+    words: list[LongformWord] = []
+    segments: list[LongformSegment] = []
+
+    chunk = _make_chunk(0, 0.0, 5.0)
+    fake = {
+        "transcript": "silent",
+        "language": "en",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 5.0,
+                "text": "silent",
+            }
+        ],
+    }
+    _merge_chunk(words, segments, fake, chunk, overlap_seconds=5, prev_chunk_end=None)
+    assert segments[0].avg_logprob is None
+    assert segments[0].no_speech_prob is None
+
+
+def test_merge_records_per_word_probability() -> None:
+    """Per-word ``probability`` from Whisper must reach ``LongformWord``.
+
+    A2 fix: the merger was dropping the per-token probability before this
+    change; we now record it on ``LongformWord.probability`` so the
+    orchestrator can thread it through to the caption grouper.
+    """
+    words: list[LongformWord] = []
+    segments: list[LongformSegment] = []
+    chunk = _make_chunk(0, 0.0, 10.0)
+    fake = {
+        "transcript": "alpha beta",
+        "language": "en",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 5.0,
+                "text": "alpha beta",
+                "words": [
+                    {"word": "alpha", "start": 0.0, "end": 1.0, "probability": 0.7},
+                    {"word": "beta", "start": 1.0, "end": 2.0, "probability": 0.3},
+                ],
+            }
+        ],
+    }
+    _merge_chunk(words, segments, fake, chunk, overlap_seconds=5, prev_chunk_end=None)
+    assert [w.probability for w in words] == [0.7, 0.3]
+
+
+def test_merge_keeps_word_probability_none_when_unavailable() -> None:
+    """Words without probability information must surface as ``None``,
+    not ``1.0`` — the orchestrator relies on this for low-confidence flagging.
+    """
+    words: list[LongformWord] = []
+    segments: list[LongformSegment] = []
+    chunk = _make_chunk(0, 0.0, 5.0)
+    fake = {
+        "transcript": "alpha",
+        "language": "en",
+        "segments": [
+            {
+                "id": 0,
+                "start": 0.0,
+                "end": 5.0,
+                "text": "alpha",
+                "words": [{"word": "alpha", "start": 0.0, "end": 1.0}],
+            }
+        ],
+    }
+    _merge_chunk(words, segments, fake, chunk, overlap_seconds=5, prev_chunk_end=None)
+    assert words
+    assert words[0].probability is None

@@ -164,7 +164,10 @@ def _build_plan_kwargs(args: Any) -> dict[str, Any]:
         "platforms": platforms,
         "max_clip_seconds": args.max_clip_seconds,
         "min_clip_seconds": args.min_clip_seconds,
-        "subject_reframe": bool(args.subject_reframe),
+        # ``subject_reframe`` was an inert public knob: the orchestrator's
+        # current render path always uses safe padded 9:16 composition and
+        # never consumes the flag. It is intentionally absent here so the
+        # CLI cannot reintroduce a no-op.
         "burned_captions": (False if args.burned_captions is None else bool(args.burned_captions)),
         "captions_editable": bool(args.captions_editable),
         "output_dir": args.output_dir,
@@ -351,13 +354,62 @@ def handle_shorts_commands(args: Any, *, use_json: bool) -> bool:
 
 
 def _handle_shorts(args: Any, use_json: bool) -> None:
-    """Implementation behind the ``shorts`` command; thin adapter only."""
+    """Dispatch the explicitly selected stage, defaulting to proposal."""
 
+    if getattr(args, "render", False):
+        _render_or_package(args, use_json, stage="render")
+        return
+    if getattr(args, "package", False):
+        _render_or_package(args, use_json, stage="package")
+        return
     if getattr(args, "decisions", None) is not None:
         _review_only(args, use_json)
         return
-
+    if not getattr(args, "input", None):
+        raise _problem(
+            "Proposing clips requires the source video path.",
+            code="missing_input",
+            suggested_action="Pass the source video path after `kino shorts`.",
+        )
     _plan_only(args, use_json)
+
+
+def _render_or_package(args: Any, use_json: bool, *, stage: str) -> None:
+    """Run an explicit local render or package stage through the shared API."""
+
+    job_id = getattr(args, "resume_job_id", None)
+    candidate_id = getattr(args, "candidate_id", None)
+    output = getattr(args, "output", None)
+    output_dir = getattr(args, "output_dir", None)
+    missing = [
+        flag
+        for flag, value in (
+            ("--resume-job-id", job_id),
+            ("--candidate-id", candidate_id),
+            ("--output", output),
+            ("--output-dir", output_dir),
+        )
+        if not isinstance(value, str) or not value
+    ]
+    if missing:
+        raise _problem(
+            f"The {stage} stage requires {', '.join(missing)}.",
+            code=f"missing_{stage}_input",
+            suggested_action=f"Pass an explicit job, candidate, saved-plan directory, and output for --{stage}.",
+        )
+
+    product_shorts = _import_product_shorts()
+    name = f"shorts_{stage}"
+    callable_ = getattr(product_shorts, name, None)
+    if callable_ is None:
+        raise _problem(
+            f"The shorts orchestrator is missing the '{name}' entrypoint.",
+            code="orchestrator_unavailable",
+        )
+    output_kwarg = "output_path" if stage == "render" else "package_dir"
+    plan_path = os.path.join(output_dir, f"{job_id}.plan.json")
+    result = callable_(plan_path, candidate_id, **{output_kwarg: output})
+    _out(result, use_json, lambda value: console.print(str(value)))
 
 
 def _plan_only(args: Any, use_json: bool) -> None:
@@ -435,7 +487,10 @@ def _review_only(args: Any, use_json: bool) -> None:
             )
         if edit_payload is not None:
             try:
-                propose_callable(job_id, proposal_id, edit=edit_payload)
+                edit = dict(edit_payload)
+                if evidence_ref is not None:
+                    edit["evidence_ref"] = evidence_ref
+                edited = propose_callable(job_id, proposal_id, edit=edit)
             except Exception as exc:
                 _record_failure(
                     failures,
@@ -445,7 +500,16 @@ def _review_only(args: Any, use_json: bool) -> None:
                     code="propose_failed",
                 )
                 continue
-
+            last_review = edited
+            aggregated.append(
+                {
+                    "proposal_id": proposal_id,
+                    "decision": decision,
+                    "evidence_ref": evidence_ref,
+                    "result": edited,
+                }
+            )
+            continue
         try:
             review = _call_review(review_callable, job_id, proposal_id, decision, evidence_ref)
         except Exception as exc:

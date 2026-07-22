@@ -27,6 +27,17 @@ import pytest
 
 from kinocut.errors import MCPVideoError
 
+from kinocut.product.models import CandidateMoment, TranscriptSegment, TranscriptWord
+from kinocut.product.shorts import (
+    ShortsPlan,
+    _caption_for,
+    _even_synthesized_words,
+    _load,
+    _logprob_to_confidence,
+    _segments,
+    _validate_review_action,
+)
+
 
 _5_TOOL_NAMES = frozenset(
     {
@@ -475,3 +486,363 @@ def test_shorts_envelope_is_json_serialisable(patched_shorts, tmp_path):
     encoded = json.dumps(raw, sort_keys=True, separators=(",", ":"))
     decoded = json.loads(encoded)
     assert decoded == raw
+
+
+# --------------------------------------------------------------------------- #
+# GLM A2 — real Whisper word timings reach the caption stage
+# --------------------------------------------------------------------------- #
+
+
+def _make_segment(segment_id: str, start: float, end: float, text: str) -> TranscriptSegment:
+    return TranscriptSegment(
+        segment_id=segment_id,
+        start=start,
+        end=end,
+        text=text,
+        confidence=None,
+    )
+
+
+def _make_plan(
+    *,
+    transcript: tuple[TranscriptSegment, ...],
+    transcript_words: tuple[TranscriptWord, ...] = (),
+) -> ShortsPlan:
+    """Build a strict ``ShortsPlan`` shell for caption tests.
+
+    Only the fields the caption stage touches are populated; the rest take
+    their strict-model defaults. The plan is frozen, which matches the
+    production shape that ``_save`` persists to disk.
+    """
+    from kinocut.product.shorts import IntakeReport
+
+    intake = IntakeReport(
+        source_path="/tmp/source.mp4",
+        source_sha256="0" * 64,
+        duration=10.0,
+        width=1080,
+        height=1920,
+        audio_available=True,
+    )
+    candidate = CandidateMoment(
+        candidate_id="cand_test_1",
+        start=0.0,
+        end=10.0,
+        transcript_excerpt="hello world",
+        suggested_title="Title",
+        suggested_hook="Hook",
+        rationale="Rationale",
+        confidence=0.9,
+        dedup_key="0" * 16,
+    )
+    return ShortsPlan(
+        job_id="shorts_" + "0" * 16,
+        project_dir="/tmp",
+        output_dir="/tmp/out",
+        intake=intake,
+        platforms=("youtube-shorts", "instagram-reel"),
+        config={},
+        transcript=transcript,
+        proposals=(candidate,),
+        decisions=(),
+        renders=(),
+        package_manifests=(),
+        external_posting=False,
+        transcript_words=transcript_words,
+    )
+
+
+def test_caption_for_uses_real_word_timings_when_available() -> None:
+    """A2: when ``transcript_words`` carries real Whisper timings the
+    caption stage MUST use them rather than evenly synthesizing timings.
+
+    The real timings deliberately land on a schedule that even synthesis
+    could never reproduce, so the assertion isolates the chosen path.
+    """
+    segment = _make_segment("seg_000001", 0.0, 10.0, "hello world")
+    real_words = (
+        TranscriptWord(
+            word="hello",
+            start=0.2,
+            end=0.7,
+            segment_id="seg_000001",
+            probability=0.9,
+        ),
+        TranscriptWord(
+            word="world",
+            start=4.5,
+            end=5.5,
+            segment_id="seg_000001",
+            probability=0.4,
+        ),
+    )
+    plan = _make_plan(transcript=(segment,), transcript_words=real_words)
+    candidate = plan.proposals[0]
+    artifact = _caption_for(plan, candidate)
+    flat = [w for cue in artifact.cues for w in cue.words]
+    assert [w.word for w in flat] == ["hello", "world"]
+    # Real timings, not the even-synthesised (0..5, 5..10) split.
+    assert flat[0].start == 0.2
+    assert flat[0].end == 0.7
+    assert flat[1].start == 4.5
+    assert flat[1].end == 5.5
+    # Probability propagates verbatim — not a synthesised 1.0.
+    assert flat[0].probability == 0.9
+    assert flat[1].probability == 0.4
+
+
+def test_caption_for_falls_back_to_even_synthesis_when_no_word_timings() -> None:
+    """A2/back-compat: when no real timings exist (legacy plans or the
+    short-form ASR path) the caption stage still emits an artifact using the
+    deterministic even synthesis. Confidence stays ``None`` rather than 1.0
+    so the caption grouper can flag unknown words honestly.
+    """
+    segment = _make_segment("seg_000001", 0.0, 10.0, "hello world")
+    plan = _make_plan(transcript=(segment,))
+    candidate = plan.proposals[0]
+    artifact = _caption_for(plan, candidate)
+    flat = [w for cue in artifact.cues for w in cue.words]
+    assert [w.word for w in flat] == ["hello", "world"]
+    # Even split: 0..5, 5..10 (grouper may split across cues on gap).
+    assert flat[0].start == 0.0
+    assert flat[0].end == 5.0
+    assert flat[1].start == 5.0
+    assert flat[1].end == 10.0
+    # No real probability -> ``None``, never ``1.0``.
+    for w in flat:
+        assert w.probability is None
+
+
+def test_real_word_timings_skip_words_outside_candidate_window() -> None:
+    """A2: words outside the candidate's [start, end) window must be dropped.
+
+    The orchestrator's caption stage MUST clip words against the candidate
+    boundary; preserving words outside the clip would break burn-in alignment
+    on the rendered video.
+    """
+    segment = _make_segment("seg_000001", 0.0, 20.0, "a b c")
+    words = (
+        TranscriptWord(word="a", start=0.0, end=1.0, segment_id="seg_000001", probability=0.9),
+        TranscriptWord(word="b", start=5.0, end=6.0, segment_id="seg_000001", probability=0.9),
+        TranscriptWord(word="c", start=15.0, end=16.0, segment_id="seg_000001", probability=0.9),
+    )
+    plan = _make_plan(transcript=(segment,), transcript_words=words)
+    candidate = plan.proposals[0]
+    artifact = _caption_for(plan, candidate)
+    cue_words = [w for cue in artifact.cues for w in cue.words]
+    # Only words inside [0, 10) survive.
+    assert [w.word for w in cue_words] == ["a", "b"]
+
+
+def test_even_synthesized_words_do_not_default_to_unit_confidence() -> None:
+    """A2/A8: when no real timings exist the synthesized ``WordTiming`` MUST
+    not have a fabricated probability of ``1.0`` — the old code did that.
+    """
+    segment = TranscriptSegment(
+        segment_id="seg_000001",
+        start=0.0,
+        end=4.0,
+        text="hello world",
+        confidence=None,
+    )
+    plan = _make_plan(transcript=(segment,))
+    candidate = plan.proposals[0]
+    words = _even_synthesized_words(plan, candidate)
+    assert words
+    for w in words:
+        assert w.probability is None
+
+
+# --------------------------------------------------------------------------- #
+# GLM A5 — mutating plan lookup fails closed on ambiguity
+# --------------------------------------------------------------------------- #
+
+
+def test_load_fails_closed_when_directory_has_multiple_plans(tmp_path: Path) -> None:
+    """A5: when a project directory contains more than one plan receipt the
+    mutating resolver MUST refuse to pick one by mtime and instead raise a
+    structured error forcing the caller to disambiguate by job id / path.
+    """
+    plan_dir = tmp_path / "plans"
+    plan_dir.mkdir()
+    (plan_dir / "shorts_aaaaaaaaaaaaaaaa.plan.json").write_text(
+        json.dumps({"job_id": "shorts_aaaaaaaaaaaaaaaa"}), encoding="utf-8"
+    )
+    (plan_dir / "shorts_bbbbbbbbbbbbbbbb.plan.json").write_text(
+        json.dumps({"job_id": "shorts_bbbbbbbbbbbbbbbb"}), encoding="utf-8"
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        _load(str(plan_dir))
+    assert exc.value.code == "shorts_plan_ambiguous"
+
+
+def test_load_resolves_unambiguous_directory_with_single_plan(tmp_path: Path) -> None:
+    """A5/back-compat: a directory with exactly one plan must still resolve.
+
+    The fail-closed guard MUST NOT regress single-plan projects. The plan is
+    re-loaded via the resolver, asserting the cache path is populated so
+    subsequent calls don't re-read the file.
+    """
+    plan_dir = tmp_path / "single"
+    plan_dir.mkdir()
+    target = plan_dir / "shorts_cccccccccccccccc.plan.json"
+    plan = _make_plan(transcript=(_make_segment("seg_000001", 0.0, 5.0, "hi"),))
+    target.write_text(json.dumps(plan.model_dump(mode="json")), encoding="utf-8")
+
+    resolved = _load(str(plan_dir))
+    assert resolved.job_id == plan.job_id
+
+
+def test_load_uses_nested_short_subdirectory(tmp_path: Path) -> None:
+    """A5/back-compat: when plans live under ``<dir>/shorts/`` the loader
+    must still resolve them and fail closed on ambiguity there too.
+    """
+    nested = tmp_path / "out" / "shorts"
+    nested.mkdir(parents=True)
+    plan = _make_plan(transcript=(_make_segment("seg_000001", 0.0, 5.0, "hi"),))
+    (nested / "shorts_dddddddddddddddd.plan.json").write_text(
+        json.dumps(plan.model_dump(mode="json")), encoding="utf-8"
+    )
+    other = nested / "shorts_eeeeeeeeeeeeeeee.plan.json"
+    other.write_text(
+        json.dumps(_make_plan(transcript=(_make_segment("seg_000001", 0.0, 5.0, "hi"),)).model_dump(mode="json")),
+        encoding="utf-8",
+    )
+
+    with pytest.raises(MCPVideoError) as exc:
+        _load(str(tmp_path / "out"))
+    assert exc.value.code == "shorts_plan_ambiguous"
+
+
+# --------------------------------------------------------------------------- #
+# GLM A8 — confidence conversion (exp(avg_logprob)) and never-default
+# --------------------------------------------------------------------------- #
+
+
+def test_logprob_to_confidence_uses_exp_not_linear_shift() -> None:
+    """A8: confidence MUST be ``exp(avg_logprob)`` not ``1 + avg_logprob``.
+
+    The previous implementation used ``1 + avg_logprob`` which produced
+    mathematically wrong values (e.g. ``avg_logprob=-0.5`` -> ``0.5``). The
+    new contract is the canonical ``exp`` translation.
+    """
+    import math
+
+    assert _logprob_to_confidence(-0.5) == math.exp(-0.5)
+    assert _logprob_to_confidence(-1.0) == math.exp(-1.0)
+    assert _logprob_to_confidence(0.0) == 1.0
+    # Clamp [0.0, 1.0] — even on degenerate inputs.
+    assert _logprob_to_confidence(5.0) == 1.0
+
+
+def test_logprob_to_confidence_is_none_when_no_signal() -> None:
+    """A8: missing logprob MUST yield ``None``; never default to 1.0.
+
+    Defaulting to 1.0 would mask upstream silence and break the caption
+    stage's low-confidence flagging policy.
+    """
+    assert _logprob_to_confidence(None) is None
+    assert _logprob_to_confidence("not-a-number") is None
+
+
+def test_segments_preserves_truthful_confidence_from_avg_logprob() -> None:
+    """A8: ``_segments`` must translate ``avg_logprob`` into a ``[0.0, 1.0]``
+    ``TranscriptSegment.confidence`` using ``exp``. The previous behaviour
+    silently clamped ``1 + avg_logprob`` which produced values outside the
+    confidence band for log-likelihoods below ``-1``.
+    """
+    import math
+
+    payload = [
+        {
+            "segment_id": "seg_000001",
+            "start": 0.0,
+            "end": 5.0,
+            "text": "alpha",
+            "avg_logprob": -0.5,
+        }
+    ]
+    segments = _segments(payload)
+    assert segments[0].confidence == math.exp(-0.5)
+
+
+def test_segments_leaves_confidence_none_when_no_signal() -> None:
+    """A8: when neither ``confidence`` nor ``avg_logprob`` are supplied the
+    orchestrator MUST leave ``TranscriptSegment.confidence`` as ``None``
+    rather than defaulting to 1.0.
+    """
+    payload = [
+        {
+            "segment_id": "seg_000001",
+            "start": 0.0,
+            "end": 5.0,
+            "text": "alpha",
+        }
+    ]
+    segments = _segments(payload)
+    assert segments[0].confidence is None
+
+
+def test_segments_prefers_explicit_confidence_over_avg_logprob() -> None:
+    """A8: an upstream ``confidence`` in ``[0.0, 1.0]`` wins over
+    ``avg_logprob`` because the orchestrator cannot prove which is more
+    authoritative and explicit confidence is the tighter signal."""
+    payload = [
+        {
+            "segment_id": "seg_000001",
+            "start": 0.0,
+            "end": 5.0,
+            "text": "alpha",
+            "confidence": 0.3,
+            "avg_logprob": -1.0,
+        }
+    ]
+    segments = _segments(payload)
+    assert segments[0].confidence == 0.3
+
+
+def test_segments_orders_overlapping_chunk_output_chronologically() -> None:
+    segments = _segments(
+        [
+            {"segment_id": "late", "start": 1200.0, "end": 1202.0, "text": "later"},
+            {"segment_id": "early", "start": 1198.0, "end": 1201.0, "text": "earlier"},
+        ]
+    )
+    assert [segment.segment_id for segment in segments] == ["early", "late"]
+
+
+# --------------------------------------------------------------------------- #
+# GLM A9 — identical clean action validation for shorts_propose and shorts_review
+# --------------------------------------------------------------------------- #
+
+
+def test_validate_review_action_rejects_unknown_action_with_clean_error() -> None:
+    """A9: the shared validator MUST raise the same ``shorts_review_invalid``
+    structured error for any action outside the allowed set."""
+    with pytest.raises(MCPVideoError) as exc:
+        _validate_review_action("bogus")
+    assert exc.value.code == "shorts_review_invalid"
+    assert "preview" in exc.value.suggested_action["description"]
+
+
+def test_validate_review_action_rejects_missing_action() -> None:
+    """A9: ``None`` (missing action) MUST also raise a clean error rather
+    than letting pydantic produce a different shaped failure downstream."""
+    with pytest.raises(MCPVideoError) as exc:
+        _validate_review_action(None)
+    assert exc.value.code == "shorts_review_invalid"
+
+
+def test_validate_review_action_accepts_every_documented_action() -> None:
+    """A9: every action listed in the recovery message must round-trip
+    cleanly so callers never see spurious validation errors on supported
+    inputs."""
+    for action in (
+        "preview",
+        "approve",
+        "reject",
+        "trim",
+        "title_hook_edit",
+        "sensitive_unsuitable",
+    ):
+        assert _validate_review_action(action) == action

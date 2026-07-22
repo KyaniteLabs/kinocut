@@ -231,6 +231,19 @@ job that failed with its intermediates kept (fail-closed on a changed spec). Ful
 [docs/WORKFLOWS.md](docs/WORKFLOWS.md); a runnable spec is in
 [examples/workflows/](examples/workflows/captioned-vertical-short/).
 
+## Review-gated Shorts and Reels
+
+The development-tip `shorts` CLI proposes candidates by default and never posts publicly. After recording explicit human decisions, render and package one approved candidate with explicit identifiers and destinations:
+
+```bash
+kino --format json shorts recording.mp4 --output-dir ./out/shorts
+kino --format json shorts recording.mp4 --resume-job-id shorts_JOB_ID --decisions decisions.json --output-dir ./out/shorts
+kino --format json shorts --render --resume-job-id shorts_JOB_ID --candidate-id candidate-id --output-dir ./out/shorts --output ./out/shorts/rendered
+kino --format json shorts --package --resume-job-id shorts_JOB_ID --candidate-id candidate-id --output-dir ./out/shorts --output ./out/shorts/package
+```
+
+Rendering uses safe vertical composition; operators must inspect framing, captions, and audio boundaries. See [Stream to Shorts](docs/STREAM_TO_SHORTS.md) for the decision file and full workflow.
+
 ## Governed AI-video review
 
 On the **development tip**, Kinocut adds a contract-first path for agent-edited media that must stay attributable and reviewable:

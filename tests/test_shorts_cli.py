@@ -88,6 +88,7 @@ def _install_fake_orchestrator(
     captured = {
         "plan_calls": [],
         "review_calls": [],
+        "propose_calls": [],
         "plan_result": plan_result,
         "plan_kwargs_capture": plan_kwargs_capture,
         "review_kwargs_capture": review_kwargs_capture,
@@ -119,9 +120,24 @@ def _install_fake_orchestrator(
             review_kwargs_capture.update(captured["review_calls"][-1])
         return review_result if review_result is not None else {"status": "reviewed"}
 
+    def fake_propose(job_id: str, proposal_id: str, **kwargs: Any):
+        captured["propose_calls"].append({"job_id": job_id, "proposal_id": proposal_id, **kwargs})
+        return {"status": "reviewed", "proposal_id": proposal_id}
+
+    def fake_render(job_id: str, candidate_id: str, **kwargs: Any):
+        captured.setdefault("render_calls", []).append((job_id, candidate_id, kwargs))
+        return {"job_id": job_id, "candidate_id": candidate_id, "status": "rendered", "external_posting": False}
+
+    def fake_package(job_id: str, candidate_id: str, **kwargs: Any):
+        captured.setdefault("package_calls", []).append((job_id, candidate_id, kwargs))
+        return {"job_id": job_id, "candidate_id": candidate_id, "status": "packaged", "external_posting": False}
+
     fake_module = types.ModuleType("kinocut.product.shorts")
     fake_module.shorts_plan = fake_plan  # type: ignore[attr-defined]
     fake_module.shorts_review = fake_review  # type: ignore[attr-defined]
+    fake_module.shorts_propose = fake_propose  # type: ignore[attr-defined]
+    fake_module.shorts_render = fake_render  # type: ignore[attr-defined]
+    fake_module.shorts_package = fake_package  # type: ignore[attr-defined]
 
     # ``kinocut.product.shorts`` may not yet exist on disk while the
     # orchestrator sibling is landing; install the stub in :data:`sys.modules`
@@ -147,7 +163,10 @@ def test_shorts_parser_accepts_canonical_input_only():
     assert args.platform is None
     assert args.max_clip_seconds is None
     assert args.min_clip_seconds is None
-    assert args.subject_reframe is False
+    # ``subject_reframe`` was removed: the CLI no longer accepts the flag, and
+    # the orchestrator does not advertise automatic subject tracking. The
+    # default proposal path always uses safe padded 9:16 composition.
+    assert not hasattr(args, "subject_reframe")
     assert args.burned_captions is None  # default; orchestrator picks
     assert args.captions_editable is True
     assert args.output_dir is None
@@ -168,7 +187,6 @@ def test_shorts_parser_accepts_approval_and_resume_flags(tmp_path):
             "45",
             "--min-clip-seconds",
             "5",
-            "--subject-reframe",
             "--captions-editable",
             "--output-dir",
             str(tmp_path / "out"),
@@ -185,12 +203,109 @@ def test_shorts_parser_accepts_approval_and_resume_flags(tmp_path):
     assert args.platform == ["youtube-shorts"]
     assert args.max_clip_seconds == 45.0
     assert args.min_clip_seconds == 5.0
-    assert args.subject_reframe is True
+    # ``subject_reframe`` was removed; the parser must not expose the flag.
+    assert not hasattr(args, "subject_reframe")
     assert args.captions_editable is True
     assert args.output_dir == str(tmp_path / "out")
     assert args.resume_job_id == "job-7"
     assert args.decisions == str(decisions_path)
     assert args.burned_captions is False
+
+
+def test_shorts_parser_render_and_package_inputs_are_explicit():
+    from kinocut.cli.parser import build_parser
+
+    render = build_parser().parse_args(
+        [
+            "shorts",
+            "--render",
+            "--resume-job-id",
+            "job-1",
+            "--candidate-id",
+            "c1",
+            "--output-dir",
+            "plans",
+            "--output",
+            "out.mp4",
+        ]
+    )
+    assert render.input is None
+    assert render.render is True
+    package = build_parser().parse_args(
+        [
+            "shorts",
+            "--package",
+            "--resume-job-id",
+            "job-1",
+            "--candidate-id",
+            "c1",
+            "--output-dir",
+            "plans",
+            "--output",
+            "package",
+        ]
+    )
+    assert package.package is True
+
+
+def test_render_stage_calls_shared_function_and_emits_json(monkeypatch, capsys):
+    capture = _install_fake_orchestrator(monkeypatch)
+    code, payload = _run_cli(
+        monkeypatch,
+        capsys,
+        "shorts",
+        "--render",
+        "--resume-job-id",
+        "job-1",
+        "--candidate-id",
+        "c1",
+        "--output-dir",
+        "plans",
+        "--output",
+        "out.mp4",
+    )
+    assert code == 0
+    assert payload["status"] == "rendered"
+    assert payload["external_posting"] is False
+    assert capture["render_calls"] == [("plans/job-1.plan.json", "c1", {"output_path": "out.mp4"})]
+    assert capture["plan_calls"] == []
+    assert capture["review_calls"] == []
+
+
+def test_package_stage_calls_shared_function_and_emits_json(monkeypatch, capsys):
+    capture = _install_fake_orchestrator(monkeypatch)
+    code, payload = _run_cli(
+        monkeypatch,
+        capsys,
+        "shorts",
+        "--package",
+        "--resume-job-id",
+        "job-1",
+        "--candidate-id",
+        "c1",
+        "--output-dir",
+        "plans",
+        "--output",
+        "package",
+    )
+    assert code == 0
+    assert payload["status"] == "packaged"
+    assert payload["external_posting"] is False
+    assert capture["package_calls"] == [("plans/job-1.plan.json", "c1", {"package_dir": "package"})]
+
+
+@pytest.mark.parametrize(
+    ("stage", "code"), [("--render", "missing_render_input"), ("--package", "missing_package_input")]
+)
+def test_explicit_stages_require_job_candidate_and_output(monkeypatch, capsys, stage, code):
+    _install_fake_orchestrator(monkeypatch)
+    exit_code, payload = _run_cli(monkeypatch, capsys, "shorts", stage)
+    assert exit_code == 1
+    assert payload["error"]["code"] == code
+    assert "--resume-job-id" in payload["error"]["message"]
+    assert "--candidate-id" in payload["error"]["message"]
+    assert "--output" in payload["error"]["message"]
+    assert "--output-dir" in payload["error"]["message"]
 
 
 def test_shorts_parser_bounds_platform_choices_to_canonical_pair():
@@ -277,7 +392,8 @@ def test_default_invocation_forwards_canonical_platform_defaults(monkeypatch, ca
     assert payload["job_id"] == "job-x"
     assert payload["status"] == "proposed"
     assert captured_kwargs["burned_captions"] is False
-    assert captured_kwargs["subject_reframe"] is False
+    # ``subject_reframe`` was removed; the handler must not forward it.
+    assert "subject_reframe" not in captured_kwargs
     assert captured_kwargs["captions_editable"] is True
     assert captured_kwargs["resume_job_id"] is None
 
@@ -294,7 +410,6 @@ def test_default_invocation_forwards_explicit_flags(monkeypatch, capsys, tmp_pat
         "30",
         "--min-clip-seconds",
         "4",
-        "--subject-reframe",
         "--no-burned-captions",
         "--captions-editable",
         "--platform",
@@ -310,7 +425,8 @@ def test_default_invocation_forwards_explicit_flags(monkeypatch, capsys, tmp_pat
     assert code == 0
     assert captured_kwargs["max_clip_seconds"] == 30.0
     assert captured_kwargs["min_clip_seconds"] == 4.0
-    assert captured_kwargs["subject_reframe"] is True
+    # ``subject_reframe`` was removed; the handler must not forward it.
+    assert "subject_reframe" not in captured_kwargs
     assert captured_kwargs["burned_captions"] is False
     assert captured_kwargs["captions_editable"] is True
     assert list(captured_kwargs["platforms"]) == ["instagram-reel"]
@@ -386,6 +502,49 @@ def test_decisions_path_records_review_without_rendering(monkeypatch, capsys, tm
     assert len(capture["review_calls"]) == 2
     # The plan was re-hydrated once via resume_job_id.
     assert len(capture["plan_calls"]) == 1
+
+
+def test_edit_decision_is_recorded_once_without_duplicate_review(monkeypatch, capsys, tmp_path):
+    decisions_path = tmp_path / "decisions.json"
+    decisions_path.write_text(
+        json.dumps(
+            [
+                {
+                    "proposal_id": "p-trim",
+                    "decision": "trim",
+                    "edit": {"action": "trim", "start": 1.0, "end": 4.0},
+                    "evidence_ref": "operator",
+                }
+            ]
+        ),
+        encoding="utf-8",
+    )
+    capture = _install_fake_orchestrator(monkeypatch)
+    code, payload = _run_cli(
+        monkeypatch,
+        capsys,
+        "shorts",
+        str(tmp_path / "source.mp4"),
+        "--decisions",
+        str(decisions_path),
+        "--resume-job-id",
+        "job-edit",
+    )
+    assert code == 0
+    assert payload["failures"] == []
+    assert capture["review_calls"] == []
+    assert capture["propose_calls"] == [
+        {
+            "job_id": "job-edit",
+            "proposal_id": "p-trim",
+            "edit": {
+                "action": "trim",
+                "start": 1.0,
+                "end": 4.0,
+                "evidence_ref": "operator",
+            },
+        }
+    ]
 
 
 def test_decisions_path_accepts_wrapped_payload(monkeypatch, capsys, tmp_path):

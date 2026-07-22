@@ -371,8 +371,8 @@ def plan_safe_static_composition(
 ) -> ClipPlan:
     """Build the single-moment safe static composition fallback.
 
-    Called when the reframe lowerer abstains or the orchestrator cannot trust
-    the moment: emits exactly one :class:`ClippedMoment` with the request's
+    Called when the orchestrator cannot trust the moment: emits exactly one
+    :class:`ClippedMoment` with the request's
     range preserved verbatim and a deterministic ``static_composition=True``
     flag the orchestrator can surface to the reviewer. The human-review
     warning is explicit (``review_warnings``), never silent.

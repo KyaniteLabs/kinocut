@@ -845,6 +845,265 @@ class TestLoudnormTruePeak:
         assert os.path.isfile(result.output_path)
 
 
+class TestNormalizeAudioTwoPass:
+    """Behaviour tests for the two-pass loudnorm flow.
+
+    These tests intentionally bypass the real ``_run_ffmpeg`` call so
+    they remain unit-level: they inspect the *commands* the engine
+    builds, the JSON it parses, and the validation it enforces, without
+    touching FFmpeg or any sample media. Existing real-media tests in
+    :class:`TestNormalizeAudio` and :class:`TestLoudnormTruePeak` keep
+    end-to-end coverage alive.
+    """
+
+    @staticmethod
+    def _captured_run(calls):
+        """Return a fake ``_run_ffmpeg`` that records every argv it gets."""
+
+        def _fake(*args, **kwargs):
+            calls.append(list(args[0]) if args else [])
+            # Return a CompletedProcess-like with stderr that pass-one
+            # would have produced when loudnorm printed JSON.
+            import subprocess
+
+            return subprocess.CompletedProcess(
+                args=args[0] if args else [],
+                returncode=0,
+                stdout="",
+                stderr=(
+                    "ffmpeg version ...\n"
+                    "[Parsed_loudnorm_0 @ 0x7f] "
+                    '{"input_i": "-16.50", "input_tp": "-2.10", '
+                    '"input_lra": "3.50", "input_thresh": "-26.20", '
+                    '"target_offset": "0.50"}\n'
+                ),
+            )
+
+        return _fake
+
+    def test_pass_one_filter_uses_print_format_json(self):
+        import mcp_video.engine_audio_normalize as module
+
+        filt = module._build_loudnorm_pass_one_filter(target_lufs=-16.0, true_peak_dbtp=-1.0, lra=11.0)
+        assert filt == "loudnorm=I=-16.0:TP=-1.0:LRA=11.0:print_format=json"
+
+    def test_pass_two_filter_seeds_measured_values(self):
+        import mcp_video.engine_audio_normalize as module
+
+        measurements = {
+            "input_i": -16.5,
+            "input_tp": -2.1,
+            "input_lra": 3.5,
+            "input_thresh": -26.2,
+            "target_offset": 0.5,
+        }
+        filt = module._build_loudnorm_pass_two_filter(
+            target_lufs=-16.0, true_peak_dbtp=-1.0, lra=11.0, measurements=measurements
+        )
+        assert filt.startswith("loudnorm=I=-16.0:TP=-1.0:LRA=11.0")
+        assert "measured_I=-16.5" in filt
+        assert "measured_TP=-2.1" in filt
+        assert "measured_LRA=3.5" in filt
+        assert "measured_thresh=-26.2" in filt
+        assert "offset=0.5" in filt
+        assert "linear=true" in filt
+        # Pass two intentionally suppresses JSON to keep stderr short.
+        assert "print_format=summary" in filt
+        # Pass two never requests ``print_format=json`` to avoid a
+        # second measurement roundtrip.
+        assert "print_format=json" not in filt
+
+    def test_pass_two_filter_reflects_custom_true_peak(self):
+        import mcp_video.engine_audio_normalize as module
+
+        measurements = {
+            "input_i": -20.0,
+            "input_tp": -3.0,
+            "input_lra": 5.0,
+            "input_thresh": -28.0,
+            "target_offset": -1.0,
+        }
+        filt = module._build_loudnorm_pass_two_filter(
+            target_lufs=-23.0, true_peak_dbtp=-2.0, lra=7.0, measurements=measurements
+        )
+        assert "I=-23.0" in filt
+        assert "TP=-2.0" in filt
+        assert "LRA=7.0" in filt
+        assert "measured_I=-20.0" in filt
+        assert "measured_TP=-3.0" in filt
+        assert "offset=-1.0" in filt
+
+    def test_parse_loudnorm_measurements_reads_last_json_block(self):
+        import mcp_video.engine_audio_normalize as module
+
+        stderr = (
+            "ffmpeg banner noise\n"
+            "filter: {junk} unrelated junk {\n"
+            "[Parsed_loudnorm_0 @ 0x7f] "
+            '{"input_i": "-16.50", "input_tp": "-2.10", '
+            '"input_lra": "3.50", "input_thresh": "-26.20", '
+            '"target_offset": "0.50"}\n'
+        )
+        out = module._parse_loudnorm_measurements(stderr)
+        assert out == {
+            "input_i": -16.5,
+            "input_tp": -2.1,
+            "input_lra": 3.5,
+            "input_thresh": -26.2,
+            "target_offset": 0.5,
+        }
+
+    def test_parse_loudnorm_measurements_rejects_empty_stderr(self):
+        from mcp_video.errors import MCPVideoError
+        import mcp_video.engine_audio_normalize as module
+
+        with pytest.raises(MCPVideoError) as exc:
+            module._parse_loudnorm_measurements("")
+        assert exc.value.error_type == "processing_error"
+        assert exc.value.code == "loudnorm_measurements_missing"
+        assert "stderr was empty" in exc.value.suggested_action["description"]
+        assert exc.value.suggested_action["auto_fix"] is False
+
+    def test_parse_loudnorm_measurements_requires_known_keys(self):
+        from mcp_video.errors import MCPVideoError
+        import mcp_video.engine_audio_normalize as module
+
+        partial = '{"input_i": "-16.0"}\n'
+        with pytest.raises(MCPVideoError) as exc:
+            module._parse_loudnorm_measurements(partial)
+        assert exc.value.error_type == "processing_error"
+        assert exc.value.code == "loudnorm_measurements_incomplete"
+        assert "missing keys" in exc.value.suggested_action["description"]
+
+    def test_validate_loudnorm_param_enforces_bounds(self):
+        from mcp_video.errors import MCPVideoError
+        import mcp_video.engine_audio_normalize as module
+
+        # In-range values return sanitized floats untouched.
+        assert module._validate_loudnorm_param(-16.0, name="target_lufs", min_value=-70.0, max_value=-5.0) == -16.0
+        # Out-of-range raises a validation_error with the configured code.
+        with pytest.raises(MCPVideoError) as exc:
+            module._validate_loudnorm_param(0.5, name="target_lufs", min_value=-70.0, max_value=-5.0)
+        assert exc.value.error_type == "validation_error"
+        assert exc.value.code == "invalid_parameter"
+        assert "target_lufs" in str(exc.value)
+        # Non-finite numbers raise from the existing sanitizer.
+        with pytest.raises(MCPVideoError) as exc:
+            module._validate_loudnorm_param(float("nan"), name="true_peak_dbtp", min_value=-12.0, max_value=0.0)
+        assert exc.value.code == "invalid_parameter"
+
+    def test_true_peak_dbtp_bounds_reject_out_of_range(self):
+        from mcp_video.errors import MCPVideoError
+        import mcp_video.engine_audio_normalize as module
+
+        # Above 0 dBTP is invalid (clipping territory).
+        with pytest.raises(MCPVideoError) as exc:
+            module._validate_loudnorm_param(0.5, name="true_peak_dbtp", min_value=-12.0, max_value=0.0)
+        assert exc.value.code == "invalid_parameter"
+        # Below -12 dBTP is invalid (loudnorm caps the lower bound).
+        with pytest.raises(MCPVideoError) as exc:
+            module._validate_loudnorm_param(-20.0, name="true_peak_dbtp", min_value=-12.0, max_value=0.0)
+        assert exc.value.code == "invalid_parameter"
+
+    def test_normalize_audio_invokes_two_passes_with_measured_seed(self, sample_video, monkeypatch):
+        """Two passes: pass one captures measurements, pass two carries them."""
+        import mcp_video.engine_audio_normalize as module
+
+        calls: list[list[str]] = []
+        # Patch the loudnorm filter requirement so the test is independent
+        # of the running FFmpeg build and stays purely behavioural.
+        monkeypatch.setattr(module, "_require_filter", lambda *_a, **_kw: None)
+        monkeypatch.setattr(module, "_validate_input_path", lambda p: p)
+        monkeypatch.setattr(module, "_validate_output_path", lambda p: p)
+        monkeypatch.setattr(module, "_auto_output", lambda _src, _tag: "/tmp/out.mp4")
+        monkeypatch.setattr(module, "_timed_operation", _make_timing_context)
+        monkeypatch.setattr(module, "_run_ffmpeg", self._captured_run(calls))
+        monkeypatch.setattr(module, "_build_edit_result", _fake_build_edit_result)
+
+        module.normalize_audio(sample_video, target_lufs=-14.0, true_peak_dbtp=-1.0)
+        # Two ffmpeg invocations: measurement pass and apply pass.
+        assert len(calls) == 2, calls
+
+        pass_one_filter = _extract_audio_filter(calls[0])
+        assert pass_one_filter.startswith("loudnorm=I=-14.0:TP=-1.0")
+        assert pass_one_filter.endswith(":print_format=json")
+
+        pass_two_filter = _extract_audio_filter(calls[1])
+        assert pass_two_filter.startswith("loudnorm=I=-14.0:TP=-1.0")
+        # Measured values come from the captured pass-one stderr.
+        assert "measured_I=-16.5" in pass_two_filter
+        assert "measured_TP=-2.1" in pass_two_filter
+        assert "measured_LRA=3.5" in pass_two_filter
+        assert "measured_thresh=-26.2" in pass_two_filter
+        assert "offset=0.5" in pass_two_filter
+        assert "linear=true" in pass_two_filter
+        # Neither pass should ever use a shell-string argv.
+        for argv in calls:
+            assert all(isinstance(part, str) for part in argv)
+            assert all(part != "" for part in argv)
+        # Result is built via the existing helper, preserving the contract.
+        assert _last_built_output[0] == "/tmp/out.mp4"
+        assert _last_built_output[1] == "normalize_audio"
+
+    def test_normalize_audio_rejects_out_of_range_params_before_running(self, sample_video, monkeypatch):
+        from mcp_video.errors import MCPVideoError
+        import mcp_video.engine_audio_normalize as module
+
+        calls: list[list[str]] = []
+        monkeypatch.setattr(module, "_require_filter", lambda *_a, **_kw: None)
+        monkeypatch.setattr(module, "_validate_input_path", lambda p: p)
+        monkeypatch.setattr(module, "_validate_output_path", lambda p: p)
+        monkeypatch.setattr(module, "_auto_output", lambda _src, _tag: "/tmp/out.mp4")
+        monkeypatch.setattr(module, "_run_ffmpeg", self._captured_run(calls))
+
+        with pytest.raises(MCPVideoError) as exc:
+            module.normalize_audio(sample_video, true_peak_dbtp=2.5)
+        assert exc.value.code == "invalid_parameter"
+        assert calls == [], "validation must short-circuit before any FFmpeg call"
+
+        with pytest.raises(MCPVideoError) as exc:
+            module.normalize_audio(sample_video, target_lufs=10.0)
+        assert exc.value.code == "invalid_parameter"
+        assert calls == [], "validation must short-circuit before any FFmpeg call"
+
+
+_last_built_output: list[object] = []
+
+
+def _make_timing_context():
+    """Mimic the engine's ``_timed_operation`` context manager."""
+
+    from contextlib import contextmanager
+
+    @contextmanager
+    def _ctx():
+        yield {"elapsed_ms": 0.0}
+
+    return _ctx()
+
+
+def _fake_build_edit_result(output_path, operation, timing, **_kwargs):
+    """Return a minimal stand-in for ``EditResult`` so the two-pass test stays isolated."""
+
+    from types import SimpleNamespace
+
+    _last_built_output[:] = [output_path, operation]
+    return SimpleNamespace(
+        output_path=output_path,
+        operation=operation,
+        elapsed_ms=timing.get("elapsed_ms", 0.0),
+    )
+
+
+def _extract_audio_filter(argv: list[str]) -> str:
+    """Pull the ``-af`` value out of an FFmpeg argv list."""
+
+    for index, part in enumerate(argv):
+        if part == "-af" and index + 1 < len(argv):
+            return argv[index + 1]
+    raise AssertionError(f"no -af flag found in argv: {argv}")
+
+
 class TestKenBurns:
     """Tests for Ken Burns / zoom pan filter type."""
 
