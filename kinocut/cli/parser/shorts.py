@@ -123,10 +123,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         "--captions-editable",
         action="store_true",
         default=True,
-        help=(
-            "Include the required editable SRT caption sidecar in every package "
-            "(enabled by default)."
-        ),
+        help=("Include the required editable SRT caption sidecar in every package (enabled by default)."),
     )
 
     parser.add_argument(

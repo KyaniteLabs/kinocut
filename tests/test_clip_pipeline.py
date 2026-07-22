@@ -361,6 +361,7 @@ def test_static_composition_request_rejects_inverted_range() -> None:
             reason="x",
         )
 
+
 def test_clip_moment_accepts_candidate_id_alias() -> None:
     """Moments using ``candidate_id`` (the strict ``CandidateMoment`` field) also work."""
 

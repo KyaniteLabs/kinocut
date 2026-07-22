@@ -344,7 +344,6 @@ def test_static_fallback_uses_neutral_centre_crop_not_subject_box() -> None:
     assert crop_node.params["y"] >= 0
 
 
-
 def test_static_fallback_warning_explicit_not_silent() -> None:
     """The reviewer warning is explicit and mentions every abstention reason."""
 
@@ -480,11 +479,7 @@ def test_isolated_segment_emits_trim_step() -> None:
     """``isolate_segments=True`` adds a ``trim`` step before each crop."""
 
     # timestamp=5.0 (not 0) so trim is emitted
-    variant = _variant(
-        samples=(
-            _track_sample(timestamp=5.0, box=(0.2, 0.2, 0.4, 0.4)),
-        )
-    )
+    variant = _variant(samples=(_track_sample(timestamp=5.0, box=(0.2, 0.2, 0.4, 0.4)),))
     job = lower_variant_to_dag(variant, source_video=_source_video(), isolate_segments=True)
     kinds = [node.kind for node in job.dag.nodes]
     assert "trim" in kinds

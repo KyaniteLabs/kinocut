@@ -469,7 +469,7 @@ def test_merge_dedups_overlap_tail_words() -> None:
 
     assert before[-1] == "world"
     # The duplicate "world" should NOT have been appended in chunk B.
-    assert after[len(before):] == ["again"]
+    assert after[len(before) :] == ["again"]
 
 
 def test_merge_keeps_unique_overlap_tail_words() -> None:

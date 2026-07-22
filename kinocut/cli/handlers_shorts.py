@@ -62,11 +62,7 @@ def _problem(
 
     from ..errors import MCPVideoError
 
-    action = (
-        {"auto_fix": False, "description": suggested_action}
-        if suggested_action
-        else None
-    )
+    action = {"auto_fix": False, "description": suggested_action} if suggested_action else None
     return MCPVideoError(
         message,
         error_type="validation_error",
@@ -95,17 +91,14 @@ def _load_decisions_file(path: str) -> Any:
         raise _problem(
             f"Decisions file {path!r} is not valid UTF-8: {exc.reason}.",
             code="invalid_decisions_encoding",
-            suggested_action=(
-                "Re-export the decisions file as UTF-8 (no BOM) and retry."
-            ),
+            suggested_action=("Re-export the decisions file as UTF-8 (no BOM) and retry."),
         ) from None
     except json.JSONDecodeError as exc:
         raise _problem(
             f"Decisions file {path!r} is not valid JSON: {exc.msg}.",
             code="invalid_decisions_json",
             suggested_action=(
-                "Fix the JSON syntax, or run `kino shorts <input>` first to "
-                "regenerate a clean decisions template."
+                "Fix the JSON syntax, or run `kino shorts <input>` first to regenerate a clean decisions template."
             ),
         ) from None
 
@@ -128,8 +121,7 @@ def _coerce_decision_entries(payload: Any) -> list[dict[str, Any]]:
             entries = [payload]
     else:
         raise _problem(
-            "Decisions JSON must be a list or an object with a 'decisions' "
-            f"key; got {type(payload).__name__}.",
+            f"Decisions JSON must be a list or an object with a 'decisions' key; got {type(payload).__name__}.",
             code="invalid_decisions_shape",
         )
 
@@ -173,9 +165,7 @@ def _build_plan_kwargs(args: Any) -> dict[str, Any]:
         "max_clip_seconds": args.max_clip_seconds,
         "min_clip_seconds": args.min_clip_seconds,
         "subject_reframe": bool(args.subject_reframe),
-        "burned_captions": (
-            False if args.burned_captions is None else bool(args.burned_captions)
-        ),
+        "burned_captions": (False if args.burned_captions is None else bool(args.burned_captions)),
         "captions_editable": bool(args.captions_editable),
         "output_dir": args.output_dir,
         "resume_job_id": args.resume_job_id,
@@ -293,7 +283,6 @@ def _record_failure(
     )
 
 
-
 def _import_product_shorts() -> Any:
     """Lazy import that surfaces a plain-language error if the module is gone.
 
@@ -309,8 +298,7 @@ def _import_product_shorts() -> Any:
         from ..product import shorts as product_shorts
     except ImportError as exc:
         raise _problem(
-            "The orchestrator module kinocut.product.shorts is not yet "
-            "installed on this build.",
+            "The orchestrator module kinocut.product.shorts is not yet installed on this build.",
             code="orchestrator_unavailable",
             suggested_action=(
                 "Reinstall the kinocut package or upgrade to a build that "
@@ -319,7 +307,6 @@ def _import_product_shorts() -> Any:
             ),
         ) from exc
     return product_shorts
-
 
 
 def _call_review(
@@ -383,8 +370,7 @@ def _plan_only(args: Any, use_json: bool) -> None:
             "'shorts_plan' entrypoint expected by this CLI.",
             code="orchestrator_unavailable",
             suggested_action=(
-                "Reinstall the kinocut.product.shorts module or upgrade to a "
-                "build that exposes shorts_plan()."
+                "Reinstall the kinocut.product.shorts module or upgrade to a build that exposes shorts_plan()."
             ),
         )
 
@@ -403,8 +389,7 @@ def _review_only(args: Any, use_json: bool) -> None:
             "'shorts_review' entrypoint expected by this CLI.",
             code="orchestrator_unavailable",
             suggested_action=(
-                "Reinstall the kinocut.product.shorts module or upgrade to a "
-                "build that exposes shorts_review()."
+                "Reinstall the kinocut.product.shorts module or upgrade to a build that exposes shorts_review()."
             ),
         )
 
@@ -414,12 +399,10 @@ def _review_only(args: Any, use_json: bool) -> None:
     job_id = getattr(args, "resume_job_id", None)
     if not isinstance(job_id, str) or not job_id:
         raise _problem(
-            "Recording decisions requires --resume-job-id so the orchestrator "
-            "knows which proposal to update.",
+            "Recording decisions requires --resume-job-id so the orchestrator knows which proposal to update.",
             code="missing_resume_job_id",
             suggested_action=(
-                "Re-run as `kino shorts <input> --decisions decisions.json "
-                "--resume-job-id <prior-job-id>`."
+                "Re-run as `kino shorts <input> --decisions decisions.json --resume-job-id <prior-job-id>`."
             ),
         )
 
@@ -447,8 +430,7 @@ def _review_only(args: Any, use_json: bool) -> None:
 
         if edit_payload is not None and propose_callable is None:
             raise _problem(
-                "Decisions include an 'edit' block but the orchestrator "
-                "has no 'shorts_propose' entrypoint.",
+                "Decisions include an 'edit' block but the orchestrator has no 'shorts_propose' entrypoint.",
                 code="orchestrator_unavailable",
             )
         if edit_payload is not None:
@@ -465,9 +447,7 @@ def _review_only(args: Any, use_json: bool) -> None:
                 continue
 
         try:
-            review = _call_review(
-                review_callable, job_id, proposal_id, decision, evidence_ref
-            )
+            review = _call_review(review_callable, job_id, proposal_id, decision, evidence_ref)
         except Exception as exc:
             _record_failure(
                 failures,

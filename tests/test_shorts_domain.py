@@ -76,7 +76,6 @@ def test_transcribe_uses_longform_path_above_legacy_ceiling(monkeypatch):
     assert segments[0].text == "A complete long-form thought."
 
 
-
 @pytest.fixture
 def planned(tmp_path, monkeypatch):
     source = tmp_path / "stream.mp4"
@@ -127,9 +126,7 @@ def test_render_requires_explicit_human_approval(planned, tmp_path):
     _source, payload = planned
     candidate_id = payload["proposals"][0]["candidate_id"]
     with pytest.raises(MCPVideoError) as exc:
-        shorts.shorts_render(
-            payload["job_id"], candidate_id, output_path=str(tmp_path / "render")
-        )
+        shorts.shorts_render(payload["job_id"], candidate_id, output_path=str(tmp_path / "render"))
     assert exc.value.code == "shorts_review_required"
 
 
@@ -152,9 +149,7 @@ def test_review_is_append_only_and_supports_editor_actions(planned):
         decision={"action": "title_hook_edit", "title": "Edited title", "hook": "Edited hook"},
         evidence_ref="operator-review",
     )
-    result = shorts.shorts_review(
-        payload["job_id"], candidate_id, decision="approve", evidence_ref="operator-review"
-    )
+    result = shorts.shorts_review(payload["job_id"], candidate_id, decision="approve", evidence_ref="operator-review")
     assert [entry["action"] for entry in result["decisions"]][-3:] == [
         "trim",
         "title_hook_edit",

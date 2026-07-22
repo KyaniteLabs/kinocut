@@ -171,7 +171,6 @@ class _RawWindow:
         self.context_after = context_after
 
 
-
 # --- Window construction -----------------------------------------------------
 
 
@@ -273,9 +272,7 @@ def _context_before(transcript: Sequence[TranscriptSegment], anchor_index: int) 
     return prior.text.strip()
 
 
-def _context_after(
-    transcript: Sequence[TranscriptSegment], last_index: int
-) -> str | None:
+def _context_after(transcript: Sequence[TranscriptSegment], last_index: int) -> str | None:
     """One segment of trailing context, when the transcript continues."""
 
     if last_index + 1 >= len(transcript):
@@ -374,9 +371,7 @@ def _materialise(
     )
 
 
-def _signals_within(
-    signals: Sequence[SourceSignal], start: float, end: float
-) -> list[SourceSignal]:
+def _signals_within(signals: Sequence[SourceSignal], start: float, end: float) -> list[SourceSignal]:
     """Return signals whose timestamp lies inside ``[start, end]``.
 
     Signals outside the window do not contribute to the candidate's score;
@@ -406,9 +401,7 @@ def _transcript_score(excerpt: str) -> float:
     return round(0.6 * density + 0.4 * terminal_bonus, 4)
 
 
-def _classify_sensitivity(
-    excerpt: str, last_segment: TranscriptSegment
-) -> tuple[str, bool]:
+def _classify_sensitivity(excerpt: str, last_segment: TranscriptSegment) -> tuple[str, bool]:
     """Heuristic sensitivity classification.
 
     This is a *conservative* classifier: anything ambiguous stays at

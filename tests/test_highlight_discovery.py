@@ -366,11 +366,7 @@ def test_source_signals_attach_only_when_inside_window():
 
     result = discover_highlights(transcript, source_signals=[inside, outside])
 
-    attached_kinds = [
-        signal.kind
-        for candidate in result.candidates
-        for signal in candidate.source_signals
-    ]
+    attached_kinds = [signal.kind for candidate in result.candidates for signal in candidate.source_signals]
     assert "scene_change" in attached_kinds
     assert "audio_energy" not in attached_kinds  # far outside the fixture
 

@@ -72,6 +72,7 @@ def patched_shorts(monkeypatch):
             }
 
         return fake
+
     fake_shorts_module = types.ModuleType("kinocut.product.shorts")
     for name in _5_TOOL_NAMES:
         setattr(fake_shorts_module, name, _make(name))
@@ -91,9 +92,7 @@ def test_five_shorts_tools_are_registered_with_exact_names():
     from mcp_video.server import mcp
 
     tools = {tool.name for tool in asyncio.run(mcp.list_tools())}
-    shorts_tools = tools & {
-        f"shorts_{verb}" for verb in ("plan", "propose", "review", "render", "package")
-    }
+    shorts_tools = tools & {f"shorts_{verb}" for verb in ("plan", "propose", "review", "render", "package")}
 
     assert shorts_tools == _5_TOOL_NAMES
     assert "shorts_status" not in tools
@@ -108,15 +107,9 @@ def test_short_surfaces_module_exposes_only_the_five_callables(patched_shorts):
     import kinocut.server_tools_shorts as tools_module
 
     server_callables = {
-        name
-        for name in dir(tools_module)
-        if name.startswith("shorts_") and callable(getattr(tools_module, name))
+        name for name in dir(tools_module) if name.startswith("shorts_") and callable(getattr(tools_module, name))
     }
-    client_callables = {
-        name
-        for name in dir(client_module.ClientShortsMixin)
-        if name.startswith("shorts_")
-    }
+    client_callables = {name for name in dir(client_module.ClientShortsMixin) if name.startswith("shorts_")}
 
     assert server_callables == _5_TOOL_NAMES
     assert client_callables == _5_TOOL_NAMES
@@ -127,11 +120,7 @@ def test_client_registers_only_short_surface_mixin_methods():
     from kinocut.client import Client
 
     instance = Client()
-    method_names = {
-        name
-        for name in dir(instance)
-        if name.startswith("shorts_") and callable(getattr(instance, name))
-    }
+    method_names = {name for name in dir(instance) if name.startswith("shorts_") and callable(getattr(instance, name))}
     assert method_names == _5_TOOL_NAMES
 
 
@@ -260,9 +249,7 @@ def test_mcp_package_round_trips_with_package_dir(patched_shorts, tmp_path):
     assert via_tool["echo"]["package_dir"] == package_dir
 
 
-def test_client_shorts_methods_call_backend_exactly_once_per_invocation(
-    patched_shorts, tmp_path
-):
+def test_client_shorts_methods_call_backend_exactly_once_per_invocation(patched_shorts, tmp_path):
     from kinocut.client import Client
 
     client = Client()
@@ -334,9 +321,7 @@ def test_invalid_payload_returns_structured_error_dict(monkeypatch, tmp_path):
     assert "candidate" in result["error"]["message"].lower()
 
 
-def test_invalid_payload_unexpected_exception_returns_internal_error_envelope(
-    monkeypatch, tmp_path
-):
+def test_invalid_payload_unexpected_exception_returns_internal_error_envelope(monkeypatch, tmp_path):
     """Unexpected exceptions also funnel through ``_safe_tool`` -> ``_error_result``."""
     import kinocut.product as product_module
     import kinocut.server_tools_shorts as tools_module
@@ -361,9 +346,7 @@ def test_invalid_payload_unexpected_exception_returns_internal_error_envelope(
     assert result["error"]["code"] == "internal_error"
 
 
-def test_invalid_platforms_value_propagates_as_validation_error(
-    monkeypatch, tmp_path
-):
+def test_invalid_platforms_value_propagates_as_validation_error(monkeypatch, tmp_path):
     """A bad ``platforms`` payload surfaces as a structured ``validation_error``."""
     import kinocut.product as product_module
     import kinocut.server_tools_shorts as tools_module

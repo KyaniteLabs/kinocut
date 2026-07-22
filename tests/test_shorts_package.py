@@ -149,18 +149,18 @@ def test_pkg_schema_is_strict_and_rejects_unknown_fields():
 
 
 def test_pkg_schema_embeds_candidate_and_caption_artifact_round_trip():
-    manifest = PackageManifest.model_validate({
-        "package_id": "pkg_round",
-        "package_root": "/tmp/pkg",
-        "candidate": _candidate().model_dump(mode="json"),
-        "caption_artifact": _caption_artifact().model_dump(mode="json"),
-        "thumbnail": ThumbnailSpec(image_path="/tmp/t.jpg", timestamp=0.5).model_dump(mode="json"),
-        "lineage": PackageLineage(candidate_id="cand_pkg_01").model_dump(mode="json"),
-        "assets": (
-            PackageAsset(role="vertical_video", relative_path="v.mp4", bytes=10).model_dump(mode="json"),
-        ),
-        "review_warnings": (),
-    })
+    manifest = PackageManifest.model_validate(
+        {
+            "package_id": "pkg_round",
+            "package_root": "/tmp/pkg",
+            "candidate": _candidate().model_dump(mode="json"),
+            "caption_artifact": _caption_artifact().model_dump(mode="json"),
+            "thumbnail": ThumbnailSpec(image_path="/tmp/t.jpg", timestamp=0.5).model_dump(mode="json"),
+            "lineage": PackageLineage(candidate_id="cand_pkg_01").model_dump(mode="json"),
+            "assets": (PackageAsset(role="vertical_video", relative_path="v.mp4", bytes=10).model_dump(mode="json"),),
+            "review_warnings": (),
+        }
+    )
     assert manifest.candidate.candidate_id == "cand_pkg_01"
     assert manifest.caption_artifact.cues[0].text.startswith("Hello")
     assert manifest.assets[0].role == "vertical_video"
@@ -402,7 +402,8 @@ def test_pkg_traversal_rejects_parent_segment_in_video_path(tmp_path):
 def test_pkg_traversal_rejects_null_byte_in_thumbnail_path(tmp_path):
     inputs = _package_inputs(tmp_path)
     inputs["thumbnail"] = ThumbnailSpec(
-        image_path=str(tmp_path / "evil\x00.jpg"), timestamp=0.0,
+        image_path=str(tmp_path / "evil\x00.jpg"),
+        timestamp=0.0,
     )
     with pytest.raises(MCPVideoError):
         package_approved_clip(**inputs)
@@ -411,7 +412,8 @@ def test_pkg_traversal_rejects_null_byte_in_thumbnail_path(tmp_path):
 def test_pkg_traversal_rejects_parent_segment_in_thumbnail_path(tmp_path):
     inputs = _package_inputs(tmp_path)
     inputs["thumbnail"] = ThumbnailSpec(
-        image_path=str(tmp_path / ".." / "evil.jpg"), timestamp=0.0,
+        image_path=str(tmp_path / ".." / "evil.jpg"),
+        timestamp=0.0,
     )
     with pytest.raises(MCPVideoError):
         package_approved_clip(**inputs)
@@ -527,10 +529,12 @@ def test_pkg_result_rejects_invalid_dedup_key_on_candidate():
     # layer even sees the candidate). Verify the model boundary directly so
     # we never reach ``_package_id`` with a malformed seed.
     with pytest.raises(ValidationError):
-        CandidateMoment.model_validate({
-            **_candidate().model_dump(mode="json"),
-            "dedup_key": "not-hex",
-        })
+        CandidateMoment.model_validate(
+            {
+                **_candidate().model_dump(mode="json"),
+                "dedup_key": "not-hex",
+            }
+        )
 
 
 def test_pkg_result_includes_candidate_source_timestamps():

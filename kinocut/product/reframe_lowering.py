@@ -720,8 +720,7 @@ def _verify_node_kinds(nodes: Sequence[DAGNode]) -> None:
     for node in nodes:
         if node.kind not in REFRAME_ALLOWLISTED_OPS:
             raise dag_error(
-                f"reframe lowerer emitted disallowed op {node.kind!r}; "
-                f"allowlist is {list(REFRAME_ALLOWLISTED_OPS)}",
+                f"reframe lowerer emitted disallowed op {node.kind!r}; allowlist is {list(REFRAME_ALLOWLISTED_OPS)}",
                 INVALID_DAG_SPEC,
             )
 

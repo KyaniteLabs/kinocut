@@ -223,9 +223,7 @@ def _validate_moment(moment: Mapping[str, Any] | Any) -> tuple[float, float, str
 
     moment_id = _resolve_id(moment)
     if not moment_id:
-        raise _clip_error(
-            "moment mapping requires a non-empty 'moment_id' or 'candidate_id'", CLIP_INVALID_TIME_RANGE
-        )
+        raise _clip_error("moment mapping requires a non-empty 'moment_id' or 'candidate_id'", CLIP_INVALID_TIME_RANGE)
     if isinstance(moment, Mapping):
         start = moment.get("start")
         end = moment.get("end")
@@ -233,9 +231,7 @@ def _validate_moment(moment: Mapping[str, Any] | Any) -> tuple[float, float, str
         start = getattr(moment, "start", None)
         end = getattr(moment, "end", None)
     if not isinstance(start, (int, float)) or not isinstance(end, (int, float)):
-        raise _clip_error(
-            f"moment {moment_id!r} requires numeric 'start' and 'end' fields", CLIP_INVALID_TIME_RANGE
-        )
+        raise _clip_error(f"moment {moment_id!r} requires numeric 'start' and 'end' fields", CLIP_INVALID_TIME_RANGE)
     if math.isnan(float(start)) or math.isinf(float(start)) or math.isnan(float(end)) or math.isinf(float(end)):
         raise _clip_error(f"moment {moment_id!r} has non-finite start/end", CLIP_INVALID_TIME_RANGE)
     start_f = float(start)
@@ -444,9 +440,7 @@ def _coerce_static_request(
     )
 
 
-def _compute_plan_id(
-    platform: str, max_duration: float, clipped: Iterable[ClippedMoment]
-) -> str:
+def _compute_plan_id(platform: str, max_duration: float, clipped: Iterable[ClippedMoment]) -> str:
     """Deterministic content-derived id for a :class:`ClipPlan`.
 
     The id is a stable ``sha256:<hex>`` over the canonical serialized plan

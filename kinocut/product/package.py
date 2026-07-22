@@ -148,13 +148,9 @@ class PackageAsset(_StrictModel):
     @model_validator(mode="after")
     def _no_traversal_in_path(self) -> PackageAsset:
         if ".." in self.relative_path.split("/") or ".." in self.relative_path.split(os.sep):
-            raise ValueError(
-                f"asset path contains directory traversal: {self.relative_path!r}"
-            )
+            raise ValueError(f"asset path contains directory traversal: {self.relative_path!r}")
         if "\x00" in self.relative_path:
-            raise ValueError(
-                f"asset path contains null byte: {self.relative_path!r}"
-            )
+            raise ValueError(f"asset path contains null byte: {self.relative_path!r}")
         return self
 
 

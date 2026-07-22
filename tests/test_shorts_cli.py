@@ -210,9 +210,7 @@ def test_shorts_help_text_avoids_engine_and_model_jargon():
 
     formatter = parser.formatter_class(parser.prog)
     # Render the shorts subparser's help by walking the subparsers action.
-    sub_action = next(
-        action for action in parser._actions if action.dest == "command"
-    )
+    sub_action = next(action for action in parser._actions if action.dest == "command")
     shorts_action = sub_action.choices["shorts"]
     rendered = formatter.format_help()  # outer parser
     rendered += "\n" + shorts_action.format_help()
@@ -238,9 +236,7 @@ def test_shorts_help_text_avoids_engine_and_model_jargon():
 def test_shorts_command_is_registered_and_unique_in_the_global_parser():
     from kinocut.cli.parser import build_parser
 
-    sub_action = next(
-        action for action in build_parser()._actions if action.dest == "command"
-    )
+    sub_action = next(action for action in build_parser()._actions if action.dest == "command")
     names = sorted(sub_action.choices)
     assert names.count("shorts") == 1
 
@@ -250,9 +246,7 @@ def test_shorts_command_is_registered_and_unique_in_the_global_parser():
 # --------------------------------------------------------------------------- #
 
 
-def test_default_invocation_stops_after_proposals_and_does_not_call_review(
-    monkeypatch, capsys
-):
+def test_default_invocation_stops_after_proposals_and_does_not_call_review(monkeypatch, capsys):
     capture = _install_fake_orchestrator(monkeypatch)
 
     code, payload = _run_cli(monkeypatch, capsys, *_build_shorts_argv())
@@ -264,9 +258,7 @@ def test_default_invocation_stops_after_proposals_and_does_not_call_review(
     assert capture["review_calls"] == [], "shorts_review must NOT be called by default"
 
 
-def test_default_invocation_forwards_canonical_platform_defaults(
-    monkeypatch, capsys
-):
+def test_default_invocation_forwards_canonical_platform_defaults(monkeypatch, capsys):
     captured_kwargs: dict[str, Any] = {}
     _install_fake_orchestrator(
         monkeypatch,
@@ -288,6 +280,7 @@ def test_default_invocation_forwards_canonical_platform_defaults(
     assert captured_kwargs["subject_reframe"] is False
     assert captured_kwargs["captions_editable"] is True
     assert captured_kwargs["resume_job_id"] is None
+
 
 def test_default_invocation_forwards_explicit_flags(monkeypatch, capsys, tmp_path):
     captured_kwargs: dict[str, Any] = {}
@@ -466,21 +459,15 @@ def test_shorts_plan_emits_the_dict_unchanged_in_json_mode(monkeypatch, capsys):
     }
     _install_fake_orchestrator(monkeypatch, plan_result=expected)
 
-    code, payload = _run_cli(
-        monkeypatch, capsys, *_build_shorts_argv(input_path="/tmp/source.mp4")
-    )
+    code, payload = _run_cli(monkeypatch, capsys, *_build_shorts_argv(input_path="/tmp/source.mp4"))
 
     assert code == 0
     assert payload == expected
 
 
-def test_shorts_decisions_emits_the_decisions_payload_in_json_mode(
-    monkeypatch, capsys, tmp_path
-):
+def test_shorts_decisions_emits_the_decisions_payload_in_json_mode(monkeypatch, capsys, tmp_path):
     decisions_path = tmp_path / "decisions.json"
-    decisions_path.write_text(
-        '[{"proposal_id": "p-dec", "decision": "trim"}]', encoding="utf-8"
-    )
+    decisions_path.write_text('[{"proposal_id": "p-dec", "decision": "trim"}]', encoding="utf-8")
     _install_fake_orchestrator(
         monkeypatch,
         review_result={"status": "reviewed", "proposal_id": "p-dec"},
@@ -510,9 +497,7 @@ def test_shorts_decisions_emits_the_decisions_payload_in_json_mode(
 
 def test_decisions_path_rejects_unknown_decision_kind(monkeypatch, capsys, tmp_path):
     decisions_path = tmp_path / "decisions.json"
-    decisions_path.write_text(
-        '[{"proposal_id": "p1", "decision": "ship-it-now"}]', encoding="utf-8"
-    )
+    decisions_path.write_text('[{"proposal_id": "p1", "decision": "ship-it-now"}]', encoding="utf-8")
     _install_fake_orchestrator(monkeypatch)
 
     argv = _build_shorts_argv(
@@ -575,26 +560,19 @@ def test_orchestrator_failure_propagates_as_actionable_error(monkeypatch, capsys
         code="intake_failed",
         suggested_action={
             "auto_fix": False,
-            "description": (
-                "Verify the file exists, is readable, and is a known "
-                "container format."
-            ),
+            "description": ("Verify the file exists, is readable, and is a known container format."),
         },
     )
     _install_fake_orchestrator(monkeypatch, raise_on_plan=failing_error)
 
-    code, payload = _run_cli(
-        monkeypatch, capsys, *_build_shorts_argv(input_path="/tmp/missing.mov")
-    )
+    code, payload = _run_cli(monkeypatch, capsys, *_build_shorts_argv(input_path="/tmp/missing.mov"))
 
     assert code == 1
     assert payload["error"]["code"] == "intake_failed"
     assert "verify" in payload["error"]["suggested_action"]["description"].lower()
 
 
-def test_missing_orchestrator_module_is_a_fail_closed_validation_error(
-    monkeypatch, capsys
-):
+def test_missing_orchestrator_module_is_a_fail_closed_validation_error(monkeypatch, capsys):
     """A missing orchestrator is surfaced as a typed actionable error."""
 
     import kinocut.cli.handlers_shorts as handlers
@@ -607,14 +585,11 @@ def test_missing_orchestrator_module_is_a_fail_closed_validation_error(
         )
 
     monkeypatch.setattr(handlers, "_import_product_shorts", _missing)
-    code, payload = _run_cli(
-        monkeypatch, capsys, *_build_shorts_argv(input_path="/tmp/source.mp4")
-    )
+    code, payload = _run_cli(monkeypatch, capsys, *_build_shorts_argv(input_path="/tmp/source.mp4"))
 
     assert code == 1
     assert payload["error"]["code"] == "orchestrator_unavailable"
     assert "shorts" in payload["error"]["message"].lower()
-
 
 
 # --------------------------------------------------------------------------- #
@@ -648,9 +623,7 @@ def test_handle_shorts_commands_dispatches_shorts(monkeypatch, capsys):
 def test_shorts_parser_module_registered_in_parser_init():
     from kinocut.cli.parser import build_parser
 
-    sub_action = next(
-        action for action in build_parser()._actions if action.dest == "command"
-    )
+    sub_action = next(action for action in build_parser()._actions if action.dest == "command")
     assert "shorts" in sub_action.choices
 
 

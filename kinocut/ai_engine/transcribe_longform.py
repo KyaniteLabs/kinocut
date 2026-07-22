@@ -243,9 +243,7 @@ def _scene_anchors(
     # Snap each natural chunk midpoint to the nearest anchor within half a
     # chunk (so we don't lose coverage or create tiny stragglers).  This is
     # what gets attached to each chunk's ``anchor`` field in the plan.
-    natural_midpoints = [
-        min(duration, (i + 0.5) * chunk_seconds) for i in range(int(duration // chunk_seconds) + 1)
-    ]
+    natural_midpoints = [min(duration, (i + 0.5) * chunk_seconds) for i in range(int(duration // chunk_seconds) + 1)]
     snapped: list[float] = []
     window = chunk_seconds / 2.0
     for mid in natural_midpoints:
@@ -401,6 +399,7 @@ def _transcribe_chunk(
         # helper.  We re-use the same ffmpeg -> whisper -> segment format
         # pipeline without re-probing source duration.
         from .transcribe import _format_json_transcript  # local import to avoid cycle at module load
+
         try:
             import whisper  # type: ignore
         except ImportError as exc:
@@ -497,11 +496,7 @@ def _merge_chunk(
     adjacent chunk passes.
     """
     chunk_offset = float(chunk.start)
-    overlap_window_end = (
-        float(prev_chunk_end)
-        if prev_chunk_end is not None
-        else chunk_offset + float(overlap_seconds)
-    )
+    overlap_window_end = float(prev_chunk_end) if prev_chunk_end is not None else chunk_offset + float(overlap_seconds)
     dedup_tail = _build_dedup_tail(accumulated_words, chunk_offset)
 
     new_words: list[LongformWord] = []
@@ -624,9 +619,7 @@ def transcribe_longform(
         prev = accumulated_words[i - 1]
         cur = accumulated_words[i]
         if cur.start < prev.end:
-            accumulated_words[i] = cur.model_copy(
-                update={"start": prev.end, "end": max(prev.end, cur.end)}
-            )
+            accumulated_words[i] = cur.model_copy(update={"start": prev.end, "end": max(prev.end, cur.end)})
 
     full_text = " ".join(w.word for w in accumulated_words).strip()
     if not full_text:

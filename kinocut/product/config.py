@@ -80,9 +80,7 @@ def normalise_platform(value: str) -> str:
         return _HYPHEN_TO_UNDERSCORE[value]
     if value in _UNDERSCORE_TO_HYPHEN:
         return value
-    raise ValueError(
-        f"unknown platform {value!r}; expected one of {list(CANONICAL_EXTERNAL_PLATFORMS)}"
-    )
+    raise ValueError(f"unknown platform {value!r}; expected one of {list(CANONICAL_EXTERNAL_PLATFORMS)}")
 
 
 def externalise_platform(value: str) -> str:
@@ -94,9 +92,7 @@ def externalise_platform(value: str) -> str:
         return _UNDERSCORE_TO_HYPHEN[value]
     if value in _HYPHEN_TO_UNDERSCORE:
         return value
-    raise ValueError(
-        f"unknown platform {value!r}; expected one of {list(CANONICAL_EXTERNAL_PLATFORMS)}"
-    )
+    raise ValueError(f"unknown platform {value!r}; expected one of {list(CANONICAL_EXTERNAL_PLATFORMS)}")
 
 
 def normalise_platforms(values: Sequence[str]) -> tuple[str, ...]:
@@ -155,9 +151,7 @@ class AudioFinishingConfig(_StrictModel):
         # have to guess. Default is True — the orchestrator never silently
         # engages an aggressive denoiser on caller-supplied material.
         if not self.bypass_noise_reduction and not self.noise_reduction_key:
-            raise ValueError(
-                "noise_reduction_key is required when bypass_noise_reduction is false"
-            )
+            raise ValueError("noise_reduction_key is required when bypass_noise_reduction is false")
         return self
 
 
@@ -183,9 +177,7 @@ class IntakeConfig(_StrictModel):
     @model_validator(mode="after")
     def _validate_window(self) -> IntakeConfig:
         if self.max_duration_seconds <= self.min_duration_seconds:
-            raise ValueError(
-                "max_duration_seconds must be strictly greater than min_duration_seconds"
-            )
+            raise ValueError("max_duration_seconds must be strictly greater than min_duration_seconds")
         return self
 
 
@@ -236,9 +228,7 @@ class ShortsConfig(_StrictModel):
         if not normalised:
             raise ValueError("shorts config requires at least one platform")
         if self.max_clip_seconds <= self.min_clip_seconds:
-            raise ValueError(
-                "max_clip_seconds must be strictly greater than min_clip_seconds"
-            )
+            raise ValueError("max_clip_seconds must be strictly greater than min_clip_seconds")
         # Preserve order while ensuring uniqueness.
         seen: set[str] = set()
         deduped: list[str] = []

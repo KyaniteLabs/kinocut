@@ -201,15 +201,9 @@ class SafeArea(_StrictModel):
         if self.bottom <= self.top:
             raise ValueError("safe_area bottom must be strictly greater than top")
         if (self.right - self.left) < _SAFE_AREA_MIN_DIMENSION:
-            raise ValueError(
-                f"safe_area width must be at least {_SAFE_AREA_MIN_DIMENSION} "
-                "in unit-frame coordinates"
-            )
+            raise ValueError(f"safe_area width must be at least {_SAFE_AREA_MIN_DIMENSION} in unit-frame coordinates")
         if (self.bottom - self.top) < _SAFE_AREA_MIN_DIMENSION:
-            raise ValueError(
-                f"safe_area height must be at least {_SAFE_AREA_MIN_DIMENSION} "
-                "in unit-frame coordinates"
-            )
+            raise ValueError(f"safe_area height must be at least {_SAFE_AREA_MIN_DIMENSION} in unit-frame coordinates")
         return self
 
 
@@ -431,11 +425,13 @@ def _group_words(
         return dropped_phrase_local
 
     for word in words:
-        next_word_chars = len(_visible_text_for_word(
-            word,
-            threshold=config.low_confidence_threshold,
-            policy=config.low_confidence_policy,
-        ))
+        next_word_chars = len(
+            _visible_text_for_word(
+                word,
+                threshold=config.low_confidence_threshold,
+                policy=config.low_confidence_policy,
+            )
+        )
         next_word_chars = max(next_word_chars, len(word.word))
 
         if buffer:
@@ -497,10 +493,7 @@ def _render_buffer_text(
             threshold=config.low_confidence_threshold,
             policy=config.low_confidence_policy,
         )
-        if visible == "" and (
-            word.probability is not None
-            and word.probability < config.low_confidence_threshold
-        ):
+        if visible == "" and (word.probability is not None and word.probability < config.low_confidence_threshold):
             dropped += 1
             continue
         rendered_parts.append(visible)
@@ -598,9 +591,7 @@ def _coerce_word(item: WordTiming | Mapping[str, Any]) -> WordTiming:
         return item
     if isinstance(item, Mapping):
         return WordTiming.model_validate(item)
-    raise TypeError(
-        f"expected a WordTiming or Mapping[str, Any], got {type(item).__name__}"
-    )
+    raise TypeError(f"expected a WordTiming or Mapping[str, Any], got {type(item).__name__}")
 
 
 __all__ = [

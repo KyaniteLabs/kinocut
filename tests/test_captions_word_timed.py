@@ -44,12 +44,14 @@ from kinocut.product.captions import (
 def _word(text, start, end, probability=None):
     """Tiny builder for ``WordTiming`` with no-whistle defaults."""
 
-    return WordTiming.model_validate({
-        "word": text,
-        "start": start,
-        "end": end,
-        "probability": probability,
-    })
+    return WordTiming.model_validate(
+        {
+            "word": text,
+            "start": start,
+            "end": end,
+            "probability": probability,
+        }
+    )
 
 
 def _words(*tuples):
@@ -70,11 +72,15 @@ def _words(*tuples):
 
 
 def test_capt_build_groups_short_words_into_single_phrase():
-    artifact = build_caption_artifact(list(_words(
-        ("Hello", 0.0, 0.4, 0.9),
-        ("world", 0.45, 0.9, 0.95),
-        ("today", 1.0, 1.4, 0.95),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("Hello", 0.0, 0.4, 0.9),
+                ("world", 0.45, 0.9, 0.95),
+                ("today", 1.0, 1.4, 0.95),
+            )
+        )
+    )
     assert len(artifact.cues) == 1
     cue = artifact.cues[0]
     assert cue.start == 0.0
@@ -84,12 +90,16 @@ def test_capt_build_groups_short_words_into_single_phrase():
 
 
 def test_capt_build_splits_phrase_at_clause_terminal_punctuation():
-    artifact = build_caption_artifact(list(_words(
-        ("First", 0.0, 0.4, 0.9),
-        ("sentence.", 0.45, 0.9, 0.95),
-        ("Second", 1.0, 1.4, 0.95),
-        ("sentence?", 1.45, 1.9, 0.95),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("First", 0.0, 0.4, 0.9),
+                ("sentence.", 0.45, 0.9, 0.95),
+                ("Second", 1.0, 1.4, 0.95),
+                ("sentence?", 1.45, 1.9, 0.95),
+            )
+        )
+    )
     assert [c.text for c in artifact.cues] == [
         "First sentence.",
         "Second sentence?",
@@ -99,11 +109,15 @@ def test_capt_build_splits_phrase_at_clause_terminal_punctuation():
 
 
 def test_capt_build_splits_phrase_at_gap_threshold():
-    artifact = build_caption_artifact(list(_words(
-        ("Alpha", 0.0, 0.4, 0.9),
-        ("beta", 0.45, 0.7, 0.9),
-        ("gamma", 2.0, 2.4, 0.9),  # 1.3s gap > default 0.6s
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("Alpha", 0.0, 0.4, 0.9),
+                ("beta", 0.45, 0.7, 0.9),
+                ("gamma", 2.0, 2.4, 0.9),  # 1.3s gap > default 0.6s
+            )
+        )
+    )
     assert [c.text for c in artifact.cues] == [
         "Alpha beta",
         "gamma",
@@ -112,22 +126,32 @@ def test_capt_build_splits_phrase_at_gap_threshold():
 
 def test_capt_build_respects_max_words_per_phrase():
     cfg = CaptionConfig(max_words_per_phrase=2, max_chars_per_phrase=64, max_gap_seconds=60.0)
-    artifact = build_caption_artifact(list(_words(
-        ("One", 0.0, 0.3, 0.9),
-        ("Two", 0.3, 0.6, 0.9),
-        ("Three", 0.6, 0.9, 0.9),
-        ("Four", 0.9, 1.2, 0.9),
-    )), config=cfg)
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("One", 0.0, 0.3, 0.9),
+                ("Two", 0.3, 0.6, 0.9),
+                ("Three", 0.6, 0.9, 0.9),
+                ("Four", 0.9, 1.2, 0.9),
+            )
+        ),
+        config=cfg,
+    )
     assert [c.text for c in artifact.cues] == ["One Two", "Three Four"]
 
 
 def test_capt_build_respects_max_chars_per_phrase():
     cfg = CaptionConfig(max_chars_per_phrase=8, max_words_per_phrase=18, max_gap_seconds=60.0)
-    artifact = build_caption_artifact(list(_words(
-        ("ab", 0.0, 0.2, 0.9),
-        ("cd", 0.2, 0.4, 0.9),
-        ("ef", 0.4, 0.6, 0.9),
-    )), config=cfg)
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("ab", 0.0, 0.2, 0.9),
+                ("cd", 0.2, 0.4, 0.9),
+                ("ef", 0.4, 0.6, 0.9),
+            )
+        ),
+        config=cfg,
+    )
     # "ab cd" = 5 chars (within 8), "cd ef" or similar overlap-avoided split
     assert all(len(c.text) <= 8 for c in artifact.cues)
     # All words end up in cues — none dropped, none overlapped.
@@ -135,12 +159,16 @@ def test_capt_build_respects_max_chars_per_phrase():
 
 
 def test_capt_build_preserves_word_timing_per_cue():
-    artifact = build_caption_artifact(list(_words(
-        ("Hello", 0.1, 0.4, 0.9),
-        ("world", 0.5, 0.9, 0.95),
-        ("foo", 2.0, 2.4, 0.95),
-        ("bar", 2.5, 2.9, 0.95),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("Hello", 0.1, 0.4, 0.9),
+                ("world", 0.5, 0.9, 0.95),
+                ("foo", 2.0, 2.4, 0.95),
+                ("bar", 2.5, 2.9, 0.95),
+            )
+        )
+    )
     assert [c.start for c in artifact.cues] == [0.1, 2.0]
     assert [c.end for c in artifact.cues] == [0.9, 2.9]
     assert artifact.cues[0].words[0].word == "Hello"
@@ -150,31 +178,43 @@ def test_capt_build_preserves_word_timing_per_cue():
 
 
 def test_capt_build_cue_confidence_is_mean_of_present_probabilities():
-    artifact = build_caption_artifact(list(_words(
-        ("a", 0.0, 0.2, 0.6),
-        ("b", 0.2, 0.4, 0.8),
-        ("c", 0.4, 0.6, None),  # ignored
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("a", 0.0, 0.2, 0.6),
+                ("b", 0.2, 0.4, 0.8),
+                ("c", 0.4, 0.6, None),  # ignored
+            )
+        )
+    )
     assert artifact.cues[0].confidence == pytest.approx(0.7)
 
 
 def test_capt_build_cue_confidence_defaults_to_one_when_all_missing():
-    artifact = build_caption_artifact(list(_words(
-        ("a", 0.0, 0.2, None),
-        ("b", 0.2, 0.4, None),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("a", 0.0, 0.2, None),
+                ("b", 0.2, 0.4, None),
+            )
+        )
+    )
     # Manually authored (no probability) cues default to 1.0 confidence so
     # the review surface never silently flags them as low-confidence.
     assert artifact.cues[0].confidence == 1.0
 
 
 def test_capt_build_assigns_bounded_phrase_ids_in_order():
-    artifact = build_caption_artifact(list(_words(
-        ("a.", 0.0, 0.2, 0.9),
-        ("b.", 0.3, 0.5, 0.9),
-        ("c.", 0.6, 0.8, 0.9),
-        ("d.", 0.9, 1.1, 0.9),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("a.", 0.0, 0.2, 0.9),
+                ("b.", 0.3, 0.5, 0.9),
+                ("c.", 0.6, 0.8, 0.9),
+                ("d.", 0.9, 1.1, 0.9),
+            )
+        )
+    )
     assert [c.phrase_id for c in artifact.cues] == ["cue_0000", "cue_0001", "cue_0002", "cue_0003"]
     assert [c.cue_index for c in artifact.cues] == [0, 1, 2, 3]
 
@@ -191,11 +231,16 @@ def test_capt_build_rejects_empty_input():
 
 def test_capt_low_conf_flag_marks_low_confidence_tokens_with_placeholder():
     cfg = CaptionConfig(low_confidence_policy="flag", low_confidence_threshold=0.5)
-    artifact = build_caption_artifact(list(_words(
-        ("Hello", 0.0, 0.4, 0.9),
-        ("world", 0.45, 0.8, 0.3),  # below threshold
-        ("foo", 0.85, 1.2, 0.95),
-    )), config=cfg)
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("Hello", 0.0, 0.4, 0.9),
+                ("world", 0.45, 0.8, 0.3),  # below threshold
+                ("foo", 0.85, 1.2, 0.95),
+            )
+        ),
+        config=cfg,
+    )
     assert artifact.cues[0].text == "Hello [?] foo"
     # Original word + its probability are preserved on per-word metadata.
     assert artifact.cues[0].words[1].word == "world"
@@ -205,11 +250,16 @@ def test_capt_low_conf_flag_marks_low_confidence_tokens_with_placeholder():
 
 def test_capt_low_conf_omit_drops_low_confidence_tokens_from_visible_text():
     cfg = CaptionConfig(low_confidence_policy="omit", low_confidence_threshold=0.5)
-    artifact = build_caption_artifact(list(_words(
-        ("Hello", 0.0, 0.4, 0.9),
-        ("world", 0.45, 0.8, 0.3),  # below threshold
-        ("foo", 0.85, 1.2, 0.95),
-    )), config=cfg)
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("Hello", 0.0, 0.4, 0.9),
+                ("world", 0.45, 0.8, 0.3),  # below threshold
+                ("foo", 0.85, 1.2, 0.95),
+            )
+        ),
+        config=cfg,
+    )
     # The visible cue keeps neighbouring high-confidence words; the dropped
     # token does NOT collapse into extra whitespace.
     assert artifact.cues[0].text == "Hello foo"
@@ -231,18 +281,28 @@ def test_capt_low_conf_threshold_boundary_keeps_token_at_threshold():
 def test_capt_low_conf_omit_all_words_dropped_raises():
     cfg = CaptionConfig(low_confidence_policy="omit", low_confidence_threshold=0.5)
     with pytest.raises(ValueError):
-        build_caption_artifact(list(_words(
-            ("a", 0.0, 0.3, 0.1),
-            ("b", 0.3, 0.6, 0.1),
-        )), config=cfg)
+        build_caption_artifact(
+            list(
+                _words(
+                    ("a", 0.0, 0.3, 0.1),
+                    ("b", 0.3, 0.6, 0.1),
+                )
+            ),
+            config=cfg,
+        )
 
 
 def test_capt_low_conf_preserves_dropped_words_on_artifact_for_audit():
     cfg = CaptionConfig(low_confidence_policy="omit", low_confidence_threshold=0.5)
-    artifact = build_caption_artifact(list(_words(
-        ("kept", 0.0, 0.3, 0.9),
-        ("dropped", 0.3, 0.5, 0.1),
-    )), config=cfg)
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("kept", 0.0, 0.3, 0.9),
+                ("dropped", 0.3, 0.5, 0.1),
+            )
+        ),
+        config=cfg,
+    )
     assert artifact.dropped_word_count == 0  # the cue still carries the dropped word
     assert artifact.cues[0].words[0].word == "kept"
     assert artifact.cues[0].words[1].word == "dropped"
@@ -268,12 +328,16 @@ def test_capt_build_srt_body_uses_canonical_time_format():
 
 
 def test_capt_build_srt_body_increments_serial_numbers():
-    artifact = build_caption_artifact(list(_words(
-        ("a", 0.0, 0.2, 0.9),
-        ("b", 0.3, 0.5, 0.9),  # 0.1s gap < 0.6s default
-        ("c", 0.6, 0.8, 0.9),
-        ("d", 2.0, 2.2, 0.9),  # 1.4s gap > 0.6s -> new phrase
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("a", 0.0, 0.2, 0.9),
+                ("b", 0.3, 0.5, 0.9),  # 0.1s gap < 0.6s default
+                ("c", 0.6, 0.8, 0.9),
+                ("d", 2.0, 2.2, 0.9),  # 1.4s gap > 0.6s -> new phrase
+            )
+        )
+    )
     body = artifact.srt_body
     # First line in each cue block is the serial number.
     blocks = [block for block in body.strip().split("\n\n")]
@@ -283,14 +347,19 @@ def test_capt_build_srt_body_increments_serial_numbers():
 
 def test_capt_build_srt_body_omits_empty_cues_but_keeps_them_on_model():
     cfg = CaptionConfig(low_confidence_policy="omit", low_confidence_threshold=0.5)
-    artifact = build_caption_artifact(list(_words(
-        ("kept", 0.0, 0.3, 0.9),
-        ("dropped", 0.3, 0.6, 0.1),
-        # Second phrase separated by a 1.4s gap so the grouping produces
-        # two distinct cues; we can then assert that the dropped word stays
-        # on the first cue's per-word metadata for reviewer audit.
-        ("other", 2.0, 2.3, 0.9),
-    )), config=cfg)
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("kept", 0.0, 0.3, 0.9),
+                ("dropped", 0.3, 0.6, 0.1),
+                # Second phrase separated by a 1.4s gap so the grouping produces
+                # two distinct cues; we can then assert that the dropped word stays
+                # on the first cue's per-word metadata for reviewer audit.
+                ("other", 2.0, 2.3, 0.9),
+            )
+        ),
+        config=cfg,
+    )
     assert len(artifact.cues) == 2
     # First cue's visible text omits the dropped word; metadata preserves it.
     assert artifact.cues[0].text == "kept"
@@ -301,10 +370,14 @@ def test_capt_build_srt_body_omits_empty_cues_but_keeps_them_on_model():
 
 
 def test_capt_build_srt_body_supports_external_helper():
-    artifact = build_caption_artifact(list(_words(
-        ("Hello", 0.0, 0.4, 0.9),
-        ("world", 0.5, 0.9, 0.95),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("Hello", 0.0, 0.4, 0.9),
+                ("world", 0.5, 0.9, 0.95),
+            )
+        )
+    )
     body = build_srt_body(artifact.cues)
     assert "Hello world" in body
     assert "00:00:00,000 --> 00:00:00,900" in body
@@ -339,7 +412,7 @@ def test_capt_burn_in_plan_is_drafting_only_with_strict_models():
     payload = plan.model_dump(mode="json")
     assert payload["enabled"] is True
     assert payload["appearance"]["font_size"] == 28  # default
-    assert payload["appearance"]["alignment"] == 2   # bottom-center
+    assert payload["appearance"]["alignment"] == 2  # bottom-center
 
 
 def test_capt_appearance_rejects_out_of_range_font_size():
@@ -438,10 +511,14 @@ def test_capt_word_timing_rejects_out_of_range_probability():
 
 
 def test_capt_artifact_payload_is_json_stable_and_sorted():
-    artifact = build_caption_artifact(list(_words(
-        ("a", 0.0, 0.3, 0.9),
-        ("b", 0.4, 0.7, 0.95),
-    )))
+    artifact = build_caption_artifact(
+        list(
+            _words(
+                ("a", 0.0, 0.3, 0.9),
+                ("b", 0.4, 0.7, 0.95),
+            )
+        )
+    )
     payload = artifact.model_dump(mode="json")
     # JSON-stable shape: every declared field is present and the payload is
     # round-trippable through ``json.dumps(..., sort_keys=True)`` so the
