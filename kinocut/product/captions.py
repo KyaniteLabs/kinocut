@@ -119,6 +119,7 @@ def build_caption_artifact(
     cues: list[PhraseCue] = []
     warnings: list[str] = []
     low_confidence_count = 0
+    flagged_count = 0
     omitted_count = 0
     for group in groups:
         visible_tokens: list[str] = []
@@ -130,6 +131,7 @@ def build_caption_artifact(
             low_confidence_count += 1
             if cfg.on_low_confidence == "flag":
                 visible_tokens.append("[?]")
+                flagged_count += 1
             else:
                 omitted_count += 1
         text = " ".join(visible_tokens).strip()
@@ -146,9 +148,10 @@ def build_caption_artifact(
             )
         )
 
-    if low_confidence_count:
-        action = "omitted" if cfg.on_low_confidence == "omit" else "flagged"
-        warnings.insert(0, f"low_confidence_tokens_{action}")
+    if flagged_count:
+        warnings.insert(0, "low_confidence_tokens_flagged")
+    elif omitted_count:
+        warnings.insert(0, "low_confidence_tokens_omitted")
     cue_tuple = tuple(cues)
     return CaptionArtifact(
         cues=cue_tuple,
