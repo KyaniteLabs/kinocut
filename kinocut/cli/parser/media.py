@@ -64,8 +64,8 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     subs_p.add_argument(
         "--style",
         help="force_style override applied to any subtitle format including authored .ass "
-        "(e.g. FontSize=24,PrimaryColour=&H00FFFFFF); omit to preserve an authored .ass "
-        "file's own styles/positions",
+        "(e.g. FontSize=24,PrimaryColour=&H00FFFFFF); omit to use the subtitle file's styles/positions; "
+        "authored .ass files will have their PlayRes values adjusted to match the video dimensions",
     )
     subs_p.add_argument("-o", "--output", help="Output file path")
 
