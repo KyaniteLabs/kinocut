@@ -184,6 +184,20 @@ def test_scene_detector_exceptions_degrade_to_fixed(monkeypatch) -> None:
     assert plan.chunks[-1].end == 1800.0
 
 
+def test_scene_boundary_rejects_overlap_that_would_stall_cursor() -> None:
+    with pytest.raises(MCPVideoError) as exc:
+        _build_plan(
+            "/tmp/_any.mp4",
+            duration=1200.0,
+            chunk_seconds=600,
+            overlap_seconds=300,
+            anchors=[300.0],
+        )
+
+    assert exc.value.code == "invalid_overlap"
+    assert "reduce overlap_seconds or disable scene-aware planning" in str(exc.value)
+
+
 def test_build_plan_rejects_too_many_chunks() -> None:
     with pytest.raises(MCPVideoError) as exc:
         _build_plan(

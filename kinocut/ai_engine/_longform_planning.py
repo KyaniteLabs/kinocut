@@ -94,6 +94,13 @@ def _build_plan(
             if eligible:
                 end = min(eligible, key=lambda anchor: (abs(nominal_end - anchor), anchor))
                 anchor_kind = "scene"
+        if end < total and end - overlap <= cursor:
+            raise MCPVideoError(
+                "overlap_seconds is too large for the selected scene boundary; "
+                "reduce overlap_seconds or disable scene-aware planning",
+                error_type="validation_error",
+                code="invalid_overlap",
+            )
         chunks.append(
             LongformChunk(
                 index=idx,
