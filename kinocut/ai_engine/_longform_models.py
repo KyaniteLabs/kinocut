@@ -7,6 +7,7 @@ come from ``model_validator(mode="after")``.
 """
 
 from __future__ import annotations
+from typing import Literal
 
 from pydantic import Field, model_validator
 
@@ -14,21 +15,21 @@ from ..contracts._common import ValueObject
 
 
 class LongformChunk(ValueObject):
-    """One planned chunk. ``duration`` may exceed ``end - start`` (overlap tail)."""
+    """One fixed or scene-anchored source-time chunk."""
 
     index: int = Field(ge=0)
     start: float = Field(ge=0.0)
     end: float = Field(ge=0.0)
     duration: float = Field(gt=0.0)
-    anchor: str = "fixed"  # one of: "fixed", "scene"
+    anchor: Literal["fixed", "scene"] = "fixed"
 
     @model_validator(mode="after")
     def _chunk_invariants(self) -> LongformChunk:
         if self.end <= self.start:
             raise ValueError(f"LongformChunk end ({self.end}) must be greater than start ({self.start})")
         covered = self.end - self.start
-        if self.duration + 1e-9 < covered:
-            raise ValueError(f"LongformChunk duration ({self.duration}) must cover end - start ({covered})")
+        if abs(self.duration - covered) > 1e-9:
+            raise ValueError(f"LongformChunk duration ({self.duration}) must equal end - start ({covered})")
         return self
 
 
@@ -69,10 +70,10 @@ class LongformTranscribePlan(ValueObject):
     """Deterministic plan returned by the planner."""
 
     video_path: str = Field(min_length=1)
-    duration: float = Field(ge=0.0)
+    duration: float = Field(gt=0.0)
     chunk_seconds: int = Field(gt=0)
     overlap_seconds: int = Field(ge=0)
-    chunks: list[LongformChunk]
+    chunks: tuple[LongformChunk, ...]
 
     @model_validator(mode="after")
     def _overlap_strictly_smaller_than_chunk(self) -> LongformTranscribePlan:
@@ -88,11 +89,11 @@ class LongformTranscribeResult(ValueObject):
     """Strict-model result of a long-form transcription run."""
 
     video_path: str = Field(min_length=1)
-    duration: float = Field(ge=0.0)
+    duration: float = Field(gt=0.0)
     language: str = Field(min_length=1)
     transcript: str
-    segments: list[LongformSegment]
-    words: list[LongformWord]
+    segments: tuple[LongformSegment, ...]
+    words: tuple[LongformWord, ...]
     chunk_count: int = Field(ge=0)
     model: str = Field(min_length=1)
     plan: LongformTranscribePlan

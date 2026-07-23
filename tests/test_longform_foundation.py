@@ -66,6 +66,9 @@ def test_longform_policy_constants_are_bounded() -> None:
 def test_models_are_strict_frozen_and_json_stable(factory) -> None:
     value = factory()
     assert type(value).model_validate_json(value.model_dump_json()) == value
+    for field in ("chunks", "segments", "words"):
+        if hasattr(value, field):
+            assert isinstance(getattr(value, field), tuple)
     with pytest.raises(ValidationError):
         value.model_copy(update={"unknown": True}).model_validate({**value.model_dump(), "unknown": True})
     with pytest.raises(ValidationError):
