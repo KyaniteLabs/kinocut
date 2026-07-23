@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import pytest
+
 from kinocut.product.highlight_discovery import discover_highlights
 from kinocut.product.models import HighlightDiscoveryConfig, SourceSignal, TranscriptSegment
 
@@ -153,3 +155,137 @@ def test_candidates_are_sorted_by_descending_score() -> None:
     candidates = discover_highlights(transcript, config=_config(minimum=5)).candidates
 
     assert [item.confidence for item in candidates] == sorted((item.confidence for item in candidates), reverse=True)
+
+
+# --- In-window signal preservation (GLM finding 1) --------------------------
+
+
+def test_signals_inside_window_are_preserved_in_deterministic_order() -> None:
+    transcript = _realistic_transcript()
+    inside = (
+        SourceSignal(kind="scene_change", timestamp=30.0, score=0.8),
+        SourceSignal(kind="audio_energy", timestamp=20.0, score=0.5, label="energy"),
+        SourceSignal(kind="scene_change", timestamp=25.0, score=0.4),
+    )
+
+    candidate = next(
+        item
+        for item in discover_highlights(
+            transcript, signals=inside, config=_config(minimum=8, maximum=30, clips=8)
+        ).candidates
+        if item.start == 12
+    )
+
+    timestamps = [signal.timestamp for signal in candidate.source_signals]
+    # Ordering must be (timestamp, kind, -score, label) — same timestamp must
+    # also be stable by kind.
+    assert timestamps == sorted(timestamps)
+    assert all(12.0 <= signal.timestamp <= candidate.end for signal in candidate.source_signals)
+
+
+def test_signals_outside_window_are_excluded() -> None:
+    transcript = _realistic_transcript()
+    outside = (
+        SourceSignal(kind="scene_change", timestamp=5.0, score=0.9),
+        SourceSignal(kind="audio_energy", timestamp=80.0, score=0.9, label="late"),
+    )
+
+    candidates = discover_highlights(
+        transcript, signals=outside, config=_config(minimum=8, maximum=30, clips=8)
+    ).candidates
+
+    assert all(candidate.source_signals == () for candidate in candidates)
+
+
+def test_signals_at_window_boundary_are_included() -> None:
+    transcript = (
+        _segment("open", 0, 10, "First half of the bounded thought"),
+        _segment("close", 10, 20, "concludes at the end of the window."),
+    )
+
+    boundary = (
+        SourceSignal(kind="scene_change", timestamp=0.0, score=0.5),
+        SourceSignal(kind="audio_energy", timestamp=20.0, score=0.5, label="end"),
+    )
+
+    candidate = discover_highlights(
+        transcript, signals=boundary, config=_config(minimum=5, maximum=30, clips=1)
+    ).candidates[0]
+
+    assert {signal.timestamp for signal in candidate.source_signals} == {0.0, 20.0}
+
+
+# --- Monotonic transcript contract (GLM finding 2) --------------------------
+
+
+def test_strictly_decreasing_segments_raise_value_error() -> None:
+    transcript = (
+        _segment("first", 20, 30, "The second segment starts before the first."),
+        _segment("second", 10, 20, "This is intentionally out of order."),
+    )
+
+    with pytest.raises(ValueError, match="monotonic"):
+        discover_highlights(transcript, config=_config())
+
+
+def test_equal_segment_offsets_are_allowed() -> None:
+    transcript = (
+        _segment("first", 0, 10, "First segment ends here."),
+        _segment("second", 0, 5, "Second segment shares the anchor."),
+        _segment("third", 5, 15, "Third segment ends here."),
+    )
+
+    result = discover_highlights(transcript, config=_config(minimum=5))
+
+    assert len(result.candidates) >= 1
+
+
+def test_strictly_decreasing_segments_inside_batch_raise_value_error() -> None:
+    transcript = (
+        _segment("a", 0, 10, "Anchored at zero ends here."),
+        _segment("b", 5, 15, "Overlaps but stays non-decreasing."),
+        _segment("c", 3, 12, "Walks back below b and triggers the contract."),
+    )
+
+    with pytest.raises(ValueError, match="monotonic"):
+        discover_highlights(transcript, config=_config(minimum=5))
+
+
+# --- Distinct, non-degenerate title and hook (GLM finding 3) ----------------
+
+
+def test_title_does_not_truncate_at_abbreviation_period() -> None:
+    transcript = (_segment("abbrev", 0, 10, "Dr. Smith explains the answer here."),)
+
+    candidate = discover_highlights(transcript, config=_config(minimum=5)).candidates[0]
+
+    assert candidate.suggested_title == "Dr. Smith explains the answer here."
+    assert not candidate.suggested_title.endswith("Dr.")
+    assert "Dr." in candidate.suggested_title
+
+
+def test_title_does_not_truncate_at_decimal_point() -> None:
+    transcript = (_segment("decimal", 0, 10, "The result was 3.14 percent improvement."),)
+
+    candidate = discover_highlights(transcript, config=_config(minimum=5)).candidates[0]
+
+    assert candidate.suggested_title == "The result was 3.14 percent improvement."
+    # The title must not end on a bare "3." — that would be a degenerate lead.
+    assert not candidate.suggested_title.rstrip(".").endswith("3")
+
+
+def test_title_does_not_truncate_at_capital_initial() -> None:
+    transcript = (_segment("initial", 0, 10, "J. R. R. Tolkien wrote the book."),)
+
+    candidate = discover_highlights(transcript, config=_config(minimum=5)).candidates[0]
+
+    assert candidate.suggested_title == "J. R. R. Tolkien wrote the book."
+    assert candidate.suggested_title != "J."  # not a degenerate single-initial lead
+
+
+def test_title_and_hook_are_distinct_when_excerpt_has_multiple_sentences() -> None:
+    transcript = (_segment("multi", 0, 20, "First sentence is the lead. Second sentence is the hook."),)
+
+    candidate = discover_highlights(transcript, config=_config(minimum=5)).candidates[0]
+
+    assert candidate.suggested_title == "First sentence is the lead."
