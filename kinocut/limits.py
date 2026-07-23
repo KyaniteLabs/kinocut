@@ -27,6 +27,15 @@ MAX_WAVE3_VERDICT_IDS = 64
 MAX_WAVE3_AUTH_DECISION_IDS = 64
 MAX_ACCEPTANCE_EVIDENCE_FILES = 64
 
+# Long-form transcription chunking (per-chunk cap and overlap for the
+# reusable long-form stream-to-shorts workflow). These are independent of
+# MAX_AI_TRANSCRIBE_DURATION: ordinary ai_transcribe still rejects >3600s,
+# while transcribe_longform permits media up to MAX_VIDEO_DURATION.
+MAX_LONGFORM_TRANSCRIBE_CHUNK_SECONDS = 1500  # 25 minutes per chunk
+LONGFORM_TRANSCRIBE_OVERLAP_SECONDS = 15  # tail-overlap for word dedup
+MIN_LONGFORM_TRANSCRIBE_CHUNK_SECONDS = 30  # refuse sub-30s windows
+MAX_LONGFORM_TRANSCRIBE_CHUNKS = 64  # upper bound on plan size
+
 # Audio limits
 MAX_AUDIO_DURATION = 3600  # 1 hour
 MAX_AI_TRANSCRIBE_DURATION = MAX_AUDIO_DURATION
