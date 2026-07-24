@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from pathlib import Path
 
 import pytest
@@ -38,7 +39,8 @@ def _plan_with_renders(tmp_path: Path) -> str:
         video = platform_dir / "vertical.mp4"
         thumb = platform_dir / "thumbnail.jpg"
         srt = platform_dir / "captions.srt"
-        video.write_bytes(f"video-{platform}".encode())
+        payload = f"video-{platform}".encode()
+        video.write_bytes(payload)
         thumb.write_bytes(f"thumb-{platform}".encode())
         srt.write_text("1\n00:00:00,000 --> 00:00:01,000\nHello\n", encoding="utf-8")
         renders.append(
@@ -47,6 +49,7 @@ def _plan_with_renders(tmp_path: Path) -> str:
                 platform=platform,
                 output_path=str(video),
                 render_digest="a" * 16,
+                output_sha256=hashlib.sha256(payload).hexdigest(),
                 editable_subtitles=str(srt),
                 thumbnail_path=str(thumb),
             )
@@ -101,3 +104,13 @@ def test_package_writes_both_platform_packages(tmp_path):
         assert (root / "thumbnail.jpg").is_file()
         assert (root / "metadata.json").is_file()
         assert Path(item["manifest_path"]).is_file()
+
+
+def test_package_fails_closed_on_render_checksum_mismatch(tmp_path):
+    plan = _plan_with_renders(tmp_path)
+    review_shorts_plan(plan, candidate_id="candidate_01", decision="approve")
+    tampered = tmp_path / "renders" / "youtube-shorts" / "vertical.mp4"
+    tampered.write_bytes(b"tampered-bytes")
+    with pytest.raises(MCPVideoError) as exc:
+        package_approved_candidate(plan, candidate_id="candidate_01")
+    assert exc.value.code == "source_checksum_mismatch"

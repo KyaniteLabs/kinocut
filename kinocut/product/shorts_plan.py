@@ -109,6 +109,7 @@ class RenderRecord(_StrictModel):
     platform: Literal["youtube-shorts", "instagram-reel"]
     output_path: str = Field(min_length=1)
     render_digest: str = Field(pattern=r"^[0-9a-f]{16}$")
+    output_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
     editable_subtitles: str = Field(min_length=1)
     thumbnail_path: str = Field(min_length=1)
     cache_hit: bool = False
