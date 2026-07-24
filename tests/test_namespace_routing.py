@@ -249,14 +249,14 @@ def test_unknown_option_short_circuits_without_rewriting():
 def test_flat_command_set_remains_130():
     """Flat surface stays authoritative; namespaces only rewrite to flat commands.
 
-    7 aivideo + 9 audio + 5 qa + 10 edit + 4 shorts aliases = 35 grouped paths
-    over the 134-command flat parser (includes shorts plan-show/review/render/package).
+    7 aivideo + 9 audio + 5 qa + 10 edit + 4 shorts + 6 sound aliases = 41 grouped paths
+    over the 140-command flat parser (includes sound S12 public join).
     """
 
-    assert len(EXPECTED_CLI_COMMANDS) == 134
-    assert len(NAMESPACED_ALIASES) == 35
+    assert len(EXPECTED_CLI_COMMANDS) == 140
+    assert len(NAMESPACED_ALIASES) == 41
     groups = namespaced_groups()
-    assert set(groups) == {"aivideo", "audio", "qa", "edit", "shorts"}
+    assert set(groups) == {"aivideo", "audio", "qa", "edit", "shorts", "sound"}
     assert groups["aivideo"] == (
         "acceptance",
         "body-swap",
@@ -301,6 +301,14 @@ def test_flat_command_set_remains_130():
         "plan-show",
         "render",
         "review",
+    )
+    assert groups["sound"] == (
+        "capabilities",
+        "mix-render",
+        "plan-validate",
+        "qa-asr",
+        "qa-loudness",
+        "voice-batch",
     )
 
 

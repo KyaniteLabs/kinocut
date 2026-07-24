@@ -555,6 +555,8 @@ def search_tools(query: str) -> dict[str, Any]:
         server_tools_hyperframes,
         server_tools_image,
         server_tools_media,
+        server_tools_shorts,
+        server_tools_sound,
     )
 
     query_lower = query.lower()

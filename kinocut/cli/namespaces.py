@@ -51,6 +51,12 @@ NAMESPACED_ALIASES: dict[tuple[str, str], str] = {
     ("shorts", "review"): "shorts-review",
     ("shorts", "render"): "shorts-render",
     ("shorts", "package"): "shorts-package",
+    ("sound", "capabilities"): "sound-capabilities",
+    ("sound", "plan-validate"): "sound-plan-validate",
+    ("sound", "voice-batch"): "sound-voice-batch",
+    ("sound", "mix-render"): "sound-mix-render",
+    ("sound", "qa-loudness"): "sound-qa-loudness",
+    ("sound", "qa-asr"): "sound-qa-asr",
 }
 
 

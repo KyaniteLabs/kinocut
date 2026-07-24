@@ -19,7 +19,8 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Licensing notes](LEGAL_REVIEW.md) - project and dependency obligations.
 - [Agent discovery](AI_AGENT_DISCOVERY.md) - concise capability and setup summary.
 - [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
-- [Post-1.8 program status](status/2026-07-14-post-1.8-program-status.md) - current published-release and remaining-program boundary.
+- [Post-1.10 program status](status/2026-07-24-post-1-10-program-status.md) - current published-release and remaining-program boundary after 1.11.1.
+- [Post-1.8 program status](status/2026-07-14-post-1.8-program-status.md) - historical published-release boundary (superseded for planning).
 
 
 ## Marketing & activation (no design)
@@ -65,7 +66,7 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - Date-prefixed audits, handoffs, plans, and `docs/status/` entries are snapshots,
   not current install or source-layout instructions, unless they explicitly identify
   themselves as the current release record. For current release and program state,
-  use [post-1.8 program status](status/2026-07-14-post-1.8-program-status.md).
+  use [post-1.10 program status](status/2026-07-24-post-1-10-program-status.md); post-1.8 program status remains historical.
 - `docs/internal/` research is also historical operating evidence, not public product
   guidance.
 - `CHANGELOG.md` is intentionally historical and retains former package names.

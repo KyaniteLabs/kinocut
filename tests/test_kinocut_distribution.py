@@ -15,7 +15,7 @@ import mcp_video
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.10.0"
+KINOCUT_VERSION = "1.11.1"
 SHIM_VERSION = "1.6.2"
 
 

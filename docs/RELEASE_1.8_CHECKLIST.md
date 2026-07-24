@@ -10,9 +10,9 @@ publish steps for this completed release.
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml)
 
 **Tip surface at freeze:** 155 MCP tools · 134 CLI commands
-**Published result:** 1.10.0 · 155 MCP / 134 CLI
+**Published result:** 1.11.1 · 161 MCP / 140 CLI
 
-At 1.10.0 tag time, `development_* == published_*` at 155 / 134. (1.8.0 historical freeze was 142 / 121; 1.9.0 was 150 / 129.)
+At 1.11.1 tag time, `development_* == published_*` at 161 / 140. (1.10.0 was 155 / 134; 1.9.0 was 150 / 129; 1.8.0 was 142 / 121.)
 
 ---
 

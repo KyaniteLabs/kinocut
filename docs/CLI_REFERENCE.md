@@ -89,6 +89,14 @@ inspection, decision, protection, derivative, and re-review sequence.
 | `shorts-review` | Append a human review decision to a saved shorts plan |
 | `shorts-render` | Render approved platform drafts from a saved shorts plan |
 | `shorts-package` | Package approved platform renders from a saved shorts plan |
+| `sound-capabilities` | Discover the bounded public sound operation set |
+| `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional) |
+| `sound-voice-batch` | Local deterministic voice batch (`--plan-json` optional) |
+| `sound-mix-render` | Bounded local mix render for a minimal timeline |
+| `sound-qa-loudness` | Loudness check against the default delivery policy |
+| `sound-qa-asr` | Fake ASR verification (`--script-hashes`, `--audio-duration-seconds`) |
+
+Namespaced aliases (same handlers): `kino sound capabilities|plan-validate|voice-batch|mix-render|qa-loudness|qa-asr`.
 
 ## Visual Effects
 

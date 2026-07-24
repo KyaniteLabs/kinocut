@@ -242,6 +242,21 @@ See [STREAM_SHORTS.md](STREAM_SHORTS.md).
 
 ---
 
+## Sound public join (thin S12, 6 tools)
+
+Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This is **not** full-episode sonic-world completion. Results are JSON-safe and fail closed on hostile/privacy boundaries.
+
+| Tool | Description |
+|------|-------------|
+| `sound_capabilities` | Discover the bounded public sound operation set (local-first, non-TTY JSON) |
+| `sound_plan_validate` | Validate a SoundPlan payload (or a built-in minimal plan when omitted) |
+| `sound_voice_batch` | Render a local deterministic voice batch from a SoundPlan (relative paths only) |
+| `sound_mix_render` | Render a bounded local mix for a minimal timeline (duration/stem smoke path) |
+| `sound_qa_loudness` | Measure loudness against the default delivery policy on synthetic audio |
+| `sound_qa_asr` | Run the local fake ASR verification port against script hashes |
+
+---
+
 ## Audio Synthesis (9 tools)
 
 Generate audio from code — no external audio files needed. Pure NumPy, no extra dependencies.

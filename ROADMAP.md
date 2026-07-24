@@ -1,20 +1,24 @@
 # Improvement Roadmap
 
-Kinocut 1.10.0 is published with 155 MCP tools and 134 CLI commands. The 1.7.0 identity cutover is historical; the contract-first AI-video and sound program described below is post-release work that remains incomplete. Remotion has been fully removed. The current priority is finishing governed review/salvage, then executing the remaining program through independently reviewed parallel lanes.
+Kinocut 1.11.1 is published with 161 MCP tools and 140 CLI commands. The 1.7.0 identity cutover is historical. **1.9.0** publicized the release-artifact policy engines; **1.10.0/1.10.1** publicized saved-plan stream-to-shorts stages plus package content-hash integrity; **1.11.0/1.11.1** publicized the thin `kinocut_sound` S12 join (discover + invoke bounded sound ops) and post-theme harden. Remotion has been fully removed.
 
 ## Current AI-video and sound program
 
 - [x] Wave 0 contract and project-store foundation.
 - [x] Field safety: loss-proof add-audio and authored/dimension-aware subtitles.
 - [x] Content-addressed ingest, unified preflight, temporal evidence, and defect checks.
+- [x] 1.9.0 public MCP/CLI/client join for eight release-artifact policy engines.
+- [x] 1.10.x stream-to-shorts stages + package integrity fail-closed on content-hash mismatch.
+- [x] 1.11.x thin `kinocut_sound` S12 public join (capabilities, plan validate, voice batch, mix render, QA loudness/ASR) — **not** full-episode sound completion.
 - [ ] Finish independent Wave 3 verdict/protection/body-swap/salvage review and frozen-source verification.
-- [ ] Audio continuity and subtitle/graphics QA.
+- [ ] Audio continuity and subtitle/graphics QA beyond the thin sound surface.
 - [ ] Asset intelligence, editorial planning, review/approval, agent ergonomics, learning, and acceptance benchmark.
-- [ ] Standalone-capable `kinocut_sound` foundation through full-episode verification.
+- [ ] Full-episode `kinocut_sound` verification and broader sonic-world completion (1.12+).
 - [ ] Protected-timeline kernel integration, blocked until its named upstream contract and explicit human gate are green.
-- [ ] Final whole-program verification and stop-before-release handoff.
+- [ ] **G004 (human-only):** listening / phone-frame / multi-minute fixture acceptance for production stream-shorts claims — remains open; agents must not invent closed.
+- [ ] Final whole-program verification and stop-before-release handoff for remaining wishlist.
 
-Current status and sequencing: [post-1.8 program status](docs/status/2026-07-14-post-1.8-program-status.md) and [parallel execution plan](docs/plans/2026-07-12-wishlist-parallel-execution.md). The earlier [draft-status checkpoint](docs/status/2026-07-12-wishlist-draft-pr-status.md) is preserved as pre-release evidence.
+Current status and sequencing: [post-1.10 program status](docs/status/2026-07-24-post-1-10-program-status.md) (supersedes the post-1.8 snapshot for planning), [post-1.8 program status](docs/status/2026-07-14-post-1.8-program-status.md) (historical), and [parallel execution plan](docs/plans/2026-07-12-wishlist-parallel-execution.md). The earlier [draft-status checkpoint](docs/status/2026-07-12-wishlist-draft-pr-status.md) is preserved as pre-release evidence.
 
 ---
 

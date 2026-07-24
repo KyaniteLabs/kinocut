@@ -9,6 +9,52 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 1.11.1 - 2026-07-24
+
+### Fixed
+
+- Post-theme harden on the 1.11.0 sound public surface: every discovered operation has a real fail-closed invoke path; public results reject absolute host-path leakage; package/claims/distribution pins stay lockstep at 1.11.1.
+- ProjectStore compatibility tests poll for `render.completed` after a resumed job succeeds (CI free-rider).
+
+### Changed
+
+- Published surface remains **161 MCP tools / 140 CLI commands** (no new tool family beyond 1.11.0).
+
+### Compatibility
+
+- `pip install -U kinocut` to 1.11.1. The `mcp-video` compatibility shim continues to install the matching Kinocut version.
+- **Not claimed:** full-episode sound completion, protected-timeline kernel, native MCPB public publish, or G004 listening closure. G004 remains a human-only production claim gate for stream-shorts.
+
+## 1.11.0 - 2026-07-24
+
+### Added
+
+- Thin `kinocut_sound` S12 public join across MCP, CLI, and Python client: `sound_capabilities` / `sound-capabilities`, `sound_plan_validate` / `sound-plan-validate`, `sound_voice_batch` / `sound-voice-batch`, `sound_mix_render` / `sound-mix-render`, `sound_qa_loudness` / `sound-qa-loudness`, and `sound_qa_asr` / `sound-qa-asr` (plus matching `kino sound <action>` namespaced aliases). Operators can discover and invoke a bounded local-first sound set without private imports.
+- Public discovery stays aligned with invoke: no advertised sound operation raises unknown for a valid call.
+
+### Changed
+
+- Published surface grows to **161 MCP tools / 140 CLI commands** (from 155 / 134 in 1.10.x). Count tests, `CLIENT_METHOD_CONTRACTS`, and the thin `server.py` facade remain in lockstep.
+
+### Compatibility
+
+- `pip install -U kinocut` to 1.11.0. Does **not** claim full-episode sonic-world completion, kernel integration, or production stream-shorts listening (G004 remains human-open).
+
+## 1.10.1 - 2026-07-24
+
+### Fixed
+
+- Stream-shorts package fails closed when draft video bytes diverge from the render-time content hash (`source_checksum_mismatch`), so operators cannot ship a swapped file under a trusted package path.
+- Program ledger honesty free-rider: ROADMAP and post-1.10 status docs mark 1.9 policy engines and 1.10 shorts as publicized; open-loops manifest banner restates historical counts; G004 remains explicitly open.
+
+### Changed
+
+- Published surface remains **155 MCP tools / 134 CLI commands** (patch; no new public theme).
+
+### Compatibility
+
+- `pip install -U kinocut` to 1.10.1. Production stream-shorts acceptance still requires human listening / phone-frame review (G004).
+
 ## 1.10.0 - 2026-07-23
 
 ### Added
