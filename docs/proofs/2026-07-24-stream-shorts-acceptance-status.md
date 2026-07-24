@@ -11,6 +11,7 @@ Honest status for ultragoal G003/G004 after implementation landings. This is **n
 | Render orchestrator | #239 | `render_approved_candidate` |
 | Package orchestrator | #240 | `package_approved_candidate` |
 | CLI/client/MCP adapters | #241 | `shorts_*` surfaces; tip counts 155 MCP / 134 CLI |
+| Path containment + content sha256 package bind | #243 / #244 | render/package roots under `plan.output_dir`; package verifies render file hash |
 
 ## Automated gates
 
@@ -29,3 +30,19 @@ Until (1)–(4) close with evidence under `docs/proofs/`, do **not** start G005 
 ## Operator commands (tip)
 
 See [STREAM_SHORTS.md](../STREAM_SHORTS.md).
+
+## Loop closeout (2026-07-24)
+
+| Loop | Status |
+| --- | --- |
+| G003 product landings | Closed — Forgejo #236–#242, published 1.10.0 |
+| Adversarial reviews | Closed — posted on #236–#244 |
+| Render path containment | Closed — #243 |
+| Package content integrity | Closed — #244 (`output_sha256` + package checksum) |
+| GH #378 ASS PlayRes rewrite | Closed without merge — wrong vs design (#374 already verified: preserve authored ASS) |
+| Umbrella draft #400 | Closed superseded |
+| Tracker #405–#407, #399 | Closed (code complete) |
+| **Human listening / phone-frame visual QC** | **Open — human-only gate; not closable by agents** |
+
+Until human listening closes with evidence, do not claim production stream-to-shorts readiness. Operator surfaces remain available in published 1.10.0+.
+
