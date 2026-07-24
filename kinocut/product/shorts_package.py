@@ -101,6 +101,7 @@ def package_approved_candidate(
         result = package_approved_clip(
             package_dir=package_dir,
             vertical_video_path=record.output_path,
+            expected_video_sha256=record.output_sha256,
             caption_artifact=_caption_from_srt(record.editable_subtitles),
             candidate=candidate,
             thumbnail=ThumbnailSpec(image_path=record.thumbnail_path, timestamp=candidate.start),

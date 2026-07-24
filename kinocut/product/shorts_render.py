@@ -28,6 +28,14 @@ from .shorts_review import resolve_approved_candidate
 __all__ = ["render_approved_candidate"]
 
 
+def _file_sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(1024 * 1024), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
 def _candidate_digest(candidate: CandidateMoment) -> str:
     payload = json.dumps(candidate.model_dump(mode="json"), sort_keys=True, separators=(",", ":"))
     return hashlib.sha256(payload.encode()).hexdigest()[:16]
@@ -194,7 +202,14 @@ def _render_one_platform(
         None,
     )
     if previous is not None:
-        return _payload_for(previous, clipped, cache_hit=True), None, warning
+        if previous.output_sha256 is not None:
+            try:
+                if _file_sha256(previous.output_path) != previous.output_sha256:
+                    previous = None
+            except OSError:
+                previous = None
+        if previous is not None:
+            return _payload_for(previous, clipped, cache_hit=True), None, warning
 
     finished = _render_media(
         source_path=source_path,
@@ -213,6 +228,7 @@ def _render_one_platform(
         platform=platform,  # type: ignore[arg-type]
         output_path=finished,
         render_digest=digest,
+        output_sha256=_file_sha256(finished),
         editable_subtitles=srt_path,
         thumbnail_path=thumb,
         cache_hit=False,
