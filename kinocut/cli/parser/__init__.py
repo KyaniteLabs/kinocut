@@ -20,6 +20,7 @@ from . import workflow
 from . import inspection
 from . import aivideo
 from . import release
+from . import shorts
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -30,7 +31,7 @@ def build_parser() -> argparse.ArgumentParser:
         epilog=(
             "Namespaced aliases: `kino <group> <action> ...` rewrites to the matching "
             "flat command (e.g. `kino aivideo verdict` -> `kino video-verdict`). "
-            "Groups: aivideo, audio, qa, edit. The flat command set above is unchanged."
+            "Groups: aivideo, audio, qa, edit, shorts. The flat command set above is unchanged."
         ),
     )
     parser.add_argument(
@@ -73,5 +74,6 @@ def build_parser() -> argparse.ArgumentParser:
     inspection.add_parsers(subparsers)
     aivideo.add_parsers(subparsers)
     release.add_parsers(subparsers)
+    shorts.add_parsers(subparsers)
 
     return parser

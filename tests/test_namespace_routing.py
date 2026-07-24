@@ -247,18 +247,16 @@ def test_unknown_option_short_circuits_without_rewriting():
 
 
 def test_flat_command_set_remains_130():
-    """The flat subcommand set is the same 130-command surface; no new parser was added.
+    """Flat surface stays authoritative; namespaces only rewrite to flat commands.
 
-    Namespace aliases are pure argv rewrites to existing flat commands, never new
-    subcommands: 7 aivideo aliases (T7a) + 9 audio aliases (T7b) + 5 qa aliases
-    (T7c) + 10 edit aliases (T7d) = 31 grouped paths over the unchanged
-    130-command parser.
+    7 aivideo + 9 audio + 5 qa + 10 edit + 4 shorts aliases = 35 grouped paths
+    over the 134-command flat parser (includes shorts plan-show/review/render/package).
     """
 
-    assert len(EXPECTED_CLI_COMMANDS) == 130
-    assert len(NAMESPACED_ALIASES) == 31
+    assert len(EXPECTED_CLI_COMMANDS) == 134
+    assert len(NAMESPACED_ALIASES) == 35
     groups = namespaced_groups()
-    assert set(groups) == {"aivideo", "audio", "qa", "edit"}
+    assert set(groups) == {"aivideo", "audio", "qa", "edit", "shorts"}
     assert groups["aivideo"] == (
         "acceptance",
         "body-swap",
@@ -298,6 +296,12 @@ def test_flat_command_set_remains_130():
         "subtitles",
         "trim",
     )
+    assert groups["shorts"] == (
+        "package",
+        "plan-show",
+        "render",
+        "review",
+    )
 
 
 def test_parser_does_not_register_a_namespace_group_subparser():
@@ -311,6 +315,7 @@ def test_parser_does_not_register_a_namespace_group_subparser():
     assert "aivideo" not in choices
     assert "audio" not in choices
     assert "qa" not in choices
+    assert "shorts" not in choices
     assert "edit" in choices  # Existing flat timeline command, not an added group parser.
     assert choices == EXPECTED_CLI_COMMANDS
 
@@ -374,7 +379,7 @@ def test_edit_collision_input_keeps_flat_edit_timeline_parser():
 
 
 def test_group_help_does_not_add_namespace_groups_to_top_level_command_list():
-    """`kino --help` mentions all four groups yet lists exactly the flat 130 commands."""
+    """`kino --help` mentions all five groups yet lists exactly the flat 134 commands."""
 
     result = _cli("--help")
     assert result.returncode == 0, result.stderr

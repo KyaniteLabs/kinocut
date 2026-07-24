@@ -159,6 +159,12 @@ from .server_tools_ai import (
     video_quality_check as video_quality_check,
     video_release_checkpoint as video_release_checkpoint,
 )
+from .server_tools_shorts import (
+    shorts_package as shorts_package,
+    shorts_plan_show as shorts_plan_show,
+    shorts_render as shorts_render,
+    shorts_review as shorts_review,
+)
 from .server_tools_repurpose import (
     video_repurpose as video_repurpose,
     video_repurpose_plan as video_repurpose_plan,

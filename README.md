@@ -18,8 +18,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/KyaniteLabs/kinocut/ci.yml?branch=master&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-151%20tools-orange.svg" alt="151 MCP tools on development tip">
-  <img src="https://img.shields.io/badge/CLI-130%20commands-orange.svg" alt="130 CLI commands on development tip">
+  <img src="https://img.shields.io/badge/MCP-155%20tools-orange.svg" alt="155 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/CLI-134%20commands-orange.svg" alt="134 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -99,7 +99,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.9.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.9.0)** (2026-07-15) | Latest **published** package. Install with `pip install -U kinocut`. |
-| **This repository (`master`)** | **151 MCP tools / 130 CLI commands** | Development tip ahead of published 1.9.0 (release-artifact policy surfaces: review, publish gate, learning, cost, recipe, capabilities, benchmark). |
+| **This repository (`master`)** | **155 MCP tools / 134 CLI commands** | Development tip ahead of published 1.9.0 (saved-plan shorts stages: plan-show, review, render, package; plus release-artifact policy surfaces). |
 | **Next** | trusted execution kernel + sound program depth | See [Whats next](#whats-next). Not pinned to a specific package version yet. |
 
 Install from PyPI for the stable package. Clone `master` only when you intentionally need post-tag tip work.

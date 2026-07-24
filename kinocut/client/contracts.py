@@ -368,4 +368,9 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "recipe_capture": {"category": "report", "return_type": "dict", "aliases": {}},
     "capabilities": {"category": "report", "return_type": "dict", "aliases": {}},
     "benchmark_run": {"category": "report", "return_type": "dict", "aliases": {}},
+    # Saved-plan shorts stages (no posting)
+    "shorts_plan_show": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
+    "shorts_review": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
+    "shorts_render": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
+    "shorts_package": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
 }

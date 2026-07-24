@@ -474,11 +474,11 @@ def test_public_counts_and_client_contracts():
 
     tools = {tool.name for tool in asyncio.run(mcp.list_tools())}
     assert {"video_ingest", "video_preflight", "video_inspect_temporal"} <= tools
-    assert len(tools) == 151
+    assert len(tools) == 155
 
     commands = build_parser()._subparsers._group_actions[0].choices
     assert {"video-ingest", "video-preflight", "video-inspect-temporal"} <= set(commands)
-    assert len(commands) == 130
+    assert len(commands) == 134
     assert Client().inspect("ingest")["return_type"] == "report"
     assert Client().inspect("preflight")["return_type"] == "report"
     assert Client().inspect("inspect_temporal")["return_type"] == "report"

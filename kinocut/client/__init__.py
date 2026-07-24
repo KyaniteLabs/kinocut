@@ -17,6 +17,7 @@ from .workflow import ClientWorkflowMixin
 from .inspection import ClientInspectionMixin
 from .aivideo import ClientAIVideoMixin
 from .release import ClientReleaseMixin
+from .shorts import ClientShortsMixin
 
 
 class Client(
@@ -35,6 +36,7 @@ class Client(
     ClientInspectionMixin,
     ClientAIVideoMixin,
     ClientReleaseMixin,
+    ClientShortsMixin,
 ):
     """mcp-video client for programmatic video editing.
 

@@ -47,6 +47,10 @@ NAMESPACED_ALIASES: dict[tuple[str, str], str] = {
     ("edit", "add-text"): "add-text",
     ("edit", "subtitles"): "subtitles",
     ("edit", "add-audio"): "add-audio",
+    ("shorts", "plan-show"): "shorts-plan-show",
+    ("shorts", "review"): "shorts-review",
+    ("shorts", "render"): "shorts-render",
+    ("shorts", "package"): "shorts-package",
 }
 
 
