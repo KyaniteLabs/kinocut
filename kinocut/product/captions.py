@@ -1,4 +1,4 @@
-"""Strict caption timing contracts and deterministic SRT serialization."""
+"""Strict caption timing contracts, deterministic SRT serialization, and safe-placement planner."""
 
 from __future__ import annotations
 
@@ -119,6 +119,7 @@ def build_caption_artifact(
     cues: list[PhraseCue] = []
     warnings: list[str] = []
     low_confidence_count = 0
+    flagged_count = 0
     omitted_count = 0
     for group in groups:
         visible_tokens: list[str] = []
@@ -130,6 +131,7 @@ def build_caption_artifact(
             low_confidence_count += 1
             if cfg.on_low_confidence == "flag":
                 visible_tokens.append("[?]")
+                flagged_count += 1
             else:
                 omitted_count += 1
         text = " ".join(visible_tokens).strip()
@@ -146,9 +148,10 @@ def build_caption_artifact(
             )
         )
 
-    if low_confidence_count:
-        action = "omitted" if cfg.on_low_confidence == "omit" else "flagged"
-        warnings.insert(0, f"low_confidence_tokens_{action}")
+    if flagged_count:
+        warnings.insert(0, "low_confidence_tokens_flagged")
+    elif omitted_count:
+        warnings.insert(0, "low_confidence_tokens_omitted")
     cue_tuple = tuple(cues)
     return CaptionArtifact(
         cues=cue_tuple,
@@ -171,12 +174,149 @@ def _is_clause_terminal(text: str) -> bool:
     return text.rstrip().rstrip("\"')]").endswith((".", "!", "?"))
 
 
+# ---------------------------------------------------------------------------
+# Safe caption placement (issue #403)
+# ---------------------------------------------------------------------------
+# Burn-in is opt-in: ``plan_caption_placement`` only produces reviewable
+# placement evidence for the existing burn_in operator to consume later. It
+# never invokes ``kinocut.engine_subtitles`` or any other engine op.
+
+_HEX_COLOR_PATTERN = r"^#[0-9A-Fa-f]{6}$"
+CaptionStatus = Literal["ready", "blocked"]
+
+
+class CaptionRegion(ValueObject):
+    """Normalized caption rectangle: positive area, contained in the unit frame."""
+
+    x: float = Field(ge=0.0, le=1.0)
+    y: float = Field(ge=0.0, le=1.0)
+    width: float = Field(gt=0.0, le=1.0)
+    height: float = Field(gt=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def _stays_within_frame(self) -> CaptionRegion:
+        """Reject rectangles whose far edges leave the unit frame."""
+
+        if self.x + self.width > 1.0 or self.y + self.height > 1.0:
+            raise ValueError("region must stay within the unit frame")
+        return self
+
+
+class CaptionAppearance(ValueObject):
+    """Bounded, immutable visual treatment for a placed caption."""
+
+    font_family: str = Field(min_length=1, max_length=128)
+    font_size: int = Field(ge=8, le=200)
+    text_color: str = Field(pattern=_HEX_COLOR_PATTERN)
+    background_color: str = Field(pattern=_HEX_COLOR_PATTERN)
+
+
+class CaptionPlacement(ValueObject):
+    """Reviewable evidence describing a chosen (or blocked) caption placement."""
+
+    region: CaptionRegion | None = None
+    appearance: CaptionAppearance
+    status: CaptionStatus
+    warning: str | None = None
+    burn_in_requested: bool = False
+
+    @model_validator(mode="after")
+    def _status_matches_region(self) -> CaptionPlacement:
+        """A ready placement must carry a region; a blocked placement must warn."""
+
+        if self.status == "ready":
+            if self.region is None:
+                raise ValueError("ready placement requires a region")
+            if self.warning is not None:
+                raise ValueError("ready placement must not carry a warning")
+        else:
+            if self.region is not None:
+                raise ValueError("blocked placement must not select a region")
+            if not self.warning:
+                raise ValueError("blocked placement must include actionable warning")
+        return self
+
+
+_DEFAULT_APPEARANCE = CaptionAppearance(
+    font_family="Inter",
+    font_size=42,
+    text_color="#FFFFFF",
+    background_color="#000000",
+)
+
+
+def plan_caption_placement(
+    *,
+    candidate_regions: Sequence[CaptionRegion],
+    face_regions: Sequence[CaptionRegion] = (),
+    product_regions: Sequence[CaptionRegion] = (),
+    overlay_regions: Sequence[CaptionRegion] = (),
+    appearance: CaptionAppearance | None = None,
+    burn_in_requested: bool = False,
+) -> CaptionPlacement:
+    """Pick the first safe ``CaptionRegion`` or block the placement deterministically.
+
+    A candidate is safe when it has zero positive-area intersection with every
+    exclusion region (face, product, platform overlay). Touching edges are
+    allowed. When every candidate collides the result has ``status="blocked"``
+    with no region and an actionable warning -- never a placement over
+    exclusions. Inputs are normalized to deeply immutable tuples so the planner
+    is stable across runs and cannot mutate a caller's collection.
+    """
+
+    candidates = _freeze_regions(candidate_regions)
+    if not candidates:
+        raise ValueError("candidate_regions must be a non-empty sequence")
+    exclusions = _freeze_regions(face_regions) + _freeze_regions(product_regions) + _freeze_regions(overlay_regions)
+    chosen_appearance = appearance or _DEFAULT_APPEARANCE
+    for candidate in candidates:
+        if not any(_has_positive_overlap(candidate, region) for region in exclusions):
+            return CaptionPlacement(
+                region=candidate,
+                appearance=chosen_appearance,
+                status="ready",
+                burn_in_requested=burn_in_requested,
+            )
+    return CaptionPlacement(
+        region=None,
+        appearance=chosen_appearance,
+        status="blocked",
+        warning=(f"no_safe_caption_region:candidates={len(candidates)}:exclusions={len(exclusions)}"),
+        burn_in_requested=burn_in_requested,
+    )
+
+
+def _freeze_regions(regions: Sequence[CaptionRegion]) -> tuple[CaptionRegion, ...]:
+    """Validate and freeze a region sequence, preserving tuple immutability."""
+
+    materialised = tuple(regions)
+    for region in materialised:
+        if not isinstance(region, CaptionRegion):
+            raise TypeError("region inputs must be CaptionRegion instances")
+    return materialised
+
+
+def _has_positive_overlap(candidate: CaptionRegion, region: CaptionRegion) -> bool:
+    """Return ``True`` iff two rectangles share strictly-positive interior area."""
+
+    left = max(candidate.x, region.x)
+    bottom = max(candidate.y, region.y)
+    right = min(candidate.x + candidate.width, region.x + region.width)
+    top = min(candidate.y + candidate.height, region.y + region.height)
+    return right > left and top > bottom
+
+
 __all__ = [
+    "CaptionAppearance",
     "CaptionArtifact",
     "CaptionConfig",
+    "CaptionPlacement",
+    "CaptionRegion",
+    "CaptionStatus",
     "LowConfidencePolicy",
     "PhraseCue",
     "WordTiming",
     "build_caption_artifact",
     "build_srt_body",
+    "plan_caption_placement",
 ]
