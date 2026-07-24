@@ -13,11 +13,12 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_artifact_path
-from .models import CandidateMoment, TranscriptSegment
+from .models import CandidateMoment, TranscriptSegment, TranscriptWord
 
 
 __all__ = [
     "IntakeReport",
+    "RenderRecord",
     "ReviewAction",
     "ReviewDecision",
     "ShortsPlan",
@@ -101,6 +102,18 @@ class ReviewDecision(_StrictModel):
         return self
 
 
+class RenderRecord(_StrictModel):
+    """One platform draft produced by the render stage."""
+
+    candidate_id: str = Field(pattern=r"^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$")
+    platform: Literal["youtube-shorts", "instagram-reel"]
+    output_path: str = Field(min_length=1)
+    render_digest: str = Field(pattern=r"^[0-9a-f]{16}$")
+    editable_subtitles: str = Field(min_length=1)
+    thumbnail_path: str = Field(min_length=1)
+    cache_hit: bool = False
+
+
 class ShortsPlan(_StrictModel):
     """Persisted receipt consumed by downstream workflow stages."""
 
@@ -115,6 +128,10 @@ class ShortsPlan(_StrictModel):
     transcript: tuple[TranscriptSegment, ...]
     proposals: tuple[CandidateMoment, ...]
     decisions: tuple[ReviewDecision, ...] = ()
+    renders: tuple[RenderRecord, ...] = ()
+    package_manifests: tuple[str, ...] = ()
+    transcript_words: tuple[TranscriptWord, ...] = ()
+    external_posting: Literal[False] = False
 
     @model_validator(mode="after")
     def _validate_invariants(self) -> ShortsPlan:
@@ -128,6 +145,13 @@ class ShortsPlan(_StrictModel):
         for decision in self.decisions:
             if decision.candidate_id not in proposal_ids:
                 raise ValueError(f"decision references unknown candidate {decision.candidate_id!r}")
+        for render in self.renders:
+            if render.candidate_id not in proposal_ids:
+                raise ValueError(f"render references unknown candidate {render.candidate_id!r}")
+            if render.platform not in self.platforms:
+                raise ValueError(f"render platform {render.platform!r} is not in plan.platforms")
+        if self.external_posting is not False:
+            raise ValueError("external_posting must remain False")
         return self
 
 

@@ -9,6 +9,7 @@ from .package import package_approved_clip
 from .package_models import *  # noqa: F403
 from .shorts_plan import (
     IntakeReport,
+    RenderRecord,
     ReviewAction,
     ReviewDecision,
     ShortsPlan,
@@ -26,6 +27,7 @@ __all__ = [  # noqa: F405
     "PackagedClipResult",
     "PerformanceIdentifier",
     "PerformanceStatus",
+    "RenderRecord",
     "ReviewAction",
     "ReviewDecision",
     "ShortsPackageManifest",
