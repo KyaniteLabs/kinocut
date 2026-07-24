@@ -16,6 +16,7 @@ from .shorts_plan import (
     load_shorts_plan,
     save_shorts_plan,
 )
+from .shorts_review import resolve_approved_candidate, review_shorts_plan
 
 __all__ = [  # noqa: F405
     "IntakeReport",
@@ -37,5 +38,7 @@ __all__ = [  # noqa: F405
     "package_approved_clip",
     "package_kind",
     "parse_package_manifest",
+    "resolve_approved_candidate",
+    "review_shorts_plan",
     "save_shorts_plan",
 ]
