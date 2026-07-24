@@ -6,6 +6,20 @@ from kinocut import Client
 editor = Client()
 ```
 
+## Stream shorts (saved-plan stages)
+
+```python
+from kinocut import Client
+
+client = Client()
+client.shorts_plan_show("/path/to/plans")
+client.shorts_review("/path/to/plans", candidate_id="candidate_01", decision="approve")
+client.shorts_render("/path/to/plans", candidate_id="candidate_01")
+client.shorts_package("/path/to/plans", candidate_id="candidate_01")
+```
+
+Commands fail closed without a current approve. See [STREAM_SHORTS.md](STREAM_SHORTS.md).
+
 ## Agent-safe helpers
 
 | Method | Returns | Description |

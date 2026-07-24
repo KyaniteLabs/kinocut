@@ -228,6 +228,20 @@ Create local YouTube/social media packages from one source video. Publishing and
 
 ---
 
+## Stream shorts (saved-plan stages, 4 tools)
+
+Local-only review → render → package over a persisted shorts plan. No posting.
+See [STREAM_SHORTS.md](STREAM_SHORTS.md).
+
+| Tool | Description |
+|------|-------------|
+| `shorts_plan_show` | Load a saved plan and return source-free proposals for review |
+| `shorts_review` | Append one human decision (`approve` / `reject` / trim / title / sensitivity) |
+| `shorts_render` | Render platform drafts for an approved candidate; cache unchanged digests |
+| `shorts_package` | Write portable packages (video, SRT, thumbnail, metadata, manifest) |
+
+---
+
 ## Audio Synthesis (9 tools)
 
 Generate audio from code — no external audio files needed. Pure NumPy, no extra dependencies.
