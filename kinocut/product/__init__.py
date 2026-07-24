@@ -7,6 +7,7 @@ and the persisted human-review contract.
 
 from .package import package_approved_clip
 from .package_models import *  # noqa: F403
+from .shorts_package import package_approved_candidate
 from .shorts_plan import (
     IntakeReport,
     RenderRecord,
@@ -38,6 +39,7 @@ __all__ = [  # noqa: F405
     "canonical_manifest_bytes",
     "load_shorts_plan",
     "manifest_artifact_digest",
+    "package_approved_candidate",
     "package_approved_clip",
     "package_kind",
     "parse_package_manifest",
