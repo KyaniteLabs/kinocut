@@ -57,9 +57,7 @@ def _plan(tmp_path: Path) -> ShortsPlan:
                 confidence=0.8,
                 sensitivity=sensitivity,
                 unsuitable=False,
-                dedup_key=canonical_dedup_key(
-                    start=start, end=end, excerpt=excerpt, sensitivity=sensitivity
-                ),
+                dedup_key=canonical_dedup_key(start=start, end=end, excerpt=excerpt, sensitivity=sensitivity),
             ),
         ),
     )
