@@ -389,9 +389,19 @@ def test_phase1_exit_kill_reopen_resume_lineage_and_events(tmp_path, monkeypatch
     assert len(lineage["toolchain_fingerprint"]) > 0
 
     # --- event_poll sees ordered revision.created then render.completed ---
-    events = event_poll(reopened)
-    kinds = [e.event_kind for e in events]
-    assert "revision.created" in kinds and "render.completed" in kinds
+    # Poll: the detached runner appends render.completed in the same process-
+    # local transaction as SUCCEEDED, but under load the parent can observe the
+    # job head a moment before the kernel_event JSONL line is fully readable.
+    deadline = time.monotonic() + 5
+    events = []
+    kinds: list[str] = []
+    while time.monotonic() < deadline:
+        events = event_poll(reopened)
+        kinds = [e.event_kind for e in events]
+        if "revision.created" in kinds and "render.completed" in kinds:
+            break
+        time.sleep(0.05)
+    assert "revision.created" in kinds and "render.completed" in kinds, kinds
     assert kinds.index("revision.created") < kinds.index("render.completed")
     rev_ev = next(e for e in events if e.event_kind == "revision.created")
     assert rev_ev.revision_id == rev.record_id
