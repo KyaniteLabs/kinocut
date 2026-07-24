@@ -85,6 +85,10 @@ inspection, decision, protection, derivative, and re-review sequence.
 | `template` | Apply a video template (tiktok, youtube-shorts, etc.) |
 | `repurpose-plan` | Create a dry-run platform package manifest |
 | `repurpose` | Render local platform-ready variants and review artifacts |
+| `shorts-plan-show` | Show proposals from a saved shorts plan (source-free) |
+| `shorts-review` | Append a human review decision to a saved shorts plan |
+| `shorts-render` | Render approved platform drafts from a saved shorts plan |
+| `shorts-package` | Package approved platform renders from a saved shorts plan |
 
 ## Visual Effects
 

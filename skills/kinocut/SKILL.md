@@ -14,6 +14,7 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 - Read `../../docs/TOOLS.md` for MCP tool coverage.
 - Read `../../docs/PYTHON_CLIENT.md` when scripting multi-step workflows.
 - Read `../../docs/WORKFLOWS.md` for the agent workflow engine (job-spec, `@refs`, variants, resume, receipts).
+- Read `../../docs/STREAM_SHORTS.md` for saved-plan stream-to-shorts review → render → package (no posting).
 - Read `../../docs/RESCUE.md` for local diagnosis and content-preserving "fix this clip" work.
 - Read `../../docs/POST_RESCUE_FEATURES.md` for semantic, visual, restorative, composition, autopilot, and egress planning.
 - Read `../../docs/AI_VIDEO_INSPECTION.md` for content-addressed ingest and deterministic temporal evidence.
@@ -127,11 +128,13 @@ Receipts store workspace-relative paths only — keep specs and example receipts
    - `preview` for quick visual review.
    - `repurpose-plan` before `repurpose`.
    - Hyperframes `inspect`, `snapshot`, or `still` before full render.
+   - For saved shorts plans: `shorts-plan-show` → `shorts-review` → `shorts-render` → `shorts-package`.
 4. Produce release artifacts before publishing:
    - `video-quality-check`
    - `storyboard` or `thumbnail`
    - `video_release_checkpoint` through MCP or `Client.release_checkpoint()` through Python
 5. Ask for human visual/audio review before treating generated media as final.
+   Stream-shorts packages still require a separate listening gate; automation does not close it.
 
 ## CLI Examples
 
@@ -150,6 +153,11 @@ kino composite-layers --spec layers.json -o composite.mp4 --save-layer-plan laye
 kino video-quality-check clip.mp4
 kino repurpose-plan clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
+# Saved-plan stream shorts (after a plan exists under PLAN_DIR):
+kino shorts-plan-show PLAN_DIR --format json
+kino shorts-review PLAN_DIR --candidate-id candidate_01 --decision approve
+kino shorts-render PLAN_DIR --candidate-id candidate_01
+kino shorts-package PLAN_DIR --candidate-id candidate_01
 ```
 
 ## Python Example

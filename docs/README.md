@@ -11,6 +11,7 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [CLI reference](CLI_REFERENCE.md) - canonical `kino` commands and flags.
 - [MCP tools](TOOLS.md) - public tool categories and contracts.
 - [Python client](PYTHON_CLIENT.md) - canonical `from kinocut import Client` usage.
+- [Stream shorts](STREAM_SHORTS.md) - saved-plan review, render, and package stages (local-only).
 - [Agent workflows](WORKFLOWS.md) - job specs, render receipts, resume, and cleanup.
 - [Video rescue](RESCUE.md) - review-first repair pipeline.
 - [Testing](TESTING.md) - focused, integration, and real-media verification.
