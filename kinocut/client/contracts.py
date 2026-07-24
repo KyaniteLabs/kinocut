@@ -373,4 +373,10 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "shorts_review": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
     "shorts_render": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
     "shorts_package": {"category": "report", "return_type": "dict", "aliases": {"plan": "plan_path_or_dir"}},
+    "sound_capabilities": {"category": "report", "return_type": "dict"},
+    "sound_plan_validate": {"category": "report", "return_type": "dict"},
+    "sound_voice_batch": {"category": "report", "return_type": "dict"},
+    "sound_mix_render": {"category": "report", "return_type": "dict"},
+    "sound_qa_loudness": {"category": "report", "return_type": "dict"},
+    "sound_qa_asr": {"category": "report", "return_type": "dict"},
 }

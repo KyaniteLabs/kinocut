@@ -238,6 +238,12 @@ EXPECTED_CLI_COMMANDS = {
     "shorts-review",
     "shorts-render",
     "shorts-package",
+    "sound-capabilities",
+    "sound-plan-validate",
+    "sound-voice-batch",
+    "sound-mix-render",
+    "sound-qa-loudness",
+    "sound-qa-asr",
 }
 
 EXPECTED_SERVER_TOOLS = {
@@ -373,6 +379,12 @@ EXPECTED_SERVER_TOOLS = {
     "shorts_review",
     "shorts_render",
     "shorts_package",
+    "sound_capabilities",
+    "sound_plan_validate",
+    "sound_voice_batch",
+    "sound_mix_render",
+    "sound_qa_loudness",
+    "sound_qa_asr",
 }
 
 
@@ -390,7 +402,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 134
+    assert len(EXPECTED_CLI_COMMANDS) == 140
 
 
 def test_agent_cookbook_dry_run():
@@ -412,7 +424,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 155
+    assert len(tool_names) == 161
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -437,7 +449,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 155
+        assert len(tool_names) == 161
 
     asyncio.run(check_server())
 

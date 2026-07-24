@@ -18,6 +18,7 @@ from .inspection import ClientInspectionMixin
 from .aivideo import ClientAIVideoMixin
 from .release import ClientReleaseMixin
 from .shorts import ClientShortsMixin
+from .sound import ClientSoundMixin
 
 
 class Client(
@@ -37,6 +38,7 @@ class Client(
     ClientAIVideoMixin,
     ClientReleaseMixin,
     ClientShortsMixin,
+    ClientSoundMixin,
 ):
     """mcp-video client for programmatic video editing.
 

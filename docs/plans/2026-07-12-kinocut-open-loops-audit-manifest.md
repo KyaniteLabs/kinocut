@@ -1,5 +1,7 @@
 # Kinocut all-open-loops controller audit and execution manifest
 
+> **Historical banner (2026-07-24):** Open/closed **counts and item statuses in this file are a pre-1.9/1.10 audit snapshot**. They are **not** live completion truth. Prefer [post-1.10 program status](../status/2026-07-24-post-1-10-program-status.md) and [ROADMAP.md](../../ROADMAP.md). **G004 remains human-open** for production stream-shorts claims. 1.9 policy engines, 1.10 shorts stages, and 1.11 thin sound S12 join have since publicized; do not re-plan them as unfinished code.
+
 > **Implementation amendment:** The inventory below is the pre-ready-units audit snapshot.
 > Governed audio-bed composition, voice seam checks, approved-asset registry queries, subtitle QA,
 > deterministic graphics, and the `kinocut_sound` foundation have since landed in the reviewed
