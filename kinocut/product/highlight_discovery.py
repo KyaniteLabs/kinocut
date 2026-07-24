@@ -1,6 +1,6 @@
-"""Deterministic transcript-only highlight candidate discovery.
+"""Deterministic, evidence-grounded highlight candidate discovery.
 
-Core slice contract (the only behaviour tests touch):
+Discovery contract:
 
 * **Monotonic input** — segments are accepted only when their ``start`` is
   non-decreasing.  Strictly-decreasing inputs raise ``ValueError`` so callers
@@ -8,7 +8,8 @@ Core slice contract (the only behaviour tests touch):
 * **In-window signal preservation** — ``SourceSignal`` entries whose timestamp
   falls inside ``[anchor.start, end_segment.end]`` (inclusive on both ends) are
   preserved on the candidate, sorted deterministically, and out-of-window
-  signals are excluded.  Signal presence never changes discovery or ordering.
+  signals are excluded.  In-window evidence may truthfully affect confidence
+  and therefore candidate ordering.
 * **Bounded complete-thought windows** — every candidate window obeys
   ``min_duration <= end - start <= max_duration`` and ends at a terminal mark
   (``.``, ``!``, ``?``) so the rendered clip resolves rather than trailing off.
@@ -17,8 +18,8 @@ Core slice contract (the only behaviour tests touch):
   is allowed to degenerate to a known abbreviation ("Dr."), a single capital
   initial ("U. S. A."), or a decimal point ("3.14").
 
-This slice is deliberately transcript-only: enrichment, sensitivity escalation,
-and review warnings are owned by the later enrichment slice.
+Transcript evidence remains authoritative; enrichment adds bounded signal
+weighting, sensitivity escalation, context, rationale, and review warnings.
 """
 
 from __future__ import annotations
@@ -58,6 +59,8 @@ _BOUNDARY_TERMINAL_RE = re.compile(r"[.!?](?:[\"')\]]+)?\s*$")
 _INNER_TERMINAL_RE = re.compile(r"[.!?](?:[\"')\]]+)?(?=\s|$)")
 _CHAR_LIMIT_TITLE = 80
 _CHAR_LIMIT_HOOK = 160
+_UNSAFE_RE = re.compile(r"\b(?:suicide|self-harm|kill|murder|overdose)\b", re.IGNORECASE)
+_UNSAFE_WARNING = "Unsafe or sensitive transcript terms require editorial review."
 
 
 def discover_highlights(
@@ -66,11 +69,13 @@ def discover_highlights(
     signals: Sequence[SourceSignal] = (),
     config: HighlightDiscoveryConfig | None = None,
 ) -> HighlightDiscoveryResult:
-    """Discover bounded, complete-thought candidates from ordered segments.
+    """Discover bounded, complete-thought candidates with editorial evidence.
 
-    Candidate confidence is deliberately transcript-only. Signals that fall in a
-    selected window are preserved as evidence for a later enrichment stage, but
-    do not change discovery or ordering in this core slice.
+    Candidate confidence is transcript-only at the base; in-window signals are
+    blended in via ``HighlightDiscoveryConfig.signal_weight`` so the same
+    transcript re-discovered with a richer signal set produces a strictly
+    ordered set of candidates.  Sensitivity escalation, context, rationale,
+    and review warnings are attached as evidence without inventing copy.
 
     Raises:
         ValueError: when any adjacent pair of segments has ``current.start <
@@ -131,12 +136,12 @@ def _candidate_for_anchor(
         return None
     end_segment = segments[end_index]
     excerpt = " ".join(parts)
-    confidence = _transcript_score(excerpt)
+    sensitivity = "unsafe" if _UNSAFE_RE.search(excerpt) else "none"
     key = canonical_dedup_key(
         start=anchor.start,
         end=end_segment.end,
         excerpt=excerpt,
-        sensitivity="none",
+        sensitivity=sensitivity,
     )
     title = _excerpt_title(excerpt)
     hook = _excerpt_hook(excerpt)
@@ -154,6 +159,12 @@ def _candidate_for_anchor(
             ),
         )
     )
+    confidence = _confidence(excerpt, window_signals, config.signal_weight)
+    signal_kinds = ", ".join(sorted({signal.kind for signal in window_signals}))
+    rationale = "Complete transcript thought"
+    if signal_kinds:
+        rationale += f" with in-window {signal_kinds} evidence"
+    rationale += "."
     return CandidateMoment(
         candidate_id=_candidate_id(anchor.segment_id, key),
         start=anchor.start,
@@ -161,14 +172,14 @@ def _candidate_for_anchor(
         transcript_excerpt=excerpt,
         suggested_title=title,
         suggested_hook=hook,
-        rationale=(
-            f"Transcript window from {anchor.start:.2f}s to {end_segment.end:.2f}s "
-            "meets the duration bounds and ends at a complete thought."
-        ),
+        rationale=rationale,
         confidence=confidence,
+        review_warning=_UNSAFE_WARNING if sensitivity == "unsafe" else None,
+        context_before=_adjacent_context(segments, anchor_index - 1),
+        context_after=_adjacent_context(segments, end_index + 1),
         dedup_key=key,
-        sensitivity="none",
-        unsuitable=False,
+        sensitivity=sensitivity,
+        unsuitable=sensitivity == "unsafe",
         source_signals=window_signals,
     )
 
@@ -199,6 +210,20 @@ def _transcript_score(excerpt: str) -> float:
     density = min(1.0, words / 60.0)
     completeness = min(1.0, terminals / 2.0)
     return round(min(1.0, 0.6 * density + 0.4 * completeness), 4)
+
+
+def _confidence(excerpt: str, signals: tuple[SourceSignal, ...], weight: float) -> float:
+    transcript_score = _transcript_score(excerpt)
+    if not signals:
+        return transcript_score
+    signal_score = max(signal.score for signal in signals)
+    return round((1.0 - weight) * transcript_score + weight * signal_score, 4)
+
+
+def _adjacent_context(segments: tuple[TranscriptSegment, ...], index: int) -> str | None:
+    if 0 <= index < len(segments):
+        return segments[index].text.strip() or None
+    return None
 
 
 def _excerpt_title(excerpt: str) -> str:
