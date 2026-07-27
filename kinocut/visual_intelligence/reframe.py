@@ -15,6 +15,8 @@ from .models import (
     CropVariantPlan,
     NormalizedBox,
     ReframePlan,
+    SpeakerTurn,
+    TrackSample,
     VisualAnalysisPlan,
     canonical_sha256,
 )
@@ -50,14 +52,18 @@ def _track_samples(
     analysis: VisualAnalysisPlan,
     target: CropTarget,
     max_center_step: float,
+    speaker_turns: tuple[SpeakerTurn, ...],
 ) -> tuple[CropTrackSample, ...]:
-    track = next(item for item in analysis.subject_tracks if item.subject_id == analysis.primary_subject_id)
+    tracks = {item.subject_id: item for item in analysis.subject_tracks}
+    track = tracks[analysis.primary_subject_id]
     frame_regions = {item.timestamp_seconds: item.regions for item in analysis.safe_regions}
     crop_width, crop_height = _crop_size(analysis.source.width, analysis.source.height, target)
     previous_x: float | None = None
     previous_y: float | None = None
     samples = []
-    for subject in track.samples:
+    for primary_sample in track.samples:
+        active_id = _active_subject_id(primary_sample.timestamp_seconds, speaker_turns, analysis.primary_subject_id)
+        subject = _nearest_sample(tracks[active_id].samples, primary_sample.timestamp_seconds)
         center_x = _bounded_center(subject.box.center_x, previous_x, crop_width, max_center_step)
         center_y = _bounded_center(subject.box.center_y, previous_y, crop_height, max_center_step)
         crop = NormalizedBox(
@@ -70,7 +76,8 @@ def _track_samples(
         region_coverage = min((_coverage(region.box, crop) for region in regions), default=1.0)
         samples.append(
             CropTrackSample(
-                timestamp_seconds=subject.timestamp_seconds,
+                timestamp_seconds=primary_sample.timestamp_seconds,
+                active_subject_id=active_id,
                 crop_box=crop,
                 subject_coverage=_coverage(subject.box, crop),
                 safe_region_coverage=region_coverage,
@@ -80,6 +87,25 @@ def _track_samples(
         )
         previous_x, previous_y = center_x, center_y
     return tuple(samples)
+
+
+def _active_subject_id(
+    timestamp: float,
+    speaker_turns: tuple[SpeakerTurn, ...],
+    fallback: str,
+) -> str:
+    matches = [
+        turn
+        for turn in speaker_turns
+        if turn.start_seconds <= timestamp < turn.end_seconds
+    ]
+    if not matches:
+        return fallback
+    return min(matches, key=lambda turn: (-turn.confidence, turn.subject_id)).subject_id
+
+
+def _nearest_sample(samples: tuple[TrackSample, ...], timestamp: float) -> TrackSample:
+    return min(samples, key=lambda sample: (abs(sample.timestamp_seconds - timestamp), sample.timestamp_seconds))
 
 
 def _representative_previews(samples: tuple[CropTrackSample, ...], preview_count: int) -> tuple[CropPreview, ...]:
@@ -129,13 +155,15 @@ def _variant(
     min_tracking_confidence: float,
     max_center_step: float,
     preview_count: int,
+    speaker_turns: tuple[SpeakerTurn, ...],
 ) -> CropVariantPlan:
-    track = next(item for item in analysis.subject_tracks if item.subject_id == analysis.primary_subject_id)
-    samples = _track_samples(analysis, target, max_center_step)
+    selected_ids = {turn.subject_id for turn in speaker_turns} or {analysis.primary_subject_id}
+    confidence = min(item.confidence for item in analysis.subject_tracks if item.subject_id in selected_ids)
+    samples = _track_samples(analysis, target, max_center_step, speaker_turns)
     source_crop_fraction = 1.0 - samples[0].crop_box.area
     maximum_subject_loss = max((1.0 - sample.subject_coverage for sample in samples), default=1.0)
     reasons = _abstention_reasons(
-        analysis, track.confidence, min_tracking_confidence, source_crop_fraction, maximum_subject_loss, budget
+        analysis, confidence, min_tracking_confidence, source_crop_fraction, maximum_subject_loss, budget
     )
     return CropVariantPlan(
         target_id=target.target_id,
@@ -158,6 +186,7 @@ def plan_subject_aware_reframe(
     min_tracking_confidence: float = 0.70,
     max_center_step: float = 0.10,
     preview_count: int = 3,
+    speaker_turns: Iterable[SpeakerTurn | Mapping[str, Any]] = (),
 ) -> ReframePlan:
     """Plan target-aspect crop tracks without touching media."""
 
@@ -176,15 +205,33 @@ def plan_subject_aware_reframe(
     if len({target.target_id for target in target_models}) != len(target_models):
         raise ValidationError("targets", "target ids must be unique")
     budget_model = CropBudget.model_validate(crop_budget)
+    turn_models = tuple(
+        sorted(
+            (SpeakerTurn.model_validate(item) for item in speaker_turns),
+            key=lambda item: (item.start_seconds, item.end_seconds, item.subject_id),
+        )
+    )
+    known_subject_ids = {track.subject_id for track in analysis_model.subject_tracks}
+    if any(turn.subject_id not in known_subject_ids for turn in turn_models):
+        raise ValidationError("speaker_turns", "every speaker turn must reference a known subject track")
     payload = {
         "analysis_sha256": analysis_model.plan_sha256,
         "source": analysis_model.source,
         "primary_subject_id": analysis_model.primary_subject_id,
         "crop_budget": budget_model,
+        "speaker_turns": turn_models,
         "min_tracking_confidence": min_tracking_confidence,
         "max_center_step": max_center_step,
         "variants": tuple(
-            _variant(analysis_model, target, budget_model, min_tracking_confidence, max_center_step, preview_count)
+            _variant(
+                analysis_model,
+                target,
+                budget_model,
+                min_tracking_confidence,
+                max_center_step,
+                preview_count,
+                turn_models,
+            )
             for target in target_models
         ),
     }

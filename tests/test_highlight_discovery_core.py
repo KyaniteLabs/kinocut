@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from kinocut.product.highlight_discovery import discover_highlights
-from kinocut.product.models import HighlightDiscoveryConfig, SourceSignal, TranscriptSegment
+from kinocut.product.models import HighlightDiscoveryConfig, SelectionExample, SourceSignal, TranscriptSegment
 
 
 def _segment(
@@ -51,6 +51,34 @@ def test_discovery_is_repeatable_and_json_stable() -> None:
 
     assert first == second
     assert first.model_dump_json() == second.model_dump_json()
+
+
+def test_operator_examples_deterministically_influence_candidate_ranking() -> None:
+    transcript = _realistic_transcript()
+    example = SelectionExample(
+        example_id="approved-learning",
+        transcript_excerpt="process gets faster whenever it learns",
+    )
+    config = _config()
+
+    first = discover_highlights(transcript, examples=(example,), config=config)
+    second = discover_highlights(transcript, examples=(example,), config=config)
+
+    assert first.model_dump_json() == second.model_dump_json()
+    assert first.candidates[0].selection_example_ids == ("approved-learning",)
+    assert "operator-approved examples" in first.candidates[0].rationale
+    assert "gets faster whenever it learns" in first.candidates[0].transcript_excerpt
+
+
+def test_empty_operator_examples_preserve_baseline_json() -> None:
+    transcript = _realistic_transcript()
+    config = _config()
+
+    assert discover_highlights(transcript, config=config).model_dump_json() == discover_highlights(
+        transcript,
+        examples=(),
+        config=config,
+    ).model_dump_json()
 
 
 def test_realistic_transcript_produces_at_least_three_distinct_candidates() -> None:

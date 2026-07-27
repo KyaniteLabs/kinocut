@@ -32,6 +32,7 @@ from .models import (
     CandidateMoment,
     HighlightDiscoveryConfig,
     HighlightDiscoveryResult,
+    SelectionExample,
     SourceSignal,
     TranscriptSegment,
     canonical_dedup_key,
@@ -67,6 +68,7 @@ def discover_highlights(
     transcript: Sequence[TranscriptSegment],
     *,
     signals: Sequence[SourceSignal] = (),
+    examples: Sequence[SelectionExample] = (),
     config: HighlightDiscoveryConfig | None = None,
 ) -> HighlightDiscoveryResult:
     """Discover bounded, complete-thought candidates with editorial evidence.
@@ -86,6 +88,7 @@ def discover_highlights(
     cfg = config or HighlightDiscoveryConfig()
     segments = tuple(transcript)
     source_signals = tuple(signals)
+    selection_examples = tuple(examples)
     if any(current.start < previous.start for previous, current in pairwise(segments)):
         raise ValueError("transcript segments must be monotonic by start offset")
 
@@ -93,7 +96,7 @@ def discover_highlights(
     for anchor_index, anchor in enumerate(segments):
         if anchor.is_silence or not anchor.text.strip():
             continue
-        candidate = _candidate_for_anchor(segments, anchor_index, source_signals, cfg)
+        candidate = _candidate_for_anchor(segments, anchor_index, source_signals, selection_examples, cfg)
         if candidate is not None:
             candidates.append(candidate)
 
@@ -115,6 +118,7 @@ def _candidate_for_anchor(
     segments: tuple[TranscriptSegment, ...],
     anchor_index: int,
     signals: tuple[SourceSignal, ...],
+    examples: tuple[SelectionExample, ...],
     config: HighlightDiscoveryConfig,
 ) -> CandidateMoment | None:
     anchor = segments[anchor_index]
@@ -160,10 +164,16 @@ def _candidate_for_anchor(
         )
     )
     confidence = _confidence(excerpt, window_signals, config.signal_weight)
+    example_matches = _example_matches(excerpt, examples)
+    if examples:
+        example_score = max((score for score, _example in example_matches), default=0.0)
+        confidence = round((1.0 - config.example_weight) * confidence + config.example_weight * example_score, 4)
     signal_kinds = ", ".join(sorted({signal.kind for signal in window_signals}))
     rationale = "Complete transcript thought"
     if signal_kinds:
         rationale += f" with in-window {signal_kinds} evidence"
+    if example_matches:
+        rationale += " aligned with operator-approved examples"
     rationale += "."
     return CandidateMoment(
         candidate_id=_candidate_id(anchor.segment_id, key),
@@ -181,6 +191,7 @@ def _candidate_for_anchor(
         sensitivity=sensitivity,
         unsuitable=sensitivity == "unsafe",
         source_signals=window_signals,
+        selection_example_ids=tuple(example.example_id for _score, example in example_matches),
     )
 
 
@@ -218,6 +229,21 @@ def _confidence(excerpt: str, signals: tuple[SourceSignal, ...], weight: float) 
         return transcript_score
     signal_score = max(signal.score for signal in signals)
     return round((1.0 - weight) * transcript_score + weight * signal_score, 4)
+
+
+def _example_matches(
+    excerpt: str,
+    examples: tuple[SelectionExample, ...],
+) -> tuple[tuple[float, SelectionExample], ...]:
+    excerpt_tokens = frozenset(re.findall(r"\w+", excerpt.casefold()))
+    ranked: list[tuple[float, SelectionExample]] = []
+    for example in examples:
+        example_tokens = frozenset(re.findall(r"\w+", example.transcript_excerpt.casefold()))
+        union = excerpt_tokens | example_tokens
+        similarity = (len(excerpt_tokens & example_tokens) / len(union) if union else 0.0) * example.weight
+        if similarity > 0:
+            ranked.append((round(similarity, 4), example))
+    return tuple(sorted(ranked, key=lambda item: (-item[0], item[1].example_id)))
 
 
 def _adjacent_context(segments: tuple[TranscriptSegment, ...], index: int) -> str | None:

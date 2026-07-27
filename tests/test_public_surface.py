@@ -368,6 +368,9 @@ EXPECTED_SERVER_TOOLS = {
     "video_rescue_inspect",
     "video_semantic_timeline",
     "video_semantic_query",
+    "video_find_moments",
+    "video_project_recipe_export",
+    "video_project_recipe_replay",
     "video_timeline_edit_plan",
     "video_visual_transform_plan",
     "video_restoration_plan",
@@ -424,7 +427,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 161
+    assert len(tool_names) == 164
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -449,7 +452,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 161
+        assert len(tool_names) == 164
 
     asyncio.run(check_server())
 

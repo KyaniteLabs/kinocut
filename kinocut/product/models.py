@@ -85,6 +85,14 @@ class SourceSignal(ValueObject):
     label: str | None = Field(default=None, min_length=1)
 
 
+class SelectionExample(ValueObject):
+    """One operator-approved example clip used to tune deterministic ranking."""
+
+    example_id: str = Field(pattern=_SEGMENT_ID_PATTERN)
+    transcript_excerpt: str = Field(min_length=1)
+    weight: float = Field(default=1.0, gt=0.0, le=1.0)
+
+
 # --- Output ------------------------------------------------------------------
 
 
@@ -111,6 +119,7 @@ class CandidateMoment(ValueObject):
     sensitivity: SensitivityLevel = "none"
     unsuitable: bool = False
     source_signals: tuple[SourceSignal, ...] = ()
+    selection_example_ids: tuple[str, ...] = ()
 
     @model_validator(mode="after")
     def _validate_invariants(self) -> CandidateMoment:
@@ -142,6 +151,7 @@ class HighlightDiscoveryConfig(ValueObject):
     min_clips: int = Field(default=3, ge=0)
     max_clips: int = Field(default=8, ge=1)
     signal_weight: float = Field(default=0.25, ge=0.0, le=1.0)
+    example_weight: float = Field(default=0.25, ge=0.0, le=1.0)
     window_stride: float = Field(default=8.0, gt=0.0)
 
     @model_validator(mode="after")

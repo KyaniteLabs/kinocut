@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino exposes 142 registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino exposes 164 registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -19,6 +19,25 @@ not accept a caller-supplied record or an arbitrary media path.
 `video_preflight` and `video_inspect_temporal` require an existing project. Optional visual
 providers are not contacted or downloaded implicitly; the default result explicitly marks
 both visual capabilities unavailable.
+
+## Durable Intent and Recipe Tools (3 tools)
+
+These tools operate on an existing project, edit project, and immutable revision. Semantic
+search stays local and revision-bound. Recipe export verifies that caller-supplied operation
+descriptors compile to the selected revision, then emits a canonical artifact containing
+digest placeholders and typed parameters—not host paths. Replay requires explicit source
+digest bindings and appends a new revision; it never overwrites the source or publishes.
+
+| Tool | Description |
+|------|-------------|
+| `video_find_moments` | Persist or query a bounded, revision-owned semantic index in projectstore CAS |
+| `video_project_recipe_export` | Export a verified revision path as a path-free, policy-carrying portable recipe |
+| `video_project_recipe_replay` | Bind recipe source slots to explicit CAS digests and replay into a durable revision |
+
+The guarded recipe flow is: review the source revision and policies, export, distribute the
+JSON artifact, bind every `cas_digest` slot in the destination project, then replay. A recipe
+is not release authority: review gates remain metadata that the receiving workflow must
+satisfy, and no tag, package upload, directory submission, or publish action occurs.
 
 ## Governed AI-video Review and Salvage (4 tools)
 
