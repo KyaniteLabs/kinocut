@@ -339,7 +339,7 @@ def _lower_operation(
     else:  # silence_cut -> ordered trim work steps + merge
         names: list[str] = []
         for index, (start, end) in enumerate(op.params["keep_segments"]):
-            name = f"seg_{output_id}_{index}"
+            name = f"seg_{output_id}_{index}.mp4"
             names.append(name)
             steps.append(
                 _step(

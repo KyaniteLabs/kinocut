@@ -17,6 +17,7 @@ from .models import (
     VisualAnalysisPlan,
 )
 from .reframe import plan_subject_aware_reframe
+from .reframe_render import ReframeRenderReceipt, render_reframe_plan
 from .stabilization import plan_stabilization
 from .verification import (
     verify_borders,
@@ -36,6 +37,7 @@ __all__ = [
     "Landmark",
     "LandmarkKind",
     "NormalizedBox",
+    "ReframeRenderReceipt",
     "SafeRegion",
     "SafeRegionKind",
     "SourceVideo",
@@ -45,6 +47,7 @@ __all__ = [
     "plan_stabilization",
     "plan_subject_aware_reframe",
     "plan_visual_analysis",
+    "render_reframe_plan",
     "verify_borders",
     "verify_crop_continuity",
     "verify_crop_resolution",

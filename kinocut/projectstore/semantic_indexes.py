@@ -8,7 +8,7 @@ from pathlib import Path
 
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
-from kinocut.contracts.trusted_execution import EditRevisionRecord, SemanticIndexArtifactRecord
+from kinocut.contracts.trusted_execution import EditRevisionRecord, MomentSelectionRecord, SemanticIndexArtifactRecord
 from kinocut.projectstore import store
 from kinocut.projectstore.cas import ingest_blob, resolve_blob
 from kinocut.projectstore.edit_projects import get_edit_project
@@ -134,4 +134,51 @@ def find_moments(
     )
 
 
-__all__ = ["find_moments", "load_semantic_index", "persist_semantic_index"]
+def persist_moment_selection(
+    project: store.Project,
+    edit_project_id: str,
+    revision_id: str,
+    index_digest: str,
+    hits: tuple[SemanticQueryHit, ...],
+    selected_span_ids: tuple[str, ...],
+    *,
+    query_text: str | None = None,
+    selection_example_ids: tuple[str, ...] = (),
+) -> MomentSelectionRecord:
+    """Persist only an explicit subset of hits; searching alone never selects."""
+
+    load_semantic_index(project, edit_project_id, revision_id, index_digest)
+    available = {hit.span_id for hit in hits}
+    selected = tuple(dict.fromkeys(selected_span_ids))
+    if not selected or any(span_id not in available for span_id in selected):
+        raise contract_error("moment selection must reference returned search hits", INVALID_RECORD)
+    existing = [
+        item
+        for item in store.read_records(project, "moment_selection")
+        if isinstance(item, MomentSelectionRecord)
+        and item.edit_project_id == edit_project_id
+        and item.revision_id == revision_id
+        and item.index_digest == index_digest
+        and item.selected_span_ids == selected
+        and item.selection_example_ids == selection_example_ids
+        and item.query_text == query_text
+    ]
+    if existing:
+        return existing[0]
+    record = validate_record(
+        MomentSelectionRecord,
+        {
+            "project_id": project.project_id,
+            "created_by": "human:review",
+            "edit_project_id": edit_project_id,
+            "revision_id": revision_id,
+            "index_digest": index_digest,
+            "selected_span_ids": selected,
+            "selection_example_ids": tuple(dict.fromkeys(selection_example_ids)),
+            "query_text": query_text,
+        },
+    )
+    return store.append_record(project, record)
+
+
+__all__ = ["find_moments", "load_semantic_index", "persist_moment_selection", "persist_semantic_index"]

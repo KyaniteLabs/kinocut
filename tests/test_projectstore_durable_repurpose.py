@@ -3,10 +3,16 @@ from __future__ import annotations
 import json
 from pathlib import Path
 
+from kinocut.contracts.adapter import validate_record
+from kinocut.contracts.trusted_execution import MomentSelectionRecord
 from kinocut.projectstore import (
+    append_record,
+    append_revision,
     cancel_render_job,
+    create_edit_project,
     get_render_job,
     open_project,
+    read_records,
     render_job_status,
     resume_render_job,
 )
@@ -88,3 +94,41 @@ def test_public_repurpose_submits_durable_job_without_legacy_direct_render(tmp_p
     assert result["operation"] == "repurpose"
     assert result["status"] == "queued"
     assert result["clips"][0]["platform"] == "tiktok"
+
+
+def test_durable_repurpose_binds_explicit_reviewed_moment_selection(tmp_path: Path):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"fixture media")
+    project_dir = tmp_path / "project"
+    project = open_project(project_dir)
+    selection_project = create_edit_project(project)
+    selection_revision = append_revision(project, selection_project.edit_project_id, operation_ids=())
+    selection = append_record(
+        project,
+        validate_record(
+            MomentSelectionRecord,
+            {
+                "project_id": project.project_id,
+                "created_by": "human:review",
+                "edit_project_id": selection_project.edit_project_id,
+                "revision_id": selection_revision.record_id,
+                "index_digest": "sha256:" + "1" * 64,
+                "selected_span_ids": ("span:approved",),
+                "selection_example_ids": ("approved-learning",),
+                "query_text": "approved moment",
+            },
+        ),
+    )
+
+    result = durable_repurpose(
+        str(source),
+        str(project_dir),
+        platforms=["tiktok"],
+        start=False,
+        moment_selection_record_id=selection.record_id,
+    )
+
+    bindings = read_records(open_project(project_dir), "repurpose_selection_binding")
+    assert result["selection_binding_record_id"] == bindings[0].record_id
+    assert bindings[0].revision_id == result["revision_id"]
+    assert bindings[0].moment_selection_record_id == selection.record_id
