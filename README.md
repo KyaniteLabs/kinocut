@@ -18,7 +18,7 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/KyaniteLabs/kinocut/ci.yml?branch=master&label=CI" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-161%20tools-orange.svg" alt="161 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/MCP-164%20tools-orange.svg" alt="164 MCP tools on development tip">
   <img src="https://img.shields.io/badge/CLI-140%20commands-orange.svg" alt="140 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
@@ -99,7 +99,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)** (2026-07-24) | Latest **published** package. Install with `pip install -U kinocut`. |
-| **This repository (`master`)** | **161 MCP tools / 140 CLI commands** | Matches published **1.11.1** (thin sound S12 public join + 1.10 stream-shorts integrity harden). |
+| **This repository (`master`)** | **164 MCP tools / 140 CLI commands** | Published **1.11.1** plus three unreleased durable intent/recipe tools. |
 | **Next** | trusted execution kernel + sound program depth | See [Whats next](#whats-next). Not pinned to a specific package version yet. |
 
 Install from PyPI for the stable package. Clone `master` only when you intentionally need post-tag tip work.

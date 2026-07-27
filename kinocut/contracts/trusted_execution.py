@@ -141,6 +141,17 @@ class CASGCReceiptRecord(RecordBase):
     retained_reachable: int = Field(ge=0)
 
 
+class SemanticIndexArtifactRecord(RecordBase):
+    """A semantic-index CAS blob bound to one reachable edit revision."""
+
+    record_kind: Literal["semantic_index_artifact"] = "semantic_index_artifact"
+    edit_project_id: EditProjectId
+    revision_id: Sha256
+    index_digest: Sha256
+    timeline_sha256: Sha256
+    source_id: str = Field(min_length=1, max_length=256)
+
+
 class ReceiptLineage(ValueObject):
     edit_project_id: EditProjectId
     revision_id: Sha256

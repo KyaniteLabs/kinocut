@@ -9,6 +9,7 @@ from typing import Any, Literal
 from pydantic import Field, model_validator
 
 from kinocut.contracts._common import ValueObject
+from kinocut.errors import ValidationError as MCPValidationError
 from kinocut.ffmpeg_helpers import _seconds_to_srt_time
 
 
@@ -70,6 +71,14 @@ class CaptionArtifact(ValueObject):
     warnings: tuple[str, ...]
     low_confidence_token_count: int = Field(ge=0)
     omitted_token_count: int = Field(ge=0)
+
+
+class StyledCaptionArtifact(ValueObject):
+    """Word-timed ASS plus its truthful editable caption source."""
+
+    caption: CaptionArtifact
+    ass_body: str
+    maximum_quantization_error_seconds: float = Field(ge=0.0, le=0.08)
 
 
 def build_srt_body(cues: Sequence[PhraseCue]) -> str:
@@ -160,6 +169,88 @@ def build_caption_artifact(
         low_confidence_token_count=low_confidence_count,
         omitted_token_count=omitted_count,
     )
+
+
+def build_word_timed_ass_artifact(
+    words: Iterable[WordTiming | Mapping[str, Any]],
+    *,
+    appearance: CaptionAppearance,
+    config: CaptionConfig | None = None,
+    play_res_x: int,
+    play_res_y: int,
+) -> StyledCaptionArtifact:
+    """Build styled ASS events whose visible bounds follow each Whisper word."""
+
+    if play_res_x < 1 or play_res_y < 1:
+        raise MCPValidationError("play_resolution", "ASS play resolution must be positive")
+    cfg = config or CaptionConfig()
+    normalized = tuple(sorted((_coerce_word(item) for item in words), key=lambda word: word.start))
+    caption = build_caption_artifact(normalized, config=cfg)
+    events: list[str] = []
+    maximum_error = 0.0
+    for word in normalized:
+        visible = _visible_word(word, cfg)
+        if visible is None:
+            continue
+        start_text, start_error = _ass_time(word.start)
+        end_text, end_error = _ass_time(word.end)
+        maximum_error = max(maximum_error, start_error, end_error)
+        events.append(
+            f"Dialogue: 0,{start_text},{end_text},Default,,0,0,0,,{_escape_ass_text(visible)}"
+        )
+    ass_body = _ass_header(appearance, play_res_x, play_res_y) + "\n".join(events) + ("\n" if events else "")
+    return StyledCaptionArtifact(
+        caption=caption,
+        ass_body=ass_body,
+        maximum_quantization_error_seconds=round(maximum_error, 6),
+    )
+
+
+def _visible_word(word: WordTiming, config: CaptionConfig) -> str | None:
+    low = word.probability is not None and word.probability < config.low_confidence_threshold
+    if not low:
+        return word.word
+    return "[?]" if config.on_low_confidence == "flag" else None
+
+
+def _ass_time(seconds: float) -> tuple[str, float]:
+    centiseconds = round(seconds * 100)
+    hours, remainder = divmod(centiseconds, 360_000)
+    minutes, remainder = divmod(remainder, 6_000)
+    whole_seconds, fraction = divmod(remainder, 100)
+    rendered = f"{hours}:{minutes:02d}:{whole_seconds:02d}.{fraction:02d}"
+    return rendered, abs(centiseconds / 100 - seconds)
+
+
+def _escape_ass_text(text: str) -> str:
+    return text.replace("\\", r"\\").replace("{", r"\{").replace("}", r"\}").replace("\n", r"\N")
+
+
+def _ass_header(appearance: CaptionAppearance, width: int, height: int) -> str:
+    primary = appearance.text_color.removeprefix("#")
+    background = appearance.background_color.removeprefix("#")
+    font_family = _ass_style_field(appearance.font_family)
+    return (
+        "[Script Info]\n"
+        "ScriptType: v4.00+\n"
+        f"PlayResX: {width}\n"
+        f"PlayResY: {height}\n"
+        "[V4+ Styles]\n"
+        "Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, "
+        "Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, "
+        "Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n"
+        f"Style: Default,{font_family},{appearance.font_size},&H00{primary[4:6]}{primary[2:4]}"
+        f"{primary[0:2]},&H00FFFFFF,&H00000000,&H00{background[4:6]}{background[2:4]}{background[0:2]},"
+        "0,0,0,0,100,100,0,0,1,2,0,2,20,20,80,1\n"
+        "[Events]\n"
+        "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    )
+
+
+def _ass_style_field(value: str) -> str:
+    if any(character in value for character in (",", "\n", "\r", "{", "}")):
+        raise MCPValidationError("font_family", "contains unsupported ASS control characters")
+    return value
 
 
 def _coerce_word(item: WordTiming | Mapping[str, Any]) -> WordTiming:

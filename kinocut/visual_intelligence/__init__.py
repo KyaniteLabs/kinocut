@@ -12,6 +12,7 @@ from .models import (
     SafeRegion,
     SafeRegionKind,
     SourceVideo,
+    SpeakerTurn,
     SubjectObservation,
     VisualAnalysisPlan,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "SafeRegion",
     "SafeRegionKind",
     "SourceVideo",
+    "SpeakerTurn",
     "SubjectObservation",
     "VisualAnalysisPlan",
     "plan_stabilization",

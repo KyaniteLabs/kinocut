@@ -45,7 +45,9 @@ def _timeline_payload() -> dict[str, object]:
 def test_package_exports_only_small_surface_ready_pure_api() -> None:
     assert semantic.__all__ == [
         "build_edl",
+        "build_local_disfluency_timeline",
         "build_semantic_timeline",
+        "generate_disfluency_edl",
         "generate_ordinary_cleanup_edits",
         "query_local_index",
         "verify_edl",

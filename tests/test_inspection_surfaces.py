@@ -474,7 +474,7 @@ def test_public_counts_and_client_contracts():
 
     tools = {tool.name for tool in asyncio.run(mcp.list_tools())}
     assert {"video_ingest", "video_preflight", "video_inspect_temporal"} <= tools
-    assert len(tools) == 161
+    assert len(tools) == 164
 
     commands = build_parser()._subparsers._group_actions[0].choices
     assert {"video-ingest", "video-preflight", "video-inspect-temporal"} <= set(commands)

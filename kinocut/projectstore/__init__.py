@@ -34,6 +34,11 @@ from kinocut.projectstore.compat import (
     materialize_workflow_sources,
     synthesize_workflow_spec,
 )
+from kinocut.projectstore.disfluency_cuts import (
+    DisfluencyCutPlan,
+    apply_disfluency_cut_plan,
+    compile_disfluency_cut_plan,
+)
 from kinocut.projectstore.edit_projects import (
     append_revision,
     checkout,
@@ -66,6 +71,8 @@ from kinocut.projectstore.render_jobs import (
     terminate_render_job,
 )
 from kinocut.projectstore.render_runner import start_render_job
+from kinocut.projectstore.repurpose import durable_repurpose
+from kinocut.projectstore.semantic_indexes import find_moments, load_semantic_index, persist_semantic_index
 from kinocut.projectstore.store import (
     Project,
     append_record,
@@ -77,6 +84,7 @@ from kinocut.projectstore.store import (
 __all__ = [
     "CAS_PRODUCER_KINDS",
     "CLOSED_KINDS",
+    "DisfluencyCutPlan",
     "NormalizedOperation",
     "Project",
     "WorkflowSpecSynthesis",
@@ -84,13 +92,17 @@ __all__ = [
     "append_event",
     "append_record",
     "append_revision",
+    "apply_disfluency_cut_plan",
     "cancel_render_job",
     "checkout",
+    "compile_disfluency_cut_plan",
     "compile_operations",
     "compile_repurpose_slice",
     "create_edit_project",
     "diff_revisions",
+    "durable_repurpose",
     "event_poll",
+    "find_moments",
     "fork_revision",
     "get_branch",
     "get_edit_project",
@@ -100,8 +112,10 @@ __all__ = [
     "ingest_blob",
     "job_spec_path",
     "list_branches",
+    "load_semantic_index",
     "materialize_workflow_sources",
     "open_project",
+    "persist_semantic_index",
     "poll_for_consumer",
     "read_records",
     "rebuild_indexes",

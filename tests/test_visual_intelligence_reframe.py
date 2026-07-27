@@ -13,7 +13,7 @@ from mcp_video.visual_intelligence import (
     plan_subject_aware_reframe,
     plan_visual_analysis,
 )
-from mcp_video.visual_intelligence.models import ReframePlan
+from mcp_video.visual_intelligence.models import ReframePlan, SpeakerTurn
 
 
 SOURCE_HASH = "sha256:" + "b" * 64
@@ -197,3 +197,72 @@ def test_v2_rejects_forged_analysis_provenance() -> None:
             ),
             crop_budget=CropBudget(max_subject_loss=0.1, max_source_crop_fraction=0.5),
         )
+
+
+@pytest.mark.parametrize("speaker_positions", ((0.08, 0.74), (0.18, 0.64)))
+def test_speaker_turns_keep_active_speaker_in_crop_on_two_fixtures(
+    speaker_positions: tuple[float, float],
+) -> None:
+    frame_count = 40
+    frames = tuple(
+        FrameEvidence(
+            timestamp_seconds=float(index),
+            subjects=(
+                SubjectObservation(
+                    subject_id="speaker-a",
+                    box=NormalizedBox(x=speaker_positions[0], y=0.18, width=0.16, height=0.58),
+                    confidence=0.95,
+                ),
+                SubjectObservation(
+                    subject_id="speaker-b",
+                    box=NormalizedBox(x=speaker_positions[1], y=0.18, width=0.16, height=0.58),
+                    confidence=0.80,
+                ),
+            ),
+            camera_motion=CameraMotion(dx=0.0, dy=0.0, rotation_degrees=0.0, confidence=1.0),
+        )
+        for index in range(frame_count)
+    )
+    analysis = plan_visual_analysis(
+        source=SourceVideo(
+            sha256=SOURCE_HASH,
+            width=1920,
+            height=1080,
+            duration_seconds=float(frame_count),
+        ),
+        frames=frames,
+        primary_subject_id="speaker-a",
+        ambiguity_confidence_delta=0.05,
+    )
+    turns = tuple(
+        SpeakerTurn(
+            subject_id="speaker-a" if index % 2 == 0 else "speaker-b",
+            start_seconds=float(index),
+            end_seconds=float(index + 1),
+            confidence=0.99,
+        )
+        for index in range(frame_count)
+    )
+
+    plan = plan_subject_aware_reframe(
+        analysis=analysis,
+        targets=(
+            CropTarget(
+                target_id="portrait",
+                aspect_width=9,
+                aspect_height=16,
+                output_width=1080,
+                output_height=1920,
+            ),
+        ),
+        crop_budget=CropBudget(max_subject_loss=0.05, max_source_crop_fraction=0.70),
+        max_center_step=1.0,
+        speaker_turns=turns,
+    )
+
+    samples = plan.variants[0].crop_track
+    expected = tuple(turn.subject_id for turn in turns)
+    assert sum(sample.active_subject_id == subject_id for sample, subject_id in zip(samples, expected, strict=True)) / len(
+        samples
+    ) >= 0.95
+    assert sum(sample.subject_coverage >= 0.95 for sample in samples) / len(samples) >= 0.95

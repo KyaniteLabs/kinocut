@@ -30,17 +30,13 @@ def video_repurpose(
     platforms: list[str] | None = None,
     include_release_checkpoint: bool = True,
     min_score: float = 0.0,
+    start_job: bool = True,
 ) -> dict[str, Any]:
-    """Render a local content repurposing package with manifest and review artifacts."""
+    """Submit one durable projectstore repurpose job for platform clips."""
     input_path = _validate_input_path(input_path)
-    from .engine_repurpose import repurpose
+    from .paths import _auto_output_dir
+    from .projectstore.repurpose import durable_repurpose
 
-    return _result(
-        repurpose(
-            input_path,
-            output_dir=output_dir,
-            platforms=platforms,
-            include_release_checkpoint=include_release_checkpoint,
-            min_score=min_score,
-        )
-    )
+    project_dir = output_dir or _auto_output_dir(input_path, "repurpose-project")
+    _ = include_release_checkpoint, min_score
+    return _result(durable_repurpose(input_path, project_dir, platforms=platforms, start=start_job))

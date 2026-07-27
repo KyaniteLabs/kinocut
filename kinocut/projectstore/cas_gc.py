@@ -13,6 +13,7 @@ from kinocut.contracts.trusted_execution import (
     EditProjectRecord,
     EditRevisionRecord,
     RevisionSourcesRecord,
+    SemanticIndexArtifactRecord,
 )
 from kinocut.projectstore import layout, store
 from kinocut.projectstore.cas import _deleted_digests
@@ -69,6 +70,7 @@ def _reachable_digests(project: store.Project) -> set[str]:
     }
 
     reachable: set[str] = set()
+    reachable_revisions: set[str] = set()
     roots = set(branch_heads.values()) | set(project_heads.values())
     for head_revision_id in roots:
         seen: set[str] = set()
@@ -77,6 +79,7 @@ def _reachable_digests(project: store.Project) -> set[str]:
             if revision_id in seen or revision_id not in revisions:
                 raise contract_error("branch head references an invalid revision graph", INVALID_RECORD)
             seen.add(revision_id)
+            reachable_revisions.add(revision_id)
             revision = revisions[revision_id]
             sources = source_records.get(revision_id)
             if sources is not None:
@@ -89,6 +92,11 @@ def _reachable_digests(project: store.Project) -> set[str]:
                     # blobs. Conservatively retain the store rather than risk data loss.
                     reachable.update(manifest_digests)
             revision_id = revision.parent_revision_id
+    reachable.update(
+        record.index_digest
+        for record in store.read_records(project, "semantic_index_artifact")
+        if isinstance(record, SemanticIndexArtifactRecord) and record.revision_id in reachable_revisions
+    )
     return reachable
 
 

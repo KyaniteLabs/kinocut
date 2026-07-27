@@ -231,8 +231,24 @@ class CropTarget(StrictModel):
         return self
 
 
+class SpeakerTurn(StrictModel):
+    """Caller-supplied diarization evidence binding a time range to a subject track."""
+
+    subject_id: str = Field(min_length=1)
+    start_seconds: float = Field(ge=0.0)
+    end_seconds: float = Field(gt=0.0)
+    confidence: float = Field(ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def end_follows_start(self) -> SpeakerTurn:
+        if self.end_seconds <= self.start_seconds:
+            raise ValueError("speaker turn end must be greater than start")
+        return self
+
+
 class CropTrackSample(StrictModel):
     timestamp_seconds: float = Field(ge=0.0)
+    active_subject_id: str = Field(min_length=1)
     crop_box: NormalizedBox
     subject_coverage: float = Field(ge=0.0, le=1.0)
     safe_region_coverage: float = Field(ge=0.0, le=1.0)
@@ -273,6 +289,7 @@ class ReframePlan(StrictModel):
     source: SourceVideo
     primary_subject_id: str
     crop_budget: CropBudget
+    speaker_turns: tuple[SpeakerTurn, ...] = ()
     min_tracking_confidence: float = Field(ge=0.0, le=1.0)
     max_center_step: float = Field(gt=0.0, le=1.0)
     variants: tuple[CropVariantPlan, ...]
