@@ -12,6 +12,7 @@ from kinocut.projectstore import (
     load_semantic_index,
     open_project,
     persist_semantic_index,
+    persist_moment_selection,
     read_records,
     resolve_blob,
 )
@@ -128,3 +129,62 @@ def test_public_find_moments_persists_then_reuses_local_index(tmp_path: Path):
     assert created["index_digest"] == reused["index_digest"]
     assert created["results"][0]["source_text"] == "red"
     assert reused["results"][0]["source_text"] == "bicycle"
+
+
+def test_reviewed_moment_selection_is_explicit_revision_bound_and_idempotent(tmp_path: Path):
+    project = open_project(tmp_path / "project")
+    edit, revision = _revision(project)
+    record = persist_semantic_index(project, edit.edit_project_id, revision.record_id, _index())
+    hits = find_moments(project, edit.edit_project_id, revision.record_id, record.index_digest, text="red")
+    selected_ids = (hits[0].span_id,)
+
+    first = persist_moment_selection(
+        project,
+        edit.edit_project_id,
+        revision.record_id,
+        record.index_digest,
+        hits,
+        selected_ids,
+        query_text="red",
+        selection_example_ids=("approved-learning",),
+    )
+    second = persist_moment_selection(
+        project,
+        edit.edit_project_id,
+        revision.record_id,
+        record.index_digest,
+        hits,
+        selected_ids,
+        query_text="red",
+        selection_example_ids=("approved-learning",),
+    )
+
+    assert first.record_id == second.record_id
+    assert first.selected_span_ids == selected_ids
+    assert first.selection_example_ids == ("approved-learning",)
+    assert len(read_records(project, "moment_selection")) == 1
+
+
+def test_public_find_moments_persists_only_explicit_selection(tmp_path: Path):
+    project = open_project(tmp_path / "project")
+    edit, revision = _revision(project)
+    artifact = _index().model_dump(mode="json")
+    preview = video_find_moments(
+        str(project.root),
+        edit.edit_project_id,
+        revision.record_id,
+        text="red",
+        semantic_artifact=artifact,
+    )
+    reviewed = video_find_moments(
+        str(project.root),
+        edit.edit_project_id,
+        revision.record_id,
+        text="red",
+        index_digest=preview["index_digest"],
+        selected_span_ids=[preview["results"][0]["span_id"]],
+        selection_example_ids=["approved-learning"],
+    )
+
+    assert preview["selection_record_id"] is None
+    assert reviewed["selection_record_id"].startswith("sha256:")

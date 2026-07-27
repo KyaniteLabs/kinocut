@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
 from itertools import pairwise
+import json
 
 from pydantic import Field
 
@@ -12,7 +13,14 @@ from kinocut.errors import ValidationError as MCPValidationError
 from kinocut.semantic.edl import EditApproval, EditDecisionList, EditOperation
 from kinocut.semantic.models import SemanticTimeline
 
-from .compat import compile_operations, compile_repurpose_slice
+from . import store
+from .compat import (
+    compile_operations,
+    compile_repurpose_slice,
+    materialize_workflow_sources,
+    synthesize_workflow_spec,
+)
+from .render_jobs import submit_render_job
 from .store import Project
 
 
@@ -77,6 +85,40 @@ def apply_disfluency_cut_plan(
     return compile_repurpose_slice(project, edit_project_id, (descriptor,), base_revision_id=base_revision_id)
 
 
+def submit_disfluency_cut_job(
+    project: Project,
+    edit_project_id: str,
+    revision_id: str,
+    plan: DisfluencyCutPlan,
+):
+    """Submit the reviewed typed cut as a normal projectstore workflow job."""
+
+    descriptor = {
+        "kind": "silence_cut",
+        "source": plan.source_digest,
+        "keep_segments": plan.keep_segments,
+    }
+    synthesis = synthesize_workflow_spec(
+        project,
+        edit_project_id,
+        (descriptor,),
+        base_revision_id=revision_id,
+    )
+    spec_path = project.root / "disfluency_cut_spec.json"
+    encoded = json.dumps(synthesis.spec, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode("utf-8")
+    with store._mapped_os_errors():
+        store._write_atomically(spec_path, lambda output: output.write(encoded), binary=True)
+    job = submit_render_job(
+        project,
+        edit_project_id=edit_project_id,
+        revision_id=revision_id,
+        spec_path=str(spec_path),
+        created_by="tool:disfluency-cut",
+    )
+    materialize_workflow_sources(project, job.job_id, synthesis)
+    return job
+
+
 def _merge_ranges(ranges: Iterable[tuple[float, float]]) -> tuple[tuple[float, float], ...]:
     ordered = sorted(ranges)
     if not ordered:
@@ -108,4 +150,9 @@ def _invert_ranges(
     return tuple(keep)
 
 
-__all__ = ["DisfluencyCutPlan", "apply_disfluency_cut_plan", "compile_disfluency_cut_plan"]
+__all__ = [
+    "DisfluencyCutPlan",
+    "apply_disfluency_cut_plan",
+    "compile_disfluency_cut_plan",
+    "submit_disfluency_cut_job",
+]

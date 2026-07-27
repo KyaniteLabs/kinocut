@@ -38,6 +38,7 @@ from kinocut.projectstore.disfluency_cuts import (
     DisfluencyCutPlan,
     apply_disfluency_cut_plan,
     compile_disfluency_cut_plan,
+    submit_disfluency_cut_job,
 )
 from kinocut.projectstore.edit_projects import (
     append_revision,
@@ -72,7 +73,12 @@ from kinocut.projectstore.render_jobs import (
 )
 from kinocut.projectstore.render_runner import start_render_job
 from kinocut.projectstore.repurpose import durable_repurpose
-from kinocut.projectstore.semantic_indexes import find_moments, load_semantic_index, persist_semantic_index
+from kinocut.projectstore.semantic_indexes import (
+    find_moments,
+    load_semantic_index,
+    persist_moment_selection,
+    persist_semantic_index,
+)
 from kinocut.projectstore.store import (
     Project,
     append_record,
@@ -115,6 +121,7 @@ __all__ = [
     "load_semantic_index",
     "materialize_workflow_sources",
     "open_project",
+    "persist_moment_selection",
     "persist_semantic_index",
     "poll_for_consumer",
     "read_records",
@@ -126,6 +133,7 @@ __all__ = [
     "retain_events",
     "sanitize_event_summary",
     "start_render_job",
+    "submit_disfluency_cut_job",
     "submit_render_job",
     "synthesize_workflow_spec",
     "terminate_render_job",

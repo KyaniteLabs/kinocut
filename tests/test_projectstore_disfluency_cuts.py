@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from kinocut.errors import MCPVideoError
+from kinocut.ffmpeg_helpers import _run_ffmpeg
 from kinocut.projectstore import (
     apply_disfluency_cut_plan,
     compile_disfluency_cut_plan,
@@ -14,7 +15,9 @@ from kinocut.projectstore import (
     ingest_blob,
     open_project,
     read_records,
+    submit_disfluency_cut_job,
 )
+from kinocut.projectstore import render_jobs, render_runner
 from kinocut.semantic.disfluency import build_local_disfluency_timeline, generate_disfluency_edl
 from kinocut.semantic.models import AnalyzerProvenance, SourceMedia
 
@@ -116,3 +119,47 @@ def test_unknown_review_selection_fails_without_revision(tmp_path: Path) -> None
         )
 
     assert read_records(project, "edit_revision") == []
+
+
+def test_real_media_detection_review_and_durable_cut_application(tmp_path: Path) -> None:
+    media = tmp_path / "source.mp4"
+    _run_ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=320x180:r=24:d=4",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=4",
+            "-shortest",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            str(media),
+        ]
+    )
+    project = open_project(tmp_path / "project")
+    digest = ingest_blob(project, media, media_type="video/mp4").digest
+    edit_project = create_edit_project(project)
+    timeline = _analysis(digest)
+    edl = generate_disfluency_edl(timeline)
+    plan = compile_disfluency_cut_plan(
+        timeline=timeline,
+        edl=edl,
+        selected_edit_ids=tuple(edit.edit_id for edit in edl.edits),
+        source_digest=digest,
+    )
+    revision = apply_disfluency_cut_plan(project, edit_project.edit_project_id, plan)
+    job = submit_disfluency_cut_job(project, edit_project.edit_project_id, revision.record_id, plan)
+    render_jobs.mark_running(project, job.job_id, 424242)
+
+    assert render_runner.run_job(project, job.job_id) == "succeeded"
+    receipt = render_jobs.job_receipt_path(project, job.job_id).read_text()
+    assert revision.record_id in receipt
+    assert plan.source_digest in receipt
+    assert '"status":"completed"' in receipt.replace(" ", "")

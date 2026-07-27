@@ -66,6 +66,8 @@ from kinocut.contracts.trusted_execution import (
     RenderJobRecord,
     RevisionSourcesRecord,
     SemanticIndexArtifactRecord,
+    MomentSelectionRecord,
+    RepurposeSelectionBindingRecord,
 )
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import layout
@@ -113,6 +115,8 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "event_cursor": EventCursorRecord,
     "event_retention": EventRetentionRecord,
     "semantic_index_artifact": SemanticIndexArtifactRecord,
+    "moment_selection": MomentSelectionRecord,
+    "repurpose_selection_binding": RepurposeSelectionBindingRecord,
 }
 
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from kinocut.projectstore import find_moments, open_project, persist_semantic_index
+from kinocut.projectstore import find_moments, open_project, persist_moment_selection, persist_semantic_index
 from kinocut.semantic.index import SemanticIndex, build_semantic_index
 from kinocut.semantic.models import SemanticTimeline
 
@@ -23,6 +23,8 @@ def video_find_moments(
     embedding: list[float] | None = None,
     limit: int = 10,
     min_confidence: float = 0.0,
+    selected_span_ids: list[str] | None = None,
+    selection_example_ids: list[str] | None = None,
 ) -> dict[str, Any]:
     """Persist or query a revision-bound local semantic index."""
 
@@ -48,6 +50,18 @@ def video_find_moments(
         limit=limit,
         min_confidence=min_confidence,
     )
+    selection = None
+    if selected_span_ids is not None:
+        selection = persist_moment_selection(
+            project,
+            edit_project_id,
+            revision_id,
+            index_digest,
+            hits,
+            tuple(selected_span_ids),
+            query_text=text,
+            selection_example_ids=tuple(selection_example_ids or ()),
+        )
     return _result(
         {
             "artifact_kind": "moment_search",
@@ -55,6 +69,7 @@ def video_find_moments(
             "revision_id": revision_id,
             "index_digest": index_digest,
             "results": [hit.model_dump(mode="json") for hit in hits],
+            "selection_record_id": selection.record_id if selection is not None else None,
         }
     )
 

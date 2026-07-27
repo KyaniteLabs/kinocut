@@ -152,6 +152,27 @@ class SemanticIndexArtifactRecord(RecordBase):
     source_id: str = Field(min_length=1, max_length=256)
 
 
+class MomentSelectionRecord(RecordBase):
+    """Explicit reviewed search hits bound to one semantic index and revision."""
+
+    record_kind: Literal["moment_selection"] = "moment_selection"
+    edit_project_id: EditProjectId
+    revision_id: Sha256
+    index_digest: Sha256
+    selected_span_ids: tuple[str, ...] = Field(min_length=1)
+    selection_example_ids: tuple[str, ...] = ()
+    query_text: str | None = Field(default=None, max_length=1024)
+
+
+class RepurposeSelectionBindingRecord(RecordBase):
+    """One repurpose revision's immutable dependency on a reviewed selection."""
+
+    record_kind: Literal["repurpose_selection_binding"] = "repurpose_selection_binding"
+    edit_project_id: EditProjectId
+    revision_id: Sha256
+    moment_selection_record_id: Sha256
+
+
 class ReceiptLineage(ValueObject):
     edit_project_id: EditProjectId
     revision_id: Sha256

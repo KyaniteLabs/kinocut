@@ -31,6 +31,7 @@ def video_repurpose(
     include_release_checkpoint: bool = True,
     min_score: float = 0.0,
     start_job: bool = True,
+    moment_selection_record_id: str | None = None,
 ) -> dict[str, Any]:
     """Submit one durable projectstore repurpose job for platform clips."""
     input_path = _validate_input_path(input_path)
@@ -39,4 +40,12 @@ def video_repurpose(
 
     project_dir = output_dir or _auto_output_dir(input_path, "repurpose-project")
     _ = include_release_checkpoint, min_score
-    return _result(durable_repurpose(input_path, project_dir, platforms=platforms, start=start_job))
+    return _result(
+        durable_repurpose(
+            input_path,
+            project_dir,
+            platforms=platforms,
+            start=start_job,
+            moment_selection_record_id=moment_selection_record_id,
+        )
+    )

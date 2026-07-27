@@ -17,6 +17,9 @@ from kinocut.projectstore.compat import (
 )
 from kinocut.projectstore.edit_projects import create_edit_project
 from kinocut.projectstore.render_jobs import start_render_job, submit_render_job
+from kinocut.contracts.adapter import validate_record
+from kinocut.contracts._errors import INVALID_RECORD, contract_error
+from kinocut.contracts.trusted_execution import MomentSelectionRecord, RepurposeSelectionBindingRecord
 
 
 def _media_type(path: str) -> str:
@@ -56,6 +59,7 @@ def durable_repurpose(
     *,
     platforms: list[str] | None = None,
     start: bool = True,
+    moment_selection_record_id: str | None = None,
 ) -> dict[str, Any]:
     """Create one revision and async render job for N platform clips."""
 
@@ -66,6 +70,28 @@ def durable_repurpose(
     edit = create_edit_project(project, created_by="tool:repurpose")
     operations = _operations(source.digest, selected)
     revision = compile_repurpose_slice(project, edit.edit_project_id, operations)
+    selection_binding = None
+    if moment_selection_record_id is not None:
+        matches = [
+            record
+            for record in store.read_records(project, "moment_selection")
+            if isinstance(record, MomentSelectionRecord) and record.record_id == moment_selection_record_id
+        ]
+        if len(matches) != 1:
+            raise contract_error("repurpose selection is not owned by this project", INVALID_RECORD)
+        selection_binding = store.append_record(
+            project,
+            validate_record(
+                RepurposeSelectionBindingRecord,
+                {
+                    "project_id": project.project_id,
+                    "created_by": "tool:repurpose",
+                    "edit_project_id": edit.edit_project_id,
+                    "revision_id": revision.record_id,
+                    "moment_selection_record_id": matches[0].record_id,
+                },
+            ),
+        )
     synthesis = synthesize_workflow_spec(
         project,
         edit.edit_project_id,
@@ -101,6 +127,7 @@ def durable_repurpose(
         "job_id": job.job_id,
         "status": status.status.value,
         "source_digest": source.digest,
+        "selection_binding_record_id": selection_binding.record_id if selection_binding is not None else None,
         "clips": clips,
     }
 
