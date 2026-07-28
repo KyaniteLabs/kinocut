@@ -3,8 +3,10 @@
 Local-only path from a **saved shorts plan** through human review, platform render,
 and portable packages. **No posting, scheduling, or authentication.**
 
-Development tip only until a published release claims these stages. See
-[`public_claims.json`](public_claims.json) for published vs tip surface counts.
+These stages are published on the 1.10.x→1.11.1 line. Production-quality claims
+still require the human listening, phone-frame, and multi-minute fixture evidence
+described below. See [`public_claims.json`](public_claims.json) for published vs
+tip surface counts.
 
 ## Stages (canonical)
 

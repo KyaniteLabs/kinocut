@@ -27,8 +27,8 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1111-latest-release">1.8.0</a> &bull;
-  <a href="#whats-next">Whats next</a> &bull;
+  <a href="#whats-in-1111-latest-release">1.11.1</a> &bull;
+  <a href="#development-tip-after-1111">Development tip</a> &bull;
   <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#mcp-tools">Tools</a> &bull;
@@ -100,7 +100,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)** (2026-07-24) | Latest **published** package. Install with `pip install -U kinocut`. |
 | **This repository (`master`)** | **164 MCP tools / 140 CLI commands** | Published **1.11.1** plus three unreleased durable intent/recipe tools. |
-| **Next** | trusted execution kernel + sound program depth | See [Whats next](#whats-next). Not pinned to a specific package version yet. |
+| **Next gated phase** | watching guardrail | See [Development tip](#development-tip-after-1111). It remains explicitly human-gated and is not a release claim. |
 
 Install from PyPI for the stable package. Clone `master` only when you intentionally need post-tag tip work.
 
@@ -120,54 +120,34 @@ Also still on the published line from earlier releases:
 
 - Agent **workflow engine**, **video rescue**, **post-rescue planning**, **layered compositing**, expanded preflight guardrails
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.8.0 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.8.0)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.11.1 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)
 
-## Whats next
+## Development tip after 1.11.1
 
-Post-1.8 product work (not a published package version):
+The current `master` branch is **not a new package release**. It exposes **164 MCP
+tools / 140 CLI commands** and adds tested development-tip capabilities on top of
+published 1.11.1:
 
-### Already in 1.8.0
+- **Durable editing substrate** — edit projects, content-addressed assets, async
+  render jobs, resume, ordered events, receipt lineage, reviewed semantic
+  selections, and reusable project recipes under `kinocut/projectstore/`.
+- **Kernel-backed repurposing** — persistent revisions/jobs wrap the existing
+  `video_workflow_*` engine; the kernel does not rebuild or replace that engine.
+- **Product residual closeout** — durable highlight selection, speaker-aware
+  reframe evidence, word-timed ASS captions, disfluency-cut compilation, and
+  recipe export/replay.
+- **Layered compositor hardening** — alpha-aware inputs, masks, per-layer effect
+  routing, and deterministic real-render checks.
+- **Platform substrate** — a pinned CI runner image contract and native MCPB
+  supply-chain foundations, with external activation/build gates still open.
 
-| Area | What landed on `master` | Start here |
-| --- | --- | --- |
-| **Governed AI-video** | Content-addressed `video_ingest`, unified `video_preflight`, temporal evidence (`video_inspect_temporal`), exact-asset `video_verdict` / `video_acceptance_eval`, audio-preserving `video_body_swap`, lineage-bound `video_salvage` | [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md) |
-| **Project store / contracts** | Append-only private project storage, strict canonical records, protected-element checks, fail-soft optional visual providers | [docs/AI_VIDEO_CONTRACTS.md](docs/AI_VIDEO_CONTRACTS.md) · [docs/AI_VIDEO_INSPECTION.md](docs/AI_VIDEO_INSPECTION.md) |
-| **Field safety** | Loss-proof add-audio duration policies; authored ASS + dimension-aware SRT/VTT subtitles | [CHANGELOG.md](CHANGELOG.md) 1.8.0 |
-| **C2PA provenance** | Optional signing on path-based `export` / `Client.export()` via `c2patool` (off by default; only reports signed after verify) | [docs/C2PA_PROVENANCE.md](docs/C2PA_PROVENANCE.md) |
-| **MCPB packaging** | Staged Desktop package + fail-closed native builder foundation; **not** a published self-contained runtime yet | [docs/MCPB.md](docs/MCPB.md) |
-| **Repurpose skill** | Path-based [`skills/kinocut-repurpose`](skills/kinocut-repurpose/SKILL.md) + deterministic current-tools demo (marketing seed, not the final kernel-backed product) | [docs/REPURPOSE_SKILL.md](docs/REPURPOSE_SKILL.md) |
-| **Hyperframes under MCP** | `hyperframes_init` no longer hangs without a TTY (non-interactive init + closed stdin) | [CHANGELOG.md](CHANGELOG.md) 1.8.0 |
+Still explicitly **human-gated**: the Phase 3 watching guardrail, Phase 4
+multipliers, native MCPB clean-machine/signing/license evidence, Forgejo runner
+activation, directory submissions, release/tag/publish actions, production
+stream-shorts listening/phone-frame proof, and any first-real-users claim.
 
-### Upcoming pipeline (in progress)
-
-Two coordinated programs remain after the published 1.8.0 release:
-
-#### 1. AI-video + review/salvage finish
-
-Contract-first media identity → inspection → human-gated verdict → bounded derivatives. Remaining work includes independent Wave-3 verification freeze, audio continuity, subtitle/graphics QA depth, asset intelligence, editorial planning, learning reports, and whole-program acceptance. Sequencing: [wishlist parallel execution](docs/plans/2026-07-12-wishlist-parallel-execution.md) · current status: [post-1.8 program status](docs/status/2026-07-14-post-1.8-program-status.md).
-
-#### 2. `kinocut_sound` (Sonic World) — full-episode audio production
-
-Standalone-capable sound package **inside this repo** (`kinocut_sound/`): plan/timeline/routing/consent → voice → post/spatial → ambience/world → mix/stems → QA/metadata → thin public adapters → host joins → dual-class benchmark → STOP.
-
-| Slice | Focus | Status (as of 2026-07-14) |
-| --- | --- | --- |
-| S1–S4 | Contracts, authorization, registry/policy, script/episode planning | Implemented foundation leaves |
-| S5 / S7 / S8 | Base voice, post/spatial chain, ambience/world | Integrated leaves on master |
-| S6 / S10 | Consent-gated clone/blend; voice consistency | Integrated leaves on master |
-| S9 / S11 | Mix assembly/stems; QA + metadata | Integrated leaves on master |
-| S12 | Thin public discovery / Python adapters | Integrated (capability discovery surface) |
-| **S13** | Kinocut/host joins (D41/D42 production bindings) | **Blocked** — external owner receipts incomplete |
-| **S14** | Dual-class benchmark (Apple silicon + x86 Linux) | **Partial** — x86 available; Apple class `external_host_unavailable` |
-| **S15** | Adversarial acceptance + release STOP | **STOP** — no ship without dual-class S14, S13 receipts, independent review, human authorization |
-
-Authoritative receipts: [sound program handoff](docs/status/2026-07-13-sound-program-strategic-handoff.md) · [S13–S15 gate](docs/status/2026-07-14-sound-s13-s15-gate-receipt.md) · [sound plan index](docs/superpowers/plans/2026-07-12-kinocut-sound-plan-index.md).
-
-#### 3. Trusted execution kernel (post-program, gated)
-
-The approved [trusted execution layer plan](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md) still defines the durable product path after the current program: durable edit projects, async render/resume wrapping `video_workflow_*`, receipt lineage, then kernel-backed repurposing as the “made just by prompting” moment. The protected-timeline kernel **does not start** merely because sound/AI-video leaves land — it needs the named upstream contract and an explicit human gate.
-
-Product checklist: [ROADMAP.md](ROADMAP.md).
+Current truth: [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md) ·
+[ROADMAP.md](ROADMAP.md) · [public claims](docs/public_claims.json).
 
 ## Agent Workflow Engine
 
@@ -209,7 +189,7 @@ manifest, all with workspace-relative paths:
 ```json
 {
   "receipt_kind": "workflow",
-  "versions": { "mcp_video": "1.8.0", "ffmpeg": "8.1" },
+  "versions": { "mcp_video": "1.11.1", "ffmpeg": "8.1" },
   "spec_hash": "sha256:be2f3a9b...",
   "steps": [
     { "id": "trim-hero", "op": "trim", "status": "completed",
@@ -233,14 +213,14 @@ job that failed with its intermediates kept (fail-closed on a changed spec). Ful
 
 ## Governed AI-video review
 
-On the **development tip**, Kinocut adds a contract-first path for agent-edited media that must stay attributable and reviewable:
+Published since **1.8.0**, Kinocut includes a contract-first path for agent-edited media that must stay attributable and reviewable:
 
 1. **Ingest** the source into a private content-addressed project (`video_ingest` / `video-ingest`)
 2. **Preflight + temporal inspection** on the stored asset (`video_preflight`, `video_inspect_temporal`)
 3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
 4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
 
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces ship in published **1.8.0** — see [Status and releases](#status-and-releases).
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces have shipped since **1.8.0** — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -361,7 +341,7 @@ pip install --upgrade mcp-video
 mcp-video doctor
 ```
 
-`mcp-video==1.6.2` is a metadata-only compatibility installer for `kinocut==1.8.0`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.11.x line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+`mcp-video==1.6.2` is a metadata-only compatibility installer for `kinocut==1.11.1`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.11.x line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
