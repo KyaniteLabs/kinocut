@@ -101,6 +101,10 @@ VALID_WHISPER_MODELS = {"tiny", "base", "small", "medium", "large", "turbo"}
 VALID_DEMUCS_MODELS = {"htdemucs", "htdemucs_ft", "mdx", "mdx_extra", "mdx_extra_q"}
 VALID_UPSCALE_MODELS = {"realesrgan", "bsrgan"}
 VALID_COLOR_GRADE_STYLES = {"auto", "warm", "cool", "vintage", "cinematic", "noir", "dramatic"}
+COMPOSITOR_ALPHA_MODES = frozenset({"straight", "premultiplied"})
+COMPOSITOR_EFFECTS = frozenset({"effect-noise"})
+COMPOSITOR_EFFECT_NOISE_MODES = frozenset({"film", "digital", "color"})
+COMPOSITOR_EFFECT_REGIONS = frozenset({"layer", "mask", "mask.edge"})
 VALID_AUDIO_SEQUENCE_TYPES = {"tone", "preset", "whoosh"}
 FILTER_PARAMETER_BOUNDS: dict[str, dict[str, tuple[float, float]]] = {
     "blur": {"radius": (0.0, 50.0), "strength": (0.0, 5.0)},

@@ -698,9 +698,9 @@ class ClientMediaMixin:
     ) -> EditResult:
         """Composite ordered image/video/solid layers from a JSON spec.
 
-        Supports normal alpha compositing, per-layer opacity, x/y placement,
-        transforms, timing windows, masks/mattes, and deterministic layer-plan
-        receipts.
+        Supports explicit straight/premultiplied input alpha, opacity,
+        transforms, timing windows, masks/mattes, allowlisted blend modes,
+        and effect-noise routes to named layer/mask/mask-edge streams.
         """
         return _composite_layers(spec, output_path=output, save_layer_plan=save_layer_plan, dry_run=dry_run)
 

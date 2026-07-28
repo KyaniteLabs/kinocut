@@ -161,7 +161,7 @@ download models, contact providers, or submit jobs. See
 | `video_generate_subtitles` | Create SRT from text entries, optionally burn in |
 | `video_watermark` | Add image watermark with validated opacity and positioning |
 | `video_overlay` | Picture-in-picture overlay with opacity and timing guardrails |
-| `video_composite_layers` | Spec-driven ordered image/video layer compositing with transforms, timing windows, masks/mattes, full-canvas and allowlisted positioned blend modes (multiply/screen/overlay/darken/lighten), rotation with a `pivot` reference point, dry-run plans, and deterministic `layer_plan` v2 receipts (video-only output) |
+| `video_composite_layers` | Spec-driven ordered image/video layer compositing with explicit straight/premultiplied input alpha, transforms, timing windows, masks/mattes, full-canvas and allowlisted positioned blend modes, rotation/pivot, named layer/mask/mask-edge `effect-noise` routes, dry-run plans, and deterministic `layer_plan` v2 receipts (video-only output) |
 | `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
 | `video_edit` | Full timeline-based edit from JSON DSL |
 | `video_create_from_images` | Create video from image sequence |
@@ -177,6 +177,7 @@ download models, contact providers, or submit jobs. See
 | `video_validate_text_layout` | Validate text overlays for overlap, low contrast, unsafe positioning, and missing shadows before rendering |
 
 For `video_composite_layers`, positioned non-`normal` blend requires explicit `width` and `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing window. The compositor crops the running base, blends the same-size layer, and overlays the result back. Full-canvas blend remains supported; other geometry fails closed with `unsupported_blend_geometry`.
+Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs are explicitly unpremultiplied before transforms and compositing. Top-level `passes` route `effect-noise` through `layer:<id>`, `layer:<id>.mask`, or `layer:<id>.mask.edge`. Unknown targets, effects, route/argument fields, and mask routes without a mask fail closed with stable validation errors.
 
 ---
 
