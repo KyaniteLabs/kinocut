@@ -89,7 +89,6 @@ def test_composite_layers_builds_three_layer_filtergraph_and_receipt(tmp_path, m
         (lambda spec: spec["layers"].append({**spec["layers"][0]}), "duplicate_layer_id"),
         (lambda spec: spec["layers"][1].update({"blend": "difference"}), "unsupported_blend_mode"),
         (lambda spec: spec["layers"][1].update({"blend": "screen"}), "unsupported_blend_geometry"),
-        (lambda spec: spec.update({"passes": []}), "unsupported_compositor_feature"),
         (lambda spec: spec["layers"][1].update({"transform": {"rotate": 12}}), "unsupported_compositor_feature"),
         (lambda spec: spec["layers"][1].update({"id": "bad/id"}), "invalid_layer_id"),
         (lambda spec: spec["layers"][1].update({"position": {"x": "left", "y": 0}}), "invalid_position"),

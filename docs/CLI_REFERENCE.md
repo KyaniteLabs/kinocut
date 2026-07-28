@@ -151,7 +151,7 @@ Namespaced aliases (same handlers): `kino sound capabilities|plan-validate|voice
 |---------|-------------|
 | `video-layout-grid` | Arrange multiple videos in a grid |
 | `video-layout-pip` | Picture-in-picture with border |
-| `composite-layers` | Spec-driven ordered image/video layer compositing with transforms, masks, timing windows, full-canvas and allowlisted positioned blend modes, rotation/pivot, dry-run plans, and `layer_plan` v2 receipts |
+| `composite-layers` | Spec-driven ordered image/video layer compositing with explicit alpha semantics, transforms, masks, named effect routes, blend modes, rotation/pivot, dry-run plans, and `layer_plan` v2 receipts |
 
 
 ### `composite-layers` spec
@@ -171,18 +171,25 @@ kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan
       "type": "image",
       "src": "plate.png",
       "mask": "plate-mask.png",
+      "alpha_mode": "straight",
       "opacity": 1.0,
       "transform": {"x": 120, "y": 80, "width": 640},
       "start": 0.25,
       "duration": 1.5
     },
-    {"id": "title", "type": "image", "src": "title.png", "opacity": 0.9, "position": {"x": 32, "y": 32}}
+    {"id": "title", "type": "image", "src": "title.png", "alpha_mode": "premultiplied", "opacity": 0.9, "position": {"x": 32, "y": 32}}
+  ],
+  "passes": [
+    {"effect": "effect-noise", "target": "layer:plate", "args": {"mode": "film", "intensity": 0.10, "animated": false}},
+    {"effect": "effect-noise", "target": "layer:plate.mask.edge", "args": {"mode": "color", "intensity": 0.05}}
   ],
   "output": {"format": "mp4"}
 }
 ```
 
-The compositor supports normal alpha compositing, per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources. It also supports allowlisted blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) in full-canvas form and in a bounded positioned form. Positioned blend requires explicit `width` **and** `height`, an integral nonnegative `position` whose rectangle stays inside the canvas, full opacity, and no scale, rotation/pivot, mask/matte, or start/duration timing. It crops the running base, blends the same-size layer, and overlays the result back; unsupported geometry fails closed with `unsupported_blend_geometry`. Rotation remains available for normal-blend layers (`rotation` in degrees within `[-360, 360]` with `pivot`: `center` default, `top_left`, `top_right`, `bottom_left`, or `bottom_right`; ordering is scale → rotate → opacity → position). The existing `anchor` field stays a position alias, distinct from `pivot`. Output is video-only (`audio_policy: dropped_video_only`). Relative `src`, `mask`, and `matte` paths resolve relative to the spec file and must stay inside that directory. Rotation + mask and per-layer effect routing remain deferred and fail closed.
+The compositor uses straight alpha internally. Layer `alpha_mode` defaults to `straight`; image/video inputs declared `premultiplied` are explicitly unpremultiplied before transforms and compositing. Per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources are supported. Top-level `passes` currently allowlist `effect-noise` and route it to `layer:<id>`, `layer:<id>.mask`, or `layer:<id>.mask.edge`; the receipt records normalized route decisions. Unknown effects, targets, arguments, and mask routes without a mask fail closed.
+
+Allowlisted blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) work in full-canvas form and in a bounded positioned form. Positioned blend requires explicit `width` **and** `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing. Rotation remains available for normal-blend layers (`rotation` within `[-360, 360]`, with `pivot`: `center`, `top_left`, `top_right`, `bottom_left`, or `bottom_right`; ordering is scale → rotate → routed layer effects → opacity → position). `anchor` remains a position alias. Output is video-only (`audio_policy: dropped_video_only`). Relative media paths must stay inside the spec directory. Rotation + mask remains deferred and fails closed.
 
 ## Workflow Engine
 

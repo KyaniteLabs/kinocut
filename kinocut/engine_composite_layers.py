@@ -10,13 +10,20 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
-from .defaults import DEFAULT_CRF, DEFAULT_PRESET
+from .defaults import DEFAULT_COMPOSITOR_ALPHA_MODE, DEFAULT_CRF, DEFAULT_PRESET
 from .engine_composite_layers_blend import (
     BLEND_ALL_MODES,
     SUPPORTED_BLEND_MODES,
     is_positioned_blend,
     positioned_blend_chains,
     validate_blend_geometry,
+)
+from .engine_composite_layers_effects import (
+    RoutedEffect,
+    attach_effect_passes,
+    effect_filters,
+    effect_route_receipts,
+    mask_effect_chains,
 )
 from .engine_composite_layers_rotate import (
     has_transform,
@@ -38,12 +45,14 @@ from .ffmpeg_helpers import (
 )
 from .limits import MAX_RESOLUTION, MAX_VIDEO_DURATION
 from .models import EditResult
+from .validation import COMPOSITOR_ALPHA_MODES
 
 _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
 _SUPPORTED_LAYER_TYPES = {"video", "image", "solid"}
-_UNSUPPORTED_TOP_LEVEL = {"passes"}
+_UNSUPPORTED_TOP_LEVEL: set[str] = set()
 _SUPPORTED_LAYER_FIELDS = {
+    "alpha_mode",
     "anchor",
     "blend",
     "color",
@@ -102,6 +111,7 @@ class _Layer(BaseModel):
     matte: str | None = None
     color: str | None = None
     blend: str = "normal"
+    alpha_mode: str = DEFAULT_COMPOSITOR_ALPHA_MODE
 
 
 class _ResolvedLayer(BaseModel):
@@ -122,6 +132,8 @@ class _ResolvedLayer(BaseModel):
     resolved_mask_src: str | None = None
     color: str | None = None
     blend: str = "normal"
+    alpha_mode: str = DEFAULT_COMPOSITOR_ALPHA_MODE
+    effects: tuple[RoutedEffect, ...] = ()
     input_index: int
     mask_input_index: int | None = None
 
@@ -141,9 +153,10 @@ def composite_layers(
     base to the layer rectangle, blend same-size, overlay back; see
     ``validate_blend_geometry``), transparent-fill rotation with a ``pivot``
     reference point (see ``engine_composite_layers_rotate``), and a
-    deterministic layer-plan receipt. Per-layer effect routing, positioned
-    masked/timed/scaled/rotated blend, and rotation combined with a mask remain
-    deferred and fail closed.
+    deterministic layer-plan receipt. Inputs declare straight or premultiplied
+    alpha, and allowlisted effects can route to a layer, mask, or mask edge.
+    Positioned masked/timed/scaled/rotated blend and rotation combined with a
+    mask remain deferred and fail closed.
     """
     spec_resolved = _validate_spec_path(spec_path)
     spec_data, spec_bytes = _load_spec(spec_resolved)
@@ -290,12 +303,13 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path, canvas: _Canvas) ->
                 resolved_mask_src=receipt_mask_src,
                 color=layer.color,
                 blend=layer.blend,
+                alpha_mode=layer.alpha_mode,
                 input_index=input_index,
                 mask_input_index=mask_input_index,
             )
         )
         input_index += 2 if mask_src is not None else 1
-    return resolved
+    return attach_effect_passes(spec_data.get("passes"), resolved)
 
 
 def _reject_unknown_layer_fields(raw: dict[str, Any], offset: int) -> None:
@@ -336,6 +350,18 @@ def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
             f"blend mode {layer.blend!r} is not supported; use one of {sorted(SUPPORTED_BLEND_MODES)}",
             error_type="validation_error",
             code="unsupported_blend_mode",
+        )
+    if layer.alpha_mode not in COMPOSITOR_ALPHA_MODES:
+        raise MCPVideoError(
+            f"layer {layer.id!r} alpha_mode must be one of {sorted(COMPOSITOR_ALPHA_MODES)}",
+            error_type="validation_error",
+            code="invalid_alpha_mode",
+        )
+    if layer.type == "solid" and layer.alpha_mode != DEFAULT_COMPOSITOR_ALPHA_MODE:
+        raise MCPVideoError(
+            f"solid layer {layer.id!r} cannot declare premultiplied input alpha",
+            error_type="validation_error",
+            code="invalid_alpha_mode",
         )
     _validate_opacity(layer.opacity, layer.id)
     _non_negative_number(layer.position["x"], f"{layer.id}.position.x")
@@ -514,9 +540,11 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             mask_label = f"{layer_label}mask"
             layer_ref_label = f"{layer_label}ref"
             chains.append(f"[{layer.mask_input_index}:v]format=gray[{mask_label}raw]")
+            processed_mask_label = f"{mask_label}processed"
+            chains.extend(mask_effect_chains(layer, f"{mask_label}raw", processed_mask_label))
             # Bare scale2ref scales the mask to the layer size on all FFmpeg
             # versions; the rw/rh form only parses on FFmpeg 7+ (breaks FFmpeg 6).
-            chains.append(f"[{mask_label}raw][{layer_label}raw]scale2ref[{mask_label}][{layer_ref_label}]")
+            chains.append(f"[{processed_mask_label}][{layer_label}raw]scale2ref[{mask_label}][{layer_ref_label}]")
             chains.append(f"[{layer_ref_label}][{mask_label}]alphamerge[{layer_label}]")
         else:
             chains.append(f"[{layer_label}raw]null[{layer_label}]")
@@ -539,11 +567,14 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
 
 def _layer_filter_chain(layer: _ResolvedLayer) -> str:
     parts = ["format=rgba"]
+    if layer.alpha_mode == "premultiplied":
+        parts.append("unpremultiply=inplace=1")
     scale_filter = _scale_filter(layer)
     if scale_filter is not None:
         parts.append(scale_filter)
     if layer.rotation is not None:
         parts.append(rotate_filter(layer.rotation))
+    parts.extend(effect_filters(layer, "layer"))
     opacity = _escape_ffmpeg_filter_value(f"{_validate_opacity(layer.opacity, layer.id):.2f}")
     parts.append(f"colorchannelmixer=aa={opacity}")
     return ",".join(parts)
@@ -583,8 +614,12 @@ def _build_layer_plan(
         "layers transformed and overlaid bottom-to-top with normal alpha compositing",
         "per-layer opacity applied via colorchannelmixer alpha",
         "mask/matte inputs are scaled to the transformed layer and applied as alpha with alphamerge",
+        "all layer inputs are composited in straight alpha; premultiplied inputs are explicitly unpremultiplied",
         "start/duration windows are enforced with overlay enable expressions",
     ]
+    routes = effect_route_receipts(layers)
+    if routes:
+        summary.append("allowlisted effects are routed before final composition to named layer, mask, or mask-edge streams")
     if any(layer.blend != "normal" and not is_positioned_blend(layer) for layer in layers):
         summary.append("full-canvas non-normal blend layers use blend=all_mode against the running base")
     if any(is_positioned_blend(layer) for layer in layers):
@@ -631,6 +666,11 @@ def _build_layer_plan(
             "masks": any(layer.mask_src is not None for layer in layers),
             "blend_modes": sorted({layer.blend for layer in layers}),
             "positioned_blend": any(is_positioned_blend(layer) for layer in layers),
+            "alpha": {
+                "working_mode": "straight",
+                "input_modes_by_layer": {layer.id: layer.alpha_mode for layer in layers},
+            },
+            "effect_routes": routes,
             "audio": "dropped",
         },
         "render_determinism_scope": (

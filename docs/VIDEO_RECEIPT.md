@@ -194,8 +194,10 @@ Emitted by `video_composite_layers` (dry-run plan or render receipt). v2 adds
 `transform.rotation` + `transform.pivot` (null when rotation is unused), a `features.rotation`
 flag, and `features.blend_modes` may now contain the five full-canvas blend modes —
 `features.blend_modes` lists the modes **used in the spec** (including `normal`), not the
-catalog. Audio is dropped (`audio_policy: "dropped_video_only"`, `features.audio:
-"dropped"`).
+catalog. The additive `features.alpha` block records the straight-alpha working mode and
+each layer's declared input mode. `features.effect_routes` records normalized, ordered
+layer/mask/mask-edge routing decisions. Audio is dropped (`audio_policy:
+"dropped_video_only"`, `features.audio: "dropped"`).
 
 ```json
 {
@@ -227,7 +229,19 @@ catalog. Audio is dropped (`audio_policy: "dropped_video_only"`, `features.audio
   "audio_policy": "dropped_video_only",
   "features": {
     "layer_types": ["image", "video"], "transforms": false, "rotation": true,
-    "timing_windows": false, "masks": false, "blend_modes": ["multiply", "normal"], "audio": "dropped"
+    "timing_windows": false, "masks": false, "blend_modes": ["multiply", "normal"],
+    "alpha": {
+      "working_mode": "straight",
+      "input_modes_by_layer": {"bg": "straight", "tint": "straight", "logo": "premultiplied"}
+    },
+    "effect_routes": [
+      {
+        "effect": "effect-noise",
+        "target": "layer:logo",
+        "args": {"animated": false, "intensity": 0.05, "mode": "film"}
+      }
+    ],
+    "audio": "dropped"
   },
   "render_determinism_scope": "input/spec/filtergraph/output hashes are deterministic; rendered bytes may still vary across FFmpeg builds"
 }

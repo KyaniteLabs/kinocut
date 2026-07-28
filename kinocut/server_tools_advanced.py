@@ -636,11 +636,10 @@ def video_composite_layers(
 ) -> dict[str, Any]:
     """Composite ordered image/video layers from a JSON spec.
 
-    Supports normal alpha compositing, opacity, x/y positioning, transform
-    scale/width/height, timing windows, optional mask/matte alpha sources,
-    video/image/solid layers, and a deterministic layer-plan receipt.
-    Non-normal blend modes, rotation, and per-layer effect routing are
-    deliberately deferred until they can stay preflightable.
+    Supports explicit straight/premultiplied input alpha, opacity, positioning,
+    transforms, timing windows, masks/mattes, allowlisted blend modes, rotation,
+    and effect-noise routes to named layer/mask/mask-edge streams. Emits a
+    deterministic layer-plan receipt; unsupported routes fail closed.
 
     Args:
         spec_path: Path to a composite-layers JSON spec.
