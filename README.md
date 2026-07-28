@@ -25,11 +25,11 @@ Or install with pip:
 
 ## Docs
 
-- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- [1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)
-- [kinocut.dev](https://kinocut.dev/)
-- [`kinocut`](https://pypi.org/project/kinocut/)
-- [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest)
+- [Install matrix](docs/INSTALL.md)
+- [Golden path](docs/GOLDEN_PATH.md)
+- [Prompts](docs/PROMPTS.md)
+- [Tutorial](docs/TUTORIAL_PODCAST_TO_SHORTS.md)
+- [Compare](docs/COMPARE.md)
 
 ## License
 
