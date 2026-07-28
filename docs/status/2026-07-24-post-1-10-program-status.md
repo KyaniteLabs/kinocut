@@ -1,5 +1,9 @@
 # Post-1.10 program status (route through 1.11.1)
 
+> **Historical snapshot:** Superseded for current planning by
+> [`2026-07-27-post-campaign-tip-status.md`](2026-07-27-post-campaign-tip-status.md).
+> This file preserves the state recorded on 2026-07-24.
+
 **Date:** 2026-07-24  
 **Scope:** Honest planning status after published 1.10.0 and the 1.10.0 → 1.11.1 multi-release route.  
 **Does not authorize** tag/publish without separate human release authority.
@@ -35,8 +39,9 @@ Public tools/commands (MCP underscore / CLI hyphen / namespaced `kino sound <act
 
 Host seam is `kinocut_sound.public` (`invoke_sound_operation` + discovery). No second facade.
 
-## Supersedes
+## Historical relationship
 
-Agents planning after this date should prefer this document over
-[`2026-07-14-post-1.8-program-status.md`](2026-07-14-post-1.8-program-status.md) for live remaining work.
-The older snapshot remains historical evidence.
+This snapshot superseded
+[`2026-07-14-post-1.8-program-status.md`](2026-07-14-post-1.8-program-status.md)
+until the 2026-07-27 campaign status replaced both for current planning. All three
+remain dated evidence.

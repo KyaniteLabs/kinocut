@@ -55,7 +55,7 @@ def test_pyproject_version_matches_release_candidate_claim(claims: dict) -> None
     assert project["name"] == claims["package_name"]
     assert project["version"] == claims["release_candidate_version"]
     # Mid-cutover: candidate may lead published until PyPI/npm catch up.
-    # After cutover they match (e.g. both 1.8.0).
+    # After a completed cutover they match.
     assert claims["published_mcp_tools"] <= claims["development_mcp_tools"]
 
 
@@ -129,10 +129,31 @@ def test_current_release_docs_and_compatibility_shim_match_claims(claims: dict) 
     assert f"kinocut=={published}" in shim["dependencies"]
     assert f"mcp-video=={shim_version}" in (ROOT / "README.md").read_text(encoding="utf-8")
     assert f"{shim_version} shim → kinocut {published}" in (ROOT / "llms.txt").read_text(encoding="utf-8")
+    assert f"kinocut=={published}" in (ROOT / "README.md").read_text(encoding="utf-8")
+
+    discovery = (ROOT / "docs" / "AI_AGENT_DISCOVERY.md").read_text(encoding="utf-8")
+    assert f"{claims['published_mcp_tools']} MCP tools / {claims['published_cli_commands']} CLI" in discovery
+    assert f"{claims['development_mcp_tools']} MCP tools / {claims['development_cli_commands']} CLI" in discovery
+
+    directory_status = (ROOT / "docs" / "DIRECTORY_REBRAND_STATUS.md").read_text(encoding="utf-8")
+    assert f"Current release: {published}" in directory_status
+    assert f"Published surface: {claims['published_mcp_tools']} MCP tools" in directory_status
+
+    mcpb = (ROOT / "docs" / "MCPB.md").read_text(encoding="utf-8")
+    assert f"kinocut=={published}" in mcpb
+    assert f"dist/kinocut-{published}.mcpb" in mcpb
+
+    stream_shorts = (ROOT / "docs" / "STREAM_SHORTS.md").read_text(encoding="utf-8")
+    assert "Development tip only until a published release" not in stream_shorts
+
+    compat_readme = (ROOT / "compat" / "mcp-video-shim" / "README.md").read_text(encoding="utf-8")
+    major_s, minor_s, *_rest = published.split(".")
+    assert f"{major_s}.{minor_s}.x line" in compat_readme
 
     roadmap = (ROOT / "ROADMAP.md").read_text(encoding="utf-8")
     assert f"Kinocut {published} is published" in roadmap
     assert "released 1.7.0 surface" not in roadmap
+    assert "post-campaign tip status" in roadmap
 
     checklist = (ROOT / "docs" / "RELEASE_1.8_CHECKLIST.md").read_text(encoding="utf-8")
     assert "**Status:** COMPLETE" in checklist
@@ -144,7 +165,7 @@ def test_current_release_docs_and_compatibility_shim_match_claims(claims: dict) 
     assert f"mcp-video=={shim_version}" in release_notes
 
     docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
-    assert "post-1.8 program status" in docs_index
+    assert "post-campaign tip status" in docs_index
     assert "`docs/status/` entries are snapshots" in docs_index
 
 

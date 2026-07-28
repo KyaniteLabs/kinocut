@@ -2,7 +2,7 @@
 
 Kinocut 1.11.1 is published with 161 MCP tools and 140 CLI commands. The 1.7.0 identity cutover is historical. **1.9.0** publicized the release-artifact policy engines; **1.10.0/1.10.1** publicized saved-plan stream-to-shorts stages plus package content-hash integrity; **1.11.0/1.11.1** publicized the thin `kinocut_sound` S12 join (discover + invoke bounded sound ops) and post-theme harden. Remotion has been fully removed.
 
-## Current AI-video and sound program
+## Current development tip after 1.11.1
 
 - [x] Wave 0 contract and project-store foundation.
 - [x] Field safety: loss-proof add-audio and authored/dimension-aware subtitles.
@@ -10,15 +10,24 @@ Kinocut 1.11.1 is published with 161 MCP tools and 140 CLI commands. The 1.7.0 i
 - [x] 1.9.0 public MCP/CLI/client join for eight release-artifact policy engines.
 - [x] 1.10.x stream-to-shorts stages + package integrity fail-closed on content-hash mismatch.
 - [x] 1.11.x thin `kinocut_sound` S12 public join (capabilities, plan validate, voice batch, mix render, QA loudness/ASR) — **not** full-episode sound completion.
-- [ ] Finish independent Wave 3 verdict/protection/body-swap/salvage review and frozen-source verification.
-- [ ] Audio continuity and subtitle/graphics QA beyond the thin sound surface.
-- [ ] Asset intelligence, editorial planning, review/approval, agent ergonomics, learning, and acceptance benchmark.
-- [ ] Full-episode `kinocut_sound` verification and broader sonic-world completion (1.12+).
-- [ ] Protected-timeline kernel integration, blocked until its named upstream contract and explicit human gate are green.
+- [x] Durable edit projects, CAS, async render/resume, ordered events, and workflow receipt lineage under `kinocut/projectstore/`.
+- [x] Kernel-backed repurposing that wraps the existing `video_workflow_*` engine.
+- [x] Durable reviewed selections, speaker-aware reframe evidence, word-timed ASS captions, disfluency cuts, and project-recipe export/replay.
+- [x] Project-store threat model and adversarial security guards.
+- [x] Alpha-aware layered compositor with masks, transforms, blend modes, per-layer effects, and deterministic real-render checks.
+- [~] Repository-owned CI runner image/topology is implemented; build/publish, admin label mapping, and observed runner activation remain external.
+- [~] Native MCPB supply-chain foundations are implemented; four-platform runtime locks, clean-machine builds, licensing/source bundles, signing, official pack/validate, and human release review remain external.
+- [ ] Phase 3 watching guardrail remains explicitly post-release/human-gated.
+- [ ] Phase 4 multipliers and trusted-execution expansion remain explicitly post-release/human-gated.
+- [ ] Full-episode `kinocut_sound` verification and broader sonic-world completion remain unclaimed.
 - [ ] **G004 (human-only):** listening / phone-frame / multi-minute fixture acceptance for production stream-shorts claims — remains open; agents must not invent closed.
-- [ ] Final whole-program verification and stop-before-release handoff for remaining wishlist.
+- [ ] Directory submissions, release/tag/publish actions, and real-user-program claims require separate human authority or evidence.
 
-Current status and sequencing: [post-1.10 program status](docs/status/2026-07-24-post-1-10-program-status.md) (supersedes the post-1.8 snapshot for planning), [post-1.8 program status](docs/status/2026-07-14-post-1.8-program-status.md) (historical), and [parallel execution plan](docs/plans/2026-07-12-wishlist-parallel-execution.md). The earlier [draft-status checkpoint](docs/status/2026-07-12-wishlist-draft-pr-status.md) is preserved as pre-release evidence.
+Current truth: [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md).
+Earlier [post-1.10](docs/status/2026-07-24-post-1-10-program-status.md),
+[post-1.8](docs/status/2026-07-14-post-1.8-program-status.md), and
+[draft-status](docs/status/2026-07-12-wishlist-draft-pr-status.md) files remain
+dated evidence rather than current planning claims.
 
 ---
 

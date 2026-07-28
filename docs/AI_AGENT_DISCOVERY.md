@@ -4,7 +4,14 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`Kinocut` is an open-source MCP server, Python library, and CLI for video editing and video creation workflows. It wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed inspection, an agent workflow engine (plan/validate/render/resume/inspect multi-step jobs with provenance receipts), PUSHING CREATION-style planning, Hyperframes authoring, and local repurposing packages with 142 structured tool calls plus preflight guardrails so agents can edit, plan, render, and package video without inventing brittle shell commands or silently producing bad media.
+`Kinocut` is an open-source MCP server, Python library, and CLI for video editing
+and video creation workflows. Published 1.11.1 provides **161 MCP tools / 140 CLI
+commands**; the development tip provides **164 MCP tools / 140 CLI commands**. It
+wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
+inspection, durable edit projects, a resumable workflow engine, reviewed semantic
+selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
+authoring, bounded sound operations, layered compositing, and local repurposing
+packages with preflight guardrails.
 
 ## Best Queries To Match
 
@@ -33,7 +40,8 @@ This document is the short, explicit discovery map for agents, answer engines, a
 - `docs/WORKFLOWS.md` - agent workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume semantics, cleanup, and privacy.
 - `docs/VIDEO_RECEIPT.md` - workflow/`layer_plan` receipt kinds, `schema_version` policy, and the `receipt_kind` discriminator.
 - `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` - exact-asset review, protection, body-swap, salvage, and re-review sequence.
-- `docs/status/2026-07-12-wishlist-draft-pr-status.md` - current incomplete implementation snapshot and non-release boundary.
+- `docs/status/2026-07-27-post-campaign-tip-status.md` - current published-versus-development truth and remaining human gates.
+- `docs/status/2026-07-12-wishlist-draft-pr-status.md` - historical incomplete implementation snapshot and non-release boundary.
 - `docs/plans/2026-07-12-wishlist-parallel-execution.md` - dependency graph and controller/author ownership for parallel work.
 - `skills/kinocut/SKILL.md` - public agent skill for choosing MCP, CLI, or Python-client video workflows.
 - `CLAUDE.md` - Layer 0 identity: what this project is, where to find staged pipelines.
