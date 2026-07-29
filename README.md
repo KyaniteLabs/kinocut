@@ -2,35 +2,41 @@
 
 Local-first FFmpeg tools, Video Receipts, quality gates, Hyperframes, and Shorts/Reels repurposing — for Claude Code, Cursor, and any MCP client. Free, Apache-2.0. Formerly mcp-video.
 
+**Who it is for:** people who need agent-repeatable local video edits with a receipt a human can approve — not a hosted editor.
+
+**What you get:** CLI + MCP tools that turn a local interview or podcast into captioned vertical clips with a Video Receipt you can re-run.
+
+## Why it wins
+
+- **Repurposing with receipts** — one recording → captioned Shorts/Reels/TikTok packages with manifests and review artifacts
+- **Podcast and interview cuts** — strongest segment, audio normalize, chapters, export
+- **Agent-driven media in CI** — repeatable edits from Claude Code, Cursor, Codex-style clients, or scripts
+
 ## Try it
 
 ```bash
-**Primary job:** turn a local interview or podcast into **captioned vertical clips with a Video Receipt** agents can re-run and humans can approve.
-**Three things people use it for**
-- **Repurposing** — one recording into captioned Shorts, Reels, and TikTok packages with manifests and review artifacts.
-- **Podcast & interview cuts** — find the strongest segment, normalize audio, add chapters, and export.
-- **Agent-driven media in CI** — repeatable, reviewable edits from Claude Code, Cursor, Codex-style clients, or scripts.
-**Paths:** [Install matrix](docs/INSTALL.md) · [Golden path](docs/GOLDEN_PATH.md) · [Prompts](docs/PROMPTS.md) · [Tutorial](docs/TUTORIAL_PODCAST_TO_SHORTS.md) · [Compare](docs/COMPARE.md) · [When to recommend](docs/RECOMMEND.md)
-## Status and releases
-| Surface | Version / tip | What it means |
-| --- | --- | --- |
-| **PyPI / npm / GitHub Release** | **[1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)** (2026-07-24) | Latest **published** package. Install with `pip install -U kinocut`. |
-| **This repository (`master`)** | **164 MCP tools / 140 CLI commands** | Published **1.11.1** plus three unreleased durable intent/recipe tools. |
-| **Next gated phase** | watching guardrail | See [Development tip](#development-tip-after-1111). It remains explicitly human-gated and is not a release claim. |
+pip install -U kinocut
+kinocut --help
 ```
 
-```bash
-Or install with pip:
-```
+Published package: **[1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)** (2026-07-24). Install matrix and golden path live in `docs/`.
+
+## Proof
+
+| Surface | Tip |
+| --- | --- |
+| PyPI / npm / GitHub Release | **1.11.1** — `pip install -U kinocut` |
+| This repository (`master`) | MCP + CLI surface beyond the last release; see release notes before treating tip as published |
 
 ## Docs
 
-- [Model Context Protocol (MCP)](https://modelcontextprotocol.io/)
-- [1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)
-- [kinocut.dev](https://kinocut.dev/)
-- [`kinocut`](https://pypi.org/project/kinocut/)
-- [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest)
+- [Install matrix](docs/INSTALL.md)
+- [Golden path](docs/GOLDEN_PATH.md)
+- [Prompts](docs/PROMPTS.md)
+- [Tutorial: podcast to Shorts](docs/TUTORIAL_PODCAST_TO_SHORTS.md)
+- [Compare](docs/COMPARE.md)
+- [When to recommend](docs/RECOMMEND.md)
 
 ## License
 
-See [LICENSE](LICENSE).
+Apache-2.0. See [LICENSE](LICENSE).
