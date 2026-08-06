@@ -18,8 +18,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-142%20tools-orange.svg" alt="142 MCP tools on development tip">
-  <img src="https://img.shields.io/badge/CLI-121%20commands-orange.svg" alt="121 CLI commands on development tip">
+  <img src="https://img.shields.io/badge/MCP-142%20tools-orange.svg" alt="161 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/CLI-121%20commands-orange.svg" alt="140 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -27,8 +27,8 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-170-latest-release">1.7.0</a> &bull;
-  <a href="#heading-toward-18">Toward 1.8</a> &bull;
+  <a href="#whats-in-170-latest-release">1.11.1</a> &bull;
+  <a href="#heading-toward-18">in 1.8–1.11</a> &bull;
   <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#mcp-tools">Tools</a> &bull;
@@ -51,7 +51,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.7.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.7.0)** (2026-07-10) |
+| **Latest published release** | **[1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)** (2026-07-24) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -97,21 +97,21 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm / GitHub Release** | **[1.7.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.7.0)** (2026-07-10) | Latest **published** Kinocut identity cutover. Install with `pip install kinocut`. |
-| **This repository (`master`)** | development tip · **142 MCP tools / 121 CLI commands** | Includes post-1.7 work: governed AI-video, C2PA hooks, MCPB foundations, and the in-progress `kinocut_sound` program. |
-| **Next public release** | **toward 1.8** | Not tagged, not on PyPI. Draft-only until whole-program verification and an explicit human release authorization. |
+| **PyPI / npm / GitHub Release** | **[1.11.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)** (2026-07-24) | Latest **published** Kinocut identity cutover. Install with `pip install kinocut`. |
+| **This repository (`master`)** | development tip · **161 MCP tools / 140 CLI commands** | Includes post-1.7 work: governed AI-video, C2PA hooks, MCPB foundations, and the in-progress `kinocut_sound` program. |
+| **Next public release** | **in 1.8–1.11** | Not tagged, not on PyPI. Draft-only until whole-program verification and an explicit human release authorization. |
 
 Install from PyPI when you want the stable package. Clone or install from `master` only when you intentionally need unreleased surfaces. The badge counts above describe the **development tip**, not a 1.8 package version.
 
-## What's in 1.7.0 (latest release)
+## What's in 1.11.1 (latest release)
 
-Kinocut **1.7.0** is the rename and identity release. It is what you get from `pip install kinocut` today:
+Kinocut **1.11.1** is the rename and identity release. It is what you get from `pip install kinocut` today:
 
 - Canonical package **`kinocut`**, CLI entry points **`kino`** / **`kinocut`**, and a preserved **`mcp-video`** compatibility command
 - Thin **`kinocut` npm** launcher (`uvx` → `kino`) and MCP Registry identity **`io.github.KyaniteLabs/kinocut`**
 - Public agent skill at [`skills/kinocut/SKILL.md`](skills/kinocut/SKILL.md) (`$kinocut`); [`skills/mcp-video`](skills/mcp-video/SKILL.md) remains a compatibility pointer
 - Project, docs, package metadata, and discovery surfaces pointed at **[kinocut.dev](https://kinocut.dev/)**
-- Compatibility window: `mcp-video==1.6.1` installs `kinocut==1.7.0`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **through at least Kinocut 1.8.x**
+- Compatibility window: `mcp-video==1.6.1` installs `kinocut==1.11.1`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **through at least Kinocut 1.8.x**
 
 Also already on the published line from the **1.6.x** surface that 1.7 inherits:
 
@@ -121,11 +121,11 @@ Also already on the published line from the **1.6.x** surface that 1.7 inherits:
 - **Layered compositing** with full-canvas blend modes, rotation/pivot, and `layer_plan` v2 receipts
 - Expanded preflight guardrails for filters, merge, audio, overlay/chroma, text, and layout mismatches
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.7.0 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.7.0)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.11.1 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.11.1)
 
-## Heading toward 1.8
+## Published through 1.11.x
 
-**1.8 is not released.** The work below is on `master` (or still gated), tracked as draft, and **must not** be treated as a published package. No version bump, tag, PyPI/npm upload, directory submission, deploy, or announcement is authorized until the program’s final verification and a human release go-ahead.
+**1.11.1 is the latest published release.** The work below is on `master` (or still gated), tracked as draft, and **must not** be treated as a published package. No version bump, tag, PyPI/npm upload, directory submission, deploy, or announcement is authorized until the program’s final verification and a human release go-ahead.
 
 ### Already on the development tip (draft)
 
@@ -210,7 +210,7 @@ manifest, all with workspace-relative paths:
 ```json
 {
   "receipt_kind": "workflow",
-  "versions": { "mcp_video": "1.7.0", "ffmpeg": "8.1" },
+  "versions": { "mcp_video": "1.11.1", "ffmpeg": "8.1" },
   "spec_hash": "sha256:be2f3a9b...",
   "steps": [
     { "id": "trim-hero", "op": "trim", "status": "completed",
@@ -362,11 +362,11 @@ pip install --upgrade mcp-video
 mcp-video doctor
 ```
 
-`mcp-video==1.6.1` is a metadata-only compatibility installer for `kinocut==1.7.0`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported through at least Kinocut 1.8.x. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+`mcp-video==1.6.1` is a metadata-only compatibility installer for `kinocut==1.11.1`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported through at least Kinocut 1.8.x. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.7.0** (`pip install kinocut`). En la punta de desarrollo hay **142 herramientas MCP** y **121 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada (en borrador hacia 1.8) y barreras de seguridad antes de renderizar. **1.8 aún no está publicado.**
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.11.1** (`pip install kinocut`). En la punta de desarrollo hay **142 herramientas MCP** y **121 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada (en borrador hacia 1.8) y barreras de seguridad antes de renderizar. **1.8 aún no está publicado.**
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -507,7 +507,7 @@ kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-On the **development tip**, kino registers **142 MCP tools** and **121 CLI commands**. The published **1.7.0** package surface is smaller (the 1.7 cutover documented **135 tools / 114 commands**); install from source or wait for 1.8 if you need the AI-video rows below. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+On the **development tip**, kino registers **161 MCP tools** and **140 CLI commands**. The published **1.11.1** package surface is smaller (the 1.7 cutover documented **135 tools / 114 commands**); install from source or wait for 1.8 if you need the AI-video rows below. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -598,11 +598,11 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.7.0** documented **135 MCP tools / 114 CLI commands**. The development tip currently registers **142 MCP tools / 121 CLI commands** (includes unreleased AI-video surfaces). Do not treat the tip counts as a released 1.8 package.
+Published **1.11.1** documented **161 MCP tools / 140 CLI commands**. The development tip currently registers **161 MCP tools / 140 CLI commands** (includes unreleased AI-video surfaces). Do not treat the tip counts as a released 1.8 package.
 
 ### Was it called mcp-video?
 
-Yes. `mcp-video==1.6.1` installs `kinocut==1.7.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported through at least Kinocut 1.8.x.
+Yes. `mcp-video==1.6.1` installs `kinocut==1.11.1`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported through at least Kinocut 1.8.x.
 
 More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](https://kinocut.dev/#faq)
 
