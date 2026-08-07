@@ -125,9 +125,77 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
     runner.register("language-coverage", _coverage)
     runner.register("review-run", _review_run)
     runner.register("review-decide", _review_decide)
+    def _qc_vision(a: Any, j: bool) -> None:
+        from kinocut.watching import run_vision_qc
+
+        _out(run_vision_qc(a.input), j, lambda r: f"vision {r['verdict']}")
+
+    def _qc_narrative(a: Any, j: bool) -> None:
+        from kinocut.watching import run_narrative_qc
+
+        _out(run_narrative_qc(a.input), j, lambda r: f"narrative {r['verdict']}")
+
+    def _publish(a: Any, j: bool) -> None:
+        from kinocut.te import validate_publish_spec
+
+        r = validate_publish_spec(a.platform, duration_seconds=a.duration, height=a.height, width=a.width)
+        _out(r, j, lambda res: f"{res['platform']} {res['verdict']}")
+
+    def _hooks(a: Any, j: bool) -> None:
+        from kinocut.te import generate_hook_candidates
+
+        r = generate_hook_candidates(a.topic, count=a.count, language=a.language)
+        _out(r, j, lambda res: f"{len(res['titles'])} hook candidates")
+
+    def _seek(a: Any, j: bool) -> None:
+        from kinocut.te import frame_to_timestamp, timestamp_to_frame
+
+        if a.frame is not None:
+            r = frame_to_timestamp(a.frame, a.fps)
+        else:
+            r = timestamp_to_frame(float(a.seconds or 0), a.fps)
+        _out(r, j, lambda res: f"frame={res['frame']} t={res['seconds']}")
+
+    def _otio_export(a: Any, j: bool) -> None:
+        from kinocut.multipliers import export_otio_json
+
+        timeline = json.loads(Path(a.timeline_json).read_text(encoding="utf-8"))
+        r = export_otio_json(timeline, a.output)
+        _out(r, j, lambda res: f"otio → {res['path']}")
+
+    def _otio_import(a: Any, j: bool) -> None:
+        from kinocut.multipliers import import_otio_json
+
+        r = import_otio_json(a.path)
+        _out(r, j, lambda res: f"timeline {res['timeline_id']} nodes={len(res['nodes'])}")
+
+    def _review_ui(a: Any, j: bool) -> None:
+        from kinocut.multipliers import write_review_surface
+
+        r = write_review_surface(a.output_dir)
+        _out(r, j, lambda res: f"review ui → {res['html_path']}")
+
+    def _session(a: Any, j: bool) -> None:
+        from kinocut.te import session_open, session_step
+
+        if a.action == "open":
+            r = session_open(a.path, a.goal)
+        else:
+            r = session_step(a.path, action=a.step_action, score=a.score)
+        _out(r, j, lambda res: f"session improvement={res.get('measured_improvement')}")
+
     runner.register("init", _init)
     runner.register("estimate", _estimate)
     runner.register("brand-kit", _brand)
     runner.register("cutfile-validate", _cutfile)
     runner.register("propose-mutations", _mutations)
+    runner.register("qc-vision", _qc_vision)
+    runner.register("qc-narrative", _qc_narrative)
+    runner.register("publish-validate", _publish)
+    runner.register("hook-candidates", _hooks)
+    runner.register("seek-frame", _seek)
+    runner.register("otio-export", _otio_export)
+    runner.register("otio-import", _otio_import)
+    runner.register("review-ui", _review_ui)
+    runner.register("edit-session", _session)
     return runner.dispatch()

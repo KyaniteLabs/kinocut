@@ -333,3 +333,204 @@ def video_cutfile_validate(path: str) -> dict[str, Any]:
 
     cf = load_cutfile(path)
     return _result(cf.to_dict())
+
+
+@mcp.tool()
+@_safe_tool
+def video_timeline_ir_validate(timeline: dict[str, Any]) -> dict[str, Any]:
+    """Validate Timeline IR and compile to render DAG (P3.0)."""
+
+    from kinocut.timeline_ir import compile_ir_to_dag, ir_identity, parse_timeline_ir
+
+    ir = parse_timeline_ir(timeline)
+    dag = compile_ir_to_dag(ir)
+    return _result(
+        {
+            "artifact_kind": "timeline_ir",
+            "identity": ir_identity(ir),
+            "ir": ir.model_dump(mode="json"),
+            "dag_node_count": len(getattr(dag, "nodes", []) or []),
+            "compiled": True,
+        }
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_qc_vision(input_path: str, require_vlm: bool = False) -> dict[str, Any]:
+    """Vision QC third — graceful if VLM unavailable (P3.3)."""
+
+    from kinocut.watching import run_vision_qc
+
+    return _result(run_vision_qc(input_path, require_vlm=require_vlm))
+
+
+@mcp.tool()
+@_safe_tool
+def video_qc_narrative(input_path: str) -> dict[str, Any]:
+    """Narrative/retention heuristics incl. first-15s window (P3.4)."""
+
+    from kinocut.watching import run_narrative_qc
+
+    return _result(run_narrative_qc(input_path))
+
+
+@mcp.tool()
+@_safe_tool
+def video_generative_plan(
+    prompt: str,
+    provider: str = "local",
+    model: str | None = None,
+    max_spend_usd: float = 0.0,
+    estimated_spend_usd: float = 0.0,
+) -> dict[str, Any]:
+    """Generative last-mile plan with spend caps (P4.1) — plan only."""
+
+    from kinocut.multipliers import plan_generative_last_mile
+
+    return _result(
+        plan_generative_last_mile(
+            prompt,
+            provider=provider,
+            model=model,
+            max_spend_usd=max_spend_usd,
+            estimated_spend_usd=estimated_spend_usd,
+        ).to_dict()
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_otio_export(timeline: dict[str, Any], output_path: str) -> dict[str, Any]:
+    """Export Timeline IR to simplified OTIO JSON (P4.2)."""
+
+    from kinocut.multipliers import export_otio_json
+
+    return _result(export_otio_json(timeline, output_path))
+
+
+@mcp.tool()
+@_safe_tool
+def video_otio_import(path: str) -> dict[str, Any]:
+    """Import simplified OTIO JSON to Timeline IR (P4.2)."""
+
+    from kinocut.multipliers import import_otio_json
+
+    return _result(import_otio_json(path))
+
+
+@mcp.tool()
+@_safe_tool
+def video_review_ui(output_dir: str) -> dict[str, Any]:
+    """Write hot-reloading human review HTML surface (P4.3)."""
+
+    from kinocut.multipliers import write_review_surface
+
+    return _result(write_review_surface(output_dir))
+
+
+@mcp.tool()
+@_safe_tool
+def video_dub_plan(caption_path: str, target_lang: str = "es", voice: str | None = None) -> dict[str, Any]:
+    """Local TTS dub plan ES-first (P4.4) — plan only until backend configured."""
+
+    from kinocut.multipliers import plan_tts_dub
+
+    return _result(plan_tts_dub(caption_path, target_lang=target_lang, voice=voice))
+
+
+@mcp.tool()
+@_safe_tool
+def video_publish_validate(
+    platform: str,
+    duration_seconds: float,
+    height: int,
+    width: int,
+    container: str = "mp4",
+) -> dict[str, Any]:
+    """Local-first per-platform publish spec validation (TE.1) — no upload."""
+
+    from kinocut.te import validate_publish_spec
+
+    return _result(
+        validate_publish_spec(
+            platform,
+            duration_seconds=duration_seconds,
+            height=height,
+            width=width,
+            container=container,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_hook_candidates(topic: str, count: int = 5, language: str = "en") -> dict[str, Any]:
+    """Thumbnail + hook-title candidates for human pick (TE.2)."""
+
+    from kinocut.te import generate_hook_candidates
+
+    return _result(generate_hook_candidates(topic, count=count, language=language))
+
+
+@mcp.tool()
+@_safe_tool
+def video_audiogram_plan(
+    audio_path: str,
+    width: int = 1080,
+    height: int = 1080,
+    chapter_marks: list[float] | None = None,
+) -> dict[str, Any]:
+    """Audiogram + chapter mark plan (TE.4)."""
+
+    from kinocut.te import plan_audiogram
+
+    return _result(plan_audiogram(audio_path, width=width, height=height, chapter_marks=chapter_marks))
+
+
+@mcp.tool()
+@_safe_tool
+def video_punch_zoom_plan(cut_times: list[float], zoom: float = 1.15, duration_seconds: float = 0.35) -> dict[str, Any]:
+    """Auto-zoom punch-in plan on cut points (TE.5)."""
+
+    from kinocut.te import plan_punch_zooms
+
+    return _result(plan_punch_zooms(cut_times, zoom=zoom, duration_seconds=duration_seconds))
+
+
+@mcp.tool()
+@_safe_tool
+def video_seek_frame(frame: int | None = None, seconds: float | None = None, fps: float = 30.0) -> dict[str, Any]:
+    """Frame-accurate seek conversion (TE.9)."""
+
+    from kinocut.errors import MCPVideoError
+    from kinocut.te import frame_to_timestamp, timestamp_to_frame
+
+    if frame is not None:
+        return _result(frame_to_timestamp(int(frame), fps))
+    if seconds is not None:
+        return _result(timestamp_to_frame(float(seconds), fps))
+    raise MCPVideoError("provide frame or seconds", error_type="validation_error", code="seek_args")
+
+
+@mcp.tool()
+@_safe_tool
+def video_edit_session(
+    action: str,
+    path: str,
+    goal: str | None = None,
+    step_action: str | None = None,
+    score: float | None = None,
+    notes: str = "",
+) -> dict[str, Any]:
+    """Conversational edit session open/step with measured improvement (TE.13)."""
+
+    from kinocut.errors import MCPVideoError
+    from kinocut.te import session_open, session_step
+
+    act = (action or "").lower()
+    if act == "open":
+        return _result(session_open(path, goal or "edit"))
+    if act == "step":
+        return _result(session_step(path, action=step_action or "step", score=score, notes=notes))
+    raise MCPVideoError("action must be open|step", error_type="validation_error", code="session_action")

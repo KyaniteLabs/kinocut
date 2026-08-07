@@ -1,0 +1,34 @@
+{
+  "name": "Kinocut faceless short (local)",
+  "nodes": [
+    {
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "position": [0, 0]
+    },
+    {
+      "name": "Kinocut repurpose",
+      "type": "n8n-nodes-base.executeCommand",
+      "parameters": {
+        "command": "kino intent repurpose --format json"
+      },
+      "position": [280, 0]
+    },
+    {
+      "name": "Review gate",
+      "type": "n8n-nodes-base.executeCommand",
+      "parameters": {
+        "command": "kino review-run \"$MEDIA\" --format json"
+      },
+      "position": [560, 0]
+    }
+  ],
+  "connections": {
+    "Manual Trigger": { "main": [[{ "node": "Kinocut repurpose", "type": "main", "index": 0 }]] },
+    "Kinocut repurpose": { "main": [[{ "node": "Review gate", "type": "main", "index": 0 }]] }
+  },
+  "meta": {
+    "template": "kinocut-faceless-local",
+    "notes": "Local-first; no silent publish. Human reviews review_run JSON."
+  }
+}
