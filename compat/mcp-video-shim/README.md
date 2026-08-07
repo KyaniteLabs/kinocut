@@ -10,5 +10,5 @@ pip install kinocut
 kino doctor
 ```
 
-Compatibility identifiers remain supported on the Kinocut 1.11.x line. Project home:
+Compatibility identifiers remain supported on the Kinocut 1.12.x line. Project home:
 [kinocut.dev](https://kinocut.dev/).

@@ -9,6 +9,28 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 1.12.0 - 2026-08-07
+
+### Added
+
+- **Still/plate editor surface** across MCP, CLI, and Python client: `still_match` / `still-match`, `still_grade` / `still-grade`, `still_gate` / `still-gate`, `image_edit` / `image-edit`, and `still_package` / `still-package`.
+- Package sequence match with one shared mean-RGB gain triple (no per-frame auto-WB; sources not overwritten).
+- Ordered still grade (neutralize → match → optional 3D LUT last) with signal-mode near-extrema logging.
+- Fail-closed cohesion gate (luma spread + shadow green/cyan) with contact sheet and named frame failures.
+- `kino doctor` `still_plates` capability check; optional `kinocut[image]` stack documents Pillow + NumPy.
+- Operator docs: [`docs/STILL_PLATES.md`](docs/STILL_PLATES.md).
+
+### Changed
+
+- Published surface grows to **169 MCP tools / 145 CLI commands** (from 161 / 140 in 1.11.x).
+- `image-edit` intent is **audit metadata only** (`intent_policy=metadata_only`); v1 pixel path is establish mean-RGB match, not NL-driven generative edit.
+- Pre-release honesty pass: no double exposure scale on match; signal-mode empty bands report null rather than 0.0.
+
+### Compatibility
+
+- `pip install -U kinocut` to 1.12.0. The `mcp-video` compatibility shim **1.6.3** installs `kinocut==1.12.0` and forwards optional extras.
+- **Not claimed:** NL intent as a pixel director, full color-science grade suite, native MCPB public publish, or post-release Phase 3–4/TE pillars.
+
 ## 1.11.1 - 2026-07-24
 
 ### Fixed

@@ -22,8 +22,8 @@ token does not have `read:admin`, so CI cannot truthfully infer this topology.
 Build the image locally from the pinned base-image digests:
 
 ```bash
-docker build --pull --tag kinocut-ci:1.11.1 containers/ci
-docker run --rm kinocut-ci:1.11.1 sh -ceu \
+docker build --pull --tag kinocut-ci:1.12.0 containers/ci
+docker run --rm kinocut-ci:1.12.0 sh -ceu \
   'python3 --version; node --version; ffmpeg -version | head -1; ffprobe -version | head -1; git --version'
 ```
 
