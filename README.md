@@ -28,6 +28,7 @@
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
   <a href="#whats-in-1130-latest-release">1.13.0</a> &bull;
+  <a href="#changelog">Changelog</a> &bull;
   <a href="#beyond-1130-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
@@ -42,7 +43,7 @@
   <a href="llms.txt">llms.txt</a>
 </p>
 
-> Kinocut is a free, open-source **video editing MCP server** (plus Python client and `kino` CLI) that lets AI agents trim, caption, repurpose, and quality-gate local media with typed tools and Video Receipts — not invented FFmpeg flags.
+> Kinocut is a free, open-source **video editing MCP server** and **AI agent** workflow engine (plus Python client and `kino` CLI) that lets AI agents trim, caption, repurpose, and quality-gate local video media with typed tools and Video Receipts — not invented FFmpeg flags.
 
 ## Table of contents
 
@@ -51,8 +52,9 @@
 - [Installation](#installation)
 - [Quick Start](#quick-start)
 - [MCP Tools](#mcp-tools)
-- [FAQ](#faq)
 - [Status and releases](#status-and-releases)
+- [Changelog](#changelog)
+- [FAQ](#faq)
 - [Agent Skill](#agent-skill)
 
 ---
@@ -120,14 +122,17 @@ Install from PyPI when you want the stable package. Clone or install from `maste
 
 ## What's in 1.13.0 (latest release)
 
-Kinocut **1.13.0** is what you get from `pip install kinocut` today. It includes the intent/watching/TE multiplier surface on top of still/plate (1.12) and the 1.11.x identity line:
+Kinocut **1.13.0** is what you get from `pip install kinocut` today. It introduces the intent/watching/TE multiplier surface on top of still/plate (1.12) and the 1.11.x identity line:
 
-- **Still/plate editor** — `still-match` / `still-grade` / `still-gate` / `image-edit` / `still-package` (MCP + CLI + Client), with receipts and fail-closed cohesion gate ([docs/STILL_PLATES.md](docs/STILL_PLATES.md))
-- Canonical package **`kinocut`**, CLI entry points **`kino`** / **`kinocut`**, and a preserved **`mcp-video`** compatibility command
-- Thin **`kinocut` npm** launcher (`uvx` → `kino`) and MCP Registry identity **`io.github.KyaniteLabs/kinocut`**
-- Public agent skill at [`skills/kinocut/SKILL.md`](skills/kinocut/SKILL.md) (`$kinocut`); [`skills/mcp-video`](skills/mcp-video/SKILL.md) remains a compatibility pointer
-- Project, docs, package metadata, and discovery surfaces pointed at **[kinocut.dev](https://kinocut.dev/)**
-- Compatibility window: `mcp-video==1.6.4` installs `kinocut==1.13.0`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.13.x line**
+- **Intent-verb surface** — Semantic intent routing via `video_intent` / `intent` tools supporting ~10 verbs to dry-run plans without silent media mutations.
+- **Watching guardrail floor** — Validation and quality checkpoints (`video_review_run`, `video_review_decide`) performing metric QC (blackdetect/LUFS) and narrative first-15s inspection.
+- **B-roll proposals** — `video_propose_broll` / `propose-broll` for human-reviewable, non-silent B-roll insertion.
+- **Caption translation** — ES-first captions translation (`video_translate_captions`) and a language coverage honesty matrix.
+- **Trusted execution (TE) QoL & tooling** — QoL additions including `init`, `estimate`, `brand-kit`, `cutfile-validate`, `publish-validate`, hook-candidates, and plans for audiograms, punch-zoom, and seek-frame.
+- **Still/plate editor** — `still-match` / `still-grade` / `still-gate` / `image-edit` / `still-package` (MCP + CLI + Client), with receipts and fail-closed cohesion gate ([docs/STILL_PLATES.md](docs/STILL_PLATES.md)).
+- **Canonical counts** — Grow public surface to **194 MCP tools** and **165 CLI commands** (fully synchronized across standard, test, and client interfaces).
+- **Project, docs, package metadata, and discovery surfaces** pointed at **[kinocut.dev](https://kinocut.dev/)**.
+- **Compatibility window** — `mcp-video==1.6.4` installs `kinocut==1.13.0`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.13.x line**.
 
 Also already on the published line from earlier 1.x surfaces:
 
@@ -143,46 +148,17 @@ Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.13.0 release](https://github.com
 
 **1.13.0 is the latest published release.** Live directory submissions, launch posts, and first-10 real-user runs remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
-### Already on the development tip (draft)
+### Staged and Gated Surfaces
 
-| Area | What landed on `master` | Start here |
-| --- | --- | --- |
-| **Governed AI-video** | Content-addressed `video_ingest`, unified `video_preflight`, temporal evidence (`video_inspect_temporal`), exact-asset `video_verdict` / `video_acceptance_eval`, audio-preserving `video_body_swap`, lineage-bound `video_salvage` | [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md) |
-| **Project store / contracts** | Append-only private project storage, strict canonical records, protected-element checks, fail-soft optional visual providers | [docs/AI_VIDEO_CONTRACTS.md](docs/AI_VIDEO_CONTRACTS.md) · [docs/AI_VIDEO_INSPECTION.md](docs/AI_VIDEO_INSPECTION.md) |
-| **Field safety** | Loss-proof add-audio duration policies; authored ASS + dimension-aware SRT/VTT subtitles | [CHANGELOG.md](CHANGELOG.md) Unreleased |
-| **C2PA provenance** | Optional signing on path-based `export` / `Client.export()` via `c2patool` (off by default; only reports signed after verify) | [docs/C2PA_PROVENANCE.md](docs/C2PA_PROVENANCE.md) |
-| **MCPB packaging** | Staged Desktop package + fail-closed native builder foundation; **not** a published self-contained runtime yet | [docs/MCPB.md](docs/MCPB.md) |
-| **Repurpose skill** | Path-based [`skills/kinocut-repurpose`](skills/kinocut-repurpose/SKILL.md) + deterministic current-tools demo (marketing seed, not the final kernel-backed product) | [docs/REPURPOSE_SKILL.md](docs/REPURPOSE_SKILL.md) |
-| **Hyperframes under MCP** | `hyperframes_init` no longer hangs without a TTY (non-interactive init + closed stdin) | [CHANGELOG.md](CHANGELOG.md) Unreleased |
+While the core FFmpeg editing, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated and published in **1.13.0**, the following surfaces remain gated, partial, or unreleased:
 
-### Upcoming pipeline (in progress)
-
-Two coordinated programs sit between today’s tip and a releaseable 1.8:
-
-#### 1. AI-video + review/salvage finish
-
-Contract-first media identity → inspection → human-gated verdict → bounded derivatives. Remaining work includes independent Wave-3 verification freeze, audio continuity, subtitle/graphics QA depth, asset intelligence, editorial planning, learning reports, and whole-program acceptance. Sequencing: [wishlist parallel execution](docs/plans/2026-07-12-wishlist-parallel-execution.md) · live ledger: [draft status](docs/status/2026-07-12-wishlist-draft-pr-status.md).
-
-#### 2. `kinocut_sound` (Sonic World) — full-episode audio production
-
-Standalone-capable sound package **inside this repo** (`kinocut_sound/`): plan/timeline/routing/consent → voice → post/spatial → ambience/world → mix/stems → QA/metadata → thin public adapters → host joins → dual-class benchmark → STOP.
-
-| Slice | Focus | Status (as of 2026-07-14) |
-| --- | --- | --- |
-| S1–S4 | Contracts, authorization, registry/policy, script/episode planning | Implemented foundation leaves |
-| S5 / S7 / S8 | Base voice, post/spatial chain, ambience/world | Integrated leaves on master |
-| S6 / S10 | Consent-gated clone/blend; voice consistency | Integrated leaves on master |
-| S9 / S11 | Mix assembly/stems; QA + metadata | Integrated leaves on master |
-| S12 | Thin public discovery / Python adapters | Integrated (capability discovery surface) |
-| **S13** | Kinocut/host joins (D41/D42 production bindings) | **Blocked** — external owner receipts incomplete |
-| **S14** | Dual-class benchmark (Apple silicon + x86 Linux) | **Partial** — x86 available; Apple class `external_host_unavailable` |
-| **S15** | Adversarial acceptance + release STOP | **STOP** — no ship without dual-class S14, S13 receipts, independent review, human authorization |
-
-Authoritative receipts: [sound program handoff](docs/status/2026-07-13-sound-program-strategic-handoff.md) · [S13–S15 gate](docs/status/2026-07-14-sound-s13-s15-gate-receipt.md) · [sound plan index](docs/superpowers/plans/2026-07-12-kinocut-sound-plan-index.md).
-
-#### 3. Trusted execution kernel (post-program, gated)
-
-The approved [trusted execution layer plan](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md) still defines the durable product path after the current program: durable edit projects, async render/resume wrapping `video_workflow_*`, receipt lineage, then kernel-backed repurposing as the “made just by prompting” moment. The protected-timeline kernel **does not start** merely because sound/AI-video leaves land — it needs the named upstream contract and an explicit human gate.
+- **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
+- **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
+  - **S13 (Host Joins / bindings):** Blocked — external owner receipts incomplete.
+  - **S14 (Dual-class Benchmark):** Partial — x86 available, Apple Silicon host unavailable.
+  - **S15 (Adversarial Gate):** Gated under a release STOP — requires S13 receipts, dual-class benchmarks, and explicit human authorization.
+- **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
+- **Paid Generative / Dubbing Plans:** Generative spend-capped plans and TTS dubbing remain non-executable draft definitions until external backends and credentials are configured.
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 
@@ -250,14 +226,14 @@ job that failed with its intermediates kept (fail-closed on a changed spec). Ful
 
 ## Governed AI-video review
 
-On the **development tip**, Kinocut adds a contract-first path for agent-edited media that must stay attributable and reviewable:
+In **Kinocut**, a contract-first path is provided for agent-edited media that must stay attributable and reviewable:
 
 1. **Ingest** the source into a private content-addressed project (`video_ingest` / `video-ingest`)
 2. **Preflight + temporal inspection** on the stored asset (`video_preflight`, `video_inspect_temporal`)
 3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
 4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
 
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are part of the unreleased 1.8-bound program — see [Status and releases](#status-and-releases).
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.13.0 release — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -587,7 +563,23 @@ Safety contract:
 - Tool discovery is available through `search_tools()` and `Client.inspect()`.
 - Unexpected keyword errors are converted into actionable `MCPVideoError` guidance.
 - Do not publish agent-generated video without `video_quality_check`, `video_release_checkpoint`, and human visual/audio inspection.
-- For governed AI-video derivatives (dev tip), require stored identities, active human decision evidence, and a fresh review slot after every salvage or body-swap — never raw FFmpeg workarounds labeled as governed.
+- For governed AI-video derivatives, require stored identities, active human decision evidence, and a fresh review slot after every salvage or body-swap — never raw FFmpeg workarounds labeled as governed.
+
+## Changelog
+
+**1.13.0** (2026-08-07):
+- Added **Intent-verb surface** (`video_intent` / `intent`), **Watching guardrail floor** (`video_review_run` / `video_review_decide`), **B-roll proposals** (`video_propose_broll`), **Caption translation ES-first** (`video_translate_captions`), and **Trusted execution (TE)** quality-of-life additions.
+- Expanded published surface to **194 MCP tools** and **165 CLI commands** (fully synchronized across standard, test, and client interfaces).
+- Hardened path validation for caption translation, brand kit, and OTIO exports.
+
+**1.12.0** (2026-08-07):
+- Added **Still/plate editor surface** (`still-match`, `still-grade`, `still-gate`, `image-edit`, `still-package`) with fail-closed cohesion gating.
+
+**1.11.x** (2026-07-24):
+- Added thin **`kinocut_sound`** S12 public join adapters (`sound-capabilities`, `sound-plan-validate`, `sound-mix-render`, etc.).
+- Post-theme security hardening to prevent absolute host-path leaks and ensure all discovered operations have fail-closed invoke paths.
+
+See [CHANGELOG.md](CHANGELOG.md) for full historical release notes, or view the [GitHub Releases](https://github.com/KyaniteLabs/kinocut/releases) page.
 
 ## FAQ
 
