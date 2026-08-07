@@ -1,10 +1,12 @@
-# Human-only gates (cannot be agent-closed)
+# Human / ops residual (agent scope closed 2026-08-07)
 
-| Issue | Gate | Checklist |
+Agent-closable prep is on tip. Live outcomes below still need a human operator.
+
+| Former issue | Agent deliverable | Still human |
 | --- | --- | --- |
-| #3 Dependency Dashboard | Renovate/bot config owner | Confirm Dependabot/Renovate app enabled on host |
-| #88 List + registry submissions | External approval | Follow `docs/DIRECTORY_REBRAND_STATUS.md`; human submits |
-| #90 Launch-moment production | Public media approval | Human approves rename post + final clip |
-| #92 First-10 real users | Real strangers' footage | Recruit 10 users; file breakage tickets; no invented results |
+| #3 Renovate dashboard | `.github/dependabot.yml` + note that Forgejo Renovate needs `GITHUB_COM_TOKEN`/hostRules | Enable token / Renovate app on host |
+| #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | External submit / wait on directories |
+| #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips |
+| #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | Recruit, run, log 10 real first-runs |
 
-Agents may prepare docs/templates only. Do not mark these complete without human evidence.
+Do not invent completed users, published launch metrics, or third-party directory approvals.
