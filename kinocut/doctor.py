@@ -490,6 +490,7 @@ def run_diagnostics(
     )
     checks.append(_check_crush())
     checks.append(_check_audio_engine())
+    checks.append(_check_still_plates(find_spec, package_version))
     return {
         "success": True,
         "platform": {
@@ -501,4 +502,41 @@ def run_diagnostics(
         "checks": checks,
         "rescue": _rescue_summary(checks),
         "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
+    }
+
+
+def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn) -> dict[str, Any]:
+    """Report still/plate editor capability (image stack + free edit backend)."""
+    pillow_ok = find_spec("PIL") is not None
+    numpy_ok = find_spec("numpy") is not None
+    ok = pillow_ok and numpy_ok
+    version = package_version("pillow") if pillow_ok else None
+    missing = []
+    if not pillow_ok:
+        missing.append("pillow")
+    if not numpy_ok:
+        missing.append("numpy")
+    hint = None
+    if not ok:
+        hint = (
+            "Still/plate tools need the image stack. "
+            'Install: pip install "kinocut[image]" (Pillow). '
+            "Free establish-locked edit uses local match; paid gen backends are not claimed until configured."
+        )
+    return {
+        "name": "still_plates",
+        "category": "still-plates",
+        "required": False,
+        "ok": ok,
+        "path": None,
+        "version": version,
+        "install_hint": hint,
+        "details": {
+            "pillow": pillow_ok,
+            "numpy": numpy_ok,
+            "free_edit_backend": "free_establish_match" if ok else "unavailable",
+            "paid_gen_backend": "not_configured",
+            "missing": missing,
+            "docs": "docs/STILL_PLATES.md",
+        },
     }

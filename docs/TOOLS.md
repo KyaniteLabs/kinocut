@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino exposes 164 registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino exposes 169 registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -376,3 +376,15 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 | `image_extract_colors` | Extract dominant colors from an image or video frame via K-means clustering (1-20 colors) |
 | `image_generate_palette` | Generate color harmony palette from an image or video frame |
 | `image_analyze_product` | Analyze a product image or video frame — extract colors + optional AI description (Claude Vision) |
+
+## Still / plate editor (5 tools)
+
+See [STILL_PLATES.md](STILL_PLATES.md) for order-of-ops, signal LUTs, and cohesion gate policy.
+
+| Tool | Description |
+|------|-------------|
+| `still_match` | Match a package of stills to a hero with one shared WB/exposure gain; receipt + no source overwrite |
+| `still_grade` | Ordered grade correct→match→look; optional 3D LUT last; signal-mode near-extrema logging |
+| `still_gate` | Fail-closed cohesion gate (luma spread, shadow green/cyan) + contact sheet |
+| `image_edit` | Free establish-locked still edit with plan/receipt; paid gen off by default |
+| `still_package` | Full package job: edit beats → match → grade → gate |

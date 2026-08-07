@@ -76,6 +76,7 @@ from .server_tools_image import (
     image_extract_colors as image_extract_colors,
     image_generate_palette as image_generate_palette,
 )
+from .server_tools_image import image_edit, still_gate, still_grade, still_match, still_package  # noqa: F401
 from .server_tools_creation import (
     shot_prompt_render as shot_prompt_render,
     storyboard_read as storyboard_read,
