@@ -24,6 +24,7 @@ from .cli.handlers_aivideo import handle_aivideo_commands
 from .cli.handlers_release import handle_release_commands
 from .cli.handlers_shorts import handle_shorts_commands
 from .cli.handlers_sound import handle_sound_commands
+from .cli.handlers_intent import handle_intent_commands
 from .cli.parser import build_parser
 from .cli.formatting import _format_error, console, err_console
 
@@ -130,6 +131,7 @@ def main() -> None:
             or handle_audio_commands(args, use_json=use_json)
             or handle_advanced_commands(args, use_json=use_json)
             or handle_image_commands(args, use_json=use_json)
+            or handle_intent_commands(args, use_json=use_json)
         ):
             return
 

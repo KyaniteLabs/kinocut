@@ -9,6 +9,20 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Added
+
+- **Intent-verb surface (P2.5):** `video_intent` / `intent` routes ~10 semantic verbs to plans without silent media mutation.
+- **B-roll proposals (P2.8):** `video_propose_broll` / `propose-broll` — human-reviewable only.
+- **Caption translation ES-first (P2.9):** `video_translate_captions` / `translate-captions` + `video_language_coverage` honesty matrix (dub not claimed).
+- **Watching review floor (P3.1–P3.2 start):** `video_review_run` / `review-run` and `video_review_decide` / `review-decide`.
+- Devcontainer scaffold (`.devcontainer/`), phase go/no-go doc, stewardship notes; community Funnel/OAuth deploy pointer in README.
+
+### Changed
+
+- Development public surface **175 MCP / 151 CLI** (published 1.12.0 remains **169 / 145** until the next release cut).
+
 ## 1.12.0 - 2026-08-07
 
 ### Added
