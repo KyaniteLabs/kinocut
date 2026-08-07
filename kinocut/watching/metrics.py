@@ -9,7 +9,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 
 from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
-from kinocut.errors import InputFileError, ProcessingError
+from kinocut.errors import InputFileError
 from kinocut.ffmpeg_helpers import _get_video_duration, _validate_input_path
 
 
