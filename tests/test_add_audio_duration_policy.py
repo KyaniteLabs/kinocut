@@ -236,3 +236,34 @@ def test_add_audio_remains_backward_compatible(tmp_path, media):
     res = add_audio(media["video_10s"], media["audio_3s"], 1.0, 0.0, 0.0, False, None, str(out))
     assert res.output_path.endswith("compat.mp4")
     assert abs(_get_video_duration(str(out)) - 10.0) < 0.3
+
+
+# ---------------------------------------------------------------------------
+# Issue #289: amix normalize=0 — mix must not attenuate by 1/n
+# ---------------------------------------------------------------------------
+
+
+def test_mix_filter_disables_amix_normalization():
+    """``--mix`` must emit ``normalize=0`` so both tracks sum at unity."""
+    from kinocut.engine_audio_ops import _build_add_audio_args
+
+    args = _build_add_audio_args(
+        "v.mp4", "a.wav", [], mix=True, start_time=None,
+        source_has_audio=True, output="out.mp4",
+        duration_policy="keep_video", video_duration=10.0,
+    )
+    fc = args[args.index("-filter_complex") + 1]
+    assert "normalize=0" in fc, f"amix must disable 1/n normalization: {fc}"
+
+
+def test_mix_with_start_time_also_disables_amix_normalization():
+    """Start-time variant must also carry ``normalize=0``."""
+    from kinocut.engine_audio_ops import _build_add_audio_args
+
+    args = _build_add_audio_args(
+        "v.mp4", "a.wav", ["volume=0.5"], mix=True, start_time=2.0,
+        source_has_audio=True, output="out.mp4",
+        duration_policy="keep_video", video_duration=10.0,
+    )
+    fc = args[args.index("-filter_complex") + 1]
+    assert "normalize=0" in fc, f"amix must disable 1/n normalization: {fc}"
