@@ -254,6 +254,41 @@ kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan
 
 Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer must be full-canvas (position `{0,0}`, full opacity, no scale/mask/timing) or it fails closed; output is video-only. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are tracked as later phases so this surface stays deterministic and preflightable.
 
+## Still / Image Editing
+
+Kinocut treats multi-still packages as first-class media — plan → receipt → fail-closed gate, same safety posture as video rescue. Requires `pip install "kinocut[image]"`; run `kino doctor` to verify the image stack.
+
+**Workflow:** establish a hero plate → edit beats toward it → match shared WB/exposure → grade (optional signal LUT) → cohesion gate.
+
+```bash
+# Image analysis: extract colors, generate palettes, analyze products
+kino image-extract-colors product.jpg -n 8
+kino image-generate-palette scene.png --harmony triadic
+kino image-analyze-product listing.jpg --use-ai
+
+# Still/plate editing: match package to hero, grade, gate
+kino still-match --hero establish.png --inputs beat1.png beat2.png --output-dir out/matched
+kino still-grade --inputs out/matched/*.png --hero establish.png --output-dir out/graded
+kino still-gate  --inputs out/graded/*.png --output-dir out/gate
+
+# Establish-locked edit with plan/receipt (dry-run first)
+kino image-edit --source beat.png --reference establish.png \
+  --intent "match establish world and light" --output-dir out/edit --dry-run
+
+# Or run the full pipeline in one shot
+kino still-package --establish establish.png --beats beat1.png beat2.png --output-dir out/pkg
+```
+
+```python
+from kinocut import Client
+
+c = Client()
+c.still_match(hero="establish.png", inputs=["a.png", "b.png"], output_dir="out/m")
+c.still_gate(inputs=["out/m/a_matched.png", "out/m/b_matched.png"], output_dir="out/g")
+```
+
+`still-gate` fails closed on luma spread and shadow green/cyan metrics; every tool writes a JSON receipt with hashes and gains. Paid generative backends stay off by default (`prefer=edit`, `allow_paid_gen=false`). Full guide: [docs/STILL_PLATES.md](docs/STILL_PLATES.md).
+
 ## Public Discovery
 
 Kinocut is built to be **findable and citable** by both search engines and AI answer engines:
@@ -283,6 +318,7 @@ Use it when you want an AI assistant to:
 - add text, subtitles, watermarks, overlays, filters, fades, effects, and transitions;
 - extract audio, normalize audio, synthesize audio, add generated audio, or create waveforms;
 - detect scenes, make thumbnails, generate storyboards, compare quality, and create release checkpoints;
+- match, grade, and gate still packages with establish-locked color cohesion, or analyze product images for colors and palettes;
 - scaffold cinematic projects, read STYLE_/NEG_ blocks, parse storyboard tables, and expand shot prompts;
 - create new Hyperframes projects, inspect rendered layouts, capture websites, generate local speech, remove backgrounds, and post-process the result with FFmpeg tools;
 - repurpose one source video into vertical, horizontal, and square local delivery packages with manifests and review artifacts;
@@ -480,6 +516,8 @@ kino subtitles clip.mp4 captions.srt
 kino resize clip.mp4 --aspect-ratio 9:16
 kino video-quality-check clip.mp4
 kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
+kino image-extract-colors product.jpg
+kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir out/stills
 ```
 
 ## What Agents Can Do
@@ -519,6 +557,7 @@ On the **published 1.13.0** surface (and matching tip), kino registers **194 MCP
 | Layout and motion | 6 | grid, picture-in-picture, split-screen, animated text, counters, progress bars, auto-chapters, layout mismatch warnings |
 | Analysis | 8 | scene detection, thumbnail, preview, storyboard, quality compare, metadata, waveform, release checkpoint |
 | Image analysis | 3 | extract colors, generate palettes, analyze product images |
+| Still / plate editing | 5 | still-match, still-grade, still-gate, image-edit, still-package — establish-locked color match with cohesion gate |
 | Discovery | 1 | `search_tools` |
 
 ```python
