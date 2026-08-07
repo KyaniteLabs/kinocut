@@ -9,6 +9,18 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 1.13.1 - 2026-08-07
+
+### Fixed
+
+- **`add-audio --mix` amix normalization (issue #289):** `amix=inputs=2` applied FFmpeg's default `normalize=1`, scaling each input by 1/n (−6 dB for two tracks). Added `normalize=0` so both tracks sum at unity. Verified: base −21.1 dB → mixed −18.1 dB (3 dB louder, not 6 dB quieter).
+- **GitHub Actions SHA bumps:** Ported Dependabot updates for `actions/checkout` (v7.0.1), `actions/setup-python` (v7.0.0), `actions/setup-node` (SHA bump), and `pypa/gh-action-pypi-publish` (SHA bump).
+
+### Changed
+
+- **Module split (WP-C):** Split `hyperframes_engine.py` (1302 → 629 LOC) and `workflow/executor.py` (1000 → 665 LOC) under the 800-LOC architecture ceiling. New modules: `hyperframes_ops.py` (794), `workflow/receipt.py` (391). PEP 562 `__getattr__` re-export preserves all existing import paths.
+- **README:** Added dedicated Still / Image Editing section documenting the 8 image/still CLI commands, MCP tools, and Python client methods.
+
 ## 1.13.0 - 2026-08-07
 
 ### Added
