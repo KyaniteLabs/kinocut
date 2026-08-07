@@ -34,3 +34,10 @@ The project is an MCP-first video editing toolkit. It should not become:
 - a speculative abstraction layer over every video framework.
 
 Those may be separate projects if they become real products.
+
+## Visible stewardship (GOV.1)
+
+Source of truth is Forgejo; GitHub is the collaboration mirror. Security model:
+[`docs/security/PROJECTSTORE_THREAT_MODEL.md`](docs/security/PROJECTSTORE_THREAT_MODEL.md).
+Phase go/no-go gates: [`docs/status/PHASE_CHECKPOINTS.md`](docs/status/PHASE_CHECKPOINTS.md).
+Extended notes: [`docs/security/GOVERNANCE.md`](docs/security/GOVERNANCE.md).

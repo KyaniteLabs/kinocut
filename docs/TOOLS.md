@@ -188,6 +188,12 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 | `video_analyze` | Comprehensive video analysis: transcript, metadata, scenes, audio, quality, chapters, and colors | FFmpeg; optional Whisper/image extras |
 | `video_ai_remove_silence` | Auto-remove silent sections with configurable threshold | FFmpeg |
 | `video_ai_transcribe` | Speech-to-text with timestamp alignment | [openai-whisper](https://pypi.org/project/openai-whisper/) |
+| `video_intent` | Route ~10 semantic intent verbs to a plan (no silent media mutation) | — |
+| `video_propose_broll` | Transcript-keyed b-roll proposals; **human review required**, never silent insert | — |
+| `video_translate_captions` | Translate SRT with honest coverage (EN→ES offline map first) | — |
+| `video_language_coverage` | Honest per-surface matrix for transcribe / translate / dub | — |
+| `video_review_run` | Watching guardrail: offline metric floor under a review policy | FFmpeg |
+| `video_review_decide` | Human accept/reject/revise on a `review_run` artifact | — |
 | `video_ai_scene_detect` | ML-enhanced scene change detection (perceptual hashing) | [imagehash](https://pypi.org/project/imagehash/), Pillow |
 | `video_ai_stem_separation` | Isolate vocals, drums, bass, other instruments | [demucs](https://pypi.org/project/demucs/), Torch, TorchAudio, TorchCodec |
 | `video_ai_upscale` | AI super-resolution upscaling (2x or 4x) | [opencv-contrib-python](https://pypi.org/project/opencv-contrib-python/); Real-ESRGAN/BasicSR where supported |

@@ -128,3 +128,107 @@ def video_project_recipe_replay(
             base_revision_id=base_revision_id,
         )
     )
+
+
+@mcp.tool()
+@_safe_tool
+def video_intent(
+    verb: str,
+    params: dict[str, Any] | None = None,
+    list_verbs: bool = False,
+) -> dict[str, Any]:
+    """Route a semantic intent verb to a plan (does not silently mutate media)."""
+
+    from kinocut.intent import list_intent_verbs, route_intent
+
+    if list_verbs:
+        return _result({"artifact_kind": "intent_catalog", "verbs": list_intent_verbs()})
+    plan = route_intent(verb, params)
+    return _result({"artifact_kind": "intent_plan", **plan.to_dict()})
+
+
+@mcp.tool()
+@_safe_tool
+def video_propose_broll(
+    segments: list[dict[str, Any]],
+    max_proposals: int = 8,
+    min_span_seconds: float = 0.8,
+    keyword_allowlist: list[str] | None = None,
+) -> dict[str, Any]:
+    """Transcript-keyed b-roll proposals — human review required, never silent insert."""
+
+    from kinocut.intent import propose_broll
+
+    proposals = propose_broll(
+        segments,
+        max_proposals=max_proposals,
+        min_span_seconds=min_span_seconds,
+        keyword_allowlist=keyword_allowlist,
+    )
+    return _result(
+        {
+            "artifact_kind": "broll_proposals",
+            "apply_policy": "human_review_required",
+            "proposal_count": len(proposals),
+            "proposals": [p.to_dict() for p in proposals],
+        }
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_translate_captions(
+    input_path: str,
+    output_path: str | None = None,
+    source_lang: str = "en",
+    target_lang: str = "es",
+) -> dict[str, Any]:
+    """Translate SRT captions with honest language-coverage reporting (EN→ES first)."""
+
+    from kinocut.intent import translate_caption_file
+
+    result = translate_caption_file(
+        input_path,
+        output_path,
+        source_lang=source_lang,
+        target_lang=target_lang,
+    )
+    return _result(result.to_dict())
+
+
+@mcp.tool()
+@_safe_tool
+def video_language_coverage() -> dict[str, Any]:
+    """Honest per-surface language coverage for transcribe/translate/dub."""
+
+    from kinocut.intent import language_coverage_report
+
+    return _result(language_coverage_report())
+
+
+@mcp.tool()
+@_safe_tool
+def video_review_run(
+    input_path: str,
+    policy: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Watching guardrail: run offline metric floor under a review policy."""
+
+    from kinocut.watching import ReviewPolicy, run_review
+
+    pol = ReviewPolicy(**policy) if policy else ReviewPolicy()
+    return _result(run_review(input_path, pol).to_dict())
+
+
+@mcp.tool()
+@_safe_tool
+def video_review_decide(
+    review_run: dict[str, Any],
+    decision: str,
+    reason: str = "",
+) -> dict[str, Any]:
+    """Record human accept/reject/revise on a review_run artifact."""
+
+    from kinocut.watching import decide_review
+
+    return _result(decide_review(review_run, decision, reason).to_dict())
