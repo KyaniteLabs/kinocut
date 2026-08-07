@@ -131,6 +131,11 @@ STILL_MATCH_MIN_GAIN = 0.35
 STILL_MATCH_MAX_GAIN = 2.5
 STILL_GATE_MAX_LUMA_SPREAD = 0.18
 STILL_GATE_MAX_SHADOW_GREEN_CYAN = 0.22
+# Shadow band for green/cyan fog detection (linear light after sRGB-ish load).
+STILL_SHADOW_LUMA_MAX = 0.18
+# Near-black / near-white bands for signal-mode extrema preservation.
+STILL_NEAR_BLACK_MAX = 0.05
+STILL_NEAR_WHITE_MIN = 0.95
 
 
 # Graphics canvas defaults (applied when the caller omits the field).

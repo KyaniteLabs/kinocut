@@ -41,12 +41,21 @@ def still_gate(
 
     failures: list[dict[str, Any]] = []
     if metrics["luma_spread"] > max_luma_spread:
+        # Name the darkest and brightest frames by mean luma.
+        lumas = [fm["mean_luma"] for fm in metrics["per_frame"]]
+        dark_i = min(range(len(lumas)), key=lambda i: lumas[i])
+        bright_i = max(range(len(lumas)), key=lambda i: lumas[i])
         failures.append(
             {
                 "metric": "luma_spread",
                 "value": metrics["luma_spread"],
                 "threshold": max_luma_spread,
-                "frame": None,
+                "frame": str(paths[bright_i]),
+                "frame_index": bright_i,
+                "darkest_frame": str(paths[dark_i]),
+                "darkest_frame_index": dark_i,
+                "brightest_frame": str(paths[bright_i]),
+                "brightest_frame_index": bright_i,
             }
         )
     if metrics["shadow_green_cyan_max"] > max_shadow_green_cyan:

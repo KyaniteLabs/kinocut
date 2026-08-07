@@ -168,15 +168,17 @@ def image_edit(
     allow_paid_gen: bool = False,
     dry_run: bool = False,
 ) -> dict[str, Any]:
-    """Free establish-locked still edit with plan/receipt.
+    """Establish-locked still match with plan/receipt (intent is audit metadata).
 
-    Prefers free edit backends. Paid gen is off unless allow_paid_gen=True.
-    Dry-run returns a plan without mutating pixels.
+    v1 pixel path is free establish mean-RGB match only; ``intent`` is required
+    metadata and does not select pixel ops. Paid gen is off unless
+    allow_paid_gen=True (still unavailable until configured). Dry-run returns a
+    plan without mutating pixels.
 
     Args:
         source: Absolute source still path.
         reference: Absolute establish/reference still path.
-        intent: Natural-language edit intent.
+        intent: Required audit text (what the agent meant); not a NL pixel director.
         output_dir: Absolute output directory.
         prefer: 'edit' (default) or 'gen'.
         allow_paid_gen: Explicit paid generative permission (default False).

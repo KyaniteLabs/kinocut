@@ -232,3 +232,189 @@ def test_apply_rgb_gains_unit() -> None:
     assert float(out[0, 0, 0]) == pytest.approx(1.0)
     assert float(out[0, 0, 1]) == pytest.approx(0.5)
     assert float(out[0, 0, 2]) == pytest.approx(0.25)
+
+
+def test_image_edit_intent_is_metadata_only(still_fixture_dir: Path) -> None:
+    src = _write_rgb(still_fixture_dir / "s.png", (0.7, 0.4, 0.3))
+    ref = _write_rgb(still_fixture_dir / "r.png", (0.5, 0.5, 0.5))
+    a = image_edit(
+        source=src,
+        reference=ref,
+        intent="make it cinematic teal fog please",
+        output_dir=still_fixture_dir / "e1",
+    )
+    b = image_edit(
+        source=src,
+        reference=ref,
+        intent="completely different words that would matter if NL-driven",
+        output_dir=still_fixture_dir / "e2",
+    )
+    assert a["plan"]["intent_policy"] == "metadata_only"
+    assert a["plan"]["pixel_ops"] == ["establish_mean_rgb_match"]
+    assert a["plan"]["intent"] != b["plan"]["intent"]
+    # Different intents, same pixel path → identical output hashes.
+    assert a["outputs"][0]["output_sha256"] == b["outputs"][0]["output_sha256"]
+
+
+def test_near_extrema_empty_band_not_treated_as_zero() -> None:
+    from kinocut.still_plates.grade import _near_extrema_preservation
+
+    # Mid-gray only: no near-black or near-white pixels.
+    mid = np.full((16, 16, 3), 0.5, dtype=np.float32)
+    # Shift mid slightly — still no extrema bands.
+    mid2 = np.full((16, 16, 3), 0.55, dtype=np.float32)
+    metrics = _near_extrema_preservation(mid, mid2)
+    assert metrics["near_black_band_empty"] is True
+    assert metrics["near_white_band_empty"] is True
+    assert metrics["near_black_delta"] is None
+    assert metrics["near_white_delta"] is None
+
+    # Real near-black band present before and after → finite delta, not empty.
+    before = np.zeros((16, 16, 3), dtype=np.float32)
+    before[:4, :, :] = 0.02
+    before[4:, :, :] = 0.5
+    after = before.copy()
+    after[:4, :, :] = 0.04
+    m2 = _near_extrema_preservation(before, after)
+    assert m2["near_black_band_empty"] is False
+    assert m2["near_black_delta"] == pytest.approx(0.02, abs=1e-3)
+
+
+def _write_identity_cube(path: Path, size: int = 2) -> Path:
+    """Minimal identity 3D LUT (.cube) for FFmpeg lut3d smoke tests."""
+    lines = [
+        "TITLE \"identity\"",
+        f"LUT_3D_SIZE {size}",
+    ]
+    # Domain default 0..1; identity samples at size^3 grid.
+    for b in range(size):
+        for g in range(size):
+            for r in range(size):
+                rv = r / (size - 1)
+                gv = g / (size - 1)
+                bv = b / (size - 1)
+                lines.append(f"{rv:.6f} {gv:.6f} {bv:.6f}")
+    path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+    return path
+
+
+def test_still_grade_identity_lut_and_signal_mode(still_fixture_dir: Path) -> None:
+    # Gradient ensures near-black and near-white bands exist for signal-mode.
+    src = _write_gradient(still_fixture_dir / "grad.png", (0.6, 0.55, 0.5))
+    hero = _write_rgb(still_fixture_dir / "hero.png", (0.5, 0.5, 0.5))
+    cube = _write_identity_cube(still_fixture_dir / "id.cube")
+    receipt = still_grade(
+        inputs=[src],
+        output_dir=still_fixture_dir / "lut_out",
+        hero=hero,
+        lut_path=cube,
+        signal_mode=True,
+    )
+    assert receipt["stages"] == ["neutralize", "match", "look_lut"]
+    assert Path(receipt["outputs"][0]["output"]).is_file()
+    preservation = receipt["outputs"][0]["near_extrema_preservation"]
+    assert preservation is not None
+    assert "near_black_delta" in preservation
+    assert "near_black_band_empty" in preservation
+
+
+def test_still_gate_luma_spread_names_frames(still_fixture_dir: Path) -> None:
+    dark = _write_rgb(still_fixture_dir / "dark.png", (0.1, 0.1, 0.1))
+    bright = _write_rgb(still_fixture_dir / "bright.png", (0.9, 0.9, 0.9))
+    bad = still_gate(
+        inputs=[dark, bright],
+        output_dir=still_fixture_dir / "spread",
+        max_luma_spread=0.05,
+    )
+    assert bad["passed"] is False
+    fail = next(f for f in bad["failures"] if f["metric"] == "luma_spread")
+    assert fail["frame"] is not None
+    assert fail["darkest_frame_index"] != fail["brightest_frame_index"]
+
+
+def test_cli_still_match_and_gate(still_fixture_dir: Path) -> None:
+    import subprocess
+    import sys
+
+    hero = _write_rgb(still_fixture_dir / "hero.png", (0.5, 0.5, 0.5))
+    a = _write_rgb(still_fixture_dir / "a.png", (0.6, 0.4, 0.4))
+    out = still_fixture_dir / "cli_m"
+    r = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "kinocut",
+            "--format",
+            "json",
+            "still-match",
+            "--hero",
+            str(hero),
+            "--inputs",
+            str(a),
+            "--output-dir",
+            str(out),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert r.returncode == 0, r.stderr
+    assert (out / "still_match_receipt.json").is_file()
+
+    matched = next(out.glob("*_matched.png"))
+    gate_out = still_fixture_dir / "cli_g"
+    r2 = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "kinocut",
+            "--format",
+            "json",
+            "still-gate",
+            "--inputs",
+            str(matched),
+            "--output-dir",
+            str(gate_out),
+        ],
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert r2.returncode == 0, r2.stderr
+    assert (gate_out / "still_gate_receipt.json").is_file()
+
+
+def test_mcp_stdio_still_match_round_trip(still_fixture_dir: Path) -> None:
+    import asyncio
+    import json
+    import sys
+
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    hero = _write_rgb(still_fixture_dir / "h.png", (0.5, 0.5, 0.5))
+    a = _write_rgb(still_fixture_dir / "a.png", (0.55, 0.45, 0.4))
+    out = still_fixture_dir / "mcp_out"
+
+    async def run():
+        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"])
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            return await session.call_tool(
+                "still_match",
+                {
+                    "hero": str(hero),
+                    "inputs": [str(a)],
+                    "output_dir": str(out),
+                },
+            )
+
+    result = asyncio.run(run())
+    assert result.isError is False
+    payload = result.structuredContent or json.loads(result.content[0].text)
+    assert payload.get("success") is True
+    assert Path(payload.get("receipt_path") or (out / "still_match_receipt.json")).is_file() or (
+        out / "still_match_receipt.json"
+    ).is_file()

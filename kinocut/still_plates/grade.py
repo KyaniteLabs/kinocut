@@ -145,17 +145,36 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
         raise ProcessingError("ffmpeg-lut3d", 1, f"LUT output missing: {dest}")
 
 
-def _near_extrema_preservation(before, after) -> dict[str, float]:
-    """Measure how much near-black / near-white means shifted (signal mode)."""
+def _near_extrema_preservation(before, after) -> dict[str, float | None | bool]:
+    """Measure mean-luma shift in near-black / near-white bands (signal mode).
 
-    def band_mean(arr, lo, hi):
+    Empty bands are not treated as 0.0 (that made missing extrema look like
+    perfect black and inflated deltas). When either side lacks the band,
+    the delta is null and ``*_band_empty`` is true.
+    """
+    from ..defaults import STILL_NEAR_BLACK_MAX, STILL_NEAR_WHITE_MIN
+
+    def band_mean_luma(arr, lo: float, hi: float) -> float | None:
         luma = 0.2126 * arr[..., 0] + 0.7152 * arr[..., 1] + 0.0722 * arr[..., 2]
         mask = (luma >= lo) & (luma <= hi)
         if not mask.any():
-            return 0.0
-        return float(arr[mask].mean())
+            return None
+        return float(luma[mask].mean())
 
+    def band_delta(lo: float, hi: float) -> tuple[float | None, bool]:
+        b = band_mean_luma(before, lo, hi)
+        a = band_mean_luma(after, lo, hi)
+        if b is None or a is None:
+            return None, True
+        return abs(a - b), False
+
+    nb_delta, nb_empty = band_delta(0.0, STILL_NEAR_BLACK_MAX)
+    nw_delta, nw_empty = band_delta(STILL_NEAR_WHITE_MIN, 1.0)
     return {
-        "near_black_delta": abs(band_mean(after, 0.0, 0.05) - band_mean(before, 0.0, 0.05)),
-        "near_white_delta": abs(band_mean(after, 0.95, 1.0) - band_mean(before, 0.95, 1.0)),
+        "near_black_delta": nb_delta,
+        "near_white_delta": nw_delta,
+        "near_black_band_empty": nb_empty,
+        "near_white_band_empty": nw_empty,
+        "near_black_max": STILL_NEAR_BLACK_MAX,
+        "near_white_min": STILL_NEAR_WHITE_MIN,
     }

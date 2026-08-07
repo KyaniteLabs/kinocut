@@ -15,7 +15,7 @@ from .io import (
     validate_still_path,
     write_receipt,
 )
-from .stats import apply_rgb_gains, mean_luma, mean_rgb, shared_gains_to_hero
+from .stats import apply_rgb_gains, mean_rgb, shared_gains_to_hero
 
 
 def _validate_match_args(
@@ -45,6 +45,11 @@ def _validate_match_args(
 
 
 def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, float], float]:
+    """One shared gain triple mapping package mean RGB toward hero mean RGB.
+
+    RGB-target gains already include exposure; do **not** multiply by a second
+    luma scale (that over-corrected and clipped highlights).
+    """
     hero_rgb = mean_rgb(hero_arr)
     package_rgb = tuple(
         float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)
@@ -55,17 +60,10 @@ def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, flo
         max_gain=STILL_MATCH_MAX_GAIN,
         min_gain=STILL_MATCH_MIN_GAIN,
     )
-    hero_luma = mean_luma(hero_arr)
-    package_luma = float(sum(mean_luma(a) for a in input_arrs) / len(input_arrs))
-    if package_luma < 1e-6:
-        exposure_scale = 1.0
-    else:
-        exposure_scale = max(
-            STILL_MATCH_MIN_GAIN,
-            min(STILL_MATCH_MAX_GAIN, hero_luma / package_luma),
-        )
-    final = (gains[0] * exposure_scale, gains[1] * exposure_scale, gains[2] * exposure_scale)
-    return final, exposure_scale
+    # Implied exposure scale from geometric mean of channel gains (receipt only).
+    product = max(gains[0] * gains[1] * gains[2], 1e-12)
+    exposure_scale = float(product ** (1.0 / 3.0))
+    return gains, exposure_scale
 
 
 def _write_matched_outputs(
@@ -125,7 +123,9 @@ def still_match(
         "shared_gains": list(final_gains),
         "exposure_scale": exposure_scale,
         "per_frame_auto_wb": False,
-        "delta_ev": float(__import__("math").log2(exposure_scale)) if exposure_scale > 0 else 0.0,
+        "delta_ev": (
+            __import__("math").log2(exposure_scale) if exposure_scale > 0 else 0.0
+        ),
         "outputs": outputs,
     }
     receipt_path = write_receipt(out_dir / receipt_name, receipt)

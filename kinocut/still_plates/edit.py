@@ -81,7 +81,13 @@ def image_edit(
     dry_run: bool = False,
     receipt_name: str = "image_edit_receipt.json",
 ) -> dict[str, Any]:
-    """Plan-first still edit locked to an establish/reference plate."""
+    """Plan-first establish-locked still match with plan/receipt.
+
+    v1 pixel path is free establish mean-RGB match only. ``intent`` is required
+    audit metadata (what the agent meant); it does **not** select pixel ops.
+    Paid generative backends stay off unless explicitly enabled (then still
+    unavailable until configured).
+    """
     intent_text = _validate_edit_policy(prefer=prefer, allow_paid_gen=allow_paid_gen, intent=intent)
     _require_edit_backend()
 
@@ -101,7 +107,11 @@ def image_edit(
         "backend": "free_establish_match",
         "prefer": prefer,
         "allow_paid_gen": allow_paid_gen,
+        # Intent is audit/receipt metadata for agents and humans. v1 pixel path
+        # is establish mean-RGB match only — intent does not drive pixels.
         "intent": intent_text,
+        "intent_policy": "metadata_only",
+        "pixel_ops": ["establish_mean_rgb_match"],
         "source": str(source_path),
         "reference": str(ref_path),
         "shared_gains": list(gains),
