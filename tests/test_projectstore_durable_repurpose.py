@@ -62,7 +62,7 @@ def test_durable_repurpose_creates_revision_job_and_n_lineage_bound_clips(tmp_pa
             {"id": "out0", "output_hash": "sha256:" + "a" * 64},
             {"id": "out1", "output_hash": "sha256:" + "b" * 64},
         ],
-        "versions": {"kinocut": "1.11.1", "ffmpeg": "fixture"},
+        "versions": {"kinocut": "1.12.0", "ffmpeg": "fixture"},
         "steps": [
             {"id": "resize_out0", "status": "completed", "output_hash": "sha256:" + "a" * 64},
             {"id": "resize_out1", "status": "completed", "output_hash": "sha256:" + "b" * 64},

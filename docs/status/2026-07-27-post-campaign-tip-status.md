@@ -1,9 +1,9 @@
 # Kinocut post-campaign tip status
 
-**Truth date:** 2026-07-27  
-**Published release:** 1.11.1 (161 MCP tools / 140 CLI commands)  
-**Development tip:** 169 MCP tools / 145 CLI commands  
-**Release authority:** none implied by this document
+**Truth date:** 2026-07-27 (snapshot; release facts below updated 2026-08-07)  
+**Published release:** 1.12.0 (169 MCP tools / 145 CLI commands)  
+**Development tip at tag:** 169 MCP tools / 145 CLI commands (matches published)  
+**Release authority:** none beyond the published 1.12.0 package
 
 ## What is implemented on `master`
 
@@ -21,8 +21,9 @@
 - Repository-owned CI runner image/topology contract and native MCPB supply-chain
   foundations.
 
-These are development-tip facts, not a claim that a package newer than 1.11.1
-has been released.
+These are development-tip facts recorded during the pre-1.12.0 campaign. The
+published package is now 1.12.0; remaining human/post-release gates below still
+apply.
 
 ## What remains human or externally gated
 

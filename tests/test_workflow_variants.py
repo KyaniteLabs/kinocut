@@ -620,7 +620,7 @@ def test_variants_do_not_change_public_surface_counts():
     from mcp_video.server import mcp
 
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-    assert len(tool_names) == 169  # Still-plate tools added on tip after 1.11.1.
+    assert len(tool_names) == 169  # Still-plate tools published on 1.12.0.
     assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
 
 

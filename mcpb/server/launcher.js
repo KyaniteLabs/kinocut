@@ -92,7 +92,7 @@ async function main() {
   if (!child || child.exitCode !== null) {
     const detail = lastError ? ` (${lastError.message})` : "";
     console.error(
-      "Unable to start Kinocut MCPB. Install Python 3.11+, install kinocut==1.11.1 in that environment, "
+      "Unable to start Kinocut MCPB. Install Python 3.11+, install kinocut==1.12.0 in that environment, "
         + `or configure pythonExecutable.${detail}`,
     );
     process.exit(127);

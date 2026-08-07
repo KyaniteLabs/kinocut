@@ -17,9 +17,9 @@ about third-party pages; verify an external page before acting on its listed sta
 - Description: Guardrailed video editing for AI agents with FFmpeg, captions,
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
-- Published surface: 161 MCP tools / 140 CLI commands
-- Development tip: 169 MCP tools / 145 CLI commands
-- Current release: 1.11.1 (published 2026-07-24)
+- Published surface: 169 MCP tools / 145 CLI commands
+- Development tip: 169 MCP tools / 145 CLI commands (matches published 1.12.0)
+- Current release: 1.12.0 (published 2026-08-07)
 
 ## Reconciliation Snapshot (2026-07-10)
 

@@ -9,10 +9,11 @@ publish steps for this completed release.
 **Authority:** [`public_claims.json`](public_claims.json) · [`RELEASE_RITUAL.md`](RELEASE_RITUAL.md) ·
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml)
 
-**Tip surface at freeze:** 155 MCP tools · 134 CLI commands
-**Published result:** 1.11.1 · 161 MCP / 140 CLI
+**Tip surface at freeze:** 155 MCP tools · 134 CLI commands  
+**Published result:** 1.12.0 · 169 MCP / 145 CLI  
 
-At 1.11.1 tag time, `development_* == published_*` at 161 / 140. (1.10.0 was 155 / 134; 1.9.0 was 150 / 129; 1.8.0 was 142 / 121.)
+(1.8.0 cutover was 142/121; later tags: 1.9.0 150/129 · 1.10.0 155/134 · 1.11.1 161/140 ·
+1.12.0 169/145. This page remains the cutover procedure audit record.)
 
 ---
 
