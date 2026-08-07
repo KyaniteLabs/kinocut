@@ -76,10 +76,58 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
         r = decide_review(run, a.decision, a.reason).to_dict()
         _out(r, j, lambda res: f"decision={res['decision']}")
 
+    def _init(a: Any, j: bool) -> None:
+        from kinocut.te import init_project
+
+        r = init_project(a.path, name=a.name, with_cutfile=not a.no_cutfile)
+        _out(r, j, lambda res: f"init → {res['path']}")
+
+    def _estimate(a: Any, j: bool) -> None:
+        from kinocut.te import estimate_operation
+
+        r = estimate_operation(a.operation, duration_seconds=a.duration, complexity=a.complexity)
+        _out(r, j, lambda res: f"{res['operation']}: ~{res['estimated_wall_seconds']}s wall")
+
+    def _brand(a: Any, j: bool) -> None:
+        from kinocut.te import BrandKit, load_brand_kit, save_brand_kit
+
+        if a.action == "save":
+            r = save_brand_kit(
+                a.path,
+                BrandKit(name=a.name, primary_color=a.primary, accent_color=a.accent),
+            )
+        else:
+            r = {"artifact_kind": "brand_kit", **load_brand_kit(a.path).to_dict()}
+        _out(r, j, lambda res: f"brand_kit {res.get('name')}")
+
+    def _cutfile(a: Any, j: bool) -> None:
+        from kinocut.te import load_cutfile
+
+        r = load_cutfile(a.path).to_dict()
+        _out(r, j, lambda res: f"cutfile ok name={res['name']} ops={len(res['ops'])}")
+
+    def _mutations(a: Any, j: bool) -> None:
+        from kinocut.watching import propose_mutations_from_findings
+
+        findings = json.loads(Path(a.findings_json).read_text(encoding="utf-8"))
+        props = propose_mutations_from_findings(findings)
+        r = {
+            "artifact_kind": "proposed_mutations",
+            "apply_policy": "human_review_required",
+            "mutation_count": len(props),
+            "mutations": [p.to_dict() for p in props],
+        }
+        _out(r, j, lambda res: f"{res['mutation_count']} proposed mutations")
+
     runner.register("intent", _intent)
     runner.register("propose-broll", _broll)
     runner.register("translate-captions", _translate)
     runner.register("language-coverage", _coverage)
     runner.register("review-run", _review_run)
     runner.register("review-decide", _review_decide)
+    runner.register("init", _init)
+    runner.register("estimate", _estimate)
+    runner.register("brand-kit", _brand)
+    runner.register("cutfile-validate", _cutfile)
+    runner.register("propose-mutations", _mutations)
     return runner.dispatch()

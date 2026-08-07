@@ -34,3 +34,26 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     dec_p.add_argument("review_run_json", help="Path to review_run JSON artifact")
     dec_p.add_argument("decision", choices=["accept", "reject", "revise"])
     dec_p.add_argument("--reason", default="")
+
+    init_p = subparsers.add_parser("init", help="Scaffold a local Kinocut project directory")
+    init_p.add_argument("path", help="Project directory path")
+    init_p.add_argument("--name", default=None)
+    init_p.add_argument("--no-cutfile", action="store_true")
+
+    est_p = subparsers.add_parser("estimate", help="Dry-run local time/cost-unit estimate for an operation")
+    est_p.add_argument("operation", help="Operation name (trim, repurpose, …)")
+    est_p.add_argument("--duration", type=float, required=True, help="Media duration seconds")
+    est_p.add_argument("--complexity", type=float, default=1.0)
+
+    bk_p = subparsers.add_parser("brand-kit", help="Save or load a brand kit JSON")
+    bk_p.add_argument("action", choices=["save", "load"])
+    bk_p.add_argument("path", help="Brand kit JSON path")
+    bk_p.add_argument("--name", default="brand")
+    bk_p.add_argument("--primary", default="#FFFFFF")
+    bk_p.add_argument("--accent", default="#000000")
+
+    cf_p = subparsers.add_parser("cutfile-validate", help="Validate a Cutfile")
+    cf_p.add_argument("path", help="cutfile.yaml or .json path")
+
+    mut_p = subparsers.add_parser("propose-mutations", help="Map findings JSON to typed proposed mutations")
+    mut_p.add_argument("findings_json", help="Path to JSON list of findings")
