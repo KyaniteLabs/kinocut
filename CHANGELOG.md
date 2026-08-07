@@ -25,6 +25,7 @@ This project follows a simple release-note style:
 - Published surface grows to **169 MCP tools / 145 CLI commands** (from 161 / 140 in 1.11.x).
 - `image-edit` intent is **audit metadata only** (`intent_policy=metadata_only`); v1 pixel path is establish mean-RGB match, not NL-driven generative edit.
 - Pre-release honesty pass: no double exposure scale on match; signal-mode empty bands report null rather than 0.0.
+- Runtime dependency pin: `mcp>=1.27.0,<2` so clean installs do not pull MCP Python SDK 2.x (which dropped `mcp.server.fastmcp`).
 
 ### Compatibility
 
