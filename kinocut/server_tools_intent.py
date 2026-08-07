@@ -232,3 +232,104 @@ def video_review_decide(
     from kinocut.watching import decide_review
 
     return _result(decide_review(review_run, decision, reason).to_dict())
+
+
+@mcp.tool()
+@_safe_tool
+def video_propose_mutations(
+    findings: list[dict[str, Any]],
+) -> dict[str, Any]:
+    """Map QC findings to typed proposed mutations (human apply only)."""
+
+    from kinocut.watching import propose_mutations_from_findings
+
+    props = propose_mutations_from_findings(findings)
+    return _result(
+        {
+            "artifact_kind": "proposed_mutations",
+            "apply_policy": "human_review_required",
+            "mutation_count": len(props),
+            "mutations": [p.to_dict() for p in props],
+        }
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_init_project(
+    path: str,
+    name: str | None = None,
+    with_cutfile: bool = True,
+) -> dict[str, Any]:
+    """Scaffold a local Kinocut project directory (media/out/receipts + optional Cutfile)."""
+
+    from kinocut.te import init_project
+
+    return _result(init_project(path, name=name, with_cutfile=with_cutfile))
+
+
+@mcp.tool()
+@_safe_tool
+def video_brand_kit(
+    action: str,
+    path: str,
+    kit: dict[str, Any] | None = None,
+) -> dict[str, Any]:
+    """Save or load a brand kit / style profile JSON."""
+
+    from kinocut.te import BrandKit, load_brand_kit, save_brand_kit
+
+    act = (action or "").strip().lower()
+    if act == "save":
+        if not kit:
+            from kinocut.errors import MCPVideoError
+
+            raise MCPVideoError(
+                "kit object required for save",
+                error_type="validation_error",
+                code="brand_kit_required",
+            )
+        model = BrandKit(
+            name=str(kit.get("name") or "brand"),
+            primary_color=str(kit.get("primary_color") or "#FFFFFF"),
+            accent_color=str(kit.get("accent_color") or "#000000"),
+            font=str(kit.get("font") or "sans"),
+            logo_path=kit.get("logo_path"),
+            subtitle_style=dict(kit.get("subtitle_style") or {}),
+            notes=str(kit.get("notes") or ""),
+        )
+        return _result(save_brand_kit(path, model))
+    if act == "load":
+        return _result({"artifact_kind": "brand_kit", **load_brand_kit(path).to_dict()})
+    from kinocut.errors import MCPVideoError
+
+    raise MCPVideoError(
+        "action must be save|load",
+        error_type="validation_error",
+        code="invalid_brand_kit_action",
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_estimate_operation(
+    operation: str,
+    duration_seconds: float,
+    complexity: float = 1.0,
+) -> dict[str, Any]:
+    """Dry-run local wall-time / cost-unit estimate (not cloud pricing)."""
+
+    from kinocut.te import estimate_operation
+
+    return _result(estimate_operation(operation, duration_seconds=duration_seconds, complexity=complexity))
+
+
+@mcp.tool()
+@_safe_tool
+def video_cutfile_validate(path: str) -> dict[str, Any]:
+    """Validate a text-first Cutfile (v1 JSON or minimal YAML scaffold)."""
+
+    from kinocut.te import load_cutfile
+
+    cf = load_cutfile(path)
+    return _result(cf.to_dict())
