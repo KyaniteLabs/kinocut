@@ -1495,7 +1495,7 @@ class TestRenderAndPost:
 
         with (
             patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
-            patch("mcp_video.hyperframes_engine._render_output_exists", return_value=False),
+            patch("mcp_video.hyperframes_ops._render_output_exists", return_value=False),
             pytest.raises(HyperframesRenderError, match="output artifact"),
         ):
             render_and_post(project, post_process=[])

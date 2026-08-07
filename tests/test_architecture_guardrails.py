@@ -74,6 +74,25 @@ def test_engine_modules_stay_below_project_size_limit() -> None:
     assert oversized == {}
 
 
+def test_split_engine_modules_stay_below_size_limit() -> None:
+    """Modules split out of the hyperframes/workflow monoliths (WP-C) stay ≤800 LOC.
+
+    These were 1302/1000 lines before the split and were not previously guarded,
+    which is why they grew. Lock the ceiling so a future addition cannot silently
+    undo the split.
+    """
+    split_modules = [
+        PACKAGE / "hyperframes_engine.py",
+        PACKAGE / "hyperframes_ops.py",
+        PACKAGE / "workflow" / "executor.py",
+        PACKAGE / "workflow" / "receipt.py",
+    ]
+    oversized = {
+        path.relative_to(ROOT).as_posix(): module_line_count(path) for path in split_modules if module_line_count(path) > 800
+    }
+    assert oversized == {}, f"split modules exceeded 800 LOC: {oversized}"
+
+
 def test_rescue_verifier_functions_stay_below_project_size_limit() -> None:
     """Independent verification checks must remain cohesive and reviewable."""
 

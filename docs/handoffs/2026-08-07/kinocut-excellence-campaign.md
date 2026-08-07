@@ -6,7 +6,7 @@
 **Workspace:** `~/workspaces/kinocut` (compat symlink `~/workspaces/mcp-video` → `kinocut`)  
 **Live tip (verified):** `9d85de5351c54b8dd538114e43ebda937442988f`  
 **Published:** Kinocut **1.13.0** · **194 MCP / 165 CLI** · `mcp-video==1.6.4` shim  
-**Companion audit:** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](../status/2026-08-07-kinocut-excellence-audit.md)
+**Companion audit:** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](../../status/2026-08-07-kinocut-excellence-audit.md)
 
 Cold-start dispatch (paste into next agent):
 

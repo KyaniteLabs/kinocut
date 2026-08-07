@@ -32,7 +32,7 @@ Ordered per excellence audit. Prefer one work package per PR.
 | **A** S+ max + site stamp | README overall ≥95 preferred; site `llms.txt` date current | **Month stop:** done on tip when PR lands |
 | **B** Docs truth | This ROADMAP structure; no false “latest is 1.11/1.12” | **Month stop:** this section is tip |
 | **G** Ruff hygiene | `ruff check kinocut` clean | **Month stop:** done when PR lands |
-| **C** Module size policy | `hyperframes_engine.py`, `workflow/executor.py` ≤800 LOC | **Next month** hard policy |
+| **C** Module size policy | `hyperframes_engine.py`, `workflow/executor.py` ≤800 LOC | **Done** — PR #294 (mergeable): 1302→629+794, 1000→665+391; zero modules >800 now; guardrail added |
 | **D** Long functions | CLI handlers / rescue render decomposition | Multi-PR |
 | **F** Perf baselines | Golden-path timings after C/D | No “optimized” without numbers |
 

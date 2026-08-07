@@ -13,10 +13,10 @@
 | Doc | Role |
 |-----|------|
 | [`kinocut-excellence-campaign.md`](./kinocut-excellence-campaign.md) | Full excellence campaign contract (older tip note; supersede tip with this file) |
-| [`../status/2026-08-07-kinocut-excellence-audit.md`](../status/2026-08-07-kinocut-excellence-audit.md) | Full diagnosis + WP list |
-| [`../../ROADMAP.md`](../../ROADMAP.md) | Post-1.13 Current / Next / Human / Archive |
-| [`../HUMAN_GATES.md`](../HUMAN_GATES.md) | Human-only residuals |
-| [`../public_claims.json`](../public_claims.json) | Canonical published counts |
+| [`../../status/2026-08-07-kinocut-excellence-audit.md`](../../status/2026-08-07-kinocut-excellence-audit.md) | Full diagnosis + WP list |
+| [`../../../ROADMAP.md`](../../../ROADMAP.md) | Post-1.13 Current / Next / Human / Archive |
+| [`../../HUMAN_GATES.md`](../../HUMAN_GATES.md) | Human-only residuals |
+| [`../../public_claims.json`](../../public_claims.json) | Canonical published counts |
 
 ---
 
