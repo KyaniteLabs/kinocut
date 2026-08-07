@@ -4,13 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..defaults import STILL_SHADOW_LUMA_MAX
 from .io import require_still_deps
 
-# Shadow band for fog detection (linear light approx after sRGB-ish load).
-SHADOW_LUMA_MAX = 0.18
 # Green/cyan wash: G elevated vs R in shadows, or G+B clearly dominate R.
 GREEN_CYAN_G_OVER_R = 1.08
 GREEN_CYAN_GB_OVER_R = 1.15
+# Re-export for callers/tests that imported the old module constant.
+SHADOW_LUMA_MAX = STILL_SHADOW_LUMA_MAX
 
 
 def _np():
@@ -62,7 +63,7 @@ def shadow_green_cyan_fraction(arr) -> float:
     """Fraction of shadow pixels showing green/cyan wash."""
     np = _np()
     luma = luma_channel(arr)
-    shadow = luma < SHADOW_LUMA_MAX
+    shadow = luma < STILL_SHADOW_LUMA_MAX
     n_shadow = int(shadow.sum())
     if n_shadow == 0:
         return 0.0

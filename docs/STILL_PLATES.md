@@ -9,9 +9,12 @@ Photoshop clone, but by enforcing the same safety posture as video rescue:
 Always:
 
 1. **Establish** — pick one hero plate (world + light).
-2. **Edit beats** — free establish-locked edit toward that reference (`image-edit`).
-3. **Sequence match** — one shared white balance / exposure gain for the package (`still-match`).
-4. **Grade** — correct → match → look. Optional LUT is **last** (`still-grade`).
+2. **Edit beats** — free establish-locked **mean-RGB match** toward that reference
+   (`image-edit`). See [Intent policy](#intent-policy).
+3. **Sequence match** — one shared RGB gain triple mapping package mean toward
+   hero mean (`still-match`). Gains already include exposure (no second luma scale).
+4. **Grade** — ordered neutralize (gray-world) → match → optional look LUT last
+   (`still-grade`). This is a package cohesion grade, not a full color-science suite.
 5. **Gate** — cohesion metrics + contact sheet; fail closed (`still-gate`).
 
 Or one shot: `still-package` runs 2–5.
@@ -39,8 +42,24 @@ Doctor reports:
 | `still-match` | `still_match` | Shared WB/exposure match to hero |
 | `still-grade` | `still_grade` | Ordered grade; optional `.cube` last |
 | `still-gate` | `still_gate` | Luma spread + shadow green/cyan; contact sheet |
-| `image-edit` | `image_edit` | Establish-locked free edit + plan/receipt |
+| `image-edit` | `image_edit` | Establish mean-RGB match + plan/receipt (intent is metadata) |
 | `still-package` | `still_package` | Full package job graph |
+
+## Intent policy
+
+`image-edit --intent "..."` is **required audit metadata** for agents and humans
+(what you meant to do). **v1 pixel path ignores natural language:** it always runs
+`free_establish_match` (shared mean-RGB gains toward the reference plate).
+
+Receipts record this honestly:
+
+- `plan.intent_policy`: `"metadata_only"`
+- `plan.pixel_ops`: `["establish_mean_rgb_match"]`
+- `plan.intent`: the text you passed (for review / learning)
+
+Do not claim that intent drives generative or semantic edits until a backend
+exists and `intent_policy` changes. Paid gen remains `prefer=gen` +
+`allow_paid_gen=true` and is **unavailable** until configured.
 
 ### CLI examples
 
@@ -55,7 +74,7 @@ kino still-grade --inputs out/matched/*.png --hero establish.png \
 # Fail-closed cohesion gate
 kino still-gate --inputs out/graded/*.png --output-dir out/gate
 
-# Free edit (dry-run plan first)
+# Establish match with audit intent (dry-run plan first; intent is metadata)
 kino image-edit --source beat.png --reference establish.png \
   --intent "match establish world and light" --output-dir out/edit --dry-run
 
