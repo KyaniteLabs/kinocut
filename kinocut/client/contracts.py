@@ -328,6 +328,11 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "extract_colors": {"category": "report", "return_type": "dict", "aliases": {}},
     "generate_palette": {"category": "report", "return_type": "dict", "aliases": {}},
     "analyze_product": {"category": "report", "return_type": "dict", "aliases": {}},
+    "still_match": {"category": "report", "return_type": "dict", "aliases": {}},
+    "still_grade": {"category": "report", "return_type": "dict", "aliases": {}},
+    "still_gate": {"category": "report", "return_type": "dict", "aliases": {}},
+    "image_edit": {"category": "report", "return_type": "dict", "aliases": {}},
+    "still_package": {"category": "report", "return_type": "dict", "aliases": {}},
     # Quality/report methods
     "quality_check": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},
     "assert_quality": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},

@@ -2,7 +2,7 @@
 
 **Truth date:** 2026-07-27  
 **Published release:** 1.11.1 (161 MCP tools / 140 CLI commands)  
-**Development tip:** 164 MCP tools / 140 CLI commands  
+**Development tip:** 169 MCP tools / 145 CLI commands  
 **Release authority:** none implied by this document
 
 ## What is implemented on `master`

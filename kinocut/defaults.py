@@ -126,6 +126,13 @@ DEFAULT_NIMA_MIN_DURATION = 3.0
 # Centralized so every caller hashes at the same I/O granularity.
 DEFAULT_HASH_CHUNK_BYTES = 1 << 20  # 1 MiB
 
+# Still/plate editor — shared gain clamps and cohesion gate thresholds.
+STILL_MATCH_MIN_GAIN = 0.35
+STILL_MATCH_MAX_GAIN = 2.5
+STILL_GATE_MAX_LUMA_SPREAD = 0.18
+STILL_GATE_MAX_SHADOW_GREEN_CYAN = 0.22
+
+
 # Graphics canvas defaults (applied when the caller omits the field).
 DEFAULT_GRAPHICS_CANVAS_FPS = 24.0
 DEFAULT_GRAPHICS_CANVAS_DURATION = 2.0
