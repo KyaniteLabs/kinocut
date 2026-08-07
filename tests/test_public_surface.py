@@ -222,6 +222,15 @@ EXPECTED_CLI_COMMANDS = {
     "brand-kit",
     "cutfile-validate",
     "propose-mutations",
+    "qc-vision",
+    "qc-narrative",
+    "publish-validate",
+    "hook-candidates",
+    "seek-frame",
+    "otio-export",
+    "otio-import",
+    "review-ui",
+    "edit-session",
     "still-grade",
     "still-gate",
     "image-edit",
@@ -401,6 +410,20 @@ EXPECTED_SERVER_TOOLS = {
     "video_brand_kit",
     "video_estimate_operation",
     "video_cutfile_validate",
+    "video_timeline_ir_validate",
+    "video_qc_vision",
+    "video_qc_narrative",
+    "video_generative_plan",
+    "video_otio_export",
+    "video_otio_import",
+    "video_review_ui",
+    "video_dub_plan",
+    "video_publish_validate",
+    "video_hook_candidates",
+    "video_audiogram_plan",
+    "video_punch_zoom_plan",
+    "video_seek_frame",
+    "video_edit_session",
     "video_project_recipe_export",
     "video_project_recipe_replay",
     "video_timeline_edit_plan",
@@ -437,7 +460,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 156
+    assert len(EXPECTED_CLI_COMMANDS) == 165
 
 
 def test_agent_cookbook_dry_run():
@@ -459,7 +482,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 180
+    assert len(tool_names) == 194
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -484,7 +507,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 180
+        assert len(tool_names) == 194
 
     asyncio.run(check_server())
 

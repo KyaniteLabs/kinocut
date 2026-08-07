@@ -57,3 +57,38 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
 
     mut_p = subparsers.add_parser("propose-mutations", help="Map findings JSON to typed proposed mutations")
     mut_p.add_argument("findings_json", help="Path to JSON list of findings")
+
+    subparsers.add_parser("qc-vision", help="Vision QC (graceful without VLM)").add_argument("input")
+    subparsers.add_parser("qc-narrative", help="Narrative/first-15s QC").add_argument("input")
+
+    pub = subparsers.add_parser("publish-validate", help="Validate platform publish specs (no upload)")
+    pub.add_argument("platform")
+    pub.add_argument("--duration", type=float, required=True)
+    pub.add_argument("--height", type=int, required=True)
+    pub.add_argument("--width", type=int, required=True)
+
+    hk = subparsers.add_parser("hook-candidates", help="Hook title + thumb candidates (human pick)")
+    hk.add_argument("topic")
+    hk.add_argument("--count", type=int, default=5)
+    hk.add_argument("--language", default="en")
+
+    seek = subparsers.add_parser("seek-frame", help="Frame/timestamp conversion")
+    seek.add_argument("--frame", type=int, default=None)
+    seek.add_argument("--seconds", type=float, default=None)
+    seek.add_argument("--fps", type=float, default=30.0)
+
+    otio_e = subparsers.add_parser("otio-export", help="Export timeline JSON to OTIO JSON")
+    otio_e.add_argument("timeline_json")
+    otio_e.add_argument("-o", "--output", required=True)
+
+    otio_i = subparsers.add_parser("otio-import", help="Import OTIO JSON to Timeline IR")
+    otio_i.add_argument("path")
+
+    subparsers.add_parser("review-ui", help="Write hot-reload review HTML").add_argument("output_dir")
+
+    sess = subparsers.add_parser("edit-session", help="Open/step conversational edit session")
+    sess.add_argument("action", choices=["open", "step"])
+    sess.add_argument("path")
+    sess.add_argument("--goal", default="edit")
+    sess.add_argument("--step-action", default="step")
+    sess.add_argument("--score", type=float, default=None)

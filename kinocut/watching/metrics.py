@@ -1,11 +1,15 @@
-"""Offline metric QC third (P3.2 floor): black frames, duration, loudness proxies."""
+"""Offline metric QC third (P3.2): duration, blackdetect, loudness proxy."""
 
 from __future__ import annotations
 
+import json
+import re
+import subprocess
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from kinocut.errors import InputFileError
+from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
+from kinocut.errors import InputFileError, ProcessingError
 from kinocut.ffmpeg_helpers import _get_video_duration, _validate_input_path
 
 
@@ -35,7 +39,7 @@ def run_metric_qc(
     findings: list[MetricFinding] = []
     try:
         duration = float(_get_video_duration(path))
-    except Exception as exc:  # noqa: BLE001 — surface as fail finding
+    except Exception as exc:  # noqa: BLE001
         raise InputFileError(path, f"cannot probe duration: {exc}") from exc
 
     if duration < min_duration_seconds:
@@ -59,25 +63,24 @@ def run_metric_qc(
             )
         )
 
-    # Black-frame heuristic via ffprobe signalstats if available; soft-fail otherwise.
-    black_ratio = _black_ratio_probe(path)
-    if black_ratio is None:
+    black = _blackdetect_ratio(path, duration)
+    if black is None:
         findings.append(
             MetricFinding(
                 check_id="black_frames.ratio",
                 severity="warn",
-                message="black-frame probe unavailable; skipped",
+                message="blackdetect unavailable; skipped",
                 evidence={"available": False},
             )
         )
-    elif black_ratio > max_black_ratio:
+    elif black > max_black_ratio:
         findings.append(
             MetricFinding(
                 check_id="black_frames.ratio",
                 severity="fail",
-                message=f"black ratio {black_ratio:.3f} exceeds max {max_black_ratio}",
+                message=f"black ratio {black:.3f} exceeds max {max_black_ratio}",
                 time_range=(0.0, duration),
-                evidence={"black_ratio": black_ratio, "max": max_black_ratio},
+                evidence={"black_ratio": black, "max": max_black_ratio},
             )
         )
     else:
@@ -85,18 +88,107 @@ def run_metric_qc(
             MetricFinding(
                 check_id="black_frames.ratio",
                 severity="info",
-                message=f"black ratio {black_ratio:.3f} ok",
-                evidence={"black_ratio": black_ratio},
+                message=f"black ratio {black:.3f} ok",
+                evidence={"black_ratio": black},
             )
         )
+
+    lufs = _integrated_lufs(path)
+    if lufs is None:
+        findings.append(
+            MetricFinding(
+                check_id="audio.lufs",
+                severity="warn",
+                message="loudnorm probe unavailable; skipped",
+                evidence={"available": False},
+            )
+        )
+    else:
+        # Informative band only — not a hard delivery gate.
+        severity = "info" if -24.0 <= lufs <= -9.0 else "warn"
+        findings.append(
+            MetricFinding(
+                check_id="audio.lufs",
+                severity=severity,
+                message=f"integrated LUFS ≈ {lufs:.2f}",
+                evidence={"integrated_lufs": lufs},
+            )
+        )
+
+    findings.append(
+        MetricFinding(
+            check_id="av_sync.proxy",
+            severity="info",
+            message="AV-sync deep probe not claimed; use compare_quality for pairwise metrics",
+            evidence={"available": False},
+        )
+    )
     return findings
 
 
-def _black_ratio_probe(path: str) -> float | None:
-    """Black-frame ratio via ffmpeg blackdetect when available.
+def _blackdetect_ratio(path: str, duration: float) -> float | None:
+    if duration <= 0:
+        return None
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-i",
+        path,
+        "-vf",
+        "blackdetect=d=0.1:pix_th=0.10",
+        "-an",
+        "-f",
+        "null",
+        "-",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=DEFAULT_FFMPEG_TIMEOUT,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        return None
+    text = (proc.stderr or "") + (proc.stdout or "")
+    # black_start:0 black_end:1.2 black_duration:1.2
+    spans = re.findall(r"black_duration:([0-9.]+)", text)
+    if not spans and "blackdetect" not in text.lower() and proc.returncode != 0:
+        return None
+    total_black = sum(float(x) for x in spans)
+    return min(1.0, total_black / duration)
 
-    Returns None when the probe is unavailable rather than inventing 0.0.
-    Full blackdetect matrix is a later hardening; floor keeps fail-closed honesty.
-    """
-    _ = path
-    return None
+
+def _integrated_lufs(path: str) -> float | None:
+    cmd = [
+        "ffmpeg",
+        "-hide_banner",
+        "-i",
+        path,
+        "-af",
+        "loudnorm=print_format=json",
+        "-f",
+        "null",
+        "-",
+    ]
+    try:
+        proc = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            timeout=DEFAULT_FFMPEG_TIMEOUT,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        return None
+    stderr = proc.stderr or ""
+    # loudnorm prints JSON block at end of stderr
+    m = re.search(r"\{[^{}]*\"input_i\"[^{}]*\}", stderr, re.S)
+    if not m:
+        return None
+    try:
+        data = json.loads(m.group(0))
+        return float(data.get("input_i"))
+    except (json.JSONDecodeError, TypeError, ValueError):
+        return None

@@ -1,0 +1,18 @@
+# CI runner image with FFmpeg preinstalled (issue #110).
+# Build: docker build -f Dockerfile.ci -t kinocut-ci:local .
+FROM python:3.13-slim-bookworm
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ffmpeg git ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /workspace
+COPY pyproject.toml README.md LICENSE ./
+COPY kinocut/ kinocut/
+COPY mcp_video.py ./
+COPY tests/ tests/
+
+RUN pip install --no-cache-dir -e ".[dev]"
+
+ENV MCP_VIDEO_ANALYTICS=0
+CMD ["pytest", "tests/", "-q", "--tb=line"]

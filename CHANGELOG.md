@@ -13,6 +13,7 @@ This project follows a simple release-note style:
 
 ### Added
 
+- Finish-campaign: Timeline IR, vision/narrative QC, generative plan, OTIO, review UI, dub plan, publish validate, hooks, audiogram/punch/seek, edit sessions, Video CI action, CI Dockerfile, human-gate docs.
 - **Intent-verb surface (P2.5):** `video_intent` / `intent` routes ~10 semantic verbs to plans without silent media mutation.
 - **B-roll proposals (P2.8):** `video_propose_broll` / `propose-broll` — human-reviewable only.
 - **Caption translation ES-first (P2.9):** `video_translate_captions` / `translate-captions` + `video_language_coverage` honesty matrix (dub not claimed).
@@ -22,7 +23,7 @@ This project follows a simple release-note style:
 
 ### Changed
 
-- Development public surface **180 MCP / 156 CLI** (published 1.12.0 remains **169 / 145** until the next release cut).
+- Development public surface **194 MCP / 165 CLI** (published 1.12.0 remains **169 / 145** until the next release cut).
 
 ## 1.12.0 - 2026-08-07
 

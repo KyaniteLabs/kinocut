@@ -18,8 +18,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
-  <img src="https://img.shields.io/badge/MCP-180%20tools-orange.svg" alt="180 MCP tools on development tip">
-  <img src="https://img.shields.io/badge/CLI-156%20commands-orange.svg" alt="156 CLI commands on development tip">
+  <img src="https://img.shields.io/badge/MCP-194%20tools-orange.svg" alt="194 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/CLI-165%20commands-orange.svg" alt="165 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -98,7 +98,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.12.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.12.0)** (2026-08-07) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.12.0** · **180 MCP tools / 156 CLI commands** (dev tip; published package still **169 / 145**) | Intent/b-roll/translate/review + still/plate. |
+| **This repository (`master`)** | **1.12.0** · **194 MCP tools / 165 CLI commands** (dev tip; published package still **169 / 145**) | Intent/b-roll/translate/review + still/plate. |
 | **Next public release** | **TBD** | Post-release pillars and human programs remain gated; further bumps need a new go-ahead. |
 
 Install from PyPI when you want the stable package. Clone or install from `master` only when you intentionally need unreleased surfaces.
@@ -371,7 +371,7 @@ mcp-video doctor
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.12.0** (`pip install kinocut`, **169 herramientas MCP / 145 CLI**). En la punta de desarrollo (`master`) hay **180 herramientas MCP** y **156 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada (en borrador hacia 1.8) y barreras de seguridad antes de renderizar. **1.8 aún no está publicado.**
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.12.0** (`pip install kinocut`, **169 herramientas MCP / 145 CLI**). En la punta de desarrollo (`master`) hay **194 herramientas MCP** y **165 comandos CLI** sobre FFmpeg para recortar, unir, subtitular, mezclar audio, aplicar efectos y reutilizar contenido (Shorts, Reels, TikTok), más un motor de flujos de trabajo (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada (en borrador hacia 1.8) y barreras de seguridad antes de renderizar. **1.8 aún no está publicado.**
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -512,7 +512,7 @@ kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
 
 ## MCP Tools
 
-On the **published 1.12.0** surface, kino registers **169 MCP tools** and **145 CLI commands**. The **development tip** currently registers **180 MCP tools** and **156 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+On the **published 1.12.0** surface, kino registers **169 MCP tools** and **145 CLI commands**. The **development tip** currently registers **194 MCP tools** and **165 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -603,7 +603,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.12.0** documents **169 MCP tools / 145 CLI commands**. The development tip is ahead at **180 MCP tools / 156 CLI commands** until the next release cut.
+Published **1.12.0** documents **169 MCP tools / 145 CLI commands**. The development tip is ahead at **194 MCP tools / 165 CLI commands** until the next release cut.
 
 ### Was it called mcp-video?
 
