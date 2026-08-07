@@ -9,21 +9,32 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 1.13.0 - 2026-08-07
 
 ### Added
 
-- Finish-campaign: Timeline IR, vision/narrative QC, generative plan, OTIO, review UI, dub plan, publish validate, hooks, audiogram/punch/seek, edit sessions, Video CI action, CI Dockerfile, human-gate docs.
 - **Intent-verb surface (P2.5):** `video_intent` / `intent` routes ~10 semantic verbs to plans without silent media mutation.
-- **B-roll proposals (P2.8):** `video_propose_broll` / `propose-broll` — human-reviewable only.
-- **Caption translation ES-first (P2.9):** `video_translate_captions` / `translate-captions` + `video_language_coverage` honesty matrix (dub not claimed).
-- **Watching review floor (P3.1–P3.2 start):** `video_review_run` / `review-run` and `video_review_decide` / `review-decide`.
-- TE QoL: `init`, `estimate`, `brand-kit`, `cutfile-validate`; `video_propose_mutations` (P3.5).
-- Devcontainer scaffold (`.devcontainer/`), phase go/no-go doc, stewardship notes; community Funnel/OAuth deploy pointer in README.
+- **B-roll proposals (P2.8):** `video_propose_broll` / `propose-broll` — human-reviewable only; never silent insert.
+- **Caption translation ES-first (P2.9):** `video_translate_captions` / `translate-captions` + `video_language_coverage` honesty matrix (dub not claimed as available).
+- **Watching guardrail floor (P3):** `video_review_run` / `review-run`, `video_review_decide` / `review-decide`, metric QC (blackdetect/LUFS), vision QC (graceful without VLM), narrative first-15s QC, `video_propose_mutations`.
+- **Timeline IR validate/compile** via existing `kinocut.timeline_ir` + OTIO JSON bridge (`video_otio_export` / `video_otio_import`).
+- **Phase-4 multipliers (plan-first):** generative spend-capped plan, review HTML surface, TTS dub plan (ES-first, non-executable until backend configured).
+- **TE QoL / pillars:** `init`, `estimate`, `brand-kit`, `cutfile-validate`, publish-validate, hook-candidates, audiogram plan, punch-zoom plan, seek-frame, edit-session; `.github/actions/kinocut-video-ci`.
+- Devcontainer, `Dockerfile.ci`, CI topology + MCPB gate docs, directory/launch/user program ops packs; community Funnel/OAuth deploy pointer.
 
 ### Changed
 
-- Development public surface **194 MCP / 165 CLI** (published 1.12.0 remains **169 / 145** until the next release cut).
+- Published surface grows to **194 MCP tools / 165 CLI commands** (from 169 / 145 in 1.12.0).
+- Path validation hardened for caption translate, brand kit, and OTIO artifact writes.
+
+### Security
+
+- Subprocess metric probes use list argv + timeouts; spend caps fail closed for paid generative plans; b-roll/mutations remain human-apply only.
+
+### Compatibility
+
+- `pip install -U kinocut` to 1.13.0. The `mcp-video` compatibility shim **1.6.4** installs `kinocut==1.13.0`.
+- **Not claimed:** live directory listings, first-10 real-user program completion, native signed MCPB public publish, or unbounded paid generation/TTS synthesis.
 
 ## 1.12.0 - 2026-08-07
 

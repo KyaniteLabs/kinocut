@@ -620,7 +620,7 @@ def test_variants_do_not_change_public_surface_counts():
     from mcp_video.server import mcp
 
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-    assert len(tool_names) == 169  # Still-plate tools published on 1.12.0.
+    assert len(tool_names) == 194  # implement-all tip surface (1.13.0 cut).
     assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
 
 
@@ -636,4 +636,4 @@ def test_variant_flags_do_not_add_cli_commands():
     assert result.returncode == 0
     command_lists = re.findall(r"\{([^}]+)\}", result.stdout)
     command_list = max(command_lists, key=lambda value: len(value.split(",")))
-    assert len(set(command_list.split(","))) == 145  # Still-plate CLI surface on tip.
+    assert len(set(command_list.split(","))) == 165  # implement-all tip CLI surface.

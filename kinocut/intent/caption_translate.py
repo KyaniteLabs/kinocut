@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from kinocut.errors import InputFileError, MCPVideoError
+from kinocut.ffmpeg_helpers import _validate_input_path, _validate_output_path
 from kinocut.intent.language_coverage import language_coverage_report
 
 _CUE_SPLIT = re.compile(r"\n\s*\n")
@@ -57,9 +58,7 @@ def translate_caption_file(
     translator: Callable[[str, str, str], str] | None = None,
 ) -> TranslateResult:
     """Translate an SRT file. Never claims unsupported pairs as done."""
-    src = Path(input_path)
-    if not src.is_file():
-        raise InputFileError(str(src), "caption file not found")
+    src = Path(_validate_input_path(input_path))
     src_l = source_lang.lower().strip()
     tgt_l = target_lang.lower().strip()
     coverage = language_coverage_report()
@@ -89,11 +88,15 @@ def translate_caption_file(
             translated = fn(body, src_l, tgt_l)
             used = backend
         out_cues.append((start, end, translated))
-    out = Path(output_path) if output_path else src.with_name(f"{src.stem}.{tgt_l}.srt")
+    if output_path:
+        out_str = _validate_output_path(output_path)
+    else:
+        out_str = _validate_output_path(str(src.with_name(f"{src.stem}.{tgt_l}.srt")))
+    out = Path(out_str)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(_render_srt(out_cues), encoding="utf-8")
     return TranslateResult(
-        source_path=str(src.resolve()),
+        source_path=str(src),
         output_path=str(out.resolve()),
         source_lang=src_l,
         target_lang=tgt_l,

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from kinocut.errors import InputFileError, MCPVideoError
+from kinocut.ffmpeg_helpers import _validate_artifact_path, _validate_input_path
 
 
 @dataclass
@@ -25,7 +26,7 @@ class BrandKit:
 
 
 def save_brand_kit(path: str, kit: BrandKit) -> dict[str, Any]:
-    p = Path(path)
+    p = Path(_validate_artifact_path(path))
     p.parent.mkdir(parents=True, exist_ok=True)
     payload = {"artifact_kind": "brand_kit", **kit.to_dict()}
     p.write_text(json.dumps(payload, indent=2) + "\n", encoding="utf-8")
@@ -33,9 +34,7 @@ def save_brand_kit(path: str, kit: BrandKit) -> dict[str, Any]:
 
 
 def load_brand_kit(path: str) -> BrandKit:
-    p = Path(path)
-    if not p.is_file():
-        raise InputFileError(str(p), "brand kit not found")
+    p = Path(_validate_input_path(path))
     try:
         data = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:

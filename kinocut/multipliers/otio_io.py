@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from kinocut.errors import InputFileError, MCPVideoError
+from kinocut.ffmpeg_helpers import _validate_artifact_path, _validate_input_path
 from kinocut.timeline_ir import compile_ir_to_dag, parse_timeline_ir
 
 
@@ -46,7 +47,7 @@ def export_otio_json(timeline: dict[str, Any], output_path: str) -> dict[str, An
             "kinocut_dag_nodes": len(dag.nodes) if hasattr(dag, "nodes") else None,
         },
     }
-    path = Path(output_path)
+    path = Path(_validate_artifact_path(output_path))
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
     return {
@@ -59,9 +60,7 @@ def export_otio_json(timeline: dict[str, Any], output_path: str) -> dict[str, An
 
 def import_otio_json(path: str) -> dict[str, Any]:
     """Import OTIO JSON that embeds kinocut_ir, or rebuild a minimal IR."""
-    p = Path(path)
-    if not p.is_file():
-        raise InputFileError(str(p), "otio json not found")
+    p = Path(_validate_input_path(path))
     try:
         doc = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
