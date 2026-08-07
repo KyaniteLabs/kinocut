@@ -28,5 +28,5 @@ def timestamp_to_frame(seconds: float, fps: float) -> dict[str, Any]:
         raise MCPVideoError("seconds must be >= 0", error_type="validation_error", code="bad_seconds")
     if fps <= 0:
         raise MCPVideoError("fps must be > 0", error_type="validation_error", code="bad_fps")
-    frame = int(round(seconds * fps))
+    frame = round(seconds * fps)  # int via round for half-up on py3
     return frame_to_timestamp(frame, fps)

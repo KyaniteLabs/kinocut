@@ -5,7 +5,6 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 from typing import Any
 
-from kinocut.errors import InputFileError
 from kinocut.ffmpeg_helpers import _validate_input_path
 
 

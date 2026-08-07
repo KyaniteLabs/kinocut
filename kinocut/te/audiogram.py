@@ -2,7 +2,8 @@
 
 from __future__ import annotations
 
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from kinocut.errors import MCPVideoError
 
@@ -23,6 +24,6 @@ def plan_audiogram(
         "width": width,
         "height": height,
         "chapters": [{"time": t, "label": f"ch-{i+1}"} for i, t in enumerate(chapters)],
-        "filter_hint": "showwaves=s={}x{}:mode=cline".format(width, height),
+        "filter_hint": f"showwaves=s={width}x{height}:mode=cline",
         "notes": "Plan for showwaves/showfreqs render; pair with auto_chapters when available.",
     }

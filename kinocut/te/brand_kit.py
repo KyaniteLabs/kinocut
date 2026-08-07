@@ -7,7 +7,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any
 
-from kinocut.errors import InputFileError, MCPVideoError
+from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_artifact_path, _validate_input_path
 
 

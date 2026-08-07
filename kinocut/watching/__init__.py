@@ -1,4 +1,4 @@
-"""Watching guardrail: review policy + metric QC floor (P3.1–P3.2)."""
+"""Watching guardrail: review policy + metric QC floor (P3.1-P3.2)."""
 
 from __future__ import annotations
 

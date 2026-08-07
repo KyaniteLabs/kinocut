@@ -42,6 +42,19 @@
   <a href="llms.txt">llms.txt</a>
 </p>
 
+> Kinocut is a free, open-source **video editing MCP server** (plus Python client and `kino` CLI) that lets AI agents trim, caption, repurpose, and quality-gate local media with typed tools and Video Receipts — not invented FFmpeg flags.
+
+## Table of contents
+
+- [What is Kinocut?](#what-is-kinocut)
+- [See It Work](#see-it-work)
+- [Installation](#installation)
+- [Quick Start](#quick-start)
+- [MCP Tools](#mcp-tools)
+- [FAQ](#faq)
+- [Status and releases](#status-and-releases)
+- [Agent Skill](#agent-skill)
+
 ---
 
 ## What is Kinocut?
@@ -70,7 +83,7 @@ Machine-readable brief for AI crawlers: [`llms.txt`](llms.txt) · site: [kinocut
 
 Tell the agent what you want in plain language:
 
-> "Trim this interview to the strongest 45 seconds, add burned captions, make it vertical, and quality-check it before export."
+*"Trim this interview to the strongest 45 seconds, add burned captions, make it vertical, and quality-check it before export."*
 
 Kinocut turns that into typed, guardrailed tool calls - no FFmpeg flags to guess, no silently broken exports:
 

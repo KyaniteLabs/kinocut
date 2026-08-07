@@ -5,9 +5,10 @@ from __future__ import annotations
 import re
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Any, Callable, Mapping
+from typing import Any
+from collections.abc import Callable, Mapping
 
-from kinocut.errors import InputFileError, MCPVideoError
+from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_input_path, _validate_output_path
 from kinocut.intent.language_coverage import language_coverage_report
 

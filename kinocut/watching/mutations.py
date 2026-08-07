@@ -3,7 +3,8 @@
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
-from typing import Any, Sequence
+from typing import Any
+from collections.abc import Sequence
 
 from kinocut.watching.metrics import MetricFinding
 
@@ -42,10 +43,11 @@ def propose_mutations_from_findings(
             severity = str(raw.get("severity") or "info")
             message = str(raw.get("message") or "")
             tr_raw = raw.get("time_range")
-            if isinstance(tr_raw, dict):
-                tr = (float(tr_raw["start"]), float(tr_raw["end"]))
-            else:
-                tr = None
+            tr = (
+                (float(tr_raw["start"]), float(tr_raw["end"]))
+                if isinstance(tr_raw, dict)
+                else None
+            )
         if severity not in {"fail", "warn"}:
             continue
         if fid.startswith("duration"):
