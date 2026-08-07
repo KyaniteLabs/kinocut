@@ -99,12 +99,16 @@ def decide_review(
             error_type="validation_error",
             code="invalid_review_decision",
         )
-    if d == "accept" and review_run.get("blocked") and review_run.get("verdict") == "fail":
-        # Allow accept only with explicit reason (human override).
-        if not (reason or "").strip():
-            raise MCPVideoError(
-                "accepting a failed review_run requires a non-empty reason",
-                error_type="validation_error",
-                code="accept_requires_reason",
-            )
+    # Allow accept of a failed review only with explicit human-override reason.
+    if (
+        d == "accept"
+        and review_run.get("blocked")
+        and review_run.get("verdict") == "fail"
+        and not (reason or "").strip()
+    ):
+        raise MCPVideoError(
+            "accepting a failed review_run requires a non-empty reason",
+            error_type="validation_error",
+            code="accept_requires_reason",
+        )
     return ReviewDecision(decision=d, reason=reason or "", review_run=review_run)  # type: ignore[arg-type]

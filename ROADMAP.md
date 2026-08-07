@@ -1,37 +1,64 @@
 # Improvement Roadmap
 
-Kinocut 1.13.0 is published with 194 MCP tools and 165 CLI commands (intent/watching/TE multipliers on top of still/plate). Earlier milestones: **1.9.0** release-artifact policy engines; **1.10.x** stream-to-shorts stages + package integrity; **1.11.x** thin `kinocut_sound` S12 join. Remotion has been fully removed.
+Kinocut 1.13.0 is published with 194 MCP tools and 165 CLI commands (`mcp-video` 1.6.4 shim).
 
-## Current development tip after 1.13.0
+**Published product:** Kinocut **1.13.0** (2026-08-07) · **194 MCP / 165 CLI**  
+**Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
+**Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
+**Excellence program:** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](docs/status/2026-08-07-kinocut-excellence-audit.md) · handoff [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](docs/handoffs/2026-08-07/kinocut-excellence-campaign.md)  
+**Earlier tip snapshot:** [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md) (evidence only)
 
-- [x] Wave 0 contract and project-store foundation.
-- [x] Field safety: loss-proof add-audio and authored/dimension-aware subtitles.
-- [x] Content-addressed ingest, unified preflight, temporal evidence, and defect checks.
-- [x] 1.9.0 public MCP/CLI/client join for eight release-artifact policy engines.
-- [x] 1.10.x stream-to-shorts stages + package integrity fail-closed on content-hash mismatch.
-- [x] 1.11.x thin `kinocut_sound` S12 public join (capabilities, plan validate, voice batch, mix render, QA loudness/ASR) — **not** full-episode sound completion.
-- [x] Durable edit projects, CAS, async render/resume, ordered events, and workflow receipt lineage under `kinocut/projectstore/`.
-- [x] Kernel-backed repurposing that wraps the existing `video_workflow_*` engine.
-- [x] Durable reviewed selections, speaker-aware reframe evidence, word-timed ASS captions, disfluency cuts, and project-recipe export/replay.
-- [x] Project-store threat model and adversarial security guards.
-- [x] Alpha-aware layered compositor with masks, transforms, blend modes, per-layer effects, and deterministic real-render checks.
-- [~] Repository-owned CI runner image/topology is implemented; build/publish, admin label mapping, and observed runner activation remain external.
-- [~] Native MCPB supply-chain foundations are implemented; four-platform runtime locks, clean-machine builds, licensing/source bundles, signing, official pack/validate, and human release review remain external.
-- [ ] Phase 3 watching guardrail remains explicitly post-release/human-gated.
-- [ ] Phase 4 multipliers and trusted-execution expansion remain explicitly post-release/human-gated.
-- [ ] Full-episode `kinocut_sound` verification and broader sonic-world completion remain unclaimed.
-- [ ] **G004 (human-only):** listening / phone-frame / multi-minute fixture acceptance for production stream-shorts claims — remains open; agents must not invent closed.
-- [ ] Directory submissions, release/tag/publish actions, and real-user-program claims require separate human authority or evidence.
-
-Current truth: [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md).
-Earlier [post-1.10](docs/status/2026-07-24-post-1-10-program-status.md),
-[post-1.8](docs/status/2026-07-14-post-1.8-program-status.md), and
-[draft-status](docs/status/2026-07-12-wishlist-draft-pr-status.md) files remain
-dated evidence rather than current planning claims.
+This file is **planning truth for after 1.13.0**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims.
 
 ---
 
-## 📋 Planned for v1.3.0
+## Current (shipped on tip = published 1.13.0)
+
+- Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
+- Rescue, compositing, Hyperframes, repurposing package surface
+- Thin `kinocut_sound` S12 join (not full-episode sound)
+- Dual-host public face restored; S+ floor green (excellence WP-A targets higher scores)
+
+Do not re-list older 1.9–1.12 waves here as open work — they are published history (see Archive / CHANGELOG).
+
+---
+
+## Next (agent-eligible excellence program)
+
+Ordered per excellence audit. Prefer one work package per PR.
+
+| WP | Outcome | Notes |
+|----|---------|--------|
+| **A** S+ max + site stamp | README overall ≥95 preferred; site `llms.txt` date current | **Month stop:** done on tip when PR lands |
+| **B** Docs truth | This ROADMAP structure; no false “latest is 1.11/1.12” | **Month stop:** this section is tip |
+| **G** Ruff hygiene | `ruff check kinocut` clean | **Month stop:** done when PR lands |
+| **C** Module size policy | `hyperframes_engine.py`, `workflow/executor.py` ≤800 LOC | **Next month** hard policy |
+| **D** Long functions | CLI handlers / rescue render decomposition | Multi-PR |
+| **F** Perf baselines | Golden-path timings after C/D | No “optimized” without numbers |
+
+---
+
+## Human / gated (not agent-closable alone)
+
+| Item | Owner | Source |
+|------|-------|--------|
+| Directories, launch moments, first-10 users, Renovate host token | Human | `docs/HUMAN_GATES.md` |
+| G004 multi-minute / phone-frame fixtures | Human + agent assist | Stream-shorts honesty |
+| Phase 3 watching (post-release) | Product + agent | Explicitly gated |
+| Phase 4 multipliers / TE expansion | Product + agent | Explicitly gated |
+| Full-episode `kinocut_sound` | Sound program | Unclaimed |
+| MCPB signed multi-platform production pack | Human + agent | Foundations only |
+| CI `light` vs `heavy` runner topology | Ops | Partial |
+
+Agents must not invent completed directory listings, launch metrics, or first-10 outcomes.
+
+---
+
+## Archive (historical — not current planning)
+
+Older roadmap eras (v1.2.x, v1.3 Remotion/Revideo notes, wishlist drafts) remain below for archaeology. Prefer CHANGELOG + the 2026-08-07 audit for “what is true now.”
+
+## Planned for v1.3.0 (historical)
 
 ### Revideo Integration — RESEARCHED, DEFERRED
 

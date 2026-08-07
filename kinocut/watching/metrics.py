@@ -39,7 +39,7 @@ def run_metric_qc(
     findings: list[MetricFinding] = []
     try:
         duration = float(_get_video_duration(path))
-    except Exception as exc:  # noqa: BLE001
+    except Exception as exc:
         raise InputFileError(path, f"cannot probe duration: {exc}") from exc
 
     if duration < min_duration_seconds:
@@ -142,14 +142,14 @@ def _blackdetect_ratio(path: str, duration: float) -> float | None:
         "-",
     ]
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: S603
             cmd,
             capture_output=True,
             text=True,
             timeout=DEFAULT_FFMPEG_TIMEOUT,
             check=False,
         )
-    except (OSError, subprocess.TimeoutExpired) as exc:
+    except (OSError, subprocess.TimeoutExpired):
         return None
     text = (proc.stderr or "") + (proc.stdout or "")
     # black_start:0 black_end:1.2 black_duration:1.2
@@ -173,7 +173,7 @@ def _integrated_lufs(path: str) -> float | None:
         "-",
     ]
     try:
-        proc = subprocess.run(
+        proc = subprocess.run(  # noqa: S603
             cmd,
             capture_output=True,
             text=True,
