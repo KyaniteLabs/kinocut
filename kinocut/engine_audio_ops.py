@@ -63,7 +63,10 @@ def _build_add_audio_args(
     duration (``-t``) so the outro is preserved; ``pad_audio`` adds silence,
     ``loop_audio`` loops the audio input to fill, and ``shortest`` keeps the
     legacy ``-shortest``. In mix mode the source-preserving ``amix`` duration is
+    legacy ``-shortest``. In mix mode the source-preserving ``amix`` duration is
     ``longest`` (or ``shortest`` only under the explicit ``shortest`` policy).
+    Mix mode disables amix's default 1/n normalization (``normalize=0``) so both
+    tracks sum at unity instead of being attenuated ~6 dB (issue #289).
     """
 
     if mix and source_has_audio:
@@ -85,7 +88,7 @@ def _build_add_audio_args(
             second_chain = f"[1:a]adelay={safe_delay}|{safe_delay},{af}[a1]"
         else:
             second_chain = f"[1:a]{af}[a1]"
-        filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}[aout]"
+        filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
         return [
             "-i",
             video_path,
