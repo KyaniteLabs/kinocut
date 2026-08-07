@@ -1,8 +1,8 @@
 # Improvement Roadmap
 
-Kinocut 1.12.0 is published with 169 MCP tools and 145 CLI commands (still/plate editor surface). Earlier milestones: **1.9.0** release-artifact policy engines; **1.10.x** stream-to-shorts stages + package integrity; **1.11.x** thin `kinocut_sound` S12 join. Remotion has been fully removed.
+Kinocut 1.13.0 is published with 194 MCP tools and 165 CLI commands (intent/watching/TE multipliers on top of still/plate). Earlier milestones: **1.9.0** release-artifact policy engines; **1.10.x** stream-to-shorts stages + package integrity; **1.11.x** thin `kinocut_sound` S12 join. Remotion has been fully removed.
 
-## Current development tip after 1.12.0
+## Current development tip after 1.13.0
 
 - [x] Wave 0 contract and project-store foundation.
 - [x] Field safety: loss-proof add-audio and authored/dimension-aware subtitles.
