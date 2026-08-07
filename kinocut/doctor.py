@@ -519,8 +519,8 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
     hint = None
     if not ok:
         hint = (
-            "Still/plate tools need the image stack. "
-            'Install: pip install "kinocut[image]" (Pillow). '
+            "Still/plate tools need the image stack (Pillow + NumPy). "
+            'Install: pip install "kinocut[image]". '
             "Free establish-locked edit uses local match; paid gen backends are not claimed until configured."
         )
     return {

@@ -14,19 +14,26 @@ STILL_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", 
 
 
 def require_still_deps() -> None:
-    """Require Pillow for still-plate pixel work."""
+    """Require Pillow + NumPy for still-plate pixel work."""
+    missing: list[str] = []
     try:
         import PIL.Image  # noqa: F401
-    except ImportError as exc:
+    except ImportError:
+        missing.append("pillow")
+    try:
+        import numpy  # noqa: F401
+    except ImportError:
+        missing.append("numpy")
+    if missing:
         raise MCPVideoError(
-            'Still/plate tools require image extras. Install with: pip install "kinocut[image]"',
+            'Still/plate tools require image extras (pillow, numpy). Install with: pip install "kinocut[image]"',
             error_type="dependency_error",
             code="missing_still_plate_deps",
             suggested_action={
                 "auto_fix": False,
                 "description": 'Run: pip install "kinocut[image]"',
             },
-        ) from exc
+        )
 
 
 def validate_still_path(path: str | Path, *, must_exist: bool = True) -> Path:

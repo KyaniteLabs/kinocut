@@ -5,8 +5,6 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
@@ -48,7 +46,9 @@ def _validate_match_args(
 
 def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, float], float]:
     hero_rgb = mean_rgb(hero_arr)
-    package_rgb = tuple(float(np.mean([mean_rgb(a)[i] for a in input_arrs])) for i in range(3))
+    package_rgb = tuple(
+        float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)
+    )
     gains = shared_gains_to_hero(
         hero_rgb,
         package_rgb,  # type: ignore[arg-type]
@@ -56,12 +56,13 @@ def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, flo
         min_gain=STILL_MATCH_MIN_GAIN,
     )
     hero_luma = mean_luma(hero_arr)
-    package_luma = float(np.mean([mean_luma(a) for a in input_arrs]))
+    package_luma = float(sum(mean_luma(a) for a in input_arrs) / len(input_arrs))
     if package_luma < 1e-6:
         exposure_scale = 1.0
     else:
-        exposure_scale = float(
-            np.clip(hero_luma / package_luma, STILL_MATCH_MIN_GAIN, STILL_MATCH_MAX_GAIN)
+        exposure_scale = max(
+            STILL_MATCH_MIN_GAIN,
+            min(STILL_MATCH_MAX_GAIN, hero_luma / package_luma),
         )
     final = (gains[0] * exposure_scale, gains[1] * exposure_scale, gains[2] * exposure_scale)
     return final, exposure_scale
@@ -119,12 +120,12 @@ def still_match(
         "hero_sha256": file_sha256(hero_path),
         "hero_mean_rgb": list(mean_rgb(hero_arr)),
         "package_mean_rgb": [
-            float(np.mean([mean_rgb(a)[i] for a in input_arrs])) for i in range(3)
+            float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)
         ],
         "shared_gains": list(final_gains),
         "exposure_scale": exposure_scale,
         "per_frame_auto_wb": False,
-        "delta_ev": float(np.log2(exposure_scale)) if exposure_scale > 0 else 0.0,
+        "delta_ev": float(__import__("math").log2(exposure_scale)) if exposure_scale > 0 else 0.0,
         "outputs": outputs,
     }
     receipt_path = write_receipt(out_dir / receipt_name, receipt)
