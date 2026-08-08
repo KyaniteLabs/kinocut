@@ -450,6 +450,148 @@ def _validate_audio_effects(effects: list[dict[str, Any]]) -> None:
             )
 
 
+def _read_audio_input(input_path: str) -> tuple[Any, int]:
+    """Read input WAV and return float samples with sample rate."""
+    with wave.open(input_path, "rb") as wav_file:
+        sample_rate = wav_file.getframerate()
+        sample_width = wav_file.getsampwidth()
+        channels = wav_file.getnchannels()
+        frames = wav_file.readframes(wav_file.getnframes())
+        samples = _pcm_to_float(frames, sample_width=sample_width, channels=channels)
+    return samples, sample_rate
+
+
+def _normalize_samples(samples: Any) -> Any:
+    """Normalize samples to peak at 0.95 amplitude (NumPy-aware)."""
+    try:
+        import numpy as np
+
+        if isinstance(samples, np.ndarray):
+            max_val = np.max(np.abs(samples))
+            if max_val > 0:
+                samples = samples / max_val * 0.95
+        else:
+            max_val = max(abs(s) for s in samples) if samples else 1
+            if max_val > 0:
+                samples = [s / max_val * 0.95 for s in samples]
+    except ImportError:
+        max_val = max(abs(s) for s in samples) if samples else 1
+        if max_val > 0:
+            samples = [s / max_val * 0.95 for s in samples]
+    return samples
+
+
+def _apply_dsp_effect(effect_type: str, effect: dict[str, Any], samples: Any, sample_rate: int) -> Any:
+    """Apply a parameterized DSP effect (delay, chorus, flanger, etc.)."""
+    if effect_type == "delay":
+        return apply_delay(
+            samples,
+            delay_time=effect.get("delay_time", 0.3),
+            feedback=effect.get("feedback", 0.4),
+            mix=effect.get("mix", 0.3),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "chorus":
+        return apply_chorus(
+            samples,
+            rate=effect.get("rate", 1.5),
+            depth=effect.get("depth", 0.002),
+            voices=effect.get("voices", 3),
+            mix=effect.get("mix", 0.5),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "flanger":
+        return apply_flanger(
+            samples,
+            rate=effect.get("rate", 0.5),
+            depth=effect.get("depth", 0.003),
+            feedback=effect.get("feedback", 0.5),
+            mix=effect.get("mix", 0.5),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "distortion":
+        return apply_distortion(
+            samples,
+            drive=effect.get("drive", 0.5),
+            tone=effect.get("tone", 0.5),
+            type_=effect.get("type", "soft"),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "compressor":
+        return apply_compressor(
+            samples,
+            threshold=effect.get("threshold", 0.5),
+            ratio=effect.get("ratio", 4.0),
+            attack=effect.get("attack", 0.01),
+            release=effect.get("release", 0.1),
+            makeup=effect.get("makeup", 1.0),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "eq":
+        return apply_eq(
+            samples,
+            low_gain=effect.get("low_gain", 0.0),
+            mid_gain=effect.get("mid_gain", 0.0),
+            high_gain=effect.get("high_gain", 0.0),
+            low_freq=effect.get("low_freq", 200.0),
+            high_freq=effect.get("high_freq", 4000.0),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "tremolo":
+        return apply_tremolo(
+            samples,
+            rate=effect.get("rate", 5.0),
+            depth=effect.get("depth", 0.5),
+            sample_rate=sample_rate,
+        )
+
+    if effect_type == "vibrato":
+        return apply_vibrato(
+            samples,
+            rate=effect.get("rate", 5.0),
+            depth=effect.get("depth", 0.003),
+            sample_rate=sample_rate,
+        )
+
+    return samples
+
+
+def _apply_audio_effect(effect: dict[str, Any], samples: Any, sample_rate: int) -> Any:
+    """Dispatch a single effect from the chain to its processor."""
+    effect_type = effect.get("type")
+
+    if effect_type == "lowpass":
+        cutoff = effect.get("frequency", 2000)
+        return apply_lowpass(samples, cutoff, sample_rate)
+
+    if effect_type == "highpass":
+        cutoff = effect.get("frequency", 200)
+        return apply_highpass(samples, cutoff, sample_rate)
+
+    if effect_type == "reverb":
+        room_size = effect.get("room_size", 0.5)
+        damping = effect.get("damping", 0.5)
+        wet_level = effect.get("wet_level", 0.2)
+        return apply_reverb(samples, room_size, damping, wet_level, sample_rate)
+
+    if effect_type == "normalize":
+        return _normalize_samples(samples)
+
+    if effect_type == "fade":
+        fade_in = effect.get("fade_in", 0)
+        fade_out = effect.get("fade_out", 0)
+        duration = len(samples) / sample_rate
+        return apply_fade(samples, fade_in, fade_out, duration, sample_rate)
+
+    return _apply_dsp_effect(effect_type, effect, samples, sample_rate)
+
+
 def audio_effects(
     input_path: str,
     output: str,
@@ -469,131 +611,10 @@ def audio_effects(
     """
     _validate_audio_effects(effects)
 
-    # Read input
-    with wave.open(input_path, "rb") as wav_file:
-        sample_rate = wav_file.getframerate()
-        sample_width = wav_file.getsampwidth()
-        channels = wav_file.getnchannels()
-        frames = wav_file.readframes(wav_file.getnframes())
-        samples = _pcm_to_float(frames, sample_width=sample_width, channels=channels)
+    samples, sample_rate = _read_audio_input(input_path)
 
-    # Apply effects chain
     for effect in effects:
-        effect_type = effect.get("type")
+        samples = _apply_audio_effect(effect, samples, sample_rate)
 
-        if effect_type == "lowpass":
-            cutoff = effect.get("frequency", 2000)
-            samples = apply_lowpass(samples, cutoff, sample_rate)
-
-        elif effect_type == "highpass":
-            cutoff = effect.get("frequency", 200)
-            samples = apply_highpass(samples, cutoff, sample_rate)
-
-        elif effect_type == "reverb":
-            room_size = effect.get("room_size", 0.5)
-            damping = effect.get("damping", 0.5)
-            wet_level = effect.get("wet_level", 0.2)
-            samples = apply_reverb(samples, room_size, damping, wet_level, sample_rate)
-
-        elif effect_type == "delay":
-            samples = apply_delay(
-                samples,
-                delay_time=effect.get("delay_time", 0.3),
-                feedback=effect.get("feedback", 0.4),
-                mix=effect.get("mix", 0.3),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "chorus":
-            samples = apply_chorus(
-                samples,
-                rate=effect.get("rate", 1.5),
-                depth=effect.get("depth", 0.002),
-                voices=effect.get("voices", 3),
-                mix=effect.get("mix", 0.5),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "flanger":
-            samples = apply_flanger(
-                samples,
-                rate=effect.get("rate", 0.5),
-                depth=effect.get("depth", 0.003),
-                feedback=effect.get("feedback", 0.5),
-                mix=effect.get("mix", 0.5),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "distortion":
-            samples = apply_distortion(
-                samples,
-                drive=effect.get("drive", 0.5),
-                tone=effect.get("tone", 0.5),
-                type_=effect.get("type", "soft"),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "compressor":
-            samples = apply_compressor(
-                samples,
-                threshold=effect.get("threshold", 0.5),
-                ratio=effect.get("ratio", 4.0),
-                attack=effect.get("attack", 0.01),
-                release=effect.get("release", 0.1),
-                makeup=effect.get("makeup", 1.0),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "eq":
-            samples = apply_eq(
-                samples,
-                low_gain=effect.get("low_gain", 0.0),
-                mid_gain=effect.get("mid_gain", 0.0),
-                high_gain=effect.get("high_gain", 0.0),
-                low_freq=effect.get("low_freq", 200.0),
-                high_freq=effect.get("high_freq", 4000.0),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "tremolo":
-            samples = apply_tremolo(
-                samples,
-                rate=effect.get("rate", 5.0),
-                depth=effect.get("depth", 0.5),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "vibrato":
-            samples = apply_vibrato(
-                samples,
-                rate=effect.get("rate", 5.0),
-                depth=effect.get("depth", 0.003),
-                sample_rate=sample_rate,
-            )
-
-        elif effect_type == "normalize":
-            try:
-                import numpy as np
-
-                if isinstance(samples, np.ndarray):
-                    max_val = np.max(np.abs(samples))
-                    if max_val > 0:
-                        samples = samples / max_val * 0.95
-                else:
-                    max_val = max(abs(s) for s in samples) if samples else 1
-                    if max_val > 0:
-                        samples = [s / max_val * 0.95 for s in samples]
-            except ImportError:
-                max_val = max(abs(s) for s in samples) if samples else 1
-                if max_val > 0:
-                    samples = [s / max_val * 0.95 for s in samples]
-
-        elif effect_type == "fade":
-            fade_in = effect.get("fade_in", 0)
-            fade_out = effect.get("fade_out", 0)
-            duration = len(samples) / sample_rate
-            samples = apply_fade(samples, fade_in, fade_out, duration, sample_rate)
-
-    # Write output
     pcm_data = _float_to_pcm(samples)
     return write_wav(pcm_data, output, sample_rate)
