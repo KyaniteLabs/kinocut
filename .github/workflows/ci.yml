@@ -260,7 +260,7 @@ jobs:
           python-version: '3.13'
           cache: 'pip'
           cache-dependency-path: 'pyproject.toml'
-      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
         if: needs.changes.outputs.code == 'true'
         with:
           node-version: '22'
