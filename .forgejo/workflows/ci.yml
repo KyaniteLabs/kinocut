@@ -6,12 +6,18 @@ jobs:
   lint:
     # Lightweight: ruff only. Routed to `light` so lint never queues behind
     # heavy test jobs on the capacity-2 runner.
+    # Uses manual git clone instead of actions/checkout@v4 because the CI
+    # runner (Colima VM) cannot reach gitea.com to download the action.
     runs-on: light
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        run: |
+          apt-get update -qq && apt-get install -y -qq git python3 python3-venv
+          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" .
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout "${{ github.sha }}"
       - name: Install ruff
         run: |
-          apt-get update -qq && apt-get install -y -qq python3 python3-venv
           python3 -m venv .venv-lint
           .venv-lint/bin/pip install --quiet "ruff>=0.15.11"
       - name: Lint
@@ -20,9 +26,12 @@ jobs:
     # PR-safe test job: ffmpeg + full dependency tree + the "not slow" suite.
     runs-on: heavy
     steps:
-      - uses: actions/checkout@v4
-      - name: Install system dependencies
-        run: apt-get update -qq && apt-get install -y -qq python3 python3-pip python3-venv ffmpeg
+      - name: Checkout
+        run: |
+          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
+          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" .
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout "${{ github.sha }}"
       - name: Install package
         run: |
           python3 -m venv .venv
@@ -36,9 +45,12 @@ jobs:
     if: ${{ github.event_name == 'push' }}
     runs-on: heavy
     steps:
-      - uses: actions/checkout@v4
-      - name: Install system dependencies
-        run: apt-get update -qq && apt-get install -y -qq python3 python3-pip python3-venv ffmpeg
+      - name: Checkout
+        run: |
+          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
+          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" .
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout "${{ github.sha }}"
       - name: Install package
         run: |
           python3 -m venv .venv
@@ -84,9 +96,12 @@ jobs:
             ffmpeg_tag: autobuild-2026-06-30-13-34
             ffmpeg_asset: ffmpeg-n8.1.2-21-gce3c09c101-linuxarm64-gpl-8.1.tar.xz
     steps:
-      - uses: actions/checkout@v4
-      - name: Install Python toolchain
-        run: apt-get update -qq && apt-get install -y -qq python3 python3-pip python3-venv curl xz-utils
+      - name: Checkout
+        run: |
+          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv curl xz-utils
+          git clone --depth 1 "${{ github.server_url }}/${{ github.repository }}.git" .
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout "${{ github.sha }}"
       - name: Fetch pinned static FFmpeg ${{ matrix.major }}
         run: |
           set -euo pipefail
