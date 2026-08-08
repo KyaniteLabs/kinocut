@@ -87,33 +87,27 @@ def ai_color_grade(
         _validate_input_path(reference)
         params = _match_reference_colors(video, reference)
 
-    # Build FFmpeg filter chain
-    # eq filter for contrast/saturation/gamma/brightness
-    # colorbalance for RGB channel adjustments (rs=red shift, gs=green shift, bs=blue shift)
+    filter_string = _build_style_filter_string(params)
+    return _apply_style_filter(video_path, output, filter_string)
 
-    # Convert multipliers to FFmpeg eq parameters
+
+def _build_style_filter_string(params: dict[str, float]) -> str:
+    """Build FFmpeg filter chain from style/reference color parameters."""
     contrast = params["contrast"]
     saturation = params["saturation"]
     gamma = params["gamma"]
 
-    # Calculate RGB shifts for colorbalance (normalized -1 to 1 range)
-    # 1.0 = no shift, >1.0 = increase, <1.0 = decrease
-    # Map 0.8-1.2 range to approximately -0.1 to 0.1 shift
     rs = (params["red"] - 1.0) * 0.5
     gs = (params["green"] - 1.0) * 0.5
     bs = (params["blue"] - 1.0) * 0.5
 
-    # Build filter chain
-    # eq filter for basic color adjustments (needs eq= prefix)
     eq_params = f"eq=contrast={contrast}:saturation={saturation}:gamma={gamma}"
-
-    # colorbalance for RGB channel adjustments
     colorbalance_params = f"colorbalance=rs={rs}:gs={gs}:bs={bs}"
+    return f"{eq_params},{colorbalance_params}"
 
-    # Combine filters
-    filter_string = f"{eq_params},{colorbalance_params}"
 
-    # Build FFmpeg command
+def _apply_style_filter(video_path: Path, output: str, filter_string: str) -> str:
+    """Apply a color filter chain via FFmpeg and write output."""
     cmd = [
         "ffmpeg",
         "-y",
@@ -127,12 +121,9 @@ def ai_color_grade(
         "yuv420p",  # Ensure compatibility
         output,
     ]
-
-    # Execute FFmpeg
     _validate_output_path(output)
     Path(output).parent.mkdir(parents=True, exist_ok=True)
     _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
-
     return output
 
 

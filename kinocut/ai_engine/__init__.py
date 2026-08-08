@@ -158,6 +158,93 @@ def _build_transcript_result(
     }
 
 
+def _validate_analysis_input(video: str, scene_threshold: float) -> None:
+    if "\x00" in video:
+        raise InputFileError(video, "Invalid path: contains null bytes")
+    if not (0.0 <= scene_threshold <= 1.0):
+        raise MCPVideoError(
+            f"scene_threshold must be between 0.0 and 1.0, got {scene_threshold}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
+
+def _perform_analysis(
+    video_path: Path,
+    *,
+    scene_threshold: float,
+    whisper_model: str,
+    language: str | None,
+    include_transcript: bool,
+    include_scenes: bool,
+    include_audio: bool,
+    include_quality: bool,
+    include_chapters: bool,
+    include_colors: bool,
+    output_srt: str | None,
+    output_txt: str | None,
+    output_md: str | None,
+    output_json: str | None,
+    source_url: str | None,
+) -> dict[str, Any]:
+    from .. import engine as _engine
+    from .. import effects_engine as _effects
+    from .. import quality_guardrails as _quality
+
+    errors: list[dict[str, str]] = []
+
+    metadata = _run_analysis(
+        "metadata",
+        lambda vp: {"path": str(vp.resolve()), **_probe_media(vp, _engine)},
+        errors,
+        video_path,
+        fallback={"path": str(video_path.resolve())},
+    )
+
+    transcript_result = (
+        _run_analysis(
+            "transcript",
+            _build_transcript_result,
+            errors,
+            video_path,
+            output_srt=output_srt,
+            output_txt=output_txt,
+            output_md=output_md,
+            output_json=output_json,
+            whisper_model=whisper_model,
+            language=language,
+        )
+        if include_transcript
+        else None
+    )
+
+    def _scenes():
+        return _engine.detect_scenes(str(video_path), threshold=scene_threshold).scenes
+
+    def _chapters():
+        raw = _effects.auto_chapters(str(video_path), threshold=scene_threshold)
+        return [{"timestamp": ts, "title": title} for ts, title in raw]
+
+    analyses = [
+        ("scenes", include_scenes, _scenes),
+        ("audio", include_audio, lambda: _waveform_to_dict(_engine.audio_waveform(str(video_path)))),
+        ("chapters", include_chapters, _chapters),
+        ("colors", include_colors, lambda: _extract_video_colors(video_path)),
+        ("quality", include_quality, lambda: _quality.quality_check(str(video_path))),
+    ]
+    results = {name: (_run_analysis(name, fn, errors) if flag else None) for name, flag, fn in analyses}
+
+    return {
+        "success": True,
+        "video": str(video_path.resolve()),
+        "source_url": source_url,
+        "metadata": metadata,
+        "transcript": transcript_result,
+        **results,
+        "errors": errors,
+    }
+
+
 def analyze_video(
     video: str,
     *,
@@ -206,14 +293,7 @@ def analyze_video(
         Dict with keys: success, video, source_url, metadata, transcript, scenes,
         audio, chapters, colors, quality, errors.
     """
-    if "\x00" in video:
-        raise InputFileError(video, "Invalid path: contains null bytes")
-    if not (0.0 <= scene_threshold <= 1.0):
-        raise MCPVideoError(
-            f"scene_threshold must be between 0.0 and 1.0, got {scene_threshold}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
+    _validate_analysis_input(video, scene_threshold)
 
     _validate_analysis_output_paths(output_srt, output_txt, output_md, output_json)
 
@@ -224,62 +304,23 @@ def analyze_video(
         if not video_path.exists():
             raise InputFileError(str(video_path))
 
-        from .. import engine as _engine
-        from .. import effects_engine as _effects
-        from .. import quality_guardrails as _quality
-
-        errors: list[dict[str, str]] = []
-
-        metadata = _run_analysis(
-            "metadata",
-            lambda vp: {"path": str(vp.resolve()), **_probe_media(vp, _engine)},
-            errors,
+        return _perform_analysis(
             video_path,
-            fallback={"path": str(video_path.resolve())},
+            scene_threshold=scene_threshold,
+            whisper_model=whisper_model,
+            language=language,
+            include_transcript=include_transcript,
+            include_scenes=include_scenes,
+            include_audio=include_audio,
+            include_quality=include_quality,
+            include_chapters=include_chapters,
+            include_colors=include_colors,
+            output_srt=output_srt,
+            output_txt=output_txt,
+            output_md=output_md,
+            output_json=output_json,
+            source_url=source_url,
         )
-
-        transcript_result = (
-            _run_analysis(
-                "transcript",
-                _build_transcript_result,
-                errors,
-                video_path,
-                output_srt=output_srt,
-                output_txt=output_txt,
-                output_md=output_md,
-                output_json=output_json,
-                whisper_model=whisper_model,
-                language=language,
-            )
-            if include_transcript
-            else None
-        )
-
-        def _scenes():
-            return _engine.detect_scenes(str(video_path), threshold=scene_threshold).scenes
-
-        def _chapters():
-            raw = _effects.auto_chapters(str(video_path), threshold=scene_threshold)
-            return [{"timestamp": ts, "title": title} for ts, title in raw]
-
-        analyses = [
-            ("scenes", include_scenes, _scenes),
-            ("audio", include_audio, lambda: _waveform_to_dict(_engine.audio_waveform(str(video_path)))),
-            ("chapters", include_chapters, _chapters),
-            ("colors", include_colors, lambda: _extract_video_colors(video_path)),
-            ("quality", include_quality, lambda: _quality.quality_check(str(video_path))),
-        ]
-        results = {name: (_run_analysis(name, fn, errors) if flag else None) for name, flag, fn in analyses}
-
-        return {
-            "success": True,
-            "video": str(video_path.resolve()),
-            "source_url": source_url,
-            "metadata": metadata,
-            "transcript": transcript_result,
-            **results,
-            "errors": errors,
-        }
 
     finally:
         if _tmp_dir is not None:

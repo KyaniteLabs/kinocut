@@ -308,6 +308,48 @@ def _ai_upscale_opencv(video_path: str, output_path: str, scale: int) -> str:
     return str(output_file)
 
 
+def _upscale_with_realesrgan(
+    video_path: Path,
+    output_path: Path,
+    model: str,
+    scale: int,
+) -> None:
+    """Upscale video frames using Real-ESRGAN and reconstruct output."""
+    with tempfile.TemporaryDirectory() as tmpdir:
+        tmpdir_path = Path(tmpdir)
+        frames_dir = tmpdir_path / "frames"
+        upscaled_dir = tmpdir_path / "upscaled"
+        frames_dir.mkdir()
+        upscaled_dir.mkdir()
+
+        fps = _get_video_fps(str(video_path))
+        has_audio = _has_audio_stream(str(video_path))
+
+        frames = _extract_frames(str(video_path), frames_dir)
+        upsampler = _init_realesrgan(model, scale)
+
+        import numpy as np
+        from PIL import Image
+
+        for i, frame_path in enumerate(frames, 1):
+            img = Image.open(frame_path).convert("RGB")
+            output_img, _ = upsampler.enhance(np.array(img), outscale=scale)
+            Image.fromarray(output_img).save(upscaled_dir / f"frame_{i:04d}.png")
+
+        audio_source = None
+        if has_audio:
+            audio_path = tmpdir_path / "audio.aac"
+            if _extract_audio(str(video_path), audio_path):
+                audio_source = str(audio_path)
+
+        _reconstruct_video(
+            upscaled_dir / "frame_%04d.png",
+            output_path,
+            fps if fps is not None else 30.0,
+            audio_source=audio_source,
+        )
+
+
 def ai_upscale(
     video: str,
     output: str,
@@ -380,39 +422,7 @@ def ai_upscale(
                 code="missing_upscale_dep",
             ) from None
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        tmpdir_path = Path(tmpdir)
-        frames_dir = tmpdir_path / "frames"
-        upscaled_dir = tmpdir_path / "upscaled"
-        frames_dir.mkdir()
-        upscaled_dir.mkdir()
-
-        fps = _get_video_fps(str(video_path))
-        has_audio = _has_audio_stream(str(video_path))
-
-        frames = _extract_frames(str(video_path), frames_dir)
-        upsampler = _init_realesrgan(model, scale)
-
-        import numpy as np
-        from PIL import Image
-
-        for i, frame_path in enumerate(frames, 1):
-            img = Image.open(frame_path).convert("RGB")
-            output_img, _ = upsampler.enhance(np.array(img), outscale=scale)
-            Image.fromarray(output_img).save(upscaled_dir / f"frame_{i:04d}.png")
-
-        audio_source = None
-        if has_audio:
-            audio_path = tmpdir_path / "audio.aac"
-            if _extract_audio(str(video_path), audio_path):
-                audio_source = str(audio_path)
-
-        _reconstruct_video(
-            upscaled_dir / "frame_%04d.png",
-            output_path,
-            fps if fps is not None else 30.0,
-            audio_source=audio_source,
-        )
+    _upscale_with_realesrgan(video_path, output_path, model, scale)
 
     return str(output_path)
 

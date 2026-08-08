@@ -42,6 +42,64 @@ def _validate_stem_duration(video_path: str) -> None:
         )
 
 
+def _extract_stem_audio(video_path: Path, audio_path: str) -> None:
+    """Extract audio from video to 16-bit PCM stereo WAV for Demucs."""
+    _run_command(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(video_path),
+            "-vn",  # No video
+            "-acodec",
+            "pcm_s16le",  # 16-bit PCM
+            "-ar",
+            "44100",  # 44.1kHz (CD quality)
+            "-ac",
+            "2",  # Stereo (Demucs expects stereo)
+            audio_path,
+        ],
+        timeout=DEFAULT_FFMPEG_TIMEOUT,
+    )
+
+
+def _run_demucs_separation(
+    audio_path: str,
+    output_path: Path,
+    model: str,
+    stems: list[str],
+) -> dict[str, str]:
+    """Run Demucs separation and collect output stem file paths."""
+    audio_name = Path(audio_path).stem
+
+    demucs_args = [
+        "--out",
+        str(output_path),
+        "--name",
+        model,
+        audio_path,
+    ]
+
+    demucs_cmd = [sys.executable, "-m", "demucs.separate", *demucs_args]
+    try:
+        result = subprocess.run(demucs_cmd, capture_output=True, text=True, timeout=DEFAULT_AI_TIMEOUT)  # noqa: S603
+    except subprocess.TimeoutExpired:
+        raise ProcessingError(
+            " ".join(demucs_cmd), -1, f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
+        ) from None
+    if result.returncode != 0:
+        raise ProcessingError(" ".join(demucs_cmd), result.returncode, result.stderr)
+
+    model_output_dir = output_path / model / audio_name
+    result_paths: dict[str, str] = {}
+    for stem in stems:
+        stem_file = model_output_dir / f"{stem}.wav"
+        if stem_file.exists():
+            result_paths[stem] = str(stem_file)
+
+    return result_paths
+
+
 def ai_stem_separation(
     video: str,
     output_dir: str,
@@ -99,61 +157,8 @@ def ai_stem_separation(
         audio_path = tmp.name
 
     try:
-        # Extract audio using ffmpeg: 16-bit PCM stereo (Demucs works best with stereo)
-        _run_command(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(video_path),
-                "-vn",  # No video
-                "-acodec",
-                "pcm_s16le",  # 16-bit PCM
-                "-ar",
-                "44100",  # 44.1kHz (CD quality)
-                "-ac",
-                "2",  # Stereo (Demucs expects stereo)
-                audio_path,
-            ],
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-        )
-
-        # Step 2: Run Demucs separation
-        # Demucs outputs to: output_dir/model_name/audio_name/stem.wav
-        audio_name = Path(audio_path).stem
-
-        # Build demucs command arguments
-        demucs_args = [
-            "--out",
-            str(output_path),
-            "--name",
-            model,
-            audio_path,
-        ]
-
-        # Run demucs separation with a timeout.
-        demucs_cmd = [sys.executable, "-m", "demucs.separate", *demucs_args]
-        try:
-            result = subprocess.run(demucs_cmd, capture_output=True, text=True, timeout=DEFAULT_AI_TIMEOUT)  # noqa: S603
-        except subprocess.TimeoutExpired:
-            raise ProcessingError(
-                " ".join(demucs_cmd), -1, f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
-            ) from None
-        if result.returncode != 0:
-            raise ProcessingError(" ".join(demucs_cmd), result.returncode, result.stderr)
-
-        # Step 3: Collect output paths
-        # Output structure: output_dir/model/audio_name/stem.wav
-        model_output_dir = output_path / model / audio_name
-
-        result_paths: dict[str, str] = {}
-        for stem in stems:
-            # Demucs outputs stems as stem.wav (e.g., vocals.wav, drums.wav)
-            stem_file = model_output_dir / f"{stem}.wav"
-            if stem_file.exists():
-                result_paths[stem] = str(stem_file)
-
-        return result_paths
+        _extract_stem_audio(video_path, audio_path)
+        return _run_demucs_separation(audio_path, output_path, model, stems)
 
     finally:
         # Clean up temp audio file
