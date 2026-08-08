@@ -18,15 +18,15 @@ from .formatting import (
 from .runner import CommandRunner, _out
 
 
-def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
-    """Handle Hyperframes commands extracted from the main dispatcher."""
-    runner = CommandRunner(args, use_json)
+def _variables(a: Any, json_mode: bool) -> Any | None:
+    value = getattr(a, "variables", None)
+    if value is None:
+        return None
+    return _parse_json_arg(value, "variables", json_mode)
 
-    def _variables(a: Any, json_mode: bool) -> Any | None:
-        value = getattr(a, "variables", None)
-        if value is None:
-            return None
-        return _parse_json_arg(value, "variables", json_mode)
+
+def _register_render_commands(runner: CommandRunner) -> None:
+    """Register render-output producing commands."""
 
     def _render(a, j):
         from ..hyperframes_engine import render
@@ -51,32 +51,6 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
         _out(r, j, lambda res: _format_hyperframes_render(res, a.project_path))
 
     runner.register("hyperframes-render", _render)
-
-    def _compositions(a, j):
-        from ..hyperframes_engine import compositions
-
-        r = _with_spinner("Listing compositions...", compositions, a.project_path)
-        _out(
-            r,
-            j,
-            lambda res: _format_hyperframes_compositions(res, a.project_path),
-            json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r,
-        )
-
-    runner.register("hyperframes-compositions", _compositions)
-
-    def _preview(a, j):
-        from ..hyperframes_engine import preview
-
-        r = _with_spinner("Launching Hyperframes preview...", preview, a.project_path, port=a.port)
-        _out(
-            r,
-            j,
-            _format_hyperframes_preview,
-            json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r,
-        )
-
-    runner.register("hyperframes-preview", _preview)
 
     def _still(a, j):
         from ..hyperframes_engine import still
@@ -110,6 +84,51 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("hyperframes-snapshot", _snapshot)
 
+    def _pipeline(a, j):
+        from ..hyperframes_engine import render_and_post
+
+        post_process = _parse_json_arg(a.post_process, "post-process", json_mode=j)
+        r = _with_spinner(
+            f"Running pipeline for {a.project_path}...",
+            render_and_post,
+            a.project_path,
+            post_process=post_process,
+            output_path=a.output,
+        )
+        _out(r, j, lambda res: _format_hyperframes_pipeline(res, a.project_path))
+
+    runner.register("hyperframes-pipeline", _pipeline)
+
+
+def _register_inspection_commands(runner: CommandRunner) -> None:
+    """Register read-only listing and inspection commands."""
+
+    def _compositions(a, j):
+        from ..hyperframes_engine import compositions
+
+        r = _with_spinner("Listing compositions...", compositions, a.project_path)
+        _out(
+            r,
+            j,
+            lambda res: _format_hyperframes_compositions(res, a.project_path),
+            json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r,
+        )
+
+    runner.register("hyperframes-compositions", _compositions)
+
+    def _preview(a, j):
+        from ..hyperframes_engine import preview
+
+        r = _with_spinner("Launching Hyperframes preview...", preview, a.project_path, port=a.port)
+        _out(
+            r,
+            j,
+            _format_hyperframes_preview,
+            json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r,
+        )
+
+    runner.register("hyperframes-preview", _preview)
+
     def _inspect(a, j):
         from ..hyperframes_engine import inspect
 
@@ -135,6 +154,10 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-catalog", _catalog)
+
+
+def _register_media_commands(runner: CommandRunner) -> None:
+    """Register media capture and processing commands."""
 
     def _capture(a, j):
         from ..hyperframes_engine import capture
@@ -185,14 +208,6 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("hyperframes-remove-background", _remove_background)
 
-    def _doctor(a, j):
-        from ..hyperframes_engine import doctor
-
-        r = _with_spinner("Checking Hyperframes environment...", doctor)
-        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-
-    runner.register("hyperframes-doctor", _doctor)
-
     def _benchmark(a, j):
         from ..hyperframes_engine import benchmark
 
@@ -206,6 +221,10 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-benchmark", _benchmark)
+
+
+def _register_project_commands(runner: CommandRunner) -> None:
+    """Register project lifecycle and validation commands."""
 
     def _init(a, j):
         from ..hyperframes_engine import create_project
@@ -250,19 +269,20 @@ def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("hyperframes-validate", _validate)
 
-    def _pipeline(a, j):
-        from ..hyperframes_engine import render_and_post
+    def _doctor(a, j):
+        from ..hyperframes_engine import doctor
 
-        post_process = _parse_json_arg(a.post_process, "post-process", json_mode=j)
-        r = _with_spinner(
-            f"Running pipeline for {a.project_path}...",
-            render_and_post,
-            a.project_path,
-            post_process=post_process,
-            output_path=a.output,
-        )
-        _out(r, j, lambda res: _format_hyperframes_pipeline(res, a.project_path))
+        r = _with_spinner("Checking Hyperframes environment...", doctor)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
-    runner.register("hyperframes-pipeline", _pipeline)
+    runner.register("hyperframes-doctor", _doctor)
 
+
+def handle_hyperframes_commands(args: Any, *, use_json: bool) -> bool:
+    """Handle Hyperframes commands extracted from the main dispatcher."""
+    runner = CommandRunner(args, use_json)
+    _register_render_commands(runner)
+    _register_inspection_commands(runner)
+    _register_media_commands(runner)
+    _register_project_commands(runner)
     return runner.dispatch()
