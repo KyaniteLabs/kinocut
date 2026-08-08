@@ -16,6 +16,22 @@ capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
 not a live inventory. An administrator must re-check runner placement,
 capacity, and label mappings before changing production labels. The repository
 token does not have `read:admin`, so CI cannot truthfully infer this topology.
+## Active runner: mac-m4-ci-runner
+
+As of 2026-08-08, a single local runner (`mac-m4-ci-runner`, Apple Silicon
+ARM64) is registered at repo level with `heavy`, `light`, and `default`
+labels, all mapped to `docker://ubuntu:24.04`. Docker runtime is provided
+by Colima (macOS Virtualization Framework). Capacity is 2.
+
+Key constraints on this runner:
+
+- **Base image is `ubuntu:24.04`** (Python 3.12). Earlier `ubuntu:22.04`
+  failed because it ships Python 3.10, below the package's `>=3.11` floor.
+- **FFmpeg matrix uses `linuxarm64` static builds** from BtbN/FFmpeg-Builds.
+  The `linux64` (x86_64) binaries cannot execute on ARM64 without qemu.
+- **Lint runs on `light`** to avoid queuing behind heavy test jobs.
+- **Persistence**: act_runner is managed by launchd (`KeepAlive=true`).
+  Colima is managed by a separate launchd plist (`RunAtLoad=true`).
 
 ## Runner image
 
