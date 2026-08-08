@@ -145,7 +145,7 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
         raise ProcessingError("ffmpeg-lut3d", 1, f"LUT output missing: {dest}")
 
 
-def _near_extrema_preservation(before, after) -> dict[str, float | None | bool]:
+def _near_extrema_preservation(before, after) -> dict[str, float | bool | None]:
     """Measure mean-luma shift in near-black / near-white bands (signal mode).
 
     Empty bands are not treated as 0.0 (that made missing extrema look like
