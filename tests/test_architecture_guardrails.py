@@ -195,3 +195,120 @@ def test_shared_ffmpeg_helpers_remain_canonical_for_core_utilities() -> None:
                 definitions[node.name].add(path.relative_to(ROOT).as_posix())
 
     assert definitions == allowed_definitions
+
+
+# ---------------------------------------------------------------------------
+# WP-D: function-size guardrail
+# ---------------------------------------------------------------------------
+
+#: Maximum function length (body lines) per the project size policy.
+FUNCTION_LINE_LIMIT = 80
+
+#: Frozen baseline of functions that already exceed FUNCTION_LINE_LIMIT.
+#: As each function is decomposed, remove its entry here so the net tightens.
+_FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
+    "kinocut/ai_engine/__init__.py": {"analyze_video"},
+    "kinocut/ai_engine/color.py": {"ai_color_grade"},
+    "kinocut/ai_engine/scene.py": {"ai_scene_detect"},
+    "kinocut/ai_engine/silence.py": {"_concat_segments"},
+    "kinocut/ai_engine/spatial.py": {"_apply_simple_spatial"},
+    "kinocut/ai_engine/stem.py": {"ai_stem_separation"},
+    "kinocut/ai_engine/transcribe.py": {"ai_transcribe"},
+    "kinocut/ai_engine/upscale.py": {"ai_upscale"},
+    "kinocut/audio_engine/__init__.py": {"add_generated_audio"},
+    "kinocut/audio_engine/integrations/meltysynth_bridge.py": {"render_notes"},
+    "kinocut/audio_engine/sequencing.py": {"audio_effects"},
+    "kinocut/audio_engine/synthesis.py": {"_apply_synth_effects", "audio_synthesize"},
+    "kinocut/cli/formatting.py": {"_format_video_analyze"},
+    "kinocut/cli/handlers_ai.py": {"handle_ai_commands"},
+    "kinocut/cli/handlers_audio.py": {"handle_audio_commands"},
+    "kinocut/cli/handlers_composition.py": {"handle_composition_command"},
+    "kinocut/cli/handlers_core.py": {"handle_initial_command"},
+    "kinocut/cli/handlers_effects.py": {"handle_effect_command"},
+    "kinocut/cli/handlers_hyperframes.py": {"handle_hyperframes_commands"},
+    "kinocut/cli/handlers_image.py": {"handle_image_commands"},
+    "kinocut/cli/handlers_intent.py": {"handle_intent_commands"},
+    "kinocut/cli/handlers_media.py": {"handle_media_commands"},
+    "kinocut/cli/parser/advanced.py": {"add_parsers"},
+    "kinocut/cli/parser/ai.py": {"add_parsers"},
+    "kinocut/cli/parser/audio.py": {"add_parsers"},
+    "kinocut/cli/parser/core.py": {"add_parsers"},
+    "kinocut/cli/parser/effects.py": {"add_parsers"},
+    "kinocut/cli/parser/hyperframes.py": {"add_parsers"},
+    "kinocut/cli/parser/image.py": {"add_parsers"},
+    "kinocut/cli/parser/intent.py": {"add_parsers"},
+    "kinocut/cli/parser/layout.py": {"add_parsers"},
+    "kinocut/cli/parser/media.py": {"add_parsers"},
+    "kinocut/creative/autopilot.py": {"plan_creative_autopilot"},
+    "kinocut/design_guardrails.py": {"validate_text_layout"},
+    "kinocut/effects_engine/layout.py": {"layout_grid", "layout_pip"},
+    "kinocut/effects_engine/mograph.py": {"mograph_count", "mograph_progress"},
+    "kinocut/effects_engine/text.py": {"text_animated"},
+    "kinocut/effects_engine/utility.py": {"video_info_detailed"},
+    "kinocut/engine_audio_normalize.py": {"normalize_audio"},
+    "kinocut/engine_audio_ops.py": {"_build_add_audio_args", "duck_audio"},
+    "kinocut/engine_edit.py": {"trim"},
+    "kinocut/engine_glitch.py": {"glitch_turbulent_displacement"},
+    "kinocut/engine_glitch_shader.py": {"_run_shader_effect"},
+    "kinocut/engine_hls.py": {"hls_segment"},
+    "kinocut/engine_merge.py": {"_merge_with_transitions", "merge"},
+    "kinocut/engine_storyboard.py": {"storyboard"},
+    "kinocut/engine_text.py": {"add_text", "add_texts"},
+    "kinocut/hyperframes_ops.py": {"render"},
+    "kinocut/product/package.py": {"package_approved_clip"},
+    "kinocut/product/shorts_review.py": {"resolve_approved_candidate"},
+    "kinocut/projectstore/edit_projects.py": {"append_revision"},
+    "kinocut/rescue/inspector.py": {"inspect_rescue"},
+    "kinocut/rescue/renderer.py": {"render_rescue"},
+    "kinocut/semantic/edl.py": {"verify_timeline_diff"},
+    "kinocut/server_tools_hyperframes.py": {"hyperframes_render"},
+    "kinocut/still_plates/package.py": {"still_package"},
+    "kinocut/templates.py": {"preview_template"},
+    "kinocut/transitions_engine.py": {"transition_pixelate"},
+    "kinocut/watching/metrics.py": {"run_metric_qc"},
+    "kinocut/workflow/executor.py": {"_render_one"},
+}
+
+
+def _functions_exceeding_limit() -> dict[str, set[str]]:
+    """Return ``{module_path: {function_name}}`` for every function > LIMIT lines."""
+    result: dict[str, set[str]] = {}
+    for path in sorted(PACKAGE.rglob("*.py")):
+        if "__pycache__" in path.parts:
+            continue
+        tree = parse_module(path)
+        relative = path.relative_to(ROOT).as_posix()
+        for node in ast.walk(tree):
+            if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+                span = node.end_lineno - node.lineno + 1
+                if span > FUNCTION_LINE_LIMIT:
+                    result.setdefault(relative, set()).add(node.name)
+    return result
+
+
+def test_no_new_functions_exceed_size_limit() -> None:
+    """No function may exceed 80 lines unless it is in the frozen baseline.
+
+    As WP-D decomposes each offender, remove its entry from
+    ``_FUNCTION_SIZE_BASELINE`` so the net tightens and regression is caught.
+    """
+    current = _functions_exceeding_limit()
+
+    new_offenders: dict[str, set[str]] = {}
+    for module, names in current.items():
+        allowed = _FUNCTION_SIZE_BASELINE.get(module, set())
+        fresh = names - allowed
+        if fresh:
+            new_offenders[module] = fresh
+
+    assert not new_offenders, (
+        f"New functions exceeding {FUNCTION_LINE_LIMIT} lines detected "
+        f"(baseline has {_sum_baseline()} entries). "
+        f"Either decompose them to <= {FUNCTION_LINE_LIMIT} lines or, "
+        f"if intentional, add them to _FUNCTION_SIZE_BASELINE:\n"
+        f"{new_offenders}"
+    )
+
+
+def _sum_baseline() -> int:
+    return sum(len(names) for names in _FUNCTION_SIZE_BASELINE.values())
