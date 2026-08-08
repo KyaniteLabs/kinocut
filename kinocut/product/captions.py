@@ -195,9 +195,7 @@ def build_word_timed_ass_artifact(
         start_text, start_error = _ass_time(word.start)
         end_text, end_error = _ass_time(word.end)
         maximum_error = max(maximum_error, start_error, end_error)
-        events.append(
-            f"Dialogue: 0,{start_text},{end_text},Default,,0,0,0,,{_escape_ass_text(visible)}"
-        )
+        events.append(f"Dialogue: 0,{start_text},{end_text},Default,,0,0,0,,{_escape_ass_text(visible)}")
     ass_body = _ass_header(appearance, play_res_x, play_res_y) + "\n".join(events) + ("\n" if events else "")
     return StyledCaptionArtifact(
         caption=caption,

@@ -125,6 +125,7 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
     runner.register("language-coverage", _coverage)
     runner.register("review-run", _review_run)
     runner.register("review-decide", _review_decide)
+
     def _qc_vision(a: Any, j: bool) -> None:
         from kinocut.watching import run_vision_qc
 

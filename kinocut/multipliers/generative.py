@@ -53,11 +53,7 @@ def plan_generative_last_mile(
             params=dict(params or {}),
         )
     allowed = estimated_spend_usd <= max_spend_usd
-    reason = (
-        "within spend cap"
-        if allowed
-        else f"estimated ${estimated_spend_usd:.4f} exceeds cap ${max_spend_usd:.4f}"
-    )
+    reason = "within spend cap" if allowed else f"estimated ${estimated_spend_usd:.4f} exceeds cap ${max_spend_usd:.4f}"
     return GenerativePlan(
         provider=prov,
         model=model,

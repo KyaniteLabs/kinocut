@@ -45,12 +45,7 @@ def _portable_operations(operations: Sequence[Mapping[str, Any]]) -> tuple[list[
 
     portable = []
     for operation in operations:
-        portable.append(
-            {
-                key: replace(value) if key in _SOURCE_FIELDS else value
-                for key, value in operation.items()
-            }
-        )
+        portable.append({key: replace(value) if key in _SOURCE_FIELDS else value for key, value in operation.items()})
     return portable, tuple(slots.values())
 
 

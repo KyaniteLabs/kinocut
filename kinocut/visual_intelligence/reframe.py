@@ -94,11 +94,7 @@ def _active_subject_id(
     speaker_turns: tuple[SpeakerTurn, ...],
     fallback: str,
 ) -> str:
-    matches = [
-        turn
-        for turn in speaker_turns
-        if turn.start_seconds <= timestamp < turn.end_seconds
-    ]
+    matches = [turn for turn in speaker_turns if turn.start_seconds <= timestamp < turn.end_seconds]
     if not matches:
         return fallback
     return min(matches, key=lambda turn: (-turn.confidence, turn.subject_id)).subject_id

@@ -88,7 +88,9 @@ def _build_add_audio_args(
             second_chain = f"[1:a]adelay={safe_delay}|{safe_delay},{af}[a1]"
         else:
             second_chain = f"[1:a]{af}[a1]"
-        filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
+        filter_complex = (
+            f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
+        )
         return [
             "-i",
             video_path,

@@ -51,9 +51,7 @@ def _compute_shared_gains(hero_arr, input_arrs) -> tuple[tuple[float, float, flo
     luma scale (that over-corrected and clipped highlights).
     """
     hero_rgb = mean_rgb(hero_arr)
-    package_rgb = tuple(
-        float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)
-    )
+    package_rgb = tuple(float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3))
     gains = shared_gains_to_hero(
         hero_rgb,
         package_rgb,  # type: ignore[arg-type]
@@ -117,15 +115,11 @@ def still_match(
         "hero": str(hero_path),
         "hero_sha256": file_sha256(hero_path),
         "hero_mean_rgb": list(mean_rgb(hero_arr)),
-        "package_mean_rgb": [
-            float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)
-        ],
+        "package_mean_rgb": [float(sum(mean_rgb(a)[i] for a in input_arrs) / len(input_arrs)) for i in range(3)],
         "shared_gains": list(final_gains),
         "exposure_scale": exposure_scale,
         "per_frame_auto_wb": False,
-        "delta_ev": (
-            __import__("math").log2(exposure_scale) if exposure_scale > 0 else 0.0
-        ),
+        "delta_ev": (__import__("math").log2(exposure_scale) if exposure_scale > 0 else 0.0),
         "outputs": outputs,
     }
     receipt_path = write_receipt(out_dir / receipt_name, receipt)

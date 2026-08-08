@@ -23,12 +23,12 @@ def plan_punch_zooms(
         start = float(t)
         events.append(
             {
-                "event_id": f"punch-{i+1:03d}",
+                "event_id": f"punch-{i + 1:03d}",
                 "time": start,
                 "zoom": zoom,
                 "duration_seconds": duration_seconds,
                 "filter_hint": (
-                    f"zoompan=z='if(between(t,{start},{start+duration_seconds}),{zoom},1)':"
+                    f"zoompan=z='if(between(t,{start},{start + duration_seconds}),{zoom},1)':"
                     f"d=1:x='iw/2-(iw/zoom)/2':y='ih/2-(ih/zoom)/2'"
                 ),
             }
