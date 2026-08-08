@@ -12,6 +12,15 @@ from .runner import CommandRunner, _out
 def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
     """Handle intent / caption-translate / review CLI commands."""
     runner = CommandRunner(args, use_json)
+    _register_intent_commands(runner)
+    _register_review_commands(runner)
+    _register_te_commands(runner)
+    _register_multiplier_commands(runner)
+    return runner.dispatch()
+
+
+def _register_intent_commands(runner: CommandRunner) -> None:
+    """Register intent, broll, translate, and language-coverage commands."""
 
     def _intent(a: Any, j: bool) -> None:
         from kinocut.intent import list_intent_verbs, route_intent
@@ -63,6 +72,15 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
             ),
         )
 
+    runner.register("intent", _intent)
+    runner.register("propose-broll", _broll)
+    runner.register("translate-captions", _translate)
+    runner.register("language-coverage", _coverage)
+
+
+def _register_review_commands(runner: CommandRunner) -> None:
+    """Register review-run, review-decide, qc-vision, and qc-narrative commands."""
+
     def _review_run(a: Any, j: bool) -> None:
         from kinocut.watching import run_review
 
@@ -75,6 +93,25 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
         run = json.loads(Path(a.review_run_json).read_text(encoding="utf-8"))
         r = decide_review(run, a.decision, a.reason).to_dict()
         _out(r, j, lambda res: f"decision={res['decision']}")
+
+    def _qc_vision(a: Any, j: bool) -> None:
+        from kinocut.watching import run_vision_qc
+
+        _out(run_vision_qc(a.input), j, lambda r: f"vision {r['verdict']}")
+
+    def _qc_narrative(a: Any, j: bool) -> None:
+        from kinocut.watching import run_narrative_qc
+
+        _out(run_narrative_qc(a.input), j, lambda r: f"narrative {r['verdict']}")
+
+    runner.register("review-run", _review_run)
+    runner.register("review-decide", _review_decide)
+    runner.register("qc-vision", _qc_vision)
+    runner.register("qc-narrative", _qc_narrative)
+
+
+def _register_te_commands(runner: CommandRunner) -> None:
+    """Register init, estimate, brand-kit, cutfile, mutations, publish, hooks, seek commands."""
 
     def _init(a: Any, j: bool) -> None:
         from kinocut.te import init_project
@@ -119,23 +156,6 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
         }
         _out(r, j, lambda res: f"{res['mutation_count']} proposed mutations")
 
-    runner.register("intent", _intent)
-    runner.register("propose-broll", _broll)
-    runner.register("translate-captions", _translate)
-    runner.register("language-coverage", _coverage)
-    runner.register("review-run", _review_run)
-    runner.register("review-decide", _review_decide)
-
-    def _qc_vision(a: Any, j: bool) -> None:
-        from kinocut.watching import run_vision_qc
-
-        _out(run_vision_qc(a.input), j, lambda r: f"vision {r['verdict']}")
-
-    def _qc_narrative(a: Any, j: bool) -> None:
-        from kinocut.watching import run_narrative_qc
-
-        _out(run_narrative_qc(a.input), j, lambda r: f"narrative {r['verdict']}")
-
     def _publish(a: Any, j: bool) -> None:
         from kinocut.te import validate_publish_spec
 
@@ -156,6 +176,19 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
         else:
             r = timestamp_to_frame(float(a.seconds or 0), a.fps)
         _out(r, j, lambda res: f"frame={res['frame']} t={res['seconds']}")
+
+    runner.register("init", _init)
+    runner.register("estimate", _estimate)
+    runner.register("brand-kit", _brand)
+    runner.register("cutfile-validate", _cutfile)
+    runner.register("propose-mutations", _mutations)
+    runner.register("publish-validate", _publish)
+    runner.register("hook-candidates", _hooks)
+    runner.register("seek-frame", _seek)
+
+
+def _register_multiplier_commands(runner: CommandRunner) -> None:
+    """Register otio-export, otio-import, review-ui, and edit-session commands."""
 
     def _otio_export(a: Any, j: bool) -> None:
         from kinocut.multipliers import export_otio_json
@@ -185,18 +218,7 @@ def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
             r = session_step(a.path, action=a.step_action, score=a.score)
         _out(r, j, lambda res: f"session improvement={res.get('measured_improvement')}")
 
-    runner.register("init", _init)
-    runner.register("estimate", _estimate)
-    runner.register("brand-kit", _brand)
-    runner.register("cutfile-validate", _cutfile)
-    runner.register("propose-mutations", _mutations)
-    runner.register("qc-vision", _qc_vision)
-    runner.register("qc-narrative", _qc_narrative)
-    runner.register("publish-validate", _publish)
-    runner.register("hook-candidates", _hooks)
-    runner.register("seek-frame", _seek)
     runner.register("otio-export", _otio_export)
     runner.register("otio-import", _otio_import)
     runner.register("review-ui", _review_ui)
     runner.register("edit-session", _session)
-    return runner.dispatch()
