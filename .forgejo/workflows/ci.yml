@@ -23,26 +23,46 @@ jobs:
       - name: Lint
         run: .venv-lint/bin/ruff check .
   test:
-    # PR-safe test job: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
-    # Run serially: these tests spawn FFmpeg and CLI subprocesses that contend or time out under xdist on the 4-core runner.
+    # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
+    # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
     runs-on: arm64-heavy
+    strategy:
+      fail-fast: false
+      max-parallel: 1
+      matrix:
+        shard: [0, 1, 2, 3]
     steps:
       - name: Checkout
         run: |
-          exec > >(tee /forgejo-debug/checkout.log) 2>&1
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg nodejs=18.19.1+dfsg-6ubuntu5
           git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
           git fetch --depth 1 origin "${{ github.sha }}"
           git checkout "${{ github.sha }}"
       - name: Install package
         run: |
-          exec > >(tee /forgejo-debug/install.log) 2>&1
           python3 -m venv .venv
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
-      - name: Test
+      - name: Test shard
+        env:
+          SHARD_COUNT: "4"
+          SHARD_INDEX: ${{ matrix.shard }}
         run: |
-          .venv/bin/pytest tests/ -q -m "not slow" 2>&1 | tee /forgejo-debug/test.log
+          .venv/bin/python - <<'PY'
+          import os
+          from pathlib import Path
+
+          import pytest
+
+          count = int(os.environ["SHARD_COUNT"])
+          index = int(os.environ["SHARD_INDEX"])
+          tests = sorted(Path("tests").rglob("test_*.py"))
+          selected = tests[index::count]
+          if not selected:
+              raise SystemExit(f"test shard {index} is empty")
+          print(f"Running shard {index + 1}/{count}: {len(selected)} files")
+          raise SystemExit(pytest.main([*(str(path) for path in selected), "-q", "-m", "not slow"]))
+          PY
   test-slow:
     needs: test-ffmpeg-matrix
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only

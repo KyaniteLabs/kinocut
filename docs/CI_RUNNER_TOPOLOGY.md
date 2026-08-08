@@ -43,10 +43,12 @@ Key constraints:
 - **Lint runs on `light`** to avoid queuing behind heavy test jobs.
 - **Heavy Kinocut jobs run on `arm64-heavy`** so shared legacy labels cannot
   route architecture-sensitive work to stale or incompatible runners.
-- **The general PR suite and each FFmpeg matrix leg run serially** because
-  FFmpeg and CLI subprocesses contend and time out under xdist on the 4-core runner.
-- **Heavy gates do not overlap**: the general suite runs first, matrix legs run
-  one at a time after it, and the slow suite runs after the matrix on master pushes.
+- **The general PR suite uses four deterministic file shards**, each serial and
+  capped at one active shard, so every task stays below the instance timeout.
+- **Each FFmpeg matrix leg runs serially and one at a time** because FFmpeg and
+  CLI subprocesses contend under xdist on the 4-core runner.
+- **Heavy gates do not overlap**: all general shards finish before matrix legs,
+  and the slow suite runs after the matrix on master pushes.
 - **Node.js 18.19.1 is installed in the PR test job** for MCPB launcher contracts.
 - **Manual git clone** replaces `actions/checkout@v4` — the Colima VM cannot
   reach `gitea.com` to download the action. Authenticated clone uses
