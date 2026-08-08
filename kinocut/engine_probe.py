@@ -148,64 +148,71 @@ def probe(path: str) -> VideoInfo:
 def probe_audio_input(path: str) -> VideoInfo:
     """Probe an input that may be audio-only, for audio-mix guardrails.
 
-    ``probe`` requires a video stream and raises ``InputFileError`` for valid
-    audio-only files (e.g. a voiceover WAV), which made audio guardrails emit a
-    misleading "No video stream found" warning (issue #7). This variant first
-    tries the standard video probe; if no video stream is present but a valid
-    audio stream is, it synthesizes a ``VideoInfo`` carrying the audio metadata
-    (duration, codec, sample rate) that ``validate_audio_mix`` actually reads.
-    Video-shaped fields are zeroed because the input genuinely has no video.
+    Calls ``_run_ffprobe_json`` **once** and handles both video and audio-only
+    inputs from the same result. Previously this function called ``probe()``
+    first (which internally calls ffprobe), then on failure called
+    ``_run_ffprobe_json`` again — double-probing every audio-only input.
 
     Raises:
         InputFileError: if the file is not a valid media file at all, or has
             neither a video nor an audio stream.
     """
     path = _validate_input_path(path)
+    key = _cache_key(path)
 
-    try:
-        return probe(path)
-    except InputFileError:
-        # No video stream (or not a valid *video*). Fall back to an audio-aware
-        # probe before treating the input as broken.
-        pass
+    with _probe_cache_lock:
+        cached = _probe_cache.get(key)
+        if cached is not None:
+            return cached
 
     try:
         data = _run_ffprobe_json(path)
     except ProcessingError as exc:
         raise InputFileError(path, "Not a valid media file") from exc
 
-    audio_s = _get_audio_stream(data)
-    if audio_s is None:
-        # Neither video nor audio — genuinely unusable input.
-        raise InputFileError(path, "No video or audio stream found")
+    # Try video first — reuses the same ffprobe data (no second subprocess)
+    try:
+        info = _build_video_info(path, data)
+    except InputFileError:
+        # No video stream — check for audio using the same ffprobe data
+        audio_s = _get_audio_stream(data)
+        if audio_s is None:
+            raise InputFileError(path, "No video or audio stream found") from None
 
-    fmt = data.get("format", {})
-    duration = _parse_probe_duration(fmt.get("duration"))
-    if duration is None:
-        duration = _parse_probe_duration(audio_s.get("duration")) or 0.0
-    if duration > MAX_VIDEO_DURATION:
-        raise MCPVideoError(
-            f"Audio duration ({duration:.0f}s) exceeds maximum of {MAX_VIDEO_DURATION}s",
-            error_type="validation_error",
-            code="duration_too_long",
+        fmt = data.get("format", {})
+        duration = _parse_probe_duration(fmt.get("duration"))
+        if duration is None:
+            duration = _parse_probe_duration(audio_s.get("duration")) or 0.0
+        if duration > MAX_VIDEO_DURATION:
+            raise MCPVideoError(
+                f"Audio duration ({duration:.0f}s) exceeds maximum of {MAX_VIDEO_DURATION}s",
+                error_type="validation_error",
+                code="duration_too_long",
+            ) from None
+
+        try:
+            audio_sr = int(audio_s.get("sample_rate", 0)) or None
+        except (ValueError, TypeError):
+            audio_sr = None
+
+        info = VideoInfo(
+            path=path,
+            duration=duration,
+            width=0,
+            height=0,
+            fps=0.0,
+            codec="none",
+            audio_codec=audio_s.get("codec_name"),
+            audio_sample_rate=audio_sr,
+            format=fmt.get("format_name"),
         )
 
-    try:
-        audio_sr = int(audio_s.get("sample_rate", 0)) or None
-    except (ValueError, TypeError):
-        audio_sr = None
+    with _probe_cache_lock:
+        if len(_probe_cache) >= _MAX_PROBE_CACHE:
+            _probe_cache.pop(next(iter(_probe_cache)))
+        _probe_cache[key] = info
 
-    return VideoInfo(
-        path=path,
-        duration=duration,
-        width=0,
-        height=0,
-        fps=0.0,
-        codec="none",
-        audio_codec=audio_s.get("codec_name"),
-        audio_sample_rate=audio_sr,
-        format=fmt.get("format_name"),
-    )
+    return info
 
 
 def invalidate_probe_cache(path: str | None = None) -> None:
