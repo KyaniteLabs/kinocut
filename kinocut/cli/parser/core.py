@@ -7,6 +7,12 @@ import argparse
 
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add core subcommands to the CLI parser."""
+    _add_core_edit_parsers(subparsers)
+    _add_core_style_parsers(subparsers)
+
+
+def _add_core_edit_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add core editing subcommands (doctor, info, extract-frame, trim, merge, edit)."""
     # doctor
     doctor_p = subparsers.add_parser("doctor", help="Diagnose core and optional integration dependencies")
     doctor_p.add_argument("--json", action="store_true", help="Output diagnostics as JSON")
@@ -54,6 +60,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     edit_p.add_argument("timeline", help="Path to timeline JSON file")
     edit_p.add_argument("-o", "--output", help="Output file path")
 
+
+def _add_core_style_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add core style/template subcommands (blur, color-grade, templates, template, repurpose, video-extract-frame)."""
     # blur (convenience)
     blur_p = subparsers.add_parser("blur", help="Apply blur effect")
     blur_p.add_argument("input", help="Input video file")
@@ -119,5 +128,3 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     eframe_p.add_argument("input", help="Input video file")
     eframe_p.add_argument("-t", "--timestamp", type=float, help="Time in seconds (default: 10%% of duration)")
     eframe_p.add_argument("-o", "--output", help="Output image path")
-
-    # Image analysis commands

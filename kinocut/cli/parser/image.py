@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Add image subcommands to the CLI parser."""
+def _add_image_analysis_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register image analysis subcommands (color extraction, palette, product analysis)."""
     # image-extract-colors
     imgcol_p = subparsers.add_parser("image-extract-colors", help="Extract dominant colors from an image")
     imgcol_p.add_argument("input", help="Input image file")
@@ -37,6 +37,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         "-n", "--n-colors", type=int, default=5, help="Number of colors to extract (default: 5, max: 20)"
     )
 
+
+def _add_still_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register still-workflow subcommands (match, grade, gate, edit, package)."""
     # still-match
     sm = subparsers.add_parser(
         "still-match",
@@ -98,3 +101,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     sp.add_argument("--lut", dest="lut_path", help="Optional signal LUT path")
     sp.add_argument("--signal-mode", action="store_true", help="Signal-alignment LUT mode")
     sp.add_argument("--no-grade", action="store_true", help="Skip grade stage after match")
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add image subcommands to the CLI parser."""
+    _add_image_analysis_parsers(subparsers)
+    _add_still_parsers(subparsers)

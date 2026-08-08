@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Register intent-related subcommands."""
+def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register intent/workflow subcommands (intent routing, broll, translate, review, project, mutations)."""
     intent_p = subparsers.add_parser("intent", help="Route a semantic intent verb to a plan")
     intent_p.add_argument("verb", nargs="?", default=None, help="Intent verb (omit with --list)")
     intent_p.add_argument("--list", action="store_true", help="List known intent verbs")
@@ -58,6 +58,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     mut_p = subparsers.add_parser("propose-mutations", help="Map findings JSON to typed proposed mutations")
     mut_p.add_argument("findings_json", help="Path to JSON list of findings")
 
+
+def _add_media_tool_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register media-tool subcommands (QC, publish, hooks, seek, OTIO, sessions)."""
     subparsers.add_parser("qc-vision", help="Vision QC (graceful without VLM)").add_argument("input")
     subparsers.add_parser("qc-narrative", help="Narrative/first-15s QC").add_argument("input")
 
@@ -92,3 +95,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     sess.add_argument("--goal", default="edit")
     sess.add_argument("--step-action", default="step")
     sess.add_argument("--score", type=float, default=None)
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register intent-related subcommands."""
+    _add_intent_workflow_parsers(subparsers)
+    _add_media_tool_parsers(subparsers)
