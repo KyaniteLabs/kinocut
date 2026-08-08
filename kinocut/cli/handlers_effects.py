@@ -9,9 +9,8 @@ from .formatting import _format_path_panel
 from .runner import CommandRunner, _out
 
 
-def handle_effect_command(args: Any, *, use_json: bool) -> bool:
-    """Handle visual effect commands extracted from the main dispatcher."""
-    runner = CommandRunner(args, use_json)
+def _register_basic_effects_commands(runner: CommandRunner) -> None:
+    """Register vignette, glow, and noise effect commands."""
 
     def _vignette(a, j):
         from ..effects_engine import effect_vignette
@@ -67,6 +66,10 @@ def handle_effect_command(args: Any, *, use_json: bool) -> bool:
 
     runner.register("effect-noise", _noise)
 
+
+def _register_advanced_effects_commands(runner: CommandRunner) -> None:
+    """Register scanlines and chromatic aberration effect commands."""
+
     def _scanlines(a, j):
         from ..effects_engine import effect_scanlines
 
@@ -110,4 +113,10 @@ def handle_effect_command(args: Any, *, use_json: bool) -> bool:
 
     runner.register("effect-chromatic-aberration", _chromatic)
 
+
+def handle_effect_command(args: Any, *, use_json: bool) -> bool:
+    """Handle visual effect commands extracted from the main dispatcher."""
+    runner = CommandRunner(args, use_json)
+    _register_basic_effects_commands(runner)
+    _register_advanced_effects_commands(runner)
     return runner.dispatch()

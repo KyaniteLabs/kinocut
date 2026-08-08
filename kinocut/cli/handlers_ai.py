@@ -17,9 +17,8 @@ from .formatting import (
 from .runner import CommandRunner, _out
 
 
-def handle_ai_commands(args: Any, *, use_json: bool) -> bool:
-    """Handle AI video commands extracted from the main dispatcher."""
-    runner = CommandRunner(args, use_json)
+def _register_analysis_commands(runner: CommandRunner) -> None:
+    """Register AI transcription and video analysis commands."""
 
     def _transcribe(a, j):
         from ..ai_engine import ai_transcribe
@@ -60,6 +59,10 @@ def handle_ai_commands(args: Any, *, use_json: bool) -> bool:
         _out(r, j, lambda res: _format_video_analyze(res, a.no_transcript))
 
     runner.register("video-analyze", _analyze)
+
+
+def _register_enhancement_commands(runner: CommandRunner) -> None:
+    """Register AI upscaling, stem separation, scene detection, grading, and silence removal."""
 
     def _upscale(a, j):
         from ..ai_engine import ai_upscale
@@ -126,4 +129,10 @@ def handle_ai_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-ai-remove-silence", _remove_silence)
 
+
+def handle_ai_commands(args: Any, *, use_json: bool) -> bool:
+    """Handle AI video commands extracted from the main dispatcher."""
+    runner = CommandRunner(args, use_json)
+    _register_analysis_commands(runner)
+    _register_enhancement_commands(runner)
     return runner.dispatch()

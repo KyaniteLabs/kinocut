@@ -13,9 +13,8 @@ from .formatting import (
 from .runner import CommandRunner, _out
 
 
-def handle_image_commands(args: Any, *, use_json: bool) -> bool:
-    """Handle image analysis commands extracted from the main dispatcher."""
-    runner = CommandRunner(args, use_json)
+def _register_color_commands(runner: CommandRunner) -> None:
+    """Register image color extraction, palette, and product analysis commands."""
 
     def _extract_colors(a, j):
         from ..image_engine import extract_colors
@@ -55,6 +54,10 @@ def handle_image_commands(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("image-analyze-product", _analyze_product)
+
+
+def _register_still_commands(runner: CommandRunner) -> None:
+    """Register still match, grade, and gate commands."""
 
     def _still_match(a, j):
         from ..still_plates import still_match
@@ -102,6 +105,10 @@ def handle_image_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("still-gate", _still_gate)
 
+
+def _register_still_workflow_commands(runner: CommandRunner) -> None:
+    """Register image-edit and still-package workflow commands."""
+
     def _image_edit(a, j):
         from ..still_plates import image_edit
 
@@ -140,4 +147,11 @@ def handle_image_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("still-package", _still_package)
 
+
+def handle_image_commands(args: Any, *, use_json: bool) -> bool:
+    """Handle image analysis commands extracted from the main dispatcher."""
+    runner = CommandRunner(args, use_json)
+    _register_color_commands(runner)
+    _register_still_commands(runner)
+    _register_still_workflow_commands(runner)
     return runner.dispatch()
