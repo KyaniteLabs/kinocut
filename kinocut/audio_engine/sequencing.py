@@ -408,18 +408,40 @@ def audio_compose(
 
         start_sample = int(start_time * sample_rate)
 
-        # Add to mix buffer
+        # Add to mix buffer — vectorized batch instead of per-sample loop
+        available = max(0, min(len(track_samples), total_samples - start_sample))
         if loop:
-            for i in range(total_samples - start_sample):
-                idx = start_sample + i
-                sample_idx = i % len(track_samples)
-                if idx < total_samples:
-                    _mix_into_buffer(mix_buffer, [track_samples[sample_idx] * volume], idx)
-        else:
-            for i, sample in enumerate(track_samples):
-                idx = start_sample + i
-                if idx < total_samples:
-                    _mix_into_buffer(mix_buffer, [sample * volume], idx)
+            available = max(0, total_samples - start_sample)
+            if available > 0 and len(track_samples) > 0:
+                try:
+                    import numpy as np
+
+                    if isinstance(track_samples, np.ndarray):
+                        reps = (available + len(track_samples) - 1) // len(track_samples)
+                        tiled = np.tile(track_samples, reps)[:available] * volume
+                        _mix_into_buffer(mix_buffer, tiled, start_sample)
+                    else:
+                        raise ImportError  # fall through to pure-python
+                except ImportError:
+                    for i in range(available):
+                        idx = start_sample + i
+                        if idx < total_samples:
+                            _mix_into_buffer(
+                                mix_buffer,
+                                [track_samples[i % len(track_samples)] * volume],
+                                idx,
+                            )
+        elif available > 0:
+            try:
+                import numpy as np
+
+                if isinstance(track_samples, np.ndarray):
+                    _mix_into_buffer(mix_buffer, track_samples[:available] * volume, start_sample)
+                else:
+                    raise ImportError
+            except ImportError:
+                for i in range(available):
+                    _mix_into_buffer(mix_buffer, [track_samples[i] * volume], start_sample + i)
 
     # Normalize
     mix_buffer = _normalize_mix(mix_buffer)
