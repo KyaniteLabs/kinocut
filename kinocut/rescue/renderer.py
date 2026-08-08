@@ -11,7 +11,8 @@ import re
 import shutil
 import time
 import uuid
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any, Literal
@@ -305,16 +306,40 @@ def _load_resume(
     return job_dir, approved, operations, repair_outputs
 
 
-def render_rescue(
-    plan_path: str,
-    approved_repair_ids: Sequence[str] | None = None,
-    save_receipt: str | None = None,
-    resume_receipt: str | None = None,
-    cancel_file: str | None = None,
-    keep_intermediates: bool = False,
-) -> dict[str, Any]:
-    """Render one immutable plan and promote only independently verified artifacts."""
+@dataclass
+class _RescuePrep:
+    """Prepared context shared across render_rescue phases."""
 
+    plan: RescuePlan
+    workspace: Path
+    output: Path
+    source: Path
+    receipt_copy: Path | None
+    approved: list[str]
+    run_id: str
+    job_dir: Path
+    intermediates: Path
+    package_dir: Path
+    state_path: Path
+    cancel: Path | None
+    operations: list[OperationEntry]
+    repair_outputs: dict[str, Path]
+    current_capabilities: dict[str, Any]
+    plan_prefix: str
+    stem: str
+    final_name: str
+    final_dir: Path
+    resume_receipt: str | None
+
+
+def _validate_and_prepare(
+    plan_path: str,
+    approved_repair_ids: Sequence[str] | None,
+    save_receipt: str | None,
+    resume_receipt: str | None,
+    cancel_file: str | None,
+) -> _RescuePrep:
+    """Validate the plan, resolve paths, and prepare the job directory."""
     persisted_plan = Path(os.path.realpath(plan_path))
     plan = read_plan(persisted_plan)
     workspace, output, source = _resolve_plan_paths(persisted_plan, plan)
@@ -360,96 +385,327 @@ def render_rescue(
     package_dir.mkdir(exist_ok=True)
     state_path = job_dir / "state.json"
     cancel = Path(os.path.realpath(cancel_file)) if cancel_file else None
-    operations: list[OperationEntry] = list(prior_operations)
+    operations = list(prior_operations)
+    return _RescuePrep(
+        plan=plan,
+        workspace=workspace,
+        output=output,
+        source=source,
+        receipt_copy=receipt_copy,
+        approved=approved,
+        run_id=run_id,
+        job_dir=job_dir,
+        intermediates=intermediates,
+        package_dir=package_dir,
+        state_path=state_path,
+        cancel=cancel,
+        operations=operations,
+        repair_outputs=repair_outputs,
+        current_capabilities=current_capabilities,
+        plan_prefix=plan_prefix,
+        stem=stem,
+        final_name=final_name,
+        final_dir=final_dir,
+        resume_receipt=resume_receipt,
+    )
 
-    def persist() -> None:
-        _atomic_json(
-            state_path,
-            {
-                "plan_sha256": plan.plan_sha256,
-                "approved_repair_ids": approved,
-                "operations": [entry.model_dump(mode="json") for entry in operations],
-            },
-        )
 
-    try:
-        _check_cancel(cancel)
-        current = source
-        approved_outputs: list[str] = []
-        for index, repair in enumerate(plan.safe_repairs):
-            if repair.id not in approved:
-                continue
-            if repair.id in repair_outputs:
-                current = repair_outputs[repair.id]
-                approved_outputs.append(str(current))
-                continue
-            _check_cancel(cancel)
-            target = intermediates / f"{index:03d}-{repair.type.value}{source.suffix or '.mp4'}"
-            result = execute_repair(repair, str(current), str(target))
-            operations.append(_entry(result, current, workspace, repair.executor or "unknown"))
-            approved_outputs.append(str(target))
-            current = target
-            persist()
-            _check_cancel(cancel)
+def _execute_repair_sequence(
+    prep: _RescuePrep,
+    persist_fn: Callable[[], None],
+) -> tuple[Path, list[str]]:
+    """Execute approved repairs in order, returning the final media path and output list."""
+    current = prep.source
+    approved_outputs: list[str] = []
+    for index, repair in enumerate(prep.plan.safe_repairs):
+        if repair.id not in prep.approved:
+            continue
+        if repair.id in prep.repair_outputs:
+            current = prep.repair_outputs[repair.id]
+            approved_outputs.append(str(current))
+            continue
+        _check_cancel(prep.cancel)
+        target = prep.intermediates / f"{index:03d}-{repair.type.value}{prep.source.suffix or '.mp4'}"
+        result = execute_repair(repair, str(current), str(target))
+        prep.operations.append(_entry(result, current, prep.workspace, repair.executor or "unknown"))
+        approved_outputs.append(str(target))
+        current = target
+        persist_fn()
+        _check_cancel(prep.cancel)
+    return current, approved_outputs
 
-        master = package_dir / f"{stem}-master{source.suffix or '.mp4'}"
-        result = make_master(str(source), approved_outputs, str(master))
-        operations.append(_entry(result, current, workspace, "python.copy2"))
-        persist()
-        _check_cancel(cancel)
 
-        sharing = package_dir / f"{stem}-sharing.mp4"
+def _create_master_and_sharing(
+    prep: _RescuePrep,
+    current: Path,
+    approved_outputs: list[str],
+    persist_fn: Callable[[], None],
+) -> tuple[Path, Path]:
+    """Create the master from approved outputs and a universal sharing copy."""
+    master = prep.package_dir / f"{prep.stem}-master{prep.source.suffix or '.mp4'}"
+    result = make_master(str(prep.source), approved_outputs, str(master))
+    prep.operations.append(_entry(result, current, prep.workspace, "python.copy2"))
+    persist_fn()
+    _check_cancel(prep.cancel)
+    sharing = prep.package_dir / f"{prep.stem}-sharing.mp4"
 
-        def progress_cancel(_: float) -> None:
-            _check_cancel(cancel)
+    def progress_cancel(_: float) -> None:
+        _check_cancel(prep.cancel)
 
-        result = make_universal_copy(str(master), str(sharing), progress_cancel)
-        operations.append(_entry(result, master, workspace, "ffmpeg.convert"))
-        persist()
-        _check_cancel(cancel)
+    result = make_universal_copy(str(master), str(sharing), progress_cancel)
+    prep.operations.append(_entry(result, master, prep.workspace, "ffmpeg.convert"))
+    persist_fn()
+    _check_cancel(prep.cancel)
+    return master, sharing
 
-        captions: Path | None = None
-        transcript: Path | None = None
-        captions_unavailable_reason: str | None = None
-        caption_failure: VerificationCheck | None = None
-        captions_intent = next((intent for intent in plan.package_intents if intent.kind == "captions"), None)
-        if captions_intent is not None and captions_intent.status == "available":
-            try:
-                captions, transcript, transcript_entry = _run_local_transcript(
-                    master, package_dir, workspace, current_capabilities
-                )
-                operations.append(transcript_entry)
-                persist()
-                _check_cancel(cancel)
-            except MCPVideoError as exc:
-                if exc.code == "missing_whisper":
-                    captions_unavailable_reason = "missing_whisper"
-                else:
-                    caption_failure = VerificationCheck(
-                        id="caption_generation",
-                        passed=False,
-                        message="Local caption generation failed.",
-                        details={"error_code": exc.code},
-                    )
-            except Exception as exc:
-                logger.warning(
-                    "Local caption generation failed with %s; the package will be quarantined.",
-                    type(exc).__name__,
-                )
+
+def _try_caption_generation(
+    prep: _RescuePrep,
+    master: Path,
+    persist_fn: Callable[[], None],
+) -> tuple[Path | None, Path | None, VerificationCheck | None, str | None]:
+    """Attempt local caption generation; return sidecar paths or failure info."""
+    captions: Path | None = None
+    transcript: Path | None = None
+    captions_unavailable_reason: str | None = None
+    caption_failure: VerificationCheck | None = None
+    captions_intent = next(
+        (intent for intent in prep.plan.package_intents if intent.kind == "captions"), None
+    )
+    if captions_intent is not None and captions_intent.status == "available":
+        try:
+            captions, transcript, transcript_entry = _run_local_transcript(
+                master, prep.package_dir, prep.workspace, prep.current_capabilities
+            )
+            prep.operations.append(transcript_entry)
+            persist_fn()
+            _check_cancel(prep.cancel)
+        except MCPVideoError as exc:
+            if exc.code == "missing_whisper":
+                captions_unavailable_reason = "missing_whisper"
+            else:
                 caption_failure = VerificationCheck(
                     id="caption_generation",
                     passed=False,
                     message="Local caption generation failed.",
-                    details={
-                        "error_code": "caption_generation_failed",
-                        "exception_type": type(exc).__name__,
-                    },
+                    details={"error_code": exc.code},
                 )
-        elif captions_intent is not None:
-            captions_unavailable_reason = captions_intent.reason
+        except Exception as exc:
+            logger.warning(
+                "Local caption generation failed with %s; the package will be quarantined.",
+                type(exc).__name__,
+            )
+            caption_failure = VerificationCheck(
+                id="caption_generation",
+                passed=False,
+                message="Local caption generation failed.",
+                details={
+                    "error_code": "caption_generation_failed",
+                    "exception_type": type(exc).__name__,
+                },
+            )
+    elif captions_intent is not None:
+        captions_unavailable_reason = captions_intent.reason
+    return captions, transcript, caption_failure, captions_unavailable_reason
 
+
+def _assemble_package_artifacts(
+    master: Path,
+    sharing: Path,
+    captions: Path | None,
+    transcript: Path | None,
+    captions_unavailable_reason: str | None,
+) -> list[PackageArtifact]:
+    """Build the list of package artifacts based on available outputs."""
+    artifacts = [
+        PackageArtifact(
+            kind="master",
+            status="available",
+            path=master.name,
+            sha256=_sha(master),
+            size_bytes=master.stat().st_size,
+        ),
+        PackageArtifact(
+            kind="sharing_copy",
+            status="available",
+            path=sharing.name,
+            sha256=_sha(sharing),
+            size_bytes=sharing.stat().st_size,
+        ),
+    ]
+    if captions is not None and transcript is not None:
+        artifacts.extend(
+            [
+                PackageArtifact(
+                    kind="captions",
+                    status="available",
+                    path=captions.name,
+                    sha256=_sha(captions),
+                    size_bytes=captions.stat().st_size,
+                ),
+                PackageArtifact(
+                    kind="transcript",
+                    status="available",
+                    path=transcript.name,
+                    sha256=_sha(transcript),
+                    size_bytes=transcript.stat().st_size,
+                ),
+            ]
+        )
+    else:
+        reason = captions_unavailable_reason or "caption_sidecars_unavailable"
+        artifacts.extend(
+            [
+                PackageArtifact(kind="captions", status="unavailable", reason=reason),
+                PackageArtifact(kind="transcript", status="unavailable", reason=reason),
+            ]
+        )
+    return artifacts
+
+
+def _quarantine_on_failure(
+    prep: _RescuePrep,
+    checks: list[VerificationCheck],
+) -> None:
+    """Move the job directory to quarantine and raise a verification failure."""
+    quarantine = prep.output / ".rescue-quarantine" / prep.run_id
+    quarantine.parent.mkdir(parents=True, exist_ok=True)
+    os.replace(prep.job_dir, quarantine)
+    quarantined_operations = _remap_operations(prep.operations, prep.job_dir, quarantine, prep.workspace)
+    resume_ref = _relative(prep.resume_receipt, prep.output) if prep.resume_receipt else None
+    receipt = _base_receipt(
+        prep.plan,
+        "quarantined",
+        prep.approved,
+        quarantined_operations,
+        checks,
+        PackageManifest(
+            path=None, promoted=False, artifacts=[], quarantine_path=_relative(quarantine, prep.output)
+        ),
+        prep.workspace,
+        prep.output,
+        quarantine,
+        resume_used=prep.resume_receipt is not None,
+        resume_receipt_path=resume_ref,
+        error={"code": RESCUE_VERIFICATION_FAILED},
+    )
+    _write_receipt(receipt, quarantine / "rescue-receipt.json")
+    if prep.receipt_copy:
+        _write_receipt(receipt, prep.receipt_copy)
+    raise rescue_error("rescue verification failed; package quarantined", RESCUE_VERIFICATION_FAILED)
+
+
+def _promote_success(
+    prep: _RescuePrep,
+    checks: list[VerificationCheck],
+    artifacts: list[PackageArtifact],
+    keep_intermediates: bool,
+) -> dict[str, Any]:
+    """Finalize the receipt, promote the package, and clean up intermediates."""
+    promoted_operations = _remap_operations(prep.operations, prep.package_dir, prep.final_dir, prep.workspace)
+    resume_ref = _relative(prep.resume_receipt, prep.output) if prep.resume_receipt else None
+    receipt_ref = f"{prep.final_name}/rescue-receipt.json"
+    placeholder_hash = "sha256:" + "0" * 64
+    artifacts.append(
+        PackageArtifact(
+            kind="receipt",
+            status="available",
+            path="rescue-receipt.json",
+            sha256=placeholder_hash,
+        )
+    )
+    receipt = _base_receipt(
+        prep.plan,
+        "completed",
+        prep.approved,
+        promoted_operations,
+        checks,
+        PackageManifest(path=prep.final_name, promoted=True, artifacts=artifacts),
+        prep.workspace,
+        prep.output,
+        prep.job_dir,
+        resume_used=prep.resume_receipt is not None,
+        resume_receipt_path=resume_ref,
+    )
+    receipt = receipt.model_copy(update={"receipt_path": receipt_ref, "receipt_sha256": placeholder_hash})
+    receipt_hash = receipt_integrity_sha256(receipt)
+    finalized_artifacts = [
+        artifact.model_copy(update={"sha256": receipt_hash}) if artifact.kind == "receipt" else artifact
+        for artifact in receipt.package.artifacts
+    ]
+    receipt = receipt.model_copy(
+        update={
+            "receipt_sha256": receipt_hash,
+            "package": receipt.package.model_copy(update={"artifacts": finalized_artifacts}),
+        }
+    )
+    packaged_receipt = prep.package_dir / "rescue-receipt.json"
+    _write_receipt(receipt, packaged_receipt)
+    os.replace(prep.package_dir, prep.final_dir)
+    if prep.receipt_copy:
+        _write_receipt(receipt, prep.receipt_copy)
+    if not keep_intermediates:
+        shutil.rmtree(prep.job_dir, ignore_errors=True)
+    return receipt.model_dump(mode="json")
+
+
+def _handle_cancellation(
+    prep: _RescuePrep,
+    persist_fn: Callable[[], None],
+    exc: RescueCancellation,
+) -> None:
+    """Clean up on cancellation, write a cancelled receipt, and re-raise."""
+    shutil.rmtree(prep.package_dir, ignore_errors=True)
+    prep.operations[:] = [entry for entry in prep.operations if entry.repair_id]
+    resume_ref = _relative(prep.resume_receipt, prep.output) if prep.resume_receipt else None
+    receipt = _base_receipt(
+        prep.plan,
+        "cancelled",
+        prep.approved,
+        prep.operations,
+        [],
+        PackageManifest(path=None, promoted=False, artifacts=[]),
+        prep.workspace,
+        prep.output,
+        prep.job_dir,
+        resume_used=prep.resume_receipt is not None,
+        resume_receipt_path=resume_ref,
+        error={"code": RESCUE_CANCELLED},
+    )
+    persist_fn()
+    if prep.receipt_copy:
+        _write_receipt(receipt, prep.receipt_copy)
+    raise rescue_error("rescue cancelled; no package was promoted", RESCUE_CANCELLED) from exc
+
+
+def render_rescue(
+    plan_path: str,
+    approved_repair_ids: Sequence[str] | None = None,
+    save_receipt: str | None = None,
+    resume_receipt: str | None = None,
+    cancel_file: str | None = None,
+    keep_intermediates: bool = False,
+) -> dict[str, Any]:
+    """Render one immutable plan and promote only independently verified artifacts."""
+    prep = _validate_and_prepare(plan_path, approved_repair_ids, save_receipt, resume_receipt, cancel_file)
+
+    def persist() -> None:
+        _atomic_json(
+            prep.state_path,
+            {
+                "plan_sha256": prep.plan.plan_sha256,
+                "approved_repair_ids": prep.approved,
+                "operations": [entry.model_dump(mode="json") for entry in prep.operations],
+            },
+        )
+
+    try:
+        _check_cancel(prep.cancel)
+        current, approved_outputs = _execute_repair_sequence(prep, persist)
+        master, sharing = _create_master_and_sharing(prep, current, approved_outputs, persist)
+        captions, transcript, caption_failure, reason = _try_caption_generation(prep, master, persist)
         checks = verify_package(
-            str(source),
+            str(prep.source),
             str(master),
             str(sharing),
             str(captions) if captions else None,
@@ -458,137 +714,9 @@ def render_rescue(
         if caption_failure is not None:
             checks.append(caption_failure)
         failed = [check for check in checks if check.gating and not check.passed]
-        artifacts = [
-            PackageArtifact(
-                kind="master",
-                status="available",
-                path=master.name,
-                sha256=_sha(master),
-                size_bytes=master.stat().st_size,
-            ),
-            PackageArtifact(
-                kind="sharing_copy",
-                status="available",
-                path=sharing.name,
-                sha256=_sha(sharing),
-                size_bytes=sharing.stat().st_size,
-            ),
-        ]
-        if captions is not None and transcript is not None:
-            artifacts.extend(
-                [
-                    PackageArtifact(
-                        kind="captions",
-                        status="available",
-                        path=captions.name,
-                        sha256=_sha(captions),
-                        size_bytes=captions.stat().st_size,
-                    ),
-                    PackageArtifact(
-                        kind="transcript",
-                        status="available",
-                        path=transcript.name,
-                        sha256=_sha(transcript),
-                        size_bytes=transcript.stat().st_size,
-                    ),
-                ]
-            )
-        else:
-            reason = captions_unavailable_reason or "caption_sidecars_unavailable"
-            artifacts.extend(
-                [
-                    PackageArtifact(kind="captions", status="unavailable", reason=reason),
-                    PackageArtifact(kind="transcript", status="unavailable", reason=reason),
-                ]
-            )
+        artifacts = _assemble_package_artifacts(master, sharing, captions, transcript, reason)
         if failed:
-            quarantine = output / ".rescue-quarantine" / run_id
-            quarantine.parent.mkdir(parents=True, exist_ok=True)
-            os.replace(job_dir, quarantine)
-            quarantined_operations = _remap_operations(operations, job_dir, quarantine, workspace)
-            resume_ref = _relative(resume_receipt, output) if resume_receipt else None
-            receipt = _base_receipt(
-                plan,
-                "quarantined",
-                approved,
-                quarantined_operations,
-                checks,
-                PackageManifest(path=None, promoted=False, artifacts=[], quarantine_path=_relative(quarantine, output)),
-                workspace,
-                output,
-                quarantine,
-                resume_used=resume_receipt is not None,
-                resume_receipt_path=resume_ref,
-                error={"code": RESCUE_VERIFICATION_FAILED},
-            )
-            _write_receipt(receipt, quarantine / "rescue-receipt.json")
-            if receipt_copy:
-                _write_receipt(receipt, receipt_copy)
-            raise rescue_error("rescue verification failed; package quarantined", RESCUE_VERIFICATION_FAILED)
-        promoted_operations = _remap_operations(operations, package_dir, final_dir, workspace)
-        resume_ref = _relative(resume_receipt, output) if resume_receipt else None
-        receipt_ref = f"{final_name}/rescue-receipt.json"
-        placeholder_hash = "sha256:" + "0" * 64
-        artifacts.append(
-            PackageArtifact(
-                kind="receipt",
-                status="available",
-                path="rescue-receipt.json",
-                sha256=placeholder_hash,
-            )
-        )
-        receipt = _base_receipt(
-            plan,
-            "completed",
-            approved,
-            promoted_operations,
-            checks,
-            PackageManifest(path=final_name, promoted=True, artifacts=artifacts),
-            workspace,
-            output,
-            job_dir,
-            resume_used=resume_receipt is not None,
-            resume_receipt_path=resume_ref,
-        )
-        receipt = receipt.model_copy(update={"receipt_path": receipt_ref, "receipt_sha256": placeholder_hash})
-        receipt_hash = receipt_integrity_sha256(receipt)
-        finalized_artifacts = [
-            artifact.model_copy(update={"sha256": receipt_hash}) if artifact.kind == "receipt" else artifact
-            for artifact in receipt.package.artifacts
-        ]
-        receipt = receipt.model_copy(
-            update={
-                "receipt_sha256": receipt_hash,
-                "package": receipt.package.model_copy(update={"artifacts": finalized_artifacts}),
-            }
-        )
-        packaged_receipt = package_dir / "rescue-receipt.json"
-        _write_receipt(receipt, packaged_receipt)
-        os.replace(package_dir, final_dir)
-        if receipt_copy:
-            _write_receipt(receipt, receipt_copy)
-        if not keep_intermediates:
-            shutil.rmtree(job_dir, ignore_errors=True)
-        return receipt.model_dump(mode="json")
+            _quarantine_on_failure(prep, checks)
+        return _promote_success(prep, checks, artifacts, keep_intermediates)
     except RescueCancellation as exc:
-        shutil.rmtree(package_dir, ignore_errors=True)
-        operations = [entry for entry in operations if entry.repair_id]
-        resume_ref = _relative(resume_receipt, output) if resume_receipt else None
-        receipt = _base_receipt(
-            plan,
-            "cancelled",
-            approved,
-            operations,
-            [],
-            PackageManifest(path=None, promoted=False, artifacts=[]),
-            workspace,
-            output,
-            job_dir,
-            resume_used=resume_receipt is not None,
-            resume_receipt_path=resume_ref,
-            error={"code": RESCUE_CANCELLED},
-        )
-        persist()
-        if receipt_copy:
-            _write_receipt(receipt, receipt_copy)
-        raise rescue_error("rescue cancelled; no package was promoted", RESCUE_CANCELLED) from exc
+        _handle_cancellation(prep, persist, exc)
