@@ -20,8 +20,8 @@ def _duration_policy(value: str) -> str:
     return value
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Add effects subcommands to the CLI parser."""
+def _add_text_audio_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the add-text and add-audio subcommands."""
     # add_text
     text_p = subparsers.add_parser("add-text", help="Overlay text on a video")
     text_p.add_argument("input", help="Input video file")
@@ -68,6 +68,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     audio_p.add_argument("-o", "--output", help="Output file path")
 
+
+def _add_visual_effect_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the watermark, filter, reverse, and chroma-key subcommands."""
     # watermark
     wm_p = subparsers.add_parser("watermark", help="Add image watermark")
     wm_p.add_argument("input", help="Input video file")
@@ -144,6 +147,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     chroma_p.add_argument("--blend", type=float, default=0.0, help="Blend amount (default: 0.0)")
     chroma_p.add_argument("-o", "--output", help="Output file path")
 
+
+def _add_composition_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the overlay-video and split-screen subcommands."""
     # overlay-video
     overlay_p = subparsers.add_parser("overlay-video", help="Picture-in-picture overlay")
     overlay_p.add_argument("background", help="Background video file")
@@ -184,6 +190,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     split_p.add_argument("-o", "--output", help="Output file path")
 
+
+def _add_stylized_effect_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the vignette, glow, noise, scanlines, and chromatic-aberration effect subcommands."""
     # effect-vignette
     vig_p = subparsers.add_parser("effect-vignette", help="Apply vignette effect (darkened edges)")
     vig_p.add_argument("input", help="Input video file")
@@ -225,6 +234,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     chroma_p.add_argument("-i", "--intensity", type=float, default=2.0, help="Pixel offset amount (default: 2.0)")
     chroma_p.add_argument("-a", "--angle", type=float, default=0, help="Separation direction in degrees (default: 0)")
 
+
+def _add_transition_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the glitch, morph, and pixelate transition subcommands."""
     # transition-glitch
     tglitch_p = subparsers.add_parser("transition-glitch", help="Apply glitch transition between two clips")
     tglitch_p.add_argument("clip1", help="First video clip")
@@ -254,3 +266,12 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         "-d", "--duration", type=float, default=0.4, help="Transition duration in seconds (default: 0.4)"
     )
     tpxl_p.add_argument("--pixel-size", type=int, default=50, help="Pixel size (default: 50)")
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add effects subcommands to the CLI parser."""
+    _add_text_audio_parsers(subparsers)
+    _add_visual_effect_parsers(subparsers)
+    _add_composition_parsers(subparsers)
+    _add_stylized_effect_parsers(subparsers)
+    _add_transition_parsers(subparsers)
