@@ -170,6 +170,7 @@ def _apply_modulation_effects(
 
     return samples
 
+
 def _apply_synth_effects(
     samples: Any,
     effects: dict[str, Any],
@@ -250,6 +251,7 @@ def _validate_synth_params(
             error_type="validation_error",
             code="invalid_parameter",
         )
+
 
 def audio_synthesize(
     output: str,

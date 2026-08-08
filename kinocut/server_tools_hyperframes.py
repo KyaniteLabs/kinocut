@@ -43,6 +43,7 @@ def _validate_render_args(
         return _validation_error(f"Invalid crf: must be {MIN_CRF}-{MAX_CRF}, got {crf}")
     return None
 
+
 @mcp.tool()
 @_safe_tool
 def hyperframes_render(

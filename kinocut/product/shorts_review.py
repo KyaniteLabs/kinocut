@@ -127,7 +127,8 @@ def review_shorts_plan(
 
 
 def _apply_review_decisions(
-    plan: ShortsPlan, candidate_id: str,
+    plan: ShortsPlan,
+    candidate_id: str,
 ) -> tuple[dict[str, Any], bool]:
     """Apply the decision stack and return updates dict and approved flag."""
     updates: dict[str, Any] = {}
@@ -167,6 +168,7 @@ def _apply_review_decisions(
                 if updates.get("sensitivity") == "unsafe":
                     updates["sensitivity"] = "none"
     return updates, approved
+
 
 def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> CandidateMoment:
     """Apply the decision stack and return the approved effective candidate.

@@ -57,6 +57,7 @@ def _dry_run_receipt(
     receipt["output_dir"] = str(out_dir)
     return receipt
 
+
 def still_package(
     *,
     establish: str | Path,

@@ -179,7 +179,6 @@ def _concat_segments(
         _trim_segment(video, start, end - start, Path(output))
         return output
 
-
     # Multiple segments - extract each and concatenate
     segment_files = []
 

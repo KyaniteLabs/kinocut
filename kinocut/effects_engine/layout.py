@@ -90,6 +90,7 @@ def _build_grid_filter_complex(n_clips: int, cols: int, rows: int, cell_w: int, 
 
     return "".join(filter_parts).rstrip(";")
 
+
 def layout_grid(
     clips: list[str],
     layout: str,
@@ -164,9 +165,7 @@ def layout_grid(
     return output
 
 
-def _calc_pip_geometry(
-    main_w: int, main_h: int, size: float, margin: int, position: str
-) -> tuple[int, int, int, int]:
+def _calc_pip_geometry(main_w: int, main_h: int, size: float, margin: int, position: str) -> tuple[int, int, int, int]:
     """Calculate PIP dimensions and overlay position."""
     pip_w = int(main_w * size)
     pip_h = int(main_h * size)
@@ -195,6 +194,7 @@ def _build_pip_filter(
         # This is a simplified version - full rounded corners need more complex filter
         pass
     return pip_filters
+
 
 def layout_pip(
     main: str,

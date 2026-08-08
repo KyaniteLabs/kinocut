@@ -522,6 +522,7 @@ def _verification_checks(
         ),
     )
 
+
 def verify_timeline_diff(
     timeline: SemanticTimeline, edl: EditDecisionList, approval: EditApproval, diff: TimelineDiff
 ) -> EDLVerification:

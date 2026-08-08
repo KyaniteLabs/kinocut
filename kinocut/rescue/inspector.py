@@ -67,6 +67,7 @@ def _inspect_artifacts(
         )
     return artifacts
 
+
 def inspect_rescue(path: str) -> dict[str, Any]:
     """Inspect known v1 fields while tolerating future additive fields."""
     artifact = Path(os.path.realpath(path))

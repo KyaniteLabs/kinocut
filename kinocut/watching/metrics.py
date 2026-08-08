@@ -53,6 +53,7 @@ def _black_finding(path: str, duration: float, max_black_ratio: float) -> Metric
         evidence={"black_ratio": black},
     )
 
+
 def run_metric_qc(
     input_path: str,
     *,

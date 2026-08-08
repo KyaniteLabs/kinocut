@@ -428,9 +428,7 @@ _ANIMATION_STRATEGIES: dict[str, Callable[..., tuple[str, str]]] = {
 }
 
 
-def _check_text_animated_guardrails(
-    video: str, text: str, font: str, size: int, start: float, duration: float
-) -> None:
+def _check_text_animated_guardrails(video: str, text: str, font: str, size: int, start: float, duration: float) -> None:
     """Apply best-effort text layout guardrails (timing + overflow)."""
     try:
         video_w, video_h = _get_video_dimensions(video)
@@ -506,6 +504,7 @@ def _run_text_animated_render(
     finally:
         if cmd_path:
             Path(cmd_path).unlink(missing_ok=True)
+
 
 def text_animated(
     video: str,

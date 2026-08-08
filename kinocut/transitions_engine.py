@@ -115,6 +115,7 @@ def _pixelate_filter_complex(offset: float, duration: float, pixel_size: int) ->
         f"pixelize=w={peak_block}:h={peak_block}:enable='between(t,{_t(inner_start)},{_t(inner_end)})'[output]"
     )
 
+
 def transition_pixelate(
     clip1: str,
     clip2: str,

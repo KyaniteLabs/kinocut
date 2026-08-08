@@ -133,6 +133,7 @@ def _selection_abstentions(items: Any) -> tuple[AutopilotAbstention, ...]:
         for item in items
     )
 
+
 def plan_creative_autopilot(
     *,
     manifest: ProjectManifest | Mapping[str, Any],
