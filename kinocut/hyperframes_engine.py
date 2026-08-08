@@ -58,7 +58,7 @@ def _register_preview(port: int, proc: subprocess.Popen[str]) -> None:
     """Track a running preview process so it can be terminated later."""
     old = _active_previews.get(port)
     if old is not None and old.poll() is None:
-        _terminate_preview(old)
+        stop_preview(port)
     _active_previews[port] = proc
 
 
