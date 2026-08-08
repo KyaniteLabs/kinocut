@@ -1,6 +1,6 @@
 # CI runner image with FFmpeg preinstalled (issue #110).
 # Build: docker build -f Dockerfile.ci -t kinocut-ci:local .
-FROM python:3.13-slim-bookworm
+FROM python:3.14-slim-bookworm
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends ffmpeg git ca-certificates \
