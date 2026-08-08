@@ -13,45 +13,8 @@ from .errors import MCPVideoError, ProcessingError
 from .models import StoryboardResult
 
 
-def storyboard(
-    input_path: str,
-    output_dir: str | None = None,
-    frame_count: int = 8,
-) -> StoryboardResult:
-    """Extract key frames and create a storyboard grid for human review."""
-    input_path = _validate_input_path(input_path)
-    if frame_count < 1:
-        raise MCPVideoError("frame_count must be at least 1", code="invalid_frame_count")
-    dur = get_duration(input_path)
-
-    out_dir = output_dir or _auto_output_dir(input_path, "storyboard")
-    os.makedirs(out_dir, exist_ok=True)
-
-    frame_paths: list[str] = []
-    interval = dur / (frame_count + 1)
-
-    for i in range(frame_count):
-        ts = interval * (i + 1)
-        frame_name = f"frame_{i + 1:02d}_{ts:.1f}s.jpg"
-        frame_path = os.path.join(out_dir, frame_name)
-
-        _run_ffmpeg(
-            [
-                "-ss",
-                str(ts),
-                "-i",
-                input_path,
-                "-vframes",
-                "1",
-                "-q:v",
-                "2",
-                "-y",
-                frame_path,
-            ]
-        )
-        frame_paths.append(frame_path)
-
-    # Create storyboard grid using FFmpeg
+def _create_storyboard_grid(frame_paths: list[str], out_dir: str) -> str | None:
+    """Create a storyboard grid image from individual frames."""
     grid_path = os.path.join(out_dir, "storyboard_grid.jpg")
     if len(frame_paths) >= 2:
         # Create a grid of frames
@@ -100,6 +63,48 @@ def storyboard(
         shutil.copy2(frame_paths[0], grid_path)
     else:
         grid_path = None
+    return grid_path
+
+
+def storyboard(
+    input_path: str,
+    output_dir: str | None = None,
+    frame_count: int = 8,
+) -> StoryboardResult:
+    """Extract key frames and create a storyboard grid for human review."""
+    input_path = _validate_input_path(input_path)
+    if frame_count < 1:
+        raise MCPVideoError("frame_count must be at least 1", code="invalid_frame_count")
+    dur = get_duration(input_path)
+
+    out_dir = output_dir or _auto_output_dir(input_path, "storyboard")
+    os.makedirs(out_dir, exist_ok=True)
+
+    frame_paths: list[str] = []
+    interval = dur / (frame_count + 1)
+
+    for i in range(frame_count):
+        ts = interval * (i + 1)
+        frame_name = f"frame_{i + 1:02d}_{ts:.1f}s.jpg"
+        frame_path = os.path.join(out_dir, frame_name)
+
+        _run_ffmpeg(
+            [
+                "-ss",
+                str(ts),
+                "-i",
+                input_path,
+                "-vframes",
+                "1",
+                "-q:v",
+                "2",
+                "-y",
+                frame_path,
+            ]
+        )
+        frame_paths.append(frame_path)
+
+    grid_path = _create_storyboard_grid(frame_paths, out_dir)
 
     return StoryboardResult(
         frames=frame_paths,

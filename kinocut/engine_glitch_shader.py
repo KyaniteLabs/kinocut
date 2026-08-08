@@ -185,6 +185,46 @@ def _get_fps(input_path: str) -> str:
     return "30/1"
 
 
+def _check_shader_dependencies() -> None:
+    """Verify CRUSH shader sources and canvas npm package are available."""
+    if not _crush_sources_available():
+        raise MCPVideoError(
+            "CRUSH shader sources not found (common.glsl). Shader effects need the "
+            "crush-js sources: set MCP_VIDEO_CRUSH_PATH to your crush-js/src directory "
+            "or install them under ~/.mcp-video/crush-js/src. "
+            "The FFmpeg-based glitch_* tools work without them.",
+            error_type="dependency_error",
+            code="missing_crush_shaders",
+        )
+    if not _crush_canvas_available():
+        raise MCPVideoError(
+            "The `canvas` npm package needed for GPU shader rendering is not installed. "
+            f"Run: npm install (in {_CRUSH_JS_DIR}). "
+            "The FFmpeg-based glitch_* tools work without it.",
+            error_type="dependency_error",
+            code="missing_canvas",
+        )
+
+
+def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
+    """Run the Node.js CRUSH render subprocess."""
+    env = os.environ.copy()
+    env["MCP_VIDEO_CRUSH_PATH"] = _resolve_crush_path()
+    render_cmd = [node, str(_RENDER_SCRIPT), json.dumps(render_params)]
+    render_result = subprocess.run(  # noqa: S603
+        render_cmd,
+        capture_output=True,
+        text=True,
+        timeout=300,  # 5 minute max
+        env=env,
+    )
+
+    if render_result.returncode != 0:
+        raise RuntimeError(
+            f"CRUSH shader render failed (exit {render_result.returncode}): {render_result.stderr[:500]}"
+        )
+
+
 def _run_shader_effect(
     effect_name: str,
     input_path: str,
@@ -247,38 +287,8 @@ def _run_shader_effect(
         }
 
         # Run Node.js render
-        if not _crush_sources_available():
-            raise MCPVideoError(
-                "CRUSH shader sources not found (common.glsl). Shader effects need the "
-                "crush-js sources: set MCP_VIDEO_CRUSH_PATH to your crush-js/src directory "
-                "or install them under ~/.mcp-video/crush-js/src. "
-                "The FFmpeg-based glitch_* tools work without them.",
-                error_type="dependency_error",
-                code="missing_crush_shaders",
-            )
-        if not _crush_canvas_available():
-            raise MCPVideoError(
-                "The `canvas` npm package needed for GPU shader rendering is not installed. "
-                f"Run: npm install (in {_CRUSH_JS_DIR}). "
-                "The FFmpeg-based glitch_* tools work without it.",
-                error_type="dependency_error",
-                code="missing_canvas",
-            )
-        env = os.environ.copy()
-        env["MCP_VIDEO_CRUSH_PATH"] = _resolve_crush_path()
-        render_cmd = [node, str(_RENDER_SCRIPT), json.dumps(render_params)]
-        render_result = subprocess.run(  # noqa: S603
-            render_cmd,
-            capture_output=True,
-            text=True,
-            timeout=300,  # 5 minute max
-            env=env,
-        )
-
-        if render_result.returncode != 0:
-            raise RuntimeError(
-                f"CRUSH shader render failed (exit {render_result.returncode}): {render_result.stderr[:500]}"
-            )
+        _check_shader_dependencies()
+        _run_node_render(node, render_params)
 
         # Check rendered frames
         rendered = sorted(Path(rendered_dir).glob("frame_*.png"))

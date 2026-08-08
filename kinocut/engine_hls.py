@@ -33,6 +33,21 @@ def _validate_hls_options(segment_duration: int, qualities: list[str] | None) ->
     return resolved
 
 
+def _write_hls_master_playlist(playlist_path: str, output_dir: str, qualities: list[str]) -> None:
+    """Write a master playlist referencing all quality variants."""
+    master_lines = ["#EXTM3U"]
+    for quality in qualities:
+        q_dir = os.path.join(output_dir, quality)
+        variant_playlist = os.path.join(q_dir, "playlist.m3u8")
+        if os.path.isfile(variant_playlist):
+            # Infer bandwidth roughly from height
+            bw = HLS_HEIGHTS[quality] * 3000  # rough kbps
+            master_lines.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bw}")
+            master_lines.append(os.path.join(quality, "playlist.m3u8"))
+    with open(playlist_path, "w") as f:
+        f.write("\n".join(master_lines) + "\n")
+
+
 def hls_segment(
     input_path: str,
     output_dir: str | None = None,
@@ -95,18 +110,7 @@ def hls_segment(
                 )
             )
 
-        # Write a master playlist that references all variants
-        master_lines = ["#EXTM3U"]
-        for quality in qualities:
-            q_dir = os.path.join(output_dir, quality)
-            variant_playlist = os.path.join(q_dir, "playlist.m3u8")
-            if os.path.isfile(variant_playlist):
-                # Infer bandwidth roughly from height
-                bw = HLS_HEIGHTS[quality] * 3000  # rough kbps
-                master_lines.append(f"#EXT-X-STREAM-INF:BANDWIDTH={bw}")
-                master_lines.append(os.path.join(quality, "playlist.m3u8"))
-        with open(playlist_path, "w") as f:
-            f.write("\n".join(master_lines) + "\n")
+        _write_hls_master_playlist(playlist_path, output_dir, qualities)
 
     return _build_edit_result(
         playlist_path,

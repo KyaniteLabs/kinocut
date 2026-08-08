@@ -56,6 +56,58 @@ def _measurement(stderr: str) -> dict[str, float]:
     )
 
 
+def _compute_loudnorm_fade_filter(probe: dict, fade: float) -> str:
+    """Compute boundary fade filter string for the loudnorm pass."""
+    duration_value = next(
+        (
+            stream.get("duration")
+            for stream in probe.get("streams", [])
+            if stream.get("codec_type") == "audio" and stream.get("duration") is not None
+        ),
+        None,
+    )
+    if duration_value is None:
+        format_data = probe.get("format")
+        duration_value = format_data.get("duration") if isinstance(format_data, dict) else None
+    try:
+        duration = float(duration_value)
+    except (TypeError, ValueError):
+        duration = 0.0
+    if not math.isfinite(duration) or duration <= 0:
+        raise MCPVideoError(
+            "Could not determine a finite positive media duration for boundary fades",
+            error_type="processing_error",
+            code="invalid_media_duration",
+        )
+    boundary = min(fade, duration / 2)
+    if boundary <= 0:
+        return ""
+    boundary_s = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(boundary, "fade_seconds")))
+    fade_out_start_s = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(duration - boundary, "fade_out_start")))
+    return f"afade=t=in:st=0:d={boundary_s},afade=t=out:st={fade_out_start_s}:d={boundary_s},"
+
+
+def _build_loudnorm_render_filter(
+    fade_filter: str,
+    target_s: str,
+    lra_s: str,
+    peak_s: str,
+    analysis_stderr: str,
+) -> str:
+    """Build the second-pass loudnorm filter from measured or target values."""
+    try:
+        measured = _measurement(analysis_stderr)
+    except MCPVideoError:
+        if "input_i" not in analysis_stderr or "-inf" not in analysis_stderr:
+            raise
+        return f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}"
+    measured_filter = ":".join(
+        f"{key}={_escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, key)))}"
+        for key, value in measured.items()
+    )
+    return f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:{measured_filter}:linear=true"
+
+
 def normalize_audio(
     input_path: str,
     target_lufs: float = -16.0,
@@ -95,34 +147,7 @@ def normalize_audio(
                 )
             )
         else:
-            duration_value = next(
-                (
-                    stream.get("duration")
-                    for stream in probe.get("streams", [])
-                    if stream.get("codec_type") == "audio" and stream.get("duration") is not None
-                ),
-                None,
-            )
-            if duration_value is None:
-                format_data = probe.get("format")
-                duration_value = format_data.get("duration") if isinstance(format_data, dict) else None
-            try:
-                duration = float(duration_value)
-            except (TypeError, ValueError):
-                duration = 0.0
-            if not math.isfinite(duration) or duration <= 0:
-                raise MCPVideoError(
-                    "Could not determine a finite positive media duration for boundary fades",
-                    error_type="processing_error",
-                    code="invalid_media_duration",
-                )
-            boundary = min(fade, duration / 2)
-            if boundary > 0:
-                boundary_s = _escaped(boundary, "fade_seconds")
-                fade_out_start_s = _escaped(duration - boundary, "fade_out_start")
-                fade_filter = f"afade=t=in:st=0:d={boundary_s},afade=t=out:st={fade_out_start_s}:d={boundary_s},"
-            else:
-                fade_filter = ""
+            fade_filter = _compute_loudnorm_fade_filter(probe, fade)
             analysis = _run_ffmpeg(
                 [
                     "-i",
@@ -134,17 +159,7 @@ def normalize_audio(
                     "-",
                 ]
             )
-            try:
-                measured = _measurement(analysis.stderr)
-            except MCPVideoError:
-                if "input_i" not in analysis.stderr or "-inf" not in analysis.stderr:
-                    raise
-                render_filter = f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}"
-            else:
-                measured_filter = ":".join(f"{key}={_escaped(value, key)}" for key, value in measured.items())
-                render_filter = (
-                    f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:{measured_filter}:linear=true"
-                )
+            render_filter = _build_loudnorm_render_filter(fade_filter, target_s, lra_s, peak_s, analysis.stderr)
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,

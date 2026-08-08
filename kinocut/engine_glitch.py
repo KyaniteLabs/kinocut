@@ -542,6 +542,54 @@ def glitch_cmyk_split(
 # ---------------------------------------------------------------------------
 
 
+def _build_turbulent_filter(amount: float, scale: float, speed: float, octaves: int) -> str:
+    """Build the FFmpeg filter_complex for turbulent displacement.
+
+    Fast native-filter turbulent warp. The displacement field is built ONCE at a
+    tiny 96x54 resolution with ``geq`` (cheap: ~5k pixels), upscaled to the source
+    resolution with ``scale2ref`` (resolution-agnostic, no need to know W/H here),
+    and applied with the vectorized ``displace`` filter. ``displace`` reads each
+    map as an offset (128 = no shift), giving the same turbulent warp orders of
+    magnitude faster (~10s for a 1080p/10s/30fps clip vs. minutes).
+
+    Map coords run 0..95 / 0..53, so spatial frequencies are multiplied by an
+    upscale reference factor to keep the turbulence scale comparable on the full
+    frame. The octave amplitudes are normalized so the summed displacement stays
+    within +/- ``amount`` pixels (displace clamps maps to 0..255 i.e. +/-127px).
+    """
+    map_w = 96
+    map_h = 54
+    freq_ref = 20.0  # spatial-frequency upscale so low-res map matches full frame
+
+    dx_terms: list[str] = []
+    dy_terms: list[str] = []
+    amp_sum = 0.0
+    for i in range(octaves):
+        freq = scale * (2**i) * freq_ref
+        amp = 1.0 / (2**i)
+        amp_sum += amp
+        t_offset = i * 1.7  # phase offset per octave for variety
+        dx_terms.append(f"sin(X*{freq:.4f}+Y*{freq * 0.7:.4f}+T*{speed:.1f}+{t_offset:.1f})*{amp:.3f}")
+        dy_terms.append(f"cos(X*{freq * 0.8:.4f}+Y*{freq:.4f}+T*{speed:.1f}+{t_offset + 0.5:.1f})*{amp:.3f}")
+
+    dx_expr = "+".join(dx_terms)
+    dy_expr = "+".join(dy_terms)
+    # Clamp displacement magnitude to the +/-127 px range the maps can encode.
+    px = min(amount, 120.0)
+
+    dx_map = f"128+{px:.1f}*({dx_expr})/{amp_sum:.3f}"
+    dy_map = f"128+{px:.1f}*({dy_expr})/{amp_sum:.3f}"
+
+    return (
+        f"[0:v]split=3[base][mx][my];"
+        f"[mx]scale={map_w}:{map_h},geq=lum='{dx_map}':cb=128:cr=128,format=gray[mxs];"
+        f"[my]scale={map_w}:{map_h},geq=lum='{dy_map}':cb=128:cr=128,format=gray[mys];"
+        f"[mxs][base]scale2ref=flags=bilinear[xmap][base1];"
+        f"[mys][base1]scale2ref=flags=bilinear[ymap][base2];"
+        f"[base2][xmap][ymap]displace=edge=mirror[out]"
+    )
+
+
 def glitch_turbulent_displacement(
     input_path: str,
     output: str,
@@ -574,54 +622,7 @@ def glitch_turbulent_displacement(
     octaves = int(_sanitize_ffmpeg_number(octaves, "octaves"))
     octaves = max(1, min(5, octaves))
 
-    # Fast native-filter turbulent warp.
-    #
-    # The previous implementation ran a per-pixel `geq=r/g/b='p(X+dx,Y+dy)'` whose
-    # lookup expression evaluated a multi-octave trig sum for every channel of
-    # every pixel of every frame. At 1080p that is ~1-8 s/frame, so a real clip
-    # blows past the 600s FFmpeg timeout (the same bug class fixed for
-    # transition_pixelate). Instead we build the displacement field ONCE at a tiny
-    # 96x54 resolution with `geq` (cheap: ~5k pixels), upscale it to the source
-    # resolution with `scale2ref` (resolution-agnostic, no need to know W/H here),
-    # and apply it with the vectorized `displace` filter. `displace` reads each
-    # map as an offset (128 = no shift), giving the same turbulent warp orders of
-    # magnitude faster (~10s for a 1080p/10s/30fps clip vs. minutes).
-    #
-    # Map coords run 0..95 / 0..53, so spatial frequencies are multiplied by an
-    # upscale reference factor to keep the turbulence scale comparable on the full
-    # frame. The octave amplitudes are normalized so the summed displacement stays
-    # within +/- `amount` pixels (displace clamps maps to 0..255 i.e. +/-127px).
-    map_w = 96
-    map_h = 54
-    freq_ref = 20.0  # spatial-frequency upscale so low-res map matches full frame
-
-    dx_terms: list[str] = []
-    dy_terms: list[str] = []
-    amp_sum = 0.0
-    for i in range(octaves):
-        freq = scale * (2**i) * freq_ref
-        amp = 1.0 / (2**i)
-        amp_sum += amp
-        t_offset = i * 1.7  # phase offset per octave for variety
-        dx_terms.append(f"sin(X*{freq:.4f}+Y*{freq * 0.7:.4f}+T*{speed:.1f}+{t_offset:.1f})*{amp:.3f}")
-        dy_terms.append(f"cos(X*{freq * 0.8:.4f}+Y*{freq:.4f}+T*{speed:.1f}+{t_offset + 0.5:.1f})*{amp:.3f}")
-
-    dx_expr = "+".join(dx_terms)
-    dy_expr = "+".join(dy_terms)
-    # Clamp displacement magnitude to the +/-127 px range the maps can encode.
-    px = min(amount, 120.0)
-
-    dx_map = f"128+{px:.1f}*({dx_expr})/{amp_sum:.3f}"
-    dy_map = f"128+{px:.1f}*({dy_expr})/{amp_sum:.3f}"
-
-    filter_complex = (
-        f"[0:v]split=3[base][mx][my];"
-        f"[mx]scale={map_w}:{map_h},geq=lum='{dx_map}':cb=128:cr=128,format=gray[mxs];"
-        f"[my]scale={map_w}:{map_h},geq=lum='{dy_map}':cb=128:cr=128,format=gray[mys];"
-        f"[mxs][base]scale2ref=flags=bilinear[xmap][base1];"
-        f"[mys][base1]scale2ref=flags=bilinear[ymap][base2];"
-        f"[base2][xmap][ymap]displace=edge=mirror[out]"
-    )
+    filter_complex = _build_turbulent_filter(amount, scale, speed, octaves)
 
     cmd = [
         "ffmpeg",
