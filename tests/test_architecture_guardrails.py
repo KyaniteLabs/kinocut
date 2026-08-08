@@ -225,7 +225,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/cli/handlers_composition.py": {"handle_composition_command"},
     "kinocut/cli/handlers_effects.py": {"handle_effect_command"},
     "kinocut/cli/handlers_image.py": {"handle_image_commands"},
-    "kinocut/cli/handlers_intent.py": {"handle_intent_commands"},
     "kinocut/cli/parser/advanced.py": {"add_parsers"},
     "kinocut/cli/parser/ai.py": {"add_parsers"},
     "kinocut/cli/parser/audio.py": {"add_parsers"},
