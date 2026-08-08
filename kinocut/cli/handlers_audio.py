@@ -9,9 +9,8 @@ from .formatting import _format_path_panel
 from .runner import CommandRunner, _out
 
 
-def handle_audio_commands(args: Any, *, use_json: bool) -> bool:
-    """Handle audio synthesis and spatial commands extracted from the main dispatcher."""
-    runner = CommandRunner(args, use_json)
+def _register_synthesis_commands(runner: CommandRunner) -> None:
+    """Register audio-synthesis commands that generate new audio from parameters/JSON."""
 
     def _synthesize(a, j):
         from ..audio_engine import audio_synthesize
@@ -85,6 +84,10 @@ def handle_audio_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("audio-sequence", _sequence)
 
+
+def _register_application_commands(runner: CommandRunner) -> None:
+    """Register commands that apply audio processing to existing input media."""
+
     def _effects(a, j):
         from ..audio_engine import audio_effects
 
@@ -129,6 +132,10 @@ def handle_audio_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-audio-spatial", _spatial)
 
+
+def _register_bed_commands(runner: CommandRunner) -> None:
+    """Register the audio-bed rendering command."""
+
     def _audio_bed(a, j):
         from ..engine_audio_bed import audio_bed
 
@@ -159,4 +166,11 @@ def handle_audio_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("audio-bed", _audio_bed)
 
+
+def handle_audio_commands(args: Any, *, use_json: bool) -> bool:
+    """Handle audio synthesis and spatial commands extracted from the main dispatcher."""
+    runner = CommandRunner(args, use_json)
+    _register_synthesis_commands(runner)
+    _register_application_commands(runner)
+    _register_bed_commands(runner)
     return runner.dispatch()
