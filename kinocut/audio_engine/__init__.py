@@ -56,6 +56,7 @@ def _build_audio_events(audio_config: dict[str, Any]) -> list[dict[str, Any]]:
         raise MCPVideoError("No audio events specified", error_type="validation_error", code="invalid_parameter")
     return events
 
+
 def add_generated_audio(
     video: str,
     audio_config: dict[str, Any],

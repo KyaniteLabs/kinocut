@@ -81,9 +81,7 @@ def add_text(
     ):
         _warnings.warn(f"[{w.severity.upper()}] {w.code}: {w.message}", stacklevel=2)
 
-    vf = _build_drawtext_filter(
-        text, position, font, size, color, shadow, start_time, duration
-    )
+    vf = _build_drawtext_filter(text, position, font, size, color, shadow, start_time, duration)
 
     return _render_text_overlay(input_path, output, vf, crf, preset, "add_text")
 

@@ -175,9 +175,7 @@ def _build_metadata_bytes(candidate: CandidateMoment, video_sha256: str) -> byte
     return (json.dumps(metadata, sort_keys=True, separators=(",", ":"), ensure_ascii=False) + "\n").encode()
 
 
-def _resolve_lineage(
-    lineage: PackageLineage | None, candidate_id: str, video_sha256: str
-) -> PackageLineage:
+def _resolve_lineage(lineage: PackageLineage | None, candidate_id: str, video_sha256: str) -> PackageLineage:
     package_lineage = lineage or PackageLineage(candidate_id=candidate_id)
     return package_lineage.model_copy(update={"artifact_sha256": f"sha256:{video_sha256}"})
 
@@ -189,9 +187,7 @@ def _collect_review_warnings(
 ) -> tuple[str, ...]:
     return tuple(
         dict.fromkeys(
-            value
-            for value in (candidate.review_warning, *caption_artifact.warnings, *extra_review_warnings)
-            if value
+            value for value in (candidate.review_warning, *caption_artifact.warnings, *extra_review_warnings) if value
         )
     )
 
@@ -211,9 +207,7 @@ def _build_package_assets(
             relative_path=os.path.basename(video_path),
             bytes=os.path.getsize(staged_video),
         ),
-        PackageAsset(
-            role="editable_subtitles", relative_path="captions.srt", bytes=os.path.getsize(staged_srt)
-        ),
+        PackageAsset(role="editable_subtitles", relative_path="captions.srt", bytes=os.path.getsize(staged_srt)),
         PackageAsset(
             role="representative_thumbnail",
             relative_path=os.path.basename(thumbnail_path),

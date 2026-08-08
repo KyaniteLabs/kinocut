@@ -498,6 +498,7 @@ def _format_analyze_transcript(result: dict[str, Any], no_transcript: bool) -> N
             )
         )
 
+
 def _format_video_analyze(result: dict[str, Any], no_transcript: bool) -> None:
     meta = result.get("metadata", {})
     meta_lines = []

@@ -469,9 +469,7 @@ def _try_caption_generation(
     transcript: Path | None = None
     captions_unavailable_reason: str | None = None
     caption_failure: VerificationCheck | None = None
-    captions_intent = next(
-        (intent for intent in prep.plan.package_intents if intent.kind == "captions"), None
-    )
+    captions_intent = next((intent for intent in prep.plan.package_intents if intent.kind == "captions"), None)
     if captions_intent is not None and captions_intent.status == "available":
         try:
             captions, transcript, transcript_entry = _run_local_transcript(
@@ -579,9 +577,7 @@ def _quarantine_on_failure(
         prep.approved,
         quarantined_operations,
         checks,
-        PackageManifest(
-            path=None, promoted=False, artifacts=[], quarantine_path=_relative(quarantine, prep.output)
-        ),
+        PackageManifest(path=None, promoted=False, artifacts=[], quarantine_path=_relative(quarantine, prep.output)),
         prep.workspace,
         prep.output,
         quarantine,

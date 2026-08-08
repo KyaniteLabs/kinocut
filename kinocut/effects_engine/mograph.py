@@ -24,6 +24,7 @@ def _validate_timing(duration: float, fps: int) -> None:
     if fps <= 0:
         raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
 
+
 def _generate_count_frames(
     tmp_path: Path,
     total_frames: int,

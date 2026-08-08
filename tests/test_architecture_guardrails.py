@@ -206,9 +206,6 @@ FUNCTION_LINE_LIMIT = 80
 #: Frozen baseline of functions that already exceed FUNCTION_LINE_LIMIT.
 #: As each function is decomposed, remove its entry here so the net tightens.
 _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
-    "kinocut/effects_engine/mograph.py": {"mograph_count", "mograph_progress"},
-    "kinocut/effects_engine/text.py": {"text_animated"},
-    "kinocut/effects_engine/utility.py": {"video_info_detailed"},
 }
 
 

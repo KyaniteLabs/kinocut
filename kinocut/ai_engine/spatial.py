@@ -190,9 +190,7 @@ def _apply_simple_spatial(
 
         # Process each position segment
         for i, pos in enumerate(sorted_positions):
-            segment_file = _render_spatial_segment(
-                video, i, pos, sorted_positions, duration, tmpdir_path
-            )
+            segment_file = _render_spatial_segment(video, i, pos, sorted_positions, duration, tmpdir_path)
             if segment_file is not None:
                 segment_files.append(segment_file)
 

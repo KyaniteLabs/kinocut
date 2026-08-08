@@ -282,9 +282,7 @@ def _build_acrossfade_audio_filter(n: int, pairs: int, transition_duration: floa
     audio_parts: list[str] = []
     for i in range(pairs):
         a_out = f"at{i}" if i < pairs - 1 else "aout"
-        audio_parts.append(
-            f"[{audio_labels[i]}][{audio_labels[i + 1]}]acrossfade=d={transition_duration:.3f}[{a_out}]"
-        )
+        audio_parts.append(f"[{audio_labels[i]}][{audio_labels[i + 1]}]acrossfade=d={transition_duration:.3f}[{a_out}]")
         audio_labels[i + 1] = a_out
     return ";".join(audio_parts)
 

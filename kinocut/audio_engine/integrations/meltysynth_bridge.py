@@ -82,6 +82,7 @@ def _write_midi_wav(synthesizer: Any, output: str, sample_rate: int) -> None:
         wav_file.setframerate(sample_rate)
         wav_file.writeframes(synthesizer.get_samples().tobytes())
 
+
 def render_notes(
     notes: list[dict[str, Any]],
     soundfont_path: str,

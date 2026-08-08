@@ -268,6 +268,7 @@ def _revision_sources_record(
         },
     )
 
+
 def append_revision(
     project: Project,
     edit_project_id: str,

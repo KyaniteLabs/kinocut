@@ -240,6 +240,7 @@ def _build_render_result(
         resolution=reported_resolution,
     )
 
+
 def render(
     project_path: str,
     output_path: str | None = None,

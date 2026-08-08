@@ -254,6 +254,7 @@ def _build_template_operations(
                 )
     return operations, video_clips
 
+
 def preview_template(
     template_name: str,
     video_path: str,
