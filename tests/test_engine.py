@@ -585,6 +585,32 @@ class TestHlsValidation:
         with pytest.raises(MCPVideoError, match="segment_duration"):
             engine_hls.hls_segment(sample_video, segment_duration=0)
 
+    @pytest.mark.parametrize(
+        "malicious_playlist",
+        [
+            "../../etc/cron.d/evil",
+            "/etc/cron.d/evil",
+            "../sibling/escape.m3u8",
+        ],
+    )
+    def test_hls_rejects_playlist_name_escape_output_dir(
+        self, sample_video, monkeypatch, tmp_path, malicious_playlist
+    ):
+        from mcp_video import engine_hls
+        from mcp_video.errors import MCPVideoError
+
+        # The traversal check runs after probe; stub it so no ffprobe call is needed.
+        monkeypatch.setattr(engine_hls, "probe", lambda _path: None)
+
+        output_dir = tmp_path / "hls_out"
+        with pytest.raises(MCPVideoError, match="escape output_dir") as exc:
+            engine_hls.hls_segment(
+                sample_video,
+                output_dir=str(output_dir),
+                playlist_name=malicious_playlist,
+            )
+        assert exc.value.code == "invalid_output_path"
+
 
 class TestConvertValidation:
     def test_convert_rejects_invalid_quality_before_probe(self, sample_video, monkeypatch):

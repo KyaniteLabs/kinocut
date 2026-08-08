@@ -45,6 +45,18 @@ def _audio_preset_warnings(preset: str, duration: float | None) -> list[str]:
     return []
 
 
+def _secure_temp_audio(suffix: str = ".wav") -> str:
+    """Return an unpredictable temp audio path, defeating symlink pre-creation.
+
+    Uses ``mkstemp`` so the path is allocated atomically and exclusively — an
+    attacker cannot pre-create a symlink at the returned location the way they
+    can with a predictable ``/tmp/mcp_audio_<waveform>.wav`` name.
+    """
+    fd, path = tempfile.mkstemp(suffix=suffix, prefix="mcp_audio_")
+    os.close(fd)
+    return path
+
+
 @mcp.tool()
 @_safe_tool
 def audio_synthesize(
@@ -84,7 +96,7 @@ def audio_synthesize(
         return _validation_error(f"Invalid duration: must be > 0, got {duration}")
     if volume < 0 or volume > 1:
         return _validation_error(f"Invalid volume: must be 0-1, got {volume}")
-    output = output_path or os.path.join(tempfile.gettempdir(), f"mcp_audio_{waveform}.wav")
+    output = output_path or _secure_temp_audio()
     from .audio_engine import audio_synthesize as _synth
 
     return _result(
@@ -136,7 +148,7 @@ def audio_preset(
         return _validation_error(f"Invalid intensity: must be 0-1, got {intensity}")
     if duration is not None and duration <= 0:
         return _validation_error(f"Invalid duration: must be > 0, got {duration}")
-    output = output_path or os.path.join(tempfile.gettempdir(), f"mcp_audio_{preset}.wav")
+    output = output_path or _secure_temp_audio()
     from .audio_engine import audio_preset as _preset
 
     result = _result(

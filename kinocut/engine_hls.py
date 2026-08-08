@@ -48,6 +48,24 @@ def _write_hls_master_playlist(playlist_path: str, output_dir: str, qualities: l
         f.write("\n".join(master_lines) + "\n")
 
 
+def _validate_playlist_path(playlist_path: str, output_dir: str, playlist_name: str) -> None:
+    """Ensure the resolved playlist path stays inside output_dir (H3 traversal guard).
+
+    Blocks traversal and absolute-path escapes such as
+    ``playlist_name="../../etc/cron.d/evil"`` or an absolute ``/etc/...`` name.
+    """
+    resolved_output_dir = os.path.realpath(output_dir)
+    resolved_playlist = os.path.realpath(playlist_path)
+    if resolved_playlist != resolved_output_dir and not resolved_playlist.startswith(
+        resolved_output_dir + os.sep
+    ):
+        raise MCPVideoError(
+            f"playlist_name must not escape output_dir: {playlist_name!r}",
+            error_type="validation_error",
+            code="invalid_output_path",
+        )
+
+
 def hls_segment(
     input_path: str,
     output_dir: str | None = None,
@@ -78,6 +96,7 @@ def hls_segment(
     os.makedirs(output_dir, exist_ok=True)
 
     playlist_path = os.path.join(output_dir, playlist_name)
+    _validate_playlist_path(playlist_path, output_dir, playlist_name)
 
     with _timed_operation() as timing:
         for quality in qualities:

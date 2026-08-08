@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import logging
 import os
 from typing import Any
@@ -95,6 +96,17 @@ def video_batch(
         "results": results,
     }
 
+def _batch_output_name(input_path: str, operation: str, ext: str) -> str:
+    """Build a collision-resistant output basename for a batch input.
+
+    Includes a short hash of the absolute parent directory so same-named inputs
+    from different folders (dir1/clip.mp4 vs dir2/clip.mp4) don't overwrite
+    each other in the shared output directory.
+    """
+    name = os.path.splitext(os.path.basename(input_path))[0]
+    parent = os.path.dirname(os.path.abspath(input_path))
+    digest = hashlib.sha1(parent.encode(), usedforsecurity=False).hexdigest()[:8]
+    return f"{name}_{operation}_{digest}{ext}"
 
 def _run_batch_operation(
     input_path: str,
@@ -103,11 +115,9 @@ def _run_batch_operation(
     output_dir: str | None,
 ) -> EditResult:
     def _batch_output(ext: str | None = None) -> str | None:
-        if output_dir:
-            name = os.path.splitext(os.path.basename(input_path))[0]
-            ext = ext or ".mp4"
-            return os.path.join(output_dir, f"{name}_{operation}{ext}")
-        return None
+        if not output_dir:
+            return None
+        return os.path.join(output_dir, _batch_output_name(input_path, operation, ext or ".mp4"))
 
     if operation == "trim":
         return trim(

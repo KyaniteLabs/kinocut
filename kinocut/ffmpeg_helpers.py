@@ -6,12 +6,14 @@ single authoritative copy of each helper.
 
 from __future__ import annotations
 
+import contextlib
 import math
 import os
 import re
 import subprocess
+import tempfile
 import threading
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from typing import Any
 
 from .errors import InputFileError, MCPVideoError, ProcessingError, parse_ffmpeg_error
@@ -170,6 +172,11 @@ def _validate_output_path(path: str) -> str:
     mcp-video intentionally lets users write normal media artifacts around their
     projects and temp directories. It must not overwrite system files, symlink
     targets, sensitive home dotfiles, or obviously non-media source/config files.
+
+    Note: this is a pure pre-check. The window between it and FFmpeg's open is a
+    symlink-swap TOCTOU race; callers that must close it should render through
+    :func:`_atomic_output`, which writes to a private temp file and publishes
+    with an atomic ``os.replace``.
     """
     return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
 
@@ -183,6 +190,43 @@ def _validate_artifact_path(path: str) -> str:
     file or any other on-disk file.
     """
     return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_ARTIFACT_SUFFIXES, label="Artifact path")
+
+
+@contextlib.contextmanager
+def _atomic_output(path: str) -> Iterator[str]:
+    """Validate ``path`` and yield a private temp path to write, then publish atomically.
+
+    Closes the symlink-swap TOCTOU race left by the pure :func:`_validate_output_path`
+    pre-check. The writer (FFmpeg or otherwise) writes into a freshly-created,
+    unpredictable temp file in the *same* directory as the final path; on exit the
+    written file is re-validated (symlink check included) and atomically renamed onto
+    the final path via ``os.replace``. On any failure the temp file is removed so no
+    partial artifact is ever published.
+
+    Centralises the staging pattern already used ad hoc by ``engine_audio_bed`` /
+    ``engine_body_swap`` / ``product.package`` so new output paths can opt in without
+    re-implementing it.
+    """
+    validated = _validate_output_path(path)
+    final = os.path.realpath(validated)
+    directory = os.path.dirname(final) or "."
+    os.makedirs(directory, exist_ok=True)
+    fd, tmp_path = tempfile.mkstemp(
+        dir=directory,
+        prefix=".kinocut_tmp_",
+        suffix=os.path.splitext(final)[1] or ".tmp",
+    )
+    os.close(fd)
+    try:
+        yield tmp_path
+        # Re-validate after the write: catches a temp-path symlink swap before the rename.
+        _validate_output_path(tmp_path)
+        os.replace(tmp_path, final)
+    except BaseException:
+        with contextlib.suppress(OSError):
+            if os.path.lexists(tmp_path):
+                os.remove(tmp_path)
+        raise
 
 
 def _run_command(

@@ -253,7 +253,7 @@ def _drawtext_filter(elem, width: int, height: int) -> str:
     fontfile = elem.style.get("font") or _default_font()
     if fontfile is not None:
         fontfile = _escape_ffmpeg_filter_value(fontfile)
-    size = elem.style.get("size", 48)
+    size = int(_sanitize_ffmpeg_number(elem.style.get("size", 48), "style.size"))
     color = elem.style.get("color", "white")
     _validate_color(color)
     coords = _position_coords(elem.position, width, height)

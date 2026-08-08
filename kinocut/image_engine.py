@@ -7,6 +7,7 @@ Install with: pip install mcp-video[image]
 from __future__ import annotations
 
 import colorsys
+from typing import Any
 import os
 
 from .errors import MCPVideoError
@@ -19,6 +20,7 @@ from .image_models import (
 )
 
 SUPPORTED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp"})
+MAX_IMAGE_PIXELS = 50_000_000  # ~50 MP (e.g. 7168x7168); guards against decompression bombs (H5)
 
 
 # ---------------------------------------------------------------------------
@@ -77,6 +79,38 @@ def _extract_frame_if_video(path: str) -> str:
     frame_path = os.path.join(tempfile.gettempdir(), f"mcp_video_frame_{os.path.basename(path)}.jpg")
     result = thumbnail(path, output_path=frame_path)
     return result.frame_path
+
+
+def _open_image_safe(path: str) -> Any:
+    """Open an image with Pillow, rejecting decompression bombs up front (H5).
+
+    Pillow reads image dimensions lazily from the header, so the decoded pixel
+    count can be vetted before the full RGB buffer is allocated.
+    """
+    from PIL import Image
+
+    # Cap decoded image size process-wide; Pillow raises DecompressionBombError
+    # for images far exceeding this ceiling.
+    Image.MAX_IMAGE_PIXELS = MAX_IMAGE_PIXELS
+
+    try:
+        img = Image.open(path)
+    except Image.DecompressionBombError as exc:
+        raise MCPVideoError(
+            f"Image {path} exceeds the {MAX_IMAGE_PIXELS:,}-pixel decompression-bomb ceiling.",
+            error_type="validation_error",
+            code="image_too_large",
+        ) from exc
+
+    pixels = img.width * img.height
+    if pixels > MAX_IMAGE_PIXELS:
+        raise MCPVideoError(
+            f"Image {path} is {img.width}x{img.height} ({pixels:,} pixels), exceeding the "
+            f"{MAX_IMAGE_PIXELS:,}-pixel ceiling. Use a smaller image.",
+            error_type="validation_error",
+            code="image_too_large",
+        )
+    return img
 
 
 def _rgb_to_hex(r: int, g: int, b: int) -> str:
@@ -151,10 +185,9 @@ def extract_colors(
         )
 
     import numpy as np
-    from PIL import Image
     from sklearn.cluster import MiniBatchKMeans
 
-    img = Image.open(image_path).convert("RGB")
+    img = _open_image_safe(image_path).convert("RGB")
     # Resize for speed — max 200px on the longest side
     img.thumbnail((200, 200))
     pixels = np.array(img).reshape(-1, 3).astype(float)

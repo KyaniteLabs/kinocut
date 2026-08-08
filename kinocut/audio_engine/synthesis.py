@@ -42,6 +42,7 @@ from .core import (
 DEFAULT_SAMPLE_RATE = 44100
 DEFAULT_CHANNELS = 1
 DEFAULT_SAMPLE_WIDTH = 2  # 16-bit
+MAX_SYNTHESIS_SAMPLES = 44100 * 600 * 2  # 10 min @ 44.1 kHz stereo; caps in-memory buffers (H6)
 
 VALID_AUDIO_SYNTH_EFFECT_KEYS = {
     "envelope",
@@ -223,6 +224,7 @@ def _validate_synth_params(
     volume: float,
     sample_rate: int,
     effects: dict[str, Any] | None,
+    stereo: bool = False,
 ) -> None:
     """Validate synthesis parameters and effect keys."""
     from ..limits import MAX_AUDIO_DURATION, MIN_FREQUENCY, MAX_FREQUENCY, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE
@@ -250,6 +252,18 @@ def _validate_synth_params(
             f"Sample rate must be between {MIN_SAMPLE_RATE} and {MAX_SAMPLE_RATE}, got {sample_rate}",
             error_type="validation_error",
             code="invalid_parameter",
+        )
+
+    # Reject synthesis that would allocate oversized in-memory buffers (H6).
+    channels = 2 if stereo else 1
+    total_samples = int(sample_rate * duration) * channels
+    if total_samples > MAX_SYNTHESIS_SAMPLES:
+        raise MCPVideoError(
+            f"Synthesis would allocate {total_samples:,} samples (rate={sample_rate}, "
+            f"duration={duration}s, channels={channels}), exceeding the "
+            f"{MAX_SYNTHESIS_SAMPLES:,}-sample ceiling. Reduce duration or sample rate.",
+            error_type="validation_error",
+            code="synthesis_too_large",
         )
 
 
@@ -280,7 +294,7 @@ def audio_synthesize(
     Returns:
         Path to generated WAV file
     """
-    _validate_synth_params(frequency, duration, volume, sample_rate, effects)
+    _validate_synth_params(frequency, duration, volume, sample_rate, effects, stereo)
 
     # Generate base waveform
     if waveform == "sine":

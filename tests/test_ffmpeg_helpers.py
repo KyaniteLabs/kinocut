@@ -1,5 +1,6 @@
 """Tests for shared FFmpeg helper contracts."""
 
+import os
 import subprocess
 
 import pytest
@@ -190,3 +191,56 @@ def test_validate_output_path_rejects_existing_non_media_file(tmp_path):
         raise AssertionError("Expected MCPVideoError")
     except MCPVideoError as e:
         assert e.code == "unsafe_path"
+
+
+def test_atomic_output_writes_temp_then_renames_atomically(tmp_path):
+    from mcp_video.ffmpeg_helpers import _atomic_output
+
+    final = tmp_path / "out.mp4"
+    with _atomic_output(str(final)) as tmp:
+        # The yielded path is a private temp file inside the same directory.
+        assert tmp != str(final)
+        assert os.path.dirname(tmp) == str(tmp_path)
+        assert os.path.basename(tmp).startswith(".kinocut_tmp_")
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("payload")
+
+    # After the block: temp is gone, final has the payload.
+    assert final.read_text(encoding="utf-8") == "payload"
+    assert not any(p.name.startswith(".kinocut_tmp_") for p in tmp_path.iterdir())
+
+
+def test_atomic_output_cleans_up_temp_on_writer_failure(tmp_path):
+    from mcp_video.ffmpeg_helpers import _atomic_output
+
+    final = tmp_path / "out.mp4"
+    with pytest.raises(RuntimeError), _atomic_output(str(final)) as tmp:
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("partial")
+        raise RuntimeError("simulated FFmpeg failure")
+
+    # Neither the final file nor a leftover temp should remain.
+    assert not final.exists()
+    assert not any(p.name.startswith(".kinocut_tmp_") for p in tmp_path.iterdir())
+
+
+def test_atomic_output_rejects_symlink_swapped_temp(tmp_path):
+    """H4 TOCTOU: a temp-path symlink swap between write and rename is caught."""
+    from mcp_video.errors import MCPVideoError
+    from mcp_video.ffmpeg_helpers import _atomic_output
+
+    final = tmp_path / "out.mp4"
+    secret = tmp_path / "secret.mp4"
+    secret.write_text("do not overwrite", encoding="utf-8")
+
+    with pytest.raises(MCPVideoError, match="symlink"), _atomic_output(str(final)) as tmp:
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write("payload")
+        # Attacker swaps the temp path for a symlink before the rename.
+        os.remove(tmp)
+        os.symlink(secret, tmp)
+
+    # The symlink target was never written through; nothing was published.
+    assert secret.read_text(encoding="utf-8") == "do not overwrite"
+    assert not final.exists()
+    assert not any(p.name.startswith(".kinocut_tmp_") for p in tmp_path.iterdir())
