@@ -147,7 +147,7 @@ jobs:
         # exercises the public plan -> render -> inspect path, MOV/WebM sharing
         # copies, and reproducible render contracts on every supported major.
         run: |
-          .venv/bin/pytest -q --tb=short -n 4 \
+          .venv/bin/pytest -q --tb=short \
             tests/test_engine_composite_layers.py \
             tests/test_server_tools_composite_layers.py \
             tests/test_workflow_golden.py \
