@@ -246,7 +246,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/engine_merge.py": {"_merge_with_transitions", "merge"},
     "kinocut/engine_storyboard.py": {"storyboard"},
     "kinocut/hyperframes_ops.py": {"render"},
-    "kinocut/product/package.py": {"package_approved_clip"},
     "kinocut/product/shorts_review.py": {"resolve_approved_candidate"},
     "kinocut/projectstore/edit_projects.py": {"append_revision"},
     "kinocut/rescue/inspector.py": {"inspect_rescue"},
