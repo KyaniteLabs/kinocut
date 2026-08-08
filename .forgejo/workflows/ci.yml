@@ -13,8 +13,7 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-venv
-          REPO_HOST=$(echo "${{ github.server_url }}" | sed 's|https://||')
-          git clone --depth 1 "https://x-access-token:${{ github.token }}@${REPO_HOST}/${{ github.repository }}.git" .
+          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
           git fetch --depth 1 origin "${{ github.sha }}"
           git checkout "${{ github.sha }}"
       - name: Install ruff
@@ -30,8 +29,7 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
-          REPO_HOST=$(echo "${{ github.server_url }}" | sed 's|https://||')
-          git clone --depth 1 "https://x-access-token:${{ github.token }}@${REPO_HOST}/${{ github.repository }}.git" .
+          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
           git fetch --depth 1 origin "${{ github.sha }}"
           git checkout "${{ github.sha }}"
       - name: Install package
@@ -50,8 +48,7 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
-          REPO_HOST=$(echo "${{ github.server_url }}" | sed 's|https://||')
-          git clone --depth 1 "https://x-access-token:${{ github.token }}@${REPO_HOST}/${{ github.repository }}.git" .
+          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
           git fetch --depth 1 origin "${{ github.sha }}"
           git checkout "${{ github.sha }}"
       - name: Install package
@@ -102,8 +99,7 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv curl xz-utils
-          REPO_HOST=$(echo "${{ github.server_url }}" | sed 's|https://||')
-          git clone --depth 1 "https://x-access-token:${{ github.token }}@${REPO_HOST}/${{ github.repository }}.git" .
+          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
           git fetch --depth 1 origin "${{ github.sha }}"
           git checkout "${{ github.sha }}"
       - name: Fetch pinned static FFmpeg ${{ matrix.major }}
