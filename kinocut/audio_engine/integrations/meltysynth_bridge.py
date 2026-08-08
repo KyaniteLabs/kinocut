@@ -72,6 +72,16 @@ def synthesize_midi(
     return output
 
 
+def _write_midi_wav(synthesizer: Any, output: str, sample_rate: int) -> None:
+    """Write synthesizer samples to a stereo WAV file."""
+    import wave
+
+    with wave.open(output, "wb") as wav_file:
+        wav_file.setnchannels(2)
+        wav_file.setsampwidth(2)
+        wav_file.setframerate(sample_rate)
+        wav_file.writeframes(synthesizer.get_samples().tobytes())
+
 def render_notes(
     notes: list[dict[str, Any]],
     soundfont_path: str,
@@ -145,13 +155,6 @@ def render_notes(
     if current_sample < total_samples:
         synthesizer.render(total_samples - current_sample)
 
-    # Write to WAV
-    import wave
-
-    with wave.open(output, "wb") as wav_file:
-        wav_file.setnchannels(2)
-        wav_file.setsampwidth(2)
-        wav_file.setframerate(sample_rate)
-        wav_file.writeframes(synthesizer.get_samples().tobytes())
+    _write_midi_wav(synthesizer, output, sample_rate)
 
     return output

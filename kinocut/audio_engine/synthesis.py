@@ -75,46 +75,12 @@ def _validate_synth_effects(effects: dict[str, Any] | None) -> None:
         )
 
 
-def _apply_synth_effects(
+def _apply_filter_effects(
     samples: Any,
     effects: dict[str, Any],
-    duration: float,
     sample_rate: int,
 ) -> Any:
-    """Apply a chain of synthesis effects."""
-    if not effects:
-        return samples
-
-    # Envelope
-    if "envelope" in effects:
-        env = effects["envelope"]
-        samples = apply_envelope(
-            samples,
-            attack=env.get("attack", 0.01),
-            decay=env.get("decay", 0.1),
-            sustain=env.get("sustain", 0.7),
-            release=env.get("release", 0.2),
-            duration=duration,
-            sample_rate=sample_rate,
-        )
-
-    # Fade in/out
-    fade_in = effects.get("fade_in", 0)
-    fade_out = effects.get("fade_out", 0)
-    if fade_in > 0 or fade_out > 0:
-        samples = apply_fade(samples, fade_in, fade_out, duration, sample_rate)
-
-    # Reverb
-    if "reverb" in effects:
-        rev = effects["reverb"]
-        samples = apply_reverb(
-            samples,
-            room_size=rev.get("room_size", 0.5),
-            damping=rev.get("damping", 0.5),
-            wet_level=rev.get("wet_level", 0.2),
-            sample_rate=sample_rate,
-        )
-
+    """Apply lowpass, highpass, delay, chorus, flanger, distortion, tremolo, vibrato."""
     # Lowpass
     if "lowpass" in effects:
         lp = effects["lowpass"]
@@ -127,6 +93,15 @@ def _apply_synth_effects(
         cutoff = hp.get("frequency", 200) if isinstance(hp, dict) else hp
         samples = apply_highpass(samples, cutoff, sample_rate)
 
+    return samples
+
+
+def _apply_modulation_effects(
+    samples: Any,
+    effects: dict[str, Any],
+    sample_rate: int,
+) -> Any:
+    """Apply delay, chorus, flanger, distortion, tremolo, vibrato."""
     # Delay
     if "delay" in effects:
         d = effects["delay"]
@@ -195,6 +170,86 @@ def _apply_synth_effects(
 
     return samples
 
+def _apply_synth_effects(
+    samples: Any,
+    effects: dict[str, Any],
+    duration: float,
+    sample_rate: int,
+) -> Any:
+    """Apply a chain of synthesis effects."""
+    if not effects:
+        return samples
+
+    # Envelope
+    if "envelope" in effects:
+        env = effects["envelope"]
+        samples = apply_envelope(
+            samples,
+            attack=env.get("attack", 0.01),
+            decay=env.get("decay", 0.1),
+            sustain=env.get("sustain", 0.7),
+            release=env.get("release", 0.2),
+            duration=duration,
+            sample_rate=sample_rate,
+        )
+
+    # Fade in/out
+    fade_in = effects.get("fade_in", 0)
+    fade_out = effects.get("fade_out", 0)
+    if fade_in > 0 or fade_out > 0:
+        samples = apply_fade(samples, fade_in, fade_out, duration, sample_rate)
+
+    # Reverb
+    if "reverb" in effects:
+        rev = effects["reverb"]
+        samples = apply_reverb(
+            samples,
+            room_size=rev.get("room_size", 0.5),
+            damping=rev.get("damping", 0.5),
+            wet_level=rev.get("wet_level", 0.2),
+            sample_rate=sample_rate,
+        )
+
+    samples = _apply_filter_effects(samples, effects, sample_rate)
+    samples = _apply_modulation_effects(samples, effects, sample_rate)
+
+    return samples
+
+
+def _validate_synth_params(
+    frequency: float,
+    duration: float,
+    volume: float,
+    sample_rate: int,
+    effects: dict[str, Any] | None,
+) -> None:
+    """Validate synthesis parameters and effect keys."""
+    from ..limits import MAX_AUDIO_DURATION, MIN_FREQUENCY, MAX_FREQUENCY, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE
+
+    _validate_synth_effects(effects)
+
+    if not (MIN_FREQUENCY <= frequency <= MAX_FREQUENCY):
+        raise MCPVideoError(
+            f"Frequency must be between {MIN_FREQUENCY} and {MAX_FREQUENCY} Hz, got {frequency}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not (0.01 <= duration <= MAX_AUDIO_DURATION):
+        raise MCPVideoError(
+            f"Duration must be between 0.01 and {MAX_AUDIO_DURATION} seconds, got {duration}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not (0.0 <= volume <= 1.0):
+        raise MCPVideoError(
+            f"Volume must be between 0.0 and 1.0, got {volume}", error_type="validation_error", code="invalid_parameter"
+        )
+    if not (MIN_SAMPLE_RATE <= sample_rate <= MAX_SAMPLE_RATE):
+        raise MCPVideoError(
+            f"Sample rate must be between {MIN_SAMPLE_RATE} and {MAX_SAMPLE_RATE}, got {sample_rate}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
 
 def audio_synthesize(
     output: str,
@@ -223,32 +278,7 @@ def audio_synthesize(
     Returns:
         Path to generated WAV file
     """
-    from ..limits import MAX_AUDIO_DURATION, MIN_FREQUENCY, MAX_FREQUENCY, MIN_SAMPLE_RATE, MAX_SAMPLE_RATE
-
-    _validate_synth_effects(effects)
-
-    if not (MIN_FREQUENCY <= frequency <= MAX_FREQUENCY):
-        raise MCPVideoError(
-            f"Frequency must be between {MIN_FREQUENCY} and {MAX_FREQUENCY} Hz, got {frequency}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not (0.01 <= duration <= MAX_AUDIO_DURATION):
-        raise MCPVideoError(
-            f"Duration must be between 0.01 and {MAX_AUDIO_DURATION} seconds, got {duration}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not (0.0 <= volume <= 1.0):
-        raise MCPVideoError(
-            f"Volume must be between 0.0 and 1.0, got {volume}", error_type="validation_error", code="invalid_parameter"
-        )
-    if not (MIN_SAMPLE_RATE <= sample_rate <= MAX_SAMPLE_RATE):
-        raise MCPVideoError(
-            f"Sample rate must be between {MIN_SAMPLE_RATE} and {MAX_SAMPLE_RATE}, got {sample_rate}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
+    _validate_synth_params(frequency, duration, volume, sample_rate, effects)
 
     # Generate base waveform
     if waveform == "sine":

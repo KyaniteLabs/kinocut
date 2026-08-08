@@ -215,32 +215,11 @@ def _estimate_size_mb(
     return round(size_mb, 2)
 
 
-def preview_template(
-    template_name: str,
-    video_path: str,
-    duration: float | None = None,
-    **kwargs: Any,
-) -> dict[str, Any]:
-    """Return a preview of what a template would produce without rendering.
-
-    Returns:
-        Dict with ``operations``, ``estimated_duration``, ``resolution``,
-        ``format``, ``quality``, and ``estimated_size_mb`` for agent review
-        before committing.
-    """
-    from .errors import MCPVideoError
-
-    tmpl = TEMPLATES.get(template_name)
-    if tmpl is None:
-        raise MCPVideoError(
-            f"Unknown template: {template_name}. Available: {list(TEMPLATES.keys())}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    timeline = tmpl(video_path, **kwargs)
-    tracks = timeline.get("tracks", [])
-    export = timeline.get("export", {})
-
+def _build_template_operations(
+    tracks: list[dict[str, Any]],
+    timeline: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict]]:
+    """Build operations list from template tracks, returning operations and video clips."""
     operations: list[dict[str, Any]] = []
     video_clips: list[dict] = []
     for track in tracks:
@@ -273,6 +252,35 @@ def preview_template(
                         "fade_out": clip.get("fade_out", 0.0),
                     }
                 )
+    return operations, video_clips
+
+def preview_template(
+    template_name: str,
+    video_path: str,
+    duration: float | None = None,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Return a preview of what a template would produce without rendering.
+
+    Returns:
+        Dict with ``operations``, ``estimated_duration``, ``resolution``,
+        ``format``, ``quality``, and ``estimated_size_mb`` for agent review
+        before committing.
+    """
+    from .errors import MCPVideoError
+
+    tmpl = TEMPLATES.get(template_name)
+    if tmpl is None:
+        raise MCPVideoError(
+            f"Unknown template: {template_name}. Available: {list(TEMPLATES.keys())}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    timeline = tmpl(video_path, **kwargs)
+    tracks = timeline.get("tracks", [])
+    export = timeline.get("export", {})
+
+    operations, video_clips = _build_template_operations(tracks, timeline)
 
     total_duration = 0.0
     for clip in video_clips:

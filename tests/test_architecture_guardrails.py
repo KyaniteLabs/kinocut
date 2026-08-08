@@ -83,7 +83,6 @@ def test_split_engine_modules_stay_below_size_limit() -> None:
     """
     split_modules = [
         PACKAGE / "hyperframes_engine.py",
-        PACKAGE / "hyperframes_ops.py",
         PACKAGE / "workflow" / "executor.py",
         PACKAGE / "workflow" / "receipt.py",
     ]
@@ -207,25 +206,10 @@ FUNCTION_LINE_LIMIT = 80
 #: Frozen baseline of functions that already exceed FUNCTION_LINE_LIMIT.
 #: As each function is decomposed, remove its entry here so the net tightens.
 _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
-    "kinocut/audio_engine/__init__.py": {"add_generated_audio"},
-    "kinocut/audio_engine/integrations/meltysynth_bridge.py": {"render_notes"},
-    "kinocut/audio_engine/synthesis.py": {"_apply_synth_effects", "audio_synthesize"},
-    "kinocut/cli/formatting.py": {"_format_video_analyze"},
-    "kinocut/creative/autopilot.py": {"plan_creative_autopilot"},
     "kinocut/effects_engine/layout.py": {"layout_grid", "layout_pip"},
     "kinocut/effects_engine/mograph.py": {"mograph_count", "mograph_progress"},
     "kinocut/effects_engine/text.py": {"text_animated"},
     "kinocut/effects_engine/utility.py": {"video_info_detailed"},
-    "kinocut/hyperframes_ops.py": {"render"},
-    "kinocut/product/shorts_review.py": {"resolve_approved_candidate"},
-    "kinocut/projectstore/edit_projects.py": {"append_revision"},
-    "kinocut/rescue/inspector.py": {"inspect_rescue"},
-    "kinocut/semantic/edl.py": {"verify_timeline_diff"},
-    "kinocut/server_tools_hyperframes.py": {"hyperframes_render"},
-    "kinocut/still_plates/package.py": {"still_package"},
-    "kinocut/templates.py": {"preview_template"},
-    "kinocut/transitions_engine.py": {"transition_pixelate"},
-    "kinocut/watching/metrics.py": {"run_metric_qc"},
 }
 
 

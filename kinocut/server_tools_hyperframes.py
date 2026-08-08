@@ -16,6 +16,33 @@ from .validation import (
 from .ffmpeg_helpers import _validate_project_path
 
 
+def _validate_render_args(
+    quality: str | None,
+    format: str | None,
+    resolution: str | None,
+    width: int | None,
+    height: int | None,
+    crf: int | None,
+) -> dict[str, Any] | None:
+    """Validate render parameters; return error dict or None if valid."""
+    if quality is not None and quality not in VALID_HYPERFRAMES_QUALITIES:
+        return _validation_error(
+            f"Invalid quality: must be one of {sorted(VALID_HYPERFRAMES_QUALITIES)}, got '{quality}'"
+        )
+    if format is not None and format not in VALID_HYPERFRAMES_FORMATS:
+        return _validation_error(f"Invalid format: must be one of {sorted(VALID_HYPERFRAMES_FORMATS)}, got '{format}'")
+    if resolution is not None and resolution not in VALID_HYPERFRAMES_RESOLUTIONS:
+        return _validation_error(
+            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{resolution}'"
+        )
+    if width is not None and (width < 1 or width > MAX_RESOLUTION):
+        return _validation_error(f"Invalid width: must be 1-{MAX_RESOLUTION}, got {width}")
+    if height is not None and (height < 1 or height > MAX_RESOLUTION):
+        return _validation_error(f"Invalid height: must be 1-{MAX_RESOLUTION}, got {height}")
+    if crf is not None and (crf < MIN_CRF or crf > MAX_CRF):
+        return _validation_error(f"Invalid crf: must be {MIN_CRF}-{MAX_CRF}, got {crf}")
+    return None
+
 @mcp.tool()
 @_safe_tool
 def hyperframes_render(
@@ -62,22 +89,9 @@ def hyperframes_render(
         variables: Inline JSON object/string with runtime data for the composition.
         variables_file: Path to a JSON file with runtime data for the composition.
     """
-    if quality is not None and quality not in VALID_HYPERFRAMES_QUALITIES:
-        return _validation_error(
-            f"Invalid quality: must be one of {sorted(VALID_HYPERFRAMES_QUALITIES)}, got '{quality}'"
-        )
-    if format is not None and format not in VALID_HYPERFRAMES_FORMATS:
-        return _validation_error(f"Invalid format: must be one of {sorted(VALID_HYPERFRAMES_FORMATS)}, got '{format}'")
-    if resolution is not None and resolution not in VALID_HYPERFRAMES_RESOLUTIONS:
-        return _validation_error(
-            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{resolution}'"
-        )
-    if width is not None and (width < 1 or width > MAX_RESOLUTION):
-        return _validation_error(f"Invalid width: must be 1-{MAX_RESOLUTION}, got {width}")
-    if height is not None and (height < 1 or height > MAX_RESOLUTION):
-        return _validation_error(f"Invalid height: must be 1-{MAX_RESOLUTION}, got {height}")
-    if crf is not None and (crf < MIN_CRF or crf > MAX_CRF):
-        return _validation_error(f"Invalid crf: must be {MIN_CRF}-{MAX_CRF}, got {crf}")
+    err = _validate_render_args(quality, format, resolution, width, height, crf)
+    if err is not None:
+        return err
     project_path = _validate_project_path(project_path)
     from .hyperframes_engine import render
 

@@ -86,6 +86,35 @@ def transition_glitch(
     return output
 
 
+def _pixelate_filter_complex(offset: float, duration: float, pixel_size: int) -> str:
+    """Build the pixelate transition filter_complex string.
+
+    Two stacked ``pixelize`` passes — a base block across the whole
+    transition window and a larger block over the inner window centred on the
+    midpoint — give a "grow to peak" pixelation feel without per-frame eval.
+    """
+    mid = offset + duration / 2
+    safe_duration = _escape_ffmpeg_filter_value(str(duration))
+    safe_offset = _escape_ffmpeg_filter_value(str(offset))
+
+    end = offset + duration
+    inner_half = duration * 0.2
+    inner_start = max(offset, mid - inner_half)
+    inner_end = min(end, mid + inner_half)
+    # pixelize block size in pixels; pixel_size is the peak. Keep >= 2 and within
+    # a sane upper bound so the block never swallows the whole frame.
+    peak_block = max(2, min(int(pixel_size), 256))
+    base_block = max(2, peak_block // 3)
+
+    def _t(value: float) -> str:
+        return f"{value:.4f}"
+
+    return (
+        f"[0:v][1:v]xfade=transition=fade:duration={safe_duration}:offset={safe_offset}[faded];"
+        f"[faded]pixelize=w={base_block}:h={base_block}:enable='between(t,{_t(offset)},{_t(end)})',"
+        f"pixelize=w={peak_block}:h={peak_block}:enable='between(t,{_t(inner_start)},{_t(inner_end)})'[output]"
+    )
+
 def transition_pixelate(
     clip1: str,
     clip2: str,
@@ -124,39 +153,9 @@ def transition_pixelate(
     if offset < 0:
         offset = 0
 
-    # Calculate transition midpoint
-    mid = offset + duration / 2
-
     # Pixelation effect via the dedicated `pixelize` filter, timeline-gated to the
     # transition window with `enable=between(t,...)`.
-    #
-    # The previous implementation animated a per-frame `scale=...:eval=frame`, which
-    # forced swscale to reconfigure its context every frame and was pathologically
-    # slow — a 2s clip exceeded the 600s FFmpeg timeout. `pixelize` is a single fast
-    # pass and is identity outside the enabled window, so the cost is bounded to the
-    # short transition. Two stacked `pixelize` passes — a base block across the whole
-    # transition window and a larger block over the inner window centred on the
-    # midpoint — give a "grow to peak" pixelation feel without per-frame eval.
-    safe_duration = _escape_ffmpeg_filter_value(str(duration))
-    safe_offset = _escape_ffmpeg_filter_value(str(offset))
-
-    end = offset + duration
-    inner_half = duration * 0.2
-    inner_start = max(offset, mid - inner_half)
-    inner_end = min(end, mid + inner_half)
-    # pixelize block size in pixels; pixel_size is the peak. Keep >= 2 and within
-    # a sane upper bound so the block never swallows the whole frame.
-    peak_block = max(2, min(int(pixel_size), 256))
-    base_block = max(2, peak_block // 3)
-
-    def _t(value: float) -> str:
-        return f"{value:.4f}"
-
-    filter_complex = (
-        f"[0:v][1:v]xfade=transition=fade:duration={safe_duration}:offset={safe_offset}[faded];"
-        f"[faded]pixelize=w={base_block}:h={base_block}:enable='between(t,{_t(offset)},{_t(end)})',"
-        f"pixelize=w={peak_block}:h={peak_block}:enable='between(t,{_t(inner_start)},{_t(inner_end)})'[output]"
-    )
+    filter_complex = _pixelate_filter_complex(offset, duration, pixel_size)
 
     cmd = [
         "ffmpeg",

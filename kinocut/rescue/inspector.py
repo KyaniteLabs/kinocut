@@ -24,6 +24,49 @@ def _confined(path: Path, root: Path) -> bool:
     return True
 
 
+def _inspect_artifacts(
+    records: list[tuple[dict, Path]],
+    kind: str,
+    payload: dict[str, Any],
+    artifact: Path,
+) -> list[dict[str, Any]]:
+    """Build artifact integrity records from record-base pairs."""
+    artifacts: list[dict[str, Any]] = []
+    if kind == "rescue" and isinstance(payload.get("receipt_sha256"), str):
+        actual_receipt_hash = receipt_integrity_sha256(payload)
+        artifacts.append(
+            {
+                "path": payload.get("receipt_path") or artifact.name,
+                "present": True,
+                "matching": actual_receipt_hash == payload["receipt_sha256"],
+                "expected_sha256": payload["receipt_sha256"],
+                "actual_sha256": actual_receipt_hash,
+            }
+        )
+    for record, base in records:
+        if not isinstance(record, dict) or not record.get("path"):
+            continue
+        candidate = Path(os.path.realpath(base / record["path"]))
+        present = _confined(candidate, base) and candidate.is_file()
+        if present and record.get("kind") == "receipt":
+            try:
+                actual = receipt_integrity_sha256(json.loads(candidate.read_text(encoding="utf-8")))
+            except (OSError, json.JSONDecodeError, TypeError):
+                actual = None
+        else:
+            actual = _hash(candidate) if present else None
+        expected = record.get("sha256")
+        artifacts.append(
+            {
+                "path": record["path"],
+                "present": present,
+                "matching": present and (expected is None or actual == expected),
+                "expected_sha256": expected,
+                "actual_sha256": actual,
+            }
+        )
+    return artifacts
+
 def inspect_rescue(path: str) -> dict[str, Any]:
     """Inspect known v1 fields while tolerating future additive fields."""
     artifact = Path(os.path.realpath(path))
@@ -64,40 +107,7 @@ def inspect_rescue(path: str) -> dict[str, Any]:
         records = [(payload.get("source", {}), workspace_base)]
         if isinstance(package, dict):
             records.extend((record, package_base) for record in package.get("artifacts", []))
-    artifacts = []
-    if kind == "rescue" and isinstance(payload.get("receipt_sha256"), str):
-        actual_receipt_hash = receipt_integrity_sha256(payload)
-        artifacts.append(
-            {
-                "path": payload.get("receipt_path") or artifact.name,
-                "present": True,
-                "matching": actual_receipt_hash == payload["receipt_sha256"],
-                "expected_sha256": payload["receipt_sha256"],
-                "actual_sha256": actual_receipt_hash,
-            }
-        )
-    for record, base in records:
-        if not isinstance(record, dict) or not record.get("path"):
-            continue
-        candidate = Path(os.path.realpath(base / record["path"]))
-        present = _confined(candidate, base) and candidate.is_file()
-        if present and record.get("kind") == "receipt":
-            try:
-                actual = receipt_integrity_sha256(json.loads(candidate.read_text(encoding="utf-8")))
-            except (OSError, json.JSONDecodeError, TypeError):
-                actual = None
-        else:
-            actual = _hash(candidate) if present else None
-        expected = record.get("sha256")
-        artifacts.append(
-            {
-                "path": record["path"],
-                "present": present,
-                "matching": present and (expected is None or actual == expected),
-                "expected_sha256": expected,
-                "actual_sha256": actual,
-            }
-        )
+    artifacts = _inspect_artifacts(records, kind, payload, artifact)
     return {
         "kind": kind,
         "schema_version": 1,

@@ -203,6 +203,43 @@ def _resolve_render_resolution(width: int | None, height: int | None, resolution
     return resolution or dimension_resolution
 
 
+def _build_render_result(
+    output_path: str,
+    format: str | None,
+    render_time: float,
+    effective_resolution: str | None,
+    width: int | None,
+    height: int | None,
+) -> HyperframesRenderResult:
+    """Build render result from output metadata."""
+    try:
+        size = os.path.getsize(output_path) if os.path.isfile(output_path) else None
+        size_mb = round(size / (1024 * 1024), 2) if size is not None else None
+    except OSError:
+        size_mb = None
+
+    reported_resolution = effective_resolution
+    if width and height:
+        reported_resolution = f"{width}x{height}"
+
+    if not _render_output_exists(output_path, format):
+        return HyperframesRenderResult(
+            output_path=output_path,
+            codec=format or "h264",
+            size_mb=None,
+            render_time=render_time,
+            resolution=reported_resolution,
+            success=False,
+        )
+
+    return HyperframesRenderResult(
+        output_path=output_path,
+        codec=format or "h264",
+        size_mb=size_mb,
+        render_time=render_time,
+        resolution=reported_resolution,
+    )
+
 def render(
     project_path: str,
     output_path: str | None = None,
@@ -266,33 +303,8 @@ def render(
     )
 
     render_time = round(time.time() - start_time, 1)
-    try:
-        size = os.path.getsize(output_path) if os.path.isfile(output_path) else None
-        size_mb = round(size / (1024 * 1024), 2) if size is not None else None
-    except OSError:
-        size_mb = None
 
-    reported_resolution = effective_resolution
-    if width and height:
-        reported_resolution = f"{width}x{height}"
-
-    if not _render_output_exists(output_path, format):
-        return HyperframesRenderResult(
-            output_path=output_path,
-            codec=format or "h264",
-            size_mb=None,
-            render_time=render_time,
-            resolution=reported_resolution,
-            success=False,
-        )
-
-    return HyperframesRenderResult(
-        output_path=output_path,
-        codec=format or "h264",
-        size_mb=size_mb,
-        render_time=render_time,
-        resolution=reported_resolution,
-    )
+    return _build_render_result(output_path, format, render_time, effective_resolution, width, height)
 
 
 # ---------------------------------------------------------------------------
