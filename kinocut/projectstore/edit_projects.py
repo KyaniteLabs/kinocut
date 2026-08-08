@@ -250,6 +250,24 @@ def diff_revisions(
     }
 
 
+def _revision_sources_record(
+    revision_id: str,
+    source_digests: tuple[str, ...],
+    project: Project,
+    created_by: str,
+) -> RevisionSourcesRecord:
+    """Build an optional revision sources record."""
+    return validate_record(
+        RevisionSourcesRecord,
+        {
+            "revision_id": revision_id,
+            "source_digests": source_digests,
+            "project_id": project.project_id,
+            "created_by": created_by,
+            "created_at": _now(),
+        },
+    )
+
 def append_revision(
     project: Project,
     edit_project_id: str,
@@ -293,16 +311,7 @@ def append_revision(
             created_by=created_by,
         )
         sources = (
-            validate_record(
-                RevisionSourcesRecord,
-                {
-                    "revision_id": revision_id,
-                    "source_digests": source_digests,
-                    "project_id": project.project_id,
-                    "created_by": created_by,
-                    "created_at": _now(),
-                },
-            )
+            _revision_sources_record(revision_id, source_digests, project, created_by)
             if source_digests is not None
             else None
         )

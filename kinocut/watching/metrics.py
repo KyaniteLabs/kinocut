@@ -28,6 +28,31 @@ class MetricFinding:
         return d
 
 
+def _black_finding(path: str, duration: float, max_black_ratio: float) -> MetricFinding:
+    """Build a black_frames finding from blackdetect ratio."""
+    black = _blackdetect_ratio(path, duration)
+    if black is None:
+        return MetricFinding(
+            check_id="black_frames.ratio",
+            severity="warn",
+            message="blackdetect unavailable; skipped",
+            evidence={"available": False},
+        )
+    if black > max_black_ratio:
+        return MetricFinding(
+            check_id="black_frames.ratio",
+            severity="fail",
+            message=f"black ratio {black:.3f} exceeds max {max_black_ratio}",
+            time_range=(0.0, duration),
+            evidence={"black_ratio": black, "max": max_black_ratio},
+        )
+    return MetricFinding(
+        check_id="black_frames.ratio",
+        severity="info",
+        message=f"black ratio {black:.3f} ok",
+        evidence={"black_ratio": black},
+    )
+
 def run_metric_qc(
     input_path: str,
     *,
@@ -63,35 +88,7 @@ def run_metric_qc(
             )
         )
 
-    black = _blackdetect_ratio(path, duration)
-    if black is None:
-        findings.append(
-            MetricFinding(
-                check_id="black_frames.ratio",
-                severity="warn",
-                message="blackdetect unavailable; skipped",
-                evidence={"available": False},
-            )
-        )
-    elif black > max_black_ratio:
-        findings.append(
-            MetricFinding(
-                check_id="black_frames.ratio",
-                severity="fail",
-                message=f"black ratio {black:.3f} exceeds max {max_black_ratio}",
-                time_range=(0.0, duration),
-                evidence={"black_ratio": black, "max": max_black_ratio},
-            )
-        )
-    else:
-        findings.append(
-            MetricFinding(
-                check_id="black_frames.ratio",
-                severity="info",
-                message=f"black ratio {black:.3f} ok",
-                evidence={"black_ratio": black},
-            )
-        )
+    findings.append(_black_finding(path, duration, max_black_ratio))
 
     lufs = _integrated_lufs(path)
     if lufs is None:

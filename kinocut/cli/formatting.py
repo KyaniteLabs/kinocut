@@ -467,23 +467,8 @@ def _format_ai_transcribe(result: Any, output: str | None) -> None:
     _format_success_panel(lines, title="Transcription")
 
 
-def _format_video_analyze(result: dict[str, Any], no_transcript: bool) -> None:
-    meta = result.get("metadata", {})
-    meta_lines = []
-    if meta.get("duration"):
-        meta_lines.append(f"[bold]Duration:[/bold] {meta['duration']:.2f}s")
-    if meta.get("width") and meta.get("height"):
-        meta_lines.append(f"[bold]Resolution:[/bold] {meta['width']}x{meta['height']}")
-    if meta.get("fps"):
-        meta_lines.append(f"[bold]FPS:[/bold] {meta['fps']:.2f}")
-    if meta.get("codec"):
-        meta_lines.append(f"[bold]Video codec:[/bold] {meta['codec']}")
-    if meta.get("audio_codec"):
-        meta_lines.append(f"[bold]Audio codec:[/bold] {meta['audio_codec']}")
-    if meta.get("size_bytes"):
-        meta_lines.append(f"[bold]Size:[/bold] {meta['size_bytes'] // 1024:,} KB")
-    console.print(Panel("\n".join(meta_lines) or "No metadata", title="[cyan]Metadata[/cyan]", border_style="cyan"))
-
+def _format_analyze_transcript(result: dict[str, Any], no_transcript: bool) -> None:
+    """Display transcript panel for video analysis."""
     transcript = result.get("transcript")
     if transcript:
         text = transcript.get("text", "")
@@ -512,6 +497,25 @@ def _format_video_analyze(result: dict[str, Any], no_transcript: bool) -> None:
                 border_style="yellow",
             )
         )
+
+def _format_video_analyze(result: dict[str, Any], no_transcript: bool) -> None:
+    meta = result.get("metadata", {})
+    meta_lines = []
+    if meta.get("duration"):
+        meta_lines.append(f"[bold]Duration:[/bold] {meta['duration']:.2f}s")
+    if meta.get("width") and meta.get("height"):
+        meta_lines.append(f"[bold]Resolution:[/bold] {meta['width']}x{meta['height']}")
+    if meta.get("fps"):
+        meta_lines.append(f"[bold]FPS:[/bold] {meta['fps']:.2f}")
+    if meta.get("codec"):
+        meta_lines.append(f"[bold]Video codec:[/bold] {meta['codec']}")
+    if meta.get("audio_codec"):
+        meta_lines.append(f"[bold]Audio codec:[/bold] {meta['audio_codec']}")
+    if meta.get("size_bytes"):
+        meta_lines.append(f"[bold]Size:[/bold] {meta['size_bytes'] // 1024:,} KB")
+    console.print(Panel("\n".join(meta_lines) or "No metadata", title="[cyan]Metadata[/cyan]", border_style="cyan"))
+
+    _format_analyze_transcript(result, no_transcript)
 
     scenes = result.get("scenes")
     if scenes is not None:

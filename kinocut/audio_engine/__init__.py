@@ -34,6 +34,28 @@ from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _validate_input_path
 
 
+def _build_audio_events(audio_config: dict[str, Any]) -> list[dict[str, Any]]:
+    """Build the event list from config, inserting a drone if specified."""
+    events = list(audio_config.get("events", []))
+
+    drone_config = audio_config.get("drone")
+    if drone_config:
+        events.insert(
+            0,
+            {
+                "type": "tone",
+                "at": 0,
+                "duration": 60,  # Will be truncated to video length
+                "freq": drone_config.get("frequency", 100),
+                "volume": drone_config.get("volume", 0.2),
+                "waveform": "sine",
+            },
+        )
+
+    if not events:
+        raise MCPVideoError("No audio events specified", error_type="validation_error", code="invalid_parameter")
+    return events
+
 def add_generated_audio(
     video: str,
     audio_config: dict[str, Any],
@@ -54,26 +76,7 @@ def add_generated_audio(
     import subprocess
     import tempfile
 
-    # Generate audio sequence
-    events = audio_config.get("events", [])
-
-    # Add drone if specified
-    drone_config = audio_config.get("drone")
-    if drone_config:
-        events.insert(
-            0,
-            {
-                "type": "tone",
-                "at": 0,
-                "duration": 60,  # Will be truncated to video length
-                "freq": drone_config.get("frequency", 100),
-                "volume": drone_config.get("volume", 0.2),
-                "waveform": "sine",
-            },
-        )
-
-    if not events:
-        raise MCPVideoError("No audio events specified", error_type="validation_error", code="invalid_parameter")
+    events = _build_audio_events(audio_config)
 
     # Create temp audio file
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:

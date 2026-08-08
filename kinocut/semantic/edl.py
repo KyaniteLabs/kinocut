@@ -474,44 +474,16 @@ def _check(check_id: str, passed: bool, success: str, failure: str) -> Verificat
     return VerificationCheck(check_id=check_id, passed=passed, message=success if passed else failure)
 
 
-def verify_timeline_diff(
-    timeline: SemanticTimeline, edl: EditDecisionList, approval: EditApproval, diff: TimelineDiff
-) -> EDLVerification:
-    """Independently recompute the diff and fail closed on any mismatch."""
-
-    approval_ok = (
-        approval.edl_sha256 == edl.edl_sha256
-        and approval.approval_sha256 == canonical_digest(approval, exclude={"approval_sha256"})
-        and set(approval.selected_edit_ids).issubset({edit.edit_id for edit in edl.edits})
-    )
-    try:
-        expected = plan_timeline_diff(timeline, edl, approval)
-        expected_ok = diff == expected
-    except MCPValidationError:
-        expected = None
-        expected_ok = False
-    coverage_ok = all(
-        segment.source_id == timeline.source.source_id
-        and 0 <= segment.source_start_seconds < segment.source_end_seconds <= timeline.source.duration_seconds
-        for segment in diff.output_segments
-    )
-    ordering_ok = all(
-        segment.output_start_seconds == (0.0 if index == 0 else diff.output_segments[index - 1].output_end_seconds)
-        and segment.output_end_seconds > segment.output_start_seconds
-        for index, segment in enumerate(diff.output_segments)
-    )
-    audio_video_ok = diff.audio_video_mapping_shared and expected is not None
-    known_words = {word.span_id: word.span_sha256 for word in timeline.words}
-    caption_ok = (
-        expected is not None
-        and diff.caption_remap == expected.caption_remap
-        and all(
-            known_words.get(remap.span_id) == remap.span_sha256
-            and 0 <= remap.output_start_seconds < remap.output_end_seconds <= diff.output_duration_seconds
-            for remap in diff.caption_remap
-        )
-    )
-    checks = (
+def _verification_checks(
+    approval_ok: bool,
+    coverage_ok: bool,
+    ordering_ok: bool,
+    expected_ok: bool,
+    audio_video_ok: bool,
+    caption_ok: bool,
+) -> tuple[VerificationCheck, ...]:
+    """Build the verification check tuple from individual boolean predicates."""
+    return (
         _check(
             "approval_hash",
             approval_ok,
@@ -549,6 +521,45 @@ def verify_timeline_diff(
             "Caption remap is missing, stale, partial, or source-inconsistent.",
         ),
     )
+
+def verify_timeline_diff(
+    timeline: SemanticTimeline, edl: EditDecisionList, approval: EditApproval, diff: TimelineDiff
+) -> EDLVerification:
+    """Independently recompute the diff and fail closed on any mismatch."""
+
+    approval_ok = (
+        approval.edl_sha256 == edl.edl_sha256
+        and approval.approval_sha256 == canonical_digest(approval, exclude={"approval_sha256"})
+        and set(approval.selected_edit_ids).issubset({edit.edit_id for edit in edl.edits})
+    )
+    try:
+        expected = plan_timeline_diff(timeline, edl, approval)
+        expected_ok = diff == expected
+    except MCPValidationError:
+        expected = None
+        expected_ok = False
+    coverage_ok = all(
+        segment.source_id == timeline.source.source_id
+        and 0 <= segment.source_start_seconds < segment.source_end_seconds <= timeline.source.duration_seconds
+        for segment in diff.output_segments
+    )
+    ordering_ok = all(
+        segment.output_start_seconds == (0.0 if index == 0 else diff.output_segments[index - 1].output_end_seconds)
+        and segment.output_end_seconds > segment.output_start_seconds
+        for index, segment in enumerate(diff.output_segments)
+    )
+    audio_video_ok = diff.audio_video_mapping_shared and expected is not None
+    known_words = {word.span_id: word.span_sha256 for word in timeline.words}
+    caption_ok = (
+        expected is not None
+        and diff.caption_remap == expected.caption_remap
+        and all(
+            known_words.get(remap.span_id) == remap.span_sha256
+            and 0 <= remap.output_start_seconds < remap.output_end_seconds <= diff.output_duration_seconds
+            for remap in diff.caption_remap
+        )
+    )
+    checks = _verification_checks(approval_ok, coverage_ok, ordering_ok, expected_ok, audio_video_ok, caption_ok)
     return EDLVerification(
         edl_sha256=edl.edl_sha256,
         diff_sha256=diff.diff_sha256,

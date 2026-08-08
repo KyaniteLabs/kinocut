@@ -36,6 +36,27 @@ def _edit_beats(
     return edited_paths, edit_receipts
 
 
+def _dry_run_receipt(
+    graph: list[dict[str, Any]],
+    establish_path: Path,
+    beat_paths: list[Path],
+    out_dir: Path,
+    receipt_name: str,
+) -> dict[str, Any]:
+    """Build a dry-run still-package receipt without rendering."""
+    receipt = {
+        "tool": "still_package",
+        "status": "planned",
+        "dry_run": True,
+        "graph": graph,
+        "establish": str(establish_path),
+        "beats": [str(p) for p in beat_paths],
+    }
+    path = write_receipt(out_dir / receipt_name, receipt)
+    receipt["receipt_path"] = str(path)
+    receipt["output_dir"] = str(out_dir)
+    return receipt
+
 def still_package(
     *,
     establish: str | Path,
@@ -72,18 +93,7 @@ def still_package(
         {"step": "still_gate"},
     ]
     if dry_run:
-        receipt = {
-            "tool": "still_package",
-            "status": "planned",
-            "dry_run": True,
-            "graph": graph,
-            "establish": str(establish_path),
-            "beats": [str(p) for p in beat_paths],
-        }
-        path = write_receipt(out_dir / receipt_name, receipt)
-        receipt["receipt_path"] = str(path)
-        receipt["output_dir"] = str(out_dir)
-        return receipt
+        return _dry_run_receipt(graph, establish_path, beat_paths, out_dir, receipt_name)
 
     edited_paths, edit_receipts = _edit_beats(establish_path, beat_paths, intent_list, out_dir / "edits")
     match_receipt = still_match(hero=establish_path, inputs=edited_paths, output_dir=out_dir / "matched")

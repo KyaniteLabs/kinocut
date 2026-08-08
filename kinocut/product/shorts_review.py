@@ -126,31 +126,10 @@ def review_shorts_plan(
     return save_shorts_plan(revised)
 
 
-def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> CandidateMoment:
-    """Apply the decision stack and return the approved effective candidate.
-
-    Fail closed when there is no current approve, or when the candidate is
-    marked unsuitable. ``trim`` / ``title_hook_edit`` / sensitivity decisions
-    mutate the effective bounds and metadata; a later ``reject`` clears
-    approval.
-    """
-    if not isinstance(plan, ShortsPlan):
-        raise _review_error(
-            "resolve_approved_candidate requires a strict ShortsPlan.",
-            code="invalid_plan",
-            cause=f"got {type(plan).__name__!r}.",
-            recovery="Load the plan with load_shorts_plan(...) first.",
-        )
-
-    candidate = next((item for item in plan.proposals if item.candidate_id == candidate_id), None)
-    if candidate is None:
-        raise _review_error(
-            "The candidate does not exist.",
-            code="shorts_candidate_not_found",
-            cause=f"{candidate_id!r} is not in the plan proposals.",
-            recovery="Choose a candidate from the proposal output.",
-        )
-
+def _apply_review_decisions(
+    plan: ShortsPlan, candidate_id: str,
+) -> tuple[dict[str, Any], bool]:
+    """Apply the decision stack and return updates dict and approved flag."""
     updates: dict[str, Any] = {}
     approved = False
     for decision in plan.decisions:
@@ -187,6 +166,34 @@ def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> Candidate
                 updates["unsuitable"] = False
                 if updates.get("sensitivity") == "unsafe":
                     updates["sensitivity"] = "none"
+    return updates, approved
+
+def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> CandidateMoment:
+    """Apply the decision stack and return the approved effective candidate.
+
+    Fail closed when there is no current approve, or when the candidate is
+    marked unsuitable. ``trim`` / ``title_hook_edit`` / sensitivity decisions
+    mutate the effective bounds and metadata; a later ``reject`` clears
+    approval.
+    """
+    if not isinstance(plan, ShortsPlan):
+        raise _review_error(
+            "resolve_approved_candidate requires a strict ShortsPlan.",
+            code="invalid_plan",
+            cause=f"got {type(plan).__name__!r}.",
+            recovery="Load the plan with load_shorts_plan(...) first.",
+        )
+
+    candidate = next((item for item in plan.proposals if item.candidate_id == candidate_id), None)
+    if candidate is None:
+        raise _review_error(
+            "The candidate does not exist.",
+            code="shorts_candidate_not_found",
+            cause=f"{candidate_id!r} is not in the plan proposals.",
+            recovery="Choose a candidate from the proposal output.",
+        )
+
+    updates, approved = _apply_review_decisions(plan, candidate_id)
 
     # Recompute dedup_key whenever bounds or sensitivity change so the
     # CandidateMoment invariant remains satisfied.

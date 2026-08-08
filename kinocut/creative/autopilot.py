@@ -122,6 +122,17 @@ def _capability_abstentions(
     return tuple(abstentions)
 
 
+def _selection_abstentions(items: Any) -> tuple[AutopilotAbstention, ...]:
+    """Convert selection abstention items into AutopilotAbstention records."""
+    return tuple(
+        AutopilotAbstention(
+            code="selection_prerequisite_absent",
+            subject=item.role,
+            message=f"{item.code}: {item.reason}",
+        )
+        for item in items
+    )
+
 def plan_creative_autopilot(
     *,
     manifest: ProjectManifest | Mapping[str, Any],
@@ -155,14 +166,7 @@ def plan_creative_autopilot(
         evidence=valid_request.selection_evidence,
     )
     if selection.abstentions:
-        selection_abstentions = tuple(
-            AutopilotAbstention(
-                code="selection_prerequisite_absent",
-                subject=item.role,
-                message=f"{item.code}: {item.reason}",
-            )
-            for item in selection.abstentions
-        )
+        selection_abstentions = _selection_abstentions(selection.abstentions)
         return _result(
             manifest=valid_manifest,
             request=valid_request,
