@@ -1,0 +1,19 @@
+{
+  "schema_version": "kinocut-stale-marker-allowlist/v1",
+  "entries": [
+    {
+      "marker_id": "KIN-EMPOWER-001",
+      "path": "AGENTS.md",
+      "source_sha256": "d1020a0c311a106e7fbaaf152925044db0f665f7b469322703da19b5e975aa14",
+      "expires_at": "2026-12-31T23:59:59Z",
+      "reason": "Required by .github/workflows/agent-law.yml and the canonical Empower Orchestrator law."
+    },
+    {
+      "marker_id": "KIN-EMPOWER-001",
+      "path": "CLAUDE.md",
+      "source_sha256": "d1020a0c311a106e7fbaaf152925044db0f665f7b469322703da19b5e975aa14",
+      "expires_at": "2026-12-31T23:59:59Z",
+      "reason": "Required by .github/workflows/agent-law.yml and the canonical Empower Orchestrator law."
+    }
+  ]
+}
