@@ -189,29 +189,17 @@ def _same_horizontal_band(x1: float, x2: float, text1: str, text2: str, size1: i
 # ---------------------------------------------------------------------------
 
 
-def validate_text_layout(
-    overlays: list[TextOverlaySpec],
-    video_width: int = 1920,
-    video_height: int = 1080,
-    background_color: str = "#000000",
-    existing_overlays: list[TextOverlaySpec] | None = None,
+def _check_text_overlaps(
+    all_overlays: list[TextOverlaySpec],
+    video_width: int,
+    video_height: int,
 ) -> list[LayoutWarning]:
-    """Validate a set of text overlays for common visual failure modes.
+    """Check for overlaps between simultaneous overlays.
 
-    Args:
-        overlays: List of text overlays to validate.
-        video_width: Video width in pixels.
-        video_height: Video height in pixels.
-        background_color: Background color for contrast checking.
-        existing_overlays: Existing overlays already on the video.
-
-    Returns:
-        List of warnings. Empty list means the layout is clean.
+    Indices are relative to ``all_overlays`` (existing + new).
     """
+    del video_width  # kept for API symmetry; overlap uses vertical geometry only
     warnings: list[LayoutWarning] = []
-    all_overlays = list(existing_overlays or []) + list(overlays)
-
-    # 1. Check for overlaps between simultaneous overlays
     for i, o1 in enumerate(all_overlays):
         for j, o2 in enumerate(all_overlays):
             if i >= j:
@@ -259,8 +247,15 @@ def validate_text_layout(
                         overlay_indices=(i, j),
                     )
                 )
+    return warnings
 
-    # 2. Check contrast for each overlay
+
+def _check_contrast(
+    overlays: list[TextOverlaySpec],
+    background_color: str,
+) -> list[LayoutWarning]:
+    """Check contrast ratio for each overlay against the background."""
+    warnings: list[LayoutWarning] = []
     for i, overlay in enumerate(overlays):
         try:
             ratio = contrast_ratio(overlay.color, background_color)
@@ -280,8 +275,12 @@ def validate_text_layout(
                 )
         except Exception:  # noqa: S110
             pass
+    return warnings
 
-    # 3. Check text size
+
+def _check_text_size(overlays: list[TextOverlaySpec]) -> list[LayoutWarning]:
+    """Check that text size is within recommended bounds."""
+    warnings: list[LayoutWarning] = []
     for i, overlay in enumerate(overlays):
         if overlay.size < MIN_TEXT_SIZE_PX:
             warnings.append(
@@ -305,8 +304,16 @@ def validate_text_layout(
                     overlay_indices=(i,),
                 )
             )
+    return warnings
 
-    # 4. Check safe areas
+
+def _check_safe_areas(
+    overlays: list[TextOverlaySpec],
+    video_width: int,
+    video_height: int,
+) -> list[LayoutWarning]:
+    """Check that overlays fall within the title-safe area."""
+    warnings: list[LayoutWarning] = []
     margin_y = TITLE_SAFE_MARGIN_PCT * video_height
     margin_x = TITLE_SAFE_MARGIN_PCT * video_width
     for i, overlay in enumerate(overlays):
@@ -337,10 +344,13 @@ def validate_text_layout(
                             overlay_indices=(i,),
                         )
                     )
+    return warnings
 
-    # 5. Check for multiple sequential overlays (quality warning)
+
+def _check_excessive_overlays(overlays: list[TextOverlaySpec]) -> list[LayoutWarning]:
+    """Warn when too many sequential overlays degrade quality."""
     if len(overlays) > 5:
-        warnings.append(
+        return [
             LayoutWarning(
                 code="excessive_overlays",
                 message=(
@@ -352,9 +362,16 @@ def validate_text_layout(
                 severity="warning",
                 overlay_indices=tuple(range(len(overlays))),
             )
-        )
+        ]
+    return []
 
-    # 6. Check shadow effectiveness
+
+def _check_shadow_effectiveness(
+    overlays: list[TextOverlaySpec],
+    background_color: str,
+) -> list[LayoutWarning]:
+    """Warn when low-contrast overlays lack a shadow."""
+    warnings: list[LayoutWarning] = []
     for i, overlay in enumerate(overlays):
         if not overlay.shadow:
             try:
@@ -374,7 +391,36 @@ def validate_text_layout(
                     )
             except Exception:  # noqa: S110
                 pass
+    return warnings
 
+
+def validate_text_layout(
+    overlays: list[TextOverlaySpec],
+    video_width: int = 1920,
+    video_height: int = 1080,
+    background_color: str = "#000000",
+    existing_overlays: list[TextOverlaySpec] | None = None,
+) -> list[LayoutWarning]:
+    """Validate a set of text overlays for common visual failure modes.
+
+    Args:
+        overlays: List of text overlays to validate.
+        video_width: Video width in pixels.
+        video_height: Video height in pixels.
+        background_color: Background color for contrast checking.
+        existing_overlays: Existing overlays already on the video.
+
+    Returns:
+        List of warnings. Empty list means the layout is clean.
+    """
+    all_overlays = list(existing_overlays or []) + list(overlays)
+    warnings: list[LayoutWarning] = []
+    warnings += _check_text_overlaps(all_overlays, video_width, video_height)
+    warnings += _check_contrast(overlays, background_color)
+    warnings += _check_text_size(overlays)
+    warnings += _check_safe_areas(overlays, video_width, video_height)
+    warnings += _check_excessive_overlays(overlays)
+    warnings += _check_shadow_effectiveness(overlays, background_color)
     return warnings
 
 

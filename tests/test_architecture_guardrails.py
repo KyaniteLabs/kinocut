@@ -235,7 +235,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/cli/parser/layout.py": {"add_parsers"},
     "kinocut/cli/parser/media.py": {"add_parsers"},
     "kinocut/creative/autopilot.py": {"plan_creative_autopilot"},
-    "kinocut/design_guardrails.py": {"validate_text_layout"},
     "kinocut/effects_engine/layout.py": {"layout_grid", "layout_pip"},
     "kinocut/effects_engine/mograph.py": {"mograph_count", "mograph_progress"},
     "kinocut/effects_engine/text.py": {"text_animated"},
