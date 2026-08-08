@@ -1,0 +1,24 @@
+name: Renovate
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"  # every 6 hours
+  workflow_dispatch: {}
+
+jobs:
+  renovate:
+    runs-on: heavy
+    container:
+      image: renovate/renovate:latest
+      options: --user 0:0
+    steps:
+      - name: Run Renovate
+        env:
+          RENOVATE_PLATFORM: gitea
+          RENOVATE_ENDPOINT: https://git.kyanitelabs.tech/api/v1
+          RENOVATE_TOKEN: ${{ secrets.RENOVATE_TOKEN }}
+          RENOVATE_REPOSITORIES: KyaniteLabs/kinocut
+          RENOVATE_GIT_AUTHOR: "Renovate Bot <renovate@kyanitelabs.tech>"
+          GITHUB_COM_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
+          LOG_LEVEL: info
+        run: renovate
