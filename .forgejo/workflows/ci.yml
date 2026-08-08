@@ -4,9 +4,9 @@ on:
   pull_request:
 jobs:
   lint:
-    # Runs on `heavy`: its successful release matrix confirms that label is
-    # available, while the required `light` queue is currently unavailable.
-    runs-on: heavy
+    # Lightweight: ruff only. Routed to `light` so lint never queues behind
+    # heavy test jobs on the capacity-2 runner.
+    runs-on: light
     steps:
       - uses: actions/checkout@v4
       - name: Install ruff
@@ -18,8 +18,6 @@ jobs:
         run: .venv-lint/bin/ruff check .
   test:
     # PR-safe test job: ffmpeg + full dependency tree + the "not slow" suite.
-    # Route to the confirmed-active `heavy` label so this required protected-
-    # branch check cannot remain queued behind the unavailable `light` runner.
     runs-on: heavy
     steps:
       - uses: actions/checkout@v4
@@ -34,8 +32,7 @@ jobs:
         run: .venv/bin/pytest tests/ -q -m "not slow" -n 4
   test-slow:
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
-    # on push to master. Route to the confirmed-active `heavy` runner. Kept
-    # serial (no -n) because these tests do heavier real I/O.
+    # on push to master. Kept serial (no -n) because these tests do heavier real I/O.
     if: ${{ github.event_name == 'push' }}
     runs-on: heavy
     steps:
@@ -62,12 +59,11 @@ jobs:
     # each, so version-specific parse bugs fail loudly, every time.
     #
     # Additive coverage — the apt `test` job stays as-is. Routed to `heavy`
-    # because real renders are CPU-heavy and must not load the capacity-1 VPS
-    # that co-hosts production Forgejo. Not wired into required checks by
-    # default (see PR note), so a heavy-runner outage leaves this pending, never
-    # blocking PRs. Static builds are pinned to immutable BtbN release tags
-    # (repo policy: pin exact versions); the per-leg version assert fails the
-    # job if an asset ever drifts off its expected major.
+    # because real renders are CPU-heavy. Static builds are pinned to immutable
+    # BtbN release tags (repo policy: pin exact versions). Assets use the
+    # `linuxarm64` variant because the CI runner is Apple Silicon (ARM64);
+    # revisit if an x86_64 runner is added. The per-leg version assert fails
+    # the job if an asset ever drifts off its expected major.
     runs-on: heavy
     strategy:
       fail-fast: false
@@ -75,7 +71,7 @@ jobs:
         include:
           - major: "6"
             ffmpeg_tag: autobuild-2025-08-31-13-00
-            ffmpeg_asset: ffmpeg-n6.1.3-linux64-gpl-6.1.tar.xz
+            ffmpeg_asset: ffmpeg-n6.1.3-linuxarm64-gpl-6.1.tar.xz
           - major: "7"
             # 7.1.0 (autobuild-2024-09-30) has an upstream `best_input >= 0`
             # assertion regression (ffmpeg_filter.c) that aborts on the glitch
@@ -83,10 +79,10 @@ jobs:
             # month-end build, which BtbN retains for two years; daily builds
             # expire after 14 days.
             ffmpeg_tag: autobuild-2026-06-30-13-34
-            ffmpeg_asset: ffmpeg-n7.1.5-1-g7d0e842004-linux64-gpl-7.1.tar.xz
+            ffmpeg_asset: ffmpeg-n7.1.5-1-g7d0e842004-linuxarm64-gpl-7.1.tar.xz
           - major: "8"
             ffmpeg_tag: autobuild-2026-06-30-13-34
-            ffmpeg_asset: ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz
+            ffmpeg_asset: ffmpeg-n8.1.2-21-gce3c09c101-linuxarm64-gpl-8.1.tar.xz
     steps:
       - uses: actions/checkout@v4
       - name: Install Python toolchain
