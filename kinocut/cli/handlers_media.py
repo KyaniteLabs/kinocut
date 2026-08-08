@@ -21,18 +21,8 @@ from .formatting import (
 from .runner import CommandRunner, _out, engine_cmd, plain_cmd
 
 
-def handle_media_commands(args: Any, *, use_json: bool) -> bool:
-    from ..engine import (
-        apply_filter,
-        compare_quality,
-        export_frames,
-        generate_subtitles,
-        normalize_audio,
-        video_batch,
-        write_metadata,
-    )
-
-    runner = CommandRunner(args, use_json)
+def _register_filter_commands(runner: CommandRunner) -> None:
+    from ..engine import apply_filter
 
     def _filter(a, j):
         _out(
@@ -103,6 +93,10 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("color-grade", _color_grade)
 
+
+def _register_audio_commands(runner: CommandRunner) -> None:
+    from ..engine import generate_subtitles, normalize_audio
+
     def _normalize(a, j):
         _out(
             _with_spinner(
@@ -118,6 +112,35 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("normalize-audio", _normalize)
+    runner.register(
+        "audio-waveform",
+        engine_cmd(
+            "mcp_video.engine:audio_waveform",
+            "Extracting waveform...",
+            "input",
+            formatter=_format_audio_waveform,
+            bins="bins",
+        ),
+    )
+
+    def _gen_subs(a, j):
+        _out(
+            _with_spinner(
+                "Generating subtitles...",
+                generate_subtitles,
+                _parse_json_arg(a.entries, "entries", json_mode=j),
+                a.input,
+                burn=a.burn,
+                output_path=a.output,
+            ),
+            j,
+            _format_generate_subtitles,
+        )
+
+    runner.register("generate-subtitles", _gen_subs)
+
+
+def _register_composition_commands(runner: CommandRunner) -> None:
     runner.register(
         "overlay-video",
         engine_cmd(
@@ -149,6 +172,10 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
             output_path="output",
         ),
     )
+
+
+def _register_batch_commands(runner: CommandRunner) -> None:
+    from ..engine import compare_quality, export_frames, video_batch
 
     def _batch(a, j):
         _out(
@@ -216,6 +243,11 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("compare-quality", _compare)
+
+
+def _register_metadata_commands(runner: CommandRunner) -> None:
+    from ..engine import write_metadata
+
     runner.register(
         "read-metadata", plain_cmd("mcp_video.engine:read_metadata", "input", formatter=_format_read_metadata)
     )
@@ -257,33 +289,9 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
             output_path="output",
         ),
     )
-    runner.register(
-        "audio-waveform",
-        engine_cmd(
-            "mcp_video.engine:audio_waveform",
-            "Extracting waveform...",
-            "input",
-            formatter=_format_audio_waveform,
-            bins="bins",
-        ),
-    )
 
-    def _gen_subs(a, j):
-        _out(
-            _with_spinner(
-                "Generating subtitles...",
-                generate_subtitles,
-                _parse_json_arg(a.entries, "entries", json_mode=j),
-                a.input,
-                burn=a.burn,
-                output_path=a.output,
-            ),
-            j,
-            _format_generate_subtitles,
-        )
 
-    runner.register("generate-subtitles", _gen_subs)
-
+def _register_template_commands(runner: CommandRunner) -> None:
     def _templates(a, j):
         from ..templates import TEMPLATES
 
@@ -354,4 +362,14 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("repurpose", _repurpose)
+
+
+def handle_media_commands(args: Any, *, use_json: bool) -> bool:
+    runner = CommandRunner(args, use_json)
+    _register_filter_commands(runner)
+    _register_audio_commands(runner)
+    _register_composition_commands(runner)
+    _register_batch_commands(runner)
+    _register_metadata_commands(runner)
+    _register_template_commands(runner)
     return runner.dispatch()
