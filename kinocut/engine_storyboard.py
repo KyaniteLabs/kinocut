@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import os
 import shutil
-
+from pathlib import Path
 from .ffmpeg_helpers import _validate_input_path
 from .engine_probe import get_duration
 from .paths import _auto_output_dir
@@ -80,29 +80,37 @@ def storyboard(
     out_dir = output_dir or _auto_output_dir(input_path, "storyboard")
     os.makedirs(out_dir, exist_ok=True)
 
-    frame_paths: list[str] = []
     interval = dur / (frame_count + 1)
 
-    for i in range(frame_count):
-        ts = interval * (i + 1)
-        frame_name = f"frame_{i + 1:02d}_{ts:.1f}s.jpg"
-        frame_path = os.path.join(out_dir, frame_name)
+    # Single-pass extraction: one FFmpeg process for all frames.
+    # The fps filter samples one frame per *interval* seconds starting from
+    # the first interval position, replacing N separate FFmpeg invocations.
+    pattern = os.path.join(out_dir, "sb_frame_%03d.jpg")
+    _run_ffmpeg(
+        [
+            "-ss",
+            f"{interval:.3f}",
+            "-i",
+            input_path,
+            "-vf",
+            f"fps={1.0 / interval:.6f}",
+            "-vframes",
+            str(frame_count),
+            "-q:v",
+            "2",
+            "-y",
+            pattern,
+        ]
+    )
 
-        _run_ffmpeg(
-            [
-                "-ss",
-                str(ts),
-                "-i",
-                input_path,
-                "-vframes",
-                "1",
-                "-q:v",
-                "2",
-                "-y",
-                frame_path,
-            ]
-        )
-        frame_paths.append(frame_path)
+    # Collect and rename extracted frames with timestamp labels
+    frame_paths: list[str] = []
+    for i, tmp_frame in enumerate(sorted(Path(out_dir).glob("sb_frame_*.jpg"))):
+        ts = interval * (i + 1)
+        final_name = f"frame_{i + 1:02d}_{ts:.1f}s.jpg"
+        final_path = os.path.join(out_dir, final_name)
+        os.rename(str(tmp_frame), final_path)
+        frame_paths.append(final_path)
 
     grid_path = _create_storyboard_grid(frame_paths, out_dir)
 
