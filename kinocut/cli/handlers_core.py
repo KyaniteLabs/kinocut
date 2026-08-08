@@ -18,11 +18,18 @@ from .runner import CommandRunner, _out, engine_cmd, plain_cmd
 
 
 def handle_initial_command(args: Any, *, use_json: bool) -> bool:
-    from ..engine import edit_timeline as _edit_timeline
-    from ..models import Timeline
-
     runner = CommandRunner(args, use_json)
+    _register_diagnostics_commands(runner)
+    _register_frame_commands(runner)
+    _register_text_commands(runner)
+    _register_audio_commands(runner)
+    _register_transform_commands(runner)
+    _register_render_commands(runner)
+    _register_edit_command(runner)
+    return runner.dispatch()
 
+
+def _register_diagnostics_commands(runner: CommandRunner) -> None:
     def _doctor(a, j):
         from ..doctor import run_diagnostics
 
@@ -41,6 +48,9 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
             },
         ),
     )
+
+
+def _register_frame_commands(runner: CommandRunner) -> None:
     runner.register(
         "extract-frame",
         engine_cmd(
@@ -82,7 +92,41 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
             transition_duration="transition_duration",
         ),
     )
+    runner.register(
+        "thumbnail",
+        plain_cmd(
+            "mcp_video.engine:thumbnail",
+            "input",
+            formatter=_format_edit_text,
+            timestamp="timestamp",
+            output_path="output",
+        ),
+    )
+    runner.register(
+        "preview",
+        engine_cmd(
+            "mcp_video.engine:preview",
+            "Generating preview...",
+            "input",
+            formatter=_format_edit_text,
+            output_path="output",
+            scale_factor="scale",
+        ),
+    )
+    runner.register(
+        "storyboard",
+        engine_cmd(
+            "mcp_video.engine:storyboard",
+            "Extracting storyboard...",
+            "input",
+            formatter=_format_storyboard_text,
+            output_dir="output_dir",
+            frame_count="frames",
+        ),
+    )
 
+
+def _register_text_commands(runner: CommandRunner) -> None:
     def _add_text(a, j):
         from ..engine import add_text
 
@@ -106,6 +150,39 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("add-text", _add_text)
+
+    def _subs(a, j):
+        from ..engine import subtitles
+
+        kwargs = {"subtitle_path": a.subtitle, "output_path": a.output}
+        if a.style is not None:
+            kwargs["style"] = a.style
+        _out(
+            _with_spinner("Burning subtitles...", subtitles, a.input, **kwargs),
+            j,
+            _format_edit_text,
+        )
+
+    runner.register("subtitles", _subs)
+    runner.register(
+        "watermark",
+        engine_cmd(
+            "mcp_video.engine:watermark",
+            "Adding watermark...",
+            "input",
+            formatter=_format_edit_text,
+            image_path="image",
+            position="position",
+            opacity="opacity",
+            margin="margin",
+            output_path="output",
+            crf="crf",
+            preset="preset",
+        ),
+    )
+
+
+def _register_audio_commands(runner: CommandRunner) -> None:
     runner.register(
         "add-audio",
         engine_cmd(
@@ -123,6 +200,21 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
             duration_policy="duration_policy",
         ),
     )
+    runner.register(
+        "extract-audio",
+        engine_cmd(
+            "mcp_video.engine:extract_audio",
+            "Extracting audio...",
+            "input",
+            formatter=_format_extract_audio_text,
+            output_path="output",
+            format="audio_format",
+            json_transform=lambda r: {"success": True, "output_path": r},
+        ),
+    )
+
+
+def _register_transform_commands(runner: CommandRunner) -> None:
     runner.register(
         "resize",
         engine_cmd(
@@ -161,68 +253,6 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
         ),
     )
     runner.register(
-        "thumbnail",
-        plain_cmd(
-            "mcp_video.engine:thumbnail",
-            "input",
-            formatter=_format_edit_text,
-            timestamp="timestamp",
-            output_path="output",
-        ),
-    )
-    runner.register(
-        "preview",
-        engine_cmd(
-            "mcp_video.engine:preview",
-            "Generating preview...",
-            "input",
-            formatter=_format_edit_text,
-            output_path="output",
-            scale_factor="scale",
-        ),
-    )
-    runner.register(
-        "storyboard",
-        engine_cmd(
-            "mcp_video.engine:storyboard",
-            "Extracting storyboard...",
-            "input",
-            formatter=_format_storyboard_text,
-            output_dir="output_dir",
-            frame_count="frames",
-        ),
-    )
-
-    def _subs(a, j):
-        from ..engine import subtitles
-
-        kwargs = {"subtitle_path": a.subtitle, "output_path": a.output}
-        if a.style is not None:
-            kwargs["style"] = a.style
-        _out(
-            _with_spinner("Burning subtitles...", subtitles, a.input, **kwargs),
-            j,
-            _format_edit_text,
-        )
-
-    runner.register("subtitles", _subs)
-    runner.register(
-        "watermark",
-        engine_cmd(
-            "mcp_video.engine:watermark",
-            "Adding watermark...",
-            "input",
-            formatter=_format_edit_text,
-            image_path="image",
-            position="position",
-            opacity="opacity",
-            margin="margin",
-            output_path="output",
-            crf="crf",
-            preset="preset",
-        ),
-    )
-    runner.register(
         "crop",
         engine_cmd(
             "mcp_video.engine:crop",
@@ -249,6 +279,9 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
             output_path="output",
         ),
     )
+
+
+def _register_render_commands(runner: CommandRunner) -> None:
     runner.register(
         "fade",
         engine_cmd(
@@ -278,18 +311,11 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
             c2pa_signer_path="c2pa_signer_path",
         ),
     )
-    runner.register(
-        "extract-audio",
-        engine_cmd(
-            "mcp_video.engine:extract_audio",
-            "Extracting audio...",
-            "input",
-            formatter=_format_extract_audio_text,
-            output_path="output",
-            format="audio_format",
-            json_transform=lambda r: {"success": True, "output_path": r},
-        ),
-    )
+
+
+def _register_edit_command(runner: CommandRunner) -> None:
+    from ..engine import edit_timeline as _edit_timeline
+    from ..models import Timeline
 
     def _edit(a, j):
         timeline_arg = a.timeline.strip()
@@ -305,4 +331,3 @@ def handle_initial_command(args: Any, *, use_json: bool) -> bool:
         )
 
     runner.register("edit", _edit)
-    return runner.dispatch()

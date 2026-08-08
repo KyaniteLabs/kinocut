@@ -223,7 +223,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/cli/handlers_ai.py": {"handle_ai_commands"},
     "kinocut/cli/handlers_audio.py": {"handle_audio_commands"},
     "kinocut/cli/handlers_composition.py": {"handle_composition_command"},
-    "kinocut/cli/handlers_core.py": {"handle_initial_command"},
     "kinocut/cli/handlers_effects.py": {"handle_effect_command"},
     "kinocut/cli/handlers_hyperframes.py": {"handle_hyperframes_commands"},
     "kinocut/cli/handlers_image.py": {"handle_image_commands"},
