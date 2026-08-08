@@ -184,99 +184,132 @@ def _apply_simple_spatial(
     # For multi-keyframe spatial audio with pan, we need to use a different approach
     # since pan doesn't support timeline enable. We'll segment the audio and apply
     # different pan settings to each segment, then concatenate.
-
     with tempfile.TemporaryDirectory() as tmpdir:
         tmpdir_path = Path(tmpdir)
         segment_files = []
 
         # Process each position segment
         for i, pos in enumerate(sorted_positions):
-            time_start = pos.get("time", 0)
-            azimuth = pos.get("azimuth", 0)
-            elevation = pos.get("elevation", 0)
-
-            # Determine segment duration
-            if i < len(sorted_positions) - 1:
-                segment_duration = sorted_positions[i + 1].get("time", duration) - time_start
-            else:
-                segment_duration = duration - time_start
-
-            if segment_duration <= 0:
-                continue
-
-            # Convert to pan and volume values
-            pan_value = _azimuth_to_pan(azimuth)
-            volume_value = _elevation_to_volume(elevation)
-
-            # Calculate channel gains for pan
-            left_gain = max(0.0, min(1.0, 0.5 - pan_value * 0.5))
-            right_gain = max(0.0, min(1.0, 0.5 + pan_value * 0.5))
-
-            # Output segment file
-            segment_file = tmpdir_path / f"segment_{i:04d}.mp4"
-            segment_files.append(segment_file)
-
-            # Build FFmpeg command for this segment
-            # Extract segment, apply pan and volume
-            filter_complex = (
-                f"[0:a]volume={volume_value},"
-                f"pan=stereo|c0={left_gain:.3f}*c0+{left_gain:.3f}*c1|"
-                f"c1={right_gain:.3f}*c0+{right_gain:.3f}*c1[aout]"
+            segment_file = _render_spatial_segment(
+                video, i, pos, sorted_positions, duration, tmpdir_path
             )
-
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-ss",
-                str(time_start),
-                "-t",
-                str(segment_duration),
-                "-i",
-                video,
-                "-filter_complex",
-                filter_complex,
-                "-map",
-                "0:v",  # Copy video stream
-                "-map",
-                "[aout]",  # Use processed audio
-                "-c:v",
-                "copy",  # Copy video without re-encoding
-                "-c:a",
-                "aac",  # Re-encode audio
-                "-b:a",
-                "192k",
-                str(segment_file),
-            ]
-
-            _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+            if segment_file is not None:
+                segment_files.append(segment_file)
 
         # Concatenate all segments
-        if len(segment_files) == 1:
-            # Single segment - just copy
-            shutil.copy2(str(segment_files[0]), output)
-        else:
-            # Multiple segments - use concat demuxer
-            concat_list = tmpdir_path / "concat_list.txt"
-            with open(concat_list, "w") as f:
-                for seg_file in segment_files:
-                    # Escape single quotes in path
-                    escaped_path = str(seg_file).replace("'", "'\\''")
-                    f.write(f"file '{escaped_path}'\n")
-
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "concat",
-                "-safe",
-                "0",
-                "-i",
-                str(concat_list),
-                "-c",
-                "copy",
-                output,
-            ]
-
-            _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        _concatenate_spatial_segments(segment_files, tmpdir_path, output)
 
     return output
+
+
+def _spatial_channel_gains(pan_value: float) -> tuple[float, float]:
+    """Calculate stereo channel gains from a pan value (-1 left .. +1 right)."""
+    left_gain = max(0.0, min(1.0, 0.5 - pan_value * 0.5))
+    right_gain = max(0.0, min(1.0, 0.5 + pan_value * 0.5))
+    return left_gain, right_gain
+
+
+def _render_spatial_segment(
+    video: str,
+    i: int,
+    pos: dict,
+    sorted_positions: list[dict],
+    duration: float,
+    tmpdir_path: Path,
+) -> Path | None:
+    """Extract and spatially process one position segment.
+
+    Returns the rendered segment path, or ``None`` when the segment has no
+    duration and should be skipped.
+    """
+    time_start = pos.get("time", 0)
+    azimuth = pos.get("azimuth", 0)
+    elevation = pos.get("elevation", 0)
+
+    # Determine segment duration
+    if i < len(sorted_positions) - 1:
+        segment_duration = sorted_positions[i + 1].get("time", duration) - time_start
+    else:
+        segment_duration = duration - time_start
+
+    if segment_duration <= 0:
+        return None
+
+    # Convert to pan and volume values
+    pan_value = _azimuth_to_pan(azimuth)
+    volume_value = _elevation_to_volume(elevation)
+    left_gain, right_gain = _spatial_channel_gains(pan_value)
+
+    # Output segment file
+    segment_file = tmpdir_path / f"segment_{i:04d}.mp4"
+
+    # Build FFmpeg command for this segment
+    # Extract segment, apply pan and volume
+    filter_complex = (
+        f"[0:a]volume={volume_value},"
+        f"pan=stereo|c0={left_gain:.3f}*c0+{left_gain:.3f}*c1|"
+        f"c1={right_gain:.3f}*c0+{right_gain:.3f}*c1[aout]"
+    )
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-ss",
+        str(time_start),
+        "-t",
+        str(segment_duration),
+        "-i",
+        video,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "0:v",  # Copy video stream
+        "-map",
+        "[aout]",  # Use processed audio
+        "-c:v",
+        "copy",  # Copy video without re-encoding
+        "-c:a",
+        "aac",  # Re-encode audio
+        "-b:a",
+        "192k",
+        str(segment_file),
+    ]
+
+    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    return segment_file
+
+
+def _concatenate_spatial_segments(
+    segment_files: list[Path],
+    tmpdir_path: Path,
+    output: str,
+) -> None:
+    """Concatenate rendered spatial segments into the final output video."""
+    if len(segment_files) == 1:
+        # Single segment - just copy
+        shutil.copy2(str(segment_files[0]), output)
+        return
+
+    # Multiple segments - use concat demuxer
+    concat_list = tmpdir_path / "concat_list.txt"
+    with open(concat_list, "w") as f:
+        for seg_file in segment_files:
+            # Escape single quotes in path
+            escaped_path = str(seg_file).replace("'", "'\\''")
+            f.write(f"file '{escaped_path}'\n")
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-f",
+        "concat",
+        "-safe",
+        "0",
+        "-i",
+        str(concat_list),
+        "-c",
+        "copy",
+        output,
+    ]
+
+    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)

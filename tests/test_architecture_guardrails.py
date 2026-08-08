@@ -211,7 +211,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/ai_engine/color.py": {"ai_color_grade"},
     "kinocut/ai_engine/scene.py": {"ai_scene_detect"},
     "kinocut/ai_engine/silence.py": {"_concat_segments"},
-    "kinocut/ai_engine/spatial.py": {"_apply_simple_spatial"},
     "kinocut/ai_engine/stem.py": {"ai_stem_separation"},
     "kinocut/ai_engine/transcribe.py": {"ai_transcribe"},
     "kinocut/ai_engine/upscale.py": {"ai_upscale"},
