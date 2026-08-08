@@ -17,7 +17,7 @@ def export_video(
     two_pass: bool = False,
     target_bitrate: int | None = None,
     c2pa_manifest_path: str | None = None,
-    c2pa_tool_path: str | None = None,
+    c2pa_tool_path: str | None = None,  # deprecated: ignored; c2patool resolved from env/config only
     c2pa_signer_path: str | None = None,
 ) -> EditResult:
     """Export a video for final delivery with quality tuning.
@@ -53,7 +53,6 @@ def export_video(
         result.c2pa = sign_export_with_c2pa(
             result.output_path,
             manifest_path=c2pa_manifest_path,
-            tool_path=c2pa_tool_path,
             signer_path=c2pa_signer_path,
         )
     return result
