@@ -230,7 +230,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/cli/parser/ai.py": {"add_parsers"},
     "kinocut/cli/parser/audio.py": {"add_parsers"},
     "kinocut/cli/parser/core.py": {"add_parsers"},
-    "kinocut/cli/parser/effects.py": {"add_parsers"},
     "kinocut/cli/parser/hyperframes.py": {"add_parsers"},
     "kinocut/cli/parser/image.py": {"add_parsers"},
     "kinocut/cli/parser/intent.py": {"add_parsers"},
