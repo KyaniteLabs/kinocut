@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Any
 
 from .engine_audio_normalize import normalize_audio
@@ -71,22 +72,35 @@ def video_batch(
                 "results": [{"input": input_path, "success": False, "error": str(exc)} for input_path in inputs],
             }
 
-    results = []
-    succeeded = 0
-    failed = 0
+    if output_dir:
+        os.makedirs(output_dir, exist_ok=True)
 
-    for input_path in inputs:
+    def _process_one(input_path: str) -> dict[str, Any]:
         try:
-            input_path = _validate_input_path(input_path)
-            if output_dir:
-                os.makedirs(output_dir, exist_ok=True)
-            result = _run_batch_operation(input_path, operation, params, output_dir)
-            results.append({"input": input_path, "success": True, "output_path": result.output_path})
-            succeeded += 1
+            validated = _validate_input_path(input_path)
+            result = _run_batch_operation(validated, operation, params, output_dir)
+            return {"input": input_path, "success": True, "output_path": result.output_path}
         except Exception as e:
             logging.warning("Batch operation failed for %s: %s", input_path, e)
-            results.append({"input": input_path, "success": False, "error": str(e)})
-            failed += 1
+            return {"input": input_path, "success": False, "error": str(e)}
+
+    max_workers = min(len(inputs), os.cpu_count() or 4, 4)
+    # Serial fallback for duplicate inputs (same file → same output path → race)
+    has_dupes = len(set(inputs)) < len(inputs)
+    if has_dupes or max_workers <= 1:
+        results = [_process_one(inp) for inp in inputs]
+    else:
+        indexed: list[dict[str, Any] | None] = [None] * len(inputs)
+        idx_map = {inp: i for i, inp in enumerate(inputs)}
+        with ThreadPoolExecutor(max_workers=max_workers) as pool:
+            futures = {pool.submit(_process_one, inp): inp for inp in inputs}
+            for future in as_completed(futures):
+                orig = futures[future]
+                indexed[idx_map[orig]] = future.result()
+        results = indexed
+
+    succeeded = sum(1 for r in results if r and r.get("success"))
+    failed = len(results) - succeeded
 
     return {
         "success": failed == 0,
