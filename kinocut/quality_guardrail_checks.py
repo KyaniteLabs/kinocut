@@ -10,21 +10,24 @@ class QualityChecksMixin:
 
     def check_brightness(self, video: str) -> QualityReport:
         """Check video brightness is in acceptable range."""
-        stats = self._run_ffprobe(video, "lavfi.signalstats.YAVG")
+        cached = self._get_all_signalstats(video)
+        y_avg = cached.get("lavfi.signalstats.YAVG")
 
-        if not stats or "mean" not in stats:
-            stats = self._run_ffmpeg_signalstats(video)
-            if not stats or "yavg" not in stats:
-                return QualityReport(
-                    check_name="brightness",
-                    passed=False,
-                    score=0.0,
-                    message="Could not analyze brightness (no video stream or analysis failed)",
-                    details={"diagnostic": stats.get("_error")} if stats else {},
-                )
-            y_avg = stats["yavg"]
-        else:
-            y_avg = stats["mean"]
+        if y_avg is None:
+            stats = self._run_ffprobe(video, "lavfi.signalstats.YAVG")
+            if not stats or "mean" not in stats:
+                stats = self._run_ffmpeg_signalstats(video)
+                if not stats or "yavg" not in stats:
+                    return QualityReport(
+                        check_name="brightness",
+                        passed=False,
+                        score=0.0,
+                        message="Could not analyze brightness (no video stream or analysis failed)",
+                        details={"diagnostic": stats.get("_error")} if stats else {},
+                    )
+                y_avg = stats["yavg"]
+            else:
+                y_avg = stats["mean"]
 
         passed = self.BRIGHTNESS_TARGET_MIN <= y_avg <= self.BRIGHTNESS_TARGET_MAX
         target = 128

@@ -8,6 +8,7 @@ from __future__ import annotations
 import json
 import logging
 import subprocess
+from pathlib import Path
 from typing import Any
 import contextlib
 
@@ -76,6 +77,64 @@ class VisualQualityGuardrails(QualityChecksMixin):
     # positive while a frozen export is caught.
     MOTION_STATIC_FRAME_FLOOR = 0.35  # YAVG diff units below which a pair is near-static
     MOTION_STATIC_FRACTION_MAX = 0.90  # >= this fraction of near-static pairs => slideshow-like
+
+    _SIGNALSTATS_ALL_TAGS = (
+        "lavfi.signalstats.YAVG,lavfi.signalstats.YHIGH,lavfi.signalstats.YLOW,"
+        "lavfi.signalstats.YMAX,lavfi.signalstats.YMIN,lavfi.signalstats.SATAVG,"
+        "lavfi.signalstats.UAVG,lavfi.signalstats.VAVG"
+    )
+    _signalstats_cache: dict[str, dict[str, float]]
+
+    def _get_all_signalstats(self, video: str) -> dict[str, float]:
+        """Fetch all signalstats tags in a single ffprobe pass, cached per video path.
+
+        Returns a dict mapping ``lavfi.signalstats.TAG`` to the mean across frames.
+        On failure, returns an empty dict so callers fall back gracefully.
+        """
+        cache_key = str(Path(video))
+        if not hasattr(self, "_signalstats_cache"):
+            self._signalstats_cache = {}
+        elif cache_key in self._signalstats_cache:
+            return self._signalstats_cache[cache_key]
+
+        cmd = [
+            "ffprobe",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            f"movie={_escape_lavfi_path(video)},signalstats",
+            "-show_entries",
+            f"frame_tags={self._SIGNALSTATS_ALL_TAGS}",
+            "-of",
+            "json",
+        ]
+        try:
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            if result.returncode != 0:
+                logger.warning("ffprobe batch signalstats failed for %s: %s", video, result.stderr.strip()[:200])
+                self._signalstats_cache[cache_key] = {}
+                return {}
+            data = json.loads(result.stdout)
+            frames = data.get("frames", [])
+            if not frames:
+                logger.warning("ffprobe batch signalstats returned no frames for %s", video)
+                self._signalstats_cache[cache_key] = {}
+                return {}
+            tag_accum: dict[str, list[float]] = {}
+            for frame in frames:
+                tags = frame.get("tags", {})
+                for tag_name, tag_val in tags.items():
+                    with contextlib.suppress(ValueError, TypeError):
+                        tag_accum.setdefault(tag_name, []).append(float(tag_val))
+            means = {tag: sum(vals) / len(vals) for tag, vals in tag_accum.items() if vals}
+            self._signalstats_cache[cache_key] = means
+            return means
+        except Exception as exc:
+            logger.warning("ffprobe batch signalstats failed for %s: %s: %s", video, type(exc).__name__, exc)
+            self._signalstats_cache[cache_key] = {}
+            return {}
 
     def _run_ffprobe(self, video: str, filter_name: str) -> dict[str, Any]:
         """Run ffprobe with signalstats filter and parse results."""
@@ -198,8 +257,13 @@ class VisualQualityGuardrails(QualityChecksMixin):
             return {}
 
     def _mean_signalstat(self, video: str, tag: str) -> float | None:
-        """Return the mean for a signalstats frame tag, if available."""
-        stats = self._run_ffprobe(video, f"lavfi.signalstats.{tag}")
+        """Return the mean for a signalstats frame tag, using the batch cache when available."""
+        full_tag = f"lavfi.signalstats.{tag}"
+        cached = self._get_all_signalstats(video)
+        if full_tag in cached:
+            return cached[full_tag]
+        # Fallback: individual probe (handles edge cases where the batch failed)
+        stats = self._run_ffprobe(video, full_tag)
         if not stats or "mean" not in stats:
             return None
         return float(stats["mean"])
@@ -260,82 +324,24 @@ class VisualQualityGuardrails(QualityChecksMixin):
     def _get_rgb_means(self, video: str) -> dict[str, Any] | None:
         """Get approximate mean RGB values for color balance analysis.
 
-        FFmpeg's signalstats filter exposes YUV means, not RGB means. Convert
-        those means into RGB-ish values so the color balance check uses fields
-        that are actually emitted by signalstats.
+        Uses the batch signalstats cache (single ffprobe pass shared with
+        brightness/contrast/saturation checks).
         """
-        cmd = [
-            "ffprobe",
-            "-v",
-            "error",
-            "-f",
-            "lavfi",
-            "-i",
-            f"movie={_escape_lavfi_path(video)},signalstats",
-            "-show_entries",
-            "frame_tags=lavfi.signalstats.YAVG,lavfi.signalstats.UAVG,lavfi.signalstats.VAVG",
-            "-of",
-            "json",
-        ]
-        try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
-            if result.returncode != 0:
-                diagnostic = _diagnostic(
-                    "ffprobe_rgb_means",
-                    "ffprobe returned nonzero exit",
-                    stderr_excerpt=result.stderr.strip()[:200],
-                )
-                logger.warning("ffprobe RGB means returned nonzero exit")
-                return {"_error": diagnostic}
-
-            data = json.loads(result.stdout)
-            frames = data.get("frames", [])
-            if not frames:
-                diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe returned no frames")
-                logger.warning("ffprobe RGB means returned no frames")
-                return {"_error": diagnostic}
-
-            y_vals, u_vals, v_vals = [], [], []
-            for frame in frames:
-                tags = frame.get("tags", {})
-                if "lavfi.signalstats.YAVG" in tags:
-                    with contextlib.suppress(ValueError, TypeError):
-                        y_vals.append(float(tags["lavfi.signalstats.YAVG"]))
-                if "lavfi.signalstats.UAVG" in tags:
-                    with contextlib.suppress(ValueError, TypeError):
-                        u_vals.append(float(tags["lavfi.signalstats.UAVG"]))
-                if "lavfi.signalstats.VAVG" in tags:
-                    with contextlib.suppress(ValueError, TypeError):
-                        v_vals.append(float(tags["lavfi.signalstats.VAVG"]))
-
-            if not (y_vals and u_vals and v_vals):
-                diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe returned incomplete YUV values")
-                logger.warning("ffprobe RGB means returned incomplete YUV values")
-                return {"_error": diagnostic}
-
-            y = sum(y_vals) / len(y_vals)
-            u = sum(u_vals) / len(u_vals) - 128
-            v = sum(v_vals) / len(v_vals) - 128
-            r = max(0.0, min(255.0, y + 1.402 * v))
-            g = max(0.0, min(255.0, y - 0.344136 * u - 0.714136 * v))
-            b = max(0.0, min(255.0, y + 1.772 * u))
-            return {
-                "r": r,
-                "g": g,
-                "b": b,
-            }
-        except subprocess.TimeoutExpired:
-            diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe timed out")
-            logger.warning("ffprobe RGB means timed out")
+        cached = self._get_all_signalstats(video)
+        y_raw = cached.get("lavfi.signalstats.YAVG")
+        u_raw = cached.get("lavfi.signalstats.UAVG")
+        v_raw = cached.get("lavfi.signalstats.VAVG")
+        if y_raw is None or u_raw is None or v_raw is None:
+            diagnostic = _diagnostic("ffprobe_rgb_means", "batch signalstats returned incomplete YUV values")
+            logger.warning("batch signalstats returned incomplete YUV values for %s", video)
             return {"_error": diagnostic}
-        except json.JSONDecodeError:
-            diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe returned invalid JSON")
-            logger.warning("ffprobe RGB means returned invalid JSON")
-            return {"_error": diagnostic}
-        except Exception as exc:
-            diagnostic = _diagnostic("ffprobe_rgb_means", "ffprobe RGB means failed", error_type=type(exc).__name__)
-            logger.warning("ffprobe RGB means failed: %s", type(exc).__name__)
-            return {"_error": diagnostic}
+        y = y_raw
+        u = u_raw - 128
+        v = v_raw - 128
+        r = max(0.0, min(255.0, y + 1.402 * v))
+        g = max(0.0, min(255.0, y - 0.344136 * u - 0.714136 * v))
+        b = max(0.0, min(255.0, y + 1.772 * u))
+        return {"r": r, "g": g, "b": b}
 
     def check_saturation(self, video: str) -> QualityReport:
         """Check saturation levels."""
