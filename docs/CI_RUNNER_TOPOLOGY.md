@@ -16,22 +16,36 @@ capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
 not a live inventory. An administrator must re-check runner placement,
 capacity, and label mappings before changing production labels. The repository
 token does not have `read:admin`, so CI cannot truthfully infer this topology.
-## Active runner: mac-m4-ci-runner
+## Active runner: colima-ci-runner
 
-As of 2026-08-08, a single local runner (`mac-m4-ci-runner`, Apple Silicon
-ARM64) is registered at repo level with `heavy`, `light`, and `default`
-labels, all mapped to `docker://ubuntu:24.04`. Docker runtime is provided
-by Colima (macOS Virtualization Framework). Capacity is 2.
+As of 2026-08-08, the CI runner (`colima-ci-runner`, id=15) runs
+**inside the Colima VM** as a systemd service (`forgejo-runner.service`,
+auto-start on boot, auto-restart on crash). The runner binary is
+forgejo-runner v13.0.0 (linux-arm64). Labels: `heavy`, `light`, `default`,
+all mapped to `docker://ubuntu:24.04`. Docker socket is native at
+`/var/run/docker.sock` inside the VM.
 
-Key constraints on this runner:
+Key constraints:
 
 - **Base image is `ubuntu:24.04`** (Python 3.12). Earlier `ubuntu:22.04`
   failed because it ships Python 3.10, below the package's `>=3.11` floor.
 - **FFmpeg matrix uses `linuxarm64` static builds** from BtbN/FFmpeg-Builds.
   The `linux64` (x86_64) binaries cannot execute on ARM64 without qemu.
 - **Lint runs on `light`** to avoid queuing behind heavy test jobs.
-- **Persistence**: act_runner is managed by launchd (`KeepAlive=true`).
-  Colima is managed by a separate launchd plist (`RunAtLoad=true`).
+- **Manual git clone** replaces `actions/checkout@v4` — the Colima VM cannot
+  reach `gitea.com` to download the action. Authenticated clone uses
+  `${{ secrets.GITHUB_TOKEN }}` with the known host.
+- **Docker network cleanup**: each CI task creates a Docker network; if
+  tasks fail, networks accumulate and exhaust address pools. Periodic
+  `docker network prune -f` inside the VM is required.
+- **Persistence**: Colima auto-starts via launchd plist
+  (`tech.kyanitelabs.colima`, `RunAtLoad=true`). The forgejo-runner inside
+  the VM is managed by systemd (`Restart=always`).
+- **macOS act_runner deprecated**: the previous macOS-hosted act_runner
+  (launchd plist `tech.kyanitelabs.act-runner`) could not exec into
+  containers because the `act` library couldn't find Docker at
+  `/var/run/docker.sock` (Colima uses a non-standard path). The Colima VM
+  runner solves this by running natively where the socket exists.
 
 ## Runner image
 

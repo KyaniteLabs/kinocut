@@ -9,6 +9,23 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased — security hardening (2026-08-08)
+
+### Security
+
+- **C2PA tool_path injection (CRITICAL):** Removed request-controlled `c2pa_tool_path` from the public MCP tool surface. The `c2patool` executable is now resolved exclusively from operator-controlled environment variables (`KINOCUT_C2PATOOL` / `MCP_VIDEO_C2PATOOL`).
+- **C2PA signer_path injection (HIGH):** Removed `c2pa_signer_path` from the public API. Signer configuration is server-side only.
+- **FFmpeg filter injection (HIGH):** Validated `style["size"]` interpolation in `engine_timeline.py` before passing to FFmpeg filter strings.
+- **HLS path traversal (HIGH):** Added output-path containment check in `engine_hls.py` to prevent `playlist_name` escaping `output_dir`.
+- **Symlink-swap race (HIGH):** `ffmpeg_helpers.py` now uses temp-file + atomic rename to close TOCTOU window on output paths.
+- **Decompression bomb (HIGH):** `image_engine.py` enforces `MAX_IMAGE_PIXELS` ceiling (50 MP) before decoding.
+- **Audio synthesis OOM (HIGH):** `audio_engine/synthesis.py` caps `MAX_SYNTHESIS_SAMPLES` (10 min @ 44.1 kHz stereo).
+- **Predictable temp files (HIGH):** `server_tools_audio.py` uses exclusive per-request temp files instead of predictable `/tmp` names.
+- **Batch output collision (HIGH):** `engine_batch.py` generates collision-resistant output names for same-named inputs from different directories.
+
+### Changed
+
+- **CI workflow:** Replaced `actions/checkout@v4` with authenticated manual `git clone` (Colima VM cannot reach `gitea.com`). FFmpeg matrix assets switched to `linuxarm64`. Lint routed to `light` label. Base image upgraded to `ubuntu:24.04` (Python 3.12).
 ## 1.13.1 - 2026-08-07
 
 ### Fixed

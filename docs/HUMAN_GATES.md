@@ -11,10 +11,24 @@ Agent-closable prep is on tip. Live outcomes below still need a human operator.
 
 ## Forgejo CI runner
 
-CI workflow (`ci.yml`) routes all jobs to the `heavy` label. Recent runs show
-intermittent success/failure — the `heavy` runner is available but occasionally
-at capacity. The `light` label is unavailable. Fixing runner allocation requires
-Forgejo admin access (`read:admin`) to verify runner placement and capacity.
-The repo token does not have this permission.
+CI runner (`colima-ci-runner`, id=15) runs inside the Colima VM via
+forgejo-runner v13.0.0 with systemd. Steps execute and some runs pass.
+Remaining CI step failures need web UI log analysis at
+`https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions` — the API
+does not expose step-level output. Likely causes: `${{ secrets.GITHUB_TOKEN }}`
+not injected on some jobs, or test-specific failures inside containers.
+
+## Adversarial audit residuals
+
+From gpt-5.6-sol audit (2026-08-08). 9 of 11 security findings fixed
+(PR #341–#344). Two remain:
+
+| ID | Severity | File | Issue |
+|---|---|---|---|
+| C1 | CRITICAL | `ai_engine/download.py` | SSRF — HTTP/yt-dlp requests reach destination before IP validation |
+| M1 | MEDIUM | `hyperframes_engine.py` | Detached preview processes leak servers/ports |
+
+C1 needs an IP-validation transport (pinned-address). M1 needs a preview
+lifecycle refactor. Both are follow-up PRs.
 
 Do not invent completed users, published launch metrics, or third-party directory approvals.
