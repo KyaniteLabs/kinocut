@@ -229,6 +229,23 @@ def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
         )
 
 
+def _validate_shader_frame_count(frame_count: int, input_path: str, max_frames: int = 7200) -> None:
+    """Raise typed errors for zero or excessive frame counts."""
+    if frame_count == 0:
+        raise MCPVideoError(
+            f"No frames extracted from {input_path}",
+            error_type="processing_error",
+            code="no_frames_extracted",
+        )
+    if frame_count > max_frames:
+        raise MCPVideoError(
+            f"Video has {frame_count} frames; GPU shader pipeline maximum is {max_frames}. "
+            "Trim the video first or use the FFmpeg-based glitch effects instead.",
+            error_type="validation_error",
+            code="too_many_frames",
+        )
+
+
 def _run_shader_effect(
     effect_name: str,
     input_path: str,
@@ -270,21 +287,7 @@ def _run_shader_effect(
         info = _extract_frames(input_path, frames_dir)
         frame_count = info["frame_count"]
 
-        if frame_count == 0:
-            raise MCPVideoError(
-                f"No frames extracted from {input_path}",
-                error_type="processing_error",
-                code="no_frames_extracted",
-            )
-
-        max_frames = 7200
-        if frame_count > max_frames:
-            raise MCPVideoError(
-                f"Video has {frame_count} frames; GPU shader pipeline maximum is {max_frames}. "
-                "Trim the video first or use the FFmpeg-based glitch effects instead.",
-                error_type="validation_error",
-                code="too_many_frames",
-            )
+        _validate_shader_frame_count(frame_count, input_path)
 
         # Build params JSON for the render script
         render_params = {
