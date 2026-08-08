@@ -17,9 +17,9 @@ about third-party pages; verify an external page before acting on its listed sta
 - Description: Guardrailed video editing for AI agents with FFmpeg, captions,
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
-- Published surface: 194 MCP tools / 165 CLI commands (1.13.0)
-- Development tip: 194 MCP tools / 165 CLI commands (matches published 1.13.0)
-- Current release: 1.13.0 (published 2026-08-07)
+- Published surface: 194 MCP tools / 165 CLI commands (1.13.1)
+- Development tip: 194 MCP tools / 165 CLI commands (matches published 1.13.1)
+- Current release: 1.13.1 (published 2026-08-07)
 - Submission ops: `docs/status/DIRECTORY_SUBMISSION_OPS.md`
 
 ## Reconciliation Snapshot (2026-07-10)
@@ -28,7 +28,7 @@ about third-party pages; verify an external page before acting on its listed sta
 | --- | --- | --- |
 | Official MCP Registry | Current and active | Verify after every release |
 | Glama | Canonical URL and score badge resolve, but the page displays stale former metadata | Refresh and redirect request sent to Glama support on 2026-07-10; await recrawl |
-| Awesome MCP Servers | [Correction PR #9817](https://github.com/punkpeye/awesome-mcp-servers/pull/9817) open; checks pass | Complete Glama prerequisite, restore its score badge, and merge the replacement entry |
+| Awesome MCP Servers | [Correction PR #9817](https://github.com/punkpeye/awesome-mcp-servers/pull/9817) **merged 2026-08-08** | Downstream mirrors should propagate; recheck Glama and others after recrawl |
 | Smithery | No canonical listing; the truthful staged MCPB foundation merged in PR #124 but is not self-contained | Complete and verify native runtime issue #125 before submitting; do not publish the staged launcher |
 | MCP.so | [Submission issue #3098](https://github.com/chatmcp/mcpso/issues/3098) open | Await directory review and verify the published record |
 | Vidocu video MCP roundup | Current article omits Kinocut | Outreach sent to the publisher on 2026-07-10; await editorial response |
