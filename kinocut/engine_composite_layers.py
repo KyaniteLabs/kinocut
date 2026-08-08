@@ -619,7 +619,9 @@ def _build_layer_plan(
     ]
     routes = effect_route_receipts(layers)
     if routes:
-        summary.append("allowlisted effects are routed before final composition to named layer, mask, or mask-edge streams")
+        summary.append(
+            "allowlisted effects are routed before final composition to named layer, mask, or mask-edge streams"
+        )
     if any(layer.blend != "normal" and not is_positioned_blend(layer) for layer in layers):
         summary.append("full-canvas non-normal blend layers use blend=all_mode against the running base")
     if any(is_positioned_blend(layer) for layer in layers):
@@ -643,7 +645,7 @@ def _build_layer_plan(
                 "opacity": layer.opacity,
                 "position": layer.position,
                 "transform": receipt_transform(layer),
-                "timing": _receipt_timing(layer),
+                "timing": {"start": layer.start, "duration": layer.duration},
                 "mask": layer.resolved_mask_src,
                 "mask_hash": _file_hash(layer.mask_src),
                 "blend": layer.blend,
@@ -722,10 +724,6 @@ def _build_composite_result(
         layer_plan=receipt,
         dry_run=False,
     )
-
-
-def _receipt_timing(layer: _ResolvedLayer) -> dict[str, float | None]:
-    return {"start": layer.start, "duration": layer.duration}
 
 
 def _canvas_filter(canvas: _Canvas) -> str:

@@ -43,11 +43,7 @@ def propose_mutations_from_findings(
             severity = str(raw.get("severity") or "info")
             message = str(raw.get("message") or "")
             tr_raw = raw.get("time_range")
-            tr = (
-                (float(tr_raw["start"]), float(tr_raw["end"]))
-                if isinstance(tr_raw, dict)
-                else None
-            )
+            tr = (float(tr_raw["start"]), float(tr_raw["end"])) if isinstance(tr_raw, dict) else None
         if severity not in {"fail", "warn"}:
             continue
         if fid.startswith("duration"):

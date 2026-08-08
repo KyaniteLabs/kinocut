@@ -68,7 +68,8 @@ def still_package(
     graph = [
         {"step": "edit_beats", "count": len(beat_paths)},
         {"step": "still_match", "hero": str(establish_path)},
-        {"step": "still_grade", "enabled": apply_grade}, {"step": "still_gate"},
+        {"step": "still_grade", "enabled": apply_grade},
+        {"step": "still_gate"},
     ]
     if dry_run:
         receipt = {

@@ -13,9 +13,7 @@ from kinocut.ffmpeg_helpers import _validate_input_path, _validate_output_path
 from kinocut.intent.language_coverage import language_coverage_report
 
 _CUE_SPLIT = re.compile(r"\n\s*\n")
-_TS = re.compile(
-    r"(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})"
-)
+_TS = re.compile(r"(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})")
 
 # Small deterministic EN→ES map for offline honesty tests (not a full MT system).
 _EN_ES: Mapping[str, str] = {

@@ -80,7 +80,7 @@ def propose_broll(
             seen.add(dedupe)
             proposals.append(
                 BrollProposal(
-                    proposal_id=f"broll-{len(proposals)+1:03d}",
+                    proposal_id=f"broll-{len(proposals) + 1:03d}",
                     time_range=(start, end),
                     keyword=key,
                     reason=f"Transcript mentions {key!r} in [{start:.2f},{end:.2f}]",

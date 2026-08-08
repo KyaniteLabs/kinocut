@@ -22,10 +22,7 @@ class ReframeRenderReceipt(StrictModel):
 
 
 def _axis_expression(samples: tuple[CropTrackSample, ...], axis: str, source_size: int) -> str:
-    values = [
-        round((sample.crop_box.x if axis == "x" else sample.crop_box.y) * source_size)
-        for sample in samples
-    ]
+    values = [round((sample.crop_box.x if axis == "x" else sample.crop_box.y) * source_size) for sample in samples]
     expression = str(values[-1])
     for index in range(len(samples) - 2, -1, -1):
         boundary = (samples[index].timestamp_seconds + samples[index + 1].timestamp_seconds) / 2.0
@@ -58,8 +55,7 @@ def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, ta
     x_expression = _axis_expression(variant.crop_track, "x", plan.source.width)
     y_expression = _axis_expression(variant.crop_track, "y", plan.source.height)
     filter_graph = (
-        f"crop={width}:{height}:'{x_expression}':'{y_expression}',"
-        f"scale={variant.output_width}:{variant.output_height}"
+        f"crop={width}:{height}:'{x_expression}':'{y_expression}',scale={variant.output_width}:{variant.output_height}"
     )
     _run_ffmpeg(
         [

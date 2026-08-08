@@ -23,7 +23,7 @@ def plan_audiogram(
         "audio_path": audio_path,
         "width": width,
         "height": height,
-        "chapters": [{"time": t, "label": f"ch-{i+1}"} for i, t in enumerate(chapters)],
+        "chapters": [{"time": t, "label": f"ch-{i + 1}"} for i, t in enumerate(chapters)],
         "filter_hint": f"showwaves=s={width}x{height}:mode=cline",
         "notes": "Plan for showwaves/showfreqs render; pair with auto_chapters when available.",
     }

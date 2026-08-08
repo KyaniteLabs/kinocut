@@ -57,16 +57,24 @@ def build_local_disfluency_timeline(
     if not 0.0 <= min_word_confidence <= 1.0:
         raise MCPValidationError("min_word_confidence", "must be between zero and one")
     media = source if isinstance(source, SourceMedia) else SourceMedia.model_validate(source)
-    analyzer = provenance if isinstance(provenance, AnalyzerProvenance) else AnalyzerProvenance.model_validate(provenance)
+    analyzer = (
+        provenance if isinstance(provenance, AnalyzerProvenance) else AnalyzerProvenance.model_validate(provenance)
+    )
     words = tuple(
         sorted(
-            (item if isinstance(item, WhisperWordEvidence) else WhisperWordEvidence.model_validate(item) for item in whisper_words),
+            (
+                item if isinstance(item, WhisperWordEvidence) else WhisperWordEvidence.model_validate(item)
+                for item in whisper_words
+            ),
             key=lambda item: (item.start, item.end, item.word),
         )
     )
     speech = tuple(
         sorted(
-            (item if isinstance(item, VADSpeechEvidence) else VADSpeechEvidence.model_validate(item) for item in vad_speech),
+            (
+                item if isinstance(item, VADSpeechEvidence) else VADSpeechEvidence.model_validate(item)
+                for item in vad_speech
+            ),
             key=lambda item: (item.start, item.end),
         )
     )

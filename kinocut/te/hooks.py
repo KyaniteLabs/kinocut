@@ -37,7 +37,7 @@ def generate_hook_candidates(
     titles = [templates[i % len(templates)].format(t=topic.strip()) for i in range(n)]
     thumbs = [
         {
-            "candidate_id": f"thumb-{i+1:02d}",
+            "candidate_id": f"thumb-{i + 1:02d}",
             "title": titles[i],
             "layout": "bold_text_left" if i % 2 == 0 else "face_right_text",
             "status": "proposed",
