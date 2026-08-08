@@ -259,7 +259,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/templates.py": {"preview_template"},
     "kinocut/transitions_engine.py": {"transition_pixelate"},
     "kinocut/watching/metrics.py": {"run_metric_qc"},
-    "kinocut/workflow/executor.py": {"_render_one"},
 }
 
 

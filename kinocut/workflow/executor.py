@@ -30,6 +30,7 @@ import contextlib
 import hashlib
 import os
 import uuid
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
@@ -58,7 +59,7 @@ from .receipt import (
     _wrap_engine_exception,
     _write_receipt,
 )
-from .spec import WorkflowStep, load_spec, parse_spec, validate_spec_path
+from .spec import WorkflowSpec, WorkflowStep, load_spec, parse_spec, validate_spec_path
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
 
@@ -128,6 +129,34 @@ def _render_one(
     keep_intermediates: bool,
 ) -> dict[str, Any]:
     """Render exactly one spec (base or a single variant) and return its receipt."""
+    verdict, spec, workspace_root, spec_hash = _load_render_spec(spec_path, variant)
+    source_paths: dict[str, str] = verdict["source_paths"]
+    output_paths: dict[str, str] = verdict["output_paths"]
+    resuming, prior_by_id, run_dir_rel, run_dir_abs = _resolve_run_dir(
+        resume_receipt, spec_hash, workspace_root, variant
+    )
+    hash_cache: dict[str, str | None] = {}
+    work_paths: dict[str, Path] = {}  # @work name -> absolute path on disk
+    sources = _build_sources(verdict, workspace_root, hash_cache)
+    steps_receipt, intermediates, failure, failed_index, resumed_from = _execute_steps(
+        spec, workspace_root, run_dir_rel, run_dir_abs, output_paths, source_paths,
+        work_paths, hash_cache, prior_by_id, resuming, save_receipt, verdict,
+        variant, spec_hash, sources, keep_intermediates,
+    )
+    return _finalize_render(
+        spec.steps, failure, failed_index, run_dir_abs, intermediates, verdict,
+        variant, spec_hash, sources, steps_receipt, workspace_root, hash_cache,
+        run_dir_rel, keep_intermediates, resuming, resumed_from, save_receipt,
+    )
+
+
+# --- Single-spec render helpers ---
+
+
+def _load_render_spec(
+    spec_path: str, variant: str | None
+) -> tuple[dict[str, Any], WorkflowSpec, Path, str]:
+    """Validate + parse the spec; return (verdict, spec, workspace_root, spec_hash)."""
     verdict = validate_workflow_spec(spec_path, variant=variant)
     resolved = validate_spec_path(spec_path)
     data = load_spec(resolved)
@@ -137,113 +166,81 @@ def _render_one(
     workspace_root = Path(os.path.realpath(resolved.parent))
     # spec_hash is the base spec-FILE hash (variant selection is not part of it — §5a).
     spec_hash = "sha256:" + hashlib.sha256(resolved.read_bytes()).hexdigest()
+    return verdict, spec, workspace_root, spec_hash
 
-    source_paths: dict[str, str] = verdict["source_paths"]
-    output_paths: dict[str, str] = verdict["output_paths"]
 
+def _resolve_run_dir(
+    resume_receipt: str | None, spec_hash: str, workspace_root: Path, variant: str | None
+) -> tuple[bool, dict[str, dict[str, Any]], str, Path]:
+    """Pick resume vs fresh run dir; return (resuming, prior_by_id, run_dir_rel, run_dir_abs)."""
     resuming = resume_receipt is not None
     if resuming:
-        prior_by_id, run_dir_rel, run_dir_abs = _load_resume(resume_receipt, spec_hash, workspace_root, variant)
+        prior_by_id, run_dir_rel, run_dir_abs = _load_resume(
+            resume_receipt, spec_hash, workspace_root, variant
+        )
     else:
         prior_by_id = {}
         run_dir_rel, run_dir_abs = _make_run_dir(workspace_root, spec_hash)
+    return resuming, prior_by_id, run_dir_rel, run_dir_abs
 
-    hash_cache: dict[str, str | None] = {}
-    work_paths: dict[str, Path] = {}  # @work name -> absolute path on disk
-    sources = _build_sources(verdict, workspace_root, hash_cache)
 
+def _execute_steps(
+    spec: WorkflowSpec,
+    workspace_root: Path,
+    run_dir_rel: str,
+    run_dir_abs: Path,
+    output_paths: dict[str, str],
+    source_paths: dict[str, str],
+    work_paths: dict[str, Path],
+    hash_cache: dict[str, str | None],
+    prior_by_id: dict[str, dict[str, Any]],
+    resuming: bool,
+    save_receipt: str | None,
+    verdict: dict[str, Any],
+    variant: str | None,
+    spec_hash: str,
+    sources: list[dict[str, Any]],
+    keep_intermediates: bool,
+) -> tuple[list[dict[str, Any]], list[str], MCPVideoError | None, int, str | None]:
+    """Run each spec step sequentially; return (receipts, intermediates, failure, idx, resumed_from)."""
     steps_receipt: list[dict[str, Any]] = []
     intermediates: list[str] = []
     failure: MCPVideoError | None = None
     failed_index = -1
     still_reusing = resuming
     resumed_from: str | None = None
-
-    def _persist_progress(*, status: str) -> None:
-        """Atomically persist a progressive (partial) workflow receipt.
-
-        Builds it with the SAME ``_build_receipt`` the terminal receipt uses and
-        writes it through the SAME atomic ``_write_receipt`` (stage-then-swap), so a
-        resumed run reads one authoritative cursor: completed stages carry their real
-        input/output hashes, and every not-yet-run stage is appended as ``pending``
-        so the resume cursor and completed-stage count stay correct mid-run. No-op
-        when no ``save_receipt`` was requested."""
-        if save_receipt is None:
-            return
-        snapshot = list(steps_receipt) + [
-            _step_entry(step, "pending", {}, step.output, None, None, None) for step in spec.steps[len(steps_receipt) :]
-        ]
-        _write_receipt(
-            _build_receipt(
-                verdict=verdict,
-                variant=variant,
-                spec_hash=spec_hash,
-                spec_steps=spec.steps,
-                sources=sources,
-                steps_receipt=snapshot,
-                workspace_root=workspace_root,
-                hash_cache=hash_cache,
-                run_dir_rel=run_dir_rel,
-                intermediates=intermediates,
-                cleaned=False,
-                keep_intermediates=keep_intermediates,
-                resuming=resuming,
-                resumed_from=resumed_from,
-                status=status,
-            ),
-            save_receipt,
-            workspace_root,
-        )
-
+    _persist = _make_persist_fn(
+        save_receipt, steps_receipt, intermediates, spec.steps, verdict, variant,
+        spec_hash, sources, workspace_root, hash_cache, run_dir_rel,
+        keep_intermediates, resuming,
+    )
     for index, step in enumerate(spec.steps):
         adapter = OP_ADAPTERS[step.op]
         output_rel, output_abs = _resolve_output(
             step.output, workspace_root, run_dir_rel, run_dir_abs, output_paths, work_paths
         )
-        input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter)
-
-        if still_reusing and _step_reusable(prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache):
-            prior = prior_by_id[step.id]
-            output_hash = _hash_if_exists(output_abs, hash_cache) if output_abs is not None else None
-            if output_rel is not None and output_rel.startswith(run_dir_rel + "/"):
-                intermediates.append(output_rel)
-            steps_receipt.append(
-                _step_entry(
-                    step,
-                    "completed",
-                    input_hashes,
-                    output_rel,
-                    output_hash,
-                    prior.get("started_at"),
-                    prior.get("ended_at"),
-                    skipped=True,
-                )
+        input_hashes = _hash_inputs(
+            step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter
+        )
+        if still_reusing and _step_reusable(
+            prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache
+        ):
+            _record_reused_step(
+                steps_receipt, intermediates, step, prior_by_id[step.id], input_hashes,
+                output_rel, output_abs, run_dir_rel, hash_cache,
             )
-            _persist_progress(status="in_progress")
+            _persist(status="in_progress", resumed_from=resumed_from)
             continue
-
         if still_reusing:  # first step that could not be reused = the resume point
             still_reusing = False
             resumed_from = step.id
-
         started_at = _utcnow()
         try:
             _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
         except Exception as exc:  # fail closed on ANY engine fault, not only MCPVideoError
-            err = exc if isinstance(exc, MCPVideoError) else _wrap_engine_exception(exc, step, workspace_root)
-            steps_receipt.append(
-                _step_entry(
-                    step,
-                    "failed",
-                    input_hashes,
-                    output_rel,
-                    None,
-                    started_at,
-                    _utcnow(),
-                    error=_sanitize_error(err, workspace_root),
-                )
+            failure = _record_failed_step(
+                steps_receipt, step, exc, input_hashes, output_rel, started_at, workspace_root
             )
-            failure = err
             failed_index = index
             break
         output_hash = _hash_if_exists(output_abs, hash_cache) if output_abs is not None else None
@@ -252,39 +249,139 @@ def _render_one(
         steps_receipt.append(
             _step_entry(step, "completed", input_hashes, output_rel, output_hash, started_at, _utcnow())
         )
-        _persist_progress(status="in_progress")
+        _persist(status="in_progress", resumed_from=resumed_from)
+    return steps_receipt, intermediates, failure, failed_index, resumed_from
 
+
+def _make_persist_fn(
+    save_receipt: str | None,
+    steps_receipt: list[dict[str, Any]],
+    intermediates: list[str],
+    spec_steps: list[WorkflowStep],
+    verdict: dict[str, Any],
+    variant: str | None,
+    spec_hash: str,
+    sources: list[dict[str, Any]],
+    workspace_root: Path,
+    hash_cache: dict[str, str | None],
+    run_dir_rel: str,
+    keep_intermediates: bool,
+    resuming: bool,
+) -> Callable[..., None]:
+    """Build the progressive-receipt writer (no-op when ``save_receipt`` is None)."""
+
+    def _persist(*, status: str, resumed_from: str | None) -> None:
+        """Atomically persist a progressive (partial) workflow receipt.
+
+        Builds it with the SAME ``_build_receipt`` the terminal receipt uses and
+        writes it through the SAME atomic ``_write_receipt`` (stage-then-swap), so a
+        resumed run reads one authoritative cursor: completed stages carry their real
+        input/output hashes, and every not-yet-run stage is appended as ``pending``
+        so the resume cursor and completed-stage count stay correct mid-run. No-op
+        when no ``save_receipt`` was requested.
+        """
+        if save_receipt is None:
+            return
+        snapshot = list(steps_receipt) + [
+            _step_entry(step, "pending", {}, step.output, None, None, None)
+            for step in spec_steps[len(steps_receipt) :]
+        ]
+        _write_receipt(
+            _build_receipt(
+                verdict=verdict, variant=variant, spec_hash=spec_hash,
+                spec_steps=spec_steps, sources=sources, steps_receipt=snapshot,
+                workspace_root=workspace_root, hash_cache=hash_cache,
+                run_dir_rel=run_dir_rel, intermediates=intermediates,
+                cleaned=False, keep_intermediates=keep_intermediates,
+                resuming=resuming, resumed_from=resumed_from, status=status,
+            ),
+            save_receipt, workspace_root,
+        )
+
+    return _persist
+
+
+def _record_reused_step(
+    steps_receipt: list[dict[str, Any]],
+    intermediates: list[str],
+    step: WorkflowStep,
+    prior: dict[str, Any],
+    input_hashes: dict[str, str | None],
+    output_rel: str | None,
+    output_abs: Path | None,
+    run_dir_rel: str,
+    hash_cache: dict[str, str | None],
+) -> None:
+    """Record a reused (skipped) step and track any intermediate output."""
+    output_hash = _hash_if_exists(output_abs, hash_cache) if output_abs is not None else None
+    if output_rel is not None and output_rel.startswith(run_dir_rel + "/"):
+        intermediates.append(output_rel)
+    steps_receipt.append(
+        _step_entry(step, "completed", input_hashes, output_rel, output_hash,
+                    prior.get("started_at"), prior.get("ended_at"), skipped=True)
+    )
+
+
+def _record_failed_step(
+    steps_receipt: list[dict[str, Any]],
+    step: WorkflowStep,
+    exc: Exception,
+    input_hashes: dict[str, str | None],
+    output_rel: str | None,
+    started_at: str,
+    workspace_root: Path,
+) -> MCPVideoError:
+    """Wrap an engine exception, record the failed step, and return the error."""
+    err = exc if isinstance(exc, MCPVideoError) else _wrap_engine_exception(exc, step, workspace_root)
+    steps_receipt.append(
+        _step_entry(step, "failed", input_hashes, output_rel, None, started_at, _utcnow(),
+                    error=_sanitize_error(err, workspace_root))
+    )
+    return err
+
+
+def _finalize_render(
+    spec_steps: list[WorkflowStep],
+    failure: MCPVideoError | None,
+    failed_index: int,
+    run_dir_abs: Path,
+    intermediates: list[str],
+    verdict: dict[str, Any],
+    variant: str | None,
+    spec_hash: str,
+    sources: list[dict[str, Any]],
+    steps_receipt: list[dict[str, Any]],
+    workspace_root: Path,
+    hash_cache: dict[str, str | None],
+    run_dir_rel: str,
+    keep_intermediates: bool,
+    resuming: bool,
+    resumed_from: str | None,
+    save_receipt: str | None,
+) -> dict[str, Any]:
+    """Append pending steps on failure, clean up, build + write the terminal receipt."""
     if failure is not None:
-        for step in spec.steps[failed_index + 1 :]:
-            steps_receipt.append(_step_entry(step, "pending", {}, step.output, None, None, None))
-
+        for step in spec_steps[failed_index + 1 :]:
+            steps_receipt.append(
+                _step_entry(step, "pending", {}, step.output, None, None, None)
+            )
     cleaned = _apply_cleanup(
-        run_dir_abs, intermediates, workspace_root, success=failure is None, keep_intermediates=keep_intermediates
+        run_dir_abs, intermediates, workspace_root,
+        success=failure is None, keep_intermediates=keep_intermediates,
     )
     receipt = _build_receipt(
-        verdict=verdict,
-        variant=variant,
-        spec_hash=spec_hash,
-        spec_steps=spec.steps,
-        sources=sources,
-        steps_receipt=steps_receipt,
-        workspace_root=workspace_root,
-        hash_cache=hash_cache,
-        run_dir_rel=run_dir_rel,
-        intermediates=intermediates,
-        cleaned=cleaned,
-        keep_intermediates=keep_intermediates,
-        resuming=resuming,
-        resumed_from=resumed_from,
+        verdict=verdict, variant=variant, spec_hash=spec_hash,
+        spec_steps=spec_steps, sources=sources, steps_receipt=steps_receipt,
+        workspace_root=workspace_root, hash_cache=hash_cache,
+        run_dir_rel=run_dir_rel, intermediates=intermediates,
+        cleaned=cleaned, keep_intermediates=keep_intermediates,
+        resuming=resuming, resumed_from=resumed_from,
         status="failed" if failure is not None else "completed",
     )
-
     if save_receipt is not None:
         _write_receipt(receipt, save_receipt, workspace_root)
-
     if failure is not None:
         raise failure
-
     return receipt
 
 
