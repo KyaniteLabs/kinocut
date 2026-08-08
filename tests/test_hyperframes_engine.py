@@ -35,6 +35,8 @@ from mcp_video.hyperframes_engine import (
     render_and_post,
     remove_background,
     snapshot,
+    stop_all_previews,
+    stop_preview,
     still,
     transcribe,
     tts,
@@ -1647,7 +1649,90 @@ class TestErrorHandling:
             create_project("test")
 
 
+
+
 # ---------------------------------------------------------------------------
+# Preview lifecycle tests
+# ---------------------------------------------------------------------------
+
+
+class TestPreviewLifecycle:
+    """Verify preview process ownership, termination, and cleanup."""
+
+    def test_stop_preview_returns_false_for_unknown_port(self):
+        """stop_preview on an unregistered port returns False."""
+        from mcp_video.hyperframes_engine import _active_previews
+
+        _active_previews.clear()
+        assert stop_preview(9999) is False
+
+    def test_stop_preview_terminates_registered_process(self):
+        """stop_preview terminates a tracked process and removes it from the registry."""
+        import subprocess
+        import sys
+
+        from mcp_video.hyperframes_engine import _active_previews, stop_preview
+
+        proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        _active_previews[5555] = proc
+        assert stop_preview(5555) is True
+        assert 5555 not in _active_previews
+        assert proc.poll() is not None  # process terminated
+
+    def test_stop_all_previews_clears_registry(self):
+        """stop_all_previews terminates every tracked process."""
+        import subprocess
+        import sys
+
+        from mcp_video.hyperframes_engine import _active_previews
+
+        for port in (6001, 6002):
+            proc = subprocess.Popen(
+                [sys.executable, "-c", "import time; time.sleep(30)"],
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+            )
+            _active_previews[port] = proc
+
+        stop_all_previews()
+        assert len(_active_previews) == 0
+        assert proc.poll() is not None
+
+    def test_register_preview_replaces_existing(self):
+        """_register_preview stops the old process before registering the new one."""
+        import subprocess
+        import sys
+
+        from mcp_video.hyperframes_engine import _active_previews, _register_preview
+
+        old_proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        _active_previews[7777] = old_proc
+
+        new_proc = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(30)"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        _register_preview(7777, new_proc)
+
+        assert _active_previews[7777] is new_proc
+        assert old_proc.poll() is not None  # old was terminated
+        _register_preview(7777, new_proc)  # idempotent cleanup
+        stop_preview(7777)  # clean up new_proc
+
+
 # Integration tests (require real Node.js)
 # ---------------------------------------------------------------------------
 

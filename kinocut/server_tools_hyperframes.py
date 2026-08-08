@@ -165,6 +165,34 @@ def hyperframes_preview(
 
 @mcp.tool()
 @_safe_tool
+def hyperframes_stop_preview(
+    port: int,
+) -> dict[str, Any]:
+    """Stop a running Hyperframes preview server.
+
+    Args:
+        port: The port the preview server is running on.
+    """
+    if port < MIN_PORT or port > MAX_PORT:
+        return _validation_error(f"Invalid port: must be {MIN_PORT}-{MAX_PORT}, got {port}")
+    from .hyperframes_engine import stop_preview
+
+    stopped = stop_preview(port)
+    return _result({"port": port, "stopped": stopped})
+
+
+@mcp.tool()
+@_safe_tool
+def hyperframes_stop_all_previews() -> dict[str, Any]:
+    """Stop all running Hyperframes preview servers."""
+    from .hyperframes_engine import stop_all_previews
+
+    stop_all_previews()
+    return _result({"stopped_all": True})
+
+
+@mcp.tool()
+@_safe_tool
 def hyperframes_still(
     project_path: str,
     output_path: str | None = None,
