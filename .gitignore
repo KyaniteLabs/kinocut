@@ -74,3 +74,6 @@ glama-score*.png
 /test.srt
 /fonts/
 /hyperframes_hud/
+# Agent scratch (GJC) and act-runner state — never commit these
+.gjc/
+.runner
