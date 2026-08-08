@@ -48,7 +48,7 @@ jobs:
           SHARD_COUNT: "4"
           SHARD_INDEX: ${{ matrix.shard }}
         run: |
-          .venv/bin/python - <<'PY'
+          .venv/bin/python - <<'PY' 2>&1 | tee "/forgejo-debug/test-${SHARD_INDEX}.log"
           import os
           from pathlib import Path
 
