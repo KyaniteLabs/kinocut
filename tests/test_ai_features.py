@@ -10,6 +10,7 @@ import subprocess
 import sys
 import tempfile
 import types
+import urllib.request
 from pathlib import Path
 from unittest.mock import patch
 
@@ -1832,10 +1833,10 @@ def test_direct_download_rechecks_connected_peer_ip(monkeypatch, tmp_path):
         def open(self, *_args, **_kwargs):
             return FakeResponse()
 
-    proxy_handlers = []
+    handlers_received = []
 
-    def fake_build_opener(handler):
-        proxy_handlers.append(handler)
+    def fake_build_opener(*handlers):
+        handlers_received.extend(handlers)
         return FakeOpener()
 
     monkeypatch.setattr("mcp_video.ai_engine.download._is_safe_url", lambda _url: True)
@@ -1845,7 +1846,116 @@ def test_direct_download_rechecks_connected_peer_ip(monkeypatch, tmp_path):
         _download_direct_url("https://example.com/video.mp4", str(tmp_path))
 
     assert not (tmp_path / "video.mp4").exists()
+    proxy_handlers = [h for h in handlers_received if isinstance(h, urllib.request.ProxyHandler)]
     assert proxy_handlers and proxy_handlers[0].proxies == {}
+
+
+def test_safe_resolved_addrs_rejects_all_private(monkeypatch):
+    """_safe_resolved_addrs must reject hostnames that resolve only to private IPs."""
+    import socket
+
+    from mcp_video.ai_engine.download import _safe_resolved_addrs
+
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("10.0.0.1", 80))],
+    )
+
+    with pytest.raises(MCPVideoError, match="SSRF"):
+        _safe_resolved_addrs("internal.example.com", 80)
+
+
+def test_safe_resolved_addrs_filters_mixed(monkeypatch):
+    """_safe_resolved_addrs must filter out private addresses from mixed results."""
+    import socket
+
+    from mcp_video.ai_engine.download import _safe_resolved_addrs
+
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda *a, **k: [
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("10.0.0.1", 80)),
+            (socket.AF_INET, socket.SOCK_STREAM, 0, "", ("93.184.216.34", 80)),
+        ],
+    )
+    safe = _safe_resolved_addrs("mixed.example.com", 80)
+    assert len(safe) == 1
+    assert safe[0][1][0] == "93.184.216.34"
+
+
+def test_safe_resolved_addrs_rejects_loopback(monkeypatch):
+    """_safe_resolved_addrs must reject 127.0.0.1."""
+    import socket
+
+    from mcp_video.ai_engine.download import _safe_resolved_addrs
+
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("127.0.0.1", 80))],
+    )
+    with pytest.raises(MCPVideoError, match="SSRF"):
+        _safe_resolved_addrs("localhost", 80)
+
+
+def test_safe_resolved_addrs_rejects_link_local(monkeypatch):
+    """_safe_resolved_addrs must reject 169.254.x.x."""
+    import socket
+
+    from mcp_video.ai_engine.download import _safe_resolved_addrs
+
+    monkeypatch.setattr(
+        socket,
+        "getaddrinfo",
+        lambda *a, **k: [(socket.AF_INET, socket.SOCK_STREAM, 0, "", ("169.254.1.1", 80))],
+    )
+    with pytest.raises(MCPVideoError, match="SSRF"):
+        _safe_resolved_addrs("metadata.google.internal", 80)
+
+
+def test_split_host_port_plain():
+    from mcp_video.ai_engine.download import _split_host_port
+
+    assert _split_host_port("example.com", 80) == ("example.com", 80)
+    assert _split_host_port("example.com:8080", 80) == ("example.com", 8080)
+    assert _split_host_port("[::1]:443", 80) == ("::1", 443)
+    assert _split_host_port("[2001:db8::1]", 80) == ("2001:db8::1", 80)
+
+
+def test_pinned_http_connection_pins_validated_ip(monkeypatch):
+    """_PinnedHTTPConnection must resolve and pin address at __init__ time."""
+    import socket
+
+    from mcp_video.ai_engine.download import _PinnedHTTPConnection
+
+    resolved_addrs = [(socket.AF_INET, ("93.184.216.34", 80))]
+
+    monkeypatch.setattr(
+        "mcp_video.ai_engine.download._safe_resolved_addrs",
+        lambda host, port: resolved_addrs,
+    )
+
+    conn = _PinnedHTTPConnection("example.com:80", timeout=10)
+    assert conn._pinned_sockaddr == ("93.184.216.34", 80)
+
+
+def test_safe_redirect_handler_rejects_private_redirect():
+    """_SafeRedirectHandler must reject redirects to private IPs."""
+    from mcp_video.ai_engine.download import _SafeRedirectHandler
+
+    handler = _SafeRedirectHandler()
+
+    with pytest.raises(MCPVideoError, match="SSRF"):
+        handler.redirect_request(
+            req=None,
+            fp=None,
+            code=302,
+            msg="Found",
+            headers=None,
+            newurl="http://10.0.0.1/secret",
+        )
 
 
 def test_direct_ai_transcribe_rejects_invalid_model_before_dependency():

@@ -8,12 +8,14 @@ Optional dependencies:
 
 from __future__ import annotations
 
+import http.client
 import ipaddress as _ipaddress
 import logging
 import re
 import shutil
 import socket as _socket
 import tempfile
+import urllib.request
 from pathlib import Path
 
 from ..errors import MCPVideoError, ProcessingError
@@ -21,6 +23,129 @@ from ..errors import MCPVideoError, ProcessingError
 logger = logging.getLogger(__name__)
 
 
+def _safe_resolved_addrs(host: str, port: int) -> list[tuple[int, tuple]]:
+    """Resolve *host* to validated (family, sockaddr) pairs, filtering blocked IP ranges.
+
+    Returns only addresses that are NOT private, loopback, link-local, or reserved.
+    Raises MCPVideoError if every resolved address is blocked.
+    """
+    previous_timeout = _socket.getdefaulttimeout()
+    _socket.setdefaulttimeout(10)
+    try:
+        addrinfos = _socket.getaddrinfo(host, port, proto=_socket.IPPROTO_TCP)
+    finally:
+        _socket.setdefaulttimeout(previous_timeout)
+    safe: list[tuple[int, tuple]] = []
+    for family, _type, _proto, _canon, sockaddr in addrinfos:
+        ip_str = sockaddr[0]
+        try:
+            if _is_blocked_ip(ip_str):
+                continue
+        except ValueError:
+            continue
+        safe.append((family, sockaddr))
+    if not safe:
+        raise MCPVideoError(
+            f"URL blocked (SSRF protection): {host} resolves only to blocked addresses",
+            error_type="validation_error",
+            code="ssrf_blocked",
+        )
+    return safe
+
+
+def _create_pinned_socket(family: int, sockaddr: tuple, timeout) -> _socket.socket:
+    """Create a TCP socket connected to a pre-validated address."""
+    sock = _socket.socket(family, _socket.SOCK_STREAM)
+    sock.settimeout(timeout)
+    sock.connect(sockaddr)
+    return sock
+
+
+class _PinnedHTTPConnection(http.client.HTTPConnection):
+    """HTTPConnection that connects only to a pre-validated IP address.
+
+    The hostname is resolved and validated in :meth:`_pin_address` before any
+    network I/O, eliminating the TOCTOU window where DNS could be rebound to a
+    private address between validation and connection.
+    """
+
+    _pinned_family: int
+    _pinned_sockaddr: tuple
+
+    def __init__(self, host: str, **kwargs: object) -> None:
+        hostname, port = _split_host_port(host, self.default_port)
+        addrs = _safe_resolved_addrs(hostname, port)
+        self._pinned_family, self._pinned_sockaddr = addrs[0]
+        super().__init__(host, **kwargs)
+
+    def connect(self) -> None:
+        self.sock = _create_pinned_socket(self._pinned_family, self._pinned_sockaddr, self.timeout)
+
+
+class _PinnedHTTPSConnection(http.client.HTTPSConnection):
+    """HTTPSConnection that connects only to a pre-validated IP address.
+
+    SNI and certificate verification use the original hostname, not the pinned
+    IP, so TLS identity checks remain correct.
+    """
+
+    _pinned_family: int
+    _pinned_sockaddr: tuple
+
+    def __init__(self, host: str, **kwargs: object) -> None:
+        hostname, port = _split_host_port(host, self.default_port)
+        addrs = _safe_resolved_addrs(hostname, port)
+        self._pinned_family, self._pinned_sockaddr = addrs[0]
+        super().__init__(host, **kwargs)
+
+    def connect(self) -> None:
+        self.sock = _create_pinned_socket(self._pinned_family, self._pinned_sockaddr, self.timeout)
+        self.sock = self._context.wrap_socket(self.sock, server_hostname=self.host)
+
+
+def _split_host_port(host_str: str, default_port: int) -> tuple[str, int]:
+    """Split a 'host:port' or 'host' string into (hostname, port)."""
+    if host_str.startswith("["):
+        bracket_end = host_str.index("]")
+        hostname = host_str[1:bracket_end]
+        rest = host_str[bracket_end + 1:]
+        port = int(rest[1:]) if rest.startswith(":") else default_port
+        return hostname, port
+    parts = host_str.rsplit(":", 1)
+    if len(parts) == 2 and parts[1].isdigit():
+        return parts[0], int(parts[1])
+    return host_str, default_port
+
+
+class _PinnedHTTPHandler(urllib.request.AbstractHTTPHandler):
+    """urllib opener handler that uses :class:`_PinnedHTTPConnection`."""
+
+    def http_open(self, req):
+        return self.do_open(_PinnedHTTPConnection, req)
+
+    http_request = urllib.request.AbstractHTTPHandler.do_request_
+
+
+class _PinnedHTTPSHandler(urllib.request.AbstractHTTPHandler):
+    """urllib opener handler that uses :class:`_PinnedHTTPSConnection`."""
+
+    def https_open(self, req):
+        return self.do_open(_PinnedHTTPSConnection, req)
+
+    https_request = urllib.request.AbstractHTTPHandler.do_request_
+
+
+class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
+    """Reject HTTP redirects to private/blocked addresses (SSRF protection)."""
+
+    def redirect_request(self, req, fp, code, msg, headers, newurl):
+        if not _is_safe_url(newurl):
+            raise MCPVideoError(
+                f"URL blocked (SSRF protection): redirect target {newurl}",
+                error_type="validation_error",
+                code="ssrf_blocked",
+            )
+        return super().redirect_request(req, fp, code, msg, headers, newurl)
 def _is_blocked_ip(ip_str: str) -> bool:
     addr = _ipaddress.ip_address(ip_str)
     return addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved
@@ -178,7 +303,12 @@ def _download_direct_url(url: str, dest_dir: str) -> str:
     headers = {"User-Agent": f"mcp-video/{__version__} (+https://git.kyanitelabs.tech/KyaniteLabs/kinocut)"}
     req = urllib.request.Request(url, headers=headers)  # noqa: S310
     max_download_bytes = 2 * (1 << 30)  # 2 GiB limit
-    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    opener = urllib.request.build_opener(
+        _PinnedHTTPHandler(),
+        _PinnedHTTPSHandler(),
+        _SafeRedirectHandler(),
+        urllib.request.ProxyHandler({}),
+    )
     with opener.open(req, timeout=120) as resp:
         _validate_response_peer(resp)
         with open(dest, "wb") as fh:
