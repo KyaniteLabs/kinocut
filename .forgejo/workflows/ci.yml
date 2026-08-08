@@ -29,17 +29,20 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          exec > >(tee /forgejo-debug/checkout.log) 2>&1
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg nodejs=18.19.1+dfsg-6ubuntu5
           git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
           git fetch --depth 1 origin "${{ github.sha }}"
           git checkout "${{ github.sha }}"
       - name: Install package
         run: |
+          exec > >(tee /forgejo-debug/install.log) 2>&1
           python3 -m venv .venv
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
       - name: Test
-        run: PYTEST_ADDOPTS="--junitxml=/forgejo-debug/test-results.xml" .venv/bin/pytest tests/ -q -m "not slow"
+        run: |
+          .venv/bin/pytest tests/ -q -m "not slow" 2>&1 | tee /forgejo-debug/test.log
   test-slow:
     needs: test-ffmpeg-matrix
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
