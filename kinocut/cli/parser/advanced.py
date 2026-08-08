@@ -7,6 +7,12 @@ import argparse
 
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add advanced subcommands to the CLI parser."""
+    _add_batch_parsers(subparsers)
+    _add_media_analysis_parsers(subparsers)
+
+
+def _add_batch_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add advanced batch/metadata subcommands (batch, detect-scenes, create-from-images, export-frames, compare-quality, read-metadata)."""
     # batch
     batch_p = subparsers.add_parser("batch", help="Apply operation to multiple files")
     batch_p.add_argument("inputs", nargs="+", help="Input video files")
@@ -65,6 +71,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     read_meta_p = subparsers.add_parser("read-metadata", help="Read metadata tags from a file")
     read_meta_p.add_argument("input", help="Input video/audio file")
 
+
+def _add_media_analysis_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add advanced media analysis subcommands (write-metadata, stabilize, apply-mask, audio-waveform, generate-subtitles)."""
     # write-metadata
     write_meta_p = subparsers.add_parser("write-metadata", help="Write metadata tags to a file")
     write_meta_p.add_argument("input", help="Input video/audio file")

@@ -7,6 +7,12 @@ import argparse
 
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add media subcommands to the CLI parser."""
+    _add_basic_media_parsers(subparsers)
+    _add_extra_media_parsers(subparsers)
+
+
+def _add_basic_media_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add basic media subcommands (resize, speed, convert, thumbnail, preview, storyboard, subtitles)."""
     # resize
     resize_p = subparsers.add_parser("resize", help="Resize a video")
     resize_p.add_argument("input", help="Input video file")
@@ -69,6 +75,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     subs_p.add_argument("-o", "--output", help="Output file path")
 
+
+def _add_extra_media_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add extra media subcommands (crop, rotate, fade, export, extract-audio)."""
     # crop
     crop_p = subparsers.add_parser("crop", help="Crop a video to a region")
     crop_p.add_argument("input", help="Input video file")

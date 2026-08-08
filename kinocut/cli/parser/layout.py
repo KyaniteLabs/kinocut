@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Add layout subcommands to the CLI parser."""
+def _add_motion_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register motion-graphics subcommands (animated text, counters, progress bars)."""
     # video-text-animated
     tanim_p = subparsers.add_parser("video-text-animated", help="Add animated text to video")
     tanim_p.add_argument("input", help="Input video file")
@@ -55,6 +55,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     mprog_p.add_argument("--track-color", default="#333333", help="Track background color hex (default: #333333)")
     mprog_p.add_argument("--fps", type=int, default=30, help="Frame rate (default: 30)")
 
+
+def _add_layout_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register layout/composite subcommands (grid, picture-in-picture, layer compositing)."""
     # video-layout-grid
     lgrid_p = subparsers.add_parser("video-layout-grid", help="Arrange multiple videos in a grid")
     lgrid_p.add_argument("inputs", nargs="+", help="Input video files")
@@ -98,3 +101,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     comp_p.add_argument("-o", "--output", dest="output", help="Output media path")
     comp_p.add_argument("--save-layer-plan", help="Write deterministic resolved layer-plan receipt JSON")
     comp_p.add_argument("--dry-run", action="store_true", help="Validate spec and write layer plan without rendering")
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add layout subcommands to the CLI parser."""
+    _add_motion_parsers(subparsers)
+    _add_layout_parsers(subparsers)

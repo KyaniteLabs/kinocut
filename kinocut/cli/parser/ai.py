@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Add ai subcommands to the CLI parser."""
+def _add_ai_analysis_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register AI analysis subcommands (transcription, comprehensive video analysis)."""
     # video-ai-transcribe
     aitrans_p = subparsers.add_parser("video-ai-transcribe", help="Transcribe speech to text using Whisper")
     aitrans_p.add_argument("input", help="Input video file")
@@ -46,6 +46,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     analyze_p.add_argument("--output-md", help="Write Markdown transcript to this path")
     analyze_p.add_argument("--output-json", help="Write full JSON transcript to this path")
 
+
+def _add_ai_enhance_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register AI enhancement subcommands (upscale, stems, scene-detect, color-grade, silence removal)."""
     # video-ai-upscale
     aiup_p = subparsers.add_parser("video-ai-upscale", help="Upscale video using AI super-resolution")
     aiup_p.add_argument("input", help="Input video file")
@@ -89,3 +92,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     airms_p.add_argument(
         "--keep-margin", type=float, default=0.1, help="Keep margin around silence in seconds (default: 0.1)"
     )
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add ai subcommands to the CLI parser."""
+    _add_ai_analysis_parsers(subparsers)
+    _add_ai_enhance_parsers(subparsers)
