@@ -5,8 +5,8 @@ from __future__ import annotations
 import argparse
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Add Hyperframes subcommands to the CLI parser."""
+def _add_render_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the render, compositions, and preview subcommands."""
     # hyperframes-render
     hyperframes_render_p = subparsers.add_parser("hyperframes-render", help="Render a Hyperframes composition to video")
     hyperframes_render_p.add_argument("project_path", help="Path to Hyperframes project")
@@ -51,6 +51,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     hyperframes_preview_p.add_argument("-p", "--port", type=int, default=3002, help="Preview port (default: 3002)")
     hyperframes_preview_p.add_argument("--json", action="store_true", help="Output raw JSON")
 
+
+def _add_still_and_inspection_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the still, snapshot, inspect, catalog, info, and capture subcommands."""
     # hyperframes-still
     hyperframes_still_p = subparsers.add_parser("hyperframes-still", help="Render a single frame as image")
     hyperframes_still_p.add_argument("project_path", help="Path to Hyperframes project")
@@ -59,6 +62,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     hyperframes_still_p.add_argument("--variables", help="Inline JSON runtime data for the composition")
     hyperframes_still_p.add_argument("--variables-file", help="Path to JSON runtime data for the composition")
 
+    # hyperframes-snapshot
     snapshot_p = subparsers.add_parser("hyperframes-snapshot", help="Capture key frames as PNG screenshots")
     snapshot_p.add_argument("project_path", help="Path to Hyperframes project")
     snapshot_p.add_argument("--frames", type=int, default=5, help="Number of evenly-spaced frames")
@@ -66,35 +70,45 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     snapshot_p.add_argument("--variables", help="Inline JSON runtime data for the composition")
     snapshot_p.add_argument("--variables-file", help="Path to JSON runtime data for the composition")
 
+    # hyperframes-inspect
     inspect_p = subparsers.add_parser("hyperframes-inspect", help="Inspect Hyperframes layout overflow")
     inspect_p.add_argument("project_path", help="Path to Hyperframes project")
     inspect_p.add_argument("--samples", type=int, default=9)
     inspect_p.add_argument("--strict", action="store_true")
 
+    # hyperframes-catalog
     catalog_p = subparsers.add_parser("hyperframes-catalog", help="Browse Hyperframes catalog")
     catalog_p.add_argument("--tag")
     catalog_p.add_argument("--type", dest="item_type", choices=["block", "component"])
 
+    # hyperframes-info
     info_p = subparsers.add_parser("hyperframes-info", help="Show Hyperframes project metadata")
     info_p.add_argument("project_path", help="Path to Hyperframes project")
 
+    # hyperframes-capture
     capture_p = subparsers.add_parser("hyperframes-capture", help="Capture a website as Hyperframes components")
     capture_p.add_argument("url", help="Website URL")
     capture_p.add_argument("-o", "--output", help="Output directory")
     capture_p.add_argument("--skip-assets", action="store_true")
 
+
+def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the TTS, transcribe, remove-background, doctor, and benchmark subcommands."""
+    # hyperframes-tts
     tts_p = subparsers.add_parser("hyperframes-tts", help="Generate speech audio with Hyperframes TTS")
     tts_p.add_argument("text_or_file", help="Text to speak or path to .txt")
     tts_p.add_argument("-o", "--output", help="Output audio file")
     tts_p.add_argument("--voice")
     tts_p.add_argument("--speed", type=float)
 
+    # hyperframes-transcribe
     transcribe_p = subparsers.add_parser("hyperframes-transcribe", help="Transcribe media with Hyperframes")
     transcribe_p.add_argument("input_path", help="Audio/video/transcript input")
     transcribe_p.add_argument("-d", "--project-path")
     transcribe_p.add_argument("-m", "--model")
     transcribe_p.add_argument("-l", "--language")
 
+    # hyperframes-remove-background
     remove_bg_p = subparsers.add_parser("hyperframes-remove-background", help="Remove image/video background")
     remove_bg_p.add_argument("input_path", help="Input image/video")
     remove_bg_p.add_argument("-o", "--output", help="Output file path")
@@ -102,13 +116,18 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     remove_bg_p.add_argument("--device", default="auto", choices=["auto", "cpu", "coreml", "cuda"])
     remove_bg_p.add_argument("--quality", default="balanced", choices=["fast", "balanced", "best"])
 
+    # hyperframes-doctor
     subparsers.add_parser("hyperframes-doctor", help="Run Hyperframes diagnostics")
 
+    # hyperframes-benchmark
     benchmark_p = subparsers.add_parser("hyperframes-benchmark", help="Benchmark Hyperframes rendering")
     benchmark_p.add_argument("project_path", help="Path to Hyperframes project")
     benchmark_p.add_argument("-o", "--output", help="Output path")
     benchmark_p.add_argument("--runs", type=int, help="Number of runs per config")
 
+
+def _add_project_management_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the init, add-block, validate, and pipeline subcommands."""
     # hyperframes-init
     hyperframes_init_p = subparsers.add_parser("hyperframes-init", help="Scaffold a new Hyperframes project")
     hyperframes_init_p.add_argument("name", help="Project name")
@@ -149,3 +168,11 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     hyperframes_pipeline_p.add_argument("project_path", help="Path to Hyperframes project")
     hyperframes_pipeline_p.add_argument("--post-process", required=True, help="Post-processing operations as JSON list")
     hyperframes_pipeline_p.add_argument("-o", "--output", help="Final output file path")
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add Hyperframes subcommands to the CLI parser."""
+    _add_render_parsers(subparsers)
+    _add_still_and_inspection_parsers(subparsers)
+    _add_media_tools_parsers(subparsers)
+    _add_project_management_parsers(subparsers)
