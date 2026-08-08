@@ -9,9 +9,8 @@ from .formatting import _format_composite_layers_text, _format_path_panel
 from .runner import CommandRunner, _out
 
 
-def handle_composition_command(args: Any, *, use_json: bool) -> bool:
-    """Handle motion graphics and layout commands extracted from main."""
-    runner = CommandRunner(args, use_json)
+def _register_mograph_commands(runner: CommandRunner) -> None:
+    """Register motion-graphics commands (animated text, counter, progress bar)."""
 
     def _text_animated(a, j):
         from ..effects_engine import text_animated
@@ -78,6 +77,10 @@ def handle_composition_command(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-mograph-progress", _mograph_progress)
 
+
+def _register_layout_commands(runner: CommandRunner) -> None:
+    """Register layout commands (grid and picture-in-picture)."""
+
     def _layout_grid(a, j):
         from ..effects_engine import layout_grid
 
@@ -126,6 +129,10 @@ def handle_composition_command(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-layout-pip", _layout_pip)
 
+
+def _register_composite_commands(runner: CommandRunner) -> None:
+    """Register the composite-layers command."""
+
     def _composite_layers(a, j):
         from ..engine_composite_layers import composite_layers
 
@@ -146,4 +153,11 @@ def handle_composition_command(args: Any, *, use_json: bool) -> bool:
 
     runner.register("composite-layers", _composite_layers)
 
+
+def handle_composition_command(args: Any, *, use_json: bool) -> bool:
+    """Handle motion graphics and layout commands extracted from main."""
+    runner = CommandRunner(args, use_json)
+    _register_mograph_commands(runner)
+    _register_layout_commands(runner)
+    _register_composite_commands(runner)
     return runner.dispatch()
