@@ -220,7 +220,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/audio_engine/synthesis.py": {"_apply_synth_effects", "audio_synthesize"},
     "kinocut/cli/formatting.py": {"_format_video_analyze"},
     "kinocut/cli/handlers_ai.py": {"handle_ai_commands"},
-    "kinocut/cli/handlers_composition.py": {"handle_composition_command"},
     "kinocut/cli/handlers_effects.py": {"handle_effect_command"},
     "kinocut/cli/handlers_image.py": {"handle_image_commands"},
     "kinocut/cli/parser/advanced.py": {"add_parsers"},
