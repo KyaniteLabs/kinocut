@@ -99,6 +99,23 @@ def _concat_clips(clips: list[str], output: str, tmpdir: str) -> None:
     _run_ffmpeg(["-f", "concat", "-safe", "0", "-i", concat_file, "-c", "copy", *_movflags_args(output), output])
 
 
+def _emit_merge_guardrails(infos: list, transition_duration: float, has_transitions: bool) -> None:
+    """Emit pre-merge compatibility guardrail warnings."""
+    try:
+        merge_warnings = validate_merge_compatibility(
+            infos,
+            transition_duration=transition_duration if has_transitions else 0.0,
+        )
+        for w in merge_warnings:
+            _warnings.warn(f"[MERGE GUARDRAIL] {w}", stacklevel=2)
+    except MCPVideoError:
+        raise
+    except Exception as e:
+        message = f"[MERGE GUARDRAIL] Could not validate merge compatibility: {e}"
+        logger.warning(message, exc_info=True)
+        _warnings.warn(message, stacklevel=2)
+
+
 def merge(
     clips: list[str],
     output_path: str | None = None,
@@ -126,19 +143,7 @@ def merge(
 
     # --- Guardrails: pre-merge compatibility ---
     has_transitions = bool(transition or transitions)
-    try:
-        merge_warnings = validate_merge_compatibility(
-            infos,
-            transition_duration=transition_duration if has_transitions else 0.0,
-        )
-        for w in merge_warnings:
-            _warnings.warn(f"[MERGE GUARDRAIL] {w}", stacklevel=2)
-    except MCPVideoError:
-        raise
-    except Exception as e:
-        message = f"[MERGE GUARDRAIL] Could not validate merge compatibility: {e}"
-        logger.warning(message, exc_info=True)
-        _warnings.warn(message, stacklevel=2)
+    _emit_merge_guardrails(infos, transition_duration, has_transitions)
     # --- End guardrails ---
 
     resolutions = {i.display_resolution for i in infos}
@@ -220,30 +225,8 @@ def _add_silent_audio(clips: list[str], infos: list, tmpdir: str) -> list[str]:
     return working
 
 
-def _merge_with_transitions(
-    clips: list[str],
-    output: str,
-    transition_types: list[str],
-    transition_duration: float,
-) -> None:
-    """Merge clips with xfade transitions between them.
-
-    Args:
-        transition_types: One transition type per clip pair (len = len(clips)-1).
-            If shorter, the last type is repeated.
-    """
-    n = len(clips)
-    if n < 2:
-        _run_ffmpeg(["-i", clips[0], "-c", "copy", output])
-        return
-
-    # Pad transition_types if shorter than clip pairs
-    pairs = n - 1
-    if len(transition_types) < pairs:
-        last = transition_types[-1] if transition_types else "fade"
-        transition_types = transition_types + [last] * (pairs - len(transition_types))
-
-    # xfade offset calculation
+def _compute_xfade_offsets(clips: list[str], pairs: int, transition_duration: float) -> list[float]:
+    """Compute cumulative xfade offset for each clip pair."""
     offsets: list[float] = []
     cumulative = 0.0
     for i in range(pairs):
@@ -256,18 +239,15 @@ def _merge_with_transitions(
             )
         cumulative += clip_dur - transition_duration
         offsets.append(cumulative)
+    return offsets
 
-    # Build complex filter
-    inputs = []
-    for clip in clips:
-        inputs.extend(["-i", clip])
 
-    # Build filter chain with per-pair transition types
-    filter_parts = []
-    labels: list[str] = []
-    for i in range(n):
-        labels.append(f"{i}:v")
-
+def _build_xfade_video_filter(
+    n: int, pairs: int, transition_types: list[str], offsets: list[float], transition_duration: float
+) -> str:
+    """Build the xfade video filter chain string with per-pair transition types."""
+    labels: list[str] = [f"{i}:v" for i in range(n)]
+    filter_parts: list[str] = []
     for i in range(pairs):
         in1 = labels[i]
         in2 = labels[i + 1]
@@ -289,31 +269,30 @@ def _merge_with_transitions(
             f"[{in1}][{in2}]xfade=transition={safe_xfade}:offset={safe_offset}:duration={safe_duration}[{out}]"
         )
         labels[i + 1] = out
+    return ";".join(filter_parts)
 
-    filter_str = ";".join(filter_parts)
 
-    # Audio: only include if clips have audio streams
-    has_audio = any(probe(c).audio_codec is not None for c in clips)
-    if has_audio:
-        # Crossfade audio with acrossfade so it overlaps by the SAME duration the
-        # video xfade overlaps. The old code concatenated audio at full length while
-        # xfade shortened the video timeline by transition_duration per transition,
-        # so audio ran longer than video and A/V drift accumulated with each cut.
-        audio_labels = [f"{i}:a" for i in range(n)]
-        audio_parts = []
-        for i in range(pairs):
-            a_out = f"at{i}" if i < pairs - 1 else "aout"
-            audio_parts.append(
-                f"[{audio_labels[i]}][{audio_labels[i + 1]}]acrossfade=d={transition_duration:.3f}[{a_out}]"
-            )
-            audio_labels[i + 1] = a_out
-        audio_filter = ";".join(audio_parts)
-        filter_complex = f"{filter_str};{audio_filter}"
-        map_args = ["-map", "[vout]", "-map", "[aout]"]
-    else:
-        filter_complex = filter_str
-        map_args = ["-map", "[vout]"]
+def _build_acrossfade_audio_filter(n: int, pairs: int, transition_duration: float) -> str:
+    """Build the acrossfade audio filter chain string."""
+    # Crossfade audio with acrossfade so it overlaps by the SAME duration the
+    # video xfade overlaps. The old code concatenated audio at full length while
+    # xfade shortened the video timeline by transition_duration per transition,
+    # so audio ran longer than video and A/V drift accumulated with each cut.
+    audio_labels = [f"{i}:a" for i in range(n)]
+    audio_parts: list[str] = []
+    for i in range(pairs):
+        a_out = f"at{i}" if i < pairs - 1 else "aout"
+        audio_parts.append(
+            f"[{audio_labels[i]}][{audio_labels[i + 1]}]acrossfade=d={transition_duration:.3f}[{a_out}]"
+        )
+        audio_labels[i + 1] = a_out
+    return ";".join(audio_parts)
 
+
+def _run_transition_merge(
+    clips: list[str], output: str, filter_complex: str, map_args: list[str], has_audio: bool
+) -> None:
+    """Run the final FFmpeg merge command with or without audio."""
     if has_audio:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
@@ -344,3 +323,42 @@ def _merge_with_transitions(
                 ],
             )
         )
+
+
+def _merge_with_transitions(
+    clips: list[str],
+    output: str,
+    transition_types: list[str],
+    transition_duration: float,
+) -> None:
+    """Merge clips with xfade transitions between them.
+
+    Args:
+        transition_types: One transition type per clip pair (len = len(clips)-1).
+            If shorter, the last type is repeated.
+    """
+    n = len(clips)
+    if n < 2:
+        _run_ffmpeg(["-i", clips[0], "-c", "copy", output])
+        return
+
+    # Pad transition_types if shorter than clip pairs
+    pairs = n - 1
+    if len(transition_types) < pairs:
+        last = transition_types[-1] if transition_types else "fade"
+        transition_types = transition_types + [last] * (pairs - len(transition_types))
+
+    offsets = _compute_xfade_offsets(clips, pairs, transition_duration)
+    filter_str = _build_xfade_video_filter(n, pairs, transition_types, offsets, transition_duration)
+
+    # Audio: only include if clips have audio streams
+    has_audio = any(probe(c).audio_codec is not None for c in clips)
+    if has_audio:
+        audio_filter = _build_acrossfade_audio_filter(n, pairs, transition_duration)
+        filter_complex = f"{filter_str};{audio_filter}"
+        map_args = ["-map", "[vout]", "-map", "[aout]"]
+    else:
+        filter_complex = filter_str
+        map_args = ["-map", "[vout]"]
+
+    _run_transition_merge(clips, output, filter_complex, map_args, has_audio)

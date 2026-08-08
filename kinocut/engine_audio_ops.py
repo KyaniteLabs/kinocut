@@ -44,78 +44,78 @@ def _build_audio_filters(volume: float, fade_in: float, fade_out: float, duratio
     return filters
 
 
-def _build_add_audio_args(
+def _build_mix_audio_args(
     video_path: str,
     audio_path: str,
     filters: list[str],
-    mix: bool,
     start_time: float | None,
-    source_has_audio: bool,
     output: str,
-    *,
-    duration_policy: str = "keep_video",
-    video_duration: float | None = None,
+    duration_policy: str,
+    video_duration: float | None,
 ) -> list[str]:
-    """Construct FFmpeg argument list for add_audio operation.
+    """Construct FFmpeg arguments for add_audio in mix mode.
 
-    ``duration_policy`` decides how the replaced audio is reconciled with the
-    video length: every policy except ``shortest`` caps the output at the video's
-    duration (``-t``) so the outro is preserved; ``pad_audio`` adds silence,
-    ``loop_audio`` loops the audio input to fill, and ``shortest`` keeps the
-    legacy ``-shortest``. In mix mode the source-preserving ``amix`` duration is
-    legacy ``-shortest``. In mix mode the source-preserving ``amix`` duration is
-    ``longest`` (or ``shortest`` only under the explicit ``shortest`` policy).
+    The added track is one chain: [1:a] -> optional adelay -> filters -> [a1].
     Mix mode disables amix's default 1/n normalization (``normalize=0``) so both
     tracks sum at unity instead of being attenuated ~6 dB (issue #289).
     """
+    af = ",".join(filters) if filters else "anull"
+    amix_duration = "shortest" if duration_policy == "shortest" else "longest"
+    # Output tail: shortest genuinely cuts to the shortest input; every other
+    # policy caps the mix at the video duration so a longer added track can
+    # never stretch the output past the video.
+    mix_tail = (
+        ["-shortest"]
+        if duration_policy == "shortest" or video_duration is None
+        else ["-t", _escape_ffmpeg_filter_value(f"{float(video_duration):.6f}")]
+    )
+    # Referencing [1:a] a second time mid-chain is invalid filtergraph syntax
+    # even where some FFmpeg builds tolerate it.
+    if start_time:
+        safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
+        second_chain = f"[1:a]adelay={safe_delay}|{safe_delay},{af}[a1]"
+    else:
+        second_chain = f"[1:a]{af}[a1]"
+    filter_complex = (
+        f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
+    )
+    return [
+        "-i",
+        video_path,
+        "-i",
+        audio_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "0:v",
+        "-map",
+        "[aout]",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        DEFAULT_AUDIO_BITRATE,
+        *mix_tail,
+        *_movflags_args(output),
+        output,
+    ]
 
-    if mix and source_has_audio:
-        af = ",".join(filters) if filters else "anull"
-        amix_duration = "shortest" if duration_policy == "shortest" else "longest"
-        # Output tail: shortest genuinely cuts to the shortest input; every other
-        # policy caps the mix at the video duration so a longer added track can
-        # never stretch the output past the video.
-        mix_tail = (
-            ["-shortest"]
-            if duration_policy == "shortest" or video_duration is None
-            else ["-t", _escape_ffmpeg_filter_value(f"{float(video_duration):.6f}")]
-        )
-        # The added track is one chain: [1:a] -> optional adelay -> filters -> [a1].
-        # Referencing [1:a] a second time mid-chain is invalid filtergraph syntax
-        # even where some FFmpeg builds tolerate it.
-        if start_time:
-            safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
-            second_chain = f"[1:a]adelay={safe_delay}|{safe_delay},{af}[a1]"
-        else:
-            second_chain = f"[1:a]{af}[a1]"
-        filter_complex = (
-            f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
-        )
-        return [
-            "-i",
-            video_path,
-            "-i",
-            audio_path,
-            "-filter_complex",
-            filter_complex,
-            "-map",
-            "0:v",
-            "-map",
-            "[aout]",
-            "-c:v",
-            "copy",
-            "-c:a",
-            "aac",
-            "-b:a",
-            DEFAULT_AUDIO_BITRATE,
-            *mix_tail,
-            *_movflags_args(output),
-            output,
-        ]
 
-    # --- Replace audio (or add if no existing audio) ---
-    # Duration control (replace path only, so loop/pad never feed an unbounded
-    # stream into amix): non-shortest policies cap the output at the video length.
+def _build_replace_audio_args(
+    video_path: str,
+    audio_path: str,
+    filters: list[str],
+    start_time: float | None,
+    output: str,
+    duration_policy: str,
+    video_duration: float | None,
+) -> list[str]:
+    """Construct FFmpeg arguments for add_audio in replace (or add) mode.
+
+    Duration control (replace path only, so loop/pad never feed an unbounded
+    stream into amix): non-shortest policies cap the output at the video length.
+    """
     loop_prefix = ["-stream_loop", "-1"] if duration_policy == "loop_audio" else []
     audio_filters = [*filters, "apad"] if duration_policy == "pad_audio" else list(filters)
     if duration_policy == "shortest" or video_duration is None:
@@ -142,6 +142,36 @@ def _build_add_audio_args(
 
     args.extend(["-c:v", "copy", "-c:a", "aac", "-b:a", DEFAULT_AUDIO_BITRATE, *tail, *_movflags_args(output), output])
     return args
+
+
+def _build_add_audio_args(
+    video_path: str,
+    audio_path: str,
+    filters: list[str],
+    mix: bool,
+    start_time: float | None,
+    source_has_audio: bool,
+    output: str,
+    *,
+    duration_policy: str = "keep_video",
+    video_duration: float | None = None,
+) -> list[str]:
+    """Construct FFmpeg argument list for add_audio operation.
+
+    ``duration_policy`` decides how the replaced audio is reconciled with the
+    video length: every policy except ``shortest`` caps the output at the video's
+    duration (``-t``) so the outro is preserved; ``pad_audio`` adds silence,
+    ``loop_audio`` loops the audio input to fill, and ``shortest`` keeps the
+    legacy ``-shortest``. In mix mode the source-preserving ``amix`` duration is
+    ``longest`` (or ``shortest`` only under the explicit ``shortest`` policy).
+    """
+    if mix and source_has_audio:
+        return _build_mix_audio_args(
+            video_path, audio_path, filters, start_time, output, duration_policy, video_duration
+        )
+    return _build_replace_audio_args(
+        video_path, audio_path, filters, start_time, output, duration_policy, video_duration
+    )
 
 
 def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
@@ -254,6 +284,46 @@ def add_audio(
     return _build_edit_result(output, "add_audio", timing).model_copy(update={"warnings": warnings})
 
 
+def _validate_duck_params(
+    music_volume: float,
+    threshold: float,
+    ratio: float,
+    attack: float,
+    release: float,
+) -> None:
+    """Validate duck_audio parameters."""
+    if not 0 < music_volume <= 2:
+        raise MCPVideoError(
+            f"music_volume must be in (0, 2], got {music_volume}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 0 < threshold <= 1:
+        raise MCPVideoError(
+            f"threshold must be in (0, 1], got {threshold}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 1 <= ratio <= 20:
+        raise MCPVideoError(
+            f"ratio must be between 1 and 20, got {ratio}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 1 <= attack <= 2000:
+        raise MCPVideoError(
+            f"attack must be between 1 and 2000 ms, got {attack}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    if not 1 <= release <= 9000:
+        raise MCPVideoError(
+            f"release must be between 1 and 9000 ms, got {release}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+
+
 def duck_audio(
     video_path: str,
     music_path: str,
@@ -285,36 +355,7 @@ def duck_audio(
     output = output_path or _auto_output(video_path, "ducked")
     _validate_output_path(output)
 
-    if not 0 < music_volume <= 2:
-        raise MCPVideoError(
-            f"music_volume must be in (0, 2], got {music_volume}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 0 < threshold <= 1:
-        raise MCPVideoError(
-            f"threshold must be in (0, 1], got {threshold}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 1 <= ratio <= 20:
-        raise MCPVideoError(
-            f"ratio must be between 1 and 20, got {ratio}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 1 <= attack <= 2000:
-        raise MCPVideoError(
-            f"attack must be between 1 and 2000 ms, got {attack}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 1 <= release <= 9000:
-        raise MCPVideoError(
-            f"release must be between 1 and 9000 ms, got {release}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
+    _validate_duck_params(music_volume, threshold, ratio, attack, release)
 
     if not _has_audio(_run_ffprobe_json(video_path)):
         raise MCPVideoError(

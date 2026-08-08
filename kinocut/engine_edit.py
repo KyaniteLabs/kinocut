@@ -28,25 +28,12 @@ def _time_to_seconds(value: str | float) -> float:
     return float(value)
 
 
-def trim(
-    input_path: str,
-    start: str | float = 0,
-    duration: str | float | None = None,
-    end: str | float | None = None,
-    output_path: str | None = None,
-    accurate: bool = False,
-) -> EditResult:
-    """Trim a video by start time and duration or end time.
-
-    Args:
-        accurate: When True, place ``-ss`` after ``-i`` for frame-accurate
-            seeking (slower).  Default False uses input seeking (fast).
-    """
-    input_path = _validate_input_path(input_path)
-    output = output_path or _auto_output(input_path, "trimmed")
-    _validate_output_path(output)
-
-    # Validate time values
+def _validate_trim_times(
+    start: str | float,
+    duration: str | float | None,
+    end: str | float | None,
+) -> float:
+    """Validate and convert trim time parameters, returning the start time in seconds."""
     try:
         start_sec = _time_to_seconds(start)
     except ValueError:
@@ -99,6 +86,29 @@ def trim(
                 error_type="validation_error",
                 code="invalid_parameter",
             )
+
+    return start_sec
+
+
+def trim(
+    input_path: str,
+    start: str | float = 0,
+    duration: str | float | None = None,
+    end: str | float | None = None,
+    output_path: str | None = None,
+    accurate: bool = False,
+) -> EditResult:
+    """Trim a video by start time and duration or end time.
+
+    Args:
+        accurate: When True, place ``-ss`` after ``-i`` for frame-accurate
+            seeking (slower).  Default False uses input seeking (fast).
+    """
+    input_path = _validate_input_path(input_path)
+    output = output_path or _auto_output(input_path, "trimmed")
+    _validate_output_path(output)
+
+    _validate_trim_times(start, duration, end)
 
     prefix: list[str] = []
     if not accurate and start:
