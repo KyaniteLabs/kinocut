@@ -8,8 +8,9 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 | Label | Intended workload | Host rule |
 | --- | --- | --- |
 | `light` | lint, metadata, and other low-CPU checks | May run at capacity 1; must not carry real-media tests |
-| `heavy` | Python tests, FFmpeg renders, Hyperframes, and FFmpeg matrices | Run away from the Forgejo application host |
-| `kinocut-ci` | Same workload class as `heavy`, using the prebuilt Kinocut image | Map only after the immutable image digest is published and smoke-tested |
+| `heavy` | Legacy shared heavy-work label | Do not use for Kinocut jobs; other registered runners may claim it |
+| `arm64-heavy` | Python tests, FFmpeg renders, Hyperframes, and FFmpeg matrices | Dedicated ARM64 runner away from the Forgejo application host |
+| `kinocut-ci` | Same workload class as `arm64-heavy`, using the prebuilt Kinocut image | Map only after the immutable image digest is published and smoke-tested |
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
 capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
@@ -22,8 +23,16 @@ As of 2026-08-08, the CI runner (`colima-ci-runner`, id=15) runs
 **inside the Colima VM** as a systemd service (`forgejo-runner.service`,
 auto-start on boot, auto-restart on crash). The runner binary is
 forgejo-runner v13.0.0 (linux-arm64). Labels: `heavy`, `light`, `default`,
-all mapped to `docker://ubuntu:24.04`. Docker socket is native at
-`/var/run/docker.sock` inside the VM.
+and `arm64-heavy`, all mapped to `docker://ubuntu:24.04`. Docker socket is
+native at `/var/run/docker.sock` inside the VM.
+Storage recovery on 2026-08-08:
+
+- Persistent application volumes were backed up outside the repository before repair.
+- Container storage was unmounted and checked offline with `e2fsck -f`; the next boot
+  mounted it read/write without the prior ext4 journal or containerd metadata errors.
+- Stale Actions containers, workflow networks, and transient task volumes were removed.
+- The runner binary and config moved from volatile `/tmp` paths to
+  `/usr/local/bin/forgejo-runner` and `/etc/forgejo-runner/config.yaml`.
 
 Key constraints:
 
@@ -32,6 +41,11 @@ Key constraints:
 - **FFmpeg matrix uses `linuxarm64` static builds** from BtbN/FFmpeg-Builds.
   The `linux64` (x86_64) binaries cannot execute on ARM64 without qemu.
 - **Lint runs on `light`** to avoid queuing behind heavy test jobs.
+- **Heavy Kinocut jobs run on `arm64-heavy`** so shared legacy labels cannot
+  route architecture-sensitive work to stale or incompatible runners.
+- **The general PR suite runs serially** because its FFmpeg and CLI subprocesses
+  contend and time out under four xdist workers on the 4-core runner.
+- **Node.js 18.19.1 is installed in the PR test job** for MCPB launcher contracts.
 - **Manual git clone** replaces `actions/checkout@v4` — the Colima VM cannot
   reach `gitea.com` to download the action. Authenticated clone uses
   `${{ secrets.GITHUB_TOKEN }}` with the known host.
@@ -39,8 +53,8 @@ Key constraints:
   tasks fail, networks accumulate and exhaust address pools. Periodic
   `docker network prune -f` inside the VM is required.
 - **Persistence**: Colima auto-starts via launchd plist
-  (`tech.kyanitelabs.colima`, `RunAtLoad=true`). The forgejo-runner inside
-  the VM is managed by systemd (`Restart=always`).
+  (`tech.kyanitelabs.colima`, `RunAtLoad=true`). The runner binary and config
+  live on the VM root filesystem; systemd manages the service (`Restart=always`).
 - **macOS act_runner deprecated**: the previous macOS-hosted act_runner
   (launchd plist `tech.kyanitelabs.act-runner`) could not exec into
   containers because the `act` library couldn't find Docker at
@@ -68,10 +82,10 @@ Before production activation:
 2. Run the smoke command on the runner architecture.
 3. In Forgejo administration, map `kinocut-ci` to
    `docker://REGISTRY/kinocut-ci@sha256:DIGEST`.
-4. Confirm `heavy` and `kinocut-ci` do not execute on the Forgejo application
+4. Confirm `arm64-heavy` and `kinocut-ci` do not execute on the Forgejo application
    host.
-5. Change `.forgejo/workflows/ci.yml` jobs from `heavy` to `kinocut-ci`, remove
-   their repeated base dependency installs, and prove one push plus one pull
+5. Change `.forgejo/workflows/ci.yml` jobs from `arm64-heavy` to `kinocut-ci`,
+   remove their repeated base dependency installs, and prove one push plus one pull
    request run.
 6. Keep the FFmpeg 6/7/8 matrix downloads: those are deliberate portability
    inputs and are not replaced by the default runner FFmpeg.
