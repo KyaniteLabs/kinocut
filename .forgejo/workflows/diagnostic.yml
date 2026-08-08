@@ -1,0 +1,27 @@
+on:
+  pull_request:
+  push:
+    branches: [master]
+jobs:
+  diagnostic:
+    runs-on: heavy
+    steps:
+      - name: Basic environment check
+        run: |
+          set -ex
+          echo "=== OS ==="
+          cat /etc/os-release | head -3
+          echo "=== Python ==="
+          python3 --version
+          echo "=== Network ==="
+          apt-get update -qq && apt-get install -y -qq curl > /dev/null 2>&1
+          curl -sf -o /dev/null https://gitea.com && echo "gitea.com reachable" || echo "gitea.com FAILED"
+          curl -sf -o /dev/null https://github.com && echo "github.com reachable" || echo "github.com FAILED"
+          echo "=== Docker info ==="
+          whoami
+          pwd
+          echo "CI=${CI:-unset}"
+          echo "GITHUB_WORKSPACE=${GITHUB_WORKSPACE:-unset}"
+          echo "=== Checkout action test ==="
+          git clone --depth=1 https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git /tmp/test-clone && echo "Git clone OK" || echo "Git clone FAILED"
+          echo "DIAGNOSTIC COMPLETE"
