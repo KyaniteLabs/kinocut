@@ -113,6 +113,36 @@ def _extract_audio_segment(
     return out_path
 
 
+def _extract_transcription_audio(video_path: Path, audio_path: str) -> None:
+    """Extract audio from video to 16kHz mono 16-bit PCM WAV for Whisper."""
+    _run_command(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            str(video_path),
+            "-vn",  # No video
+            "-acodec",
+            "pcm_s16le",  # 16-bit PCM
+            "-ar",
+            "16000",  # 16kHz (Whisper expects this)
+            "-ac",
+            "1",  # Mono
+            audio_path,
+        ],
+        timeout=DEFAULT_FFMPEG_TIMEOUT,
+    )
+
+
+def _build_transcription_result(result_data: dict[str, Any]) -> dict[str, Any]:
+    """Build the transcription result dict from Whisper output."""
+    return {
+        "transcript": result_data.get("text", "").strip(),
+        "segments": result_data.get("segments", []),
+        "language": result_data.get("language", "unknown"),
+    }
+
+
 def ai_transcribe(
     video: str,
     output_srt: str | None = None,
@@ -164,23 +194,7 @@ def ai_transcribe(
         with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as tmp:
             audio_path = tmp.name
 
-        _run_command(
-            [
-                "ffmpeg",
-                "-y",
-                "-i",
-                str(video_path),
-                "-vn",  # No video
-                "-acodec",
-                "pcm_s16le",  # 16-bit PCM
-                "-ar",
-                "16000",  # 16kHz (Whisper expects this)
-                "-ac",
-                "1",  # Mono
-                audio_path,
-            ],
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-        )
+        _extract_transcription_audio(video_path, audio_path)
 
         # Step 2: Load whisper model
         whisper_model = whisper.load_model(model)
@@ -198,12 +212,7 @@ def ai_transcribe(
             srt_content = _format_srt(result_data.get("segments", []))
             Path(output_srt).write_text(srt_content, encoding="utf-8")
 
-        # Step 5: Return dict with results
-        return {
-            "transcript": result_data.get("text", "").strip(),
-            "segments": result_data.get("segments", []),
-            "language": result_data.get("language", "unknown"),
-        }
+        return _build_transcription_result(result_data)
 
     finally:
         # Clean up temp audio file

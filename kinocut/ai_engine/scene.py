@@ -37,6 +37,66 @@ def _parse_duration(value: object) -> float:
         return 0.0
 
 
+def _extract_scene_frames(video: str, tmpdir: str, frame_interval: float) -> list[Path]:
+    """Extract scene detection frames at the given interval."""
+    frame_pattern = Path(tmpdir) / "frame_%04d.jpg"
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        video,
+        "-vf",
+        f"fps=1/{frame_interval},scale=320:-1",
+        "-q:v",
+        "2",
+        str(frame_pattern),
+    ]
+    _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    return sorted(Path(tmpdir).glob("frame_*.jpg"))
+
+
+def _compute_frame_hashes(
+    frames: list[Path],
+    frame_interval: float,
+) -> list[dict]:
+    """Compute perceptual hash for each frame."""
+    import imagehash
+    from PIL import Image
+
+    hashes = []
+    for frame_path in frames:
+        try:
+            img = Image.open(frame_path)
+            phash = imagehash.phash(img)
+            # Extract timestamp from frame number
+            # frame_0001.jpg corresponds to 0.0s, frame_0002.jpg to 0.5s, etc.
+            frame_num = int(frame_path.stem.split("_")[1])
+            timestamp = (frame_num - 1) * frame_interval
+            hashes.append({"timestamp": timestamp, "hash": phash, "path": frame_path})
+        except Exception as exc:
+            logger.debug("Frame hash extraction failed for %s: %s", frame_path, exc)
+            continue
+    return hashes
+
+
+def _detect_scene_changes(hashes: list[dict]) -> list[dict]:
+    """Compare perceptual hashes to find significant scene changes."""
+    scenes: list[dict] = []
+    hash_threshold = 10  # Perceptual hash threshold (lower = more sensitive)
+
+    for i in range(1, len(hashes)):
+        prev_hash = hashes[i - 1]["hash"]
+        curr_hash = hashes[i]["hash"]
+
+        # Calculate hash difference
+        hash_diff = prev_hash - curr_hash
+
+        if hash_diff > hash_threshold:
+            scenes.append({"timestamp": float(hashes[i]["timestamp"]), "frame": None, "hash_diff": int(hash_diff)})
+
+    return scenes
+
+
 def ai_scene_detect(
     video: str,
     threshold: float = 0.3,
@@ -59,8 +119,8 @@ def ai_scene_detect(
 
     # AI-enhanced: Use perceptual hashing
     try:
-        import imagehash
-        from PIL import Image
+        import imagehash  # noqa: F401
+        from PIL import Image  # noqa: F401
     except ImportError:
         # Fall back to standard detection
         return _standard_scene_detect(video, threshold)
@@ -85,63 +145,19 @@ def ai_scene_detect(
 
     # Step 2: Extract frames at a bounded interval.
     frame_interval = max(0.5, duration / MAX_AI_SCENE_FRAMES)
-    scenes = []
 
     with tempfile.TemporaryDirectory() as tmpdir:
-        # Extract frames at regular intervals
-        frame_pattern = Path(tmpdir) / "frame_%04d.jpg"
-        cmd = [
-            "ffmpeg",
-            "-y",
-            "-i",
-            video,
-            "-vf",
-            f"fps=1/{frame_interval},scale=320:-1",
-            "-q:v",
-            "2",
-            str(frame_pattern).replace("%04d", "%04d"),
-        ]
         try:
-            _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+            frames = _extract_scene_frames(video, tmpdir, frame_interval)
         except ProcessingError:
             # Fall back to standard detection on error
             return _standard_scene_detect(video, threshold)
-
-        # Get all extracted frames sorted by time
-        frames = sorted(Path(tmpdir).glob("frame_*.jpg"))
         if len(frames) < 2:
             return []
 
-        # Step 3: Compute perceptual hash for each frame
-        hashes = []
-        for frame_path in frames:
-            try:
-                img = Image.open(frame_path)
-                phash = imagehash.phash(img)
-                # Extract timestamp from frame number
-                # frame_0001.jpg corresponds to 0.0s, frame_0002.jpg to 0.5s, etc.
-                frame_num = int(frame_path.stem.split("_")[1])
-                timestamp = (frame_num - 1) * frame_interval
-                hashes.append({"timestamp": timestamp, "hash": phash, "path": frame_path})
-            except Exception as exc:
-                logger.debug("Frame hash extraction failed for %s: %s", frame_path, exc)
-                continue
+        hashes = _compute_frame_hashes(frames, frame_interval)
 
-        # Step 4: Compare hashes to find significant changes
-        # Perceptual hash threshold (lower = more sensitive)
-        hash_threshold = 10  # Adjust based on testing
-
-        for i in range(1, len(hashes)):
-            prev_hash = hashes[i - 1]["hash"]
-            curr_hash = hashes[i]["hash"]
-
-            # Calculate hash difference
-            hash_diff = prev_hash - curr_hash
-
-            if hash_diff > hash_threshold:
-                scenes.append({"timestamp": float(hashes[i]["timestamp"]), "frame": None, "hash_diff": int(hash_diff)})
-
-    return scenes
+    return _detect_scene_changes(hashes)
 
 
 # ---------------------------------------------------------------------------

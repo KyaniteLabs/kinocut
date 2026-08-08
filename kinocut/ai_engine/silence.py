@@ -136,6 +136,31 @@ def _build_keep_segments(
     return keep_segments
 
 
+def _trim_segment(
+    video: str,
+    start: float,
+    duration: float,
+    output_path: Path,
+) -> None:
+    """Trim a single segment from video using FFmpeg stream copy."""
+    _run_command(
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video,
+            "-ss",
+            str(start),
+            "-t",
+            str(duration),
+            "-c",
+            "copy",
+            str(output_path),
+        ],
+        timeout=DEFAULT_FFMPEG_TIMEOUT,
+    )
+
+
 def _concat_segments(
     video: str,
     segments: list[tuple[float, float]],
@@ -151,22 +176,9 @@ def _concat_segments(
     if len(segments) == 1:
         # Single segment - just trim
         start, end = segments[0]
-        duration = end - start
-        cmd = [
-            "ffmpeg",
-            "-y",
-            "-i",
-            video,
-            "-ss",
-            str(start),
-            "-t",
-            str(duration),
-            "-c",
-            "copy",
-            output,
-        ]
-        _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+        _trim_segment(video, start, end - start, Path(output))
         return output
+
 
     # Multiple segments - extract each and concatenate
     segment_files = []
@@ -174,25 +186,7 @@ def _concat_segments(
     with tempfile.TemporaryDirectory() as tmpdir:
         for i, (start, end) in enumerate(segments):
             segment_file = Path(tmpdir) / f"segment_{i:04d}.mp4"
-            duration = end - start
-
-            _run_command(
-                [
-                    "ffmpeg",
-                    "-y",
-                    "-i",
-                    video,
-                    "-ss",
-                    str(start),
-                    "-t",
-                    str(duration),
-                    "-c",
-                    "copy",
-                    str(segment_file),
-                ],
-                timeout=DEFAULT_FFMPEG_TIMEOUT,
-            )
-
+            _trim_segment(video, start, end - start, segment_file)
             segment_files.append(str(segment_file))
 
         # Create concat list file

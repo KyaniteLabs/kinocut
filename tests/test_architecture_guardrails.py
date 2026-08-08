@@ -207,13 +207,6 @@ FUNCTION_LINE_LIMIT = 80
 #: Frozen baseline of functions that already exceed FUNCTION_LINE_LIMIT.
 #: As each function is decomposed, remove its entry here so the net tightens.
 _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
-    "kinocut/ai_engine/__init__.py": {"analyze_video"},
-    "kinocut/ai_engine/color.py": {"ai_color_grade"},
-    "kinocut/ai_engine/scene.py": {"ai_scene_detect"},
-    "kinocut/ai_engine/silence.py": {"_concat_segments"},
-    "kinocut/ai_engine/stem.py": {"ai_stem_separation"},
-    "kinocut/ai_engine/transcribe.py": {"ai_transcribe"},
-    "kinocut/ai_engine/upscale.py": {"ai_upscale"},
     "kinocut/audio_engine/__init__.py": {"add_generated_audio"},
     "kinocut/audio_engine/integrations/meltysynth_bridge.py": {"render_notes"},
     "kinocut/audio_engine/synthesis.py": {"_apply_synth_effects", "audio_synthesize"},
