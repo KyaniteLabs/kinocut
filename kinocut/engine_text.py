@@ -68,15 +68,8 @@ def add_text(
     output = output_path or _auto_output(input_path, "titled")
     _validate_output_path(output)
 
-    # ── Layout guardrails ────────────────────────────────────────────────
-    # Probe video dimensions for contrast/safe-area checks
-    try:
-        video_info = probe(input_path)
-        vw, vh = video_info.width, video_info.height
-    except Exception:
-        vw, vh = 1920, 1080
-
-    layout_warnings = validate_single_text(
+    vw, vh = _probe_video_dims(input_path)
+    for w in validate_single_text(
         text=text,
         position=position,
         size=size,
@@ -85,75 +78,14 @@ def add_text(
         video_width=vw,
         video_height=vh,
         background_color="#000000",
-    )
-    for w in layout_warnings:
+    ):
         _warnings.warn(f"[{w.severity.upper()}] {w.code}: {w.message}", stacklevel=2)
-    # ── End guardrails ───────────────────────────────────────────────────
 
-    coords = _position_coords(position)
-    fontfile = font or _default_font()
-
-    # Validate font file exists when explicitly provided
-    if font is not None:
-        _validate_input_path(fontfile)
-
-    # Escape font path for FFmpeg filter syntax
-    escaped_fontfile = _escape_ffmpeg_filter_value(fontfile)
-
-    # Escape FFmpeg drawtext special characters
-    escaped_text = _escape_ffmpeg_filter_value(text)
-    escaped_color = _escape_ffmpeg_filter_value(color)
-
-    filter_parts = [
-        f"drawtext=text='{escaped_text}'",
-        # User text is literal — without this, drawtext interprets %{...} as
-        # expansion tokens (e.g. "50%{off}" errors or renders timestamps).
-        "expansion=none",
-        f"fontsize={size}",
-        f"fontcolor={escaped_color}",
-        f"fontfile={escaped_fontfile}",
-        coords,
-    ]
-
-    if shadow:
-        filter_parts.append("shadowcolor=black@0.5")
-        filter_parts.append("shadowx=2")
-        filter_parts.append("shadowy=2")
-
-    if start_time is not None and duration is not None:
-        safe_start = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(start_time, "start_time")))
-        safe_end = _escape_ffmpeg_filter_value(
-            str(_sanitize_ffmpeg_number(start_time + duration, "start_time + duration"))
-        )
-        filter_parts.append(f"enable='between(t\\,{safe_start}\\,{safe_end})'")
-    elif start_time is not None:
-        safe_start = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(start_time, "start_time")))
-        filter_parts.append(f"enable='gte(t\\,{safe_start})'")
-
-    vf = ":".join(filter_parts)
-
-    with _timed_operation() as timing:
-        _run_ffmpeg(
-            _build_ffmpeg_cmd(
-                input_path,
-                output_path=output,
-                video_filter=vf,
-                audio_codec="copy",
-                crf=crf,
-                preset=preset,
-            )
-        )
-
-    info = probe(output)
-    return EditResult(
-        output_path=output,
-        duration=info.duration,
-        resolution=info.resolution,
-        size_mb=info.size_mb,
-        format="mp4",
-        operation="add_text",
-        elapsed_ms=timing["elapsed_ms"],
+    vf = _build_drawtext_filter(
+        text, position, font, size, color, shadow, start_time, duration
     )
+
+    return _render_text_overlay(input_path, output, vf, crf, preset, "add_text")
 
 
 def add_texts(
@@ -198,14 +130,51 @@ def add_texts(
     output = output_path or _auto_output(input_path, "titled")
     _validate_output_path(output)
 
-    # Probe video dimensions
+    vw, vh = _probe_video_dims(input_path)
+    overlays = _build_overlay_specs(texts)
+
+    for w in validate_text_layout(
+        overlays,
+        video_width=vw,
+        video_height=vh,
+        background_color="#000000",
+    ):
+        _warnings.warn(f"[{w.severity.upper()}] {w.code}: {w.message}", stacklevel=2)
+
+    # Auto-layout: vertically distribute texts at same named position
+    if auto_layout:
+        _apply_auto_layout(overlays, vw, vh)
+
+    filter_parts: list[str] = []
+    for t, overlay in zip(texts, overlays, strict=False):
+        filter_parts.append(
+            _build_drawtext_filter(
+                overlay.text,
+                overlay.position,
+                t.get("font"),
+                overlay.size,
+                overlay.color,
+                overlay.shadow,
+                overlay.start_time,
+                overlay.duration,
+            )
+        )
+    vf = ",".join(filter_parts)
+
+    return _render_text_overlay(input_path, output, vf, crf, preset, "add_texts")
+
+
+def _probe_video_dims(input_path: str) -> tuple[int, int]:
+    """Return ``(width, height)`` for *input_path*, falling back to 1080p."""
     try:
         video_info = probe(input_path)
-        vw, vh = video_info.width, video_info.height
+        return video_info.width, video_info.height
     except Exception:
-        vw, vh = 1920, 1080
+        return 1920, 1080
 
-    # Build overlay specs
+
+def _build_overlay_specs(texts: list[dict[str, Any]]) -> list[TextOverlaySpec]:
+    """Validate raw text dicts and convert them into overlay specs."""
     overlays: list[TextOverlaySpec] = []
     for t in texts:
         text = t.get("text", "")
@@ -228,81 +197,86 @@ def add_texts(
                 duration=t.get("duration"),
             )
         )
+    return overlays
 
-    # ── Layout guardrails ────────────────────────────────────────────────
-    layout_warnings = validate_text_layout(
-        overlays,
-        video_width=vw,
-        video_height=vh,
-        background_color="#000000",
-    )
-    for w in layout_warnings:
-        _warnings.warn(f"[{w.severity.upper()}] {w.code}: {w.message}", stacklevel=2)
 
-    # Auto-layout: vertically distribute texts at same named position
-    if auto_layout:
-        _apply_auto_layout(overlays, vw, vh)
-    # ── End guardrails ───────────────────────────────────────────────────
+def _resolve_overlay_coords(position: Position | dict[str, Any]) -> str:
+    """Resolve an overlay position to drawtext ``x``/``y`` coordinates."""
+    if isinstance(position, dict) and "x" in position:
+        return f"x={int(position['x'])}:y={int(position['y'])}"
+    return _position_coords(position)
 
-    # Build chained drawtext filters
-    filter_parts: list[str] = []
-    for t, overlay in zip(texts, overlays, strict=False):
-        font = t.get("font")
-        fontfile = font or _default_font()
-        if font is not None:
-            _validate_input_path(fontfile)
 
-        escaped_fontfile = _escape_ffmpeg_filter_value(fontfile)
-        escaped_text = _escape_ffmpeg_filter_value(overlay.text)
-        escaped_color = _escape_ffmpeg_filter_value(overlay.color)
+def _append_enable_timing(
+    parts: list[str],
+    start_time: float | None,
+    duration: float | None,
+) -> None:
+    """Append the drawtext ``enable=`` timing sub-filter to *parts* in place."""
+    if start_time is not None and duration is not None:
+        safe_start = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(start_time, "start_time")))
+        safe_end = _escape_ffmpeg_filter_value(
+            str(_sanitize_ffmpeg_number(start_time + duration, "start_time + duration"))
+        )
+        parts.append(f"enable='between(t\\,{safe_start}\\,{safe_end})'")
+    elif start_time is not None:
+        safe_start = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(start_time, "start_time")))
+        parts.append(f"enable='gte(t\\,{safe_start})'")
 
-        # Resolve position
-        if isinstance(overlay.position, dict) and "x" in overlay.position:
-            # Pixel position
-            pos_x = str(int(overlay.position["x"]))
-            pos_y = str(int(overlay.position["y"]))
-            coords = f"x={pos_x}:y={pos_y}"
-        else:
-            coords = _position_coords(overlay.position)
 
-        parts = [
-            f"drawtext=text='{escaped_text}'",
-            "expansion=none",
-            f"fontsize={overlay.size}",
-            f"fontcolor={escaped_color}",
-            f"fontfile={escaped_fontfile}",
-            coords,
-        ]
+def _build_drawtext_filter(
+    text: str,
+    position: Position | dict[str, Any],
+    font: str | None,
+    size: int,
+    color: str,
+    shadow: bool,
+    start_time: float | None,
+    duration: float | None,
+) -> str:
+    """Build a single FFmpeg ``drawtext`` filter string."""
+    coords = _resolve_overlay_coords(position)
+    fontfile = font or _default_font()
+    if font is not None:
+        _validate_input_path(fontfile)
 
-        if overlay.shadow:
-            parts.extend(
-                [
-                    "shadowcolor=black@0.5",
-                    "shadowx=2",
-                    "shadowy=2",
-                ]
-            )
+    escaped_fontfile = _escape_ffmpeg_filter_value(fontfile)
+    escaped_text = _escape_ffmpeg_filter_value(text)
+    escaped_color = _escape_ffmpeg_filter_value(color)
 
-        if overlay.start_time is not None and overlay.duration is not None:
-            safe_start = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(overlay.start_time, "start_time")))
-            safe_end = _escape_ffmpeg_filter_value(
-                str(_sanitize_ffmpeg_number(overlay.start_time + overlay.duration, "start_time + duration"))
-            )
-            parts.append(f"enable='between(t\\,{safe_start}\\,{safe_end})'")
-        elif overlay.start_time is not None:
-            safe_start = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(overlay.start_time, "start_time")))
-            parts.append(f"enable='gte(t\\,{safe_start})'")
+    parts = [
+        f"drawtext=text='{escaped_text}'",
+        # User text is literal — without this, drawtext interprets %{...} as
+        # expansion tokens (e.g. "50%{off}" errors or renders timestamps).
+        "expansion=none",
+        f"fontsize={size}",
+        f"fontcolor={escaped_color}",
+        f"fontfile={escaped_fontfile}",
+        coords,
+    ]
+    if shadow:
+        parts.append("shadowcolor=black@0.5")
+        parts.append("shadowx=2")
+        parts.append("shadowy=2")
+    _append_enable_timing(parts, start_time, duration)
+    return ":".join(parts)
 
-        filter_parts.append(":".join(parts))
 
-    vf = ",".join(filter_parts)
-
+def _render_text_overlay(
+    input_path: str,
+    output: str,
+    video_filter: str,
+    crf: int | None,
+    preset: str | None,
+    operation: str,
+) -> EditResult:
+    """Run FFmpeg with the drawtext filtergraph and build the EditResult."""
     with _timed_operation() as timing:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 input_path,
                 output_path=output,
-                video_filter=vf,
+                video_filter=video_filter,
                 audio_codec="copy",
                 crf=crf,
                 preset=preset,
@@ -316,7 +290,7 @@ def add_texts(
         resolution=info.resolution,
         size_mb=info.size_mb,
         format="mp4",
-        operation="add_texts",
+        operation=operation,
         elapsed_ms=timing["elapsed_ms"],
     )
 
