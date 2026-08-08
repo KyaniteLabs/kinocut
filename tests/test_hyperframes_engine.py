@@ -807,6 +807,14 @@ class TestCompositions:
 
 class TestPreview:
     """Tests for preview()."""
+    @pytest.fixture(autouse=True)
+    def _clear_preview_registry(self):
+        from mcp_video.hyperframes_engine import _active_previews
+
+        _active_previews.clear()
+        yield
+        _active_previews.clear()
+
 
     def test_returns_url_with_correct_port(self, sample_hyperframes_project):
         """preview() should return a URL with the specified port."""
@@ -857,6 +865,7 @@ class TestPreview:
 
     def test_raises_when_process_exits_immediately(self, sample_hyperframes_project):
         """preview() should raise HyperframesProjectError if the process crashes on startup."""
+        from mcp_video.hyperframes_engine import _active_previews
         project = str(sample_hyperframes_project)
         mock_proc = MagicMock()
         mock_proc.poll.return_value = 1
@@ -867,6 +876,7 @@ class TestPreview:
             pytest.raises(HyperframesProjectError),
         ):
             preview(project, port=3002)
+        assert 3002 not in _active_previews
 
 
 # ---------------------------------------------------------------------------

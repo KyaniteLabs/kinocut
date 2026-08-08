@@ -48,7 +48,7 @@ jobs:
           SHARD_COUNT: "4"
           SHARD_INDEX: ${{ matrix.shard }}
         run: |
-          .venv/bin/python - <<'PY' 2>&1 | tee "/forgejo-debug/test-${SHARD_INDEX}.log"
+          .venv/bin/python - <<'PY'
           import os
           from pathlib import Path
 
@@ -61,7 +61,7 @@ jobs:
           if not selected:
               raise SystemExit(f"test shard {index} is empty")
           print(f"Running shard {index + 1}/{count}: {len(selected)} files")
-          raise SystemExit(pytest.main([*(str(path) for path in selected), "-vv", "-m", "not slow"]))
+          raise SystemExit(pytest.main([*(str(path) for path in selected), "-q", "-m", "not slow"]))
           PY
   test-slow:
     needs: test-ffmpeg-matrix
