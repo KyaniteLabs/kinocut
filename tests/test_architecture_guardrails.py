@@ -217,7 +217,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/ai_engine/upscale.py": {"ai_upscale"},
     "kinocut/audio_engine/__init__.py": {"add_generated_audio"},
     "kinocut/audio_engine/integrations/meltysynth_bridge.py": {"render_notes"},
-    "kinocut/audio_engine/sequencing.py": {"audio_effects"},
     "kinocut/audio_engine/synthesis.py": {"_apply_synth_effects", "audio_synthesize"},
     "kinocut/cli/formatting.py": {"_format_video_analyze"},
     "kinocut/cli/handlers_ai.py": {"handle_ai_commands"},
