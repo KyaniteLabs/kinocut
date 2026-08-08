@@ -97,8 +97,10 @@ def _check_node() -> str:
     """Verify Node.js is available and return its path."""
     node = shutil.which("node")
     if not node:
-        raise RuntimeError(
-            "Node.js is required for GPU shader effects. Install from https://nodejs.org or run `brew install node`."
+        raise MCPVideoError(
+            "Node.js is required for GPU shader effects. Install from https://nodejs.org or run `brew install node`.",
+            error_type="dependency_error",
+            code="missing_node",
         )
     return node
 
@@ -220,8 +222,10 @@ def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
     )
 
     if render_result.returncode != 0:
-        raise RuntimeError(
-            f"CRUSH shader render failed (exit {render_result.returncode}): {render_result.stderr[:500]}"
+        raise MCPVideoError(
+            f"CRUSH shader render failed (exit {render_result.returncode}): {render_result.stderr[:500]}",
+            error_type="processing_error",
+            code="shader_render_failed",
         )
 
 
@@ -267,13 +271,19 @@ def _run_shader_effect(
         frame_count = info["frame_count"]
 
         if frame_count == 0:
-            raise RuntimeError(f"No frames extracted from {input_path}")
+            raise MCPVideoError(
+                f"No frames extracted from {input_path}",
+                error_type="processing_error",
+                code="no_frames_extracted",
+            )
 
         max_frames = 7200
         if frame_count > max_frames:
-            raise RuntimeError(
+            raise MCPVideoError(
                 f"Video has {frame_count} frames; GPU shader pipeline maximum is {max_frames}. "
-                "Trim the video first or use the FFmpeg-based glitch effects instead."
+                "Trim the video first or use the FFmpeg-based glitch effects instead.",
+                error_type="validation_error",
+                code="too_many_frames",
             )
 
         # Build params JSON for the render script
@@ -293,7 +303,11 @@ def _run_shader_effect(
         # Check rendered frames
         rendered = sorted(Path(rendered_dir).glob("frame_*.png"))
         if not rendered:
-            raise RuntimeError("Shader render produced no output frames")
+            raise MCPVideoError(
+                "Shader render produced no output frames",
+                error_type="processing_error",
+                code="shader_no_output",
+            )
 
         # Assemble video
         _assemble_video(rendered_dir, audio_path if has_audio else None, output, fps)
