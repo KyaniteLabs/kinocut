@@ -68,6 +68,38 @@ def _extract_representative_colors(video: str, duration: float, max_colors: int 
     return colors
 
 
+def _detect_scene_changes(video: str) -> list[float]:
+    """Detect scene change timestamps via ffmpeg showinfo (best-effort)."""
+    scene_changes: list[float] = []
+    try:
+        scene_cmd = [
+            "ffmpeg",
+            "-i",
+            video,
+            "-filter:v",
+            "select='gt(scene,0.3)',showinfo",
+            "-f",
+            "null",
+            "-",
+        ]
+        scene_result = subprocess.run(scene_cmd, capture_output=True, text=True, timeout=30)  # noqa: S603
+        # Parse scene change timestamps from stderr
+        for line in scene_result.stderr.split("\n"):
+            if "pts_time:" in line:
+                # Extract timestamp
+                parts = line.split("pts_time:")
+                if len(parts) > 1:
+                    try:
+                        ts = float(parts[1].split()[0])
+                        scene_changes.append(ts)
+                    except (ValueError, IndexError):
+                        pass
+    except Exception as e:
+        logger = logging.getLogger(__name__)
+        logger.warning("Scene detection failed (optional): %s", e)
+    return scene_changes
+
+
 def video_info_detailed(video: str) -> dict[str, Any]:
     """Get extended video metadata.
 
@@ -110,34 +142,7 @@ def video_info_detailed(video: str) -> dict[str, Any]:
     resolution = [video_stream.get("width", 0), video_stream.get("height", 0)]
     bitrate = int(data.get("format", {}).get("bit_rate", 0))
 
-    # Try to detect scene changes
-    scene_changes = []
-    try:
-        scene_cmd = [
-            "ffmpeg",
-            "-i",
-            video,
-            "-filter:v",
-            "select='gt(scene,0.3)',showinfo",
-            "-f",
-            "null",
-            "-",
-        ]
-        scene_result = subprocess.run(scene_cmd, capture_output=True, text=True, timeout=30)  # noqa: S603
-        # Parse scene change timestamps from stderr
-        for line in scene_result.stderr.split("\n"):
-            if "pts_time:" in line:
-                # Extract timestamp
-                parts = line.split("pts_time:")
-                if len(parts) > 1:
-                    try:
-                        ts = float(parts[1].split()[0])
-                        scene_changes.append(ts)
-                    except (ValueError, IndexError):
-                        pass
-    except Exception as e:
-        logger = logging.getLogger(__name__)
-        logger.warning("Scene detection failed (optional): %s", e)
+    scene_changes = _detect_scene_changes(video)
 
     dominant_colors = _extract_representative_colors(video, duration)
 

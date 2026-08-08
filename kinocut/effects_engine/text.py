@@ -428,6 +428,85 @@ _ANIMATION_STRATEGIES: dict[str, Callable[..., tuple[str, str]]] = {
 }
 
 
+def _check_text_animated_guardrails(
+    video: str, text: str, font: str, size: int, start: float, duration: float
+) -> None:
+    """Apply best-effort text layout guardrails (timing + overflow)."""
+    try:
+        video_w, video_h = _get_video_dimensions(video)
+        from ..engine_probe import probe as _probe
+
+        vid_info = _probe(video)
+        timing_warnings = _validate_timing_against_duration(start, duration, vid_info.duration)
+        for w in timing_warnings:
+            _warnings.warn(f"[TEXT GUARDRAIL] {w}", stacklevel=2)
+        # Text overflow check
+        text_w, text_h = _measure_text(text, font, size)
+        if text_w > video_w - 40 or text_h > video_h - 40:
+            _warnings.warn(
+                f"[TEXT GUARDRAIL] Text dimensions ({text_w}x{text_h}) may exceed "
+                f"video frame ({video_w}x{video_h}). "
+                f"Consider reducing font size or shortening text.",
+                stacklevel=2,
+            )
+    except MCPVideoError:
+        raise
+    except Exception as e:
+        message = f"[TEXT GUARDRAIL] Could not validate text layout: {e}"
+        logger.warning(message, exc_info=True)
+        _warnings.warn(message, stacklevel=2)
+
+
+def _run_text_animated_render(
+    video: str,
+    output: str,
+    strategy: Callable[..., tuple[str, str]],
+    text: str,
+    font: str,
+    size: int,
+    color: str,
+    position: str,
+    start: float,
+    duration: float,
+    typewriter_speed: float,
+) -> None:
+    """Build the animation filter chain and run the ffmpeg render."""
+    filter_complex, cmd_path = strategy(
+        text=text,
+        font=font,
+        size=size,
+        color=color,
+        position=position,
+        start=start,
+        duration=duration,
+        video=video,
+        typewriter_speed=typewriter_speed,
+    )
+
+    cmd = [
+        "ffmpeg",
+        "-y",
+        "-i",
+        video,
+        "-vf",
+        filter_complex,
+        "-c:v",
+        "libx264",
+        "-c:a",
+        "copy",
+        "-pix_fmt",
+        "yuv420p",
+        "-crf",
+        "23",
+        output,
+    ]
+
+    try:
+        _run_command(cmd)
+    finally:
+        if cmd_path:
+            Path(cmd_path).unlink(missing_ok=True)
+
 def text_animated(
     video: str,
     text: str,
@@ -488,66 +567,12 @@ def text_animated(
             error_type="validation_error",
             code="invalid_parameter",
         )
-    try:
-        video_w, video_h = _get_video_dimensions(video)
-        from ..engine_probe import probe as _probe
-
-        vid_info = _probe(video)
-        timing_warnings = _validate_timing_against_duration(start, duration, vid_info.duration)
-        for w in timing_warnings:
-            _warnings.warn(f"[TEXT GUARDRAIL] {w}", stacklevel=2)
-        # Text overflow check
-        text_w, text_h = _measure_text(text, font, size)
-        if text_w > video_w - 40 or text_h > video_h - 40:
-            _warnings.warn(
-                f"[TEXT GUARDRAIL] Text dimensions ({text_w}x{text_h}) may exceed "
-                f"video frame ({video_w}x{video_h}). "
-                f"Consider reducing font size or shortening text.",
-                stacklevel=2,
-            )
-    except MCPVideoError:
-        raise
-    except Exception as e:
-        message = f"[TEXT GUARDRAIL] Could not validate text layout: {e}"
-        logger.warning(message, exc_info=True)
-        _warnings.warn(message, stacklevel=2)
+    _check_text_animated_guardrails(video, text, font, size, start, duration)
     # --- End guardrails ---
 
-    filter_complex, cmd_path = strategy(
-        text=text,
-        font=font,
-        size=size,
-        color=color,
-        position=position,
-        start=start,
-        duration=duration,
-        video=video,
-        typewriter_speed=typewriter_speed,
+    _run_text_animated_render(
+        video, output, strategy, text, font, size, color, position, start, duration, typewriter_speed
     )
-
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        video,
-        "-vf",
-        filter_complex,
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "copy",
-        "-pix_fmt",
-        "yuv420p",
-        "-crf",
-        "23",
-        output,
-    ]
-
-    try:
-        _run_command(cmd)
-    finally:
-        if cmd_path:
-            Path(cmd_path).unlink(missing_ok=True)
 
     return output
 

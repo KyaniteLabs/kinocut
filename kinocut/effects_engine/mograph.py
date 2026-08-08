@@ -24,6 +24,52 @@ def _validate_timing(duration: float, fps: int) -> None:
     if fps <= 0:
         raise MCPVideoError("fps must be positive", error_type="validation_error", code="invalid_parameter")
 
+def _generate_count_frames(
+    tmp_path: Path,
+    total_frames: int,
+    start: int,
+    end: int,
+    font: str,
+    size: int,
+    color: str,
+    glow: bool,
+) -> None:
+    """Generate individual counter animation frames."""
+    safe_font = _escape_ffmpeg_filter_value(font)
+    safe_color = _escape_ffmpeg_filter_value(color)
+
+    for frame in range(total_frames):
+        progress = frame / total_frames
+        current_value = int(start + (end - start) * progress)
+
+        # Use FFmpeg to generate frame
+        frame_file = tmp_path / f"frame_{frame:05d}.png"
+
+        text_filter = (
+            f"drawtext=text='{current_value}':font={safe_font}:"
+            f"fontsize={size}:fontcolor={safe_color}:"
+            f"x=(w-text_w)/2:y=(h-text_h)/2"
+        )
+
+        if glow:
+            text_filter += f":box=1:boxcolor={safe_color}@0.3:boxborderw=10"
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=1920x1080:d=1",
+            "-vf",
+            text_filter,
+            "-vframes",
+            "1",
+            str(frame_file),
+        ]
+
+        _run_command(cmd)
+
 
 def mograph_count(
     start: int,
@@ -60,39 +106,7 @@ def mograph_count(
         total_frames = int(duration * fps)
 
         # Generate frames
-        for frame in range(total_frames):
-            progress = frame / total_frames
-            current_value = int(start + (end - start) * progress)
-
-            # Use FFmpeg to generate frame
-            frame_file = tmp_path / f"frame_{frame:05d}.png"
-
-            safe_font = _escape_ffmpeg_filter_value(font)
-            safe_color = _escape_ffmpeg_filter_value(color)
-            text_filter = (
-                f"drawtext=text='{current_value}':font={safe_font}:"
-                f"fontsize={size}:fontcolor={safe_color}:"
-                f"x=(w-text_w)/2:y=(h-text_h)/2"
-            )
-
-            if glow:
-                text_filter += f":box=1:boxcolor={safe_color}@0.3:boxborderw=10"
-
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "lavfi",
-                "-i",
-                "color=c=black:s=1920x1080:d=1",
-                "-vf",
-                text_filter,
-                "-vframes",
-                "1",
-                str(frame_file),
-            ]
-
-            _run_command(cmd)
+        _generate_count_frames(tmp_path, total_frames, start, end, font, size, color, glow)
 
         # Combine frames into video
         cmd = [
@@ -114,6 +128,63 @@ def mograph_count(
         _run_command(cmd)
 
     return output
+
+
+def _generate_progress_frames(
+    tmp_path: Path,
+    total_frames: int,
+    style: str,
+    color: str,
+    track_color: str,
+) -> None:
+    """Generate individual progress animation frames."""
+    safe_color = _escape_ffmpeg_filter_value(color)
+    safe_track_color = _escape_ffmpeg_filter_value(track_color)
+
+    for frame in range(total_frames):
+        progress = frame / total_frames
+        frame_file = tmp_path / f"frame_{frame:05d}.png"
+
+        if style == "bar":
+            # Progress bar
+            bar_width = int(800 * progress)
+            # Draw track
+            filter_chain = (
+                f"drawbox=x=560:y=540:w=800:h=20:color={safe_track_color}:t=fill,"
+                f"drawbox=x=560:y=540:w={bar_width}:h=20:color={safe_color}:t=fill"
+            )
+        elif style == "circle":
+            # Circular progress (simplified as arc)
+            filter_chain = (
+                f"drawbox=x=860:y=440:w=200:h=200:color={safe_track_color}:t=fill,"
+                f"drawbox=x=860:y=440:w={int(200 * progress)}:h=200:color={safe_color}:t=fill"
+            )
+        else:
+            # Dots
+            num_dots = 5
+            active_dots = int(num_dots * progress)
+            filter_chain = ""
+            for i in range(num_dots):
+                x = 760 + i * 80
+                dot_color = safe_color if i < active_dots else safe_track_color
+                filter_chain += f"drawbox=x={x}:y=540:w=20:h=20:color={dot_color}:t=fill,"
+            filter_chain = filter_chain.rstrip(",")
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=black:s=1920x1080:d=1",
+            "-vf",
+            filter_chain,
+            "-vframes",
+            "1",
+            str(frame_file),
+        ]
+
+        _run_command(cmd)
 
 
 def mograph_progress(
@@ -149,53 +220,7 @@ def mograph_progress(
         tmp_path = Path(tmpdir)
         total_frames = int(duration * fps)
 
-        for frame in range(total_frames):
-            progress = frame / total_frames
-            frame_file = tmp_path / f"frame_{frame:05d}.png"
-
-            safe_color = _escape_ffmpeg_filter_value(color)
-            safe_track_color = _escape_ffmpeg_filter_value(track_color)
-
-            if style == "bar":
-                # Progress bar
-                bar_width = int(800 * progress)
-                # Draw track
-                filter_chain = (
-                    f"drawbox=x=560:y=540:w=800:h=20:color={safe_track_color}:t=fill,"
-                    f"drawbox=x=560:y=540:w={bar_width}:h=20:color={safe_color}:t=fill"
-                )
-            elif style == "circle":
-                # Circular progress (simplified as arc)
-                filter_chain = (
-                    f"drawbox=x=860:y=440:w=200:h=200:color={safe_track_color}:t=fill,"
-                    f"drawbox=x=860:y=440:w={int(200 * progress)}:h=200:color={safe_color}:t=fill"
-                )
-            else:
-                # Dots
-                num_dots = 5
-                active_dots = int(num_dots * progress)
-                filter_chain = ""
-                for i in range(num_dots):
-                    x = 760 + i * 80
-                    dot_color = safe_color if i < active_dots else safe_track_color
-                    filter_chain += f"drawbox=x={x}:y=540:w=20:h=20:color={dot_color}:t=fill,"
-                filter_chain = filter_chain.rstrip(",")
-
-            cmd = [
-                "ffmpeg",
-                "-y",
-                "-f",
-                "lavfi",
-                "-i",
-                "color=c=black:s=1920x1080:d=1",
-                "-vf",
-                filter_chain,
-                "-vframes",
-                "1",
-                str(frame_file),
-            ]
-
-            _run_command(cmd)
+        _generate_progress_frames(tmp_path, total_frames, style, color, track_color)
 
         # Combine frames
         cmd = [
