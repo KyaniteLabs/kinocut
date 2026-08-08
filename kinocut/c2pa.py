@@ -22,13 +22,19 @@ def sign_export_with_c2pa(
     asset_path: str,
     *,
     manifest_path: str,
-    tool_path: str | None = None,
     signer_path: str | None = None,
 ) -> dict[str, Any]:
-    """Add and verify a C2PA manifest on an already-rendered final export."""
+    """Add and verify a C2PA manifest on an already-rendered final export.
+
+    The c2patool executable is resolved from the KINOCUT_C2PATOOL or
+    MCP_VIDEO_C2PATOOL environment variable (falling back to PATH) and is
+    never accepted from request input, to prevent arbitrary-executable
+    injection via the public tool surface. ``signer_path`` is an internal,
+    operator-configured option and must not originate from untrusted input.
+    """
     asset = _validate_input_path(asset_path)
     manifest = _validate_manifest_path(manifest_path)
-    tool = _resolve_c2patool(tool_path)
+    tool = _resolve_c2patool()
 
     suffix = Path(asset).suffix
     signed_tmp = str(Path(asset).with_name(f"{Path(asset).stem}.c2pa-signing{suffix}"))
@@ -77,8 +83,8 @@ def _validate_manifest_path(path: str) -> str:
     return os.path.realpath(path)
 
 
-def _resolve_c2patool(tool_path: str | None) -> str:
-    candidate = tool_path or os.environ.get("KINOCUT_C2PATOOL") or os.environ.get("MCP_VIDEO_C2PATOOL") or "c2patool"
+def _resolve_c2patool() -> str:
+    candidate = os.environ.get("KINOCUT_C2PATOOL") or os.environ.get("MCP_VIDEO_C2PATOOL") or "c2patool"
     resolved = shutil.which(candidate) if os.path.basename(candidate) == candidate else candidate
     if resolved is None or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
         raise C2PAToolNotFoundError(candidate)
