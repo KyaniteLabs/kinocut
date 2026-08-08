@@ -256,7 +256,6 @@ _FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
     "kinocut/product/shorts_review.py": {"resolve_approved_candidate"},
     "kinocut/projectstore/edit_projects.py": {"append_revision"},
     "kinocut/rescue/inspector.py": {"inspect_rescue"},
-    "kinocut/rescue/renderer.py": {"render_rescue"},
     "kinocut/semantic/edl.py": {"verify_timeline_diff"},
     "kinocut/server_tools_hyperframes.py": {"hyperframes_render"},
     "kinocut/still_plates/package.py": {"still_package"},
