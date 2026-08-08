@@ -39,7 +39,7 @@ jobs:
           .venv/bin/pip install --quiet --upgrade pip
           .venv/bin/pip install --quiet -e ".[dev]"
       - name: Test
-        run: .venv/bin/pytest tests/ -q -m "not slow"
+        run: PYTEST_ADDOPTS="--junitxml=/forgejo-debug/test-results.xml" .venv/bin/pytest tests/ -q -m "not slow"
   test-slow:
     needs: test-ffmpeg-matrix
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
