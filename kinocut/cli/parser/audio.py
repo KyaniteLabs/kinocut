@@ -16,8 +16,8 @@ from ...defaults import (
 import argparse
 
 
-def add_parsers(subparsers: argparse._SubParsersAction) -> None:
-    """Add audio subcommands to the CLI parser."""
+def _add_audio_generation_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the normalize, synthesize, compose, preset, sequence, and effects subcommands."""
     # normalize-audio
     norm_p = subparsers.add_parser("normalize-audio", help="Normalize audio loudness")
     norm_p.add_argument("input", help="Input video file")
@@ -79,6 +79,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     aefx_p.add_argument("-o", "--output", required=True, help="Output WAV file path")
     aefx_p.add_argument("--effects", required=True, help="Effects as JSON: [{'type': 'lowpass', 'cutoff': 1000}]")
 
+
+def _add_video_audio_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the video-add-generated-audio and video-audio-spatial subcommands."""
     # video-add-generated-audio
     addgen_p = subparsers.add_parser("video-add-generated-audio", help="Add procedurally generated audio to video")
     addgen_p.add_argument("input", help="Input video file")
@@ -98,6 +101,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         "--method", default="hrtf", choices=["hrtf", "vbap", "simple"], help="Spatialization method (default: hrtf)"
     )
 
+
+def _add_audio_bed_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Register the audio-bed subcommand."""
     # audio-bed
     abed_p = subparsers.add_parser(
         "audio-bed",
@@ -170,3 +176,10 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         "--save-receipt",
         help="Optional path to write the AudioBedReceipt JSON alongside the render",
     )
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    """Add audio subcommands to the CLI parser."""
+    _add_audio_generation_parsers(subparsers)
+    _add_video_audio_parsers(subparsers)
+    _add_audio_bed_parsers(subparsers)
