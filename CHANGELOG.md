@@ -9,12 +9,13 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased — security hardening (2026-08-08)
+## 1.13.2 - 2026-08-09
 
 ### Security
 
 - **C2PA tool_path injection (CRITICAL):** Removed request-controlled `c2pa_tool_path` from the public MCP tool surface. The `c2patool` executable is now resolved exclusively from operator-controlled environment variables (`KINOCUT_C2PATOOL` / `MCP_VIDEO_C2PATOOL`).
-- **C2PA signer_path injection (HIGH):** Removed `c2pa_signer_path` from the public API. Signer configuration is server-side only.
+- **C2PA signer_path injection (HIGH):** Removed request-controlled `c2pa_signer_path` from the public MCP tool surface. MCP signer configuration is server-side only.
+- **DNS rebinding SSRF (HIGH):** HTTP downloads in `ai_engine/download.py` now connect only to addresses resolved and validated at connect time, closing a check-then-connect TOCTOU window that DNS rebinding could exploit to reach internal services; every redirect target is re-validated before following.
 - **FFmpeg filter injection (HIGH):** Validated `style["size"]` interpolation in `engine_timeline.py` before passing to FFmpeg filter strings.
 - **HLS path traversal (HIGH):** Added output-path containment check in `engine_hls.py` to prevent `playlist_name` escaping `output_dir`.
 - **Symlink-swap race (HIGH):** `ffmpeg_helpers.py` now uses temp-file + atomic rename to close TOCTOU window on output paths.
@@ -23,9 +24,24 @@ This project follows a simple release-note style:
 - **Predictable temp files (HIGH):** `server_tools_audio.py` uses exclusive per-request temp files instead of predictable `/tmp` names.
 - **Batch output collision (HIGH):** `engine_batch.py` generates collision-resistant output names for same-named inputs from different directories.
 
+### Fixed
+
+- **Published MCP tool registration (regression):** Restored the full published MCP tool surface that regressed after the 1.13.1 module split, so every advertised tool registers and stays discoverable.
+- **Hyperframes preview lifecycle:** Preview servers are now tracked in a registry, replace any preview already bound to the same port, register only after a successful startup, and are terminated (SIGTERM, escalating to SIGKILL) on exit or via explicit stop controls — preventing orphaned servers and leaked ports.
+- **CLI JSON stderr warnings:** Structured JSON output stays clean so consumers parsing it are not broken by stray diagnostic noise on stderr (`server_app.py`).
+- **Glitch shader typed errors:** Replaced raw `RuntimeError` in `engine_glitch_shader.py` with typed `MCPVideoError` codes (`missing_node`, `shader_render_failed`, `no_frames_extracted`, `too_many_frames`, `shader_no_output`).
+- **signalstats failure-log leaks:** Redacted signalstats failure output in `quality_guardrails.py` so internal FFmpeg diagnostics are neither surfaced nor logged.
+
 ### Changed
 
+- **Performance:** signalstats queries are batched into a single `ffprobe` pass; storyboard frames extract in a single FFmpeg pass; batch operations run on a bounded thread pool; audio-only inputs skip a redundant second `ffprobe`; and audio track mixing is vectorized with NumPy.
 - **CI workflow:** Replaced `actions/checkout@v4` with authenticated manual `git clone` (Colima VM cannot reach `gitea.com`). FFmpeg matrix assets switched to `linuxarm64`. Lint routed to `light` label. Base image upgraded to `ubuntu:24.04` (Python 3.12).
+
+### Compatibility
+
+- **Breaking (security-driven):** The request-controlled `c2pa_tool_path` and `c2pa_signer_path` parameters are removed from the public MCP tool surface. The `c2patool` executable resolves from operator environment variables and signer configuration is server-side only; MCP callers that passed these parameters must move them to operator/server configuration.
+- `pip install -U kinocut` to 1.13.2. The `mcp-video` compatibility shim **1.6.6** installs `kinocut==1.13.2`. The published surface remains **194 MCP tools / 165 CLI commands**.
+
 ## 1.13.1 - 2026-08-07
 
 ### Fixed

@@ -1,18 +1,18 @@
 # Improvement Roadmap
 
-Kinocut 1.13.1 is published with 194 MCP tools and 165 CLI commands (`mcp-video` 1.6.5 shim).
+Kinocut 1.13.2 is published with 194 MCP tools and 165 CLI commands (`mcp-video` 1.6.6 shim).
 
-**Published product:** Kinocut **1.13.1** (2026-08-07) · **194 MCP / 165 CLI**
+**Published product:** Kinocut **1.13.2** (2026-08-09) · **194 MCP / 165 CLI**
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
 **Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
 **Excellence program:** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](docs/status/2026-08-07-kinocut-excellence-audit.md) · handoff [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](docs/handoffs/2026-08-07/kinocut-excellence-campaign.md)  
 **Earlier tip snapshot:** [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md) (evidence only)
 
-This file is **planning truth for after 1.13.1**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims.
+This file is **planning truth for after 1.13.2**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims.
 
 ---
 
-## Current (shipped on tip = published 1.13.1)
+## Current (shipped on tip = published 1.13.2)
 
 - Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
 - Rescue, compositing, Hyperframes, repurposing package surface
