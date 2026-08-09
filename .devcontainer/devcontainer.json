@@ -2,7 +2,7 @@
   "name": "Kinocut",
   "image": "mcr.microsoft.com/devcontainers/python:3.14",
   "features": {
-    "ghcr.io/devcontainers/features/node:1": {
+    "ghcr.io/devcontainers/features/node:2": {
       "version": "24"
     }
   },
