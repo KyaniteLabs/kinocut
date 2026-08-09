@@ -3,7 +3,7 @@
   "image": "mcr.microsoft.com/devcontainers/python:3.14",
   "features": {
     "ghcr.io/devcontainers/features/node:1": {
-      "version": "22"
+      "version": "24"
     }
   },
   "postCreateCommand": "sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg && pip install -e '.[dev]'",
