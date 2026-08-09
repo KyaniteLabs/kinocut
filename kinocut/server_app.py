@@ -10,9 +10,13 @@ import logging
 from collections.abc import Callable
 from typing import Any
 
+import mcp.server.fastmcp.server as _fastmcp_server
 from mcp.server.fastmcp import Context, FastMCP
 
 from .errors import MCPVideoError
+# MCP 1.29 leaves Settings.lifespan as a forward reference. Rebuild it after the
+# module is loaded so pydantic-settings 2.15 cannot emit warnings into JSON CLI stderr.
+_fastmcp_server.Settings.model_rebuild(_types_namespace=vars(_fastmcp_server))
 
 mcp = FastMCP(
     "kinocut",

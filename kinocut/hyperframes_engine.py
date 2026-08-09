@@ -58,7 +58,7 @@ def _register_preview(port: int, proc: subprocess.Popen[str]) -> None:
     """Track a running preview process so it can be terminated later."""
     old = _active_previews.get(port)
     if old is not None and old.poll() is None:
-        _terminate_preview(old)
+        stop_preview(port)
     _active_previews[port] = proc
 
 
@@ -558,6 +558,7 @@ def preview(
     _require_node()
     project, _entry_point = _validate_project(project_path)
     _require_hyperframes_deps(cwd=project)
+    stop_preview(port)
 
     cmd = [*_hyperframes_command_prefix(cwd=project), "preview", str(project), "--port", str(port)]
     proc = subprocess.Popen(  # noqa: S603
@@ -569,11 +570,11 @@ def preview(
         start_new_session=True,
     )
 
-    _register_preview(port, proc)
 
     time.sleep(min(startup_timeout, 2))
     if proc.poll() is not None:
         raise HyperframesProjectError(str(project), "Hyperframes preview exited immediately")
+    _register_preview(port, proc)
 
     return HyperframesPreviewResult(
         url=f"http://localhost:{port}",

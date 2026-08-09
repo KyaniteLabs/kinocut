@@ -113,13 +113,13 @@ class VisualQualityGuardrails(QualityChecksMixin):
         try:
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
             if result.returncode != 0:
-                logger.warning("ffprobe batch signalstats failed for %s: %s", video, result.stderr.strip()[:200])
+                logger.warning("ffprobe batch signalstats returned nonzero exit")
                 self._signalstats_cache[cache_key] = {}
                 return {}
             data = json.loads(result.stdout)
             frames = data.get("frames", [])
             if not frames:
-                logger.warning("ffprobe batch signalstats returned no frames for %s", video)
+                logger.warning("ffprobe batch signalstats returned no frames")
                 self._signalstats_cache[cache_key] = {}
                 return {}
             tag_accum: dict[str, list[float]] = {}
@@ -132,7 +132,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             self._signalstats_cache[cache_key] = means
             return means
         except Exception as exc:
-            logger.warning("ffprobe batch signalstats failed for %s: %s: %s", video, type(exc).__name__, exc)
+            logger.warning("ffprobe batch signalstats failed: %s", type(exc).__name__)
             self._signalstats_cache[cache_key] = {}
             return {}
 
@@ -333,7 +333,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
         v_raw = cached.get("lavfi.signalstats.VAVG")
         if y_raw is None or u_raw is None or v_raw is None:
             diagnostic = _diagnostic("ffprobe_rgb_means", "batch signalstats returned incomplete YUV values")
-            logger.warning("batch signalstats returned incomplete YUV values for %s", video)
+            logger.warning("batch signalstats returned incomplete YUV values")
             return {"_error": diagnostic}
         y = y_raw
         u = u_raw - 128
