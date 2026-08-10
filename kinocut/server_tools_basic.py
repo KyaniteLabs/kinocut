@@ -55,7 +55,7 @@ OptionalOutputVideoPath = Annotated[
 @mcp.tool()
 @_safe_tool
 def video_info(input_path: str) -> dict[str, Any]:
-    """Get metadata about a video file: duration, resolution, codec, fps, size.
+    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. Pass input_path as the absolute path to the existing video.
 
     Args:
         input_path: Absolute path to the video file.
@@ -80,7 +80,7 @@ def video_trim(
     output_path: str | None = None,
     accurate: bool = False,
 ) -> dict[str, Any]:
-    """Trim a video clip by start time and duration.
+    """Trim a video clip by start time and duration. Returns JSON {success, output_path} pointing at the rendered clip. Use to cut a segment out of a longer video. Pass input_path as the absolute path to the source video (e.g. from video_info), start as a timestamp, and duration or end to define the segment.
 
     Args:
         input_path: Absolute path to the input video.
@@ -101,8 +101,8 @@ def video_trim(
     title="Merge video clips",
     description=(
         "Concatenate two or more existing video clips into one rendered output file. "
-        "The input clips are read only and kept unchanged; the tool creates an auto-named output "
-        "or writes to output_path, using FFmpeg and reporting transition or media-mismatch validation errors."
+        "Returns JSON {success, output_path}. Use to join ordered clips into a single video. "
+        "Pass clips as an ordered list of absolute paths (at least two); output is auto-named or written to output_path."
     ),
     annotations=ToolAnnotations(
         title="Merge video clips",
@@ -196,7 +196,7 @@ def video_add_text(
     crf: int | None = None,
     preset: str | None = None,
 ) -> dict[str, Any]:
-    """Overlay text on a video (titles, captions, watermarks).
+    """Overlay text on a video (titles, captions, watermarks). Returns JSON {success, output_path}. Use to burn a single text element into a video. Pass input_path as the source video, text with the string to draw, and position/size/color to style it; output_path is auto-named when omitted.
 
     Args:
         input_path: Absolute path to the input video.
@@ -250,8 +250,8 @@ def video_add_texts(
 ) -> dict[str, Any]:
     """Overlay multiple text elements on a video in a single FFmpeg pass.
 
-    Automatically detects overlapping text and distributes vertically stacked
-    texts when they share the same named position.
+    Returns JSON {success, output_path}. Use when one video needs several captions at once.
+    Pass input_path as the source video and texts as a list of overlay dicts (text plus optional position/size/color/timing).
 
     Args:
         input_path: Absolute path to the input video.
@@ -296,9 +296,9 @@ def video_add_texts(
 @mcp.tool(
     title="Add or mix video audio",
     description=(
-        "Add, replace, or mix an audio file into an existing video and render a new output file. "
-        "The source video and audio are read only; output_path is created or overwritten. "
-        "Controls volume, fade-in, fade-out, mix/replace mode, and optional start time."
+        "Add, replace, or mix an audio track into an existing video and render a new output file. "
+        "Returns JSON {success, output_path}. Use to score or re-voice a video; source video and audio are read only. "
+        "Pass video_path as the source video and audio_path as the audio file; set mix to combine or false to replace."
     ),
     annotations=ToolAnnotations(
         title="Add or mix video audio",
@@ -394,7 +394,7 @@ def video_resize(
     quality: str = "high",
     output_path: str | None = None,
 ) -> dict[str, Any]:
-    """Resize a video or change its aspect ratio.
+    """Resize a video or change its aspect ratio. Returns JSON {success, output_path}. Use to fit a video to target dimensions or a preset ratio. Pass input_path as the source video (e.g. from video_info) and either width/height or aspect_ratio to define the target.
 
     Args:
         input_path: Absolute path to the input video.
@@ -432,9 +432,9 @@ def video_resize(
 @mcp.tool(
     title="Convert video format",
     description=(
-        "Transcode an existing video into a different container or codec format such as mp4, webm, gif, or mov. "
-        "Use this for format conversion; use video_export for final delivery presets. "
-        "The input video is read only and a new output file is rendered."
+        "Transcode a video into a different container or codec (mp4, webm, gif, mov, ...). "
+        "Returns JSON {success, output_path}. Use for format conversion; prefer video_export for delivery presets. "
+        "Pass input_path as the source video and format as the target container; long renders stream MCP progress."
     ),
     annotations=ToolAnnotations(
         title="Convert video format",
@@ -493,9 +493,9 @@ async def video_convert(
 @mcp.tool(
     title="Change video speed",
     description=(
-        "Render a new video with playback speed changed while keeping the source video unchanged. "
-        "Values below 1.0 create slow motion and values above 1.0 create fast motion; "
-        "the factor is validated against configured speed limits."
+        "Render a new video with playback speed changed; the source video is left unchanged. "
+        "Returns JSON {success, output_path}. Use for slow-motion or fast-forward effects. "
+        "Pass input_path as the source video and factor as the multiplier (below 1.0 slows, above 1.0 speeds up)."
     ),
     annotations=ToolAnnotations(
         title="Change video speed",
@@ -534,11 +534,11 @@ def video_speed(
 @mcp.tool()
 @_safe_tool
 def search_tools(query: str) -> dict[str, Any]:
-    """Search registered MCP tools by keyword.
+    """Search registered MCP video tools by keyword.
 
-    Use this when you need to find the right tool for a task without reading
-    every registered tool description. Returns matching tools with their names,
-    descriptions, and required parameters.
+    Returns JSON {success, query, count, tools:[{name, description, required_params}]}.
+    Use to find the right tool for a task without reading every description. Pass query
+    with a term such as blur, resize, subtitle, audio, or trim.
 
     Args:
         query: Search term — e.g. "blur", "resize", "subtitle", "audio", "trim".
