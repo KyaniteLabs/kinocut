@@ -9,6 +9,29 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 1.13.3 - 2026-08-12
+
+### Added
+
+- **Cutfile thin library render:** `kinocut.te.render_cutfile` / `compile_cutfile_to_workflow` lower schema-valid cutfiles to the existing workflow engine (no new MCP/CLI surface; optional `DEF-cutfile-mcp`).
+- **Golden-path timing harness:** `scripts/golden_path_timings.py` records cheap and full-path p50/p95 baselines (`docs/status/golden-path-timings.md`).
+
+### Changed
+
+- **Hyperframes ops size split:** Extracted helpers into `hyperframes_ops_helpers.py` so `hyperframes_ops` stays under the 800 LOC policy; architecture guardrail locks both modules.
+- **Residual portfolio honesty:** ROADMAP / PHASE / HUMAN_GATES / DEFERRED ledger for agent vs human residuals; claim-ledger freeze rules documented.
+
+### Fixed
+
+- Cutfile v1 rejects `composite_layers` with a clear shape error; workflow specs use unique temp files to avoid concurrent overwrites.
+- Ruff F541 in golden-path timings script (CI lint).
+
+### Compatibility
+
+- `pip install -U kinocut` to **1.13.3**. The `mcp-video` compatibility shim **1.6.7** installs `kinocut==1.13.3`.
+- Published MCP/CLI counts remain **194 / 165** (no public surface expansion).
+- Cutfile render is library-only until an explicit MCP/CLI claim.
+
 ## 1.13.2 - 2026-08-09
 
 ### Security

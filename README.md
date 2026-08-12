@@ -27,7 +27,7 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1132-latest-release">1.13.2</a> &bull;
+  <a href="#whats-in-1133-latest-release">1.13.2</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
   <a href="#beyond-1132-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
@@ -68,7 +68,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.13.2](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.2)** (2026-08-09) |
+| **Latest published release** | **[1.13.3](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.3)** (2026-08-12) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -114,7 +114,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm / GitHub Release** | **[1.13.2](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.2)** (2026-08-09) | Latest **published** Kinocut. Install with `pip install kinocut`. |
+| **PyPI / npm / GitHub Release** | **[1.13.3](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.3)** (2026-08-12) | Latest **published** Kinocut. Install with `pip install kinocut`. |
 | **This repository (`master`)** | **1.13.2** · **194 MCP tools / 165 CLI commands** | Intent/watching/TE + still/plate surface matches published package. |
 | **Next public release** | **TBD** | Post-release pillars and human programs remain gated; further bumps need a new go-ahead. |
 
@@ -132,7 +132,7 @@ Kinocut **1.13.2** is what you get from `pip install kinocut` today. It is a pat
 - **Still/plate editor** — `still-match` / `still-grade` / `still-gate` / `image-edit` / `still-package` (MCP + CLI + Client), with receipts and fail-closed cohesion gate ([docs/STILL_PLATES.md](docs/STILL_PLATES.md)).
 - **Canonical counts** — Grow public surface to **194 MCP tools** and **165 CLI commands** (fully synchronized across standard, test, and client interfaces).
 - **Project, docs, package metadata, and discovery surfaces** pointed at **[kinocut.dev](https://kinocut.dev/)**.
-- **Compatibility window** — `mcp-video==1.6.6` installs `kinocut==1.13.2`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.13.x line**.
+- **Compatibility window** — `mcp-video==1.6.7` installs `kinocut==1.13.3`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.13.x line**.
 
 Also already on the published line from earlier 1.x surfaces:
 
@@ -390,7 +390,7 @@ pip install --upgrade mcp-video
 mcp-video doctor
 ```
 
-`mcp-video==1.6.6` is a metadata-only compatibility installer for `kinocut==1.13.2`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.13.x line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+`mcp-video==1.6.7` is a metadata-only compatibility installer for `kinocut==1.13.3`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.13.x line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
@@ -649,7 +649,7 @@ Published **1.13.2** documents **194 MCP tools / 165 CLI commands**. The develop
 
 ### Was it called mcp-video?
 
-Yes. `mcp-video==1.6.6` installs `kinocut==1.13.2`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.13.x line.
+Yes. `mcp-video==1.6.7` installs `kinocut==1.13.3`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.13.x line.
 
 More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](https://kinocut.dev/#faq)
 
