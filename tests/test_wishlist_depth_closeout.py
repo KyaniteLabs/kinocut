@@ -67,6 +67,8 @@ def test_frame_accurate_seek_helpers() -> None:
 
 
 def test_configure_logging_to_file(tmp_path: Path) -> None:
+    import contextlib
+
     from kinocut.__main__ import _configure_logging
 
     log_path = tmp_path / "kinocut.log"
@@ -85,10 +87,8 @@ def test_configure_logging_to_file(tmp_path: Path) -> None:
     finally:
         for h in list(root.handlers):
             root.removeHandler(h)
-            try:
+            with contextlib.suppress(Exception):
                 h.close()
-            except Exception:
-                pass
         for h in before:
             root.addHandler(h)
 
@@ -101,9 +101,7 @@ def test_generative_paid_path_rigor() -> None:
     with pytest.raises(MCPVideoError, match="not executable"):
         assert_generative_executable(denied)
 
-    allowed = plan_generative_last_mile(
-        "x", provider="openai", max_spend_usd=2.0, estimated_spend_usd=0.5
-    )
+    allowed = plan_generative_last_mile("x", provider="openai", max_spend_usd=2.0, estimated_spend_usd=0.5)
     assert allowed.allowed is True
     assert allowed.executable is True
     assert assert_generative_executable(allowed)["provider"] == "openai"

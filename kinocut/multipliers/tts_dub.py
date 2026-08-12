@@ -3,11 +3,14 @@
 from __future__ import annotations
 
 import importlib.util
+import logging
 import shutil
 from typing import Any
 
 from kinocut.errors import MCPVideoError
 from kinocut.intent.language_coverage import language_coverage_report
+
+logger = logging.getLogger(__name__)
 
 
 def detect_tts_backend() -> dict[str, Any]:
@@ -22,7 +25,8 @@ def detect_tts_backend() -> dict[str, Any]:
         try:
             if importlib.util.find_spec(mod_name) is not None:
                 backends.append({"id": mod_name, "path": None, "kind": kind})
-        except Exception:
+        except Exception as exc:
+            logger.debug("TTS backend probe skipped for %s: %s", mod_name, exc)
             continue
     primary = backends[0]["id"] if backends else None
     return {

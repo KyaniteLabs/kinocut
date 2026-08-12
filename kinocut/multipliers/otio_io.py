@@ -116,9 +116,7 @@ def _is_confined_relpath(value: str) -> bool:
     """Match Timeline IR path rules: relative, no traversal, no absolute."""
     if not value or "\\" in value or "\x00" in value or value.startswith("/"):
         return False
-    if any(part in {"", ".", ".."} for part in value.split("/")):
-        return False
-    return True
+    return not any(part in {"", ".", ".."} for part in value.split("/"))
 
 
 def _import_foreign_otio(doc: dict[str, Any], path: Path) -> dict[str, Any]:
