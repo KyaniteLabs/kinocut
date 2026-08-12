@@ -78,8 +78,10 @@ def test_review_ui(tmp_path: Path) -> None:
 
 def test_tts_dub_plan_not_executable() -> None:
     p = plan_tts_dub("/tmp/cap.srt", target_lang="es")
-    assert p["executable"] is False
     assert p["brand_primary"] is True
+    assert "backend" in p
+    # executable is True only when a doctor-visible TTS backend is present
+    assert p["executable"] is bool(p["backend"].get("available"))
 
 
 def test_publish_validate() -> None:

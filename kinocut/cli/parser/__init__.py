@@ -58,6 +58,12 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="Enable verbose logging to stderr",
     )
+    parser.add_argument(
+        "--log-file",
+        default=None,
+        metavar="PATH",
+        help="Write structured DEBUG logs to PATH (implies verbose to file; combine with -v for stderr too)",
+    )
     subparsers = parser.add_subparsers(dest="command", help="CLI commands")
 
     core.add_parsers(subparsers)

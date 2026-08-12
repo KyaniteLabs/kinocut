@@ -432,7 +432,11 @@ def video_generative_plan(
     max_spend_usd: float = 0.0,
     estimated_spend_usd: float = 0.0,
 ) -> dict[str, Any]:
-    """Generative last-mile plan with spend caps (P4.1) — plan only."""
+    """Generative last-mile plan with spend caps (P4.1) — plan only.
+
+    Paid providers require ``max_spend_usd > 0`` and estimate ≤ cap.
+    Use ``assert_generative_executable`` (multipliers) before any provider I/O.
+    """
 
     from kinocut.multipliers import plan_generative_last_mile
 

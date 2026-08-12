@@ -449,7 +449,16 @@ class ClientMediaMixin:
         )
 
     def edit(self, timeline: dict[str, Any], output: str | None = None) -> EditResult:
-        """Execute a full timeline-based edit from JSON."""
+        """Execute a full timeline-based edit from JSON.
+
+        Full Timeline form uses ``tracks`` / ``export``. Sequence shortcut::
+
+            client.edit({
+                "clips": ["a.mp4", "b.mp4", "c.mp4"],
+                "transitions": ["fade", "dissolve"],
+                "transition_duration": 0.5,
+            })
+        """
         return _edit_timeline(timeline, output_path=output)
 
     def extract_audio(

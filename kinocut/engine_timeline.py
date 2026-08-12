@@ -35,9 +35,120 @@ from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _
 from .models import EditResult, NamedPosition, Timeline, TimelineClip, TimelineImageOverlay
 
 
+def expand_sequence_shortcut(timeline: dict) -> dict:
+    """Expand a simple multi-clip sequence into a full Timeline dict.
+
+    Shortcut form (wishlist: ``clip A -> fade -> clip B -> dissolve -> clip C``)::
+
+        {
+          "clips": ["a.mp4", "b.mp4", "c.mp4"],
+          "transitions": ["fade", "dissolve"],  # optional; one per boundary
+          "transition_duration": 0.5,           # optional default 1.0
+          "width": 1920, "height": 1080,        # optional
+          "export": {"format": "mp4", "quality": "high"},  # optional
+        }
+
+    Clips may also be dicts with ``source`` and optional trim fields. When the
+    payload already has ``tracks``, it is returned unchanged (full Timeline).
+    """
+    if not isinstance(timeline, dict):
+        return timeline
+    if timeline.get("tracks"):
+        return timeline
+    if "clips" not in timeline:
+        return timeline
+    clips_raw = timeline["clips"]
+    if not isinstance(clips_raw, list) or not clips_raw:
+        raise MCPVideoError(
+            "sequence shortcut requires non-empty clips list",
+            error_type="validation_error",
+            code="empty_sequence_clips",
+        )
+
+    clip_models: list[dict] = []
+    for i, item in enumerate(clips_raw):
+        if isinstance(item, str):
+            clip_models.append({"source": item})
+        elif isinstance(item, dict) and item.get("source"):
+            clip_models.append(
+                {
+                    "source": item["source"],
+                    "start": item.get("start", 0.0),
+                    "duration": item.get("duration"),
+                    "trim_start": item.get("trim_start", 0.0),
+                    "trim_end": item.get("trim_end"),
+                    "volume": item.get("volume", 1.0),
+                    "fade_in": item.get("fade_in", 0.0),
+                    "fade_out": item.get("fade_out", 0.0),
+                }
+            )
+        else:
+            raise MCPVideoError(
+                f"clips[{i}] must be a path string or dict with source",
+                error_type="validation_error",
+                code="invalid_sequence_clip",
+            )
+
+    n_bounds = len(clip_models) - 1
+    transitions_in = timeline.get("transitions") or []
+    if not isinstance(transitions_in, list):
+        raise MCPVideoError(
+            "transitions must be a list of transition type strings",
+            error_type="validation_error",
+            code="invalid_sequence_transitions",
+        )
+    trans_duration = float(timeline.get("transition_duration", 1.0))
+    if trans_duration < 0:
+        raise MCPVideoError(
+            "transition_duration must be >= 0",
+            error_type="validation_error",
+            code="invalid_transition_duration",
+        )
+
+    transition_models: list[dict] = []
+    if n_bounds > 0 and transitions_in:
+        for i in range(n_bounds):
+            ttype = transitions_in[i] if i < len(transitions_in) else transitions_in[-1]
+            if not isinstance(ttype, str) or not ttype.strip():
+                raise MCPVideoError(
+                    f"transitions[{min(i, len(transitions_in) - 1)}] must be a non-empty string",
+                    error_type="validation_error",
+                    code="invalid_transition_type",
+                )
+            transition_models.append(
+                {
+                    "after_clip": i,
+                    "type": ttype.strip(),
+                    "duration": trans_duration,
+                }
+            )
+
+    expanded: dict = {
+        "width": int(timeline.get("width", 1920)),
+        "height": int(timeline.get("height", 1080)),
+        "tracks": [
+            {
+                "type": "video",
+                "clips": clip_models,
+                "transitions": transition_models,
+            }
+        ],
+    }
+    if timeline.get("export") is not None:
+        expanded["export"] = timeline["export"]
+    if timeline.get("duration") is not None:
+        expanded["duration"] = timeline["duration"]
+    return expanded
+
+
 def edit_timeline(timeline: Timeline | dict, output_path: str | None = None) -> EditResult:
-    """Execute a full timeline-based edit described in JSON."""
+    """Execute a full timeline-based edit described in JSON.
+
+    Accepts either a full :class:`Timeline` (``tracks`` …) or the sequence
+    shortcut form documented in :func:`expand_sequence_shortcut`.
+    """
     if isinstance(timeline, dict):
+        timeline = expand_sequence_shortcut(timeline)
         timeline = Timeline.model_validate(timeline)
     _validate_timeline_positions(timeline)
     tmpdir = tempfile.mkdtemp(prefix="mcp_video_timeline_")

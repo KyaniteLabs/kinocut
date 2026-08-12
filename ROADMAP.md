@@ -242,7 +242,7 @@ v1.2.0 shipped. 82 MCP tools, 832 tests, security hardened. Here's what's next.
 
 - [x] **Progress callbacks** — Long operations (merge, convert, export) give no feedback. A progress percentage in the MCP response would let agents tell users "50% done..." instead of silence. FFmpeg outputs progress to stderr — parse it.
 - [x] **Output file cleanup** — `video_cleanup` MCP tool removes intermediate files, with a `keep` list to preserve finals.
-- [ ] **Smarter GIF output** — 3-second GIF at "low" quality = 28MB. The two-pass palette approach is good but `scale=480:-1` is too large for "low". Scale by quality preset: low=320, medium=480, high=640.
+- [x] **Smarter GIF output** — 3-second GIF at "low" quality = 28MB. The two-pass palette approach is good but `scale=480:-1` is too large for "low". Scale by quality preset: low=320, medium=480, high=640. *(Shipped; quality scales low=320..ultra=800 in engine_convert)*
 - [x] **Visual verification** — After an operation, return a thumbnail of the first frame of the output. *(Shipped in v1.0.0)*
 
 ## Medium Impact (Makes the API less frustrating)
@@ -265,16 +265,16 @@ v1.2.0 shipped. 82 MCP tools, 832 tests, security hardened. Here's what's next.
 ## Low Impact (Nice to have)
 
 - [x] **Custom font upload** — `font_manager.py` downloads and caches Google Fonts by name for use in text overlays. *(Shipped in v1.3.0)*
-- [ ] **Video concatenation with transitions per-clip** — Already supported in `merge` via `transitions` parameter, but add a `video_edit` shortcut for simple "clip A -> fade -> clip B -> dissolve -> clip C" patterns.
-- [ ] **Audio waveform extraction** — Return a text-based waveform representation so agents can "see" the audio without playing it. Useful for finding silence or loud sections.
+- [x] **Video concatenation with transitions per-clip** — Already supported in `merge` via `transitions` parameter; `video_edit` sequence shortcut accepts `clips` + `transitions` + `transition_duration` (expanded via `expand_sequence_shortcut`).
+- [x] **Audio waveform extraction** — Return a text-based waveform representation so agents can "see" the audio without playing it. Useful for finding silence or loud sections. *(WaveformResult.text ASCII via _render_ascii_waveform)*
 - [x] **Subtitle generation from text** — Given a list of `[(start, end, text)]` tuples, generate an SRT file and burn it in one step. *(Shipped as `video_generate_subtitles`)*
-- [ ] **Frame-accurate seeking** — Use `-ss` before `-i` (input seeking) for speed, but fall back to output seeking for frame accuracy when the user specifies exact timestamps.
+- [x] **Frame-accurate seeking** — Use `-ss` before `-i` (input seeking) for speed, but fall back to output seeking for frame accuracy when the user specifies exact timestamps. *(trim accurate=True + te/seek helpers)*
 - [x] **Output directory option** — Currently outputs go next to the input file. Add a global `output_dir` option so all intermediates go to a temp folder. *(Shipped in v0.3.0 as `video_batch --output-dir` / `output_dir` param)*
 
 ## Observability (For you as the maintainer)
 
 - [~] **Usage analytics** — Dropped 2026-06-12. A v1.3.0 agent commit shipped a ping module pointing at a Vercel endpoint that was never deployed or owned; removed because an unowned, claimable domain receiving install IDs is a liability, not observability. If telemetry ever returns it needs an endpoint we actually control, decided first.
-- [ ] **Structured logging** — Currently silent on success. Add a `--verbose` flag and optional log file. Helps users debug their own issues before filing them.
+- [x] **Structured logging** — Currently silent on success. Add a `--verbose` flag and optional log file. Helps users debug their own issues before filing them. *(`-v/--verbose` + `--log-file PATH`)*
 - [x] **GitHub Actions CI** — Run the full test suite on push. Catch regressions before they ship. Currently manual. *(Shipped in v0.2.x)*
 
 ## Not Doing (Intentionally out of scope)
@@ -303,5 +303,5 @@ Features that FFmpeg supports but Kinocut doesn't expose yet. Ordered by impact.
 ### Low Impact
 - [x] **Ken Burns / zoom pan** — Animated zoom/pan effects via `zoompan` filter
 - [x] **Advanced masking** — New `luma_key()` (brightness-based masking) and `shape_mask()` (circle, rounded_rect, oval) tools. *(Shipped in v1.3.0)*
-- [ ] **Frame-accurate seeking** — Input seeking for speed, output seeking for accuracy
+- [x] **Frame-accurate seeking** — Input seeking for speed, output seeking for accuracy *(trim accurate=True)*
 - [x] **Two-pass encoding** — More efficient compression for target file sizes
