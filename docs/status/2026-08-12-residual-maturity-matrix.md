@@ -10,8 +10,8 @@
 | ssrf_c1 | verify-only | `kinocut/ai_engine/download.py` pin/peer; `tests/test_ai_features.py` SSRF; 60-pass SSRF/preview filter suite | HUMAN_GATES C1 closed L1.2 (2026-08-12) | N (security already on tip) |
 | preview_m1 | verify-only | `kinocut/hyperframes_engine.py` `_active_previews`/`stop_preview`/`atexit`; `tests/test_hyperframes_engine.py` stop_preview | HUMAN_GATES M1 closed L1.2 (2026-08-12) | N |
 | hyperframes_ops_policy | verify-only (fixed) | Split `hyperframes_ops_helpers.py`; ops ~680 LOC; guardrail locks ops+helpers | Keep ≤800 | N |
-| watching_p3 | deepen | `kinocut/watching/{review,metrics,mutations,vision_qc,narrative_qc}.py`; MCP/CLI intent tools | GO evidence links + real-media residual | Y until PHASE GO or DEFERRED |
-| multipliers_p4 | deepen | `kinocut/multipliers/*` (5 modules) | GO criteria / DEFERRED IDs | Y until PHASE GO or DEFERRED |
+| watching_p3 | deepen | `kinocut/watching/{review,metrics,mutations,vision_qc,narrative_qc}.py`; MCP/CLI intent tools; [phase3/4 residual evidence](2026-08-12-phase3-phase4-residual-evidence.md) | `DEF-phase3-go` (real-media GO) | Y until PHASE GO |
+| multipliers_p4 | deepen | `kinocut/multipliers/*` (5 modules); [phase3/4 residual evidence](2026-08-12-phase3-phase4-residual-evidence.md) | `DEF-phase4-go` | Y until PHASE GO |
 | sound_S4 | re-run | foundation packages present | Re-verify contracts | N if green |
 | sound_S5 | re-run/deepen | `kinocut_sound/voice/` | Residual-only tickets if tests fail | Y for full-episode claim |
 | sound_S6 | re-run/deepen | `voice/clone.py`, `blend.py` | same | Y full-episode |
@@ -31,7 +31,7 @@
 | g004 | human-only | HUMAN_GATES / fixtures | human media | Y shorts honesty |
 | mcpb | human-only + agent pack | foundations | human sign | Y production pack |
 | dual_host_face | deepen | dual-host docs | verify after claim PRs | Y public face |
-| wp_f_baselines | greenfield | none committed | golden-path timings | N until “optimized” claim |
+| wp_f_baselines | deepen | `scripts/golden_path_timings.py` + cheap p50/p95 in `docs/status/golden-path-timings.md` (2026-08-12); full path optional | full-path samples + residual GO before optimize claim | N until “optimized” claim |
 | human_gates | human-only | `docs/HUMAN_GATES.md` | #3 #88 #90 #92 | Y agent-complete |
 
 **Rule:** No L2 ticket re-implements `verify-only` without a failing case.
