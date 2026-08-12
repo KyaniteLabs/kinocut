@@ -129,8 +129,8 @@ def _host_meta() -> dict[str, str]:
 
 def _markdown_table(steps: list[StepStats], *, mode: str, fixture: str, meta: dict[str, str]) -> str:
     lines = [
-        f"| step | mode | runs | ok | p50 (s) | p95 (s) | mean (s) | min (s) | max (s) | machine |",
-        f"| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
+        "| step | mode | runs | ok | p50 (s) | p95 (s) | mean (s) | min (s) | max (s) | machine |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |",
     ]
     machine = f"{meta.get('system', '?')}/{meta.get('machine', '?')}"
     for s in steps:
