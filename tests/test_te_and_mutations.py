@@ -2,9 +2,23 @@
 
 from __future__ import annotations
 
+import json
+import shutil
 from pathlib import Path
 
-from kinocut.te import BrandKit, estimate_operation, init_project, load_cutfile, save_brand_kit, validate_cutfile
+import pytest
+
+from kinocut.errors import MCPVideoError
+from kinocut.te import (
+    BrandKit,
+    compile_cutfile_to_workflow,
+    estimate_operation,
+    init_project,
+    load_cutfile,
+    render_cutfile,
+    save_brand_kit,
+    validate_cutfile,
+)
 from kinocut.watching import MetricFinding, propose_mutations_from_findings
 
 
@@ -43,6 +57,79 @@ def test_cutfile_yaml_scaffold(tmp_path: Path) -> None:
     p.write_text('name: "demo"\nversion: 1\nsources: []\nops: []\n', encoding="utf-8")
     cf = load_cutfile(str(p))
     assert cf.name == "demo"
+
+
+def test_cutfile_compile_to_workflow() -> None:
+    cf = validate_cutfile(
+        {
+            "name": "demo",
+            "version": 1,
+            "sources": [{"id": "hero", "path": "media/hero.mp4"}],
+            "ops": [
+                {"op": "trim", "start": 0, "duration": 1},
+                {"op": "resize", "width": 320, "height": 240},
+            ],
+        }
+    )
+    spec = compile_cutfile_to_workflow(cf, output_relpath="out/final.mp4")
+    assert spec["schema_version"] == 1
+    assert spec["sources"]["hero"]["path"] == "media/hero.mp4"
+    assert len(spec["steps"]) == 2
+    assert spec["steps"][0]["op"] == "trim"
+    assert spec["steps"][0]["inputs"]["src"] == "@sources.hero"
+    assert spec["steps"][1]["inputs"]["src"] == "@work/step_1.mp4"
+    assert spec["steps"][1]["output"] == "@outputs.master"
+    assert spec["outputs"]["master"]["path"] == "out/final.mp4"
+
+
+def test_cutfile_compile_rejects_unsupported_op() -> None:
+    cf = validate_cutfile(
+        {
+            "name": "bad",
+            "version": 1,
+            "sources": [{"id": "hero", "path": "media/hero.mp4"}],
+            "ops": [{"op": "teleport"}],
+        }
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        compile_cutfile_to_workflow(cf)
+    assert exc.value.code == "cutfile_unsupported_op"
+
+
+def test_cutfile_compile_requires_sources_and_ops() -> None:
+    empty_ops = validate_cutfile({"name": "x", "version": 1, "sources": [{"id": "a", "path": "a.mp4"}], "ops": []})
+    with pytest.raises(MCPVideoError) as exc:
+        compile_cutfile_to_workflow(empty_ops)
+    assert exc.value.code == "cutfile_ops_required"
+
+    no_src = validate_cutfile({"name": "x", "version": 1, "sources": [], "ops": [{"op": "trim", "start": 0}]})
+    with pytest.raises(MCPVideoError) as exc2:
+        compile_cutfile_to_workflow(no_src)
+    assert exc2.value.code == "cutfile_sources_required"
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg not installed")
+def test_cutfile_render_trim_resize(tmp_path: Path, sample_video: str) -> None:
+    root = tmp_path / "proj"
+    init_project(str(root), name="render-demo")
+    media = root / "media" / "hero.mp4"
+    shutil.copy(sample_video, media)
+    cutfile = {
+        "name": "render-demo",
+        "version": 1,
+        "sources": [{"id": "hero", "path": "media/hero.mp4"}],
+        "ops": [
+            {"op": "trim", "start": 0, "duration": 1},
+            {"op": "resize", "width": 320, "height": 240},
+        ],
+    }
+    (root / "cutfile.json").write_text(json.dumps(cutfile), encoding="utf-8")
+
+    result = render_cutfile(str(root / "cutfile.json"), output_path="out/final.mp4")
+    assert result["artifact_kind"] == "cutfile_render"
+    assert Path(result["output_path"]).is_file()
+    assert result["workflow"]["status"] == "completed"
 
 
 def test_propose_mutations_from_findings() -> None:

@@ -1,0 +1,37 @@
+# Residual Maturity Matrix (L0.4)
+
+**Date:** 2026-08-12  
+**Tip branch:** `ultragoal/kinocut-full-build`  
+**Ultragoal:** `.omc/ultragoal/plans/kinocut-full-build` G001  
+**Evidence basis:** code + tests + evidence paths (not July prose alone)
+
+| family | class | evidence_paths | residual_tickets | blocks_claim? |
+|--------|-------|----------------|------------------|---------------|
+| ssrf_c1 | verify-only | `kinocut/ai_engine/download.py` pin/peer; `tests/test_ai_features.py` SSRF; 60-pass SSRF/preview filter suite | Close HUMAN_GATES C1 row after doc sync | N (security already on tip) |
+| preview_m1 | verify-only | `kinocut/hyperframes_engine.py` `_active_previews`/`stop_preview`/`atexit`; `tests/test_hyperframes_engine.py` stop_preview | Close HUMAN_GATES M1 after doc sync | N |
+| hyperframes_ops_policy | verify-only (fixed) | Split `hyperframes_ops_helpers.py`; ops ~680 LOC; guardrail locks ops+helpers | Keep ≤800 | N |
+| watching_p3 | deepen | `kinocut/watching/{review,metrics,mutations,vision_qc,narrative_qc}.py`; MCP/CLI intent tools | GO evidence links + real-media residual | Y until PHASE GO or DEFERRED |
+| multipliers_p4 | deepen | `kinocut/multipliers/*` (5 modules) | GO criteria / DEFERRED IDs | Y until PHASE GO or DEFERRED |
+| sound_S4 | re-run | foundation packages present | Re-verify contracts | N if green |
+| sound_S5 | re-run/deepen | `kinocut_sound/voice/` | Residual-only tickets if tests fail | Y for full-episode claim |
+| sound_S6 | re-run/deepen | `voice/clone.py`, `blend.py` | same | Y full-episode |
+| sound_S7 | re-run/deepen | `kinocut_sound/post/` | same | Y full-episode |
+| sound_S8 | re-run/deepen | `kinocut_sound/world/` | same | Y full-episode |
+| sound_S9 | re-run/deepen | `kinocut_sound/mix/` | same | Y full-episode |
+| sound_S10 | re-run/deepen | `kinocut_sound/voice_consistency/` | same | Y full-episode |
+| sound_S11 | re-run/deepen | `kinocut_sound/qa/` | same | Y full-episode |
+| sound_S12 | re-run/deepen | `kinocut_sound/public/`, `kinocut/sound_joins/` | ROADMAP “thin S12” honesty sync | Y full-episode |
+| sound_S13 | re-run | `sound_joins` + host joins | dual-class residual | Y full-episode |
+| sound_S14 | re-run | `docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json` (64 clips, dual-class, under_30m) | Re-run live host classes | **Synthetic ≠ product complete** |
+| sound_S15 | deepen | acceptance residual | Product honesty + human adversarial review | Y product claim |
+| cutfile | deepen (thin render) | `kinocut/te/cutfile.py` + `kinocut/te/cutfile_render.py` (compile→workflow OP_ADAPTERS→`render_workflow`); tests in `tests/test_te_and_mutations.py` | Optional MCP/CLI surface (not claimed; keep public_claims stable) | N for library render claim; Y if MCP/CLI claimed without surface bump |
+| kinocut_action | deepen | `.github/actions/kinocut-video-ci/` | CI receipt on push | soft |
+| conversational | deepen | `kinocut/te/edit_session.py` | measured metric + receipt depth | soft |
+| durable_repurpose | deepen | `kinocut/projectstore/` (18 files) | honesty vs seed skill | soft |
+| g004 | human-only | HUMAN_GATES / fixtures | human media | Y shorts honesty |
+| mcpb | human-only + agent pack | foundations | human sign | Y production pack |
+| dual_host_face | deepen | dual-host docs | verify after claim PRs | Y public face |
+| wp_f_baselines | greenfield | none committed | golden-path timings | N until “optimized” claim |
+| human_gates | human-only | `docs/HUMAN_GATES.md` | #3 #88 #90 #92 | Y agent-complete |
+
+**Rule:** No L2 ticket re-implements `verify-only` without a failing case.
