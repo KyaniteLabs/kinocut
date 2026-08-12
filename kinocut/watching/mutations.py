@@ -27,6 +27,21 @@ class ProposedMutation:
         return d
 
 
+def apply_mutations_silently(*_args: Any, **_kwargs: Any) -> None:
+    """Hard no-op path: silent timeline rewrite is forbidden.
+
+    Product rule (Phase 3 mutations gate): proposals only; human apply required.
+    Callers must never auto-apply; this function always fails closed.
+    """
+    from kinocut.errors import MCPVideoError
+
+    raise MCPVideoError(
+        "silent mutation apply is forbidden; use human review apply_policy",
+        error_type="validation_error",
+        code="human_apply_required",
+    )
+
+
 def propose_mutations_from_findings(
     findings: Sequence[MetricFinding | dict[str, Any]],
 ) -> list[ProposedMutation]:

@@ -1,0 +1,28 @@
+{
+  "fixture_version": "sound-bench-v1",
+  "clip_count": 64,
+  "live_rerun_date": "2026-08-12",
+  "classes": [
+    {
+      "fixture_version": "sound-bench-v1",
+      "hardware_class": "apple_silicon",
+      "clip_count": 64,
+      "cold_seconds": 0.0413,
+      "warm_seconds": 0.0387,
+      "cold_ok": true,
+      "warm_ok": true,
+      "under_30m": true,
+      "required_capabilities": {
+        "d41_bed": true,
+        "d41_audition": true,
+        "d42_style": true,
+        "d42_identity": true
+      },
+      "platform": "macOS-26.5.1-arm64-arm-64bit-Mach-O",
+      "machine": "arm64"
+    }
+  ],
+  "second_class_status": "external_host_unavailable",
+  "second_class_note": "x86_linux not available on this host; residual allowed by PHASE_CHECKPOINTS sound gate",
+  "product_gate": "S14 ok with live class + external_host_unavailable second class"
+}

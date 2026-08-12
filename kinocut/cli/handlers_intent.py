@@ -143,6 +143,33 @@ def _register_te_commands(runner: CommandRunner) -> None:
         r = load_cutfile(a.path).to_dict()
         _out(r, j, lambda res: f"cutfile ok name={res['name']} ops={len(res['ops'])}")
 
+    def _cutfile_render(a: Any, j: bool) -> None:
+        from kinocut.te import render_cutfile
+
+        r = render_cutfile(
+            a.path,
+            output_path=a.output,
+            save_receipt=a.receipt,
+            keep_intermediates=bool(a.keep_intermediates),
+        )
+        _out(r, j, lambda res: f"cutfile render → {res.get('output_path')}")
+
+    def _metric_qc(a: Any, j: bool) -> None:
+        from kinocut.watching import run_metric_qc
+
+        findings = run_metric_qc(
+            a.input,
+            min_duration_seconds=a.min_duration,
+            max_black_ratio=a.max_black_ratio,
+        )
+        r = {
+            "artifact_kind": "metric_qc",
+            "finding_count": len(findings),
+            "findings": [f.to_dict() for f in findings],
+            "fail_count": sum(1 for f in findings if f.severity == "fail"),
+        }
+        _out(r, j, lambda res: f"metric_qc fails={res['fail_count']}")
+
     def _mutations(a: Any, j: bool) -> None:
         from kinocut.watching import propose_mutations_from_findings
 
@@ -181,6 +208,8 @@ def _register_te_commands(runner: CommandRunner) -> None:
     runner.register("estimate", _estimate)
     runner.register("brand-kit", _brand)
     runner.register("cutfile-validate", _cutfile)
+    runner.register("cutfile-render", _cutfile_render)
+    runner.register("metric-qc", _metric_qc)
     runner.register("propose-mutations", _mutations)
     runner.register("publish-validate", _publish)
     runner.register("hook-candidates", _hooks)
@@ -210,10 +239,12 @@ def _register_multiplier_commands(runner: CommandRunner) -> None:
         _out(r, j, lambda res: f"review ui → {res['html_path']}")
 
     def _session(a: Any, j: bool) -> None:
-        from kinocut.te import session_open, session_step
+        from kinocut.te import session_close, session_open, session_step
 
         if a.action == "open":
             r = session_open(a.path, a.goal)
+        elif a.action == "close":
+            r = session_close(a.path, write_receipt=not a.no_receipt)
         else:
             r = session_step(a.path, action=a.step_action, score=a.score)
         _out(r, j, lambda res: f"session improvement={res.get('measured_improvement')}")

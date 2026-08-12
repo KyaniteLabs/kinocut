@@ -337,6 +337,54 @@ def video_cutfile_validate(path: str) -> dict[str, Any]:
 
 @mcp.tool()
 @_safe_tool
+def video_cutfile_render(
+    path: str,
+    output_path: str | None = None,
+    save_receipt: str | None = None,
+    keep_intermediates: bool = False,
+) -> dict[str, Any]:
+    """Render a schema-valid Cutfile via the workflow engine (Track E)."""
+
+    from kinocut.te import render_cutfile
+
+    return _result(
+        render_cutfile(
+            path,
+            output_path=output_path,
+            save_receipt=save_receipt,
+            keep_intermediates=keep_intermediates,
+        )
+    )
+
+
+@mcp.tool()
+@_safe_tool
+def video_metric_qc(
+    input_path: str,
+    min_duration_seconds: float = 0.5,
+    max_black_ratio: float = 0.95,
+) -> dict[str, Any]:
+    """Offline metric floor (duration/black/loudness) — fail-closed, no invented values."""
+
+    from kinocut.watching import run_metric_qc
+
+    findings = run_metric_qc(
+        input_path,
+        min_duration_seconds=min_duration_seconds,
+        max_black_ratio=max_black_ratio,
+    )
+    return _result(
+        {
+            "artifact_kind": "metric_qc",
+            "finding_count": len(findings),
+            "findings": [f.to_dict() for f in findings],
+            "fail_count": sum(1 for f in findings if f.severity == "fail"),
+        }
+    )
+
+
+@mcp.tool()
+@_safe_tool
 def video_timeline_ir_validate(timeline: dict[str, Any]) -> dict[str, Any]:
     """Validate Timeline IR and compile to render DAG (P3.0)."""
 

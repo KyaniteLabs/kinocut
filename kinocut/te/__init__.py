@@ -7,7 +7,7 @@ from .brand_kit import BrandKit, load_brand_kit, save_brand_kit
 from .cost_oracle import estimate_operation
 from .cutfile import Cutfile, load_cutfile, validate_cutfile
 from .cutfile_render import compile_cutfile_to_workflow, render_cutfile
-from .edit_session import session_open, session_step
+from .edit_session import session_close, session_open, session_step
 from .hooks import generate_hook_candidates
 from .init_project import init_project
 from .publish_connectors import validate_publish_spec
@@ -28,6 +28,7 @@ __all__ = [
     "plan_punch_zooms",
     "render_cutfile",
     "save_brand_kit",
+    "session_close",
     "session_open",
     "session_step",
     "timestamp_to_frame",

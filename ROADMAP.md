@@ -1,15 +1,15 @@
 # Improvement Roadmap
 
-Kinocut 1.13.3 is published with 194 MCP tools and 165 CLI commands (`mcp-video` 1.6.6 shim).
+Kinocut 1.13.4 is published with 196 MCP tools and 167 CLI commands (`mcp-video` 1.6.6 shim).
 
-**Published product:** Kinocut **1.13.3** (2026-08-12) · **194 MCP / 165 CLI**
+**Published product:** Kinocut **1.13.4** (2026-08-12) · **196 MCP / 167 CLI**
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
 **Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
 **Residual portfolio (living truth):** [`docs/status/2026-08-12-residual-maturity-matrix.md`](docs/status/2026-08-12-residual-maturity-matrix.md) · [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md) · [fixture freeze](docs/status/2026-08-12-sound-fixture-freeze.md) · [L1 truth pass](docs/status/2026-08-12-l1-truth-pass.md) · [phase checkpoints](docs/status/PHASE_CHECKPOINTS.md)  
 **Excellence program (snapshot):** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](docs/status/2026-08-07-kinocut-excellence-audit.md) · handoff [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](docs/handoffs/2026-08-07/kinocut-excellence-campaign.md)  
 **Earlier tip snapshot:** [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md) (evidence only)
 
-This file is **planning truth for after 1.13.3**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims. Prefer the **2026-08-12 residual matrix** over any July “S5–S15 incomplete / missing packages” language.
+This file is **planning truth for after 1.13.4**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims. Prefer the **2026-08-12 residual matrix** over any July “S5–S15 incomplete / missing packages” language.
 
 ---
 
@@ -26,7 +26,7 @@ Release ritual still documents *how* to freeze claims at cut time; this freeze *
 
 ---
 
-## Current (shipped on tip = published 1.13.3)
+## Current (shipped on tip = published 1.13.4)
 
 - Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
 - Rescue, compositing, Hyperframes, repurposing package surface
