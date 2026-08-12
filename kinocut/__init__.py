@@ -1,6 +1,6 @@
 """Kinocut's public Python API."""
 
-__version__ = "1.13.2"
+__version__ = "1.13.3"
 
 from . import contracts  # stable re-export of the Wave 0 record/receipt contracts
 from .client import Client
