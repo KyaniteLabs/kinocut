@@ -62,8 +62,7 @@ def _visible_intervals(path: Path) -> tuple[tuple[float, float], ...]:
     )
     frame_size = _WIDTH * _HEIGHT
     visible = [
-        sum(value > 40 for value in raw[offset : offset + frame_size]) > 10
-        for offset in range(0, len(raw), frame_size)
+        sum(value > 40 for value in raw[offset : offset + frame_size]) > 10 for offset in range(0, len(raw), frame_size)
     ]
     intervals: list[tuple[float, float]] = []
     start: int | None = None
@@ -105,7 +104,14 @@ def test_every_styled_burned_word_is_within_80ms_of_whisper_ground_truth(tmp_pat
     measured = _visible_intervals(output)
     expected = tuple((word.start, word.end) for word in ground_truth)
     assert len(measured) == len(expected)
-    assert max(abs(actual - truth) for pair, expected_pair in zip(measured, expected, strict=True) for actual, truth in zip(pair, expected_pair, strict=True)) <= _MAX_ERROR_SECONDS
+    assert (
+        max(
+            abs(actual - truth)
+            for pair, expected_pair in zip(measured, expected, strict=True)
+            for actual, truth in zip(pair, expected_pair, strict=True)
+        )
+        <= _MAX_ERROR_SECONDS
+    )
     assert artifact.maximum_quantization_error_seconds <= 0.005
 
 

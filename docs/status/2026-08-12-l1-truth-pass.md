@@ -67,5 +67,5 @@ verify-readme-splus 2>&1 | grep -iE 'kinocut|ok=|fail='
 1. [`2026-08-12-residual-maturity-matrix.md`](2026-08-12-residual-maturity-matrix.md)  
 2. [`2026-08-12-sound-residual-stage-dag.md`](2026-08-12-sound-residual-stage-dag.md)  
 3. [`2026-08-12-sound-fixture-freeze.md`](2026-08-12-sound-fixture-freeze.md)  
-4. [`.omx/state/critical-path.md`](../../.omx/state/critical-path.md)  
+4. [`2026-08-12-product-pipeline-complete.md`](2026-08-12-product-pipeline-complete.md)  
 5. July status files = evidence only, not staffing truth

@@ -52,8 +52,7 @@ def test_broll_proposals_never_auto_accept() -> None:
 def test_translate_captions_en_es(tmp_path: Path) -> None:
     srt = tmp_path / "en.srt"
     srt.write_text(
-        "1\n00:00:00,000 --> 00:00:02,000\nHello world\n\n"
-        "2\n00:00:02,000 --> 00:00:04,000\nThanks\n",
+        "1\n00:00:00,000 --> 00:00:02,000\nHello world\n\n2\n00:00:02,000 --> 00:00:04,000\nThanks\n",
         encoding="utf-8",
     )
     result = translate_caption_file(str(srt), source_lang="en", target_lang="es")

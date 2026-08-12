@@ -23,7 +23,6 @@ def test_g004_phone_frame_fixture_and_review(tmp_path: Path) -> None:
         timeout=180,
     )
     assert proc.returncode == 0, proc.stderr
-    phone = out_dir / "phone_frame_12s.mp4"
     # script names file phone_frame_12s even when seconds overridden — check any mp4
     phones = list(out_dir.glob("*.mp4"))
     assert phones, proc.stdout

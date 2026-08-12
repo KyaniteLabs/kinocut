@@ -70,7 +70,9 @@ def test_review_ui_hot_reload_surface(tmp_path: Path) -> None:
 def test_tts_dub_es_first_not_translate() -> None:
     plan = plan_tts_dub("captions.srt", target_lang="es")
     d = plan if isinstance(plan, dict) else plan.to_dict()
-    assert d.get("executable") is False
     assert d.get("artifact_kind") == "tts_dub_plan"
     assert d.get("target_lang") == "es"
     assert d.get("brand_primary") is True
+    # executable tracks doctor-visible backend probe (hyperframes/edge_tts/etc.)
+    assert "backend" in d
+    assert d.get("executable") is bool((d.get("backend") or {}).get("available"))

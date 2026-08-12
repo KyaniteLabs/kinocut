@@ -104,3 +104,15 @@ Recorded: `2026-08-12T15:16:30.129698+00:00`
 - Full golden path remains the **functional** proof (`scripts/golden_path.py`); this harness is the **timing** companion.
 - p50/p95 use linear interpolation over sorted wall-clock samples from `time.perf_counter()`.
 - Cold vs warm process starts: each sample spawns a new `python -m kinocut` process (includes interpreter + import cost). That matches agent/CLI first-call cost better than in-process loops.
+
+## Latest cheap baseline (agent)
+
+**Recorded:** 2026-08-12T21:08:45Z · host Darwin/arm64 · fixture `tests/fixtures/golden/workflow_final.mp4`
+
+| step | mode | runs | ok | p50 (s) | p95 (s) | mean (s) |
+| --- | --- | ---: | ---: | ---: | ---: | ---: |
+| doctor | cheap | 3 | 3 | 5.26 | 5.33 | 5.16 |
+| info | cheap | 3 | 3 | 1.63 | 2.30 | 1.87 |
+
+Not an “optimized” product claim — baseline receipt only (WP-F scaffolding).
+

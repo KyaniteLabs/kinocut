@@ -570,7 +570,6 @@ def preview(
         start_new_session=True,
     )
 
-
     time.sleep(min(startup_timeout, 2))
     if proc.poll() is not None:
         raise HyperframesProjectError(str(project), "Hyperframes preview exited immediately")

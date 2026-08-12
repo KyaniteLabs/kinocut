@@ -163,7 +163,7 @@ download models, contact providers, or submit jobs. See
 | `video_overlay` | Picture-in-picture overlay with opacity and timing guardrails |
 | `video_composite_layers` | Spec-driven ordered image/video layer compositing with explicit straight/premultiplied input alpha, transforms, timing windows, masks/mattes, full-canvas and allowlisted positioned blend modes, rotation/pivot, named layer/mask/mask-edge `effect-noise` routes, dry-run plans, and deterministic `layer_plan` v2 receipts (video-only output) |
 | `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
-| `video_edit` | Full timeline-based edit from JSON DSL |
+| `video_edit` | Full timeline-based edit from JSON DSL, or sequence shortcut (`clips` + optional `transitions` / `transition_duration`) |
 | `video_create_from_images` | Create video from image sequence |
 | `video_export_frames` | Export video as individual image frames |
 | `video_extract_frame` | Extract a single frame at a given timestamp for visual verification |

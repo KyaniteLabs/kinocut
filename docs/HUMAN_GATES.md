@@ -8,7 +8,7 @@ where noted. Residual portfolio authority:
 
 | Former issue | Agent deliverable | Status |
 | --- | --- | --- |
-| #3 Renovate dashboard | `.github/dependabot.yml` + `.renovaterc.json` + note that Forgejo Renovate needs `GITHUB_COM_TOKEN`/hostRules | **Still human/ops** — enable token / Renovate app on host (Forgejo admin) |
+| #3 Renovate dashboard | `.github/dependabot.yml` + `.renovaterc.json` + `.forgejo/workflows/renovate.yml` + runbook [`docs/ops/RENOVATE_HOST_TOKEN.md`](ops/RENOVATE_HOST_TOKEN.md) | **Still human/ops** — set `RENOVATE_TOKEN` + `MIRROR_GITHUB_TOKEN` on Forgejo; agent runbook complete |
 | #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | Awesome MCP Servers PR **merged** (2026-08-08). MCP.so, Docker MCP, Agent-CoreX, Protodex still pending external review |
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |

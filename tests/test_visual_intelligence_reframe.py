@@ -262,7 +262,9 @@ def test_speaker_turns_keep_active_speaker_in_crop_on_two_fixtures(
 
     samples = plan.variants[0].crop_track
     expected = tuple(turn.subject_id for turn in turns)
-    assert sum(sample.active_subject_id == subject_id for sample, subject_id in zip(samples, expected, strict=True)) / len(
-        samples
-    ) >= 0.95
+    assert (
+        sum(sample.active_subject_id == subject_id for sample, subject_id in zip(samples, expected, strict=True))
+        / len(samples)
+        >= 0.95
+    )
     assert sum(sample.subject_coverage >= 0.95 for sample in samples) / len(samples) >= 0.95

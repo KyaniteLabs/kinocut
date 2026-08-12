@@ -48,6 +48,7 @@ def _rewrite_namespaced_argv(argv: list[str]) -> list[str]:
     from .cli.namespaces import resolve_namespaced
 
     boolean_globals = {"-v", "--verbose", "--mcp", "--version"}
+    value_globals = {"--format", "--log-file"}
     i = 0
     n = len(argv)
     while i < n:
@@ -55,12 +56,12 @@ def _rewrite_namespaced_argv(argv: list[str]) -> list[str]:
         if arg in boolean_globals:
             i += 1
             continue
-        if arg == "--format":
+        if arg in value_globals:
             if i + 1 >= n:
-                return argv  # malformed --format; defer to argparse
+                return argv  # malformed flag; defer to argparse
             i += 2
             continue
-        if arg.startswith("--format="):
+        if arg.startswith("--format=") or arg.startswith("--log-file="):
             i += 1
             continue
         if arg.startswith("-"):
@@ -75,16 +76,34 @@ def _rewrite_namespaced_argv(argv: list[str]) -> list[str]:
     return argv
 
 
+def _configure_logging(*, verbose: bool, log_file: str | None) -> None:
+    """Attach structured DEBUG logging to stderr and/or a file."""
+    if not verbose and not log_file:
+        return
+    fmt = logging.Formatter(
+        "%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+        datefmt="%H:%M:%S",
+    )
+    root = logging.getLogger()
+    root.setLevel(logging.DEBUG)
+    if verbose:
+        sh = logging.StreamHandler(sys.stderr)
+        sh.setLevel(logging.DEBUG)
+        sh.setFormatter(fmt)
+        root.addHandler(sh)
+    if log_file:
+        fh = logging.FileHandler(log_file, encoding="utf-8")
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(fmt)
+        root.addHandler(fh)
+        logger.debug("Structured logging enabled; file=%s verbose_stderr=%s", log_file, verbose)
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args(_rewrite_namespaced_argv(sys.argv[1:]))
 
-    if args.verbose:
-        logging.basicConfig(
-            level=logging.DEBUG,
-            format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-            datefmt="%H:%M:%S",
-        )
+    _configure_logging(verbose=bool(getattr(args, "verbose", False)), log_file=getattr(args, "log_file", None))
 
     # --version
     if args.version:

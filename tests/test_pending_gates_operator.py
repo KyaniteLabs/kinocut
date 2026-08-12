@@ -25,10 +25,7 @@ def _issue(number: int, *labels: str) -> dict:
 
 def test_pending_operator_keeps_human_and_release_gates_explicit() -> None:
     module = _module()
-    issues = {
-        number: _issue(number, "blocked:post-release")
-        for number in module.EXPECTED_POST_RELEASE
-    }
+    issues = {number: _issue(number, "blocked:post-release") for number in module.EXPECTED_POST_RELEASE}
 
     gates = module._build_gates(issues, "installed; daemon unavailable")
     by_name = {gate.name: gate for gate in gates}
@@ -44,10 +41,7 @@ def test_pending_operator_keeps_human_and_release_gates_explicit() -> None:
 
 def test_pending_operator_detects_changed_tracker_state() -> None:
     module = _module()
-    issues = {
-        number: _issue(number, "blocked:post-release")
-        for number in module.EXPECTED_POST_RELEASE
-    }
+    issues = {number: _issue(number, "blocked:post-release") for number in module.EXPECTED_POST_RELEASE}
     issues[73] = _issue(73)
 
     gates = module._build_gates(issues, "ready (fixture)")

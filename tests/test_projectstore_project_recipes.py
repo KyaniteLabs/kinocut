@@ -59,7 +59,11 @@ def test_project_revision_exports_and_replays_a_portable_recipe(tmp_path: Path):
     )
 
     assert replayed["portable_sha256"] == exported["portable_sha256"]
-    revisions = [record for record in read_records(project, "edit_revision") if record.record_id == replayed["replay_revision_id"]]
+    revisions = [
+        record
+        for record in read_records(project, "edit_revision")
+        if record.record_id == replayed["replay_revision_id"]
+    ]
     assert len(revisions) == 1
     assert len(revisions[0].operation_ids) == 2
 

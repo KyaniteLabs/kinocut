@@ -110,6 +110,7 @@ def video_batch(
         "results": results,
     }
 
+
 def _batch_output_name(input_path: str, operation: str, ext: str) -> str:
     """Build a collision-resistant output basename for a batch input.
 
@@ -121,6 +122,7 @@ def _batch_output_name(input_path: str, operation: str, ext: str) -> str:
     parent = os.path.dirname(os.path.abspath(input_path))
     digest = hashlib.sha1(parent.encode(), usedforsecurity=False).hexdigest()[:8]
     return f"{name}_{operation}_{digest}{ext}"
+
 
 def _run_batch_operation(
     input_path: str,

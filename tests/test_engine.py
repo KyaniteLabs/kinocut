@@ -593,9 +593,7 @@ class TestHlsValidation:
             "../sibling/escape.m3u8",
         ],
     )
-    def test_hls_rejects_playlist_name_escape_output_dir(
-        self, sample_video, monkeypatch, tmp_path, malicious_playlist
-    ):
+    def test_hls_rejects_playlist_name_escape_output_dir(self, sample_video, monkeypatch, tmp_path, malicious_playlist):
         from mcp_video import engine_hls
         from mcp_video.errors import MCPVideoError
 

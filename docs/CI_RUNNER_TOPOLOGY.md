@@ -3,14 +3,41 @@
 This document records the repository contract for Kinocut's Forgejo runners.
 It is not evidence that a Forgejo administrator has applied the configuration.
 
+**Last agent review:** 2026-08-12 · light routing verified in `.forgejo/workflows/ci.yml`
+
 ## Workload routing
 
 | Label | Intended workload | Host rule |
 | --- | --- | --- |
 | `light` | lint, metadata, and other low-CPU checks | May run at capacity 1; must not carry real-media tests |
-| `heavy` | Legacy shared heavy-work label | Do not use for Kinocut jobs; other registered runners may claim it |
+| `heavy` | Legacy shared heavy-work label (also Renovate / mirror sync today) | Prefer not for Kinocut test suites; keep for short ops jobs until `light` capacity is proven for them |
 | `arm64-heavy` | Python tests, FFmpeg renders, Hyperframes, and FFmpeg matrices | Dedicated ARM64 runner away from the Forgejo application host |
 | `kinocut-ci` | Same workload class as `arm64-heavy`, using the prebuilt Kinocut image | Map only after the immutable image digest is published and smoke-tested |
+
+## Light runner topology (contract)
+
+**Goal:** cheap checks never queue behind multi-minute FFmpeg/pytest shards.
+
+| Workflow job | File | `runs-on` | Notes |
+| --- | --- | --- | --- |
+| Lint / ruff | `.forgejo/workflows/ci.yml` | **`light`** | Must stay on `light`; do not move lint onto `arm64-heavy` |
+| Unit / integration / FFmpeg matrix | `.forgejo/workflows/ci.yml` | `arm64-heavy` | Real media + pytest only |
+| Renovate | `.forgejo/workflows/renovate.yml` | `heavy` | Containerized; ops job (not pytest) |
+| Mirror sync | `.forgejo/workflows/sync-github.yml` | `heavy` | Ops job |
+
+### Admin checklist for light capacity
+
+1. Runner registers labels: `light`, `heavy`, `arm64-heavy` (and optionally `default`).
+2. At least one runner claims **`light`** without also being the sole host for concurrent `arm64-heavy` starvation (capacity ≥1 is fine if heavy work is on another label).
+3. Spot-check: open a PR that only touches docs → lint job starts without waiting for a long test shard.
+4. Do **not** schedule real-media pytest on `light`.
+5. If `light` has zero online runners, lint fails fast — that is preferred to silent routing onto an overloaded heavy host.
+
+### Anti-patterns
+
+- Routing FFmpeg matrix or full pytest onto `light`
+- Using bare `ubuntu-latest` on Forgejo (self-hosted labels only)
+- Mapping `arm64-heavy` onto the Forgejo application VM under load
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
 capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,

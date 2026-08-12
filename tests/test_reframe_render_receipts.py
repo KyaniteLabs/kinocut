@@ -81,7 +81,9 @@ def _plan(source: Path, positions: tuple[int, int]):
     )
     return plan_subject_aware_reframe(
         analysis=analysis,
-        targets=(CropTarget(target_id="portrait", aspect_width=9, aspect_height=16, output_width=180, output_height=320),),
+        targets=(
+            CropTarget(target_id="portrait", aspect_width=9, aspect_height=16, output_width=180, output_height=320),
+        ),
         crop_budget=CropBudget(max_subject_loss=0.05, max_source_crop_fraction=0.7),
         max_center_step=1,
         speaker_turns=turns,

@@ -477,11 +477,20 @@ def video_edit(
 
     Image overlays are applied in a single filtergraph pass (no multiple re-encodes).
 
+    Sequence shortcut (simple multi-clip chain with per-boundary transitions)::
+
+        {
+          "clips": ["a.mp4", "b.mp4", "c.mp4"],
+          "transitions": ["fade", "dissolve"],
+          "transition_duration": 0.5
+        }
+
     Args:
-        timeline: JSON object with keys: width, height, tracks (video/audio/text/image), export.
-            Can also be a JSON string or a path to a .json file.
-            Image overlays in tracks: {"type": "image", "images": [{"source":
-            "logo.png", "position": "top-right", "width": 200, "opacity": 0.8}]}
+        timeline: Full Timeline JSON (width/height/tracks/export) **or** the
+            sequence shortcut above. Can also be a JSON string or a path to a
+            .json file. Image overlays in tracks: {"type": "image", "images":
+            [{"source": "logo.png", "position": "top-right", "width": 200,
+            "opacity": 0.8}]}
         output_path: Where to save the final video. Auto-generated if omitted.
     """
     parsed_timeline = timeline

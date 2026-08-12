@@ -4,5 +4,10 @@
     "config:recommended"
   ],
   "automerge": true,
-  "platformAutomerge": true
+  "platformAutomerge": true,
+  "labels": [
+    "dependencies"
+  ],
+  "prHourlyLimit": 4,
+  "prConcurrentLimit": 5
 }

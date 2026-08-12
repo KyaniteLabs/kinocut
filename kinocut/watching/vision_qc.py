@@ -2,10 +2,12 @@
 
 from __future__ import annotations
 
+import tempfile
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
-from kinocut.ffmpeg_helpers import _validate_input_path
+from kinocut.ffmpeg_helpers import _run_ffmpeg, _validate_input_path
 
 
 @dataclass(frozen=True)
@@ -20,6 +22,53 @@ class VisionFinding:
         return asdict(self)
 
 
+def _vlm_available() -> bool:
+    try:
+        import importlib.util
+
+        return importlib.util.find_spec("anthropic") is not None
+    except Exception:
+        return False
+
+
+def _sample_keyframes(path: str, times: list[float]) -> list[dict[str, Any]]:
+    """Extract structural keyframe JPEGs when FFmpeg is available."""
+    samples: list[dict[str, Any]] = []
+    tmp = Path(tempfile.mkdtemp(prefix="kinocut_vision_"))
+    try:
+        for i, t in enumerate(times):
+            out = tmp / f"kf_{i:02d}.jpg"
+            try:
+                _run_ffmpeg(
+                    [
+                        "-ss",
+                        f"{float(t):.3f}",
+                        "-i",
+                        path,
+                        "-frames:v",
+                        "1",
+                        "-q:v",
+                        "5",
+                        str(out),
+                    ]
+                )
+                if out.is_file() and out.stat().st_size > 0:
+                    samples.append(
+                        {
+                            "time": float(t),
+                            "path": str(out.resolve()),
+                            "bytes": out.stat().st_size,
+                        }
+                    )
+                else:
+                    samples.append({"time": float(t), "path": None, "error": "empty_frame"})
+            except Exception as exc:
+                samples.append({"time": float(t), "path": None, "error": type(exc).__name__})
+    except Exception:
+        return samples
+    return samples
+
+
 def run_vision_qc(
     input_path: str,
     *,
@@ -30,14 +79,19 @@ def run_vision_qc(
     path = _validate_input_path(input_path)
     times = sample_times or [0.5, 1.0, 2.0]
     findings: list[VisionFinding] = []
-    # Without optional VLM stack, report graceful enhancement state.
-    vlm_available = False
-    try:
-        import importlib.util
+    vlm_available = _vlm_available()
+    keyframes = _sample_keyframes(path, times)
+    sampled = sum(1 for k in keyframes if k.get("path"))
 
-        vlm_available = importlib.util.find_spec("anthropic") is not None
-    except Exception:
-        vlm_available = False
+    findings.append(
+        VisionFinding(
+            check_id="vision.keyframe_sample",
+            severity="info",
+            message=f"Structural keyframe sample: {sampled}/{len(times)} frames extracted",
+            keyframe_times=list(times),
+            evidence={"keyframes": keyframes, "sampled": sampled},
+        )
+    )
 
     if require_vlm and not vlm_available:
         findings.append(
@@ -45,7 +99,7 @@ def run_vision_qc(
                 check_id="vision.vlm",
                 severity="warn",
                 message="VLM not installed; vision QC skipped (graceful)",
-                keyframe_times=times,
+                keyframe_times=list(times),
                 evidence={"vlm_available": False, "require_vlm": True},
             )
         )
@@ -55,18 +109,25 @@ def run_vision_qc(
                 check_id="vision.vlm",
                 severity="info",
                 message="VLM unavailable — structural keyframe sample only",
-                keyframe_times=times,
+                keyframe_times=list(times),
                 evidence={"vlm_available": False, "mode": "structural"},
             )
         )
     else:
+        # Package present: still no auto-score without explicit provider credentials.
+        # Evidence includes keyframe paths so a host can call a VLM out-of-band.
         findings.append(
             VisionFinding(
                 check_id="vision.vlm",
                 severity="info",
-                message="VLM package present — rubric deferred to explicit provider call",
-                keyframe_times=times,
-                evidence={"vlm_available": True, "auto_scored": False},
+                message="VLM package present — rubric deferred to explicit provider call; keyframes ready",
+                keyframe_times=list(times),
+                evidence={
+                    "vlm_available": True,
+                    "auto_scored": False,
+                    "keyframes": keyframes,
+                    "next_action": "call_provider_with_keyframe_paths",
+                },
             )
         )
 
@@ -74,6 +135,7 @@ def run_vision_qc(
         "artifact_kind": "vision_qc",
         "input_path": path,
         "vlm_available": vlm_available,
+        "keyframe_count": sampled,
         "findings": [f.to_dict() for f in findings],
         "verdict": "pass" if not any(f.severity == "fail" for f in findings) else "fail",
     }
