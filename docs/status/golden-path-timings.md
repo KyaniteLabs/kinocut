@@ -59,7 +59,7 @@ Recorded: `YYYY-MM-DDTHH:MM:SS+00:00`
 | Host class | Darwin / arm64 (Apple Silicon) |
 | Python | 3.14.5 |
 | Command | `python3 scripts/golden_path_timings.py --mode cheap --runs 5` |
-| Full path | **not measured** this pass (scaffolding only) |
+| Full path | measured same day (see block below) |
 
 | step | mode | runs | ok | p50 (s) | p95 (s) | mean (s) | min (s) | max (s) | machine |
 | --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
@@ -69,7 +69,24 @@ Recorded: `YYYY-MM-DDTHH:MM:SS+00:00`
 Fixture: `tests/fixtures/golden/workflow_final.mp4`  
 Recorded: `2026-08-12T14:59:34.357224+00:00`
 
-**Honesty:** These are cold **CLI process** wall times (new interpreter per sample), not in-process engine loops. They do **not** authorize an “optimized” claim or a `public_claims.json` bump.
+## Measured: 2026-08-12 (full path, n=3)
+
+| Field | Value |
+| --- | --- |
+| Host class | Darwin / arm64 (Apple Silicon) |
+| Python | 3.14.x |
+| Command | `python3 scripts/golden_path_timings.py --mode full --runs 3` |
+
+| step | mode | runs | ok | p50 (s) | p95 (s) | mean (s) | min (s) | max (s) | machine |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| doctor | full | 3 | 3 | 1.4396 | 1.82 | 1.5601 | 1.3784 | 1.8623 | Darwin/arm64 |
+| info | full | 3 | 3 | 0.4489 | 0.4882 | 0.458 | 0.4326 | 0.4926 | Darwin/arm64 |
+| golden_path | full | 3 | 3 | 9.4835 | 9.703 | 9.5571 | 9.4605 | 9.7274 | Darwin/arm64 |
+
+Fixture: `tests/fixtures/golden/workflow_final.mp4`  
+Recorded: `2026-08-12T15:16:30.129698+00:00`
+
+**Honesty:** These are cold **CLI process** wall times (new interpreter per sample), not in-process engine loops. They establish a **baseline**, not an “optimized” product claim. No `public_claims.json` bump from timings alone.
 
 ## Acceptance (scaffolding vs L3)
 

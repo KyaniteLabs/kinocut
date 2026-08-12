@@ -50,7 +50,7 @@ Ordered per residual matrix + excellence audit. Prefer one work package per PR. 
 | **G** Ruff hygiene | `ruff check kinocut` clean | **Done on tip** (2026-08-12 live) |
 | **C** Module size policy | ≤800 LOC modules | **Done** — engine/workflow splits + 2026-08-12 `hyperframes_ops`→helpers (ops ≤800; guardrail locks ops/helpers) |
 | **D** Long functions | ≤80 LOC functions | **Done on tip** (0 funcs >80, 2026-08-12 live) |
-| **F** Perf baselines | Golden-path timings after structure green | **Scaffolding** — cheap doctor+info p50/p95 in [golden-path-timings.md](docs/status/golden-path-timings.md); full path + optimize claim still open |
+| **F** Perf baselines | Golden-path p50/p95 | **Baseline measured** 2026-08-12 (cheap+full) in [golden-path-timings.md](docs/status/golden-path-timings.md); not an “optimized” product claim |
 
 **L2 residual (ultragoal, capacity-capped):** sound residual waves per [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md); Phase 3/4 deepen → GO or DEFERRED; cutfile render or DEFERRED; TE/conversational/MCPB honesty. See [critical path](.omx/state/critical-path.md).
 

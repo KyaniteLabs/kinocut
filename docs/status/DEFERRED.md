@@ -13,8 +13,8 @@
 | DEF-mcpb-sign | mcpb | Production signed multi-platform pack | Human+agent | Y production pack | Human sign + clean-machine | 2026-08-12 |
 | DEF-sound-product | sound_S15 | Product full-episode claim | Product/L3 | Y product claim | Wave F honesty + L3 claim owner | 2026-08-12 |
 | DEF-s14-live | sound_S14 | Live dual-class re-run on hardware | Agent/ops | Y product claim | Re-run or external_host_unavailable | 2026-08-12 |
-| DEF-splus-95 | wp_a | S+ overall ≥95 preferred | Agent | N (preferred) | Score ≥95 + site stamp | 2026-08-12 |
-| DEF-wp-f | wp_f | Full golden-path p50/p95 + optimize claim | Agent | N until optimize claim | Full-path timings + residual GO; cheap scaffolding already in golden-path-timings.md | 2026-08-12 |
+| DEF-splus-95 | wp_a | Remote GH S+ lag vs local 100 | Dual-host | N (preferred) | Local README scores 100 (2026-08-12); GH tip lag may show ~89 until mirror/push | 2026-08-12 |
+| DEF-wp-f | wp_f | Optimize claim after baseline | Agent | N | Baseline cheap+full measured 2026-08-12; reopen only for “optimized” language | 2026-08-12 |
 | DEF-cutfile-mcp | cutfile | Optional MCP/CLI surface for cutfile render | Product | N | Explicit product ask | 2026-08-12 |
 | DEF-phase3-go | watching_p3 | PHASE 3 exit still PENDING — modules+unit smoke on tip; real-media GO not met ([evidence](2026-08-12-phase3-phase4-residual-evidence.md)) | Agent/product | Y phase claim | Linked real-media GO evidence + PHASE_CHECKPOINTS Exit=GO | 2026-08-12 |
 | DEF-phase4-go | multipliers_p4 | PHASE 4 exit still PENDING — modules+unit smoke on tip; formal GO not met ([evidence](2026-08-12-phase3-phase4-residual-evidence.md)) | Agent/product | Y phase claim | Linked GO evidence + PHASE_CHECKPOINTS Exit=GO | 2026-08-12 |
