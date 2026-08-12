@@ -6,6 +6,7 @@ from .audiogram import plan_audiogram
 from .brand_kit import BrandKit, load_brand_kit, save_brand_kit
 from .cost_oracle import estimate_operation
 from .cutfile import Cutfile, load_cutfile, validate_cutfile
+from .cutfile_render import compile_cutfile_to_workflow, render_cutfile
 from .edit_session import session_open, session_step
 from .hooks import generate_hook_candidates
 from .init_project import init_project
@@ -16,6 +17,7 @@ from .seek import frame_to_timestamp, timestamp_to_frame
 __all__ = [
     "BrandKit",
     "Cutfile",
+    "compile_cutfile_to_workflow",
     "estimate_operation",
     "frame_to_timestamp",
     "generate_hook_candidates",
@@ -24,6 +26,7 @@ __all__ = [
     "load_cutfile",
     "plan_audiogram",
     "plan_punch_zooms",
+    "render_cutfile",
     "save_brand_kit",
     "session_open",
     "session_step",

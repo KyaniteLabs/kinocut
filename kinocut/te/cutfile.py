@@ -1,4 +1,9 @@
-"""Cutfile — text-first project format skeleton (TE.11)."""
+"""Cutfile — text-first project format (TE.11).
+
+Validate/load live here. Render lowers a validated cutfile to the workflow
+engine via :func:`kinocut.te.cutfile_render.render_cutfile` (allowlisted ops
+only; see workflow OP_ADAPTERS).
+"""
 
 from __future__ import annotations
 

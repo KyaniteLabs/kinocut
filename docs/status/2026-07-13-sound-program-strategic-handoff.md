@@ -5,6 +5,13 @@
 > **Historical pre-release snapshot:** This handoff predates the published 1.8.0
 > release. It records the then-current stop condition and does not state current
 > release authorization.
+>
+> **Superseded for residual staffing (2026-08-12):** Do **not** treat “S5–S15 remain
+> open” below as “packages missing / greenfield rebuild.” Living authority is
+> [`2026-08-12-residual-maturity-matrix.md`](2026-08-12-residual-maturity-matrix.md)
+> and [`2026-08-12-sound-residual-stage-dag.md`](2026-08-12-sound-residual-stage-dag.md)
+> (re-run/deepen residual; thin public S12; synthetic S14 ≠ product complete).
+> See also [L1 truth pass](2026-08-12-l1-truth-pass.md).
 
 **Audience:** follow-on implementation agents and controller
 

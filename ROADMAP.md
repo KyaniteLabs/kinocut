@@ -5,10 +5,24 @@ Kinocut 1.13.2 is published with 194 MCP tools and 165 CLI commands (`mcp-video`
 **Published product:** Kinocut **1.13.2** (2026-08-09) · **194 MCP / 165 CLI**
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
 **Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
-**Excellence program:** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](docs/status/2026-08-07-kinocut-excellence-audit.md) · handoff [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](docs/handoffs/2026-08-07/kinocut-excellence-campaign.md)  
+**Residual portfolio (living truth):** [`docs/status/2026-08-12-residual-maturity-matrix.md`](docs/status/2026-08-12-residual-maturity-matrix.md) · [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md) · [fixture freeze](docs/status/2026-08-12-sound-fixture-freeze.md) · [L1 truth pass](docs/status/2026-08-12-l1-truth-pass.md) · [phase checkpoints](docs/status/PHASE_CHECKPOINTS.md)  
+**Excellence program (snapshot):** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](docs/status/2026-08-07-kinocut-excellence-audit.md) · handoff [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](docs/handoffs/2026-08-07/kinocut-excellence-campaign.md)  
 **Earlier tip snapshot:** [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md) (evidence only)
 
-This file is **planning truth for after 1.13.2**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims.
+This file is **planning truth for after 1.13.2**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims. Prefer the **2026-08-12 residual matrix** over any July “S5–S15 incomplete / missing packages” language.
+
+---
+
+## Claim ledger freeze (until L3)
+
+| Rule | Detail |
+|------|--------|
+| Authority | Only the **ultragoal claim owner** (ledger leader for plan `kinocut-full-build`, or product override in writing) may bump [`docs/public_claims.json`](docs/public_claims.json) |
+| Window | **Claim freeze until L3** claim PR (portfolio GO / DEFERRED matrix + dual-host + ROADMAP/PHASE honesty) |
+| Non-owners | Do **not** invent tip counts as a release; do not bump `published_*` or surface counts outside the L3 claim PR |
+| Human gates | Never mark `#88` / `#90` / `#92` (or other HUMAN_GATES rows) complete without human evidence |
+
+Release ritual still documents *how* to freeze claims at cut time; this freeze **supersedes casual bumps** during residual L1–L2 work.
 
 ---
 
@@ -16,25 +30,29 @@ This file is **planning truth for after 1.13.2**. July 2026 status notes and pre
 
 - Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
 - Rescue, compositing, Hyperframes, repurposing package surface
-- Thin `kinocut_sound` S12 join (not full-episode sound)
-- Dual-host public face restored; S+ floor green (excellence WP-A targets higher scores)
+- **Sound honesty:** `kinocut_sound/` packages for design stages S4–S13 exist on tip; public MCP/CLI join remains a **thin S12** surface (6 tools) — **not** full-episode sonic-world product complete. Synthetic S14 dual-class evidence exists (`docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json`) but **≠** product claim; residual class is re-run/deepen (see residual matrix + sound DAG). Do **not** staff greenfield “S5–S15 incomplete” rebuilds without a failing case.
+- Dual-host public face restored; S+ **floor** green (excellence WP-A targets ≥95 preferred, not hard portfolio GO)
+- Policy hygiene on tip: modules ≤800 LOC (incl. `hyperframes_ops` split), functions ≤80, ruff clean — excellence WP-C/D/G **done** (2026-08-12 live). Do not re-open size rebuilds from the 2026-08-07 audit snapshot alone.
+- Security claim-audits C1/M1: **verify-only pass** (2026-08-12) — see [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md) and `.omx/state/l0-claim-audit.md`
 
 Do not re-list older 1.9–1.12 waves here as open work — they are published history (see Archive / CHANGELOG).
 
 ---
 
-## Next (agent-eligible excellence program)
+## Next (agent-eligible residual / excellence)
 
-Ordered per excellence audit. Prefer one work package per PR.
+Ordered per residual matrix + excellence audit. Prefer one work package per PR. **Residual-only:** no re-implement of `verify-only` without a failing case.
 
 | WP | Outcome | Notes |
 |----|---------|--------|
-| **A** S+ max + site stamp | README overall ≥95 preferred; site `llms.txt` date current | **Month stop:** done on tip when PR lands |
-| **B** Docs truth | This ROADMAP structure; no false “latest is 1.11/1.12” | **Month stop:** this section is tip |
-| **G** Ruff hygiene | `ruff check kinocut` clean | **Month stop:** done when PR lands |
-| **C** Module size policy | `hyperframes_engine.py`, `workflow/executor.py` ≤800 LOC | **Done** — PR #294 (mergeable): 1302→629+794, 1000→665+391; zero modules >800 now; guardrail added |
-| **D** Long functions | CLI handlers / rescue render decomposition | Multi-PR |
-| **F** Perf baselines | Golden-path timings after C/D | No “optimized” without numbers |
+| **A** S+ max + site stamp | README overall ≥95 preferred; site `llms.txt` date current | Open (preferred, **not** hard portfolio GO) |
+| **B** Docs truth | L1.2 false-done punch list; residual matrix links | **L1.2 closed 2026-08-12** — see [L1 truth pass](docs/status/2026-08-12-l1-truth-pass.md); keep living docs aligned |
+| **G** Ruff hygiene | `ruff check kinocut` clean | **Done on tip** (2026-08-12 live) |
+| **C** Module size policy | ≤800 LOC modules | **Done** — engine/workflow splits + 2026-08-12 `hyperframes_ops`→helpers (ops ≤800; guardrail locks ops/helpers) |
+| **D** Long functions | ≤80 LOC functions | **Done on tip** (0 funcs >80, 2026-08-12 live) |
+| **F** Perf baselines | Golden-path p50/p95 | **Baseline measured** 2026-08-12 (cheap+full) in [golden-path-timings.md](docs/status/golden-path-timings.md); not an “optimized” product claim |
+
+**L2 residual (ultragoal, capacity-capped):** sound residual waves per [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md); Phase 3/4 deepen → GO or DEFERRED; cutfile render or DEFERRED; TE/conversational/MCPB honesty. See [critical path](.omx/state/critical-path.md).
 
 ---
 
@@ -42,13 +60,14 @@ Ordered per excellence audit. Prefer one work package per PR.
 
 | Item | Owner | Source |
 |------|-------|--------|
-| Directories, launch moments, first-10 users, Renovate host token | Human | `docs/HUMAN_GATES.md` |
+| Directories, launch moments, first-10 users, Renovate host token | Human | `docs/HUMAN_GATES.md` — **do not invent completions** |
 | G004 multi-minute / phone-frame fixtures | Human + agent assist | Stream-shorts honesty |
-| Phase 3 watching (post-release) | Product + agent | Explicitly gated |
-| Phase 4 multipliers / TE expansion | Product + agent | Explicitly gated |
-| Full-episode `kinocut_sound` | Sound program | Unclaimed |
+| Phase 3 watching GO evidence | Product + agent | Residual **deepen** (modules on tip) — [`PHASE_CHECKPOINTS.md`](docs/status/PHASE_CHECKPOINTS.md) |
+| Phase 4 multipliers / TE expansion GO | Product + agent | Residual **deepen** (modules on tip) |
+| Full-episode `kinocut_sound` product claim | Sound program + L3 claim owner | Packages exist; product claim unclaimed until Wave F honesty |
 | MCPB signed multi-platform production pack | Human + agent | Foundations only |
 | CI `light` vs `heavy` runner topology | Ops | Partial |
+| Independent sound adversarial review | Human residual | If still open after Wave F |
 
 Agents must not invent completed directory listings, launch metrics, or first-10 outcomes.
 
@@ -56,7 +75,7 @@ Agents must not invent completed directory listings, launch metrics, or first-10
 
 ## Archive (historical — not current planning)
 
-Older roadmap eras (v1.2.x, v1.3 Remotion/Revideo notes, wishlist drafts) remain below for archaeology. Prefer CHANGELOG + the 2026-08-07 audit for “what is true now.”
+Older roadmap eras (v1.2.x, v1.3 Remotion/Revideo notes, wishlist drafts) remain below for archaeology. Prefer CHANGELOG + the **2026-08-12 residual matrix** + 2026-08-07 audit for “what is true now.” July sound handoffs that say “S5–S15 remain open” as if packages were missing are **superseded** for staffing — residual classes are re-run/deepen, not greenfield.
 
 ## Planned for v1.3.0 (historical)
 

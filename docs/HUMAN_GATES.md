@@ -1,6 +1,9 @@
-# Human / ops residual (updated 2026-08-08)
+# Human / ops residual (updated 2026-08-12)
 
 Agent-closable prep is on tip. Live outcomes below still need a human operator.
+Do **not** invent completions for #3 / #88 / #90 / #92. Residual portfolio authority:
+[`docs/status/2026-08-12-residual-maturity-matrix.md`](status/2026-08-12-residual-maturity-matrix.md)
+· [L1 truth pass](status/2026-08-12-l1-truth-pass.md).
 
 | Former issue | Agent deliverable | Still human |
 | --- | --- | --- |
@@ -21,14 +24,18 @@ not injected on some jobs, or test-specific failures inside containers.
 ## Adversarial audit residuals
 
 From gpt-5.6-sol audit (2026-08-08). 9 of 11 security findings fixed
-(PR #341–#344). Two remain:
+(PR #341–#344). **C1/M1 claim-audit (2026-08-12, L0):** closed as **verify-only pass**
+on tip — pin-before-connect + peer validation present; preview registry +
+`stop_preview`/`atexit` present; SSRF/preview tests green. See
+`.omx/state/l0-claim-audit.md`. Reopen only with a **failing case**.
 
-| ID | Severity | File | Issue |
+| ID | Severity | File | Status |
 |---|---|---|---|
-| C1 | CRITICAL | `ai_engine/download.py` | SSRF — HTTP/yt-dlp requests reach destination before IP validation |
-| M1 | MEDIUM | `hyperframes_engine.py` | Detached preview processes leak servers/ports |
-
-C1 needs an IP-validation transport (pinned-address). M1 needs a preview
-lifecycle refactor. Both are follow-up PRs.
+| C1 | CRITICAL | `ai_engine/download.py` | **Claim-audit pass** (2026-08-12) — do not rebuild without fail |
+| M1 | MEDIUM | `hyperframes_engine.py` | **Claim-audit pass** (2026-08-12) — do not redesign without fail |
 
 Do not invent completed users, published launch metrics, or third-party directory approvals.
+
+## Deferred portfolio rows
+
+See [`docs/status/DEFERRED.md`](status/DEFERRED.md) for agent-vs-human residual IDs. Human rows must not be agent-closed.

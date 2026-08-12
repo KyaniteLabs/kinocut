@@ -6,6 +6,12 @@
 **Handoff:** [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](../handoffs/2026-08-07/kinocut-excellence-campaign.md)  
 **Verdict class:** **Strong ship / incomplete excellence program**
 
+> **Post-audit residual note (2026-08-12):** WP-C/D/G size/ruff false-dones are **closed on tip**
+> (L0/L1 truth). Living residual staffing uses
+> [`2026-08-12-residual-maturity-matrix.md`](2026-08-12-residual-maturity-matrix.md)
+> and [L1 truth pass](2026-08-12-l1-truth-pass.md). Do not re-staff module/function splits
+> from §2.3 / WP-C/D below without a new failing policy case. S+ ≥95 remains preferred open.
+
 ---
 
 ## 0. Executive summary
