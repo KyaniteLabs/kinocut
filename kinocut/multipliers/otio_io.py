@@ -119,24 +119,8 @@ def _is_confined_relpath(value: str) -> bool:
     return not any(part in {"", ".", ".."} for part in value.split("/"))
 
 
-def _import_foreign_otio(doc: dict[str, Any], path: Path) -> dict[str, Any]:
-    """Import foreign OTIO JSON when clips resolve to local media paths.
-
-    Does not invent missing sources. Remote media references and missing files
-    raise validation errors.
-
-    - Absolute/local validated paths → ``foreign_otio_import`` + sequence shortcut
-      (Timeline IR forbids absolute sources).
-    - Already-confined relative paths → full ``timeline_ir``.
-    """
-    children = _collect_track_children(doc)
-    if not children:
-        raise MCPVideoError(
-            "otio has no clips and no kinocut_ir",
-            error_type="validation_error",
-            code="empty_otio",
-        )
-
+def _resolve_foreign_clips(children: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """Validate local media paths for foreign OTIO clips."""
     resolved: list[dict[str, str]] = []
     for idx, clip in enumerate(children):
         media_path = _media_path_from_clip(clip)
@@ -157,47 +141,64 @@ def _import_foreign_otio(doc: dict[str, Any], path: Path) -> dict[str, Any]:
             ) from exc
         node_id = str(clip.get("name") or f"c{idx + 1}")
         resolved.append({"id": node_id, "source": validated, "raw": media_path})
+    return resolved
 
+
+def _timeline_ir_from_confined(resolved: list[dict[str, str]], name: str) -> dict[str, Any]:
+    """Build Timeline IR when all foreign sources are confined relative paths."""
+    sources: dict[str, dict[str, str]] = {}
+    nodes: list[dict[str, Any]] = []
+    for idx, clip in enumerate(resolved):
+        src_id = f"s{idx + 1}"
+        sources[src_id] = {"path": clip["raw"]}
+        nodes.append(
+            {
+                "id": clip["id"],
+                "kind": "clip",
+                "depends_on": [],
+                "inputs": {"src": f"@sources.{src_id}"},
+                "params": {
+                    "start": {"numerator": 0, "denominator": 1},
+                    "duration": {"numerator": 1, "denominator": 1},
+                },
+                "output": f"@outputs.clip_{idx + 1}",
+            }
+        )
+    timeline = {
+        "ir_schema_version": 1,
+        "name": name,
+        "timebase": {"numerator": 1, "denominator": 30},
+        "sources": sources,
+        "nodes": nodes,
+        "outputs": {"final": {"path": "out/final.mp4"}},
+    }
+    ir = parse_timeline_ir(timeline)
+    return {
+        "artifact_kind": "timeline_ir",
+        **ir.model_dump(mode="json"),
+        "identity": None,
+        "import_mode": "foreign_local_media_confined",
+        "clip_count": len(nodes),
+    }
+
+
+def _import_foreign_otio(doc: dict[str, Any], path: Path) -> dict[str, Any]:
+    """Import foreign OTIO JSON when clips resolve to local media paths.
+
+    Absolute/local validated paths → ``foreign_otio_import`` + sequence shortcut.
+    Confined relative paths → full ``timeline_ir``.
+    """
+    children = _collect_track_children(doc)
+    if not children:
+        raise MCPVideoError(
+            "otio has no clips and no kinocut_ir",
+            error_type="validation_error",
+            code="empty_otio",
+        )
+    resolved = _resolve_foreign_clips(children)
     name = str(doc.get("name") or path.stem or "foreign_otio")
-    all_confined = all(_is_confined_relpath(c["raw"]) for c in resolved)
-    if all_confined:
-        sources: dict[str, dict[str, str]] = {}
-        nodes: list[dict[str, Any]] = []
-        for idx, clip in enumerate(resolved):
-            src_id = f"s{idx + 1}"
-            sources[src_id] = {"path": clip["raw"]}
-            nodes.append(
-                {
-                    "id": clip["id"],
-                    "kind": "clip",
-                    "depends_on": [],
-                    "inputs": {"src": f"@sources.{src_id}"},
-                    "params": {
-                        "start": {"numerator": 0, "denominator": 1},
-                        "duration": {"numerator": 1, "denominator": 1},
-                    },
-                    "output": f"@outputs.clip_{idx + 1}",
-                }
-            )
-        timeline = {
-            "ir_schema_version": 1,
-            "name": name,
-            "timebase": {"numerator": 1, "denominator": 30},
-            "sources": sources,
-            "nodes": nodes,
-            "outputs": {"final": {"path": "out/final.mp4"}},
-        }
-        ir = parse_timeline_ir(timeline)
-        return {
-            "artifact_kind": "timeline_ir",
-            **ir.model_dump(mode="json"),
-            "identity": None,
-            "import_mode": "foreign_local_media_confined",
-            "clip_count": len(nodes),
-        }
-
-    # Absolute (but validated) local media: sequence shortcut for video_edit/merge
-    clip_paths = [c["source"] for c in resolved]
+    if all(_is_confined_relpath(c["raw"]) for c in resolved):
+        return _timeline_ir_from_confined(resolved, name)
     return {
         "artifact_kind": "foreign_otio_import",
         "import_mode": "foreign_local_media",
@@ -205,7 +206,7 @@ def _import_foreign_otio(doc: dict[str, Any], path: Path) -> dict[str, Any]:
         "clip_count": len(resolved),
         "clips": resolved,
         "sequence_shortcut": {
-            "clips": clip_paths,
+            "clips": [c["source"] for c in resolved],
             "transitions": [],
             "transition_duration": 1.0,
         },

@@ -110,8 +110,8 @@ def _register_review_commands(runner: CommandRunner) -> None:
     runner.register("qc-narrative", _qc_narrative)
 
 
-def _register_te_commands(runner: CommandRunner) -> None:
-    """Register init, estimate, brand-kit, cutfile, mutations, publish, hooks, seek commands."""
+def _register_te_project_commands(runner: CommandRunner) -> None:
+    """Register init / estimate / brand / cutfile TE commands."""
 
     def _init(a: Any, j: bool) -> None:
         from kinocut.te import init_project
@@ -153,6 +153,16 @@ def _register_te_commands(runner: CommandRunner) -> None:
             keep_intermediates=bool(a.keep_intermediates),
         )
         _out(r, j, lambda res: f"cutfile render → {res.get('output_path')}")
+
+    runner.register("init", _init)
+    runner.register("estimate", _estimate)
+    runner.register("brand-kit", _brand)
+    runner.register("cutfile-validate", _cutfile)
+    runner.register("cutfile-render", _cutfile_render)
+
+
+def _register_te_review_commands(runner: CommandRunner) -> None:
+    """Register metric-qc / mutations / publish / hooks / seek TE commands."""
 
     def _metric_qc(a: Any, j: bool) -> None:
         from kinocut.watching import run_metric_qc
@@ -204,16 +214,17 @@ def _register_te_commands(runner: CommandRunner) -> None:
             r = timestamp_to_frame(float(a.seconds or 0), a.fps)
         _out(r, j, lambda res: f"frame={res['frame']} t={res['seconds']}")
 
-    runner.register("init", _init)
-    runner.register("estimate", _estimate)
-    runner.register("brand-kit", _brand)
-    runner.register("cutfile-validate", _cutfile)
-    runner.register("cutfile-render", _cutfile_render)
     runner.register("metric-qc", _metric_qc)
     runner.register("propose-mutations", _mutations)
     runner.register("publish-validate", _publish)
     runner.register("hook-candidates", _hooks)
     runner.register("seek-frame", _seek)
+
+
+def _register_te_commands(runner: CommandRunner) -> None:
+    """Register TE QoL CLI commands (project + review surfaces)."""
+    _register_te_project_commands(runner)
+    _register_te_review_commands(runner)
 
 
 def _register_multiplier_commands(runner: CommandRunner) -> None:

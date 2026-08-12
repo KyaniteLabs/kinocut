@@ -253,7 +253,7 @@ def test_flat_command_set_remains_130():
     over the 140-command flat parser (includes sound S12 public join).
     """
 
-    assert len(EXPECTED_CLI_COMMANDS) == 165
+    assert len(EXPECTED_CLI_COMMANDS) == 167
     assert len(NAMESPACED_ALIASES) == 41
     groups = namespaced_groups()
     assert set(groups) == {"aivideo", "audio", "qa", "edit", "shorts", "sound"}

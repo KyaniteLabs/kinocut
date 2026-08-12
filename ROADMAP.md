@@ -52,7 +52,7 @@ Ordered per residual matrix + excellence audit. Prefer one work package per PR. 
 | **D** Long functions | ≤80 LOC functions | **Done on tip** (0 funcs >80, 2026-08-12 live) |
 | **F** Perf baselines | Golden-path p50/p95 | **Baseline measured** 2026-08-12 (cheap+full) in [golden-path-timings.md](docs/status/golden-path-timings.md); not an “optimized” product claim |
 
-**L2 residual (ultragoal, capacity-capped):** sound residual waves per [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md); Phase 3/4 deepen → GO or DEFERRED; cutfile render or DEFERRED; TE/conversational/MCPB honesty. See [critical path](.omx/state/critical-path.md).
+**L2 residual (ultragoal, capacity-capped):** sound residual waves per [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md); Phase 3/4 deepen → GO or DEFERRED; cutfile render or DEFERRED; TE/conversational/MCPB honesty. See [product pipeline complete](docs/status/2026-08-12-product-pipeline-complete.md) and residual matrix.
 
 ---
 
