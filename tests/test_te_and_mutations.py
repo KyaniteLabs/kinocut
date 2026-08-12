@@ -96,6 +96,48 @@ def test_cutfile_compile_rejects_unsupported_op() -> None:
     assert exc.value.code == "cutfile_unsupported_op"
 
 
+def test_cutfile_compile_rejects_composite_layers_shape() -> None:
+    cf = validate_cutfile(
+        {
+            "name": "layers",
+            "version": 1,
+            "sources": [{"id": "hero", "path": "media/hero.mp4"}],
+            "ops": [{"op": "composite_layers"}],
+        }
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        compile_cutfile_to_workflow(cf)
+    assert exc.value.code == "cutfile_op_shape"
+
+
+def test_cutfile_compile_rejects_probe_only() -> None:
+    cf = validate_cutfile(
+        {
+            "name": "probe",
+            "version": 1,
+            "sources": [{"id": "hero", "path": "media/hero.mp4"}],
+            "ops": [{"op": "probe"}],
+        }
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        compile_cutfile_to_workflow(cf)
+    assert exc.value.code == "cutfile_no_media_ops"
+
+
+def test_cutfile_compile_rejects_parent_output_relpath() -> None:
+    cf = validate_cutfile(
+        {
+            "name": "escape",
+            "version": 1,
+            "sources": [{"id": "hero", "path": "media/hero.mp4"}],
+            "ops": [{"op": "trim", "start": 0, "duration": 1}],
+        }
+    )
+    with pytest.raises(MCPVideoError) as exc:
+        compile_cutfile_to_workflow(cf, output_relpath="../out/final.mp4")
+    assert exc.value.code in {"cutfile_output_invalid", "invalid_cutfile_output", "cutfile_output_path"}
+
+
 def test_cutfile_compile_requires_sources_and_ops() -> None:
     empty_ops = validate_cutfile({"name": "x", "version": 1, "sources": [{"id": "a", "path": "a.mp4"}], "ops": []})
     with pytest.raises(MCPVideoError) as exc:

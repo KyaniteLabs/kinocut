@@ -74,8 +74,8 @@ review UI write, TTS plan) green on tip; formal GO **not** claimed — see
 | kinocut-action | CI receipt on push | CI that only runs unit tests |
 | Conversational sessions | measured improvement metric | chat without receipts |
 
-**Exit:** **PENDING (mixed residual)** — cutfile today is validate/load
-(`kinocut/te/cutfile.py`); render path or DEFERRED ID required for claim.
+**Exit:** **PENDING (mixed residual)** — thin **library** cutfile render is on tip
+(`kinocut/te/cutfile_render.py` → workflow); MCP/CLI still optional (`DEF-cutfile-mcp`).
 `kinocut-action` foundations under `.github/actions/kinocut-video-ci/`; conversational
 `edit_session` deepen soft. See matrix rows `cutfile`, `kinocut_action`, `conversational`.
 

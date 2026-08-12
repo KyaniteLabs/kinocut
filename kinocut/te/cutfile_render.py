@@ -7,8 +7,11 @@ fail closed. No parallel FFmpeg stack is introduced here.
 
 from __future__ import annotations
 
+import contextlib
 import json
+import os
 import re
+import tempfile
 from pathlib import Path
 from typing import Any
 
@@ -157,6 +160,13 @@ def _compile_ops(
                 f"ops[{i}] unsupported op {op_name!r}; allowlist={sorted(OP_ADAPTERS)}",
                 "cutfile_unsupported_op",
             )
+        # Cutfile v1 only binds src / srcs — multi-layer adapters need a different shape.
+        if op_name in {"composite_layers"}:
+            raise _cutfile_error(
+                f"ops[{i}] op {op_name!r} is not supported in cutfile v1 "
+                "(requires layers binding; use workflow job-spec directly)",
+                "cutfile_op_shape",
+            )
         sid = _step_id(op, i, used_ids)
         adapter = OP_ADAPTERS[op_name]
         step: dict[str, Any] = {
@@ -248,20 +258,32 @@ def render_cutfile(
 
     (workspace / "out").mkdir(parents=True, exist_ok=True)
     spec = compile_cutfile_to_workflow(cf, output_relpath=rel_out)
-    spec_path = workspace / ".cutfile_workflow.json"
-    spec_path.write_text(json.dumps(spec, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-
-    receipt_path = save_receipt
-    if receipt_path is None:
-        receipts_dir = workspace / "receipts"
-        receipts_dir.mkdir(parents=True, exist_ok=True)
-        receipt_path = str(receipts_dir / f"{_safe_slug(cf.name)}.receipt.json")
-
-    receipt = render_workflow(
-        str(spec_path),
-        save_receipt=receipt_path,
-        keep_intermediates=keep_intermediates,
+    spec_fd, spec_name = tempfile.mkstemp(
+        prefix=f".cutfile_workflow_{_safe_slug(cf.name)}_",
+        suffix=".json",
+        dir=str(workspace),
     )
+    os.close(spec_fd)
+    spec_path = Path(spec_name)
+    try:
+        spec_path.write_text(json.dumps(spec, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+
+        receipt_path = save_receipt
+        if receipt_path is None:
+            receipts_dir = workspace / "receipts"
+            receipts_dir.mkdir(parents=True, exist_ok=True)
+            receipt_path = str(receipts_dir / f"{_safe_slug(cf.name)}.receipt.json")
+
+        receipt = render_workflow(
+            str(spec_path),
+            save_receipt=receipt_path,
+            keep_intermediates=keep_intermediates,
+        )
+    finally:
+        if not keep_intermediates:
+            with contextlib.suppress(OSError):
+                spec_path.unlink(missing_ok=True)
+
     final = workspace / rel_out
     return {
         "artifact_kind": "cutfile_render",
@@ -269,7 +291,7 @@ def render_cutfile(
         "name": cf.name,
         "version": cf.version,
         "output_path": str(final) if final.is_file() else rel_out,
-        "workflow_spec": str(spec_path),
+        "workflow_spec": str(spec_path) if keep_intermediates and spec_path.is_file() else None,
         "receipt_path": receipt_path,
         "workflow": receipt,
     }
