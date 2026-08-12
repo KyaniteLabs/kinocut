@@ -35,3 +35,7 @@ on tip — pin-before-connect + peer validation present; preview registry +
 | M1 | MEDIUM | `hyperframes_engine.py` | **Claim-audit pass** (2026-08-12) — do not redesign without fail |
 
 Do not invent completed users, published launch metrics, or third-party directory approvals.
+
+## Deferred portfolio rows
+
+See [`docs/status/DEFERRED.md`](status/DEFERRED.md) for agent-vs-human residual IDs. Human rows must not be agent-closed.
