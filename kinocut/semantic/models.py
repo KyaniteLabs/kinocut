@@ -24,7 +24,9 @@ def canonical_digest(value: BaseModel | dict[str, Any], *, exclude: set[str] | N
     """Hash one JSON-compatible payload with stable field and separator ordering."""
 
     payload = value.model_dump(mode="json", exclude=exclude or set()) if isinstance(value, BaseModel) else value
-    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode("utf-8")
+    encoded = json.dumps(payload, sort_keys=True, separators=(",", ":"), ensure_ascii=False, allow_nan=False).encode(
+        "utf-8"
+    )
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 

@@ -125,11 +125,7 @@ def _bind_inputs(
                 f"ops[{index}] ({op_name}) requires non-empty srcs list",
                 "cutfile_srcs_required",
             )
-        return {
-            "srcs": [
-                _resolve_token(str(t), source_ids=source_id_set, step_outputs=step_outputs) for t in raw_srcs
-            ]
-        }
+        return {"srcs": [_resolve_token(str(t), source_ids=source_id_set, step_outputs=step_outputs) for t in raw_srcs]}
     raw_src = op.get("src")
     if raw_src is None:
         ref = _default_src(source_ids=source_ids, last_ref=last_ref)

@@ -108,7 +108,7 @@ def _split_host_port(host_str: str, default_port: int) -> tuple[str, int]:
     if host_str.startswith("["):
         bracket_end = host_str.index("]")
         hostname = host_str[1:bracket_end]
-        rest = host_str[bracket_end + 1:]
+        rest = host_str[bracket_end + 1 :]
         port = int(rest[1:]) if rest.startswith(":") else default_port
         return hostname, port
     parts = host_str.rsplit(":", 1)
@@ -146,6 +146,8 @@ class _SafeRedirectHandler(urllib.request.HTTPRedirectHandler):
                 code="ssrf_blocked",
             )
         return super().redirect_request(req, fp, code, msg, headers, newurl)
+
+
 def _is_blocked_ip(ip_str: str) -> bool:
     addr = _ipaddress.ip_address(ip_str)
     return addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved

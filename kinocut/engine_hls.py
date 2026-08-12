@@ -56,9 +56,7 @@ def _validate_playlist_path(playlist_path: str, output_dir: str, playlist_name: 
     """
     resolved_output_dir = os.path.realpath(output_dir)
     resolved_playlist = os.path.realpath(playlist_path)
-    if resolved_playlist != resolved_output_dir and not resolved_playlist.startswith(
-        resolved_output_dir + os.sep
-    ):
+    if resolved_playlist != resolved_output_dir and not resolved_playlist.startswith(resolved_output_dir + os.sep):
         raise MCPVideoError(
             f"playlist_name must not escape output_dir: {playlist_name!r}",
             error_type="validation_error",

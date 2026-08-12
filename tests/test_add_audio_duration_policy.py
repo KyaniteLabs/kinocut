@@ -248,9 +248,15 @@ def test_mix_filter_disables_amix_normalization():
     from kinocut.engine_audio_ops import _build_add_audio_args
 
     args = _build_add_audio_args(
-        "v.mp4", "a.wav", [], mix=True, start_time=None,
-        source_has_audio=True, output="out.mp4",
-        duration_policy="keep_video", video_duration=10.0,
+        "v.mp4",
+        "a.wav",
+        [],
+        mix=True,
+        start_time=None,
+        source_has_audio=True,
+        output="out.mp4",
+        duration_policy="keep_video",
+        video_duration=10.0,
     )
     fc = args[args.index("-filter_complex") + 1]
     assert "normalize=0" in fc, f"amix must disable 1/n normalization: {fc}"
@@ -261,9 +267,15 @@ def test_mix_with_start_time_also_disables_amix_normalization():
     from kinocut.engine_audio_ops import _build_add_audio_args
 
     args = _build_add_audio_args(
-        "v.mp4", "a.wav", ["volume=0.5"], mix=True, start_time=2.0,
-        source_has_audio=True, output="out.mp4",
-        duration_policy="keep_video", video_duration=10.0,
+        "v.mp4",
+        "a.wav",
+        ["volume=0.5"],
+        mix=True,
+        start_time=2.0,
+        source_has_audio=True,
+        output="out.mp4",
+        duration_policy="keep_video",
+        video_duration=10.0,
     )
     fc = args[args.index("-filter_complex") + 1]
     assert "normalize=0" in fc, f"amix must disable 1/n normalization: {fc}"

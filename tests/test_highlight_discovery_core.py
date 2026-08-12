@@ -74,11 +74,14 @@ def test_empty_operator_examples_preserve_baseline_json() -> None:
     transcript = _realistic_transcript()
     config = _config()
 
-    assert discover_highlights(transcript, config=config).model_dump_json() == discover_highlights(
-        transcript,
-        examples=(),
-        config=config,
-    ).model_dump_json()
+    assert (
+        discover_highlights(transcript, config=config).model_dump_json()
+        == discover_highlights(
+            transcript,
+            examples=(),
+            config=config,
+        ).model_dump_json()
+    )
 
 
 def test_realistic_transcript_produces_at_least_three_distinct_candidates() -> None:

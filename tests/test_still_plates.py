@@ -198,7 +198,6 @@ def test_still_package_dry_run_and_happy_path(still_fixture_dir: Path) -> None:
         assert "~" in text
 
 
-
 def test_doctor_still_plates_check() -> None:
     from kinocut.doctor import run_diagnostics
 
@@ -283,7 +282,7 @@ def test_near_extrema_empty_band_not_treated_as_zero() -> None:
 def _write_identity_cube(path: Path, size: int = 2) -> Path:
     """Minimal identity 3D LUT (.cube) for FFmpeg lut3d smoke tests."""
     lines = [
-        "TITLE \"identity\"",
+        'TITLE "identity"',
         f"LUT_3D_SIZE {size}",
     ]
     # Domain default 0..1; identity samples at size^3 grid.
@@ -415,6 +414,7 @@ def test_mcp_stdio_still_match_round_trip(still_fixture_dir: Path) -> None:
     assert result.isError is False
     payload = result.structuredContent or json.loads(result.content[0].text)
     assert payload.get("success") is True
-    assert Path(payload.get("receipt_path") or (out / "still_match_receipt.json")).is_file() or (
-        out / "still_match_receipt.json"
-    ).is_file()
+    assert (
+        Path(payload.get("receipt_path") or (out / "still_match_receipt.json")).is_file()
+        or (out / "still_match_receipt.json").is_file()
+    )

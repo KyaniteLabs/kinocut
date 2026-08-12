@@ -89,7 +89,9 @@ def test_split_engine_modules_stay_below_size_limit() -> None:
         PACKAGE / "workflow" / "receipt.py",
     ]
     oversized = {
-        path.relative_to(ROOT).as_posix(): module_line_count(path) for path in split_modules if module_line_count(path) > 800
+        path.relative_to(ROOT).as_posix(): module_line_count(path)
+        for path in split_modules
+        if module_line_count(path) > 800
     }
     assert oversized == {}, f"split modules exceeded 800 LOC: {oversized}"
 
@@ -207,8 +209,7 @@ FUNCTION_LINE_LIMIT = 80
 
 #: Frozen baseline of functions that already exceed FUNCTION_LINE_LIMIT.
 #: As each function is decomposed, remove its entry here so the net tightens.
-_FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {
-}
+_FUNCTION_SIZE_BASELINE: dict[str, set[str]] = {}
 
 
 def _functions_exceeding_limit() -> dict[str, set[str]]:
