@@ -55,6 +55,17 @@ def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None
     cf_p = subparsers.add_parser("cutfile-validate", help="Validate a Cutfile")
     cf_p.add_argument("path", help="cutfile.yaml or .json path")
 
+    cfr = subparsers.add_parser("cutfile-render", help="Render a Cutfile via workflow engine")
+    cfr.add_argument("path", help="cutfile.yaml or .json path")
+    cfr.add_argument("-o", "--output", default=None, help="Output path relative to cutfile workspace")
+    cfr.add_argument("--receipt", default=None, help="Receipt JSON path")
+    cfr.add_argument("--keep-intermediates", action="store_true")
+
+    mqc = subparsers.add_parser("metric-qc", help="Offline metric floor (duration/black/loudness)")
+    mqc.add_argument("input", help="Media path")
+    mqc.add_argument("--min-duration", type=float, default=0.5)
+    mqc.add_argument("--max-black-ratio", type=float, default=0.95)
+
     mut_p = subparsers.add_parser("propose-mutations", help="Map findings JSON to typed proposed mutations")
     mut_p.add_argument("findings_json", help="Path to JSON list of findings")
 
@@ -89,12 +100,13 @@ def _add_media_tool_parsers(subparsers: argparse._SubParsersAction) -> None:
 
     subparsers.add_parser("review-ui", help="Write hot-reload review HTML").add_argument("output_dir")
 
-    sess = subparsers.add_parser("edit-session", help="Open/step conversational edit session")
-    sess.add_argument("action", choices=["open", "step"])
+    sess = subparsers.add_parser("edit-session", help="Open/step/close conversational edit session")
+    sess.add_argument("action", choices=["open", "step", "close"])
     sess.add_argument("path")
     sess.add_argument("--goal", default="edit")
     sess.add_argument("--step-action", default="step")
     sess.add_argument("--score", type=float, default=None)
+    sess.add_argument("--no-receipt", action="store_true", help="On close, skip writing receipt")
 
 
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:

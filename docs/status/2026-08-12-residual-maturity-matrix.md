@@ -35,3 +35,7 @@
 | human_gates | human-only | `docs/HUMAN_GATES.md` | #3 #88 #90 #92 | Y agent-complete |
 
 **Rule:** No L2 ticket re-implements `verify-only` without a failing case.
+
+## Supersession (2026-08-12 evening)
+
+Product pipeline closed in **1.13.4** — Phase 3/4/Track E **GO**. See [`2026-08-12-product-pipeline-complete.md`](2026-08-12-product-pipeline-complete.md) and updated `DEFERRED.md`.

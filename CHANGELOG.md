@@ -9,6 +9,24 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 1.13.4 - 2026-08-12
+
+### Added
+- **`video_cutfile_render` / `cutfile-render`:** public MCP + CLI surface for thin cutfile→workflow render (Track E).
+- **`video_metric_qc` / `metric-qc`:** dedicated offline metric floor tool (Phase 3).
+- **Edit session close + receipt:** `session_close` writes durable conversational receipts (Track E).
+- **Phase 3/4/Track E formal GO suites** with real-media metric floor, mutation fail-closed apply, OTIO IR roundtrip, G004 synthetic phone-frame fixtures, MCPB production checklist.
+- **Kinocut Video CI action** now emits metric-qc + optional cutfile-render receipts and a composite `video-ci.receipt.json`.
+
+### Changed
+- Published surface **196 MCP tools / 167 CLI commands**.
+- Phase 3 Watching and Phase 4 Multipliers product gates marked **GO** with linked evidence (see `docs/status/PHASE_CHECKPOINTS.md`).
+- Sound S14 live re-run on apple_silicon with honest `external_host_unavailable` for second class.
+
+### Compatibility
+- `mcp-video==1.6.8` installs `kinocut==1.13.4`.
+- Mutations remain human-apply only (`human_apply_required` on silent apply).
+
 ## 1.13.3 - 2026-08-12
 
 ### Added

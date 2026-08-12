@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from .metrics import MetricFinding, run_metric_qc
-from .mutations import ProposedMutation, propose_mutations_from_findings
+from .mutations import ProposedMutation, apply_mutations_silently, propose_mutations_from_findings
 from .narrative_qc import run_narrative_qc
 from .review import ReviewDecision, ReviewPolicy, ReviewRunResult, decide_review, run_review
 from .vision_qc import run_vision_qc
@@ -14,6 +14,7 @@ __all__ = [
     "ReviewDecision",
     "ReviewPolicy",
     "ReviewRunResult",
+    "apply_mutations_silently",
     "decide_review",
     "propose_mutations_from_findings",
     "run_metric_qc",

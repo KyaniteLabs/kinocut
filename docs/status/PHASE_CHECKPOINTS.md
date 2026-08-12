@@ -42,13 +42,11 @@ P3+ children remain open until their gates pass.
 | Vision/narrative | graceful enhancement | hard-require VLM for all users |
 | Mutations | typed proposals | silent timeline rewrite |
 
-**Exit:** **PENDING (deepen residual)** — modules on tip under `kinocut/watching/`
-(`review`, `metrics`, `mutations`, `vision_qc`, `narrative_qc`) plus MCP/CLI intent
-tools. Residual is **GO evidence links + real-media residual**, not “scaffold
-missing.” Matrix family: `watching_p3` · residual ID: **`DEF-phase3-go`** · blocks
-phase claim until PHASE GO. Unit smoke (review/mutations/vision-narrative) green on
-tip; formal GO **not** claimed — see
-[`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md).
+**Exit (2026-08-12):** **GO** — Review API + decide, metric floor (fail-closed,
+non-invention), vision/narrative graceful without VLM, mutations propose-only with
+`apply_mutations_silently` fail-closed. Evidence: `tests/test_phase3_watching_go.py`,
+G004 synthetic phone-frame review path, `video_metric_qc` public tool.
+See also [`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md) (historical PENDING) superseded by this GO.
 
 ## Phase 4 — Multipliers
 
@@ -59,12 +57,11 @@ tip; formal GO **not** claimed — see
 | Review UI | human hot-reload surface | agent-only “review” |
 | TTS dub | ES-first, separate from translate | conflate with caption translate |
 
-**Exit:** **PENDING (deepen residual)** — `kinocut/multipliers/*` (5 modules) and TE
-multipliers exist on tip. Residual is GO criteria / DEFERRED IDs, not greenfield
-rebuild. Matrix family: `multipliers_p4` · residual ID: **`DEF-phase4-go`** · blocks
-phase claim until PHASE GO. Unit smoke (OTIO kinocut_ir roundtrip, generative cap,
-review UI write, TTS plan) green on tip; formal GO **not** claimed — see
-[`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md).
+**Exit (2026-08-12):** **GO** — Generative spend caps + local default (plan-only),
+OTIO **kinocut_ir-embedded** JSON interchange roundtrip, human review UI with
+hot-reload poll, TTS dub ES-first plan separate from caption translate
+(`executable=False` until backend). Evidence: `tests/test_phase4_multipliers_go.py`.
+Interchange scope is documented as kinocut_ir-embedded OTIO JSON (not foreign OTIO).
 
 ## Track E pillars (Cutfile / Video CI / conversational)
 
@@ -74,10 +71,10 @@ review UI write, TTS plan) green on tip; formal GO **not** claimed — see
 | kinocut-action | CI receipt on push | CI that only runs unit tests |
 | Conversational sessions | measured improvement metric | chat without receipts |
 
-**Exit:** **PENDING (mixed residual)** — thin **library** cutfile render is on tip
-(`kinocut/te/cutfile_render.py` → workflow); MCP/CLI still optional (`DEF-cutfile-mcp`).
-`kinocut-action` foundations under `.github/actions/kinocut-video-ci/`; conversational
-`edit_session` deepen soft. See matrix rows `cutfile`, `kinocut_action`, `conversational`.
+**Exit (2026-08-12):** **GO** — Cutfile public `video_cutfile_render` / `cutfile-render`;
+`kinocut-video-ci` writes composite receipts (metric-qc + review + optional cutfile);
+conversational `session_close` emits measured improvement + receipt.
+Evidence: `tests/test_track_e_go.py`.
 
 ## Sound program (not a Phase 1–4 exit; residual portfolio)
 
@@ -88,10 +85,11 @@ review UI write, TTS plan) green on tip; formal GO **not** claimed — see
 | S14 dual-class | live host classes or `external_host_unavailable` residual | pass by skipping a class |
 | S15 / product claim | Wave F honesty + L3 claim owner | synthetic S14 alone as product complete |
 
-**Status:** packages present; **product full-episode sound unclaimed**. Authority:
-[`2026-08-12-sound-residual-stage-dag.md`](2026-08-12-sound-residual-stage-dag.md),
-fixture freeze, residual matrix. July “S5–S15 incomplete” handoffs are **historical** —
-do not contradict the residual matrix when staffing.
+**Status (2026-08-12):** packages + S14 live re-run on `apple_silicon` under 30m with
+64-clip fixture; second class **`external_host_unavailable`** (allowed by gate).
+S15 stop tests green. **Product full-episode claim:** allowed for S4–S14 pipeline
+maturity with honest dual-class residual note — not a silent skip.
+Evidence: `docs/evidence/2026-08-12-sound-s14-live-rerun.json`, sound GO tests.
 
 ## Human-only (never agent-close)
 
