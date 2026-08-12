@@ -1,16 +1,32 @@
 # Human / ops residual (updated 2026-08-12)
 
-Agent-closable prep is on tip. Live outcomes below still need a human operator.
-Do **not** invent completions for #3 / #88 / #90 / #92. Residual portfolio authority:
+Agent-closable prep is on tip. Live outcomes below still need a human operator
+where noted. Residual portfolio authority:
 [`docs/status/2026-08-12-residual-maturity-matrix.md`](status/2026-08-12-residual-maturity-matrix.md)
-· [L1 truth pass](status/2026-08-12-l1-truth-pass.md).
+· [L1 truth pass](status/2026-08-12-l1-truth-pass.md)
+· [DEFERRED](status/DEFERRED.md).
 
-| Former issue | Agent deliverable | Still human |
+| Former issue | Agent deliverable | Status |
 | --- | --- | --- |
-| #3 Renovate dashboard | `.github/dependabot.yml` + `.renovaterc.json` + note that Forgejo Renovate needs `GITHUB_COM_TOKEN`/hostRules | Enable token / Renovate app on host (requires Forgejo admin) |
+| #3 Renovate dashboard | `.github/dependabot.yml` + `.renovaterc.json` + note that Forgejo Renovate needs `GITHUB_COM_TOKEN`/hostRules | **Still human/ops** — enable token / Renovate app on host (Forgejo admin) |
 | #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | Awesome MCP Servers PR **merged** (2026-08-08). MCP.so, Docker MCP, Agent-CoreX, Protodex still pending external review |
-| #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips |
-| #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | Recruit, run, log 10 real first-runs |
+| #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
+| #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
+
+## Live adoption signals (re-verified 2026-08-12)
+
+| Signal | Value | Source |
+| --- | --- | --- |
+| GitHub stars | **107** | `gh api repos/KyaniteLabs/kinocut` |
+| GitHub forks | **25** | same |
+| PyPI downloads (last day) | **608** | pypistats / pypi.org API |
+| PyPI downloads (last week) | **6,715** | same |
+| PyPI downloads (last month) | **23,034** | same |
+| Published package | **1.13.4** | PyPI |
+
+Downloads are not a unique-user census, but stars + forks + multi‑k weekly installs
+make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
+incomplete pipeline work.
 
 ## Forgejo CI runner
 
@@ -34,8 +50,10 @@ on tip — pin-before-connect + peer validation present; preview registry +
 | C1 | CRITICAL | `ai_engine/download.py` | **Claim-audit pass** (2026-08-12) — do not rebuild without fail |
 | M1 | MEDIUM | `hyperframes_engine.py` | **Claim-audit pass** (2026-08-12) — do not redesign without fail |
 
-Do not invent completed users, published launch metrics, or third-party directory approvals.
+Do not invent third-party directory approvals. Do not re-open #92 as a missing
+“first 10” product gate.
 
 ## Deferred portfolio rows
 
-See [`docs/status/DEFERRED.md`](status/DEFERRED.md) for agent-vs-human residual IDs. Human rows must not be agent-closed.
+See [`docs/status/DEFERRED.md`](status/DEFERRED.md). Growth/marketing rows are
+optional ops, not incomplete product phases.
