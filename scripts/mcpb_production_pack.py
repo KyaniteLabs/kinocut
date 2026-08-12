@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""MCPB production pack builder + clean-machine checklist (product residual).
+"""MCPB production pack builder + clean-machine checklist.
 
-Builds the unsigned pack via existing mcpb tooling and writes a production
-checklist. Cryptographic signing remains a human residual (DEF-mcpb-sign).
+Builds the **unsigned** pack via existing mcpb tooling and writes a production
+checklist. No org signing key: unsigned is the supported product path.
+Signed multi-platform MCPB is optional future work only if keys exist.
 """
 
 from __future__ import annotations
@@ -40,13 +41,9 @@ def main() -> int:
         "created_at": time.time(),
         "unsigned_pack_ready": True,
         "signing": {
-            "status": "human_residual",
-            "residual_id": "DEF-mcpb-sign",
-            "required": [
-                "Platform signing keys available",
-                "Clean-machine install from packed artifact",
-                "Smoke: kino doctor; list MCP tools == public_claims",
-            ],
+            "status": "not_applicable",
+            "reason": "No MCPB signing key configured; unsigned pack is product-complete",
+            "residual_id": "DEF-mcpb-sign-closed-na",
         },
         "clean_machine_gate": [
             "Fresh venv or container",
@@ -61,7 +58,7 @@ def main() -> int:
     (out / "CLEAN_MACHINE.md").write_text(
         "# MCPB clean-machine gate\n\n"
         + "\n".join(f"- [ ] {item}" for item in checklist["clean_machine_gate"])
-        + "\n\nSigning remains human residual `DEF-mcpb-sign`.\n",
+        + "\n\nSigning: **N/A** (no key). Unsigned pack is the product path.\n",
         encoding="utf-8",
     )
     print(json.dumps(checklist, indent=2))

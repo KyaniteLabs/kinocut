@@ -35,7 +35,8 @@
 ## MCPB
 
 - `scripts/mcpb_production_pack.py` + clean-machine checklist
-- Human signing remains residual only (keys)
+- **No signing key available** — unsigned pack is the product path. Not a blocker.
+  Install product via `pip install kinocut` / MCP stdio; signed multi-platform MCPB only if keys exist later.
 
 ## Intentionally out of product timeline
 

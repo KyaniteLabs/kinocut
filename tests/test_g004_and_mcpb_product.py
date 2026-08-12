@@ -46,5 +46,5 @@ def test_mcpb_production_pack_checklist(tmp_path: Path, monkeypatch: pytest.Monk
     assert proc.returncode == 0, proc.stderr
     checklist = json.loads((out / "production-checklist.json").read_text(encoding="utf-8"))
     assert checklist["artifact_kind"] == "mcpb_production_checklist"
-    assert checklist["signing"]["residual_id"] == "DEF-mcpb-sign"
+    assert checklist["signing"]["status"] == "not_applicable"
     assert (out / "CLEAN_MACHINE.md").is_file()
