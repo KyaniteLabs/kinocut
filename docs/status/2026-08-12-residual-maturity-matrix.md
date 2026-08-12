@@ -7,8 +7,8 @@
 
 | family | class | evidence_paths | residual_tickets | blocks_claim? |
 |--------|-------|----------------|------------------|---------------|
-| ssrf_c1 | verify-only | `kinocut/ai_engine/download.py` pin/peer; `tests/test_ai_features.py` SSRF; 60-pass SSRF/preview filter suite | Close HUMAN_GATES C1 row after doc sync | N (security already on tip) |
-| preview_m1 | verify-only | `kinocut/hyperframes_engine.py` `_active_previews`/`stop_preview`/`atexit`; `tests/test_hyperframes_engine.py` stop_preview | Close HUMAN_GATES M1 after doc sync | N |
+| ssrf_c1 | verify-only | `kinocut/ai_engine/download.py` pin/peer; `tests/test_ai_features.py` SSRF; 60-pass SSRF/preview filter suite | HUMAN_GATES C1 closed L1.2 (2026-08-12) | N (security already on tip) |
+| preview_m1 | verify-only | `kinocut/hyperframes_engine.py` `_active_previews`/`stop_preview`/`atexit`; `tests/test_hyperframes_engine.py` stop_preview | HUMAN_GATES M1 closed L1.2 (2026-08-12) | N |
 | hyperframes_ops_policy | verify-only (fixed) | Split `hyperframes_ops_helpers.py`; ops ~680 LOC; guardrail locks ops+helpers | Keep ≤800 | N |
 | watching_p3 | deepen | `kinocut/watching/{review,metrics,mutations,vision_qc,narrative_qc}.py`; MCP/CLI intent tools | GO evidence links + real-media residual | Y until PHASE GO or DEFERRED |
 | multipliers_p4 | deepen | `kinocut/multipliers/*` (5 modules) | GO criteria / DEFERRED IDs | Y until PHASE GO or DEFERRED |
@@ -20,7 +20,7 @@
 | sound_S9 | re-run/deepen | `kinocut_sound/mix/` | same | Y full-episode |
 | sound_S10 | re-run/deepen | `kinocut_sound/voice_consistency/` | same | Y full-episode |
 | sound_S11 | re-run/deepen | `kinocut_sound/qa/` | same | Y full-episode |
-| sound_S12 | re-run/deepen | `kinocut_sound/public/`, `kinocut/sound_joins/` | ROADMAP “thin S12” honesty sync | Y full-episode |
+| sound_S12 | re-run/deepen | `kinocut_sound/public/`, `kinocut/sound_joins/` | ROADMAP thin-S12 honesty synced 2026-08-12 (L1.2) | Y full-episode |
 | sound_S13 | re-run | `sound_joins` + host joins | dual-class residual | Y full-episode |
 | sound_S14 | re-run | `docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json` (64 clips, dual-class, under_30m) | Re-run live host classes | **Synthetic ≠ product complete** |
 | sound_S15 | deepen | acceptance residual | Product honesty + human adversarial review | Y product claim |

@@ -16,6 +16,11 @@ Update [`public_claims.json`](public_claims.json):
 - `published_mcp_tools`, `published_cli_commands` (from public surface tests on the release tag)
 - Keep `development_*` equal to published at tag time, or leave tip higher only on post-release master
 
+**Ultragoal claim freeze (active until L3):** only the ultragoal **claim owner**
+(ledger leader for `kinocut-full-build`, or product override) may bump
+`public_claims.json` during the residual portfolio. Non-owners must not opportunistically
+sync tip counts. See [`ROADMAP.md`](../ROADMAP.md) claim ledger and
+[`status/2026-08-12-l1-truth-pass.md`](status/2026-08-12-l1-truth-pass.md).
 ## 2. Verify
 
 ```bash

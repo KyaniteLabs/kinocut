@@ -83,6 +83,8 @@ def test_split_engine_modules_stay_below_size_limit() -> None:
     """
     split_modules = [
         PACKAGE / "hyperframes_engine.py",
+        PACKAGE / "hyperframes_ops.py",
+        PACKAGE / "hyperframes_ops_helpers.py",
         PACKAGE / "workflow" / "executor.py",
         PACKAGE / "workflow" / "receipt.py",
     ]
