@@ -20,7 +20,7 @@ This file is **planning truth for after 1.13.4**. July 2026 status notes and pre
 | Authority | Only the **ultragoal claim owner** (ledger leader for plan `kinocut-full-build`, or product override in writing) may bump [`docs/public_claims.json`](docs/public_claims.json) |
 | Window | **Claim freeze until L3** claim PR (portfolio GO / DEFERRED matrix + dual-host + ROADMAP/PHASE honesty) |
 | Non-owners | Do **not** invent tip counts as a release; do not bump `published_*` or surface counts outside the L3 claim PR |
-| Human gates | Never mark `#88` / `#90` / `#92` (or other HUMAN_GATES rows) complete without human evidence |
+| Human gates | Never invent directory/launch completions; **#92 first-10 is closed** (live adoption supersedes) — see `docs/HUMAN_GATES.md` |
 
 Release ritual still documents *how* to freeze claims at cut time; this freeze **supersedes casual bumps** during residual L1–L2 work.
 
@@ -60,16 +60,11 @@ Ordered per residual matrix + excellence audit. Prefer one work package per PR. 
 
 | Item | Owner | Source |
 |------|-------|--------|
-| Directories, launch moments, first-10 users, Renovate host token | Human | `docs/HUMAN_GATES.md` — **do not invent completions** |
-| G004 multi-minute / phone-frame fixtures | Human + agent assist | Stream-shorts honesty |
-| Phase 3 watching GO evidence | Product + agent | Residual **deepen** (modules on tip) — [`PHASE_CHECKPOINTS.md`](docs/status/PHASE_CHECKPOINTS.md) |
-| Phase 4 multipliers / TE expansion GO | Product + agent | Residual **deepen** (modules on tip) |
-| Full-episode `kinocut_sound` product claim | Sound program + L3 claim owner | Packages exist; product claim unclaimed until Wave F honesty |
-| MCPB signed multi-platform production pack | Human + agent | Foundations only |
+| Directories (#88), launch posts (#90), Renovate host token (#3) | Human/ops | Optional marketing/ops — not product phase blockers |
 | CI `light` vs `heavy` runner topology | Ops | Partial |
-| Independent sound adversarial review | Human residual | If still open after Wave F |
+| First-10 users (#92) | — | **Closed 2026-08-12** — adoption already past gate (107 GitHub stars; ~23k PyPI downloads last month). See `docs/HUMAN_GATES.md` |
 
-Agents must not invent completed directory listings, launch metrics, or first-10 outcomes.
+Product phases 1–4 + Track E are **GO** on tip (1.13.4). Agents must not invent third-party directory approvals. Do **not** re-open #92 as incomplete.
 
 ---
 

@@ -22,7 +22,7 @@
 |----|--------|--------|-------|---------------------------|------------------|------|
 | DEF-human-88 | directories | Third-party review pending | Human | N product timeline | Operator evidence | 2026-08-12 |
 | DEF-human-90 | launch | Posts not published | Human | N product timeline | Approve & publish | 2026-08-12 |
-| DEF-human-92 | first-10 | Real users program | Human | N product timeline | 10 first-runs | 2026-08-12 |
+| DEF-human-92 | first-10 | **CLOSED (2026-08-12)** — obsolete; live adoption: 107 GitHub stars, 25 forks, ~23k PyPI downloads last month | — | N | Do not re-open as “first 10 missing” | 2026-08-12 |
 | DEF-human-3 | renovate | Host token | Human/ops | N product | Token enabled | 2026-08-12 |
 | DEF-ci-light | ci_topology | light runner | Ops | N product | light label available | 2026-08-12 |
 Product pipeline (Phase 1–4 + Track E + sound S14/S15 maturity + G004 synthetic + MCPB **unsigned** pack) is **complete**. Growth/human ops rows do not block product timeline GO.

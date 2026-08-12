@@ -1,46 +1,38 @@
-# First-10 real users program runbook (USR.1 / #92)
+# User / early-adopter program runbook (was USR.1 / #92)
 
-**Status:** agent materials ready · **recruitment & first-runs are human**  
-**Date:** 2026-08-07
+**Status:** **closed as obsolete (2026-08-12)**  
+**Former goal:** 10 guided first-runs  
 
-Does **not** claim 10 users completed. Success criteria remain human-measured.
+## Why closed
 
-## Goal
+Live public adoption already exceeds a “first 10” product gate:
 
-10 guided first-runs on strangers’ footage; every failure ticketed; ≥3 unprompted repeats.
+| Signal | Value (2026-08-12) |
+| --- | --- |
+| GitHub stars | **107** |
+| GitHub forks | **25** |
+| PyPI last day / week / month | **608 / 6,715 / 23,034** |
+| Published | Kinocut **1.13.4** |
 
-## Demand pools (from research)
+This runbook remains as **optional** guided-onboarding material for support or
+content, **not** as an open residual that blocks product timeline or release.
 
-- r/selfhosted “local Opus Clip” threads  
-- reelforge / Podcli adjacent users  
-- Faceless-channel operators  
-- One agency with client footage (permission required)
+## Optional guided first-run script (support, not a gate)
 
-## Guided first-run script
-
-1. `pip install kinocut` (or `mcp-video` compat)  
+1. `pip install -U kinocut` (or `mcp-video` compat)  
 2. `kino doctor`  
-3. Point at **their** local media (not our fixtures)  
-4. `kino intent repurpose` / package path they choose  
-5. `kino review-run <out>`  
-6. Collect: desync, wrong moments, crashes, confusing CLI  
-7. File Forgejo issues with sanitized paths only  
+3. Point at **their** local media (not only fixtures)  
+4. Intent / cutfile / repurpose path they choose  
+5. `kino review-run` / `kino metric-qc`  
+6. File Forgejo issues with sanitized paths only  
 
-## Log (human fills)
+## Do not
+
+- Treat empty log rows below as “users incomplete.”  
+- Re-open #92 as a missing first-10 gate without new product criteria.
+
+## Historical log template (optional)
 
 | # | Persona / source | Date | Completed? | Failure tickets | Repeat? |
 |---|------------------|------|------------|-----------------|--------|
-| 1 | | | | | |
-| 2 | | | | | |
-| 3 | | | | | |
-| 4 | | | | | |
-| 5 | | | | | |
-| 6 | | | | | |
-| 7 | | | | | |
-| 8 | | | | | |
-| 9 | | | | | |
-| 10 | | | | | |
-
-## Agent boundary
-
-Agents may improve the product from ticketed failures. Agents must not invent completed first-runs or “success” metrics.
+| … | (optional ops use) | | | | |
