@@ -45,7 +45,10 @@ P3+ children remain open until their gates pass.
 **Exit:** **PENDING (deepen residual)** — modules on tip under `kinocut/watching/`
 (`review`, `metrics`, `mutations`, `vision_qc`, `narrative_qc`) plus MCP/CLI intent
 tools. Residual is **GO evidence links + real-media residual**, not “scaffold
-missing.” Matrix family: `watching_p3` · blocks claim until PHASE GO or DEFERRED.
+missing.” Matrix family: `watching_p3` · residual ID: **`DEF-phase3-go`** · blocks
+phase claim until PHASE GO. Unit smoke (review/mutations/vision-narrative) green on
+tip; formal GO **not** claimed — see
+[`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md).
 
 ## Phase 4 — Multipliers
 
@@ -58,7 +61,10 @@ missing.” Matrix family: `watching_p3` · blocks claim until PHASE GO or DEFER
 
 **Exit:** **PENDING (deepen residual)** — `kinocut/multipliers/*` (5 modules) and TE
 multipliers exist on tip. Residual is GO criteria / DEFERRED IDs, not greenfield
-rebuild. Matrix family: `multipliers_p4`.
+rebuild. Matrix family: `multipliers_p4` · residual ID: **`DEF-phase4-go`** · blocks
+phase claim until PHASE GO. Unit smoke (OTIO kinocut_ir roundtrip, generative cap,
+review UI write, TTS plan) green on tip; formal GO **not** claimed — see
+[`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md).
 
 ## Track E pillars (Cutfile / Video CI / conversational)
 
@@ -95,10 +101,12 @@ do not contradict the residual matrix when staffing.
 - Renovate host token (#3) — open
 - Do **not** invent completions for the above
 
-## Residual program note (2026-08-12, L1.2)
+## Residual program note (2026-08-12, L1.2 + G004 residual evidence)
 
-Phase 3/4/E exits still **PENDING** until GO evidence is linked or a DEFERRED row
-with `blocks_portfolio_complete` is minted. Agent work is **deepen/re-verify**, not
-missing-module rebuild. Claim bumps to `docs/public_claims.json` are frozen until
-**L3** for non–claim-owners (see ROADMAP claim ledger). Ultragoal plan:
+Phase 3/4/E exits still **PENDING**. DEFERRED rows **`DEF-phase3-go`** /
+**`DEF-phase4-go`** hold phase-claim authority. G004 tip evidence receipt:
+[`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md)
+(7 focused unit nodes green; **not** PHASE GO). Agent work is **deepen/re-verify**,
+not missing-module rebuild. Claim bumps to `docs/public_claims.json` are frozen
+until **L3** for non–claim-owners (see ROADMAP claim ledger). Ultragoal plan:
 `.omc/ultragoal/plans/kinocut-full-build`.
