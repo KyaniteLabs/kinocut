@@ -99,6 +99,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
         if limit and limit > 0:
             return ["-t", f"{float(limit):.3f}"]
         return []
+
     _signalstats_cache: dict[str, dict[str, float]]
 
     def _get_all_signalstats(self, video: str) -> dict[str, float]:

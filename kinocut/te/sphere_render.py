@@ -74,9 +74,7 @@ def _render_window(plan: dict[str, Any], window: dict[str, Any], root: Path, ind
 def _maybe_quality(output_path: str, *, allow_fail: bool, min_score: float | None) -> dict[str, Any]:
     score = DEFAULT_QUALITY_GATE_SCORE if min_score is None else float(min_score)
     try:
-        report = assert_quality(
-            output_path, min_score=score, max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS
-        )
+        report = assert_quality(output_path, min_score=score, max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS)
         return {"passed": True, "report": report}
     except Exception as exc:
         logger.warning("360 assembly quality gate failed: %s", exc)

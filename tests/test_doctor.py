@@ -96,7 +96,9 @@ def test_node_check_reports_hyperframes_version_via_injectable_runner():
             return "0.6.93"
         return "v22.0.0"
 
-    report = run_diagnostics(which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None)
+    report = run_diagnostics(
+        which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None
+    )
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["node"]["hyperframes_version"] == "0.6.93"
 
@@ -109,7 +111,9 @@ def test_node_check_omits_hyperframes_version_when_probe_fails():
             return None
         return "v22.0.0"
 
-    report = run_diagnostics(which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None)
+    report = run_diagnostics(
+        which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None
+    )
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
 
