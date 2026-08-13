@@ -27,9 +27,9 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1140-latest-release">1.14.0</a> &bull;
+  <a href="#whats-in-1141-latest-release">1.14.1</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
-  <a href="#beyond-1140-draft--gated">Beyond</a> &bull;
+  <a href="#beyond-1141-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#mcp-tools">Tools</a> &bull;
@@ -70,7 +70,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.14.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.0)** (2026-08-13) |
+| **Latest published release** | **[1.14.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.1)** (2026-08-13) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -116,21 +116,21 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm / GitHub Release** | **[1.14.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.0)** (2026-08-13) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.14.0** · **196 MCP tools / 167 CLI commands** | Same published counts. 360 assembly reuses `video_intent` / review (not a 197th tool). |
+| **PyPI / npm / GitHub Release** | **[1.14.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.1)** (2026-08-13) | Latest **published** Kinocut. Install with `pip install kinocut`. |
+| **This repository (`master`)** | **1.14.1** · **196 MCP tools / 167 CLI commands** | Same published counts. 360 assembly reuses `video_intent` / review (not a 197th tool). |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package. Clone `master` only when you intentionally want unreleased tip work.
 
-## What's in 1.14.0 (latest release)
+## What's in 1.14.1 (latest release)
 
-Kinocut **1.14.0** is what you get from `pip install kinocut` today. It publishes **360 dual-cam assembly** and the committee performance fixes on the same **196 MCP / 167 CLI** surface as 1.13.4 — no new public tool name.
+Kinocut **1.14.1** is what you get from `pip install kinocut` today. It is a patch on **1.14.0**: same **360 dual-cam assembly** and committee performance fixes, plus a GitHub pyright Lint fix (`render_rescue` cancel path). Surface stays **196 MCP / 167 CLI** — no new public tool name.
 
 - **360 dual-cam assembly** — any stitched equirect MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …) → reviewable `360_assembly_plan` (desk / table / `front_back`, split / switch / PiP / single) → approve → FFmpeg `v360` render. MCP: `video_intent` `goal=` + `video_review_decide`. Python: `Client.propose_360_assembly` / `decide_360_assembly` / `render_360_assembly`. Raw `.insv` / `.360` rejected. Director is a plug (local first; cloud opt-in). Not an optimized-AI claim. Guide: [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
 - **Faster 360 and import path** — single-pass split/PiP/switch `filter_complex` (source audio kept); sampled quality-gate analyze window; SHA-256 path/mtime cache; merge can skip re-probe when `infos=` is supplied; batched 360 storyboard stills; lazy `mcp_video` / CLI / `Client.search_tools`; doctor skips `npx --yes` unless Hyperframes is already on PATH.
 - **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
 - **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; durable MCP `video_repurpose` does not apply `min_score`.
-- **Compatibility window** — `mcp-video==1.6.9` installs `kinocut==1.14.0`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x line**.
+- **Compatibility window** — `mcp-video==1.6.10` installs `kinocut==1.14.1`; `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x line**.
 
 Also already on the published line from 1.13.x:
 
@@ -140,15 +140,15 @@ Also already on the published line from 1.13.x:
 - Agent **workflow engine**, dedicated **video rescue**, **layered compositing**, Hyperframes, Shorts/Reels repurposing
 - **Canonical counts** — **196 MCP tools** and **167 CLI commands**
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.14.0 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.0)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.14.1 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.1)
 
-## Beyond 1.14.0 (draft / gated)
+## Beyond 1.14.1 (draft / gated)
 
-**1.14.0 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+**1.14.1 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 
-While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated and published in **1.14.0**, the following surfaces remain gated, partial, or unreleased:
+While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated and published in **1.14.1**, the following surfaces remain gated, partial, or unreleased:
 
 - **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
 - **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
@@ -231,7 +231,7 @@ In **Kinocut**, a contract-first path is provided for agent-edited media that mu
 3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
 4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
 
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.14.0 release — see [Status and releases](#status-and-releases).
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.14.1 release — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -403,11 +403,11 @@ pip install --upgrade mcp-video
 mcp-video doctor
 ```
 
-`mcp-video==1.6.9` is a metadata-only compatibility installer for `kinocut==1.14.0`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+`mcp-video==1.6.10` is a metadata-only compatibility installer for `kinocut==1.14.1`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.14.0** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.14.1** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -550,7 +550,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-On the **published 1.14.0** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+On the **published 1.14.1** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -619,6 +619,10 @@ Safety contract:
 
 ## Changelog
 
+**1.14.1** (2026-08-13):
+- Patch on 1.14.0: pyright `NoReturn` on rescue cancel so GitHub Lint stays green. Same 360 + perf surface.
+- `mcp-video==1.6.10` installs `kinocut==1.14.1`.
+
 **1.14.0** (2026-08-13):
 - Published **360 dual-cam assembly** from a stitched equirect MP4 (camera-agnostic; not X4-only) via `video_intent` / `Client.propose_360_assembly` — still **196 MCP / 167 CLI**.
 - Landed the performance committee top-10: single-pass 360 `filter_complex` (audio kept), sampled QC, lazy imports, SHA cache, batched storyboard stills.
@@ -663,7 +667,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.14.0** documents **196 MCP tools / 167 CLI commands**. The development tip keeps those counts. 360 assembly reuses `video_intent` and `video_review_decide` — it is not a 197th MCP tool.
+Published **1.14.1** documents **196 MCP tools / 167 CLI commands**. The development tip keeps those counts. 360 assembly reuses `video_intent` and `video_review_decide` — it is not a 197th MCP tool.
 
 ### Can Kinocut edit Insta360 X4 360 video?
 
@@ -671,7 +675,7 @@ Yes — from a **stitched 360 MP4**, not `.insv`. Propose a `360_assembly_plan`,
 
 ### Was it called mcp-video?
 
-Yes. `mcp-video==1.6.9` installs `kinocut==1.14.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x line.
+Yes. `mcp-video==1.6.10` installs `kinocut==1.14.1`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x line.
 
 More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](https://kinocut.dev/#faq)
 
@@ -804,7 +808,7 @@ Treat the README status and release tags as source of truth for maturity. Valida
 
 ### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
 
-Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This is in the published 1.14.0 package.
+Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This is in the published 1.14.1 package.
 
 ## Status
 

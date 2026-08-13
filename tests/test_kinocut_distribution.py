@@ -15,8 +15,8 @@ import mcp_video
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.14.0"
-SHIM_VERSION = "1.6.9"
+KINOCUT_VERSION = "1.14.1"
+SHIM_VERSION = "1.6.10"
 
 
 def _toml(path: Path) -> dict:

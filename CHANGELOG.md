@@ -11,6 +11,15 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.14.1 - 2026-08-13
+
+### Fixed
+- **GitHub Lint / pyright:** `_handle_cancellation` is `NoReturn` so `render_rescue` type-checks on the cancel path. No runtime behavior change.
+
+### Compatibility
+- `mcp-video==1.6.10` installs `kinocut==1.14.1`.
+- Published surface stays **196 MCP tools / 167 CLI commands**.
+
 ## 1.14.0 - 2026-08-13
 
 ### Added
