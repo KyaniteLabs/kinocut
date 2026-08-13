@@ -40,7 +40,7 @@ inspection, decision, protection, derivative, and re-review sequence.
 
 ## Intent, review, and cutfiles
 
-Published 1.14.0 surface. These commands do **not** add a 360 CLI verb.
+Published 1.14.1 surface. These commands do **not** add a 360 CLI verb.
 
 | Command | Description |
 |---------|-------------|
