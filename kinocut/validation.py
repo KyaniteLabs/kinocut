@@ -38,6 +38,13 @@ VALID_XFADE_TRANSITIONS = {
 }
 VALID_WAVEFORMS = {"sine", "square", "sawtooth", "triangle", "noise", "pulse", "supersaw", "pluck", "fm"}
 
+SPHERE_EQUIRECT_ASPECT = 2.0
+SPHERE_EQUIRECT_ASPECT_TOLERANCE = 0.2
+SPHERE_LAYOUTS = frozenset({"single", "split", "pip", "switch"})
+SPHERE_WRITER_KINDS = frozenset({"heuristic", "single", "model"})
+SPHERE_CLOUD_DIRECTORS = frozenset({"openai", "anthropic", "gemini", "openrouter"})
+SPHERE_LOCAL_DIRECTORS = frozenset({"ollama", "lmstudio", "openai_compat"})
+
 # Subtitle ``force_style``: the closed set of accepted ASS style keys (compared
 # case-insensitively) plus the safe value character class. Values are validated
 # against this class and then FFmpeg-escaped as defense in depth before being

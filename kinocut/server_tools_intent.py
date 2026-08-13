@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 from kinocut.projectstore import find_moments, open_project, persist_moment_selection, persist_semantic_index
@@ -9,6 +10,8 @@ from kinocut.semantic.index import SemanticIndex, build_semantic_index
 from kinocut.semantic.models import SemanticTimeline
 
 from .server_app import _result, _safe_tool, mcp
+
+logger = logging.getLogger(__name__)
 
 
 @mcp.tool()
@@ -151,10 +154,21 @@ def video_intent(
     plan = route_intent(verb, params)
     payload: dict[str, Any] = {"artifact_kind": "intent_plan", **plan.to_dict()}
     if goal:
-        from kinocut.te import compile_goal_to_cutfile
+        from kinocut.te import compile_goal_to_cutfile, is_sphere_goal, propose_360_assembly
 
         payload["cutfile"] = compile_goal_to_cutfile(goal, source=source or "media/hero.mp4")
         payload["next_action"] = "review_then_cutfile_render"
+        if is_sphere_goal(goal) and source:
+            try:
+                payload["sphere_plan"] = propose_360_assembly(source, goal=goal)
+                payload["next_action"] = "review_then_sphere_render"
+            except Exception as exc:
+                from kinocut.errors import MCPVideoError
+
+                logger.warning("360 assembly plan not attached: %s", exc)
+                payload["sphere_plan_error"] = (
+                    exc.to_dict() if isinstance(exc, MCPVideoError) else {"message": str(exc)}
+                )
     return _result(payload)
 
 
@@ -245,6 +259,14 @@ def video_review_decide(
     """Record human accept/reject/revise. Accept + EDL approval can render (N4)."""
 
     from kinocut.watching import decide_review
+
+    if (review_run or {}).get("artifact_kind") == "360_assembly_plan":
+        from kinocut.te import decide_sphere_plan, render_sphere_plan
+
+        decided = decide_sphere_plan(review_run, decision)
+        if decided.get("status") == "approved" and output_path:
+            decided["sphere_render"] = render_sphere_plan(decided, output_path)
+        return _result(decided)
 
     decided = decide_review(review_run, decision, reason).to_dict()
     if (decision or "").lower() == "accept" and input_path and output_path and edl and approval:

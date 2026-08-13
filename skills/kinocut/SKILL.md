@@ -10,7 +10,7 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
-2. Plan with `video_intent` (optional `goal=` compiles a cutfile) — do not list 196 tools.
+2. Plan with `video_intent` (optional `goal=` compiles a cutfile; a 360/desk/table goal also proposes a dual-cam assembly plan) — do not list 196 tools.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool).
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
 5. Human visual/audio review. Never treat a receipt as published.
