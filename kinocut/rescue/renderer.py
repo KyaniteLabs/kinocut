@@ -15,7 +15,7 @@ from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Literal, NoReturn
 
 from ..errors import MCPVideoError
 from ..workflow._versions import versions
@@ -649,7 +649,7 @@ def _handle_cancellation(
     prep: _RescuePrep,
     persist_fn: Callable[[], None],
     exc: RescueCancellation,
-) -> None:
+) -> NoReturn:
     """Clean up on cancellation, write a cancelled receipt, and re-raise."""
     shutil.rmtree(prep.package_dir, ignore_errors=True)
     prep.operations[:] = [entry for entry in prep.operations if entry.repair_id]
