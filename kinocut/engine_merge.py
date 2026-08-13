@@ -122,6 +122,7 @@ def merge(
     transition: str | None = None,
     transitions: list[str] | None = None,
     transition_duration: float = 1.0,
+    infos: list | None = None,
 ) -> EditResult:
     """Merge multiple clips into one video. Auto-normalizes if needed.
 
@@ -132,6 +133,7 @@ def merge(
         transitions: Per-pair transition types (one per boundary, len = len(clips)-1).
             If shorter than clip pairs, the last type is repeated.
         transition_duration: Duration of each transition in seconds.
+        infos: Optional pre-probed clip metadata. When omitted, each clip is probed.
     """
     if not clips:
         raise InputFileError("", "No clips provided for merge")
@@ -139,7 +141,8 @@ def merge(
         return _merge_single_clip(_validate_input_path(clips[0]), output_path)
 
     clips = [_validate_input_path(c) for c in clips]
-    infos = [probe(c) for c in clips]
+    if infos is None or len(infos) != len(clips):
+        infos = [probe(c) for c in clips]
 
     # --- Guardrails: pre-merge compatibility ---
     has_transitions = bool(transition or transitions)

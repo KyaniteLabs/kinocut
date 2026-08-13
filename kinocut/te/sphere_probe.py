@@ -6,7 +6,7 @@ import hashlib
 from pathlib import Path
 from typing import Any
 
-from kinocut.defaults import DEFAULT_HASH_CHUNK_BYTES
+from kinocut.defaults import DEFAULT_HASH_CACHE_MAX, DEFAULT_HASH_CHUNK_BYTES
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
 from kinocut.validation import (
@@ -15,6 +15,8 @@ from kinocut.validation import (
     SPHERE_RAW_SUFFIXES,
     SPHERE_SPHERICAL_MARKERS,
 )
+
+_HASH_CACHE: dict[tuple[str, int, int], str] = {}
 
 _VENDOR_HINTS = (
     ("insta360", "insta360"),
@@ -100,11 +102,20 @@ def _probe_geometry(path: str) -> tuple[int, int, float, bool, str]:
 
 
 def _file_sha256(path: str) -> str:
+    stat = Path(path).stat()
+    key = (str(Path(path).resolve()), stat.st_size, stat.st_mtime_ns)
+    cached = _HASH_CACHE.get(key)
+    if cached:
+        return cached
     digest = hashlib.sha256()
     with open(path, "rb") as handle:
         for chunk in iter(lambda: handle.read(DEFAULT_HASH_CHUNK_BYTES), b""):
             digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
+    value = "sha256:" + digest.hexdigest()
+    if len(_HASH_CACHE) >= DEFAULT_HASH_CACHE_MAX:
+        _HASH_CACHE.pop(next(iter(_HASH_CACHE)))
+    _HASH_CACHE[key] = value
+    return value
 
 
 def _looks_equirect(width: int, height: int, spherical: bool) -> bool:

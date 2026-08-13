@@ -82,6 +82,10 @@ def _node_only_which(name: str) -> str | None:
     return f"/usr/bin/{name}" if name in {"node", "npm", "npx"} else None
 
 
+def _node_and_hyperframes_which(name: str) -> str | None:
+    return f"/usr/bin/{name}" if name in {"node", "npm", "npx", "hyperframes"} else None
+
+
 def test_node_check_reports_hyperframes_version_via_injectable_runner():
     """The npx hyperframes probe must go through version_runner — a raw
     subprocess call here is untestable (the @hyperframes/core probe defect class)."""
@@ -92,7 +96,7 @@ def test_node_check_reports_hyperframes_version_via_injectable_runner():
             return "0.6.93"
         return "v22.0.0"
 
-    report = run_diagnostics(which=_node_only_which, version_runner=fake_version, find_spec=lambda name: None)
+    report = run_diagnostics(which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None)
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["node"]["hyperframes_version"] == "0.6.93"
 
@@ -105,9 +109,24 @@ def test_node_check_omits_hyperframes_version_when_probe_fails():
             return None
         return "v22.0.0"
 
+    report = run_diagnostics(which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None)
+    checks = {check["name"]: check for check in report["checks"]}
+    assert "hyperframes_version" not in checks["node"]
+
+
+def test_node_check_skips_npx_yes_without_hyperframes_cli():
+    from mcp_video.doctor import run_diagnostics
+
+    seen: list[list[str]] = []
+
+    def fake_version(command: list[str]) -> str | None:
+        seen.append(command)
+        return "v22.0.0"
+
     report = run_diagnostics(which=_node_only_which, version_runner=fake_version, find_spec=lambda name: None)
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
+    assert not any(command[:2] == ["npx", "--yes"] for command in seen)
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="requires Node.js")

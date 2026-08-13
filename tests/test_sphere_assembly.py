@@ -22,6 +22,7 @@ from kinocut.te import (
 )
 from kinocut.te.sphere_assembly import infer_sphere_preset
 from kinocut.te.sphere_director import apply_director, parse_director_json
+from kinocut.te.sphere_probe import _HASH_CACHE, _file_sha256
 
 
 def _run_ffmpeg(args: list[str]) -> None:
@@ -242,3 +243,14 @@ def test_intent_goal_and_doctor_honesty(tmp_path: Path) -> None:
     detected = detect_sphere_director()
     assert "ollama" in detected["local_ids"]
     assert "openai" in detected["cloud_ids"]
+
+
+def test_sha256_cache_reuses_digest(tmp_path: Path) -> None:
+    source = _equirect_video(tmp_path / "cached.mp4")
+    _HASH_CACHE.clear()
+    first = _file_sha256(source)
+    size = len(_HASH_CACHE)
+    second = _file_sha256(source)
+    assert first == second
+    assert first.startswith("sha256:")
+    assert len(_HASH_CACHE) == size

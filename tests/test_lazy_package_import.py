@@ -44,6 +44,13 @@ def test_submodule_import_still_resolves() -> None:
     assert out.strip() == "kinocut.engine_audio_bed"
 
 
+def test_mcp_video_import_does_not_load_engines() -> None:
+    loaded = _run(
+        "import sys, mcp_video; print(','.join(m for m in sys.modules if m in " + repr(_HEAVY) + "))"
+    ).strip()
+    assert loaded == ""
+
+
 def test_star_import_and_compat_identity() -> None:
     out = _run(
         "import kinocut, mcp_video; "

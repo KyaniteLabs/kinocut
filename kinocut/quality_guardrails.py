@@ -83,6 +83,22 @@ class VisualQualityGuardrails(QualityChecksMixin):
         "lavfi.signalstats.YMAX,lavfi.signalstats.YMIN,lavfi.signalstats.SATAVG,"
         "lavfi.signalstats.UAVG,lavfi.signalstats.VAVG"
     )
+
+    def __init__(self, max_analyze_seconds: float | None = None) -> None:
+        self.max_analyze_seconds = max_analyze_seconds
+
+    def _movie_source(self, video: str, tail: str) -> str:
+        movie = f"movie={_escape_lavfi_path(video)}"
+        limit = self.max_analyze_seconds
+        if limit and limit > 0:
+            movie = f"{movie},trim=duration={float(limit):.3f},setpts=PTS-STARTPTS"
+        return f"{movie},{tail}"
+
+    def _input_limit_args(self) -> list[str]:
+        limit = self.max_analyze_seconds
+        if limit and limit > 0:
+            return ["-t", f"{float(limit):.3f}"]
+        return []
     _signalstats_cache: dict[str, dict[str, float]]
 
     def _get_all_signalstats(self, video: str) -> dict[str, float]:
@@ -91,7 +107,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
         Returns a dict mapping ``lavfi.signalstats.TAG`` to the mean across frames.
         On failure, returns an empty dict so callers fall back gracefully.
         """
-        cache_key = str(Path(video))
+        cache_key = f"{Path(video)}:{self.max_analyze_seconds}"
         if not hasattr(self, "_signalstats_cache"):
             self._signalstats_cache = {}
         elif cache_key in self._signalstats_cache:
@@ -104,7 +120,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-f",
             "lavfi",
             "-i",
-            f"movie={_escape_lavfi_path(video)},signalstats",
+            self._movie_source(video, "signalstats"),
             "-show_entries",
             f"frame_tags={self._SIGNALSTATS_ALL_TAGS}",
             "-of",
@@ -145,7 +161,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-f",
             "lavfi",
             "-i",
-            f"movie={_escape_lavfi_path(video)},signalstats",
+            self._movie_source(video, "signalstats"),
             "-show_entries",
             f"frame_tags={filter_name}",
             "-of",
@@ -221,6 +237,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "ffmpeg",
             "-i",
             video,
+            *self._input_limit_args(),
             "-vf",
             "signalstats",
             "-f",
@@ -274,6 +291,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "ffmpeg",
             "-i",
             video,
+            *self._input_limit_args(),
             "-af",
             "loudnorm=print_format=json",
             "-f",
@@ -557,7 +575,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-f",
             "lavfi",
             "-i",
-            f"movie={_escape_lavfi_path(video)},tblend=all_mode=difference,signalstats",
+            self._movie_source(video, "tblend=all_mode=difference,signalstats"),
             "-show_entries",
             "frame_tags=lavfi.signalstats.YAVG",
             "-of",
@@ -714,7 +732,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
         }
 
 
-def quality_check(video: str, fail_on_warning: bool = False) -> dict[str, Any]:
+def quality_check(
+    video: str, fail_on_warning: bool = False, max_analyze_seconds: float | None = None
+) -> dict[str, Any]:
     """Public API for quality checking a video.
 
     Args:
@@ -725,7 +745,7 @@ def quality_check(video: str, fail_on_warning: bool = False) -> dict[str, Any]:
         Quality report dictionary
     """
     video = _validate_input_path(video)
-    guardrails = VisualQualityGuardrails()
+    guardrails = VisualQualityGuardrails(max_analyze_seconds=max_analyze_seconds)
     report = guardrails.generate_report(video)
 
     if fail_on_warning:
@@ -735,9 +755,13 @@ def quality_check(video: str, fail_on_warning: bool = False) -> dict[str, Any]:
     return report
 
 
-def assert_quality(video: str, min_score: float = DEFAULT_QUALITY_GATE_SCORE) -> dict[str, Any]:
+def assert_quality(
+    video: str,
+    min_score: float = DEFAULT_QUALITY_GATE_SCORE,
+    max_analyze_seconds: float | None = None,
+) -> dict[str, Any]:
     """Hard quality gate for agent workflows before publishing output."""
-    report = quality_check(video, fail_on_warning=False)
+    report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds)
     report["all_passed"] = report["overall_score"] >= min_score
     if not report["all_passed"]:
         recommendations = "; ".join(report.get("recommendations", []))

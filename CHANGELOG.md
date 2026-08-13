@@ -13,6 +13,7 @@ This project follows a simple release-note style:
 
 ### Added
 - **360 dual-cam assembly:** Any stitched equirect MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …), not X4-only. `front_back` preset plus desk/table. Raw `.insv` / `.360` rejected by suffix. One ffprobe; no stitch. Operator guide: `docs/360_ASSEMBLY.md`.
+- **360/perf committee top 10:** single-pass split/pip/switch `filter_complex`; sampled quality gate (`max_analyze_seconds`); lazy `mcp_video` (no star-import); SHA-256 path/mtime cache; merge `infos=` skip-reprobe; intermediate encode flags; doctor skips `npx --yes` unless Hyperframes is on PATH and runs command checks concurrently; batched 360 storyboard stills; lazy CLI handlers + doctor/info fast-path; lazy `mcp.types` on `Client.search_tools`.
 
 ### Changed
 - **Lazy public import:** `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
