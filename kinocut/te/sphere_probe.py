@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import hashlib
-from pathlib import Path
 from typing import Any
 
+from kinocut.defaults import DEFAULT_HASH_CHUNK_BYTES
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
 from kinocut.validation import SPHERE_EQUIRECT_ASPECT, SPHERE_EQUIRECT_ASPECT_TOLERANCE
@@ -32,10 +32,9 @@ def probe_360_source(path: str) -> dict[str, Any]:
             error_type="validation_error",
             code="not_360_equirect",
         )
-    digest = hashlib.sha256(Path(resolved).read_bytes()).hexdigest()
     return {
         "path": resolved,
-        "sha256": f"sha256:{digest}",
+        "sha256": _file_sha256(resolved),
         "width": width,
         "height": height,
         "duration_seconds": duration,
@@ -61,6 +60,14 @@ def _probe_geometry(path: str) -> tuple[int, int, float, bool]:
     blob = " ".join(f"{key}={value}" for key, value in tags.items()).lower()
     spherical = "spherical" in blob or "equirect" in blob
     return width, height, duration, spherical
+
+
+def _file_sha256(path: str) -> str:
+    digest = hashlib.sha256()
+    with open(path, "rb") as handle:
+        for chunk in iter(lambda: handle.read(DEFAULT_HASH_CHUNK_BYTES), b""):
+            digest.update(chunk)
+    return "sha256:" + digest.hexdigest()
 
 
 def _looks_equirect(width: int, height: int, spherical: bool) -> bool:

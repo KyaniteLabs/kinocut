@@ -113,6 +113,8 @@ def validate_sphere_plan(plan: dict[str, Any]) -> dict[str, Any]:
         )
     if plan.get("status") not in {"proposed", "approved", "rejected"}:
         raise MCPVideoError("360 plan status is invalid.", error_type="validation_error", code="invalid_sphere_plan")
+    _validate_source(plan.get("source"))
+    _validate_output(plan.get("output"))
     return plan
 
 
@@ -169,6 +171,60 @@ def _default_windows(duration: float, cameras: list[dict[str, Any]], layout: str
             {"id": "w2", "start": mid, "end": duration, "cameras": [ids[1]], "layout": "single"},
         ]
     return [{"id": "w1", "start": 0.0, "end": duration, "cameras": ids, "layout": layout}]
+
+
+def _validate_source(source: Any) -> None:
+    if not isinstance(source, dict) or not source.get("path"):
+        raise MCPVideoError(
+            "360 plan requires source.path.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        )
+    try:
+        duration = float(source.get("duration_seconds", 0))
+    except (TypeError, ValueError) as exc:
+        raise MCPVideoError(
+            "360 plan source.duration_seconds must be numeric.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        ) from exc
+    if duration <= 0 or not str(source.get("sha256") or "").startswith("sha256:"):
+        raise MCPVideoError(
+            "360 plan source needs a positive duration and sha256 digest.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        )
+
+
+def _validate_output(output: Any) -> None:
+    if not isinstance(output, dict):
+        raise MCPVideoError(
+            "360 plan requires output width, height, and aspect.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        )
+    aspect = output.get("aspect")
+    if aspect not in {"16:9", "9:16"}:
+        raise MCPVideoError(
+            "360 plan output.aspect must be 16:9 or 9:16.",
+            error_type="validation_error",
+            code="invalid_sphere_aspect",
+        )
+    try:
+        width = int(output.get("width"))
+        height = int(output.get("height"))
+    except (TypeError, ValueError) as exc:
+        raise MCPVideoError(
+            "360 plan output width and height must be integers.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        ) from exc
+    if width < 1 or height < 1:
+        raise MCPVideoError(
+            "360 plan output dimensions must be positive.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        )
 
 
 def _validate_cameras(cameras: list[dict[str, Any]]) -> None:

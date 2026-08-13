@@ -87,7 +87,6 @@ def extract_camera_clip(
             f"{duration:.3f}",
             "-vf",
             filt,
-            "-an",
             output_path,
         ]
     )

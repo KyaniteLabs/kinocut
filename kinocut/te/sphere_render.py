@@ -11,6 +11,7 @@ from kinocut.engine_merge import merge
 from kinocut.engine_overlay import overlay_video
 from kinocut.engine_split_screen import split_screen
 from kinocut.errors import MCPVideoError
+from kinocut.ffmpeg_helpers import _validate_output_path
 from kinocut.quality_guardrails import assert_quality
 from kinocut.te.sphere_plan import require_approved
 from kinocut.te.sphere_storyboard import extract_camera_clip
@@ -28,6 +29,7 @@ def render_sphere_plan(
 ) -> dict[str, Any]:
     """Extract cameras and assemble split/pip/switch/single. Requires approved."""
     current = require_approved(plan)
+    _validate_output_path(output_path)
     root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
     root.mkdir(parents=True, exist_ok=True)
     pieces = [_render_window(current, window, root, index) for index, window in enumerate(current["windows"])]

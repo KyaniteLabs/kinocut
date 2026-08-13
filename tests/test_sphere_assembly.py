@@ -97,6 +97,13 @@ def test_desk_and_table_presets_and_schema(tmp_path: Path) -> None:
     with pytest.raises(MCPVideoError):
         validate_sphere_plan(bad_window)
 
+    with pytest.raises(MCPVideoError) as no_out:
+        validate_sphere_plan({**desk, "output": {}})
+    assert no_out.value.code in {"invalid_sphere_plan", "invalid_sphere_aspect"}
+    with pytest.raises(MCPVideoError) as no_src:
+        validate_sphere_plan({**desk, "source": {}})
+    assert no_src.value.code == "invalid_sphere_plan"
+
 
 def test_storyboard_writes_distinct_camera_stills(tmp_path: Path) -> None:
     source = _equirect_video(tmp_path / "sphere.mp4")
@@ -122,6 +129,26 @@ def test_render_requires_approval_then_writes_split(tmp_path: Path) -> None:
     assert receipt["layout"] == "split"
     assert receipt["writer"]["kind"] == "heuristic"
     assert receipt["source"]["sha256"] == plan["source"]["sha256"]
+
+
+def test_switch_window_with_two_cameras_renders(tmp_path: Path) -> None:
+    source = _equirect_video(tmp_path / "sphere.mp4")
+    plan = propose_sphere_plan(source, preset="desk")
+    plan["layout"] = "switch"
+    plan["windows"] = [
+        {
+            "id": "w1",
+            "start": 0.0,
+            "end": float(plan["source"]["duration_seconds"]),
+            "cameras": ["talent", "screens"],
+            "layout": "switch",
+        }
+    ]
+    approved = decide_sphere_plan(plan, "approve")
+    dest = str(tmp_path / "switch-multi.mp4")
+    receipt = render_sphere_plan(approved, dest, work_dir=str(tmp_path / "sw"), allow_fail=True)
+    assert Path(dest).is_file()
+    assert receipt["layout"] == "switch"
 
 
 @pytest.mark.parametrize("layout", ["switch", "pip", "single"])
