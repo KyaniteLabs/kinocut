@@ -481,9 +481,7 @@ def run_diagnostics(
     """Return a structured report for core and optional integration dependencies."""
     checks = [_check_mcp_video(find_spec, package_version)]
     with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
-        checks.extend(
-            pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS)
-        )
+        checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
     checks.extend(
         [
             _check_hyperframes_cli(which, version_runner),

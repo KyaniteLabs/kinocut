@@ -13,10 +13,10 @@ Kinocut is a free, open-source Model Context Protocol (MCP) server that gives AI
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.13.4 (2026-08-12)
+- **Latest published release:** 1.14.0 (2026-08-13)
 - **Last-updated:** 2026-08-13
-- **Published surface (1.13.4):** 196 MCP tools / 167 CLI commands
-- **Development tip (master):** 196 MCP tools / 167 CLI commands — same counts as 1.13.4; unreleased 360 assembly reuses `video_intent` + review (not a 197th tool)
+- **Published surface (1.14.0):** 196 MCP tools / 167 CLI commands
+- **Development tip (master at tag):** 196 MCP tools / 167 CLI commands — matches published 1.14.0
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
@@ -46,7 +46,7 @@ Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
 Compatibility:
 
 ```bash
-pip install --upgrade mcp-video   # 1.6.8 shim → kinocut 1.13.4
+pip install --upgrade mcp-video   # 1.6.9 shim → kinocut 1.14.0
 ```
 
 ## Canonical links
@@ -61,7 +61,7 @@ pip install --upgrade mcp-video   # 1.6.8 shim → kinocut 1.13.4
 - Workflows: https://github.com/KyaniteLabs/kinocut/blob/master/docs/WORKFLOWS.md
 - Video receipts: https://github.com/KyaniteLabs/kinocut/blob/master/docs/VIDEO_RECEIPT.md
 - Rescue: https://github.com/KyaniteLabs/kinocut/blob/master/docs/RESCUE.md
-- 360 assembly (tip): https://github.com/KyaniteLabs/kinocut/blob/master/docs/360_ASSEMBLY.md
+- 360 assembly: https://github.com/KyaniteLabs/kinocut/blob/master/docs/360_ASSEMBLY.md
 - AI-video review (dev tip): https://github.com/KyaniteLabs/kinocut/blob/master/docs/AI_VIDEO_REVIEW_AND_SALVAGE.md
 - FAQ: https://github.com/KyaniteLabs/kinocut/blob/master/docs/faq.md
 - Agent skill: https://github.com/KyaniteLabs/kinocut/blob/master/skills/kinocut/SKILL.md
@@ -75,7 +75,7 @@ pip install --upgrade mcp-video   # 1.6.8 shim → kinocut 1.13.4
 - Captioning, reframe 9:16, Shorts/Reels/TikTok repurposing packages
 - Hyperframes code-driven video + FFmpeg post-process
 - Video rescue (plan / render / inspect) for content-preserving repair
-- 360 dual-cam assembly from a stitched Insta360 MP4 (master tip; propose → approve → render)
+- 360 dual-cam assembly from a stitched equirect MP4 (propose → approve → render; not a new MCP name)
 - Quality gates and human release checkpoints before publish
 - Cinematic STYLE_/NEG_ + storyboard prompt expansion
 

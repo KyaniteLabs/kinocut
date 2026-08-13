@@ -45,9 +45,7 @@ def test_submodule_import_still_resolves() -> None:
 
 
 def test_mcp_video_import_does_not_load_engines() -> None:
-    loaded = _run(
-        "import sys, mcp_video; print(','.join(m for m in sys.modules if m in " + repr(_HEAVY) + "))"
-    ).strip()
+    loaded = _run("import sys, mcp_video; print(','.join(m for m in sys.modules if m in " + repr(_HEAVY) + "))").strip()
     assert loaded == ""
 
 

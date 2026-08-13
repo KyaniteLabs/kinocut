@@ -86,7 +86,7 @@ or verify only and do not render media or perform network I/O.
 
 The complete operation contracts are in [POST_RESCUE_FEATURES.md](POST_RESCUE_FEATURES.md).
 
-## 360 dual-cam assembly (unreleased on master)
+## 360 dual-cam assembly (published 1.14.0)
 
 Propose → storyboard → approve → render a `360_assembly_plan` from a **stitched equirect MP4**.
 Not a new MCP tool. `.insv` fails closed. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
