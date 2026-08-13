@@ -250,9 +250,7 @@ def video_review_decide(
     if (decision or "").lower() == "accept" and input_path and output_path and edl and approval:
         from kinocut.te import render_approved_edl
 
-        decided["edl_render"] = render_approved_edl(
-            input_path, edl=edl, approval=approval, output_path=output_path
-        )
+        decided["edl_render"] = render_approved_edl(input_path, edl=edl, approval=approval, output_path=output_path)
     return _result(decided)
 
 

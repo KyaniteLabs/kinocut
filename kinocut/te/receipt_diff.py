@@ -60,7 +60,9 @@ def _ops(receipt: dict[str, Any]) -> list[str]:
                 if isinstance(item, str):
                     out.append(item)
                 elif isinstance(item, dict):
-                    out.append(str(item.get("op") or item.get("tool") or item.get("action") or item.get("name") or item))
+                    out.append(
+                        str(item.get("op") or item.get("tool") or item.get("action") or item.get("name") or item)
+                    )
             return out
     if receipt.get("operation"):
         return [str(receipt["operation"])]
