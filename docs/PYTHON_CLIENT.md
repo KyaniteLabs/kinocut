@@ -6,6 +6,8 @@ from kinocut import Client
 editor = Client()
 ```
 
+`import kinocut` is lazy (PEP 562 on `master`): it does not eagerly load `Client` or engines. `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
+
 ## Stream shorts (saved-plan stages)
 
 ```python
@@ -83,6 +85,33 @@ or verify only and do not render media or perform network I/O.
 | `remote_egress_plan(request)` | Plan explicit remote egress without network I/O |
 
 The complete operation contracts are in [POST_RESCUE_FEATURES.md](POST_RESCUE_FEATURES.md).
+
+## 360 dual-cam assembly (unreleased on master)
+
+Propose → storyboard → approve → render a `360_assembly_plan` from a **stitched equirect MP4**.
+Not a new MCP tool. `.insv` fails closed. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+
+| Method | Returns | Description |
+|--------|---------|-------------|
+| `propose_360_assembly(source, *, goal?, preset?, layout?, aspect?, writer_kind?, director?, model?, base_url?, allow_cloud?, propose?, storyboard_dir?)` | `dict` | Probe + write a `proposed` plan. Never renders. |
+| `storyboard_360_assembly(plan, output_dir)` | `dict` | Extract review stills per camera / sample time. |
+| `decide_360_assembly(plan, decision, *, layout?)` | `dict` | `approve` / `accept` / `reject`. Optional layout override on approve. |
+| `render_360_assembly(plan, output_path, *, work_dir?, allow_fail?, min_score?)` | `dict` | Requires `status=approved`. `v360` extract + split/switch/PiP/single. |
+
+```python
+from kinocut import Client
+
+video = Client()
+plan = video.propose_360_assembly(
+    "/abs/path/x4-export.mp4",
+    goal="desk 360 split 9:16",
+    storyboard_dir="/abs/path/360-board",
+)
+approved = video.decide_360_assembly(plan, "approve")
+receipt = video.render_360_assembly(approved, "/abs/path/desk-split.mp4")
+```
+
+Cloud directors need `allow_cloud=True`. Render without approve raises `human_apply_required`.
 
 ---
 

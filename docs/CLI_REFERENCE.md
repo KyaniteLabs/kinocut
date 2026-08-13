@@ -8,7 +8,7 @@ kino [command] [options]
 
 | Command | Description |
 |---------|-------------|
-| `doctor` | Check FFmpeg, Hyperframes, image, and AI dependencies |
+| `doctor` | Check FFmpeg, Hyperframes, image, and AI dependencies. Optional `sphere_director` reports configured 360 director IDs (probe only; no network). |
 
 ## Project-backed Inspection
 
@@ -37,6 +37,23 @@ Acceptance accepts record ids rather than caller-built verdict/spec objects, and
 never offers a projectless public mode.
 See [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) for the required ingest,
 inspection, decision, protection, derivative, and re-review sequence.
+
+## Intent, review, and cutfiles
+
+Published 1.13.4 surface. These commands do **not** add a 360 CLI verb.
+
+| Command | Description |
+|---------|-------------|
+| `intent VERB` | Route a semantic intent verb to a dry-run plan. `--list` prints the catalog. `--params-json` optional. Does **not** compile a 360 assembly plan (use MCP `video_intent` `goal=` + `source=`, or `Client.propose_360_assembly`). |
+| `review-run INPUT` | Offline watching metric floor. |
+| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. Does **not** approve a `360_assembly_plan` (use MCP `video_review_decide` or `Client.decide_360_assembly`). |
+| `cutfile-validate PATH` | Validate a cutfile JSON/YAML. |
+| `cutfile-render PATH` | Render a cutfile via the workflow engine (`-o`, `--receipt`, `--keep-intermediates`). |
+| `metric-qc INPUT` | Offline metric floor (duration / black / loudness). |
+| `propose-broll SEGMENTS.json` | Transcript-keyed b-roll proposals (never silent insert). |
+| `init PATH` | Scaffold a local project (`--name`, `--no-cutfile`). |
+
+360 operator guide (Client + MCP only): [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## Core Editing
 

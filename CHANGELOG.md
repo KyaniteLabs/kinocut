@@ -12,12 +12,13 @@ This project follows a simple release-note style:
 ## Unreleased
 
 ### Added
-- **360 dual-cam assembly (X4):** `video_intent` `goal=` can propose a reviewable `360_assembly_plan` (desk/table presets, split/switch/PiP/single). Approve then render via existing review. Director is a plug (local first; cloud opt-in). `.insv` is rejected. Not an optimized-AI-director claim.
+- **360 dual-cam assembly (X4):** `video_intent` `goal=` can propose a reviewable `360_assembly_plan` (desk/table presets, split/switch/PiP/single). Approve then render via existing review. Director is a plug (local first; cloud opt-in). `.insv` is rejected. Not an optimized-AI-director claim. Operator guide: `docs/360_ASSEMBLY.md`.
 
 ### Changed
 - **Lazy public import:** `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
 - **Ship-seam docs:** CLI/Client `repurpose` default `--min-score` 80 and `shorts-package --allow-fail` documented. MCP durable `video_repurpose` states that `min_score` is unused.
 - **ROADMAP:** pre-1.13 archaeology moved to `docs/archive/roadmap-pre-1.13.md`.
+- **360 docs pass:** operator guide plus NOW / SKILL / TOOLS / PYTHON_CLIENT / CLI / README / llms honesty (no 197th-tool claim).
 
 ## 1.13.4 - 2026-08-12
 

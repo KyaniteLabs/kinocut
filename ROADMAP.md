@@ -26,10 +26,16 @@ Release ritual still documents *how* to freeze claims at cut time; this freeze *
 
 ---
 
-## Current (shipped on tip = published 1.13.4)
+## Current (published 1.13.4)
 
 - Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
 - Rescue, compositing, Hyperframes, repurposing package surface
+
+## Unreleased on tip (`master`, still 196 / 167)
+
+- **360 dual-cam assembly** — `360_assembly_plan` via `video_intent` `goal=` + Client methods; approve then render. Operator guide: [`docs/360_ASSEMBLY.md`](docs/360_ASSEMBLY.md). Not a new MCP name. Not an optimized-AI-director claim.
+- **PEP 562 lazy import** — `import kinocut` no longer eager-loads Client/engines
+- **Ship-seam honesty** — QC-80 documented on CLI/Client `repurpose` / `shorts-package`; durable MCP `video_repurpose` does not apply `min_score`
 - **Sound honesty:** `kinocut_sound/` packages for design stages S4–S13 exist on tip; public MCP/CLI join remains a **thin S12** surface (6 tools) — **not** full-episode sonic-world product complete. Synthetic S14 dual-class evidence exists (`docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json`) but **≠** product claim; residual class is re-run/deepen (see residual matrix + sound DAG). Do **not** staff greenfield “S5–S15 incomplete” rebuilds without a failing case.
 - Dual-host public face restored; S+ **floor** green (excellence WP-A targets ≥95 preferred, not hard portfolio GO)
 - Policy hygiene on tip: modules ≤800 LOC (incl. `hyperframes_ops` split), functions ≤80, ruff clean — excellence WP-C/D/G **done** (2026-08-12 live). Do not re-open size rebuilds from the 2026-08-07 audit snapshot alone.

@@ -503,6 +503,9 @@ chapters = video_auto_chapters("video.mp4", threshold=0.3)
 
 ## 🔬 **Research / Future**
 
+### Shipped on tip (not a new MCP name)
+- **360 dual-cam assembly** — stitched equirect MP4 → `360_assembly_plan` (desk/table, split/switch/PiP/single) via `video_intent` `goal=` / `Client.propose_360_assembly`. See [360_ASSEMBLY.md](360_ASSEMBLY.md). Not `video_360_stabilization`.
+
 ### v1.1+ Ideas
 - `video_ai_object_tracking` - Track objects across frames
 - `video_ai_style_transfer` - Artistic style transfer

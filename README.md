@@ -35,6 +35,7 @@
   <a href="#mcp-tools">Tools</a> &bull;
   <a href="docs/TOOLS.md">Tool Reference</a> &bull;
   <a href="docs/RESCUE.md">Rescue</a> &bull;
+  <a href="docs/360_ASSEMBLY.md">360 assembly</a> &bull;
   <a href="docs/AI_VIDEO_REVIEW_AND_SALVAGE.md">AI-video</a> &bull;
   <a href="#agent-skill">Agent Skill</a> &bull;
   <a href="https://kinocut.dev/">kinocut.dev</a> &bull;
@@ -53,6 +54,8 @@
 - [Quick Start](#quick-start)
 - [MCP Tools](#mcp-tools)
 - [Status and releases](#status-and-releases)
+- [Unreleased on master](#unreleased-on-master-not-in-pip-1134)
+- [360 dual-cam assembly (tip)](#360-dual-cam-assembly-tip)
 - [Changelog](#changelog)
 - [FAQ](#faq)
 - [Agent Skill](#agent-skill)
@@ -115,7 +118,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.13.4](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.4)** (2026-08-12) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.13.4** · **196 MCP tools / 167 CLI commands** | Intent/watching/TE + still/plate surface matches published package. |
+| **This repository (`master`)** | **1.13.4** · **196 MCP tools / 167 CLI commands** | Same published counts. Unreleased on tip: 360 dual-cam assembly (reuses `video_intent` / review; not a 197th tool), PEP 562 lazy import, QC-80 ship-seam honesty. |
 | **Next public release** | **TBD** | Post-release pillars and human programs remain gated; further bumps need a new go-ahead. |
 
 Install from PyPI when you want the stable package. Clone or install from `master` only when you intentionally need unreleased surfaces.
@@ -143,6 +146,16 @@ Also already on the published line from earlier 1.x surfaces:
 - Expanded preflight guardrails for filters, merge, audio, overlay/chroma, text, and layout mismatches
 
 Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.13.2 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.2)
+
+## Unreleased on `master` (not in pip 1.13.4)
+
+Tip matches the published **196 / 167** counts. Compilers landed after the 1.13.4 cut:
+
+- **360 dual-cam assembly** — stitched Insta360 X4 MP4 → reviewable `360_assembly_plan` (desk/table, split/switch/PiP/single) → approve → FFmpeg `v360` render. MCP: `video_intent` `goal=` + `video_review_decide`. Python: `Client.propose_360_assembly` / `decide_360_assembly` / `render_360_assembly`. No new MCP name. `.insv` rejected. Director is a plug (local first; cloud opt-in). Not an optimized-AI claim. Guide: [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
+- **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562).
+- **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; durable MCP `video_repurpose` does not apply `min_score`.
+
+Install from `master` only when you want these. `pip install kinocut` stays 1.13.4 until the next release cut.
 
 ## Beyond 1.13.4 (draft / gated)
 
@@ -253,6 +266,21 @@ kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan
 ```
 
 Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer must be full-canvas (position `{0,0}`, full opacity, no scale/mask/timing) or it fails closed; output is video-only. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are tracked as later phases so this surface stays deterministic and preflightable.
+
+## 360 dual-cam assembly (tip)
+
+On `master`, one stitched 360 MP4 can become a two-cam 16:9 or 9:16 edit without a new tool name. Export from Insta360 first — Kinocut does not stitch `.insv`.
+
+```python
+from kinocut import Client
+
+video = Client()
+plan = video.propose_360_assembly("x4-export.mp4", goal="desk 360 split 9:16")
+approved = video.decide_360_assembly(plan, "approve")
+video.render_360_assembly(approved, "desk-split.mp4")
+```
+
+Agents: `video_intent` with a 360/desk/table goal and `source=`, then `video_review_decide`. Full contract: [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
 
 ## Still / Image Editing
 
@@ -645,7 +673,11 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.13.4** documents **196 MCP tools / 167 CLI commands**. The development tip matches the published surface.
+Published **1.13.4** documents **196 MCP tools / 167 CLI commands**. The development tip keeps those counts. 360 assembly on `master` reuses `video_intent` and `video_review_decide` — it is not a 197th MCP tool.
+
+### Can Kinocut edit Insta360 X4 360 video?
+
+On `master`, yes — from a **stitched 360 MP4**, not `.insv`. Propose a `360_assembly_plan`, approve it, then render split/switch/PiP/single. Not in `pip install kinocut` 1.13.4. See [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
 
 ### Was it called mcp-video?
 
@@ -663,6 +695,7 @@ More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](http
 - [Agent workflow engine](docs/WORKFLOWS.md)
 - [Video receipts](docs/VIDEO_RECEIPT.md)
 - [Video rescue](docs/RESCUE.md)
+- [360 dual-cam assembly](docs/360_ASSEMBLY.md)
 - [Post-rescue planning](docs/POST_RESCUE_FEATURES.md)
 - [AI-video review and salvage](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md)
 - [AI-video contracts](docs/AI_VIDEO_CONTRACTS.md)
@@ -753,7 +786,7 @@ Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — av
 | **Best for** | AI agent builders, Claude Code/Cursor users, and local media operators |
 | **Not** | a hosted cloud editor or untyped FFmpeg shell |
 | **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) |
-| **Keywords** | video editing MCP, AI agent video, FFmpeg MCP, Shorts Reels |
+| **Keywords** | video editing MCP, AI agent video, FFmpeg MCP, Shorts Reels, Insta360 360 assembly |
 
 ## Who it's for
 
@@ -778,6 +811,10 @@ Unlike raw FFmpeg scripts or unguarded agent shells, Kinocut validates tools and
 ### Is Kinocut production software?
 
 Treat the README status and release tags as source of truth for maturity. Validate against your own requirements before production use.
+
+### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
+
+On the development tip, yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This is not in the published 1.13.4 package.
 
 ## Status
 
