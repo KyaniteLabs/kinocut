@@ -337,3 +337,5 @@ Hyperframes project paths may be relative or absolute. Relative paths are resolv
 | `--format text\|json` | Output format (default: text — rich tables & spinners) |
 | `--version` | Show version and exit |
 | `--mcp` | Run as MCP server (default when no command given) |
+| `-v`, `--verbose` | Debug logs to stderr |
+| `--log-file PATH` | Write structured DEBUG logs to PATH |

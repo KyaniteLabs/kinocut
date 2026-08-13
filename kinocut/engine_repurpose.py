@@ -15,6 +15,7 @@ from .engine_thumbnail import thumbnail
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .paths import _auto_output_dir
+from .defaults import DEFAULT_QUALITY_GATE_SCORE
 from .quality_guardrails import assert_quality
 
 
@@ -163,7 +164,7 @@ def repurpose(
     output_dir: str | None = None,
     platforms: list[str] | None = None,
     include_release_checkpoint: bool = True,
-    min_score: float = 0.0,
+    min_score: float = DEFAULT_QUALITY_GATE_SCORE,
 ) -> dict[str, Any]:
     """Render a local content repurposing package and manifest."""
     input_path = _validate_input_path(input_path)

@@ -61,12 +61,26 @@ def _renders_for(plan: ShortsPlan, candidate_id: str) -> tuple[RenderRecord, ...
     return tuple(record for record in plan.renders if record.candidate_id == candidate_id)
 
 
+def _gate_package_media(path: str, *, allow_fail: bool) -> dict[str, Any] | None:
+    """Run release quality on a packaged render. Dummy bytes use allow_fail."""
+    from ..defaults import DEFAULT_QUALITY_GATE_SCORE
+    from ..quality_guardrails import assert_quality
+
+    try:
+        return assert_quality(path, min_score=DEFAULT_QUALITY_GATE_SCORE)
+    except Exception as exc:
+        if allow_fail:
+            return {"quality_gate_failed": True, "error": type(exc).__name__, "message": str(exc)[:200]}
+        raise
+
+
 def package_approved_candidate(
     plan_path_or_dir: str,
     *,
     candidate_id: str,
     package_root: str | None = None,
     overwrite: bool = False,
+    allow_fail: bool = False,
 ) -> dict[str, Any]:
     """Package every platform draft for an approved candidate and persist the plan."""
     plan = load_shorts_plan(plan_path_or_dir)
@@ -114,6 +128,7 @@ def package_approved_candidate(
         )
         if result.manifest_path not in manifests:
             manifests.append(result.manifest_path)
+        gate = _gate_package_media(record.output_path, allow_fail=allow_fail)
         emitted.append(
             {
                 "platform": record.platform,
@@ -121,6 +136,7 @@ def package_approved_candidate(
                 "manifest_path": result.manifest_path,
                 "asset_paths": list(result.asset_paths),
                 "external_posting": False,
+                "quality": gate,
             }
         )
 

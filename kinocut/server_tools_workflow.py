@@ -132,7 +132,7 @@ def video_workflow_render(
 
 @mcp.tool()
 @_safe_tool
-def video_workflow_inspect(receipt_path: str) -> dict[str, Any]:
+def video_workflow_inspect(receipt_path: str, compare_path: str | None = None) -> dict[str, Any]:
     """Summarize any receipt this project emits, with a read-only integrity check.
 
     Reads a workflow render receipt, a dry-run ``workflow_plan`` artifact, or a
@@ -150,5 +150,14 @@ def video_workflow_inspect(receipt_path: str) -> dict[str, Any]:
 
     Args:
         receipt_path: Absolute path to the receipt JSON file to inspect.
+        compare_path: Optional second receipt; when set, also return a diff (N3).
     """
-    return _result(inspect_receipt(receipt_path))
+    inspected = inspect_receipt(receipt_path)
+    if compare_path:
+        from kinocut.te import diff_receipts
+
+        payload = inspected if isinstance(inspected, dict) else {"inspection": inspected}
+        payload = dict(payload)
+        payload["diff"] = diff_receipts(receipt_path, compare_path)
+        return _result(payload)
+    return _result(inspected)

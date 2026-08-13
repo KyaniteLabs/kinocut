@@ -105,7 +105,9 @@ def _add_core_style_parsers(subparsers: argparse._SubParsersAction) -> None:
     repurpose_p.add_argument("-o", "--output-dir", help="Package output directory")
     repurpose_p.add_argument("--platforms", nargs="+", help="Platforms to include")
     repurpose_p.add_argument("--skip-release-checkpoint", action="store_true")
-    repurpose_p.add_argument("--min-score", type=float, default=0.0)
+    from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE
+
+    repurpose_p.add_argument("--min-score", type=float, default=DEFAULT_QUALITY_GATE_SCORE)
 
     # Effect commands
 

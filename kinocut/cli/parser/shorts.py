@@ -41,3 +41,8 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     package.add_argument("--candidate-id", required=True)
     package.add_argument("--package-root", default=None)
     package.add_argument("--overwrite", action="store_true")
+    package.add_argument(
+        "--allow-fail",
+        action="store_true",
+        help="Package even if release quality fails (still records quality_gate_failed)",
+    )

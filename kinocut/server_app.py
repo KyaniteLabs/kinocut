@@ -22,10 +22,10 @@ _fastmcp_server.Settings.model_rebuild(_types_namespace=vars(_fastmcp_server))
 mcp = FastMCP(
     "kinocut",
     instructions=(
-        "Kinocut is a video editing MCP server. Use these tools to trim, merge, "
-        "add text overlays, sync audio, resize, convert, and export video files. "
-        "All file paths should be absolute. Output files are generated automatically "
-        "if no output_path is provided."
+        "Kinocut is a video editing MCP server. Default path: inspect (info/doctor) → "
+        "plan (video_intent or cutfile) → render → quality check → human review. "
+        "Do not publish without QC and a human gate. Prefer video_intent verbs over "
+        "listing every tool. Paths should be absolute. Output is auto-generated if omitted."
     ),
 )
 

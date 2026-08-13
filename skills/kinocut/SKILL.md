@@ -7,19 +7,20 @@ description: Use Kinocut for guarded video editing, source-backed planning, FFmp
 
 Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. It exposes MCP tools, a Python client, and a CLI for editing, analysis, subtitles, audio, Hyperframes, layered compositing, and local repurposing workflows.
 
+## Default path (do this first)
+
+1. `kino doctor` then `kino --format json info <file>`.
+2. Plan with `video_intent` (optional `goal=` compiles a cutfile) — do not list 196 tools.
+3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool).
+4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
+5. Human visual/audio review. Never treat a receipt as published.
+
+Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
+
 ## Start Here
 
-- Read `../../README.md` for installation, agent workflows, and the safety contract.
-- Read `../../docs/CLI_REFERENCE.md` for command names and flags.
-- Read `../../docs/TOOLS.md` for MCP tool coverage.
-- Read `../../docs/PYTHON_CLIENT.md` when scripting multi-step workflows.
-- Read `../../docs/WORKFLOWS.md` for the agent workflow engine (job-spec, `@refs`, variants, resume, receipts).
-- Read `../../docs/STREAM_SHORTS.md` for saved-plan stream-to-shorts review → render → package (no posting).
-- Read `../../docs/TOOLS.md` (Sound public join) and `../../docs/CLI_REFERENCE.md` for the thin `kinocut_sound` S12 surface — discover/invoke only; not full-episode sound completion.
-- Read `../../docs/RESCUE.md` for local diagnosis and content-preserving "fix this clip" work.
-- Read `../../docs/POST_RESCUE_FEATURES.md` for semantic, visual, restorative, composition, autopilot, and egress planning.
-- Read `../../docs/AI_VIDEO_INSPECTION.md` for content-addressed ingest and deterministic temporal evidence.
-- Run `kino doctor` before media work that depends on FFmpeg, Hyperframes, image tools, or AI dependencies.
+- Read `../../README.md` for install and the safety contract.
+- Run `kino doctor` before FFmpeg / Hyperframes / AI extras.
 
 ## Choose A Surface
 
