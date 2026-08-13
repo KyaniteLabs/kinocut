@@ -28,7 +28,7 @@ Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`
 - CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
 - Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
 
-## 360 dual-cam assembly (X4, unreleased on master)
+## 360 dual-cam assembly (published 1.14.0)
 
 Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …) and the ask is two virtual cameras as split / switch / PiP / single.
 
@@ -37,7 +37,7 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
 4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
 
-There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director plugs (Ollama first; cloud only with `allow_cloud`) may propose JSON; they never write pixels. Not in pip 1.13.4.
+There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director plugs (Ollama first; cloud only with `allow_cloud`) may propose JSON; they never write pixels. In pip 1.14.0.
 
 ## Dedicated Video Rescue
 

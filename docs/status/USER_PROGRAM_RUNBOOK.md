@@ -12,7 +12,7 @@ Live public adoption already exceeds a “first 10” product gate:
 | GitHub stars | **107** |
 | GitHub forks | **25** |
 | PyPI last day / week / month | **608 / 6,715 / 23,034** |
-| Published | Kinocut **1.13.4** |
+| Published | Kinocut **1.14.0** |
 
 This runbook remains as **optional** guided-onboarding material for support or
 content, **not** as an open residual that blocks product timeline or release.

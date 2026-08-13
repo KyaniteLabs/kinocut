@@ -1,10 +1,10 @@
 # Insta360 X4 — 360 dual-cam assembly
 
-**Status (2026-08-13):** Implemented on `master` (`a17387a`). Operator guide: [`docs/360_ASSEMBLY.md`](../../360_ASSEMBLY.md). Not in pip 1.13.4.
+**Status (2026-08-13):** Published in Kinocut 1.14.0. Operator guide: [`docs/360_ASSEMBLY.md`](../../360_ASSEMBLY.md).
 
 **Status:** Draft for user review (do not implement until approved)  
 **Date:** 2026-08-13  
-**Tip:** `eac1432` · Kinocut 1.13.4 · 196 MCP / 167 CLI  
+**Published:** Kinocut 1.14.0 · 196 MCP / 167 CLI  
 **Input assumption:** stitched 360 MP4 exported from Insta360 Studio/app. Not `.insv`.
 
 ## Summary

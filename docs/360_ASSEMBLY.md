@@ -9,7 +9,7 @@ waits for approve/reject, then extracts with FFmpeg `v360`.
 X4 is one example, not a requirement. No vendor SDK. One ffprobe, no extra
 decode until you approve a render.
 
-**On `master` (unreleased).** Not in pip `kinocut==1.13.4`.
+**Published in Kinocut 1.14.0** (`pip install kinocut`).
 No new MCP or CLI name — still **196 / 167**.
 Not an optimized-AI-director claim. The model never writes pixels.
 

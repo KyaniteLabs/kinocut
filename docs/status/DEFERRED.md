@@ -1,4 +1,4 @@
-# Deferred IDs (product pipeline after 1.13.4)
+# Deferred IDs (product pipeline after 1.14.0)
 
 **Schema:** `id | family | reason | owner | blocks_portfolio_complete | reopen_condition | date`
 

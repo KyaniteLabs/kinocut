@@ -75,6 +75,7 @@ def main() -> int:
     claims = json.loads(claims_path.read_text(encoding="utf-8"))
     claims["published_version"] = ver
     claims["published_date"] = date
+    claims["release_candidate_version"] = ver
     claims["published_mcp_tools"] = mcp_n
     claims["published_cli_commands"] = cli_n
     if not args.keep_dev_ahead:
@@ -115,6 +116,12 @@ def main() -> int:
         f'"version": "{ver}"',
         apply=apply,
         flags=0,
+    )
+    _replace_file(
+        ROOT / "npm" / "bin" / "kinocut.js",
+        f"kinocut=={prev}",
+        f"kinocut=={ver}",
+        apply=apply,
     )
 
     # --- mcp-video shim pins (all kinocut==prev → kinocut==ver) ---

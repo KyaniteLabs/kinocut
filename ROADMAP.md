@@ -1,15 +1,15 @@
 # Improvement Roadmap
 
-Kinocut 1.13.4 is published with 196 MCP tools and 167 CLI commands (`mcp-video` 1.6.6 shim).
+Kinocut 1.14.0 is published with 196 MCP tools and 167 CLI commands (`mcp-video` 1.6.9 shim).
 
-**Published product:** Kinocut **1.13.4** (2026-08-12) · **196 MCP / 167 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
+**Published product:** Kinocut **1.14.0** (2026-08-13) · **196 MCP / 167 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
 **Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
 **Residual portfolio (living truth):** [`docs/status/2026-08-12-residual-maturity-matrix.md`](docs/status/2026-08-12-residual-maturity-matrix.md) · [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md) · [fixture freeze](docs/status/2026-08-12-sound-fixture-freeze.md) · [L1 truth pass](docs/status/2026-08-12-l1-truth-pass.md) · [phase checkpoints](docs/status/PHASE_CHECKPOINTS.md)  
 **Excellence program (snapshot):** [`docs/status/2026-08-07-kinocut-excellence-audit.md`](docs/status/2026-08-07-kinocut-excellence-audit.md) · handoff [`docs/handoffs/2026-08-07/kinocut-excellence-campaign.md`](docs/handoffs/2026-08-07/kinocut-excellence-campaign.md)  
 **Earlier tip snapshot:** [post-campaign tip status](docs/status/2026-07-27-post-campaign-tip-status.md) (evidence only)
 
-This file is **planning truth for after 1.13.4**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims. Prefer the **2026-08-12 residual matrix** over any July “S5–S15 incomplete / missing packages” language.
+This file is **planning truth for after 1.14.0**. July 2026 status notes and pre-1.3 history live under **Archive** — they are evidence, not current claims. Prefer the **2026-08-12 residual matrix** over any July “S5–S15 incomplete / missing packages” language.
 
 ---
 
@@ -26,16 +26,14 @@ Release ritual still documents *how* to freeze claims at cut time; this freeze *
 
 ---
 
-## Current (published 1.13.4)
-
-- Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
-- Rescue, compositing, Hyperframes, repurposing package surface
-
-## Unreleased on tip (`master`, still 196 / 167)
+## Current (published 1.14.0)
 
 - **360 dual-cam assembly** — `360_assembly_plan` via `video_intent` `goal=` + Client methods; approve then render. Operator guide: [`docs/360_ASSEMBLY.md`](docs/360_ASSEMBLY.md). Not a new MCP name. Not an optimized-AI-director claim.
 - **PEP 562 lazy import** — `import kinocut` no longer eager-loads Client/engines
 - **Ship-seam honesty** — QC-80 documented on CLI/Client `repurpose` / `shorts-package`; durable MCP `video_repurpose` does not apply `min_score`
+- **Committee perf top-10** — single-pass 360 graph, sampled QC, SHA cache, lazy CLI/import/search_tools, doctor skips unused `npx --yes`
+- Intent / watching foundation, TE multipliers (audiogram, brand kit, punch zoom, seek, OTIO), still/plate, workflow + receipts
+- Rescue, compositing, Hyperframes, repurposing package surface
 - **Sound honesty:** `kinocut_sound/` packages for design stages S4–S13 exist on tip; public MCP/CLI join remains a **thin S12** surface (6 tools) — **not** full-episode sonic-world product complete. Synthetic S14 dual-class evidence exists (`docs/evidence/2026-07-14-sound-s14-dual-class-benchmark.json`) but **≠** product claim; residual class is re-run/deepen (see residual matrix + sound DAG). Do **not** staff greenfield “S5–S15 incomplete” rebuilds without a failing case.
 - Dual-host public face restored; S+ **floor** green (excellence WP-A targets ≥95 preferred, not hard portfolio GO)
 - Policy hygiene on tip: modules ≤800 LOC (incl. `hyperframes_ops` split), functions ≤80, ruff clean — excellence WP-C/D/G **done** (2026-08-12 live). Do not re-open size rebuilds from the 2026-08-07 audit snapshot alone.
@@ -70,7 +68,7 @@ Ordered per residual matrix + excellence audit. Prefer one work package per PR. 
 | CI `light` vs `heavy` runner topology | Ops | Partial |
 | First-10 users (#92) | — | **Closed 2026-08-12** — adoption already past gate (107 GitHub stars; ~23k PyPI downloads last month). See `docs/HUMAN_GATES.md` |
 
-Product phases 1–4 + Track E are **GO** on tip (1.13.4). Agents must not invent third-party directory approvals. Do **not** re-open #92 as incomplete.
+Product phases 1–4 + Track E are **GO** on tip (1.14.0). Agents must not invent third-party directory approvals. Do **not** re-open #92 as incomplete.
 
 ---
 
