@@ -84,11 +84,11 @@ inspection, decision, protection, derivative, and re-review sequence.
 | `templates` | List available video templates |
 | `template` | Apply a video template (tiktok, youtube-shorts, etc.) |
 | `repurpose-plan` | Create a dry-run platform package manifest |
-| `repurpose` | Render local platform-ready variants and review artifacts |
+| `repurpose` | Render local platform-ready variants and review artifacts. Default `--min-score` is 80. Pass `--min-score 0` or `--skip-release-checkpoint` to skip the hard gate. MCP `video_repurpose` is a durable job and does **not** apply `min_score`. |
 | `shorts-plan-show` | Show proposals from a saved shorts plan (source-free) |
 | `shorts-review` | Append a human review decision to a saved shorts plan |
 | `shorts-render` | Render approved platform drafts from a saved shorts plan |
-| `shorts-package` | Package approved platform renders from a saved shorts plan |
+| `shorts-package` | Package approved platform renders from a saved shorts plan. Fails closed on quality unless `--allow-fail`. |
 | `sound-capabilities` | Discover the bounded public sound operation set |
 | `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional) |
 | `sound-voice-batch` | Local deterministic voice batch (`--plan-json` optional) |

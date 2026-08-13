@@ -33,12 +33,18 @@ def video_repurpose(
     start_job: bool = True,
     moment_selection_record_id: str | None = None,
 ) -> dict[str, Any]:
-    """Submit one durable projectstore repurpose job for platform clips."""
+    """Submit one durable projectstore repurpose job for platform clips.
+
+    ``min_score`` is accepted for signature parity with sync ``repurpose``
+    and is **not applied**. Durable jobs do not run ``assert_quality``.
+    Use CLI/Client ``repurpose`` (default 80) for the fail-closed ship seam.
+    """
     input_path = _validate_input_path(input_path)
     from .paths import _auto_output_dir
     from .projectstore.repurpose import durable_repurpose
 
     project_dir = output_dir or _auto_output_dir(input_path, "repurpose-project")
+    # Durable path: include_release_checkpoint / min_score are unused (Wave 2 OUT).
     _ = include_release_checkpoint, min_score
     return _result(
         durable_repurpose(

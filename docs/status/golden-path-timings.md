@@ -116,3 +116,26 @@ Recorded: `2026-08-12T15:16:30.129698+00:00`
 
 Not an “optimized” product claim — baseline receipt only (WP-F scaffolding).
 
+## Measured: 2026-08-13 (cheap path + import seam)
+
+**Host:** Darwin / arm64 · Python 3.14.5  
+**Not an “optimized” product claim.** Doctor/info are cold CLI processes (interpreter + `python -m kinocut`). Variance vs 2026-08-12 (doctor p50 1.36s / 5.26s) is expected.
+
+| step | mode | runs | ok | p50 (s) | p95 (s) | mean (s) | min (s) | max (s) | machine |
+| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- |
+| doctor | cheap | 5 | 5 | 2.6102 | 3.0375 | 2.667 | 2.4531 | 3.1366 | Darwin/arm64 |
+| info | cheap | 5 | 5 | 1.426 | 1.7849 | 1.2569 | 0.7372 | 1.86 | Darwin/arm64 |
+
+Fixture: `tests/fixtures/golden/workflow_final.mp4`  
+Recorded: `2026-08-13T06:13:59.987657+00:00`
+
+### Import seam (`import kinocut`, new interpreter per sample)
+
+| step | runs | p50 (s) | min (s) | max (s) | note |
+| --- | ---: | ---: | ---: | ---: | --- |
+| `import kinocut` before lazy | 7 | 0.3954 | 0.3872 | 0.6032 | eager Client + engines |
+| `import kinocut` after PEP 562 | 7 | 0.0023 | 0.0021 | 0.0037 | engines not loaded |
+| `import kinocut` + `Client` | 5 | 0.4151 | 0.4004 | 0.5111 | first Client access pays mixin cost |
+
+Aim was import p50 ≤ 0.40s. Bare `import kinocut` is under that. First `Client` access remains ~0.4s. **Do not** call the product optimized.
+
