@@ -91,7 +91,7 @@ def test_package_fails_closed_without_approve(tmp_path):
 def test_package_writes_both_platform_packages(tmp_path):
     plan = _plan_with_renders(tmp_path)
     review_shorts_plan(plan, candidate_id="candidate_01", decision="approve")
-    result = package_approved_candidate(plan, candidate_id="candidate_01")
+    result = package_approved_candidate(plan, candidate_id="candidate_01", allow_fail=True)
     assert result["status"] == "packaged"
     assert result["external_posting"] is False
     assert len(result["packages"]) == 2

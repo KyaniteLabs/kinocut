@@ -136,15 +136,26 @@ def video_intent(
     verb: str,
     params: dict[str, Any] | None = None,
     list_verbs: bool = False,
+    goal: str | None = None,
+    source: str | None = None,
 ) -> dict[str, Any]:
-    """Route a semantic intent verb to a plan (does not silently mutate media)."""
+    """Route a semantic intent verb to a plan (does not silently mutate media).
+
+    Optional ``goal`` compiles a reviewable cutfile (N1) without rendering.
+    """
 
     from kinocut.intent import list_intent_verbs, route_intent
 
     if list_verbs:
         return _result({"artifact_kind": "intent_catalog", "verbs": list_intent_verbs()})
     plan = route_intent(verb, params)
-    return _result({"artifact_kind": "intent_plan", **plan.to_dict()})
+    payload: dict[str, Any] = {"artifact_kind": "intent_plan", **plan.to_dict()}
+    if goal:
+        from kinocut.te import compile_goal_to_cutfile
+
+        payload["cutfile"] = compile_goal_to_cutfile(goal, source=source or "media/hero.mp4")
+        payload["next_action"] = "review_then_cutfile_render"
+    return _result(payload)
 
 
 @mcp.tool()
@@ -226,12 +237,21 @@ def video_review_decide(
     review_run: dict[str, Any],
     decision: str,
     reason: str = "",
+    input_path: str | None = None,
+    output_path: str | None = None,
+    edl: dict[str, Any] | None = None,
+    approval: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
-    """Record human accept/reject/revise on a review_run artifact."""
+    """Record human accept/reject/revise. Accept + EDL approval can render (N4)."""
 
     from kinocut.watching import decide_review
 
-    return _result(decide_review(review_run, decision, reason).to_dict())
+    decided = decide_review(review_run, decision, reason).to_dict()
+    if (decision or "").lower() == "accept" and input_path and output_path and edl and approval:
+        from kinocut.te import render_approved_edl
+
+        decided["edl_render"] = render_approved_edl(input_path, edl=edl, approval=approval, output_path=output_path)
+    return _result(decided)
 
 
 @mcp.tool()
@@ -326,11 +346,24 @@ def video_estimate_operation(
 
 @mcp.tool()
 @_safe_tool
-def video_cutfile_validate(path: str) -> dict[str, Any]:
-    """Validate a text-first Cutfile (v1 JSON or minimal YAML scaffold)."""
+def video_cutfile_validate(
+    path: str | None = None,
+    goal: str | None = None,
+    source: str | None = None,
+    platform: str | None = None,
+) -> dict[str, Any]:
+    """Validate a Cutfile, or compile one from ``goal`` / ``platform`` (N1/N5)."""
 
-    from kinocut.te import load_cutfile
+    from kinocut.te import compile_goal_to_cutfile, load_cutfile, solve_publish_cutfile
 
+    if platform:
+        return _result(solve_publish_cutfile(platform, source=source or "media/hero.mp4"))
+    if goal:
+        return _result(compile_goal_to_cutfile(goal, source=source or "media/hero.mp4"))
+    if not path:
+        from kinocut.errors import MCPVideoError
+
+        raise MCPVideoError("path, goal, or platform required", error_type="validation_error", code="cutfile_args")
     cf = load_cutfile(path)
     return _result(cf.to_dict())
 
@@ -386,10 +419,39 @@ def video_metric_qc(
 @mcp.tool()
 @_safe_tool
 def video_timeline_ir_validate(timeline: dict[str, Any]) -> dict[str, Any]:
-    """Validate Timeline IR and compile to render DAG (P3.0)."""
+    """Validate Timeline IR and compile to render DAG (P3.0).
 
+    Semantic timelines (shots/silences/words) also get agent-visible ``text`` (N2).
+    """
+
+    from kinocut.te import render_timeline_text
     from kinocut.timeline_ir import compile_ir_to_dag, ir_identity, parse_timeline_ir
 
+    view = None
+    if any(timeline.get(k) for k in ("shots", "silences", "words", "scenes")):
+        try:
+            view = render_timeline_text(timeline)
+        except Exception as exc:
+            import logging
+
+            logging.getLogger(__name__).debug("timeline text skipped: %s", exc)
+            view = None
+    if timeline.get("ir_schema_version") or timeline.get("nodes"):
+        ir = parse_timeline_ir(timeline)
+        dag = compile_ir_to_dag(ir)
+        payload = {
+            "artifact_kind": "timeline_ir",
+            "identity": ir_identity(ir),
+            "ir": ir.model_dump(mode="json"),
+            "dag_node_count": len(getattr(dag, "nodes", []) or []),
+            "compiled": True,
+        }
+        if view:
+            payload["text"] = view.get("text")
+            payload["timeline_view"] = view
+        return _result(payload)
+    if view:
+        return _result(view)
     ir = parse_timeline_ir(timeline)
     dag = compile_ir_to_dag(ir)
     return _result(
@@ -499,11 +561,23 @@ def video_publish_validate(
     height: int,
     width: int,
     container: str = "mp4",
+    solve: bool = False,
+    source: str | None = None,
+    captions: bool = False,
 ) -> dict[str, Any]:
-    """Local-first per-platform publish spec validation (TE.1) — no upload."""
+    """Validate a publish spec. ``solve=True`` also emits a cutfile (N5)."""
 
-    from kinocut.te import validate_publish_spec
+    from kinocut.te import solve_publish_cutfile, validate_publish_spec
 
+    if solve:
+        return _result(
+            solve_publish_cutfile(
+                platform,
+                source=source or "media/hero.mp4",
+                source_duration=duration_seconds or 60.0,
+                captions=captions,
+            )
+        )
     return _result(
         validate_publish_spec(
             platform,
@@ -574,15 +648,26 @@ def video_edit_session(
     step_action: str | None = None,
     score: float | None = None,
     notes: str = "",
+    input_path: str | None = None,
 ) -> dict[str, Any]:
-    """Conversational edit session open/step with measured improvement (TE.13)."""
+    """Conversational edit session. Step with ``input_path`` measures real QC (N6)."""
 
     from kinocut.errors import MCPVideoError
-    from kinocut.te import session_open, session_step
+    from kinocut.te import session_close, session_open, session_step
 
     act = (action or "").lower()
     if act == "open":
         return _result(session_open(path, goal or "edit"))
     if act == "step":
-        return _result(session_step(path, action=step_action or "step", score=score, notes=notes))
-    raise MCPVideoError("action must be open|step", error_type="validation_error", code="session_action")
+        return _result(
+            session_step(
+                path,
+                action=step_action or "step",
+                score=score,
+                notes=notes,
+                input_path=input_path,
+            )
+        )
+    if act == "close":
+        return _result(session_close(path))
+    raise MCPVideoError("action must be open|step|close", error_type="validation_error", code="session_action")

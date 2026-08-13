@@ -66,6 +66,7 @@ class ClientShortsMixin:
         candidate_id: str,
         package_root: str | None = None,
         overwrite: bool = False,
+        allow_fail: bool = False,
     ) -> dict[str, Any]:
         """Package approved platform renders from a saved plan. Never posts."""
         from ..product.shorts_package import package_approved_candidate
@@ -75,4 +76,5 @@ class ClientShortsMixin:
             candidate_id=candidate_id,
             package_root=package_root,
             overwrite=overwrite,
+            allow_fail=allow_fail,
         )

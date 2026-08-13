@@ -32,6 +32,7 @@ def session_step(
     action: str,
     score: float | None = None,
     notes: str = "",
+    input_path: str | None = None,
 ) -> dict[str, Any]:
     p = Path(session_path)
     if not p.is_file():
@@ -39,18 +40,23 @@ def session_step(
     state = json.loads(p.read_text(encoding="utf-8"))
     if not action:
         raise MCPVideoError("action required", error_type="validation_error", code="action_required")
+    measured = score
+    if measured is None and input_path:
+        measured = _qc_score(input_path)
+        notes = notes or f"qc:{input_path}"
     step = {
         "index": len(state.get("steps") or []) + 1,
         "action": action,
-        "score": score,
+        "score": measured,
         "notes": notes,
         "at": time.time(),
+        "input_path": input_path,
     }
     state.setdefault("steps", []).append(step)
-    if state.get("baseline_score") is None and score is not None:
-        state["baseline_score"] = score
-    if score is not None:
-        state["current_score"] = score
+    if state.get("baseline_score") is None and measured is not None:
+        state["baseline_score"] = measured
+    if measured is not None:
+        state["current_score"] = measured
     baseline = state.get("baseline_score")
     current = state.get("current_score")
     improvement = None
@@ -59,6 +65,13 @@ def session_step(
     state["improvement"] = improvement
     p.write_text(json.dumps(state, indent=2) + "\n", encoding="utf-8")
     return {**state, "path": str(p.resolve()), "measured_improvement": improvement}
+
+
+def _qc_score(input_path: str) -> float:
+    from kinocut.quality_guardrails import quality_check
+
+    report = quality_check(input_path, fail_on_warning=False)
+    return float(report.get("overall_score") or 0.0)
 
 
 def session_close(session_path: str, *, write_receipt: bool = True) -> dict[str, Any]:

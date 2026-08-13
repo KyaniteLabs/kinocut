@@ -51,6 +51,7 @@ from ..defaults import (
     DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
     DEFAULT_AUDIO_BED_MUSIC_VOLUME,
     DEFAULT_AUDIO_BED_TARGET_LUFS,
+    DEFAULT_QUALITY_GATE_SCORE,
 )
 from ..engine_audio_bed import audio_bed as _audio_bed
 from ..errors import MCPVideoError
@@ -678,7 +679,7 @@ class ClientMediaMixin:
         output_dir: str | None = None,
         platforms: list[str] | None = None,
         include_release_checkpoint: bool = True,
-        min_score: float = 0.0,
+        min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     ) -> dict[str, Any]:
         """Render a local repurposing package."""
         from ..engine_repurpose import repurpose
@@ -797,7 +798,3 @@ class ClientMediaMixin:
         from ..engine import video_batch
 
         return video_batch(inputs, operation=operation, params=params, output_dir=output_dir)
-
-    # ------------------------------------------------------------------
-    # Image Analysis
-    # ------------------------------------------------------------------

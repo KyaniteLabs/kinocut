@@ -69,6 +69,7 @@ def handle_shorts_commands(args: Any, *, use_json: bool) -> bool:
                 candidate_id=a.candidate_id,
                 package_root=a.package_root,
                 overwrite=a.overwrite,
+                allow_fail=bool(getattr(a, "allow_fail", False)),
             ),
             j,
         )

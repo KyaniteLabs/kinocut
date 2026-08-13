@@ -27,7 +27,7 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1133-latest-release">1.13.2</a> &bull;
+  <a href="#whats-in-1134-latest-release">1.13.4</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
   <a href="#beyond-1132-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
@@ -115,14 +115,14 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.13.4](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.4)** (2026-08-12) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.13.2** · **196 MCP tools / 167 CLI commands** | Intent/watching/TE + still/plate surface matches published package. |
+| **This repository (`master`)** | **1.13.4** · **196 MCP tools / 167 CLI commands** | Intent/watching/TE + still/plate surface matches published package. |
 | **Next public release** | **TBD** | Post-release pillars and human programs remain gated; further bumps need a new go-ahead. |
 
 Install from PyPI when you want the stable package. Clone or install from `master` only when you intentionally need unreleased surfaces.
 
-## What's in 1.13.2 (latest release)
+## What's in 1.13.4 (latest release)
 
-Kinocut **1.13.2** is what you get from `pip install kinocut` today. It is a patch release that adds **critical/high security hardening** plus **post-release correctness fixes** on top of the **1.13.1** feature baseline, which introduced the intent/watching/TE multiplier surface on top of still/plate (1.12) and the 1.11.x identity line:
+Kinocut **1.13.4** is what you get from `pip install kinocut` today. It is a patch release that adds **critical/high security hardening** plus **post-release correctness fixes** on top of the **1.13.1** feature baseline, which introduced the intent/watching/TE multiplier surface on top of still/plate (1.12) and the 1.11.x identity line:
 
 - **Intent-verb surface** — Semantic intent routing via `video_intent` / `intent` tools supporting ~10 verbs to dry-run plans without silent media mutations.
 - **Watching guardrail floor** — Validation and quality checkpoints (`video_review_run`, `video_review_decide`) performing metric QC (blackdetect/LUFS) and narrative first-15s inspection.
@@ -144,13 +144,13 @@ Also already on the published line from earlier 1.x surfaces:
 
 Full notes: [CHANGELOG.md](CHANGELOG.md) · [v1.13.2 release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.13.2)
 
-## Beyond 1.13.2 (draft / gated)
+## Beyond 1.13.4 (draft / gated)
 
-**1.13.2 is the latest published release.** Live directory submissions, launch posts, and first-10 real-user runs remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+**1.13.4 is the latest published release.** Live directory submissions, launch posts, and first-10 real-user runs remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 
-While the core FFmpeg editing, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated and published in **1.13.2**, the following surfaces remain gated, partial, or unreleased:
+While the core FFmpeg editing, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated and published in **1.13.4**, the following surfaces remain gated, partial, or unreleased:
 
 - **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
 - **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
@@ -233,7 +233,7 @@ In **Kinocut**, a contract-first path is provided for agent-edited media that mu
 3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
 4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
 
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.13.2 release — see [Status and releases](#status-and-releases).
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.13.4 release — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -394,7 +394,7 @@ mcp-video doctor
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.13.2** (`pip install kinocut`, **194 herramientas MCP / 167 CLI**). La punta de desarrollo (`master`) coincide con ese surface publicado: FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento, first-10) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.13.4** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). La punta de desarrollo (`master`) coincide con ese surface publicado: FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento, first-10) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -537,7 +537,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-On the **published 1.13.2** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+On the **published 1.13.4** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -645,7 +645,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.13.2** documents **196 MCP tools / 167 CLI commands**. The development tip matches the published surface.
+Published **1.13.4** documents **196 MCP tools / 167 CLI commands**. The development tip matches the published surface.
 
 ### Was it called mcp-video?
 
