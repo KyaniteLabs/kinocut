@@ -41,9 +41,21 @@ VALID_WAVEFORMS = {"sine", "square", "sawtooth", "triangle", "noise", "pulse", "
 SPHERE_EQUIRECT_ASPECT = 2.0
 SPHERE_EQUIRECT_ASPECT_TOLERANCE = 0.2
 SPHERE_LAYOUTS = frozenset({"single", "split", "pip", "switch"})
+SPHERE_PRESETS = frozenset({"desk", "table", "front_back"})
 SPHERE_WRITER_KINDS = frozenset({"heuristic", "single", "model"})
 SPHERE_CLOUD_DIRECTORS = frozenset({"openai", "anthropic", "gemini", "openrouter"})
 SPHERE_LOCAL_DIRECTORS = frozenset({"ollama", "lmstudio", "openai_compat"})
+# Cheap suffix reject: unstitched dual-fisheye / vendor RAW. No decode.
+SPHERE_RAW_SUFFIXES = (".insv", ".360")
+# One ffprobe tag blob; do not open extra boxes or vendor SDKs.
+SPHERE_SPHERICAL_MARKERS = (
+    "spherical",
+    "equirect",
+    "equirectangular",
+    "gpano",
+    "projection=equirectangular",
+    "handler_name=sphd",
+)
 
 # Subtitle ``force_style``: the closed set of accepted ASS style keys (compared
 # case-insensitively) plus the safe value character class. Values are validated

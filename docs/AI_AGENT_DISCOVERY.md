@@ -5,13 +5,15 @@ This document is the short, explicit discovery map for agents, answer engines, a
 ## Canonical Positioning
 
 `Kinocut` is an open-source MCP server, Python library, and CLI for video editing
-and video creation workflows. Published 1.13.0 provides **196 MCP tools / 167 CLI
-commands**; the development tip matches **196 MCP tools / 167 CLI commands**. It
+and video creation workflows. Published 1.13.4 provides **196 MCP tools / 167 CLI
+commands**; the development tip keeps those counts. It
 wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
 inspection, durable edit projects, a resumable workflow engine, reviewed semantic
 selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
 authoring, bounded sound operations, layered compositing, and local repurposing
-packages with preflight guardrails.
+packages with preflight guardrails. On the development tip, a 360/desk/table
+`video_intent` goal can also attach a reviewable `360_assembly_plan` (no extra
+MCP tool; not in pip 1.13.4).
 
 ## Best Queries To Match
 
@@ -43,6 +45,7 @@ packages with preflight guardrails.
 - `docs/status/2026-07-27-post-campaign-tip-status.md` - current published-versus-development truth and remaining human gates.
 - `docs/status/2026-07-12-wishlist-draft-pr-status.md` - historical incomplete implementation snapshot and non-release boundary.
 - `docs/plans/2026-07-12-wishlist-parallel-execution.md` - dependency graph and controller/author ownership for parallel work.
+- `docs/360_ASSEMBLY.md` - Insta360 X4 stitched MP4 → propose/approve/render (tip).
 - `skills/kinocut/SKILL.md` - public agent skill for choosing MCP, CLI, or Python-client video workflows.
 - `CLAUDE.md` - Layer 0 identity: what this project is, where to find staged pipelines.
 - `llms.txt` - compact machine-readable project map.

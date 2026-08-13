@@ -4,8 +4,6 @@ from __future__ import annotations
 
 from typing import Any
 
-from ..server_tools_basic import search_tools as _search_tools
-
 
 class ClientMetaMixin:
     """Mixin exposing server meta-tools to the Python Client."""
@@ -19,4 +17,6 @@ class ClientMetaMixin:
         Returns:
             Dict with matching tools, their descriptions, and required parameters.
         """
+        from ..server_tools_basic import search_tools as _search_tools
+
         return _search_tools(query)

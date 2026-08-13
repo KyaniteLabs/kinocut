@@ -20,7 +20,9 @@ from kinocut.te import (
     storyboard_sphere_plan,
     validate_sphere_plan,
 )
+from kinocut.te.sphere_assembly import infer_sphere_preset
 from kinocut.te.sphere_director import apply_director, parse_director_json
+from kinocut.te.sphere_probe import _HASH_CACHE, _file_sha256
 
 
 def _run_ffmpeg(args: list[str]) -> None:
@@ -66,6 +68,15 @@ def test_probe_accepts_equirect_and_rejects_insv_and_flat(tmp_path: Path) -> Non
         probe_360_source(str(tmp_path / "clip.insv"))
     assert insv.value.code == "not_insv_export"
 
+    with pytest.raises(MCPVideoError) as raw360:
+        probe_360_source(str(tmp_path / "take.360"))
+    assert raw360.value.code == "not_raw_360"
+
+    named = _equirect_video(tmp_path / "RICOH_THETA_export.mp4")
+    hinted = probe_360_source(named)
+    assert hinted["vendor_hint"] == "ricoh"
+    assert hinted["accepted_via"] == "aspect"
+
     flat = _flat_video(tmp_path / "phone.mp4")
     with pytest.raises(MCPVideoError, match="equirect") as phone:
         probe_360_source(flat)
@@ -79,6 +90,10 @@ def test_desk_and_table_presets_and_schema(tmp_path: Path) -> None:
     assert [cam["id"] for cam in desk["cameras"]] == ["talent", "screens"]
     assert desk["status"] == "proposed"
     validate_sphere_plan(desk)
+
+    opposite = propose_sphere_plan(source, preset="front_back")
+    assert opposite["layout"] == "split"
+    assert [cam["id"] for cam in opposite["cameras"]] == ["front", "back"]
 
     table = propose_sphere_plan(source, preset="table")
     assert table["layout"] == "switch"
@@ -203,6 +218,13 @@ def test_cloud_director_requires_opt_in(tmp_path: Path) -> None:
 def test_intent_goal_and_doctor_honesty(tmp_path: Path) -> None:
     source = _equirect_video(tmp_path / "sphere.mp4")
     assert is_sphere_goal("desk 360 split 9:16")
+    assert is_sphere_goal("ricoh theta split 16:9")
+    assert is_sphere_goal("gopro max opposite cameras")
+    assert is_sphere_goal("insta360 x5 pip")
+    assert is_sphere_goal("osmo 360 single")
+    assert infer_sphere_preset("360 split") == "front_back"
+    assert infer_sphere_preset("desk screens") == "desk"
+    assert not is_sphere_goal("gopro hero interview")
     plan = propose_360_assembly(source, goal="desk 360 split 9:16")
     assert plan["artifact_kind"] == "360_assembly_plan"
     assert plan["layout"] == "split"
@@ -221,3 +243,14 @@ def test_intent_goal_and_doctor_honesty(tmp_path: Path) -> None:
     detected = detect_sphere_director()
     assert "ollama" in detected["local_ids"]
     assert "openai" in detected["cloud_ids"]
+
+
+def test_sha256_cache_reuses_digest(tmp_path: Path) -> None:
+    source = _equirect_video(tmp_path / "cached.mp4")
+    _HASH_CACHE.clear()
+    first = _file_sha256(source)
+    size = len(_HASH_CACHE)
+    second = _file_sha256(source)
+    assert first == second
+    assert first.startswith("sha256:")
+    assert len(_HASH_CACHE) == size

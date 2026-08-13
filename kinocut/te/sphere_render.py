@@ -6,13 +6,12 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE
+from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE, DEFAULT_SPHERE_QC_SECONDS
 from kinocut.engine_merge import merge
-from kinocut.engine_overlay import overlay_video
-from kinocut.engine_split_screen import split_screen
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_output_path
 from kinocut.quality_guardrails import assert_quality
+from kinocut.te.sphere_graph import render_window_single_pass
 from kinocut.te.sphere_plan import require_approved
 from kinocut.te.sphere_storyboard import extract_camera_clip
 
@@ -61,12 +60,10 @@ def _render_window(plan: dict[str, Any], window: dict[str, Any], root: Path, ind
     dest = str(root / f"window-{index}.mp4")
     if layout == "single" or len(cam_ids) == 1:
         return extract_camera_clip(plan, cam_ids[0], start=start, end=end, output_path=dest, width=width, height=height)
-    if layout == "split":
-        return _render_split(plan, cam_ids, start, end, dest, width, height, root, index)
-    if layout == "pip":
-        return _render_pip(plan, cam_ids, start, end, dest, width, height, root, index)
-    if layout == "switch":
-        return _render_switch(plan, cam_ids, start, end, dest, width, height, root, index)
+    if layout in {"split", "pip", "switch"} and len(cam_ids) >= 2:
+        return render_window_single_pass(
+            plan, cam_ids, layout=layout, start=start, end=end, dest=dest, width=width, height=height
+        )
     raise MCPVideoError(
         f"Unknown layout {layout!r}.",
         error_type="validation_error",
@@ -74,97 +71,12 @@ def _render_window(plan: dict[str, Any], window: dict[str, Any], root: Path, ind
     )
 
 
-def _render_split(
-    plan: dict[str, Any],
-    cam_ids: list[str],
-    start: float,
-    end: float,
-    dest: str,
-    width: int,
-    height: int,
-    root: Path,
-    index: int,
-) -> str:
-    left_w = max(16, width // 2)
-    left = extract_camera_clip(
-        plan, cam_ids[0], start=start, end=end, output_path=str(root / f"w{index}-a.mp4"), width=left_w, height=height
-    )
-    right = extract_camera_clip(
-        plan,
-        cam_ids[1],
-        start=start,
-        end=end,
-        output_path=str(root / f"w{index}-b.mp4"),
-        width=width - left_w,
-        height=height,
-    )
-    split_screen(left, right, layout="side-by-side", output_path=dest)
-    return dest
-
-
-def _render_pip(
-    plan: dict[str, Any],
-    cam_ids: list[str],
-    start: float,
-    end: float,
-    dest: str,
-    width: int,
-    height: int,
-    root: Path,
-    index: int,
-) -> str:
-    base = extract_camera_clip(
-        plan, cam_ids[0], start=start, end=end, output_path=str(root / f"w{index}-base.mp4"), width=width, height=height
-    )
-    pip = extract_camera_clip(
-        plan,
-        cam_ids[1],
-        start=start,
-        end=end,
-        output_path=str(root / f"w{index}-pip.mp4"),
-        width=max(16, width // 3),
-        height=max(16, height // 3),
-    )
-    overlay_video(base, pip, position="bottom-right", output_path=dest)
-    return dest
-
-
-def _render_switch(
-    plan: dict[str, Any],
-    cam_ids: list[str],
-    start: float,
-    end: float,
-    dest: str,
-    width: int,
-    height: int,
-    root: Path,
-    index: int,
-) -> str:
-    span = (end - start) / max(1, len(cam_ids))
-    clips: list[str] = []
-    cursor = start
-    for offset, cam_id in enumerate(cam_ids):
-        stop = end if offset == len(cam_ids) - 1 else cursor + span
-        clips.append(
-            extract_camera_clip(
-                plan,
-                cam_id,
-                start=cursor,
-                end=stop,
-                output_path=str(root / f"w{index}-sw{offset}.mp4"),
-                width=width,
-                height=height,
-            )
-        )
-        cursor = stop
-    merge(clips, output_path=dest)
-    return dest
-
-
 def _maybe_quality(output_path: str, *, allow_fail: bool, min_score: float | None) -> dict[str, Any]:
     score = DEFAULT_QUALITY_GATE_SCORE if min_score is None else float(min_score)
     try:
-        report = assert_quality(output_path, min_score=score)
+        report = assert_quality(
+            output_path, min_score=score, max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS
+        )
         return {"passed": True, "report": report}
     except Exception as exc:
         logger.warning("360 assembly quality gate failed: %s", exc)

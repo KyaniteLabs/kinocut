@@ -9,7 +9,15 @@ import importlib.util
 import sys
 
 import kinocut as _kinocut
-from kinocut import *  # noqa: F403
+
+
+def __getattr__(name: str):
+    """Delegate public names to kinocut without eager star-import."""
+    return getattr(_kinocut, name)
+
+
+def __dir__() -> list[str]:
+    return sorted(set(globals()) | set(_kinocut.__all__) | {"__version__"})
 
 
 class _KinocutAliasLoader(importlib.abc.Loader):

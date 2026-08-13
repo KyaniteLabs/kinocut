@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino exposes 169 registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino exposes **196** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. On `master`, 360 dual-cam assembly reuses `video_intent` + `video_review_decide` — it is **not** a 197th tool. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
 
 ---
 
@@ -188,12 +188,12 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 | `video_analyze` | Comprehensive video analysis: transcript, metadata, scenes, audio, quality, chapters, and colors | FFmpeg; optional Whisper/image extras |
 | `video_ai_remove_silence` | Auto-remove silent sections with configurable threshold | FFmpeg |
 | `video_ai_transcribe` | Speech-to-text with timestamp alignment | [openai-whisper](https://pypi.org/project/openai-whisper/) |
-| `video_intent` | Route ~10 semantic intent verbs to a plan (no silent media mutation) | — |
+| `video_intent` | Route ~10 semantic intent verbs to a plan (no silent media mutation). Optional `goal=` compiles a reviewable cutfile. A 360/desk/table/`x4` `goal` plus `source=` also attaches a `360_assembly_plan` (`next_action: review_then_sphere_render`). See [360_ASSEMBLY.md](360_ASSEMBLY.md). | — |
 | `video_propose_broll` | Transcript-keyed b-roll proposals; **human review required**, never silent insert | — |
 | `video_translate_captions` | Translate SRT with honest coverage (EN→ES offline map first) | — |
 | `video_language_coverage` | Honest per-surface matrix for transcribe / translate / dub | — |
 | `video_review_run` | Watching guardrail: offline metric floor under a review policy | FFmpeg |
-| `video_review_decide` | Human accept/reject/revise on a `review_run` artifact | — |
+| `video_review_decide` | Human accept/reject/revise on a `review_run` artifact. If `review_run.artifact_kind` is `360_assembly_plan`, `approve`/`accept`/`reject` that plan and optionally render when `output_path` is set. | — |
 | `video_ai_scene_detect` | ML-enhanced scene change detection (perceptual hashing) | [imagehash](https://pypi.org/project/imagehash/), Pillow |
 | `video_ai_stem_separation` | Isolate vocals, drums, bass, other instruments | [demucs](https://pypi.org/project/demucs/), Torch, TorchAudio, TorchCodec |
 | `video_ai_upscale` | AI super-resolution upscaling (2x or 4x) | [opencv-contrib-python](https://pypi.org/project/opencv-contrib-python/); Real-ESRGAN/BasicSR where supported |

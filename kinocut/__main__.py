@@ -6,25 +6,6 @@ import json
 import logging
 import sys
 
-from .cli.handlers_advanced import handle_advanced_commands
-from .cli.handlers_ai import handle_ai_commands
-from .cli.handlers_audio import handle_audio_commands
-from .cli.handlers_composition import handle_composition_command
-from .cli.handlers_core import handle_initial_command
-from .cli.handlers_effects import handle_effect_command
-from .cli.handlers_image import handle_image_commands
-from .cli.handlers_media import handle_media_commands
-from .cli.handlers_hyperframes import handle_hyperframes_commands
-from .cli.handlers_rescue import handle_rescue_commands
-from .cli.handlers_postrescue import handle_post_rescue_commands
-from .cli.handlers_transitions import handle_transition_command
-from .cli.handlers_workflow import handle_workflow_commands
-from .cli.handlers_inspection import handle_inspection_commands
-from .cli.handlers_aivideo import handle_aivideo_commands
-from .cli.handlers_release import handle_release_commands
-from .cli.handlers_shorts import handle_shorts_commands
-from .cli.handlers_sound import handle_sound_commands
-from .cli.handlers_intent import handle_intent_commands
 from .cli.parser import build_parser
 from .cli.formatting import _format_error, console, err_console
 
@@ -99,20 +80,62 @@ def _configure_logging(*, verbose: bool, log_file: str | None) -> None:
         logger.debug("Structured logging enabled; file=%s verbose_stderr=%s", log_file, verbose)
 
 
+def _dispatch_cli(args: object, *, use_json: bool) -> bool:
+    from .cli.handlers_advanced import handle_advanced_commands
+    from .cli.handlers_ai import handle_ai_commands
+    from .cli.handlers_aivideo import handle_aivideo_commands
+    from .cli.handlers_audio import handle_audio_commands
+    from .cli.handlers_composition import handle_composition_command
+    from .cli.handlers_core import handle_initial_command
+    from .cli.handlers_effects import handle_effect_command
+    from .cli.handlers_hyperframes import handle_hyperframes_commands
+    from .cli.handlers_image import handle_image_commands
+    from .cli.handlers_inspection import handle_inspection_commands
+    from .cli.handlers_intent import handle_intent_commands
+    from .cli.handlers_media import handle_media_commands
+    from .cli.handlers_postrescue import handle_post_rescue_commands
+    from .cli.handlers_release import handle_release_commands
+    from .cli.handlers_rescue import handle_rescue_commands
+    from .cli.handlers_shorts import handle_shorts_commands
+    from .cli.handlers_sound import handle_sound_commands
+    from .cli.handlers_transitions import handle_transition_command
+    from .cli.handlers_workflow import handle_workflow_commands
+
+    return bool(
+        handle_initial_command(args, use_json=use_json)
+        or handle_aivideo_commands(args, use_json=use_json)
+        or handle_release_commands(args, use_json=use_json)
+        or handle_shorts_commands(args, use_json=use_json)
+        or handle_sound_commands(args, use_json=use_json)
+        or handle_inspection_commands(args, use_json=use_json)
+        or handle_workflow_commands(args, use_json=use_json)
+        or handle_rescue_commands(args, use_json=use_json)
+        or handle_post_rescue_commands(args, use_json=use_json)
+        or handle_effect_command(args, use_json=use_json)
+        or handle_transition_command(args, use_json=use_json)
+        or handle_composition_command(args, use_json=use_json)
+        or handle_media_commands(args, use_json=use_json)
+        or handle_hyperframes_commands(args, use_json=use_json)
+        or handle_ai_commands(args, use_json=use_json)
+        or handle_audio_commands(args, use_json=use_json)
+        or handle_advanced_commands(args, use_json=use_json)
+        or handle_image_commands(args, use_json=use_json)
+        or handle_intent_commands(args, use_json=use_json)
+    )
+
+
 def main() -> None:
     parser = build_parser()
     args = parser.parse_args(_rewrite_namespaced_argv(sys.argv[1:]))
 
     _configure_logging(verbose=bool(getattr(args, "verbose", False)), log_file=getattr(args, "log_file", None))
 
-    # --version
     if args.version:
         from . import __version__
 
         console.print(f"Kinocut [bold]{__version__}[/bold]")
         return
 
-    # Default mode: run MCP server
     if args.mcp or args.command is None:
         try:
             from .server import mcp
@@ -129,29 +152,13 @@ def main() -> None:
 
     use_json = resolve_use_json(args.format, sys.stdout.isatty())
 
-    # CLI command dispatch chain
     try:
-        if (
-            handle_initial_command(args, use_json=use_json)
-            or handle_aivideo_commands(args, use_json=use_json)
-            or handle_release_commands(args, use_json=use_json)
-            or handle_shorts_commands(args, use_json=use_json)
-            or handle_sound_commands(args, use_json=use_json)
-            or handle_inspection_commands(args, use_json=use_json)
-            or handle_workflow_commands(args, use_json=use_json)
-            or handle_rescue_commands(args, use_json=use_json)
-            or handle_post_rescue_commands(args, use_json=use_json)
-            or handle_effect_command(args, use_json=use_json)
-            or handle_transition_command(args, use_json=use_json)
-            or handle_composition_command(args, use_json=use_json)
-            or handle_media_commands(args, use_json=use_json)
-            or handle_hyperframes_commands(args, use_json=use_json)
-            or handle_ai_commands(args, use_json=use_json)
-            or handle_audio_commands(args, use_json=use_json)
-            or handle_advanced_commands(args, use_json=use_json)
-            or handle_image_commands(args, use_json=use_json)
-            or handle_intent_commands(args, use_json=use_json)
-        ):
+        if args.command in {"doctor", "info"}:
+            from .cli.handlers_core import handle_initial_command
+
+            if handle_initial_command(args, use_json=use_json):
+                return
+        if _dispatch_cli(args, use_json=use_json):
             return
 
     except Exception as e:

@@ -66,7 +66,21 @@ Run workflow-validate, workflow-plan, then workflow-render with a saved receipt.
 Inspect the receipt hashes and resume cursor.
 ```
 
-## 6. Preflight failure drill
+## 6. 360 dual-cam assembly (master tip)
+
+```text
+Using Kinocut only (no Insta360 Studio, no raw FFmpeg):
+Source is a stitched 360 MP4 at ABS_PATH/x4-export.mp4 (not .insv).
+1) kino doctor (note optional sphere_director)
+2) Propose via video_intent goal="desk 360 split 9:16" source=ABS_PATH/x4-export.mp4
+   or Client.propose_360_assembly(..., storyboard_dir=ABS_PATH/board)
+3) Show cameras, layout, and stills. Wait for my approve or reject.
+4) Only after approve: render 9:16 split. Do not render a proposed plan.
+5) quality_check / receipt. Human review still pending.
+If the file is .insv or not equirect, report the structured error and stop.
+```
+
+## 7. Preflight failure drill
 
 ```text
 Deliberately call a Kinocut edit with an illegal parameter (e.g. extreme filter intensity).
@@ -74,7 +88,7 @@ Show the structured error. Explain how you would correct the call.
 Do not fall back to raw shell FFmpeg.
 ```
 
-## 7. Quality gate hold
+## 8. Quality gate hold
 
 ```text
 Run quality_check on ABS_PATH/export.mp4 with fail-on-warning if available.

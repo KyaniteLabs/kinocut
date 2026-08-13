@@ -15,11 +15,15 @@ Add an example under `examples/` or `workflows/` that:
 
 Add one prompt to [PROMPTS.md](PROMPTS.md) that is deterministic-leaning, Kinocut-only, and ends with quality + human review.
 
-## Task 3 — Failure example
+## Task 3 — 360 assembly dry-run (master tip)
+
+Using a **synthetic** 2:1 fixture (do not commit private X4 media): propose a `360_assembly_plan`, show cameras, refuse `.insv`, and document that render needs approve. Follow [360_ASSEMBLY.md](360_ASSEMBLY.md).
+
+## Task 4 — Failure example
 
 Document one fail-closed path in [FAILURE_EXAMPLES.md](FAILURE_EXAMPLES.md) with expected error type.
 
-## Task 4 — Directory board update
+## Task 5 — Directory board update
 
 After verifying a live directory page, update [DIRECTORY_STATUS.md](DIRECTORY_STATUS.md) with date.
 

@@ -68,6 +68,24 @@ See [RESCUE.md](RESCUE.md).
 
 See [AI_VIDEO_REVIEW_AND_SALVAGE.md](AI_VIDEO_REVIEW_AND_SALVAGE.md).
 
+## 7. 360 `.insv` or unapproved render (master tip)
+
+**Intent:** assemble from a raw Insta360 `.insv`, or render a `proposed` plan.  
+**Expected:** `not_insv_export` / `not_360_equirect`, or `human_apply_required`. No pixels written.
+
+```python
+from kinocut import Client
+from kinocut.errors import MCPVideoError
+
+c = Client()
+try:
+    c.propose_360_assembly("take.insv", goal="desk 360 split")
+except MCPVideoError as e:
+    print(e.code)  # not_insv_export — export a stitched 360 MP4 first
+```
+
+See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+
 ## Receipt after failure
 
 Even failed or partial runs should leave inspectable state when a receipt/plan was requested (workflow resume cursor, rescue package, quality JSON). Prefer tools that return structured `success: false` over swallowing stderr.

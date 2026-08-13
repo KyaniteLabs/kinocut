@@ -52,6 +52,10 @@ Kinocut includes 7 AI features: silence removal, Whisper transcription, scene de
 
 Kinocut covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered media, Hyperframes, local repurposing, Audio Synthesis, Visual Effects, Transitions, Layout & Motion Graphics, Analysis, and Image Analysis. Use `search_tools` when an agent needs to find the right operation without loading the whole registry.
 
+## Can it edit Insta360 X4 360 video?
+
+On the `master` tip, yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is **not** in pip `kinocut==1.13.4`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+
 ## What are the cinematic creation tools?
 
 The cinematic creation tools add a PUSHING CREATION-compatible pre-production workflow: `video_project_create` scaffolds a project with `style.md`, `storyboard.md`, and `refs/`; `style_pack_read` parses STYLE_ and NEG_ blocks; `storyboard_read` parses shot rows; and `shot_prompt_render` expands a storyboard shot into generation-ready positive and negative prompts.

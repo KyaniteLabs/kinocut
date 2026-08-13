@@ -15,9 +15,16 @@ from kinocut.defaults import (
 )
 from kinocut.errors import MCPVideoError
 from kinocut.te.sphere_probe import probe_360_source
-from kinocut.validation import SPHERE_LAYOUTS, SPHERE_WRITER_KINDS
+from kinocut.validation import SPHERE_LAYOUTS, SPHERE_PRESETS, SPHERE_WRITER_KINDS
+
+_FRONT = {"id": "front", "yaw": 0.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
+_BACK = {"id": "back", "yaw": 180.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
 
 _PRESETS: dict[str, dict[str, Any]] = {
+    "front_back": {
+        "layout": "split",
+        "cameras": (dict(_FRONT), dict(_BACK)),
+    },
     "desk": {
         "layout": "split",
         "cameras": (
@@ -50,9 +57,9 @@ def propose_sphere_plan(
     writer_kind: str = "heuristic",
 ) -> dict[str, Any]:
     """Build a proposed plan from a preset. Does not render."""
-    if preset not in _PRESETS:
+    if preset not in SPHERE_PRESETS or preset not in _PRESETS:
         raise MCPVideoError(
-            f"Unknown 360 preset {preset!r}. Use desk or table.",
+            f"Unknown 360 preset {preset!r}. Use front_back, desk, or table.",
             error_type="validation_error",
             code="invalid_sphere_preset",
         )

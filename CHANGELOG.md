@@ -12,12 +12,14 @@ This project follows a simple release-note style:
 ## Unreleased
 
 ### Added
-- **360 dual-cam assembly (X4):** `video_intent` `goal=` can propose a reviewable `360_assembly_plan` (desk/table presets, split/switch/PiP/single). Approve then render via existing review. Director is a plug (local first; cloud opt-in). `.insv` is rejected. Not an optimized-AI-director claim.
+- **360 dual-cam assembly:** Any stitched equirect MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …), not X4-only. `front_back` preset plus desk/table. Raw `.insv` / `.360` rejected by suffix. One ffprobe; no stitch. Operator guide: `docs/360_ASSEMBLY.md`.
+- **360/perf committee top 10:** single-pass split/pip/switch `filter_complex`; sampled quality gate (`max_analyze_seconds`); lazy `mcp_video` (no star-import); SHA-256 path/mtime cache; merge `infos=` skip-reprobe; intermediate encode flags; doctor skips `npx --yes` unless Hyperframes is on PATH and runs command checks concurrently; batched 360 storyboard stills; lazy CLI handlers + doctor/info fast-path; lazy `mcp.types` on `Client.search_tools`.
 
 ### Changed
 - **Lazy public import:** `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
 - **Ship-seam docs:** CLI/Client `repurpose` default `--min-score` 80 and `shorts-package --allow-fail` documented. MCP durable `video_repurpose` states that `min_score` is unused.
 - **ROADMAP:** pre-1.13 archaeology moved to `docs/archive/roadmap-pre-1.13.md`.
+- **360 docs pass:** operator guide plus NOW / SKILL / TOOLS / PYTHON_CLIENT / CLI / README / llms honesty (no 197th-tool claim).
 
 ## 1.13.4 - 2026-08-12
 

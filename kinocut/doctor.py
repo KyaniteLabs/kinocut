@@ -14,8 +14,9 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
+from concurrent.futures import ThreadPoolExecutor
+
 from .errors import HyperframesNotFoundError
-from .hyperframes_engine import HYPERFRAMES_COMMAND_ENV, _hyperframes_command_prefix
 from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD
 from .limits import DOCTOR_COMMAND_TIMEOUT
 
@@ -189,7 +190,7 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
     # Hyperframes version check — routed through the injectable version_runner
     # so tests can exercise both outcomes (a raw subprocess call here would be
     # untestable, the same defect class as the @hyperframes/core probe).
-    if definition["name"] == "node" and ok:
+    if definition["name"] == "node" and ok and which("hyperframes"):
         hf_version = version_runner(["npx", "--yes", "hyperframes", "--version"])
         if hf_version:
             extra["hyperframes_version"] = hf_version
@@ -320,6 +321,8 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
 
 
 def _check_hyperframes_cli(which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
+    from .hyperframes_engine import HYPERFRAMES_COMMAND_ENV, _hyperframes_command_prefix
+
     try:
         prefix = _hyperframes_command_prefix(which=which)
     except HyperframesNotFoundError:
@@ -477,7 +480,10 @@ def run_diagnostics(
 ) -> dict[str, Any]:
     """Return a structured report for core and optional integration dependencies."""
     checks = [_check_mcp_video(find_spec, package_version)]
-    checks.extend(_check_command(definition, which, version_runner) for definition in COMMAND_CHECKS)
+    with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
+        checks.extend(
+            pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS)
+        )
     checks.extend(
         [
             _check_hyperframes_cli(which, version_runner),
