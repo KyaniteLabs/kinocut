@@ -9,4 +9,4 @@
 
 **Human residuals:** Renovate host token, directories #88, launch #90. First-10 **closed**. MCPB unsigned is the product path.
 
-**Living authority:** [residual matrix](2026-08-12-residual-maturity-matrix.md) · [HUMAN_GATES](../HUMAN_GATES.md) · [S+ excellence PRD](../../.omx/plans/prd-kinocut-splus-excellence.md)
+**Living authority:** [residual matrix](2026-08-12-residual-maturity-matrix.md) · [HUMAN_GATES](../HUMAN_GATES.md). S+ excellence PRD is local-only (`.omx/plans/`, gitignored).
