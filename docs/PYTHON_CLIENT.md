@@ -320,7 +320,8 @@ Positioned non-`normal` blend requires explicit `width` and `height`, an integra
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `repurpose_plan(video, output_dir?, platforms?)` | `dict` | Write a dry-run `repurpose_manifest.json` |
-| `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts |
+| `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score=80.0?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts. Default `min_score` is `DEFAULT_QUALITY_GATE_SCORE` (80). MCP durable `video_repurpose` does not apply `min_score`. |
+| `shorts_package(..., allow_fail=False?)` | `dict` | Package approved shorts renders. Quality gate fails closed unless `allow_fail=True`. |
 
 ---
 

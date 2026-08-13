@@ -9,6 +9,13 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Changed
+- **Lazy public import:** `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
+- **Ship-seam docs:** CLI/Client `repurpose` default `--min-score` 80 and `shorts-package --allow-fail` documented. MCP durable `video_repurpose` states that `min_score` is unused.
+- **ROADMAP:** pre-1.13 archaeology moved to `docs/archive/roadmap-pre-1.13.md`.
+
 ## 1.13.4 - 2026-08-12
 
 ### Added
