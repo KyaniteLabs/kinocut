@@ -1,9 +1,13 @@
-# 360 dual-cam assembly (Insta360 X4)
+# 360 dual-cam assembly
 
-Turn one **stitched 360 MP4** into a normal 16:9 or 9:16 two-cam edit.
-Kinocut treats the sphere as **virtual cameras**, writes a reviewable
-`360_assembly_plan`, waits for approve/reject, then extracts with FFmpeg
-`v360` and assembles split / switch / PiP / single.
+Turn one **stitched equirectangular 360 MP4** into a normal 16:9 or 9:16
+two-cam edit. Camera-agnostic: Insta360 X2–X5, Ricoh Theta, GoPro MAX,
+DJI Osmo 360, or any other 2:1 / spherical-tagged export. Kinocut treats
+the sphere as **virtual cameras**, writes a reviewable `360_assembly_plan`,
+waits for approve/reject, then extracts with FFmpeg `v360`.
+
+X4 is one example, not a requirement. No vendor SDK. One ffprobe, no extra
+decode until you approve a render.
 
 **On `master` (unreleased).** Not in pip `kinocut==1.13.4`.
 No new MCP or CLI name — still **196 / 167**.
@@ -14,12 +18,15 @@ Design/PRD: [2026-08-13-x4-360-assembly-design.md](superpowers/specs/2026-08-13-
 
 ## What you need
 
-1. Export a **stitched equirectangular MP4** from Insta360 Studio or the Insta360 app.
+1. Export a **stitched equirectangular MP4** from the camera's own app
+   (Insta360 Studio/app, GoPro Player, Ricoh Theta, DJI, etc.).
 2. FFmpeg with `v360` on `PATH` (`kino doctor`).
-3. A goal that mentions 360 / X4 / desk+screens / table+tarot, **or** an explicit Client call.
+3. A goal that mentions 360 / equirect / spherical / Theta / Insta360 /
+   GoPro Max / Osmo 360 / desk+screens / table+tarot, **or** an explicit Client call.
 
-**Rejected:** `.insv` originals (`not_insv_export`). Phone clips and other non-2:1 sources (`not_360_equirect`).
-Kinocut does **not** stitch Insta360 dual-fisheye files.
+**Rejected (suffix only, no decode):** `.insv` (`not_insv_export`), GoPro `.360` (`not_raw_360`).
+Phone clips and other non-2:1 sources without spherical tags (`not_360_equirect`).
+Kinocut does **not** stitch dual-fisheye, cubemap, or vendor RAW.
 
 ## Surfaces
 
@@ -80,17 +87,18 @@ You can also pass `preset=`, `layout=`, `aspect=` explicitly.
 
 ## Presets and layouts
 
-| Preset | Virtual cameras | Default layout |
-| --- | --- | --- |
-| `desk` | `talent` (yaw 0) + `screens` (yaw 180) | `split` |
-| `table` | `talent` (yaw 0) + `table` (yaw 180, pitched down) | `switch` |
+| Preset | Virtual cameras | Default layout | When inferred |
+| --- | --- | --- | --- |
+| `front_back` | `front` (yaw 0) + `back` (yaw 180) | `split` | Generic 360 goal with no desk/table cue |
+| `desk` | `talent` (yaw 0) + `screens` (yaw 180) | `split` | desk / screens / code |
+| `table` | `talent` (yaw 0) + `table` (yaw 180, pitched down) | `switch` | table / tarot / cards |
 
 Layouts: `split` · `switch` · `pip` · `single`.
 Aspects: `16:9` (1920×1080) or `9:16` (1080×1920).
 
 Goal tokens (case-insensitive):
 
-- Sphere: `360`, `equirect`, `x4`
+- Sphere: `360`, `equirect`, `spherical`, `insta360`, `theta`, `x2`–`x5`, `gopro max`, `osmo 360`
 - Desk: `desk` plus `screen` / `split` / `pip` / `code`
 - Table: `table` plus `tarot` / `card` / `switch` / `split`
 - Vertical: `9:16`, `vertical`, `short`, `reel`
@@ -123,7 +131,8 @@ or inject `propose=` for tests / custom adapters.
 
 | Code | Meaning |
 | --- | --- |
-| `not_insv_export` | `.insv` — export a stitched 360 MP4 first |
+| `not_insv_export` | `.insv` — export a stitched equirect MP4 first |
+| `not_raw_360` | Other raw 360 containers (e.g. GoPro `.360`) |
 | `not_360_equirect` | Not ~2:1 and no spherical metadata |
 | `invalid_sphere_preset` | Use `desk` or `table` |
 | `invalid_sphere_layout` | Use `single`, `split`, `pip`, or `switch` |

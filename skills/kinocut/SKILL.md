@@ -30,7 +30,7 @@ Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`
 
 ## 360 dual-cam assembly (X4, unreleased on master)
 
-Use when the source is a **stitched equirect 360 MP4** (Insta360 X4 export) and the ask is two virtual cameras (me + screens, or me + table) as split / switch / PiP / single.
+Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …) and the ask is two virtual cameras as split / switch / PiP / single.
 
 1. `video_intent(verb="reformat_vertical", goal="desk 360 split 9:16", source=ABS_PATH)` or `Client.propose_360_assembly(...)`.
 2. Show cameras, layout, and storyboard stills. Do not invent yaw/pitch.

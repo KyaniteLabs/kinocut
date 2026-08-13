@@ -12,10 +12,16 @@ from kinocut.te.sphere_render import render_sphere_plan
 from kinocut.te.sphere_storyboard import storyboard_sphere_plan
 
 
+_SPHERE_GOAL = re.compile(
+    r"360|equirect|spherical|insta360|insta\s*360|\b(?:x[2-5]|theta)\b|gopro\s+max|osmo\s*360",
+    re.IGNORECASE,
+)
+
+
 def is_sphere_goal(goal: str) -> bool:
     """True when a natural-language goal should emit a 360 assembly plan."""
     lower = (goal or "").lower()
-    if "360" in lower or "equirect" in lower or "x4" in lower:
+    if _SPHERE_GOAL.search(lower):
         return True
     if re.search(r"\bdesk\b", lower) and any(token in lower for token in ("screen", "split", "pip", "code")):
         return True
@@ -28,7 +34,9 @@ def infer_sphere_preset(goal: str) -> str:
     lower = (goal or "").lower()
     if "table" in lower or "tarot" in lower or "card" in lower:
         return "table"
-    return "desk"
+    if "desk" in lower or "screen" in lower or "code" in lower:
+        return "desk"
+    return "front_back"
 
 
 def infer_sphere_layout(goal: str) -> str | None:

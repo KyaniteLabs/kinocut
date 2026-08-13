@@ -269,7 +269,7 @@ Use `composite-layers` when an agent needs a planned stack of overlays, mattes, 
 
 ## 360 dual-cam assembly (tip)
 
-On `master`, one stitched 360 MP4 can become a two-cam 16:9 or 9:16 edit without a new tool name. Export from Insta360 first — Kinocut does not stitch `.insv`.
+On `master`, any stitched equirect 360 MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI, …) can become a two-cam 16:9 or 9:16 edit without a new tool name. Export from the camera app first — Kinocut does not stitch `.insv` or GoPro `.360`.
 
 ```python
 from kinocut import Client

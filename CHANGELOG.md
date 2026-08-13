@@ -12,7 +12,7 @@ This project follows a simple release-note style:
 ## Unreleased
 
 ### Added
-- **360 dual-cam assembly (X4):** `video_intent` `goal=` can propose a reviewable `360_assembly_plan` (desk/table presets, split/switch/PiP/single). Approve then render via existing review. Director is a plug (local first; cloud opt-in). `.insv` is rejected. Not an optimized-AI-director claim. Operator guide: `docs/360_ASSEMBLY.md`.
+- **360 dual-cam assembly:** Any stitched equirect MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …), not X4-only. `front_back` preset plus desk/table. Raw `.insv` / `.360` rejected by suffix. One ffprobe; no stitch. Operator guide: `docs/360_ASSEMBLY.md`.
 
 ### Changed
 - **Lazy public import:** `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
