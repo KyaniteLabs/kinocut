@@ -491,6 +491,7 @@ def run_diagnostics(
     checks.append(_check_crush())
     checks.append(_check_audio_engine())
     checks.append(_check_still_plates(find_spec, package_version))
+    checks.append(_check_sphere_director())
     return {
         "success": True,
         "platform": {
@@ -502,6 +503,23 @@ def run_diagnostics(
         "checks": checks,
         "rescue": _rescue_summary(checks),
         "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
+    }
+
+
+def _check_sphere_director() -> dict[str, Any]:
+    """Report configured 360 director backends (probe only, no network)."""
+    from kinocut.te.sphere_director import detect_sphere_director
+
+    detected = detect_sphere_director()
+    return {
+        "name": "sphere_director",
+        "category": "optional",
+        "required": False,
+        "ok": True,
+        "path": None,
+        "version": detected.get("id"),
+        "install_hint": None,
+        "details": detected,
     }
 
 
