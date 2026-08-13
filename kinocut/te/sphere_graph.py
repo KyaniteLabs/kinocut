@@ -11,6 +11,7 @@ from kinocut.defaults import (
     DEFAULT_SPHERE_TEMP_PRESET,
 )
 from kinocut.engine_runtime_utils import _quality_args
+from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _format_ffmpeg_number, _run_ffmpeg, _validate_output_path
 from kinocut.te.sphere_filters import camera_by_id, v360_filter
 
@@ -36,7 +37,11 @@ def render_window_single_pass(
     elif layout == "switch" and len(cam_ids) >= 2:
         graph = _switch_graph(plan, cam_ids, duration, width, height)
     else:
-        raise ValueError(layout)
+        raise MCPVideoError(
+            f"Unknown layout {layout!r}.",
+            error_type="validation_error",
+            code="invalid_sphere_layout",
+        )
     _run_ffmpeg(
         [
             "-ss",
@@ -49,9 +54,14 @@ def render_window_single_pass(
             graph,
             "-map",
             "[vout]",
+            "-map",
+            "0:a?",
             "-c:v",
             "libx264",
             *_quality_args(crf=DEFAULT_SPHERE_TEMP_CRF, preset=DEFAULT_SPHERE_TEMP_PRESET),
+            "-c:a",
+            "aac",
+            "-shortest",
             dest,
         ]
     )

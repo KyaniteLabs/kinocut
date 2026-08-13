@@ -8,7 +8,6 @@ from typing import Any
 
 from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE, DEFAULT_SPHERE_QC_SECONDS
 from kinocut.engine_merge import merge
-from kinocut.engine_probe import probe
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_output_path
 from kinocut.quality_guardrails import assert_quality
@@ -36,8 +35,7 @@ def render_sphere_plan(
     if len(pieces) == 1:
         Path(pieces[0]).replace(output_path)
     else:
-        known = probe(pieces[0])
-        merge(pieces, output_path=output_path, infos=[known] * len(pieces))
+        merge(pieces, output_path=output_path)
     gate = _maybe_quality(output_path, allow_fail=allow_fail, min_score=min_score)
     writer = current.get("writer") or {}
     return {
