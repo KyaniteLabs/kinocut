@@ -85,3 +85,36 @@ def test_main_dispatches_mcp_mode(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr("sys.argv", ["kino", "--mcp"])
     entry.main()
     assert calls == [1]
+
+
+def test_plain_import_error_with_mcp_name_surfaces_real_error(printed: _Recorder) -> None:
+    """Only ModuleNotFoundError means absence; a crafted ImportError('name=mcp') does not."""
+
+    def _boom() -> None:
+        raise ImportError("custom import failure", name="mcp")
+
+    with pytest.raises(SystemExit):
+        entry._run_mcp_mode(import_server=_boom)
+    assert any("MCP mode failed to start" in line for line in printed.lines)
+    assert not any("requires the 'mcp' package" in line for line in printed.lines)
+
+
+def test_path_bearing_import_error_is_redacted(printed: _Recorder) -> None:
+    def _boom() -> None:
+        raise ImportError("cannot load /Users/secret/codec/lib.py on this platform")
+
+    with pytest.raises(SystemExit):
+        entry._run_mcp_mode(import_server=_boom)
+    joined = "\n".join(printed.lines)
+    assert "/Users/secret" not in joined
+    assert "[path]" in joined
+
+
+def test_markup_in_import_error_is_neutralized(printed: _Recorder) -> None:
+    def _boom() -> None:
+        raise ImportError("use [bold]red[/bold] tags carefully")
+
+    with pytest.raises(SystemExit):
+        entry._run_mcp_mode(import_server=_boom)
+    joined = "\n".join(printed.lines)
+    assert "[bold]red[/bold]" not in joined  # escaped to literal \[bold]...

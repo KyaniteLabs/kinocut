@@ -4,14 +4,23 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 from collections.abc import Callable
 from typing import Any
+
+from rich.markup import escape
 
 from .cli.parser import build_parser
 from .cli.formatting import _format_error, console, err_console
 
 logger = logging.getLogger(__name__)
+
+# Import failures rendered for the console must not leak filesystem paths.
+# Any whitespace-delimited token containing a path separator collapses to a
+# placeholder; module names ("fcntl", "kinocut.server") carry no separators
+# and survive untouched.
+_PATH_TOKEN = re.compile(r"\S*[/\\]\S*")
 
 
 def _import_mcp_server() -> Any:
@@ -20,12 +29,20 @@ def _import_mcp_server() -> Any:
     return mcp
 
 
+def _render_import_failure(exc: ImportError) -> str:
+    """Render an import failure as literal text, free of paths and rich markup."""
+
+    text = _PATH_TOKEN.sub("[path]", f"{type(exc).__name__}: {exc}")
+    return escape(text)
+
+
 def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None:
     """Start the MCP server, reporting import failures under their real cause.
 
-    Only the genuine absence of the ``mcp`` package keeps the install hint.
-    Any other import failure in the server tree previously masqueraded as a
-    missing ``mcp`` package (#445), hiding the real error from users.
+    Only the genuine absence of the ``mcp`` package (a ``ModuleNotFoundError``)
+    keeps the install hint. Any other import failure in the server tree
+    previously masqueraded as a missing ``mcp`` package (#445), hiding the real
+    error from users.
     """
 
     try:
@@ -33,12 +50,12 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
         mcp.run()
     except ImportError as exc:
         missing = getattr(exc, "name", None)
-        if missing == "mcp" or (missing or "").startswith("mcp."):
+        if isinstance(exc, ModuleNotFoundError) and (missing == "mcp" or str(missing).startswith("mcp.")):
             err_console.print(
                 "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut[/bold]",
             )
         else:
-            err_console.print(f"[red]MCP mode failed to start:[/red] {type(exc).__name__}: {exc}")
+            err_console.print(f"[red]MCP mode failed to start:[/red] {_render_import_failure(exc)}")
         sys.exit(1)
 
 
