@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import importlib.util
+import logging
 import os
 import platform
 import re
@@ -19,6 +20,9 @@ from concurrent.futures import ThreadPoolExecutor
 from .errors import HyperframesNotFoundError
 from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD
 from .limits import DOCTOR_COMMAND_TIMEOUT
+
+logger = logging.getLogger(__name__)
+
 
 WhichFn = Callable[[str], str | None]
 VersionRunner = Callable[[list[str]], str | None]
@@ -484,6 +488,7 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
     try:
         import_module("kinocut.server")
     except Exception as exc:  # the failure is the signal; doctor must never crash on it
+        logger.warning("MCP server import check failed for kinocut.server: %s", exc)
         return {
             "name": "mcp-server-import",
             "category": "core",

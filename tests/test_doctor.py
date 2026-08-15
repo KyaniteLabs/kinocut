@@ -427,15 +427,17 @@ def test_server_import_failure_breaks_required_summary():
     assert "mcp-server-import" in report["summary"]["missing_required"]
 
 
-def test_server_import_check_survives_arbitrary_failure():
+def test_server_import_check_survives_arbitrary_failure(caplog):
     from mcp_video.doctor import _check_mcp_server_import
 
     def exploding(name: str) -> object:
         raise RuntimeError("boom during import")
 
-    check = _check_mcp_server_import(exploding)
+    with caplog.at_level("WARNING", logger="mcp_video.doctor"):
+        check = _check_mcp_server_import(exploding)
     assert check["ok"] is False
     assert "RuntimeError" in check["detail"]
+    assert "boom during import" in caplog.text
 
 
 def test_server_import_check_ok_path():
