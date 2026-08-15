@@ -20,6 +20,8 @@ import subprocess
 import sys
 import time
 
+import pytest
+
 from kinocut.projectstore import (
     append_revision,
     create_edit_project,
@@ -119,6 +121,10 @@ sys.exit(0)
 
 def _install_fake_binaries(bin_dir):
     """Write executable fake ``ffprobe``/``ffmpeg`` into ``bin_dir``; return its path."""
+    if os.name == "nt":
+        pytest.skip(
+            "shebang executable test stubs cannot run on Windows (see #450); interpreter-invoked stubs land with the Windows CI job (#452)"
+        )
     bin_dir.mkdir(parents=True, exist_ok=True)
     (bin_dir / "ffprobe").write_text(_FAKE_FFPROBE)
     (bin_dir / "ffmpeg").write_text(_FAKE_FFMPEG)
