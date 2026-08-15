@@ -365,3 +365,82 @@ def test_cli_doctor_text_outputs_summary():
     assert "ffmpeg" in result.stdout
     assert "hyperframes" in result.stdout
     assert "openai-whisper" in result.stdout
+
+
+def test_run_diagnostics_includes_mcp_server_import_check():
+    from mcp_video.doctor import run_diagnostics
+
+    def fake_which(name: str) -> str | None:
+        return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None
+
+    def fake_version(command: list[str]) -> str | None:
+        return f"{command[0]} version test"
+
+    imported: list[str] = []
+
+    def fake_import_module(name: str) -> object:
+        imported.append(name)
+        return object()
+
+    report = run_diagnostics(
+        which=fake_which,
+        version_runner=fake_version,
+        find_spec=lambda name: ModuleSpec(name, loader=None),
+        package_version=lambda name: "1.0.0",
+        import_module=fake_import_module,
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    assert imported == ["kinocut.server"]
+    assert checks["mcp-server-import"]["ok"] is True
+    assert checks["mcp-server-import"]["required"] is True
+    assert report["summary"]["required_ok"] is True
+
+
+def test_server_import_failure_breaks_required_summary():
+    """The #445 scenario: doctor must not report OK while --mcp is dead."""
+
+    from mcp_video.doctor import run_diagnostics
+
+    def fake_which(name: str) -> str | None:
+        return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe"} else None
+
+    def fake_version(command: list[str]) -> str | None:
+        return f"{command[0]} version test"
+
+    def broken_import(name: str) -> object:
+        raise ModuleNotFoundError("No module named 'fcntl'", name="fcntl")
+
+    report = run_diagnostics(
+        which=fake_which,
+        version_runner=fake_version,
+        find_spec=lambda name: ModuleSpec(name, loader=None),
+        package_version=lambda name: "1.0.0",
+        import_module=broken_import,
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    assert checks["mcp-server-import"]["ok"] is False
+    assert "fcntl" in checks["mcp-server-import"]["detail"]
+    assert checks["mcp-server-import"]["install_hint"]
+    assert report["summary"]["required_ok"] is False
+    assert "mcp-server-import" in report["summary"]["missing_required"]
+
+
+def test_server_import_check_survives_arbitrary_failure():
+    from mcp_video.doctor import _check_mcp_server_import
+
+    def exploding(name: str) -> object:
+        raise RuntimeError("boom during import")
+
+    check = _check_mcp_server_import(exploding)
+    assert check["ok"] is False
+    assert "RuntimeError" in check["detail"]
+
+
+def test_server_import_check_ok_path():
+    from mcp_video.doctor import _check_mcp_server_import
+
+    check = _check_mcp_server_import(lambda name: object())
+    assert check["ok"] is True
+    assert check["required"] is True

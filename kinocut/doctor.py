@@ -24,6 +24,7 @@ WhichFn = Callable[[str], str | None]
 VersionRunner = Callable[[list[str]], str | None]
 FindSpecFn = Callable[[str], Any]
 PackageVersionFn = Callable[[str], str | None]
+ImportModuleFn = Callable[[str], Any]
 
 PYTHON_313_UPSCALE_BACKEND_HINT = (
     "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
@@ -471,15 +472,48 @@ def _rescue_summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
+    """Import the MCP server tool tree so 'doctor OK' covers ``kino --mcp`` (#445).
+
+    The package checks prove ``mcp`` exists on disk, not that the server tree
+    imports. A platform-specific import failure (a POSIX-only module, a broken
+    optional dependency) left ``kino --mcp`` dead while doctor reported OK —
+    so this check exercises the same import the entry point performs.
+    """
+
+    try:
+        import_module("kinocut.server")
+    except Exception as exc:  # the failure is the signal; doctor must never crash on it
+        return {
+            "name": "mcp-server-import",
+            "category": "core",
+            "required": True,
+            "ok": False,
+            "detail": f"{type(exc).__name__}: {exc}",
+            "install_hint": (
+                "Run 'kino --mcp' to see the full error; usually a broken install "
+                "(pip install --force-reinstall kinocut) or a platform-specific dependency issue."
+            ),
+        }
+    return {
+        "name": "mcp-server-import",
+        "category": "core",
+        "required": True,
+        "ok": True,
+        "detail": "kinocut.server imports cleanly",
+    }
+
+
 def run_diagnostics(
     *,
     which: WhichFn = shutil.which,
     version_runner: VersionRunner = _command_version,
     find_spec: FindSpecFn = importlib.util.find_spec,
     package_version: PackageVersionFn = _package_version,
+    import_module: ImportModuleFn = importlib.import_module,
 ) -> dict[str, Any]:
     """Return a structured report for core and optional integration dependencies."""
-    checks = [_check_mcp_video(find_spec, package_version)]
+    checks = [_check_mcp_video(find_spec, package_version), _check_mcp_server_import(import_module)]
     with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
         checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
     checks.extend(
