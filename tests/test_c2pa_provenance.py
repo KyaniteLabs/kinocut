@@ -24,6 +24,10 @@ def _fake_c2patool(
     verify_failure: bool = False,
     verify_payload: object = _DEFAULT_VERIFY_PAYLOAD,
 ) -> Path:
+    if os.name == "nt":
+        pytest.skip(
+            "shebang executable test stubs cannot run on Windows (see #450); interpreter-invoked stubs land with the Windows CI job (#452)"
+        )
     script = path / "fake-c2patool"
     success_payload = (
         {
