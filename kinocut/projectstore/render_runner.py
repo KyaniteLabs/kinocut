@@ -16,13 +16,13 @@ from __future__ import annotations
 
 import argparse
 import contextlib
-import fcntl
 from typing import Any
 from pathlib import Path
 import os
 import sys
 import time
 
+from kinocut.projectstore._filelock import lock_exclusive, unlock
 from kinocut.projectstore.render_jobs import (
     RenderJobStatus,
     get_render_job,
@@ -142,7 +142,7 @@ def main(argv: list[str]) -> int:
     lease = job_lease_path(project, args.job_id)
     lease.parent.mkdir(parents=True, exist_ok=True)
     with lease.open("a+b") as lease_handle:
-        fcntl.flock(lease_handle, fcntl.LOCK_EX)
+        lock_exclusive(lease_handle)
         try:
             _await_running_identity(project, args.job_id)
             run_job(project, args.job_id)
