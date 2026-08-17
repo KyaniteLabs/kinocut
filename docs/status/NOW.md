@@ -1,7 +1,7 @@
 # Kinocut now
 
-**Published:** 1.14.1 · **196 MCP / 167 CLI** · `docs/public_claims.json`  
-**Tip (`master`):** same published counts. 360 dual-cam assembly, PEP 562 lazy `import kinocut`, and QC-80 ship-seam honesty are in pip 1.14.1.
+**Published:** 1.15.0 · **196 MCP / 167 CLI** · `docs/public_claims.json`  
+**Tip (`master`):** same published counts. 360 dual-cam assembly, PEP 562 lazy `import kinocut`, QC-80 ship-seam honesty, and the honest-diagnostics release (real `--mcp` import errors, doctor `mcp-server-import` check — community-driven release, see CHANGELOG acknowledgements) are in pip 1.15.0.
 
 **Product pipeline:** Phase 1–4 + Track E **GO**.
 
