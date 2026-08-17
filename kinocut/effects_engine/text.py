@@ -20,6 +20,7 @@ from ..ffmpeg_helpers import (
     _validate_input_path,
     _validate_output_path,
     _run_command,
+    _escape_ffmpeg_filter_path,
     _escape_ffmpeg_filter_value,
     _run_ffprobe_json,
 )
@@ -115,7 +116,7 @@ def _subtitle_filter(
     prepared_subtitles: str, font: str, size: int, color: str, outline: int, outline_color: str
 ) -> str:
     """Build a safe subtitles filter string."""
-    safe_subtitles = _escape_ffmpeg_filter_value(prepared_subtitles)
+    safe_subtitles = _escape_ffmpeg_filter_path(prepared_subtitles)
     safe_font = _escape_ffmpeg_filter_value(font)
     safe_color = _escape_ffmpeg_filter_value(color)
     safe_outline_color = _escape_ffmpeg_filter_value(outline_color)
@@ -231,7 +232,7 @@ def _escape_sendcmd_value(value: str) -> str:
 def _drawtext_font_option(font: str | None) -> str:
     """Return a drawtext font option that works for both font names and paths."""
     if font and os.path.exists(font):
-        return f"fontfile={_escape_ffmpeg_filter_value(font)}"
+        return f"fontfile={_escape_ffmpeg_filter_path(font)}"
     safe_font = _escape_ffmpeg_filter_value(font or "Arial")
     return f"font={safe_font}"
 
@@ -292,7 +293,7 @@ def _build_typewriter_filter(
             os.unlink(cmd_path)
         raise
 
-    safe_cmd_path = _escape_ffmpeg_filter_value(cmd_path)
+    safe_cmd_path = _escape_ffmpeg_filter_path(cmd_path)
     filter_complex = (
         f"sendcmd=f={safe_cmd_path},"
         f"drawtext@1=text='':{font_option}:fontsize={safe_size}:fontcolor={safe_color}:"

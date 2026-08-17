@@ -22,7 +22,12 @@ from .ffmpeg_helpers import (
     _sanitize_ffmpeg_number,
 )
 from .errors import MCPVideoError, ProcessingError, parse_ffmpeg_error
-from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_value
+from .ffmpeg_helpers import (
+    _validate_input_path,
+    _validate_output_path,
+    _escape_ffmpeg_filter_path,
+    _escape_ffmpeg_filter_value,
+)
 from .limits import DEFAULT_FFMPEG_TIMEOUT
 from .models import EditResult
 
@@ -55,7 +60,7 @@ def stabilize(
             vectors_file = os.path.join(tmpdir, "vectors.trf")
             _detect_motion_vectors(input_path, vectors_file)
 
-            safe_vectors_file = _escape_ffmpeg_filter_value(vectors_file)
+            safe_vectors_file = _escape_ffmpeg_filter_path(vectors_file)
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
@@ -80,7 +85,7 @@ def _detect_motion_vectors(input_path: str, vectors_file: str) -> None:
             error_type="validation_error",
             code="invalid_path",
         )
-    safe_vectors_file = _escape_ffmpeg_filter_value(vectors_file)
+    safe_vectors_file = _escape_ffmpeg_filter_path(vectors_file)
     try:
         result = subprocess.run(  # noqa: S603
             [
