@@ -774,6 +774,7 @@ More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
 ---
 
 If Kinocut is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/kinocut)** — it helps other agent builders find it.
+If it saved you real editing hours: [ko-fi.com/kyanitelabs](https://ko-fi.com/kyanitelabs).
 
 Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.
 

@@ -21,3 +21,7 @@ All public support routes run through **[GitHub](https://github.com/KyaniteLabs/
 ## Maintainer expectations
 
 Support is best-effort, but we aim to keep responses clear, actionable, and respectful.
+
+## Financial support
+
+If Kinocut saves you real editing hours: [ko-fi.com/kyanitelabs](https://ko-fi.com/kyanitelabs).
