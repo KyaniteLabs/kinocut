@@ -41,6 +41,8 @@ BASIC_PITCH_MANUAL_HINT = (
     "resolvable by the package extras. Use Python 3.11 or 3.12 if you specifically need audio AI pitch extraction."
 )
 
+MIN_PYTHON_VERSION = (3, 11)
+
 COMMAND_CHECKS = (
     {
         "name": "ffmpeg",
@@ -152,6 +154,16 @@ def _parse_ffmpeg_version(version_line: str | None) -> int | None:
     return None
 
 
+def _parse_python_version(version_line: str | None) -> tuple[int, int] | None:
+    """Extract major and minor versions from a Python version line."""
+    if not version_line:
+        return None
+    match = re.search(r"\bPython\s+(\d+)\.(\d+)", version_line, re.IGNORECASE)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    return None
+
+
 def _command_version(command: list[str]) -> str | None:
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=DOCTOR_COMMAND_TIMEOUT)  # noqa: S603
@@ -191,6 +203,11 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
                 extra["warning"] = (
                     f"FFmpeg {major}.x works but {MIN_FFMPEG_VERSION}+ is recommended for full feature support."
                 )
+
+    if definition["name"] == "python" and ok:
+        python_version = _parse_python_version(version)
+        if python_version is not None and python_version < MIN_PYTHON_VERSION:
+            ok = False
 
     # Hyperframes version check — routed through the injectable version_runner
     # so tests can exercise both outcomes (a raw subprocess call here would be

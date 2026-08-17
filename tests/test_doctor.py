@@ -78,6 +78,22 @@ def test_command_checks_resolve_the_executable_instead_of_the_display_name():
     assert "python3" in looked_up
 
 
+def test_python_command_check_rejects_unsupported_version():
+    from mcp_video.doctor import run_diagnostics
+
+    report = run_diagnostics(
+        which=lambda name: "/usr/bin/python3" if name == "python3" else None,
+        version_runner=lambda command: "Python 3.9.6" if command == ["python3", "--version"] else None,
+        find_spec=lambda name: None,
+    )
+    checks = {check["name"]: check for check in report["checks"]}
+
+    assert checks["python"]["ok"] is False
+    assert checks["python"]["path"] == "/usr/bin/python3"
+    assert checks["python"]["version"] == "Python 3.9.6"
+    assert checks["python"]["install_hint"] == "Python 3.11+ is required."
+
+
 def _node_only_which(name: str) -> str | None:
     return f"/usr/bin/{name}" if name in {"node", "npm", "npx"} else None
 
