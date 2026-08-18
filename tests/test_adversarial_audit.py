@@ -1,4 +1,4 @@
-"""Adversarial security test suite for mcp-video.
+"""Adversarial security test suite for Kinocut (formerly mcp-video).
 
 Tests injection prevention, error handling robustness, input validation,
 parameter bounds, and consistency across all engines.

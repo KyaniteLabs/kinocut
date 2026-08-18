@@ -1,4 +1,4 @@
-"""Red team: adversarial edge-case tests for mcp-video."""
+"""Red team: adversarial edge-case tests for Kinocut (formerly mcp-video)."""
 
 import os
 import subprocess

@@ -11,7 +11,7 @@ def _add_command_output_format(parser: argparse.ArgumentParser) -> None:
     Argparse normally requires global options before the subcommand. Quality
     commands do not use a command-local ``--format`` flag, so accepting it here
     makes dogfood-friendly invocations such as
-    ``mcp-video video-quality-check input.mp4 --format json`` work without
+    ``kino video-quality-check input.mp4 --format json`` work without
     changing the existing global form.
     """
     parser.add_argument(

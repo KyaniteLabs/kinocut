@@ -1,4 +1,4 @@
-"""Rich output formatting helpers for the mcp-video CLI."""
+"""Rich output formatting helpers for the Kinocut CLI (kino/kinocut/mcp-video)."""
 
 from __future__ import annotations
 

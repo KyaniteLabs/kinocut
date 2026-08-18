@@ -1,7 +1,7 @@
 """
-mcp-video Live Demo Script
+Kinocut Live Demo Script
 ========================
-Run this to demonstrate mcp-video's capabilities.
+Run this to demonstrate Kinocut's capabilities (formerly mcp-video).
 Requires: a video file (mp4), FFmpeg with drawtext support.
 
 Usage:
@@ -170,7 +170,7 @@ def main():
     step(14, "Using TikTok template...")
     from mcp_video.templates import tiktok_template
 
-    timeline = tiktok_template(trimmed.output_path, caption="Built with mcp-video")
+    timeline = tiktok_template(trimmed.output_path, caption="Built with Kinocut")
     print("  Template: TikTok (1080x1920)")
     print(f"  Tracks: {len(timeline['tracks'])} ({', '.join(t['type'] for t in timeline['tracks'])})")
     print(f"  Export: {timeline['export']['format']} / {timeline['export']['quality']}")

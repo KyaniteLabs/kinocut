@@ -34,7 +34,7 @@ _lock = threading.Lock()
 
 
 def _ensure_torch():
-    """Import torch lazily so mcp-video doesn't hard-depend on it."""
+    """Import torch lazily so Kinocut doesn't hard-depend on it."""
     global _torch
     if _torch is None:
         try:

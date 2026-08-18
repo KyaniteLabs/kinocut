@@ -334,8 +334,8 @@ class TestTranscription:
 
         # The transcribe extra resolves the missing dependency; the bare base
         # package does not. Both the message and the suggested action must use it.
-        assert "mcp-video[transcribe]" in message
-        assert "mcp-video[transcribe]" in suggested
+        assert "kinocut[transcribe]" in message
+        assert "kinocut[transcribe]" in suggested
 
         # Guard against regressing to the broken hint that recommends reinstalling
         # the already-installed base package with no extra.

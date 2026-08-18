@@ -45,12 +45,12 @@ def _transcribe_chunk(
             import whisper  # type: ignore[import-not-found]
         except ImportError as exc:
             raise MCPVideoError(
-                'Whisper not installed. Install with: pip install "mcp-video[transcribe]"',
+                'Whisper not installed. Install with: pip install "kinocut[transcribe]"',
                 error_type="dependency_error",
                 code="missing_whisper",
                 suggested_action={
                     "auto_fix": False,
-                    "description": 'Run: pip install "mcp-video[transcribe]" to enable transcription',
+                    "description": 'Run: pip install "kinocut[transcribe]" to enable transcription',
                 },
             ) from exc
         whisper_model = whisper.load_model(model)

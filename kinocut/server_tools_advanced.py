@@ -605,7 +605,7 @@ def video_cleanup(
             stem = os.path.splitext(os.path.basename(p))[0]
             if not stem.startswith("mcp_video_") and not stem.endswith(_CLEANUP_MANAGED_SUFFIXES):
                 raise MCPVideoError(
-                    "Refusing to delete unmanaged file; only mcp-video intermediate outputs may be cleaned up",
+                    "Refusing to delete unmanaged file; only Kinocut-managed intermediate outputs may be cleaned up",
                     error_type="validation_error",
                     code="unsafe_cleanup_path",
                 )

@@ -304,4 +304,4 @@ class TestGracefulError:
                 with pytest.raises(MCPVideoError) as exc_info:
                     _require_image_deps()
                 assert exc_info.value.code == "missing_optional_dep"
-                assert "mcp-video[image]" in str(exc_info.value)
+                assert "kinocut[image]" in str(exc_info.value)

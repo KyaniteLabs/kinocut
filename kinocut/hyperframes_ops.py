@@ -631,7 +631,7 @@ def render_and_post(
     post_process: list[dict[str, Any]],
     output_path: str | None = None,
 ) -> HyperframesPipelineResult:
-    """Render a Hyperframes composition, then apply mcp-video post-processing."""
+    """Render a Hyperframes composition, then apply Kinocut post-processing."""
     # Step 1: Render with Hyperframes
     render_result = render(project_path)
     hyperframes_output = render_result.output_path
@@ -642,7 +642,7 @@ def render_and_post(
             f"Render completed but output artifact was not created: {hyperframes_output}",
         )
 
-    # Step 2: Post-process with mcp-video engine
+    # Step 2: Post-process with the Kinocut engine
     op_map = _post_process_ops()
 
     operations: list[str] = []

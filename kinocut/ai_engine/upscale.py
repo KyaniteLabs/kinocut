@@ -417,7 +417,7 @@ def ai_upscale(
         except ImportError:
             raise MCPVideoError(
                 "AI upscaling requires either realesrgan or opencv-contrib-python (cv2). "
-                'Install with: pip install "mcp-video[upscale]" (Python 3.11/3.12)',
+                'Install with: pip install "kinocut[upscale]" (Python 3.11/3.12)',
                 error_type="dependency_error",
                 code="missing_upscale_dep",
             ) from None

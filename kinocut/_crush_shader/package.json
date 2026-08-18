@@ -1,7 +1,7 @@
 {
   "name": "mcp-video-crush-renderer",
   "private": true,
-  "description": "Headless renderer for mcp-video GPU shader effects. Run `npm install` in this directory to install the canvas dependency the render script requires.",
+  "description": "Headless renderer for Kinocut GPU shader effects. Run `npm install` in this directory to install the canvas dependency the render script requires.",
   "type": "module",
   "dependencies": {
     "canvas": "^3.0.0"

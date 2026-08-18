@@ -12,7 +12,7 @@ from mcp_video import __version__
 
 
 def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProcess:
-    """Run mcp-video CLI and return result."""
+    """Run the mcp-video compatibility CLI (python -m mcp_video) and return result."""
     cmd = [sys.executable, "-m", "mcp_video", *list(args)]
     result = subprocess.run(
         cmd,
@@ -26,7 +26,7 @@ def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProces
 
 
 def run_cli_json(*args: str, expect_fail: bool = False) -> subprocess.CompletedProcess:
-    """Run mcp-video CLI with --format json and return result."""
+    """Run the mcp-video compatibility CLI with --format json and return result."""
     return run_cli("--format", "json", *args, expect_fail=expect_fail)
 
 

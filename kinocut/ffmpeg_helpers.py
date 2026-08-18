@@ -169,7 +169,7 @@ def _validate_write_path(
 def _validate_output_path(path: str) -> str:
     """Validate an output path before FFmpeg writes with ``-y``.
 
-    mcp-video intentionally lets users write normal media artifacts around their
+    Kinocut intentionally lets users write normal media artifacts around their
     projects and temp directories. It must not overwrite system files, symlink
     targets, sensitive home dotfiles, or obviously non-media source/config files.
 

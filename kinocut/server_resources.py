@@ -1,4 +1,4 @@
-"""MCP resource registrations for the mcp-video server."""
+"""MCP resource registrations for the Kinocut server (mcp-video:// URIs are compatibility aliases)."""
 
 from __future__ import annotations
 

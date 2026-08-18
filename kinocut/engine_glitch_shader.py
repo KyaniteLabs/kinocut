@@ -28,7 +28,7 @@ from .ffmpeg_helpers import (
 )
 from .limits import FFPROBE_TIMEOUT
 
-# Path to the CRUSH.js module bundled with mcp-video
+# Path to the CRUSH.js module bundled with Kinocut
 _CRUSH_JS_DIR = Path(__file__).resolve().parent / "_crush_shader"
 
 # Headless render script (render_frames.mjs)

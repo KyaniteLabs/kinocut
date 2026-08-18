@@ -287,7 +287,7 @@ class ClientHyperframesMixin:
         post_process: list[dict],
         output: str | None = None,
     ) -> dict:
-        """Render a Hyperframes composition then post-process with mcp-video tools.
+        """Render a Hyperframes composition then post-process with Kinocut tools.
 
         Args:
             project_path: Path to the Hyperframes project directory
