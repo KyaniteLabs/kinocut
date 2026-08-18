@@ -18,7 +18,7 @@ from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 
 from .errors import HyperframesNotFoundError
-from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD
+from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD, MIN_PYTHON_VERSION
 from .limits import DOCTOR_COMMAND_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -40,8 +40,6 @@ BASIC_PITCH_MANUAL_HINT = (
     "BasicPitch is a manual optional integration because its TensorFlow dependency chain is not safely "
     "resolvable by the package extras. Use Python 3.11 or 3.12 if you specifically need audio AI pitch extraction."
 )
-
-MIN_PYTHON_VERSION = (3, 11)
 
 COMMAND_CHECKS = (
     {

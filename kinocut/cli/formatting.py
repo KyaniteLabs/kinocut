@@ -261,7 +261,9 @@ def _format_doctor_text(report: dict[str, Any]) -> None:
     table.add_column("Version / Hint")
     for check in report["checks"]:
         state = "[green]OK[/green]" if check["ok"] else "[yellow]Missing[/yellow]"
-        detail = check.get("version") or check.get("install_hint") or "-"
+        version = check.get("version")
+        hint = check.get("install_hint")
+        detail = f"{version} — {hint}" if not check["ok"] and version and hint else version or hint or "-"
         name = "Kinocut" if check["name"] == "mcp-video" else check["name"]
         table.add_row(name, check["category"], "yes" if check["required"] else "no", state, escape(detail))
     console.print(table)
