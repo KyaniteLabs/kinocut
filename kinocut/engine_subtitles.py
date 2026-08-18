@@ -26,7 +26,7 @@ from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
 )
-from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_value
+from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_path
 from .defaults import DEFAULT_SUBTITLE_STYLE
 from .errors import MCPVideoError
 from .models import EditResult
@@ -125,7 +125,7 @@ def subtitles(
                 code="subtitle_prepare_failed",
             ) from exc
         _fill_burn_source(fd, subtitle_format, subtitle_path, input_path)
-        video_filter = f"subtitles={_escape_ffmpeg_filter_value(temp_ass)}"
+        video_filter = f"subtitles={_escape_ffmpeg_filter_path(temp_ass)}"
         if force_style:
             video_filter += f":force_style='{force_style}'"
 

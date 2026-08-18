@@ -31,7 +31,12 @@ from .validation import (
     _validate_color,
 )
 from .errors import MCPVideoError
-from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
+from .ffmpeg_helpers import (
+    _escape_ffmpeg_filter_path,
+    _escape_ffmpeg_filter_value,
+    _validate_input_path,
+    _validate_output_path,
+)
 from .models import EditResult, NamedPosition, Timeline, TimelineClip, TimelineImageOverlay
 
 
@@ -373,7 +378,7 @@ def _image_enable_expression(img: TimelineImageOverlay) -> str:
 def _drawtext_filter(elem, width: int, height: int) -> str:
     fontfile = elem.style.get("font") or _default_font()
     if fontfile is not None:
-        fontfile = _escape_ffmpeg_filter_value(fontfile)
+        fontfile = _escape_ffmpeg_filter_path(fontfile)
     size = int(_sanitize_ffmpeg_number(elem.style.get("size", 48), "style.size"))
     color = elem.style.get("color", "white")
     _validate_color(color)

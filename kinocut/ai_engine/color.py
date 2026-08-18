@@ -129,9 +129,9 @@ def _apply_style_filter(video_path: Path, output: str, filter_string: str) -> st
 
 def _apply_lut(video: str, output: str, lut_path: str) -> str:
     """Apply a .cube/.3dl LUT with FFmpeg's lut3d filter."""
-    from ..ffmpeg_helpers import _escape_ffmpeg_filter_value
+    from ..ffmpeg_helpers import _escape_ffmpeg_filter_path
 
-    filter_string = f"lut3d={_escape_ffmpeg_filter_value(lut_path)}"
+    filter_string = f"lut3d={_escape_ffmpeg_filter_path(lut_path)}"
     cmd = [
         "ffmpeg",
         "-y",
