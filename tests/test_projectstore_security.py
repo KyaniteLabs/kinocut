@@ -362,18 +362,18 @@ def test_append_rejects_mismatched_supplied_record_id(tmp_path):
 
 def test_lock_acquisition_failure_maps_to_contract_error(tmp_path, monkeypatch):
     proj = open_project(tmp_path / "proj")
-    import fcntl as _fcntl
 
     import kinocut.projectstore.store as store_mod
 
     def _boom(*_a, **_k):
         raise OSError("flock failed: /private/secret/lock")
 
-    monkeypatch.setattr(store_mod.fcntl, "flock", _boom)
+    # store.py no longer imports fcntl directly; the portable lock boundary is
+    # _filelock.lock_exclusive (aliased into store at import time).
+    monkeypatch.setattr(store_mod, "lock_exclusive", _boom)
     with pytest.raises(MCPVideoError) as excinfo:
         append_record(proj, _verdict(project_id=proj.project_id))
     assert "/private/secret" not in str(excinfo.value)
-    _ = _fcntl  # keep import referenced
 
 
 def test_atomic_append_rolls_back_on_post_replace_fsync_failure(tmp_path, monkeypatch):
