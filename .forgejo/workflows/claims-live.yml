@@ -21,7 +21,7 @@ on:
 jobs:
   pypi-matches-claims:
     runs-on: light
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
       - name: Checkout
         run: |

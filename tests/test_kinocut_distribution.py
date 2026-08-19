@@ -88,10 +88,14 @@ def test_python_module_launchers_run_the_canonical_cli() -> None:
 def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
     canonical = _toml(ROOT / "pyproject.toml")
     shim = _toml(ROOT / "compat" / "mcp-video-shim" / "pyproject.toml")
+    claims = json.loads((ROOT / "docs" / "public_claims.json").read_text(encoding="utf-8"))
+    published = claims["published_version"]
 
     assert shim["project"]["name"] == "mcp-video"
     assert shim["project"]["version"] == SHIM_VERSION
-    assert shim["project"]["dependencies"] == [f"kinocut=={KINOCUT_VERSION}"]
+    # Mid-cutover: the published shim must pin the live PyPI kinocut, not the
+    # in-repo candidate, or `pip install mcp-video` asks for an unpublished wheel.
+    assert shim["project"]["dependencies"] == [f"kinocut=={published}"]
     assert shim["project"]["scripts"] == {"mcp-video": "kinocut.__main__:main"}
     assert shim["tool"]["hatch"]["build"]["targets"]["wheel"]["bypass-selection"] is True
     assert not (ROOT / "compat" / "mcp-video-shim" / "mcp_video").exists()
@@ -100,7 +104,7 @@ def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
     shim_extras = shim["project"]["optional-dependencies"]
     assert set(shim_extras) == set(canonical_extras)
     for extra in canonical_extras:
-        assert shim_extras[extra] == [f"kinocut[{extra}]=={KINOCUT_VERSION}"]
+        assert shim_extras[extra] == [f"kinocut[{extra}]=={published}"]
 
 
 def test_npm_package_is_a_thin_uvx_bootstrap_not_a_second_runtime() -> None:
