@@ -112,8 +112,11 @@ jobs:
           raise SystemExit(1)
           PY
   test:
+    needs: lint
     # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
+    # Wait for lint: the capacity-2 runner otherwise starts pytest immediately and
+    # starves the light job (lint then dies around 79s).
     runs-on: arm64-heavy
     strategy:
       fail-fast: false
