@@ -9,6 +9,7 @@ jobs:
     # Uses manual git clone instead of actions/checkout@v4 because the CI
     # runner (Colima VM) cannot reach gitea.com to download the action.
     runs-on: light
+    timeout-minutes: 15
     steps:
       - name: Checkout
         run: |
@@ -33,6 +34,8 @@ jobs:
           git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
           git rev-parse HEAD
+          date -u +"checkout_ok %H:%M:%S" | tee /forgejo-debug/lint-checkout.log
+
       - name: Report checkout failure
         if: failure()
         env:
@@ -68,7 +71,8 @@ jobs:
       - name: Install ruff
         run: |
           python3 -m venv .venv-lint
-          .venv-lint/bin/pip install --quiet "ruff>=0.15.11"
+          .venv-lint/bin/pip install --timeout 60 --retries 3 --quiet "ruff==0.16.3"
+          .venv-lint/bin/ruff --version | tee /forgejo-debug/lint-ruff-version.log
       - name: Lint
         env:
           STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
