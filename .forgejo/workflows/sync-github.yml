@@ -21,17 +21,18 @@ jobs:
     steps:
       - name: Checkout canonical master
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq && apt-get install -y -qq git
-          set -eux
+          set -eu
           export GIT_TERMINAL_PROMPT=0
-          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          TOKEN='${{ github.token }}'
+          if [ -z "$TOKEN" ]; then TOKEN='${{ secrets.GITHUB_TOKEN }}'; fi
           REPO='${{ github.repository }}'
           SHA='${{ github.sha }}'
           if [ -z "$TOKEN" ]; then
-            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            echo "clone token empty; github.token and secrets.GITHUB_TOKEN are unset"
             exit 1
           fi
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git
           # Fresh directory: runner workspaces are not always empty.
           WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/canonical"
           mkdir -p "$WORKDIR"

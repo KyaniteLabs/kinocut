@@ -12,36 +12,81 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
+        env:
+          JOB_TOKEN: ${{ github.token }}
+          JOB_TOKEN_FALLBACK: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_SHA: ${{ github.sha }}
+          STATUS_REPO: ${{ github.repository }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.head_ref }}
+          PR: ${{ github.event.number }}
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq && apt-get install -y -qq git python3 python3-venv
-          set -eux
+          set -eu
           export GIT_TERMINAL_PROMPT=0
-          TOKEN='${{ secrets.GITHUB_TOKEN }}'
-          REPO='${{ github.repository }}'
-          SHA='${{ github.sha }}'
-          REF='${{ github.head_ref }}'
-          PR='${{ github.event.number }}'
+          TOKEN="${JOB_TOKEN:-${JOB_TOKEN_FALLBACK:-}}"
           if [ -z "$TOKEN" ]; then
-            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            echo "clone token empty; github.token and secrets.GITHUB_TOKEN are unset"
+            echo "runner images cannot clone Forgejo anonymously"
             exit 1
           fi
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git python3 python3-venv
+          post_checkout_status() {
+            state="$1"
+            desc="$2"
+            python3 - "$state" "$desc" <<'PY'
+          import json, os, sys, urllib.request
+          state, desc = sys.argv[1], sys.argv[2][:140]
+          token = os.environ.get("JOB_TOKEN") or os.environ.get("JOB_TOKEN_FALLBACK") or ""
+          sha = os.environ["STATUS_SHA"]
+          repo = os.environ["STATUS_REPO"]
+          payload = json.dumps({
+              "state": state,
+              "context": "lint-checkout",
+              "description": desc,
+          }).encode()
+          req = urllib.request.Request(
+              f"https://git.kyanitelabs.tech/api/v1/repos/{repo}/statuses/{sha}",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": f"token {token}",
+                  "Content-Type": "application/json",
+                  "User-Agent": "kinocut-ci",
+              },
+          )
+          try:
+              urllib.request.urlopen(req, timeout=20).read()
+          except Exception as exc:
+              print("lint-checkout status post failed", exc)
+          PY
+          }
+          trap 'post_checkout_status error "checkout failed token_len=${#TOKEN}"' EXIT
+          WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/src"
+          mkdir -p "$WORKDIR"
+          cd "$WORKDIR"
           git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
           if ! git fetch --depth 50 origin "$SHA"; then
-            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
-            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+            if [ -n "${REF:-}" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "${PR:-}" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
           fi
           git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
           git rev-parse HEAD
+          trap - EXIT
+          post_checkout_status success "ok token_len=${#TOKEN}"
 
       - name: Install ruff
+        working-directory: src
         run: |
           python3 -m venv .venv-lint
           .venv-lint/bin/pip install --timeout 60 --retries 3 --quiet "ruff==0.16.3"
       - name: Lint
+        working-directory: src
         env:
-          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_TOKEN: ${{ github.token }}
+          STATUS_TOKEN_FALLBACK: ${{ secrets.GITHUB_TOKEN }}
           STATUS_SHA: ${{ github.sha }}
           STATUS_REPO: ${{ github.repository }}
         run: |
@@ -57,7 +102,7 @@ jobs:
           import urllib.request
 
           desc = open("ruff-out.txt", encoding="utf-8", errors="replace").read().replace("\n", " | ")[-130:]
-          token = os.environ.get("STATUS_TOKEN") or ""
+          token = os.environ.get("STATUS_TOKEN") or os.environ.get("STATUS_TOKEN_FALLBACK") or ""
           sha = os.environ["STATUS_SHA"]
           repo = os.environ["STATUS_REPO"]
           payload = json.dumps({
