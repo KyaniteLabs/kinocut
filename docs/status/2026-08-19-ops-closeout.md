@@ -10,10 +10,9 @@ This is the current session receipt. It does not replace `docs/public_claims.jso
 
 ## Verdict
 
-Package identity, dual-host tip, and the Forgejo merge gate are honest and green.
-The remaining **public lie** is the product site: `https://kinocut.dev/` still
-stamps **1.14.1**. Everything else below is either done, parked with an owner
-word, or a local/gitignored leftover that must not be committed.
+Package identity, dual-host `master`, **kinocut.dev 1.15.0**, and Cloudflare DNS
+are honest. The remaining desk residual is Forgejo PR **#405** (this closeout):
+lint on the retrigger SHA died without `lint-checkout`. Do not merge it red.
 
 ## 1. Package and dual-host identity — done
 
@@ -50,31 +49,49 @@ Fixes on tip:
 `timeout-minutes: 10` did **not** override the ~80s virtiofs kill. Do not “fix”
 that class of hole by raising YAML timeouts.
 
+### Recurrence on PR #405 (2026-08-19, still open)
+
+Empty-commit retrigger `16a083e` (Actions run 929): lint **Failing after 1m21s**,
+**no** `lint-checkout` context. Tests/ffmpeg `Has been skipped` (`needs: lint`).
+Earlier head `62bbbfd` (run 928): `test (2)` **Failing after 1s** (job never
+reached pytest). `origin/master` `5b1936e` remains combined **success**.
+
+Operator hypothesis: **a box is busy** (named nucbox). Treat as *busy host /
+capacity*, not as a proven nucbox queue:
+
+| Check (live 2026-08-19) | Result |
+| --- | --- |
+| Runners registered on `KyaniteLabs/kinocut` | **one**: `colima-ci-runner` (id=15, forgejo-runner v13.0.0) |
+| Labels on that runner | `heavy`, `light`, `default`, `arm64-heavy` (all `docker://ubuntu:24.04`) |
+| Runner status at this probe | `idle` |
+| `nucbox-ci` on this repo’s runner list | **absent** (2026-07-10 topology mention is historical) |
+
+So Kinocut jobs do not wait on a separate nucbox runner unless an admin attaches
+one. Contention that *does* match the ~80s / no-`lint-checkout` signature is
+**Colima capacity-2**: lint (`light`) and pytest/ffmpeg (`arm64-heavy`) share the
+same VM. A busy **other** Forgejo repo on nucbox would not show up here and
+would not pick these labels.
+
+Do not force-merge. Do not raise `timeout-minutes`. Rerun when `colima-ci-runner`
+is idle and the Mac volume is not full. Forgejo on this instance has **no**
+job-rerun API (404); retrigger is an empty commit or a new push.
+
 Contract: [CI_RUNNER_TOPOLOGY.md](../CI_RUNNER_TOPOLOGY.md).
 
-## 3. Public site residual — owner word (honesty leftover)
+## 3. Public site — done (1.15.0 live)
 
-Live `https://kinocut.dev/` (2026-08-19):
+`https://kinocut.dev/` (re-verified after deploy):
 
-- Homepage chips: **1.14.1** (no 1.15.0 string).
-- `/llms.txt`: Last-updated 2026-08-13, latest published **1.14.1**.
-- `/.well-known/agent-card.json`: HTTP 200.
-- HTML is still served from Netlify (`cache-status: Netlify Edge`) in front of
-  Cloudflare DNS/proxy (`server: cloudflare`).
+- `/llms.txt`: Last-updated **2026-08-19**, latest published **1.15.0**
+- Homepage `softwareVersion` / edit-bay sub: **1.15.0**
+- Remaining `1.14.1` strings on the homepage are historical (“same 196/167
+  surface as 1.14.1”), not current-claim chips
+- Agent card: HTTP 200
+- Primary-surface gate passed against the live URL
 
-Sibling repo `workspaces/kinocut-site` tip is still the 1.14.1 cutover
-(`0c18b31` / later Ko-fi footer). Forgejo is origin; GitHub is the mirror.
-
-Exact next command (do not run until the operator names the site bump):
-
-```bash
-cd ../kinocut-site
-./scripts/bump-published-version.sh 1.15.0 196
-./scripts/verify-primary-surface.sh https://kinocut.dev/
-```
-
-Land that PR on **Forgejo first**, then confirm Netlify. Ritual reminder:
-[RELEASE_1.8_CHECKLIST.md](../RELEASE_1.8_CHECKLIST.md) §6 (same script, later version).
+Land path: kinocut-site Forgejo PR **#19** merge-commit `11e0d2c`, GitHub mirror
+FF to the same SHA, `npx netlify deploy --prod --dir .`. Dual-host site tips
+match. Bump script must pass old version **1.14.1** as argv3 (default is 1.8.0).
 
 ## 4. Cloudflare DNS for kinocut.dev — done, stay Free
 
@@ -154,9 +171,8 @@ Windows credit loop:
 | `docs/status/perf-committee/REPORT-*.md` | untracked inspect leftovers; do not re-implement 360 split (already single-pass in 1.14.0). Smell KC-005. |
 | `.omx/` / `.omc/` | gitignored plans and the bug-smell registry |
 
-Installed `$kinocut` skill on this host was the 2026-07-13 copy; the repo skill
-is 2026-08-13 (360 default path, QC-80, shorts/sound). Resync is a local copy
-from `skills/kinocut/SKILL.md`, not a repo commit.
+Installed `$kinocut` skill on this host was resynced from `skills/kinocut/SKILL.md`
+(2026-08-19). Not a repo commit.
 
 ## 9. Agent-system upgrades this closeout
 
@@ -172,7 +188,7 @@ the Cloudflare skill (owning source). This receipt does not copy that policy.
 
 ## Explicitly not done
 
-- kinocut-site 1.15.0 bump / Netlify deploy
+- Merge of PR **#405** (lint red; no `lint-checkout` on retrigger)
 - `skills.kinocut.dev` record or processor
 - China 0b probe
 - Push of PuenteWorks’ 17 local commits
@@ -185,7 +201,7 @@ the Cloudflare skill (owning source). This receipt does not copy that policy.
 
 | Phrase | Effect |
 | --- | --- |
-| `bump the site` | kinocut-site 1.15.0 ritual, Forgejo first |
+| `rerun 405` | empty-commit or push when `colima-ci-runner` is idle; merge only if lint-checkout exists |
 | `run 0b` | China reachability probe only; still no scaffold |
 | `scaffold skills-agent` | start `skills_agent/` after 0b GO |
 | `push PW` | push PuenteWorks `main` (inspect dirty tree first) |

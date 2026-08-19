@@ -10,7 +10,9 @@
 
 **Human residuals:** Renovate host token, directories #88, launch #90. First-10 **closed**. MCPB unsigned is the product path. Real X4 dogfood is optional; synthetic 2:1 fixtures cover the compiler.
 
-**Public residual:** `https://kinocut.dev/` homepage chips and `/llms.txt` still stamp **1.14.1**. Pip, npm, MCP Registry, GitHub Release, and this repo’s `llms.txt` are **1.15.0**. Site bump is owner-gated in `kinocut-site` (Forgejo first). Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
+**Public site:** `https://kinocut.dev/` `/llms.txt` and homepage stamp **1.15.0** (kinocut-site `11e0d2c`, Netlify prod). Remaining homepage `1.14.1` strings are historical surface comparison.
+
+**Desk residual:** Forgejo PR **#405** (this closeout) is open; retrigger lint on `16a083e` died at 1m21s with no `lint-checkout`. Live runner on this repo is only `colima-ci-runner` (all labels, capacity-2 Colima VM) — not a separate nucbox queue. Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
 
 **Perf receipt:** cheap CLI + import timings in [golden-path-timings.md](golden-path-timings.md) — baseline only, not an optimized claim.
 

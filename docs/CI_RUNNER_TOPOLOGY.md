@@ -3,7 +3,7 @@
 This document records the repository contract for Kinocut's Forgejo runners.
 It is not evidence that a Forgejo administrator has applied the configuration.
 
-**Last agent review:** 2026-08-19 · light routing + `claims-live` on `heavy` verified in workflow YAML; combined status on `5b1936e` success including `lint-checkout`
+**Last agent review:** 2026-08-19 · live runner list = only `colima-ci-runner`; PR #405 lint recurrence (1m21s, no `lint-checkout`) recorded below
 
 ## Workload routing
 
@@ -44,9 +44,22 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
 capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
-not a live inventory. An administrator must re-check runner placement,
-capacity, and label mappings before changing production labels. The repository
-token does not have `read:admin`, so CI cannot truthfully infer this topology.
+not a live inventory. The repository token does not have `read:admin`.
+
+**Live inventory (2026-08-19, `GET …/repos/KyaniteLabs/kinocut/actions/runners`):**
+one runner, `colima-ci-runner` (id=15, v13.0.0), labels `heavy` `light` `default`
+`arm64-heavy`, status `idle` at probe time. **`nucbox-ci` is not registered on
+this repository.** A busy nucbox running *other* Forgejo jobs would not dequeue
+Kinocut `light`/`arm64-heavy` work unless an admin attaches that runner here.
+
+Busy-host failures on Kinocut therefore mean **this Colima VM** (capacity 2,
+every label on one daemon), not a hidden nucbox queue. Signature already seen:
+lint dies ~80s–1m21s with **no** `lint-checkout` (apt/curl never ran, or the
+job was killed first). PR #405 retrigger `16a083e` (run 929) is that
+signature again. Do not merge red; do not raise `timeout-minutes`; rerun when
+the runner is idle. This Forgejo has no job-rerun API (404) — empty commit or
+new push only.
+
 ## Active runner: colima-ci-runner
 
 As of 2026-08-08, the CI runner (`colima-ci-runner`, id=15) runs
