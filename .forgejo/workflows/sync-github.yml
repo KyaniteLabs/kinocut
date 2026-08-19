@@ -14,12 +14,29 @@ concurrency:
 
 jobs:
   sync-master:
+    # Manual clone: Colima cannot reach gitea.com for actions/checkout.
+    # Full history (no --depth) so the ancestor check and FF push are honest.
     runs-on: heavy
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@v7
-        with:
-          fetch-depth: 0
+      - name: Checkout canonical master
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git
+          set -eux
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
+          fi
+          git clone "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          git fetch origin "$SHA"
+          git checkout "$SHA"
+          git log -1 --oneline
+          git rev-parse HEAD
       - name: Fast-forward GitHub master
         env:
           GITHUB_MIRROR_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
@@ -43,10 +60,13 @@ jobs:
           git fetch --no-tags github-mirror \
             refs/heads/master:refs/remotes/github-mirror/master
 
+          echo "canonical=$(git rev-parse HEAD)"
+          echo "github=$(git rev-parse github-mirror/master)"
+
           if ! git merge-base --is-ancestor github-mirror/master HEAD; then
             echo "GitHub master contains commits not yet integrated into canonical Forgejo master." >&2
             echo "Import those commits through a Forgejo pull request; refusing to rewind GitHub." >&2
             exit 1
           fi
 
-          git push github-mirror HEAD:refs/heads/master
+          git push --ff-only github-mirror HEAD:refs/heads/master
