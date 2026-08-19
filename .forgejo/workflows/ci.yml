@@ -13,15 +13,60 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-venv
-          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
-          git fetch --depth 1 origin "${{ github.sha }}"
-          git checkout "${{ github.sha }}"
+          set -eux
+          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
+          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
+            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          fi
+          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git log -1 --oneline
+          git rev-parse HEAD
       - name: Install ruff
         run: |
           python3 -m venv .venv-lint
           .venv-lint/bin/pip install --quiet "ruff>=0.15.11"
       - name: Lint
-        run: .venv-lint/bin/ruff check .
+        env:
+          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_SHA: ${{ github.sha }}
+          STATUS_REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          if .venv-lint/bin/ruff check . > ruff-out.txt 2>&1; then
+            cat ruff-out.txt
+            exit 0
+          fi
+          cat ruff-out.txt
+          python3 - <<'PY'
+          import json
+          import os
+          import urllib.request
+
+          desc = open("ruff-out.txt", encoding="utf-8", errors="replace").read().replace("\n", " | ")[-130:]
+          token = os.environ.get("STATUS_TOKEN") or ""
+          sha = os.environ["STATUS_SHA"]
+          repo = os.environ["STATUS_REPO"]
+          payload = json.dumps({
+              "state": "failure",
+              "context": "lint-ruff-tail",
+              "description": desc or "ruff failed with empty output",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://git.kyanitelabs.tech/api/v1/repos/{repo}/statuses/{sha}",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": f"token {token}",
+                  "Content-Type": "application/json",
+                  "User-Agent": "kinocut-ci",
+              },
+          )
+          try:
+              urllib.request.urlopen(req, timeout=20).read()
+          except Exception as exc:
+              print("status post failed", exc)
+          raise SystemExit(1)
+          PY
   test:
     # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
@@ -35,9 +80,14 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg nodejs=18.19.1+dfsg-6ubuntu5
-          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
-          git fetch --depth 1 origin "${{ github.sha }}"
-          git checkout "${{ github.sha }}"
+          set -eux
+          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
+          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
+            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          fi
+          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git log -1 --oneline
+          git rev-parse HEAD
       - name: Install package
         run: |
           python3 -m venv .venv
@@ -73,9 +123,14 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
-          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
-          git fetch --depth 1 origin "${{ github.sha }}"
-          git checkout "${{ github.sha }}"
+          set -eux
+          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
+          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
+            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          fi
+          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git log -1 --oneline
+          git rev-parse HEAD
       - name: Install package
         run: |
           python3 -m venv .venv
@@ -126,9 +181,14 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv curl xz-utils
-          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
-          git fetch --depth 1 origin "${{ github.sha }}"
-          git checkout "${{ github.sha }}"
+          set -eux
+          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
+          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
+            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          fi
+          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git log -1 --oneline
+          git rev-parse HEAD
       - name: Fetch pinned static FFmpeg ${{ matrix.major }}
         run: |
           set -euo pipefail

@@ -26,8 +26,12 @@ jobs:
       - name: Checkout
         run: |
           apt-get update -qq && apt-get install -y -qq git python3
-          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
-          git fetch --depth 1 origin "${{ github.sha }}"
-          git checkout "${{ github.sha }}"
+          set -eux
+          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
+          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
+            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          fi
+          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git log -1 --oneline
       - name: Verify published_version against live PyPI
         run: python3 scripts/verify_published_claims_live.py
