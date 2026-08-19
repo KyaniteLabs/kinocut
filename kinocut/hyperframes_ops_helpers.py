@@ -19,12 +19,12 @@ from .ffmpeg_helpers import _validate_input_path
 from .hyperframes_models import HyperframesJsonResult
 from .limits import MAX_OBJECT_MATTE_FRAMES
 from .validation import (
-    OBJECT_MATTE_WEIGHTS_FILENAME,
     REMOVE_BACKGROUND_ALLOWED_MODELS,
     REMOVE_BACKGROUND_HF_BACKEND,
     REMOVE_BACKGROUND_HUMAN_MODEL,
     REMOVE_BACKGROUND_OBJECT_BACKEND,
     REMOVE_BACKGROUND_OBJECT_MODEL,
+    object_matte_cache_path,
 )
 
 # ---------------------------------------------------------------------------
@@ -86,7 +86,7 @@ def _json_result(command: str, result: subprocess.CompletedProcess[str]) -> Hype
 
 
 def _object_matte_cache_path() -> Path:
-    return Path.home() / ".cache" / "mcp-video" / "models" / OBJECT_MATTE_WEIGHTS_FILENAME
+    return object_matte_cache_path()
 
 
 def _remove_background_info() -> HyperframesJsonResult:

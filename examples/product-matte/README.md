@@ -6,41 +6,45 @@ studio plate with existing `composite-layers`.
 Do **not** put absolute paths (`/tmp/...`, home directories) in `layers.json`.
 Every `src` must live **in this directory** next to the spec.
 
+Relative compositor `-o` and `--save-layer-plan` values are joined to this
+directory. Run the commands from here (or pass bare filenames).
+
 ## 1. Cut the product
 
 ```bash
 pip install "kinocut[object-matte]"
 kino --format json hyperframes-remove-background --info
 
+cd examples/product-matte
 kino hyperframes-remove-background /abs/path/to/turntable.mp4 \
   --model birefnet-general \
   --mask-interval 3 \
-  -o examples/product-matte/sku-cutout.webm \
-  --background-output examples/product-matte/sku-hole.webm
+  -o sku-cutout.webm \
+  --background-output sku-hole.webm
 ```
 
-Copy or render your brand plate into `examples/product-matte/studio-plate.png`
-(or replace the filename in `layers.json`). Media is gitignored; this folder
-only ships the spec.
+Copy or render your brand plate into `studio-plate.png` (or replace the
+filename in `layers.json`). Media is gitignored; this folder only ships the spec.
 
 ## 2. Dry-run the stack
 
+From this directory:
+
 ```bash
-kino composite-layers --spec examples/product-matte/layers.json \
-  --dry-run --save-layer-plan examples/product-matte/layer-plan.json
+kino composite-layers --spec layers.json \
+  --dry-run --save-layer-plan layer-plan.json
 ```
 
 Inspect the layer plan (source hashes, filtergraph, timing). Render only after
 it looks right:
 
 ```bash
-kino composite-layers --spec examples/product-matte/layers.json \
-  -o examples/product-matte/pdp.mp4 \
-  --save-layer-plan examples/product-matte/layer-plan.json
+kino composite-layers --spec layers.json \
+  -o pdp.mp4 --save-layer-plan layer-plan.json
+kino video-quality-check pdp.mp4
 ```
 
-Then `kino video-quality-check examples/product-matte/pdp.mp4` and a human look
-before a shop publish.
+Human look before a shop publish.
 
 ## Works for
 

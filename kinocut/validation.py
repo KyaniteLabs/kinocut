@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from pathlib import Path
 from typing import NamedTuple
 
 from .errors import MCPVideoError
@@ -125,8 +126,16 @@ REMOVE_BACKGROUND_OBJECT_MODELS = frozenset({REMOVE_BACKGROUND_OBJECT_MODEL})
 REMOVE_BACKGROUND_ALLOWED_MODELS = frozenset({REMOVE_BACKGROUND_HUMAN_MODEL, REMOVE_BACKGROUND_OBJECT_MODEL})
 REMOVE_BACKGROUND_HF_BACKEND = "hyperframes"
 REMOVE_BACKGROUND_OBJECT_BACKEND = "kinocut-onnx"
+# rembg v0.0.0 BiRefNet-general-epoch_244.onnx
+# https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx
 OBJECT_MATTE_WEIGHTS_FILENAME = "birefnet-general.onnx"
 OBJECT_MATTE_WEIGHTS_SHA256 = "58f621f00f5d756097615970a88a791584600dcf7c45b18a0a6267535a1ebd3c"
+OBJECT_MATTE_WEIGHTS_BYTES = 972666916
+
+
+def object_matte_cache_path() -> Path:
+    """Local cache path for the pinned object-matte ONNX. Never downloads."""
+    return Path.home() / ".cache" / "mcp-video" / "models" / OBJECT_MATTE_WEIGHTS_FILENAME
 VALID_DEMUCS_MODELS = {"htdemucs", "htdemucs_ft", "mdx", "mdx_extra", "mdx_extra_q"}
 VALID_UPSCALE_MODELS = {"realesrgan", "bsrgan"}
 VALID_COLOR_GRADE_STYLES = {"auto", "warm", "cool", "vintage", "cinematic", "noir", "dramatic"}

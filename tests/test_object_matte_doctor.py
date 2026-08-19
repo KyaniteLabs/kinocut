@@ -6,7 +6,7 @@ import hashlib
 from pathlib import Path
 
 from mcp_video.doctor import _check_object_matte, _object_matte_cache_path, run_diagnostics
-from mcp_video.validation import OBJECT_MATTE_WEIGHTS_SHA256
+from mcp_video.validation import OBJECT_MATTE_WEIGHTS_SHA256, object_matte_cache_path
 
 
 def test_object_matte_check_not_ready_without_extra_or_cache(monkeypatch, tmp_path: Path) -> None:
@@ -32,26 +32,56 @@ def test_object_matte_check_ready_when_runtime_and_hash_match(monkeypatch, tmp_p
     digest = hashlib.sha256(payload).hexdigest()
     monkeypatch.setattr("mcp_video.doctor._object_matte_cache_path", lambda: weights)
     monkeypatch.setattr("mcp_video.validation.OBJECT_MATTE_WEIGHTS_SHA256", digest)
+    monkeypatch.setattr("mcp_video.validation.OBJECT_MATTE_WEIGHTS_BYTES", len(payload))
+    monkeypatch.setattr("mcp_video.doctor._object_matte_runtime", lambda: (True, ["CPUExecutionProvider"]))
     check = _check_object_matte(find_spec=lambda name: object() if name == "onnxruntime" else None)
     assert check["ok"] is True
+    assert check["details"]["onnxruntime"] is True
     assert check["details"]["weightsCached"] is True
     assert check["details"]["sha256"] == digest
     assert check["details"]["sha256Match"] is True
+    assert check["details"]["providers"] == ["CPUExecutionProvider"]
     assert check["path"] == str(weights)
     assert check["install_hint"] is None
 
 
-def test_object_matte_check_hash_mismatch_is_not_ready(monkeypatch, tmp_path: Path) -> None:
+def test_object_matte_check_failed_runtime_import_is_not_ready(monkeypatch, tmp_path: Path) -> None:
     weights = tmp_path / "birefnet-general.onnx"
-    weights.write_bytes(b"wrong-bytes")
+    payload = b"fake-object-matte-weights"
+    weights.write_bytes(payload)
+    digest = hashlib.sha256(payload).hexdigest()
     monkeypatch.setattr("mcp_video.doctor._object_matte_cache_path", lambda: weights)
+    monkeypatch.setattr("mcp_video.validation.OBJECT_MATTE_WEIGHTS_SHA256", digest)
+    monkeypatch.setattr("mcp_video.validation.OBJECT_MATTE_WEIGHTS_BYTES", len(payload))
+    monkeypatch.setattr("mcp_video.doctor._object_matte_runtime", lambda: (False, []))
     check = _check_object_matte(find_spec=lambda name: object() if name == "onnxruntime" else None)
     assert check["ok"] is False
+    assert check["details"]["onnxruntime"] is False
+    assert check["details"]["providers"] == []
+
+
+def test_object_matte_check_wrong_size_skips_hash(monkeypatch, tmp_path: Path) -> None:
+    weights = tmp_path / "birefnet-general.onnx"
+    weights.write_bytes(b"wrong-bytes")
+    hashed = {"called": False}
+
+    def _boom(path: Path) -> str:
+        hashed["called"] = True
+        raise AssertionError("wrong-size cache must not be hashed")
+
+    monkeypatch.setattr("mcp_video.doctor._object_matte_cache_path", lambda: weights)
+    monkeypatch.setattr("mcp_video.doctor._sha256_file", _boom)
+    monkeypatch.setattr("mcp_video.doctor._object_matte_runtime", lambda: (True, ["CPUExecutionProvider"]))
+    check = _check_object_matte(find_spec=lambda name: object() if name == "onnxruntime" else None)
+    assert hashed["called"] is False
+    assert check["ok"] is False
+    assert check["details"]["sha256"] is None
     assert check["details"]["sha256Match"] is False
-    assert check["details"]["sha256"] != OBJECT_MATTE_WEIGHTS_SHA256
 
 
-def test_run_diagnostics_includes_optional_object_matte_check() -> None:
+def test_run_diagnostics_includes_optional_object_matte_check(monkeypatch, tmp_path: Path) -> None:
+    missing = tmp_path / "birefnet-general.onnx"
+    monkeypatch.setattr("mcp_video.doctor._object_matte_cache_path", lambda: missing)
     report = run_diagnostics(
         which=lambda name: None,
         version_runner=lambda command: None,
@@ -64,6 +94,7 @@ def test_run_diagnostics_includes_optional_object_matte_check() -> None:
 
 
 def test_object_matte_cache_path_is_local_models_dir() -> None:
-    path = _object_matte_cache_path()
+    path = object_matte_cache_path()
+    assert path == _object_matte_cache_path()
     assert path.name == "birefnet-general.onnx"
     assert "mcp-video" in path.parts

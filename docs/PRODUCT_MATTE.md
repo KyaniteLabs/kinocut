@@ -29,10 +29,12 @@ It is **not** a portrait / talking-head feature. For people, omit `--model`.
 1. A still (PNG/JPEG) or a video of **one subject** on a reasonably even
    background. Motorized turntables, lightbox sweeps, and tabletop shots are
    the intended inputs.
-2. `pip install "kinocut[object-matte]"` (ONNX runtime + pinned BiRefNet-general
-   weights, ~1 GB, downloaded once into the Kinocut model cache).
+2. `pip install "kinocut[object-matte]"` for ONNX Runtime. The extra is **not**
+   in published 1.15.0; it lands with #463. The ~1 GB pinned BiRefNet-general
+   ONNX is fetched into `~/.cache/mcp-video/models/` on first object-model
+   use, never by `kino doctor`.
 3. FFmpeg on `PATH`. `kino doctor` reports an optional `object_matte` check
-   (extra + cached weights + sha256). It never downloads.
+   (runtime + cached weights + sha256). It never downloads.
 4. Optional: a plate image next to your `composite-layers` spec so the cutout
    can be dropped onto a shop background.
 
@@ -128,9 +130,13 @@ Worked example: [examples/product-matte/](../examples/product-matte/).
 
 ```bash
 # Copy sku-cutout.webm and studio-plate.png next to layers.json, then:
-kino composite-layers --spec examples/product-matte/layers.json \
-  --dry-run --save-layer-plan examples/product-matte/layer-plan.json
+cd examples/product-matte
+kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
+kino composite-layers --spec layers.json -o pdp.mp4 --save-layer-plan layer-plan.json
 ```
+
+Relative `--save-layer-plan` and `-o` are resolved against the spec directory.
+Do not pass `examples/product-matte/...` as those outputs or they nest.
 
 Do not edit the compositor engine for this feature. The recipe is docs + a
 spec.
@@ -163,7 +169,7 @@ Object inference is local ONNX. On Apple Silicon, `device=auto` uses CPU in
 v1; `device=coreml` asks for the ORT CoreML EP and errors if it is missing.
 A 30 fps catalog spin of a few hundred frames is a long job (tens of minutes
 on a laptop CPU). Prefer `--mask-interval 3` for turntables. The frame cap is
-`MAX_OBJECT_MATTE_FRAMES` (3600). Timeout is `DEFAULT_AI_TIMEOUT`.
+`MAX_OBJECT_MATTE_FRAMES` (3600). Timeout is `DEFAULT_OBJECT_MATTE_TIMEOUT`.
 
 CoreML on the Hyperframes **people** path is unrelated. Do not assume it
 speeds up `birefnet-general`.

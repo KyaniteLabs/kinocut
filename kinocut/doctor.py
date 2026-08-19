@@ -588,9 +588,9 @@ def _check_sphere_director() -> dict[str, Any]:
 
 
 def _object_matte_cache_path() -> Path:
-    from .validation import OBJECT_MATTE_WEIGHTS_FILENAME
+    from .validation import object_matte_cache_path
 
-    return Path.home() / ".cache" / "mcp-video" / "models" / OBJECT_MATTE_WEIGHTS_FILENAME
+    return object_matte_cache_path()
 
 
 def _sha256_file(path: Path) -> str:
@@ -601,24 +601,30 @@ def _sha256_file(path: Path) -> str:
     return digest.hexdigest()
 
 
+def _object_matte_runtime() -> tuple[bool, list[str]]:
+    try:
+        import onnxruntime as ort
+
+        return True, list(ort.get_available_providers())
+    except Exception as exc:
+        logger.warning("onnxruntime provider probe failed: %s", exc)
+        return False, []
+
+
 def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     """Report product/object matte readiness. Never downloads weights."""
-    from .validation import OBJECT_MATTE_WEIGHTS_SHA256
+    from .validation import OBJECT_MATTE_WEIGHTS_BYTES, OBJECT_MATTE_WEIGHTS_SHA256
 
-    onnx_ok = find_spec("onnxruntime") is not None
+    spec_ok = find_spec("onnxruntime") is not None
+    runtime_ok, providers = _object_matte_runtime() if spec_ok else (False, [])
     cache_path = _object_matte_cache_path()
     cached = cache_path.is_file()
-    digest = _sha256_file(cache_path) if cached else None
-    hash_match = digest == OBJECT_MATTE_WEIGHTS_SHA256 if digest is not None else False
-    providers: list[str] = []
-    if onnx_ok:
-        try:
-            import onnxruntime as ort
-
-            providers = list(ort.get_available_providers())
-        except Exception as exc:
-            logger.warning("onnxruntime provider probe failed: %s", exc)
-    ok = onnx_ok and cached and hash_match
+    digest = None
+    hash_match = False
+    if cached and cache_path.stat().st_size == OBJECT_MATTE_WEIGHTS_BYTES:
+        digest = _sha256_file(cache_path)
+        hash_match = digest == OBJECT_MATTE_WEIGHTS_SHA256
+    ok = runtime_ok and cached and hash_match
     hint = None
     if not ok:
         hint = (
@@ -635,7 +641,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
         "version": None,
         "install_hint": hint,
         "details": {
-            "onnxruntime": onnx_ok,
+            "onnxruntime": runtime_ok,
             "weightsCached": cached,
             "sha256": digest,
             "sha256Match": hash_match,
