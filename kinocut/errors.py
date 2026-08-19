@@ -275,6 +275,31 @@ class ProcessingError(MCPVideoError):
         self.full_stderr = stderr
 
 
+class BackendUnavailableError(MCPVideoError):
+    """Requested processing backend cannot run the selected model."""
+
+    def __init__(
+        self,
+        message: str,
+        *,
+        backend: str = "kinocut-onnx",
+        suggested_action: dict[str, Any] | None = None,
+        docs_url: str | None = None,
+    ) -> None:
+        super().__init__(
+            message,
+            error_type="backend_unavailable",
+            code="backend_unavailable",
+            suggested_action=suggested_action
+            or {
+                "auto_fix": False,
+                "description": f"Use an available model or wait until the {backend} backend ships.",
+            },
+            docs_url=docs_url,
+        )
+        self.backend = backend
+
+
 class ResourceError(MCPVideoError):
     """Insufficient disk space or memory."""
 

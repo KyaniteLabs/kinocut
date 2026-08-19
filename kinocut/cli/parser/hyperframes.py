@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import argparse
 
+from ...defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
+
 
 def _add_render_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Register the render, compositions, and preview subcommands."""
@@ -109,12 +111,57 @@ def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
     transcribe_p.add_argument("-l", "--language")
 
     # hyperframes-remove-background
-    remove_bg_p = subparsers.add_parser("hyperframes-remove-background", help="Remove image/video background")
-    remove_bg_p.add_argument("input_path", help="Input image/video")
-    remove_bg_p.add_argument("-o", "--output", help="Output file path")
-    remove_bg_p.add_argument("--background-output")
+    remove_bg_p = subparsers.add_parser(
+        "hyperframes-remove-background",
+        help="Cut a person or a product out of a still or video",
+    )
+    remove_bg_p.add_argument(
+        "input_path",
+        nargs="?",
+        default=None,
+        help="Input still or video (optional with --info)",
+    )
+    remove_bg_p.add_argument("-o", "--output", help="Output cutout path")
+    remove_bg_p.add_argument(
+        "--background-output",
+        help="Write the inverse-alpha hole plate (useful for shop composites)",
+    )
     remove_bg_p.add_argument("--device", default="auto", choices=["auto", "cpu", "coreml", "cuda"])
     remove_bg_p.add_argument("--quality", default="balanced", choices=["fast", "balanced", "best"])
+    remove_bg_p.add_argument(
+        "--info",
+        action="store_true",
+        help="Print Kinocut-owned model list (people vs products). No download.",
+    )
+    remove_bg_p.add_argument(
+        "--model",
+        default=None,
+        help=(
+            "u2net_human_seg (people, default) or birefnet-general "
+            "(products/objects; needs kinocut[object-matte])"
+        ),
+    )
+    remove_bg_p.add_argument(
+        "--mask-interval",
+        type=int,
+        default=DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL,
+        dest="mask_interval",
+        help="Infer a mask every N frames (use 3 for product turntables; N>1 is object-only)",
+    )
+    remove_bg_p.add_argument(
+        "--equipment-overlay",
+        default=None,
+        help=(
+            "Write a diagnostic PNG of leftover studio gear "
+            "(turntable, stand, tripod, sweep). Object backend only."
+        ),
+    )
+    remove_bg_p.add_argument(
+        "--fail-if-equipment-on-subject",
+        action="store_true",
+        dest="fail_if_equipment_on_subject",
+        help="Abort if leftover studio gear intersects the product (object backend only)",
+    )
 
     # hyperframes-doctor
     subparsers.add_parser("hyperframes-doctor", help="Run Hyperframes diagnostics")

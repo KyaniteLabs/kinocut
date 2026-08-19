@@ -1138,6 +1138,11 @@ class TestHyperframes05Tools:
             "info",
             "benchmark",
         ]
+        cutout_cmd = mock_run.call_args_list[0][0][0]
+        assert "--model" not in cutout_cmd
+        assert "--info" not in cutout_cmd
+        assert cutout.data["model"] == "u2net_human_seg"
+        assert cutout.data["backend"] == "hyperframes"
         benchmark_cmd = mock_run.call_args_list[-1][0][0]
         assert benchmark_cmd[benchmark_cmd.index("--runs") + 1] == "5"
 

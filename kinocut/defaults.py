@@ -7,7 +7,7 @@ per AGENTS.md Rule 12.
 from __future__ import annotations
 
 # Re-export encoding defaults from limits for backward compatibility
-from .limits import DEFAULT_CRF, DEFAULT_FFMPEG_TIMEOUT, DEFAULT_PRESET  # noqa: F401
+from .limits import DEFAULT_AI_TIMEOUT, DEFAULT_CRF, DEFAULT_FFMPEG_TIMEOUT, DEFAULT_PRESET  # noqa: F401
 
 # Quality presets
 DEFAULT_QUALITY = "high"
@@ -163,3 +163,10 @@ DEFAULT_GRAPHICS_LAYER_OPACITY = 1.0
 # across instances (frozen models don't deep-freeze mutable containers).
 DEFAULT_GRAPHICS_LAYER_POSITION_X = 0.0
 DEFAULT_GRAPHICS_LAYER_POSITION_Y = 0.0
+
+# Remove-background dispatcher. Default is people (Hyperframes).
+# birefnet-general is the product/object path (Kinocut ONNX) and fails closed
+# until kinocut[object-matte] ships.
+DEFAULT_REMOVE_BACKGROUND_MODEL = "u2net_human_seg"
+DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL = 1
+DEFAULT_OBJECT_MATTE_TIMEOUT = DEFAULT_AI_TIMEOUT

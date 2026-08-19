@@ -25,7 +25,8 @@ from pathlib import Path
 from typing import Any
 
 from .defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
-from .errors import HyperframesRenderError, MCPVideoError
+from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL, DEFAULT_REMOVE_BACKGROUND_MODEL
+from .errors import BackendUnavailableError, HyperframesRenderError, MCPVideoError
 from .ffmpeg_helpers import _validate_output_path
 from .hyperframes_engine import (
     _hyperframes_op,
@@ -46,15 +47,21 @@ from .hyperframes_models import (
     HyperframesStillResult,
 )
 from .hyperframes_ops_helpers import (
+    _assert_hf_remove_background_flags,
     _csv,
     _default_render_output,
+    _hf_remove_background_result,
     _json_result,
+    _normalize_mask_interval,
     _post_process_ops,
+    _remove_background_info,
     _render_output_exists,
+    _resolve_remove_background_model,
     _resolve_render_resolution,
     _snapshot_pngs,
     _validate_variables_file,
 )
+from .validation import REMOVE_BACKGROUND_OBJECT_MODELS
 
 logger = logging.getLogger(__name__)
 
@@ -496,14 +503,53 @@ def tts(
 
 
 def remove_background(
-    input_path: str,
+    input_path: str | None = None,
     output_path: str | None = None,
     background_output_path: str | None = None,
     device: str = "auto",
     quality: str = "balanced",
     info: bool = False,
+    model: str | None = None,
+    mask_interval: int = DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL,
+    equipment_overlay: str | None = None,
+    fail_if_equipment_on_subject: bool = False,
 ) -> HyperframesJsonResult:
-    """Remove a video/image background with Hyperframes local AI."""
+    """Cut a person or a product out of a still or video.
+
+    Default model is people (`u2net_human_seg`) via Hyperframes. Products and
+    other objects use `birefnet-general` (Kinocut ONNX, `kinocut[object-matte]`).
+    """
+    if info:
+        return _remove_background_info()
+    resolved = _resolve_remove_background_model(model)
+    if not input_path:
+        raise MCPVideoError(
+            "input_path is required unless info is true",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    interval = _normalize_mask_interval(mask_interval)
+    if resolved in REMOVE_BACKGROUND_OBJECT_MODELS:
+        raise BackendUnavailableError(
+            f"Product/object cutouts use --model {resolved!r} and require "
+            'pip install "kinocut[object-matte]". The object backend is not '
+            "installed yet. People cutouts: omit --model "
+            f"(default {DEFAULT_REMOVE_BACKGROUND_MODEL}). "
+            "Guide: docs/PRODUCT_MATTE.md.",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    'Install "kinocut[object-matte]" for products, '
+                    "or omit --model for people."
+                ),
+            },
+            docs_url="docs/PRODUCT_MATTE.md",
+        )
+    _assert_hf_remove_background_flags(
+        mask_interval=interval,
+        equipment_overlay=equipment_overlay,
+        fail_if_equipment_on_subject=fail_if_equipment_on_subject,
+    )
     result, _cwd = _hyperframes_op(
         "remove-background",
         input_path=input_path,
@@ -511,9 +557,8 @@ def remove_background(
         background_output_path=background_output_path,
         device=device,
         quality=quality,
-        info=info,
     )
-    return _json_result("remove-background", result)
+    return _hf_remove_background_result(result)
 
 
 def doctor() -> HyperframesJsonResult:
