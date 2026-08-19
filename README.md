@@ -27,9 +27,9 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1150">1.15.0 tip</a> &bull;
+  <a href="#whats-in-1150">1.15.0</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
-  <a href="#beyond-1141-draft--gated">Beyond</a> &bull;
+  <a href="#beyond-1150-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#mcp-tools">Tools</a> &bull;
@@ -120,7 +120,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | **This repository (`master`)** | **1.15.0** (published) · **196 MCP tools / 167 CLI commands** | Same counts as the published release. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
-Install from PyPI for the stable package. Clone `master` only when you intentionally want unreleased tip work.
+Install from PyPI for the stable package. `master` currently matches published 1.15.0; clone it when you want work after the latest tag.
 
 ## What's in 1.15.0
 
@@ -553,7 +553,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-On the **published 1.14.1** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+On the **published 1.15.0** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -622,12 +622,12 @@ Safety contract:
 
 ## Changelog
 
-**1.15.0** (unreleased tip — not on PyPI):
+**1.15.0** (2026-08-19):
 - **Honest MCP startup failures** — `kino --mcp` reports real import causes; paths redacted, markup-safe (#448, from #445).
 - **doctor `mcp-server-import` check** — required core check; doctor can't say OK while `--mcp` is broken (#449).
-- **Windows test portability groundwork** — shebang stubs skip explicitly on Windows (#450, partial).
-- Community-driven tip — @gerardoscaglia-creator credited in [Contributing](#contributing) and the [CHANGELOG acknowledgements](CHANGELOG.md).
-- Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1` so the tree stays installable.
+- **First-class Windows support** — portable projectstore file locking (#446), contention-only lock contract, UTF-8 stdio, `windows-latest` smoke job.
+- Community-driven release — @gerardoscaglia-creator credited in [Contributing](#contributing) and the [CHANGELOG acknowledgements](CHANGELOG.md).
+- `mcp-video==1.6.11` installs `kinocut==1.15.0`.
 
 **1.14.1** (2026-08-13):
 - Patch on 1.14.0: pyright `NoReturn` on rescue cancel so GitHub Lint stays green. Same 360 + perf surface.
@@ -677,7 +677,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.14.1** documents **196 MCP tools / 167 CLI commands**. The development tip (1.15.0, not on PyPI) keeps those counts. 360 assembly reuses `video_intent` and `video_review_decide` — it is not a 197th MCP tool.
+Published **1.15.0** documents **196 MCP tools / 167 CLI commands**. The development tip matches those counts. 360 assembly reuses `video_intent` and `video_review_decide` — it is not a 197th MCP tool.
 
 ### Can Kinocut edit Insta360 X4 360 video?
 
@@ -685,7 +685,7 @@ Yes — from a **stitched 360 MP4**, not `.insv`. Propose a `360_assembly_plan`,
 
 ### Was it called mcp-video?
 
-Yes. Published `mcp-video==1.6.10` installs `kinocut==1.14.1`. Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x+ line.
+Yes. Published `mcp-video==1.6.11` installs `kinocut==1.15.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x+ line.
 
 More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](https://kinocut.dev/#faq)
 
@@ -819,7 +819,7 @@ Treat the README status and release tags as source of truth for maturity. Valida
 
 ### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
 
-Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This is in the published 1.14.1 package.
+Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.15.0.
 
 ## Status
 
