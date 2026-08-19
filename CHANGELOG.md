@@ -11,7 +11,9 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
-## 1.15.0 - 2026-08-15
+## 1.15.0 — not on PyPI (tip)
+
+Not published. `pip install kinocut` still installs **1.14.1**. This section is the release-candidate changelog on `master`.
 
 ### Added
 - **doctor `mcp-server-import` check:** `kino doctor` now imports the MCP server tool tree as a required core check, so it can no longer report OK while `kino --mcp` cannot start (#449, surfaced by #445).
@@ -21,7 +23,7 @@ This project follows a simple release-note style:
 - **Windows test portability groundwork:** shebang-executable test stubs (fake ffmpeg/ffprobe, c2patool) skip explicitly on Windows instead of erroring at collection; interpreter-invoked stubs land with the Windows CI job (#450, partial).
 
 ### Compatibility
-- `mcp-video==1.6.11` installs `kinocut==1.15.0`.
+- Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1` (installable against live PyPI).
 - Published surface stays **196 MCP tools / 167 CLI commands**.
 
 ### Acknowledgements

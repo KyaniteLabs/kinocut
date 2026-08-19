@@ -206,6 +206,7 @@ only-include = [
 markers = [
     "slow: marks tests as slow (real-media integration tests)",
     "hyperframes: marks tests requiring Node.js + Hyperframes CLI",
+    "network: marks tests that need live network (not in the default suite)",
 ]
 
 [tool.pyright]

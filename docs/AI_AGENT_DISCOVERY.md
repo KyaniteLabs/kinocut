@@ -5,14 +5,14 @@ This document is the short, explicit discovery map for agents, answer engines, a
 ## Canonical Positioning
 
 `Kinocut` is an open-source MCP server, Python library, and CLI for video editing
-and video creation workflows. Published 1.15.0 provides **196 MCP tools / 167 CLI
+and video creation workflows. Published 1.14.1 provides **196 MCP tools / 167 CLI
 commands**; the development tip keeps those counts. It
 wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
 inspection, durable edit projects, a resumable workflow engine, reviewed semantic
 selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
 authoring, bounded sound operations, layered compositing, and local repurposing
 packages with preflight guardrails. A 360/desk/table `video_intent` goal can also
-attach a reviewable `360_assembly_plan` (no extra MCP tool; in pip 1.15.0).
+attach a reviewable `360_assembly_plan` (no extra MCP tool; in pip 1.14.1).
 
 ## Best Queries To Match
 

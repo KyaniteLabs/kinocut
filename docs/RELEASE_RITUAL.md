@@ -8,6 +8,12 @@ Minimum marketing steps when cutting a public Kinocut release. Engineering relea
 - [`scripts/apply_public_release_cutover.py`](../scripts/apply_public_release_cutover.py)
 - Published notes: [`status/2026-07-14-1.8-release-notes.md`](status/2026-07-14-1.8-release-notes.md)
 
+## 0. Authority
+
+Land on Forgejo first. Do not `git push github` as the primary land. Do not set
+`published_version` until `scripts/verify_published_claims_live.py` is green for
+that version (PyPI already serves it).
+
 ## 1. Freeze claims
 
 Update [`public_claims.json`](public_claims.json):
@@ -25,8 +31,12 @@ sync tip counts. See [`ROADMAP.md`](../ROADMAP.md) claim ledger and
 
 ```bash
 pytest tests/test_public_claims.py tests/test_public_surface.py -q
+python scripts/verify_published_claims_live.py
 python scripts/golden_path.py
 ```
+
+`scripts/apply_public_release_cutover.py` defaults to `--require-live` (PyPI 200 for
+the new `published_version`).
 
 ## 3. Ship package + registry
 

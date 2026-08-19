@@ -54,7 +54,7 @@ Kinocut covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered me
 
 ## Can it edit Insta360 X4 360 video?
 
-Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is in pip `kinocut==1.15.0`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is in pip `kinocut==1.14.1`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## What are the cinematic creation tools?
 

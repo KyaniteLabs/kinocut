@@ -1,0 +1,33 @@
+# Merge-time live published-claims probe.
+# Manual clone: Colima cannot reach gitea.com for actions/checkout.
+# Required oracle is PyPI JSON only. npm / GitHub latest are annotations.
+name: Published claims live
+
+on:
+  pull_request:
+    paths:
+      - "docs/public_claims.json"
+      - "README.md"
+      - "llms.txt"
+      - "CHANGELOG.md"
+      - "docs/faq.md"
+      - "docs/CLI_REFERENCE.md"
+      - "docs/HUMAN_GATES.md"
+      - "docs/status/NOW.md"
+      - "scripts/apply_public_release_cutover.py"
+      - "scripts/verify_published_claims_live.py"
+      - ".forgejo/workflows/claims-live.yml"
+
+jobs:
+  pypi-matches-claims:
+    runs-on: light
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        run: |
+          apt-get update -qq && apt-get install -y -qq git python3
+          git clone --depth 1 "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@git.kyanitelabs.tech/${{ github.repository }}.git" .
+          git fetch --depth 1 origin "${{ github.sha }}"
+          git checkout "${{ github.sha }}"
+      - name: Verify published_version against live PyPI
+        run: python3 scripts/verify_published_claims_live.py
