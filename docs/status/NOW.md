@@ -12,7 +12,7 @@
 
 **Public site:** `https://kinocut.dev/` `/llms.txt` and homepage stamp **1.15.0** (kinocut-site `11e0d2c`, Netlify prod). Remaining homepage `1.14.1` strings are historical surface comparison.
 
-**Desk residual:** Forgejo PR **#405** (this closeout) is open; retrigger lint on `16a083e` died at 1m21s with no `lint-checkout`. Live runner on this repo is only `colima-ci-runner` (all labels, capacity-2 Colima VM) — not a separate nucbox queue. Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
+**Desk residual:** PR **#405** is merged (`dae62af`). Colima lives on the operator M4 Mac, not Mini/nucbox. Do not restart `forgejo-runner` mid-job (exact 80s fail, no `lint-checkout`). Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
 
 **Perf receipt:** cheap CLI + import timings in [golden-path-timings.md](golden-path-timings.md) — baseline only, not an optimized claim.
 
