@@ -206,4 +206,4 @@ the Cloudflare skill (owning source). This receipt does not copy that policy.
 | `run 0b` | China reachability probe only; still no scaffold |
 | `scaffold skills-agent` | start `skills_agent/` after 0b GO |
 | `push PW` | push PuenteWorks `main` (inspect dirty tree first) |
-| `close 445` | outbound GitHub close/credit on the Windows issue |
+| `close 445` | **done** 2026-08-19 — GH issue closed completed |
