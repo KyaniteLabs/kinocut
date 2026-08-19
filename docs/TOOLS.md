@@ -232,7 +232,7 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 | `hyperframes_capture` | Capture a website as editable Hyperframes components |
 | `hyperframes_tts` | Generate speech audio with local Hyperframes TTS or list available voices |
 | `hyperframes_transcribe` | Transcribe media to word-level timestamps or import transcripts |
-| `hyperframes_remove_background` | Remove image/video backgrounds to transparent media |
+| `hyperframes_remove_background` | Cut a person (default `u2net_human_seg`) or a product/object (`model="birefnet-general"`, `kinocut[object-matte]`) out of a still or video. `info=true` lists models without downloading. No new tool name. Guide: [PRODUCT_MATTE.md](PRODUCT_MATTE.md) |
 | `hyperframes_doctor` | Run Hyperframes environment diagnostics |
 | `hyperframes_benchmark` | Compare render speed and output size, with configurable run count |
 | `hyperframes_compositions` | List all compositions in a project |

@@ -1,0 +1,27 @@
+{
+  "canvas": {
+    "width": 1080,
+    "height": 1350,
+    "background": "#111111",
+    "fps": 30,
+    "duration": 8.0
+  },
+  "layers": [
+    {
+      "id": "studio-plate",
+      "type": "image",
+      "src": "studio-plate.png",
+      "opacity": 1.0,
+      "position": {"x": 0, "y": 0}
+    },
+    {
+      "id": "sku",
+      "type": "video",
+      "src": "sku-cutout.webm",
+      "alpha_mode": "straight",
+      "opacity": 1.0,
+      "transform": {"x": 140, "y": 180, "width": 800}
+    }
+  ],
+  "output": {"format": "mp4"}
+}

@@ -19,6 +19,15 @@ Add one prompt to [PROMPTS.md](PROMPTS.md) that is deterministic-leaning, Kinocu
 
 Using a **synthetic** 2:1 fixture (do not commit private X4 media): propose a `360_assembly_plan`, show cameras, refuse `.insv`, and document that render needs approve. Follow [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
+## Task 3b — Product matte dry-run
+
+Follow [PRODUCT_MATTE.md](PRODUCT_MATTE.md). Run
+`kino --format json hyperframes-remove-background --info` (no input file).
+Confirm `models.birefnet-general.subject` is `products-and-objects` and that
+`--info` did not download weights. Dry-run
+`examples/product-matte/layers.json` only if the cutout/plate files are
+present locally — do not commit private catalog media.
+
 ## Task 4 — Failure example
 
 Document one fail-closed path in [FAILURE_EXAMPLES.md](FAILURE_EXAMPLES.md) with expected error type.

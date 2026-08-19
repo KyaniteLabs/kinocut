@@ -11,6 +11,9 @@ Examples have been moved to `workflows/` as ICM-style staged pipelines.
 
 See `workflows/README.md` for how to run each workflow.
 
+Product / object matte (catalog SKU onto a shop plate, spec-dir-relative
+paths): [product-matte/](product-matte/). Guide: [docs/PRODUCT_MATTE.md](../docs/PRODUCT_MATTE.md).
+
 
 ## Agent prompts & paste configs
 

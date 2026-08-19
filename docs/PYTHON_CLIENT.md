@@ -334,7 +334,7 @@ Positioned non-`normal` blend requires explicit `width` and `height`, an integra
 | `hyperframes_capture(url, output?)` | `HyperframesJsonResult` | Capture a website as editable components |
 | `hyperframes_tts(text_or_file?, output?, list_voices?)` | `HyperframesJsonResult` | Generate local speech audio or list available voices |
 | `hyperframes_transcribe(input_path, project_path?, model?, language?)` | `HyperframesJsonResult` | Transcribe media/import transcripts |
-| `hyperframes_remove_background(input_path, output?)` | `HyperframesJsonResult` | Produce transparent cutout media |
+| `hyperframes_remove_background(input_path?, output?, background_output?, model?, info?, mask_interval?, …)` | `HyperframesJsonResult` | Cut a person (default) or a product/object (`model="birefnet-general"`). `info=True` lists models with no download. Guide: [PRODUCT_MATTE.md](PRODUCT_MATTE.md) |
 | `hyperframes_doctor()` | `HyperframesJsonResult` | Run Hyperframes diagnostics |
 | `hyperframes_benchmark(project_path, output?, runs?)` | `HyperframesJsonResult` | Benchmark render settings |
 | `hyperframes_init(name, output_dir?, template?, video?, audio?, skip_transcribe?, model?, language?, tailwind?, resolution?)` | `HyperframesProjectResult` | Scaffold a new project |

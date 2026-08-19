@@ -160,6 +160,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
   - **S15 (Adversarial Gate):** Gated under a release STOP — requires S13 receipts, dual-class benchmarks, and explicit human authorization.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Paid Generative / Dubbing Plans:** Generative spend-capped plans and TTS dubbing remain non-executable draft definitions until external backends and credentials are configured.
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Not in published 1.15.0. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md). Issues: [#461](https://github.com/KyaniteLabs/kinocut/issues/461).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 

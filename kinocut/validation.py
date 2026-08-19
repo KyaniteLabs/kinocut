@@ -126,6 +126,7 @@ REMOVE_BACKGROUND_ALLOWED_MODELS = frozenset({REMOVE_BACKGROUND_HUMAN_MODEL, REM
 REMOVE_BACKGROUND_HF_BACKEND = "hyperframes"
 REMOVE_BACKGROUND_OBJECT_BACKEND = "kinocut-onnx"
 OBJECT_MATTE_WEIGHTS_FILENAME = "birefnet-general.onnx"
+OBJECT_MATTE_WEIGHTS_SHA256 = "58f621f00f5d756097615970a88a791584600dcf7c45b18a0a6267535a1ebd3c"
 VALID_DEMUCS_MODELS = {"htdemucs", "htdemucs_ft", "mdx", "mdx_extra", "mdx_extra_q"}
 VALID_UPSCALE_MODELS = {"realesrgan", "bsrgan"}
 VALID_COLOR_GRADE_STYLES = {"auto", "warm", "cool", "vintage", "cinematic", "noir", "dramatic"}

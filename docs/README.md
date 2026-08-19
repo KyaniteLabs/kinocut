@@ -12,6 +12,7 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [MCP tools](TOOLS.md) - public tool categories and contracts.
 - [Python client](PYTHON_CLIENT.md) - canonical `from kinocut import Client` usage.
 - [360 dual-cam assembly](360_ASSEMBLY.md) - stitched equirect MP4 → propose/approve/render (published 1.14.0; no new MCP name).
+- [Product / object matte](PRODUCT_MATTE.md) - product/catalog cutouts on existing `hyperframes-remove-background --model birefnet-general` (landing; not in published 1.15.0). No new MCP name. Example: [examples/product-matte/](../examples/product-matte/).
 - [Stream shorts](STREAM_SHORTS.md) - saved-plan review, render, and package stages (local-only).
 - [Agent workflows](WORKFLOWS.md) - job specs, render receipts, resume, and cleanup.
 - [Video rescue](RESCUE.md) - review-first repair pipeline.
