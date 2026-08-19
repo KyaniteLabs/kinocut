@@ -1,4 +1,4 @@
-# Human / ops residual (updated 2026-08-12)
+# Human / ops residual (updated 2026-08-19)
 
 Agent-closable prep is on tip. Live outcomes below still need a human operator
 where noted. Residual portfolio authority:
@@ -13,7 +13,7 @@ where noted. Residual portfolio authority:
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
 
-## Live adoption signals (re-verified 2026-08-12)
+## Live adoption signals (re-verified 2026-08-12; package 2026-08-19)
 
 | Signal | Value | Source |
 | --- | --- | --- |
@@ -31,11 +31,23 @@ incomplete pipeline work.
 ## Forgejo CI runner
 
 CI runner (`colima-ci-runner`, id=15) runs inside the Colima VM via
-forgejo-runner v13.0.0 with systemd. Steps execute and some runs pass.
-Remaining CI step failures need web UI log analysis at
-`https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions` — the API
-does not expose step-level output. Likely causes: `${{ secrets.GITHUB_TOKEN }}`
-not injected on some jobs, or test-specific failures inside containers.
+forgejo-runner v13.0.0 with systemd. Combined status on `5b1936e`
+(2026-08-19, CI-restore tip) is **success**, including `lint-checkout`. The 2026-08-19
+invisible ~80s lint hole (virtiofs checkout + `claims-live` on `light`
+starving apt/curl) is closed: runner home is VM-local
+`/mnt/lima-colima/forgejo-runner`; `claims-live.yml` runs on `heavy`.
+See [CI_RUNNER_TOPOLOGY.md](CI_RUNNER_TOPOLOGY.md) and
+[ops closeout](status/2026-08-19-ops-closeout.md).
+
+The Actions API still does not expose step-level logs. If a future job is
+red without statuses, read
+`https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions` in the web UI.
+Do not raise `timeout-minutes` to paper over a missing `lint-checkout`.
+
+## Product site
+
+`https://kinocut.dev/` still stamps **1.14.1** while pip is **1.15.0**.
+Bump lives in `kinocut-site` (Forgejo first). Owner word required.
 
 ## Adversarial audit residuals
 

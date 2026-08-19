@@ -3,7 +3,7 @@
 This document records the repository contract for Kinocut's Forgejo runners.
 It is not evidence that a Forgejo administrator has applied the configuration.
 
-**Last agent review:** 2026-08-12 · light routing verified in `.forgejo/workflows/ci.yml`
+**Last agent review:** 2026-08-19 · light routing + `claims-live` on `heavy` verified in workflow YAML; combined status on `5b1936e` success including `lint-checkout`
 
 ## Workload routing
 
@@ -22,6 +22,7 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 | --- | --- | --- | --- |
 | Lint / ruff | `.forgejo/workflows/ci.yml` | **`light`** | Must stay on `light`; do not move lint onto `arm64-heavy` |
 | Unit / integration / FFmpeg matrix | `.forgejo/workflows/ci.yml` | `arm64-heavy` | Real media + pytest only |
+| Published-claims oracle | `.forgejo/workflows/claims-live.yml` | **`heavy`** | Master-push PyPI probe. Must **not** use `light` (capacity-2 then starves lint apt/curl; ~80s death with no `lint-checkout`) |
 | Renovate | `.forgejo/workflows/renovate.yml` | `heavy` | Containerized; ops job (not pytest) |
 | Mirror sync | `.forgejo/workflows/sync-github.yml` | `heavy` | Ops job |
 
@@ -36,8 +37,10 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 ### Anti-patterns
 
 - Routing FFmpeg matrix or full pytest onto `light`
+- Routing `claims-live` onto `light` (starves lint on master push)
 - Using bare `ubuntu-latest` on Forgejo (self-hosted labels only)
 - Mapping `arm64-heavy` onto the Forgejo application VM under load
+- Raising lint `timeout-minutes` to hide a missing `lint-checkout` (the 80s virtiofs kill ignored that field)
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
 capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
@@ -73,6 +76,7 @@ Key constraints:
 - **FFmpeg matrix uses `linuxarm64` static builds** from BtbN/FFmpeg-Builds.
   The `linux64` (x86_64) binaries cannot execute on ARM64 without qemu.
 - **Lint runs on `light`** to avoid queuing behind heavy test jobs.
+- **`claims-live` runs on `heavy`** so the post-merge PyPI oracle cannot starve lint.
 - **Heavy Kinocut jobs run on `arm64-heavy`** so shared legacy labels cannot
   route architecture-sensitive work to stale or incompatible runners.
 - **The general PR suite uses four deterministic file shards**, each serial and
