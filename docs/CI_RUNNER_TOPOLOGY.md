@@ -62,6 +62,16 @@ new push only.
 
 ## Active runner: colima-ci-runner
 
+**Host (live 2026-08-19):** Colima is **not** on the Mac Mini and **not** on
+nucbox. It runs on the operator’s local Apple M4 Mac (`tech.kyanitelabs.colima`
+launchd, `colima status` → Virtualization.Framework, virtiofs). The Forgejo
+daemon is `forgejo-runner.service` **inside that Colima VM** (`hostname=colima`).
+
+Do **not** `systemctl restart forgejo-runner` while a job is `Has started running`.
+Forgejo keeps the assignment; the new poller does not inherit it; the job dies at
+**exactly 80s** with no `lint-checkout`. Wait for idle, or let the 80s fail, then
+push a new SHA.
+
 As of 2026-08-08, the CI runner (`colima-ci-runner`, id=15) runs
 **inside the Colima VM** as a systemd service (`forgejo-runner.service`,
 auto-start on boot, auto-restart on crash). The runner binary is
