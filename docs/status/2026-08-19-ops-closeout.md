@@ -168,8 +168,8 @@ Windows credit loop:
 
 | Path | Why |
 | --- | --- |
-| `.mimosa/` | agent scratch |
-| `docs/status/perf-committee/REPORT-*.md` | untracked inspect leftovers; do not re-implement 360 split (already single-pass in 1.14.0). Smell KC-005. |
+| `.mimosa/` | agent scratch — still do not commit |
+| `docs/status/perf-committee/` | parked as inspect receipts; do not re-implement the 360 split (already `render_window_single_pass` in 1.14.0) |
 | `.omx/` / `.omc/` | gitignored plans and the bug-smell registry |
 
 Installed `$kinocut` skill on this host was resynced from `skills/kinocut/SKILL.md`
@@ -195,7 +195,7 @@ the Cloudflare skill (owning source). This receipt does not copy that policy.
 - Push of PuenteWorks’ 17 local commits
 - GitHub comment/close on #445 — **done** 2026-08-19
 - Re-Enterprise of any zone
-- Committing perf-committee reports or `.mimosa/`
+- Committing `.mimosa/`
 - Fixing the pre-existing local `test_mcpb_launcher_is_compatible_with_the_declared_node_floor` failure
 
 ## Owner words (copy-paste)
