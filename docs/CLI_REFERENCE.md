@@ -337,7 +337,7 @@ Quality JSON identifies each saturation and contrast metric, its unit, measured 
 | `hyperframes-capture` | Capture a website as editable Hyperframes components |
 | `hyperframes-tts` | Generate local speech audio through Hyperframes |
 | `hyperframes-transcribe` | Transcribe media or import transcript timing |
-| `hyperframes-remove-background` | Remove image or video backgrounds |
+| `hyperframes-remove-background` | Cut a person (default) or a product/object (`--model birefnet-general`) out of a still or video. `--info` lists models. Guide: [PRODUCT_MATTE.md](PRODUCT_MATTE.md) |
 | `hyperframes-doctor` | Run Hyperframes environment diagnostics |
 | `hyperframes-benchmark` | Benchmark render settings (`--runs`) |
 | `hyperframes-init` | Scaffold a new Hyperframes project (media bootstrap, Tailwind, and resolution flags) |

@@ -39,6 +39,17 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 
 There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director plugs (Ollama first; cloud only with `allow_cloud`) may propose JSON; they never write pixels. In pip 1.14.0.
 
+## Product / object matte (landing; not in 1.15.0)
+
+Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+
+1. `hyperframes_remove_background(info=true)` — lists models, no download.
+2. `pip install "kinocut[object-matte]"` then `model="birefnet-general"`.
+3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
+4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
+
+Do **not** invent `video_product_matte` or a 197th tool. Do **not** fall back to the people model when the object extra is missing. Guide: `docs/PRODUCT_MATTE.md`. Example: `examples/product-matte/`.
+
 ## Dedicated Video Rescue
 
 Use `video_rescue_*`, `rescue-*`, or `Client.rescue_*` when the request is to fix one local

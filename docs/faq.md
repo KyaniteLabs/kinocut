@@ -64,6 +64,10 @@ The cinematic creation tools add a PUSHING CREATION-compatible pre-production wo
 
 Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection, catalog blocks, website capture, local TTS, transcription import, background removal, diagnostics, and benchmarking. Repurposing tools create dry-run manifests or local platform packages for Shorts, Reels, TikTok, and YouTube-style variants, including thumbnails, storyboards, and optional release checkpoints.
 
+## Can I cut a product out of a turntable or tabletop video?
+
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That extra is **not** in published 1.15.0; it lands with the object-matte work. `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+
 ## Is it free?
 
 Yes. Kinocut is open-source under the Apache-2.0 license. There are no API costs because everything runs locally using FFmpeg and optional local AI models.

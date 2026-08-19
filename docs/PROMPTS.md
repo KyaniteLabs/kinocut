@@ -28,6 +28,21 @@ Using Kinocut tools only (no raw FFmpeg shell):
 Do not claim publish-ready without human review.
 ```
 
+## 1b. Product / object matte onto a shop plate
+
+```text
+Using Kinocut only (no raw FFmpeg shell, no new tool name):
+1) kino --format json hyperframes-remove-background --info
+   Confirm default model is people and birefnet-general is products-and-objects.
+2) If the object extra is missing, stop and tell me to pip install "kinocut[object-matte]".
+   Do not run the people model on a product turntable.
+3) Cut ABS_PATH/turntable.mp4 with --model birefnet-general --mask-interval 3
+   to a cutout next to a composite-layers spec directory.
+4) Dry-run composite-layers with spec-dir-relative src only (see examples/product-matte/).
+5) quality_check. Human review before any shop publish.
+Follow docs/PRODUCT_MATTE.md.
+```
+
 ## 2. Podcast highlight package
 
 ```text

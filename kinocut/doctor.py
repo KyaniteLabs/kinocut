@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import importlib.metadata
 import importlib.util
 import logging
@@ -553,6 +554,7 @@ def run_diagnostics(
     checks.append(_check_crush())
     checks.append(_check_audio_engine())
     checks.append(_check_still_plates(find_spec, package_version))
+    checks.append(_check_object_matte(find_spec))
     checks.append(_check_sphere_director())
     return {
         "success": True,
@@ -582,6 +584,71 @@ def _check_sphere_director() -> dict[str, Any]:
         "version": detected.get("id"),
         "install_hint": None,
         "details": detected,
+    }
+
+
+def _object_matte_cache_path() -> Path:
+    from .validation import object_matte_cache_path
+
+    return object_matte_cache_path()
+
+
+def _sha256_file(path: Path) -> str:
+    digest = hashlib.sha256()
+    with path.open("rb") as handle:
+        for chunk in iter(lambda: handle.read(1 << 20), b""):
+            digest.update(chunk)
+    return digest.hexdigest()
+
+
+def _object_matte_runtime() -> tuple[bool, list[str]]:
+    try:
+        import onnxruntime as ort
+
+        return True, list(ort.get_available_providers())
+    except Exception as exc:
+        logger.warning("onnxruntime provider probe failed: %s", exc)
+        return False, []
+
+
+def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
+    """Report product/object matte readiness. Never downloads weights."""
+    from .validation import OBJECT_MATTE_WEIGHTS_BYTES, OBJECT_MATTE_WEIGHTS_SHA256
+
+    spec_ok = find_spec("onnxruntime") is not None
+    runtime_ok, providers = _object_matte_runtime() if spec_ok else (False, [])
+    cache_path = _object_matte_cache_path()
+    cached = cache_path.is_file()
+    digest = None
+    hash_match = False
+    if cached and cache_path.stat().st_size == OBJECT_MATTE_WEIGHTS_BYTES:
+        digest = _sha256_file(cache_path)
+        hash_match = digest == OBJECT_MATTE_WEIGHTS_SHA256
+    ok = runtime_ok and cached and hash_match
+    hint = None
+    if not ok:
+        hint = (
+            'Product/object cutouts need pip install "kinocut[object-matte]" '
+            "and the pinned BiRefNet-general weights. "
+            "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
+        )
+    return {
+        "name": "object_matte",
+        "category": "object-matte",
+        "required": False,
+        "ok": ok,
+        "path": str(cache_path) if cached else None,
+        "version": None,
+        "install_hint": hint,
+        "details": {
+            "onnxruntime": runtime_ok,
+            "weightsCached": cached,
+            "sha256": digest,
+            "sha256Match": hash_match,
+            "expectedSha256": OBJECT_MATTE_WEIGHTS_SHA256,
+            "providers": providers,
+            "docs": "docs/PRODUCT_MATTE.md",
+        },
     }
 
 
