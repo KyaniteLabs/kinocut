@@ -1,6 +1,6 @@
 # Improvement Roadmap
 
-Kinocut 1.14.1 is published with 196 MCP tools and 167 CLI commands (`mcp-video` 1.6.10 shim). 1.15.0 is unreleased tip.
+Kinocut 1.15.0 is published with 196 MCP tools and 167 CLI commands (`mcp-video` 1.6.11 shim).
 
 **Published product:** Kinocut **1.14.1** (2026-08-13) · **196 MCP / 167 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
