@@ -27,7 +27,7 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1150-unreleased-tip">1.15.0 tip</a> &bull;
+  <a href="#whats-in-1150">1.15.0 tip</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
   <a href="#beyond-1141-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
@@ -70,7 +70,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.14.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.1)** (2026-08-13) |
+| **Latest published release** | **[1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)** (2026-08-19) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -116,15 +116,15 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm / GitHub Release** | **[1.14.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.1)** (2026-08-13) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.15.0** (unreleased tip) · **196 MCP tools / 167 CLI commands** | Same counts as 1.14.1. Honest-diagnostics work is on this tip, **not** on PyPI yet. |
+| **PyPI / npm / GitHub Release** | **[1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)** (2026-08-19) | Latest **published** Kinocut. Install with `pip install kinocut`. |
+| **This repository (`master`)** | **1.15.0** (published) · **196 MCP tools / 167 CLI commands** | Same counts as the published release. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package. Clone `master` only when you intentionally want unreleased tip work.
 
-## What's in 1.15.0 (unreleased tip)
+## What's in 1.15.0
 
-Kinocut **1.14.1** is what you get from `pip install kinocut` today. **1.15.0 is the unreleased tip** on this repository: honest-diagnostics work on top of 1.14.x (same 360 dual-cam assembly and performance surface), driven by a community bug report. Surface stays **196 MCP / 167 CLI** — no new public tool name. It is **not** on PyPI yet.
+Kinocut **1.15.0** is what you get from `pip install kinocut` today: first-class Windows support and honest diagnostics on top of 1.14.x (same 360 dual-cam assembly and performance surface), driven by a community bug report. Surface stays **196 MCP / 167 CLI** — no new public tool name.
 
 - **Honest MCP startup failures** — `kino --mcp` keeps the "requires the 'mcp' package" hint only when `mcp` is genuinely absent; every other server-tree import failure now prints its real cause (filesystem paths redacted, markup-safe) and exits non-zero. Reported in [#445](https://github.com/KyaniteLabs/kinocut/issues/445).
 - **doctor verifies the MCP server import** — new required `mcp-server-import` check imports the same server tree `--mcp` uses, so `kino doctor` can no longer report OK while MCP mode is broken.
@@ -133,7 +133,7 @@ Kinocut **1.14.1** is what you get from `pip install kinocut` today. **1.15.0 is
 - **Faster 360 and import path** — single-pass split/PiP/switch `filter_complex` (source audio kept); sampled quality-gate analyze window; SHA-256 path/mtime cache; merge can skip re-probe when `infos=` is supplied; batched 360 storyboard stills; lazy `mcp_video` / CLI / `Client.search_tools`; doctor skips `npx --yes` unless Hyperframes is already on PATH.
 - **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
 - **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; durable MCP `video_repurpose` does not apply `min_score`.
-- **Compatibility window** — published `mcp-video==1.6.10` installs `kinocut==1.14.1`. Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1` so `pip install mcp-video` from this tree stays installable. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**.
+- **Compatibility window** — `mcp-video==1.6.11` installs `kinocut==1.15.0`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**.
 
 Also already on the published line from 1.13.x:
 
@@ -143,11 +143,11 @@ Also already on the published line from 1.13.x:
 - Agent **workflow engine**, dedicated **video rescue**, **layered compositing**, Hyperframes, Shorts/Reels repurposing
 - **Canonical counts** — **196 MCP tools** and **167 CLI commands**
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.14.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.14.1) · tip notes in CHANGELOG 1.15.0 (not on PyPI)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)
 
 ## Beyond 1.14.1 (draft / gated)
 
-**1.14.1 is the latest published release.** 1.15.0 is unreleased tip. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+**1.15.0 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 

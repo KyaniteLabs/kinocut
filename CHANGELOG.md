@@ -11,9 +11,7 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
-## 1.15.0 — not on PyPI (tip)
-
-Not published. `pip install kinocut` still installs **1.14.1**. This section is the release-candidate changelog on `master`.
+## 1.15.0 - 2026-08-19
 
 ### Added
 - **doctor `mcp-server-import` check:** `kino doctor` now imports the MCP server tool tree as a required core check, so it can no longer report OK while `kino --mcp` cannot start (#449, surfaced by #445).
@@ -29,7 +27,7 @@ Not published. `pip install kinocut` still installs **1.14.1**. This section is 
 - **Windows CI smoke job:** `windows-latest` runs lint, server-tree import checks, `kino doctor`, and the focused public-surface suite on every code change — Windows breakage can no longer land silently (#452).
 
 ### Compatibility
-- Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1` (installable against live PyPI).
+- `mcp-video==1.6.11` installs `kinocut==1.15.0`.
 - Published surface stays **196 MCP tools / 167 CLI commands**.
 
 ### Acknowledgements
