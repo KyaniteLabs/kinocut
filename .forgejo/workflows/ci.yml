@@ -11,6 +11,10 @@ jobs:
     runs-on: light
     timeout-minutes: 15
     steps:
+      - name: Debug volume
+        run: |
+          date -u | tee /forgejo-debug/lint-hello
+          echo "hello_ok"
       - name: Checkout
         run: |
           export DEBIAN_FRONTEND=noninteractive
@@ -36,38 +40,6 @@ jobs:
           git rev-parse HEAD
           date -u +"checkout_ok %H:%M:%S" | tee /forgejo-debug/lint-checkout.log
 
-      - name: Report checkout failure
-        if: failure()
-        env:
-          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          STATUS_SHA: ${{ github.sha }}
-          STATUS_REPO: ${{ github.repository }}
-        run: |
-          python3 - <<'PY'
-          import json, os, urllib.request
-          token = os.environ.get("STATUS_TOKEN") or ""
-          sha = os.environ["STATUS_SHA"]
-          repo = os.environ["STATUS_REPO"]
-          payload = json.dumps({
-              "state": "failure",
-              "context": "checkout",
-              "description": "clone/fetch failed (token required in runner image)",
-          }).encode()
-          req = urllib.request.Request(
-              f"https://git.kyanitelabs.tech/api/v1/repos/{repo}/statuses/{sha}",
-              data=payload,
-              method="POST",
-              headers={
-                  "Authorization": f"token {token}",
-                  "Content-Type": "application/json",
-                  "User-Agent": "kinocut-ci",
-              },
-          )
-          try:
-              urllib.request.urlopen(req, timeout=20).read()
-          except Exception as exc:
-              print("status post failed", exc)
-          PY
       - name: Install ruff
         run: |
           python3 -m venv .venv-lint
