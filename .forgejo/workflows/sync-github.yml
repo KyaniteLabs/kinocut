@@ -32,6 +32,10 @@ jobs:
             echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
             exit 1
           fi
+          # Fresh directory: runner workspaces are not always empty.
+          WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/canonical"
+          mkdir -p "$WORKDIR"
+          cd "$WORKDIR"
           git clone "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
           git fetch origin "$SHA"
           git checkout "$SHA"
@@ -42,6 +46,7 @@ jobs:
           GITHUB_MIRROR_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
         run: |
           set -eu
+          cd "${GITHUB_WORKSPACE:-$(pwd)}/canonical"
           : "${GITHUB_MIRROR_TOKEN:?MIRROR_GITHUB_TOKEN is required}"
 
           askpass="$(mktemp)"
@@ -69,4 +74,6 @@ jobs:
             exit 1
           fi
 
-          git push --ff-only github-mirror HEAD:refs/heads/master
+          # git push has no --ff-only on the runner's Git (2.43). Default
+          # push already refuses non-FF; the ancestor check is the explicit gate.
+          git push github-mirror HEAD:refs/heads/master
