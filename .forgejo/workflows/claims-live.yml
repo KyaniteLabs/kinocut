@@ -4,7 +4,10 @@
 name: Published claims live
 
 on:
-  pull_request:
+  # PR coverage lives in ci.yml lint so this job is not starved by the
+  # capacity-2 runner. Keep a master/push copy as a post-merge oracle.
+  push:
+    branches: [master]
     paths:
       - "docs/public_claims.json"
       - "README.md"
@@ -17,6 +20,7 @@ on:
       - "scripts/apply_public_release_cutover.py"
       - "scripts/verify_published_claims_live.py"
       - ".forgejo/workflows/claims-live.yml"
+  workflow_dispatch:
 
 jobs:
   pypi-matches-claims:

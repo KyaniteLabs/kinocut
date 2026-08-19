@@ -65,6 +65,8 @@ jobs:
           except Exception as exc:
               print("status post failed", exc)
           PY
+      - name: Verify published claims vs PyPI
+        run: python3 scripts/verify_published_claims_live.py
       - name: Install ruff
         run: |
           python3 -m venv .venv-lint
