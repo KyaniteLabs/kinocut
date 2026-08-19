@@ -72,6 +72,9 @@ artifacts keep the names, versions, commands, and paths they actually verified.
   not current install or source-layout instructions, unless they explicitly identify
   themselves as the current release record. For current release and program state,
   use [NOW.md](status/NOW.md) and the [2026-08-19 ops closeout](status/2026-08-19-ops-closeout.md);
+- [Performance committee receipts](status/perf-committee/README.md) — inspect-only
+  2026-08-13 reports. Do not re-implement the 360 split; `render_window_single_pass`
+  already shipped in 1.14.0.
   [post-campaign tip status](status/2026-07-27-post-campaign-tip-status.md),
   post-1.10 and post-1.8 program status files remain dated snapshots.
 - `docs/internal/` research is also historical operating evidence, not public product
