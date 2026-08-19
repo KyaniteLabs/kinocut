@@ -12,6 +12,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
+        shell: bash
         env:
           JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_TOKEN_FALLBACK: ${{ github.token }}
@@ -31,39 +32,23 @@ jobs:
             exit 1
           fi
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq && apt-get install -y -qq git python3 python3-venv
+          apt-get update -qq && apt-get install -y -qq curl ca-certificates
           post_checkout_status() {
             state="$1"
             desc="$2"
-            python3 - "$state" "$desc" <<'PY'
-          import json, os, sys, urllib.request
-          state, desc = sys.argv[1], sys.argv[2][:140]
-          token = os.environ.get("JOB_TOKEN") or os.environ.get("JOB_TOKEN_FALLBACK") or ""
-          sha = os.environ["STATUS_SHA"]
-          repo = os.environ["STATUS_REPO"]
-          payload = json.dumps({
-              "state": state,
-              "context": "lint-checkout",
-              "description": desc,
-          }).encode()
-          req = urllib.request.Request(
-              f"https://git.kyanitelabs.tech/api/v1/repos/{repo}/statuses/{sha}",
-              data=payload,
-              method="POST",
-              headers={
-                  "Authorization": f"token {token}",
-                  "Content-Type": "application/json",
-                  "User-Agent": "kinocut-ci",
-              },
-          )
-          try:
-              urllib.request.urlopen(req, timeout=20).read()
-          except Exception as exc:
-              print("lint-checkout status post failed", exc)
-          PY
+            desc=$(printf '%s' "$desc" | cut -c1-140)
+            payload=$(printf '{"state":"%s","context":"lint-checkout","description":"%s"}' "$state" "$desc")
+            curl --fail --silent --show-error --max-time 20 \
+              -X POST \
+              -H "Authorization: token ${TOKEN}" \
+              -H "Content-Type: application/json" \
+              -H "User-Agent: kinocut-ci" \
+              --data "$payload" \
+              "https://git.kyanitelabs.tech/api/v1/repos/${STATUS_REPO}/statuses/${STATUS_SHA}"
           }
           trap 'post_checkout_status error "checkout failed token_len=${#TOKEN}"' EXIT
-          post_checkout_status pending "apt-ok token_len=${#TOKEN}"
+          post_checkout_status pending "curl-ok token_len=${#TOKEN}"
+          apt-get install -y -qq git python3 python3-venv
           WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/src"
           mkdir -p "$WORKDIR"
           cd "$WORKDIR"

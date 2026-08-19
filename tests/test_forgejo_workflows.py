@@ -50,3 +50,27 @@ def test_lint_checkout_fails_closed_before_apt_and_clones_into_empty_dir():
     assert "lint-checkout" in lint
     assert "set -x" not in lint.split("Install ruff")[0]
     assert "working-directory: src" in lint
+
+
+def test_lint_checkout_curl_posts_before_heavy_git_python_install():
+    """Bare ubuntu:24.04 has no python3/curl; tiny apt curl, then fail-closed POST.
+
+    Do not require the POST before the first apt-get update. Assert against the
+    heavy install argv (git/python3), not a naive find("python3") that hits the
+    later ruff helper.
+    """
+    lint = _lint_job_text()
+    assert "curl --fail" in lint
+    assert "ca-certificates" in lint
+    tiny = lint.find("curl ca-certificates")
+    assert tiny != -1, "expected tiny apt-get install curl ca-certificates"
+    heavy = re.search(r"apt-get install[^\n]*\bgit\b[^\n]*\bpython3\b", lint)
+    assert heavy, "expected apt-get install ... git ... python3"
+    post = lint.find('"context":"lint-checkout"')
+    assert post != -1, "expected JSON lint-checkout payload"
+    assert tiny < post < heavy.start(), "curl POST must sit after tiny apt and before git/python3 install"
+    assert lint.find("apt-get update") != -1
+    assert lint.find("apt-get update") < post
+    checkout = lint.split("Install ruff")[0]
+    assert "shell: bash" in checkout
+    assert "${desc:0:" not in checkout
