@@ -160,8 +160,9 @@ Windows credit loop:
 
 - Code for portable locking is on master / pip 1.15.0.
 - GitHub PR **#446** is CLOSED unmerged (`mergedAt` null); equivalent landed
-  as Simon’s commit. Issue **#445** is still **OPEN**. Closing #445 with
-  credit is an outbound GitHub action — owner word, this desk does not comment.
+  as Simon’s commit.
+- Issue **#445** **CLOSED** 2026-08-19 (`state_reason=completed`) with credit
+  to [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator).
 
 ## 8. Local leftovers — do not commit
 
@@ -192,7 +193,7 @@ the Cloudflare skill (owning source). This receipt does not copy that policy.
 - `skills.kinocut.dev` record or processor
 - China 0b probe
 - Push of PuenteWorks’ 17 local commits
-- GitHub comment/close on #445
+- GitHub comment/close on #445 — **done** 2026-08-19
 - Re-Enterprise of any zone
 - Committing perf-committee reports or `.mimosa/`
 - Fixing the pre-existing local `test_mcpb_launcher_is_compatible_with_the_declared_node_floor` failure
@@ -205,4 +206,4 @@ the Cloudflare skill (owning source). This receipt does not copy that policy.
 | `run 0b` | China reachability probe only; still no scaffold |
 | `scaffold skills-agent` | start `skills_agent/` after 0b GO |
 | `push PW` | push PuenteWorks `main` (inspect dirty tree first) |
-| `close 445` | outbound GitHub close/credit on the Windows issue |
+| `close 445` | **done** 2026-08-19 — GH issue closed completed |
