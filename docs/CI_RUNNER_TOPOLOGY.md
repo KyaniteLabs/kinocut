@@ -3,7 +3,7 @@
 This document records the repository contract for Kinocut's Forgejo runners.
 It is not evidence that a Forgejo administrator has applied the configuration.
 
-**Last agent review:** 2026-08-12 · light routing verified in `.forgejo/workflows/ci.yml`
+**Last agent review:** 2026-08-19 · live runner list = only `colima-ci-runner`; PR #405 lint recurrence (1m21s, no `lint-checkout`) recorded below
 
 ## Workload routing
 
@@ -22,6 +22,7 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 | --- | --- | --- | --- |
 | Lint / ruff | `.forgejo/workflows/ci.yml` | **`light`** | Must stay on `light`; do not move lint onto `arm64-heavy` |
 | Unit / integration / FFmpeg matrix | `.forgejo/workflows/ci.yml` | `arm64-heavy` | Real media + pytest only |
+| Published-claims oracle | `.forgejo/workflows/claims-live.yml` | **`heavy`** | Master-push PyPI probe. Must **not** use `light` (capacity-2 then starves lint apt/curl; ~80s death with no `lint-checkout`) |
 | Renovate | `.forgejo/workflows/renovate.yml` | `heavy` | Containerized; ops job (not pytest) |
 | Mirror sync | `.forgejo/workflows/sync-github.yml` | `heavy` | Ops job |
 
@@ -36,14 +37,29 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 ### Anti-patterns
 
 - Routing FFmpeg matrix or full pytest onto `light`
+- Routing `claims-live` onto `light` (starves lint on master push)
 - Using bare `ubuntu-latest` on Forgejo (self-hosted labels only)
 - Mapping `arm64-heavy` onto the Forgejo application VM under load
+- Raising lint `timeout-minutes` to hide a missing `lint-checkout` (the 80s virtiofs kill ignored that field)
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
 capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
-not a live inventory. An administrator must re-check runner placement,
-capacity, and label mappings before changing production labels. The repository
-token does not have `read:admin`, so CI cannot truthfully infer this topology.
+not a live inventory. The repository token does not have `read:admin`.
+
+**Live inventory (2026-08-19, `GET …/repos/KyaniteLabs/kinocut/actions/runners`):**
+one runner, `colima-ci-runner` (id=15, v13.0.0), labels `heavy` `light` `default`
+`arm64-heavy`, status `idle` at probe time. **`nucbox-ci` is not registered on
+this repository.** A busy nucbox running *other* Forgejo jobs would not dequeue
+Kinocut `light`/`arm64-heavy` work unless an admin attaches that runner here.
+
+Busy-host failures on Kinocut therefore mean **this Colima VM** (capacity 2,
+every label on one daemon), not a hidden nucbox queue. Signature already seen:
+lint dies ~80s–1m21s with **no** `lint-checkout` (apt/curl never ran, or the
+job was killed first). PR #405 retrigger `16a083e` (run 929) is that
+signature again. Do not merge red; do not raise `timeout-minutes`; rerun when
+the runner is idle. This Forgejo has no job-rerun API (404) — empty commit or
+new push only.
+
 ## Active runner: colima-ci-runner
 
 As of 2026-08-08, the CI runner (`colima-ci-runner`, id=15) runs
@@ -73,6 +89,7 @@ Key constraints:
 - **FFmpeg matrix uses `linuxarm64` static builds** from BtbN/FFmpeg-Builds.
   The `linux64` (x86_64) binaries cannot execute on ARM64 without qemu.
 - **Lint runs on `light`** to avoid queuing behind heavy test jobs.
+- **`claims-live` runs on `heavy`** so the post-merge PyPI oracle cannot starve lint.
 - **Heavy Kinocut jobs run on `arm64-heavy`** so shared legacy labels cannot
   route architecture-sensitive work to stale or incompatible runners.
 - **The general PR suite uses four deterministic file shards**, each serial and
