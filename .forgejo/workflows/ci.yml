@@ -12,15 +12,59 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq && apt-get install -y -qq git python3 python3-venv
           set -eux
-          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
-          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
-            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          REF='${{ github.head_ref }}'
+          PR='${{ github.event.number }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
           fi
-          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
           git rev-parse HEAD
+      - name: Report checkout failure
+        if: failure()
+        env:
+          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_SHA: ${{ github.sha }}
+          STATUS_REPO: ${{ github.repository }}
+        run: |
+          python3 - <<'PY'
+          import json, os, urllib.request
+          token = os.environ.get("STATUS_TOKEN") or ""
+          sha = os.environ["STATUS_SHA"]
+          repo = os.environ["STATUS_REPO"]
+          payload = json.dumps({
+              "state": "failure",
+              "context": "checkout",
+              "description": "clone/fetch failed (token required in runner image)",
+          }).encode()
+          req = urllib.request.Request(
+              f"https://git.kyanitelabs.tech/api/v1/repos/{repo}/statuses/{sha}",
+              data=payload,
+              method="POST",
+              headers={
+                  "Authorization": f"token {token}",
+                  "Content-Type": "application/json",
+                  "User-Agent": "kinocut-ci",
+              },
+          )
+          try:
+              urllib.request.urlopen(req, timeout=20).read()
+          except Exception as exc:
+              print("status post failed", exc)
+          PY
       - name: Install ruff
         run: |
           python3 -m venv .venv-lint
@@ -79,13 +123,25 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg nodejs=18.19.1+dfsg-6ubuntu5
           set -eux
-          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
-          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
-            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          REF='${{ github.head_ref }}'
+          PR='${{ github.event.number }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
           fi
-          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
           git rev-parse HEAD
       - name: Install package
@@ -122,13 +178,25 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
           set -eux
-          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
-          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
-            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          REF='${{ github.head_ref }}'
+          PR='${{ github.event.number }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
           fi
-          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
           git rev-parse HEAD
       - name: Install package
@@ -180,13 +248,25 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv curl xz-utils
           set -eux
-          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
-          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
-            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          REF='${{ github.head_ref }}'
+          PR='${{ github.event.number }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
           fi
-          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
           git rev-parse HEAD
       - name: Fetch pinned static FFmpeg ${{ matrix.major }}

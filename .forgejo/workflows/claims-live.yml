@@ -25,13 +25,25 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
           apt-get update -qq && apt-get install -y -qq git python3
           set -eux
-          git clone --depth 1 "https://git.kyanitelabs.tech/${{ github.repository }}.git" .
-          if ! git fetch --depth 50 origin "${{ github.sha }}"; then
-            git fetch --depth 50 origin "${{ github.head_ref }}" || git fetch origin "refs/pull/${{ github.event.number }}/head:refs/heads/pr-head"
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          REF='${{ github.head_ref }}'
+          PR='${{ github.event.number }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
           fi
-          git checkout "${{ github.sha }}" || git checkout FETCH_HEAD
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
           git log -1 --oneline
       - name: Verify published_version against live PyPI
         run: python3 scripts/verify_published_claims_live.py
