@@ -328,6 +328,10 @@ def _check_audio_engine() -> dict[str, Any]:
 def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -> dict[str, Any]:
     spec = find_spec("kinocut")
     path = getattr(spec, "origin", None) if spec is not None else None
+    if path is not None:
+        # Report platform-stable separators so diagnostics compare and grep
+        # identically across Windows and POSIX (#447).
+        path = path.replace(os.sep, "/")
     found = spec is not None
     return {
         "name": "mcp-video",
