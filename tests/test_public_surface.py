@@ -656,7 +656,7 @@ def test_github_sync_is_fast_forward_only_and_ref_scoped():
     assert "refs/heads/master:refs/remotes/github-mirror/master" in workflow
     assert "exit 1" in workflow
     assert workflow.count("git push ") == 1
-    assert "git push --ff-only github-mirror HEAD:refs/heads/master" in workflow
+    assert "git push github-mirror HEAD:refs/heads/master" in workflow
     assert all(flag not in workflow for flag in ("--mirror", "--force", "--prune"))
 
 

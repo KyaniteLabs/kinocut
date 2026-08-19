@@ -21,17 +21,22 @@ jobs:
     steps:
       - name: Checkout canonical master
         run: |
-          export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq && apt-get install -y -qq git
-          set -eux
+          set -eu
           export GIT_TERMINAL_PROMPT=0
           TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          if [ -z "$TOKEN" ]; then TOKEN='${{ github.token }}'; fi
           REPO='${{ github.repository }}'
           SHA='${{ github.sha }}'
           if [ -z "$TOKEN" ]; then
-            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            echo "clone token empty; secrets.GITHUB_TOKEN and github.token are unset"
             exit 1
           fi
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git
+          # Fresh directory: runner workspaces are not always empty.
+          WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/canonical"
+          mkdir -p "$WORKDIR"
+          cd "$WORKDIR"
           git clone "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
           git fetch origin "$SHA"
           git checkout "$SHA"
@@ -42,6 +47,7 @@ jobs:
           GITHUB_MIRROR_TOKEN: ${{ secrets.MIRROR_GITHUB_TOKEN }}
         run: |
           set -eu
+          cd "${GITHUB_WORKSPACE:-$(pwd)}/canonical"
           : "${GITHUB_MIRROR_TOKEN:?MIRROR_GITHUB_TOKEN is required}"
 
           askpass="$(mktemp)"
@@ -69,4 +75,5 @@ jobs:
             exit 1
           fi
 
-          git push --ff-only github-mirror HEAD:refs/heads/master
+          # Default update refuses a non-fast-forward; ancestor check is the gate.
+          git push github-mirror HEAD:refs/heads/master
