@@ -389,3 +389,45 @@ jobs:
       - name: Build Docker image
         if: needs.changes.outputs.docker == 'true'
         run: docker build -t kinocut:test .
+
+  windows-smoke:
+    name: Windows smoke
+    needs: changes
+    runs-on: windows-latest
+    steps:
+      - name: Skip Windows smoke
+        if: needs.changes.outputs.code != 'true'
+        run: echo "Code inputs unchanged; marking Windows smoke check successful."
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: needs.changes.outputs.code == 'true'
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        if: needs.changes.outputs.code == 'true'
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+      - name: Ensure FFmpeg
+        if: needs.changes.outputs.code == 'true'
+        shell: pwsh
+        run: |
+          choco install -y ffmpeg --no-progress
+          ffmpeg -version
+          ffprobe -version
+      - name: Install package and dev dependencies
+        if: needs.changes.outputs.code == 'true'
+        run: python -m pip install -e ".[dev]" ruff
+      - name: Lint
+        if: needs.changes.outputs.code == 'true'
+        run: python -m ruff check kinocut/ mcp_video.py tests/
+      - name: Import checks (server tree imports on Windows)
+        if: needs.changes.outputs.code == 'true'
+        run: |
+          python -c "import kinocut.server"
+          python -c "import kinocut.projectstore._filelock"
+          python mcp_video.py --version
+      - name: Doctor (primary integration paths)
+        if: needs.changes.outputs.code == 'true'
+        run: kino doctor
+      - name: Public-surface tests (platform skips honored)
+        if: needs.changes.outputs.code == 'true'
+        run: python -m pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile
