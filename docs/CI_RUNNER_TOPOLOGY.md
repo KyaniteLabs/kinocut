@@ -58,8 +58,13 @@ Storage recovery on 2026-08-08:
 - Container storage was unmounted and checked offline with `e2fsck -f`; the next boot
   mounted it read/write without the prior ext4 journal or containerd metadata errors.
 - Stale Actions containers, workflow networks, and transient task volumes were removed.
-- The runner binary and config moved from volatile `/tmp` paths to
+- The runner binary and config live at
   `/usr/local/bin/forgejo-runner` and `/etc/forgejo-runner/config.yaml`.
+- **Runner home is VM-local** (`/mnt/lima-colima/forgejo-runner`, systemd
+  `WorkingDirectory`). Do not run the daemon with cwd on the virtiofs
+  checkout (`~/workspaces/kinocut`). That path sits on the Mac data volume
+  (often >90% full) and job start then dies around 80s with **no**
+  `lint-checkout` because apt/curl never run.
 
 Key constraints:
 
@@ -84,8 +89,9 @@ Key constraints:
   tasks fail, networks accumulate and exhaust address pools. Periodic
   `docker network prune -f` inside the VM is required.
 - **Persistence**: Colima auto-starts via launchd plist
-  (`tech.kyanitelabs.colima`, `RunAtLoad=true`). The runner binary and config
-  live on the VM root filesystem; systemd manages the service (`Restart=always`).
+  (`tech.kyanitelabs.colima`, `RunAtLoad=true`). systemd manages
+  `forgejo-runner.service` (`Restart=always`). Job workdirs and cache live
+  under `/mnt/lima-colima/forgejo-runner` (same disk as Docker), not virtiofs.
 - **macOS act_runner deprecated**: the previous macOS-hosted act_runner
   (launchd plist `tech.kyanitelabs.act-runner`) could not exec into
   containers because the `act` library couldn't find Docker at
