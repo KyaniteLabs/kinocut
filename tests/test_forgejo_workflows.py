@@ -71,3 +71,6 @@ def test_lint_checkout_curl_posts_before_heavy_git_python_install():
     assert tiny < post < heavy.start(), "curl POST must sit after tiny apt and before git/python3 install"
     assert lint.find("apt-get update") != -1
     assert lint.find("apt-get update") < post
+    checkout = lint.split("Install ruff")[0]
+    assert "shell: bash" in checkout
+    assert "${desc:0:" not in checkout

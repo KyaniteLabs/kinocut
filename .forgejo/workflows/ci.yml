@@ -12,6 +12,7 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout
+        shell: bash
         env:
           JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_TOKEN_FALLBACK: ${{ github.token }}
@@ -35,7 +36,7 @@ jobs:
           post_checkout_status() {
             state="$1"
             desc="$2"
-            desc="${desc:0:140}"
+            desc=$(printf '%s' "$desc" | cut -c1-140)
             payload=$(printf '{"state":"%s","context":"lint-checkout","description":"%s"}' "$state" "$desc")
             curl --fail --silent --show-error --max-time 20 \
               -X POST \
