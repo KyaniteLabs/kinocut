@@ -42,6 +42,7 @@ def test_lint_checkout_fails_closed_before_apt_and_clones_into_empty_dir():
     workdir = lint.find("WORKDIR=")
     assert token_gate != -1, "lint must refuse an empty clone token"
     assert apt != -1 and token_gate < apt, "empty token must fail before apt-get"
+    assert "secrets.GITHUB_TOKEN" in lint
     assert "github.token" in lint
     clone = lint.find("git clone --depth")
     assert workdir != -1 and 'mkdir -p "$WORKDIR"' in lint and 'cd "$WORKDIR"' in lint

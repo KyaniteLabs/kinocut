@@ -23,12 +23,12 @@ jobs:
         run: |
           set -eu
           export GIT_TERMINAL_PROMPT=0
-          TOKEN='${{ github.token }}'
-          if [ -z "$TOKEN" ]; then TOKEN='${{ secrets.GITHUB_TOKEN }}'; fi
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          if [ -z "$TOKEN" ]; then TOKEN='${{ github.token }}'; fi
           REPO='${{ github.repository }}'
           SHA='${{ github.sha }}'
           if [ -z "$TOKEN" ]; then
-            echo "clone token empty; github.token and secrets.GITHUB_TOKEN are unset"
+            echo "clone token empty; secrets.GITHUB_TOKEN and github.token are unset"
             exit 1
           fi
           export DEBIAN_FRONTEND=noninteractive

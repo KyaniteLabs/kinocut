@@ -13,8 +13,8 @@ jobs:
     steps:
       - name: Checkout
         env:
-          JOB_TOKEN: ${{ github.token }}
-          JOB_TOKEN_FALLBACK: ${{ secrets.GITHUB_TOKEN }}
+          JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_TOKEN_FALLBACK: ${{ github.token }}
           STATUS_SHA: ${{ github.sha }}
           STATUS_REPO: ${{ github.repository }}
           REPO: ${{ github.repository }}
@@ -26,7 +26,7 @@ jobs:
           export GIT_TERMINAL_PROMPT=0
           TOKEN="${JOB_TOKEN:-${JOB_TOKEN_FALLBACK:-}}"
           if [ -z "$TOKEN" ]; then
-            echo "clone token empty; github.token and secrets.GITHUB_TOKEN are unset"
+            echo "clone token empty; secrets.GITHUB_TOKEN and github.token are unset"
             echo "runner images cannot clone Forgejo anonymously"
             exit 1
           fi
@@ -63,6 +63,7 @@ jobs:
           PY
           }
           trap 'post_checkout_status error "checkout failed token_len=${#TOKEN}"' EXIT
+          post_checkout_status pending "apt-ok token_len=${#TOKEN}"
           WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/src"
           mkdir -p "$WORKDIR"
           cd "$WORKDIR"
@@ -85,8 +86,8 @@ jobs:
       - name: Lint
         working-directory: src
         env:
-          STATUS_TOKEN: ${{ github.token }}
-          STATUS_TOKEN_FALLBACK: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_TOKEN_FALLBACK: ${{ github.token }}
           STATUS_SHA: ${{ github.sha }}
           STATUS_REPO: ${{ github.repository }}
         run: |
