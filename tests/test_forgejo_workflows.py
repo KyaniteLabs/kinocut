@@ -52,6 +52,13 @@ def test_lint_checkout_fails_closed_before_apt_and_clones_into_empty_dir():
     assert "working-directory: src" in lint
 
 
+def test_claims_live_does_not_share_the_light_runner_with_lint():
+    """Master-push claims oracle on `light` starves lint's apt-get curl install."""
+    text = (WORKFLOWS / "claims-live.yml").read_text(encoding="utf-8")
+    assert "runs-on: heavy" in text
+    assert "runs-on: light" not in text
+
+
 def test_lint_checkout_curl_posts_before_heavy_git_python_install():
     """Bare ubuntu:24.04 has no python3/curl; tiny apt curl, then fail-closed POST.
 

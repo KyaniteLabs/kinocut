@@ -4,8 +4,9 @@
 name: Published claims live
 
 on:
-  # PR coverage lives in ci.yml lint so this job is not starved by the
-  # capacity-2 runner. Keep a master/push copy as a post-merge oracle.
+  # PR coverage lives in ci.yml. This master/push job must not use `light`
+  # (lint's label): capacity-2 then starves lint apt/curl and lint dies
+  # with no lint-checkout. Keep the post-merge PyPI oracle on `heavy`.
   push:
     branches: [master]
     paths:
@@ -24,7 +25,7 @@ on:
 
 jobs:
   pypi-matches-claims:
-    runs-on: light
+    runs-on: heavy
     timeout-minutes: 20
     steps:
       - name: Checkout
