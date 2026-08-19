@@ -24,7 +24,7 @@ Canonical facts: [`public_claims.json`](public_claims.json).
 
 After every public package release:
 
-1. Confirm PyPI version == `public_claims.json` → `published_version`  
+1. Run `python scripts/verify_published_claims_live.py` (PyPI == `published_version`)  
 2. Confirm Registry entry shows new version  
 3. Update `published_*` counts in `public_claims.json` if the surface changed  
 4. Run `pytest tests/test_public_claims.py`  

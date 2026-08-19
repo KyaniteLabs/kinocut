@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Comprehensive integration test for mcp-video.
+Comprehensive integration test for Kinocut (formerly mcp-video).
 
 Tests:
 1. Varied video formats (MP4, WebM, MOV)

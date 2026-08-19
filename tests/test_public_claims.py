@@ -100,14 +100,44 @@ def test_readme_states_published_version_and_tip_counts(claims: dict) -> None:
     assert str(claims["published_cli_commands"]) in readme
     assert str(claims["development_mcp_tools"]) in readme
     assert str(claims["development_cli_commands"]) in readme
+    assert claims["release_candidate_version"] in readme
 
-    # Do not claim the *next* unreleased X.Y.0 as shipped.
-    major_s, minor_s, *_rest = claims["published_version"].split(".")
-    next_minor = f"{major_s}.{int(minor_s) + 1}.0"
-    assert re.search(rf"\b{re.escape(next_minor)}\b", readme) is None, (
-        f"README must not claim unreleased {next_minor} while published is {claims['published_version']}"
+    _assert_no_pip_today_overclaim(readme, claims)
+
+
+def _assert_no_pip_today_overclaim(text: str, claims: dict) -> None:
+    """Candidate may appear as tip; it must not be pip-today / latest published."""
+    published = claims["published_version"]
+    candidate = claims["release_candidate_version"]
+    if published == candidate:
+        return
+    idx = text.find("what you get from `pip install kinocut` today")
+    if idx != -1:
+        window = text[max(0, idx - 40) : idx + 10]
+        assert published in window
+        assert candidate not in window
+    assert f"**{candidate} is the latest published release.**" not in text
+    assert "Latest **published** Kinocut" not in text or published in text
+    pip_today = "is what you get from `pip install kinocut` today"
+    assert pip_today not in text or (
+        f"**{published}** is what you get from `pip install kinocut` today" in text
+        or f"Kinocut **{published}** is what you get from `pip install kinocut` today" in text
     )
-    assert f"pip install kinocut=={major_s}.{int(minor_s) + 1}" not in readme
+
+
+def test_key_docs_do_not_claim_candidate_is_on_pip(claims: dict) -> None:
+    paths = (
+        ROOT / "docs" / "status" / "NOW.md",
+        ROOT / "docs" / "HUMAN_GATES.md",
+        ROOT / "docs" / "faq.md",
+        ROOT / "docs" / "CLI_REFERENCE.md",
+        ROOT / "docs" / "status" / "2026-08-15-1.15.0-release-notes.md",
+        ROOT / "ROADMAP.md",
+        ROOT / "llms.txt",
+        ROOT / "CHANGELOG.md",
+    )
+    for path in paths:
+        _assert_no_pip_today_overclaim(path.read_text(encoding="utf-8"), claims)
 
 
 def test_llms_txt_matches_public_claims(claims: dict) -> None:
@@ -120,16 +150,36 @@ def test_llms_txt_matches_public_claims(claims: dict) -> None:
     assert "github.com/KyaniteLabs/mcp-video" not in text
 
 
+def _shim_kinocut_pins(shim: dict) -> set[str]:
+    pins: set[str] = set()
+    for dep in shim.get("dependencies") or []:
+        if isinstance(dep, str) and dep.startswith("kinocut"):
+            pins.add(dep.rsplit("==", 1)[-1])
+    extras = shim.get("optional-dependencies") or {}
+    for group in extras.values():
+        for dep in group:
+            if isinstance(dep, str) and "kinocut" in dep and "==" in dep:
+                pins.add(dep.rsplit("==", 1)[-1])
+    return pins
+
+
 def test_current_release_docs_and_compatibility_shim_match_claims(claims: dict) -> None:
-    """Keep the current documentation set aligned with the published release."""
+    """Keep the current documentation set aligned with published + candidate states."""
     published = claims["published_version"]
+    candidate = claims["release_candidate_version"]
     shim = tomllib.loads((ROOT / "compat" / "mcp-video-shim" / "pyproject.toml").read_text(encoding="utf-8"))["project"]
     shim_version = shim["version"]
+    pins = _shim_kinocut_pins(shim)
+    allowed = {published, candidate}
+    assert pins <= allowed
+    assert len(pins) == 1, f"shim pins must be uniform, got {pins}"
+    pin = next(iter(pins))
 
-    assert f"kinocut=={published}" in shim["dependencies"]
     assert f"mcp-video=={shim_version}" in (ROOT / "README.md").read_text(encoding="utf-8")
-    assert f"{shim_version} shim → kinocut {published}" in (ROOT / "llms.txt").read_text(encoding="utf-8")
+    llms = (ROOT / "llms.txt").read_text(encoding="utf-8")
+    assert f"{shim_version} shim → kinocut {pin}" in llms
     assert f"kinocut=={published}" in (ROOT / "README.md").read_text(encoding="utf-8")
+    assert published in llms
 
     discovery = (ROOT / "docs" / "AI_AGENT_DISCOVERY.md").read_text(encoding="utf-8")
     assert f"{claims['published_mcp_tools']} MCP tools / {claims['published_cli_commands']} CLI" in discovery

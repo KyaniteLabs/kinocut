@@ -47,6 +47,7 @@ from kinocut.engine_composite_layers import (
 from kinocut.engine_runtime_utils import _timed_operation
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import (
+    _escape_ffmpeg_filter_path,
     _escape_ffmpeg_filter_value,
     _run_ffmpeg,
     _sanitize_ffmpeg_number,
@@ -180,7 +181,7 @@ def _pre_render_text_layer(
     """
 
     safe_text = _escape_ffmpeg_filter_value(text)
-    safe_font = _escape_ffmpeg_filter_value(font_path)
+    safe_font = _escape_ffmpeg_filter_path(font_path)
     safe_color = _escape_ffmpeg_filter_value(color)
     safe_size = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(size, "text size")))
     vf = (

@@ -1,4 +1,4 @@
-"""mcp-video error types with auto-fix suggestions."""
+"""Kinocut error types with auto-fix suggestions."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any
 
 
 class MCPVideoError(Exception):
-    """Base error for all mcp-video operations."""
+    """Base error for all Kinocut operations."""
 
     def __init__(
         self,
@@ -48,7 +48,7 @@ class FFmpegNotFoundError(MCPVideoError):
             code="ffmpeg_not_found",
             suggested_action={
                 "auto_fix": False,
-                "description": "Install FFmpeg before using mcp-video / Instala FFmpeg antes de usar mcp-video",
+                "description": "Install FFmpeg before using Kinocut / Instala FFmpeg antes de usar Kinocut",
             },
         )
 

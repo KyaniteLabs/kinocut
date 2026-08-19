@@ -25,7 +25,12 @@ from .ffmpeg_helpers import (
 from .validation import (
     _validate_color,
 )
-from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
+from .ffmpeg_helpers import (
+    _escape_ffmpeg_filter_path,
+    _escape_ffmpeg_filter_value,
+    _validate_input_path,
+    _validate_output_path,
+)
 from .models import EditResult, Position
 from .design_guardrails import (
     validate_single_text,
@@ -238,7 +243,7 @@ def _build_drawtext_filter(
     if font is not None:
         _validate_input_path(fontfile)
 
-    escaped_fontfile = _escape_ffmpeg_filter_value(fontfile)
+    escaped_fontfile = _escape_ffmpeg_filter_path(fontfile)
     escaped_text = _escape_ffmpeg_filter_value(text)
     escaped_color = _escape_ffmpeg_filter_value(color)
 

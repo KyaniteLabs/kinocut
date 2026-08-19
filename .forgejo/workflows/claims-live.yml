@@ -1,0 +1,53 @@
+# Merge-time live published-claims probe.
+# Manual clone: Colima cannot reach gitea.com for actions/checkout.
+# Required oracle is PyPI JSON only. npm / GitHub latest are annotations.
+name: Published claims live
+
+on:
+  # PR coverage lives in ci.yml lint so this job is not starved by the
+  # capacity-2 runner. Keep a master/push copy as a post-merge oracle.
+  push:
+    branches: [master]
+    paths:
+      - "docs/public_claims.json"
+      - "README.md"
+      - "llms.txt"
+      - "CHANGELOG.md"
+      - "docs/faq.md"
+      - "docs/CLI_REFERENCE.md"
+      - "docs/HUMAN_GATES.md"
+      - "docs/status/NOW.md"
+      - "scripts/apply_public_release_cutover.py"
+      - "scripts/verify_published_claims_live.py"
+      - ".forgejo/workflows/claims-live.yml"
+  workflow_dispatch:
+
+jobs:
+  pypi-matches-claims:
+    runs-on: light
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git python3
+          set -eux
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN='${{ secrets.GITHUB_TOKEN }}'
+          REPO='${{ github.repository }}'
+          SHA='${{ github.sha }}'
+          REF='${{ github.head_ref }}'
+          PR='${{ github.event.number }}'
+          if [ -z "$TOKEN" ]; then
+            echo "GITHUB_TOKEN is empty; runner images cannot clone Forgejo anonymously"
+            exit 1
+          fi
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "$REF" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "$PR" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
+          git log -1 --oneline
+      - name: Verify published_version against live PyPI
+        run: python3 scripts/verify_published_claims_live.py

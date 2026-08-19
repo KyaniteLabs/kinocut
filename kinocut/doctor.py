@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.metadata
 import importlib.util
+import logging
 import os
 import platform
 import re
@@ -17,13 +18,17 @@ from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 
 from .errors import HyperframesNotFoundError
-from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD
+from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD, MIN_PYTHON_VERSION
 from .limits import DOCTOR_COMMAND_TIMEOUT
+
+logger = logging.getLogger(__name__)
+
 
 WhichFn = Callable[[str], str | None]
 VersionRunner = Callable[[list[str]], str | None]
 FindSpecFn = Callable[[str], Any]
 PackageVersionFn = Callable[[str], str | None]
+ImportModuleFn = Callable[[str], Any]
 
 PYTHON_313_UPSCALE_BACKEND_HINT = (
     "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
@@ -147,6 +152,16 @@ def _parse_ffmpeg_version(version_line: str | None) -> int | None:
     return None
 
 
+def _parse_python_version(version_line: str | None) -> tuple[int, int] | None:
+    """Extract major and minor versions from a Python version line."""
+    if not version_line:
+        return None
+    match = re.search(r"\bPython\s+(\d+)\.(\d+)", version_line, re.IGNORECASE)
+    if match:
+        return int(match.group(1)), int(match.group(2))
+    return None
+
+
 def _command_version(command: list[str]) -> str | None:
     try:
         result = subprocess.run(command, capture_output=True, text=True, timeout=DOCTOR_COMMAND_TIMEOUT)  # noqa: S603
@@ -186,6 +201,11 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
                 extra["warning"] = (
                     f"FFmpeg {major}.x works but {MIN_FFMPEG_VERSION}+ is recommended for full feature support."
                 )
+
+    if definition["name"] == "python" and ok:
+        python_version = _parse_python_version(version)
+        if python_version is not None and python_version < MIN_PYTHON_VERSION:
+            ok = False
 
     # Hyperframes version check — routed through the injectable version_runner
     # so tests can exercise both outcomes (a raw subprocess call here would be
@@ -471,15 +491,49 @@ def _rescue_summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
     }
 
 
+def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
+    """Import the MCP server tool tree so 'doctor OK' covers ``kino --mcp`` (#445).
+
+    The package checks prove ``mcp`` exists on disk, not that the server tree
+    imports. A platform-specific import failure (a POSIX-only module, a broken
+    optional dependency) left ``kino --mcp`` dead while doctor reported OK —
+    so this check exercises the same import the entry point performs.
+    """
+
+    try:
+        import_module("kinocut.server")
+    except Exception as exc:  # the failure is the signal; doctor must never crash on it
+        logger.warning("MCP server import check failed for kinocut.server: %s", exc)
+        return {
+            "name": "mcp-server-import",
+            "category": "core",
+            "required": True,
+            "ok": False,
+            "detail": f"{type(exc).__name__}: {exc}",
+            "install_hint": (
+                "Run 'kino --mcp' to see the full error; usually a broken install "
+                "(pip install --force-reinstall kinocut) or a platform-specific dependency issue."
+            ),
+        }
+    return {
+        "name": "mcp-server-import",
+        "category": "core",
+        "required": True,
+        "ok": True,
+        "detail": "kinocut.server imports cleanly",
+    }
+
+
 def run_diagnostics(
     *,
     which: WhichFn = shutil.which,
     version_runner: VersionRunner = _command_version,
     find_spec: FindSpecFn = importlib.util.find_spec,
     package_version: PackageVersionFn = _package_version,
+    import_module: ImportModuleFn = importlib.import_module,
 ) -> dict[str, Any]:
     """Return a structured report for core and optional integration dependencies."""
-    checks = [_check_mcp_video(find_spec, package_version)]
+    checks = [_check_mcp_video(find_spec, package_version), _check_mcp_server_import(import_module)]
     with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
         checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
     checks.extend(

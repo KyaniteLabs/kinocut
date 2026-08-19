@@ -21,7 +21,7 @@ _ffmpeg_version_probed = False
 
 
 def mcp_video_version() -> str:
-    """Return the live installed mcp-video package version."""
+    """Return the live installed Kinocut package version."""
     return _MCP_VIDEO_VERSION
 
 

@@ -169,7 +169,7 @@ def _validate_write_path(
 def _validate_output_path(path: str) -> str:
     """Validate an output path before FFmpeg writes with ``-y``.
 
-    mcp-video intentionally lets users write normal media artifacts around their
+    Kinocut intentionally lets users write normal media artifacts around their
     projects and temp directories. It must not overwrite system files, symlink
     targets, sensitive home dotfiles, or obviously non-media source/config files.
 
@@ -544,7 +544,13 @@ def _format_ffmpeg_number(value: Any) -> str:
 
 
 def _escape_ffmpeg_filter_value(value: str) -> str:
-    """Escape special characters for FFmpeg filter expressions (subtitles, drawtext, etc.)."""
+    """Escape special characters for FFmpeg filter expressions (subtitles, drawtext, etc.).
+
+    This applies a single escaping pass, which is correct for values that reach the
+    filter already quoted (``lut3d=file='...'``) and for scalars such as numbers,
+    colours and font *names*. Unquoted filesystem paths need
+    ``_escape_ffmpeg_filter_path`` instead — see the note there.
+    """
     return (
         value.replace("\\", "\\\\")
         .replace("'", "'\\''")
@@ -555,6 +561,26 @@ def _escape_ffmpeg_filter_value(value: str) -> str:
         .replace(",", "\\,")
         .replace("=", "\\=")
     )
+
+
+def _escape_ffmpeg_filter_path(value: str) -> str:
+    """Escape a filesystem path used as an *unquoted* FFmpeg filter option value.
+
+    An unquoted option value is unescaped twice: once by the filtergraph parser and
+    once by the filter's own argument parser. ``_escape_ffmpeg_filter_value`` escapes
+    only once, which is enough on POSIX but breaks on Windows: the drive-letter colon
+    survives the first pass and is then read as an option separator, and the
+    backslashes are consumed as escape characters.
+
+    ``C:\\dir\\subs.ass`` currently becomes ``C\\:\\\\dir\\\\subs.ass``, which FFmpeg
+    resolves to the filename ``C`` plus a bogus ``original_size`` option. Normalising
+    the separators to forward slashes (accepted by FFmpeg on Windows) keeps them from
+    being eaten, and escaping the colon twice lets it survive both passes.
+
+    No-op for ordinary POSIX paths, and correct for POSIX paths that do contain a
+    colon, since the same two-pass parsing applies there.
+    """
+    return value.replace("\\", "/").replace(":", "\\\\:")
 
 
 def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> float:

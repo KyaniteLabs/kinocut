@@ -1,4 +1,4 @@
-"""Shared test fixtures for mcp-video tests."""
+"""Shared test fixtures for Kinocut (formerly mcp-video) tests."""
 
 import os
 import shutil

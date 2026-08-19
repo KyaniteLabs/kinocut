@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import fcntl
 import hashlib
 import json
 import os
@@ -15,6 +14,7 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from kinocut.projectstore._filelock import lock_exclusive, unlock
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import RenderJobRecord, RenderJobStatus, can_transition_job
@@ -331,10 +331,10 @@ def _runner_lease_is_held(project: Project, job_id: str) -> bool:
     lease.parent.mkdir(parents=True, exist_ok=True)
     with lease.open("a+b") as handle:
         try:
-            fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            lock_exclusive(handle, blocking=False)
         except BlockingIOError:
             return True
-        fcntl.flock(handle, fcntl.LOCK_UN)
+        unlock(handle)
         return False
 
 

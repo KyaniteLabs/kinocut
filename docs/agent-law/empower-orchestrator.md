@@ -1,6 +1,7 @@
 # Empower orchestrator
 
 <!-- EMPOWER_ORCHESTRATOR:START -->
+NOTE 2026-08-18: superseded-by-reference — the CEO constitution (empower-orchestrator SKILL.md header + COMPANY-OS.md meta-patterns P1-P7) is authoritative; this doc retains historical context only.
 
 Factory automation is allowed only when the operator can still understand and recover from what is about to happen.
 Before dispatching automation or creating a durable system change, state the four-question blast-radius check:

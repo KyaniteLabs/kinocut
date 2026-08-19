@@ -1,4 +1,4 @@
-"""Common execution helpers for the mcp-video CLI."""
+"""Common execution helpers for the Kinocut CLI (kino/kinocut/mcp-video)."""
 
 from __future__ import annotations
 

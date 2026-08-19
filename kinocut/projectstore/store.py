@@ -19,7 +19,6 @@ filesystem/JSON errors to a stable, privacy-safe :class:`MCPVideoError`.
 from __future__ import annotations
 
 import contextlib
-import fcntl
 import json
 import os
 import re
@@ -32,6 +31,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from kinocut.projectstore._filelock import lock_exclusive, unlock
 from kinocut.contracts._common import RecordBase, canonical_record_id
 from kinocut.contracts._errors import (
     INVALID_RECORD,
@@ -243,7 +243,7 @@ def _project_lock(project: Project) -> Iterator[None]:
         lock_path.parent.mkdir(parents=True, exist_ok=True)
         fd = os.open(lock_path, os.O_CREAT | os.O_RDWR, 0o600)
         try:
-            fcntl.flock(fd, fcntl.LOCK_EX)
+            lock_exclusive(fd)
         except OSError:
             os.close(fd)
             raise
@@ -251,7 +251,7 @@ def _project_lock(project: Project) -> Iterator[None]:
         yield
     finally:
         with contextlib.suppress(OSError):
-            fcntl.flock(fd, fcntl.LOCK_UN)
+            unlock(fd)
         with contextlib.suppress(OSError):
             os.close(fd)
 
@@ -410,7 +410,19 @@ def append_record_locked(project: Project, record: RecordBase) -> RecordBase:
 
 
 def _fsync_dir(directory: Path) -> None:
-    """``fsync`` a directory so a rename/creation is durable across a crash."""
+    """``fsync`` a directory so a rename/creation is durable across a crash.
+
+    POSIX only. Windows cannot open a directory as a file descriptor —
+    ``os.open`` on one raises ``PermissionError`` — and offers no supported way
+    to flush directory metadata from user space. There, ``MoveFileEx`` already
+    orders the rename against the file data that ``_write_atomically`` fsynced
+    before it, so skipping this is the documented behaviour rather than a
+    silent weakening: the file contents are still durable, only the directory
+    entry falls back to the filesystem's own ordering guarantees.
+    """
+
+    if os.name == "nt":
+        return
 
     fd = os.open(directory, os.O_RDONLY)
     try:

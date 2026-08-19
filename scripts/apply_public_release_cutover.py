@@ -16,9 +16,37 @@ import argparse
 import json
 import re
 import sys
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
+PYPI_TIMEOUT = 20
+
+
+def _allow_published_version(version: str, *, require_live: bool) -> bool:
+    if not require_live:
+        return True
+    if live_pypi_has_version(version):
+        return True
+    print(
+        f"FAIL: PyPI has no kinocut {version}; refuse to set published_version. "
+        "Pass --no-require-live only for local experiments.",
+        file=sys.stderr,
+    )
+    return False
+
+
+def live_pypi_has_version(version: str, *, opener=urllib.request.urlopen) -> bool:
+    url = f"https://pypi.org/pypi/kinocut/{version}/json"
+    req = urllib.request.Request(url, headers={"User-Agent": "kinocut-cutover/1.0"})
+    try:
+        with opener(req, timeout=PYPI_TIMEOUT) as resp:
+            return resp.status == 200
+    except urllib.error.HTTPError as exc:
+        if exc.code == 404:
+            return False
+        raise
 
 
 def _replace_file(path: Path, old: str, new: str, *, apply: bool) -> bool:
@@ -60,6 +88,12 @@ def main() -> int:
         action="store_true",
         help="Leave development_* higher than published (default: equalize at tag)",
     )
+    p.add_argument(
+        "--require-live",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help="Refuse to set published_version unless PyPI already has that version (default: on)",
+    )
     args = p.parse_args()
     apply = args.apply
     ver = args.version
@@ -69,6 +103,8 @@ def main() -> int:
     date = args.date
 
     print(f"Cutover {prev} → {ver}  mcp={mcp_n} cli={cli_n} date={date}  apply={apply}")
+    if not _allow_published_version(ver, require_live=args.require_live):
+        return 1
 
     # --- public_claims.json ---
     claims_path = ROOT / "docs" / "public_claims.json"

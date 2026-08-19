@@ -4,8 +4,11 @@ These tests exercise formatting functions for coverage; output is sent to
 Console which we do not capture.
 """
 
+from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
+
+from rich.console import Console
 
 
 from mcp_video.cli import formatting
@@ -412,6 +415,35 @@ class TestFormattersEdgeCases:
                 ],
             }
         )
+
+    def test_format_doctor_text_shows_version_and_hint_for_failed_check(self, monkeypatch):
+        output = StringIO()
+        monkeypatch.setattr(
+            formatting,
+            "console",
+            Console(file=output, force_terminal=False, color_system=None, width=80),
+        )
+
+        _format_doctor_text(
+            {
+                "summary": {"required_ok": True},
+                "checks": [
+                    {
+                        "name": "python",
+                        "category": "core",
+                        "required": False,
+                        "ok": False,
+                        "version": "Python 3.9.6",
+                        "install_hint": "Python 3.11+ is required.",
+                    }
+                ],
+            }
+        )
+
+        rendered = output.getvalue()
+        assert "Python 3.9.6" in rendered
+        assert "Python 3.11+ is" in rendered
+        assert "required." in rendered
 
     def test_format_error_mcpvideo(self):
         from mcp_video.errors import MCPVideoError

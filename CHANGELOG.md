@@ -11,6 +11,25 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.15.0 — not on PyPI (tip)
+
+Not published. `pip install kinocut` still installs **1.14.1**. This section is the release-candidate changelog on `master`.
+
+### Added
+- **doctor `mcp-server-import` check:** `kino doctor` now imports the MCP server tool tree as a required core check, so it can no longer report OK while `kino --mcp` cannot start (#449, surfaced by #445).
+
+### Changed
+- **Honest MCP startup failures:** `kino --mcp` keeps the "requires the 'mcp' package" hint only when the `mcp` distribution is genuinely absent; any other server-tree import failure now prints its real cause — filesystem paths redacted, markup-safe — with a non-zero exit (#448, the second half of #445).
+- **Windows test portability groundwork:** shebang-executable test stubs (fake ffmpeg/ffprobe, c2patool) skip explicitly on Windows instead of erroring at collection; interpreter-invoked stubs land with the Windows CI job (#450, partial).
+
+### Compatibility
+- Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1` (installable against live PyPI).
+- Published surface stays **196 MCP tools / 167 CLI commands**.
+
+### Acknowledgements
+- [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) filed the Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) — the root-cause traceback in it exposed both diagnostics gaps fixed above — and has the portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446)) in review. Every fix in this release traces to that report. Bug reports with reproduction steps are contributions; thank you.
+- Kinocut's external community predates this release: betsmayank's merged Hyperframes no-TTY fix ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)), austinwmson's `remotion_still` props report ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)), ismailkattakath's self-host reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)), and early PRs from Dodothereal and OyaAIProd. All of them shaped the product.
+
 ## 1.14.1 - 2026-08-13
 
 ### Fixed

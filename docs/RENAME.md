@@ -14,7 +14,7 @@ On **2026-07-10**, the project’s public identity became **Kinocut**.
 | MCP Registry | former identity | `io.github.KyaniteLabs/kinocut` |
 | Repo | mcp-video slug | `KyaniteLabs/kinocut` (GitHub redirect from old slug) |
 
-## Compatibility (current on the 1.11.x line)
+## Compatibility (current on the 1.14.x+ line)
 
 - `pip install mcp-video` still works via a shim that installs Kinocut.
 - `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported during the window.
