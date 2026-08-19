@@ -74,3 +74,5 @@ def test_lint_checkout_curl_posts_before_heavy_git_python_install():
     checkout = lint.split("Install ruff")[0]
     assert "shell: bash" in checkout
     assert "${desc:0:" not in checkout
+    assert "timeout-minutes: 10" in checkout
+    assert "Acquire::http::Timeout=30" in checkout
