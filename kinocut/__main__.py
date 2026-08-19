@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import contextlib
 import json
 import logging
 import re
@@ -171,7 +172,24 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
     )
 
 
+def _force_utf8_stdio() -> None:
+    """Windows consoles default to a legacy code page; CLI text is Unicode.
+
+    Help text and diagnostics contain non-ASCII characters (arrows, em dashes)
+    that crash on cp1252 with ``EncodeError`` instead of rendering. Reconfigure
+    to UTF-8 with replacement so output degrades gracefully everywhere (#447).
+    """
+
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is None:
+            continue
+        with contextlib.suppress(ValueError, OSError):
+            reconfigure(encoding="utf-8", errors="replace")
+
+
 def main() -> None:
+    _force_utf8_stdio()
     parser = build_parser()
     args = parser.parse_args(_rewrite_namespaced_argv(sys.argv[1:]))
 

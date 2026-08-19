@@ -1,6 +1,7 @@
 """Characterization tests for public import and command surfaces."""
 
 import re
+import os
 import subprocess
 import sys
 import asyncio
@@ -794,7 +795,7 @@ def test_github_mirror_smoke_runs_on_master_without_private_runners():
 
 
 def test_public_surface_manifest_covers_agent_discovery_files():
-    public_paths = {str(path.relative_to(ROOT)) for path in _public_surface_paths()}
+    public_paths = {str(path.relative_to(ROOT)).replace(os.sep, "/") for path in _public_surface_paths()}
 
     assert "llms.txt" in public_paths
     assert "docs/AI_AGENT_DISCOVERY.md" in public_paths

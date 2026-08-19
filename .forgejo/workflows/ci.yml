@@ -13,6 +13,7 @@ jobs:
     steps:
       - name: Checkout
         shell: bash
+        timeout-minutes: 10
         env:
           JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           JOB_TOKEN_FALLBACK: ${{ github.token }}
@@ -32,7 +33,12 @@ jobs:
             exit 1
           fi
           export DEBIAN_FRONTEND=noninteractive
-          apt-get update -qq && apt-get install -y -qq curl ca-certificates
+          apt_curl() {
+            apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=30
+            apt-get install -y -o Acquire::Retries=3 -o Acquire::http::Timeout=30 curl ca-certificates
+          }
+          apt_curl || apt_curl
+          command -v curl >/dev/null
           post_checkout_status() {
             state="$1"
             desc="$2"

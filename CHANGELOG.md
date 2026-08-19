@@ -11,23 +11,27 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
-## 1.15.0 — not on PyPI (tip)
-
-Not published. `pip install kinocut` still installs **1.14.1**. This section is the release-candidate changelog on `master`.
+## 1.15.0 - 2026-08-19
 
 ### Added
 - **doctor `mcp-server-import` check:** `kino doctor` now imports the MCP server tool tree as a required core check, so it can no longer report OK while `kino --mcp` cannot start (#449, surfaced by #445).
 
 ### Changed
 - **Honest MCP startup failures:** `kino --mcp` keeps the "requires the 'mcp' package" hint only when the `mcp` distribution is genuinely absent; any other server-tree import failure now prints its real cause — filesystem paths redacted, markup-safe — with a non-zero exit (#448, the second half of #445).
-- **Windows test portability groundwork:** shebang-executable test stubs (fake ffmpeg/ffprobe, c2patool) skip explicitly on Windows instead of erroring at collection; interpreter-invoked stubs land with the Windows CI job (#450, partial).
+- **Windows test portability:** shebang-executable test stubs (fake ffmpeg/ffprobe, c2patool) skip explicitly on Windows instead of erroring at collection (#456, #450 complete).
+- **Doctor import paths are platform-stable:** `kino doctor` reports the kinocut import origin with forward slashes on every OS so diagnostics compare and grep identically across Windows and POSIX.
+- **UTF-8 console output:** the CLI reconfigures stdout/stderr to UTF-8 with replacement, fixing a hard `EncodeError` crash of `kino --help` on legacy cp1252 Windows consoles (caught by the new Windows CI job on its first run).
+
+### Added
+- **First-class Windows support:** portable projectstore file locking (`fcntl`/`msvcrt`) by [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) (#446, landed with credit) — `kino --mcp` is importable on Windows; the lock backends enforce a contention-only error contract (permanent errors raise promptly; only genuine contention waits or maps to `BlockingIOError`) verified by cross-platform contract tests (#451).
+- **Windows CI smoke job:** `windows-latest` runs lint, server-tree import checks, `kino doctor`, and the focused public-surface suite on every code change — Windows breakage can no longer land silently (#452).
 
 ### Compatibility
-- Tip `mcp-video==1.6.11` currently pins `kinocut==1.14.1` (installable against live PyPI).
+- `mcp-video==1.6.11` installs `kinocut==1.15.0`.
 - Published surface stays **196 MCP tools / 167 CLI commands**.
 
 ### Acknowledgements
-- [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) filed the Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) — the root-cause traceback in it exposed both diagnostics gaps fixed above — and has the portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446)) in review. Every fix in this release traces to that report. Bug reports with reproduction steps are contributions; thank you.
+- [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) filed the Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) — the root-cause traceback in it exposed both diagnostics gaps fixed above — and contributed the portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446), landed on master with credit). Every fix in this release traces to that report. Bug reports with reproduction steps are contributions; thank you.
 - Kinocut's external community predates this release: betsmayank's merged Hyperframes no-TTY fix ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)), austinwmson's `remotion_still` props report ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)), ismailkattakath's self-host reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)), and early PRs from Dodothereal and OyaAIProd. All of them shaped the product.
 
 ## 1.14.1 - 2026-08-13

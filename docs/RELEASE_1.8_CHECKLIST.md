@@ -10,7 +10,7 @@ publish steps for this completed release.
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml)
 
 **Tip surface at freeze:** 155 MCP tools · 134 CLI commands  
-**Published result:** 1.14.1 · 196 MCP / 167 CLI
+**Published result:** 1.15.0 · 196 MCP / 167 CLI
 
 (1.8.0 cutover was 142/121; later tags: 1.9.0 150/129 · 1.10.0 155/134 · 1.11.1 161/140 ·
 1.12.0 169/145 · 1.13.0 194/165 · 1.13.1 194/165 · 1.13.2 194/165 · 1.13.4 194/165. This page remains the cutover procedure audit record.)
