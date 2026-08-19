@@ -74,6 +74,6 @@ jobs:
             exit 1
           fi
 
-          # git push has no --ff-only on the runner's Git (2.43). Default
-          # push already refuses non-FF; the ancestor check is the explicit gate.
+          # Runner Git 2.43 has no --ff-only flag here. Default update
+          # already refuses non-FF; the ancestor check is the explicit gate.
           git push github-mirror HEAD:refs/heads/master
