@@ -145,13 +145,13 @@ Also already on the published line from 1.13.x:
 
 Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)
 
-## Beyond 1.14.1 (draft / gated)
+## Beyond 1.15.0 (draft / gated)
 
 **1.15.0 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 
-While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated on the **published 1.14.1** line (and the 1.15.0 tip), the following surfaces remain gated, partial, or unreleased:
+While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated on the **published 1.15.0** line, the following surfaces remain gated, partial, or unreleased:
 
 - **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
 - **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
@@ -234,7 +234,7 @@ In **Kinocut**, a contract-first path is provided for agent-edited media that mu
 3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
 4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
 
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.14.1 release — see [Status and releases](#status-and-releases).
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.15.0 release — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -406,11 +406,11 @@ pip install --upgrade mcp-video
 mcp-video doctor
 ```
 
-Published `mcp-video==1.6.10` is a metadata-only compatibility installer for `kinocut==1.14.1`. Tip `mcp-video==1.6.11` currently also pins `kinocut==1.14.1`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+Published `mcp-video==1.6.11` is a metadata-only compatibility installer for `kinocut==1.15.0`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.14.1** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). 1.15.0 es la punta no publicada. Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.15.0** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
