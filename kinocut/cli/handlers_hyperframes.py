@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from .common import _parse_json_arg, _with_spinner
 from .formatting import (
     _format_hyperframes_add_block,
@@ -195,14 +196,25 @@ def _register_media_commands(runner: CommandRunner) -> None:
     def _remove_background(a, j):
         from ..hyperframes_engine import remove_background
 
+        info = bool(getattr(a, "info", False))
+        message = (
+            "Listing people vs product cutout models..."
+            if info
+            else "Cutting person or product from background..."
+        )
         r = _with_spinner(
-            "Removing background...",
+            message,
             remove_background,
             a.input_path,
             output_path=a.output,
             background_output_path=a.background_output,
             device=a.device,
             quality=a.quality,
+            info=info,
+            model=getattr(a, "model", None),
+            mask_interval=getattr(a, "mask_interval", DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL),
+            equipment_overlay=getattr(a, "equipment_overlay", None),
+            fail_if_equipment_on_subject=bool(getattr(a, "fail_if_equipment_on_subject", False)),
         )
         _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 

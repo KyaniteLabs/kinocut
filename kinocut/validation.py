@@ -117,6 +117,15 @@ VALID_HYPERFRAMES_QUALITIES = {"draft", "standard", "high"}
 VALID_HYPERFRAMES_FORMATS = {"mp4", "webm", "mov", "png-sequence"}
 VALID_HYPERFRAMES_RESOLUTIONS = {"landscape", "portrait", "landscape-4k", "portrait-4k", "1080p", "4k", "uhd"}
 VALID_WHISPER_MODELS = {"tiny", "base", "small", "medium", "large", "turbo"}
+# Public remove-background models. Human default is people-only; the object
+# model is the product/catalog path (any SKU, not a brand-specific extra).
+REMOVE_BACKGROUND_HUMAN_MODEL = "u2net_human_seg"
+REMOVE_BACKGROUND_OBJECT_MODEL = "birefnet-general"
+REMOVE_BACKGROUND_OBJECT_MODELS = frozenset({REMOVE_BACKGROUND_OBJECT_MODEL})
+REMOVE_BACKGROUND_ALLOWED_MODELS = frozenset({REMOVE_BACKGROUND_HUMAN_MODEL, REMOVE_BACKGROUND_OBJECT_MODEL})
+REMOVE_BACKGROUND_HF_BACKEND = "hyperframes"
+REMOVE_BACKGROUND_OBJECT_BACKEND = "kinocut-onnx"
+OBJECT_MATTE_WEIGHTS_FILENAME = "birefnet-general.onnx"
 VALID_DEMUCS_MODELS = {"htdemucs", "htdemucs_ft", "mdx", "mdx_extra", "mdx_extra_q"}
 VALID_UPSCALE_MODELS = {"realesrgan", "bsrgan"}
 VALID_COLOR_GRADE_STYLES = {"auto", "warm", "cool", "vintage", "cinematic", "noir", "dramatic"}

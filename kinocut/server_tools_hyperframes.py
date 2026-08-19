@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 import re
 
+from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from .limits import MAX_CRF, MAX_PORT, MAX_RESOLUTION, MIN_CRF, MIN_PORT
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import (
@@ -339,14 +340,26 @@ def hyperframes_transcribe(
 @mcp.tool()
 @_safe_tool
 def hyperframes_remove_background(
-    input_path: str,
+    input_path: str | None = None,
     output_path: str | None = None,
     background_output_path: str | None = None,
     device: str = "auto",
     quality: str = "balanced",
     info: bool = False,
+    model: str | None = None,
+    mask_interval: int = DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL,
+    equipment_overlay: str | None = None,
+    fail_if_equipment_on_subject: bool = False,
 ) -> dict[str, Any]:
-    """Remove a video/image background using Hyperframes local AI."""
+    """Cut a person or a product out of a still or video.
+
+    Default model ``u2net_human_seg`` is people-only (talking heads).
+    For products, packaging, jewelry, bottles, ceramics, or any non-person
+    object, pass ``model="birefnet-general"`` (requires
+    ``pip install "kinocut[object-matte]"``). Never falls through to the
+    people model. Call ``info=True`` with no input to list models and cache
+    without downloading. Guide: docs/PRODUCT_MATTE.md.
+    """
     if device not in {"auto", "cpu", "coreml", "cuda"}:
         return _validation_error("device must be one of auto, cpu, coreml, cuda")
     if quality not in {"fast", "balanced", "best"}:
@@ -361,6 +374,10 @@ def hyperframes_remove_background(
             device=device,
             quality=quality,
             info=info,
+            model=model,
+            mask_interval=mask_interval,
+            equipment_overlay=equipment_overlay,
+            fail_if_equipment_on_subject=fail_if_equipment_on_subject,
         )
     )
 

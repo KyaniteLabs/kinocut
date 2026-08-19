@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from ..errors import MCPVideoError
 
 
@@ -180,14 +181,24 @@ class ClientHyperframesMixin:
 
     def hyperframes_remove_background(
         self,
-        input_path: str,
+        input_path: str | None = None,
         output: str | None = None,
         background_output: str | None = None,
         device: str = "auto",
         quality: str = "balanced",
         info: bool = False,
+        model: str | None = None,
+        mask_interval: int = DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL,
+        equipment_overlay: str | None = None,
+        fail_if_equipment_on_subject: bool = False,
     ) -> dict:
-        """Remove a video/image background with Hyperframes local AI."""
+        """Cut a person or a product out of a still or video.
+
+        Default model is people (``u2net_human_seg``). Products and other
+        objects use ``model="birefnet-general"`` and
+        ``pip install "kinocut[object-matte]"``. ``info=True`` lists models
+        without downloading. See docs/PRODUCT_MATTE.md.
+        """
         from ..hyperframes_engine import remove_background
 
         return remove_background(
@@ -197,6 +208,10 @@ class ClientHyperframesMixin:
             device=device,
             quality=quality,
             info=info,
+            model=model,
+            mask_interval=mask_interval,
+            equipment_overlay=equipment_overlay,
+            fail_if_equipment_on_subject=fail_if_equipment_on_subject,
         )
 
     def hyperframes_doctor(self) -> dict:
