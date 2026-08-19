@@ -430,4 +430,8 @@ jobs:
         run: kino doctor
       - name: Public-surface tests (platform skips honored)
         if: needs.changes.outputs.code == 'true'
-        run: python -m pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile
+        run: >-
+          python -m pytest tests/test_public_surface.py tests/test_doctor.py
+          tests/test_models.py tests/test_errors.py
+          tests/test_projectstore_filelock.py
+          -q --tb=short

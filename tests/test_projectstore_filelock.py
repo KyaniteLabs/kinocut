@@ -9,6 +9,7 @@ is enforced on every platform, not just Windows.
 from __future__ import annotations
 
 import errno
+import os
 from pathlib import Path
 
 import pytest
@@ -26,9 +27,13 @@ class _FakeMsvcrt:
     def __init__(self, outcomes: list[BaseException | None]) -> None:
         self._outcomes = list(outcomes)
         self.calls: list[tuple[int, int]] = []
+        self.seen_byte_counts: list[int] = []
+        self.seen_entry_offsets: list[int] = []
 
     def locking(self, fd: int, mode: int, nbytes: int) -> None:
         self.calls.append((fd, mode))
+        self.seen_byte_counts.append(nbytes)
+        self.seen_entry_offsets.append(os.lseek(fd, 0, os.SEEK_CUR))
         outcome = self._outcomes.pop(0) if self._outcomes else None
         if outcome is not None:
             raise outcome
@@ -88,6 +93,9 @@ class TestWindowsBlockingContract:
         with lease.open("a+b") as handle:
             filelock.unlock(handle)
         assert fake.calls[0][1] == _FakeMsvcrt.LK_UNLCK
+        # cross-participant agreement: exactly one byte, locked at offset 0
+        assert fake.seen_byte_counts == [filelock._LOCK_BYTES]
+        assert fake.seen_entry_offsets == [0]
 
 
 class TestWindowsNonBlockingContract:
@@ -116,6 +124,7 @@ class TestWindowsNonBlockingContract:
         assert len(fake.calls) == 1
 
 
+@pytest.mark.skipif(not hasattr(filelock, "fcntl"), reason="POSIX backend not importable on this platform")
 class TestPosixBackendUnchanged:
     def test_dispatch_uses_posix_when_fcntl_present(self, monkeypatch, tmp_path):
         monkeypatch.setattr(filelock, "_HAVE_FCNTL", True)
