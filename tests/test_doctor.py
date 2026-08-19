@@ -173,6 +173,8 @@ def test_hyperframes_core_probe_handles_esm_only_exports(tmp_path):
         ["node", "-e", HYPERFRAMES_CORE_PROBE],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=tmp_path,
         timeout=30,
     )
@@ -189,6 +191,8 @@ def test_hyperframes_core_probe_fails_when_package_absent(tmp_path):
         ["node", "-e", HYPERFRAMES_CORE_PROBE],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=tmp_path,
         timeout=30,
     )
@@ -356,6 +360,8 @@ def test_cli_doctor_json_outputs_structured_report():
         [sys.executable, "-m", "mcp_video", "doctor", "--json"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=30,
     )
 
@@ -373,6 +379,8 @@ def test_cli_doctor_text_outputs_summary():
         [sys.executable, "-m", "mcp_video", "doctor"],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=30,
     )
 
