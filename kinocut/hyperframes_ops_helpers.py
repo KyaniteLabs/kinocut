@@ -116,6 +116,10 @@ def _remove_background_info() -> HyperframesJsonResult:
                     "Products, packaging, and other non-person objects "
                     "on a table, sweep, or turntable."
                 ),
+                "limits": {
+                    "maxFrames": MAX_OBJECT_MATTE_FRAMES,
+                    "timeoutSeconds": DEFAULT_OBJECT_MATTE_TIMEOUT,
+                },
             },
         },
         "docs": "docs/PRODUCT_MATTE.md",
@@ -124,10 +128,6 @@ def _remove_background_info() -> HyperframesJsonResult:
             "path": str(cache_path),
         },
         "providers": [],
-        "limits": {
-            "maxFrames": MAX_OBJECT_MATTE_FRAMES,
-            "timeoutSeconds": DEFAULT_OBJECT_MATTE_TIMEOUT,
-        },
     }
     return HyperframesJsonResult(
         command="remove-background",
@@ -204,7 +204,10 @@ def _hf_remove_background_result(result: subprocess.CompletedProcess[str]) -> Hy
     if isinstance(payload, dict):
         payload.setdefault("model", DEFAULT_REMOVE_BACKGROUND_MODEL)
         payload.setdefault("backend", REMOVE_BACKGROUND_HF_BACKEND)
-    return HyperframesJsonResult(command="remove-background", data=payload, stdout=result.stdout)
+        stdout = json.dumps(payload, sort_keys=True)
+    else:
+        stdout = result.stdout
+    return HyperframesJsonResult(command="remove-background", data=payload, stdout=stdout)
 
 
 # ---------------------------------------------------------------------------

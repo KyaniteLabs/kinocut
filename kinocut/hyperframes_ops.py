@@ -539,7 +539,7 @@ def remove_background(
             suggested_action={
                 "auto_fix": False,
                 "description": (
-                    'Install pip install "kinocut[object-matte]" for products, '
+                    'Install "kinocut[object-matte]" for products, '
                     "or omit --model for people."
                 ),
             },

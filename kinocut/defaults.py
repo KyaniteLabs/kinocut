@@ -166,9 +166,7 @@ DEFAULT_GRAPHICS_LAYER_POSITION_Y = 0.0
 
 # Remove-background dispatcher. Default is people (Hyperframes).
 # birefnet-general is the product/object path (Kinocut ONNX) and fails closed
-# until kinocut[object-matte] ships. Studio equipment means turntable, stand,
-# tripod, sweep, lightbox frame, or clamp — not a brand-specific fixture.
+# until kinocut[object-matte] ships.
 DEFAULT_REMOVE_BACKGROUND_MODEL = "u2net_human_seg"
 DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL = 1
 DEFAULT_OBJECT_MATTE_TIMEOUT = DEFAULT_AI_TIMEOUT
-DEFAULT_EQUIPMENT_ON_SUBJECT_RATIO = 0.02
