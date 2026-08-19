@@ -74,6 +74,5 @@ jobs:
             exit 1
           fi
 
-          # Runner Git 2.43 has no --ff-only flag here. Default update
-          # already refuses non-FF; the ancestor check is the explicit gate.
+          # Default update refuses a non-fast-forward; ancestor check is the gate.
           git push github-mirror HEAD:refs/heads/master
