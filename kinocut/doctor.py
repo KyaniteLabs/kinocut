@@ -628,7 +628,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     hint = None
     if not ok:
         hint = (
-            "Product/object cutouts need pip install \"kinocut[object-matte]\" "
+            'Product/object cutouts need pip install "kinocut[object-matte]" '
             "and the pinned BiRefNet-general weights. "
             "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
         )

@@ -135,8 +135,10 @@ kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.
 kino composite-layers --spec layers.json -o pdp.mp4 --save-layer-plan layer-plan.json
 ```
 
-Relative `--save-layer-plan` and `-o` are resolved against the spec directory.
-Do not pass `examples/product-matte/...` as those outputs or they nest.
+Relative `-o` is resolved against the spec directory. Relative
+`--save-layer-plan` is resolved against the output directory. From this
+folder, bare `pdp.mp4` and `layer-plan.json` both land here. Do not pass
+`examples/product-matte/...` as those outputs or they nest.
 
 Do not edit the compositor engine for this feature. The recipe is docs + a
 spec.
@@ -158,7 +160,8 @@ kino hyperframes-remove-background turntable.mp4 \
 
 `--equipment-overlay` writes a diagnostic PNG (static / low-temporal-variance
 heuristic). `--fail-if-equipment-on-subject` aborts when that overlay
-intersects the subject above the threshold in `defaults.py`.
+intersects the subject; the numeric threshold lands with the object backend
+(#464), not in current `defaults.py`.
 
 This is generic studio gear, not a brand-specific fixture. People-path flags
 error instead of being ignored.

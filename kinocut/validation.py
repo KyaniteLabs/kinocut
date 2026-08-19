@@ -136,6 +136,8 @@ OBJECT_MATTE_WEIGHTS_BYTES = 972666916
 def object_matte_cache_path() -> Path:
     """Local cache path for the pinned object-matte ONNX. Never downloads."""
     return Path.home() / ".cache" / "mcp-video" / "models" / OBJECT_MATTE_WEIGHTS_FILENAME
+
+
 VALID_DEMUCS_MODELS = {"htdemucs", "htdemucs_ft", "mdx", "mdx_extra", "mdx_extra_q"}
 VALID_UPSCALE_MODELS = {"realesrgan", "bsrgan"}
 VALID_COLOR_GRADE_STYLES = {"auto", "warm", "cool", "vintage", "cinematic", "noir", "dramatic"}
