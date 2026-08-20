@@ -74,6 +74,7 @@ Native self-contained bundles are **not** published yet. See [MCPB.md](MCPB.md).
 | Image analysis | `pip install "kinocut[image]"` | ~50 MB |
 | Stem separation | `pip install "kinocut[stems]"` | Large |
 | AI upscale | `pip install "kinocut[upscale]"` | Large; Python ≤3.12 often |
+| Product/object cutouts | `pip install "kinocut[object-matte]"` | ONNX Runtime; ~1 GB pinned weights on first use |
 | Procedural audio | `pip install "kinocut[audio]"` | numpy |
 | Everything AI | `pip install "kinocut[ai]"` | Several GB |
 

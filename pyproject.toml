@@ -52,6 +52,7 @@ hyperframes = []  # External: Node.js + resolvable Hyperframes CLI
 transcribe = ["openai-whisper>=20231117"]
 ai-scene = ["imagehash>=4.3", "Pillow>=10.0"]
 stems = ["demucs>=4.0", "torch>=2.0", "torchaudio>=2.0", "torchcodec>=0.8"]
+object-matte = ["onnxruntime>=1.17", "numpy>=1.26", "pillow>=10.0"]
 upscale = [
     "realesrgan>=0.3; python_version < '3.13'",
     "basicsr>=1.4; python_version < '3.13'",
