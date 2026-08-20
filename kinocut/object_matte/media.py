@@ -1,36 +1,28 @@
-"""Load stills/video and encode alpha cutouts plus inverse-alpha plates."""
+"""Stream decode, scratch caps, and frame-count refusal (ported from Forgejo #412)."""
 
 from __future__ import annotations
 
-import os
-import tempfile
+import logging
+import select
+import shutil
+import subprocess
+import time
+from collections.abc import Iterator
 from pathlib import Path
 
 from PIL import Image, ImageOps
 
 from ..defaults import DEFAULT_FPS, DEFAULT_OBJECT_MATTE_TIMEOUT, OBJECT_MATTE_STILL_SUFFIXES
 from ..errors import MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import (
-    _get_video_duration,
-    _run_command,
-    _run_ffprobe_json,
-    _validate_input_path,
-    _validate_output_path,
-)
-from ..limits import MAX_OBJECT_MATTE_FRAMES
+from ..ffmpeg_helpers import _get_video_duration, _run_ffprobe_json, _validate_input_path
+from ..limits import MAX_OBJECT_MATTE_FRAMES, MAX_OBJECT_MATTE_SCRATCH_BYTES
 
+logger = logging.getLogger(__name__)
 _DOCS = "docs/PRODUCT_MATTE.md"
 
 
 def is_still(path: str) -> bool:
     return Path(path).suffix.lower() in OBJECT_MATTE_STILL_SUFFIXES
-
-
-def default_output_path(input_path: str, output_path: str | None) -> str:
-    if output_path:
-        return _validate_output_path(output_path)
-    suffix = ".png" if is_still(input_path) else ".webm"
-    return _validate_output_path(str(Path(input_path).with_name(f"{Path(input_path).stem}-cutout{suffix}")))
 
 
 def apply_alpha(image: Image.Image, mask: Image.Image, *, invert: bool = False) -> Image.Image:
@@ -46,96 +38,241 @@ def load_still(path: str) -> Image.Image:
     return Image.open(_validate_input_path(path)).convert("RGB")
 
 
-def _probe_video(path: str) -> tuple[float, float, int]:
-    payload = _run_ffprobe_json(path)
-    streams = [item for item in payload.get("streams", []) if item.get("codec_type") == "video"]
-    if not streams:
+def _parse_rate(rate: object) -> float | None:
+    text = str(rate or "")
+    try:
+        if "/" in text:
+            num, den = text.split("/", 1)
+            denom = float(den)
+            value = float(num) / denom if denom else 0.0
+        else:
+            value = float(text)
+    except ValueError:
+        return None
+    return value if value > 0 else None
+
+
+def _probe_video_meta(input_path: str) -> tuple[float, int | None, int, int]:
+    payload = _run_ffprobe_json(input_path)
+    fps = float(DEFAULT_FPS)
+    frames: int | None = None
+    width = 0
+    height = 0
+    for stream in payload.get("streams") or []:
+        if stream.get("codec_type") != "video":
+            continue
+        parsed = _parse_rate(stream.get("avg_frame_rate") or stream.get("r_frame_rate"))
+        if parsed:
+            fps = parsed
+        raw = stream.get("nb_frames")
+        if raw not in {None, "", "N/A"}:
+            try:
+                frames = int(raw)
+            except ValueError:
+                frames = None
+        try:
+            width = int(stream.get("width") or 0)
+            height = int(stream.get("height") or 0)
+        except (TypeError, ValueError):
+            width, height = 0, 0
+        break
+    if width < 1 or height < 1:
         raise MCPVideoError(
-            "Object matte needs a video stream or a still image.",
+            "Object-matte video has no usable width/height",
             error_type="validation_error",
             code="invalid_parameter",
             docs_url=_DOCS,
         )
-    stream = streams[0]
-    rate = str(stream.get("avg_frame_rate") or stream.get("r_frame_rate") or "30/1")
-    try:
-        num, den = rate.split("/", 1)
-        fps = float(num) / float(den) if float(den) else DEFAULT_FPS
-    except (TypeError, ValueError, ZeroDivisionError):
-        fps = float(DEFAULT_FPS)
-    duration = _get_video_duration(path)
-    raw_frames = stream.get("nb_frames")
-    try:
-        count = int(raw_frames) if raw_frames not in {None, "N/A", ""} else round(duration * fps)
-    except (TypeError, ValueError):
-        count = round(duration * fps)
-    return fps, duration, max(count, 1)
+    if frames is None:
+        try:
+            duration = _get_video_duration(input_path)
+        except (MCPVideoError, ProcessingError):
+            duration = 0.0
+        if duration > 0:
+            frames = int(duration * fps + 0.5)
+    return fps, frames, width, height
 
 
-def extract_frames(path: str) -> tuple[list[Image.Image], float]:
-    """Decode every frame. Caller must have already enforced the frame cap."""
-    fps, _duration, count = _probe_video(path)
-    if count > MAX_OBJECT_MATTE_FRAMES:
+def refuse_overlong_video(input_path: str) -> tuple[float, int, int, int]:
+    """Known frame count required before decode or weight download."""
+    fps, frames, width, height = _probe_video_meta(input_path)
+    if frames is None or frames < 1:
         raise MCPVideoError(
-            f"Object matte refuses {count} frames (max {MAX_OBJECT_MATTE_FRAMES}). "
-            "Trim the clip or raise the interval after a shorter source. "
-            f"Guide: {_DOCS}.",
-            error_type="validation_error",
-            code="too_many_frames",
+            "Object-matte needs a known frame count before decode",
+            error_type="resource_error",
+            code="frame_count_unknown",
             docs_url=_DOCS,
         )
-    with tempfile.TemporaryDirectory(prefix="kinocut-object-matte-") as tmp:
-        pattern = os.path.join(tmp, "frame_%06d.png")
-        _run_command(
-            ["ffmpeg", "-y", "-i", path, "-vsync", "0", pattern],
-            timeout=DEFAULT_OBJECT_MATTE_TIMEOUT,
+    if frames > MAX_OBJECT_MATTE_FRAMES:
+        raise MCPVideoError(
+            f"Object-matte frame count {frames} exceeds {MAX_OBJECT_MATTE_FRAMES}",
+            error_type="resource_error",
+            code="frame_count_too_large",
+            docs_url=_DOCS,
         )
-        frames = [Image.open(item).convert("RGB") for item in sorted(Path(tmp).glob("frame_*.png"))]
-    if not frames:
-        raise ProcessingError("ffmpeg extract frames", -1, "No frames decoded for object matte")
-    return frames, fps
+    return fps, frames, width, height
 
 
-def encode_still(image: Image.Image, dest: str) -> str:
-    path = _validate_output_path(dest)
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    image.save(path)
-    return path
+def estimate_scratch_bytes(width: int, height: int, frames: int, *, hole: bool) -> int:
+    planes = 2 if hole else 1
+    return width * height * 4 * max(frames, 1) * planes
 
 
-def _encode_args(dest: str) -> list[str]:
-    suffix = Path(dest).suffix.lower()
-    if suffix == ".webm":
-        return ["-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-auto-alt-ref", "0"]
-    if suffix == ".mov":
-        return ["-c:v", "prores_ks", "-profile:v", "4444", "-pix_fmt", "yuva444p10le"]
-    raise MCPVideoError(
-        "Object-matte video output must be .webm (VP9+alpha) or .mov (ProRes 4444). "
-        f"Got {suffix or 'no suffix'}. Guide: {_DOCS}.",
-        error_type="validation_error",
-        code="invalid_parameter",
-        docs_url=_DOCS,
+def charge_scratch(used: int, added: int, cap: int | None = None) -> int:
+    limit = MAX_OBJECT_MATTE_SCRATCH_BYTES if cap is None else cap
+    total = used + added
+    if added < 0 or total > limit:
+        raise MCPVideoError(
+            f"Object-matte scratch budget {limit} bytes exceeded",
+            error_type="resource_error",
+            code="scratch_budget_exceeded",
+            docs_url=_DOCS,
+        )
+    return total
+
+
+def refuse_scratch(width: int, height: int, frames: int, hole: bool, work_dir: Path) -> None:
+    estimate = estimate_scratch_bytes(width, height, frames, hole=hole)
+    charge_scratch(0, estimate)
+    free = shutil.disk_usage(work_dir).free
+    if estimate > free:
+        raise MCPVideoError(
+            f"Object-matte needs about {estimate} free bytes, disk has {free}",
+            error_type="resource_error",
+            code="insufficient_disk",
+            docs_url=_DOCS,
+        )
+
+
+def decode_video_argv(input_path: str, width: int, height: int) -> list[str]:
+    del width, height
+    return [
+        "ffmpeg",
+        "-y",
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-i",
+        input_path,
+        "-frames:v",
+        str(MAX_OBJECT_MATTE_FRAMES + 1),
+        "-f",
+        "rawvideo",
+        "-pix_fmt",
+        "rgb24",
+        "pipe:1",
+    ]
+
+
+def _read_exact(stream, size: int, deadline: float) -> bytes | None:
+    chunks: list[bytes] = []
+    got = 0
+    while got < size:
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            raise MCPVideoError(
+                f"Object-matte exceeded {DEFAULT_OBJECT_MATTE_TIMEOUT}s",
+                error_type="processing_error",
+                code="object_matte_timeout",
+                docs_url=_DOCS,
+            )
+        try:
+            ready, _, _ = select.select([stream], [], [], remaining)
+        except (OSError, TypeError, ValueError):
+            ready = [stream]
+        if not ready:
+            raise MCPVideoError(
+                f"Object-matte exceeded {DEFAULT_OBJECT_MATTE_TIMEOUT}s",
+                error_type="processing_error",
+                code="object_matte_timeout",
+                docs_url=_DOCS,
+            )
+        piece = stream.read(size - got)
+        if not piece:
+            if got == 0:
+                return None
+            raise MCPVideoError(
+                "Object-matte decode ended on a partial frame",
+                error_type="processing_error",
+                code="object_matte_decode_failed",
+                docs_url=_DOCS,
+            )
+        chunks.append(piece)
+        got += len(piece)
+    return b"".join(chunks)
+
+
+def iter_video_rgb(
+    input_path: str, width: int, height: int, deadline: float | None = None
+) -> Iterator[Image.Image]:
+    frame_bytes = width * height * 3
+    ends = time.monotonic() + DEFAULT_OBJECT_MATTE_TIMEOUT if deadline is None else deadline
+    proc = subprocess.Popen(  # noqa: S603
+        decode_video_argv(input_path, width, height),
+        stdout=subprocess.PIPE,
+        stderr=subprocess.DEVNULL,
     )
+    count = 0
+    try:
+        if proc.stdout is None:
+            raise MCPVideoError(
+                "Object-matte decode produced no stdout",
+                error_type="processing_error",
+                code="object_matte_decode_failed",
+                docs_url=_DOCS,
+            )
+        while True:
+            buf = _read_exact(proc.stdout, frame_bytes, ends)
+            if buf is None:
+                break
+            count += 1
+            if count > MAX_OBJECT_MATTE_FRAMES:
+                raise MCPVideoError(
+                    f"Object-matte frame count {count} exceeds {MAX_OBJECT_MATTE_FRAMES}",
+                    error_type="resource_error",
+                    code="frame_count_too_large",
+                    docs_url=_DOCS,
+                )
+            yield Image.frombytes("RGB", (width, height), buf)
+        remaining = max(0.1, ends - time.monotonic())
+        try:
+            rc = proc.wait(timeout=remaining)
+        except subprocess.TimeoutExpired:
+            raise MCPVideoError(
+                f"Object-matte exceeded {DEFAULT_OBJECT_MATTE_TIMEOUT}s",
+                error_type="processing_error",
+                code="object_matte_timeout",
+                docs_url=_DOCS,
+            ) from None
+        if rc != 0:
+            raise MCPVideoError(
+                f"Object-matte ffmpeg decode failed: {rc}",
+                error_type="processing_error",
+                code="object_matte_decode_failed",
+                docs_url=_DOCS,
+            )
+        if count == 0:
+            raise MCPVideoError(
+                "Object-matte extract produced no frames",
+                error_type="processing_error",
+                code="object_matte_no_frames",
+                docs_url=_DOCS,
+            )
+    finally:
+        if proc.poll() is None:
+            proc.kill()
+            proc.wait()
 
 
-def encode_video(frames: list[Image.Image], dest: str, fps: float) -> str:
-    path = _validate_output_path(dest)
-    Path(path).parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.TemporaryDirectory(prefix="kinocut-object-matte-enc-") as tmp:
-        for index, frame in enumerate(frames, start=1):
-            frame.save(os.path.join(tmp, f"frame_{index:06d}.png"))
-        pattern = os.path.join(tmp, "frame_%06d.png")
-        _run_command(
-            [
-                "ffmpeg",
-                "-y",
-                "-framerate",
-                str(fps or DEFAULT_FPS),
-                "-i",
-                pattern,
-                *_encode_args(path),
-                path,
-            ],
-            timeout=DEFAULT_OBJECT_MATTE_TIMEOUT,
-        )
-    return path
+def iter_source_frames(
+    input_path: str,
+    width: int | None = None,
+    height: int | None = None,
+    deadline: float | None = None,
+) -> Iterator[Image.Image]:
+    if is_still(input_path):
+        yield load_still(input_path)
+        return
+    if width is None or height is None:
+        _fps, _frames, width, height = _probe_video_meta(input_path)
+    yield from iter_video_rgb(input_path, width, height, deadline=deadline)
