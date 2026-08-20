@@ -77,3 +77,22 @@ Do not invent third-party directory approvals. Do not re-open #92 as a missing
 
 See [`docs/status/DEFERRED.md`](status/DEFERRED.md). Growth/marketing rows are
 optional ops, not incomplete product phases.
+
+## Owner-approved residuals (parked 2026-08-19)
+
+These need a human for secrets, third-party publish, or upstream — not more
+agent coding. Owner approved closing/deferring the GH hygiene rows:
+
+| Item | Why human | Disposition |
+| --- | --- | --- |
+| Renovate host tokens | Secrets on Forgejo (`RENOVATE_TOKEN`, `MIRROR_GITHUB_TOKEN`) | Ops only — runbook ready |
+| Directories #88 | Third-party directory review / submission | External; do not invent approvals |
+| Launch #90 | Marketing publish of drafts | Owner publish gate |
+| GH #443 optional X4 dogfood | Physical capture hardware | Optional; synthetic fixtures cover compiler |
+| GH #466 upstream | Blocked on upstream/external | Defer until upstream moves |
+| GH #461 parent hygiene | Tracker close after child lands | Close after stream-port PR merges |
+| skills-agent 0b / DNS | DNS spend / Free-zone skill | Owner only |
+| PW dirty push | Owner-owned dirty tree | Do not touch |
+
+Do not invent tokens, force-merge red lint, restart `forgejo-runner` mid-job,
+or land via `git push github`.

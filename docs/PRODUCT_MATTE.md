@@ -8,10 +8,11 @@ Default `hyperframes-remove-background` is **people**
 (`u2net_human_seg`). A bottle, shoe, ring, mug, phone, or boxed SKU is not a
 person. Pass `--model birefnet-general` for objects.
 
-**Not in published 1.15.0.** This contract lands on the object-matte branch
-and the next Kinocut release that ships `kinocut[object-matte]`. Until the
-extra is installed, the object model fails closed. It never falls through to
-the people model.
+**Not in published 1.15.0.** Tip ships `kinocut[object-matte]` with a known
+frame-count gate, streaming rawvideo decode, scratch-byte caps, stalled-decode
+timeouts, and an optional studio-equipment intersection gate. Until the extra
+is installed, the object model fails closed. It never falls through to the
+people model.
 
 No new MCP/CLI name — still **196 / 167**.
 
