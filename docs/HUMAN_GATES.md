@@ -36,7 +36,8 @@ forgejo-runner v13.0.0 with systemd. Combined status on `5b1936e`
 invisible ~80s lint hole (virtiofs checkout + `claims-live` on `light`
 starving apt/curl) is closed: runner home is VM-local
 `/mnt/lima-colima/forgejo-runner`; `claims-live.yml` runs on `heavy`.
-See [CI_RUNNER_TOPOLOGY.md](CI_RUNNER_TOPOLOGY.md) and
+See [CI_RUNNER_TOPOLOGY.md](CI_RUNNER_TOPOLOGY.md) (**Agent land recipe**: idle
+restart → ~90s warm → empty-commit retrigger) and
 [ops closeout](status/2026-08-19-ops-closeout.md).
 
 The Actions API still does not expose step-level logs. If a future job is
@@ -90,7 +91,7 @@ agent coding. Owner approved closing/deferring the GH hygiene rows:
 | Launch #90 | Marketing publish of drafts | Owner publish gate |
 | GH #443 optional X4 dogfood | Physical capture hardware | Optional; synthetic fixtures cover compiler |
 | GH #466 upstream | Blocked on upstream/external | Defer until upstream moves |
-| GH #461 parent hygiene | Tracker close after child lands | Close after stream-port PR merges |
+| GH #461 parent hygiene | Tracker close after child lands | **Closed** after #414 land |
 | skills-agent 0b / DNS | DNS spend / Free-zone skill | Owner only |
 | PW dirty push | Owner-owned dirty tree | Do not touch |
 

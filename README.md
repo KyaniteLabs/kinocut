@@ -117,10 +117,10 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)** (2026-08-19) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.15.0** (published) · **196 MCP tools / 167 CLI commands** | Same counts as the published release. |
+| **This repository (`master`)** | **1.15.0** counts · **196 MCP / 167 CLI** | Same public counts as published 1.15.0. Tip also has `kinocut[object-matte]` (not in pip 1.15.0 yet). |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
-Install from PyPI for the stable package. `master` currently matches published 1.15.0; clone it when you want work after the latest tag.
+Install from PyPI for the stable package. Clone `master` when you want tip work after the latest tag (today that includes object-matte; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md)).
 
 ## What's in 1.15.0
 
@@ -160,7 +160,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
   - **S15 (Adversarial Gate):** Gated under a release STOP — requires S13 receipts, dual-class benchmarks, and explicit human authorization.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Paid Generative / Dubbing Plans:** Generative spend-capped plans and TTS dubbing remain non-executable draft definitions until external backends and credentials are configured.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Not in published 1.15.0. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md). Issues: [#461](https://github.com/KyaniteLabs/kinocut/issues/461).
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. On tip (Forgejo #413/#414); not in published 1.15.0. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 

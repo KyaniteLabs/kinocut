@@ -72,6 +72,26 @@ Forgejo keeps the assignment; the new poller does not inherit it; the job dies a
 **exactly 80s** with no `lint-checkout`. Wait for idle, or let the 80s fail, then
 push a new SHA.
 
+### Agent land recipe (Colima capacity-2)
+
+Use this when lint dies ~80s–1m21s with **no** `lint-checkout`, or before a
+retrigger after an idle restart. Agent skill:
+`forgejo-kinocut-ci-land` (points here; do not fork the procedure).
+
+1. Confirm idle: `GET …/repos/KyaniteLabs/kinocut/actions/runners` →
+   `colima-ci-runner` status `idle`, and no `FORGEJO-ACTIONS-TASK-*` containers.
+2. Restart **only when idle**:
+   `colima ssh -- sudo systemctl restart forgejo-runner.service`
+3. **Warm ~90s** after restart before any push. A cold poller still produces the
+   80s / no-`lint-checkout` signature.
+4. Retrigger with an empty commit on the PR branch (no job-rerun API). Message
+   should say merge only if `lint-checkout` exists and lint succeeds well under 80s.
+5. Merge only on merge-commit (`fj merge` / `{"Do":"merge"}`) after green CI.
+   Never land via `git push github`. Never raise `timeout-minutes` to hide the hole.
+
+Proven 2026-08-19/#413 and 2026-08-20/#414: warm idle push got `lint-checkout` in
+~seconds; push without warm after restart reproduced the hole.
+
 As of 2026-08-08, the CI runner (`colima-ci-runner`, id=15) runs
 **inside the Colima VM** as a systemd service (`forgejo-runner.service`,
 auto-start on boot, auto-restart on crash). The runner binary is

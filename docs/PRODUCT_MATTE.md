@@ -218,7 +218,7 @@ object model is a general object segmenter, not a “hold-out the SKU” picker.
 
 ## Related
 
-- Issues: [KyaniteLabs/kinocut#461](https://github.com/KyaniteLabs/kinocut/issues/461)
+- Landed on tip via Forgejo #413 (extra + equipment) and #414 (stream/scratch). Parent GH #461 closed.
 - Compositor: [CLI_REFERENCE.md](CLI_REFERENCE.md) (`composite-layers`)
 - Still / plate cohesion after the cut: [STILL_PLATES.md](STILL_PLATES.md)
 - Install extras: [INSTALL.md](INSTALL.md)
