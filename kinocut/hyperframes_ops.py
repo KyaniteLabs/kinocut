@@ -25,8 +25,8 @@ from pathlib import Path
 from typing import Any
 
 from .defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
-from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL, DEFAULT_REMOVE_BACKGROUND_MODEL
-from .errors import BackendUnavailableError, HyperframesRenderError, MCPVideoError
+from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
+from .errors import HyperframesRenderError, MCPVideoError
 from .ffmpeg_helpers import _validate_output_path
 from .hyperframes_engine import (
     _hyperframes_op,
@@ -530,20 +530,17 @@ def remove_background(
         )
     interval = _normalize_mask_interval(mask_interval)
     if resolved in REMOVE_BACKGROUND_OBJECT_MODELS:
-        raise BackendUnavailableError(
-            f"Product/object cutouts use --model {resolved!r} and require "
-            'pip install "kinocut[object-matte]". The object backend is not '
-            "installed yet. People cutouts: omit --model "
-            f"(default {DEFAULT_REMOVE_BACKGROUND_MODEL}). "
-            "Guide: docs/PRODUCT_MATTE.md.",
-            suggested_action={
-                "auto_fix": False,
-                "description": (
-                    'Install "kinocut[object-matte]" for products, '
-                    "or omit --model for people."
-                ),
-            },
-            docs_url="docs/PRODUCT_MATTE.md",
+        from .object_matte import run_object_matte
+
+        return run_object_matte(
+            input_path=input_path,
+            output_path=output_path,
+            background_output_path=background_output_path,
+            device=device,
+            quality=quality,
+            mask_interval=interval,
+            equipment_overlay=equipment_overlay,
+            fail_if_equipment_on_subject=fail_if_equipment_on_subject,
         )
     _assert_hf_remove_background_flags(
         mask_interval=interval,

@@ -93,7 +93,16 @@ def test_mask_interval_1_is_not_object_only_on_hf_path():
     assert "--model" not in mock_run.call_args[0][0]
 
 
-def test_birefnet_never_calls_hyperframes_and_is_unavailable():
+def test_birefnet_never_calls_hyperframes_and_is_unavailable(monkeypatch):
+    def _missing_extra():
+        raise MCPVideoError(
+            'Product/object cutouts require pip install "kinocut[object-matte]". Guide: docs/PRODUCT_MATTE.md.',
+            error_type="dependency_error",
+            code="missing_object_matte",
+            docs_url="docs/PRODUCT_MATTE.md",
+        )
+
+    monkeypatch.setattr("mcp_video.object_matte.api.require_object_matte_deps", _missing_extra)
     with (
         patch("mcp_video.hyperframes_ops._hyperframes_op") as mock_op,
         patch("mcp_video.hyperframes_ops._require_node") as mock_node,
@@ -106,8 +115,8 @@ def test_birefnet_never_calls_hyperframes_and_is_unavailable():
     mock_node.assert_not_called()
     mock_run.assert_not_called()
     err = excinfo.value
-    assert err.error_type == "backend_unavailable"
-    assert err.code == "backend_unavailable"
+    assert err.error_type == "dependency_error"
+    assert err.code == "missing_object_matte"
     message = str(err)
     assert "kinocut[object-matte]" in message
     assert "PRODUCT_MATTE.md" in message

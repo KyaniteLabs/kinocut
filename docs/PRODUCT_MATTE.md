@@ -29,8 +29,8 @@ It is **not** a portrait / talking-head feature. For people, omit `--model`.
 1. A still (PNG/JPEG) or a video of **one subject** on a reasonably even
    background. Motorized turntables, lightbox sweeps, and tabletop shots are
    the intended inputs.
-2. `pip install "kinocut[object-matte]"` for ONNX Runtime. The extra is **not**
-   in published 1.15.0; it lands with #463. The ~1 GB pinned BiRefNet-general
+2. `pip install "kinocut[object-matte]"` for ONNX Runtime. The extra is on
+   tip, not in published pip **1.15.0**. The ~1 GB pinned birefnet-general
    ONNX is fetched into `~/.cache/mcp-video/models/` on first object-model
    use, never by `kino doctor`.
 3. FFmpeg on `PATH`. `kino doctor` reports an optional `object_matte` check
@@ -160,8 +160,8 @@ kino hyperframes-remove-background turntable.mp4 \
 
 `--equipment-overlay` writes a diagnostic PNG (static / low-temporal-variance
 heuristic). `--fail-if-equipment-on-subject` aborts when that overlay
-intersects the subject; the numeric threshold lands with the object backend
-(#464), not in current `defaults.py`.
+intersects the subject (`DEFAULT_EQUIPMENT_SUBJECT_INTERSECTION` in
+`defaults.py`). Off by default.
 
 This is generic studio gear, not a brand-specific fixture. People-path flags
 error instead of being ignored.

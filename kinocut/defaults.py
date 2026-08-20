@@ -165,8 +165,12 @@ DEFAULT_GRAPHICS_LAYER_POSITION_X = 0.0
 DEFAULT_GRAPHICS_LAYER_POSITION_Y = 0.0
 
 # Remove-background dispatcher. Default is people (Hyperframes).
-# birefnet-general is the product/object path (Kinocut ONNX) and fails closed
-# until kinocut[object-matte] ships.
+# birefnet-general is the product/object path (Kinocut ONNX extra).
 DEFAULT_REMOVE_BACKGROUND_MODEL = "u2net_human_seg"
 DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL = 1
 DEFAULT_OBJECT_MATTE_TIMEOUT = DEFAULT_AI_TIMEOUT
+DEFAULT_OBJECT_MATTE_MEDIAN_WINDOW = 3
+DEFAULT_EQUIPMENT_SUBJECT_INTERSECTION = 0.02
+OBJECT_MATTE_IMAGENET_MEAN = (0.485, 0.456, 0.406)
+OBJECT_MATTE_IMAGENET_STD = (0.229, 0.224, 0.225)
+OBJECT_MATTE_STILL_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff"})
