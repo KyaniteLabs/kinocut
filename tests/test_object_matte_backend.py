@@ -257,10 +257,14 @@ def test_apply_alpha_invert_is_complement() -> None:
 
 
 def test_coreml_missing_provider_errors(monkeypatch: pytest.MonkeyPatch) -> None:
-    monkeypatch.setattr(
-        "onnxruntime.get_available_providers",
-        lambda: ["CPUExecutionProvider"],
-    )
+    # CI installs kinocut[dev] only — object-matte/onnxruntime is optional.
+    # Stub the module so this guard is covered without the extra.
+    import sys
+    import types
+
+    fake = types.ModuleType("onnxruntime")
+    fake.get_available_providers = lambda: ["CPUExecutionProvider"]  # type: ignore[attr-defined]
+    monkeypatch.setitem(sys.modules, "onnxruntime", fake)
     with pytest.raises(BackendUnavailableError):
         providers_for_device("coreml")
 
