@@ -2,7 +2,7 @@
 
 **Published:** 1.15.0 · **196 MCP / 167 CLI** · `docs/public_claims.json`
 
-**Tip (`master`):** 1.15.0 (same counts). 360 dual-cam assembly and PEP 562 lazy `import kinocut` shipped in pip **1.14.1**. Honest diagnostics (`--mcp` import errors, doctor `mcp-server-import`) and first-class Windows support are in pip **1.15.0**. Object-matte ONNX extra (`kinocut[object-matte]`) + studio-equipment gate landed in Forgejo #413; streaming decode/scratch/timeout guards from #412 are ported onto tip. Not in pip 1.15.0. Dual-host matched at `3348625` before the stream port PR.
+**Tip (`master`):** 1.15.0 (same counts). 360 dual-cam assembly and PEP 562 lazy `import kinocut` shipped in pip **1.14.1**. Honest diagnostics (`--mcp` import errors, doctor `mcp-server-import`) and first-class Windows support are in pip **1.15.0**. Object-matte ONNX extra (`kinocut[object-matte]`) + studio-equipment gate landed in Forgejo #413; streaming decode/scratch/timeout guards from #412 are ported onto tip. Not in pip 1.15.0. Dual-host matched at `bc1f428` after Forgejo #414 (stream/scratch port of #412 onto tip equipment gate).
 
 **Product pipeline:** Phase 1–4 + Track E **GO**.
 
