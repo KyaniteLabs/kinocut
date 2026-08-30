@@ -96,6 +96,18 @@ jobs:
           if package_versions != {version}:
               failures.append(f"server.json package versions {sorted(package_versions)!r} do not match {version!r}")
 
+          shim_server = json.loads(Path("compat/mcp-video-shim/server.json").read_text())
+          if shim_server.get("name") != "io.github.KyaniteLabs/mcp-video":
+              failures.append(f"compatibility server name is {shim_server.get('name')!r}, expected 'io.github.KyaniteLabs/mcp-video'")
+          if shim_server.get("version") != shim_version:
+              failures.append(f"compatibility server.json version {shim_server.get('version')!r} does not match mcp-video {shim_version!r}")
+          shim_packages = shim_server.get("packages", [])
+          if any(pkg.get("registryType") != "pypi" or pkg.get("identifier") != "mcp-video" for pkg in shim_packages):
+              failures.append("compatibility server.json packages must reference the mcp-video PyPI distribution")
+          shim_package_versions = {pkg.get("version") for pkg in shim_packages}
+          if shim_package_versions != {shim_version}:
+              failures.append(f"compatibility server.json package versions {sorted(shim_package_versions)!r} do not match {shim_version!r}")
+
           def allow_existing_release_artifact(url, label):
               try:
                   urllib.request.urlopen(url, timeout=20).close()
@@ -132,16 +144,17 @@ jobs:
 
           from jsonschema import Draft7Validator
 
-          server = json.loads(Path("server.json").read_text())
-          with urllib.request.urlopen(server["$schema"], timeout=20) as response:
-              schema = json.load(response)
-          errors = sorted(Draft7Validator(schema).iter_errors(server), key=lambda error: list(error.path))
-          if errors:
-              for error in errors:
-                  path = "/".join(str(part) for part in error.path) or "<root>"
-                  print(f"{path}: {error.message}")
-              raise SystemExit(1)
-          print(f"MCP registry metadata is valid for {server['name']} {server['version']}.")
+          for metadata_path in ("server.json", "compat/mcp-video-shim/server.json"):
+              server = json.loads(Path(metadata_path).read_text())
+              with urllib.request.urlopen(server["$schema"], timeout=20) as response:
+                  schema = json.load(response)
+              errors = sorted(Draft7Validator(schema).iter_errors(server), key=lambda error: list(error.path))
+              if errors:
+                  for error in errors:
+                      path = "/".join(str(part) for part in error.path) or "<root>"
+                      print(f"{metadata_path}: {path}: {error.message}")
+                  raise SystemExit(1)
+              print(f"MCP registry metadata is valid for {server['name']} {server['version']} ({metadata_path}).")
           PY
       - name: Build Python distributions
         run: |
@@ -308,4 +321,6 @@ jobs:
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc
       - name: Publish server metadata
-        run: ./mcp-publisher publish
+        run: |
+          ./mcp-publisher publish
+          ./mcp-publisher publish compat/mcp-video-shim/server.json
