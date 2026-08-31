@@ -128,7 +128,7 @@ Kinocut **1.15.1** is a maintenance release on top of 1.15.0: the `mcp-video` co
 
 ## What's in 1.15.0
 
-Kinocut **1.15.0** is what you get from `pip install kinocut` today: first-class Windows support and honest diagnostics on top of 1.14.x (same 360 dual-cam assembly and performance surface), driven by a community bug report. Surface stays **196 MCP / 167 CLI** — no new public tool name.
+Kinocut **1.15.0** (2026-08-19) was the Windows/diagnostics release: first-class Windows support and honest diagnostics on top of 1.14.x (same 360 dual-cam assembly and performance surface), driven by a community bug report. Surface stays **196 MCP / 167 CLI** — no new public tool name.
 
 - **Honest MCP startup failures** — `kino --mcp` keeps the "requires the 'mcp' package" hint only when `mcp` is genuinely absent; every other server-tree import failure now prints its real cause (filesystem paths redacted, markup-safe) and exits non-zero. Reported in [#445](https://github.com/KyaniteLabs/kinocut/issues/445).
 - **doctor verifies the MCP server import** — new required `mcp-server-import` check imports the same server tree `--mcp` uses, so `kino doctor` can no longer report OK while MCP mode is broken.
@@ -149,13 +149,13 @@ Also already on the published line from 1.13.x:
 
 Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)
 
-## Beyond 1.15.0 (draft / gated)
+## Beyond 1.15.1 (draft / gated)
 
-**1.15.0 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+**1.15.1 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 
-While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated on the **published 1.15.0** line, the following surfaces remain gated, partial, or unreleased:
+While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated on the **published 1.15.x** line, the following surfaces remain gated, partial, or unreleased:
 
 - **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
 - **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
@@ -164,7 +164,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
   - **S15 (Adversarial Gate):** Gated under a release STOP — requires S13 receipts, dual-class benchmarks, and explicit human authorization.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Paid Generative / Dubbing Plans:** Generative spend-capped plans and TTS dubbing remain non-executable draft definitions until external backends and credentials are configured.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. On tip (Forgejo #413/#414); not in published 1.15.0. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Published in **1.15.1** (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 
@@ -239,7 +239,7 @@ In **Kinocut**, a contract-first path is provided for agent-edited media that mu
 3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
 4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
 
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.15.0 release — see [Status and releases](#status-and-releases).
+There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.15.x line — see [Status and releases](#status-and-releases).
 
 ## Dedicated Video Rescue
 
@@ -415,7 +415,7 @@ Published `mcp-video==1.6.12` is a metadata-only compatibility installer for `ki
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.15.0** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.15.1** (`pip install kinocut`, **196 herramientas MCP / 167 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -558,7 +558,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-On the **published 1.15.0** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+On the **published 1.15.x** surface (and matching tip), kino registers **196 MCP tools** and **167 CLI commands**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -626,6 +626,11 @@ Safety contract:
 - For governed AI-video derivatives, require stored identities, active human decision evidence, and a fresh review slot after every salvage or body-swap — never raw FFmpeg workarounds labeled as governed.
 
 ## Changelog
+
+**1.15.1** (2026-08-31):
+
+- Registry ownership: `mcp-video` shim **1.6.12** + legacy registry republish (#469).
+- Object-matte streaming decode with scratch caps (#414).
 
 **1.15.0** (2026-08-19):
 - **Honest MCP startup failures** — `kino --mcp` reports real import causes; paths redacted, markup-safe (#448, from #445).
