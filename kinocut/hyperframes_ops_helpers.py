@@ -112,10 +112,7 @@ def _remove_background_info() -> HyperframesJsonResult:
                 "subject": "products-and-objects",
                 "backend": REMOVE_BACKGROUND_OBJECT_BACKEND,
                 "install": 'pip install "kinocut[object-matte]"',
-                "summary": (
-                    "Products, packaging, and other non-person objects "
-                    "on a table, sweep, or turntable."
-                ),
+                "summary": ("Products, packaging, and other non-person objects on a table, sweep, or turntable."),
                 "limits": {
                     "maxFrames": MAX_OBJECT_MATTE_FRAMES,
                     "timeoutSeconds": DEFAULT_OBJECT_MATTE_TIMEOUT,

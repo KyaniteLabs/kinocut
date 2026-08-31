@@ -136,10 +136,7 @@ def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
     remove_bg_p.add_argument(
         "--model",
         default=None,
-        help=(
-            "u2net_human_seg (people, default) or birefnet-general "
-            "(products/objects; needs kinocut[object-matte])"
-        ),
+        help=("u2net_human_seg (people, default) or birefnet-general (products/objects; needs kinocut[object-matte])"),
     )
     remove_bg_p.add_argument(
         "--mask-interval",
@@ -151,10 +148,7 @@ def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
     remove_bg_p.add_argument(
         "--equipment-overlay",
         default=None,
-        help=(
-            "Write a diagnostic PNG of leftover studio gear "
-            "(turntable, stand, tripod, sweep). Object backend only."
-        ),
+        help=("Write a diagnostic PNG of leftover studio gear (turntable, stand, tripod, sweep). Object backend only."),
     )
     remove_bg_p.add_argument(
         "--fail-if-equipment-on-subject",

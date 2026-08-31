@@ -202,9 +202,7 @@ def _read_exact(stream, size: int, deadline: float) -> bytes | None:
     return b"".join(chunks)
 
 
-def iter_video_rgb(
-    input_path: str, width: int, height: int, deadline: float | None = None
-) -> Iterator[Image.Image]:
+def iter_video_rgb(input_path: str, width: int, height: int, deadline: float | None = None) -> Iterator[Image.Image]:
     frame_bytes = width * height * 3
     ends = time.monotonic() + DEFAULT_OBJECT_MATTE_TIMEOUT if deadline is None else deadline
     proc = subprocess.Popen(  # noqa: S603

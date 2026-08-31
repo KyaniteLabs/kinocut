@@ -27,7 +27,7 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1150">1.15.0</a> &bull;
+  <a href="#whats-in-1151">1.15.1</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
   <a href="#beyond-1150-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
@@ -70,7 +70,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)** (2026-08-19) |
+| **Latest published release** | **[1.15.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.1)** (2026-08-31) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -116,11 +116,15 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm / GitHub Release** | **[1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)** (2026-08-19) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | **1.15.0** counts · **196 MCP / 167 CLI** | Same public counts as published 1.15.0. Tip also has `kinocut[object-matte]` (not in pip 1.15.0 yet). |
+| **PyPI / npm / GitHub Release** | **[1.15.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.1)** (2026-08-31) | Latest **published** Kinocut. Install with `pip install kinocut`. |
+| **This repository (`master`)** | **1.15.1** counts · **196 MCP / 167 CLI** | Same public counts as published 1.15.1. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package. Clone `master` when you want tip work after the latest tag (today that includes object-matte; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md)).
+
+## What's in 1.15.1
+
+Kinocut **1.15.1** is a maintenance release on top of 1.15.0: the `mcp-video` compatibility shim **1.6.12** carries the registry ownership marker, the legacy `io.github.KyaniteLabs/mcp-video` registry entry was republished so directory listings (Glama, PulseMCP) point at living metadata (#469), and the object-matte engine now streams decode with scratch-directory caps — bounded memory on large inputs (#414). Surface stays **196 MCP / 167 CLI** — no new public tool name.
 
 ## What's in 1.15.0
 
@@ -133,7 +137,7 @@ Kinocut **1.15.0** is what you get from `pip install kinocut` today: first-class
 - **Faster 360 and import path** — single-pass split/PiP/switch `filter_complex` (source audio kept); sampled quality-gate analyze window; SHA-256 path/mtime cache; merge can skip re-probe when `infos=` is supplied; batched 360 storyboard stills; lazy `mcp_video` / CLI / `Client.search_tools`; doctor skips `npx --yes` unless Hyperframes is already on PATH.
 - **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
 - **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; durable MCP `video_repurpose` does not apply `min_score`.
-- **Compatibility window** — `mcp-video==1.6.11` installs `kinocut==1.15.0`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**.
+- **Compatibility window** — `mcp-video==1.6.12` installs `kinocut==1.15.1`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**.
 
 Also already on the published line from 1.13.x:
 
@@ -407,7 +411,7 @@ pip install --upgrade mcp-video
 mcp-video doctor
 ```
 
-Published `mcp-video==1.6.11` is a metadata-only compatibility installer for `kinocut==1.15.0`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+Published `mcp-video==1.6.12` is a metadata-only compatibility installer for `kinocut==1.15.1`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
@@ -628,6 +632,7 @@ Safety contract:
 - **doctor `mcp-server-import` check** — required core check; doctor can't say OK while `--mcp` is broken (#449).
 - **First-class Windows support** — portable projectstore file locking (#446), contention-only lock contract, UTF-8 stdio, `windows-latest` smoke job.
 - Community-driven release — @gerardoscaglia-creator credited in [Contributing](#contributing) and the [CHANGELOG acknowledgements](CHANGELOG.md).
+- `mcp-video==1.6.12` installs `kinocut==1.15.1`.
 - `mcp-video==1.6.11` installs `kinocut==1.15.0`.
 
 **1.14.1** (2026-08-13):

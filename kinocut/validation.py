@@ -130,8 +130,7 @@ REMOVE_BACKGROUND_OBJECT_BACKEND = "kinocut-onnx"
 # https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx
 OBJECT_MATTE_WEIGHTS_FILENAME = "birefnet-general.onnx"
 OBJECT_MATTE_WEIGHTS_URL = (
-    "https://github.com/danielgatis/rembg/releases/download/v0.0.0/"
-    "BiRefNet-general-epoch_244.onnx"
+    "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx"
 )
 OBJECT_MATTE_WEIGHTS_SHA256 = "58f621f00f5d756097615970a88a791584600dcf7c45b18a0a6267535a1ebd3c"
 OBJECT_MATTE_WEIGHTS_MD5 = "7a35a0141cbbc80de11d9c9a28f52697"
