@@ -82,6 +82,26 @@ class TestWriteVerifyRoundtrip:
         assert len(verify_bundle(dest).artifacts) == 2
 
 
+class TestWriterFailsClosed:
+    """The writer must not emit a self-invalidating bundle (CodeRabbit, PR #489)."""
+
+    def test_writer_rejects_unknown_license(self, tmp_path):
+        spec = _artifact_spec(_make_payload(tmp_path)) | {"license": "AGPL-9.9"}
+        with pytest.raises(ValidationError, match="license"):
+            write_bundle(tmp_path / "b1", [spec], "2026-08-31T00:00:00Z")
+
+    def test_writer_rejects_missing_license_not_keyerror(self, tmp_path):
+        spec = dict(_artifact_spec(_make_payload(tmp_path)))
+        del spec["license"]
+        with pytest.raises(ValidationError, match="license"):
+            write_bundle(tmp_path / "b2", [spec], "2026-08-31T00:00:00Z")
+
+    def test_writer_rejects_empty_judges(self, tmp_path):
+        spec = _artifact_spec(_make_payload(tmp_path)) | {"judges": []}
+        with pytest.raises(ValidationError, match="judges"):
+            write_bundle(tmp_path / "b3", [spec], "2026-08-31T00:00:00Z")
+
+
 class TestVerifyFailsClosed:
     def test_missing_manifest(self, tmp_path):
         with pytest.raises(ValidationError, match=r"no manifest\.json"):

@@ -84,7 +84,7 @@ def write_bundle(
     manifest_artifacts: list[dict[str, Any]] = []
     receipt_artifacts: list[WinnersArtifactInfo] = []
     used_names: set[str] = set()
-    for spec in artifacts:
+    for index, spec in enumerate(artifacts):
         source = Path(spec["payload_source"])
         if not source.is_file():
             _fail(f"payload source missing: {source}")
@@ -96,17 +96,24 @@ def write_bundle(
         digest = _sha256_file(payload_dir / name)
         size = (payload_dir / name).stat().st_size
         payload_rel = f"payload/{name}"
+        # .get() for metadata so a missing field is a ValidationError from
+        # _validate_artifact, never a raw KeyError (CodeRabbit, PR #489).
         entry = {
-            "artifact_id": spec["artifact_id"],
-            "event_id": spec["event_id"],
-            "domain": spec["domain"],
-            "axes": spec["axes"],
-            "level": spec["level"],
-            "license": spec["license"],
+            "artifact_id": spec.get("artifact_id"),
+            "event_id": spec.get("event_id"),
+            "domain": spec.get("domain"),
+            "axes": spec.get("axes"),
+            "level": spec.get("level"),
+            "license": spec.get("license"),
             "payload": {"path": payload_rel, "sha256": digest, "bytes": size},
         }
         if spec.get("judges") is not None:
             entry["judges"] = list(spec["judges"])
+        # The writer must not emit a self-invalidating bundle: every entry is
+        # validated under the same contract the verifier applies (CodeRabbit,
+        # PR #489 — e.g. license="AGPL-9.9" or judges=[] previously wrote a
+        # bundle that only failed at verify time).
+        _validate_artifact(entry, index)
         manifest_artifacts.append(entry)
         receipt_artifacts.append(
             WinnersArtifactInfo(
