@@ -1,0 +1,23 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.KyaniteLabs/mcp-video",
+  "title": "mcp-video",
+  "description": "Compatibility package: mcp-video now installs Kinocut (formerly mcp-video).",
+  "version": "1.6.12",
+  "websiteUrl": "https://kinocut.dev/",
+  "repository": {
+    "url": "https://github.com/KyaniteLabs/kinocut",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "identifier": "mcp-video",
+      "version": "1.6.11",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
