@@ -33,6 +33,8 @@ def _artifact_spec(payload_source: Path) -> dict:
         "domain": "glsl",
         "axes": "D=2.0 A=2.0 R=3.0 N=2.0 | judges: test | defects: 0",
         "level": "S",
+        "license": "MIT",
+        "judges": ["gemini-3.7", "minimax-m3"],
         "payload_source": str(payload_source),
     }
 
@@ -60,6 +62,8 @@ class TestWriteVerifyRoundtrip:
         (artifact,) = receipt.artifacts
         assert artifact.artifact_id == _HEX and artifact.event_id == _EVENT
         assert artifact.domain == "glsl" and artifact.level == "S"
+        assert artifact.license == "MIT"
+        assert artifact.judges == ["gemini-3.7", "minimax-m3"]
         assert artifact.payload_path == "payload/winner.glsl"
         assert artifact.payload_bytes == len(b"void main() {}")
 
@@ -129,6 +133,30 @@ class TestVerifyFailsClosed:
             lambda m: m["artifacts"][0]["payload"].update(path="payload/../manifest.json"),
         )
         with pytest.raises(ValidationError, match="bundle-relative"):
+            verify_bundle(bundle)
+
+    def test_unknown_license_rejected(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m["artifacts"][0].update(license="AGPL-9.9"))
+        with pytest.raises(ValidationError, match="license"):
+            verify_bundle(bundle)
+
+    def test_missing_license_rejected(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m["artifacts"][0].pop("license"))
+        with pytest.raises(ValidationError, match="missing required fields"):
+            verify_bundle(bundle)
+
+    def test_historical_judges_null_accepted(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m["artifacts"][0].update(judges=None))
+        receipt = verify_bundle(bundle)
+        assert receipt.artifacts[0].judges is None
+
+    def test_empty_judges_list_rejected(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m["artifacts"][0].update(judges=[]))
+        with pytest.raises(ValidationError, match="judges"):
             verify_bundle(bundle)
 
     def test_non_hex_identity_rejected(self, tmp_path):
