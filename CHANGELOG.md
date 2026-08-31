@@ -39,6 +39,7 @@ Maintenance release: registry ownership plus the object-matte streaming port.
 
 ### Fixed
 - **Windows filter-option paths:** both FFmpeg unescaping passes escape filter-option paths correctly on Windows ([#458](https://github.com/KyaniteLabs/kinocut/pull/458) by [@pedropaav-art](https://github.com/pedropaav-art), merged with credit — item and credit backfilled 2026-08-31; the fix shipped in this release).
+- **doctor Python floor:** `kino doctor` marks Python < 3.11 found on PATH as not-OK, with the install hint now visible in text mode too ([#459](https://github.com/KyaniteLabs/kinocut/pull/459) by [@linhaixin45-cmyk](https://github.com/linhaixin45-cmyk), merged with credit — item and credit backfilled 2026-08-31; the fix shipped in this release).
 
 ### Compatibility
 - `mcp-video==1.6.11` installs `kinocut==1.15.0`.
@@ -47,6 +48,7 @@ Maintenance release: registry ownership plus the object-matte streaming port.
 ### Acknowledgements
 - [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) filed the Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) — the root-cause traceback in it exposed both diagnostics gaps fixed above — and contributed the portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446), landed on master with credit). Every fix in this release traces to that report. Bug reports with reproduction steps are contributions; thank you.
 - [@pedropaav-art](https://github.com/pedropaav-art) contributed the Windows filter-option path escaping fix ([#458](https://github.com/KyaniteLabs/kinocut/pull/458)), which shipped in this release (credit backfilled 2026-08-31). Thank you.
+- [@linhaixin45-cmyk](https://github.com/linhaixin45-cmyk) contributed the doctor Python-version floor fix ([#459](https://github.com/KyaniteLabs/kinocut/pull/459)), which shipped in this release (credit backfilled 2026-08-31). Thank you.
 - Kinocut's external community predates this release: betsmayank's merged Hyperframes no-TTY fix ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)), austinwmson's `remotion_still` props report ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)), ismailkattakath's self-host reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)), and early PRs from Dodothereal and OyaAIProd. All of them shaped the product.
 
 ## 1.14.1 - 2026-08-13
