@@ -6,9 +6,9 @@
     "kinocut",
     "mcp-video"
   ],
-  "published_version": "1.15.0",
+  "published_version": "1.15.1",
   "published_date": "2026-08-19",
-  "release_candidate_version": "1.15.0",
+  "release_candidate_version": "1.15.1",
   "published_mcp_tools": 196,
   "published_cli_commands": 167,
   "development_mcp_tools": 196,
