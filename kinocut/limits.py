@@ -83,6 +83,11 @@ MAX_CONCURRENCY = 16
 # Processing bounds
 MAX_SPEED_CHAIN_COUNT = 20
 
+# Revideo bridge runtime floor. Must match the "node" engines floor declared
+# by npm/package.json (the mcpb launcher) and the vendored bridge template's
+# puppeteer/vite dependency engines; RevideoNotFoundError names it verbatim.
+REVIDEO_NODE_MAJOR_MIN = 18
+
 # Workflow-engine bounds (fail closed above these)
 MAX_WORKFLOW_STEPS = 64
 MAX_WORKFLOW_VARIANTS = 32

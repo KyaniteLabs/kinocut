@@ -70,7 +70,10 @@ jobs:
       - name: Create venv
         run: python -m venv .venv
       - name: Install ruff
-        run: .venv/bin/pip install ruff
+        # Pinned (matches the pyproject dev floor) so an upstream ruff release
+        # cannot reformat the repo under us and fail master mid-week; bump the
+        # pin deliberately together with the pyproject floor.
+        run: .venv/bin/pip install "ruff==0.15.11"
       - name: Ruff check
         run: .venv/bin/ruff check kinocut/ mcp_video.py tests/
       - name: Ruff format check
@@ -415,7 +418,7 @@ jobs:
           ffprobe -version
       - name: Install package and dev dependencies
         if: needs.changes.outputs.code == 'true'
-        run: python -m pip install -e ".[dev]" ruff
+        run: python -m pip install -e ".[dev]" "ruff==0.15.11"
       - name: Lint
         if: needs.changes.outputs.code == 'true'
         run: python -m ruff check kinocut/ mcp_video.py tests/

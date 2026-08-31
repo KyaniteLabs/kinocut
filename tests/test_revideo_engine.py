@@ -183,3 +183,54 @@ class TestRender:
         )
         with pytest.raises(RevideoNotFoundError):
             render_job(_minimal_job(), str(tmp_path / "out.mp4"))
+
+    def test_render_invalid_candidate_is_not_published(self, tmp_path):
+        # Regression (CodeRabbit #473): a nonempty render candidate with no
+        # video stream must be rejected BEFORE it replaces output_path.
+        project = materialize_project(tmp_path / "bridge", _minimal_job())
+        candidate = project / "out" / "video.mp4"
+        candidate.parent.mkdir(parents=True)
+        candidate.write_bytes(b"\x00\x00\x00\x18ftypmp42")  # nonempty but streamless
+        output = tmp_path / "delivered" / "final.mp4"
+
+        with pytest.MonkeyPatch.context() as mp:
+            mp.setattr(revideo_engine.subprocess, "run", lambda *a, **k: _completed(stdout=""))
+            mp.setattr(revideo_engine, "_run_ffprobe_json", lambda *_a, **_k: {"streams": [], "format": {}})
+            with pytest.raises(RevideoRenderError, match="no video stream"):
+                render(project, str(output))
+
+        assert not output.exists()
+        assert candidate.is_file(), "invalid candidate should stay in the project dir for diagnosis"
+
+
+class TestRequireRevideoDepsVersion:
+    @staticmethod
+    def _fake_env(monkeypatch, version_stdout: str) -> None:
+        monkeypatch.setattr(
+            revideo_engine.shutil,
+            "which",
+            lambda name: "/usr/bin/node" if name in ("node", "npm") else None,
+        )
+        monkeypatch.setattr(
+            revideo_engine.subprocess,
+            "run",
+            lambda *a, **k: _completed(stdout=version_stdout),
+        )
+
+    def test_rejects_node_below_floor(self, monkeypatch):
+        self._fake_env(monkeypatch, "v16.14.0\n")
+        with pytest.raises(RevideoNotFoundError, match=r"Node\.js 18\+"):
+            revideo_engine._require_revideo_deps()
+
+    def test_accepts_node_at_floor(self, monkeypatch):
+        self._fake_env(monkeypatch, "v18.0.0\n")
+        revideo_engine._require_revideo_deps()  # must not raise
+
+    def test_accepts_modern_node(self, monkeypatch):
+        self._fake_env(monkeypatch, "v22.14.0\n")
+        revideo_engine._require_revideo_deps()  # must not raise
+
+    def test_rejects_unparseable_version_output(self, monkeypatch):
+        self._fake_env(monkeypatch, "not-a-version\n")
+        with pytest.raises(RevideoNotFoundError, match="parse"):
+            revideo_engine._require_revideo_deps()

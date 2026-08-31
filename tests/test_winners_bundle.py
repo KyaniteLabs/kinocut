@@ -205,3 +205,45 @@ class TestStageBundle:
         (bundle / "payload" / "winner.glsl").write_bytes(b"tampered")
         with pytest.raises(ValidationError):
             stage_bundle(bundle, tmp_path / "staged")
+
+
+class TestWriteGuards:
+    def test_write_rejects_empty_artifacts(self, tmp_path):
+        # CodeRabbit #473: write_bundle must not emit an envelope that
+        # verify_bundle would immediately reject.
+        dest = tmp_path / "bundle"
+        with pytest.raises(ValidationError, match="non-empty list"):
+            write_bundle(dest, [], "2026-08-31T00:00:00Z")
+        assert not dest.exists()
+
+    def test_write_rejects_nonempty_payload_dir(self, tmp_path):
+        # CodeRabbit #473: rewriting into a used destination would leave stale
+        # payload files the new manifest does not list; fail closed instead.
+        dest = tmp_path / "bundle"
+        write_bundle(dest, [_artifact_spec(_make_payload(tmp_path, "a.glsl"))], "2026-08-31T00:00:00Z")
+        with pytest.raises(ValidationError, match="not empty"):
+            write_bundle(
+                dest,
+                [_artifact_spec(_make_payload(tmp_path, "b.glsl", b"other"))],
+                "2026-08-31T00:00:00Z",
+            )
+
+
+class TestExactSchema:
+    def test_unexpected_manifest_field_rejected(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m.update(extra_field=True))
+        with pytest.raises(ValidationError, match="unexpected fields"):
+            verify_bundle(bundle)
+
+    def test_unexpected_artifact_field_rejected(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m["artifacts"][0].update(score=99))
+        with pytest.raises(ValidationError, match="unexpected fields"):
+            verify_bundle(bundle)
+
+    def test_unexpected_payload_field_rejected(self, tmp_path):
+        bundle = _bundle(tmp_path)
+        _rewrite_manifest(bundle, lambda m: m["artifacts"][0]["payload"].update(alg="sha256"))
+        with pytest.raises(ValidationError, match="unexpected fields"):
+            verify_bundle(bundle)

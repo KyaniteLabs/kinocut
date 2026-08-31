@@ -26,7 +26,9 @@ from .defaults import (
     DEFAULT_REVIDEO_FRAMES,
     DEFAULT_REVIDEO_HEIGHT,
     DEFAULT_REVIDEO_INSTALL_TIMEOUT,
+    DEFAULT_REVIDEO_OUT_FILE,
     DEFAULT_REVIDEO_RENDER_TIMEOUT,
+    DEFAULT_REVIDEO_SEED,
     DEFAULT_REVIDEO_WIDTH,
     DEFAULT_REVIDEO_WORKERS,
 )
@@ -37,6 +39,7 @@ from .errors import (
     ValidationError,
 )
 from .ffmpeg_helpers import _run_ffprobe_json, _validate_write_path
+from .limits import DOCTOR_COMMAND_TIMEOUT, REVIDEO_NODE_MAJOR_MIN
 from .revideo_models import RevideoRenderResult
 from .validation import (
     REVIDEO_FPS_MAX,
@@ -64,11 +67,28 @@ _BARE_MAKESCENE_RE = re.compile(r"makeScene2D\(\s*(?:async\s+)?function")
 
 
 def _require_revideo_deps() -> None:
-    """Raise a helpful error if Node.js/npm are not available."""
-    if shutil.which("node") is None:
+    """Raise a helpful error if Node.js/npm are missing or too old."""
+    node = shutil.which("node")
+    if node is None:
         raise RevideoNotFoundError("node not found on PATH")
     if shutil.which("npm") is None:
         raise RevideoNotFoundError("npm not found on PATH")
+    try:
+        probe = subprocess.run(  # noqa: S603
+            [node, "--version"],
+            capture_output=True,
+            text=True,
+            timeout=DOCTOR_COMMAND_TIMEOUT,
+            check=False,
+        )
+    except (OSError, subprocess.TimeoutExpired) as exc:
+        raise RevideoNotFoundError(f"node --version failed to run: {exc}") from exc
+    match = re.match(r"v(\d+)", (probe.stdout or "").strip())
+    if match is None:
+        raise RevideoNotFoundError(f"could not parse `node --version` output: {(probe.stdout or '').strip()!r}")
+    major = int(match.group(1))
+    if major < REVIDEO_NODE_MAJOR_MIN:
+        raise RevideoNotFoundError(f"node v{major} found on PATH but Node.js {REVIDEO_NODE_MAJOR_MIN}+ is required")
 
 
 def _validate_job(job: dict[str, Any]) -> dict[str, Any]:
@@ -92,9 +112,9 @@ def _validate_job(job: dict[str, Any]) -> dict[str, Any]:
         "fps": _float_field("fps", REVIDEO_FPS_MIN, REVIDEO_FPS_MAX, DEFAULT_REVIDEO_FPS),
         "frames": _int_field("frames", REVIDEO_FRAMES_MIN, REVIDEO_FRAMES_MAX, DEFAULT_REVIDEO_FRAMES),
         "workers": _int_field("workers", REVIDEO_WORKERS_MIN, REVIDEO_WORKERS_MAX, DEFAULT_REVIDEO_WORKERS),
-        "seed": _int_field("seed", REVIDEO_SEED_MIN, REVIDEO_SEED_MAX, 1),
+        "seed": _int_field("seed", REVIDEO_SEED_MIN, REVIDEO_SEED_MAX, DEFAULT_REVIDEO_SEED),
     }
-    out_file = job.get("out_file", "video.mp4")
+    out_file = job.get("out_file", DEFAULT_REVIDEO_OUT_FILE)
     if (
         not isinstance(out_file, str)
         or not out_file.endswith(REVIDEO_OUT_FILE_SUFFIXES)
@@ -226,19 +246,22 @@ def render(
     job_spec = json.loads((project / "src" / "job.json").read_text(encoding="utf-8"))
     candidate = Path(rendered_line) if rendered_line else None
     if candidate is None or not candidate.is_file():
-        candidate = project / "out" / job_spec.get("out_file", "video.mp4")
+        candidate = project / "out" / job_spec.get("out_file", DEFAULT_REVIDEO_OUT_FILE)
     if not candidate.is_file() or candidate.stat().st_size == 0:
         raise RevideoRenderError("npm run render", result.returncode, "render reported no output file")
+
+    # Verify the candidate IN the project dir before publishing it: a nonempty
+    # but invalid render must never replace an existing file at output_path.
+    probe = _run_ffprobe_json(str(candidate))
+    streams = [s for s in probe.get("streams", []) if s.get("codec_type") == "video"]
+    if not streams:
+        raise RevideoRenderError("npm run render", 0, "render output has no video stream")
 
     output = Path(output_path)
     output.parent.mkdir(parents=True, exist_ok=True)
     if candidate.resolve() != output.resolve():
         shutil.move(str(candidate), str(output))
 
-    probe = _run_ffprobe_json(str(output))
-    streams = [s for s in probe.get("streams", []) if s.get("codec_type") == "video"]
-    if not streams:
-        raise RevideoRenderError("npm run render", 0, "output has no video stream")
     stream = streams[0]
     num, _, den = str(stream.get("avg_frame_rate", "0/1")).partition("/")
     try:

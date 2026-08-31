@@ -44,13 +44,13 @@ from .errors import ValidationError
 from .revideo_engine import _sha256_file
 from .revideo_models import WinnersArtifactInfo, WinnersBundleReceipt
 from .validation import (
+    WINNERS_ARTIFACT_OPTIONAL_FIELDS,
     WINNERS_ARTIFACT_REQUIRED_FIELDS,
+    WINNERS_HEX64_CHARS,
     WINNERS_KNOWN_LICENSES,
     WINNERS_MANIFEST_REQUIRED_FIELDS,
     WINNERS_PAYLOAD_REQUIRED_FIELDS,
 )
-
-_HEX64 = set("0123456789abcdef")
 
 
 def _fail(detail: str) -> None:
@@ -63,7 +63,84 @@ def _canonical_manifest_bytes(manifest: dict[str, Any]) -> bytes:
 
 
 def _is_hex64(value: Any) -> bool:
-    return isinstance(value, str) and len(value) == 64 and set(value.lower()) <= _HEX64
+    return isinstance(value, str) and len(value) == 64 and set(value.lower()) <= WINNERS_HEX64_CHARS
+
+
+def _reject_unexpected_fields(
+    obj: dict[str, Any],
+    declared: tuple[str, ...],
+    label: str,
+    optional: tuple[str, ...] = (),
+) -> None:
+    """Fail closed on undeclared fields: the pinned schema is exact."""
+    unexpected = sorted(set(obj) - set(declared) - set(optional))
+    if unexpected:
+        _fail(f"{label} has unexpected fields: {unexpected}")
+
+
+def _prepare_payload_dir(dest_path: Path) -> Path:
+    """Validate the destination and create an empty ``payload/`` directory.
+
+    Fail closed rather than deleting data: a second write with a different
+    artifact set would leave stale payload files that no longer appear in the
+    new manifest, so verify_bundle would (correctly) reject the bundle.
+    """
+    payload_dir = dest_path / "payload"
+    if payload_dir.is_dir() and any(payload_dir.iterdir()):
+        _fail(f"destination payload/ directory is not empty: {payload_dir} — use a fresh bundle directory")
+    payload_dir.mkdir(parents=True, exist_ok=True)
+    return payload_dir
+
+
+def _ingest_artifact(
+    spec: dict[str, Any],
+    payload_dir: Path,
+    used_names: set[str],
+    index: int,
+) -> tuple[dict[str, Any], WinnersArtifactInfo]:
+    """Copy one payload source into the bundle and build its manifest entry.
+
+    Metadata uses ``.get()`` so a missing field surfaces as a
+    ValidationError from ``_validate_artifact``, never a raw KeyError, and
+    every entry is validated under the same contract the verifier applies —
+    the writer must not emit a self-invalidating bundle (CodeRabbit, #489).
+    """
+    source = Path(spec["payload_source"])
+    if not source.is_file():
+        _fail(f"payload source missing: {source}")
+    name = source.name
+    if name in used_names:
+        _fail(f"duplicate payload filename: {name}")
+    used_names.add(name)
+    shutil.copyfile(source, payload_dir / name)
+    digest = _sha256_file(payload_dir / name)
+    size = (payload_dir / name).stat().st_size
+    payload_rel = f"payload/{name}"
+    entry = {
+        "artifact_id": spec.get("artifact_id"),
+        "event_id": spec.get("event_id"),
+        "domain": spec.get("domain"),
+        "axes": spec.get("axes"),
+        "level": spec.get("level"),
+        "license": spec.get("license"),
+        "payload": {"path": payload_rel, "sha256": digest, "bytes": size},
+    }
+    if spec.get("judges") is not None:
+        entry["judges"] = list(spec["judges"])
+    _validate_artifact(entry, index)
+    info = WinnersArtifactInfo(
+        artifact_id=entry["artifact_id"],
+        event_id=entry["event_id"],
+        domain=entry["domain"],
+        axes=entry["axes"],
+        level=entry["level"],
+        license=entry["license"],
+        judges=entry.get("judges"),
+        payload_path=payload_rel,
+        payload_sha256=digest,
+        payload_bytes=size,
+    )
+    return entry, info
 
 
 def write_bundle(
@@ -78,57 +155,19 @@ def write_bundle(
     for the Sinter side — the format here IS the v0.1 contract.
     """
     dest_path = Path(dest)
-    payload_dir = dest_path / "payload"
-    payload_dir.mkdir(parents=True, exist_ok=True)
+    if not artifacts:
+        # A bundle whose manifest lists no artifacts can never pass
+        # verify_bundle; refuse it before touching the destination.
+        _fail("artifacts must be a non-empty list")
+    payload_dir = _prepare_payload_dir(dest_path)
 
     manifest_artifacts: list[dict[str, Any]] = []
     receipt_artifacts: list[WinnersArtifactInfo] = []
     used_names: set[str] = set()
     for index, spec in enumerate(artifacts):
-        source = Path(spec["payload_source"])
-        if not source.is_file():
-            _fail(f"payload source missing: {source}")
-        name = source.name
-        if name in used_names:
-            _fail(f"duplicate payload filename: {name}")
-        used_names.add(name)
-        shutil.copyfile(source, payload_dir / name)
-        digest = _sha256_file(payload_dir / name)
-        size = (payload_dir / name).stat().st_size
-        payload_rel = f"payload/{name}"
-        # .get() for metadata so a missing field is a ValidationError from
-        # _validate_artifact, never a raw KeyError (CodeRabbit, PR #489).
-        entry = {
-            "artifact_id": spec.get("artifact_id"),
-            "event_id": spec.get("event_id"),
-            "domain": spec.get("domain"),
-            "axes": spec.get("axes"),
-            "level": spec.get("level"),
-            "license": spec.get("license"),
-            "payload": {"path": payload_rel, "sha256": digest, "bytes": size},
-        }
-        if spec.get("judges") is not None:
-            entry["judges"] = list(spec["judges"])
-        # The writer must not emit a self-invalidating bundle: every entry is
-        # validated under the same contract the verifier applies (CodeRabbit,
-        # PR #489 — e.g. license="AGPL-9.9" or judges=[] previously wrote a
-        # bundle that only failed at verify time).
-        _validate_artifact(entry, index)
+        entry, info = _ingest_artifact(spec, payload_dir, used_names, index)
         manifest_artifacts.append(entry)
-        receipt_artifacts.append(
-            WinnersArtifactInfo(
-                artifact_id=entry["artifact_id"],
-                event_id=entry["event_id"],
-                domain=entry["domain"],
-                axes=entry["axes"],
-                level=entry["level"],
-                license=entry["license"],
-                judges=entry.get("judges"),
-                payload_path=payload_rel,
-                payload_sha256=digest,
-                payload_bytes=size,
-            )
-        )
+        receipt_artifacts.append(info)
 
     manifest: dict[str, Any] = {
         "schema_version": REVIDEO_WINNERS_SCHEMA_VERSION,
@@ -152,6 +191,7 @@ def _validate_manifest_structure(manifest: Any, bundle_dir: Path) -> tuple[str, 
     missing = [f for f in WINNERS_MANIFEST_REQUIRED_FIELDS if f not in manifest]
     if missing:
         _fail(f"manifest missing required fields: {missing}")
+    _reject_unexpected_fields(manifest, WINNERS_MANIFEST_REQUIRED_FIELDS, "manifest")
     schema = manifest["schema_version"]
     if schema != REVIDEO_WINNERS_SCHEMA_VERSION:
         _fail(f"unsupported schema_version {schema!r} — this build pins {REVIDEO_WINNERS_SCHEMA_VERSION!r}")
@@ -168,6 +208,9 @@ def _validate_artifact(entry: Any, index: int) -> dict[str, Any]:
     missing = [f for f in WINNERS_ARTIFACT_REQUIRED_FIELDS if f not in entry]
     if missing:
         _fail(f"artifacts[{index}] missing required fields: {missing}")
+    _reject_unexpected_fields(
+        entry, WINNERS_ARTIFACT_REQUIRED_FIELDS, f"artifacts[{index}]", optional=WINNERS_ARTIFACT_OPTIONAL_FIELDS
+    )
     for field in ("artifact_id", "event_id"):
         if not _is_hex64(entry[field]):
             _fail(f"artifacts[{index}].{field} must be a 64-char sha256 hex string")
@@ -189,6 +232,7 @@ def _validate_artifact(entry: Any, index: int) -> dict[str, Any]:
     missing = [f for f in WINNERS_PAYLOAD_REQUIRED_FIELDS if f not in payload]
     if missing:
         _fail(f"artifacts[{index}].payload missing required fields: {missing}")
+    _reject_unexpected_fields(payload, WINNERS_PAYLOAD_REQUIRED_FIELDS, f"artifacts[{index}].payload")
     path = payload["path"]
     if not isinstance(path, str) or not path.startswith("payload/") or ".." in path:
         _fail(f"artifacts[{index}].payload.path must be a bundle-relative payload/ path")
