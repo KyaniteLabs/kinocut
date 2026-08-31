@@ -108,6 +108,9 @@ jobs:
           if shim_package_versions != {shim_version}:
               failures.append(f"compatibility server.json package versions {sorted(shim_package_versions)!r} do not match {shim_version!r}")
 
+          if "mcp-name: io.github.KyaniteLabs/mcp-video" not in Path("compat/mcp-video-shim/README.md").read_text():
+              failures.append("shim README lost the mcp-name marker — PyPI ownership validation at registry publish would fail")
+
           def allow_existing_release_artifact(url, label):
               try:
                   urllib.request.urlopen(url, timeout=20).close()

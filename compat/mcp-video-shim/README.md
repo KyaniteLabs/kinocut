@@ -1,3 +1,4 @@
+<!-- mcp-name: io.github.KyaniteLabs/mcp-video -->
 # mcp-video is now Kinocut
 
 This package preserves existing installs after the project rename. It installs the matching

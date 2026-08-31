@@ -3,7 +3,7 @@
   "name": "io.github.KyaniteLabs/mcp-video",
   "title": "mcp-video",
   "description": "Compatibility package: mcp-video now installs Kinocut (formerly mcp-video).",
-  "version": "1.6.11",
+  "version": "1.6.12",
   "websiteUrl": "https://kinocut.dev/",
   "repository": {
     "url": "https://github.com/KyaniteLabs/kinocut",
