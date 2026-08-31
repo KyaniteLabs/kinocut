@@ -631,13 +631,13 @@ Safety contract:
 
 - Registry ownership: `mcp-video` shim **1.6.12** + legacy registry republish (#469).
 - Object-matte streaming decode with scratch caps (#414).
+- `mcp-video==1.6.12` installs `kinocut==1.15.1`.
 
 **1.15.0** (2026-08-19):
 - **Honest MCP startup failures** — `kino --mcp` reports real import causes; paths redacted, markup-safe (#448, from #445).
 - **doctor `mcp-server-import` check** — required core check; doctor can't say OK while `--mcp` is broken (#449).
 - **First-class Windows support** — portable projectstore file locking (#446), contention-only lock contract, UTF-8 stdio, `windows-latest` smoke job.
 - Community-driven release — @gerardoscaglia-creator credited in [Contributing](#contributing) and the [CHANGELOG acknowledgements](CHANGELOG.md).
-- `mcp-video==1.6.12` installs `kinocut==1.15.1`.
 - `mcp-video==1.6.11` installs `kinocut==1.15.0`.
 
 **1.14.1** (2026-08-13):

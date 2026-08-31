@@ -574,6 +574,12 @@ WINNERS_KNOWN_LICENSES = frozenset(
     }
 )
 WINNERS_PAYLOAD_REQUIRED_FIELDS = ("path", "sha256", "bytes")
+# Artifact fields a v0.1 manifest may omit (judges is null/absent for
+# historical events — never fabricated). Everything else is exact: unexpected
+# keys are rejected by verify_bundle.
+WINNERS_ARTIFACT_OPTIONAL_FIELDS = ("judges",)
+# Lowercase hex charset for the bundle's 64-char sha256 identity fields.
+WINNERS_HEX64_CHARS = frozenset("0123456789abcdef")
 
 # Revideo bridge output + seed bounds (liminal #999).
 REVIDEO_OUT_FILE_SUFFIXES = (".mp4", ".webm", ".mov")
