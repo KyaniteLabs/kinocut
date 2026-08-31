@@ -45,6 +45,7 @@ from .revideo_engine import _sha256_file
 from .revideo_models import WinnersArtifactInfo, WinnersBundleReceipt
 from .validation import (
     WINNERS_ARTIFACT_REQUIRED_FIELDS,
+    WINNERS_KNOWN_LICENSES,
     WINNERS_MANIFEST_REQUIRED_FIELDS,
     WINNERS_PAYLOAD_REQUIRED_FIELDS,
 )
@@ -101,8 +102,11 @@ def write_bundle(
             "domain": spec["domain"],
             "axes": spec["axes"],
             "level": spec["level"],
+            "license": spec["license"],
             "payload": {"path": payload_rel, "sha256": digest, "bytes": size},
         }
+        if spec.get("judges") is not None:
+            entry["judges"] = list(spec["judges"])
         manifest_artifacts.append(entry)
         receipt_artifacts.append(
             WinnersArtifactInfo(
@@ -111,6 +115,8 @@ def write_bundle(
                 domain=entry["domain"],
                 axes=entry["axes"],
                 level=entry["level"],
+                license=entry["license"],
+                judges=entry.get("judges"),
                 payload_path=payload_rel,
                 payload_sha256=digest,
                 payload_bytes=size,
@@ -158,9 +164,18 @@ def _validate_artifact(entry: Any, index: int) -> dict[str, Any]:
     for field in ("artifact_id", "event_id"):
         if not _is_hex64(entry[field]):
             _fail(f"artifacts[{index}].{field} must be a 64-char sha256 hex string")
-    for field in ("domain", "axes", "level"):
+    for field in ("domain", "axes", "level", "license"):
         if not isinstance(entry[field], str) or not entry[field]:
             _fail(f"artifacts[{index}].{field} must be a non-empty string")
+    if entry["license"] not in WINNERS_KNOWN_LICENSES:
+        _fail(f"artifacts[{index}].license must be one of {sorted(WINNERS_KNOWN_LICENSES)} (got {entry['license']!r})")
+    judges = entry.get("judges")
+    if judges is not None and (
+        not isinstance(judges, list) or not judges or not all(isinstance(j, str) and j for j in judges)
+    ):
+        _fail(
+            f"artifacts[{index}].judges must be null (historical events) or a non-empty list of judge identity strings"
+        )
     payload = entry["payload"]
     if not isinstance(payload, dict):
         _fail(f"artifacts[{index}].payload must be an object")
@@ -217,6 +232,8 @@ def verify_bundle(bundle_dir: str | Path) -> WinnersBundleReceipt:
                 domain=validated["domain"],
                 axes=validated["axes"],
                 level=validated["level"],
+                license=validated["license"],
+                judges=validated.get("judges"),
                 payload_path=str(payload_rel),
                 payload_sha256=actual_digest,
                 payload_bytes=actual_bytes,

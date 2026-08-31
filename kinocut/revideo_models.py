@@ -27,6 +27,10 @@ class WinnersArtifactInfo(BaseModel):
     domain: str
     axes: str
     level: str
+    license: str = Field(description="Deterministic license mapping (liminal #999): LGPL-2.1/MIT/AGPL-3.0/BSD-3/house.")
+    judges: list[str] | None = Field(
+        default=None, description="Judge identities; null for historical events (never fabricated)."
+    )
     payload_path: str = Field(description="Path relative to the bundle root.")
     payload_sha256: str
     payload_bytes: int

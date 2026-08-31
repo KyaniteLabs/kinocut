@@ -557,7 +557,21 @@ WINNERS_ARTIFACT_REQUIRED_FIELDS = (
     "domain",
     "axes",
     "level",
+    "license",
     "payload",
+)
+# Agreed on liminal #999 (2026-08-31): deterministic license mapping emitted by
+# the Sinter export step (p5->LGPL-2.1, three/tone->MIT, hydra/strudel->AGPL-3.0,
+# d3-dataviz->BSD-3, self-contained->house). Historical events carry judges:null
+# rather than fabricated backfill.
+WINNERS_KNOWN_LICENSES = frozenset(
+    {
+        "LGPL-2.1",
+        "MIT",
+        "AGPL-3.0",
+        "BSD-3",
+        "house",
+    }
 )
 WINNERS_PAYLOAD_REQUIRED_FIELDS = ("path", "sha256", "bytes")
 
