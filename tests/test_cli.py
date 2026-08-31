@@ -18,6 +18,11 @@ def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProces
         cmd,
         capture_output=True,
         text=True,
+        # The CLI forces UTF-8 on its own streams (see __main__), so decode as
+        # UTF-8 rather than the locale default -- cp1252 on Windows raises in
+        # the subprocess reader thread and silently leaves stdout as None.
+        encoding="utf-8",
+        errors="replace",
         timeout=30,
     )
     if not expect_fail and result.returncode != 0:
