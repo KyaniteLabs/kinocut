@@ -93,7 +93,7 @@ class TestWriterFailsClosed:
     def test_writer_rejects_missing_license_not_keyerror(self, tmp_path):
         spec = dict(_artifact_spec(_make_payload(tmp_path)))
         del spec["license"]
-        with pytest.raises(ValidationError, match="missing required fields"):
+        with pytest.raises(ValidationError, match="license"):
             write_bundle(tmp_path / "b2", [spec], "2026-08-31T00:00:00Z")
 
     def test_writer_rejects_empty_judges(self, tmp_path):
