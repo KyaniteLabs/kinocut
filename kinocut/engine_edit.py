@@ -108,7 +108,7 @@ def trim(
     output = output_path or _auto_output(input_path, "trimmed")
     _validate_output_path(output)
 
-    _validate_trim_times(start, duration, end)
+    start_sec = _validate_trim_times(start, duration, end)
 
     prefix: list[str] = []
     if not accurate and start:
@@ -121,7 +121,14 @@ def trim(
     if duration:
         prefix.extend(["-t", str(duration)])
     elif end:
-        prefix.extend(["-to", str(end)])
+        if accurate:
+            # Output seeking preserves source timestamps, so -to is absolute.
+            prefix.extend(["-to", str(end)])
+        else:
+            # Input seeking (-ss before -i) rebases output timestamps to zero,
+            # so a trailing -to is measured from the seek point and silently
+            # behaves as a duration. Convert the absolute end time explicitly.
+            prefix.extend(["-t", str(_time_to_seconds(end) - start_sec)])
 
     with _timed_operation() as timing:
         _run_ffmpeg(prefix + _build_ffmpeg_cmd(output_path=output))
