@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib
 from typing import Any
 
-__version__ = "1.15.0"
+__version__ = "1.15.1"
 
 # Heavy engines and Client stay off the import path until first attribute
 # access (PEP 562). Submodule imports such as ``from kinocut import

@@ -13,7 +13,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 MCPB_DIR = ROOT / "mcpb"
-VERSION = "1.15.0"
+VERSION = "1.15.1"
 TOP_LEVEL_KEYS = {
     "$schema",
     "manifest_version",

@@ -13,7 +13,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-video",
-      "version": "1.6.11",
+      "version": "1.6.12",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
