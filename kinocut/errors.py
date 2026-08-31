@@ -358,3 +358,57 @@ def wrap_error(exc: Exception) -> MCPVideoError:
     if isinstance(exc, MCPVideoError):
         return exc
     return ProcessingError(str(exc), 1, getattr(exc, "stderr", ""))
+
+
+class RevideoNotFoundError(MCPVideoError):
+    """Node.js or npm not found for the Revideo bridge."""
+
+    def __init__(self, detail: str = "") -> None:
+        msg = "The Revideo bridge requires Node.js 18+ and npm on PATH."
+        if detail:
+            msg += f" — {detail}"
+        super().__init__(
+            msg,
+            error_type="dependency_error",
+            code="revideo_not_found",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    "Install Node.js and npm; the bridge template pins its own "
+                    "@revideo dependencies via a committed lockfile."
+                ),
+            },
+        )
+
+
+class RevideoProjectError(MCPVideoError):
+    """Invalid Revideo bridge project structure or scene source."""
+
+    def __init__(self, path: str, reason: str = "Invalid bridge project") -> None:
+        super().__init__(
+            f"Revideo bridge project error: {path} — {reason}",
+            error_type="project_error",
+            code="invalid_revideo_project",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    "Use the vendored bridge template via kinocut.revideo_engine; "
+                    "scene sources must export makeScene2D('<name>', function* ...)."
+                ),
+            },
+        )
+
+
+class RevideoRenderError(MCPVideoError):
+    """Revideo bridge render failure (non-zero exit or timeout)."""
+
+    def __init__(self, command: str, returncode: int, stderr: str) -> None:
+        stderr_short = stderr[-500:] if len(stderr) > 500 else stderr
+        super().__init__(
+            f"Revideo render failed (exit code {returncode}): {stderr_short}",
+            error_type="render_error",
+            code=f"revideo_exit_{returncode}",
+        )
+        self.command = command
+        self.returncode = returncode
+        self.full_stderr = stderr

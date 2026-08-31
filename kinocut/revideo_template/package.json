@@ -1,0 +1,21 @@
+{
+  "name": "kinocut-revideo-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Kinocut-owned, lockfile-pinned Revideo bridge template. Kinocut materializes a per-job copy, writes src/job.json (and optionally swaps src/scene.ts with an artwork scene), then drives `npm ci && npm run render`. Versions are pinned EXACT \u2014 never widen to ranges without regenerating package-lock.json.",
+  "scripts": {
+    "render": "node render.mjs"
+  },
+  "dependencies": {
+    "@revideo/2d": "0.10.4",
+    "@revideo/core": "0.10.4",
+    "@revideo/renderer": "0.10.4",
+    "@revideo/telemetry": "0.10.4",
+    "@revideo/ui": "0.10.4",
+    "@revideo/vite-plugin": "0.10.4"
+  },
+  "devDependencies": {
+    "typescript": "5.3.3"
+  }
+}

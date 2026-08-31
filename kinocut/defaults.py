@@ -174,3 +174,24 @@ DEFAULT_EQUIPMENT_SUBJECT_INTERSECTION = 0.02
 OBJECT_MATTE_IMAGENET_MEAN = (0.485, 0.456, 0.406)
 OBJECT_MATTE_IMAGENET_STD = (0.229, 0.224, 0.225)
 OBJECT_MATTE_STILL_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".tif", ".tiff"})
+
+
+# Revideo bridge (Sinter x Kino integration, liminal #999). The vendored
+# template under kinocut/revideo_template pins @revideo 0.10.4 (MIT) via a
+# committed package-lock.json; installs go through `npm ci` only.
+DEFAULT_REVIDEO_FPS = 30.0
+DEFAULT_REVIDEO_WIDTH = 1920
+DEFAULT_REVIDEO_HEIGHT = 1080
+DEFAULT_REVIDEO_FRAMES = 60
+DEFAULT_REVIDEO_WORKERS = 2
+DEFAULT_REVIDEO_INSTALL_TIMEOUT = 300
+DEFAULT_REVIDEO_RENDER_TIMEOUT = 900
+# macOS may refuse to exec puppeteer's downloaded chrome-headless-shell
+# (protected com.apple.provenance xattr -> spawn ECANCELED); the engine
+# forwards this env var so the bridge can use a system Chrome instead.
+REVIDEO_EXECUTABLE_PATH_ENV = "KINOCUT_REVIDEO_EXECUTABLE_PATH"
+
+# Sinter winners-bundle envelope (liminal #999, option A, provisional v0.1 —
+# the frozen-at-export contract Kino ingests; judges is deliberately absent
+# pending the envelope-pin answer on #999).
+REVIDEO_WINNERS_SCHEMA_VERSION = "sinter.winners/0.1"

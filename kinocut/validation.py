@@ -530,3 +530,38 @@ def _validate_timing_against_duration(
                 f"Overlay ends at {end:.2f}s, past video duration ({video_duration:.2f}s). It will disappear early."
             )
     return warnings
+
+
+# Revideo bridge job bounds (liminal #999).
+REVIDEO_WIDTH_MIN = 16
+REVIDEO_WIDTH_MAX = 7680
+REVIDEO_HEIGHT_MIN = 16
+REVIDEO_HEIGHT_MAX = 4320
+REVIDEO_FPS_MIN = 1.0
+REVIDEO_FPS_MAX = 120.0
+REVIDEO_FRAMES_MIN = 1
+REVIDEO_FRAMES_MAX = 100_000
+REVIDEO_WORKERS_MIN = 1
+REVIDEO_WORKERS_MAX = 16
+
+# Sinter winners-bundle manifest (envelope v0.1).
+WINNERS_MANIFEST_REQUIRED_FIELDS = (
+    "schema_version",
+    "exported_at",
+    "artifacts",
+    "envelope_sha256",
+)
+WINNERS_ARTIFACT_REQUIRED_FIELDS = (
+    "artifact_id",
+    "event_id",
+    "domain",
+    "axes",
+    "level",
+    "payload",
+)
+WINNERS_PAYLOAD_REQUIRED_FIELDS = ("path", "sha256", "bytes")
+
+# Revideo bridge output + seed bounds (liminal #999).
+REVIDEO_OUT_FILE_SUFFIXES = (".mp4", ".webm", ".mov")
+REVIDEO_SEED_MIN = 0
+REVIDEO_SEED_MAX = 2**32 - 1
