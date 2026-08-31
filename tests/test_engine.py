@@ -911,9 +911,7 @@ class TestTrimEndFFmpegArgs:
         calls: list[list[str]] = []
         monkeypatch.setattr(engine_edit, "_run_ffmpeg", lambda cmd: calls.append(cmd))
         monkeypatch.setattr(engine_edit, "_build_edit_result", lambda *a, **k: None)
-        engine_edit.trim(
-            str(source), output_path=str(tmp_path / "out.mp4"), **kwargs
-        )
+        engine_edit.trim(str(source), output_path=str(tmp_path / "out.mp4"), **kwargs)
         return calls[0]
 
     def test_input_seeking_converts_end_to_duration(self, monkeypatch, tmp_path):
@@ -926,9 +924,7 @@ class TestTrimEndFFmpegArgs:
 
     def test_output_seeking_keeps_end_absolute(self, monkeypatch, tmp_path):
         # -ss after -i preserves source timestamps, so -to is already absolute.
-        cmd = self._capture_trim(
-            monkeypatch, tmp_path, start="5", end="10", accurate=True
-        )
+        cmd = self._capture_trim(monkeypatch, tmp_path, start="5", end="10", accurate=True)
         assert "-to" in cmd
         assert cmd[cmd.index("-to") + 1] == "10"
 
