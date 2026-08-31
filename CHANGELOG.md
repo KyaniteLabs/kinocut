@@ -11,6 +11,17 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.15.1 - 2026-08-31
+
+Maintenance release: registry ownership plus the object-matte streaming port.
+
+### Changed
+- **mcp-video shim 1.6.12:** the compatibility shim carries the registry ownership marker, and the legacy `io.github.KyaniteLabs/mcp-video` registry entry was republished so directory listings (Glama, PulseMCP) point at living metadata (#469).
+- **Object-matte streaming decode:** the object-matte engine now streams decode with scratch-directory caps — bounded memory on large inputs — with matching human-gate and product docs (#414, port of #412).
+
+### Docs
+- Colima warm-land recipe for CI landings, and the pinned tip SHA recorded after the #414 port (#415, #416).
+
 ## 1.15.0 - 2026-08-19
 
 ### Added
@@ -26,12 +37,16 @@ This project follows a simple release-note style:
 - **First-class Windows support:** portable projectstore file locking (`fcntl`/`msvcrt`) by [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) (#446, landed with credit) — `kino --mcp` is importable on Windows; the lock backends enforce a contention-only error contract (permanent errors raise promptly; only genuine contention waits or maps to `BlockingIOError`) verified by cross-platform contract tests (#451).
 - **Windows CI smoke job:** `windows-latest` runs lint, server-tree import checks, `kino doctor`, and the focused public-surface suite on every code change — Windows breakage can no longer land silently (#452).
 
+### Fixed
+- **Windows filter-option paths:** both FFmpeg unescaping passes escape filter-option paths correctly on Windows ([#458](https://github.com/KyaniteLabs/kinocut/pull/458) by [@pedropaav-art](https://github.com/pedropaav-art), merged with credit — item and credit backfilled 2026-08-31; the fix shipped in this release).
+
 ### Compatibility
 - `mcp-video==1.6.11` installs `kinocut==1.15.0`.
 - Published surface stays **196 MCP tools / 167 CLI commands**.
 
 ### Acknowledgements
 - [@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator) filed the Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) — the root-cause traceback in it exposed both diagnostics gaps fixed above — and contributed the portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446), landed on master with credit). Every fix in this release traces to that report. Bug reports with reproduction steps are contributions; thank you.
+- [@pedropaav-art](https://github.com/pedropaav-art) contributed the Windows filter-option path escaping fix ([#458](https://github.com/KyaniteLabs/kinocut/pull/458)), which shipped in this release (credit backfilled 2026-08-31). Thank you.
 - Kinocut's external community predates this release: betsmayank's merged Hyperframes no-TTY fix ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)), austinwmson's `remotion_still` props report ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)), ismailkattakath's self-host reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)), and early PRs from Dodothereal and OyaAIProd. All of them shaped the product.
 
 ## 1.14.1 - 2026-08-13
