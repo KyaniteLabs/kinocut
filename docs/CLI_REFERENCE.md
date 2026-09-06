@@ -347,6 +347,29 @@ Quality JSON identifies each saturation and contrast metric, its unit, measured 
 
 Hyperframes project paths may be relative or absolute. Relative paths are resolved once against the caller's working directory before the command is executed.
 
+## Revideo commands (development tip)
+
+```bash
+kino revideo-materialize DEST --job-json JSON [--scene-source PATH]
+kino revideo-install PROJECT_DIR [--timeout SECONDS]
+kino revideo-render PROJECT_DIR OUTPUT_PATH [--timeout SECONDS]
+kino revideo-render-job OUTPUT_PATH --job-json JSON [--work-dir DIR] \
+  [--scene-source PATH] [--install-timeout SECONDS] [--render-timeout SECONDS]
+```
+
+`--job-json` is a required inline JSON object with a one-megabyte limit. It is
+never interpreted as a filename. Install and render are bounded; install may use
+the npm registry, while render executes locally. `--format json` returns the
+same flat success payloads as MCP. Render payloads retain the full receipt,
+including output and exact on-disk job-file SHA-256 digests plus observed,
+job-matched media metadata. The job file is capped at one MiB and even a
+whitespace-only mutation during rendering invalidates its receipt binding.
+Output formats are closed to `.mp4`, `.webm`, and `.mov`; the pinned exporter
+uses MP4, WebM, and ProRes 4444 modes respectively and verifies that identity
+before publication.
+Custom scenes are trusted local
+TypeScript and require quality and human review before release.
+
 ## Global Options
 
 | Option | Description |

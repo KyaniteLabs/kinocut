@@ -84,6 +84,16 @@ Core golden path **does not** require extras.
 
 Node.js 22+ and a resolvable Hyperframes CLI (`hyperframes` on PATH or `MCP_VIDEO_HYPERFRAMES_COMMAND`). Not required for FFmpeg tools or golden path.
 
+## Revideo bridge (optional, development tip)
+
+The four Revideo surfaces require Node.js 18 or newer, npm, FFmpeg/ffprobe, and
+a Chromium-family browser. `revideo-install` runs `npm ci --no-audit --no-fund`
+against Kinocut's committed lockfile and may contact the npm registry. Rendering
+stays local. If Puppeteer's downloaded browser cannot execute, point
+`KINOCUT_REVIDEO_EXECUTABLE_PATH` at a verified local Chrome or Chromium binary.
+Caller-provided scene files are trusted executable TypeScript.
+Each install or render entry point checks the Node.js floor before npm runs.
+
 ## Python client
 
 ```python

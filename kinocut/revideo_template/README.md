@@ -37,7 +37,9 @@ Kinocut renders.
 - **The job travels in `src/job.json`** (width, height, fps, frames, seed,
   workers, optional out_file). `src/project.ts` reads it for the canvas size;
   `src/scene.ts` reads it for the sequence. `render.mjs` wraps
-  `@revideo/renderer`'s `renderVideo` and prints the output path.
+  `@revideo/renderer`'s `renderVideo` and prints the output path. The closed
+  exporter map uses pinned FFmpeg MP4 mode for `.mp4`, WebM mode for `.webm`,
+  and ProRes 4444 mode for `.mov`.
 - **`src/scene.ts` is the swap point.** The vendored scene is a deterministic
   seeded reference sequence (mulberry32 — same job.json ⇒ same pixels on any
   machine, forever). Artwork adapters (Sinter winners: p5/three/glsl/hydra

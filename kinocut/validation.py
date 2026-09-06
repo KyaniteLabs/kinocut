@@ -539,6 +539,8 @@ REVIDEO_HEIGHT_MIN = 16
 REVIDEO_HEIGHT_MAX = 4320
 REVIDEO_FPS_MIN = 1.0
 REVIDEO_FPS_MAX = 120.0
+REVIDEO_FPS_TOLERANCE = 0.001
+REVIDEO_DURATION_TOLERANCE_FRAMES = 1.0
 REVIDEO_FRAMES_MIN = 1
 REVIDEO_FRAMES_MAX = 100_000
 REVIDEO_WORKERS_MIN = 1
@@ -583,5 +585,15 @@ WINNERS_HEX64_CHARS = frozenset("0123456789abcdef")
 
 # Revideo bridge output + seed bounds (liminal #999).
 REVIDEO_OUT_FILE_SUFFIXES = (".mp4", ".webm", ".mov")
+REVIDEO_MEDIA_IDENTITIES = {
+    ".mp4": {"format_token": "mp4", "video_codecs": ("h264", "mpeg4"), "major_brand": "isom"},
+    ".webm": {"format_token": "webm", "video_codecs": ("vp9", "vp8")},
+    ".mov": {
+        "format_token": "mov",
+        "video_codecs": ("prores",),
+        "major_brand": "qt  ",
+        "profile": "4444",
+    },
+}
 REVIDEO_SEED_MIN = 0
 REVIDEO_SEED_MAX = 2**32 - 1
