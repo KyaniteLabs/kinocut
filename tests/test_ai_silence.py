@@ -53,20 +53,37 @@ def _make_fixture(
     for index, (kind, part_duration) in enumerate(audio_parts):
         command.extend(["-f", "lavfi", "-i", _audio_source(kind, part_duration, 440 + index * 110)])
     audio_inputs = "".join(f"[{index}:a]" for index in range(1, len(audio_parts) + 1))
-    command.extend(["-filter_complex", f"{audio_inputs}concat=n={len(audio_parts)}:v=0:a=1[a]", "-map", "0:v:0", "-map", "[a]"])
+    command.extend(
+        ["-filter_complex", f"{audio_inputs}concat=n={len(audio_parts)}:v=0:a=1[a]", "-map", "0:v:0", "-map", "[a]"]
+    )
     if codec_family == "av1-opus":
-        command.extend(["-c:v", "libaom-av1", "-cpu-used", "8", "-crf", "40", "-b:v", "0", "-c:a", "libopus", "-b:a", "64k"])
+        command.extend(
+            ["-c:v", "libaom-av1", "-cpu-used", "8", "-crf", "40", "-b:v", "0", "-c:a", "libopus", "-b:a", "64k"]
+        )
     else:
-        command.extend(["-c:v", "libx264", "-preset", "ultrafast", "-crf", "30", "-sc_threshold", "0", "-c:a", "aac", "-b:a", "64k"])
+        command.extend(
+            [
+                "-c:v",
+                "libx264",
+                "-preset",
+                "ultrafast",
+                "-crf",
+                "30",
+                "-sc_threshold",
+                "0",
+                "-c:a",
+                "aac",
+                "-b:a",
+                "64k",
+            ]
+        )
     command.extend(["-g", "50", "-keyint_min", "50", "-shortest", str(output)])
     _run_media(command)
     return output
 
 
 def _probe(path: Path) -> dict:
-    result = _run_media(
-        ["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(path)]
-    )
+    result = _run_media(["ffprobe", "-v", "error", "-show_format", "-show_streams", "-of", "json", str(path)])
     return json.loads(result.stdout)
 
 
@@ -215,10 +232,21 @@ def test_decode_failure_preserves_existing_destination(tmp_path, monkeypatch) ->
     source.write_bytes(b"source")
     output = tmp_path / "destination.mp4"
     output.write_bytes(b"sentinel")
-    monkeypatch.setattr(silence, "_run_ffprobe_json", lambda _path: {"format": {"duration": "1", "format_name": "mov,mp4"}, "streams": [{"codec_type": "video", "codec_name": "h264"}, {"codec_type": "audio", "codec_name": "aac"}]})
+    monkeypatch.setattr(
+        silence,
+        "_run_ffprobe_json",
+        lambda _path: {
+            "format": {"duration": "1", "format_name": "mov,mp4"},
+            "streams": [{"codec_type": "video", "codec_name": "h264"}, {"codec_type": "audio", "codec_name": "aac"}],
+        },
+    )
     monkeypatch.setattr(silence, "_detect_silence_regions", lambda *_args, **_kwargs: [])
-    monkeypatch.setattr(silence, "_render_keep_segments", lambda _video, _segments, staged: Path(staged).write_bytes(b"stage"))
-    monkeypatch.setattr(silence, "_run_command", lambda *_args, **_kwargs: (_ for _ in ()).throw(ProcessingError("decode", 1, "failed")))
+    monkeypatch.setattr(
+        silence, "_render_keep_segments", lambda _video, _segments, staged: Path(staged).write_bytes(b"stage")
+    )
+    monkeypatch.setattr(
+        silence, "_run_command", lambda *_args, **_kwargs: (_ for _ in ()).throw(ProcessingError("decode", 1, "failed"))
+    )
     with pytest.raises(ProcessingError, match="failed full media decode"):
         silence.ai_remove_silence(str(source), str(output))
     assert output.read_bytes() == b"sentinel"
