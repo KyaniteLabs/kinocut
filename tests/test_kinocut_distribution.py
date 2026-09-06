@@ -2,16 +2,19 @@
 
 from __future__ import annotations
 
+import importlib.util
 import json
 import re
 import shutil
 import subprocess
 import sys
+import tarfile
 import tomllib
 import zipfile
 from pathlib import Path
 
 import mcp_video
+import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -36,6 +39,38 @@ def test_kinocut_is_the_canonical_distribution_with_compatible_commands() -> Non
     wheel = project["tool"]["hatch"]["build"]["targets"]["wheel"]
     assert wheel["packages"] == ["kinocut", "kinocut_sound"]
     assert wheel["force-include"] == {"mcp_video.py": "mcp_video.py"}
+
+
+def test_wheel_and_sdist_ship_complete_revideo_template(tmp_path) -> None:
+    required = {
+        "README.md",
+        "package.json",
+        "package-lock.json",
+        "render.mjs",
+        "tsconfig.json",
+        "src/job.json",
+        "src/project.ts",
+        "src/scene.ts",
+    }
+    out_dir = tmp_path / "dist"
+    if importlib.util.find_spec("build") is not None:
+        command = [sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(out_dir)]
+    elif uv := shutil.which("uv"):
+        command = [uv, "build", "--wheel", "--sdist", "--out-dir", str(out_dir), str(ROOT)]
+    else:
+        pytest.skip("Python build frontend is unavailable")
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=180, check=False)
+    assert result.returncode == 0, result.stderr
+
+    wheel = next(out_dir.glob("*.whl"))
+    with zipfile.ZipFile(wheel) as archive:
+        wheel_files = set(archive.namelist())
+    assert {f"kinocut/revideo_template/{name}" for name in required} <= wheel_files
+
+    sdist = next(out_dir.glob("*.tar.gz"))
+    with tarfile.open(sdist, "r:gz") as archive:
+        sdist_files = {name.partition("/")[2] for name in archive.getnames()}
+    assert {f"kinocut/revideo_template/{name}" for name in required} <= sdist_files
 
 
 def test_kinocut_import_is_a_public_facade_over_the_compatible_runtime() -> None:

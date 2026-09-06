@@ -1,6 +1,6 @@
 ---
 name: kinocut
-description: Use Kinocut for guarded video editing, source-backed planning, FFmpeg operations, media analysis, subtitles, audio workflows, Hyperframes rendering, repurposing packages, and release checkpoints through an MCP server, Python client, or CLI. Trigger when an agent needs to inspect, plan, edit, render, validate, or package local media safely.
+description: Use Kinocut for guarded video editing, source-backed planning, FFmpeg operations, media analysis, subtitles, audio workflows, Hyperframes or Revideo rendering, repurposing packages, and release checkpoints through an MCP server, Python client, or CLI. Trigger when an agent needs to inspect, plan, edit, render, validate, or package local media safely.
 ---
 
 # Kinocut
@@ -10,12 +10,24 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
-2. Plan with `video_intent` (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`) — do not list 196 tools.
+2. Plan with `video_intent` (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`) — do not list 200 tools.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
 5. Human visual/audio review. Never treat a receipt as published.
 
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
+
+## Revideo local code-video flow (development tip)
+
+Use `revideo_materialize`, `revideo_install`, and `revideo_render` when the
+caller needs an inspectable staged project. Use `revideo_render_job` for the
+same guarded steps in one call. A supplied scene is trusted executable
+TypeScript: inspect it before use and never run untrusted scene code. Dependency
+installation may access npm; rendering runs locally against Kinocut's pinned
+template. The render receipt binds observed media and output bytes to the exact
+bounded on-disk job-file digest. `.mp4`, `.webm`, and `.mov` select pinned MP4,
+WebM, and ProRes 4444 exporter modes and are verified before publication. Verify the receipt against the output bytes, run `video_quality_check`
+and `video_release_checkpoint`, then require human visual review.
 
 ## Start Here
 

@@ -344,6 +344,30 @@ Positioned non-`normal` blend requires explicit `width` and `height`, an integra
 
 ---
 
+## Revideo methods (development tip)
+
+```python
+Client.revideo_materialize(dest, job, scene_source=None) -> dict
+Client.revideo_install(project_dir, timeout=600) -> dict
+Client.revideo_render(project_dir, output_path, timeout=900) -> RevideoRenderResult
+Client.revideo_render_job(
+    job,
+    output_path,
+    work_dir=None,
+    scene_source=None,
+    install_timeout=600,
+    render_timeout=900,
+) -> RevideoRenderResult
+```
+
+Materialize and install return `success` plus `project_dir`. Render methods
+retain the detailed receipt: project and output paths, output and exact on-disk
+job-file SHA-256 digests, observed width, height, fps, counted frames, duration, and
+render time. `.mp4`, `.webm`, and `.mov` select the pinned exporter's MP4,
+WebM, and ProRes 4444 modes respectively; Kinocut verifies the encoded identity
+before publication. A custom scene is trusted executable
+TypeScript. Dependency installation may access npm; rendering is local.
+
 ## Repurposing Methods
 
 | Method | Returns | Description |
