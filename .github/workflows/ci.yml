@@ -422,6 +422,9 @@ jobs:
       - name: Lint
         if: needs.changes.outputs.code == 'true'
         run: python -m ruff check kinocut/ mcp_video.py tests/
+      - name: Collect whole test suite
+        if: needs.changes.outputs.code == 'true'
+        run: python -m pytest --collect-only -q --tb=short
       - name: Import checks (server tree imports on Windows)
         if: needs.changes.outputs.code == 'true'
         run: |
@@ -437,4 +440,10 @@ jobs:
           python -m pytest tests/test_public_surface.py tests/test_doctor.py
           tests/test_models.py tests/test_errors.py
           tests/test_projectstore_filelock.py
+          -q --tb=short
+      - name: Windows drive-path FFmpeg render
+        if: needs.changes.outputs.code == 'true'
+        run: >-
+          python -m pytest
+          tests/test_ffmpeg_filter_path.py::test_windows_drive_and_backslash_paths_render_with_ffmpeg
           -q --tb=short

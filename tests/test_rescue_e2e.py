@@ -6,7 +6,6 @@ import hashlib
 import json
 import os
 import platform
-import resource
 import subprocess
 import time
 import urllib.request
@@ -26,6 +25,15 @@ from tests.rescue_fixtures import (
 
 def _sha256(path) -> str:
     return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def _optional_max_rss() -> int | None:
+    """Return platform RSS telemetry when the stdlib resource module exists."""
+    try:
+        import resource
+    except ModuleNotFoundError:
+        return None
+    return resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 
 
 def _stream_contract(path: Path) -> dict:
@@ -285,7 +293,7 @@ def test_planning_performance_receipt_has_required_context(tmp_path, capsys):
         "cold_seconds": timings[0],
         "warm_seconds": timings[1],
         "cpu": platform.processor() or "unknown",
-        "memory_max_rss": resource.getrusage(resource.RUSAGE_SELF).ru_maxrss,
+        "memory_max_rss": _optional_max_rss(),
         "os": platform.platform(),
         "ffmpeg_version": ffmpeg_version,
         "clip": {"duration_seconds": 60, "width": 1920, "height": 1080, "fps": 30},

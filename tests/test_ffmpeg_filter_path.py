@@ -12,7 +12,16 @@ Regression cover for two historical bugs, both verified against a real
    through raw, splitting the filtergraph.
 """
 
+from __future__ import annotations
+
+import os
+from pathlib import Path
+
+import pytest
+
+from kinocut.engine import probe, subtitles
 from kinocut.ffmpeg_helpers import _escape_ffmpeg_filter_path, _escape_ffmpeg_filter_value
+from tests.subtitle_render_test_support import _make_testsrc_video, requires_ffmpeg
 
 
 class TestWindowsPaths:
@@ -63,3 +72,26 @@ def test_value_helper_still_used_for_scalars():
     # Numbers, colours and font *names* keep the single-pass helper, unquoted.
     assert _escape_ffmpeg_filter_value("15.0") == "15.0"
     assert _escape_ffmpeg_filter_value("white") == "white"
+
+
+@requires_ffmpeg
+@pytest.mark.skipif(os.name != "nt", reason="drive-qualified backslash paths require native Windows")
+def test_windows_drive_and_backslash_paths_render_with_ffmpeg(tmp_path: Path):
+    workdir = tmp_path / "drive path"
+    workdir.mkdir()
+    source = workdir / "source clip.mp4"
+    subtitle = workdir / "caption file.srt"
+    output = workdir / "rendered clip.mp4"
+
+    for path in (source, subtitle, output):
+        assert path.drive
+        assert "\\" in str(path)
+
+    _make_testsrc_video(source, 160, 120, seconds=1)
+    subtitle.write_text("1\n00:00:00,000 --> 00:00:00,800\nWindows path\n", encoding="utf-8")
+
+    result = subtitles(str(source), str(subtitle), output_path=str(output))
+
+    assert result.success is True
+    assert output.is_file()
+    assert probe(str(output)).duration > 0
