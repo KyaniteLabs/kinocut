@@ -130,8 +130,7 @@ REMOVE_BACKGROUND_OBJECT_BACKEND = "kinocut-onnx"
 # https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx
 OBJECT_MATTE_WEIGHTS_FILENAME = "birefnet-general.onnx"
 OBJECT_MATTE_WEIGHTS_URL = (
-    "https://github.com/danielgatis/rembg/releases/download/v0.0.0/"
-    "BiRefNet-general-epoch_244.onnx"
+    "https://github.com/danielgatis/rembg/releases/download/v0.0.0/BiRefNet-general-epoch_244.onnx"
 )
 OBJECT_MATTE_WEIGHTS_SHA256 = "58f621f00f5d756097615970a88a791584600dcf7c45b18a0a6267535a1ebd3c"
 OBJECT_MATTE_WEIGHTS_MD5 = "7a35a0141cbbc80de11d9c9a28f52697"
@@ -531,3 +530,58 @@ def _validate_timing_against_duration(
                 f"Overlay ends at {end:.2f}s, past video duration ({video_duration:.2f}s). It will disappear early."
             )
     return warnings
+
+
+# Revideo bridge job bounds (liminal #999).
+REVIDEO_WIDTH_MIN = 16
+REVIDEO_WIDTH_MAX = 7680
+REVIDEO_HEIGHT_MIN = 16
+REVIDEO_HEIGHT_MAX = 4320
+REVIDEO_FPS_MIN = 1.0
+REVIDEO_FPS_MAX = 120.0
+REVIDEO_FRAMES_MIN = 1
+REVIDEO_FRAMES_MAX = 100_000
+REVIDEO_WORKERS_MIN = 1
+REVIDEO_WORKERS_MAX = 16
+
+# Sinter winners-bundle manifest (envelope v0.1).
+WINNERS_MANIFEST_REQUIRED_FIELDS = (
+    "schema_version",
+    "exported_at",
+    "artifacts",
+    "envelope_sha256",
+)
+WINNERS_ARTIFACT_REQUIRED_FIELDS = (
+    "artifact_id",
+    "event_id",
+    "domain",
+    "axes",
+    "level",
+    "license",
+    "payload",
+)
+# Agreed on liminal #999 (2026-08-31): deterministic license mapping emitted by
+# the Sinter export step (p5->LGPL-2.1, three/tone->MIT, hydra/strudel->AGPL-3.0,
+# d3-dataviz->BSD-3, self-contained->house). Historical events carry judges:null
+# rather than fabricated backfill.
+WINNERS_KNOWN_LICENSES = frozenset(
+    {
+        "LGPL-2.1",
+        "MIT",
+        "AGPL-3.0",
+        "BSD-3",
+        "house",
+    }
+)
+WINNERS_PAYLOAD_REQUIRED_FIELDS = ("path", "sha256", "bytes")
+# Artifact fields a v0.1 manifest may omit (judges is null/absent for
+# historical events — never fabricated). Everything else is exact: unexpected
+# keys are rejected by verify_bundle.
+WINNERS_ARTIFACT_OPTIONAL_FIELDS = ("judges",)
+# Lowercase hex charset for the bundle's 64-char sha256 identity fields.
+WINNERS_HEX64_CHARS = frozenset("0123456789abcdef")
+
+# Revideo bridge output + seed bounds (liminal #999).
+REVIDEO_OUT_FILE_SUFFIXES = (".mp4", ".webm", ".mov")
+REVIDEO_SEED_MIN = 0
+REVIDEO_SEED_MAX = 2**32 - 1

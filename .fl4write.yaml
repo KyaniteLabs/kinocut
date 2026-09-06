@@ -2,7 +2,7 @@ repo: KyaniteLabs/kinocut
 forges:
   forgejo:
     role: primary
-    api_base: http://100.92.68.103:3000/api/v1
+    api_base: https://git.kyanitelabs.tech/api/v1
     token_env: CODESITTER_FORGEJO_TOKEN
 model:
   endpoint: https://api.deepinfra.com/v1/openai/chat/completions

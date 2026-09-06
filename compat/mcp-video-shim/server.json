@@ -1,9 +1,9 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.KyaniteLabs/kinocut",
-  "title": "Kinocut",
-  "description": "Guardrailed video editing for AI agents: FFmpeg, captions, effects, Hyperframes, and receipts.",
-  "version": "1.15.1",
+  "name": "io.github.KyaniteLabs/mcp-video",
+  "title": "mcp-video",
+  "description": "Compatibility package: mcp-video now installs Kinocut (formerly mcp-video).",
+  "version": "1.6.12",
   "websiteUrl": "https://kinocut.dev/",
   "repository": {
     "url": "https://github.com/KyaniteLabs/kinocut",
@@ -12,8 +12,8 @@
   "packages": [
     {
       "registryType": "pypi",
-      "identifier": "kinocut",
-      "version": "1.15.1",
+      "identifier": "mcp-video",
+      "version": "1.6.12",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"

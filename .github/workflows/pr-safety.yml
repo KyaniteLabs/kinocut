@@ -43,7 +43,9 @@ jobs:
           python-version: "3.14"
       - name: Install package
         if: steps.classify.outputs.code == 'true'
-        run: python -m pip install -e ".[dev]"
+        # ruff pinned to the same version as the CI lint job so the hosted PR
+        # lane and master lint agree; bump together with pyproject floor.
+        run: python -m pip install -e ".[dev]" "ruff==0.15.11"
       - name: Lint
         if: steps.classify.outputs.code == 'true'
         run: |

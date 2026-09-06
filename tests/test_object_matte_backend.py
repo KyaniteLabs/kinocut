@@ -303,9 +303,7 @@ def test_scratch_budget_aborts_before_unbounded_sequence() -> None:
     assert estimate_scratch_bytes(2, 2, 3, hole=True) == 2 * 2 * 4 * 3 * 2
 
 
-def test_run_object_matte_scratch_cap_stops_before_writes(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_run_object_matte_scratch_cap_stops_before_writes(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     src = _png(tmp_path / "sku.png", size=(32, 32))
     dest = tmp_path / "sku-cutout.webm"
     writes: list[str] = []
