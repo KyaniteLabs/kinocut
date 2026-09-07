@@ -12,6 +12,7 @@ import os
 from pathlib import Path
 from typing import Any
 
+from ..defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP
 from ..errors import MCPVideoError
 from ..engine_audio_normalize import normalize_audio
 from ..engine_edit import trim
@@ -49,10 +50,11 @@ def _render_digest(
     start: float,
     end: float,
     config: dict[str, Any],
+    true_peak_dbtp: float,
 ) -> str:
     material = (
-        f"render-v5:{source_sha256}:{candidate_digest}:{platform}:"
-        f"{start}:{end}:{json.dumps(config, sort_keys=True, separators=(',', ':'), default=str)}"
+        f"render-v6:{source_sha256}:{candidate_digest}:{platform}:{start}:{end}:"
+        f"{true_peak_dbtp}:{json.dumps(config, sort_keys=True, separators=(',', ':'), default=str)}"
     )
     return hashlib.sha256(material.encode()).hexdigest()[:16]
 
@@ -164,6 +166,7 @@ def _render_media(
         faded,
         target_lufs=float(audio_cfg.get("lufs", -14.0)),
         output_path=final_path,
+        true_peak_dbtp=DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP,
     ).output_path
 
 
@@ -189,6 +192,7 @@ def _render_one_platform(
         start=clipped.start_seconds,
         end=clipped.end_seconds,
         config=plan.config if isinstance(plan.config, dict) else {},
+        true_peak_dbtp=DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP,
     )
     previous = next(
         (

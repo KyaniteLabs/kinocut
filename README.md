@@ -155,15 +155,12 @@ Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.c
 
 ### Staged and Gated Surfaces
 
-While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated on the **published 1.15.x** line, the following surfaces remain gated, partial, or unreleased:
+While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and thin sound join are integrated on the **published 1.15.x** line, the following surfaces remain gated, partial, or unreleased:
 
 - **Desktop MCPB Packaging:** The unsigned staged package (`mcpb/`) is labeled **user-configured-local-access**. It requires local Node/Python/Kinocut/FFmpeg, is not a sandbox, and is distinct from future native-runtime work. See [docs/MCPB.md](docs/MCPB.md).
-- **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
-  - **S13 (Host Joins / bindings):** Blocked — external owner receipts incomplete.
-  - **S14 (Dual-class Benchmark):** Partial — x86 available, Apple Silicon host unavailable.
-  - **S15 (Adversarial Gate):** Gated under a release STOP — requires S13 receipts, dual-class benchmarks, and explicit human authorization.
+- **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
-- **Paid Generative / Dubbing Plans:** Generative spend-capped plans and TTS dubbing remain non-executable draft definitions until external backends and credentials are configured.
+- **Paid Generative / Dubbing Plans:** Generative spend-cap and TTS candidate records are non-executable planning definitions. No generation or dubbing adapter exists; credentials, package discovery, configuration, and caller flags cannot create execution capability.
 - **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Published in **1.15.1** (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
@@ -856,6 +853,7 @@ Kinocut improves in public, and outside contributions shape it — 1.15.0's diag
 - **[@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator)** — his Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) exposed both diagnostics gaps fixed in 1.15.0, and his portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446)) landed in 1.15.0 with credit. Thank you.
 - **[@pedropaav-art](https://github.com/pedropaav-art)** — Windows filter-option path escaping ([#458](https://github.com/KyaniteLabs/kinocut/pull/458)), merged 2026-08-18, shipped in 1.15.0.
 - **[@linhaixin45-cmyk](https://github.com/linhaixin45-cmyk)** — `kino doctor` Python-version floor with a visible install hint ([#459](https://github.com/KyaniteLabs/kinocut/pull/459)), merged 2026-08-18, shipped in 1.15.0.
+- **[@WohaibHasan](https://github.com/WohaibHasan)** — absolute trim-end handling ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)), Windows drive preservation ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)), and portable UTF-8 CLI test capture ([#498](https://github.com/KyaniteLabs/kinocut/pull/498)).
 - **[@betsmayank](https://github.com/betsmayank)** — first merged external fix: Hyperframes `init` no longer hangs under MCP without a TTY ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)).
 - **[@austinwmson](https://github.com/austinwmson)** and **[@ismailkattakath](https://github.com/ismailkattakath)** — external reports that closed real gaps: `remotion_still` runtime props ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)) and the self-host Funnel + OAuth reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)).
 - **[@Dodothereal](https://github.com/Dodothereal)** and **[@OyaAIProd](https://github.com/OyaAIProd)** — early external PRs (ASS PlayRes for vertical burns [#378](https://github.com/KyaniteLabs/kinocut/pull/378), SafeSkill badges).

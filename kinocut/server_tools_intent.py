@@ -516,10 +516,9 @@ def video_generative_plan(
     max_spend_usd: float = 0.0,
     estimated_spend_usd: float = 0.0,
 ) -> dict[str, Any]:
-    """Generative last-mile plan with spend caps (P4.1) — plan only.
+    """Generative policy and spend-cap planning metadata (P4.1).
 
-    Paid providers require ``max_spend_usd > 0`` and estimate ≤ cap.
-    Use ``assert_generative_executable`` (multipliers) before any provider I/O.
+    Eligibility never proves execution: this tree has no generation adapter.
     """
 
     from kinocut.multipliers import plan_generative_last_mile
@@ -568,7 +567,7 @@ def video_review_ui(output_dir: str) -> dict[str, Any]:
 @mcp.tool()
 @_safe_tool
 def video_dub_plan(caption_path: str, target_lang: str = "es", voice: str | None = None) -> dict[str, Any]:
-    """Local TTS dub plan ES-first (P4.4) — plan only until backend configured."""
+    """ES-first TTS candidate plan (P4.4); no synthesis adapter exists."""
 
     from kinocut.multipliers import plan_tts_dub
 

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import json
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -7,8 +9,8 @@ import pytest
 
 from kinocut.errors import MCPVideoError
 from kinocut.product.models import CandidateMoment, canonical_dedup_key
-from kinocut.product.shorts_plan import ShortsPlan, save_shorts_plan
-from kinocut.product.shorts_render import render_approved_candidate
+from kinocut.product.shorts_plan import RenderRecord, ShortsPlan, load_shorts_plan, save_shorts_plan
+from kinocut.product.shorts_render import _candidate_digest, render_approved_candidate
 from kinocut.product.shorts_review import review_shorts_plan
 
 
@@ -104,3 +106,41 @@ def test_render_pipeline_records_both_platforms(tmp_path, monkeypatch):
     assert {r["platform"] for r in result["renders"]} == {"youtube-shorts", "instagram-reel"}
     again = render_approved_candidate(plan, candidate_id="candidate_01")
     assert all(item.get("cache_hit") for item in again["renders"])
+
+
+def test_render_v6_rejects_valid_v5_cache_record(tmp_path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"fake-video")
+    plan_path = _plan(tmp_path, source)
+    plan = review_shorts_plan(plan_path, candidate_id="candidate_01", decision="approve")
+    candidate = plan.proposals[0]
+    platform = "youtube-shorts"
+    config = json.dumps(plan.config, sort_keys=True, separators=(",", ":"), default=str)
+    material = f"render-v5:{plan.intake.source_sha256}:{_candidate_digest(candidate)}:{platform}:10.0:25.0:{config}"
+    legacy_path = Path(plan.output_dir) / candidate.candidate_id / platform / "vertical.mp4"
+    legacy_path.parent.mkdir(parents=True)
+    legacy_path.write_bytes(b"legacy-v5")
+    record = RenderRecord(
+        candidate_id=candidate.candidate_id,
+        platform=platform,
+        output_path=str(legacy_path),
+        render_digest=hashlib.sha256(material.encode()).hexdigest()[:16],
+        output_sha256=hashlib.sha256(legacy_path.read_bytes()).hexdigest(),
+        editable_subtitles=str(legacy_path.with_suffix(".srt")),
+        thumbnail_path=str(legacy_path.with_suffix(".jpg")),
+    )
+    save_shorts_plan(plan.model_copy(update={"platforms": (platform,), "renders": (record,)}))
+    normalized = []
+    _stub(monkeypatch, source)
+
+    def normalize(*_args, output_path=None, **kwargs):
+        normalized.append(kwargs)
+        Path(output_path).write_bytes(b"v6-normalized")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr("kinocut.product.shorts_render.normalize_audio", normalize)
+    result = render_approved_candidate(plan_path, candidate_id=candidate.candidate_id)
+
+    assert result["renders"][0]["cache_hit"] is False
+    assert normalized == [{"target_lufs": -14.0, "true_peak_dbtp": -1.5}]
+    assert load_shorts_plan(plan_path).renders[0].render_digest != record.render_digest

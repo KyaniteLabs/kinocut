@@ -339,3 +339,70 @@ def test_npm_publish_uses_local_tarball_and_has_oidc_recovery_dispatch() -> None
     assert "publish-npm-recovery:" in workflow
     assert "if: github.event_name == 'workflow_dispatch'" in workflow
     assert "needs.publish-npm-recovery.result == 'success'" in workflow
+
+
+def _workflow_job(workflow: str, name: str) -> str:
+    start = re.search(rf"^  {re.escape(name)}:\n", workflow, re.MULTILINE)
+    assert start is not None, name
+    following = re.search(r"^  [a-z][a-z0-9-]*:\n", workflow[start.end() :], re.MULTILINE)
+    end = start.end() + following.start() if following is not None else len(workflow)
+    return workflow[start.start() : end]
+
+
+def test_release_and_pages_use_hosted_runners_and_one_clean_wheel_gate() -> None:
+    publish = (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+    pages = (ROOT / ".github" / "workflows" / "pages.yml").read_text(encoding="utf-8")
+    assert "pull_request:" not in publish.split("permissions:", 1)[0]
+    assert "blacksmith" not in _workflow_job(publish, "surface-audit").lower()
+    assert "runs-on: ubuntu-24.04" in _workflow_job(publish, "surface-audit")
+    build = _workflow_job(publish, "build")
+    assert "runs-on: ubuntu-24.04" in build
+    assert "timeout-minutes: 45" in build
+    assert build.count("scripts/verify_onboarding_release.py") == 1
+    assert build.index("scripts/verify_onboarding_release.py") < build.index("Upload Python artifacts")
+    assert "runs-on: ubuntu-24.04" in _workflow_job(pages, "deploy")
+    assert "blacksmith" not in pages.lower()
+
+
+def test_release_recovery_authority_boundaries_are_unchanged() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "publish.yml").read_text(encoding="utf-8")
+    pypi = _workflow_job(workflow, "publish")
+    npm = _workflow_job(workflow, "publish-npm")
+    recovery = _workflow_job(workflow, "publish-npm-recovery")
+    registry = _workflow_job(workflow, "publish-mcp-registry")
+    assert "needs: build" in pypi and "environment: pypi" in pypi and "id-token: write" in pypi
+    assert "needs: publish" in npm and "environment: npm" in npm and "id-token: write" in npm
+    assert "if: github.event_name == 'workflow_dispatch'" in recovery
+    assert "environment: npm" in recovery and "id-token: write" in recovery
+    assert "needs: [publish, publish-npm, publish-npm-recovery]" in registry
+    assert "needs.publish-npm-recovery.result == 'success'" in registry
+    assert "github.event_name == 'workflow_dispatch'" in registry
+    assert "id-token: write" in registry
+
+
+def test_integration_smoke_adds_nonpublishing_exact_head_onboarding_job() -> None:
+    workflow = (ROOT / ".github" / "workflows" / "integration-smoke.yml").read_text(encoding="utf-8")
+    assert "workflow_dispatch:" in workflow
+    assert "push:\n    branches: [master]" in workflow
+    assert "pull_request:" in workflow
+    job = _workflow_job(workflow, "clean-wheel-onboarding")
+    assert "if: github.event_name != 'push'" in job
+    assert "runs-on: ubuntu-24.04" in job
+    assert "timeout-minutes: 30" in job
+    assert '$2 == "subtitles" && $3 == "V->V"' in job
+    assert "github.event.pull_request.head.sha || github.sha" in job
+    assert job.count("scripts/verify_onboarding_release.py") == 1
+    forbidden = (
+        "environment:",
+        "id-token: write",
+        "NPM_TOKEN",
+        "PYPI",
+        "npm publish",
+        "mcp-publisher",
+        "upload-artifact",
+    )
+    assert all(token not in job for token in forbidden)
+    for existing in ("base-cli-and-doctor", "ffmpeg-smoke", "image-extra-smoke", "ai-module-smoke"):
+        smoke = _workflow_job(workflow, existing)
+        assert "runs-on: ubuntu-24.04" in smoke
+        assert "python -m venv .venv" in smoke
