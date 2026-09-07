@@ -38,6 +38,10 @@
 - **No signing key available** — unsigned pack is the product path. Not a blocker.
   Install product via `pip install kinocut` / MCP stdio; signed multi-platform MCPB only if keys exist later.
 
+**Correction (2026-09-06):** the emitted clean-machine checklist was planning evidence, not an
+executed clean-machine install or a readiness result. Current MCPB status comes from exact-digest
+validator, hosted-runtime, desktop-install, signing, publication, and human-review receipts.
+
 ## Intentionally out of product timeline
 
 Directories, launch publish, first-10 users, Renovate host token, CI light runner topology.

@@ -59,8 +59,9 @@ See also [`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-pha
 
 **Exit (2026-08-12):** **GO** — Generative spend caps + local default (plan-only),
 OTIO **kinocut_ir-embedded** JSON interchange roundtrip, human review UI with
-hot-reload poll, TTS dub ES-first plan separate from caption translate
-(`executable=False` until backend). Evidence: `tests/test_phase4_multipliers_go.py`.
+hot-reload poll, and TTS dub ES-first planning separate from caption translate.
+Generative and TTS execution remain false because no adapters exist; Phase GO
+records planning and cap-policy coverage, not backend capability. Evidence: `tests/test_phase4_multipliers_go.py`.
 Interchange scope is documented as kinocut_ir-embedded OTIO JSON (not foreign OTIO).
 
 ## Track E pillars (Cutfile / Video CI / conversational)
@@ -85,11 +86,14 @@ Evidence: `tests/test_track_e_go.py`.
 | S14 dual-class | live host classes or `external_host_unavailable` residual | pass by skipping a class |
 | S15 / product claim | Wave F honesty + L3 claim owner | synthetic S14 alone as product complete |
 
-**Status (2026-08-12):** packages + S14 live re-run on `apple_silicon` under 30m with
-64-clip fixture; second class **`external_host_unavailable`** (allowed by gate).
-S15 stop tests green. **Product full-episode claim:** allowed for S4–S14 pipeline
-maturity with honest dual-class residual note — not a silent skip.
-Evidence: `docs/evidence/2026-08-12-sound-s14-live-rerun.json`, sound GO tests.
+**Status (2026-08-12):** S13 packages and joins exist. The historical July S14
+receipt records two synthetic classes; the later live rerun records
+`apple_silicon` under 30m with the 64-clip fixture and an explicit
+**`external_host_unavailable`** x86 residual. S15 stop tests are green. The fixture
+proves bounded plumbing, not a full episode and not human listening approval. The
+shipped public boundary remains the thin S12 join; deeper internals do not make
+the sonic-world product complete. Evidence: both sound S14 JSON receipts and
+sound GO tests.
 
 ## Human-only (never agent-close)
 
@@ -99,12 +103,6 @@ Evidence: `docs/evidence/2026-08-12-sound-s14-live-rerun.json`, sound GO tests.
 - Renovate host token (#3) — open
 - Do **not** invent completions for the above
 
-## Residual program note (2026-08-12, L1.2 + G004 residual evidence)
-
-Phase 3/4/E exits still **PENDING**. DEFERRED rows **`DEF-phase3-go`** /
-**`DEF-phase4-go`** hold phase-claim authority. G004 tip evidence receipt:
-[`2026-08-12-phase3-phase4-residual-evidence.md`](2026-08-12-phase3-phase4-residual-evidence.md)
-(7 focused unit nodes green; **not** PHASE GO). Agent work is **deepen/re-verify**,
-not missing-module rebuild. Claim bumps to `docs/public_claims.json` are frozen
-until **L3** for non–claim-owners (see ROADMAP claim ledger). Ultragoal plan:
-`.omc/ultragoal/plans/kinocut-full-build`.
+The earlier residual phase note is superseded by the current Phase 3, Phase 4,
+and Track E exit statements above. Its dated receipt remains historical evidence,
+not current execution authority.

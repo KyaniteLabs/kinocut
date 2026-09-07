@@ -188,10 +188,11 @@ client.add_text(render.output_path, text="EPISODE 1", position="top-center", out
 ### Quality gate before publishing
 
 ```python
-checkpoint = client.release_checkpoint("final.mp4", min_score=0.8)
+checkpoint = client.release_checkpoint("final.mp4", min_score=80)
 print(checkpoint["thumbnail"])      # Review thumbnail
 print(checkpoint["storyboard"])     # Review key frames
-print(checkpoint["quality_score"])  # Must pass min_score
+print(checkpoint["quality"]["overall_score"])  # Must pass min_score
+print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 ```
 
 ---
@@ -343,6 +344,30 @@ Positioned non-`normal` blend requires explicit `width` and `height`, an integra
 | `hyperframes_to_mcpvideo(project_path, post_process, output?)` | `HyperframesPipelineResult` | Render then post-process with Kinocut |
 
 ---
+
+## Revideo methods (development tip)
+
+```python
+Client.revideo_materialize(dest, job, scene_source=None) -> dict
+Client.revideo_install(project_dir, timeout=600) -> dict
+Client.revideo_render(project_dir, output_path, timeout=900) -> RevideoRenderResult
+Client.revideo_render_job(
+    job,
+    output_path,
+    work_dir=None,
+    scene_source=None,
+    install_timeout=600,
+    render_timeout=900,
+) -> RevideoRenderResult
+```
+
+Materialize and install return `success` plus `project_dir`. Render methods
+retain the detailed receipt: project and output paths, output and exact on-disk
+job-file SHA-256 digests, observed width, height, fps, counted frames, duration, and
+render time. `.mp4`, `.webm`, and `.mov` select the pinned exporter's MP4,
+WebM, and ProRes 4444 modes respectively; Kinocut verifies the encoded identity
+before publication. A custom scene is trusted executable
+TypeScript. Dependency installation may access npm; rendering is local.
 
 ## Repurposing Methods
 

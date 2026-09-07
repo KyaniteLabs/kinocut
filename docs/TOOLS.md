@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino exposes **196** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. In 1.14.0, 360 dual-cam assembly reuses `video_intent` + `video_review_decide` — it is **not** a 197th tool. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino's development tip exposes **200** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.1 remains at **196 MCP tools / 167 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
 
 ---
 
@@ -242,6 +242,30 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 | `hyperframes_to_mcpvideo` | Pipeline: render with Hyperframes, then post-process with Kinocut |
 
 ---
+
+## Revideo — guarded local code video (4 tools, development tip)
+
+| Tool | Purpose |
+| --- | --- |
+| `revideo_materialize` | Copy Kinocut's pinned bridge template and write a validated job. |
+| `revideo_install` | Run bounded `npm ci` against the committed lockfile. |
+| `revideo_render` | Render a verified materialized project and atomically publish its output. |
+| `revideo_render_job` | Run materialize, install, render, decode verification, and receipt generation. |
+
+`npm ci` can access the npm registry; rendering then runs on the local machine.
+A supplied `scene_source` is trusted executable TypeScript. Kinocut rejects altered
+control files, symlinks below the project root, malformed jobs, invalid timeouts,
+and unverified output. Each render uses a fresh private project output, verifies
+counted frames plus a full decode, and updates prior project and final outputs
+only after validation. Render responses include output and exact on-disk job-file
+SHA-256 digests, observed dimensions, fps, frame count, duration, render time,
+and project directory. `.mp4`, `.webm`, and `.mov` select pinned MP4, WebM,
+and ProRes 4444 exporter modes, with encoded format checks before publication. Run a
+quality check and human visual review before publication. Local concurrent path
+replacement, process crashes, and trusted scene behavior remain outside this
+bounded in-process rollback guard. The job file is capped at one MiB; its
+pre/post render binding is byte-exact, so formatting-only mutation also rejects
+publication.
 
 ## Repurposing (2 tools)
 

@@ -26,6 +26,7 @@ MAX_TEMPORAL_INSPECTION_FRAMES = 18000
 MAX_INSPECTION_LINEAGE_JSON_BYTES = 65_536
 MAX_INSPECTION_DECLARED_REGIONS = 32
 MAX_WAVE3_JSON_BYTES = 65_536
+MAX_REVIDEO_JOB_JSON_BYTES = 1_048_576
 MAX_WAVE3_VERDICT_IDS = 64
 MAX_WAVE3_AUTH_DECISION_IDS = 64
 MAX_ACCEPTANCE_EVIDENCE_FILES = 64
@@ -87,6 +88,7 @@ MAX_SPEED_CHAIN_COUNT = 20
 # by npm/package.json (the mcpb launcher) and the vendored bridge template's
 # puppeteer/vite dependency engines; RevideoNotFoundError names it verbatim.
 REVIDEO_NODE_MAJOR_MIN = 18
+REVIDEO_TIMEOUT_MAX_SECONDS = 2_147_483_647
 
 # Workflow-engine bounds (fail closed above these)
 MAX_WORKFLOW_STEPS = 64

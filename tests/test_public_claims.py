@@ -232,3 +232,162 @@ def test_sitemap_and_robots_point_at_canonical_site(claims: dict) -> None:
     site = claims["website"].rstrip("/")
     assert f"Sitemap: {site}/sitemap.xml" in robots or f"Sitemap: {claims['website']}sitemap.xml" in robots
     assert f"{site}/" in sitemap or claims["website"] in sitemap
+
+
+CONTRIBUTION_OBLIGATIONS = (
+    ("493", "https://github.com/KyaniteLabs/kinocut/pull/493"),
+    ("496", "https://github.com/KyaniteLabs/kinocut/pull/496"),
+    ("498", "https://github.com/KyaniteLabs/kinocut/pull/498"),
+)
+
+
+def _changelog_sections(text: str) -> dict[str, str]:
+    matches = list(re.finditer(r"^## (.+)$", text, re.MULTILINE))
+    return {
+        match.group(1): text[match.end() : matches[index + 1].start() if index + 1 < len(matches) else len(text)]
+        for index, match in enumerate(matches)
+    }
+
+
+def test_imported_contributions_have_durable_credit() -> None:
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    sections = _changelog_sections(changelog)
+    assert "@WohaibHasan" in sections["Unreleased"]
+    assert "@WohaibHasan" in readme
+    for number, link in CONTRIBUTION_OBLIGATIONS:
+        owning = [heading for heading, body in sections.items() if link in body]
+        assert owning
+        assert "1.15.1 - 2026-08-31" not in owning
+        assert owning == ["Unreleased"] or all(
+            heading != "Unreleased" and tuple(map(int, heading.split()[0].split("."))) > (1, 15, 1)
+            for heading in owning
+        )
+        assert link in readme, number
+
+
+def test_video_receipt_example_cannot_claim_green_below_threshold() -> None:
+    text = (ROOT / "docs" / "VIDEO_RECEIPT.md").read_text(encoding="utf-8")
+    example = json.loads(re.search(r"```json\n(.*?)\n```", text, re.DOTALL).group(1))
+    quality = example["quality"]
+    assert quality["all_passed"] is not True or quality["overall_score"] >= 80
+
+
+def test_site_repurpose_command_is_accepted_by_current_parser() -> None:
+    from kinocut.cli.parser import build_parser
+
+    args = build_parser().parse_args(
+        ["repurpose", "ep-42.mp4", "--platforms", "youtube-shorts", "tiktok", "instagram-reel"]
+    )
+    assert args.command == "repurpose"
+    assert args.platforms == ["youtube-shorts", "tiktok", "instagram-reel"]
+
+
+def _markdown_section(relative_path: str, heading: str) -> str:
+    text = (ROOT / relative_path).read_text(encoding="utf-8")
+    match = re.search(rf"(?ms)^{re.escape(heading)}[^\n]*\n(.*?)(?=^#{{1,6}} |\Z)", text)
+    assert match is not None, f"missing section {heading!r} in {relative_path}"
+    return match.group(1)
+
+
+def test_current_status_binds_published_and_tip_claims(claims: dict) -> None:
+    text = (ROOT / "docs" / "status" / "NOW.md").read_text(encoding="utf-8")
+    patterns = {
+        "Published": (
+            claims["published_version"],
+            claims["published_mcp_tools"],
+            claims["published_cli_commands"],
+        ),
+        r"Tip \(`master`\)": (
+            claims["release_candidate_version"],
+            claims["development_mcp_tools"],
+            claims["development_cli_commands"],
+        ),
+    }
+    for label, expected in patterns.items():
+        match = re.search(rf"(?m)^\*\*{label}:\*\* ([0-9.]+) · \*\*(\d+) MCP / (\d+) CLI\*\*", text)
+        assert match is not None, f"missing bound {label} claim"
+        assert (match.group(1), int(match.group(2)), int(match.group(3))) == expected
+
+
+@pytest.mark.parametrize(
+    ("relative_path", "section_heading", "version_pattern"),
+    (
+        ("docs/CLI_REFERENCE.md", "## Intent, review, and cutfiles", r"current ([0-9.]+)\)"),
+        (
+            "docs/HUMAN_GATES.md",
+            "## Live adoption signals",
+            r"\| Published package \| \*\*([0-9.]+)\*\* \|",
+        ),
+    ),
+)
+def test_current_release_references_name_published_version(
+    claims: dict, relative_path: str, section_heading: str, version_pattern: str
+) -> None:
+    section = _markdown_section(relative_path, section_heading)
+    assert re.findall(version_pattern, section) == [claims["published_version"]]
+
+
+def test_readme_current_release_references_name_published_version(claims: dict) -> None:
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    notes_line = next((line for line in text.splitlines() if line.startswith("Full notes:")), "")
+    assert re.findall(r"/tag/v([0-9.]+)\)", notes_line) == [claims["published_version"]]
+    answer = _markdown_section("README.md", "### Can Kinocut turn an Insta360 X4 file into a two-cam edit?")
+    assert re.findall(r"remains in published (\d+\.\d+\.\d+)", answer) == [claims["published_version"]]
+
+
+def test_site_status_separates_package_publication_from_deployment() -> None:
+    section = _markdown_section("docs/HUMAN_GATES.md", "## Product site")
+    assert "Pip/npm/MCP/site agree" not in section
+    assert re.search(r"website source has been corrected for", section, re.IGNORECASE)
+    assert re.search(r"production deployment\s+and rendered verification remain pending", section)
+
+
+def test_readme_status_does_not_present_object_matte_as_tip_only(claims: dict) -> None:
+    section = _markdown_section("README.md", "## Status and releases")
+    normalized = section.lower()
+    object_guidance = next(line for line in section.splitlines() if "optional object-matte extra" in line)
+    assert "Install from PyPI" in object_guidance
+    assert "optional object-matte extra" in normalized
+    assert "today that includes object-matte" not in normalized
+
+
+@pytest.mark.parametrize(
+    ("relative_path", "section_heading"),
+    (
+        ("README.md", "### Staged and Gated Surfaces"),
+        ("docs/PRODUCT_MATTE.md", "# Product and object matte"),
+        ("docs/README.md", "## Current Guidance"),
+        ("docs/faq.md", "## Can I cut a product out of a turntable or tabletop video?"),
+        ("skills/kinocut/SKILL.md", "## Product / object matte"),
+    ),
+)
+def test_current_object_matte_guidance_names_published_release(
+    claims: dict, relative_path: str, section_heading: str
+) -> None:
+    section = _markdown_section(relative_path, section_heading)
+    normalized = section.lower()
+    assert "object-matte" in normalized or "object matte" in normalized or "product" in normalized
+    assert claims["published_version"] in section
+    assert "optional" in normalized
+    assert "no new mcp" in normalized or "not a new mcp" in normalized or "197th tool" in normalized
+    assert "not in published 1.15.0" not in normalized
+    assert "landing; not in 1.15.0" not in normalized
+    object_lines = [
+        line.replace("**", "").lower()
+        for line in section.splitlines()
+        if "object-matte" in line.lower() or "object matte" in line.lower()
+    ]
+    publication_lines = [line for line in object_lines if "published" in line]
+    assert publication_lines, "object-matte availability must bind to its own release claim"
+    for line in publication_lines:
+        assert not re.search(r"\bnot\s+(?:yet\s+)?(?:available\s+in\s+)?published\b", line)
+        assert re.findall(r"published (?:in )?(\d+\.\d+\.\d+)", line) == [claims["published_version"]]
+
+
+def test_agent_discovery_points_current_truth_at_living_snapshot() -> None:
+    section = _markdown_section("docs/AI_AGENT_DISCOVERY.md", "## Best Entry Points")
+    current_line = next(
+        (line for line in section.splitlines() if "current published-versus-development truth" in line), ""
+    )
+    assert "docs/status/NOW.md" in current_line

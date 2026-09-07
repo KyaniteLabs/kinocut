@@ -23,6 +23,7 @@ from . import release
 from . import shorts
 from . import sound
 from . import intent
+from . import revideo
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -85,5 +86,6 @@ def build_parser() -> argparse.ArgumentParser:
     shorts.add_parsers(subparsers)
     sound.add_parsers(subparsers)
     intent.add_parsers(subparsers)
+    revideo.add_parsers(subparsers)
 
     return parser

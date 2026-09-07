@@ -33,6 +33,26 @@ def test_run_ffprobe_json_uses_named_timeout(monkeypatch):
     assert captured["timeout"] == FFPROBE_TIMEOUT
 
 
+def test_run_ffprobe_json_count_frames_is_opt_in(monkeypatch):
+    from mcp_video import ffmpeg_helpers
+
+    commands = []
+
+    class Result:
+        stdout = '{"format": {}, "streams": []}'
+
+    def fake_run_command(cmd, timeout=0):
+        commands.append(cmd)
+        return Result()
+
+    monkeypatch.setattr(ffmpeg_helpers, "_run_command", fake_run_command)
+    ffmpeg_helpers._run_ffprobe_json("plain.mp4")
+    ffmpeg_helpers._run_ffprobe_json("counted.mp4", count_frames=True)
+
+    assert "-count_frames" not in commands[0]
+    assert "-count_frames" in commands[1]
+
+
 def test_validate_input_path_rejects_null_bytes():
     from mcp_video.errors import InputFileError
     from mcp_video.ffmpeg_helpers import _validate_input_path

@@ -20,6 +20,7 @@ from .release import ClientReleaseMixin
 from .shorts import ClientShortsMixin
 from .sound import ClientSoundMixin
 from .sphere import ClientSphereMixin
+from .revideo import ClientRevideoMixin
 
 
 class Client(
@@ -41,6 +42,7 @@ class Client(
     ClientShortsMixin,
     ClientSoundMixin,
     ClientSphereMixin,
+    ClientRevideoMixin,
 ):
     """mcp-video client for programmatic video editing.
 

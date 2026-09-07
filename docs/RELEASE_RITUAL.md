@@ -10,9 +10,14 @@ Minimum marketing steps when cutting a public Kinocut release. Engineering relea
 
 ## 0. Authority
 
-Land on Forgejo first. Do not `git push github` as the primary land. Do not set
-`published_version` until `scripts/verify_published_claims_live.py` is green for
-that version (PyPI already serves it).
+Land through a reviewed GitHub pull request with exact-head GitHub CI green.
+Create release tags and GitHub Releases from the canonical GitHub history. Forgejo
+is a downstream mirror and must receive release commits only through the verified
+GitHub-to-Forgejo downstream sync; normal release changes must not be independently merged
+there. The downstream sync is pending live-gate verification, so report any
+lag without claiming mirror completion. Do not set `published_version` until
+`scripts/verify_published_claims_live.py` is green for that version (PyPI already
+serves it).
 
 ## 1. Freeze claims
 

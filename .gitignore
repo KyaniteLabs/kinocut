@@ -40,6 +40,7 @@ package-lock.json
 # The revideo bridge template is the one place a lockfile IS shipped:
 # it is the determinism contract (pinned @revideo 0.10.4, npm ci installs).
 !kinocut/revideo_template/package-lock.json
+!tools/mcpb-validator/package-lock.json
 .worktrees/
 .omx/
 

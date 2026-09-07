@@ -5,14 +5,16 @@ This document is the short, explicit discovery map for agents, answer engines, a
 ## Canonical Positioning
 
 `Kinocut` is an open-source MCP server, Python library, and CLI for video editing
-and video creation workflows. Published 1.15.0 provides **196 MCP tools / 167 CLI
-commands**; the development tip keeps those counts. It
+and video creation workflows. Published 1.15.1 provides **196 MCP tools / 167 CLI
+commands**; the development tip provides **200 MCP tools / 171 CLI commands**. It
 wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
 inspection, durable edit projects, a resumable workflow engine, reviewed semantic
 selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
 authoring, bounded sound operations, layered compositing, and local repurposing
 packages with preflight guardrails. A 360/desk/table `video_intent` goal can also
 attach a reviewable `360_assembly_plan` (no extra MCP tool; in pip 1.14.1+).
+The development tip also exposes four local Revideo bridge operations backed by
+Kinocut's lockfile-pinned template; a custom scene is trusted executable TypeScript.
 
 ## Best Queries To Match
 
@@ -41,7 +43,8 @@ attach a reviewable `360_assembly_plan` (no extra MCP tool; in pip 1.14.1+).
 - `docs/WORKFLOWS.md` - agent workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume semantics, cleanup, and privacy.
 - `docs/VIDEO_RECEIPT.md` - workflow/`layer_plan` receipt kinds, `schema_version` policy, and the `receipt_kind` discriminator.
 - `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` - exact-asset review, protection, body-swap, salvage, and re-review sequence.
-- `docs/status/2026-07-27-post-campaign-tip-status.md` - current published-versus-development truth and remaining human gates.
+- `docs/status/NOW.md` - current published-versus-development truth and remaining human gates.
+- `docs/status/2026-07-27-post-campaign-tip-status.md` - historical tip snapshot, superseded by `docs/status/NOW.md`.
 - `docs/status/2026-07-12-wishlist-draft-pr-status.md` - historical incomplete implementation snapshot and non-release boundary.
 - `docs/plans/2026-07-12-wishlist-parallel-execution.md` - dependency graph and controller/author ownership for parallel work.
 - `docs/360_ASSEMBLY.md` - Insta360 X4 stitched MP4 → propose/approve/render (tip).

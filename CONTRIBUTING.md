@@ -7,10 +7,10 @@ External issues and pull requests belong on **[GitHub](https://github.com/Kyanit
 
 Kinocut runs a two-repository topology:
 
-- **Canonical source** — [Forgejo (`git.kyanitelabs.tech`)](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) is the source of truth. Accepted commits integrate here first.
-- **Public mirror** — [GitHub (`KyaniteLabs/kinocut`)](https://github.com/KyaniteLabs/kinocut) is the public clone and collaboration surface. It receives accepted commits from Forgejo through a constrained `master`-only mirror and is the only repository external contributors touch.
+- **Canonical repository** — [GitHub (`KyaniteLabs/kinocut`)](https://github.com/KyaniteLabs/kinocut) is the source of truth for code, issues, discussions, pull requests, CI, tags, and releases. Accepted commits integrate here first.
+- **Downstream mirror** — [Forgejo (`git.kyanitelabs.tech`)](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) is retained for internal reference and sovereignty. Only the verified GitHub-to-Forgejo sync automation may update its `master`; normal changes must not be independently merged there.
 
-You do **not** need Forgejo access to contribute. Open issues, draft pull requests, start discussions, and report security vulnerabilities on GitHub exactly as you would for any GitHub project. Maintainers merge accepted work into Forgejo canonical, and the `master`-only mirror carries it back to GitHub — contributors never need an account or push access on the canonical side.
+You do **not** need Forgejo access to contribute. Open issues, draft pull requests, start discussions, and report security vulnerabilities on GitHub exactly as you would for any GitHub project. Maintainers merge accepted work on GitHub. The GitHub-to-Forgejo downstream sync implementation is present in [the sync workflow](.github/workflows/sync-forgejo.yml). Bootstrap, activation, and live verification remain pending; until those gates pass, treat host drift as a sync gap and do not repair it with an independent Forgejo merge.
 
 ## Quick Start
 
@@ -35,7 +35,7 @@ pytest tests/test_engine.py -v
 kinocut/
 ├── __init__.py             # Canonical public API
 ├── __main__.py             # kino/kinocut/mcp-video CLI entry point
-├── server.py               # MCP registration assembly (142 tools)
+├── server.py               # MCP registration assembly; see docs/public_claims.json for changing counts
 ├── server_app.py           # Shared FastMCP app and result helpers
 ├── server_tools_*.py       # Thin public MCP registration modules
 ├── engine_*.py             # Focused FFmpeg/media operations

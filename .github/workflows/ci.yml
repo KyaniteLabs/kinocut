@@ -12,7 +12,7 @@ concurrency:
 jobs:
   changes:
     name: Change detection
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     outputs:
       code: ${{ steps.classify.outputs.code }}
       docker: ${{ steps.classify.outputs.docker }}
@@ -44,7 +44,7 @@ jobs:
 
   repository-readiness:
     name: Repository readiness
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -59,7 +59,7 @@ jobs:
 
   lint:
     name: Lint
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -85,7 +85,7 @@ jobs:
 
   package-surface:
     name: Package surface
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -105,7 +105,7 @@ jobs:
   test:
     name: Test (Python 3.13)
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - name: Skip tests
         if: needs.changes.outputs.code != 'true'
@@ -140,7 +140,7 @@ jobs:
   compatibility:
     name: Compatibility (Python ${{ matrix.python-version }})
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     strategy:
       fail-fast: false
       matrix:
@@ -179,7 +179,7 @@ jobs:
   minimal-install:
     name: Minimal install (no extras)
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - name: Skip minimal install check
         if: needs.changes.outputs.code != 'true'
@@ -217,7 +217,7 @@ jobs:
   slow-suite:
     name: Slow suite (real-media)
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - name: Skip slow suite
         if: needs.changes.outputs.code != 'true'
@@ -250,7 +250,7 @@ jobs:
   hyperframes-integration:
     name: Hyperframes integration
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - name: Skip hyperframes integration
         if: needs.changes.outputs.code != 'true'
@@ -293,7 +293,7 @@ jobs:
   ffmpeg-matrix:
     name: FFmpeg matrix (FFmpeg ${{ matrix.major }})
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     # Cross-FFmpeg-version filtergraph portability matrix. The other test jobs
     # run a single apt/ubuntu ffmpeg, so a filtergraph that parses on ffmpeg 8
     # but not 6 (e.g. scale2ref rw/rh vars, added in ffmpeg 7 — the 2026-07-09
@@ -383,7 +383,7 @@ jobs:
   docker:
     name: Docker build
     needs: changes
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Skip Docker build
@@ -422,6 +422,11 @@ jobs:
       - name: Lint
         if: needs.changes.outputs.code == 'true'
         run: python -m ruff check kinocut/ mcp_video.py tests/
+      - name: Collect whole test suite
+        if: needs.changes.outputs.code == 'true'
+        shell: pwsh
+        timeout-minutes: 4
+        run: python .github/scripts/windows_collection_ci.py
       - name: Import checks (server tree imports on Windows)
         if: needs.changes.outputs.code == 'true'
         run: |
@@ -437,4 +442,10 @@ jobs:
           python -m pytest tests/test_public_surface.py tests/test_doctor.py
           tests/test_models.py tests/test_errors.py
           tests/test_projectstore_filelock.py
+          -q --tb=short
+      - name: Windows drive-path FFmpeg render
+        if: needs.changes.outputs.code == 'true'
+        run: >-
+          python -m pytest
+          tests/test_ffmpeg_filter_path.py::test_windows_drive_and_backslash_paths_render_with_ffmpeg
           -q --tb=short

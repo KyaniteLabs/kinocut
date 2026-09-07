@@ -1,0 +1,10 @@
+{
+  "name": "kinocut-mcpb-validator",
+  "private": true,
+  "version": "1.0.0",
+  "description": "CI-only lock for official staged MCPB manifest validation.",
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@anthropic-ai/mcpb": "2.1.2"
+  }
+}

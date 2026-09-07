@@ -48,6 +48,14 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
 
     try:
         mcp = import_server()
+        from ._mcpb_observation import observe_mcp_run_boundary
+        from .errors import MCPVideoError
+
+        try:
+            observe_mcp_run_boundary()
+        except MCPVideoError:
+            err_console.print("[red]MCP mode failed to start:[/red] supervised process observation failed.")
+            sys.exit(1)
         mcp.run()
     except ImportError as exc:
         missing = getattr(exc, "name", None)
@@ -143,6 +151,7 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
     from .cli.handlers_media import handle_media_commands
     from .cli.handlers_postrescue import handle_post_rescue_commands
     from .cli.handlers_release import handle_release_commands
+    from .cli.handlers_revideo import handle_revideo_commands
     from .cli.handlers_rescue import handle_rescue_commands
     from .cli.handlers_shorts import handle_shorts_commands
     from .cli.handlers_sound import handle_sound_commands
@@ -153,6 +162,7 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
         handle_initial_command(args, use_json=use_json)
         or handle_aivideo_commands(args, use_json=use_json)
         or handle_release_commands(args, use_json=use_json)
+        or handle_revideo_commands(args, use_json=use_json)
         or handle_shorts_commands(args, use_json=use_json)
         or handle_sound_commands(args, use_json=use_json)
         or handle_inspection_commands(args, use_json=use_json)
