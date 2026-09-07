@@ -20,11 +20,19 @@ class ClientSoundMixin:
 
         return invoke_sound_operation("sound-plan-validate", plan=plan)
 
-    def sound_voice_batch(self, plan: dict[str, Any] | None = None) -> dict[str, Any]:
-        """Render a local deterministic voice batch from a SoundPlan."""
+    def sound_voice_batch(
+        self,
+        plan: dict[str, Any] | None = None,
+        *,
+        request: dict[str, Any] | None = None,
+        project_root: str | None = None,
+    ) -> dict[str, Any]:
+        """Retain local caption speech from a request, or run the synthetic plan demo."""
         from kinocut_sound.public import invoke_sound_operation
 
-        return invoke_sound_operation("sound-voice-batch", plan=plan)
+        if request is None and project_root is None:
+            return invoke_sound_operation("sound-voice-batch", plan=plan)
+        return invoke_sound_operation("sound-voice-batch", plan=plan, request=request, project_root=project_root)
 
     def sound_mix_render(
         self, request: dict[str, Any] | None = None, project_root: str | None = None

@@ -18,9 +18,8 @@ def compensate_latency(
 
     if isinstance(residual_samples, bool) or not isinstance(residual_samples, int):
         raise mix_error("residual_samples must be an int", MIX_LATENCY_INVALID)
-    if (
-        (residual_samples < MIN_LATENCY_RESIDUAL_SAMPLES or residual_samples > MAX_LATENCY_RESIDUAL_SAMPLES)
-        and (residual_samples < 0 or residual_samples > 48000)
+    if (residual_samples < MIN_LATENCY_RESIDUAL_SAMPLES or residual_samples > MAX_LATENCY_RESIDUAL_SAMPLES) and (
+        residual_samples < 0 or residual_samples > 48000
     ):
         # Allow up to a larger practical ceiling for assembly; limits residual is 1 sample
         # for byte-determinism claims. For mix placement we accept 0..48000.

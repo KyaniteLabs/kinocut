@@ -12,6 +12,11 @@ from __future__ import annotations
 
 import re
 
+# Legacy SRT extraction patterns; strict dubbing validates whole blocks first.
+SRT_CUE_SPLIT_RE = re.compile(r"\n\s*\n")
+SRT_TIMESTAMP_RE = re.compile(r"(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})")
+ESPEAK_VERSION_RE = re.compile(r"eSpeak NG text-to-speech:\s*([0-9]+(?:\.[0-9]+){1,3}(?:[-+][A-Za-z0-9.-]+)?)")
+
 # --- Canonical typed-id patterns (strings for Pydantic Field pattern=) ---
 
 SHA256_PATTERN: str = r"^sha256:[0-9a-f]{64}$"
@@ -53,9 +58,7 @@ TERRITORY_RE: re.Pattern[str] = re.compile(r"^[A-Za-z0-9]{2,16}$")
 ADAPTER_KINDS: frozenset[str] = frozenset({"tts", "processor", "spatializer", "asset", "analyzer"})
 
 # Closed set of determinism classes. A stage declares exactly one.
-DETERMINISM_CLASSES: frozenset[str] = frozenset(
-    {"byte_deterministic", "signal_equivalent", "non_reproducible"}
-)
+DETERMINISM_CLASSES: frozenset[str] = frozenset({"byte_deterministic", "signal_equivalent", "non_reproducible"})
 
 # --- Canonical record policy ---
 

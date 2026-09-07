@@ -40,8 +40,24 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
         _out(_invoke("sound-plan-validate", plan=plan), j)
 
     def _voice(a, j):
-        plan = _load_plan_json(getattr(a, "plan_json", None))
-        _out(_invoke("sound-voice-batch", plan=plan), j)
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.mix_files import load_request_file
+        from kinocut.errors import MCPVideoError
+
+        try:
+            if a.request_json is None and a.project_root is None:
+                result = _invoke("sound-voice-batch", plan=_load_plan_json(a.plan_json))
+            else:
+                if a.plan_json is not None:
+                    raise MCPVideoError(
+                        "caption request and synthetic plan modes conflict", error_type="validation_error"
+                    )
+                raw = a.request_json
+                request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+                result = _invoke("sound-voice-batch", request=request, project_root=a.project_root)
+            _out(result, j)
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
     def _mix(a, j):
         from kinocut_sound._errors import SoundContractError

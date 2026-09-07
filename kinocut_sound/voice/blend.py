@@ -193,7 +193,8 @@ class BlendRenderer:
             duration_seconds=base.duration_seconds,
             sample_rate_hz=base.sample_rate_hz,
             channel_count=base.channel_count,
-            recipe_digest="sha256:" + hashlib.sha256(
+            recipe_digest="sha256:"
+            + hashlib.sha256(
                 profile.profile_id.encode("utf-8")
                 + b"|"
                 + "|".join(f"{s.grant_id}:{s.eq_preset}" for s in profile.sources).encode("utf-8")

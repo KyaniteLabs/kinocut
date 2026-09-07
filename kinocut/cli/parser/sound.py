@@ -30,6 +30,10 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         default=None,
         help="SoundPlan as JSON string or path to a JSON file; omit for minimal plan",
     )
+    voice.add_argument(
+        "--request-json", default=None, help="SoundDubRequest JSON or file for real local caption speech"
+    )
+    voice.add_argument("--project-root", default=None, help="Explicit root for caption input and retained output")
 
     mix = subparsers.add_parser(
         "sound-mix-render",

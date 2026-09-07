@@ -267,9 +267,9 @@ def test_active_paid_surface_descriptions_do_not_claim_configuration_is_executio
         ]
     ).lower()
     assert "no generation adapter exists" in active
-    assert "no synthesis adapter exists" in active
+    assert "local stock speech" in active
     assert "no generation adapter" in (inspect.getdoc(video_generative_plan) or "").lower()
-    assert "no synthesis adapter" in (inspect.getdoc(video_dub_plan) or "").lower()
+    assert "local stock speech" in (inspect.getdoc(video_dub_plan) or "").lower()
     assert "until backend configured" not in active
     assert "until configured" not in active
     assert "no paid still-generation adapter exists" in active

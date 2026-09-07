@@ -95,23 +95,11 @@ class OrderedInput(FrozenModel):
 
     @model_validator(mode="after")
     def _points_ordered(self) -> OrderedInput:
-        if (
-            self.in_point is not None
-            and self.out_point is not None
-            and self.out_point <= self.in_point
-        ):
+        if self.in_point is not None and self.out_point is not None and self.out_point <= self.in_point:
             raise ValueError("out_point must be greater than in_point")
-        if (
-            self.in_point is not None
-            and self.probed_duration is not None
-            and self.in_point > self.probed_duration
-        ):
+        if self.in_point is not None and self.probed_duration is not None and self.in_point > self.probed_duration:
             raise ValueError("in_point must not exceed probed_duration")
-        if (
-            self.out_point is not None
-            and self.probed_duration is not None
-            and self.out_point > self.probed_duration
-        ):
+        if self.out_point is not None and self.probed_duration is not None and self.out_point > self.probed_duration:
             raise ValueError("out_point must not exceed probed_duration")
         return self
 
