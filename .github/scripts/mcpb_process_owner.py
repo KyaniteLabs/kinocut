@@ -13,8 +13,9 @@ import subprocess
 import sys
 import tempfile
 import time
+from contextlib import suppress
 from pathlib import Path
-from typing import Any
+from typing import Any, NoReturn
 
 
 OWNER_NAME_ENV = "KINOCUT_MCPB_OWNER_NAME"
@@ -24,6 +25,25 @@ OWNER_KIND_ENV = "KINOCUT_MCPB_OWNER_KIND"
 OWNER_TIMEOUT = 5.0
 TREE_GRACE = 2.0
 _TOKEN = re.compile(r"[0-9a-f]{64}")
+_CLEANUP_PHASES = (
+    "owner_activated",
+    "launcher_started",
+    "server_observed",
+    "stdin_keeper_started",
+    "launcher_terminated",
+    "server_alive",
+    "survival_published",
+)
+_CLEANUP_FAILURES_BY_PHASE = {
+    "owner_activated": frozenset({"owner_activation_failed"}),
+    "launcher_started": frozenset({"launcher_not_startable", "launcher_capture_unavailable", "launcher_exited"}),
+    "server_observed": frozenset({"launcher_exited", "server_unobserved"}),
+    "stdin_keeper_started": frozenset({"stdin_keeper_not_startable", "stdin_keeper_exited"}),
+    "launcher_terminated": frozenset({"stdin_keeper_exited", "launcher_terminate_failed"}),
+    "server_alive": frozenset({"stdin_keeper_exited", "server_state_unavailable", "server_not_alive_after_launcher"}),
+    "survival_published": frozenset({"survival_publish_failed"}),
+}
+_CLEANUP_STATE_MAX = 1024
 
 
 class OwnerActivationError(RuntimeError):
@@ -261,6 +281,96 @@ def _publish_ready(path: Path, token: str) -> None:
         raise OwnerActivationError("owner_not_activated") from error
 
 
+def _write_cleanup_state(path: Path, contents: str) -> None:
+    if len(contents.encode("utf-8")) > _CLEANUP_STATE_MAX:
+        raise OSError("cleanup_probe_state_too_large")
+    if path.is_symlink() or (path.exists() and not path.is_file()):
+        raise OSError("cleanup_probe_state_invalid")
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    try:
+        with temporary.open("x", encoding="utf-8") as handle:
+            handle.write(contents)
+        temporary.replace(path)
+    except OSError:
+        temporary.unlink(missing_ok=True)
+        raise
+
+
+class _CleanupProbeState:
+    def __init__(self, path: Path, token: str) -> None:
+        if not _TOKEN.fullmatch(token):
+            raise RuntimeError("cleanup_probe_state_token_invalid")
+        self.path = path
+        self.token = token
+        self.phase: str | None = None
+        self.failed = False
+
+    def _expected(self) -> str:
+        index = 0 if self.phase is None else _CLEANUP_PHASES.index(self.phase) + 1
+        return _CLEANUP_PHASES[index] if index < len(_CLEANUP_PHASES) else ""
+
+    def advance(self, phase: str) -> None:
+        if self.failed or phase != self._expected() or phase == "survival_published":
+            raise RuntimeError("cleanup_probe_state_sequence_invalid")
+        payload = {"token": self.token, "phase": phase}
+        _write_cleanup_state(self.path, json.dumps(payload, separators=(",", ":")))
+        self.phase = phase
+
+    def fail(self, failure_phase: str, classification: str) -> None:
+        if self.failed:
+            raise RuntimeError("cleanup_probe_state_sequence_invalid")
+        self.failed = True
+        if (
+            failure_phase != self._expected()
+            or not isinstance(classification, str)
+            or classification not in _CLEANUP_FAILURES_BY_PHASE.get(failure_phase, ())
+        ):
+            raise RuntimeError("cleanup_probe_state_sequence_invalid")
+        payload = {
+            "token": self.token,
+            "phase": self.phase,
+            "failure_phase": failure_phase,
+            "probe_exit_class": classification,
+        }
+        _write_cleanup_state(self.path, json.dumps(payload, separators=(",", ":")))
+
+    def publish_survival(self) -> None:
+        if self.failed or self._expected() != "survival_published":
+            raise RuntimeError("cleanup_probe_state_sequence_invalid")
+        _write_cleanup_state(self.path, self.token)
+        self.phase = "survival_published"
+
+
+def _read_cleanup_probe_failure(path: Path, token: str, max_bytes: int) -> dict[str, str] | None:
+    try:
+        if path.is_symlink() or not path.is_file() or path.stat().st_size > min(max_bytes, _CLEANUP_STATE_MAX):
+            return None
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError, json.JSONDecodeError, UnicodeDecodeError):
+        return None
+    if not isinstance(payload, dict) or set(payload) != {
+        "token",
+        "phase",
+        "failure_phase",
+        "probe_exit_class",
+    }:
+        return None
+    phase = payload.get("phase")
+    failure_phase = payload.get("failure_phase")
+    classification = payload.get("probe_exit_class")
+    completed = -1 if phase is None else _CLEANUP_PHASES.index(phase) if phase in _CLEANUP_PHASES else -2
+    if (
+        payload.get("token") != token
+        or not isinstance(failure_phase, str)
+        or not isinstance(classification, str)
+        or failure_phase not in _CLEANUP_PHASES
+        or classification not in _CLEANUP_FAILURES_BY_PHASE.get(failure_phase, ())
+        or completed + 1 != _CLEANUP_PHASES.index(failure_phase)
+    ):
+        return None
+    return {"failure_phase": failure_phase, "probe_exit_class": classification}
+
+
 def activate_child_from_env() -> str:
     kind = os.environ.get(OWNER_KIND_ENV, "")
     ready = Path(os.environ.get(OWNER_READY_ENV, ""))
@@ -369,8 +479,102 @@ def force_pid_gone(pid: int) -> bool:
         return False
 
 
+def _probe_failure(state: _CleanupProbeState, phase: str, classification: str) -> NoReturn:
+    try:
+        state.fail(phase, classification)
+    except OSError as error:
+        raise RuntimeError("cleanup_probe_evidence_write_failed") from error
+    raise RuntimeError(classification)
+
+
+def _start_probe_launcher(args: Any, state: _CleanupProbeState, env: dict[str, str]) -> subprocess.Popen[bytes]:
+    try:
+        launcher = subprocess.Popen(
+            [str(args.node.resolve()), str(args.launcher.resolve())],
+            env=env,
+            stdin=subprocess.PIPE,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        _probe_failure(state, "launcher_started", "launcher_not_startable")
+    if launcher.stdin is None:
+        with suppress(OSError):
+            launcher.kill()
+        _probe_failure(state, "launcher_started", "launcher_capture_unavailable")
+    if launcher.poll() is not None:
+        _probe_failure(state, "launcher_started", "launcher_exited")
+    state.advance("launcher_started")
+    return launcher
+
+
+def _observe_probe_server(
+    args: Any, state: _CleanupProbeState, launcher: subprocess.Popen[bytes], max_bytes: int, timeout: float
+) -> int:
+    deadline = time.monotonic() + timeout
+    server_pid = observed_pid(args.pid_file, args.token, max_bytes)
+    while time.monotonic() < deadline and server_pid is None:
+        if launcher.poll() is not None:
+            _probe_failure(state, "server_observed", "launcher_exited")
+        time.sleep(0.02)
+        server_pid = observed_pid(args.pid_file, args.token, max_bytes)
+    if server_pid is None:
+        _probe_failure(state, "server_observed", "server_unobserved")
+    state.advance("server_observed")
+    return server_pid
+
+
+def _start_stdin_keeper(state: _CleanupProbeState, launcher: subprocess.Popen[bytes]) -> subprocess.Popen[bytes]:
+    try:
+        keeper = subprocess.Popen(
+            [sys.executable, "-c", "import time; time.sleep(60)"],
+            stdin=subprocess.DEVNULL,
+            stdout=launcher.stdin,
+            stderr=subprocess.DEVNULL,
+        )
+    except OSError:
+        _probe_failure(state, "stdin_keeper_started", "stdin_keeper_not_startable")
+    if keeper.poll() is not None:
+        _probe_failure(state, "stdin_keeper_started", "stdin_keeper_exited")
+    state.advance("stdin_keeper_started")
+    return keeper
+
+
+def _terminate_probe_launcher(
+    state: _CleanupProbeState, launcher: subprocess.Popen[bytes], keeper: subprocess.Popen[bytes]
+) -> None:
+    if keeper.poll() is not None:
+        _probe_failure(state, "launcher_terminated", "stdin_keeper_exited")
+    try:
+        if launcher.stdin is None:
+            raise OSError("cleanup_probe_capture_unavailable")
+        launcher.stdin.close()
+        launcher.kill()
+        launcher.wait(timeout=5)
+    except (OSError, subprocess.TimeoutExpired):
+        _probe_failure(state, "launcher_terminated", "launcher_terminate_failed")
+    state.advance("launcher_terminated")
+
+
+def _confirm_probe_server(state: _CleanupProbeState, keeper: subprocess.Popen[bytes], server_pid: int) -> None:
+    if keeper.poll() is not None:
+        _probe_failure(state, "server_alive", "stdin_keeper_exited")
+    try:
+        alive = pid_exists(server_pid)
+    except OSError:
+        _probe_failure(state, "server_alive", "server_state_unavailable")
+    if not alive:
+        _probe_failure(state, "server_alive", "server_not_alive_after_launcher")
+    state.advance("server_alive")
+
+
 def cleanup_probe_child(args: Any, max_bytes: int, phase_timeout: float) -> int:
-    activate_child_from_env()
+    state = _CleanupProbeState(args.survival_file, args.token)
+    try:
+        activate_child_from_env()
+    except OwnerActivationError:
+        _probe_failure(state, "owner_activated", "owner_activation_failed")
+    state.advance("owner_activated")
     python = args.venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
     env = dict(os.environ)
     env.update(
@@ -379,36 +583,15 @@ def cleanup_probe_child(args: Any, max_bytes: int, phase_timeout: float) -> int:
         KINOCUT_MCPB_SUPERVISED_PID_FILE=str(args.pid_file),
         KINOCUT_MCPB_SUPERVISED_TOKEN=args.token,
     )
-    launcher = subprocess.Popen(
-        [str(args.node.resolve()), str(args.launcher.resolve())],
-        env=env,
-        stdin=subprocess.PIPE,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-    )
-    if launcher.stdin is None:
-        launcher.kill()
-        raise RuntimeError("cleanup_probe_capture_unavailable")
-    deadline = time.monotonic() + phase_timeout
-    while time.monotonic() < deadline and observed_pid(args.pid_file, args.token, max_bytes) is None:
-        if launcher.poll() is not None:
-            raise RuntimeError("cleanup_probe_launcher_exited")
-        time.sleep(0.02)
-    server_pid = observed_pid(args.pid_file, args.token, max_bytes)
-    if server_pid is None:
-        raise RuntimeError("cleanup_probe_server_unobserved")
-    subprocess.Popen(
-        [sys.executable, "-c", "import time; time.sleep(60)"],
-        stdin=subprocess.DEVNULL,
-        stdout=launcher.stdin,
-        stderr=subprocess.DEVNULL,
-    )
-    launcher.stdin.close()
-    launcher.kill()
-    launcher.wait(timeout=5)
-    if not pid_exists(server_pid):
-        raise RuntimeError("cleanup_probe_server_did_not_survive_launcher")
-    _publish_ready(args.survival_file, args.token)
+    launcher = _start_probe_launcher(args, state, env)
+    server_pid = _observe_probe_server(args, state, launcher, max_bytes, phase_timeout)
+    keeper = _start_stdin_keeper(state, launcher)
+    _terminate_probe_launcher(state, launcher, keeper)
+    _confirm_probe_server(state, keeper, server_pid)
+    try:
+        state.publish_survival()
+    except (OSError, RuntimeError):
+        _probe_failure(state, "survival_published", "survival_publish_failed")
     return 0
 
 
@@ -473,5 +656,14 @@ def cleanup_probe_payload(args: Any, runner: Any, script: Path, max_bytes: int) 
                 alive = True
             if alive and not force_pid_gone(server_pid):
                 payload.update(status="failed", cleanup="failed")
+        if payload["status"] != "passed":
+            evidence = _read_cleanup_probe_failure(survival_file, token, max_bytes)
+            payload.update(
+                evidence
+                or {
+                    "failure_phase": "evidence_unavailable",
+                    "probe_exit_class": "cleanup_probe_evidence_unknown",
+                }
+            )
         shutil.rmtree(work, ignore_errors=True)
     return payload
