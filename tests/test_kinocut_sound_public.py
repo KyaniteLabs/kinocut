@@ -63,7 +63,9 @@ def test_invoke_all_discovered_operations():
     assert mix["within_tolerance"] is True
 
     loud = invoke_sound_operation("sound.qa.loudness")
-    assert loud["within_tolerance"] is True
+    assert loud["demo"] is True
+    assert loud["artifact_kind"] == "sound_loudness_measurement"
+    assert loud["within_tolerance"] is False  # Demo tone is not mastered to the default policy.
 
     asr = invoke_sound_operation("sound-qa-asr")
     assert asr["ok"] is True

@@ -10,7 +10,7 @@ from kinocut_sound.qa import (
     FakeAsrPort,
     QaError,
     build_metadata,
-    check_loudness,
+    measure_loudness,
     detect_artifacts,
     rollup_season,
     verify_script_asr,
@@ -18,9 +18,11 @@ from kinocut_sound.qa import (
 
 
 def test_loudness_report_fields():
-    wav = synthesize_tone(duration_seconds=0.3, amplitude=0.2, seed=1)
-    report = check_loudness(wav, DeliveryPolicy())
-    assert report.within_tolerance is True
+    from kinocut_sound.qa.loudness import evaluate_loudness
+
+    wav = synthesize_tone(duration_seconds=3, amplitude=0.2, seed=1)
+    report = evaluate_loudness(measure_loudness(wav), DeliveryPolicy())
+    assert report.within_tolerance is False
     assert report.integrated_lufs < 0
     assert report.true_peak_dbtp < 0
 

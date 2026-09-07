@@ -29,6 +29,23 @@ def _load_plan_json(raw: str | None) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _loudness(a, j):
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.mix_files import load_request_file
+    from kinocut.errors import MCPVideoError
+
+    try:
+        if a.request_json is None and a.project_root is None:
+            result = _invoke("sound-qa-loudness")
+        else:
+            raw = a.request_json
+            request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+            result = _invoke("sound-qa-loudness", request=request, project_root=a.project_root)
+        _out(result, j)
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+
+
 def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
     runner = CommandRunner(args, use_json)
 
@@ -75,9 +92,6 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
         except SoundContractError as exc:
             raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
-    def _loud(_a, j):
-        _out(_invoke("sound-qa-loudness"), j)
-
     def _asr(a, j):
         hashes = getattr(a, "script_hashes", None)
         duration = getattr(a, "audio_duration_seconds", 1.0)
@@ -94,6 +108,6 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
     runner.register("sound-plan-validate", _plan)
     runner.register("sound-voice-batch", _voice)
     runner.register("sound-mix-render", _mix)
-    runner.register("sound-qa-loudness", _loud)
+    runner.register("sound-qa-loudness", _loudness)
     runner.register("sound-qa-asr", _asr)
     return runner.dispatch()

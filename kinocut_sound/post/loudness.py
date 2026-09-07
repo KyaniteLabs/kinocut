@@ -100,6 +100,8 @@ class LoudnessAdapter:
             f"limit={ffmpeg_filter_number(limit_linear, digits=6)}"
             f":attack={ffmpeg_filter_number(5.0)}"
             f":release={ffmpeg_filter_number(50.0)}"
+            # Preserve loudnorm's level and compensate/flush limiter lookahead.
+            ":level=false:latency=true"
         )
         run_ffmpeg(
             [

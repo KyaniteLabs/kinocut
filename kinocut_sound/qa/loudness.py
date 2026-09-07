@@ -3,9 +3,8 @@
 from __future__ import annotations
 from dataclasses import dataclass
 from kinocut_sound.delivery import DeliveryPolicy
-from kinocut_sound.mix._wav import parse_wav
 from kinocut_sound.qa._errors import QA_LOUDNESS_FAIL, qa_error
-import math
+from kinocut_sound.qa.meter import measure_with_identity
 
 
 @dataclass(frozen=True)
@@ -18,29 +17,25 @@ class LoudnessReport:
 
 
 def measure_loudness(wav_bytes: bytes) -> tuple[float, float, float]:
-    samples, _ = parse_wav(wav_bytes)
-    if not samples:
-        return -70.0, -70.0, 0.0
-    rms = math.sqrt(sum(s * s for s in samples) / len(samples)) / 32768.0
-    peak = max(abs(s) for s in samples) / 32768.0
-    # Rough LUFS proxy from RMS
-    lufs = -0.691 + 10.0 * math.log10(max(rms * rms, 1e-12))
-    tp = 20.0 * math.log10(max(peak, 1e-12))
-    lra = min(20.0, max(0.0, abs(lufs + 16.0)))
-    return lufs, tp, lra
+    return measure_with_identity(wav_bytes)[0]
 
 
-def check_loudness(wav_bytes: bytes, delivery: DeliveryPolicy | None = None) -> LoudnessReport:
+def evaluate_loudness(metrics, delivery: DeliveryPolicy | None = None) -> LoudnessReport:
     delivery = delivery or DeliveryPolicy()
-    lufs, tp, lra = measure_loudness(wav_bytes)
-    within = True  # synthetic local fixtures use proxy meter; gate rejects only empty/invalid via parse
-    report = LoudnessReport(
+    lufs, tp, lra = metrics
+    ceiling = min(delivery.loudness.true_peak_dbtp, delivery.true_peak_ceiling_dbtp)
+    within = abs(lufs - delivery.loudness.integrated_lufs) <= delivery.loudness.tolerance_lu and tp <= ceiling
+    return LoudnessReport(
         integrated_lufs=lufs,
         true_peak_dbtp=tp,
         lra_lu=lra,
         within_tolerance=within,
         preset=str(getattr(delivery.preset, "value", delivery.preset)),
     )
-    if not within:
+
+
+def check_loudness(wav_bytes: bytes, delivery: DeliveryPolicy | None = None) -> LoudnessReport:
+    report = evaluate_loudness(measure_loudness(wav_bytes), delivery)
+    if not report.within_tolerance:
         raise qa_error("loudness outside delivery tolerance", QA_LOUDNESS_FAIL)
     return report

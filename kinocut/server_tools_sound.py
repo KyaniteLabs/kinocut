@@ -67,9 +67,16 @@ async def sound_mix_render(request: dict[str, Any] | None = None, project_root: 
 
 @mcp.tool()
 @_safe_tool
-def sound_qa_loudness() -> dict[str, Any]:
-    """Measure loudness against the default delivery policy on synthetic audio."""
-    return _result(_invoke("sound-qa-loudness"))
+async def sound_qa_loudness(request: dict[str, Any] | None = None, project_root: str | None = None) -> dict[str, Any]:
+    """Measure hashed local audio against its policy; omit inputs for a labelled demo."""
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.loudness_request import inspect_loudness_async
+    from .errors import MCPVideoError
+
+    try:
+        return _result(await inspect_loudness_async(request=request, project_root=project_root))
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()

@@ -44,11 +44,20 @@ class ClientSoundMixin:
             return invoke_sound_operation("sound-mix-render")
         return invoke_sound_operation("sound-mix-render", request=request, project_root=project_root)
 
-    def sound_qa_loudness(self) -> dict[str, Any]:
-        """Measure loudness against the default delivery policy."""
+    def sound_qa_loudness(
+        self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
+    ) -> dict[str, Any]:
+        """Measure supplied audio and report actual compliance; omit inputs for a demo."""
         from kinocut_sound.public import invoke_sound_operation
 
-        return invoke_sound_operation("sound-qa-loudness")
+        arguments: dict[str, Any] = {}
+        if request is not None or project_root is not None:
+            arguments.update(request=request, project_root=project_root)
+        if wav_bytes is not None:
+            arguments["wav_bytes"] = wav_bytes
+        if delivery is not None:
+            arguments["delivery"] = delivery
+        return invoke_sound_operation("sound-qa-loudness", **arguments)
 
     def sound_qa_asr(
         self,

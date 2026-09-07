@@ -66,3 +66,11 @@ DETERMINISM_CLASSES: frozenset[str] = frozenset({"byte_deterministic", "signal_e
 # This set may never contain a semantic field; excluding one would let two
 # logically distinct records collide on the same id.
 INFORMATIONAL_FIELDS: frozenset[str] = frozenset({"created_at"})
+
+FFMPEG_METER_VERSION_RE = re.compile(r"^ffmpeg version ([A-Za-z0-9.+_~:-]{1,80})(?:\s|$)")
+EBUR128_SUMMARY_RE = re.compile(
+    r"Integrated loudness:\s+I:\s+(\S+) LUFS\s+Threshold:\s+\S+ LUFS\s+"
+    r"Loudness range:\s+LRA:\s+(\S+) LU\s+Threshold:\s+\S+ LUFS\s+"
+    r"LRA low:\s+\S+ LUFS\s+LRA high:\s+\S+ LUFS\s+"
+    r"True peak:\s+Peak:\s+(\S+) dBFS"
+)

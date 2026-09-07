@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-from contextlib import suppress
 import shutil
 import subprocess
 import tempfile
@@ -13,6 +12,10 @@ from kinocut_sound.defaults import DEFAULT_DUB_UTTERANCE_TIMEOUT_SECONDS
 from kinocut_sound.limits import MAX_MIX_WORKER_MESSAGE_BYTES
 from kinocut_sound.mix._errors import mix_error
 from kinocut_sound.validation import ESPEAK_VERSION_RE
+from kinocut_sound._process_ownership import (
+    finish_despite_cancellation as _finish_despite_cancellation,
+    reap_process as _reap,
+)
 
 
 def resolve_engine() -> str:
@@ -62,26 +65,6 @@ def _read_diagnostics(returncode, stdout, stderr):
     output = stdout.read(MAX_MIX_WORKER_MESSAGE_BYTES + 1)
     error = stderr.read(MAX_MIX_WORKER_MESSAGE_BYTES + 1)
     return _validate_result(returncode, output, error)
-
-
-async def _finish_despite_cancellation(task):
-    """Wait for owned cleanup even if callers repeatedly cancel the waiter."""
-    cancelled = False
-    while not task.done():
-        try:
-            await asyncio.shield(task)
-        except asyncio.CancelledError:
-            cancelled = True
-    return task.result(), cancelled
-
-
-async def _reap(process):
-    if process.returncode is None:
-        # The child may exit between the returncode check and signal.
-        with suppress(ProcessLookupError):
-            process.kill()
-    _, cancelled = await _finish_despite_cancellation(asyncio.create_task(process.wait()))
-    return cancelled
 
 
 async def run_async(args: list[str], text: bytes, deadline: float) -> bytes:
