@@ -20,7 +20,7 @@ from kinocut_sound.lines import Emotion, Line, ProfileRef, Prosody
 from kinocut_sound.mix import MixClip, MixRenderer
 from kinocut_sound.mix._wav import synthesize_tone
 from kinocut_sound.public.discovery import discover_sound_capabilities
-from kinocut_sound.qa import FakeAsrPort, check_loudness, verify_script_asr
+from kinocut_sound.qa import FakeAsrPort, verify_script_asr
 from kinocut_sound.routing import Routing
 from kinocut_sound.sound_plan import PlanProvenance, SoundPlan
 from kinocut_sound.timeline import Cue, CueKind, Timeline
@@ -218,15 +218,12 @@ class SoundPythonAdapter:
             "stem_ids": list(result.stems.stems.keys()),
         }
 
-    def qa_loudness(self, wav_bytes: bytes | None = None) -> dict[str, Any]:
-        wav = wav_bytes or synthesize_tone(duration_seconds=0.2, seed=1)
-        rep = check_loudness(wav, DeliveryPolicy())
-        return {
-            "integrated_lufs": rep.integrated_lufs,
-            "true_peak_dbtp": rep.true_peak_dbtp,
-            "within_tolerance": rep.within_tolerance,
-            "preset": rep.preset,
-        }
+    def qa_loudness(
+        self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
+    ) -> dict[str, Any]:
+        from kinocut_sound.public.loudness_request import inspect_loudness
+
+        return inspect_loudness(wav_bytes, request=request, project_root=project_root, delivery=delivery)
 
     def qa_asr(
         self,
@@ -287,7 +284,17 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
             # for harmless names such as password-reset-podcast.zip.
             return result
     elif key == "sound-qa-loudness":
-        result = adapter.qa_loudness(kwargs.get("wav_bytes"))
+        from kinocut_sound.qa._errors import QA_INPUT_INVALID, qa_error
+
+        if set(kwargs) - {"wav_bytes", "request", "project_root", "delivery"}:
+            raise qa_error("unknown loudness request arguments", QA_INPUT_INVALID)
+        if ("request" in kwargs or "project_root" in kwargs) and (
+            kwargs.get("request") is None or not kwargs.get("project_root")
+        ):
+            raise qa_error("loudness requires request and project_root", QA_INPUT_INVALID)
+        if "wav_bytes" in kwargs and kwargs["wav_bytes"] is None:
+            raise qa_error("explicit audio input cannot be empty", QA_INPUT_INVALID)
+        return adapter.qa_loudness(**kwargs)
     elif key == "sound-qa-asr":
         result = adapter.qa_asr(
             script_hashes=kwargs.get("script_hashes"),
