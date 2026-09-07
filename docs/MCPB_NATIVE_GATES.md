@@ -1,6 +1,6 @@
-# MCPB native bundle gates (#125 / #257)
+# MCPB future native-only bundle gates (#125 / #257)
 
-**Status:** staged / local-only unless human publish authority is granted.
+**Status:** future native-only scope; separate from the staged user-configured-local-access product.
 
 ## Acceptance checklist (clean machine)
 

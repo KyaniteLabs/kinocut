@@ -16,6 +16,7 @@ from kinocut.multipliers import (
 def test_generative_local_default_and_paid_cap() -> None:
     local = plan_generative_last_mile("broll sky", provider="local", max_spend_usd=0.0, estimated_spend_usd=0.0)
     assert local.allowed is True or local.to_dict().get("allowed") is True
+    assert local.executable is False
     paid = plan_generative_last_mile(
         "broll sky",
         provider="paid",
@@ -23,8 +24,8 @@ def test_generative_local_default_and_paid_cap() -> None:
         estimated_spend_usd=1.5,
     )
     d = paid.to_dict() if hasattr(paid, "to_dict") else paid
-    # paid above cap must not auto-execute
-    assert d.get("allowed") is False or d.get("denied") is True or d.get("executable") is False
+    assert d.get("allowed") is False
+    assert d.get("executable") is False
 
 
 def test_otio_kinocut_ir_roundtrip_documented_scope(tmp_path: Path) -> None:
@@ -73,6 +74,6 @@ def test_tts_dub_es_first_not_translate() -> None:
     assert d.get("artifact_kind") == "tts_dub_plan"
     assert d.get("target_lang") == "es"
     assert d.get("brand_primary") is True
-    # executable tracks doctor-visible backend probe (hyperframes/edge_tts/etc.)
     assert "backend" in d
-    assert d.get("executable") is bool((d.get("backend") or {}).get("available"))
+    assert d.get("executable") is False
+    assert "adapter" in d.get("reason", "").lower()

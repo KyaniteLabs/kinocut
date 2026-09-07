@@ -34,15 +34,12 @@ def _validate_edit_policy(*, prefer: str, allow_paid_gen: bool, intent: str) -> 
         )
     if allow_paid_gen and prefer == "gen":
         raise MCPVideoError(
-            "paid generative still edit is not configured; use prefer=edit",
+            "paid generative still edit has no adapter; use prefer=edit",
             error_type="dependency_error",
             code="paid_edit_backend_unavailable",
             suggested_action={
                 "auto_fix": False,
-                "description": (
-                    "Use prefer=edit with free establish-lock matching, "
-                    "or install a configured gen backend when available."
-                ),
+                "description": "Use prefer=edit with free establish-lock matching; no paid still-generation adapter exists.",
             },
         )
     intent_text = (intent or "").strip()
@@ -85,8 +82,8 @@ def image_edit(
 
     v1 pixel path is free establish mean-RGB match only. ``intent`` is required
     audit metadata (what the agent meant); it does **not** select pixel ops.
-    Paid generative backends stay off unless explicitly enabled (then still
-    unavailable until configured).
+    Opted-in paid generation requests still fail because no paid
+    still-generation adapter exists.
     """
     intent_text = _validate_edit_policy(prefer=prefer, allow_paid_gen=allow_paid_gen, intent=intent)
     _require_edit_backend()

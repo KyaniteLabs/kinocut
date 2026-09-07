@@ -10,12 +10,14 @@ import pytest
 from kinocut.engine_audio_normalize import _measurement, normalize_audio
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffmpeg
+from kinocut.quality_guardrails import quality_check
 
 
 def test_signature_preserves_positional_api() -> None:
     params = list(inspect.signature(normalize_audio).parameters.values())
     assert [p.name for p in params[:4]] == ["input_path", "target_lufs", "lra", "output_path"]
     assert params[4].name == "true_peak_dbtp" and params[4].kind is inspect.Parameter.KEYWORD_ONLY
+    assert params[4].default == -1.5
 
 
 def test_measurement_rejects_bad_json() -> None:
@@ -110,6 +112,7 @@ def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, m
     normalize_audio(str(source), output_path=str(output))
 
     assert len(calls) == 2
+    assert all("TP=-1.5" in command[command.index("-af") + 1] for command in calls)
     assert "measured_I" not in calls[1][calls[1].index("-af") + 1]
 
 
@@ -137,3 +140,63 @@ def test_real_two_pass_output_meets_loudness_and_peak_targets(sample_video: str,
 
     assert measured["measured_I"] == pytest.approx(-14.0, abs=1.0)
     assert measured["measured_TP"] <= -1.5
+
+
+def test_real_default_margin_clears_production_audio_gate(tmp_path) -> None:
+    source = tmp_path / "paired-input.mp4"
+    old_output = tmp_path / "explicit-old.mp4"
+    default_output = tmp_path / "omitted-default.mp4"
+    tone = "aevalsrc=0.95*sin(2*PI*997*t)*between(mod(t\\,1.0)\\,0\\,0.05):s=48000:d=6"
+    _run_ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=320x180:rate=24:duration=6",
+            "-f",
+            "lavfi",
+            "-i",
+            tone,
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "veryfast",
+            "-crf",
+            "23",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "aac",
+            "-b:a",
+            "192k",
+            "-ar",
+            "48000",
+            "-ac",
+            "1",
+            "-shortest",
+            str(source),
+        ]
+    )
+    normalize_audio(str(source), target_lufs=-14.0, output_path=str(old_output), true_peak_dbtp=-1.0)
+    normalize_audio(str(source), target_lufs=-14.0, output_path=str(default_output))
+
+    measured = []
+    audio_rows = []
+    for output in (old_output, default_output):
+        _run_ffmpeg(["-v", "error", "-i", str(output), "-map", "0:v:0", "-map", "0:a:0", "-f", "null", "-"])
+        result = _run_ffmpeg(
+            ["-i", str(output), "-af", "loudnorm=I=-14:TP=-1:LRA=11:print_format=json", "-f", "null", "-"]
+        )
+        measured.append(_measurement(result.stderr))
+        report = quality_check(str(output))
+        audio_rows.append(next(row for row in report["checks"] if row["name"] == "audio_levels"))
+
+    assert all(item["measured_I"] == pytest.approx(-14.0, abs=1.0) for item in measured)
+    assert measured[0]["measured_TP"] > -1.0
+    assert measured[1]["measured_TP"] <= -1.0
+    assert audio_rows[0]["passed"] is False
+    assert audio_rows[1]["passed"] is True

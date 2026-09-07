@@ -4,8 +4,8 @@
   "name": "kinocut",
   "display_name": "Kinocut",
   "version": "1.15.1",
-  "description": "Local stdio MCP server for guarded FFmpeg video workflows.",
-  "long_description": "Kinocut exposes local video editing, analysis, workflow, rescue, and repurposing tools over MCP stdio. This MCPB package is a staged local launcher: it does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, optional AI packages, or model weights. Configure an existing Python environment with Kinocut installed, keep FFmpeg available on PATH or configured by path, and install optional AI or Hyperframes dependencies only when you intend to use those capabilities.",
+  "description": "Unsigned user-configured-local-access stdio launcher for guarded video workflows; not a sandbox.",
+  "long_description": "Kinocut exposes local video editing, analysis, workflow, rescue, and repurposing tools over MCP stdio. This unsigned MCPB package is a user-configured-local-access launcher, not a sandbox: it does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, optional AI packages, or model weights. Configure an existing Python environment with Kinocut installed, keep FFmpeg available on PATH or configured by path, and install optional AI or Hyperframes dependencies only when you intend to use those capabilities.",
   "author": {
     "name": "Kyanite Labs",
     "url": "https://kinocut.dev/"
@@ -23,7 +23,8 @@
     "ffmpeg",
     "mcp",
     "stdio",
-    "local"
+    "local",
+    "user-configured-local-access"
   ],
   "server": {
     "type": "node",

@@ -107,6 +107,10 @@ def _maintained_markdown_paths() -> list[Path]:
 
 
 EXPECTED_CLI_COMMANDS = {
+    "revideo-materialize",
+    "revideo-install",
+    "revideo-render",
+    "revideo-render-job",
     "video-verdict",
     "video-acceptance-eval",
     "video-body-swap",
@@ -277,6 +281,10 @@ EXPECTED_CLI_COMMANDS = {
 }
 
 EXPECTED_SERVER_TOOLS = {
+    "revideo_materialize",
+    "revideo_install",
+    "revideo_render",
+    "revideo_render_job",
     "video_verdict",
     "video_acceptance_eval",
     "video_body_swap",
@@ -467,7 +475,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 167
+    assert len(EXPECTED_CLI_COMMANDS) == 171
 
 
 def test_agent_cookbook_dry_run():
@@ -489,7 +497,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 196
+    assert len(tool_names) == 200
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -514,7 +522,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 196
+        assert len(tool_names) == 200
 
     asyncio.run(check_server())
 

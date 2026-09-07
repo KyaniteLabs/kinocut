@@ -4,6 +4,18 @@ on:
   workflow_dispatch:
   push:
     branches: [master]
+  pull_request:
+    paths:
+      - "kinocut/**"
+      - "mcp_video.py"
+      - "scripts/verify_onboarding_release.py"
+      - "tests/fixtures/onboarding-captions.srt"
+      - "tests/test_onboarding_release.py"
+      - "tests/test_kinocut_distribution.py"
+      - "pyproject.toml"
+      - "uv.lock"
+      - ".github/workflows/integration-smoke.yml"
+      - ".github/workflows/publish.yml"
 
 concurrency:
   group: integration-smoke-${{ github.ref }}
@@ -153,3 +165,53 @@ jobs:
           assert all(check["required"] is False for check in ai_checks)
           assert hasattr(ai_engine, "ai_transcribe")
           PY
+
+  clean-wheel-onboarding:
+    name: Clean-wheel onboarding journey
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    permissions:
+      contents: read
+    env:
+      CANDIDATE_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+          fetch-depth: 0
+          ref: ${{ github.event.pull_request.head.sha || github.sha }}
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: '3.14'
+      - name: Ensure FFmpeg with subtitle support
+        run: |
+          if ! command -v ffmpeg &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -hide_banner -filters | awk '$2 == "subtitles" && $3 == "V->V" { found=1 } END { exit !found }'
+      - name: Build exact-head wheel
+        run: |
+          python -m venv "${RUNNER_TEMP}/kinocut-build-venv"
+          "${RUNNER_TEMP}/kinocut-build-venv/bin/pip" install build
+          "${RUNNER_TEMP}/kinocut-build-venv/bin/python" -m build --wheel --outdir dist
+      - name: Install wheel in clean external venv
+        run: |
+          python -m venv "${RUNNER_TEMP}/kinocut-onboarding-venv"
+          "${RUNNER_TEMP}/kinocut-onboarding-venv/bin/pip" install dist/kinocut-*.whl
+          "${RUNNER_TEMP}/kinocut-onboarding-venv/bin/pip" check
+      - name: Run timed-caption acceptance harness
+        run: |
+          run_root="${RUNNER_TEMP}/kinocut-onboarding-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          mkdir -p "$run_root"
+          "${RUNNER_TEMP}/kinocut-onboarding-venv/bin/python" scripts/verify_onboarding_release.py \
+            --wheel "$(find dist -maxdepth 1 -name 'kinocut-*.whl' -print -quit)" \
+            --source "$run_root/source.mp4" \
+            --captions "$GITHUB_WORKSPACE/tests/fixtures/onboarding-captions.srt" \
+            --output-dir "$run_root/output" \
+            --python "${RUNNER_TEMP}/kinocut-onboarding-venv/bin/python" \
+            --kino "${RUNNER_TEMP}/kinocut-onboarding-venv/bin/kino" \
+            --candidate-commit "$CANDIDATE_SHA" \
+            --evidence-class synthetic_fixture \
+            --generate-synthetic-source
