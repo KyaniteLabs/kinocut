@@ -166,6 +166,7 @@ Receipts store workspace-relative paths only — keep specs and example receipts
    - Hyperframes `inspect`, `snapshot`, or `still` before full render.
    - For saved shorts plans: `shorts-plan-show` → `shorts-review` → `shorts-render` → `shorts-package`.
    - For thin sound: `sound-capabilities` then `sound-plan-validate` / `sound-voice-batch` / `sound-mix-render` / `sound-qa-loudness` / `sound-qa-asr` (or `kino sound <action>`).
+   - For supplied-media mixing, pass a persisted request plus explicit project root to `sound_mix_render`, or use `sound-mix-render --request-json request.json --project-root .`. Verify the ZIP receipt and decoded media; assembly is not loudness mastering or human listening acceptance. See `docs/SOUND_MIX_REQUESTS.md` for format, filesystem, cancellation and resource limits.
 4. Produce release artifacts before publishing:
    - `video-quality-check`
    - `storyboard` or `thumbnail`

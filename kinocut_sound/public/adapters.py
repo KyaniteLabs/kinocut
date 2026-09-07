@@ -178,7 +178,11 @@ class SoundPythonAdapter:
             "human_review_required": result.receipt_section.human_review_required,
         }
 
-    def mix_render(self) -> dict[str, Any]:
+    def mix_render(self, request=None, project_root=None) -> dict[str, Any]:
+        if request is not None or project_root is not None:
+            from kinocut_sound.public.mix_job import render_mix_request
+
+            return render_mix_request(request, project_root)
         timeline = Timeline(
             cues=(
                 Cue(
@@ -195,6 +199,7 @@ class SoundPythonAdapter:
             clips=(MixClip(cue_id="line_1", wav_bytes=synthesize_tone(duration_seconds=0.2, seed=2)),),
         )
         return {
+            "demo": True,
             "declared_duration_seconds": result.declared_duration_seconds,
             "measured_duration_seconds": result.measured_duration_seconds,
             "within_tolerance": result.within_tolerance,
@@ -249,7 +254,17 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
     elif key == "sound-voice-batch":
         result = adapter.voice_batch(kwargs.get("plan") or kwargs.get("plan_json"))
     elif key == "sound-mix-render":
-        result = adapter.mix_render()
+        from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
+
+        if set(kwargs) - {"request", "project_root"} or (kwargs and kwargs.get("request") is None):
+            raise mix_error("mix requires a request and project_root or no arguments for the demo", MIX_INPUT_INVALID)
+        result = adapter.mix_render(**kwargs)
+        if kwargs:
+            # The supplied-media response contains typed relative paths and
+            # hashes only. A caller's filename is not leaked host context;
+            # legacy substring checks after publication would report failure
+            # for harmless names such as password-reset-podcast.zip.
+            return result
     elif key == "sound-qa-loudness":
         result = adapter.qa_loudness(kwargs.get("wav_bytes"))
     elif key == "sound-qa-asr":

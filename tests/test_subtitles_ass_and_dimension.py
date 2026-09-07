@@ -250,9 +250,13 @@ def test_render_authored_ass_position_is_centered(solid_aspect_video, authored_a
 
 @requires_ffmpeg
 @pytest.mark.parametrize("fmt", ["srt", "vtt"])
-def test_render_dimension_aware_caption_renders_in_frame(fmt, solid_aspect_video, srt_file, vtt_file, tmp_path):
+def test_render_dimension_aware_caption_renders_in_frame(
+    fmt, solid_aspect_video, srt_file, vtt_file, tmp_path, monkeypatch
+):
     from kinocut.engine_subtitles import subtitles
+    from tests.subtitle_capture import SubtitleCapture
 
+    capture = SubtitleCapture(tmp_path, monkeypatch)
     sub = srt_file if fmt == "srt" else vtt_file
     path, _dims = solid_aspect_video
     out = str(tmp_path / f"o_{fmt}.mp4")
@@ -261,6 +265,7 @@ def test_render_dimension_aware_caption_renders_in_frame(fmt, solid_aspect_video
     dst = _extract_ppm(out, 1.0)
     bottom = _region_peak_diff(src, dst, (0.10, 0.62, 0.90, 0.99))
     top = _region_peak_diff(src, dst, (0.0, 0.0, 1.0, 0.12))
+    capture.pixels(path, out, _dims, bottom, top)
     assert bottom > 80  # caption is rendered in-frame at the bottom for this aspect
     assert top < 40  # header region untouched
 
