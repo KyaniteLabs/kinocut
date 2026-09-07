@@ -20,7 +20,7 @@ from kinocut_sound.mix import (
     render_silence,
     build_stem_bundle,
 )
-from kinocut_sound.mix._wav import duration_seconds, synthesize_tone
+from kinocut_sound.mix._wav import duration_seconds, parse_wav, synthesize_tone
 from kinocut_sound.script_parser import SilenceQuality
 from kinocut_sound.timeline import Cue, CueKind, Timeline
 
@@ -123,7 +123,7 @@ def test_stem_recombine_roundtrip():
 
 
 def test_mix_renderer_duration_proof_and_stems():
-    timeline = _timeline()
+    timeline = _timeline().model_copy(update={"tail_seconds": 0.1})
     clips = (
         MixClip(cue_id="line_1", wav_bytes=synthesize_tone(duration_seconds=0.5, seed=10), stem_id="dialogue"),
         MixClip(cue_id="line_2", wav_bytes=synthesize_tone(duration_seconds=0.5, seed=11), stem_id="dialogue"),
@@ -144,6 +144,51 @@ def test_mix_renderer_duration_proof_and_stems():
     assert result.declared_duration_seconds >= 1.4
     assert set(result.stems.stems) >= {"dialogue", "ambience", "sfx"}
     assert result.seam_report.count >= 1
+
+
+@pytest.mark.parametrize("renderer_tail", [0.0, 0.1])
+def test_mix_renderer_does_not_add_tail_twice(renderer_tail):
+    timeline = Timeline(
+        cues=(
+            Cue(
+                cue_id="line",
+                start_seconds=0.0,
+                duration_seconds=0.2,
+                kind=CueKind.LINE,
+                source_ref="voice/line.wav",
+            ),
+        ),
+        tail_seconds=0.1,
+    )
+    result = MixRenderer(tail_seconds=renderer_tail).render(
+        timeline=timeline,
+        clips=(MixClip(cue_id="line", wav_bytes=synthesize_tone(duration_seconds=0.2)),),
+    )
+    assert result.declared_duration_seconds == timeline.authoritative_duration_seconds
+    samples, rate = parse_wav(result.master_wav)
+    assert len(samples) == round(timeline.total_seconds * rate)
+    assert not any(samples[round(0.2 * rate) :])
+    assert result.within_tolerance
+
+
+def test_mix_renderer_rejects_tail_not_declared_on_timeline():
+    with pytest.raises(MixError) as exc:
+        MixRenderer(tail_seconds=0.1).render(
+            timeline=_timeline(),
+            clips=(
+                MixClip(cue_id="line_1", wav_bytes=synthesize_tone(duration_seconds=0.5)),
+                MixClip(cue_id="line_2", wav_bytes=synthesize_tone(duration_seconds=0.5)),
+                MixClip(cue_id="sfx_1", wav_bytes=synthesize_tone(duration_seconds=0.3)),
+            ),
+        )
+    assert exc.value.code == "mix_duration_mismatch"
+
+
+@pytest.mark.parametrize("tail", [-0.1, float("nan"), float("inf"), float("-inf"), True, None, "invalid"])
+def test_mix_renderer_rejects_invalid_tail(tail):
+    with pytest.raises(MixError) as exc:
+        MixRenderer(tail_seconds=tail)
+    assert exc.value.code == "mix_input_invalid"
 
 
 def test_mix_export_rejects_traversal():

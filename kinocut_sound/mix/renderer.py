@@ -5,6 +5,7 @@ from __future__ import annotations
 from array import array
 from dataclasses import dataclass
 from itertools import pairwise
+from math import isfinite
 
 from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS
 from kinocut_sound.delivery import DeliveryPolicy, StemLayout
@@ -20,7 +21,7 @@ from kinocut_sound.mix._wav import (
     pcm_to_wav,
 )
 from kinocut_sound.mix.ducking import duck_bed_under_speech
-from kinocut_sound.mix.placement import PlacementPlan, place_clips
+from kinocut_sound.mix.placement import PlacedClip, PlacementPlan, place_clips
 from kinocut_sound.mix.seam import SeamReport, SeamEvent
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
 from kinocut_sound.timeline import Timeline
@@ -61,7 +62,11 @@ def _overlay(canvas: array, clip: array, start: int) -> None:
 
 
 class MixRenderer:
-    """Place clips onto an authoritative timeline and emit stems + master."""
+    """Place clips onto an authoritative timeline and emit stems + master.
+
+    Declare output padding on ``Timeline.tail_seconds``. A nonzero legacy
+    renderer ``tail_seconds`` must match that declaration; it is not additive.
+    """
 
     def __init__(
         self,
@@ -74,7 +79,12 @@ class MixRenderer:
             raise mix_error("sample_rate_hz must be positive", MIX_INPUT_INVALID)
         self.sample_rate_hz = sample_rate_hz
         self.gap_tolerance_seconds = gap_tolerance_seconds
-        self.tail_seconds = max(0.0, float(tail_seconds))
+        try:
+            self.tail_seconds = float(tail_seconds)
+        except (TypeError, ValueError, OverflowError) as exc:
+            raise mix_error("tail_seconds must be finite and nonnegative", MIX_INPUT_INVALID) from exc
+        if isinstance(tail_seconds, bool) or not isfinite(self.tail_seconds) or self.tail_seconds < 0:
+            raise mix_error("tail_seconds must be finite and nonnegative", MIX_INPUT_INVALID)
 
     def render(
         self,
@@ -96,7 +106,9 @@ class MixRenderer:
             stem_for_cue=stem_for,
             gap_tolerance_seconds=self.gap_tolerance_seconds,
         )
-        declared = placement.timeline_duration_seconds + self.tail_seconds
+        if self.tail_seconds and self.tail_seconds != timeline.tail_seconds:
+            raise mix_error("renderer tail must match Timeline.tail_seconds", MIX_DURATION_MISMATCH)
+        declared = placement.timeline_duration_seconds
         total_samples = max(1, round(declared * self.sample_rate_hz))
 
         stem_ids = delivery.stems.stem_ids or ("dialogue", "ambience", "sfx")
@@ -105,14 +117,9 @@ class MixRenderer:
 
         # Optional consecutive-line crossfade: preprocess ordered dialogue clips
         ordered = sorted(placement.placements, key=lambda p: p.start_seconds)
-        rendered_wavs: dict[str, bytes] = {c.cue_id: c.wav_bytes for c in clips}
         if crossfade_seconds > 0 and len(ordered) >= 2:
             for left, right in pairwise(ordered):
-                if (
-                    left.stem_id == right.stem_id == "dialogue"
-                    and left.cue_id in rendered_wavs
-                    and right.cue_id in rendered_wavs
-                ):
+                if left.stem_id == right.stem_id == "dialogue" and left.cue_id in clip_map and right.cue_id in clip_map:
                     # Only record seam; actual overlay uses truncated windows.
                     seams.append(
                         SeamEvent(
@@ -124,41 +131,9 @@ class MixRenderer:
                         )
                     )
 
-        for placed in ordered:
-            clip = clip_map.get(placed.cue_id)
-            if clip is None:
-                continue
-            samples, rate = parse_wav(rendered_wavs[placed.cue_id])
-            if rate != self.sample_rate_hz:
-                raise mix_error("clip sample rate mismatch", MIX_INPUT_INVALID)
-            window_n = round(placed.duration_seconds * self.sample_rate_hz)
-            if len(samples) < window_n:
-                padded = array("h", samples)
-                padded.extend([0] * (window_n - len(samples)))
-                samples = padded
-            else:
-                samples = samples[:window_n]
-            start = round(placed.start_seconds * self.sample_rate_hz)
-            stem = placed.stem_id if placed.stem_id in canvases else stem_ids[0]
-            _overlay(canvases[stem], samples, start)
-
+        self._render_clips(ordered, clip_map, canvases, stem_ids)
         if bed_wav is not None:
-            bed_samples, bed_rate = parse_wav(bed_wav)
-            if bed_rate != self.sample_rate_hz:
-                raise mix_error("bed sample rate mismatch", MIX_INPUT_INVALID)
-            if duck_bed and "dialogue" in canvases:
-                # Build speech master for ducking sidechain
-                speech = pcm_to_wav(canvases["dialogue"], sample_rate_hz=self.sample_rate_hz)
-                # Extend/truncate bed to timeline
-                bed_canvas = _blank(total_samples)
-                _overlay(bed_canvas, bed_samples, 0)
-                bed_full = pcm_to_wav(bed_canvas, sample_rate_hz=self.sample_rate_hz)
-                ducked = duck_bed_under_speech(speech, bed_full)
-                canvases["ambience"] = parse_wav(ducked)[0]
-            else:
-                if "ambience" not in canvases:
-                    canvases["ambience"] = _blank(total_samples)
-                _overlay(canvases["ambience"], bed_samples, 0)
+            self._add_bed(bed_wav, canvases, total_samples, duck_bed)
 
         stem_wavs = {sid: pcm_to_wav(samples, sample_rate_hz=self.sample_rate_hz) for sid, samples in canvases.items()}
         layout = StemLayout(stem_ids=tuple(sorted(stem_wavs)))
@@ -180,6 +155,47 @@ class MixRenderer:
             seam_report=SeamReport(events=tuple(seams)),
             placement=placement,
         )
+
+    def _render_clips(
+        self,
+        ordered: list[PlacedClip],
+        clip_map: dict[str, MixClip],
+        canvases: dict[str, array],
+        stem_ids: tuple[str, ...],
+    ) -> None:
+        for placed in ordered:
+            clip = clip_map.get(placed.cue_id)
+            if clip is None:
+                continue
+            samples, rate = parse_wav(clip.wav_bytes)
+            if rate != self.sample_rate_hz:
+                raise mix_error("clip sample rate mismatch", MIX_INPUT_INVALID)
+            window_n = round(placed.duration_seconds * self.sample_rate_hz)
+            if len(samples) < window_n:
+                padded = array("h", samples)
+                padded.extend([0] * (window_n - len(samples)))
+                samples = padded
+            else:
+                samples = samples[:window_n]
+            start = round(placed.start_seconds * self.sample_rate_hz)
+            stem = placed.stem_id if placed.stem_id in canvases else stem_ids[0]
+            _overlay(canvases[stem], samples, start)
+
+    def _add_bed(self, bed_wav: bytes, canvases: dict[str, array], total_samples: int, duck_bed: bool) -> None:
+        bed_samples, bed_rate = parse_wav(bed_wav)
+        if bed_rate != self.sample_rate_hz:
+            raise mix_error("bed sample rate mismatch", MIX_INPUT_INVALID)
+        if duck_bed and "dialogue" in canvases:
+            speech = pcm_to_wav(canvases["dialogue"], sample_rate_hz=self.sample_rate_hz)
+            bed_canvas = _blank(total_samples)
+            _overlay(bed_canvas, bed_samples, 0)
+            bed_full = pcm_to_wav(bed_canvas, sample_rate_hz=self.sample_rate_hz)
+            ducked = duck_bed_under_speech(speech, bed_full)
+            canvases["ambience"] = parse_wav(ducked)[0]
+        else:
+            if "ambience" not in canvases:
+                canvases["ambience"] = _blank(total_samples)
+            _overlay(canvases["ambience"], bed_samples, 0)
 
     def export_master(
         self,
