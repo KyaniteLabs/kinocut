@@ -28,22 +28,37 @@ _TOKEN = re.compile(r"[0-9a-f]{64}")
 _CLEANUP_PHASES = (
     "owner_activated",
     "launcher_started",
-    "server_observed",
+    "interpreter_observed",
+    "interpreter_alive_before_close",
     "stdin_keeper_started",
+    "interpreter_alive_after_transfer",
     "launcher_terminated",
-    "server_alive",
+    "interpreter_alive_after_launcher",
+    "owner_membership_confirmed",
     "survival_published",
 )
 _CLEANUP_FAILURES_BY_PHASE = {
     "owner_activated": frozenset({"owner_activation_failed"}),
     "launcher_started": frozenset({"launcher_not_startable", "launcher_capture_unavailable", "launcher_exited"}),
-    "server_observed": frozenset({"launcher_exited", "server_unobserved"}),
+    "interpreter_observed": frozenset({"launcher_exited", "interpreter_unobserved"}),
+    "interpreter_alive_before_close": frozenset(
+        {"interpreter_state_unavailable", "interpreter_not_alive_before_close"}
+    ),
     "stdin_keeper_started": frozenset({"stdin_keeper_not_startable", "stdin_keeper_exited"}),
+    "interpreter_alive_after_transfer": frozenset(
+        {"stdin_keeper_exited", "interpreter_state_unavailable", "interpreter_not_alive_after_transfer"}
+    ),
     "launcher_terminated": frozenset({"stdin_keeper_exited", "launcher_terminate_failed"}),
-    "server_alive": frozenset({"stdin_keeper_exited", "server_state_unavailable", "server_not_alive_after_launcher"}),
+    "interpreter_alive_after_launcher": frozenset(
+        {"stdin_keeper_exited", "interpreter_state_unavailable", "interpreter_not_alive_after_launcher"}
+    ),
+    "owner_membership_confirmed": frozenset(
+        {"owner_membership_unavailable", "interpreter_not_in_owner", "identity_close_failed"}
+    ),
     "survival_published": frozenset({"survival_publish_failed"}),
 }
 _CLEANUP_STATE_MAX = 1024
+_WINDOWS_HOST = os.name == "nt"
 
 
 class OwnerActivationError(RuntimeError):
@@ -135,6 +150,9 @@ def _kernel32() -> Any:
     kernel.OpenProcess.restype = ctypes.c_void_p
     kernel.GetExitCodeProcess.argtypes = [ctypes.c_void_p, ctypes.POINTER(ctypes.c_ulong)]
     kernel.GetExitCodeProcess.restype = ctypes.c_int
+    if hasattr(kernel, "IsProcessInJob"):
+        kernel.IsProcessInJob.argtypes = [ctypes.c_void_p, ctypes.c_void_p, ctypes.POINTER(ctypes.c_int)]
+        kernel.IsProcessInJob.restype = ctypes.c_int
     return kernel
 
 
@@ -334,20 +352,28 @@ class _CleanupProbeState:
         }
         _write_cleanup_state(self.path, json.dumps(payload, separators=(",", ":")))
 
-    def publish_survival(self) -> None:
+    def publish_survival(self, pid: int) -> None:
         if self.failed or self._expected() != "survival_published":
             raise RuntimeError("cleanup_probe_state_sequence_invalid")
-        _write_cleanup_state(self.path, self.token)
+        if isinstance(pid, bool) or not isinstance(pid, int) or pid <= 0:
+            raise RuntimeError("cleanup_probe_state_sequence_invalid")
+        payload = {"token": self.token, "pid": pid, "phase": "survival_published"}
+        _write_cleanup_state(self.path, json.dumps(payload, separators=(",", ":")))
         self.phase = "survival_published"
 
 
-def _read_cleanup_probe_failure(path: Path, token: str, max_bytes: int) -> dict[str, str] | None:
+def _read_cleanup_state(path: Path, max_bytes: int) -> dict[str, Any] | None:
     try:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > min(max_bytes, _CLEANUP_STATE_MAX):
             return None
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError, json.JSONDecodeError, UnicodeDecodeError):
         return None
+    return payload if isinstance(payload, dict) else None
+
+
+def _read_cleanup_probe_failure(path: Path, token: str, max_bytes: int) -> dict[str, str] | None:
+    payload = _read_cleanup_state(path, max_bytes)
     if not isinstance(payload, dict) or set(payload) != {
         "token",
         "phase",
@@ -363,12 +389,26 @@ def _read_cleanup_probe_failure(path: Path, token: str, max_bytes: int) -> dict[
         payload.get("token") != token
         or not isinstance(failure_phase, str)
         or not isinstance(classification, str)
-        or failure_phase not in _CLEANUP_PHASES
         or classification not in _CLEANUP_FAILURES_BY_PHASE.get(failure_phase, ())
         or completed + 1 != _CLEANUP_PHASES.index(failure_phase)
     ):
         return None
     return {"failure_phase": failure_phase, "probe_exit_class": classification}
+
+
+def _read_cleanup_probe_success(path: Path, token: str, max_bytes: int) -> int | None:
+    payload = _read_cleanup_state(path, max_bytes)
+    if not isinstance(payload, dict) or set(payload) != {"token", "pid", "phase"}:
+        return None
+    pid = payload.get("pid")
+    valid = (
+        payload.get("token") == token
+        and payload.get("phase") == "survival_published"
+        and isinstance(pid, int)
+        and not isinstance(pid, bool)
+        and pid > 0
+    )
+    return pid if valid else None
 
 
 def activate_child_from_env() -> str:
@@ -412,17 +452,7 @@ def _activate_windows_child(kernel: Any, name: str, ready: Path, token: str) -> 
 
 def pid_exists(pid: int) -> bool:
     if os.name == "nt":
-        kernel = _kernel32()
-        handle = kernel.OpenProcess(0x1000, False, pid)
-        if not handle:
-            if ctypes.get_last_error() == 87:
-                return False
-            raise OSError("process_state_unavailable")
-        exit_code = ctypes.c_ulong()
-        try:
-            return bool(kernel.GetExitCodeProcess(handle, ctypes.byref(exit_code))) and exit_code.value == 259
-        finally:
-            kernel.CloseHandle(handle)
+        raise OSError("process_state_unavailable")
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
@@ -436,17 +466,65 @@ def wait_pid_gone(pid: int, timeout: float = 5) -> bool:
     return _wait_until(lambda: not pid_exists(pid), timeout)
 
 
-def observed_pid(path: Path, token: str, max_bytes: int) -> int | None:
+def observed_interpreter_pid(path: Path, token: str, max_bytes: int) -> int | None:
     try:
         if path.is_symlink() or not path.is_file() or path.stat().st_size > max_bytes:
             return None
         payload = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, ValueError, json.JSONDecodeError):
         return None
-    if not isinstance(payload, dict) or payload.get("token") != token:
+    if (
+        not isinstance(payload, dict)
+        or set(payload) != {"token", "pid", "role", "phase"}
+        or payload.get("token") != token
+        or payload.get("role") != "mcp_interpreter"
+        or payload.get("phase") != "mcp_run_boundary"
+    ):
         return None
     pid = payload.get("pid")
-    return pid if isinstance(pid, int) and pid > 0 else None
+    return pid if isinstance(pid, int) and not isinstance(pid, bool) and pid > 0 else None
+
+
+class _InterpreterIdentity:
+    def __init__(self, pid: int, *, kernel: Any | None = None, windows: bool | None = None) -> None:
+        self.pid = pid
+        self.windows = os.name == "nt" if windows is None else windows
+        self.kernel = (kernel or _kernel32()) if self.windows else None
+        self.process_handle = self.kernel.OpenProcess(0x1000, False, pid) if self.windows else None
+        self.job_handle = None
+        if self.windows and not self.process_handle:
+            raise OSError("process_state_unavailable")
+
+    def alive(self) -> bool:
+        if not self.windows:
+            return pid_exists(self.pid)
+        exit_code = ctypes.c_ulong()
+        if not self.kernel.GetExitCodeProcess(self.process_handle, ctypes.byref(exit_code)):
+            raise OSError("process_state_unavailable")
+        return exit_code.value == 259
+
+    def in_owner(self, owner_name: str) -> bool:
+        if not self.windows:
+            try:
+                return os.getpgid(self.pid) == os.getpgrp()
+            except (OSError, ProcessLookupError) as error:
+                raise OSError("owner_membership_unavailable") from error
+        self.job_handle = self.kernel.OpenJobObjectW(0x0004, False, owner_name)
+        if not self.job_handle:
+            raise OSError("owner_membership_unavailable")
+        member = ctypes.c_int()
+        if not self.kernel.IsProcessInJob(self.process_handle, self.job_handle, ctypes.byref(member)):
+            raise OSError("owner_membership_unavailable")
+        return bool(member.value)
+
+    def close(self) -> bool:
+        closed = True
+        for attribute in ("job_handle", "process_handle"):
+            handle = getattr(self, attribute)
+            if handle:
+                setattr(self, attribute, None)
+                closed = bool(self.kernel.CloseHandle(handle)) and closed
+        return closed
 
 
 def force_pid_gone(pid: int) -> bool:
@@ -508,20 +586,43 @@ def _start_probe_launcher(args: Any, state: _CleanupProbeState, env: dict[str, s
     return launcher
 
 
-def _observe_probe_server(
-    args: Any, state: _CleanupProbeState, launcher: subprocess.Popen[bytes], max_bytes: int, timeout: float
+def _observe_probe_interpreter(
+    path: Path,
+    token: str,
+    state: _CleanupProbeState,
+    launcher: subprocess.Popen[bytes],
+    max_bytes: int,
+    timeout: float,
 ) -> int:
     deadline = time.monotonic() + timeout
-    server_pid = observed_pid(args.pid_file, args.token, max_bytes)
-    while time.monotonic() < deadline and server_pid is None:
+    interpreter_pid = observed_interpreter_pid(path, token, max_bytes)
+    while time.monotonic() < deadline and interpreter_pid is None:
         if launcher.poll() is not None:
-            _probe_failure(state, "server_observed", "launcher_exited")
+            _probe_failure(state, "interpreter_observed", "launcher_exited")
         time.sleep(0.02)
-        server_pid = observed_pid(args.pid_file, args.token, max_bytes)
-    if server_pid is None:
-        _probe_failure(state, "server_observed", "server_unobserved")
-    state.advance("server_observed")
-    return server_pid
+        interpreter_pid = observed_interpreter_pid(path, token, max_bytes)
+    if interpreter_pid is None:
+        _probe_failure(state, "interpreter_observed", "interpreter_unobserved")
+    state.advance("interpreter_observed")
+    return interpreter_pid
+
+
+def _require_interpreter_alive(
+    state: _CleanupProbeState,
+    identity: _InterpreterIdentity,
+    phase: str,
+    dead_classification: str,
+    keeper: subprocess.Popen[bytes] | None = None,
+) -> None:
+    if keeper is not None and keeper.poll() is not None:
+        _probe_failure(state, phase, "stdin_keeper_exited")
+    try:
+        alive = identity.alive()
+    except OSError:
+        _probe_failure(state, phase, "interpreter_state_unavailable")
+    if not alive:
+        _probe_failure(state, phase, dead_classification)
+    state.advance(phase)
 
 
 def _start_stdin_keeper(state: _CleanupProbeState, launcher: subprocess.Popen[bytes]) -> subprocess.Popen[bytes]:
@@ -556,16 +657,16 @@ def _terminate_probe_launcher(
     state.advance("launcher_terminated")
 
 
-def _confirm_probe_server(state: _CleanupProbeState, keeper: subprocess.Popen[bytes], server_pid: int) -> None:
-    if keeper.poll() is not None:
-        _probe_failure(state, "server_alive", "stdin_keeper_exited")
+def _confirm_owner_membership(state: _CleanupProbeState, identity: _InterpreterIdentity) -> None:
     try:
-        alive = pid_exists(server_pid)
+        member = identity.in_owner(os.environ.get(OWNER_NAME_ENV, ""))
     except OSError:
-        _probe_failure(state, "server_alive", "server_state_unavailable")
-    if not alive:
-        _probe_failure(state, "server_alive", "server_not_alive_after_launcher")
-    state.advance("server_alive")
+        _probe_failure(state, "owner_membership_confirmed", "owner_membership_unavailable")
+    if not member:
+        _probe_failure(state, "owner_membership_confirmed", "interpreter_not_in_owner")
+    if not identity.close():
+        _probe_failure(state, "owner_membership_confirmed", "identity_close_failed")
+    state.advance("owner_membership_confirmed")
 
 
 def cleanup_probe_child(args: Any, max_bytes: int, phase_timeout: float) -> int:
@@ -576,22 +677,56 @@ def cleanup_probe_child(args: Any, max_bytes: int, phase_timeout: float) -> int:
         _probe_failure(state, "owner_activated", "owner_activation_failed")
     state.advance("owner_activated")
     python = args.venv / ("Scripts/python.exe" if os.name == "nt" else "bin/python")
+    owner_root = Path(os.environ[OWNER_READY_ENV]).parent
+    interpreter_file = owner_root / "interpreter.json"
+    launcher_child_file = owner_root / "launcher-child.json"
     env = dict(os.environ)
     env.update(
         KINOCUT_MCPB_PYTHON=str(python),
         KINOCUT_MCPB_SUPERVISED_PROCESS_TREE="1",
-        KINOCUT_MCPB_SUPERVISED_PID_FILE=str(args.pid_file),
+        KINOCUT_MCPB_SUPERVISED_PID_FILE=str(launcher_child_file),
         KINOCUT_MCPB_SUPERVISED_TOKEN=args.token,
+        KINOCUT_MCPB_INTERPRETER_FILE=str(interpreter_file),
+        KINOCUT_MCPB_INTERPRETER_TOKEN=args.token,
     )
     launcher = _start_probe_launcher(args, state, env)
-    server_pid = _observe_probe_server(args, state, launcher, max_bytes, phase_timeout)
-    keeper = _start_stdin_keeper(state, launcher)
-    _terminate_probe_launcher(state, launcher, keeper)
-    _confirm_probe_server(state, keeper, server_pid)
+    interpreter_pid = _observe_probe_interpreter(
+        interpreter_file, args.token, state, launcher, max_bytes, phase_timeout
+    )
+    identity: _InterpreterIdentity | None = None
     try:
-        state.publish_survival()
+        try:
+            identity = _InterpreterIdentity(interpreter_pid)
+        except OSError:
+            _probe_failure(state, "interpreter_alive_before_close", "interpreter_state_unavailable")
+        _require_interpreter_alive(
+            state, identity, "interpreter_alive_before_close", "interpreter_not_alive_before_close"
+        )
+        keeper = _start_stdin_keeper(state, launcher)
+        _require_interpreter_alive(
+            state,
+            identity,
+            "interpreter_alive_after_transfer",
+            "interpreter_not_alive_after_transfer",
+            keeper,
+        )
+        _terminate_probe_launcher(state, launcher, keeper)
+        _require_interpreter_alive(
+            state,
+            identity,
+            "interpreter_alive_after_launcher",
+            "interpreter_not_alive_after_launcher",
+            keeper,
+        )
+        _confirm_owner_membership(state, identity)
+        state.publish_survival(interpreter_pid)
     except (OSError, RuntimeError):
-        _probe_failure(state, "survival_published", "survival_publish_failed")
+        if state._expected() == "survival_published" and not state.failed:
+            _probe_failure(state, "survival_published", "survival_publish_failed")
+        raise
+    finally:
+        if identity is not None:
+            identity.close()
     return 0
 
 
@@ -600,7 +735,7 @@ def cleanup_probe_payload(args: Any, runner: Any, script: Path, max_bytes: int) 
     pid_file = work / "server.json"
     survival_file = work / "server-survived"
     token = secrets.token_hex(32)
-    server_pid = None
+    interpreter_pid = None
     payload = {
         "artifact_kind": "mcpb_cleanup_probe",
         "os": args.os,
@@ -633,28 +768,24 @@ def cleanup_probe_payload(args: Any, runner: Any, script: Path, max_bytes: int) 
     except RuntimeError as error:
         payload["exit_class"] = getattr(error, "classification", "cleanup_probe_failed")
         payload["cleanup"] = getattr(error, "cleanup", "failed")
-        server_pid = observed_pid(pid_file, token, max_bytes)
-        survived = _read_ready(survival_file, token)
-        try:
-            clean = server_pid is not None and wait_pid_gone(server_pid)
-        except OSError:
-            clean = False
-        if (
-            payload["exit_class"] == "descendant_survived_command"
-            and payload["cleanup"] == "passed"
-            and survived
-            and clean
-        ):
+        interpreter_pid = _read_cleanup_probe_success(survival_file, token, max_bytes)
+        clean = interpreter_pid is not None and _WINDOWS_HOST
+        if interpreter_pid is not None and not _WINDOWS_HOST:
+            try:
+                clean = wait_pid_gone(interpreter_pid)
+            except OSError:
+                clean = False
+        if payload["exit_class"] == "descendant_survived_command" and payload["cleanup"] == "passed" and clean:
             payload.update(status="passed", false_success_suppressed="passed")
     finally:
-        if server_pid is None:
-            server_pid = observed_pid(pid_file, token, max_bytes)
-        if server_pid is not None:
+        if interpreter_pid is None:
+            interpreter_pid = _read_cleanup_probe_success(survival_file, token, max_bytes)
+        if interpreter_pid is not None and not _WINDOWS_HOST:
             try:
-                alive = pid_exists(server_pid)
+                alive = pid_exists(interpreter_pid)
             except OSError:
                 alive = True
-            if alive and not force_pid_gone(server_pid):
+            if alive and not force_pid_gone(interpreter_pid):
                 payload.update(status="failed", cleanup="failed")
         if payload["status"] != "passed":
             evidence = _read_cleanup_probe_failure(survival_file, token, max_bytes)

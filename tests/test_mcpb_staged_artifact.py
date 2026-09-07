@@ -94,11 +94,10 @@ def test_cleanup_probe_records_observed_launcher_loss_and_suppresses_false_succe
     monkeypatch.setattr(owner_helper, "pid_exists", lambda _pid: False)
 
     def fail_after_observation(command: list[str], **_kwargs: object) -> None:
-        pid_file = Path(command[command.index("--pid-file") + 1])
         survival_file = Path(command[command.index("--survival-file") + 1])
         token = command[command.index("--token") + 1]
-        pid_file.write_text(json.dumps({"token": token, "pid": 12345}), encoding="utf-8")
-        survival_file.write_text(token, encoding="utf-8")
+        success = {"token": token, "pid": 12345, "phase": "survival_published"}
+        survival_file.write_text(json.dumps(success), encoding="utf-8")
         raise helper.BoundedProcessError("descendant_survived_command", "passed")
 
     monkeypatch.setattr(helper, "_run_owned", fail_after_observation)

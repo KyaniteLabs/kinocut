@@ -286,7 +286,7 @@ def test_launcher_hands_off_to_exact_configured_python_as_one_executable(tmp_pat
 
 
 @pytest.mark.skipif(NODE is None or os.name == "nt", reason="POSIX process-group fixture required")
-def test_supervised_launcher_keeps_mcp_child_in_owner_group_and_records_identity(tmp_path: Path) -> None:
+def test_supervised_launcher_keeps_child_in_owner_group_and_records_redirector_identity(tmp_path: Path) -> None:
     candidate = tmp_path / "supervised-python"
     _write_probe_fixture(
         candidate,
@@ -322,7 +322,12 @@ def test_supervised_launcher_keeps_mcp_child_in_owner_group_and_records_identity
             time.sleep(0.02)
         assert observed.is_file()
         payload = json.loads(observed.read_text(encoding="utf-8"))
-        assert payload["token"] == token
+        assert payload == {
+            "token": token,
+            "pid": payload["pid"],
+            "role": "launcher_child",
+            "phase": "spawned",
+        }
         assert os.getpgid(payload["pid"]) == os.getpgid(launcher.pid)
     finally:
         os.killpg(launcher.pid, 9)

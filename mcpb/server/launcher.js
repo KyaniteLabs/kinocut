@@ -195,7 +195,7 @@ function forwardTermination(child, supervised) {
   }
 }
 
-function recordSupervisedChild(child) {
+function recordSupervisedLauncherChild(child) {
   const destination = process.env.KINOCUT_MCPB_SUPERVISED_PID_FILE?.trim();
   const token = process.env.KINOCUT_MCPB_SUPERVISED_TOKEN?.trim();
   if (!destination && !token) return;
@@ -204,7 +204,11 @@ function recordSupervisedChild(child) {
   }
   const temporary = `${destination}.${process.pid}.tmp`;
   try {
-    writeFileSync(temporary, JSON.stringify({ token, pid: child.pid }), { encoding: "utf8", flag: "wx", mode: 0o600 });
+    writeFileSync(
+      temporary,
+      JSON.stringify({ token, pid: child.pid, role: "launcher_child", phase: "spawned" }),
+      { encoding: "utf8", flag: "wx", mode: 0o600 },
+    );
     renameSync(temporary, destination);
   } catch (error) {
     try { unlinkSync(temporary); } catch {}
@@ -231,7 +235,7 @@ async function main() {
     const supervised = process.env.KINOCUT_MCPB_SUPERVISED_PROCESS_TREE === "1";
     const child = launch(command, env, supervised);
     try {
-      if (supervised) recordSupervisedChild(child);
+      if (supervised) recordSupervisedLauncherChild(child);
     } catch {
       stopServer(child, "SIGKILL", supervised);
       console.error("Kinocut MCPB process ownership could not be recorded.");
