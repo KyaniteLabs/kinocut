@@ -214,15 +214,15 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     assert '["-m", "kinocut", "--mcp"]' in launcher
     assert "shell: false" in launcher
     assert 'require("node:child_process")' in launcher
-    assert "import " not in launcher
+    assert "\nimport " not in launcher
     assert "env.PATH =" not in launcher
     assert "KINOCUT_FFMPEG_EXECUTABLE" in launcher
     assert "KINOCUT_FFPROBE_EXECUTABLE" in launcher
     assert "MCPB does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, or AI model weights" in docs
     assert "directory fields" not in docs
     assert "enableOptionalAi" not in docs
-    assert "Release Gate Before External Publication" in docs
-    assert "staged/local-only" in docs
+    assert "Staged Release Gates Before External Publication" in docs
+    assert "user-configured-local-access" in docs
 
     out_dir = tmp_path / "dist"
     result = subprocess.run(

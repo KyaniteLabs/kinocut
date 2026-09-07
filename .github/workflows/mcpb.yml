@@ -1,0 +1,218 @@
+name: Staged MCPB
+
+on:
+  pull_request:
+    branches: [master]
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: staged-mcpb-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-validate:
+    name: Build and validate staged artifact
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    outputs:
+      archive_sha: ${{ steps.archive.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "18"
+          cache: npm
+          cache-dependency-path: tools/mcpb-validator/package-lock.json
+      - name: Build candidate wheel and staged MCPB
+        run: |
+          python -m pip install build
+          python -m build --wheel --outdir dist
+          python scripts/build-mcpb.py --output-dir dist
+      - name: Install locked official validator
+        working-directory: tools/mcpb-validator
+        run: npm ci --ignore-scripts
+      - name: Validate source and extracted manifests
+        run: |
+          python .github/scripts/mcpb-ci.py official \
+            --bundle dist/kinocut-1.15.1.mcpb \
+            --wheel dist/kinocut-1.15.1-py3-none-any.whl \
+            --validator tools/mcpb-validator/node_modules/.bin/mcpb \
+            --source-sha "$GITHUB_SHA" \
+            --receipt dist/mcpb-official-validation.json
+      - id: archive
+        name: Record archive digest
+        run: |
+          sha="$(python -c 'import hashlib; print(hashlib.sha256(open("dist/kinocut-1.15.1.mcpb", "rb").read()).hexdigest())')"
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: staged-mcpb-build
+          if-no-files-found: error
+          path: |
+            dist/*.whl
+            dist/*.mcpb
+            dist/mcpb-build-receipt.json
+            dist/mcpb-official-validation.json
+
+  clean-runtime:
+    name: Core runtime (${{ matrix.os }})
+    needs: build-validate
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 25
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: linux
+            runner: ubuntu-24.04
+          - os: macos
+            runner: macos-latest
+          - os: windows
+            runner: windows-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "18"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: staged-mcpb-build
+          path: mcpb-artifacts
+      - name: Prepare clean installed runtime outside checkout
+        shell: bash
+        run: |
+          python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-venv"
+          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.1.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
+      - name: Prove bounded process-tree cleanup
+        shell: bash
+        run: |
+          python .github/scripts/mcpb-ci.py cleanup-probe \
+            --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
+            --venv "$RUNNER_TEMP/mcpb-venv" \
+            --node "$(command -v node)" \
+            --os "${{ matrix.os }}" \
+            --architecture "$RUNNER_ARCH" \
+            --receipt "mcpb-cleanup-${{ matrix.os }}.json"
+      - name: Exercise real MCP session and absent optional dependencies
+        shell: bash
+        run: |
+          python .github/scripts/mcpb-ci.py runtime \
+            --mode core \
+            --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
+            --bundle mcpb-artifacts/kinocut-1.15.1.mcpb \
+            --wheel mcpb-artifacts/kinocut-1.15.1-py3-none-any.whl \
+            --venv "$RUNNER_TEMP/mcpb-venv" \
+            --node "$(command -v node)" \
+            --ffmpeg "$(command -v ffmpeg)" \
+            --hyperframes "$RUNNER_TEMP/known-absent-hyperframes" \
+            --source-sha "$GITHUB_SHA" \
+            --archive-sha "${{ needs.build-validate.outputs.archive_sha }}" \
+            --os "${{ matrix.os }}" \
+            --architecture "$RUNNER_ARCH" \
+            --cleanup-probe-receipt "mcpb-cleanup-${{ matrix.os }}.json" \
+            --receipt "mcpb-runtime-${{ matrix.os }}.json"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: staged-mcpb-runtime-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            mcpb-runtime-${{ matrix.os }}.json
+            mcpb-cleanup-${{ matrix.os }}.json
+
+  optional-present:
+    name: Optional discovery and callability
+    needs: build-validate
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: "22"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          name: staged-mcpb-build
+          path: mcpb-artifacts
+      - name: Install exact optional capabilities in task-local roots
+        run: |
+          python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-ai-venv" --extra ai-scene
+          npm install --ignore-scripts --prefix "$RUNNER_TEMP/hyperframes" hyperframes@0.8.30
+          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.1.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
+      - name: Prove discovery and public-tool callability
+        run: |
+          python .github/scripts/mcpb-ci.py runtime \
+            --mode optional \
+            --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
+            --bundle mcpb-artifacts/kinocut-1.15.1.mcpb \
+            --wheel mcpb-artifacts/kinocut-1.15.1-py3-none-any.whl \
+            --venv "$RUNNER_TEMP/mcpb-ai-venv" \
+            --node "$(command -v node)" \
+            --ffmpeg "$(command -v ffmpeg)" \
+            --hyperframes "$RUNNER_TEMP/hyperframes/node_modules/.bin/hyperframes" \
+            --source-sha "$GITHUB_SHA" \
+            --archive-sha "${{ needs.build-validate.outputs.archive_sha }}" \
+            --os linux \
+            --architecture "$RUNNER_ARCH" \
+            --receipt mcpb-optional-linux.json
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        if: always()
+        with:
+          name: staged-mcpb-optional-linux
+          if-no-files-found: error
+          path: mcpb-optional-linux.json
+
+  aggregate:
+    name: Aggregate exact evidence
+    needs: [build-validate, clean-runtime, optional-present]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.11"
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: staged-mcpb-*
+          path: receipts
+          merge-multiple: true
+      - name: Reject incomplete or mismatched evidence
+        run: |
+          python scripts/mcpb_production_pack.py \
+            --out-dir aggregate \
+            --source-sha "$GITHUB_SHA" \
+            --build-receipt receipts/mcpb-build-receipt.json \
+            --official-validation-receipt receipts/mcpb-official-validation.json \
+            --hosted-runtime-receipt receipts/mcpb-runtime-linux.json \
+            --hosted-runtime-receipt receipts/mcpb-runtime-macos.json \
+            --hosted-runtime-receipt receipts/mcpb-runtime-windows.json \
+            --optional-dependencies-receipt receipts/mcpb-optional-linux.json \
+            --require-ready ci_validated
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: staged-mcpb-aggregate-receipt
+          if-no-files-found: error
+          path: aggregate/production-checklist.json

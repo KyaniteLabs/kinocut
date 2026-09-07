@@ -157,7 +157,7 @@ Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.c
 
 While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and sound capabilities are fully integrated on the **published 1.15.x** line, the following surfaces remain gated, partial, or unreleased:
 
-- **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
+- **Desktop MCPB Packaging:** The unsigned staged package (`mcpb/`) is labeled **user-configured-local-access**. It requires local Node/Python/Kinocut/FFmpeg, is not a sandbox, and is distinct from future native-runtime work. See [docs/MCPB.md](docs/MCPB.md).
 - **Sonic World Audio (`kinocut_sound`):** While the S1–S12 capabilities are integrated on the published line, the remaining slices are blocked or gated:
   - **S13 (Host Joins / bindings):** Blocked — external owner receipts incomplete.
   - **S14 (Dual-class Benchmark):** Partial — x86 available, Apple Silicon host unavailable.
@@ -377,9 +377,9 @@ For Claude Desktop-style MCPB installs, Kinocut includes a staged local package 
 python3 scripts/build-mcpb.py
 ```
 
-This package is honest about its runtime: it launches an existing Python environment with
-Kinocut installed and still requires local FFmpeg. Native self-contained bundles remain blocked
-pending FFmpeg provenance, licensing, and clean-machine gates. See [docs/MCPB.md](docs/MCPB.md).
+This unsigned **user-configured-local-access** package launches an existing Python environment
+with the exact Kinocut version and still requires local Node, FFmpeg, and ffprobe. It is not a
+sandbox. Native self-contained bundles remain separate future work. See [docs/MCPB.md](docs/MCPB.md).
 
 Optional **C2PA** signing for final MP4 exports is available on the development tip when
 `c2patool` and a manifest/signer are configured. Signing is off by default and only reports

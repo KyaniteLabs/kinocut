@@ -8,7 +8,7 @@
 
 **Default agent path:** doctor/info → `video_intent` (`goal=` compiles a cutfile; a 360/desk/table goal also proposes a `360_assembly_plan`) → review → render → QC → human review. Operator guide: [360_ASSEMBLY.md](../360_ASSEMBLY.md).
 
-**Human residuals:** Renovate host token, directories #88, launch #90. First-10 **closed**. MCPB unsigned is the product path. Real X4 dogfood is optional; synthetic 2:1 fixtures cover the compiler.
+**Human residuals:** Renovate host token, directories #88, launch #90. First-10 **closed**. MCPB unsigned is the selected `user-configured-local-access` path; its exact-digest hosted and desktop-install gates remain distinct. Real X4 dogfood is optional; synthetic 2:1 fixtures cover the compiler.
 
 **Public site:** `https://kinocut.dev/` `/llms.txt` and homepage stamp **1.15.0** (kinocut-site `11e0d2c`, Netlify prod). Remaining homepage `1.14.1` strings are historical surface comparison.
 
