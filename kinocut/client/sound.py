@@ -26,11 +26,15 @@ class ClientSoundMixin:
 
         return invoke_sound_operation("sound-voice-batch", plan=plan)
 
-    def sound_mix_render(self) -> dict[str, Any]:
-        """Render a bounded local mix for a minimal timeline."""
+    def sound_mix_render(
+        self, request: dict[str, Any] | None = None, project_root: str | None = None
+    ) -> dict[str, Any]:
+        """Assemble supplied WAVs into a new ZIP; omit both arguments for a demo."""
         from kinocut_sound.public import invoke_sound_operation
 
-        return invoke_sound_operation("sound-mix-render")
+        if request is None and project_root is None:
+            return invoke_sound_operation("sound-mix-render")
+        return invoke_sound_operation("sound-mix-render", request=request, project_root=project_root)
 
     def sound_qa_loudness(self) -> dict[str, Any]:
         """Measure loudness against the default delivery policy."""

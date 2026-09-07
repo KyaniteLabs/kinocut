@@ -43,8 +43,21 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
         plan = _load_plan_json(getattr(a, "plan_json", None))
         _out(_invoke("sound-voice-batch", plan=plan), j)
 
-    def _mix(_a, j):
-        _out(_invoke("sound-mix-render"), j)
+    def _mix(a, j):
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.mix_files import load_request_file
+        from kinocut.errors import MCPVideoError
+
+        raw, root = a.request_json, a.project_root
+        try:
+            if raw is None and root is None:
+                result = _invoke("sound-mix-render")
+            else:
+                request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+                result = _invoke("sound-mix-render", request=request, project_root=root)
+            _out(result, j)
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
     def _loud(_a, j):
         _out(_invoke("sound-qa-loudness"), j)

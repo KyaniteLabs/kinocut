@@ -36,9 +36,18 @@ def sound_voice_batch(plan: dict[str, Any] | None = None) -> dict[str, Any]:
 
 @mcp.tool()
 @_safe_tool
-def sound_mix_render() -> dict[str, Any]:
-    """Render a bounded local mix for a minimal timeline (duration/stem smoke path)."""
-    return _result(_invoke("sound-mix-render"))
+async def sound_mix_render(request: dict[str, Any] | None = None, project_root: str | None = None) -> dict[str, Any]:
+    """Assemble supplied WAVs into a new ZIP; omit both arguments for a labelled demo."""
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.mix_job import render_mix_request_async
+    from .errors import MCPVideoError
+
+    try:
+        if request is None and project_root is None:
+            return _result(_invoke("sound-mix-render"))
+        return _result(await render_mix_request_async(request, project_root))
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()

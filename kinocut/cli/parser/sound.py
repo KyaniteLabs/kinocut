@@ -31,10 +31,12 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         help="SoundPlan as JSON string or path to a JSON file; omit for minimal plan",
     )
 
-    subparsers.add_parser(
+    mix = subparsers.add_parser(
         "sound-mix-render",
-        help="Render a bounded local mix for a minimal timeline",
+        help="Assemble supplied WAVs into a new ZIP (omit inputs for a demo)",
     )
+    mix.add_argument("--request-json", default=None, help="SoundMixRequest JSON or path to a JSON file")
+    mix.add_argument("--project-root", default=None, help="Explicit local root for request media and output")
     subparsers.add_parser(
         "sound-qa-loudness",
         help="Measure loudness against the default delivery policy",

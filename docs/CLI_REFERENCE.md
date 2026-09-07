@@ -109,7 +109,7 @@ Published surface (since 1.14.1; current 1.15.1). These commands do **not** add 
 | `sound-capabilities` | Discover the bounded public sound operation set |
 | `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional) |
 | `sound-voice-batch` | Local deterministic voice batch (`--plan-json` optional) |
-| `sound-mix-render` | Bounded local mix render for a minimal timeline |
+| `sound-mix-render` | Supplied-media mix ZIP via `--request-json` and `--project-root`; omit both for a labelled demo. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound-qa-loudness` | Loudness check against the default delivery policy |
 | `sound-qa-asr` | Fake ASR verification (`--script-hashes`, `--audio-duration-seconds`) |
 
