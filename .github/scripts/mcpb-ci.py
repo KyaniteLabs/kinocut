@@ -338,7 +338,8 @@ def _payload(result: Any) -> dict[str, Any]:
 
 
 async def _deadline(awaitable: Any) -> Any:
-    return await asyncio.wait_for(awaitable, timeout=PHASE_TIMEOUT)
+    async with asyncio.timeout(PHASE_TIMEOUT):
+        return await awaitable
 
 
 async def _call(session: Any, progress: dict[str, Any], phase: str, name: str, arguments: dict) -> dict:

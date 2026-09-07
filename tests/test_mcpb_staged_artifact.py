@@ -13,6 +13,7 @@ import sys
 import time
 import types
 import zipfile
+from contextlib import AsyncExitStack, asynccontextmanager
 from pathlib import Path
 
 import pytest
@@ -746,6 +747,30 @@ def test_official_gate_rejects_a_different_version_containing_locked_digits(
         helper.official(args)
 
 
+def test_mcpb_deadline_preserves_task_affinity_and_timeout(monkeypatch: pytest.MonkeyPatch) -> None:
+    helper = _ci_helper()
+
+    def force_task(awaitable, **_kwargs):
+        return asyncio.create_task(awaitable)
+
+    @asynccontextmanager
+    async def task_affine():
+        assert (entered := asyncio.current_task()) is not None
+        yield
+        assert asyncio.current_task() is entered
+
+    async def exercise() -> None:
+        stack = AsyncExitStack()
+        await helper._deadline(stack.enter_async_context(task_affine()))
+        await helper._deadline(stack.aclose())
+        with pytest.raises(TimeoutError):
+            await helper._deadline(asyncio.sleep(1))
+
+    monkeypatch.setattr(helper, "PHASE_TIMEOUT", 0.01)
+    monkeypatch.setattr(helper.asyncio, "wait_for", force_task)
+    asyncio.run(exercise())
+
+
 def test_staged_mcpb_workflow_has_exact_evidence_boundaries() -> None:
     workflow = (ROOT / ".github" / "workflows" / "mcpb.yml").read_text(encoding="utf-8")
     helper = (ROOT / ".github" / "scripts" / "mcpb-ci.py").read_text(encoding="utf-8")
@@ -764,7 +789,7 @@ def test_staged_mcpb_workflow_has_exact_evidence_boundaries() -> None:
     assert "native-launcher" not in workflow
     assert "secrets." not in workflow
     assert "PYTHONNOUSERSITE" in helper and 'env.pop("PYTHONPATH"' in helper
-    assert "asyncio.wait_for" in helper
+    assert "async with asyncio.timeout(PHASE_TIMEOUT)" in helper
     assert "MAX_CAPTURE" in helper
     assert "KINOCUT_MCPB_RUNTIME_CHILD" in helper
     assert '"-m", "kinocut", "doctor", "--json"' in helper
