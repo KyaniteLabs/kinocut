@@ -1,0 +1,7 @@
+1
+00:00:00,750 --> 00:00:02,000
+Kinocut checks the first timed caption.
+
+2
+00:00:03,250 --> 00:00:04,750
+The second cue proves a separate window.
