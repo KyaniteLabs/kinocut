@@ -150,8 +150,14 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
     cues = plan.timeline.cues
     if not cues or len(cues) > MAX_ASSEMBLY_CLIPS:
         raise mix_error("mix requires a bounded nonempty timeline", MIX_OVER_LIMIT)
-    if any(c.in_point_seconds is not None or c.out_point_seconds is not None or c.transit_kind for c in cues):
-        raise mix_error("cue trims and transit_kind are not implemented by mix assembly", "mix_unsupported_intent")
+    if any(c.transit_kind for c in cues):
+        raise mix_error("transit_kind is not implemented by mix assembly", "mix_unsupported_intent")
+    if any(
+        c.kind in (CueKind.SILENCE, CueKind.CHAPTER_MARKER)
+        and (c.in_point_seconds is not None or c.out_point_seconds is not None)
+        for c in cues
+    ):
+        raise mix_error("silent cues cannot select source windows", MIX_INPUT_INVALID)
     audible = {c.cue_id: c for c in cues if c.kind not in (CueKind.SILENCE, CueKind.CHAPTER_MARKER)}
     bindings = {c.cue_id: c for c in request.clips}
     if len(bindings) != len(request.clips) or set(bindings) != set(audible):
@@ -167,8 +173,8 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
         raise mix_error("mix bed must match the plan bed reference", MIX_INPUT_INVALID)
     if request.duck_bed and "dialogue" not in stems:
         raise mix_error("bed ducking requires a declared dialogue stem", "mix_unsupported_intent")
-    if request.bed and ("ambience" not in stems or any(c.stem_id == "ambience" for c in request.clips)):
-        raise mix_error("bed requires its own declared ambience stem", "mix_unsupported_intent")
+    if request.bed and "ambience" not in stems:
+        raise mix_error("bed requires a declared ambience stem", "mix_unsupported_intent")
     check_mix_resources(request, 0)
 
 

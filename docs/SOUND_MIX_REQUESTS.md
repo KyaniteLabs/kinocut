@@ -42,8 +42,9 @@ Its `schema_version` is integer `1` and unknown fields are rejected.
 Asset hashes use `sha256:<lowercase hex>`. A clip path must equal its cue's
 `source_ref`; each audible cue has exactly one binding. Silence and chapter
 markers have no clip binding. Stems must be declared by the delivery layout;
-an empty layout selects dialogue, ambience and sfx. A bed requires its own
-ambience stem, with no competing ambience clip.
+an empty layout selects dialogue, ambience and sfx. A bed requires a declared
+ambience stem. Ambience clips and the separate bed are added together with
+PCM16 saturation. Ducking affects only the bed, preserving the ambience clips.
 
 Crossfades use actual outgoing post-roll and preserve incoming cue timing, as
 described in [Sound crossfades](SOUND_CROSSFADES.md). Persisting a crossfade in
@@ -55,8 +56,21 @@ hashes the complete ZIP, avoiding a circular hash.
 ## Current rendering capabilities
 
 Assembly supports mono signed 16-bit PCM, a shared sample rate from 8–96 kHz,
-continuous time, explicit silence/tail, named stems and post-roll crossfades.
-It rejects cue trim fields, `transit_kind`, nondefault routing, layers, format
+continuous time, explicit silence/tail, named stems, source windows and post-roll
+crossfades. Cue `in_point_seconds` is inclusive (default zero), while
+`out_point_seconds` is exclusive (default source end). Seconds quantize with
+`round(seconds * sample_rate_hz)`. Out-of-range seconds and empty quantized
+windows fail instead of clamping. Silence and chapter markers cannot select
+source windows. Several cues may select different windows of one source file.
+
+Selected samples are prepared once before crossfades and placement. Short
+selections are padded with silence to the cue duration; longer ones are truncated
+to that duration. Crossfades require actual post-roll inside the selected window,
+including its out-point. The receipt's `source_windows` records cue ID, in/out
+sample positions, selected count and rate; source hashes still bind the original
+whole file. These fields preserve existing SoundPlan identity semantics.
+
+Assembly rejects `transit_kind`, nondefault routing, layers, format
 conversion and dither until those rendering paths are implemented. It does not
 silently discard those requests. Declared delivery targets are retained as plan
 intent, not reported as achieved mastering. Full episode listening and complete

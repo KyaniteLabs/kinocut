@@ -65,6 +65,7 @@ def _write_bundle(output_fd, request, result):
         "sources": [c.model_dump(mode="json") for c in request.clips],
         "bed": request.bed.model_dump(mode="json") if request.bed else None,
         "seams": [asdict(event) for event in result.seam_report.events],
+        "source_windows": [asdict(window) for window in result.source_windows],
     }
     members["receipt.json"] = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
     with os.fdopen(os.dup(output_fd), "wb") as target:
