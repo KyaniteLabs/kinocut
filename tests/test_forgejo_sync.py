@@ -623,8 +623,13 @@ def test_successful_sync_uses_one_ordinary_push_and_exact_downstream_poll(
 def test_workflow_keeps_secret_out_of_gate_and_pins_primary_workflow_ids() -> None:
     workflow = (ROOT / ".github" / "workflows" / "sync-forgejo.yml").read_text(encoding="utf-8")
     gate, push = workflow.split("\n  push:\n", maxsplit=1)
+    activation = "vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true'"
     assert "workflow_dispatch" not in workflow
     assert "pull_request" not in workflow
+    assert workflow.count(activation) == 2
+    assert f"if: {activation} && github.event.workflow_run.conclusion == 'success'" in gate
+    assert f"if: {activation} && needs.gate.result == 'success' && needs.gate.outputs.sha != ''" in push
+    assert "KINOCUT_FORGEJO_SYNC_ACTIVE != 'false'" not in workflow
     assert "environment:" not in gate
     assert "secrets." not in gate
     assert "actions: read" in gate

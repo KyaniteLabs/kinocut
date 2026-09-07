@@ -28,6 +28,25 @@ Downloads are not a unique-user census, but stars + forks + multi‑k weekly ins
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
 incomplete pipeline work.
 
+## Downstream policy activation
+
+The GitHub-to-Forgejo workflow is staged and inactive. Both jobs require the
+repository variable `KINOCUT_FORGEJO_SYNC_ACTIVE` to compare equal to `true`
+under GitHub Actions' case-insensitive string equality. Values such as `true`,
+`True`, and `TRUE` activate both jobs; other values do not. Before the policy
+merges, an operator must set the repository-scoped value to canonical lowercase
+`false` and read it back. After bootstrap, eventual activation requires a
+verified canonical lowercase `true` readback. Absence, inheritance, or a
+skipped-success workflow does not prove safe activation, mirroring, bootstrap,
+or downstream CI.
+
+Automation bootstrap remains a separate human gate for the restricted identity,
+token, environment, branch allowlist, protection, and final activation readback.
+A one-commit operator-mediated transition is only a conditional exception under
+a later independently reviewed brief bound to one eligible GitHub SHA, one
+task-owned Forgejo source branch, and one protected fast-forward-only PR. It
+does not authorize direct `master` pushes or steady-state operator writes.
+
 ## Historical Forgejo CI runner
 
 Exact-head GitHub CI is the canonical merge and release gate under Kinocut's

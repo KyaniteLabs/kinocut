@@ -657,6 +657,8 @@ def test_external_routing_surfaces_route_exclusively_to_github():
 def test_forgejo_is_a_ci_gated_fast_forward_downstream():
     workflow = (ROOT / ".github" / "workflows" / "sync-forgejo.yml").read_text(encoding="utf-8")
     helper = (ROOT / "scripts" / "forgejo_sync.py").read_text(encoding="utf-8")
+    topology = (ROOT / "docs" / "CI_RUNNER_TOPOLOGY.md").read_text(encoding="utf-8")
+    human_gates = (ROOT / "docs" / "HUMAN_GATES.md").read_text(encoding="utf-8")
 
     assert not (ROOT / ".forgejo" / "workflows" / "sync-github.yml").exists()
     assert not (ROOT / ".forgejo" / "workflows" / "renovate.yml").exists()
@@ -666,6 +668,17 @@ def test_forgejo_is_a_ci_gated_fast_forward_downstream():
     assert '"push", "forgejo-downstream"' in helper
     assert 'f"{source_sha}:refs/heads/master"' in helper
     assert "--force" not in helper
+    assert workflow.count("vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true'") == 2
+    for guidance in (topology, human_gates):
+        normalized_guidance = " ".join(guidance.split())
+        assert "KINOCUT_FORGEJO_SYNC_ACTIVE" in guidance
+        assert "staged and inactive" in guidance
+        assert "case-insensitive string equality" in guidance
+        assert "`true`, `True`, and `TRUE`" in normalized_guidance
+        assert "canonical lowercase" in guidance
+        assert "repository-scoped" in guidance and "`false`" in guidance
+        assert "skipped" in guidance
+        assert "one-commit" in guidance
 
 
 def test_public_tree_does_not_track_local_agent_state_artifacts():

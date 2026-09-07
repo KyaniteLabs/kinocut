@@ -16,7 +16,7 @@ concurrency:
 jobs:
   gate:
     name: Require exact-head primary CI
-    if: github.event.workflow_run.conclusion == 'success'
+    if: vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true' && github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-24.04
     timeout-minutes: 40
     outputs:
@@ -43,7 +43,7 @@ jobs:
   push:
     name: Fast-forward Forgejo and require downstream CI
     needs: gate
-    if: needs.gate.result == 'success' && needs.gate.outputs.sha != ''
+    if: vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true' && needs.gate.result == 'success' && needs.gate.outputs.sha != ''
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     permissions:

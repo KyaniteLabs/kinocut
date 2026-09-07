@@ -13,10 +13,25 @@ and transition context. Forgejo is
 a downstream mirror: only the GitHub-to-Forgejo sync automation may update its
 `master`, and normal changes must not be independently merged there. The
 [downstream sync implementation](../.github/workflows/sync-forgejo.yml) is present.
-Bootstrap, activation, and live verification remain pending: the service identity,
-branch allowlists, GitHub environment and secret must be configured, and the
-required workflows enabled. Do not claim the mirror is current until the
-GitHub commit reaches Forgejo unchanged and its downstream CI passes.
+The automation is staged and inactive: both jobs compare the repository variable
+`KINOCUT_FORGEJO_SYNC_ACTIVE` with `true` using GitHub Actions'
+case-insensitive string equality. Values such as `true`, `True`, and `TRUE`
+therefore activate the jobs; other values do not. Before this policy can merge,
+the controller must explicitly set that repository-scoped variable to canonical
+lowercase `false` and read it back. Eventual activation also requires a verified
+canonical lowercase `true` readback after bootstrap. An absent value or skipped
+workflow is not evidence of safe activation, mirroring, bootstrap, or downstream
+acceptance. Bootstrap,
+activation, and live verification remain pending: the service identity, branch
+allowlists, GitHub environment and secret must be configured, and the required
+workflows enabled. Do not claim the mirror is current until the GitHub commit
+reaches Forgejo unchanged and its downstream CI passes.
+
+A one-commit operator-mediated transition may occur only under a later,
+independently reviewed execution brief bound to one eligible GitHub SHA, one
+task-owned Forgejo source branch, and one protected fast-forward-only PR. That
+conditional exception expires on success or a failed eligibility gate; it does
+not authorize direct `master` pushes or general operator writes.
 
 GitHub Dependabot is the canonical dependency-update path. The Forgejo Renovate
 job and the old Forgejo-to-GitHub sync workflow have been removed from this
