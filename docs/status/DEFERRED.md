@@ -12,7 +12,7 @@
 | DEF-s14-live | sound_S14 | **CLOSED as bounded plumbing evidence** — historical July dual-class synthetic receipt; later Apple Silicon 64-clip rerun with x86 `external_host_unavailable` |
 | DEF-sound-product | sound_S15 | **CLOSED for package/gate maturity only** — S13 packages and joins exist; thin S12 remains the public boundary; synthetic evidence is not a full episode and not human listening approval |
 | DEF-g004-media | g004 | **CLOSED (synthetic)** — `scripts/make_g004_fixtures.py` phone-frame multi-shot pack + review path |
-| DEF-mcpb-sign | mcpb | **N/A / closed** — no signing key in this org; **unsigned** pack + checklist is the supported product path |
+| DEF-mcpb-sign | mcpb | **N/A / closed** — no signing key in this org; unsigned is the supported staged path, while exact-digest runtime and install gates remain separate |
 | DEF-splus-95 | wp_a | **CLOSED** — dual-host S+ 100 on tip |
 | DEF-wp-f | wp_f | **CLOSED** as baseline (not optimize claim) |
 
@@ -25,6 +25,6 @@
 | DEF-human-92 | first-10 | **CLOSED (2026-08-12)** — obsolete; live adoption: 107 GitHub stars, 25 forks, ~23k PyPI downloads last month | — | N | Do not re-open as “first 10 missing” | 2026-08-12 |
 | DEF-human-3 | renovate | Host token | Human/ops | N product | Token enabled | 2026-08-12 |
 | DEF-ci-light | ci_topology | light runner | Ops | N product | light label available | 2026-08-12 |
-Product pipeline gates (Phase 1–4 + Track E + sound S14/S15 package maturity + G004 synthetic + MCPB **unsigned** pack) are closed at their stated evidence boundaries. The sonic-world product is not complete; its shipped public boundary remains the thin S12 join. Growth/human ops rows do not block product timeline GO.
+Product pipeline gates (Phase 1–4 + Track E + sound S14/S15 package maturity + G004 synthetic + MCPB **unsigned** pack) are closed at their stated evidence boundaries. The sonic-world product is not complete; its shipped public boundary remains the thin S12 join. The prior MCPB checklist was planning evidence, not an executed clean-machine or desktop-install gate; staged MCPB readiness remains evidence-bound. Growth/human ops rows do not block product timeline GO.
 
-**MCPB signing:** Not a product gap. There is no code-signing key for multi-platform MCPB. Ship/install via PyPI/`pip install kinocut`, npm, or **unsigned** MCPB pack. Reopen only if a real signing key is acquired later.
+**MCPB signing:** Not a product gap. There is no code-signing key for multi-platform MCPB. The staged artifact remains unsigned and labeled `user-configured-local-access`; signing status does not substitute for validator, hosted-runtime, desktop-install, or publication evidence.

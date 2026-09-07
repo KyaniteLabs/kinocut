@@ -157,7 +157,7 @@ Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.c
 
 While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and thin sound join are integrated on the **published 1.15.x** line, the following surfaces remain gated, partial, or unreleased:
 
-- **Desktop MCPB Packaging:** The staged desktop package (`mcpb/`) is a staged configuration and is **not** a published self-contained native runtime yet (pending FFmpeg provenance, licensing, and clean-machine gates). See [docs/MCPB.md](docs/MCPB.md).
+- **Desktop MCPB Packaging:** The unsigned staged package (`mcpb/`) is labeled **user-configured-local-access**. It requires local Node/Python/Kinocut/FFmpeg, is not a sandbox, and is distinct from future native-runtime work. See [docs/MCPB.md](docs/MCPB.md).
 - **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Paid Generative / Dubbing Plans:** Generative spend-cap and TTS candidate records are non-executable planning definitions. No generation or dubbing adapter exists; credentials, package discovery, configuration, and caller flags cannot create execution capability.
@@ -374,9 +374,9 @@ For Claude Desktop-style MCPB installs, Kinocut includes a staged local package 
 python3 scripts/build-mcpb.py
 ```
 
-This package is honest about its runtime: it launches an existing Python environment with
-Kinocut installed and still requires local FFmpeg. Native self-contained bundles remain blocked
-pending FFmpeg provenance, licensing, and clean-machine gates. See [docs/MCPB.md](docs/MCPB.md).
+This unsigned **user-configured-local-access** package launches an existing Python environment
+with the exact Kinocut version and still requires local Node, FFmpeg, and ffprobe. It is not a
+sandbox. Native self-contained bundles remain separate future work. See [docs/MCPB.md](docs/MCPB.md).
 
 Optional **C2PA** signing for final MP4 exports is available on the development tip when
 `c2patool` and a manifest/signer are configured. Signing is off by default and only reports

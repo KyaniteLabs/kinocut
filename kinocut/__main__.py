@@ -48,6 +48,14 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
 
     try:
         mcp = import_server()
+        from ._mcpb_observation import observe_mcp_run_boundary
+        from .errors import MCPVideoError
+
+        try:
+            observe_mcp_run_boundary()
+        except MCPVideoError:
+            err_console.print("[red]MCP mode failed to start:[/red] supervised process observation failed.")
+            sys.exit(1)
         mcp.run()
     except ImportError as exc:
         missing = getattr(exc, "name", None)
