@@ -171,9 +171,9 @@ def image_edit(
     """Establish-locked still match with plan/receipt (intent is audit metadata).
 
     v1 pixel path is free establish mean-RGB match only; ``intent`` is required
-    metadata and does not select pixel ops. Paid gen is off unless
-    allow_paid_gen=True (still unavailable until configured). Dry-run returns a
-    plan without mutating pixels.
+    metadata and does not select pixel ops. Opted-in paid generation requests
+    still fail because no paid still-generation adapter exists. Dry-run returns
+    a plan without mutating pixels.
 
     Args:
         source: Absolute source still path.

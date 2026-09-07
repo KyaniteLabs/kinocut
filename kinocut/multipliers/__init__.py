@@ -1,4 +1,4 @@
-"""Phase 4 multipliers: generative adapter, OTIO, review UI, TTS dub plans."""
+"""Phase 4 multipliers: generative planning, OTIO, review UI, TTS dub plans."""
 
 from __future__ import annotations
 
