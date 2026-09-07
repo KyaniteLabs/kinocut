@@ -68,6 +68,8 @@ DETERMINISM_CLASSES: frozenset[str] = frozenset({"byte_deterministic", "signal_e
 INFORMATIONAL_FIELDS: frozenset[str] = frozenset({"created_at"})
 
 FFMPEG_METER_VERSION_RE = re.compile(r"^ffmpeg version ([A-Za-z0-9.+_~:-]{1,80})(?:\s|$)")
+FFMPEG_MASTER_LUFS_RANGE = (-70.0, -5.0)
+FFMPEG_MASTER_PEAK_RANGE = (-9.0, 0.0)
 EBUR128_SUMMARY_RE = re.compile(
     r"Integrated loudness:\s+I:\s+(\S+) LUFS\s+Threshold:\s+\S+ LUFS\s+"
     r"Loudness range:\s+LRA:\s+(\S+) LU\s+Threshold:\s+\S+ LUFS\s+"

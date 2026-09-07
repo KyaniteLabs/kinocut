@@ -2,7 +2,7 @@
 
 **Published:** 1.15.1 · **196 MCP / 167 CLI** · `docs/public_claims.json`
 
-**Tip (`master`):** 1.15.1 · **200 MCP / 171 CLI**. Four guarded local Revideo operations are present on the development tip and are not published. Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`).
+**Tip (`master`):** 1.15.1 · **201 MCP / 172 CLI**. Four guarded local Revideo operations and verified sound mastering are present on the development tip and are not published. Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`).
 
 **Product pipeline:** Phase 1–4 + Track E **GO**.
 

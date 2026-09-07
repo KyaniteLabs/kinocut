@@ -246,15 +246,15 @@ def test_unknown_option_short_circuits_without_rewriting():
     assert _rewrite_namespaced_argv(argv) == argv
 
 
-def test_flat_command_set_remains_171():
+def test_flat_command_set_remains_authoritative():
     """Flat surface stays authoritative; namespaces only rewrite to flat commands.
 
-    7 aivideo + 9 audio + 5 qa + 10 edit + 4 shorts + 6 sound aliases = 41 grouped paths
-    over the 171-command development-tip flat parser.
+    7 aivideo + 9 audio + 5 qa + 10 edit + 4 shorts + 7 sound aliases = 42 grouped paths
+    over the 172-command development-tip flat parser.
     """
 
-    assert len(EXPECTED_CLI_COMMANDS) == 171
-    assert len(NAMESPACED_ALIASES) == 41
+    assert len(EXPECTED_CLI_COMMANDS) == 172
+    assert len(NAMESPACED_ALIASES) == 42
     groups = namespaced_groups()
     assert set(groups) == {"aivideo", "audio", "qa", "edit", "shorts", "sound"}
     assert groups["aivideo"] == (
@@ -304,6 +304,7 @@ def test_flat_command_set_remains_171():
     )
     assert groups["sound"] == (
         "capabilities",
+        "master-render",
         "mix-render",
         "plan-validate",
         "qa-asr",

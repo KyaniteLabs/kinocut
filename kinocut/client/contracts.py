@@ -390,6 +390,7 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "sound_plan_validate": {"category": "report", "return_type": "dict"},
     "sound_voice_batch": {"category": "report", "return_type": "dict"},
     "sound_mix_render": {"category": "report", "return_type": "dict"},
+    "sound_master_render": {"category": "report", "return_type": "dict"},
     "sound_qa_loudness": {"category": "report", "return_type": "dict"},
     "sound_qa_asr": {"category": "report", "return_type": "dict"},
 }

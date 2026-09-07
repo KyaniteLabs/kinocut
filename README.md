@@ -18,8 +18,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-200%20tools-orange.svg" alt="200 MCP tools on development tip">
-  <img src="https://img.shields.io/badge/CLI-171%20commands-orange.svg" alt="171 CLI commands on development tip">
+  <img src="https://img.shields.io/badge/MCP-201%20tools-orange.svg" alt="201 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/CLI-172%20commands-orange.svg" alt="172 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -117,7 +117,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm / GitHub Release** | **[1.15.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.1)** (2026-08-31) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **This repository (`master`)** | Development tip · **200 MCP / 171 CLI** | Adds four guarded local Revideo operations; not yet published. |
+| **This repository (`master`)** | Development tip · **201 MCP / 172 CLI** | Adds four guarded local Revideo operations and verified sound mastering; not yet published. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want development-tip work such as the guarded Revideo operations; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
@@ -555,7 +555,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-The development tip registers **200 MCP tools** and **171 CLI commands**; published 1.15.1 remains **196 MCP / 167 CLI**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+The development tip registers **201 MCP tools** and **172 CLI commands**; published 1.15.1 remains **196 MCP / 167 CLI**. The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -686,7 +686,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.15.1** documents **196 MCP tools / 167 CLI commands**. The development tip has **200 MCP tools / 171 CLI commands** after adding four Revideo operations. 360 assembly still reuses `video_intent` and `video_review_decide`.
+Published **1.15.1** documents **196 MCP tools / 167 CLI commands**. The development tip has **201 MCP tools / 172 CLI commands** after adding four Revideo operations and verified sound mastering. 360 assembly still reuses `video_intent` and `video_review_decide`.
 
 ### Can Kinocut edit Insta360 X4 360 video?
 

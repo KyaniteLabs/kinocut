@@ -21,6 +21,8 @@ from kinocut_sound.qa import meter_process
         ("import time;time.sleep(30)", "qa_meter_timeout"),
         ("print('SUCCESS');raise SystemExit(1)", "qa_meter_failed"),
         ("print('No such filter: ebur128');raise SystemExit(1)", "qa_unavailable"),
+        ("print('No such filter: loudnorm');raise SystemExit(1)", "qa_unavailable"),
+        ("print('No such filter: alimiter');raise SystemExit(1)", "qa_unavailable"),
     ],
 )
 def test_real_meter_failure_kills_and_reaps(monkeypatch, asynchronous, script, code):
@@ -41,6 +43,8 @@ def test_real_meter_failure_kills_and_reaps(monkeypatch, asynchronous, script, c
         else:
             meter_process.run_meter_sync(args, 0.3)
     assert failure.value.code == code
+    if code == "qa_unavailable":
+        assert str(failure.value) == "required FFmpeg filter unavailable"
     assert time.monotonic() - start < 5
     assert processes
     assert all(p.poll() is not None for p in processes)

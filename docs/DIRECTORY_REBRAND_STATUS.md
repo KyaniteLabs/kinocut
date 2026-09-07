@@ -18,7 +18,7 @@ about third-party pages; verify an external page before acting on its listed sta
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
 - Published surface: 196 MCP tools / 167 CLI commands (1.15.1)
-- Development tip: 200 MCP tools / 171 CLI commands (four Revideo operations; unpublished)
+- Development tip: 201 MCP tools / 172 CLI commands (four Revideo operations plus verified sound mastering; unpublished)
 - Current release: 1.15.1 (published 2026-08-31)
 - Submission ops: `docs/status/DIRECTORY_SUBMISSION_OPS.md`
 

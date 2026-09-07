@@ -41,6 +41,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     mix.add_argument("--request-json", default=None, help="SoundMixRequest JSON or path to a JSON file")
     mix.add_argument("--project-root", default=None, help="Explicit local root for request media and output")
+    master = subparsers.add_parser("sound-master-render", help="Retain a verified two-pass audio master")
+    master.add_argument("--request-json", required=True, help="SoundMasterRequest JSON or file")
+    master.add_argument("--project-root", required=True, help="Explicit root for source audio and new output ZIP")
     loudness = subparsers.add_parser(
         "sound-qa-loudness",
         help="Measure local audio and report actual loudness compliance",
