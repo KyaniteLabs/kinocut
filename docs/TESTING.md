@@ -84,6 +84,23 @@ Run without Hyperframes integration tests:
 python -m pytest tests/ -v -m "not hyperframes"
 ```
 
+## Revideo tests
+
+The ordinary suite uses mocked npm and media probes:
+
+```bash
+python3 -m pytest tests/test_revideo_engine.py tests/test_revideo_transaction.py \
+  tests/test_revideo_surfaces.py tests/test_kinocut_distribution.py -q --tb=short
+```
+
+Real-render acceptance is a separate, network-aware gate. In a disposable
+workspace, run the staged CLI flow and the MCP stdio one-shot flow with a
+640x360, 10 fps, 10-frame job. Count decoded frames independently with
+`ffprobe -count_frames`, require a bounded full `ffmpeg -xerror` decode,
+and compare each on-disk SHA-256 with its receipt. Record Node, npm, browser,
+FFmpeg, OS, commit, and tree; byte equality is only claimed within that exact
+environment. Keep quality inspection and human visual review pending.
+
 ## AI Features Tested
 
 ### 1. AI Scene Detection (`test_40_ai_scene_detect`)

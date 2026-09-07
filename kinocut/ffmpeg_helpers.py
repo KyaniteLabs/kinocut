@@ -624,7 +624,12 @@ def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> f
         ) from None
 
 
-def _run_ffprobe_json(path: str, *, pass_fds: tuple[int, ...] = ()) -> dict[str, Any]:
+def _run_ffprobe_json(
+    path: str,
+    *,
+    pass_fds: tuple[int, ...] = (),
+    count_frames: bool = False,
+) -> dict[str, Any]:
     """Run ffprobe returning full JSON (format + streams)."""
     import json as _json
 
@@ -636,8 +641,10 @@ def _run_ffprobe_json(path: str, *, pass_fds: tuple[int, ...] = ()) -> dict[str,
         "json",
         "-show_format",
         "-show_streams",
-        path,
     ]
+    if count_frames:
+        cmd.append("-count_frames")
+    cmd.append(path)
     result = (
         _run_command(cmd, timeout=FFPROBE_TIMEOUT, pass_fds=pass_fds)
         if pass_fds

@@ -11,6 +11,7 @@ class RevideoRenderResult(BaseModel):
     project_dir: str = Field(description="Materialized bridge project (workspace-relative when possible).")
     output_path: str
     output_sha256: str = Field(description="SHA-256 of the rendered file — determinism anchor.")
+    job_sha256: str = Field(description="SHA-256 of the complete, bounded, exact on-disk src/job.json bytes.")
     width: int
     height: int
     fps: float
