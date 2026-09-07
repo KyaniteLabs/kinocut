@@ -31,12 +31,12 @@ jobs:
           fi
           changed="$(git diff --name-only "$base" "$head" 2>/dev/null || git diff --name-only HEAD^ HEAD)"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|Dockerfile|\.github/workflows/ci\.yml)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|Dockerfile|\.github/workflows/ci\.yml)'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$changed" | grep -Eq '^(Dockerfile|kinocut/|mcp_video\.py|pyproject\.toml|uv\.lock|\.dockerignore|\.github/workflows/ci\.yml)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(Dockerfile|kinocut/|kinocut_sound/|mcp_video\.py|pyproject\.toml|uv\.lock|\.dockerignore|\.github/workflows/ci\.yml)'; then
             echo "docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "docker=false" >> "$GITHUB_OUTPUT"
@@ -75,9 +75,9 @@ jobs:
         # pin deliberately together with the pyproject floor.
         run: .venv/bin/pip install "ruff==0.15.11"
       - name: Ruff check
-        run: .venv/bin/ruff check kinocut/ mcp_video.py tests/
+        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/
       - name: Ruff format check
-        run: .venv/bin/ruff format --check kinocut/ mcp_video.py tests/
+        run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/
       - name: Type check core modules
         run: |
           .venv/bin/pip install -e . pyright
@@ -421,7 +421,7 @@ jobs:
         run: python -m pip install -e ".[dev]" "ruff==0.15.11"
       - name: Lint
         if: needs.changes.outputs.code == 'true'
-        run: python -m ruff check kinocut/ mcp_video.py tests/
+        run: python -m ruff check kinocut/ kinocut_sound/ mcp_video.py tests/
       - name: Collect whole test suite
         if: needs.changes.outputs.code == 'true'
         shell: pwsh

@@ -137,6 +137,4 @@ class ProfileLibrary:
     def to_mapping(self) -> Mapping[str, Mapping[int, VoiceProfile]]:
         """Return a read-only view of the stored profiles."""
 
-        return MappingProxyType(
-            {pid: MappingProxyType(dict(vers)) for pid, vers in self._profiles.items()}
-        )
+        return MappingProxyType({pid: MappingProxyType(dict(vers)) for pid, vers in self._profiles.items()})

@@ -147,9 +147,7 @@ def canonical_digest(value: BaseModel | dict[str, Any], *, exclude: set[str] | N
     return "sha256:" + hashlib.sha256(encoded).hexdigest()
 
 
-def canonical_record_id(
-    model: RecordBase, *, exclude: frozenset[str] = _DEFAULT_EXCLUDE
-) -> Sha256:
+def canonical_record_id(model: RecordBase, *, exclude: frozenset[str] = _DEFAULT_EXCLUDE) -> Sha256:
     """Return ``sha256:<hex>`` over a record's canonical semantic content.
 
     ``exclude`` may name *informational* fields only (never a semantic one).
@@ -161,9 +159,7 @@ def canonical_record_id(
     if not frozenset(exclude) <= INFORMATIONAL_FIELDS:
         raise ValueError("exclude may only contain informational fields")
     try:
-        payload = model.model_dump(
-            mode="json", exclude=set(exclude) | {"record_id"}
-        )
+        payload = model.model_dump(mode="json", exclude=set(exclude) | {"record_id"})
     except PydanticSerializationError as exc:  # pragma: no cover - hardening path.
         raise contract_error("record contains unencodable content", INVALID_RECORD) from exc
     return canonical_digest(payload)

@@ -567,7 +567,7 @@ def video_review_ui(output_dir: str) -> dict[str, Any]:
 @mcp.tool()
 @_safe_tool
 def video_dub_plan(caption_path: str, target_lang: str = "es", voice: str | None = None) -> dict[str, Any]:
-    """ES-first TTS candidate plan (P4.4); no synthesis adapter exists."""
+    """ES-first plan; use sound_voice_batch with a hashed request for local stock speech."""
 
     from kinocut.multipliers import plan_tts_dub
 

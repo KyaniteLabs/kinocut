@@ -108,7 +108,7 @@ Published surface (since 1.14.1; current 1.15.1). These commands do **not** add 
 | `shorts-package` | Package approved platform renders from a saved shorts plan. Fails closed on quality unless `--allow-fail`. |
 | `sound-capabilities` | Discover the bounded public sound operation set |
 | `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional) |
-| `sound-voice-batch` | Local deterministic voice batch (`--plan-json` optional) |
+| `sound-voice-batch` | Retained local caption speech (`--request-json`, `--project-root`); legacy synthetic demo (`--plan-json` optional). See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound-mix-render` | Supplied-media mix ZIP via `--request-json` and `--project-root`; omit both for a labelled demo. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound-qa-loudness` | Loudness check against the default delivery policy |
 | `sound-qa-asr` | Fake ASR verification (`--script-hashes`, `--audio-duration-seconds`) |

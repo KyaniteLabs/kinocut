@@ -195,7 +195,9 @@ class LatencyCompensation(FrozenModel):
     """The latency compensation policy and measured residual."""
 
     policy: str
-    residual_samples: int = Field(default=DEFAULT_LATENCY_RESIDUAL_SAMPLES, ge=MIN_LATENCY_RESIDUAL_SAMPLES, le=MAX_LATENCY_RESIDUAL_SAMPLES)
+    residual_samples: int = Field(
+        default=DEFAULT_LATENCY_RESIDUAL_SAMPLES, ge=MIN_LATENCY_RESIDUAL_SAMPLES, le=MAX_LATENCY_RESIDUAL_SAMPLES
+    )
 
     @field_validator("policy")
     @classmethod
@@ -240,7 +242,5 @@ class Routing(FrozenModel):
                 raise ValueError(f"sidechain references unknown target bus {sidechain.target_bus_id}")
         for envelope in self.envelopes:
             if envelope.target_track_id not in track_ids:
-                raise ValueError(
-                    f"envelope references unknown track {envelope.target_track_id}"
-                )
+                raise ValueError(f"envelope references unknown track {envelope.target_track_id}")
         return self

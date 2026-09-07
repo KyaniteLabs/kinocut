@@ -66,7 +66,9 @@ class LoudnessTarget(FrozenModel):
     """One loudness target with integrated LUFS, tolerance, and true-peak."""
 
     integrated_lufs: float = Field(lt=MAX_LOUDNESS_LUFS)
-    tolerance_lu: float = Field(default=DEFAULT_LOUDNESS_TOLERANCE_LU, gt=MIN_LOUDNESS_TOLERANCE_LU, le=MAX_LOUDNESS_TOLERANCE_LU)
+    tolerance_lu: float = Field(
+        default=DEFAULT_LOUDNESS_TOLERANCE_LU, gt=MIN_LOUDNESS_TOLERANCE_LU, le=MAX_LOUDNESS_TOLERANCE_LU
+    )
     true_peak_dbtp: float = Field(lt=MAX_TRUE_PEAK_DBTP)
 
     @field_validator("integrated_lufs", "tolerance_lu", "true_peak_dbtp")
@@ -109,7 +111,11 @@ class StemRecombinationPolicy(FrozenModel):
     the master-only chain can be bypassed for the equality proof.
     """
 
-    tolerance_lsb_at_24bit: int = Field(default=MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT, ge=MIN_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT, le=MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT)
+    tolerance_lsb_at_24bit: int = Field(
+        default=MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT,
+        ge=MIN_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT,
+        le=MAX_STEM_RECOMBINATION_TOLERANCE_LSB_24BIT,
+    )
     comparison_reference: str = "pre_master"
 
     @field_validator("comparison_reference")
@@ -157,7 +163,5 @@ class DeliveryPolicy(FrozenModel):
     @model_validator(mode="after")
     def _master_only_limiting_requires_pre_master_reference(self) -> DeliveryPolicy:
         if self.master_only_limiting_enabled and self.recombination.comparison_reference != "pre_master":
-            raise ValueError(
-                "master-only limiting requires recombination.comparison_reference == 'pre_master'"
-            )
+            raise ValueError("master-only limiting requires recombination.comparison_reference == 'pre_master'")
         return self

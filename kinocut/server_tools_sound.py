@@ -29,9 +29,24 @@ def sound_plan_validate(plan: dict[str, Any] | None = None) -> dict[str, Any]:
 
 @mcp.tool()
 @_safe_tool
-def sound_voice_batch(plan: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Render a local deterministic voice batch from a SoundPlan (or a minimal plan)."""
-    return _result(_invoke("sound-voice-batch", plan=plan))
+async def sound_voice_batch(
+    plan: dict[str, Any] | None = None,
+    request: dict[str, Any] | None = None,
+    project_root: str | None = None,
+) -> dict[str, Any]:
+    """Retain local caption speech from a request, or run the synthetic plan demo."""
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.dub_job import render_dub_request_async
+    from .errors import MCPVideoError
+
+    try:
+        if request is None and project_root is None:
+            return _result(_invoke("sound-voice-batch", plan=plan))
+        if plan is not None:
+            raise MCPVideoError("caption request and synthetic plan modes conflict", error_type="validation_error")
+        return _result(await render_dub_request_async(request, project_root))
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()

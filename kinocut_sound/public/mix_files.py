@@ -54,7 +54,7 @@ def open_parent(root_fd: int, path: str):
         os.close(fd)
 
 
-def read_asset(root_fd: int, path: str, expected_hash: str, remaining: int) -> bytes:
+def _read_regular_file(root_fd: int, path: str, remaining: int) -> bytes:
     with open_parent(root_fd, path) as (parent, name):
         try:
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
@@ -71,6 +71,11 @@ def read_asset(root_fd: int, path: str, expected_hash: str, remaining: int) -> b
     markers = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
     if len(data) > remaining or any(getattr(before, k) != getattr(after, k) for k in markers):
         raise mix_error("mix asset changed during read", MIX_INPUT_INVALID)
+    return data
+
+
+def read_asset(root_fd: int, path: str, expected_hash: str, remaining: int) -> bytes:
+    data = _read_regular_file(root_fd, path, remaining)
     if "sha256:" + hashlib.sha256(data).hexdigest() != expected_hash:
         raise mix_error("mix asset hash mismatch", MIX_INPUT_INVALID)
     return data

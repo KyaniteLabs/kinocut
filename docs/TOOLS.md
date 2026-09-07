@@ -300,7 +300,7 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 |------|-------------|
 | `sound_capabilities` | Discover the bounded public sound operation set (local-first, non-TTY JSON) |
 | `sound_plan_validate` | Validate a SoundPlan payload (or a built-in minimal plan when omitted) |
-| `sound_voice_batch` | Render a local deterministic voice batch from a SoundPlan (relative paths only) |
+| `sound_voice_batch` | Retain local EN/ES caption speech with `request` + `project_root`; legacy `plan` mode is a labelled synthetic demo. See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound_mix_render` | Assemble supplied WAVs from a persisted request and project root into a verified ZIP; no-argument labelled demo remains available. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound_qa_loudness` | Measure loudness against the default delivery policy on synthetic audio |
 | `sound_qa_asr` | Run the local fake ASR verification port against script hashes |

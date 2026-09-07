@@ -64,7 +64,9 @@ class Prosody(FrozenModel):
     """
 
     rate: float = Field(default=DEFAULT_PROSODY_RATE, gt=MIN_PROSODY_RATE, le=MAX_PROSODY_RATE)
-    pitch: float = Field(default=DEFAULT_PROSODY_PITCH_SEMITONES, ge=MIN_PROSODY_PITCH_SEMITONES, lt=MAX_PROSODY_PITCH_SEMITONES)
+    pitch: float = Field(
+        default=DEFAULT_PROSODY_PITCH_SEMITONES, ge=MIN_PROSODY_PITCH_SEMITONES, lt=MAX_PROSODY_PITCH_SEMITONES
+    )
     volume_db: float = Field(default=DEFAULT_PROSODY_VOLUME_DB, ge=MIN_PROSODY_VOLUME_DB, le=MAX_PROSODY_VOLUME_DB)
     emphasis: float = Field(default=DEFAULT_PROSODY_EMPHASIS, ge=MIN_NORMALIZED_LEVEL, le=MAX_NORMALIZED_LEVEL)
 

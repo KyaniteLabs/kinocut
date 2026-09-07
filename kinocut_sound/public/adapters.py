@@ -141,7 +141,16 @@ class SoundPythonAdapter:
             "line_count": len(validated.lines),
         }
 
-    def voice_batch(self, plan: dict[str, Any] | SoundPlan | None = None) -> dict[str, Any]:
+    def voice_batch(
+        self, plan: dict[str, Any] | SoundPlan | None = None, *, request=None, project_root=None
+    ) -> dict[str, Any]:
+        if request is not None or project_root is not None:
+            from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
+            from kinocut_sound.public.dub_job import render_dub_request
+
+            if plan is not None:
+                raise mix_error("caption speech request cannot be combined with synthetic plan mode", MIX_INPUT_INVALID)
+            return render_dub_request(request, project_root)
         try:
             if plan is None:
                 sound_plan = _minimal_plan()
@@ -162,6 +171,9 @@ class SoundPythonAdapter:
             raise ValueError("sound voice batch failed") from exc
         return {
             "ok": True,
+            "demo": True,
+            "synthesis_kind": "deterministic_tone",
+            "audio_retained": False,
             "plan_hash": result.plan_hash,
             "clip_count": len(result.clips),
             "clips": [
@@ -252,7 +264,16 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
     elif key == "sound-plan-validate":
         result = adapter.plan_validate(kwargs.get("plan") or kwargs.get("plan_json"))
     elif key == "sound-voice-batch":
-        result = adapter.voice_batch(kwargs.get("plan") or kwargs.get("plan_json"))
+        from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
+
+        if set(kwargs) - {"plan", "plan_json", "request", "project_root"}:
+            raise mix_error("unknown voice request arguments", MIX_INPUT_INVALID)
+        plan = kwargs.get("plan") if "plan" in kwargs else kwargs.get("plan_json")
+        if "request" in kwargs or "project_root" in kwargs:
+            if kwargs.get("request") is None or not kwargs.get("project_root"):
+                raise mix_error("caption speech requires request and project_root", MIX_INPUT_INVALID)
+            return adapter.voice_batch(plan, request=kwargs["request"], project_root=kwargs["project_root"])
+        result = adapter.voice_batch(plan)
     elif key == "sound-mix-render":
         from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
 

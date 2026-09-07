@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 def detect_tts_backend() -> dict[str, Any]:
-    """Detect local TTS candidates without claiming an execution adapter."""
+    """Detect candidates; only espeak-ng has a local stock speech request adapter."""
     backends: list[dict[str, Any]] = []
+    if shutil.which("espeak-ng"):
+        backends.append({"id": "espeak-ng", "kind": "cli"})
     # Hyperframes local TTS CLI (optional integration).
     if shutil.which("hyperframes"):
         backends.append({"id": "hyperframes", "kind": "cli"})
@@ -54,7 +56,7 @@ def plan_tts_dub(
     target_lang: str = "es",
     voice: str | None = None,
 ) -> dict[str, Any]:
-    """Return candidate metadata; no synthesis adapter exists in this tree."""
+    """Return a plan; local stock speech execution requires a separate hashed request."""
     if not isinstance(caption_path, str) or not caption_path.strip():
         raise MCPVideoError("caption_path required", error_type="validation_error", code="caption_required")
     if not isinstance(target_lang, str):
@@ -67,8 +69,10 @@ def plan_tts_dub(
     coverage = language_coverage_report()
     dub_supported = list(coverage["surfaces"]["dub"]["supported_languages_or_pairs"])
     backend = _candidate_metadata(detect_tts_backend())
-    reason = "Local candidates may be detected, but discovery is not execution; no synthesis adapter exists"
-    next_action = "implement_and_verify_tts_synthesis_adapter"
+    reason = (
+        "This plan is not execution; the espeak-ng adapter requires a hashed caption request and explicit project root"
+    )
+    next_action = "create_sound_dub_request_for_sound_voice_batch"
     return {
         "artifact_kind": "tts_dub_plan",
         "caption_path": caption_path,
@@ -81,4 +85,7 @@ def plan_tts_dub(
         "supported_now": dub_supported,
         "backend": backend,
         "next_action": next_action,
+        "render_adapter": "sound_voice_batch",
+        "render_request_schema": "SoundDubRequest",
+        "translation_applied": False,
     }
