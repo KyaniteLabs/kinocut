@@ -23,6 +23,7 @@ from kinocut_sound.mix._wav import (
 from kinocut_sound.mix.ducking import duck_bed_under_speech
 from kinocut_sound.mix.placement import PlacedClip, PlacementPlan, place_clips
 from kinocut_sound.mix.seam import SeamReport
+from kinocut_sound.mix.source_windows import SourceWindow, select_source_windows
 from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
 from kinocut_sound.timeline import Timeline
@@ -49,6 +50,7 @@ class MixResult:
     within_tolerance: bool
     seam_report: SeamReport
     placement: PlacementPlan
+    source_windows: tuple[SourceWindow, ...] = ()
 
 
 def _blank(length: int) -> array:
@@ -106,6 +108,9 @@ class MixRenderer:
         clip_map = {c.cue_id: c for c in clips}
         if transitions and len(clip_map) != len(clips):
             raise mix_error("transition sources must have unique cue ids", MIX_CROSSFADE_INVALID)
+        selected, windows = select_source_windows(timeline, {c.cue_id: c.wav_bytes for c in clips}, self.sample_rate_hz)
+        clips = tuple(MixClip(c.cue_id, selected[c.cue_id], c.stem_id) for c in clips)
+        clip_map = {c.cue_id: c for c in clips}
         durations = {c.cue_id: len(parse_wav(c.wav_bytes)[0]) / float(self.sample_rate_hz) for c in clips}
         stem_for = {c.cue_id: c.stem_id for c in clips}
         placement = place_clips(
@@ -153,6 +158,7 @@ class MixRenderer:
             within_tolerance=within,
             seam_report=SeamReport(events=tuple(seams)),
             placement=placement,
+            source_windows=windows,
         )
 
     def _render_clips(
@@ -190,7 +196,9 @@ class MixRenderer:
             _overlay(bed_canvas, bed_samples, 0)
             bed_full = pcm_to_wav(bed_canvas, sample_rate_hz=self.sample_rate_hz)
             ducked = duck_bed_under_speech(speech, bed_full)
-            canvases["ambience"] = parse_wav(ducked)[0]
+            if "ambience" not in canvases:
+                canvases["ambience"] = _blank(total_samples)
+            _overlay(canvases["ambience"], parse_wav(ducked)[0], 0)
         else:
             if "ambience" not in canvases:
                 canvases["ambience"] = _blank(total_samples)

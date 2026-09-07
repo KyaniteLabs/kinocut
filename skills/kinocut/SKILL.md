@@ -168,6 +168,7 @@ Receipts store workspace-relative paths only — keep specs and example receipts
    - For thin sound: `sound-capabilities` then `sound-plan-validate` / `sound-voice-batch` / `sound-mix-render` / `sound-qa-loudness` / `sound-qa-asr` (or `kino sound <action>`).
    - For actual local EN/ES caption speech, supply a hashed `SoundDubRequest` and explicit project root to `sound-voice-batch`; see `docs/SOUND_DUB_REQUESTS.md`. This optional eSpeak NG path retains WAVs and a mix request. It does not translate, clone voices or apply mastering; legacy plan mode remains a labelled synthetic demo.
    - For supplied-media mixing, pass a persisted request plus explicit project root to `sound_mix_render`, or use `sound-mix-render --request-json request.json --project-root .`. Verify the ZIP receipt and decoded media; assembly is not loudness mastering or human listening acceptance. See `docs/SOUND_MIX_REQUESTS.md` for format, filesystem, cancellation and resource limits.
+   - Cue in/out points select source samples before placement and crossfades; post-roll must remain inside that selection. Verify `source_windows` in the receipt. A ducked bed adds to existing ambience clips.
 4. Produce release artifacts before publishing:
    - `video-quality-check`
    - `storyboard` or `thumbnail`
