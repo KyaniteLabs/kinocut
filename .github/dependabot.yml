@@ -1,5 +1,5 @@
-# Dependency updates for the GitHub collaboration mirror.
-# Forgejo Renovate (#3) still needs GITHUB_COM_TOKEN / hostRules for GitHub digests.
+# Dependency updates for Kinocut's primary GitHub repository.
+# Forgejo will receive accepted updates once the downstream sync is activated and verified.
 version: 2
 updates:
   - package-ecosystem: "github-actions"

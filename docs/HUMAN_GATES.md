@@ -1,4 +1,4 @@
-# Human / ops residual (updated 2026-08-19)
+# Human / ops residual (updated 2026-09-06)
 
 Agent-closable prep is on tip. Live outcomes below still need a human operator
 where noted. Residual portfolio authority:
@@ -8,7 +8,7 @@ where noted. Residual portfolio authority:
 
 | Former issue | Agent deliverable | Status |
 | --- | --- | --- |
-| #3 Renovate dashboard | `.github/dependabot.yml` + `.renovaterc.json` + `.forgejo/workflows/renovate.yml` + runbook [`docs/ops/RENOVATE_HOST_TOKEN.md`](ops/RENOVATE_HOST_TOKEN.md) | **Still human/ops** — set `RENOVATE_TOKEN` + `MIRROR_GITHUB_TOKEN` on Forgejo; agent runbook complete |
+| #3 Renovate dashboard | `.github/dependabot.yml` + superseded Forgejo setup in [`docs/ops/RENOVATE_HOST_TOKEN.md`](ops/RENOVATE_HOST_TOKEN.md) | GitHub Dependabot is canonical; do not provision the old Forgejo Renovate tokens for Kinocut |
 | #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | Awesome MCP Servers PR **merged** (2026-08-08). MCP.so, Docker MCP, Agent-CoreX, Protodex still pending external review |
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
@@ -28,7 +28,13 @@ Downloads are not a unique-user census, but stars + forks + multi‑k weekly ins
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
 incomplete pipeline work.
 
-## Forgejo CI runner
+## Historical Forgejo CI runner
+
+Exact-head GitHub CI is the canonical merge and release gate under Kinocut's
+GitHub-primary policy. GitHub #499 records the proposal and transition context.
+Forgejo CI is supplemental after the downstream sync is verified. The incident
+record below is retained as history and must not be used to justify an independent
+Forgejo merge.
 
 CI runner (`colima-ci-runner`, id=15) runs inside the Colima VM via
 forgejo-runner v13.0.0 with systemd. Combined status on `5b1936e`
@@ -86,7 +92,7 @@ agent coding. Owner approved closing/deferring the GH hygiene rows:
 
 | Item | Why human | Disposition |
 | --- | --- | --- |
-| Renovate host tokens | Secrets on Forgejo (`RENOVATE_TOKEN`, `MIRROR_GITHUB_TOKEN`) | Ops only — runbook ready |
+| Renovate host tokens | Superseded Forgejo-primary setup | Do not provision for Kinocut; GitHub Dependabot is canonical |
 | Directories #88 | Third-party directory review / submission | External; do not invent approvals |
 | Launch #90 | Marketing publish of drafts | Owner publish gate |
 | GH #443 optional X4 dogfood | Physical capture hardware | Optional; synthetic fixtures cover compiler |
@@ -95,5 +101,6 @@ agent coding. Owner approved closing/deferring the GH hygiene rows:
 | skills-agent 0b / DNS | DNS spend / Free-zone skill | Owner only |
 | PW dirty push | Owner-owned dirty tree | Do not touch |
 
-Do not invent tokens, force-merge red lint, restart `forgejo-runner` mid-job,
-or land via `git push github`.
+Do not invent tokens, force-merge red CI, restart `forgejo-runner` mid-job, or
+land normal changes directly on Forgejo. Use a reviewed GitHub PR with exact-head
+GitHub CI, and do not claim GitHub-to-Forgejo downstream sync completion before its live gate passes.

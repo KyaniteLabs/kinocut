@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
-  <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
+  <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
   <img src="https://img.shields.io/badge/MCP-196%20tools-orange.svg" alt="196 MCP tools on development tip">
   <img src="https://img.shields.io/badge/CLI-167%20commands-orange.svg" alt="167 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
@@ -74,7 +74,7 @@
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
-| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (public collab) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (**canonical source**) |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (**canonical code, issues, PRs, CI, and releases**) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror; automated sync cutover pending verification) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
 | **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
@@ -736,7 +736,7 @@ Development verification lives in [docs/TESTING.md](docs/TESTING.md). Keep publi
 ## Development
 
 ```bash
-git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
+git clone https://github.com/KyaniteLabs/kinocut.git
 cd kinocut
 python3 -m venv .venv
 source .venv/bin/activate
@@ -784,7 +784,7 @@ More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
 
 ---
 
-If Kinocut is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/kinocut)** — it helps other agent builders find it.
+If Kinocut is useful to you, **[star or watch it on GitHub](https://github.com/KyaniteLabs/kinocut)** — it helps other agent builders find it.
 If it saved you real editing hours: [ko-fi.com/kyanitelabs](https://ko-fi.com/kyanitelabs).
 
 Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.
@@ -801,7 +801,7 @@ Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — av
 | **Category** | guardrailed video editing MCP server and CLI for AI agents |
 | **Best for** | AI agent builders, Claude Code/Cursor users, and local media operators |
 | **Not** | a hosted cloud editor or untyped FFmpeg shell |
-| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (canonical) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror) |
 | **Keywords** | video editing MCP, AI agent video, FFmpeg MCP, Shorts Reels, Insta360 360 assembly |
 
 ## Who it's for
@@ -836,7 +836,7 @@ Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is 
 
 - Maintained as of 2026 on the default branch
 - Prefer release tags when pinning dependencies
-- Report issues on the canonical remote listed above
+- Report issues on the canonical [GitHub repository](https://github.com/KyaniteLabs/kinocut/issues)
 
 ## Agent surface
 
@@ -846,7 +846,7 @@ Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is 
 
 ## Contributing
 
-Issues and PRs welcome on the canonical remote. Keep public docs free of secrets and machine-local paths.
+Issues and PRs are welcome on [GitHub](https://github.com/KyaniteLabs/kinocut). Keep public docs free of secrets and machine-local paths.
 
 ### Contributors
 

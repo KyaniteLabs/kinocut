@@ -1,0 +1,76 @@
+name: Sync Forgejo downstream
+
+on:
+  workflow_run:
+    workflows: ["CI"]
+    types: [completed]
+
+permissions:
+  contents: read
+  actions: read
+
+concurrency:
+  group: sync-forgejo-master
+  cancel-in-progress: false
+
+jobs:
+  gate:
+    name: Require exact-head primary CI
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    outputs:
+      sha: ${{ steps.primary.outputs.sha }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: master
+          persist-credentials: false
+      - id: primary
+        name: Validate event, tip, and required primary workflows
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: |
+          python scripts/forgejo_sync.py github-gate \
+            --event "$GITHUB_EVENT_PATH" \
+            --repository "$GITHUB_REPOSITORY" \
+            --api-url "$GITHUB_API_URL" \
+            --required-workflow '249485876:.github/workflows/ci.yml' \
+            --required-workflow '310965482:.github/workflows/mirror-smoke.yml' \
+            --required-workflow '262986319:.github/workflows/integration-smoke.yml' \
+            >>"$GITHUB_OUTPUT"
+
+  push:
+    name: Fast-forward Forgejo and require downstream CI
+    needs: gate
+    if: needs.gate.result == 'success' && needs.gate.outputs.sha != ''
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    permissions:
+      contents: read
+    environment: forgejo-mirror
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          ref: ${{ needs.gate.outputs.sha }}
+          persist-credentials: false
+      - name: Revalidate current GitHub master before credentials
+        env:
+          SOURCE_SHA: ${{ needs.gate.outputs.sha }}
+        run: |
+          python scripts/forgejo_sync.py source-tip \
+            --repository-dir "$GITHUB_WORKSPACE" \
+            --source-sha "$SOURCE_SHA"
+      - name: Fast-forward Forgejo and verify exact-head ci.yml
+        env:
+          SOURCE_SHA: ${{ needs.gate.outputs.sha }}
+          MIRROR_FORGEJO_USERNAME: ${{ vars.MIRROR_FORGEJO_USERNAME }}
+          MIRROR_FORGEJO_TOKEN: ${{ secrets.MIRROR_FORGEJO_TOKEN }}
+        run: |
+          python scripts/forgejo_sync.py sync \
+            --repository-dir "$GITHUB_WORKSPACE" \
+            --source-sha "$SOURCE_SHA" \
+            --forgejo-git-url 'https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git' \
+            --forgejo-api-url 'https://git.kyanitelabs.tech/api/v1' \
+            --forgejo-repository 'KyaniteLabs/kinocut'
