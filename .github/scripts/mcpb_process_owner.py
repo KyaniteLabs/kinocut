@@ -94,9 +94,16 @@ def _kernel32() -> Any:
     kernel.CreateJobObjectW.restype = ctypes.c_void_p
     kernel.OpenJobObjectW.argtypes = [ctypes.c_uint32, ctypes.c_int, ctypes.c_wchar_p]
     kernel.OpenJobObjectW.restype = ctypes.c_void_p
-    for name in ("SetInformationJobObject", "QueryInformationJobObject"):
-        getattr(kernel, name).argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
-        getattr(kernel, name).restype = ctypes.c_int
+    kernel.SetInformationJobObject.argtypes = [ctypes.c_void_p, ctypes.c_int, ctypes.c_void_p, ctypes.c_uint32]
+    kernel.SetInformationJobObject.restype = ctypes.c_int
+    kernel.QueryInformationJobObject.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+        ctypes.c_void_p,
+        ctypes.c_uint32,
+        ctypes.POINTER(ctypes.c_uint32),
+    ]
+    kernel.QueryInformationJobObject.restype = ctypes.c_int
     kernel.AssignProcessToJobObject.argtypes = [ctypes.c_void_p, ctypes.c_void_p]
     kernel.AssignProcessToJobObject.restype = ctypes.c_int
     kernel.TerminateJobObject.argtypes = [ctypes.c_void_p, ctypes.c_uint32]

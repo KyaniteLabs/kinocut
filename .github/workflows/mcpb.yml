@@ -93,6 +93,50 @@ jobs:
         with:
           name: staged-mcpb-build
           path: mcpb-artifacts
+      - name: Provision FFmpeg on Linux
+        if: matrix.os == 'linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+      - name: Provision FFmpeg on macOS
+        if: matrix.os == 'macos'
+        run: brew install ffmpeg
+      - name: Provision FFmpeg on Windows
+        if: matrix.os == 'windows'
+        shell: pwsh
+        run: choco install --yes ffmpeg --no-progress
+      - name: Validate native FFmpeg toolchain
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import shutil
+          import subprocess
+          from pathlib import Path
+
+          ffmpeg_raw = shutil.which("ffmpeg")
+          if not ffmpeg_raw:
+              raise SystemExit("native ffmpeg was not found")
+          ffmpeg = Path(ffmpeg_raw).resolve(strict=True)
+          if not ffmpeg.is_absolute() or not ffmpeg.is_file() or not os.access(ffmpeg, os.X_OK):
+              raise SystemExit("native ffmpeg is not an absolute executable file")
+          ffprobe = ffmpeg.with_name("ffprobe.exe" if os.name == "nt" else "ffprobe")
+          if not ffprobe.is_file() or not os.access(ffprobe, os.X_OK):
+              raise SystemExit("native ffprobe is not an adjacent executable file")
+          for tool in (ffmpeg, ffprobe):
+              subprocess.run(
+                  [str(tool), "-version"],
+                  check=True,
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  timeout=20,
+              )
+          env_path = os.environ.get("GITHUB_ENV")
+          if not env_path:
+              raise SystemExit("GITHUB_ENV is unavailable")
+          with Path(env_path).open("a", encoding="utf-8") as env_file:
+              env_file.write(f"MCPB_FFMPEG={ffmpeg}\n")
+          PY
       - name: Prepare clean installed runtime outside checkout
         shell: bash
         run: |
@@ -118,7 +162,7 @@ jobs:
             --wheel mcpb-artifacts/kinocut-1.15.1-py3-none-any.whl \
             --venv "$RUNNER_TEMP/mcpb-venv" \
             --node "$(command -v node)" \
-            --ffmpeg "$(command -v ffmpeg)" \
+            --ffmpeg "$MCPB_FFMPEG" \
             --hyperframes "$RUNNER_TEMP/known-absent-hyperframes" \
             --source-sha "$GITHUB_SHA" \
             --archive-sha "${{ needs.build-validate.outputs.archive_sha }}" \
@@ -154,6 +198,42 @@ jobs:
         with:
           name: staged-mcpb-build
           path: mcpb-artifacts
+      - name: Provision FFmpeg on Linux
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes --no-install-recommends ffmpeg
+      - name: Validate native FFmpeg toolchain
+        shell: bash
+        run: |
+          python - <<'PY'
+          import os
+          import shutil
+          import subprocess
+          from pathlib import Path
+
+          ffmpeg_raw = shutil.which("ffmpeg")
+          if not ffmpeg_raw:
+              raise SystemExit("native ffmpeg was not found")
+          ffmpeg = Path(ffmpeg_raw).resolve(strict=True)
+          if not ffmpeg.is_absolute() or not ffmpeg.is_file() or not os.access(ffmpeg, os.X_OK):
+              raise SystemExit("native ffmpeg is not an absolute executable file")
+          ffprobe = ffmpeg.with_name("ffprobe.exe" if os.name == "nt" else "ffprobe")
+          if not ffprobe.is_file() or not os.access(ffprobe, os.X_OK):
+              raise SystemExit("native ffprobe is not an adjacent executable file")
+          for tool in (ffmpeg, ffprobe):
+              subprocess.run(
+                  [str(tool), "-version"],
+                  check=True,
+                  stdout=subprocess.DEVNULL,
+                  stderr=subprocess.DEVNULL,
+                  timeout=20,
+              )
+          env_path = os.environ.get("GITHUB_ENV")
+          if not env_path:
+              raise SystemExit("GITHUB_ENV is unavailable")
+          with Path(env_path).open("a", encoding="utf-8") as env_file:
+              env_file.write(f"MCPB_FFMPEG={ffmpeg}\n")
+          PY
       - name: Install exact optional capabilities in task-local roots
         run: |
           python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-ai-venv" --extra ai-scene
@@ -168,7 +248,7 @@ jobs:
             --wheel mcpb-artifacts/kinocut-1.15.1-py3-none-any.whl \
             --venv "$RUNNER_TEMP/mcpb-ai-venv" \
             --node "$(command -v node)" \
-            --ffmpeg "$(command -v ffmpeg)" \
+            --ffmpeg "$MCPB_FFMPEG" \
             --hyperframes "$RUNNER_TEMP/hyperframes/node_modules/.bin/hyperframes" \
             --source-sha "$GITHUB_SHA" \
             --archive-sha "${{ needs.build-validate.outputs.archive_sha }}" \
