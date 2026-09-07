@@ -1,0 +1,172 @@
+name: Windows supervised collection diagnostic
+
+on:
+  push:
+    branches: [ci/windows-supervised-collection-20260907]
+
+permissions:
+  contents: read
+
+jobs:
+  collect:
+    if: github.run_attempt == 1
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Configure deterministic checkout line endings
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          git config --global core.autocrlf false
+          if ($LASTEXITCODE -ne 0) { throw "failed to configure core.autocrlf" }
+          git config --global core.eol lf
+          if ($LASTEXITCODE -ne 0) { throw "failed to configure core.eol" }
+          $autocrlf = (git config --global --get core.autocrlf).Trim()
+          if ($LASTEXITCODE -ne 0 -or $autocrlf -cne "false") { throw "core.autocrlf mismatch" }
+          $eol = (git config --global --get core.eol).Trim()
+          if ($LASTEXITCODE -ne 0 -or $eol -cne "lf") { throw "core.eol mismatch" }
+      - name: Check out diagnostic driver
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
+        with:
+          path: driver
+          ref: ${{ github.sha }}
+          persist-credentials: false
+      - name: Check out immutable product
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
+        with:
+          path: product
+          ref: 3a940a9e0fb1a5b447ef64cc5ff1b3f8f06cf306
+          persist-credentials: false
+      - name: Check out immutable supervisor
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
+        with:
+          path: supervisor
+          ref: 90ad16b33e6449035e9aef02e4563490c3d9c66b
+          persist-credentials: false
+      - name: Check out immutable collection wrapper
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
+        with:
+          path: wrapper
+          ref: 77728c2a369073aaccabd2e04717b61929d19119
+          persist-credentials: false
+      - name: Verify immutable source identities
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          function Assert-Equal([string]$Actual, [string]$Expected, [string]$Name) {
+            if ($Actual -cne $Expected) { throw "$Name identity mismatch" }
+          }
+          Assert-Equal ((git -C driver rev-parse HEAD).Trim()) $env:GITHUB_SHA "driver commit"
+          Assert-Equal $env:GITHUB_EVENT_NAME "push" "event"
+          Assert-Equal $env:GITHUB_REF_NAME "ci/windows-supervised-collection-20260907" "branch"
+          Assert-Equal $env:GITHUB_RUN_ATTEMPT "1" "attempt"
+          Assert-Equal ((git -C product rev-parse HEAD).Trim()) "3a940a9e0fb1a5b447ef64cc5ff1b3f8f06cf306" "product commit"
+          Assert-Equal ((git -C product rev-parse 'HEAD^{tree}').Trim()) "6f9ca184f2951acd09b2109fb7c3c9dc0184ff75" "product tree"
+          Assert-Equal ((git -C supervisor rev-parse HEAD).Trim()) "90ad16b33e6449035e9aef02e4563490c3d9c66b" "supervisor commit"
+          Assert-Equal ((git -C supervisor rev-parse 'HEAD^{tree}').Trim()) "f3ab49aa37cfaf9233c17ac240ae1f80f0dd3a82" "supervisor tree"
+          Assert-Equal ((git -C wrapper rev-parse HEAD).Trim()) "77728c2a369073aaccabd2e04717b61929d19119" "wrapper commit"
+          Assert-Equal ((git -C wrapper rev-parse 'HEAD^{tree}').Trim()) "390c9b92c37729ca95ce4960ced3038472d19dd8" "wrapper tree"
+          $wrapperPath = ".github/scripts/windows_collection_diagnostic.py"
+          Assert-Equal ((git -C wrapper hash-object $wrapperPath).Trim()) "a2a0a4ad5d4c82636571f06c0974110294102e52" "wrapper blob"
+          Assert-Equal ((Get-FileHash "wrapper/$wrapperPath" -Algorithm SHA256).Hash.ToLowerInvariant()) "cdfa289f382ef4960c10a31e70b6cbbe165d3af593605c4b6617bf80cde08821" "wrapper SHA-256"
+          $eventsPath = ".github/scripts/windows_collection_events.py"
+          Assert-Equal ((git -C driver hash-object $eventsPath).Trim()) "c98224dda66d12040a65eda7f7317758a970a176" "event helper blob"
+          Assert-Equal ((Get-FileHash "driver/$eventsPath" -Algorithm SHA256).Hash.ToLowerInvariant()) "b5d41fbf92819cf1f2c9997edd11c82b5ade53cde5bc88c2380f806a4b5be492" "event helper SHA-256"
+          Assert-Equal ((Get-FileHash "supervisor/.github/scripts/mcpb-ci.py" -Algorithm SHA256).Hash.ToLowerInvariant()) "18aa3333ec593b1aac6851e71b829a315bd6a58064817f56886e5a9ddf86548f" "supervisor SHA-256"
+          Assert-Equal ((Get-FileHash "supervisor/.github/scripts/mcpb_process_owner.py" -Algorithm SHA256).Hash.ToLowerInvariant()) "f19d0446ef473d233480887fd4993565e83c953ae7d3ac0adca6253f5c314aff" "owner SHA-256"
+      - name: Set up Python 3.11 controller
+        id: python311
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        timeout-minutes: 2
+        with:
+          python-version: "3.11.9"
+      - name: Save Python 3.11 executable
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $python = (Get-Command python).Source
+          & $python -c "import platform; assert platform.python_version() == '3.11.9'"
+          if ($LASTEXITCODE -ne 0) { throw "Python 3.11 identity check failed" }
+          "KINOCUT_DIAG_PY311=$python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Set up Python 3.14 collection runtime
+        id: python314
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        timeout-minutes: 2
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: product/pyproject.toml
+      - name: Save Python 3.14 executable
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $python = (Get-Command python).Source
+          & $python -c "import platform; assert platform.python_version().startswith('3.14.')"
+          if ($LASTEXITCODE -ne 0) { throw "Python 3.14 identity check failed" }
+          "KINOCUT_DIAG_PY314=$python" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+      - name: Ensure FFmpeg
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          choco install --yes ffmpeg --no-progress
+          ffmpeg -version
+          ffprobe -version
+      - name: Install product and diagnostic dependencies
+        timeout-minutes: 5
+        working-directory: product
+        shell: pwsh
+        run: '& $env:KINOCUT_DIAG_PY314 -m pip install --disable-pip-version-check -e ".[dev]" "ruff==0.15.11"'
+      - name: Lint immutable product
+        timeout-minutes: 2
+        working-directory: product
+        shell: pwsh
+        run: '& $env:KINOCUT_DIAG_PY314 -m ruff check kinocut/ mcp_video.py tests/'
+      - name: Verify product import compatibility
+        timeout-minutes: 1
+        working-directory: product
+        shell: pwsh
+        run: '& $env:KINOCUT_DIAG_PY314 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"'
+      - name: Record bounded dependency inventory
+        timeout-minutes: 1
+        shell: pwsh
+        run: '& $env:KINOCUT_DIAG_PY311 driver/.github/scripts/windows_collection_supervised.py inventory --python $env:KINOCUT_DIAG_PY314 --output driver/evidence/windows-supervised-dependencies.json'
+      - name: Run containment self-test and supervised collection
+        timeout-minutes: 4
+        shell: pwsh
+        run: |
+          & $env:KINOCUT_DIAG_PY311 driver/.github/scripts/windows_collection_supervised.py controller `
+            --driver-root driver --product-root product --supervisor-root supervisor --wrapper-root wrapper `
+            --python311 $env:KINOCUT_DIAG_PY311 --python314 $env:KINOCUT_DIAG_PY314 `
+            --receipt driver/evidence/windows-supervised-receipt.json `
+            --export driver/evidence/windows-supervised-events.json `
+            --inventory driver/evidence/windows-supervised-dependencies.json
+      - name: Upload bounded sanitized diagnostic evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: windows-supervised-collection
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            driver/evidence/windows-supervised-receipt.json
+            driver/evidence/windows-supervised-events.json
+            driver/evidence/windows-supervised-dependencies.json
+      - name: Classify retained evidence
+        if: always()
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          & $env:KINOCUT_DIAG_PY311 driver/.github/scripts/windows_collection_supervised.py classify `
+            --driver-root driver --product-root product --supervisor-root supervisor --wrapper-root wrapper `
+            --python311 $env:KINOCUT_DIAG_PY311 --python314 $env:KINOCUT_DIAG_PY314 `
+            --receipt driver/evidence/windows-supervised-receipt.json `
+            --export driver/evidence/windows-supervised-events.json `
+            --inventory driver/evidence/windows-supervised-dependencies.json
