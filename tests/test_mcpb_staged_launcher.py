@@ -41,6 +41,51 @@ def _node_eval(source: str, *args: str, timeout: float = 10) -> subprocess.Compl
     )
 
 
+def _launch_options(platform: str, supervised: bool) -> subprocess.CompletedProcess[str]:
+    source = r"""
+const fs = require("node:fs");
+const path = require("node:path");
+const vm = require("node:vm");
+const launcherPath = process.argv[1];
+const source = fs.readFileSync(launcherPath, "utf8") + [
+  "",
+  "globalThis.__result = launch(",
+  "  'configured python',",
+  "  {KINOCUT_TEST_ENV: 'preserved'},",
+  `  ${process.argv[3] === "true"},`,
+  ");",
+].join("\n");
+let observed = null;
+const child = {pid: 123};
+function localRequire(name) {
+  if (name === "node:child_process") {
+    return {
+      spawn(command, args, options) {
+        observed = {command, args, options};
+        return child;
+      },
+      spawnSync() { throw new Error("preflight spawn must not run"); },
+    };
+  }
+  return require(name);
+}
+localRequire.main = {};
+const context = {
+  Buffer,
+  __dirname: path.dirname(launcherPath),
+  clearTimeout,
+  console,
+  module: {exports: {}},
+  process: {env: {}, platform: process.argv[2]},
+  require: localRequire,
+  setTimeout,
+};
+vm.runInNewContext(source, context, {filename: launcherPath});
+console.log(JSON.stringify({observed, sameChild: context.__result === child}));
+"""
+    return _node_eval(source, platform, str(supervised).lower())
+
+
 class _OwnedSupervisor:
     kind = "test_owner"
 
@@ -283,6 +328,36 @@ def test_launcher_hands_off_to_exact_configured_python_as_one_executable(tmp_pat
     assert result.returncode == 0, result.stderr
     assert result.stdout == "exact-handoff\n"
     assert result.stderr == ""
+
+
+@pytest.mark.skipif(NODE is None, reason="Node is required")
+@pytest.mark.parametrize(
+    ("platform", "supervised", "detached"),
+    [
+        ("win32", False, False),
+        ("win32", True, True),
+        ("linux", False, True),
+        ("linux", True, False),
+    ],
+)
+def test_actual_server_spawn_selects_platform_and_supervision_mode(
+    platform: str, supervised: bool, detached: bool
+) -> None:
+    result = _launch_options(platform, supervised)
+
+    assert result.returncode == 0, result.stderr
+    payload = json.loads(result.stdout)
+    assert payload["sameChild"] is True
+    assert payload["observed"] == {
+        "command": "configured python",
+        "args": ["-m", "kinocut", "--mcp"],
+        "options": {
+            "detached": detached,
+            "stdio": "inherit",
+            "env": {"KINOCUT_TEST_ENV": "preserved"},
+            "shell": False,
+        },
+    }
 
 
 @pytest.mark.skipif(NODE is None or os.name == "nt", reason="POSIX process-group fixture required")

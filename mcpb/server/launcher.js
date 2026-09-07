@@ -174,7 +174,8 @@ function probeFailureMessage(reason, requiredVersion) {
 function launch(command, env, supervised) {
   const args = command === "py" ? ["-3", "-m", "kinocut", "--mcp"] : ["-m", "kinocut", "--mcp"];
   return spawn(command, args, {
-    detached: process.platform !== "win32" && !supervised,
+    // The external owner contains supervised Windows children; avoid libuv's launcher-owned Job.
+    detached: process.platform === "win32" ? supervised : !supervised,
     stdio: "inherit",
     env,
     shell: false,
