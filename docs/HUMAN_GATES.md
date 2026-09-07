@@ -13,7 +13,7 @@ where noted. Residual portfolio authority:
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
 
-## Live adoption signals (re-verified 2026-08-12; package 2026-08-19)
+## Live adoption signals (re-verified 2026-08-12; package 2026-08-31)
 
 | Signal | Value | Source |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ where noted. Residual portfolio authority:
 | PyPI downloads (last day) | **608** | pypistats / pypi.org API |
 | PyPI downloads (last week) | **6,715** | same |
 | PyPI downloads (last month) | **23,034** | same |
-| Published package | **1.15.0** | PyPI |
+| Published package | **1.15.1** | PyPI |
 
 Downloads are not a unique-user census, but stars + forks + multi‑k weekly installs
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
@@ -80,8 +80,9 @@ capacity-2 / virtiofs starvation. Do not merge #405 red. See
 
 ## Product site
 
-`https://kinocut.dev/` stamps **1.15.0** (Forgejo kinocut-site #19 + Netlify
-prod). Pip/npm/MCP/site agree.
+The website source has been corrected for **1.15.1**, but production deployment
+and rendered verification remain pending. Package publication does not prove
+site deployment.
 
 ## Adversarial audit residuals
 

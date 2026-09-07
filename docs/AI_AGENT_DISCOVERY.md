@@ -43,7 +43,8 @@ Kinocut's lockfile-pinned template; a custom scene is trusted executable TypeScr
 - `docs/WORKFLOWS.md` - agent workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume semantics, cleanup, and privacy.
 - `docs/VIDEO_RECEIPT.md` - workflow/`layer_plan` receipt kinds, `schema_version` policy, and the `receipt_kind` discriminator.
 - `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` - exact-asset review, protection, body-swap, salvage, and re-review sequence.
-- `docs/status/2026-07-27-post-campaign-tip-status.md` - current published-versus-development truth and remaining human gates.
+- `docs/status/NOW.md` - current published-versus-development truth and remaining human gates.
+- `docs/status/2026-07-27-post-campaign-tip-status.md` - historical tip snapshot, superseded by `docs/status/NOW.md`.
 - `docs/status/2026-07-12-wishlist-draft-pr-status.md` - historical incomplete implementation snapshot and non-release boundary.
 - `docs/plans/2026-07-12-wishlist-parallel-execution.md` - dependency graph and controller/author ownership for parallel work.
 - `docs/360_ASSEMBLY.md` - Insta360 X4 stitched MP4 → propose/approve/render (tip).

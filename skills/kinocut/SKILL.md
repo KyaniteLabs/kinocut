@@ -51,9 +51,9 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 
 There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director plugs (Ollama first; cloud only with `allow_cloud`) may propose JSON; they never write pixels. In pip 1.14.0.
 
-## Product / object matte (landing; not in 1.15.0)
+## Product / object matte (published in 1.15.1)
 
-Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+The optional object-matte extra is available in published 1.15.1. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
 2. `pip install "kinocut[object-matte]"` then `model="birefnet-general"`.

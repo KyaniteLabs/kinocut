@@ -120,7 +120,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | **This repository (`master`)** | Development tip · **200 MCP / 171 CLI** | Adds four guarded local Revideo operations; not yet published. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
-Install from PyPI for the stable package. Clone `master` when you want tip work after the latest tag (today that includes object-matte; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md)).
+Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want development-tip work such as the guarded Revideo operations; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
 
 ## What's in 1.15.1
 
@@ -147,7 +147,7 @@ Also already on the published line from 1.13.x:
 - Agent **workflow engine**, dedicated **video rescue**, **layered compositing**, Hyperframes, Shorts/Reels repurposing
 - **Canonical counts** — **196 MCP tools** and **167 CLI commands**
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.1)
 
 ## Beyond 1.15.1 (draft / gated)
 
@@ -161,7 +161,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
 - **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Paid Generative / Dubbing Plans:** Generative spend-cap and TTS candidate records are non-executable planning definitions. No generation or dubbing adapter exists; credentials, package discovery, configuration, and caller flags cannot create execution capability.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Published in **1.15.1** (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Published in **1.15.1** (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 
@@ -828,7 +828,7 @@ Treat the README status and release tags as source of truth for maturity. Valida
 
 ### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
 
-Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.15.0.
+Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.15.1.
 
 ## Status
 
