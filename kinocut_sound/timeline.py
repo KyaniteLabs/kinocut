@@ -14,6 +14,7 @@ Design references (sonic-world design):
 from __future__ import annotations
 
 from enum import StrEnum
+from math import inf, nextafter
 
 from pydantic import Field, field_validator, model_validator
 
@@ -86,6 +87,8 @@ class Timeline(FrozenModel):
     The timeline total (last cue end + tail) is the authoritative required
     output duration. An unexplained gap between cues larger than the configured
     tolerance is rejected as a prohibited shortest-stream mix.
+    Boundary comparisons allow one representable float step for arithmetic
+    roundoff; this does not apply the gap tolerance to overlapping cues.
     """
 
     cues: tuple[Cue, ...] = ()
@@ -118,11 +121,11 @@ class Timeline(FrozenModel):
             if cue.cue_id in seen_ids:
                 raise ValueError(f"duplicate cue_id: {cue.cue_id}")
             seen_ids.add(cue.cue_id)
-            # Allow exact adjacency (start == last_end) but reject going back.
-            if cue.start_seconds < last_end:
+            # Addition can put a decimal boundary one float step past its cue.
+            if cue.start_seconds < nextafter(last_end, -inf):
                 raise ValueError(f"cue {cue.cue_id} starts before previous cue ends")
             gap = cue.start_seconds - last_end
-            if gap > self.gap_tolerance_seconds:
+            if cue.start_seconds > nextafter(last_end + self.gap_tolerance_seconds, inf):
                 raise ValueError(
                     f"cue {cue.cue_id} opens an unexplained gap of {gap:.3f}s "
                     f"(tolerance {self.gap_tolerance_seconds:.3f}s)"
