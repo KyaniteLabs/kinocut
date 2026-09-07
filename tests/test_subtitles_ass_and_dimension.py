@@ -503,6 +503,37 @@ def test_render_cli_forwards_style_and_defaults_none(monkeypatch):
     assert "style" not in captured  # omitted -> not forwarded (engine default None)
 
 
+@pytest.mark.parametrize("subtitle_format", ["ass", "srt"])
+def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, subtitle_format):
+    from kinocut import engine_subtitles
+
+    source = tmp_path / "source.ass"
+    source.write_text("[Script Info]\n", encoding="utf-8")
+    output = tmp_path / "burn.ass"
+    descriptor = os.open(output, os.O_CREAT | os.O_WRONLY, 0o600)
+    original_fdopen = os.fdopen
+    reused = []
+
+    @contextlib.contextmanager
+    def recycle_after_close(fd, *args, **kwargs):
+        with original_fdopen(fd, *args, **kwargs) as stream:
+            yield stream
+        replacement = os.open(tmp_path / "unrelated.txt", os.O_CREAT | os.O_WRONLY, 0o600)
+        reused.append(replacement)
+        assert replacement == fd
+
+    monkeypatch.setattr(engine_subtitles.os, "fdopen", recycle_after_close)
+    monkeypatch.setattr(engine_subtitles, "probe_display_dimensions", lambda _: (320, 240))
+    monkeypatch.setattr(engine_subtitles, "synthesize_dimensioned_ass", lambda *_: "[Script Info]\n")
+    try:
+        engine_subtitles._fill_burn_source(descriptor, subtitle_format, str(source), "unused.mp4")
+        assert os.write(reused[0], b"still owned by another operation") > 0
+    finally:
+        for fd in reused:
+            with contextlib.suppress(OSError):
+                os.close(fd)
+
+
 def test_render_cli_subtitles_parser_has_style_flag():
     import argparse
 
