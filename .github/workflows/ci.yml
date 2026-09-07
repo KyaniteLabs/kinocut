@@ -424,7 +424,9 @@ jobs:
         run: python -m ruff check kinocut/ mcp_video.py tests/
       - name: Collect whole test suite
         if: needs.changes.outputs.code == 'true'
-        run: python -m pytest --collect-only -q --tb=short
+        shell: pwsh
+        timeout-minutes: 4
+        run: python .github/scripts/windows_collection_ci.py
       - name: Import checks (server tree imports on Windows)
         if: needs.changes.outputs.code == 'true'
         run: |
