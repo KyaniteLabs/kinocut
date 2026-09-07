@@ -40,7 +40,8 @@ def test_invalid_backend_output_never_publishes(master_project, monkeypatch, kin
     assert not list(root.glob(".kinocut-mix-*"))
 
 
-def test_actual_successful_size_limit_truncation_is_rejected(master_project, monkeypatch):  # noqa: F811
+@pytest.mark.parametrize("missing_summary", [False, True])
+def test_actual_successful_size_limit_truncation_is_rejected(master_project, monkeypatch, missing_summary):  # noqa: F811
     root, request = master_project
     original = master_job.render_args
 
@@ -50,6 +51,13 @@ def test_actual_successful_size_limit_truncation_is_rejected(master_project, mon
         return args
 
     monkeypatch.setattr(master_job, "render_args", limited)
+    run = master_job.run_sync
+
+    def rendered(args, deadline):
+        result = run(args, deadline)
+        return b"" if missing_summary and "-fs" in args else result
+
+    monkeypatch.setattr(master_job, "run_sync", rendered)
     with pytest.raises(MasterError) as failure:
         master_job.render_master_request(request, str(root))
     assert failure.value.code == "master_invalid_output"
