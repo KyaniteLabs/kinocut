@@ -4,7 +4,6 @@ from __future__ import annotations
 
 from array import array
 from dataclasses import dataclass
-from itertools import pairwise
 from math import isfinite
 
 from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS
@@ -12,6 +11,7 @@ from kinocut_sound.delivery import DeliveryPolicy, StemLayout
 from kinocut_sound.mix._errors import (
     MIX_DURATION_MISMATCH,
     MIX_INPUT_INVALID,
+    MIX_CROSSFADE_INVALID,
     MIX_UNSAFE_PATH,
     mix_error,
 )
@@ -22,7 +22,8 @@ from kinocut_sound.mix._wav import (
 )
 from kinocut_sound.mix.ducking import duck_bed_under_speech
 from kinocut_sound.mix.placement import PlacedClip, PlacementPlan, place_clips
-from kinocut_sound.mix.seam import SeamReport, SeamEvent
+from kinocut_sound.mix.seam import SeamReport
+from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
 from kinocut_sound.timeline import Timeline
 from kinocut_sound._canonical import location_violation
@@ -95,9 +96,16 @@ class MixRenderer:
         delivery: DeliveryPolicy | None = None,
         crossfade_seconds: float = 0.0,
         duck_bed: bool = False,
+        transitions: tuple[CrossfadeTransition, ...] = (),
     ) -> MixResult:
+        if isinstance(crossfade_seconds, bool) or crossfade_seconds != 0:
+            raise mix_error(
+                "use explicit CrossfadeTransition entries instead of crossfade_seconds", MIX_CROSSFADE_INVALID
+            )
         delivery = delivery or DeliveryPolicy()
         clip_map = {c.cue_id: c for c in clips}
+        if transitions and len(clip_map) != len(clips):
+            raise mix_error("transition sources must have unique cue ids", MIX_CROSSFADE_INVALID)
         durations = {c.cue_id: len(parse_wav(c.wav_bytes)[0]) / float(self.sample_rate_hz) for c in clips}
         stem_for = {c.cue_id: c.stem_id for c in clips}
         placement = place_clips(
@@ -113,23 +121,14 @@ class MixRenderer:
 
         stem_ids = delivery.stems.stem_ids or ("dialogue", "ambience", "sfx")
         canvases = {sid: _blank(total_samples) for sid in stem_ids}
-        seams: list[SeamEvent] = []
-
-        # Optional consecutive-line crossfade: preprocess ordered dialogue clips
         ordered = sorted(placement.placements, key=lambda p: p.start_seconds)
-        if crossfade_seconds > 0 and len(ordered) >= 2:
-            for left, right in pairwise(ordered):
-                if left.stem_id == right.stem_id == "dialogue" and left.cue_id in clip_map and right.cue_id in clip_map:
-                    # Only record seam; actual overlay uses truncated windows.
-                    seams.append(
-                        SeamEvent(
-                            kind="crossfade",
-                            at_seconds=right.start_seconds,
-                            left_cue_id=left.cue_id,
-                            right_cue_id=right.cue_id,
-                            duration_seconds=crossfade_seconds,
-                        )
-                    )
+        changed, seams = apply_transitions(
+            timeline, {c.cue_id: c.wav_bytes for c in clips}, stem_for, transitions, self.sample_rate_hz
+        )
+        for cue_id, wav_bytes in changed.items():
+            if clip_map[cue_id].stem_id not in canvases:
+                raise mix_error("transition stem must exist in delivery layout", MIX_CROSSFADE_INVALID)
+            clip_map[cue_id] = MixClip(cue_id, wav_bytes, clip_map[cue_id].stem_id)
 
         self._render_clips(ordered, clip_map, canvases, stem_ids)
         if bed_wav is not None:

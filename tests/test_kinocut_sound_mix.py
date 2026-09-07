@@ -136,14 +136,13 @@ def test_mix_renderer_duration_proof_and_stems():
         clips=clips,
         bed_wav=bed,
         delivery=DeliveryPolicy(stems=StemLayout(stem_ids=("dialogue", "ambience", "sfx"))),
-        crossfade_seconds=0.05,
         duck_bed=True,
     )
     assert result.within_tolerance is True
     assert result.measured_duration_seconds == pytest.approx(result.declared_duration_seconds, abs=0.02)
     assert result.declared_duration_seconds >= 1.4
     assert set(result.stems.stems) >= {"dialogue", "ambience", "sfx"}
-    assert result.seam_report.count >= 1
+    assert result.seam_report.count == 0  # Intentional silence is not a crossfade.
 
 
 @pytest.mark.parametrize("renderer_tail", [0.0, 0.1])
