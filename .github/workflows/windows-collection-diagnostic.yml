@@ -1,0 +1,58 @@
+name: Windows collection diagnostic
+
+on:
+  push:
+    branches: [ci/windows-collection-diagnostics-20260906]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: windows-collection-diagnostic-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  collect:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        timeout-minutes: 2
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        timeout-minutes: 2
+        with:
+          python-version: "3.14"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+      - name: Ensure FFmpeg
+        timeout-minutes: 5
+        shell: pwsh
+        run: |
+          choco install -y ffmpeg --no-progress
+          ffmpeg -version
+          ffprobe -version
+      - name: Install package and dev dependencies
+        timeout-minutes: 5
+        run: python -m pip install -e ".[dev]" "ruff==0.15.11"
+      - name: Lint
+        timeout-minutes: 2
+        run: python -m ruff check kinocut/ mcp_video.py tests/
+      - name: Verify runtime and commit identity
+        timeout-minutes: 1
+        shell: pwsh
+        run: |
+          python --version
+          python -m pytest --version
+          python -m pip --version
+          $head = git rev-parse HEAD
+          if ($head -cne $env:GITHUB_SHA) { throw "Checked-out HEAD does not match GITHUB_SHA" }
+          Write-Output "GITHUB_SHA=$head"
+      - name: Collect whole test suite with bounded diagnostics
+        timeout-minutes: 4
+        env:
+          PYTHONUNBUFFERED: "1"
+          PYTHONFAULTHANDLER: "1"
+          PYTHONIOENCODING: utf-8:backslashreplace
+        run: python -u .github/scripts/windows_collection_diagnostic.py
