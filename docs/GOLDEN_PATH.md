@@ -1,6 +1,6 @@
 # Kinocut golden path
 
-**Goal:** prove Kinocut works on a clean machine in about a minute, with artifacts another agent or human can inspect.
+**Goal:** prove Kinocut works on a clean machine with artifacts another agent or human can inspect.
 
 ## 60-second success criteria
 
@@ -10,7 +10,7 @@ These three steps must succeed:
 | ---: | --- | --- |
 | 1 | `kino doctor` | Required checks OK (FFmpeg + package) |
 | 2 | Confidence baseline workflow | Writes final video + quality + checkpoint + receipt |
-| 3 | Artifact checks | `video_receipt.json` has `tool_calls` and `human_review.status == pending` |
+| 3 | Artifact checks | Fresh receipt, source/final hashes, raw quality >=80, checkpoint media, and pending human review all validate |
 
 One command:
 
@@ -46,6 +46,25 @@ Copies JSON (+ media when present) to `demo/golden-pack/artifacts/` and refreshe
 `demo/golden-pack/sample_video_receipt.json` for docs and site demos. See
 [demo/golden-pack/README.md](../demo/golden-pack/README.md).
 
+`--skip-run` reuses output only after the same strict run, candidate, quality,
+artifact, containment, and hash checks pass. A failed validation or copy leaves
+the existing shareable pack unchanged.
+
+## Clean-wheel release acceptance
+
+Release and pull-request CI build a wheel, install it into a clean venv outside
+the checkout, and invoke `scripts/verify_onboarding_release.py`. The harness
+runs doctor, trim, 9:16 resize, two-cue SRT burn, audio normalization, the raw
+quality gate, and `Client.release_checkpoint`. It then requires 1080x1920 MP4
+video plus audio, a full decode, exact source/output identities, and four
+cue/no-cue frame comparisons.
+
+The deterministic source is synthetic and proves installation and timed visual
+change. It does not prove caption readability, transcription accuracy, or
+creative quality. A lawful local interview excerpt must pass the same harness;
+its receipt stays pending until a person reviews timing, readability, visual
+integrity, and audio intelligibility.
+
 ## Failure recovery
 
 | Symptom | Fix |
@@ -55,7 +74,8 @@ Copies JSON (+ media when present) to `demo/golden-pack/artifacts/` and refreshe
 | Workflow import error | Use Python 3.11+; `pip install -e .` |
 | Optional AI extras missing | Expected for this path — core golden path does **not** need Whisper/torch |
 | Hyperframes errors | Not required for golden path |
-| Quality score low on synthetic media | Still a valid plumbing proof; open `quality.json` |
+| Quality score below 80 or a failed non-advisory check | Inspect `quality.json`; the run is diagnostic evidence, not a green proof |
+| Command timeout | Inspect the bounded failure detail; no green/shareable receipt is produced |
 
 ## Agent paste prompt
 

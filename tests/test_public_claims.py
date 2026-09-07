@@ -232,3 +232,52 @@ def test_sitemap_and_robots_point_at_canonical_site(claims: dict) -> None:
     site = claims["website"].rstrip("/")
     assert f"Sitemap: {site}/sitemap.xml" in robots or f"Sitemap: {claims['website']}sitemap.xml" in robots
     assert f"{site}/" in sitemap or claims["website"] in sitemap
+
+
+CONTRIBUTION_OBLIGATIONS = (
+    ("493", "https://github.com/KyaniteLabs/kinocut/pull/493"),
+    ("496", "https://github.com/KyaniteLabs/kinocut/pull/496"),
+    ("498", "https://github.com/KyaniteLabs/kinocut/pull/498"),
+)
+
+
+def _changelog_sections(text: str) -> dict[str, str]:
+    matches = list(re.finditer(r"^## (.+)$", text, re.MULTILINE))
+    return {
+        match.group(1): text[match.end() : matches[index + 1].start() if index + 1 < len(matches) else len(text)]
+        for index, match in enumerate(matches)
+    }
+
+
+def test_imported_contributions_have_durable_credit() -> None:
+    changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    readme = (ROOT / "README.md").read_text(encoding="utf-8")
+    sections = _changelog_sections(changelog)
+    assert "@WohaibHasan" in sections["Unreleased"]
+    assert "@WohaibHasan" in readme
+    for number, link in CONTRIBUTION_OBLIGATIONS:
+        owning = [heading for heading, body in sections.items() if link in body]
+        assert owning
+        assert "1.15.1 - 2026-08-31" not in owning
+        assert owning == ["Unreleased"] or all(
+            heading != "Unreleased" and tuple(map(int, heading.split()[0].split("."))) > (1, 15, 1)
+            for heading in owning
+        )
+        assert link in readme, number
+
+
+def test_video_receipt_example_cannot_claim_green_below_threshold() -> None:
+    text = (ROOT / "docs" / "VIDEO_RECEIPT.md").read_text(encoding="utf-8")
+    example = json.loads(re.search(r"```json\n(.*?)\n```", text, re.DOTALL).group(1))
+    quality = example["quality"]
+    assert quality["all_passed"] is not True or quality["overall_score"] >= 80
+
+
+def test_site_repurpose_command_is_accepted_by_current_parser() -> None:
+    from kinocut.cli.parser import build_parser
+
+    args = build_parser().parse_args(
+        ["repurpose", "ep-42.mp4", "--platforms", "youtube-shorts", "tiktok", "instagram-reel"]
+    )
+    assert args.command == "repurpose"
+    assert args.platforms == ["youtube-shorts", "tiktok", "instagram-reel"]

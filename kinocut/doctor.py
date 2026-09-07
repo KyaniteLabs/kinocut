@@ -668,7 +668,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
         hint = (
             "Still/plate tools need the image stack (Pillow + NumPy). "
             'Install: pip install "kinocut[image]". '
-            "Free establish-locked edit uses local match; paid gen backends are not claimed until configured."
+            "Free establish-locked edit uses local match; no paid still-generation adapter exists."
         )
     return {
         "name": "still_plates",
@@ -682,7 +682,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
             "pillow": pillow_ok,
             "numpy": numpy_ok,
             "free_edit_backend": "free_establish_match" if ok else "unavailable",
-            "paid_gen_backend": "not_configured",
+            "paid_gen_backend": "adapter_unavailable",
             "missing": missing,
             "docs": "docs/STILL_PLATES.md",
         },
