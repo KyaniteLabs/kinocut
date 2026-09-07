@@ -58,3 +58,9 @@ kino workflow-render --spec job.json --resume receipt.json --save-receipt receip
 ```
 
 Receipt shapes are documented in [VIDEO_RECEIPT.md](../../../docs/VIDEO_RECEIPT.md).
+
+This example intentionally keeps its static `add_text` workflow role. The
+release acceptance path for an authored two-cue SRT, clean wheel, strict raw
+quality gate, full decode, and pending review receipt is documented in
+[GOLDEN_PATH.md](../../../docs/GOLDEN_PATH.md) and implemented by
+`scripts/verify_onboarding_release.py`.

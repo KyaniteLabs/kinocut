@@ -11,6 +11,14 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+- Absolute trim-end handling now preserves the requested endpoint ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)).
+- Windows drive paths survive command parsing without losing their drive prefix ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)).
+- CLI tests capture UTF-8 output consistently across supported consoles ([#498](https://github.com/KyaniteLabs/kinocut/pull/498)).
+
+### Acknowledgements
+- Thanks to [@WohaibHasan](https://github.com/WohaibHasan) for contributing [#493](https://github.com/KyaniteLabs/kinocut/pull/493), [#496](https://github.com/KyaniteLabs/kinocut/pull/496), and [#498](https://github.com/KyaniteLabs/kinocut/pull/498).
+
 ## 1.15.1 - 2026-08-31
 
 Maintenance release: registry ownership plus the object-matte streaming port.

@@ -16,7 +16,7 @@ jobs:
   surface-audit:
     name: Check tracked release surface
     if: github.event_name == 'release'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -33,7 +33,8 @@ jobs:
     name: Build release artifacts
     needs: surface-audit
     if: github.event_name == 'release'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -193,6 +194,29 @@ jobs:
           .venv-upgrade/bin/pip uninstall --yes mcp-video
           .venv-upgrade/bin/pip check
           .venv-upgrade/bin/python -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
+      - name: Verify clean-wheel timed-caption onboarding
+        env:
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          if ! command -v ffmpeg &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          run_root="${RUNNER_TEMP}/kinocut-release-onboarding-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python -m venv "${RUNNER_TEMP}/kinocut-release-onboarding-venv"
+          "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/pip" install release-dist/kinocut-*.whl
+          "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/pip" check
+          mkdir -p "$run_root"
+          "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/python" scripts/verify_onboarding_release.py \
+            --wheel "$(find release-dist -maxdepth 1 -name 'kinocut-*.whl' -print -quit)" \
+            --source "$run_root/source.mp4" \
+            --captions "$GITHUB_WORKSPACE/tests/fixtures/onboarding-captions.srt" \
+            --output-dir "$run_root/output" \
+            --python "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/python" \
+            --kino "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/kino" \
+            --candidate-commit "$CANDIDATE_SHA" \
+            --evidence-class synthetic_fixture \
+            --generate-synthetic-source
       - name: Upload Python artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:

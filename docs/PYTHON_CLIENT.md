@@ -188,10 +188,11 @@ client.add_text(render.output_path, text="EPISODE 1", position="top-center", out
 ### Quality gate before publishing
 
 ```python
-checkpoint = client.release_checkpoint("final.mp4", min_score=0.8)
+checkpoint = client.release_checkpoint("final.mp4", min_score=80)
 print(checkpoint["thumbnail"])      # Review thumbnail
 print(checkpoint["storyboard"])     # Review key frames
-print(checkpoint["quality_score"])  # Must pass min_score
+print(checkpoint["quality"]["overall_score"])  # Must pass min_score
+print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 ```
 
 ---
