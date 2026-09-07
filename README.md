@@ -17,7 +17,7 @@
 <p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
-  <a href="https://git.kyanitelabs.tech/KyaniteLabs/kinocut/actions"><img src="https://img.shields.io/badge/Forgejo%20CI-actions-blue" alt="CI"></a>
+  <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
   <img src="https://img.shields.io/badge/MCP-200%20tools-orange.svg" alt="200 MCP tools on development tip">
   <img src="https://img.shields.io/badge/CLI-171%20commands-orange.svg" alt="171 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
@@ -74,7 +74,7 @@
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
-| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (public collab) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (**canonical source**) |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (**canonical code, issues, PRs, CI, and releases**) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror; automated sync cutover pending verification) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
 | **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
@@ -120,7 +120,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | **This repository (`master`)** | Development tip · **200 MCP / 171 CLI** | Adds four guarded local Revideo operations; not yet published. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
-Install from PyPI for the stable package. Clone `master` when you want tip work after the latest tag (today that includes object-matte; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md)).
+Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want development-tip work such as the guarded Revideo operations; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
 
 ## What's in 1.15.1
 
@@ -147,7 +147,7 @@ Also already on the published line from 1.13.x:
 - Agent **workflow engine**, dedicated **video rescue**, **layered compositing**, Hyperframes, Shorts/Reels repurposing
 - **Canonical counts** — **196 MCP tools** and **167 CLI commands**
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.0](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.0)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.1](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.1)
 
 ## Beyond 1.15.1 (draft / gated)
 
@@ -161,7 +161,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
 - **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Paid Generative / Dubbing Plans:** Generative spend-cap and TTS candidate records are non-executable planning definitions. No generation or dubbing adapter exists; credentials, package discovery, configuration, and caller flags cannot create execution capability.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Published in **1.15.1** (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Published in **1.15.1** (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 
@@ -734,7 +734,7 @@ Development verification lives in [docs/TESTING.md](docs/TESTING.md). Keep publi
 ## Development
 
 ```bash
-git clone https://git.kyanitelabs.tech/KyaniteLabs/kinocut.git
+git clone https://github.com/KyaniteLabs/kinocut.git
 cd kinocut
 python3 -m venv .venv
 source .venv/bin/activate
@@ -782,7 +782,7 @@ More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
 
 ---
 
-If Kinocut is useful to you, **[star or watch it](https://git.kyanitelabs.tech/KyaniteLabs/kinocut)** — it helps other agent builders find it.
+If Kinocut is useful to you, **[star or watch it on GitHub](https://github.com/KyaniteLabs/kinocut)** — it helps other agent builders find it.
 If it saved you real editing hours: [ko-fi.com/kyanitelabs](https://ko-fi.com/kyanitelabs).
 
 Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.
@@ -799,7 +799,7 @@ Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — av
 | **Category** | guardrailed video editing MCP server and CLI for AI agents |
 | **Best for** | AI agent builders, Claude Code/Cursor users, and local media operators |
 | **Not** | a hosted cloud editor or untyped FFmpeg shell |
-| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (canonical) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror) |
 | **Keywords** | video editing MCP, AI agent video, FFmpeg MCP, Shorts Reels, Insta360 360 assembly |
 
 ## Who it's for
@@ -828,13 +828,13 @@ Treat the README status and release tags as source of truth for maturity. Valida
 
 ### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
 
-Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.15.0.
+Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.15.1.
 
 ## Status
 
 - Maintained as of 2026 on the default branch
 - Prefer release tags when pinning dependencies
-- Report issues on the canonical remote listed above
+- Report issues on the canonical [GitHub repository](https://github.com/KyaniteLabs/kinocut/issues)
 
 ## Agent surface
 
@@ -844,7 +844,7 @@ Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is 
 
 ## Contributing
 
-Issues and PRs welcome on the canonical remote. Keep public docs free of secrets and machine-local paths.
+Issues and PRs are welcome on [GitHub](https://github.com/KyaniteLabs/kinocut). Keep public docs free of secrets and machine-local paths.
 
 ### Contributors
 

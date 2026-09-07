@@ -1,9 +1,9 @@
 repo: KyaniteLabs/kinocut
 forges:
-  forgejo:
+  github:
     role: primary
-    api_base: https://git.kyanitelabs.tech/api/v1
-    token_env: CODESITTER_FORGEJO_TOKEN
+    api_base: https://api.github.com
+    token_env: CODESITTER_GITHUB_TOKEN
 model:
   endpoint: https://api.deepinfra.com/v1/openai/chat/completions
   model: deepseek-ai/DeepSeek-V4-Flash-0731

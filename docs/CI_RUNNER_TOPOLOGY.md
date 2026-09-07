@@ -5,12 +5,47 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 
 **Last agent review:** 2026-08-19 · live runner list = only `colima-ci-runner`; PR #405 lint recurrence (1m21s, no `lint-checkout`) recorded below
 
+## GitHub-primary authority exception (2026-09-06)
+
+GitHub is the authority for Kinocut code, pull requests, CI, tags, and releases.
+[GitHub #499](https://github.com/KyaniteLabs/kinocut/issues/499) records the proposal
+and transition context. Forgejo is
+a downstream mirror: only the GitHub-to-Forgejo sync automation may update its
+`master`, and normal changes must not be independently merged there. The
+[downstream sync implementation](../.github/workflows/sync-forgejo.yml) is present.
+The automation is staged and inactive: both jobs compare the repository variable
+`KINOCUT_FORGEJO_SYNC_ACTIVE` with `true` using GitHub Actions'
+case-insensitive string equality. Values such as `true`, `True`, and `TRUE`
+therefore activate the jobs; other values do not. Before this policy can merge,
+the controller must explicitly set that repository-scoped variable to canonical
+lowercase `false` and read it back. Eventual activation also requires a verified
+canonical lowercase `true` readback after bootstrap. An absent value or skipped
+workflow is not evidence of safe activation, mirroring, bootstrap, or downstream
+acceptance. Bootstrap,
+activation, and live verification remain pending: the service identity, branch
+allowlists, GitHub environment and secret must be configured, and the required
+workflows enabled. Do not claim the mirror is current until the GitHub commit
+reaches Forgejo unchanged and its downstream CI passes.
+
+A one-commit operator-mediated transition may occur only under a later,
+independently reviewed execution brief bound to one eligible GitHub SHA, one
+task-owned Forgejo source branch, and one protected fast-forward-only PR. That
+conditional exception expires on success or a failed eligibility gate; it does
+not authorize direct `master` pushes or general operator writes.
+
+GitHub Dependabot is the canonical dependency-update path. The Forgejo Renovate
+job and the old Forgejo-to-GitHub sync workflow have been removed from this
+source revision. Neither may create or merge a normal change on Forgejo.
+The runner details below remain useful as historical
+incident evidence and for supplemental mirror checks; they no longer define the
+canonical contributor or release gate.
+
 ## Workload routing
 
 | Label | Intended workload | Host rule |
 | --- | --- | --- |
 | `light` | lint, metadata, and other low-CPU checks | May run at capacity 1; must not carry real-media tests |
-| `heavy` | Legacy shared heavy-work label (also Renovate / mirror sync today) | Prefer not for Kinocut test suites; keep for short ops jobs until `light` capacity is proven for them |
+| `heavy` | Shared heavy-work label; historically also used by the removed Renovate and outbound-sync jobs | Supplemental Forgejo checks only; never use these jobs to land an independent normal change |
 | `arm64-heavy` | Python tests, FFmpeg renders, Hyperframes, and FFmpeg matrices | Dedicated ARM64 runner away from the Forgejo application host |
 | `kinocut-ci` | Same workload class as `arm64-heavy`, using the prebuilt Kinocut image | Map only after the immutable image digest is published and smoke-tested |
 
@@ -23,8 +58,8 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 | Lint / ruff | `.forgejo/workflows/ci.yml` | **`light`** | Must stay on `light`; do not move lint onto `arm64-heavy` |
 | Unit / integration / FFmpeg matrix | `.forgejo/workflows/ci.yml` | `arm64-heavy` | Real media + pytest only |
 | Published-claims oracle | `.forgejo/workflows/claims-live.yml` | **`heavy`** | Master-push PyPI probe. Must **not** use `light` (capacity-2 then starves lint apt/curl; ~80s death with no `lint-checkout`) |
-| Renovate | `.forgejo/workflows/renovate.yml` | `heavy` | Containerized; ops job (not pytest) |
-| Mirror sync | `.forgejo/workflows/sync-github.yml` | `heavy` | Ops job |
+| Forgejo Renovate (removed; historical) | Former path: `.forgejo/workflows/renovate.yml` | `heavy` | GitHub Dependabot owns dependency PRs |
+| Legacy outbound sync (removed; historical) | Former path: `.forgejo/workflows/sync-github.yml` | `heavy` | Must not update GitHub; the replacement downstream sync awaits activation and live verification |
 
 ### Admin checklist for light capacity
 
@@ -72,7 +107,12 @@ Forgejo keeps the assignment; the new poller does not inherit it; the job dies a
 **exactly 80s** with no `lint-checkout`. Wait for idle, or let the 80s fail, then
 push a new SHA.
 
-### Agent land recipe (Colima capacity-2)
+### Historical Forgejo land recipe (superseded for normal changes)
+
+The following recipe records the 2026-08 incident response. Under the current GitHub-primary policy,
+do not use it to land current code, documentation, dependency updates, tags, or
+releases. Use GitHub PRs and GitHub CI; reserve Forgejo runner work for
+supplemental mirror checks after the GitHub-to-Forgejo downstream sync gate is proven.
 
 Use this when lint dies ~80s–1m21s with **no** `lint-checkout`, or before a
 retrigger after an idle restart. Agent skill:
@@ -146,6 +186,10 @@ Key constraints:
   runner solves this by running natively where the socket exists.
 
 ## Runner image
+
+This image is a supplemental Forgejo execution environment under the GitHub-primary
+model. Publishing or activating it does not establish contributor, CI, or release
+authority and does not prove the GitHub-to-Forgejo downstream sync cutover.
 
 Primary image build (when `containers/ci` is present):
 

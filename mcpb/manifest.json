@@ -16,7 +16,7 @@
     "url": "https://github.com/KyaniteLabs/kinocut"
   },
   "documentation": "https://github.com/KyaniteLabs/kinocut/blob/master/docs/MCPB.md",
-  "support": "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues",
+  "support": "https://github.com/KyaniteLabs/kinocut/issues",
   "license": "Apache-2.0",
   "keywords": [
     "video",

@@ -1,4 +1,4 @@
-# Human / ops residual (updated 2026-08-19)
+# Human / ops residual (updated 2026-09-06)
 
 Agent-closable prep is on tip. Live outcomes below still need a human operator
 where noted. Residual portfolio authority:
@@ -8,12 +8,12 @@ where noted. Residual portfolio authority:
 
 | Former issue | Agent deliverable | Status |
 | --- | --- | --- |
-| #3 Renovate dashboard | `.github/dependabot.yml` + `.renovaterc.json` + `.forgejo/workflows/renovate.yml` + runbook [`docs/ops/RENOVATE_HOST_TOKEN.md`](ops/RENOVATE_HOST_TOKEN.md) | **Still human/ops** — set `RENOVATE_TOKEN` + `MIRROR_GITHUB_TOKEN` on Forgejo; agent runbook complete |
+| #3 Renovate dashboard | `.github/dependabot.yml` + superseded Forgejo setup in [`docs/ops/RENOVATE_HOST_TOKEN.md`](ops/RENOVATE_HOST_TOKEN.md) | GitHub Dependabot is canonical; do not provision the old Forgejo Renovate tokens for Kinocut |
 | #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | Awesome MCP Servers PR **merged** (2026-08-08). MCP.so, Docker MCP, Agent-CoreX, Protodex still pending external review |
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
 
-## Live adoption signals (re-verified 2026-08-12; package 2026-08-19)
+## Live adoption signals (re-verified 2026-08-12; package 2026-08-31)
 
 | Signal | Value | Source |
 | --- | --- | --- |
@@ -22,13 +22,38 @@ where noted. Residual portfolio authority:
 | PyPI downloads (last day) | **608** | pypistats / pypi.org API |
 | PyPI downloads (last week) | **6,715** | same |
 | PyPI downloads (last month) | **23,034** | same |
-| Published package | **1.15.0** | PyPI |
+| Published package | **1.15.1** | PyPI |
 
 Downloads are not a unique-user census, but stars + forks + multi‑k weekly installs
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
 incomplete pipeline work.
 
-## Forgejo CI runner
+## Downstream policy activation
+
+The GitHub-to-Forgejo workflow is staged and inactive. Both jobs require the
+repository variable `KINOCUT_FORGEJO_SYNC_ACTIVE` to compare equal to `true`
+under GitHub Actions' case-insensitive string equality. Values such as `true`,
+`True`, and `TRUE` activate both jobs; other values do not. Before the policy
+merges, an operator must set the repository-scoped value to canonical lowercase
+`false` and read it back. After bootstrap, eventual activation requires a
+verified canonical lowercase `true` readback. Absence, inheritance, or a
+skipped-success workflow does not prove safe activation, mirroring, bootstrap,
+or downstream CI.
+
+Automation bootstrap remains a separate human gate for the restricted identity,
+token, environment, branch allowlist, protection, and final activation readback.
+A one-commit operator-mediated transition is only a conditional exception under
+a later independently reviewed brief bound to one eligible GitHub SHA, one
+task-owned Forgejo source branch, and one protected fast-forward-only PR. It
+does not authorize direct `master` pushes or steady-state operator writes.
+
+## Historical Forgejo CI runner
+
+Exact-head GitHub CI is the canonical merge and release gate under Kinocut's
+GitHub-primary policy. GitHub #499 records the proposal and transition context.
+Forgejo CI is supplemental after the downstream sync is verified. The incident
+record below is retained as history and must not be used to justify an independent
+Forgejo merge.
 
 CI runner (`colima-ci-runner`, id=15) runs inside the Colima VM via
 forgejo-runner v13.0.0 with systemd. Combined status on `5b1936e`
@@ -55,8 +80,9 @@ capacity-2 / virtiofs starvation. Do not merge #405 red. See
 
 ## Product site
 
-`https://kinocut.dev/` stamps **1.15.0** (Forgejo kinocut-site #19 + Netlify
-prod). Pip/npm/MCP/site agree.
+The website source has been corrected for **1.15.1**, but production deployment
+and rendered verification remain pending. Package publication does not prove
+site deployment.
 
 ## Adversarial audit residuals
 
@@ -86,7 +112,7 @@ agent coding. Owner approved closing/deferring the GH hygiene rows:
 
 | Item | Why human | Disposition |
 | --- | --- | --- |
-| Renovate host tokens | Secrets on Forgejo (`RENOVATE_TOKEN`, `MIRROR_GITHUB_TOKEN`) | Ops only — runbook ready |
+| Renovate host tokens | Superseded Forgejo-primary setup | Do not provision for Kinocut; GitHub Dependabot is canonical |
 | Directories #88 | Third-party directory review / submission | External; do not invent approvals |
 | Launch #90 | Marketing publish of drafts | Owner publish gate |
 | GH #443 optional X4 dogfood | Physical capture hardware | Optional; synthetic fixtures cover compiler |
@@ -95,5 +121,6 @@ agent coding. Owner approved closing/deferring the GH hygiene rows:
 | skills-agent 0b / DNS | DNS spend / Free-zone skill | Owner only |
 | PW dirty push | Owner-owned dirty tree | Do not touch |
 
-Do not invent tokens, force-merge red lint, restart `forgejo-runner` mid-job,
-or land via `git push github`.
+Do not invent tokens, force-merge red CI, restart `forgejo-runner` mid-job, or
+land normal changes directly on Forgejo. Use a reviewed GitHub PR with exact-head
+GitHub CI, and do not claim GitHub-to-Forgejo downstream sync completion before its live gate passes.

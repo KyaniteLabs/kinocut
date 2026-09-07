@@ -81,6 +81,8 @@ EXTERNAL_CONTRIBUTOR_PATHS = (
     ROOT / "compat" / "mcp-video-shim" / "pyproject.toml",
     ROOT / "docs" / "ENTERPRISE.md",
     ROOT / "docs" / "launch-checklist.md",
+    ROOT / "npm" / "package.json",
+    ROOT / "mcpb" / "manifest.json",
 )
 
 
@@ -605,7 +607,7 @@ def test_server_json_and_readme_match_registry_identity():
 
     assert server["name"] == "io.github.KyaniteLabs/kinocut"
     assert server["websiteUrl"] == "https://kinocut.dev/"
-    # GitHub is the public registry/collaboration repository; Forgejo is canonical source.
+    # GitHub is the canonical source and public registry/collaboration repository.
     assert server["repository"]["url"] == "https://github.com/KyaniteLabs/kinocut"
     assert server["repository"]["source"] == "github"
     assert server["packages"][0]["identifier"] == "kinocut"
@@ -615,23 +617,20 @@ def test_server_json_and_readme_match_registry_identity():
 
 
 def test_readme_declares_repository_topology():
-    """README states the repository topology unambiguously:
-    Forgejo is canonical source; GitHub is the public clone/collaboration surface.
-    """
+    """README identifies GitHub as primary and Forgejo as its downstream mirror."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    forgejo_canonical = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
-    github_public = "https://github.com/KyaniteLabs/kinocut"
-
-    assert forgejo_canonical in readme, "README must declare the Forgejo canonical source URL"
-    assert "Forgejo" in readme
-    assert "canonical source" in readme.lower()
-    assert github_public in readme, "README must keep the GitHub public collaboration URL"
+    source_row = next(line for line in readme.splitlines() if line.startswith("| **Source** |"))
+    primary, downstream = source_row.split(" · ", 1)
+    assert "https://github.com/KyaniteLabs/kinocut" in primary
+    assert "canonical" in primary.lower()
+    assert "https://git.kyanitelabs.tech/KyaniteLabs/kinocut" in downstream
+    assert "downstream mirror" in downstream.lower()
 
 
 def test_external_routing_surfaces_route_exclusively_to_github():
     """External bug/support/security/contribution routes remain GitHub-exclusive.
 
-    Forgejo may appear as canonical source attribution, but every surface an
+    Forgejo may appear as downstream mirror attribution, but every surface an
     external contributor follows to file a bug, report a vulnerability, ask a
     question, or open a pull request must keep routing to GitHub. Contributors
     never need Forgejo access.
@@ -656,17 +655,38 @@ def test_external_routing_surfaces_route_exclusively_to_github():
         project_urls[key].startswith("https://github.com/KyaniteLabs/kinocut")
         for key in ("Documentation", "Repository", "Bug Tracker", "Changelog", "Discussions")
     )
+    npm_package = json.loads((ROOT / "npm" / "package.json").read_text(encoding="utf-8"))
+    mcpb_manifest = json.loads((ROOT / "mcpb" / "manifest.json").read_text(encoding="utf-8"))
+    expected_issues = "https://github.com/KyaniteLabs/kinocut/issues"
+    assert npm_package["bugs"] == expected_issues
+    assert mcpb_manifest["support"] == expected_issues
 
 
-def test_github_sync_is_fast_forward_only_and_ref_scoped():
-    workflow = (ROOT / ".forgejo" / "workflows" / "sync-github.yml").read_text(encoding="utf-8")
+def test_forgejo_is_a_ci_gated_fast_forward_downstream():
+    workflow = (ROOT / ".github" / "workflows" / "sync-forgejo.yml").read_text(encoding="utf-8")
+    helper = (ROOT / "scripts" / "forgejo_sync.py").read_text(encoding="utf-8")
+    topology = (ROOT / "docs" / "CI_RUNNER_TOPOLOGY.md").read_text(encoding="utf-8")
+    human_gates = (ROOT / "docs" / "HUMAN_GATES.md").read_text(encoding="utf-8")
 
-    assert "git merge-base --is-ancestor github-mirror/master HEAD" in workflow
-    assert "refs/heads/master:refs/remotes/github-mirror/master" in workflow
-    assert "exit 1" in workflow
-    assert workflow.count("git push ") == 1
-    assert "git push github-mirror HEAD:refs/heads/master" in workflow
-    assert all(flag not in workflow for flag in ("--mirror", "--force", "--prune"))
+    assert not (ROOT / ".forgejo" / "workflows" / "sync-github.yml").exists()
+    assert not (ROOT / ".forgejo" / "workflows" / "renovate.yml").exists()
+    assert "workflow_run:" in workflow
+    assert 'workflows: ["CI"]' in workflow
+    assert "environment: forgejo-mirror" in workflow
+    assert '"push", "forgejo-downstream"' in helper
+    assert 'f"{source_sha}:refs/heads/master"' in helper
+    assert "--force" not in helper
+    assert workflow.count("vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true'") == 2
+    for guidance in (topology, human_gates):
+        normalized_guidance = " ".join(guidance.split())
+        assert "KINOCUT_FORGEJO_SYNC_ACTIVE" in guidance
+        assert "staged and inactive" in guidance
+        assert "case-insensitive string equality" in guidance
+        assert "`true`, `True`, and `TRUE`" in normalized_guidance
+        assert "canonical lowercase" in guidance
+        assert "repository-scoped" in guidance and "`false`" in guidance
+        assert "skipped" in guidance
+        assert "one-commit" in guidance
 
 
 def test_public_tree_does_not_track_local_agent_state_artifacts():

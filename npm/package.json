@@ -8,7 +8,7 @@
     "type": "git",
     "url": "git+https://github.com/KyaniteLabs/kinocut.git"
   },
-  "bugs": "https://git.kyanitelabs.tech/KyaniteLabs/kinocut/issues",
+  "bugs": "https://github.com/KyaniteLabs/kinocut/issues",
   "type": "module",
   "bin": {
     "kino": "bin/kinocut.js",
