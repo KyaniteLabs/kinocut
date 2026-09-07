@@ -166,6 +166,7 @@ Receipts store workspace-relative paths only — keep specs and example receipts
    - Hyperframes `inspect`, `snapshot`, or `still` before full render.
    - For saved shorts plans: `shorts-plan-show` → `shorts-review` → `shorts-render` → `shorts-package`.
    - For thin sound: `sound-capabilities` then `sound-plan-validate` / `sound-voice-batch` / `sound-mix-render` / `sound-qa-loudness` / `sound-qa-asr` (or `kino sound <action>`).
+   - Real ASR uses a hashed audio/reference request and explicit root; retain its transcript ZIP and report mismatches honestly. Cached local Whisper only; no automatic downloads. Legacy hash-only calls are simulations. See `docs/SOUND_ASR_REQUESTS.md`.
    - For real loudness QA, supply `SoundLoudnessRequest` plus project root and inspect `within_tolerance`; successful measurement can be noncompliant. FFmpeg is required, and the no-input fixture is labelled as a demo. See `docs/SOUND_LOUDNESS_REQUESTS.md`.
    - For retained mastering, supply `SoundMasterRequest` and explicit root to `sound-master-render`; see `docs/SOUND_MASTER_REQUESTS.md`. Inspect the verified ZIP, actual normalization mode and measured final policy compliance, then listen before release. Existing output is never replaced.
    - For actual local EN/ES caption speech, supply a hashed `SoundDubRequest` and explicit project root to `sound-voice-batch`; see `docs/SOUND_DUB_REQUESTS.md`. This optional eSpeak NG path retains WAVs and a mix request. It does not translate, clone voices or apply mastering; legacy plan mode remains a labelled synthetic demo.

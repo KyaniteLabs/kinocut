@@ -304,7 +304,7 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 | `sound_mix_render` | Assemble supplied WAVs with cue source windows, crossfades and additive ducked ambience into a verified ZIP; takes a persisted request and project root. No-argument labelled demo remains available. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound_qa_loudness` | Measure hashed local WAVs with FFmpeg and report actual policy compliance; omit inputs for a labelled demo. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
 | `sound_master_render` | Retain a two-pass master ZIP only after measuring final audio against its policy. Requires `request` and `project_root`; see [master request](SOUND_MASTER_REQUESTS.md). |
-| `sound_qa_asr` | Run the local fake ASR verification port against script hashes |
+| `sound_qa_asr` | Recognize hashed local audio and retain reference comparison; omitted request is a labelled simulation ([contract](SOUND_ASR_REQUESTS.md)) |
 
 ---
 
