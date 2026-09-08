@@ -95,11 +95,31 @@ async def sound_qa_loudness(request: dict[str, Any] | None = None, project_root:
 
 @mcp.tool()
 @_safe_tool
-def sound_qa_asr(
+async def sound_qa_asr(
     script_hashes: list[str] | None = None,
     audio_duration_seconds: float = 1.0,
+    request: dict[str, Any] | None = None,
+    project_root: str | None = None,
 ) -> dict[str, Any]:
-    """Run the local fake ASR verification port against script hashes."""
+    """Recognize supplied local audio or return an explicitly simulated demo."""
+    if request is not None or project_root is not None:
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.asr_job import recognize_async
+        from kinocut_sound.public.asr_request import real_mode
+        from .errors import MCPVideoError
+
+        try:
+            real_mode(
+                dict(
+                    request=request,
+                    project_root=project_root,
+                    script_hashes=script_hashes,
+                    audio_duration_seconds=audio_duration_seconds,
+                )
+            )
+            return _result(await recognize_async(request, project_root))
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
     return _result(
         _invoke(
             "sound-qa-asr",

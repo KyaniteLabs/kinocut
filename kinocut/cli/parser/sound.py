@@ -53,8 +53,10 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
 
     asr = subparsers.add_parser(
         "sound-qa-asr",
-        help="Run the local fake ASR verification port against script hashes",
+        help="Recognize supplied local audio or inspect a labelled simulation",
     )
+    asr.add_argument("--request-json", default=None, help="SoundAsrRequest JSON or file")
+    asr.add_argument("--project-root", default=None, help="Explicit root for audio, reference and new ZIP")
     asr.add_argument(
         "--script-hashes",
         nargs="*",
@@ -64,6 +66,6 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     asr.add_argument(
         "--audio-duration-seconds",
         type=float,
-        default=1.0,
+        default=None,
         help="Audio duration in seconds for the fake ASR port (default 1.0)",
     )

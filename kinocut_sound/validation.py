@@ -12,6 +12,10 @@ from __future__ import annotations
 
 import re
 
+ASR_PYTHON_NAME_RE = re.compile(r"python(?:\d+(?:\.\d+)*)?")
+ASR_VERSION_RE = re.compile(r"[a-zA-Z0-9.+_-]{1,64}")
+ASR_MODEL_DIGEST_RE = re.compile(r"[a-f0-9]{64}")
+
 # Legacy SRT extraction patterns; strict dubbing validates whole blocks first.
 SRT_CUE_SPLIT_RE = re.compile(r"\n\s*\n")
 SRT_TIMESTAMP_RE = re.compile(r"(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})")

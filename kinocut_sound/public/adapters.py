@@ -237,7 +237,23 @@ class SoundPythonAdapter:
         script_hashes: tuple[str, ...] | list[str] | None = None,
         audio_duration_seconds: float = 1.0,
         available: bool = True,
+        request=None,
+        project_root=None,
     ) -> dict[str, Any]:
+        if request is not None or project_root is not None:
+            from kinocut_sound.public.asr_job import recognize_sync
+            from kinocut_sound.public.asr_request import real_mode
+
+            real_mode(
+                dict(
+                    request=request,
+                    project_root=project_root,
+                    script_hashes=script_hashes,
+                    audio_duration_seconds=audio_duration_seconds,
+                    available=available,
+                )
+            )
+            return recognize_sync(request, project_root)
         hashes = tuple(script_hashes) if script_hashes else (_SHA_ZERO,)
         try:
             rep = verify_script_asr(
@@ -252,6 +268,9 @@ class SoundPythonAdapter:
             "ok": rep.ok,
             "mismatch_count": rep.mismatch_count,
             "segment_count": len(rep.segments),
+            "demo": True,
+            "verification_status": "simulated",
+            "human_review_required": True,
         }
 
 
@@ -308,11 +327,10 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
             raise qa_error("explicit audio input cannot be empty", QA_INPUT_INVALID)
         return adapter.qa_loudness(**kwargs)
     elif key == "sound-qa-asr":
-        result = adapter.qa_asr(
-            script_hashes=kwargs.get("script_hashes"),
-            audio_duration_seconds=kwargs.get("audio_duration_seconds", 1.0),
-            available=kwargs.get("available", True),
-        )
+        from kinocut_sound.public.asr_request import real_mode
+
+        real_mode(kwargs)
+        return adapter.qa_asr(**kwargs)
     else:  # pragma: no cover - guarded by _KNOWN_OPS
         raise KeyError(f"unknown sound operation: {name}")
 

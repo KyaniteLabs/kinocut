@@ -106,16 +106,23 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
             raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
     def _asr(a, j):
-        hashes = getattr(a, "script_hashes", None)
-        duration = getattr(a, "audio_duration_seconds", 1.0)
-        _out(
-            _invoke(
-                "sound-qa-asr",
-                script_hashes=hashes,
-                audio_duration_seconds=duration,
-            ),
-            j,
-        )
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.mix_files import load_request_file
+        from kinocut.errors import MCPVideoError
+
+        try:
+            if a.request_json is not None or a.project_root is not None:
+                if a.script_hashes is not None or a.audio_duration_seconds is not None:
+                    raise MCPVideoError("real ASR and legacy flags conflict", error_type="validation_error")
+                raw = a.request_json
+                request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+                result = _invoke("sound-qa-asr", request=request, project_root=a.project_root)
+            else:
+                duration = 1.0 if a.audio_duration_seconds is None else a.audio_duration_seconds
+                result = _invoke("sound-qa-asr", script_hashes=a.script_hashes, audio_duration_seconds=duration)
+            _out(result, j)
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
     runner.register("sound-capabilities", _caps)
     runner.register("sound-plan-validate", _plan)

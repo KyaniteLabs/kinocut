@@ -112,7 +112,7 @@ Published surface (since 1.14.1; current 1.15.1). These commands do **not** add 
 | `sound-mix-render` | Supplied-media mix ZIP with cue source windows and additive ducked ambience via `--request-json` and `--project-root`; omit both for a labelled demo. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound-qa-loudness` | Actual FFmpeg measurement via `--request-json` and `--project-root`; valid noncompliant audio reports `within_tolerance=false`. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
 | `sound-master-render` | Retain a verified two-pass master ZIP with required `--request-json` and `--project-root`. See [master request](SOUND_MASTER_REQUESTS.md). |
-| `sound-qa-asr` | Fake ASR verification (`--script-hashes`, `--audio-duration-seconds`) |
+| `sound-qa-asr` | Local cached speech recognition (`--request-json`, `--project-root`); legacy hash/duration flags remain a labelled simulation. [Contract](SOUND_ASR_REQUESTS.md) |
 
 Namespaced aliases (same handlers): `kino sound capabilities|plan-validate|voice-batch|mix-render|master-render|qa-loudness|qa-asr`.
 
