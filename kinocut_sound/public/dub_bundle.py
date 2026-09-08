@@ -12,6 +12,10 @@ from kinocut_sound.defaults import (
     DEFAULT_DUB_SAMPLE_RATE_HZ,
     DEFAULT_DUB_WORDS_PER_MINUTE,
 )
+from kinocut_sound._canonical import canonical_digest
+from kinocut_sound.limits import DUB_SPATIAL_METADATA_BYTES
+from kinocut_sound.mix._errors import mix_error
+from kinocut_sound.public.mix_routing_receipt import bounded_json
 from kinocut_sound.delivery import DeliveryPolicy, StemLayout
 from kinocut_sound.format import AudioFormat, ChannelLayout, ConversionPolicy, DitherPolicy, SampleFormat, TimeBase
 from kinocut_sound.mix._wav import pcm_to_wav
@@ -69,7 +73,22 @@ def mix_manifest(request, dialogue: bytes, sample_count: int) -> dict:
     ).model_dump(mode="json")
 
 
-def finish_bundle(job) -> dict:
+def _spatial_evidence(job):
+    if len(job.spatial_cues) != len(job.cues):
+        raise mix_error("speech spatial cue evidence is incomplete", "dub_spatial_failed")
+    for index, (proof, cue) in enumerate(zip(job.spatial_cues, job.cue_proofs, strict=True), start=1):
+        if (
+            proof["cue_index"] != index
+            or proof["processed_sha256"] != _sha(job.media[cue["path"]])
+            or proof["processed_frames"] != cue["speech_samples"]
+        ):
+            raise mix_error("speech spatial evidence differs from accepted audio", "dub_spatial_failed")
+    evidence = {"profile": job.request.spatial_profile, "backend": job.spatial_backend, "cues": job.spatial_cues}
+    bounded_json(evidence, DUB_SPATIAL_METADATA_BYTES)
+    return evidence
+
+
+def _prepare_bundle(job) -> dict:
     remaining(job.deadline)
     dialogue = pcm_to_wav(job.pcm, sample_rate_hz=DEFAULT_DUB_SAMPLE_RATE_HZ)
     media = {
@@ -101,6 +120,8 @@ def finish_bundle(job) -> dict:
         "human_review_required": True,
         "media": {name: {"bytes": len(data), "sha256": _sha(data)} for name, data in media.items()},
     }
+    if job.request.schema_version == 2:
+        receipt.update(schema_version=2, request_schema_version=2, spatial=_spatial_evidence(job))
     remaining(job.deadline)
     with os.fdopen(os.dup(job.stage_fd), "w+b") as destination:
         with zipfile.ZipFile(destination, "w", compression=zipfile.ZIP_STORED) as archive:
@@ -112,8 +133,7 @@ def finish_bundle(job) -> dict:
         destination.seek(0)
         archive_hash = "sha256:" + hashlib.file_digest(destination, "sha256").hexdigest()
     remaining(job.deadline)
-    publish(job.parent_fd, job.stage_name, job.output_name)
-    return {
+    result = {
         "ok": True,
         "demo": False,
         "output_path": job.request.output_path,
@@ -128,3 +148,18 @@ def finish_bundle(job) -> dict:
         "mastering_status": "not_applied",
         "human_review_required": True,
     }
+    if job.request.schema_version == 2:
+        result.update(
+            request_schema_version=2,
+            spatial_profile=job.request.spatial_profile,
+            spatial_sha256=canonical_digest(receipt["spatial"]),
+        )
+    return result
+
+
+def finish_bundle(job) -> dict:
+    result = _prepare_bundle(job)
+    job.close_workspace()
+    remaining(job.deadline)
+    publish(job.parent_fd, job.stage_name, job.output_name)
+    return result

@@ -6,6 +6,9 @@ a request for the supplied-media mixer. Python, CLI and MCP use the same request
 The existing `plan` argument remains a synthetic tone demonstration; its receipt
 is labelled `demo: true`, `synthesis_kind: deterministic_tone`, `audio_retained: false`.
 
+Version2 adds [explicit dry/distance processing](SOUND_SPEECH_SPATIAL.md) to real
+generated cues while retaining V1 behavior and the same public operation.
+
 This adapter uses stock formant voices. It does not translate captions, clone a
 voice, promise neural voice quality, synchronize lips, or apply mastering. The
 caption text must already be in the desired language. Listening review remains

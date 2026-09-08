@@ -108,7 +108,7 @@ Published surface (since 1.14.1; current 1.15.1). These commands do **not** add 
 | `shorts-package` | Package approved platform renders from a saved shorts plan. Fails closed on quality unless `--allow-fail`. |
 | `sound-capabilities` | Discover the bounded public sound operation set |
 | `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional); explicit empty or invalid plans fail. See [input validation](SOUND_INPUT_VALIDATION.md). |
-| `sound-voice-batch` | Retained local caption speech (`--request-json`, `--project-root`); legacy synthetic demo (`--plan-json` optional). See [caption speech](SOUND_DUB_REQUESTS.md). |
+| `sound-voice-batch` | Retained local caption speech (`--request-json`, `--project-root`) with V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy synthetic demo (`--plan-json` optional). See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound-mix-render` | Supplied-media mix ZIP with [routing](SOUND_ROUTING_REQUESTS.md), [automation](SOUND_AUTOMATION_REQUESTS.md), [sends](SOUND_SEND_REQUESTS.md), [sidechains](SOUND_SIDECHAIN_REQUESTS.md), [layers/loop fill/ducking](SOUND_LAYER_REQUESTS.md) and V4 [source-rate conversion](SOUND_RATE_CONVERSION.md), via `--request-json` and `--project-root`; omit both for a labelled demo. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound-qa-loudness` | Actual mono/stereo PCM16 FFmpeg measurement via `--request-json` and `--project-root`; valid noncompliant audio reports `within_tolerance=false`. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
 | `sound-master-render` | Retain a verified mono/stereo two-pass master ZIP with required `--request-json` and `--project-root`. See [master request](SOUND_MASTER_REQUESTS.md). |

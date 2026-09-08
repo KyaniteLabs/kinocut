@@ -4,12 +4,13 @@ from __future__ import annotations
 
 from array import array
 import asyncio
-from contextlib import contextmanager
+from contextlib import contextmanager, ExitStack
 from dataclasses import dataclass, field
 import os
 from pathlib import Path
 import tempfile
 import time
+from collections.abc import Callable
 
 from kinocut_sound.defaults import (
     DEFAULT_DUB_AMPLITUDE,
@@ -44,10 +45,13 @@ class _DubJob:
     stage_fd: int
     stage_name: str
     deadline: float
+    close_workspace: Callable[[], None]
     version: str = ""
     wav_bytes: int = 0
     media: dict = field(default_factory=dict)
     cue_proofs: list = field(default_factory=list)
+    spatial_backend: dict | None = None
+    spatial_cues: list = field(default_factory=list)
 
     def command(self, index):
         output = self.workspace / f"cue-{index:04d}.wav"
@@ -67,16 +71,14 @@ class _DubJob:
             str(output),
         ]
 
-    def accept(self, index, cue):
+    def accept(self, index, cue, raw=None):
         remaining(self.deadline)
-        raw = _read_regular_file(self.workspace_fd, f"cue-{index:04d}.wav", MAX_DUB_WAV_BYTES - self.wav_bytes)
+        if raw is None:
+            raw = _read_regular_file(self.workspace_fd, f"cue-{index:04d}.wav", MAX_DUB_WAV_BYTES - self.wav_bytes)
         size = len(raw)
-        pcm, rate = parse_wav(raw)
-        if rate != DEFAULT_DUB_SAMPLE_RATE_HZ or not pcm or not any(pcm):
-            raise mix_error("speech engine returned empty, silent or unexpected-rate audio", "dub_invalid_audio")
-        start, end = cue.start_ms * rate // 1000, cue.end_ms * rate // 1000
-        if len(pcm) > end - start:
-            raise mix_error(f"caption cue {index} speech exceeds its exact sample window", "dub_slot_overflow")
+        if size > MAX_DUB_WAV_BYTES - self.wav_bytes:
+            raise mix_error("speech output exceeds cumulative WAV limit", MIX_OVER_LIMIT)
+        pcm, _rate, start, end = _validated_cue(raw, index, cue)
         self.pcm[start : start + len(pcm)] = pcm
         member = f"clips/cue-{index:04d}.wav"
         self.media[member] = raw
@@ -85,6 +87,16 @@ class _DubJob:
             {"cue_index": index, "start_sample": start, "end_sample": end, "speech_samples": len(pcm), "path": member}
         )
         remaining(self.deadline)
+
+
+def _validated_cue(raw, index, cue):
+    pcm, rate = parse_wav(raw)
+    if rate != DEFAULT_DUB_SAMPLE_RATE_HZ or not pcm or not any(pcm):
+        raise mix_error("speech engine returned empty, silent or unexpected-rate audio", "dub_invalid_audio")
+    start, end = cue.start_ms * rate // 1000, cue.end_ms * rate // 1000
+    if len(pcm) > end - start:
+        raise mix_error(f"caption cue {index} speech exceeds its exact sample window", "dub_slot_overflow")
+    return pcm, rate, start, end
 
 
 def _check_output(parent_fd, name):
@@ -112,10 +124,11 @@ def _job(payload, project_root):
             engine = resolve_engine()
             remaining(deadline)
             with (
-                tempfile.TemporaryDirectory(prefix="kinocut-speech-") as folder,
-                open_root(folder) as workspace_fd,
                 staged_output(parent) as (fd, stage),
+                ExitStack() as workspace,
             ):
+                folder = workspace.enter_context(tempfile.TemporaryDirectory(prefix="kinocut-speech-"))
+                workspace_fd = workspace.enter_context(open_root(folder))
                 yield _DubJob(
                     request,
                     cues,
@@ -128,6 +141,7 @@ def _job(payload, project_root):
                     fd,
                     stage,
                     deadline,
+                    workspace.close,
                 )
     except OSError as exc:
         raise mix_error("caption speech files could not be read or published", "dub_file_failed") from exc
@@ -138,7 +152,12 @@ def render_dub_request(payload, project_root):
         job.version = engine_version(run_sync([job.engine, "--version"], b"", job.deadline))
         for index, cue in enumerate(job.cues, start=1):
             run_sync(job.command(index), cue.text.encode("utf-8"), job.deadline)
-            job.accept(index, cue)
+            raw = None
+            if job.request.schema_version == 2:
+                from kinocut_sound.public.dub_spatial import _spatial_sync
+
+                raw = _spatial_sync(job, index, cue)
+            job.accept(index, cue, raw)
         return finish_bundle(job)
 
 
@@ -147,7 +166,12 @@ async def render_dub_request_async(payload, project_root):
         job.version = engine_version(await run_async([job.engine, "--version"], b"", job.deadline))
         for index, cue in enumerate(job.cues, start=1):
             await run_async(job.command(index), cue.text.encode("utf-8"), job.deadline)
-            job.accept(index, cue)
+            raw = None
+            if job.request.schema_version == 2:
+                from kinocut_sound.public.dub_spatial import _spatial_async
+
+                raw = await _spatial_async(job, index, cue)
+            job.accept(index, cue, raw)
             await asyncio.sleep(0)
         await asyncio.sleep(0)
         return finish_bundle(job)

@@ -36,6 +36,13 @@ from kinocut_sound.post._subprocess import (
 )
 from kinocut_sound.post.chain import PostContext, PostStageResult
 from kinocut_sound.render_fingerprint import DeterminismClass
+from kinocut_sound.defaults import (
+    DEFAULT_SPATIAL_DISTANCE_PCT,
+    DEFAULT_SPATIAL_CROSSOVER_HZ,
+    DEFAULT_SPATIAL_ROLLOFF_DB,
+    DEFAULT_SPATIAL_DISTANCE_GAIN_DB,
+    DEFAULT_SPATIAL_DISTANCE_Q,
+)
 
 # --- Numeric envelopes ---
 # TODO(controller): centralize alongside defaults.py/limits.py post-merge.
@@ -196,6 +203,35 @@ class ConvolutionReverbAdapter:
         )
 
 
+def _distance_filter(params=None):
+    p = dict(params or {})
+    distance_pct = bounded_float(
+        p.get("distance_pct", DEFAULT_SPATIAL_DISTANCE_PCT),
+        lo=MIN_DISTANCE_PCT,
+        hi=MAX_DISTANCE_PCT,
+        name="distance_pct",
+    )
+    crossover_hz = bounded_float(
+        p.get("crossover_hz", DEFAULT_SPATIAL_CROSSOVER_HZ),
+        lo=MIN_CROSSOVER_HZ,
+        hi=MAX_CROSSOVER_HZ,
+        name="crossover_hz",
+    )
+    rolloff_db = bounded_float(
+        p.get("rolloff_db", DEFAULT_SPATIAL_ROLLOFF_DB), lo=MIN_GAIN_DB, hi=MAX_GAIN_DB, name="rolloff_db"
+    )
+    distance_norm = distance_pct / MAX_DISTANCE_PCT
+    hf_gain = -distance_norm * rolloff_db
+    gain_db = -distance_norm * DEFAULT_SPATIAL_DISTANCE_GAIN_DB
+    filt = (
+        f"treble=f={ffmpeg_filter_number(crossover_hz)}"
+        f":g={ffmpeg_filter_number(hf_gain)}"
+        f":width_type=q:w={ffmpeg_filter_number(DEFAULT_SPATIAL_DISTANCE_Q)}"
+        f",volume={ffmpeg_filter_number(gain_db)}dB"
+    )
+    return filt, {"distance_pct": distance_pct, "hf_gain_db": hf_gain, "gain_db": gain_db}
+
+
 class DistanceAdapter:
     """Distance simulation — far/close via HF rolloff, wet/dry, and gain.
 
@@ -240,37 +276,7 @@ class DistanceAdapter:
         ctx: PostContext,
         params: Mapping[str, object] | None = None,
     ) -> PostStageResult:
-        p = dict(params or {})
-        distance_pct = bounded_float(
-            p.get("distance_pct", 0.0),
-            lo=MIN_DISTANCE_PCT,
-            hi=MAX_DISTANCE_PCT,
-            name="distance_pct",
-        )
-        crossover_hz = bounded_float(
-            p.get("crossover_hz", 4000.0),
-            lo=MIN_CROSSOVER_HZ,
-            hi=MAX_CROSSOVER_HZ,
-            name="crossover_hz",
-        )
-        rolloff_db = bounded_float(
-            p.get("rolloff_db", 6.0),
-            lo=MIN_GAIN_DB,
-            hi=MAX_GAIN_DB,
-            name="rolloff_db",
-        )
-        # Far (100%) = maximum rolloff + gain cut. Close (0%) = passthrough.
-        distance_norm = distance_pct / MAX_DISTANCE_PCT
-        # HF rolloff: at far distance, cut HF by rolloff_db.
-        hf_gain = -distance_norm * rolloff_db
-        # Overall gain reduction at far distance.
-        gain_db = -distance_norm * 6.0
-        filt = (
-            f"treble=f={ffmpeg_filter_number(crossover_hz)}"
-            f":g={ffmpeg_filter_number(hf_gain)}"
-            f":width_type=q:w={ffmpeg_filter_number(0.7)}"
-            f",volume={ffmpeg_filter_number(gain_db)}dB"
-        )
+        filt, metrics = _distance_filter(params)
         run_ffmpeg(
             [
                 "-i",
@@ -290,11 +296,7 @@ class DistanceAdapter:
             output_path=Path(output_path),
             applied=True,
             determinism_class=DeterminismClass.BYTE_DETERMINISTIC,
-            metrics={
-                "distance_pct": distance_pct,
-                "hf_gain_db": hf_gain,
-                "gain_db": gain_db,
-            },
+            metrics=metrics,
         )
 
 

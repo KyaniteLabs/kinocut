@@ -45,11 +45,21 @@ class SoundDubRequest(FrozenModel):
         return canonical_digest(self.model_dump(mode="json"))
 
 
+class SoundDubRequestV2(SoundDubRequest):
+    schema_version: Literal[2] = 2
+    spatial_profile: Literal["close_mic_dry", "off_screen_distance"]
+
+
 def load_dub_request(value: Any) -> SoundDubRequest:
     try:
         if isinstance(value, SoundDubRequest):
-            value = value.model_dump(mode="json")
-        request = SoundDubRequest.model_validate(_json_payload(value))
+            value = value.model_dump(mode="python")
+        payload = _json_payload(value)
+        version = payload.get("schema_version", 1)
+        if type(version) is not int or version not in (1, 2):
+            raise mix_error("unsupported caption speech request version", MIX_INPUT_INVALID)
+        model = SoundDubRequestV2 if version == 2 else SoundDubRequest
+        request = model.model_validate(payload)
         if request.voice is not None and request.voice != request.selected_voice:
             raise mix_error("stock voice must match target pronunciation language", MIX_INPUT_INVALID)
         return request
