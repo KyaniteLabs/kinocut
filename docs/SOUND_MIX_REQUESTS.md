@@ -29,6 +29,8 @@ For MCP call `sound_mix_render` with `request` (the JSON object) and
 
 `kinocut_sound.public.mix_request.SoundMixRequest` supplies the validated schema.
 Its `schema_version` is integer `1` and unknown fields are rejected.
+Version2 adds explicit static track/bus routing through `SoundMixRequestV2`;
+see [routing requests](SOUND_ROUTING_REQUESTS.md). It preserves the V1 contract.
 
 | Field | Meaning |
 |---|---|
@@ -85,7 +87,8 @@ Stereo source windows use `in_frame`, `out_frame`, `frame_count`, `channel_count
 includes both channels. Loudness inspection and mastering accept stereo mixes;
 ASR still requires mono inputs.
 
-Assembly rejects `transit_kind`, nondefault routing, layers, format
+Version1 assembly rejects nondefault routing; version2 supports the static routing
+subset documented above. Both reject `transit_kind`, layers, format
 conversion and dither until those rendering paths are implemented. It does not
 silently discard those requests. Declared delivery targets are retained as plan
 intent, not reported as achieved mastering. Full episode listening and complete

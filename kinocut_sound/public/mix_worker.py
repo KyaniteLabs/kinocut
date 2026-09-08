@@ -37,16 +37,7 @@ def _sources(request, root_fd):
     return tuple(clips), bed
 
 
-def _write_bundle(output_fd, request, result):
-    members = {"master.wav": result.master_wav}
-    members.update({f"stems/{name}.wav": data for name, data in result.stems.stems.items()})
-    rate = request.plan.format.sample_rate_hz
-    channels = request.plan.format.channel_count
-    expected = round(request.plan.authoritative_duration_seconds * rate)
-    for data in members.values():
-        samples, actual_rate, actual_channels = decode_pcm_wav(data)
-        if actual_rate != rate or actual_channels != channels or len(samples) != expected * channels:
-            raise mix_error("mix output shape does not match request", MIX_INPUT_INVALID)
+def _base_receipt(request, result, members, rate, channels, expected):
     receipt = {
         "schema_version": 1,
         "request_hash": request.canonical_id(),
@@ -84,7 +75,26 @@ def _write_bundle(output_fd, request, result):
             }
             for window in result.source_windows
         ]
-    members["receipt.json"] = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
+    return receipt
+
+
+def _write_bundle(output_fd, request, result):
+    members = {"master.wav": result.master_wav}
+    members.update({f"stems/{name}.wav": data for name, data in result.stems.stems.items()})
+    rate = request.plan.format.sample_rate_hz
+    channels = request.plan.format.channel_count
+    expected = round(request.plan.authoritative_duration_seconds * rate)
+    for data in members.values():
+        samples, actual_rate, actual_channels = decode_pcm_wav(data)
+        if actual_rate != rate or actual_channels != channels or len(samples) != expected * channels:
+            raise mix_error("mix output shape does not match request", MIX_INPUT_INVALID)
+    receipt = _base_receipt(request, result, members, rate, channels, expected)
+    if request.schema_version == 2:
+        from kinocut_sound.public.mix_routing_receipt import routed_receipt_bytes
+
+        members["receipt.json"] = routed_receipt_bytes(receipt, request)
+    else:
+        members["receipt.json"] = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
     with os.fdopen(os.dup(output_fd), "wb") as target:
         with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_STORED) as archive:
             for name, data in sorted(members.items()):
@@ -97,12 +107,18 @@ def _write_bundle(output_fd, request, result):
 def render_to_stage(payload, root, output_fd):
     request = load_mix_request(payload)
     clips, bed = _sources(request, root)
+    routing = None
+    if request.schema_version == 2:
+        from kinocut_sound.public.mix_request_v2 import compile_routing
+
+        routing = compile_routing(request)
     result = MixRenderer(
         sample_rate_hz=request.plan.format.sample_rate_hz,
         channel_count=request.plan.format.channel_count,
         gap_tolerance_seconds=request.plan.timeline.gap_tolerance_seconds,
     ).render(
         timeline=request.plan.timeline,
+        routing=routing,
         clips=clips,
         bed_wav=bed,
         duck_bed=request.duck_bed,

@@ -16,9 +16,12 @@ from kinocut_sound.public.adapters import (
     SoundPythonAdapter,
     invoke_sound_operation,
 )
+from kinocut_sound.public.mix_request_v2 import CueTrackBinding, SoundMixRequestV2
 
 __all__ = [
+    "CueTrackBinding",
     "SoundCapabilityManifest",
+    "SoundMixRequestV2",
     "SoundPythonAdapter",
     "discover_sound_capabilities",
     "invoke_sound_operation",
