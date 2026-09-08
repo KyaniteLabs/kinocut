@@ -30,6 +30,10 @@ from kinocut_sound._canonical import BoundedCode, FrozenModel
 from kinocut_sound.defaults import (
     DEFAULT_BUS_GAIN_DB,
     DEFAULT_SEND_GAIN_DB,
+    DEFAULT_LAYER_DUCKING_ATTENUATION_DB,
+    DEFAULT_LAYER_DUCKING_ATTACK_MS,
+    DEFAULT_LAYER_DUCKING_RELEASE_MS,
+    DEFAULT_LAYER_DUCKING_RECOVERY_MS,
 )
 from kinocut_sound.limits import (
     MAX_DUCKING_ATTENUATION_DB,
@@ -40,21 +44,12 @@ from kinocut_sound.limits import (
     MIN_DUCKING_ATTENUATION_DB,
     MIN_DUCKING_TIME_MS,
     MIN_GAIN_DB,
+    MAX_AMBIENT_LAYERS,
 )
 from kinocut_sound.world._errors import world_error
 
 # S8-leaf-specific ceiling: a hostile layer table cannot grow unbounded.
-_MAX_LAYERS = 64
-
-# Ducking defaults for the contract side. The full numeric policy (9 dB
-# attenuation, 80 ms attack, 350 ms release, 500 ms recovery) is named in the
-# sonic-world design; the S9 mix leaf owns the operational policy. The shared
-# defaults.py module cannot be edited by this leaf, so the bed-author-facing
-# defaults are declared here.
-DEFAULT_LAYER_DUCKING_ATTENUATION_DB = 9.0
-DEFAULT_LAYER_DUCKING_ATTACK_MS = 80.0
-DEFAULT_LAYER_DUCKING_RELEASE_MS = 350.0
-DEFAULT_LAYER_DUCKING_RECOVERY_MS = 500.0
+_MAX_LAYERS = MAX_AMBIENT_LAYERS
 
 
 class DuckingContract(FrozenModel):

@@ -19,19 +19,21 @@ def bounded_json(value, limit):
     return bytes(encoded)
 
 
-def routed_receipt_bytes(receipt, request):
+def routed_receipt_bytes(receipt, request, layers=None):
     routing = compile_routing(request).receipt()
     bounded_json(routing, MAX_MIX_ROUTING_RECEIPT_BYTES)
     channels = request.plan.format.channel_count
     frames = receipt["sample_count"]
     receipt.update(
-        schema_version=3,
-        request_schema_version=2,
+        schema_version=4 if request.schema_version == 3 else 3,
+        request_schema_version=request.schema_version,
         channel_count=channels,
         frame_count=frames,
         interleaved_sample_count=frames * channels,
         routing=routing,
     )
+    if request.schema_version == 3:
+        receipt["layers"] = layers
     return bounded_json(receipt, MAX_MIX_RECEIPT_BYTES)
 
 
@@ -40,8 +42,8 @@ def verify_routing_receipt(receipt, request):
     rate = request.plan.format.sample_rate_hz
     frames = round(request.plan.authoritative_duration_seconds * rate)
     expected = {
-        "schema_version": 3,
-        "request_schema_version": 2,
+        "schema_version": 4 if request.schema_version == 3 else 3,
+        "request_schema_version": request.schema_version,
         "channel_count": channels,
         "frame_count": frames,
         "sample_count": frames,

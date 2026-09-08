@@ -26,6 +26,7 @@ from kinocut_sound.limits import (
     MIX_WORK_MEMORY_MULTIPLIER,
     MIX_ROUTING_SOURCE_MEMORY_MULTIPLIER,
     MAX_MIX_RECEIPT_BYTES,
+    MIX_LAYER_WORK_MEMORY_MULTIPLIER,
 )
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, MIX_UNSAFE_PATH, mix_error
 from kinocut_sound.routing import Routing
@@ -110,7 +111,7 @@ def _check_tree(value: Any) -> None:
 
 def _json_payload(value: Any) -> dict:
     if isinstance(value, SoundMixRequest):
-        value = value.model_dump(mode="json")
+        value = value.model_dump(mode="python")
     if isinstance(value, str):
         if len(value) > MAX_MIX_REQUEST_BYTES or len(value.encode()) > MAX_MIX_REQUEST_BYTES:
             raise mix_error("mix request is too large", MIX_OVER_LIMIT)
@@ -128,9 +129,13 @@ def load_mix_request(value: Any) -> SoundMixRequest:
     try:
         payload = _json_payload(value)
         version = payload.get("schema_version", 1)
-        if type(version) is not int or version not in (1, 2):
+        if type(version) is not int or version not in (1, 2, 3):
             raise mix_error("unsupported mix request version", MIX_INPUT_INVALID)
-        if version == 2:
+        if version == 3:
+            from kinocut_sound.public.mix_request_v3 import SoundMixRequestV3
+
+            request = SoundMixRequestV3.model_validate(payload)
+        elif version == 2:
             from kinocut_sound.public.mix_request_v2 import SoundMixRequestV2
 
             request = SoundMixRequestV2.model_validate(payload)
@@ -152,7 +157,7 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
         or fmt.dither != DitherPolicy.NONE
         or fmt.conversion != ConversionPolicy()
         or (request.schema_version == 1 and plan.routing != Routing())
-        or bool(plan.layers)
+        or (request.schema_version < 3 and bool(plan.layers))
     )
     if unsupported:
         raise mix_error("mix assembly supports mono/stereo PCM16 and default routing only", "mix_unsupported_intent")
@@ -186,10 +191,14 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
         raise mix_error("bed ducking requires a declared dialogue stem", "mix_unsupported_intent")
     if request.bed and "ambience" not in stems:
         raise mix_error("bed requires a declared ambience stem", "mix_unsupported_intent")
-    if request.schema_version == 2:
+    if request.schema_version >= 2:
         from kinocut_sound.public.mix_request_v2 import compile_routing
 
         compile_routing(request)
+    if request.schema_version == 3:
+        from kinocut_sound.public.mix_request_v3 import validate_layers
+
+        validate_layers(request)
     check_mix_resources(request, 0)
 
 
@@ -197,11 +206,12 @@ def check_mix_resources(request: SoundMixRequest, source_bytes: int) -> None:
     duration = request.plan.authoritative_duration_seconds
     stems = len(request.plan.delivery.stems.stem_ids or DEFAULT_PUBLIC_MIX_STEMS)
     samples = round(duration * request.plan.format.sample_rate_hz)
-    multiplier = MIX_ROUTING_SOURCE_MEMORY_MULTIPLIER if request.schema_version == 2 else MIX_SOURCE_MEMORY_MULTIPLIER
+    multiplier = MIX_ROUTING_SOURCE_MEMORY_MULTIPLIER if request.schema_version >= 2 else MIX_SOURCE_MEMORY_MULTIPLIER
+    work_multiplier = MIX_LAYER_WORK_MEMORY_MULTIPLIER if request.schema_version == 3 else MIX_WORK_MEMORY_MULTIPLIER
     estimated = multiplier * source_bytes + 2 * samples * request.plan.format.channel_count * (
-        MIX_STEM_MEMORY_MULTIPLIER * stems + MIX_WORK_MEMORY_MULTIPLIER
+        MIX_STEM_MEMORY_MULTIPLIER * stems + work_multiplier
     )
-    if request.schema_version == 2:
+    if request.schema_version >= 2:
         estimated += 4 * MAX_MIX_RECEIPT_BYTES
     if duration > MAX_MIX_DURATION_SECONDS or source_bytes > MAX_MIX_INPUT_BYTES or estimated > MAX_MIX_MEMORY_BYTES:
         raise mix_error("mix exceeds duration, input or memory limits", MIX_OVER_LIMIT)

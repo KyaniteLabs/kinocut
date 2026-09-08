@@ -28,6 +28,8 @@ from kinocut_sound.mix.source_windows import SourceWindow, select_source_windows
 from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
 from kinocut_sound.mix.static_routing import StaticRouting
+from kinocut_sound.mix.layers import MixLayer, apply_layers
+from kinocut_sound.mix.pcm_ops import _overlay
 from kinocut_sound.timeline import Timeline
 from kinocut_sound._canonical import location_violation
 
@@ -53,17 +55,11 @@ class MixResult:
     seam_report: SeamReport
     placement: PlacementPlan
     source_windows: tuple[SourceWindow, ...] = ()
+    layer_source_frames: tuple[int, ...] = ()
 
 
 def _blank(length: int) -> array:
     return array("h", [0] * length)
-
-
-def _overlay(canvas: array, clip: array, start: int) -> None:
-    for i, v in enumerate(clip):
-        idx = start + i
-        if 0 <= idx < len(canvas):
-            canvas[idx] = max(-32768, min(32767, canvas[idx] + v))
 
 
 class MixRenderer:
@@ -106,6 +102,7 @@ class MixRenderer:
         duck_bed: bool = False,
         transitions: tuple[CrossfadeTransition, ...] = (),
         routing: StaticRouting | None = None,
+        layers: tuple[MixLayer, ...] = (),
     ) -> MixResult:
         if isinstance(crossfade_seconds, bool) or crossfade_seconds != 0:
             raise mix_error(
@@ -156,12 +153,13 @@ class MixRenderer:
         self._render_clips(ordered, clip_map, canvases, stem_ids)
         if bed_wav is not None:
             self._add_bed(bed_wav, canvases, total_samples, duck_bed)
+        layer_frames = apply_layers(canvases, layers, self.sample_rate_hz, self.channel_count)
         if routing is not None:
             routing.apply_bus_gains(canvases)
 
-        return self._finish_mix(canvases, delivery, placement, seams, windows)
+        return self._finish_mix(canvases, delivery, placement, seams, windows, layer_frames)
 
-    def _finish_mix(self, canvases, delivery, placement, seams, windows):
+    def _finish_mix(self, canvases, delivery, placement, seams, windows, layer_frames):
         declared = placement.timeline_duration_seconds
         stem_wavs = {sid: self._encode(samples) for sid, samples in canvases.items()}
         layout = StemLayout(stem_ids=tuple(sorted(stem_wavs)))
@@ -183,6 +181,7 @@ class MixRenderer:
             seam_report=SeamReport(events=tuple(seams)),
             placement=placement,
             source_windows=windows,
+            layer_source_frames=layer_frames,
         )
 
     def _decode(self, wav):
