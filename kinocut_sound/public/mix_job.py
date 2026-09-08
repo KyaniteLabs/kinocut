@@ -51,7 +51,7 @@ def _worker_status(request, returncode, stdout):
     return result
 
 
-def _verify_stage(stage_fd, request):
+def _verify_stage(stage_fd, request, layer_shapes=()):
     os.lseek(stage_fd, 0, os.SEEK_SET)
     with os.fdopen(os.dup(stage_fd), "rb") as source:
         with zipfile.ZipFile(source) as archive:
@@ -61,10 +61,14 @@ def _verify_stage(stage_fd, request):
             receipt = json.loads(archive.read(info))
             if receipt["request_hash"] != request.canonical_id() or receipt["plan_hash"] != request.plan.canonical_id():
                 raise mix_error("mix receipt identity mismatch", "mix_worker_failed")
-            if request.schema_version == 2:
+            if request.schema_version >= 2:
                 from kinocut_sound.public.mix_routing_receipt import verify_routing_receipt
 
                 verify_routing_receipt(receipt, request)
+            if request.schema_version == 3:
+                from kinocut_sound.public.mix_layer_receipt import verify_layer_receipt
+
+                verify_layer_receipt(receipt, request, layer_shapes)
             if set(archive.namelist()) != {"receipt.json", *receipt["media"]}:
                 raise mix_error("mix bundle members mismatch", "mix_worker_failed")
             for name, expected in receipt["media"].items():
@@ -92,7 +96,12 @@ def render_mix_request(payload, project_root):
             staged_output(parent_fd) as (stage_fd, stage_name),
         ):
             _run_worker(request, root_fd, stage_fd)
-            receipt, archive_hash = _verify_stage(stage_fd, request)
+            shapes = ()
+            if request.schema_version == 3:
+                from kinocut_sound.public.mix_layer_receipt import verified_layer_shapes
+
+                shapes = tuple(verified_layer_shapes(request, root_fd))
+            receipt, archive_hash = _verify_stage(stage_fd, request, shapes)
             publish(parent_fd, stage_name, name)
         return _result(request, receipt, archive_hash)
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
@@ -114,18 +123,22 @@ def _result(request, receipt, archive_hash):
         "mastering_status": "not_applied",
         "human_review_required": True,
     }
-    if request.plan.format.channel_count > 1 or request.schema_version == 2:
+    if request.plan.format.channel_count > 1 or request.schema_version >= 2:
         result.update(
             {
                 key: receipt[key]
                 for key in ("schema_version", "channel_count", "frame_count", "interleaved_sample_count")
             }
         )
-    if request.schema_version == 2:
+    if request.schema_version >= 2:
         result["request_schema_version"] = receipt["request_schema_version"]
         result["routing_algorithm"] = receipt["routing"]["algorithm"]
         result["routing_sha256"] = canonical_digest(receipt["routing"])
         result["routed_cue_count"] = len(receipt["routing"]["cue_tracks"])
+    if request.schema_version == 3:
+        result["layer_algorithm"] = receipt["layers"]["algorithm"]
+        result["layers_sha256"] = canonical_digest(receipt["layers"])
+        result["layer_count"] = len(receipt["layers"]["entries"])
     return result
 
 
@@ -168,7 +181,14 @@ async def render_mix_request_async(payload, project_root):
             await _run_worker_async(request, root_fd, stage_fd)
             # Observe pending cancellation before synchronous verification/commit.
             await asyncio.sleep(0)
-            receipt, archive_hash = _verify_stage(stage_fd, request)
+            shapes = []
+            if request.schema_version == 3:
+                from kinocut_sound.public.mix_layer_receipt import verified_layer_shapes
+
+                for frames in verified_layer_shapes(request, root_fd):
+                    shapes.append(frames)
+                    await asyncio.sleep(0)
+            receipt, archive_hash = _verify_stage(stage_fd, request, shapes)
             await asyncio.sleep(0)
             publish(parent_fd, stage_name, name)
         return _result(request, receipt, archive_hash)

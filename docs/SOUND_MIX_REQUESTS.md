@@ -33,6 +33,8 @@ Numeric model fields follow the [sound input validation rules](SOUND_INPUT_VALID
 booleans cannot stand in for durations or gains.
 Version2 adds explicit static track/bus routing through `SoundMixRequestV2`;
 see [routing requests](SOUND_ROUTING_REQUESTS.md). It preserves the V1 contract.
+Version3 adds [supplied ambient layers and explicit loop fill](SOUND_LAYER_REQUESTS.md)
+through `SoundMixRequestV3`, preserving both earlier versions.
 
 | Field | Meaning |
 |---|---|
@@ -89,9 +91,9 @@ Stereo source windows use `in_frame`, `out_frame`, `frame_count`, `channel_count
 includes both channels. Loudness inspection and mastering accept stereo mixes;
 ASR still requires mono inputs.
 
-Version1 assembly rejects nondefault routing; version2 supports the static routing
-subset documented above. Both reject `transit_kind`, layers, format
-conversion and dither until those rendering paths are implemented. It does not
+Version1 assembly rejects nondefault routing; versions2/3 support the static routing
+subset documented above. V1/V2 reject layers; V3 renders explicitly bound layers.
+All three reject `transit_kind`, format conversion and dither. The mixer does not
 silently discard those requests. Declared delivery targets are retained as plan
 intent, not reported as achieved mastering. Full episode listening and complete
 sonic-world rendering remain separate acceptance work.

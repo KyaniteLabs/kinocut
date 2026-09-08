@@ -15,6 +15,7 @@ from kinocut_sound.limits import MAX_MIX_INPUT_BYTES, MAX_MIX_REQUEST_BYTES
 from kinocut_sound.mix import CrossfadeTransition, MixClip, MixRenderer
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
 from kinocut_sound.mix._wav import decode_pcm_wav
+from kinocut_sound.mix.layers import MixLayer, _decode_layer
 from kinocut_sound.public.mix_files import read_asset
 from kinocut_sound.public.mix_request import check_mix_resources, load_mix_request
 
@@ -34,7 +35,22 @@ def _sources(request, root_fd):
         bed = read_asset(root_fd, request.bed.path, request.bed.sha256, MAX_MIX_INPUT_BYTES - consumed)
         consumed += len(bed)
         check_mix_resources(request, consumed)
-    return tuple(clips), bed
+    layers = []
+    if request.schema_version == 3:
+        for item in request.layer_assets:
+            data = read_asset(root_fd, item.source.path, item.source.sha256, MAX_MIX_INPUT_BYTES - consumed)
+            consumed += len(data)
+            check_mix_resources(request, consumed)
+            layer = MixLayer(item.layer, data, item.fill_mode, item.crossfade_frames)
+            fmt = request.plan.format
+            _decode_layer(
+                layer,
+                fmt.sample_rate_hz,
+                fmt.channel_count,
+                round(request.plan.authoritative_duration_seconds * fmt.sample_rate_hz),
+            )
+            layers.append(layer)
+    return tuple(clips), bed, tuple(layers)
 
 
 def _base_receipt(request, result, members, rate, channels, expected):
@@ -89,10 +105,15 @@ def _write_bundle(output_fd, request, result):
         if actual_rate != rate or actual_channels != channels or len(samples) != expected * channels:
             raise mix_error("mix output shape does not match request", MIX_INPUT_INVALID)
     receipt = _base_receipt(request, result, members, rate, channels, expected)
-    if request.schema_version == 2:
+    if request.schema_version >= 2:
         from kinocut_sound.public.mix_routing_receipt import routed_receipt_bytes
 
-        members["receipt.json"] = routed_receipt_bytes(receipt, request)
+        layers = None
+        if request.schema_version == 3:
+            from kinocut_sound.public.mix_layer_receipt import layer_evidence
+
+            layers = layer_evidence(request, result.layer_source_frames)
+        members["receipt.json"] = routed_receipt_bytes(receipt, request, layers)
     else:
         members["receipt.json"] = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
     with os.fdopen(os.dup(output_fd), "wb") as target:
@@ -106,9 +127,9 @@ def _write_bundle(output_fd, request, result):
 
 def render_to_stage(payload, root, output_fd):
     request = load_mix_request(payload)
-    clips, bed = _sources(request, root)
+    clips, bed, layers = _sources(request, root)
     routing = None
-    if request.schema_version == 2:
+    if request.schema_version >= 2:
         from kinocut_sound.public.mix_request_v2 import compile_routing
 
         routing = compile_routing(request)
@@ -119,6 +140,7 @@ def render_to_stage(payload, root, output_fd):
     ).render(
         timeline=request.plan.timeline,
         routing=routing,
+        layers=layers,
         clips=clips,
         bed_wav=bed,
         duck_bed=request.duck_bed,

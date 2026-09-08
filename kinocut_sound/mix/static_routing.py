@@ -9,6 +9,7 @@ from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, mix_err
 from kinocut_sound.mix._wav import decode_pcm_wav, pcm_to_wav
 from kinocut_sound.routing import Routing, PanLaw
 from kinocut_sound.validation import PCM_MIX_CHANNEL_COUNTS
+from kinocut_sound.mix.pcm_ops import _scale_in_place
 
 
 def _pan_scales(track, channels):
@@ -23,14 +24,6 @@ def _pan_scales(track, channels):
         angle = (p + 1) * pi / 4
         return (cos(angle), sin(angle))
     return (min(1.0, 1 - p), min(1.0, 1 + p))
-
-
-def _scale_in_place(samples, factors):
-    if all(factor == 1 for factor in factors):
-        return
-    channels = len(factors)
-    for i, sample in enumerate(samples):
-        samples[i] = max(-32768, min(32767, round(sample * factors[i % channels])))
 
 
 class StaticRouting:

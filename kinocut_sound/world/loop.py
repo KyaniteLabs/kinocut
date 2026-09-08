@@ -27,12 +27,12 @@ from dataclasses import dataclass
 from pydantic import Field, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
-from kinocut_sound.limits import MIN_TIME_SECONDS
+from kinocut_sound.limits import MIN_TIME_SECONDS, MAX_AMBIENT_EXTRA_REPEATS
 from kinocut_sound.world._errors import world_error
 
 # A loop step must add a strictly positive amount of new audio. The crossfade
 # may not consume the whole source (otherwise the effective step is zero).
-_MAX_REPEATS = 10_000
+_MAX_REPEATS = MAX_AMBIENT_EXTRA_REPEATS
 
 
 class SeamlessLoop(FrozenModel):
