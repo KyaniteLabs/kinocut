@@ -40,7 +40,7 @@ def test_invalid_ducking_intent_fails(ducked_project, kind):  # noqa: F811
                 "attenuation_db": 9,
                 "attack_ms": 80,
             }
-        ]
+        ] * 2  # Duplicate controller pairs are rejected; valid bus+layer ducking now composes.
     with pytest.raises(MixError):
         load_mix_request(request)
 

@@ -7,6 +7,7 @@ Version1 request fields, hashes and archive bytes remain unchanged.
 V2/V3 can also render [gain and pan envelopes](SOUND_AUTOMATION_REQUESTS.md).
 The static behavior below applies when a parameter has no envelope.
 V2/V3 also support finite [pre/post-fader bus sends](SOUND_SEND_REQUESTS.md).
+Final [bus ducking sidechains](SOUND_SIDECHAIN_REQUESTS.md) run after returns and faders.
 
 Start with a valid supplied-media request and choose a new output path:
 
@@ -100,7 +101,7 @@ buffers and receipt preparation under the existing 2 GiB estimate. The worker ha
 the existing 300-second deadline. Filesystem, cancellation and no-overwrite
 publication rules are unchanged.
 
-Feedback send cycles, general sidechains, unsupported automation parameters, nondefault latency,
+Feedback send cycles, unsupported automation parameters, nondefault latency,
 non-linear bus pan, format conversion and unsupported sample layouts remain rejected.
 V2 rejects layers; V3 supports explicit layer requests. Unsupported intent is never
 silently discarded.

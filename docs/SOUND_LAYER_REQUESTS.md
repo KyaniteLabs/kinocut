@@ -91,7 +91,7 @@ one layer scratch canvas, stems and receipt overhead under the existing 2 GiB
 memory estimate. The worker retains its 300-second deadline. These are admission
 bounds, not measured host peak requirements.
 
-Scene/location schedules, feedback send cycles, unsupported automation parameters, general routing sidechains,
+Scene/location schedules, feedback send cycles, unsupported automation parameters,
 format conversion and dither remain unsupported. This produces an assembly,
 not verified mastering; human listening and episode acceptance remain required.
 Bound tracks can use [gain/pan automation](SOUND_AUTOMATION_REQUESTS.md); layer
@@ -123,8 +123,9 @@ gain and fill, before [bus sends](SOUND_SEND_REQUESTS.md), layer accumulation an
 target-bus gain. Send returns are not part of the layer detector.
 It affects only
 explicit layers; ambience clips and the optional bed retain their own behavior.
-`duck_bed` can operate independently at the same time. General routing sidechains
-cannot be combined with this contract.
+`duck_bed` can operate independently at the same time. [Final bus sidechains](SOUND_SIDECHAIN_REQUESTS.md)
+can also be requested as a separate later effect; their detectors see completed
+send returns and bus faders rather than the layer detector's earlier tap.
 
 Attack, release and recovery are rounded upward to whole frames. Gain starts at
 one; each activity transition starts a linear ramp from the current gain to the

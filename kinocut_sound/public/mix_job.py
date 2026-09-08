@@ -73,11 +73,15 @@ def _verify_stage(stage_fd, request, layer_shapes=(), automation_windows=()):
                 from kinocut_sound.public.mix_layer_receipt import verify_layer_receipt
 
                 verify_layer_receipt(receipt, request, layer_shapes)
-            if request.plan.routing.sends:
+            if request.plan.routing.sends or request.plan.routing.sidechains:
                 from kinocut_sound.public.mix_send_request import check_routed_feature_work
                 from kinocut_sound.public.mix_request_v2 import compile_routing
 
                 check_routed_feature_work(request, compile_routing(request), automation_windows, layer_shapes)
+            if request.plan.routing.sidechains:
+                from kinocut_sound.public.mix_sidechain_request import verify_sidechain_measurements
+
+                verify_sidechain_measurements(request, receipt.get("bus_sidechain_measurements"))
             if set(archive.namelist()) != {"receipt.json", *receipt["media"]}:
                 raise mix_error("mix bundle members mismatch", "mix_worker_failed")
             for name, expected in receipt["media"].items():
@@ -116,9 +120,10 @@ def render_mix_request(payload, project_root):
 
                 windows = tuple(verified_automation_windows(request, root_fd))
             receipt, archive_hash = _verify_stage(stage_fd, request, shapes, windows)
+            result = _result(request, receipt, archive_hash)
             publish(parent_fd, stage_name, name)
-        return _result(request, receipt, archive_hash)
-    except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
+        return result
+    except (OSError, ValueError, TypeError, KeyError, zipfile.BadZipFile) as exc:
         raise mix_error("mix output could not be verified or published", "mix_publish_failed") from exc
 
 
@@ -158,6 +163,12 @@ def _result(request, receipt, archive_hash):
             sends = receipt["routing"]["sends"]
             result["send_count"] = len(sends["sends"])
             result["sends_sha256"] = canonical_digest(sends)
+        if request.plan.routing.sidechains:
+            result["sidechain_count"] = len(request.plan.routing.sidechains)
+            result["sidechains_sha256"] = canonical_digest(receipt["routing"]["sidechains"])
+            result["sidechain_measurements_sha256"] = canonical_digest(
+                {"measurements": receipt["bus_sidechain_measurements"]}
+            )
     if request.schema_version == 3:
         result["layer_algorithm"] = receipt["layers"]["algorithm"]
         result["layers_sha256"] = canonical_digest(receipt["layers"])
@@ -221,8 +232,9 @@ async def render_mix_request_async(payload, project_root):
                     windows.append(window)
                     await asyncio.sleep(0)
             receipt, archive_hash = _verify_stage(stage_fd, request, shapes, windows)
+            result = _result(request, receipt, archive_hash)
             await asyncio.sleep(0)
             publish(parent_fd, stage_name, name)
-        return _result(request, receipt, archive_hash)
-    except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
+        return result
+    except (OSError, ValueError, TypeError, KeyError, zipfile.BadZipFile) as exc:
         raise mix_error("mix output could not be verified or published", "mix_publish_failed") from exc

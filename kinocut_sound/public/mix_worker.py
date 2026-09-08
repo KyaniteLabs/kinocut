@@ -100,6 +100,11 @@ def _write_bundle(output_fd, request, result):
         if actual_rate != rate or actual_channels != channels or len(samples) != expected * channels:
             raise mix_error("mix output shape does not match request", MIX_INPUT_INVALID)
     receipt = _base_receipt(request, result, members, rate, channels, expected)
+    if request.plan.routing.sidechains:
+        from kinocut_sound.public.mix_sidechain_request import verify_sidechain_measurements
+
+        verify_sidechain_measurements(request, result.bus_sidechain_measurements)
+        receipt["bus_sidechain_measurements"] = list(result.bus_sidechain_measurements)
     if request.schema_version >= 2:
         from kinocut_sound.public.mix_routing_receipt import routed_receipt_bytes
 
@@ -128,7 +133,7 @@ def render_to_stage(payload, root, output_fd):
         from kinocut_sound.public.mix_request_v2 import compile_routing
 
         routing = compile_routing(request)
-    if request.plan.routing.sends:
+    if request.plan.routing.sends or request.plan.routing.sidechains:
         from kinocut_sound.public.mix_send_request import validate_send_preflight
 
         validate_send_preflight(request, routing, clips, layer_frames)

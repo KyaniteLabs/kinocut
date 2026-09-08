@@ -31,6 +31,8 @@ from kinocut_sound.limits import (
     MAX_MIX_ROUTING_RECEIPT_BYTES,
     MAX_MIX_SEND_RECEIPT_BYTES,
     MIX_SEND_METADATA_BYTES,
+    MAX_MIX_SIDECHAIN_RECEIPT_BYTES,
+    MIX_SIDECHAIN_METADATA_BYTES,
 )
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, MIX_UNSAFE_PATH, mix_error
 from kinocut_sound.routing import Routing
@@ -199,12 +201,14 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
         from kinocut_sound.public.mix_request_v2 import compile_routing
 
         routing = compile_routing(request)
-        if plan.routing.envelopes or plan.routing.sends:
+        if plan.routing.envelopes or plan.routing.sends or plan.routing.sidechains:
             from kinocut_sound.public.mix_routing_receipt import bounded_json
 
             bounded_json(routing.receipt(), MAX_MIX_ROUTING_RECEIPT_BYTES)
             if plan.routing.sends:
                 bounded_json(routing.graph.receipt(), MAX_MIX_SEND_RECEIPT_BYTES)
+            if plan.routing.sidechains:
+                bounded_json(routing.sidechain_processor.receipt(), MAX_MIX_SIDECHAIN_RECEIPT_BYTES)
     if request.schema_version == 3:
         from kinocut_sound.public.mix_request_v3 import validate_layers
 
@@ -228,5 +232,8 @@ def check_mix_resources(request: SoundMixRequest, source_bytes: int) -> None:
     if request.plan.routing.sends:
         pre_sources = {send.source_bus_id for send in request.plan.routing.sends if not send.post_fader}
         estimated += 2 * samples * request.plan.format.channel_count * len(pre_sources) + MIX_SEND_METADATA_BYTES
+    if request.plan.routing.sidechains:
+        sources = {policy.source_bus_id for policy in request.plan.routing.sidechains}
+        estimated += 2 * samples * request.plan.format.channel_count * len(sources) + MIX_SIDECHAIN_METADATA_BYTES
     if duration > MAX_MIX_DURATION_SECONDS or source_bytes > MAX_MIX_INPUT_BYTES or estimated > MAX_MIX_MEMORY_BYTES:
         raise mix_error("mix exceeds duration, input or memory limits", MIX_OVER_LIMIT)
