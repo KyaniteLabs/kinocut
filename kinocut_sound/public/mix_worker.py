@@ -14,7 +14,7 @@ from kinocut_sound._errors import SoundContractError
 from kinocut_sound.limits import MAX_MIX_INPUT_BYTES, MAX_MIX_REQUEST_BYTES
 from kinocut_sound.mix import CrossfadeTransition, MixClip, MixRenderer
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
-from kinocut_sound.mix._wav import parse_wav
+from kinocut_sound.mix._wav import decode_pcm_wav
 from kinocut_sound.public.mix_files import read_asset
 from kinocut_sound.public.mix_request import check_mix_resources, load_mix_request
 
@@ -41,10 +41,11 @@ def _write_bundle(output_fd, request, result):
     members = {"master.wav": result.master_wav}
     members.update({f"stems/{name}.wav": data for name, data in result.stems.stems.items()})
     rate = request.plan.format.sample_rate_hz
+    channels = request.plan.format.channel_count
     expected = round(request.plan.authoritative_duration_seconds * rate)
     for data in members.values():
-        samples, actual_rate = parse_wav(data)
-        if actual_rate != rate or len(samples) != expected:
+        samples, actual_rate, actual_channels = decode_pcm_wav(data)
+        if actual_rate != rate or actual_channels != channels or len(samples) != expected * channels:
             raise mix_error("mix output shape does not match request", MIX_INPUT_INVALID)
     receipt = {
         "schema_version": 1,
@@ -67,6 +68,22 @@ def _write_bundle(output_fd, request, result):
         "seams": [asdict(event) for event in result.seam_report.events],
         "source_windows": [asdict(window) for window in result.source_windows],
     }
+    if channels > 1:
+        receipt.update(
+            schema_version=2, channel_count=channels, frame_count=expected, interleaved_sample_count=expected * channels
+        )
+        receipt["source_windows"] = [
+            {
+                "cue_id": window.cue_id,
+                "in_frame": window.in_sample,
+                "out_frame": window.out_sample,
+                "frame_count": window.sample_count,
+                "sample_rate_hz": window.sample_rate_hz,
+                "channel_count": channels,
+                "interleaved_sample_count": window.sample_count * channels,
+            }
+            for window in result.source_windows
+        ]
     members["receipt.json"] = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
     with os.fdopen(os.dup(output_fd), "wb") as target:
         with zipfile.ZipFile(target, "w", compression=zipfile.ZIP_STORED) as archive:
@@ -82,6 +99,7 @@ def render_to_stage(payload, root, output_fd):
     clips, bed = _sources(request, root)
     result = MixRenderer(
         sample_rate_hz=request.plan.format.sample_rate_hz,
+        channel_count=request.plan.format.channel_count,
         gap_tolerance_seconds=request.plan.timeline.gap_tolerance_seconds,
     ).render(
         timeline=request.plan.timeline,

@@ -12,6 +12,8 @@ from __future__ import annotations
 
 import re
 
+PCM_MIX_CHANNEL_COUNTS = frozenset({1, 2})
+
 ASR_PYTHON_NAME_RE = re.compile(r"python(?:\d+(?:\.\d+)*)?")
 ASR_VERSION_RE = re.compile(r"[a-zA-Z0-9.+_-]{1,64}")
 ASR_MODEL_DIGEST_RE = re.compile(r"[a-f0-9]{64}")

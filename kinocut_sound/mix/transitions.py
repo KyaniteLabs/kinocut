@@ -7,7 +7,8 @@ from dataclasses import dataclass
 from math import isfinite
 
 from kinocut_sound.mix._errors import MIX_CROSSFADE_INVALID, mix_error
-from kinocut_sound.mix._wav import parse_wav, pcm_to_wav
+from kinocut_sound.mix._wav import decode_pcm_wav, pcm_to_wav
+from kinocut_sound.defaults import DEFAULT_MIX_CHANNEL_COUNT
 from kinocut_sound.mix.crossfade import crossfade_pair
 from kinocut_sound.mix.seam import SeamEvent
 from kinocut_sound.timeline import CueKind, Timeline
@@ -46,6 +47,7 @@ def apply_transitions(
     stems: dict[str, str],
     transitions: tuple[CrossfadeTransition, ...],
     sample_rate_hz: int,
+    channel_count: int = DEFAULT_MIX_CHANNEL_COUNT,
 ) -> tuple[dict[str, bytes], list[SeamEvent]]:
     """Return changed incoming sources and receipts for actual PCM blends."""
     if not isinstance(transitions, tuple):
@@ -75,20 +77,29 @@ def apply_transitions(
         window_n = round(left.duration_seconds * sample_rate_hz)
         if fade_n <= 0 or fade_n > round(right.duration_seconds * sample_rate_hz):
             raise mix_error("transition window must fit the incoming cue", MIX_CROSSFADE_INVALID)
-        outgoing, left_rate = parse_wav(sources[left_id])
-        incoming, right_rate = parse_wav(sources[right_id])
-        if left_rate != sample_rate_hz or right_rate != sample_rate_hz:
-            raise mix_error("transition source sample rate mismatch", MIX_CROSSFADE_INVALID)
-        if len(outgoing) < window_n + fade_n or len(incoming) < fade_n:
+        outgoing, left_rate, left_channels = decode_pcm_wav(sources[left_id])
+        incoming, right_rate, right_channels = decode_pcm_wav(sources[right_id])
+        if (
+            left_rate != sample_rate_hz
+            or right_rate != sample_rate_hz
+            or left_channels != channel_count
+            or right_channels != channel_count
+        ):
+            raise mix_error("transition source rate or channel mismatch", MIX_CROSSFADE_INVALID)
+        if len(outgoing) < (window_n + fade_n) * channel_count or len(incoming) < fade_n * channel_count:
             raise mix_error("transition requires real outgoing post-roll and incoming samples", MIX_CROSSFADE_INVALID)
         blended = crossfade_pair(
-            pcm_to_wav(outgoing[window_n : window_n + fade_n], sample_rate_hz=sample_rate_hz),
-            pcm_to_wav(incoming[:fade_n], sample_rate_hz=sample_rate_hz),
+            pcm_to_wav(
+                outgoing[window_n * channel_count : (window_n + fade_n) * channel_count],
+                sample_rate_hz=sample_rate_hz,
+                channel_count=channel_count,
+            ),
+            pcm_to_wav(incoming[: fade_n * channel_count], sample_rate_hz=sample_rate_hz, channel_count=channel_count),
             fade_seconds=fade_n / sample_rate_hz,
         )
         updated = array("h", incoming)
-        updated[:fade_n] = parse_wav(blended)[0]
-        changed[right_id] = pcm_to_wav(updated, sample_rate_hz=sample_rate_hz)
+        updated[: fade_n * channel_count] = decode_pcm_wav(blended)[0]
+        changed[right_id] = pcm_to_wav(updated, sample_rate_hz=sample_rate_hz, channel_count=channel_count)
         at_seconds = round(right.start_seconds * sample_rate_hz) / sample_rate_hz
         events.append(SeamEvent("crossfade", at_seconds, left_id, right_id, fade_n / sample_rate_hz))
     return changed, sorted(events, key=lambda event: event.at_seconds)
