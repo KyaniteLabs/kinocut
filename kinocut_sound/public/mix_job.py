@@ -51,7 +51,7 @@ def _worker_status(request, returncode, stdout):
     return result
 
 
-def _verify_stage(stage_fd, request, layer_shapes=()):
+def _verify_stage(stage_fd, request, layer_shapes=(), automation_windows=()):
     os.lseek(stage_fd, 0, os.SEEK_SET)
     with os.fdopen(os.dup(stage_fd), "rb") as source:
         with zipfile.ZipFile(source) as archive:
@@ -65,6 +65,10 @@ def _verify_stage(stage_fd, request, layer_shapes=()):
                 from kinocut_sound.public.mix_routing_receipt import verify_routing_receipt
 
                 verify_routing_receipt(receipt, request)
+            if request.plan.routing.envelopes:
+                from kinocut_sound.public.mix_automation_receipt import verify_automation_windows
+
+                verify_automation_windows(receipt, request, automation_windows)
             if request.schema_version == 3:
                 from kinocut_sound.public.mix_layer_receipt import verify_layer_receipt
 
@@ -101,7 +105,12 @@ def render_mix_request(payload, project_root):
                 from kinocut_sound.public.mix_layer_receipt import verified_layer_shapes
 
                 shapes = tuple(verified_layer_shapes(request, root_fd))
-            receipt, archive_hash = _verify_stage(stage_fd, request, shapes)
+            windows = ()
+            if request.plan.routing.envelopes:
+                from kinocut_sound.public.mix_automation_receipt import verified_automation_windows
+
+                windows = tuple(verified_automation_windows(request, root_fd))
+            receipt, archive_hash = _verify_stage(stage_fd, request, shapes, windows)
             publish(parent_fd, stage_name, name)
         return _result(request, receipt, archive_hash)
     except (OSError, ValueError, KeyError, zipfile.BadZipFile) as exc:
@@ -135,6 +144,11 @@ def _result(request, receipt, archive_hash):
         result["routing_algorithm"] = receipt["routing"]["algorithm"]
         result["routing_sha256"] = canonical_digest(receipt["routing"])
         result["routed_cue_count"] = len(receipt["routing"]["cue_tracks"])
+        if request.plan.routing.envelopes:
+            automation = receipt["routing"]["automation"]
+            result["automation_sha256"] = canonical_digest(automation)
+            result["automation_envelope_count"] = len(automation["envelopes"])
+            result["automation_point_count"] = sum(len(item["points"]) for item in automation["envelopes"])
     if request.schema_version == 3:
         result["layer_algorithm"] = receipt["layers"]["algorithm"]
         result["layers_sha256"] = canonical_digest(receipt["layers"])
@@ -190,7 +204,14 @@ async def render_mix_request_async(payload, project_root):
                 for frames in verified_layer_shapes(request, root_fd):
                     shapes.append(frames)
                     await asyncio.sleep(0)
-            receipt, archive_hash = _verify_stage(stage_fd, request, shapes)
+            windows = []
+            if request.plan.routing.envelopes:
+                from kinocut_sound.public.mix_automation_receipt import verified_automation_windows
+
+                for window in verified_automation_windows(request, root_fd):
+                    windows.append(window)
+                    await asyncio.sleep(0)
+            receipt, archive_hash = _verify_stage(stage_fd, request, shapes, windows)
             await asyncio.sleep(0)
             publish(parent_fd, stage_name, name)
         return _result(request, receipt, archive_hash)

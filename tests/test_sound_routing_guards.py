@@ -86,7 +86,7 @@ def test_unimplemented_routing_intent_is_not_discarded(routed_project, kind):  #
         routing["sends"] = [{"send_id": "send", "source_bus_id": "dialogue", "destination_bus_id": "ambience"}]
     elif kind == "envelope":
         routing["envelopes"] = [
-            {"target_track_id": "voice-a", "parameter": "gain_db", "points": [{"time_seconds": 0, "value": 0}]}
+            {"target_track_id": "voice-a", "parameter": "cutoff_hz", "points": [{"time_seconds": 0, "value": 0}]}
         ]
     elif kind == "sidechain":
         routing["sidechains"] = [

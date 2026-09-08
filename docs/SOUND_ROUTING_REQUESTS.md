@@ -4,6 +4,8 @@ Mix request version2 adds explicit cue-to-track bindings. It renders static trac
 gain, mono/stereo pan, mute/solo and destination-bus gain through the same Python,
 CLI and MCP operations as [version1 supplied mixing](SOUND_MIX_REQUESTS.md).
 Version1 request fields, hashes and archive bytes remain unchanged.
+V2/V3 can also render [gain and pan envelopes](SOUND_AUTOMATION_REQUESTS.md).
+The static behavior below applies when a parameter has no envelope.
 
 Start with a valid supplied-media request and choose a new output path:
 
@@ -55,7 +57,7 @@ both contributions deliberately adds both, even when they reference identical by
 ## Signal order and pan
 
 Processing order is source-window selection, track gain/pan and mute/solo,
-crossfades, placement, optional bed/ducking, bus gain, then stem recombination.
+crossfades, placement, optional bed/ducking, V3 layers/ducking, bus gain, then stem recombination.
 Existing crossfades require two LINE cues on the same stem. Muting retains zero
 PCM for the original duration. When any track is soloed, only soloed and unmuted
 tracks contribute; otherwise every unmuted track contributes.
@@ -80,7 +82,9 @@ its optional bed. Gains can clip; this operation is not loudness mastering.
 Version2 archives retain receipt schema3 with `request_schema_version: 2`, explicit
 frame/channel/interleaved counts and a `routing` section. Routing evidence contains
 canonical cue-track bindings, applied track states/factors and bus gains under
-algorithm `static_pcm16_ties_even_v1`. It contains no audio paths; existing
+algorithm `static_pcm16_ties_even_v1` when there are no envelopes. Automated
+requests use the [automation evidence contract](SOUND_AUTOMATION_REQUESTS.md).
+Routing evidence contains no audio paths; existing
 project-relative source/bed metadata remains elsewhere in the receipt. The parent
 verifies routed metadata against the request before publishing.
 
@@ -95,6 +99,7 @@ buffers and receipt preparation under the existing 2 GiB estimate. The worker ha
 the existing 300-second deadline. Filesystem, cancellation and no-overwrite
 publication rules are unchanged.
 
-Sends, sidechains, automation envelopes, nondefault latency, non-linear bus pan,
-layers, format conversion and unsupported sample layouts remain rejected. These
-requests never silently drop their unimplemented intent.
+Sends, general sidechains, unsupported automation parameters, nondefault latency,
+non-linear bus pan, format conversion and unsupported sample layouts remain rejected.
+V2 rejects layers; V3 supports explicit layer requests. Unsupported intent is never
+silently discarded.
