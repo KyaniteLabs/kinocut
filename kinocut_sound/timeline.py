@@ -13,6 +13,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 from math import inf, nextafter
 
@@ -63,9 +65,9 @@ class Cue(FrozenModel):
     def _transit_kind_is_bounded(cls, value: str | None) -> str | None:
         return BoundedCode(value) if value is not None else value
 
-    @field_validator("start_seconds", "duration_seconds", "in_point_seconds", "out_point_seconds")
+    @field_validator("start_seconds", "duration_seconds", "in_point_seconds", "out_point_seconds", mode="before")
     @classmethod
-    def _reject_non_finite_or_coerced(cls, value: float) -> float:
+    def _reject_non_finite_or_coerced(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -103,9 +105,9 @@ class Timeline(FrozenModel):
             raise TypeError("cues must be a tuple")
         return value
 
-    @field_validator("tail_seconds", "gap_tolerance_seconds")
+    @field_validator("tail_seconds", "gap_tolerance_seconds", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value

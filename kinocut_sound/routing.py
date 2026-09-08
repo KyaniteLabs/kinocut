@@ -15,6 +15,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
@@ -67,9 +69,9 @@ class Track(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db", "pan_position")
+    @field_validator("gain_db", "pan_position", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -88,9 +90,9 @@ class Bus(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db")
+    @field_validator("gain_db", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -110,9 +112,9 @@ class SendReturn(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db")
+    @field_validator("gain_db", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -139,9 +141,9 @@ class DuckingSidechain(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms")
+    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -161,9 +163,9 @@ class AutomationPoint(FrozenModel):
     time_seconds: float = Field(ge=MIN_TIME_SECONDS)
     value: float
 
-    @field_validator("time_seconds", "value")
+    @field_validator("time_seconds", "value", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -198,6 +200,13 @@ class LatencyCompensation(FrozenModel):
     residual_samples: int = Field(
         default=DEFAULT_LATENCY_RESIDUAL_SAMPLES, ge=MIN_LATENCY_RESIDUAL_SAMPLES, le=MAX_LATENCY_RESIDUAL_SAMPLES
     )
+
+    @field_validator("residual_samples", mode="before")
+    @classmethod
+    def _residual_not_boolean(cls, value: Any) -> Any:
+        if isinstance(value, bool):
+            raise ValueError("residual_samples must not be a boolean")
+        return value
 
     @field_validator("policy")
     @classmethod

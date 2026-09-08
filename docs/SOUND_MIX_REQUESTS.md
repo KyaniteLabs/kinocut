@@ -29,6 +29,8 @@ For MCP call `sound_mix_render` with `request` (the JSON object) and
 
 `kinocut_sound.public.mix_request.SoundMixRequest` supplies the validated schema.
 Its `schema_version` is integer `1` and unknown fields are rejected.
+Numeric model fields follow the [sound input validation rules](SOUND_INPUT_VALIDATION.md);
+booleans cannot stand in for durations or gains.
 Version2 adds explicit static track/bus routing through `SoundMixRequestV2`;
 see [routing requests](SOUND_ROUTING_REQUESTS.md). It preserves the V1 contract.
 

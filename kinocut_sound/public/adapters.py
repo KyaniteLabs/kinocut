@@ -112,6 +112,20 @@ def _minimal_plan(**overrides: Any) -> SoundPlan:
     return SoundPlan(**base)
 
 
+def _validated_plan(plan):
+    if plan is None:
+        return _minimal_plan()
+    payload = plan.model_dump(mode="python") if isinstance(plan, SoundPlan) else plan
+    return SoundPlan.model_validate(payload)
+
+
+def _plan_argument(kwargs):
+    plan, alias = kwargs.get("plan"), kwargs.get("plan_json")
+    if plan is not None and alias is not None:
+        raise ValueError("choose one sound plan argument")
+    return plan if plan is not None else alias
+
+
 class SoundPythonAdapter:
     """Thin Python facade over stable sound leaves."""
 
@@ -127,12 +141,7 @@ class SoundPythonAdapter:
 
     def plan_validate(self, plan: dict[str, Any] | SoundPlan | None = None) -> dict[str, Any]:
         try:
-            if plan is None:
-                validated = _minimal_plan()
-            elif isinstance(plan, SoundPlan):
-                validated = plan
-            else:
-                validated = SoundPlan.model_validate(plan)
+            validated = _validated_plan(plan)
         except (ValidationError, TypeError, ValueError) as exc:
             raise ValueError("sound plan validation failed") from exc
         return {
@@ -153,12 +162,7 @@ class SoundPythonAdapter:
                 raise mix_error("caption speech request cannot be combined with synthetic plan mode", MIX_INPUT_INVALID)
             return render_dub_request(request, project_root)
         try:
-            if plan is None:
-                sound_plan = _minimal_plan()
-            elif isinstance(plan, SoundPlan):
-                sound_plan = plan
-            else:
-                sound_plan = SoundPlan.model_validate(plan)
+            sound_plan = _validated_plan(plan)
             with tempfile.TemporaryDirectory(prefix="kinocut-sound-batch-") as tmp:
                 planner = BatchPlanner(
                     adapter=LocalSynthesisAdapter(),
@@ -284,13 +288,15 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
     if key == "sound-capabilities":
         result = adapter.capabilities()
     elif key == "sound-plan-validate":
-        result = adapter.plan_validate(kwargs.get("plan") or kwargs.get("plan_json"))
+        if set(kwargs) - {"plan", "plan_json"}:
+            raise ValueError("unknown sound plan validation arguments")
+        result = adapter.plan_validate(_plan_argument(kwargs))
     elif key == "sound-voice-batch":
         from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
 
         if set(kwargs) - {"plan", "plan_json", "request", "project_root"}:
             raise mix_error("unknown voice request arguments", MIX_INPUT_INVALID)
-        plan = kwargs.get("plan") if "plan" in kwargs else kwargs.get("plan_json")
+        plan = _plan_argument(kwargs)
         if "request" in kwargs or "project_root" in kwargs:
             if kwargs.get("request") is None or not kwargs.get("project_root"):
                 raise mix_error("caption speech requires request and project_root", MIX_INPUT_INVALID)

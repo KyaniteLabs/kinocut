@@ -7,6 +7,8 @@ an authoritative timeline and explicit routing plan.
 
 from __future__ import annotations
 
+from typing import Any
+
 from collections.abc import Iterable
 from typing import Literal
 
@@ -73,9 +75,9 @@ class ClipRef(FrozenModel):
             raise ValueError(f"source_ref {reason}")
         return value
 
-    @field_validator("duration_seconds")
+    @field_validator("duration_seconds", mode="before")
     @classmethod
-    def _duration_is_not_boolean(cls, value: float) -> float:
+    def _duration_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("duration_seconds must not be a boolean")
         return value
@@ -103,9 +105,9 @@ class FoleyCueIntent(FrozenModel):
             raise ValueError(f"asset_ref {reason}")
         return value
 
-    @field_validator("duration_seconds")
+    @field_validator("duration_seconds", mode="before")
     @classmethod
-    def _duration_is_not_boolean(cls, value: float) -> float:
+    def _duration_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("duration_seconds must not be a boolean")
         return value
@@ -124,9 +126,9 @@ class DesignedSilenceIntent(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("duration_seconds")
+    @field_validator("duration_seconds", mode="before")
     @classmethod
-    def _duration_is_not_boolean(cls, value: float) -> float:
+    def _duration_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("duration_seconds must not be a boolean")
         return value
