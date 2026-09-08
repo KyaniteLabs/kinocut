@@ -218,13 +218,13 @@ def test_worker_timeout_and_interrupt_leave_no_success(mix_project, monkeypatch)
 
 
 def test_nonzero_worker_success_text_is_not_success(mix_project, monkeypatch):
-    from kinocut_sound.public import mix_job
+    from kinocut_sound.public import mix_process
 
     root, request = mix_project
     monkeypatch.setattr(
-        mix_job.subprocess,
-        "run",
-        lambda *a, **k: subprocess.CompletedProcess(a, 1, b'{"ok":true,"message":"SUCCESS"}', b""),
+        mix_process,
+        "run_worker_sync",
+        lambda *a, **k: (1, b'{"ok":true,"message":"SUCCESS"}'),
     )
     with pytest.raises(MixError):
         _render(root, request)

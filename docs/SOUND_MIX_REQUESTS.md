@@ -6,6 +6,15 @@ project root. It assembles supplied mono or stereo PCM16 WAVs into a new ZIP con
 or apply loudness mastering. The receipt reports `mastering_status=not_applied`
 and requires human review.
 
+Worker status and diagnostic streams each have a 65,536-byte limit enforced while
+reading. Oversized streams fail with `mix_worker_failed`; raw diagnostics are not
+returned. Request writes and both reads share the worker deadline. Cancellation
+waits for any in-progress spawn and kills/reaps the directly owned worker before
+private staging is released, including repeated cancellation during cleanup.
+The mix worker remains pure Python; this boundary does not manage descendants or
+provide format conversion. Existing request identities and archive bytes remain
+unchanged. Stream limits describe retained application data, not total process RSS.
+
 The same request works in Python, CLI and MCP:
 
 ```python

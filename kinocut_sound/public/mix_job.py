@@ -6,7 +6,6 @@ import hashlib
 import asyncio
 import json
 import os
-import subprocess
 import sys
 import zipfile
 
@@ -18,22 +17,25 @@ from kinocut_sound.public.mix_files import open_parent, open_root, publish, stag
 from kinocut_sound.public.mix_request import load_mix_request
 
 
-def _run_worker(request, root_fd, stage_fd):
+def _encoded_request(request):
     encoded = request.model_dump_json().encode()
     if len(encoded) > MAX_MIX_REQUEST_BYTES:
         raise mix_error("encoded mix request exceeds limit", MIX_INPUT_INVALID)
-    try:
-        completed = subprocess.run(  # noqa: S603 - fixed Python module, descriptor integers; JSON only on stdin
-            [sys.executable, "-m", "kinocut_sound.public.mix_worker", str(root_fd), str(stage_fd)],
-            input=encoded,
-            capture_output=True,
-            pass_fds=(root_fd, stage_fd),
-            timeout=DEFAULT_PUBLIC_MIX_TIMEOUT_SECONDS,
-            check=False,
-        )
-    except subprocess.TimeoutExpired as exc:
-        raise mix_error("mix worker exceeded its deadline", "mix_timeout") from exc
-    return _worker_status(request, completed.returncode, completed.stdout)
+    return encoded
+
+
+def _worker_args(root_fd, stage_fd):
+    return [sys.executable, "-m", "kinocut_sound.public.mix_worker", str(root_fd), str(stage_fd)]
+
+
+def _run_worker(request, root_fd, stage_fd):
+    from kinocut_sound.public.mix_process import run_worker_sync
+
+    encoded = _encoded_request(request)
+    code, stdout = run_worker_sync(
+        _worker_args(root_fd, stage_fd), encoded, (root_fd, stage_fd), DEFAULT_PUBLIC_MIX_TIMEOUT_SECONDS
+    )
+    return _worker_status(request, code, stdout)
 
 
 def _worker_status(request, returncode, stdout):
@@ -179,28 +181,13 @@ def _result(request, receipt, archive_hash):
 
 
 async def _run_worker_async(request, root_fd, stage_fd):
-    process = await asyncio.create_subprocess_exec(
-        sys.executable,
-        "-m",
-        "kinocut_sound.public.mix_worker",
-        str(root_fd),
-        str(stage_fd),
-        stdin=asyncio.subprocess.PIPE,
-        stdout=asyncio.subprocess.PIPE,
-        stderr=asyncio.subprocess.PIPE,
-        pass_fds=(root_fd, stage_fd),
+    from kinocut_sound.public.mix_process_async import run_worker_async
+
+    encoded = _encoded_request(request)
+    code, stdout = await run_worker_async(
+        _worker_args(root_fd, stage_fd), encoded, (root_fd, stage_fd), DEFAULT_PUBLIC_MIX_TIMEOUT_SECONDS
     )
-    try:
-        stdout, _stderr = await asyncio.wait_for(
-            process.communicate(request.model_dump_json().encode()), DEFAULT_PUBLIC_MIX_TIMEOUT_SECONDS
-        )
-        return _worker_status(request, process.returncode, stdout)
-    except TimeoutError as exc:
-        raise mix_error("mix worker exceeded its deadline", "mix_timeout") from exc
-    finally:
-        if process.returncode is None:
-            process.kill()
-        await asyncio.shield(process.wait())
+    return _worker_status(request, code, stdout)
 
 
 async def render_mix_request_async(payload, project_root):
