@@ -300,7 +300,7 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 |------|-------------|
 | `sound_capabilities` | Discover the bounded public sound operation set (local-first, non-TTY JSON) |
 | `sound_plan_validate` | Validate a supplied SoundPlan, including typed state; explicit invalid plans fail. Omission retains the minimal example. See [input validation](SOUND_INPUT_VALIDATION.md). |
-| `sound_voice_batch` | Retain local EN/ES caption speech with `request` + `project_root`; legacy `plan` mode is a labelled synthetic demo. See [caption speech](SOUND_DUB_REQUESTS.md). |
+| `sound_voice_batch` | Retain local EN/ES caption speech with `request` + `project_root`, including V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy `plan` mode is a labelled synthetic demo. See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound_mix_render` | Assemble supplied WAVs with [routing](SOUND_ROUTING_REQUESTS.md), [automation](SOUND_AUTOMATION_REQUESTS.md), [sends](SOUND_SEND_REQUESTS.md), [final sidechains](SOUND_SIDECHAIN_REQUESTS.md), [layers/loop fill/ducking](SOUND_LAYER_REQUESTS.md) and V4 [source-rate conversion](SOUND_RATE_CONVERSION.md). Takes a persisted request and project root. No-argument labelled demo remains available. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound_qa_loudness` | Measure hashed local mono/stereo PCM16 WAVs with FFmpeg and report actual policy compliance; omit inputs for a labelled demo. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
 | `sound_master_render` | Retain a mono/stereo two-pass master ZIP only after measuring final audio against its policy. Requires `request` and `project_root`; see [master request](SOUND_MASTER_REQUESTS.md). |
