@@ -94,7 +94,7 @@ def render_args(job, measurements):
         "-ar",
         str(job.output_rate),
         "-ac",
-        "1",
+        str(job.channel_count),
         "-c:a",
         "pcm_s16le",
         "-fs",

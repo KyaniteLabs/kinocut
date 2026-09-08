@@ -14,7 +14,7 @@ from kinocut_sound.public.master_request import internal_peak, master_error
 
 def _receipt(job, data, report, version, mode):
     policy = job.request.delivery
-    return {
+    receipt = {
         "artifact_kind": "measured_sound_master",
         "demo": False,
         "request_hash": job.request.canonical_id(),
@@ -34,6 +34,21 @@ def _receipt(job, data, report, version, mode):
         "mastering_status": "measured_compliant",
         "human_review_required": True,
         "media": {"master.wav": {"bytes": len(data), "sha256": "sha256:" + hashlib.sha256(data).hexdigest()}},
+    }
+    receipt.update(_stereo_fields(job))
+    return receipt
+
+
+def _stereo_fields(job):
+    if job.channel_count == 1:
+        return {}
+    return {
+        "schema_version": 2,
+        "channel_count": job.channel_count,
+        "input_frame_count": job.input_count,
+        "frame_count": job.output_count,
+        "input_interleaved_sample_count": job.input_count * job.channel_count,
+        "interleaved_sample_count": job.output_count * job.channel_count,
     }
 
 
@@ -88,6 +103,7 @@ def prepare_bundle(job, data, report, version, mode):
         "demo": False,
         "output_path": job.request.output_path,
         "output_sha256": archive_hash,
+        **_stereo_fields(job),
         **{
             key: receipt[key]
             for key in (

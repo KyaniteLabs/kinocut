@@ -55,7 +55,7 @@ def test_input_cap_precedes_decode(monkeypatch):
     def decode(_):
         pytest.fail("oversized input decoded")
 
-    monkeypatch.setattr(meter, "parse_wav", decode)
+    monkeypatch.setattr(meter, "decode_pcm_wav", decode)
     with pytest.raises(QaError):
         meter.validate_material(b"12345")
 

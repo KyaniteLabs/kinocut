@@ -66,7 +66,7 @@ def _job(payload, project_root):
     request = load_asr_request(payload, project_root)
     with open_root(project_root) as root:
         data = read_asset(root, request.source.path, request.source.sha256, MAX_MIX_INPUT_BYTES)
-        validate_material(data)
+        validate_material(data, channel_counts=(1,))
         samples, rate = parse_wav(data)
         duration = len(samples) / rate
         if duration > MAX_ASR_DURATION_SECONDS or rate > MAX_ASR_SAMPLE_RATE_HZ:

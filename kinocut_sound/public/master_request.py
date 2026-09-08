@@ -1,4 +1,4 @@
-"""Persisted measured-mastering intent for one supplied mono mix."""
+"""Persisted measured-mastering intent for one supplied mono or stereo mix."""
 
 from typing import Any, Literal
 
@@ -65,7 +65,7 @@ def load_master_request(value: Any, project_root):
         or policy.master_only_limiting_enabled
     ):
         raise master_error(
-            "mastering supports one mono mix without stem or metadata intent", "master_unsupported_intent"
+            "mastering supports one mono or stereo mix without stem or metadata intent", "master_unsupported_intent"
         )
     ceiling = min(policy.loudness.true_peak_dbtp, policy.true_peak_ceiling_dbtp)
     if not FFMPEG_MASTER_LUFS_RANGE[0] <= policy.loudness.integrated_lufs <= FFMPEG_MASTER_LUFS_RANGE[1] or not (

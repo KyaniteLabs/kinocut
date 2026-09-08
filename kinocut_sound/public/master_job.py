@@ -16,7 +16,7 @@ from kinocut_sound.limits import (
     MAX_MASTER_WAV_HEADER_BYTES,
     MASTER_MEMORY_MULTIPLIER,
 )
-from kinocut_sound.mix._wav import parse_wav
+from kinocut_sound.mix._wav import decode_pcm_wav
 from kinocut_sound.public.master_request import load_master_request, master_error
 from kinocut_sound.public.master_render import (
     analysis_args,
@@ -55,6 +55,7 @@ class _MasterJob:
     output_rate: int
     output_count: int
     output_limit: int
+    channel_count: int
 
     @property
     def base(self):
@@ -63,8 +64,8 @@ class _MasterJob:
     def accept(self):
         remaining(self.deadline)
         data = _read_regular_file(self.workspace_fd, "master.wav", self.output_limit)
-        samples, rate = parse_wav(data)
-        if rate != self.output_rate or len(samples) != self.output_count:
+        samples, rate, channels = decode_pcm_wav(data)
+        if rate != self.output_rate or channels != self.channel_count or len(samples) != self.output_count * channels:
             raise master_error("normalizer returned unexpected audio format or frame count", "master_invalid_output")
         validate_material(data)
         remaining(self.deadline)
@@ -87,18 +88,15 @@ def _job(payload, project_root):
         with open_root(project_root) as root, open_parent(root, request.output_path) as (parent, name):
             _check_absent(parent, name)
             data = read_asset(root, request.source.path, request.source.sha256, MAX_MIX_INPUT_BYTES)
-            validate_material(data)
-            samples, rate = parse_wav(data)
-            count = len(samples)
+            rate, count, channels = validate_material(data)
             output_rate = request.output_sample_rate_hz or rate
             output_count = round(count * output_rate / rate)
-            output_limit = output_count * 2 + MAX_MASTER_WAV_HEADER_BYTES
+            output_limit = output_count * channels * 2 + MAX_MASTER_WAV_HEADER_BYTES
             if (
                 output_limit > MAX_MIX_INPUT_BYTES
                 or MASTER_MEMORY_MULTIPLIER * (len(data) + output_limit) > MAX_MIX_MEMORY_BYTES
             ):
                 raise master_error("mastering exceeds input/output memory estimate", "master_over_limit")
-            del samples
             binary = shutil.which("ffmpeg")
             if binary is None:
                 raise master_error("mastering requires installed FFmpeg", "master_unavailable")
@@ -124,6 +122,7 @@ def _job(payload, project_root):
                         output_rate,
                         output_count,
                         output_limit,
+                        channels,
                     )
     except OSError as exc:
         raise master_error("mastering files could not be read or published", "master_file_failed") from exc

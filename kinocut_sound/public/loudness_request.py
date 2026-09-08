@@ -15,7 +15,7 @@ from kinocut_sound.public.mix_files import open_root, read_asset
 from kinocut_sound.public.mix_request import SourceAsset, _json_payload
 from kinocut_sound.qa._errors import QA_INPUT_INVALID, qa_error
 from kinocut_sound.qa.loudness import evaluate_loudness
-from kinocut_sound.qa.meter import measure_with_identity, measure_with_identity_async
+from kinocut_sound.qa.meter import measure_with_identity, measure_with_identity_async, validate_material
 
 
 class SoundLoudnessRequest(FrozenModel):
@@ -58,7 +58,7 @@ def _material(wav_bytes, request, project_root, delivery):
 def _receipt(data, policy, demo, measurement):
     metrics, version = measurement
     report = evaluate_loudness(metrics, policy)
-    return {
+    receipt = {
         "artifact_kind": "sound_loudness_measurement",
         "demo": demo,
         "source_sha256": "sha256:" + hashlib.sha256(data).hexdigest(),
@@ -67,6 +67,16 @@ def _receipt(data, policy, demo, measurement):
         "backend_version": version,
         **asdict(report),
     }
+    rate, frames, channels = validate_material(data)
+    if channels == 2:
+        receipt.update(
+            schema_version=2,
+            channel_count=channels,
+            frame_count=frames,
+            interleaved_sample_count=frames * channels,
+            sample_rate_hz=rate,
+        )
+    return receipt
 
 
 def inspect_loudness(wav_bytes=None, *, request=None, project_root=None, delivery=None):
