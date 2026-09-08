@@ -11,14 +11,15 @@ from kinocut_sound.limits import (
     MIX_WORKER_IO_CHUNK_BYTES,
 )
 from kinocut_sound.mix._errors import mix_error
-from kinocut_sound.public.mix_process import append_bounded, remaining
+from kinocut_sound.public.mix_process import remaining
+from kinocut_sound.public.mix_process_output import BoundedOutput
 
 
-async def _read(stream, limit):
-    output = bytearray()
+async def _read(stream, limit, sink=None):
+    output = BoundedOutput(limit, sink)
     while chunk := await stream.read(MIX_WORKER_IO_CHUNK_BYTES):
-        append_bounded(output, chunk, limit)
-    return bytes(output)
+        output.append(chunk)
+    return output.value()
 
 
 async def _write(stream, encoded):
@@ -75,7 +76,9 @@ async def _spawn(args, pass_fds):
         return None, exc
 
 
-async def run_worker_async(args, encoded, pass_fds, timeout):
+async def run_worker_async(
+    args, encoded, pass_fds, timeout, *, stdout_sink=None, stdout_limit=MAX_MIX_WORKER_MESSAGE_BYTES
+):
     deadline = time.monotonic() + timeout
     spawn = asyncio.create_task(_spawn(args, pass_fds))
     try:
@@ -92,7 +95,7 @@ async def run_worker_async(args, encoded, pass_fds, timeout):
     except OSError as exc:
         raise mix_error("mix worker could not start", "mix_worker_failed") from exc
     tasks = [
-        asyncio.create_task(_read(process.stdout, MAX_MIX_WORKER_MESSAGE_BYTES)),
+        asyncio.create_task(_read(process.stdout, stdout_limit, stdout_sink)),
         asyncio.create_task(_read(process.stderr, MAX_MIX_WORKER_DIAGNOSTIC_BYTES)),
         asyncio.create_task(_write(process.stdin, encoded)),
         asyncio.create_task(process.wait()),

@@ -92,7 +92,9 @@ memory estimate. The worker retains its 300-second deadline. These are admission
 bounds, not measured host peak requirements.
 
 Scene/location schedules, feedback send cycles, unsupported automation parameters,
-format conversion and dither remain unsupported. This produces an assembly,
+other sample formats, channel conversion and dither remain unsupported. V4 can
+normalize layer rates through [explicit source resampling](SOUND_RATE_CONVERSION.md)
+before the same fill/ducking rules. This produces an assembly,
 not verified mastering; human listening and episode acceptance remain required.
 Bound tracks can use [gain/pan automation](SOUND_AUTOMATION_REQUESTS.md); layer
 descriptors themselves are not track-automation targets.

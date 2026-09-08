@@ -16,11 +16,11 @@ def verified_automation_windows(request, root_fd):
         yield source_window_bounds(cues[clip.cue_id], frames, request.plan.format.sample_rate_hz)
 
 
-def verify_automation_windows(receipt, request, windows):
+def verify_source_windows(receipt, request, windows):
     actual = receipt.get("source_windows")
     expected_ids = {clip.cue_id for clip in request.clips}
     if not isinstance(actual, list) or len(actual) != len(expected_ids):
-        raise mix_error("automation requires complete source-window evidence", "mix_worker_failed")
+        raise mix_error("mix requires complete source-window evidence", "mix_worker_failed")
     by_id = {}
     for row in actual:
         cue_id = row.get("cue_id") if isinstance(row, dict) else None
@@ -29,6 +29,10 @@ def verify_automation_windows(receipt, request, windows):
         by_id[cue_id] = row
     expected = source_window_receipts(windows, request.plan.format.channel_count)
     if any(canonical_digest(by_id[row["cue_id"]]) != canonical_digest(row) for row in expected):
-        raise mix_error("automation source windows differ from verified inputs", "mix_worker_failed")
+        raise mix_error("source windows differ from verified inputs", "mix_worker_failed")
+
+
+def verify_automation_windows(receipt, request, windows):
+    verify_source_windows(receipt, request, windows)
     routing = compile_routing(request)
     routing.check_work({window.cue_id: window.sample_count for window in windows})
