@@ -43,10 +43,30 @@ jobs:
         if: steps.classify.outputs.code == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng
+          sudo apt-get install -y --no-install-recommends ffmpeg build-essential cmake ninja-build libsonic-dev
           ffmpeg -version
           ffprobe -version
-          espeak-ng --version
+      - name: Build pinned deterministic speech backend
+        if: steps.classify.outputs.code == 'true'
+        run: |
+          # Ubuntu 24.04 supplies 1.51, which does not implement the -D flag.
+          espeak_source="$RUNNER_TEMP/espeak-source"
+          espeak_build="$RUNNER_TEMP/espeak-build"
+          espeak_prefix="$RUNNER_TEMP/espeak-runtime"
+          git init "$espeak_source"
+          git -C "$espeak_source" remote add origin https://github.com/espeak-ng/espeak-ng.git
+          git -C "$espeak_source" fetch --depth 1 origin 4870adfa25b1a32b4361592f1be8a40337c58d6c
+          git -C "$espeak_source" checkout --detach FETCH_HEAD
+          test "$(git -C "$espeak_source" rev-parse HEAD)" = 4870adfa25b1a32b4361592f1be8a40337c58d6c
+          cmake -S "$espeak_source" -B "$espeak_build" -G Ninja \
+            -DCMAKE_BUILD_TYPE=Release -DCMAKE_INSTALL_PREFIX="$espeak_prefix" \
+            -DBUILD_SHARED_LIBS=OFF -DBUILD_TESTING=OFF -DUSE_ASYNC=OFF \
+            -DUSE_MBROLA=OFF -DUSE_LIBPCAUDIO=OFF -DESPEAK_BUILD_MANPAGES=OFF
+          cmake --build "$espeak_build" --target espeak-ng data --parallel 2
+          cmake --install "$espeak_build"
+          "$espeak_prefix/bin/espeak-ng" --version
+          "$espeak_prefix/bin/espeak-ng" --help | grep -F 'Enable deterministic random mode'
+          echo "$espeak_prefix/bin" >> "$GITHUB_PATH"
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: steps.classify.outputs.code == 'true'
         with:
@@ -75,14 +95,20 @@ jobs:
           ffmpeg -version > "$VALIDATION_EVIDENCE_DIR/ffmpeg-version.txt"
           ffprobe -version > "$VALIDATION_EVIDENCE_DIR/ffprobe-version.txt"
           espeak-ng --version > "$VALIDATION_EVIDENCE_DIR/espeak-version.txt"
+          echo 4870adfa25b1a32b4361592f1be8a40337c58d6c > "$VALIDATION_EVIDENCE_DIR/espeak-source-sha.txt"
           python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
-      - name: Verify candidate identity and quality boundaries
+      - name: Verify candidate identity and required media
         if: steps.classify.outputs.code == 'true'
         run: |
           python3 -m pytest -q --tb=short \
             tests/test_golden_path.py::test_spoofed_github_sha_and_unavailable_git_fail \
             tests/test_golden_path.py::test_confidence_workflow_commit_identity_is_exact \
             tests/test_golden_path.py::test_confidence_workflow_stops_before_checkpoint_on_failed_raw_check \
+            tests/test_sound_dub_render.py \
+            tests/test_sound_speech_spatial_public.py \
+            tests/test_sound_speech_spatial_transports.py \
+            tests/test_sound_speech_spatial_dsp.py \
+            tests/test_sound_rate_conversion_public.py \
             --junitxml="$VALIDATION_EVIDENCE_DIR/identity-regressions.xml"
       - name: Full candidate suite
         id: full-suite
