@@ -27,6 +27,7 @@ from kinocut_sound.defaults import (
     DEFAULT_LATENCY_RESIDUAL_SAMPLES,
     DEFAULT_PAN_POSITION,
     DEFAULT_SEND_GAIN_DB,
+    DEFAULT_SEND_POST_FADER,
 )
 from kinocut_sound.limits import (
     MAX_DUCKING_ATTACK_MS,
@@ -105,7 +106,7 @@ class SendReturn(FrozenModel):
     source_bus_id: str = Field(min_length=1)
     destination_bus_id: str = Field(min_length=1)
     gain_db: float = Field(default=DEFAULT_SEND_GAIN_DB, ge=MIN_GAIN_DB, le=MAX_GAIN_DB)
-    post_fader: bool = True
+    post_fader: bool = DEFAULT_SEND_POST_FADER
 
     @field_validator("send_id", "source_bus_id", "destination_bus_id")
     @classmethod

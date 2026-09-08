@@ -5,9 +5,8 @@ from math import isfinite
 from kinocut_sound._canonical import canonical_digest
 from kinocut_sound.limits import MAX_LAYER_DUCKING_SAMPLE_VISITS
 from kinocut_sound.mix._errors import MIX_OVER_LIMIT, mix_error
-from kinocut_sound.mix.layers import fill_plan
+from kinocut_sound.mix.layer_work import layer_work_units
 from kinocut_sound.mix.layer_ducking import ducking_parameters
-from kinocut_sound.world.layers import LayerStack
 
 
 def check_layer_ducking_work(request, source_frames):
@@ -15,15 +14,7 @@ def check_layer_ducking_work(request, source_frames):
         return 0
     channels = request.plan.format.channel_count
     target = round(request.plan.authoritative_duration_seconds * request.plan.format.sample_rate_hz)
-    states = LayerStack(tuple(item.layer for item in request.layer_assets), ducking=request.layer_ducking).mix()
-    visits = 0
-    for item, state, frames in zip(request.layer_assets, states, source_frames, strict=True):
-        fill = fill_plan(frames, target, item.fill_mode, item.crossfade_frames)
-        visits += frames * channels
-        if state.audible:
-            visits += channels * (fill["copies"] * min(frames, target) + 4 * target)
-    if not any(state.audible for state in states):
-        visits += target * channels
+    visits = layer_work_units(request.layer_assets, source_frames, target, channels, ducking=True)
     if visits > MAX_LAYER_DUCKING_SAMPLE_VISITS:
         raise mix_error("layer ducking exceeds sample-visit budget", MIX_OVER_LIMIT)
     return visits
@@ -80,6 +71,8 @@ def _valid_summary(summary, parameters, frames):
 
 def ducking_evidence(request, summary):
     parameters = ducking_parameters(request.layer_ducking, request.plan.format.sample_rate_hz)
+    if request.plan.routing.sends:
+        parameters["source_position"] = "after_clips_before_sends_and_bus_gain"
     frames = round(request.plan.authoritative_duration_seconds * request.plan.format.sample_rate_hz)
     if not _valid_summary(summary, parameters, frames):
         raise mix_error("invalid layer ducking measurement summary", "mix_worker_failed")

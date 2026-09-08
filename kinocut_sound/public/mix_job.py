@@ -73,6 +73,11 @@ def _verify_stage(stage_fd, request, layer_shapes=(), automation_windows=()):
                 from kinocut_sound.public.mix_layer_receipt import verify_layer_receipt
 
                 verify_layer_receipt(receipt, request, layer_shapes)
+            if request.plan.routing.sends:
+                from kinocut_sound.public.mix_send_request import check_routed_feature_work
+                from kinocut_sound.public.mix_request_v2 import compile_routing
+
+                check_routed_feature_work(request, compile_routing(request), automation_windows, layer_shapes)
             if set(archive.namelist()) != {"receipt.json", *receipt["media"]}:
                 raise mix_error("mix bundle members mismatch", "mix_worker_failed")
             for name, expected in receipt["media"].items():
@@ -149,6 +154,10 @@ def _result(request, receipt, archive_hash):
             result["automation_sha256"] = canonical_digest(automation)
             result["automation_envelope_count"] = len(automation["envelopes"])
             result["automation_point_count"] = sum(len(item["points"]) for item in automation["envelopes"])
+        if request.plan.routing.sends:
+            sends = receipt["routing"]["sends"]
+            result["send_count"] = len(sends["sends"])
+            result["sends_sha256"] = canonical_digest(sends)
     if request.schema_version == 3:
         result["layer_algorithm"] = receipt["layers"]["algorithm"]
         result["layers_sha256"] = canonical_digest(receipt["layers"])

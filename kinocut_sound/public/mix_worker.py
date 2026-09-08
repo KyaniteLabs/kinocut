@@ -57,7 +57,7 @@ def _sources(request, root_fd):
         from kinocut_sound.public.mix_layer_ducking import check_layer_ducking_work
 
         check_layer_ducking_work(request, layer_frames)
-    return tuple(clips), bed, tuple(layers)
+    return tuple(clips), bed, tuple(layers), tuple(layer_frames)
 
 
 def _base_receipt(request, result, members, rate, channels, expected):
@@ -122,12 +122,16 @@ def _write_bundle(output_fd, request, result):
 
 def render_to_stage(payload, root, output_fd):
     request = load_mix_request(payload)
-    clips, bed, layers = _sources(request, root)
+    clips, bed, layers, layer_frames = _sources(request, root)
     routing = None
     if request.schema_version >= 2:
         from kinocut_sound.public.mix_request_v2 import compile_routing
 
         routing = compile_routing(request)
+    if request.plan.routing.sends:
+        from kinocut_sound.public.mix_send_request import validate_send_preflight
+
+        validate_send_preflight(request, routing, clips, layer_frames)
     result = MixRenderer(
         sample_rate_hz=request.plan.format.sample_rate_hz,
         channel_count=request.plan.format.channel_count,

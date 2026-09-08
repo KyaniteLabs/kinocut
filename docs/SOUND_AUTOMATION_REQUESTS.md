@@ -103,7 +103,8 @@ processing or target-canvas allocation, and the parent recomputes the same bound
 These are admission policies, not measured RSS or speed guarantees. The existing
 worker deadline remains independent.
 
-V1 still requires default routing. Sends, general sidechains, other automation
+V2/V3 automation can compose with [finite bus sends](SOUND_SEND_REQUESTS.md).
+V1 still requires default routing. General sidechains, other automation
 parameters, bus automation, nondefault latency and unsupported formats remain
 rejected. Mix output remains an assembly; mastering and human listening are
 separate acceptance steps.
