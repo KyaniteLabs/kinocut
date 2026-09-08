@@ -36,6 +36,7 @@ _KNOWN_OPS = frozenset(
         "sound-plan-validate",
         "sound-voice-batch",
         "sound-mix-render",
+        "sound-master-render",
         "sound-qa-loudness",
         "sound-qa-asr",
     }
@@ -218,6 +219,11 @@ class SoundPythonAdapter:
             "stem_ids": list(result.stems.stems.keys()),
         }
 
+    def master_render(self, request, project_root) -> dict[str, Any]:
+        from kinocut_sound.public.master_job import render_master_request
+
+        return render_master_request(request, project_root)
+
     def qa_loudness(
         self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
     ) -> dict[str, Any]:
@@ -283,6 +289,12 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
             # legacy substring checks after publication would report failure
             # for harmless names such as password-reset-podcast.zip.
             return result
+    elif key == "sound-master-render":
+        from kinocut_sound.public.master_request import master_error
+
+        if set(kwargs) - {"request", "project_root"}:
+            raise master_error("unknown mastering request arguments", "master_input_invalid")
+        return adapter.master_render(kwargs.get("request"), kwargs.get("project_root"))
     elif key == "sound-qa-loudness":
         from kinocut_sound.qa._errors import QA_INPUT_INVALID, qa_error
 

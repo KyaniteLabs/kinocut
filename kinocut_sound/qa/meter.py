@@ -65,6 +65,22 @@ def _version(output):
     return match[1]
 
 
+def measurement_args(binary, path):
+    return [
+        binary,
+        "-hide_banner",
+        "-nostdin",
+        "-nostats",
+        "-i",
+        str(path),
+        "-af",
+        "ebur128=peak=true:framelog=verbose",
+        "-f",
+        "null",
+        "-",
+    ]
+
+
 @contextmanager
 def _input(data):
     validate_material(data)
@@ -75,19 +91,7 @@ def _input(data):
         with tempfile.TemporaryDirectory(prefix="kinocut-meter-") as folder:
             path = Path(folder) / "source.wav"
             path.write_bytes(data)
-            args = [
-                binary,
-                "-hide_banner",
-                "-nostdin",
-                "-nostats",
-                "-i",
-                str(path),
-                "-af",
-                "ebur128=peak=true:framelog=verbose",
-                "-f",
-                "null",
-                "-",
-            ]
+            args = measurement_args(binary, path)
             yield binary, args
     except OSError as exc:
         raise qa_error("meter private workspace unavailable", QA_UNAVAILABLE) from exc

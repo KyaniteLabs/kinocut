@@ -46,6 +46,19 @@ def _loudness(a, j):
         raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
+def _master(a, j):
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.mix_files import load_request_file
+    from kinocut.errors import MCPVideoError
+
+    try:
+        raw = a.request_json
+        request = raw if raw.lstrip().startswith("{") else load_request_file(raw)
+        _out(_invoke("sound-master-render", request=request, project_root=a.project_root), j)
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+
+
 def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
     runner = CommandRunner(args, use_json)
 
@@ -108,6 +121,7 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
     runner.register("sound-plan-validate", _plan)
     runner.register("sound-voice-batch", _voice)
     runner.register("sound-mix-render", _mix)
+    runner.register("sound-master-render", _master)
     runner.register("sound-qa-loudness", _loudness)
     runner.register("sound-qa-asr", _asr)
     return runner.dispatch()

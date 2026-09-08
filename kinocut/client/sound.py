@@ -44,6 +44,12 @@ class ClientSoundMixin:
             return invoke_sound_operation("sound-mix-render")
         return invoke_sound_operation("sound-mix-render", request=request, project_root=project_root)
 
+    def sound_master_render(self, request: dict[str, Any], project_root: str) -> dict[str, Any]:
+        """Retain a two-pass master only after final measured policy compliance."""
+        from kinocut_sound.public import invoke_sound_operation
+
+        return invoke_sound_operation("sound-master-render", request=request, project_root=project_root)
+
     def sound_qa_loudness(
         self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
     ) -> dict[str, Any]:

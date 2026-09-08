@@ -263,8 +263,8 @@ def test_revideo_names_and_count_split_are_documented() -> None:
     claims = json.loads((ROOT / "docs" / "public_claims.json").read_text(encoding="utf-8"))
     assert claims["published_mcp_tools"] == 196
     assert claims["published_cli_commands"] == 167
-    assert claims["development_mcp_tools"] == 200
-    assert claims["development_cli_commands"] == 171
+    assert claims["development_mcp_tools"] == 201
+    assert claims["development_cli_commands"] == 172
     surfaces = [
         ROOT / "docs" / "TOOLS.md",
         ROOT / "docs" / "CLI_REFERENCE.md",

@@ -292,7 +292,7 @@ See [STREAM_SHORTS.md](STREAM_SHORTS.md).
 
 ---
 
-## Sound public join (thin S12, 6 tools)
+## Sound public operations
 
 Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This is **not** full-episode sonic-world completion. Results are JSON-safe and fail closed on hostile/privacy boundaries.
 
@@ -303,6 +303,7 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 | `sound_voice_batch` | Retain local EN/ES caption speech with `request` + `project_root`; legacy `plan` mode is a labelled synthetic demo. See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound_mix_render` | Assemble supplied WAVs with cue source windows, crossfades and additive ducked ambience into a verified ZIP; takes a persisted request and project root. No-argument labelled demo remains available. See [request contract](SOUND_MIX_REQUESTS.md). |
 | `sound_qa_loudness` | Measure hashed local WAVs with FFmpeg and report actual policy compliance; omit inputs for a labelled demo. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
+| `sound_master_render` | Retain a two-pass master ZIP only after measuring final audio against its policy. Requires `request` and `project_root`; see [master request](SOUND_MASTER_REQUESTS.md). |
 | `sound_qa_asr` | Run the local fake ASR verification port against script hashes |
 
 ---

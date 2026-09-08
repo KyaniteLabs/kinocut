@@ -67,6 +67,20 @@ async def sound_mix_render(request: dict[str, Any] | None = None, project_root: 
 
 @mcp.tool()
 @_safe_tool
+async def sound_master_render(request: dict[str, Any], project_root: str) -> dict[str, Any]:
+    """Retain a two-pass master only after measuring final audio against its policy."""
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.master_job import render_master_request_async
+    from .errors import MCPVideoError
+
+    try:
+        return _result(await render_master_request_async(request, project_root))
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+
+
+@mcp.tool()
+@_safe_tool
 async def sound_qa_loudness(request: dict[str, Any] | None = None, project_root: str | None = None) -> dict[str, Any]:
     """Measure hashed local audio against its policy; omit inputs for a labelled demo."""
     from kinocut_sound._errors import SoundContractError

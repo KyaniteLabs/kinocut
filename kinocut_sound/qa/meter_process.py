@@ -25,7 +25,7 @@ def _append(output, chunk):
 def _validate_exit(returncode, output):
     if returncode:
         if b"no such filter" in bytes(output).lower():
-            raise qa_error("meter requires the ebur128 filter", QA_UNAVAILABLE)
+            raise qa_error("required FFmpeg filter unavailable", QA_UNAVAILABLE)
         raise qa_error("meter backend failed", "qa_meter_failed")
     return bytes(output)
 
