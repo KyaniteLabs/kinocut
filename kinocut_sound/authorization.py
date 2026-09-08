@@ -151,7 +151,7 @@ def _authorization_error(message: str, code: str) -> AuthorizationError:
 
 
 def _parse_time(value: str) -> datetime:
-    if not ISO8601_RE.match(value):
+    if not ISO8601_RE.fullmatch(value):
         raise _authorization_error("invalid authorization timestamp", "invalid_timestamp")
     try:
         return datetime.strptime(value, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=UTC)

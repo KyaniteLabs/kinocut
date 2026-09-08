@@ -76,7 +76,7 @@ class RenderFingerprint(FrozenModel):
     @field_validator("locale")
     @classmethod
     def _locale_bounded(cls, value: str) -> str:
-        if not LOCALE_RE.match(value):
+        if not LOCALE_RE.fullmatch(value):
             raise ValueError("locale must be a bounded identifier (no spaces or paths)")
         return value
 

@@ -61,7 +61,7 @@ class CostDisclosure(FrozenModel):
     @field_validator("region")
     @classmethod
     def _region_bounded(cls, value: str) -> str:
-        if not REGION_RE.match(value):
+        if not REGION_RE.fullmatch(value):
             raise ValueError("region must be a bounded code (no spaces or paths)")
         return value
 
@@ -152,7 +152,7 @@ class CapabilityResult(FrozenModel):
     @field_validator("remediation")
     @classmethod
     def _remediation_advisory(cls, value: str | None) -> str | None:
-        if value is not None and not ADVISORY_RE.match(value):
+        if value is not None and not ADVISORY_RE.fullmatch(value):
             raise ValueError("remediation must be short and free of paths, URLs, or metacharacters")
         return value
 

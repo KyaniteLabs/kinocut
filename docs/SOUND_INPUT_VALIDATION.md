@@ -6,6 +6,17 @@ targets, voice modifiers, cost estimates, adapter timeouts and profile versions.
 `true` and `false` remain valid for actual boolean flags such as mute, solo and
 human-review requirements.
 
+Whole-field codes, territories, regions, locales, advisory text and timestamp
+validators reject trailing control characters as well as embedded ones. Clone
+and blend export paths are checked as complete paths before authorization or
+rendering. Invalid input is rejected, never silently stripped into another identity.
+Optional values and valid canonical hashes are unchanged.
+
+Prefix parsers such as FFmpeg version extraction retain their existing behavior.
+The existing Pydantic digest, record-kind and creator patterns already reject
+trailing controls; their published schema patterns remain unchanged. Timestamp
+calendar semantics and authorization error codes are preserved.
+
 The checked guard inventory and compatibility controls are retained in
 `tests/fixtures/sound_numeric_guard_inventory.json` and
 `tests/fixtures/sound_numeric_baseline.json`. They cover the existing numeric
@@ -44,4 +55,3 @@ silently ignore an alias when the primary plan is None.
 
 Python, CLI and MCP share these checks. CLI validation errors retain the existing
 nonzero exit and stderr message behavior; they do not emit a successful plan result.
-

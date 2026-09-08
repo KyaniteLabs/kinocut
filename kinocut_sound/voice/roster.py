@@ -110,7 +110,7 @@ def _validate_slot(slot: VoiceSlot) -> VoiceSlot:
             "voice slot id must be a bounded code",
             ROSTER_INVALID,
         ) from exc
-    if not CODE_RE.match(slot.display_label):
+    if not CODE_RE.fullmatch(slot.display_label):
         raise voice_error(
             "voice slot display label must be a bounded code",
             ROSTER_INVALID,
