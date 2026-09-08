@@ -76,6 +76,14 @@ jobs:
           ffprobe -version > "$VALIDATION_EVIDENCE_DIR/ffprobe-version.txt"
           espeak-ng --version > "$VALIDATION_EVIDENCE_DIR/espeak-version.txt"
           python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+      - name: Verify candidate identity and quality boundaries
+        if: steps.classify.outputs.code == 'true'
+        run: |
+          python3 -m pytest -q --tb=short \
+            tests/test_golden_path.py::test_spoofed_github_sha_and_unavailable_git_fail \
+            tests/test_golden_path.py::test_confidence_workflow_commit_identity_is_exact \
+            tests/test_golden_path.py::test_confidence_workflow_stops_before_checkpoint_on_failed_raw_check \
+            --junitxml="$VALIDATION_EVIDENCE_DIR/identity-regressions.xml"
       - name: Full candidate suite
         id: full-suite
         if: steps.classify.outputs.code == 'true'
