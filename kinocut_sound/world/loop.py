@@ -18,6 +18,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 import hashlib
 import json
 from dataclasses import dataclass
@@ -52,13 +54,9 @@ class SeamlessLoop(FrozenModel):
     def _label_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator(
-        "source_duration_seconds",
-        "target_duration_seconds",
-        "crossfade_seconds",
-    )
+    @field_validator("source_duration_seconds", "target_duration_seconds", "crossfade_seconds", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("loop numeric must not be a boolean")
         return value

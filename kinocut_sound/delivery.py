@@ -14,6 +14,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
@@ -71,9 +73,9 @@ class LoudnessTarget(FrozenModel):
     )
     true_peak_dbtp: float = Field(lt=MAX_TRUE_PEAK_DBTP)
 
-    @field_validator("integrated_lufs", "tolerance_lu", "true_peak_dbtp")
+    @field_validator("integrated_lufs", "tolerance_lu", "true_peak_dbtp", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -153,9 +155,9 @@ class DeliveryPolicy(FrozenModel):
             raise ValueError("metadata codes must be unique")
         return value
 
-    @field_validator("true_peak_ceiling_dbtp")
+    @field_validator("true_peak_ceiling_dbtp", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value

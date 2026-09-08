@@ -20,6 +20,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from dataclasses import dataclass
 
 from pydantic import Field, field_validator, model_validator
@@ -92,9 +94,9 @@ class DuckingContract(FrozenModel):
     def _bus_ids_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms")
+    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("ducking numeric must not be a boolean")
         return value
@@ -122,9 +124,9 @@ class AmbientLayer(FrozenModel):
     def _ids_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db")
+    @field_validator("gain_db", mode="before")
     @classmethod
-    def _gain_not_boolean(cls, value: float) -> bool | float:
+    def _gain_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("gain_db must not be a boolean")
         return value

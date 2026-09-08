@@ -17,9 +17,9 @@ Design references (sonic-world design):
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
-from pydantic import ConfigDict, Field, field_validator, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, field_validator, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, canonical_digest, location_violation
 from kinocut_sound.limits import (
@@ -50,6 +50,14 @@ def _strict_int(value: Any) -> Any:
 
     if isinstance(value, bool) or not isinstance(value, int):
         raise ValueError("value must be a strict integer")
+    return value
+
+
+def _not_boolean_number(value: Any) -> Any:
+    """Preserve normal numeric coercion while rejecting boolean inputs."""
+
+    if isinstance(value, bool):
+        raise ValueError("numeric field must not be a boolean")
     return value
 
 
@@ -165,12 +173,10 @@ class LoudnessVerification(FrozenModel):
     def _preset_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("integrated_lufs", "true_peak_dbtp", "lra_lu")
+    @field_validator("integrated_lufs", "true_peak_dbtp", "lra_lu", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
-        if isinstance(value, bool):
-            raise ValueError("numeric field must not be a boolean")
-        return value
+    def _reject_bool_numerics(cls, value: Any) -> Any:
+        return _not_boolean_number(value)
 
 
 class SoundReceiptSection(FrozenModel):
@@ -185,7 +191,7 @@ class SoundReceiptSection(FrozenModel):
     model_config = _STRICT
 
     plan_hash: Sha256
-    profile_versions: tuple[tuple[str, int], ...] = ()
+    profile_versions: tuple[tuple[str, Annotated[int, BeforeValidator(_not_boolean_number)]], ...] = ()
     consent_grant_refs: tuple[str, ...] = ()
     adapter_descriptors: tuple[str, ...] = ()
     loudness: LoudnessVerification
@@ -237,6 +243,8 @@ class SoundReceipt(FrozenModel):
     output_duration: float | None = Field(default=None, ge=MIN_TIME_SECONDS)
     warnings: tuple[str, ...] = ()
     sound: SoundReceiptSection
+
+    _output_duration_not_boolean = field_validator("output_duration", mode="before")(_not_boolean_number)
 
     @field_validator("schema_version", mode="before")
     @classmethod

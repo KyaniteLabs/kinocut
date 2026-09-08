@@ -22,6 +22,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 import hashlib
 import json
 from dataclasses import dataclass
@@ -67,9 +69,9 @@ class BedSpec(FrozenModel):
     def _bed_id_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("duration_seconds")
+    @field_validator("duration_seconds", mode="before")
     @classmethod
-    def _duration_not_boolean(cls, value: float) -> float:
+    def _duration_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("duration_seconds must not be a boolean")
         return value

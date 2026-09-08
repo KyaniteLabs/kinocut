@@ -17,6 +17,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 
 from pydantic import Field, field_validator
@@ -78,9 +80,9 @@ class LocationPreset(FrozenModel):
             raise ValueError("preset refs must be unique")
         return value
 
-    @field_validator("base_gain_db")
+    @field_validator("base_gain_db", mode="before")
     @classmethod
-    def _gain_not_boolean(cls, value: float) -> float:
+    def _gain_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("base_gain_db must not be a boolean")
         return value
@@ -115,9 +117,9 @@ class DeckTexturePreset(FrozenModel):
             raise ValueError("deck tonal layer refs must be unique")
         return value
 
-    @field_validator("added_gain_db")
+    @field_validator("added_gain_db", mode="before")
     @classmethod
-    def _gain_not_boolean(cls, value: float) -> float:
+    def _gain_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("added_gain_db must not be a boolean")
         return value

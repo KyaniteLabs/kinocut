@@ -1,0 +1,479 @@
+{
+  "baseline_commit": "220804a8aaad309053ce20f43ea92db370fc7c95",
+  "existing_guard_count": 31,
+  "existing_guards": [
+    {
+      "module": "kinocut_sound.episode_assembly",
+      "model": "ClipRef",
+      "fields": [
+        "duration_seconds"
+      ],
+      "validator": "_duration_is_not_boolean",
+      "line": 78,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.episode_assembly",
+      "model": "FoleyCueIntent",
+      "fields": [
+        "duration_seconds"
+      ],
+      "validator": "_duration_is_not_boolean",
+      "line": 108,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.episode_assembly",
+      "model": "DesignedSilenceIntent",
+      "fields": [
+        "duration_seconds"
+      ],
+      "validator": "_duration_is_not_boolean",
+      "line": 129,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.script_parser",
+      "model": "ParsedLine",
+      "fields": [
+        "pause_after_seconds"
+      ],
+      "validator": "_pause_is_not_boolean",
+      "line": 130,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.script_parser",
+      "model": "ParsedScene",
+      "fields": [
+        "pause_after_seconds"
+      ],
+      "validator": "_pause_is_not_boolean",
+      "line": 167,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.script_parser",
+      "model": "_LineInput",
+      "fields": [
+        "pause_after_seconds"
+      ],
+      "validator": "_pause_is_not_boolean",
+      "line": 331,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.script_parser",
+      "model": "_SceneInput",
+      "fields": [
+        "pause_after_seconds"
+      ],
+      "validator": "_pause_is_not_boolean",
+      "line": 399,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.receipt",
+      "model": "LoudnessVerification",
+      "fields": [
+        "integrated_lufs",
+        "true_peak_dbtp",
+        "lra_lu"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 170,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.receipt",
+      "model": "SoundReceiptSection",
+      "fields": [
+        "profile_versions"
+      ],
+      "validator": "_profile_versions_well_shaped",
+      "line": 209,
+      "current_mode": "after",
+      "target_mode": "after plus integer-element BeforeValidator"
+    },
+    {
+      "module": "kinocut_sound.routing",
+      "model": "Track",
+      "fields": [
+        "gain_db",
+        "pan_position"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 72,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.routing",
+      "model": "Bus",
+      "fields": [
+        "gain_db"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 93,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.routing",
+      "model": "SendReturn",
+      "fields": [
+        "gain_db"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 115,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.routing",
+      "model": "DuckingSidechain",
+      "fields": [
+        "attenuation_db",
+        "attack_ms",
+        "release_ms",
+        "recovery_ms"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 144,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.routing",
+      "model": "AutomationPoint",
+      "fields": [
+        "time_seconds",
+        "value"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 166,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.voice.roster",
+      "model": "VoiceSlotBase",
+      "fields": [
+        "pitch_semitones",
+        "rate",
+        "volume_db",
+        "formant_offset"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 77,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.capability",
+      "model": "CostDisclosure",
+      "fields": [
+        "estimated_cost_usd_per_call"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 84,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.capability",
+      "model": "AdapterDescriptor",
+      "fields": [
+        "timeout_seconds"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 118,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.delivery",
+      "model": "LoudnessTarget",
+      "fields": [
+        "integrated_lufs",
+        "tolerance_lu",
+        "true_peak_dbtp"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 76,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.delivery",
+      "model": "DeliveryPolicy",
+      "fields": [
+        "true_peak_ceiling_dbtp"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 158,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.lines",
+      "model": "Emotion",
+      "fields": [
+        "intensity"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 87,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.lines",
+      "model": "Line",
+      "fields": [
+        "text_length_chars"
+      ],
+      "validator": "_length_is_strict_int",
+      "line": 135,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.timeline",
+      "model": "Cue",
+      "fields": [
+        "start_seconds",
+        "duration_seconds",
+        "in_point_seconds",
+        "out_point_seconds"
+      ],
+      "validator": "_reject_non_finite_or_coerced",
+      "line": 68,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.timeline",
+      "model": "Timeline",
+      "fields": [
+        "tail_seconds",
+        "gap_tolerance_seconds"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 108,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.layers",
+      "model": "DuckingContract",
+      "fields": [
+        "attenuation_db",
+        "attack_ms",
+        "release_ms",
+        "recovery_ms"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 97,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.layers",
+      "model": "AmbientLayer",
+      "fields": [
+        "gain_db"
+      ],
+      "validator": "_gain_not_boolean",
+      "line": 127,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.presets",
+      "model": "LocationPreset",
+      "fields": [
+        "base_gain_db"
+      ],
+      "validator": "_gain_not_boolean",
+      "line": 83,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.presets",
+      "model": "DeckTexturePreset",
+      "fields": [
+        "added_gain_db"
+      ],
+      "validator": "_gain_not_boolean",
+      "line": 120,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.loop",
+      "model": "SeamlessLoop",
+      "fields": [
+        "source_duration_seconds",
+        "target_duration_seconds",
+        "crossfade_seconds"
+      ],
+      "validator": "_reject_bool_numerics",
+      "line": 61,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.d41_port",
+      "model": "BedSpec",
+      "fields": [
+        "duration_seconds"
+      ],
+      "validator": "_duration_not_boolean",
+      "line": 72,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.catalog",
+      "model": "CatalogAsset",
+      "fields": [
+        "duration_seconds"
+      ],
+      "validator": "_duration_not_boolean",
+      "line": 100,
+      "current_mode": "after",
+      "target_mode": "before"
+    },
+    {
+      "module": "kinocut_sound.world.audition",
+      "model": "AuditionRequest",
+      "fields": [
+        "target_duration_seconds"
+      ],
+      "validator": "_duration_not_boolean",
+      "line": 71,
+      "current_mode": "after",
+      "target_mode": "before"
+    }
+  ],
+  "added_guards": [
+    {
+      "module": "kinocut_sound.receipt",
+      "model": "SoundReceipt",
+      "fields": [
+        "output_duration"
+      ],
+      "validator": "_output_duration_not_boolean",
+      "current_mode": "no boolean guard",
+      "target_mode": "before, boolean-only"
+    },
+    {
+      "module": "kinocut_sound.routing",
+      "model": "LatencyCompensation",
+      "fields": [
+        "residual_samples"
+      ],
+      "validator": "_residual_not_boolean",
+      "current_mode": "no boolean guard",
+      "target_mode": "before, boolean-only"
+    }
+  ],
+  "excluded_already_before": [
+    {
+      "module": "kinocut_sound.script_parser",
+      "model": "ParsedLine",
+      "fields": [
+        "line_index"
+      ],
+      "validator": "_line_index_is_strict",
+      "line": 123,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion"
+    },
+    {
+      "module": "kinocut_sound.receipt",
+      "model": "SoundReceipt",
+      "fields": [
+        "schema_version"
+      ],
+      "validator": "_schema_strict_int",
+      "line": 243,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion"
+    },
+    {
+      "module": "kinocut_sound.capability",
+      "model": "CostDisclosure",
+      "fields": [
+        "retention_ceiling_days"
+      ],
+      "validator": "_retention_strict_int",
+      "line": 77,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion"
+    },
+    {
+      "module": "kinocut_sound.delivery",
+      "model": "StemRecombinationPolicy",
+      "fields": [
+        "tolerance_lsb_at_24bit"
+      ],
+      "validator": "_tolerance_is_strict_int",
+      "line": 130,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion"
+    },
+    {
+      "module": "kinocut_sound.lines",
+      "model": "ProfileRef",
+      "fields": [
+        "version"
+      ],
+      "validator": "_version_is_strict_int",
+      "line": 52,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion"
+    },
+    {
+      "module": "kinocut_sound.receipt",
+      "model": "OrderedInput",
+      "fields": [
+        "in_point",
+        "out_point",
+        "probed_duration"
+      ],
+      "validator": "_num_in",
+      "line": 94,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion via _strict_number"
+    },
+    {
+      "module": "kinocut_sound.receipt",
+      "model": "Transformation",
+      "fields": [
+        "output_duration"
+      ],
+      "validator": "_num_out",
+      "line": 132,
+      "current_mode": "before",
+      "target_mode": "unchanged",
+      "reason": "already before conversion via _strict_number"
+    }
+  ],
+  "explicit_exclusion": "Transformation.output_duration already calls _strict_number in a before validator; keep unchanged."
+}

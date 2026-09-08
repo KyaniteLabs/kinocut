@@ -22,6 +22,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import islice
@@ -72,9 +74,9 @@ class VoiceSlotBase(FrozenModel):
     volume_db: float = Field(ge=MIN_BASE_VOLUME_DB, le=MAX_BASE_VOLUME_DB)
     formant_offset: float = Field(ge=MIN_FORMANT_OFFSET, le=MAX_FORMANT_OFFSET)
 
-    @field_validator("pitch_semitones", "rate", "volume_db", "formant_offset")
+    @field_validator("pitch_semitones", "rate", "volume_db", "formant_offset", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("voice base parameter must not be a boolean")
         return value
