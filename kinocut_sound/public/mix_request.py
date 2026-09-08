@@ -33,6 +33,8 @@ from kinocut_sound.limits import (
     MIX_SEND_METADATA_BYTES,
     MAX_MIX_SIDECHAIN_RECEIPT_BYTES,
     MIX_SIDECHAIN_METADATA_BYTES,
+    MIX_CONVERSION_METADATA_BYTES,
+    MIX_CONVERSION_IO_BYTES,
 )
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, MIX_UNSAFE_PATH, mix_error
 from kinocut_sound.routing import Routing
@@ -135,9 +137,13 @@ def load_mix_request(value: Any) -> SoundMixRequest:
     try:
         payload = _json_payload(value)
         version = payload.get("schema_version", 1)
-        if type(version) is not int or version not in (1, 2, 3):
+        if type(version) is not int or version not in (1, 2, 3, 4):
             raise mix_error("unsupported mix request version", MIX_INPUT_INVALID)
-        if version == 3:
+        if version == 4:
+            from kinocut_sound.public.mix_request_v4 import SoundMixRequestV4
+
+            request = SoundMixRequestV4.model_validate(payload)
+        elif version == 3:
             from kinocut_sound.public.mix_request_v3 import SoundMixRequestV3
 
             request = SoundMixRequestV3.model_validate(payload)
@@ -209,7 +215,7 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
                 bounded_json(routing.graph.receipt(), MAX_MIX_SEND_RECEIPT_BYTES)
             if plan.routing.sidechains:
                 bounded_json(routing.sidechain_processor.receipt(), MAX_MIX_SIDECHAIN_RECEIPT_BYTES)
-    if request.schema_version == 3:
+    if request.schema_version >= 3:
         from kinocut_sound.public.mix_request_v3 import validate_layers
 
         validate_layers(request)
@@ -221,7 +227,7 @@ def check_mix_resources(request: SoundMixRequest, source_bytes: int) -> None:
     stems = len(request.plan.delivery.stems.stem_ids or DEFAULT_PUBLIC_MIX_STEMS)
     samples = round(duration * request.plan.format.sample_rate_hz)
     multiplier = MIX_ROUTING_SOURCE_MEMORY_MULTIPLIER if request.schema_version >= 2 else MIX_SOURCE_MEMORY_MULTIPLIER
-    work_multiplier = MIX_LAYER_WORK_MEMORY_MULTIPLIER if request.schema_version == 3 else MIX_WORK_MEMORY_MULTIPLIER
+    work_multiplier = MIX_LAYER_WORK_MEMORY_MULTIPLIER if request.schema_version >= 3 else MIX_WORK_MEMORY_MULTIPLIER
     estimated = multiplier * source_bytes + 2 * samples * request.plan.format.channel_count * (
         MIX_STEM_MEMORY_MULTIPLIER * stems + work_multiplier
     )
@@ -235,5 +241,7 @@ def check_mix_resources(request: SoundMixRequest, source_bytes: int) -> None:
     if request.plan.routing.sidechains:
         sources = {policy.source_bus_id for policy in request.plan.routing.sidechains}
         estimated += 2 * samples * request.plan.format.channel_count * len(sources) + MIX_SIDECHAIN_METADATA_BYTES
+    if request.schema_version == 4:
+        estimated += MIX_CONVERSION_METADATA_BYTES + MIX_CONVERSION_IO_BYTES
     if duration > MAX_MIX_DURATION_SECONDS or source_bytes > MAX_MIX_INPUT_BYTES or estimated > MAX_MIX_MEMORY_BYTES:
         raise mix_error("mix exceeds duration, input or memory limits", MIX_OVER_LIMIT)

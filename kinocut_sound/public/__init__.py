@@ -18,14 +18,18 @@ from kinocut_sound.public.adapters import (
 )
 from kinocut_sound.public.mix_request_v2 import CueTrackBinding, SoundMixRequestV2
 from kinocut_sound.public.mix_request_v3 import LayerAsset, SoundMixRequestV3
+from kinocut_sound.public.mix_request_v4 import ResamplingProfile, SoundMixRequestV4, SourceResampling
 
 __all__ = [
     "CueTrackBinding",
     "LayerAsset",
+    "ResamplingProfile",
     "SoundCapabilityManifest",
     "SoundMixRequestV2",
     "SoundMixRequestV3",
+    "SoundMixRequestV4",
     "SoundPythonAdapter",
+    "SourceResampling",
     "discover_sound_capabilities",
     "invoke_sound_operation",
     "list_flat_commands",

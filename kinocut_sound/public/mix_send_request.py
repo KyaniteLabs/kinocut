@@ -30,7 +30,7 @@ def check_routed_feature_work(request, routing, automation_windows, layer_frames
         work += routing.sidechain_processor.work_units
     if request.plan.routing.envelopes:
         work += routing.check_work({window.cue_id: window.sample_count for window in automation_windows})
-    if request.schema_version == 3:
+    if request.schema_version >= 3:
         if request.layer_ducking is not None:
             work += check_layer_ducking_work(request, layer_frames)
         else:

@@ -71,7 +71,7 @@ def _verify_stage(stage_fd, request, layer_shapes=(), automation_windows=()):
                 from kinocut_sound.public.mix_automation_receipt import verify_automation_windows
 
                 verify_automation_windows(receipt, request, automation_windows)
-            if request.schema_version == 3:
+            if request.schema_version >= 3:
                 from kinocut_sound.public.mix_layer_receipt import verify_layer_receipt
 
                 verify_layer_receipt(receipt, request, layer_shapes)
@@ -104,6 +104,10 @@ def render_mix_request(payload, project_root):
     request = load_mix_request(payload)
     if not isinstance(project_root, str) or not project_root:
         raise mix_error("supplied-media mix requires an explicit project root", MIX_INPUT_INVALID)
+    if request.schema_version == 4:
+        from kinocut_sound.public.mix_conversion_job import _render_converted_mix
+
+        return _render_converted_mix(request, project_root)
     try:
         with (
             open_root(project_root) as root_fd,
@@ -112,7 +116,7 @@ def render_mix_request(payload, project_root):
         ):
             _run_worker(request, root_fd, stage_fd)
             shapes = ()
-            if request.schema_version == 3:
+            if request.schema_version >= 3:
                 from kinocut_sound.public.mix_layer_receipt import verified_layer_shapes
 
                 shapes = tuple(verified_layer_shapes(request, root_fd))
@@ -171,12 +175,17 @@ def _result(request, receipt, archive_hash):
             result["sidechain_measurements_sha256"] = canonical_digest(
                 {"measurements": receipt["bus_sidechain_measurements"]}
             )
-    if request.schema_version == 3:
+    if request.schema_version >= 3:
         result["layer_algorithm"] = receipt["layers"]["algorithm"]
         result["layers_sha256"] = canonical_digest(receipt["layers"])
         result["layer_count"] = len(receipt["layers"]["entries"])
         if request.layer_ducking is not None:
             result["layer_ducking_sha256"] = canonical_digest(receipt["layers"]["ducking"])
+    if request.schema_version == 4:
+        projection = receipt["source_resampling"]
+        result["resampling_profile"] = request.source_resampling.profile.value
+        result["converted_source_count"] = sum(entry["mode"] == "resample" for entry in projection["entries"])
+        result["resampling_sha256"] = canonical_digest(projection)
     return result
 
 
@@ -195,6 +204,10 @@ async def render_mix_request_async(payload, project_root):
     request = load_mix_request(payload)
     if not isinstance(project_root, str) or not project_root:
         raise mix_error("supplied-media mix requires an explicit project root", MIX_INPUT_INVALID)
+    if request.schema_version == 4:
+        from kinocut_sound.public.mix_conversion_job import _render_converted_mix_async
+
+        return await _render_converted_mix_async(request, project_root)
     try:
         with (
             open_root(project_root) as root_fd,
@@ -205,7 +218,7 @@ async def render_mix_request_async(payload, project_root):
             # Observe pending cancellation before synchronous verification/commit.
             await asyncio.sleep(0)
             shapes = []
-            if request.schema_version == 3:
+            if request.schema_version >= 3:
                 from kinocut_sound.public.mix_layer_receipt import verified_layer_shapes
 
                 for frames in verified_layer_shapes(request, root_fd):

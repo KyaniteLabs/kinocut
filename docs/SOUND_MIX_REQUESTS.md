@@ -11,8 +11,9 @@ reading. Oversized streams fail with `mix_worker_failed`; raw diagnostics are no
 returned. Request writes and both reads share the worker deadline. Cancellation
 waits for any in-progress spawn and kills/reaps the directly owned worker before
 private staging is released, including repeated cancellation during cleanup.
-The mix worker remains pure Python; this boundary does not manage descendants or
-provide format conversion. Existing request identities and archive bytes remain
+The mix worker remains pure Python; this boundary does not manage descendants.
+V4 uses separate parent-owned [rate conversion](SOUND_RATE_CONVERSION.md).
+Existing request identities and archive bytes remain
 unchanged. Stream limits describe retained application data, not total process RSS.
 
 The same request works in Python, CLI and MCP:
@@ -45,6 +46,8 @@ see [routing requests](SOUND_ROUTING_REQUESTS.md). It preserves the V1 contract.
 V2/V3 also support [global track gain and pan automation](SOUND_AUTOMATION_REQUESTS.md).
 Version3 adds [supplied ambient layers and explicit loop fill](SOUND_LAYER_REQUESTS.md)
 through `SoundMixRequestV3`, preserving both earlier versions.
+Version4 adds explicit [source-rate conversion](SOUND_RATE_CONVERSION.md) through
+`SoundMixRequestV4`, retaining V3 routing, layers and ducking.
 
 | Field | Meaning |
 |---|---|
@@ -86,14 +89,15 @@ including its out-point. The receipt's `source_windows` records cue ID, in/out
 sample positions, selected count and rate; source hashes still bind the original
 whole file. These fields preserve existing SoundPlan identity semantics.
 
-Every clip and bed must match the plan's channel count and sample rate. There is
-no implicit channel conversion or resampling. Stereo trims and crossfades use
+In V1–V3, every source must match the plan's channel count and sample rate. V4
+explicitly normalizes source rates; channel counts must still match. There is
+no implicit conversion. Stereo trims and crossfades use
 frames; both channels receive the same fade gain. Ducking detects the larger
 absolute speech channel and applies one shared gain to both bed channels, so
 opposite-polarity speech cannot cancel the detector. Stem addition preserves
 insertion order and clamps each PCM16 addition.
 
-Mono receipts retain schema version 1 and byte-compatible fields. Stereo
+V1 mono receipts retain schema version 1 and byte-compatible fields. V1 stereo
 receipts use schema version 2 and add `frame_count`, `channel_count` and
 `interleaved_sample_count`; the legacy `sample_count` is an alias for frame count.
 Stereo source windows use `in_frame`, `out_frame`, `frame_count`, `channel_count`,
@@ -101,9 +105,10 @@ Stereo source windows use `in_frame`, `out_frame`, `frame_count`, `channel_count
 includes both channels. Loudness inspection and mastering accept stereo mixes;
 ASR still requires mono inputs.
 
-Version1 assembly rejects nondefault routing; versions2/3 support the static routing
-subset documented above. V1/V2 reject layers; V3 renders explicitly bound layers.
-All three reject `transit_kind`, format conversion and dither. The mixer does not
+Version1 assembly rejects nondefault routing; versions2–4 support the routed
+features documented above. V1/V2 reject layers; V3/V4 render explicitly bound layers.
+V1–V3 reject rate conversion. All versions reject `transit_kind`, other sample
+formats, channel conversion and dither. The mixer does not
 silently discard those requests. Declared delivery targets are retained as plan
 intent, not reported as achieved mastering. Full episode listening and complete
 sonic-world rendering remain separate acceptance work.

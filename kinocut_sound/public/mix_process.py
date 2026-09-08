@@ -12,6 +12,7 @@ from kinocut_sound.limits import (
     MIX_WORKER_IO_CHUNK_BYTES,
 )
 from kinocut_sound.mix._errors import mix_error
+from kinocut_sound.public.mix_process_output import BoundedOutput
 
 
 def remaining(deadline):
@@ -19,12 +20,6 @@ def remaining(deadline):
     if seconds <= 0:
         raise mix_error("mix worker exceeded its deadline", "mix_timeout")
     return seconds
-
-
-def append_bounded(output, chunk, limit):
-    if len(output) + len(chunk) > limit:
-        raise mix_error("mix worker pipe exceeded its byte limit", "mix_worker_failed")
-    output.extend(chunk)
 
 
 def _close_stream(selector, stream):
@@ -45,8 +40,9 @@ def _write_ready(selector, stream, encoded, offset):
     return offset
 
 
-def _exchange(process, encoded, deadline):
-    stdout, stderr = bytearray(), bytearray()
+def _exchange(process, encoded, deadline, stdout_sink, stdout_limit):
+    stdout = BoundedOutput(stdout_limit, stdout_sink)
+    stderr = BoundedOutput(MAX_MIX_WORKER_DIAGNOSTIC_BYTES)
     with selectors.DefaultSelector() as selector:
         for stream, events in (
             (process.stdin, selectors.EVENT_WRITE),
@@ -75,11 +71,11 @@ def _exchange(process, encoded, deadline):
                 if not chunk:
                     _close_stream(selector, stream)
                 elif stream is process.stdout:
-                    append_bounded(stdout, chunk, MAX_MIX_WORKER_MESSAGE_BYTES)
+                    stdout.append(chunk)
                 else:
-                    append_bounded(stderr, chunk, MAX_MIX_WORKER_DIAGNOSTIC_BYTES)
+                    stderr.append(chunk)
         process.wait(timeout=remaining(deadline))
-    return process.returncode, bytes(stdout)
+    return process.returncode, stdout.value()
 
 
 def _cleanup(process):
@@ -99,7 +95,7 @@ def _cleanup(process):
         raise KeyboardInterrupt
 
 
-def run_worker_sync(args, encoded, pass_fds, timeout):
+def run_worker_sync(args, encoded, pass_fds, timeout, *, stdout_sink=None, stdout_limit=MAX_MIX_WORKER_MESSAGE_BYTES):
     deadline = time.monotonic() + timeout
     try:
         # Popen has no timeout argument; selector and wait share the deadline.
@@ -114,7 +110,7 @@ def run_worker_sync(args, encoded, pass_fds, timeout):
     except OSError as exc:
         raise mix_error("mix worker could not start", "mix_worker_failed") from exc
     try:
-        return _exchange(process, encoded, deadline)
+        return _exchange(process, encoded, deadline, stdout_sink, stdout_limit)
     except subprocess.TimeoutExpired as exc:
         raise mix_error("mix worker exceeded its deadline", "mix_timeout") from exc
     except OSError as exc:
