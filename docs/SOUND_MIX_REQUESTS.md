@@ -33,6 +33,7 @@ Numeric model fields follow the [sound input validation rules](SOUND_INPUT_VALID
 booleans cannot stand in for durations or gains.
 Version2 adds explicit static track/bus routing through `SoundMixRequestV2`;
 see [routing requests](SOUND_ROUTING_REQUESTS.md). It preserves the V1 contract.
+V2/V3 also support [global track gain and pan automation](SOUND_AUTOMATION_REQUESTS.md).
 Version3 adds [supplied ambient layers and explicit loop fill](SOUND_LAYER_REQUESTS.md)
 through `SoundMixRequestV3`, preserving both earlier versions.
 

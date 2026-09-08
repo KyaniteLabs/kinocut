@@ -27,6 +27,8 @@ from kinocut_sound.limits import (
     MIX_ROUTING_SOURCE_MEMORY_MULTIPLIER,
     MAX_MIX_RECEIPT_BYTES,
     MIX_LAYER_WORK_MEMORY_MULTIPLIER,
+    MIX_AUTOMATION_METADATA_BYTES,
+    MAX_MIX_ROUTING_RECEIPT_BYTES,
 )
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, MIX_UNSAFE_PATH, mix_error
 from kinocut_sound.routing import Routing
@@ -194,7 +196,11 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
     if request.schema_version >= 2:
         from kinocut_sound.public.mix_request_v2 import compile_routing
 
-        compile_routing(request)
+        routing = compile_routing(request)
+        if plan.routing.envelopes:
+            from kinocut_sound.public.mix_routing_receipt import bounded_json
+
+            bounded_json(routing.receipt(), MAX_MIX_ROUTING_RECEIPT_BYTES)
     if request.schema_version == 3:
         from kinocut_sound.public.mix_request_v3 import validate_layers
 
@@ -213,5 +219,7 @@ def check_mix_resources(request: SoundMixRequest, source_bytes: int) -> None:
     )
     if request.schema_version >= 2:
         estimated += 4 * MAX_MIX_RECEIPT_BYTES
+    if request.plan.routing.envelopes:
+        estimated += MIX_AUTOMATION_METADATA_BYTES
     if duration > MAX_MIX_DURATION_SECONDS or source_bytes > MAX_MIX_INPUT_BYTES or estimated > MAX_MIX_MEMORY_BYTES:
         raise mix_error("mix exceeds duration, input or memory limits", MIX_OVER_LIMIT)

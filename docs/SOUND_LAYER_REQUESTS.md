@@ -91,9 +91,11 @@ one layer scratch canvas, stems and receipt overhead under the existing 2 GiB
 memory estimate. The worker retains its 300-second deadline. These are admission
 bounds, not measured host peak requirements.
 
-Scene/location schedules, routing sends, automation, general routing sidechains,
+Scene/location schedules, routing sends, unsupported automation parameters, general routing sidechains,
 format conversion and dither remain unsupported. This produces an assembly,
 not verified mastering; human listening and episode acceptance remain required.
+Bound tracks can use [gain/pan automation](SOUND_AUTOMATION_REQUESTS.md); layer
+descriptors themselves are not track-automation targets.
 
 ## Explicit layer ducking
 

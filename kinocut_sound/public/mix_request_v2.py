@@ -10,6 +10,7 @@ from kinocut_sound.limits import MAX_MIX_ROUTING_TRACKS, MAX_MIX_ROUTING_BUSES, 
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, mix_error
 from kinocut_sound.mix.static_routing import StaticRouting
 from kinocut_sound.public.mix_request import SoundMixRequest
+from kinocut_sound.public.mix_automation_request import guard_automation_rows
 
 
 class CueTrackBinding(FrozenModel):
@@ -33,6 +34,7 @@ def _strict_routing(value):
     routing = plan.get("routing", {})
     if not isinstance(routing, dict):
         raise mix_error("V2 routing must be a mapping", MIX_INPUT_INVALID)
+    guard_automation_rows(routing)
     for name, limit in (("tracks", MAX_MIX_ROUTING_TRACKS), ("buses", MAX_MIX_ROUTING_BUSES)):
         rows = routing.get(name, ())
         if not isinstance(rows, (list, tuple)):
@@ -76,13 +78,29 @@ class SoundMixRequestV2(SoundMixRequest):
 
 
 def compile_routing(request):
-    routing = StaticRouting(
+    arguments = (
         request.plan.routing,
         tuple((item.cue_id, item.track_id) for item in request.cue_tracks),
         request.plan.format.channel_count,
         request.plan.delivery.stems.stem_ids or DEFAULT_PUBLIC_MIX_STEMS,
         tuple(clip.cue_id for clip in request.clips),
     )
+    if request.plan.routing.envelopes:
+        from kinocut_sound.mix.automated_routing import AutomatedRouting
+
+        rate = request.plan.format.sample_rate_hz
+        clip_ids = {clip.cue_id for clip in request.clips}
+        starts = {
+            cue.cue_id: round(cue.start_seconds * rate) for cue in request.plan.timeline.cues if cue.cue_id in clip_ids
+        }
+        routing = AutomatedRouting(
+            *arguments,
+            sample_rate_hz=rate,
+            output_frames=round(request.plan.authoritative_duration_seconds * rate),
+            cue_starts=starts,
+        )
+    else:
+        routing = StaticRouting(*arguments)
     for clip in request.clips:
         track = routing.tracks[routing.bindings[clip.cue_id]][0]
         if clip.stem_id != track.destination_bus_id:

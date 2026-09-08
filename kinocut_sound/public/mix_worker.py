@@ -18,6 +18,7 @@ from kinocut_sound.mix._wav import decode_pcm_wav
 from kinocut_sound.mix.layers import MixLayer, _decode_layer
 from kinocut_sound.public.mix_files import read_asset
 from kinocut_sound.public.mix_request import check_mix_resources, load_mix_request
+from kinocut_sound.public.mix_window_receipt import source_window_receipts
 
 logger = logging.getLogger(__name__)
 
@@ -79,24 +80,12 @@ def _base_receipt(request, result, members, rate, channels, expected):
         "sources": [c.model_dump(mode="json") for c in request.clips],
         "bed": request.bed.model_dump(mode="json") if request.bed else None,
         "seams": [asdict(event) for event in result.seam_report.events],
-        "source_windows": [asdict(window) for window in result.source_windows],
+        "source_windows": source_window_receipts(result.source_windows, channels),
     }
     if channels > 1:
         receipt.update(
             schema_version=2, channel_count=channels, frame_count=expected, interleaved_sample_count=expected * channels
         )
-        receipt["source_windows"] = [
-            {
-                "cue_id": window.cue_id,
-                "in_frame": window.in_sample,
-                "out_frame": window.out_sample,
-                "frame_count": window.sample_count,
-                "sample_rate_hz": window.sample_rate_hz,
-                "channel_count": channels,
-                "interleaved_sample_count": window.sample_count * channels,
-            }
-            for window in result.source_windows
-        ]
     return receipt
 
 

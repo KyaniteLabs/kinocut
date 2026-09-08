@@ -21,6 +21,19 @@ class SourceWindow:
     sample_rate_hz: int
 
 
+def source_window_bounds(cue, frames, rate):
+    """Apply the same source-relative floating bounds and frame rounding everywhere."""
+    duration = frames / rate
+    start = cue.in_point_seconds if cue.in_point_seconds is not None else 0
+    end = cue.out_point_seconds if cue.out_point_seconds is not None else duration
+    if start >= duration or end > duration or end <= start:
+        raise mix_error("source window lies outside source duration", MIX_INPUT_INVALID)
+    first, last = round(start * rate), round(end * rate)
+    if first < 0 or last > frames or first >= last:
+        raise mix_error("source window must select actual samples", MIX_INPUT_INVALID)
+    return SourceWindow(cue.cue_id, first, last, last - first, rate)
+
+
 def select_source_windows(
     timeline: Timeline,
     sources: dict[str, bytes],
@@ -41,17 +54,12 @@ def select_source_windows(
         if rate != sample_rate_hz or channels != channel_count:
             raise mix_error("clip sample rate or channel count mismatch", MIX_INPUT_INVALID)
         frames = len(samples) // channels
-        duration = frames / rate
-        start = cue.in_point_seconds if cue.in_point_seconds is not None else 0
-        end = cue.out_point_seconds if cue.out_point_seconds is not None else duration
-        if start >= duration or end > duration or end <= start:
-            raise mix_error("source window lies outside source duration", MIX_INPUT_INVALID)
-        first, last = round(start * rate), round(end * rate)
-        if first < 0 or last > frames or first >= last:
-            raise mix_error("source window must select actual samples", MIX_INPUT_INVALID)
+        window = source_window_bounds(cue, frames, rate)
         if trimmed:
             selected[cue.cue_id] = pcm_to_wav(
-                samples[first * channels : last * channels], sample_rate_hz=rate, channel_count=channels
+                samples[window.in_sample * channels : window.out_sample * channels],
+                sample_rate_hz=rate,
+                channel_count=channels,
             )
-        proofs.append(SourceWindow(cue.cue_id, first, last, last - first, rate))
+        proofs.append(window)
     return selected, tuple(proofs)

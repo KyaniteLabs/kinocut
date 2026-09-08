@@ -13,27 +13,34 @@ from kinocut_sound.mix.pcm_ops import _scale_in_place
 
 
 def _pan_scales(track, channels):
+    return _pan_scales_at(track.pan_position, track.pan_law, channels)
+
+
+def _pan_scales_at(p, law, channels):
     if channels == 1:
-        if track.pan_position != 0 or track.pan_law != PanLaw.LINEAR:
+        if p != 0 or law != PanLaw.LINEAR:
             raise mix_error("mono routing supports centered linear pan only", "mix_unsupported_intent")
         return (1.0,)
-    p = track.pan_position
-    if track.pan_law == PanLaw.LINEAR:
+    if law == PanLaw.LINEAR:
         return ((1 - p) / 2, (1 + p) / 2)
-    if track.pan_law == PanLaw.CONSTANT_POWER:
+    if law == PanLaw.CONSTANT_POWER:
         angle = (p + 1) * pi / 4
         return (cos(angle), sin(angle))
     return (min(1.0, 1 - p), min(1.0, 1 + p))
+
+
+def _validated_routing(routing):
+    try:
+        return Routing.model_validate(routing.model_dump(mode="python"))
+    except (AttributeError, ValidationError, TypeError, ValueError) as exc:
+        raise mix_error("invalid static routing", MIX_INPUT_INVALID) from exc
 
 
 class StaticRouting:
     """Compile validated track state once and apply it without per-track canvases."""
 
     def __init__(self, routing, cue_tracks, channels, stem_ids, cue_ids):
-        try:
-            self.routing = Routing.model_validate(routing.model_dump(mode="python"))
-        except (AttributeError, ValidationError, TypeError, ValueError) as exc:
-            raise mix_error("invalid static routing", MIX_INPUT_INVALID) from exc
+        self.routing = _validated_routing(routing)
         routing = self.routing
         if type(channels) is not int or channels not in PCM_MIX_CHANNEL_COUNTS:
             raise mix_error("static routing requires mono or stereo", MIX_INPUT_INVALID)
