@@ -310,7 +310,7 @@ class BlendRenderer:
         context: AuthorizationContext,
         at_iso: str,
     ) -> str:
-        if not isinstance(output_path, str) or not _SAFE_REL_PATH.match(output_path):
+        if not isinstance(output_path, str) or not _SAFE_REL_PATH.fullmatch(output_path):
             raise voice_error(
                 "blend export path must be a safe project-relative path",
                 ADAPTER_INPUT_INVALID,

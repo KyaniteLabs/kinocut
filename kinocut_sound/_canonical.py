@@ -93,7 +93,7 @@ def BoundedCode(value: str) -> str:
     ``BeforeValidator`` or called directly from a contract module.
     """
 
-    if not CODE_RE.match(value):
+    if not CODE_RE.fullmatch(value):
         raise ValueError("value must be a bounded code (no spaces, paths, URLs, or prose)")
     return value
 

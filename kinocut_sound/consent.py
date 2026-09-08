@@ -70,7 +70,7 @@ class ConsentScope(FrozenModel):
     @classmethod
     def _territory_is_bounded(cls, value: str) -> str:
         # Territory is a short UN M49 / ISO 3166-style code; letters/digits only.
-        if not TERRITORY_RE.match(value):
+        if not TERRITORY_RE.fullmatch(value):
             raise ValueError("territory must be a bounded code (2-16 alphanumeric chars)")
         return value
 
@@ -79,7 +79,7 @@ class ConsentScope(FrozenModel):
     def _use_summary_is_advisory(cls, value: str | None) -> str | None:
         if value is None:
             return value
-        if not ADVISORY_RE.match(value):
+        if not ADVISORY_RE.fullmatch(value):
             raise ValueError("intended_use_summary must be short and free of paths, URLs, or metacharacters")
         return value
 
@@ -99,7 +99,7 @@ class AuditEvent(FrozenModel):
     @field_validator("at_iso")
     @classmethod
     def _iso8601(cls, value: str) -> str:
-        if not ISO8601_RE.match(value):
+        if not ISO8601_RE.fullmatch(value):
             raise ValueError("at_iso must be a UTC ISO-8601 timestamp (YYYY-MM-DDTHH:MM:SSZ)")
         return value
 
@@ -130,7 +130,7 @@ class CloudEgressGrant(FrozenModel):
     @field_validator("territory")
     @classmethod
     def _territory_bounded(cls, value: str) -> str:
-        if not TERRITORY_RE.match(value):
+        if not TERRITORY_RE.fullmatch(value):
             raise ValueError("territory must be a bounded code (2-16 alphanumeric chars)")
         return value
 
@@ -144,7 +144,7 @@ class CloudEgressGrant(FrozenModel):
     @field_validator("expiry_iso")
     @classmethod
     def _expiry_iso8601(cls, value: str) -> str:
-        if not ISO8601_RE.match(value):
+        if not ISO8601_RE.fullmatch(value):
             raise ValueError("expiry_iso must be a UTC ISO-8601 timestamp")
         return value
 
@@ -202,7 +202,7 @@ class ConsentGrant(FrozenModel):
     @field_validator("issue_iso", "expiry_iso")
     @classmethod
     def _iso8601(cls, value: str) -> str:
-        if not ISO8601_RE.match(value):
+        if not ISO8601_RE.fullmatch(value):
             raise ValueError("timestamps must be UTC ISO-8601 (YYYY-MM-DDTHH:MM:SSZ)")
         return value
 
