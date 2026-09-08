@@ -93,6 +93,10 @@ class StaticRouting:
         for bus in self.routing.buses:
             _scale_in_place(canvases[bus.bus_id], (10 ** (bus.gain_db / 20),) * self.channels)
 
+    def process_buses(self, canvases):
+        self.apply_bus_gains(canvases)
+        return canvases
+
     def receipt(self):
         return {
             "algorithm": "static_pcm16_ties_even_v1",

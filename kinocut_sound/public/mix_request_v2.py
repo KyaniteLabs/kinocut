@@ -11,6 +11,7 @@ from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, mix_err
 from kinocut_sound.mix.static_routing import StaticRouting
 from kinocut_sound.public.mix_request import SoundMixRequest
 from kinocut_sound.public.mix_automation_request import guard_automation_rows
+from kinocut_sound.public.mix_send_request import guard_send_rows
 
 
 class CueTrackBinding(FrozenModel):
@@ -35,6 +36,7 @@ def _strict_routing(value):
     if not isinstance(routing, dict):
         raise mix_error("V2 routing must be a mapping", MIX_INPUT_INVALID)
     guard_automation_rows(routing)
+    guard_send_rows(routing)
     for name, limit in (("tracks", MAX_MIX_ROUTING_TRACKS), ("buses", MAX_MIX_ROUTING_BUSES)):
         rows = routing.get(name, ())
         if not isinstance(rows, (list, tuple)):
@@ -78,8 +80,10 @@ class SoundMixRequestV2(SoundMixRequest):
 
 
 def compile_routing(request):
+    declared = request.plan.routing
+    track_routing = declared.model_copy(update={"sends": ()}) if declared.sends else declared
     arguments = (
-        request.plan.routing,
+        track_routing,
         tuple((item.cue_id, item.track_id) for item in request.cue_tracks),
         request.plan.format.channel_count,
         request.plan.delivery.stems.stem_ids or DEFAULT_PUBLIC_MIX_STEMS,
@@ -101,6 +105,15 @@ def compile_routing(request):
         )
     else:
         routing = StaticRouting(*arguments)
+    if declared.sends:
+        from kinocut_sound.mix.sent_routing import SentRouting
+
+        routing = SentRouting(
+            declared,
+            routing,
+            round(request.plan.authoritative_duration_seconds * request.plan.format.sample_rate_hz),
+            request.plan.format.channel_count,
+        )
     for clip in request.clips:
         track = routing.tracks[routing.bindings[clip.cue_id]][0]
         if clip.stem_id != track.destination_bus_id:

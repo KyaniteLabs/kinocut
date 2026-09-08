@@ -27,7 +27,7 @@ from kinocut_sound.mix.seam import SeamReport
 from kinocut_sound.mix.source_windows import SourceWindow, select_source_windows
 from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
-from kinocut_sound.mix.static_routing import StaticRouting
+from kinocut_sound.mix.routing_protocol import RoutingProcessor
 from kinocut_sound.mix.layers import MixLayer, apply_layers
 from kinocut_sound.mix.pcm_ops import _overlay
 from kinocut_sound.timeline import Timeline
@@ -103,7 +103,7 @@ class MixRenderer:
         crossfade_seconds: float = 0.0,
         duck_bed: bool = False,
         transitions: tuple[CrossfadeTransition, ...] = (),
-        routing: StaticRouting | None = None,
+        routing: RoutingProcessor | None = None,
         layers: tuple[MixLayer, ...] = (),
         layer_ducking: DuckingContract | None = None,
     ) -> MixResult:
@@ -160,7 +160,7 @@ class MixRenderer:
             canvases, layers, self.sample_rate_hz, self.channel_count, layer_ducking
         )
         if routing is not None:
-            routing.apply_bus_gains(canvases)
+            canvases = routing.process_buses(canvases)
 
         return self._finish_mix(canvases, delivery, placement, seams, windows, layer_frames, ducking_summary)
 
