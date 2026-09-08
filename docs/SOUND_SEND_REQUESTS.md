@@ -60,8 +60,8 @@ conversion. Bus `kind` is descriptive: sends do not invent reverb or another eff
 Layer ducking finishes before send processing. Its detector excludes send returns,
 which prevents implicit control feedback. Send-bearing layer-duck receipts
 identify that tap as `after_clips_before_sends_and_bus_gain`. Track automation
-still affects the audio entering the bus graph. General routing sidechains remain
-unsupported.
+still affects the audio entering the bus graph. [Final bus sidechains](SOUND_SIDECHAIN_REQUESTS.md)
+run after returns and bus gains; sends keep their pre-sidechain signals.
 
 ## Evidence and limits
 

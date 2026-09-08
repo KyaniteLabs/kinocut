@@ -104,7 +104,8 @@ These are admission policies, not measured RSS or speed guarantees. The existing
 worker deadline remains independent.
 
 V2/V3 automation can compose with [finite bus sends](SOUND_SEND_REQUESTS.md).
-V1 still requires default routing. General sidechains, other automation
+V2/V3 also support [final bus sidechains](SOUND_SIDECHAIN_REQUESTS.md).
+V1 still requires default routing. Other automation
 parameters, bus automation, nondefault latency and unsupported formats remain
 rejected. Mix output remains an assembly; mastering and human listening are
 separate acceptance steps.

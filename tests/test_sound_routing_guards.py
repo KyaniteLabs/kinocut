@@ -78,7 +78,7 @@ def test_mutated_typed_state_is_revalidated(routed_project):  # noqa: F811
         load_mix_request(model)
 
 
-@pytest.mark.parametrize("kind", ["send_cycle", "envelope", "sidechain", "bus_pan", "mono_pan", "latency"])
+@pytest.mark.parametrize("kind", ["send_cycle", "envelope", "bus_pan", "mono_pan", "latency"])
 def test_unimplemented_routing_intent_is_not_discarded(routed_project, kind):  # noqa: F811
     _, request = routed_project
     routing = request["plan"]["routing"]
@@ -90,17 +90,6 @@ def test_unimplemented_routing_intent_is_not_discarded(routed_project, kind):  #
     elif kind == "envelope":
         routing["envelopes"] = [
             {"target_track_id": "voice-a", "parameter": "cutoff_hz", "points": [{"time_seconds": 0, "value": 0}]}
-        ]
-    elif kind == "sidechain":
-        routing["sidechains"] = [
-            {
-                "source_bus_id": "dialogue",
-                "target_bus_id": "ambience",
-                "attenuation_db": 9,
-                "attack_ms": 80,
-                "release_ms": 350,
-                "recovery_ms": 500,
-            }
         ]
     elif kind == "bus_pan":
         routing["buses"][0]["pan_law"] = "constant_power"

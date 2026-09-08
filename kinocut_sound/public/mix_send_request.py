@@ -25,7 +25,9 @@ def check_routed_feature_work(request, routing, automation_windows, layer_frames
     from kinocut_sound.mix.layer_work import layer_work_units
     from kinocut_sound.public.mix_layer_ducking import check_layer_ducking_work
 
-    work = routing.graph.work_units
+    work = routing.graph.work_units if request.plan.routing.sends else 0
+    if request.plan.routing.sidechains:
+        work += routing.sidechain_processor.work_units
     if request.plan.routing.envelopes:
         work += routing.check_work({window.cue_id: window.sample_count for window in automation_windows})
     if request.schema_version == 3:
@@ -33,7 +35,10 @@ def check_routed_feature_work(request, routing, automation_windows, layer_frames
             work += check_layer_ducking_work(request, layer_frames)
         else:
             work += layer_work_units(
-                request.layer_assets, layer_frames, routing.graph.frame_count, request.plan.format.channel_count
+                request.layer_assets,
+                layer_frames,
+                round(request.plan.authoritative_duration_seconds * request.plan.format.sample_rate_hz),
+                request.plan.format.channel_count,
             )
     if work > MAX_MIX_ROUTED_FEATURE_WORK_UNITS:
         raise mix_error("combined routed features exceed work-unit budget", MIX_OVER_LIMIT)

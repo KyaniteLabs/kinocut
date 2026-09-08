@@ -12,6 +12,7 @@ from kinocut_sound.mix.static_routing import StaticRouting
 from kinocut_sound.public.mix_request import SoundMixRequest
 from kinocut_sound.public.mix_automation_request import guard_automation_rows
 from kinocut_sound.public.mix_send_request import guard_send_rows
+from kinocut_sound.public.mix_sidechain_request import guard_sidechain_rows
 
 
 class CueTrackBinding(FrozenModel):
@@ -37,6 +38,7 @@ def _strict_routing(value):
         raise mix_error("V2 routing must be a mapping", MIX_INPUT_INVALID)
     guard_automation_rows(routing)
     guard_send_rows(routing)
+    guard_sidechain_rows(routing)
     for name, limit in (("tracks", MAX_MIX_ROUTING_TRACKS), ("buses", MAX_MIX_ROUTING_BUSES)):
         rows = routing.get(name, ())
         if not isinstance(rows, (list, tuple)):
@@ -81,7 +83,11 @@ class SoundMixRequestV2(SoundMixRequest):
 
 def compile_routing(request):
     declared = request.plan.routing
-    track_routing = declared.model_copy(update={"sends": ()}) if declared.sends else declared
+    track_routing = (
+        declared.model_copy(update={"sends": (), "sidechains": ()})
+        if declared.sends or declared.sidechains
+        else declared
+    )
     arguments = (
         track_routing,
         tuple((item.cue_id, item.track_id) for item in request.cue_tracks),
@@ -109,10 +115,21 @@ def compile_routing(request):
         from kinocut_sound.mix.sent_routing import SentRouting
 
         routing = SentRouting(
-            declared,
+            declared.model_copy(update={"sidechains": ()}) if declared.sidechains else declared,
             routing,
             round(request.plan.authoritative_duration_seconds * request.plan.format.sample_rate_hz),
             request.plan.format.channel_count,
+        )
+    if declared.sidechains:
+        from kinocut_sound.mix.sidechain_routing import SidechainRouting
+
+        rate = request.plan.format.sample_rate_hz
+        routing = SidechainRouting(
+            declared,
+            routing,
+            round(request.plan.authoritative_duration_seconds * rate),
+            request.plan.format.channel_count,
+            rate,
         )
     for clip in request.clips:
         track = routing.tracks[routing.bindings[clip.cue_id]][0]

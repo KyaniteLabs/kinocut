@@ -58,6 +58,7 @@ class MixResult:
     source_windows: tuple[SourceWindow, ...] = ()
     layer_source_frames: tuple[int, ...] = ()
     layer_ducking_summary: dict | None = None
+    bus_sidechain_measurements: tuple[dict, ...] = ()
 
 
 def _blank(length: int) -> array:
@@ -162,9 +163,20 @@ class MixRenderer:
         if routing is not None:
             canvases = routing.process_buses(canvases)
 
-        return self._finish_mix(canvases, delivery, placement, seams, windows, layer_frames, ducking_summary)
+        return self._finish_mix(
+            canvases,
+            delivery,
+            placement,
+            seams,
+            windows,
+            layer_frames,
+            ducking_summary,
+            getattr(routing, "sidechain_measurements", ()),
+        )
 
-    def _finish_mix(self, canvases, delivery, placement, seams, windows, layer_frames, ducking_summary):
+    def _finish_mix(
+        self, canvases, delivery, placement, seams, windows, layer_frames, ducking_summary, sidechain_measurements
+    ):
         declared = placement.timeline_duration_seconds
         stem_wavs = {sid: self._encode(samples) for sid, samples in canvases.items()}
         layout = StemLayout(stem_ids=tuple(sorted(stem_wavs)))
@@ -188,6 +200,7 @@ class MixRenderer:
             source_windows=windows,
             layer_source_frames=layer_frames,
             layer_ducking_summary=ducking_summary,
+            bus_sidechain_measurements=sidechain_measurements,
         )
 
     def _decode(self, wav):

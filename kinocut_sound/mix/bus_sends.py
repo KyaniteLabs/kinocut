@@ -1,11 +1,11 @@
 """Finite bus sends with ordered returns and read-only pre/post-fader taps."""
 
-from array import array
 import heapq
 
 from kinocut_sound.limits import MAX_MIX_SENDS, MAX_MIX_ROUTING_BUSES, MAX_MIX_SEND_WORK_UNITS
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, MIX_OVER_LIMIT, mix_error
 from kinocut_sound.mix.pcm_ops import _scale_in_place, _overlay_scaled
+from kinocut_sound.mix.bus_buffers import validate_bus_canvases, readonly_pcm_snapshot
 from kinocut_sound.routing import Bus, SendReturn, PanLaw
 from kinocut_sound.validation import PCM_MIX_CHANNEL_COUNTS
 
@@ -86,16 +86,7 @@ class BusSendGraph:
         return 2 * self.frame_count * self.channels * len(self.pre_sources)
 
     def _validate_canvases(self, canvases):
-        if not isinstance(canvases, dict) or set(canvases) != set(self.buses):
-            raise mix_error("send canvases must match declared buses", MIX_INPUT_INVALID)
-        expected = self.frame_count * self.channels
-        if any(
-            type(samples) is not array or samples.typecode != "h" or len(samples) != expected
-            for samples in canvases.values()
-        ):
-            raise mix_error("send canvases require matching PCM16 frames", MIX_INPUT_INVALID)
-        if len({id(samples) for samples in canvases.values()}) != len(canvases):
-            raise mix_error("send canvases must not alias one another", MIX_INPUT_INVALID)
+        validate_bus_canvases(canvases, self.buses, self.frame_count, self.channels)
 
     def process_buses(self, canvases):
         self._validate_canvases(canvases)
@@ -114,7 +105,7 @@ class BusSendGraph:
                     if remaining[send.source_bus_id] == 0:
                         del pre[send.source_bus_id]
             if bus_id in self.pre_sources:
-                pre[bus_id] = memoryview(target.tobytes()).cast("h")
+                pre[bus_id] = readonly_pcm_snapshot(target)
             _scale_in_place(target, (10 ** (self.buses[bus_id].gain_db / 20),) * self.channels)
             post[bus_id] = memoryview(target).toreadonly()
         return canvases

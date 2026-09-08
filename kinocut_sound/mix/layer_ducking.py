@@ -79,6 +79,11 @@ class _Envelope:
 
 def duck_layer_in_place(samples, detector, channels, sample_rate_hz, contract):
     """Apply a linked envelope; samples=None measures an all-inactive stack."""
+    return duck_pcm_in_place(samples, detector, channels, sample_rate_hz, contract)
+
+
+def duck_pcm_in_place(samples, detector, channels, sample_rate_hz, contract):
+    """Shared PCM envelope kernel; callers provide their own detector-scope evidence."""
     if (
         type(channels) is not int
         or channels not in PCM_MIX_CHANNEL_COUNTS
