@@ -135,7 +135,7 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
     plan = request.plan
     fmt = plan.format
     unsupported = (
-        fmt.channel_layout != ChannelLayout.MONO
+        fmt.channel_layout not in (ChannelLayout.MONO, ChannelLayout.STEREO)
         or fmt.sample_format != SampleFormat.PCM_S16LE
         or fmt.time_base != TimeBase.CONTINUOUS
         or fmt.dither != DitherPolicy.NONE
@@ -144,7 +144,7 @@ def validate_supported_intent(request: SoundMixRequest) -> None:
         or bool(plan.layers)
     )
     if unsupported:
-        raise mix_error("mix assembly supports mono PCM16 and default routing only", "mix_unsupported_intent")
+        raise mix_error("mix assembly supports mono/stereo PCM16 and default routing only", "mix_unsupported_intent")
     if not MIN_MIX_SAMPLE_RATE_HZ <= fmt.sample_rate_hz <= MAX_MIX_SAMPLE_RATE_HZ:
         raise mix_error("mix sample rate exceeds supported limits", MIX_OVER_LIMIT)
     cues = plan.timeline.cues
@@ -182,7 +182,7 @@ def check_mix_resources(request: SoundMixRequest, source_bytes: int) -> None:
     duration = request.plan.authoritative_duration_seconds
     stems = len(request.plan.delivery.stems.stem_ids or DEFAULT_PUBLIC_MIX_STEMS)
     samples = round(duration * request.plan.format.sample_rate_hz)
-    estimated = MIX_SOURCE_MEMORY_MULTIPLIER * source_bytes + 2 * samples * (
+    estimated = MIX_SOURCE_MEMORY_MULTIPLIER * source_bytes + 2 * samples * request.plan.format.channel_count * (
         MIX_STEM_MEMORY_MULTIPLIER * stems + MIX_WORK_MEMORY_MULTIPLIER
     )
     if duration > MAX_MIX_DURATION_SECONDS or source_bytes > MAX_MIX_INPUT_BYTES or estimated > MAX_MIX_MEMORY_BYTES:

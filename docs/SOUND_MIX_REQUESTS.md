@@ -1,7 +1,7 @@
 # Mix supplied audio
 
 `sound_mix_render` accepts a persisted `SoundMixRequest` and an explicit local
-project root. It assembles supplied mono PCM16 WAVs into a new ZIP containing
+project root. It assembles supplied mono or stereo PCM16 WAVs into a new ZIP containing
 `master.wav`, `stems/<id>.wav`, and `receipt.json`. It does not synthesize speech
 or apply loudness mastering. The receipt reports `mastering_status=not_applied`
 and requires human review.
@@ -55,7 +55,7 @@ hashes the complete ZIP, avoiding a circular hash.
 
 ## Current rendering capabilities
 
-Assembly supports mono signed 16-bit PCM, a shared sample rate from 8–96 kHz,
+Assembly supports mono or stereo signed 16-bit PCM, a shared sample rate from 8–96 kHz,
 continuous time, explicit silence/tail, named stems, source windows and post-roll
 crossfades. Cue `in_point_seconds` is inclusive (default zero), while
 `out_point_seconds` is exclusive (default source end). Seconds quantize with
@@ -69,6 +69,20 @@ to that duration. Crossfades require actual post-roll inside the selected window
 including its out-point. The receipt's `source_windows` records cue ID, in/out
 sample positions, selected count and rate; source hashes still bind the original
 whole file. These fields preserve existing SoundPlan identity semantics.
+
+Every clip and bed must match the plan's channel count and sample rate. There is
+no implicit channel conversion or resampling. Stereo trims and crossfades use
+frames; both channels receive the same fade gain. Ducking detects the larger
+absolute speech channel and applies one shared gain to both bed channels, so
+opposite-polarity speech cannot cancel the detector. Stem addition preserves
+insertion order and clamps each PCM16 addition.
+
+Mono receipts retain schema version 1 and byte-compatible fields. Stereo
+receipts use schema version 2 and add `frame_count`, `channel_count` and
+`interleaved_sample_count`; the legacy `sample_count` is an alias for frame count.
+Stereo source windows use `in_frame`, `out_frame`, `frame_count`, `channel_count`,
+`interleaved_sample_count`, `sample_rate_hz` and `cue_id`. Estimated working memory
+includes both channels. ASR and mastering still require mono inputs.
 
 Assembly rejects `transit_kind`, nondefault routing, layers, format
 conversion and dither until those rendering paths are implemented. It does not

@@ -6,7 +6,8 @@ from array import array
 from dataclasses import dataclass
 from math import isfinite
 
-from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS
+from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS, DEFAULT_TAIL_SECONDS, DEFAULT_MIX_CHANNEL_COUNT
+from kinocut_sound.validation import PCM_MIX_CHANNEL_COUNTS
 from kinocut_sound.delivery import DeliveryPolicy, StemLayout
 from kinocut_sound.mix._errors import (
     MIX_DURATION_MISMATCH,
@@ -17,7 +18,7 @@ from kinocut_sound.mix._errors import (
 )
 from kinocut_sound.mix._wav import (
     DEFAULT_SAMPLE_RATE_HZ,
-    parse_wav,
+    decode_pcm_wav,
     pcm_to_wav,
 )
 from kinocut_sound.mix.ducking import duck_bed_under_speech
@@ -77,10 +78,14 @@ class MixRenderer:
         sample_rate_hz: int = DEFAULT_SAMPLE_RATE_HZ,
         gap_tolerance_seconds: float = DEFAULT_GAP_TOLERANCE_SECONDS,
         tail_seconds: float = DEFAULT_TAIL_SECONDS,
+        channel_count: int = DEFAULT_MIX_CHANNEL_COUNT,
     ) -> None:
         if sample_rate_hz <= 0:
             raise mix_error("sample_rate_hz must be positive", MIX_INPUT_INVALID)
         self.sample_rate_hz = sample_rate_hz
+        if type(channel_count) is not int or channel_count not in PCM_MIX_CHANNEL_COUNTS:
+            raise mix_error("mix channel count must be mono or stereo", MIX_INPUT_INVALID)
+        self.channel_count = channel_count
         self.gap_tolerance_seconds = gap_tolerance_seconds
         try:
             self.tail_seconds = float(tail_seconds)
@@ -108,10 +113,14 @@ class MixRenderer:
         clip_map = {c.cue_id: c for c in clips}
         if transitions and len(clip_map) != len(clips):
             raise mix_error("transition sources must have unique cue ids", MIX_CROSSFADE_INVALID)
-        selected, windows = select_source_windows(timeline, {c.cue_id: c.wav_bytes for c in clips}, self.sample_rate_hz)
+        selected, windows = select_source_windows(
+            timeline, {c.cue_id: c.wav_bytes for c in clips}, self.sample_rate_hz, self.channel_count
+        )
         clips = tuple(MixClip(c.cue_id, selected[c.cue_id], c.stem_id) for c in clips)
         clip_map = {c.cue_id: c for c in clips}
-        durations = {c.cue_id: len(parse_wav(c.wav_bytes)[0]) / float(self.sample_rate_hz) for c in clips}
+        durations = {
+            c.cue_id: len(self._decode(c.wav_bytes)) / float(self.sample_rate_hz * self.channel_count) for c in clips
+        }
         stem_for = {c.cue_id: c.stem_id for c in clips}
         placement = place_clips(
             timeline,
@@ -122,13 +131,18 @@ class MixRenderer:
         if self.tail_seconds and self.tail_seconds != timeline.tail_seconds:
             raise mix_error("renderer tail must match Timeline.tail_seconds", MIX_DURATION_MISMATCH)
         declared = placement.timeline_duration_seconds
-        total_samples = max(1, round(declared * self.sample_rate_hz))
+        total_samples = max(1, round(declared * self.sample_rate_hz)) * self.channel_count
 
         stem_ids = delivery.stems.stem_ids or ("dialogue", "ambience", "sfx")
         canvases = {sid: _blank(total_samples) for sid in stem_ids}
         ordered = sorted(placement.placements, key=lambda p: p.start_seconds)
         changed, seams = apply_transitions(
-            timeline, {c.cue_id: c.wav_bytes for c in clips}, stem_for, transitions, self.sample_rate_hz
+            timeline,
+            {c.cue_id: c.wav_bytes for c in clips},
+            stem_for,
+            transitions,
+            self.sample_rate_hz,
+            self.channel_count,
         )
         for cue_id, wav_bytes in changed.items():
             if clip_map[cue_id].stem_id not in canvases:
@@ -139,11 +153,11 @@ class MixRenderer:
         if bed_wav is not None:
             self._add_bed(bed_wav, canvases, total_samples, duck_bed)
 
-        stem_wavs = {sid: pcm_to_wav(samples, sample_rate_hz=self.sample_rate_hz) for sid, samples in canvases.items()}
+        stem_wavs = {sid: self._encode(samples) for sid, samples in canvases.items()}
         layout = StemLayout(stem_ids=tuple(sorted(stem_wavs)))
         bundle = build_stem_bundle(layout=layout, stem_wavs=stem_wavs)
         master = recombine_stems(bundle, policy=delivery.recombination)
-        measured = len(parse_wav(master)[0]) / float(self.sample_rate_hz)
+        measured = len(self._decode(master)) / float(self.sample_rate_hz * self.channel_count)
         within = abs(measured - declared) <= max(self.gap_tolerance_seconds, 1.0 / self.sample_rate_hz)
         if not within:
             raise mix_error(
@@ -161,6 +175,15 @@ class MixRenderer:
             source_windows=windows,
         )
 
+    def _decode(self, wav):
+        samples, rate, channels = decode_pcm_wav(wav)
+        if rate != self.sample_rate_hz or channels != self.channel_count:
+            raise mix_error("mix input rate or channel count mismatch", MIX_INPUT_INVALID)
+        return samples
+
+    def _encode(self, samples):
+        return pcm_to_wav(samples, sample_rate_hz=self.sample_rate_hz, channel_count=self.channel_count)
+
     def _render_clips(
         self,
         ordered: list[PlacedClip],
@@ -172,33 +195,29 @@ class MixRenderer:
             clip = clip_map.get(placed.cue_id)
             if clip is None:
                 continue
-            samples, rate = parse_wav(clip.wav_bytes)
-            if rate != self.sample_rate_hz:
-                raise mix_error("clip sample rate mismatch", MIX_INPUT_INVALID)
-            window_n = round(placed.duration_seconds * self.sample_rate_hz)
+            samples = self._decode(clip.wav_bytes)
+            window_n = round(placed.duration_seconds * self.sample_rate_hz) * self.channel_count
             if len(samples) < window_n:
                 padded = array("h", samples)
                 padded.extend([0] * (window_n - len(samples)))
                 samples = padded
             else:
                 samples = samples[:window_n]
-            start = round(placed.start_seconds * self.sample_rate_hz)
+            start = round(placed.start_seconds * self.sample_rate_hz) * self.channel_count
             stem = placed.stem_id if placed.stem_id in canvases else stem_ids[0]
             _overlay(canvases[stem], samples, start)
 
     def _add_bed(self, bed_wav: bytes, canvases: dict[str, array], total_samples: int, duck_bed: bool) -> None:
-        bed_samples, bed_rate = parse_wav(bed_wav)
-        if bed_rate != self.sample_rate_hz:
-            raise mix_error("bed sample rate mismatch", MIX_INPUT_INVALID)
+        bed_samples = self._decode(bed_wav)
         if duck_bed and "dialogue" in canvases:
-            speech = pcm_to_wav(canvases["dialogue"], sample_rate_hz=self.sample_rate_hz)
+            speech = self._encode(canvases["dialogue"])
             bed_canvas = _blank(total_samples)
             _overlay(bed_canvas, bed_samples, 0)
-            bed_full = pcm_to_wav(bed_canvas, sample_rate_hz=self.sample_rate_hz)
+            bed_full = self._encode(bed_canvas)
             ducked = duck_bed_under_speech(speech, bed_full)
             if "ambience" not in canvases:
                 canvases["ambience"] = _blank(total_samples)
-            _overlay(canvases["ambience"], parse_wav(ducked)[0], 0)
+            _overlay(canvases["ambience"], self._decode(ducked), 0)
         else:
             if "ambience" not in canvases:
                 canvases["ambience"] = _blank(total_samples)

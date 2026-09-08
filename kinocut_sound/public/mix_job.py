@@ -95,7 +95,7 @@ def render_mix_request(payload, project_root):
 
 
 def _result(request, receipt, archive_hash):
-    return {
+    result = {
         "ok": True,
         "demo": False,
         "output_path": request.output_path,
@@ -109,6 +109,14 @@ def _result(request, receipt, archive_hash):
         "mastering_status": "not_applied",
         "human_review_required": True,
     }
+    if request.plan.format.channel_count > 1:
+        result.update(
+            {
+                key: receipt[key]
+                for key in ("schema_version", "channel_count", "frame_count", "interleaved_sample_count")
+            }
+        )
+    return result
 
 
 async def _run_worker_async(request, root_fd, stage_fd):
