@@ -6,7 +6,7 @@ are requested targets, not measured compliance. Single-pass normalization can
 still miss the target on transient-heavy material; measure the final output with
 this QA operation before accepting it. Successful processing alone is insufficient.
 
-`sound_qa_loudness` analyzes unchanged local mono PCM16 WAV audio with an installed
+`sound_qa_loudness` analyzes unchanged local mono or stereo PCM16 WAV audio with an installed
 FFmpeg `ebur128` meter. It reports integrated loudness, reconstructed true peak,
 loudness range and actual delivery-policy compliance. Missing FFmpeg or its filter
 is an explicit error; there is no proxy-meter fallback.
@@ -40,6 +40,11 @@ Source reads follow the [public mixing filesystem policy](SOUND_MIX_REQUESTS.md)
 The report binds source SHA256, policy hash and FFmpeg version. It contains no
 source paths or raw diagnostics. No media output is published; private analysis
 files are removed after the child is reaped.
+
+Stereo is measured without downmixing. Its report adds `schema_version=2`,
+`channel_count`, `frame_count`, `interleaved_sample_count` and `sample_rate_hz`.
+Mono reports retain their existing fields. Duration limits count frames, so
+adding a second channel does not double the admitted duration.
 
 Processing success is distinct from compliance: valid noncompliant audio returns
 `within_tolerance=false`, including in a successful CLI/MCP inspection response.

@@ -18,25 +18,29 @@ from kinocut_sound.limits import (
     MIN_LOUDNESS_MATERIAL_SECONDS,
     MIN_MEASURABLE_INTEGRATED_LUFS,
 )
-from kinocut_sound.mix._wav import parse_wav
+from kinocut_sound.mix._wav import decode_pcm_wav
 from kinocut_sound.qa._errors import QA_INPUT_INVALID, QA_UNAVAILABLE, qa_error
 from kinocut_sound.qa.meter_process import run_meter_async, run_meter_sync
-from kinocut_sound.validation import EBUR128_SUMMARY_RE, FFMPEG_METER_VERSION_RE
+from kinocut_sound.validation import EBUR128_SUMMARY_RE, FFMPEG_METER_VERSION_RE, PCM_MIX_CHANNEL_COUNTS
 
 
-def validate_material(data):
+def validate_material(data, *, channel_counts=PCM_MIX_CHANNEL_COUNTS):
     if not isinstance(data, bytes) or len(data) > MAX_MIX_INPUT_BYTES:
         raise qa_error("meter input must be bounded WAV bytes", QA_INPUT_INVALID)
     try:
-        samples, rate = parse_wav(data)
+        samples, rate, channels = decode_pcm_wav(data)
     except SoundContractError as exc:
-        raise qa_error("meter input must be valid mono PCM16 WAV", QA_INPUT_INVALID) from exc
+        raise qa_error("meter input must be valid mono or stereo PCM16 WAV", QA_INPUT_INVALID) from exc
+    if channels not in channel_counts:
+        raise qa_error("input WAV channel layout is unsupported for this operation", QA_INPUT_INVALID)
     if not MIN_MIX_SAMPLE_RATE_HZ <= rate <= MAX_MIX_SAMPLE_RATE_HZ:
         raise qa_error("meter sample rate exceeds supported limits", QA_INPUT_INVALID)
-    if len(samples) / rate > MAX_MIX_DURATION_SECONDS:
+    frames = len(samples) // channels
+    if frames / rate > MAX_MIX_DURATION_SECONDS:
         raise qa_error("meter input exceeds duration limit", QA_INPUT_INVALID)
-    if len(samples) / rate < MIN_LOUDNESS_MATERIAL_SECONDS or not any(samples):
+    if frames / rate < MIN_LOUDNESS_MATERIAL_SECONDS or not any(samples):
         raise qa_error("meter requires non-silent material of at least three seconds", "qa_unmeasurable")
+    return rate, frames, channels
 
 
 def parse_summary(output):

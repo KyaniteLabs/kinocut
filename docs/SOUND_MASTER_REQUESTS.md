@@ -1,6 +1,6 @@
 # Verified sound mastering
 
-`sound_master_render` uses installed FFmpeg to normalize a supplied mono PCM16
+`sound_master_render` uses installed FFmpeg to normalize a supplied mono or stereo PCM16
 WAV in two passes. It measures the final decoded audio and publishes a new ZIP
 only when loudness, true peak, output format and frame count satisfy the request.
 It requires real input; there is no implicit demo or model download.
@@ -52,11 +52,20 @@ exclusive publication. `timing_proof=frame_count_only` does not claim universal
 alignment or human listening acceptance. Listen to the retained master before
 release, especially when dynamic normalization was applied.
 
-Input supports 8–96 kHz mono PCM16, at least three seconds and at most one hour.
+Input supports 8–96 kHz mono or stereo PCM16, at least three seconds and at most one hour.
 The output rate defaults to the input rate. Input/output bytes and an eight-times
 combined-size memory estimate are bounded by the existing mix limits. The output
 must have exactly `round(input_frames * output_rate / input_rate)` frames; even a
 successful FFmpeg exit is rejected if a size cap truncated its output.
+
+Mastering preserves the input channel count, with shared loudness normalization
+and linked limiting. It does not downmix or accept surround layouts. Output byte
+and memory admission account for both stereo channels. Mono receipt fields stay
+unchanged. Stereo receipts and responses add `schema_version=2`, `channel_count`,
+`input_frame_count`, `frame_count`, `input_interleaved_sample_count` and
+`interleaved_sample_count`. Existing `sample_count` and `input_sample_count`
+remain aliases for frame counts. Final measurement includes both channels;
+opposite-polarity stereo is not treated as silence by summing channels.
 
 One 180-second job budget covers analysis, rendering, final metering and archive
 verification. Diagnostic capture is bounded at 64 KiB. Deadlines are checked

@@ -82,7 +82,8 @@ receipts use schema version 2 and add `frame_count`, `channel_count` and
 `interleaved_sample_count`; the legacy `sample_count` is an alias for frame count.
 Stereo source windows use `in_frame`, `out_frame`, `frame_count`, `channel_count`,
 `interleaved_sample_count`, `sample_rate_hz` and `cue_id`. Estimated working memory
-includes both channels. ASR and mastering still require mono inputs.
+includes both channels. Loudness inspection and mastering accept stereo mixes;
+ASR still requires mono inputs.
 
 Assembly rejects `transit_kind`, nondefault routing, layers, format
 conversion and dither until those rendering paths are implemented. It does not
