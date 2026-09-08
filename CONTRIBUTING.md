@@ -102,8 +102,15 @@ tests/
 - Every new tool needs at least: success case, error case (bad input), and one edge case
 - Add adversarial tests in `test_adversarial_audit.py` for any new validation
 - E2E tests chain multiple operations together
-- Run the full suite before pushing: `pytest tests/ -v -m "not slow" --tb=short`
-- Keep the default non-slow suite green, and run slower or environment-sensitive coverage when your change touches those surfaces
+- Draft commits and PRs may be pushed for hosted validation. Before merge, the
+  candidate must pass `python3 -m pytest tests/ -x -q --tb=short`, including slow
+  tests, in the hosted PR job. Check that its evidence matches the reviewed head.
+- Heavy validation belongs on existing hosted runners when the coordination
+  machine is capacity-constrained. Do not duplicate a successful hosted full suite
+  locally by default. Local capacity holds take precedence over test recipes.
+- Review the retained runtime and skip evidence. Required backend scenarios must
+  actually run. Cached-model ASR changes need real recognition validation on an
+  assigned host with the existing cache before merge; CI does not download models.
 
 ### Automated tests vs manual scripts
 

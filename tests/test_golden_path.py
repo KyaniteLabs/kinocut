@@ -274,6 +274,8 @@ def test_synthetic_generators_execute_the_same_shared_recipe(tmp_path: Path, mon
 def test_confidence_workflow_stops_before_checkpoint_on_failed_raw_check(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:
+    # This test targets raw quality; CI merge-SHA mismatch has separate coverage.
+    monkeypatch.delenv("GITHUB_SHA", raising=False)
     source = tmp_path / "source.mp4"
     source.write_bytes(b"source")
 

@@ -92,8 +92,21 @@ the user an unexplained approval gate.
 
 ## Testing
 
-20. **Every fix must pass `python3 -m pytest tests/ -x -q --tb=short`** before committing.
-21. **Run `python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"`** to verify the canonical import and compatibility shim after changes.
+20. **Every code fix must pass the full suite before merge:** `python3 -m pytest tests/ -x -q --tb=short`. Draft commits and PRs may be created to obtain hosted validation; they are candidates, not verified releases. The hosted PR job runs the full suite, including slow tests, against the candidate head. Reconcile its recorded source SHA with the reviewed head before merging.
+21. **Verify the canonical import and compatibility shim in that validation job:** `python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"`.
+
+- Use existing hosted runners for heavy tests, renders and builds. Keep a constrained
+  coordination machine to light editing, review and CI coordination. A capacity
+  hold overrides local test recipes and serialization locks; do not start heavy
+  local work, add workers or choose another fleet host without placement authority.
+- Run targeted reproductions where needed, then comprehensive validation on the
+  frozen candidate. Do not duplicate full local and hosted suites by default or
+  repeat unchanged successful checks without a specific unresolved concern.
+- Retain source SHA, runtime versions, command, exit status and test/skip evidence.
+  Failed, cancelled, missing or skipped required scenarios are not passes. Changes
+  to cached-model ASR require real recognition evidence on an assigned host with
+  the existing runtime and cache before merge; contract tests alone do not suffice.
+  Do not download models or use the coordination host to erase this gap.
 
 <!-- EMPOWER_ORCHESTRATOR:START -->
 ## Empower Orchestrator law
