@@ -27,6 +27,7 @@ from kinocut_sound.mix.seam import SeamReport
 from kinocut_sound.mix.source_windows import SourceWindow, select_source_windows
 from kinocut_sound.mix.transitions import CrossfadeTransition, apply_transitions
 from kinocut_sound.mix.stems import StemBundle, build_stem_bundle, recombine_stems
+from kinocut_sound.mix.static_routing import StaticRouting
 from kinocut_sound.timeline import Timeline
 from kinocut_sound._canonical import location_violation
 
@@ -104,6 +105,7 @@ class MixRenderer:
         crossfade_seconds: float = 0.0,
         duck_bed: bool = False,
         transitions: tuple[CrossfadeTransition, ...] = (),
+        routing: StaticRouting | None = None,
     ) -> MixResult:
         if isinstance(crossfade_seconds, bool) or crossfade_seconds != 0:
             raise mix_error(
@@ -116,6 +118,8 @@ class MixRenderer:
         selected, windows = select_source_windows(
             timeline, {c.cue_id: c.wav_bytes for c in clips}, self.sample_rate_hz, self.channel_count
         )
+        if routing is not None:
+            selected = routing.process_sources(selected, self.sample_rate_hz)
         clips = tuple(MixClip(c.cue_id, selected[c.cue_id], c.stem_id) for c in clips)
         clip_map = {c.cue_id: c for c in clips}
         durations = {
@@ -152,7 +156,13 @@ class MixRenderer:
         self._render_clips(ordered, clip_map, canvases, stem_ids)
         if bed_wav is not None:
             self._add_bed(bed_wav, canvases, total_samples, duck_bed)
+        if routing is not None:
+            routing.apply_bus_gains(canvases)
 
+        return self._finish_mix(canvases, delivery, placement, seams, windows)
+
+    def _finish_mix(self, canvases, delivery, placement, seams, windows):
+        declared = placement.timeline_duration_seconds
         stem_wavs = {sid: self._encode(samples) for sid, samples in canvases.items()}
         layout = StemLayout(stem_ids=tuple(sorted(stem_wavs)))
         bundle = build_stem_bundle(layout=layout, stem_wavs=stem_wavs)

@@ -11,7 +11,8 @@ import sys
 import zipfile
 
 from kinocut_sound.defaults import DEFAULT_PUBLIC_MIX_TIMEOUT_SECONDS
-from kinocut_sound.limits import MAX_MIX_REQUEST_BYTES, MAX_MIX_WORKER_MESSAGE_BYTES
+from kinocut_sound._canonical import canonical_digest
+from kinocut_sound.limits import MAX_MIX_REQUEST_BYTES, MAX_MIX_WORKER_MESSAGE_BYTES, MAX_MIX_RECEIPT_BYTES
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
 from kinocut_sound.public.mix_files import open_parent, open_root, publish, staged_output
 from kinocut_sound.public.mix_request import load_mix_request
@@ -55,11 +56,15 @@ def _verify_stage(stage_fd, request):
     with os.fdopen(os.dup(stage_fd), "rb") as source:
         with zipfile.ZipFile(source) as archive:
             info = archive.getinfo("receipt.json")
-            if info.file_size > MAX_MIX_REQUEST_BYTES * 2:
+            if info.file_size > MAX_MIX_RECEIPT_BYTES:
                 raise mix_error("mix receipt exceeds limit", "mix_worker_failed")
             receipt = json.loads(archive.read(info))
             if receipt["request_hash"] != request.canonical_id() or receipt["plan_hash"] != request.plan.canonical_id():
                 raise mix_error("mix receipt identity mismatch", "mix_worker_failed")
+            if request.schema_version == 2:
+                from kinocut_sound.public.mix_routing_receipt import verify_routing_receipt
+
+                verify_routing_receipt(receipt, request)
             if set(archive.namelist()) != {"receipt.json", *receipt["media"]}:
                 raise mix_error("mix bundle members mismatch", "mix_worker_failed")
             for name, expected in receipt["media"].items():
@@ -109,13 +114,18 @@ def _result(request, receipt, archive_hash):
         "mastering_status": "not_applied",
         "human_review_required": True,
     }
-    if request.plan.format.channel_count > 1:
+    if request.plan.format.channel_count > 1 or request.schema_version == 2:
         result.update(
             {
                 key: receipt[key]
                 for key in ("schema_version", "channel_count", "frame_count", "interleaved_sample_count")
             }
         )
+    if request.schema_version == 2:
+        result["request_schema_version"] = receipt["request_schema_version"]
+        result["routing_algorithm"] = receipt["routing"]["algorithm"]
+        result["routing_sha256"] = canonical_digest(receipt["routing"])
+        result["routed_cue_count"] = len(receipt["routing"]["cue_tracks"])
     return result
 
 
