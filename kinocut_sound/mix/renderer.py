@@ -31,6 +31,7 @@ from kinocut_sound.mix.static_routing import StaticRouting
 from kinocut_sound.mix.layers import MixLayer, apply_layers
 from kinocut_sound.mix.pcm_ops import _overlay
 from kinocut_sound.timeline import Timeline
+from kinocut_sound.world.layers import DuckingContract
 from kinocut_sound._canonical import location_violation
 
 
@@ -56,6 +57,7 @@ class MixResult:
     placement: PlacementPlan
     source_windows: tuple[SourceWindow, ...] = ()
     layer_source_frames: tuple[int, ...] = ()
+    layer_ducking_summary: dict | None = None
 
 
 def _blank(length: int) -> array:
@@ -103,6 +105,7 @@ class MixRenderer:
         transitions: tuple[CrossfadeTransition, ...] = (),
         routing: StaticRouting | None = None,
         layers: tuple[MixLayer, ...] = (),
+        layer_ducking: DuckingContract | None = None,
     ) -> MixResult:
         if isinstance(crossfade_seconds, bool) or crossfade_seconds != 0:
             raise mix_error(
@@ -153,13 +156,15 @@ class MixRenderer:
         self._render_clips(ordered, clip_map, canvases, stem_ids)
         if bed_wav is not None:
             self._add_bed(bed_wav, canvases, total_samples, duck_bed)
-        layer_frames = apply_layers(canvases, layers, self.sample_rate_hz, self.channel_count)
+        layer_frames, ducking_summary = apply_layers(
+            canvases, layers, self.sample_rate_hz, self.channel_count, layer_ducking
+        )
         if routing is not None:
             routing.apply_bus_gains(canvases)
 
-        return self._finish_mix(canvases, delivery, placement, seams, windows, layer_frames)
+        return self._finish_mix(canvases, delivery, placement, seams, windows, layer_frames, ducking_summary)
 
-    def _finish_mix(self, canvases, delivery, placement, seams, windows, layer_frames):
+    def _finish_mix(self, canvases, delivery, placement, seams, windows, layer_frames, ducking_summary):
         declared = placement.timeline_duration_seconds
         stem_wavs = {sid: self._encode(samples) for sid, samples in canvases.items()}
         layout = StemLayout(stem_ids=tuple(sorted(stem_wavs)))
@@ -182,6 +187,7 @@ class MixRenderer:
             placement=placement,
             source_windows=windows,
             layer_source_frames=layer_frames,
+            layer_ducking_summary=ducking_summary,
         )
 
     def _decode(self, wav):

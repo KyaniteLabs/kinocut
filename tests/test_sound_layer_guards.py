@@ -50,7 +50,7 @@ def test_bad_layer_contracts_fail(layered_project, mutation):  # noqa: F811
         request["layer_assets"].append(second)
         request["plan"]["layers"].append("rain")
     elif mutation == "ducking":
-        request["layer_ducking"] = {"source_bus_id": "dialogue", "target_bus_id": "ambience"}
+        request["layer_ducking"] = {"source_bus_id": "dialogue", "target_bus_id": "sfx"}
     elif mutation == "count":
         request["layer_assets"] = [item] * 65
     else:

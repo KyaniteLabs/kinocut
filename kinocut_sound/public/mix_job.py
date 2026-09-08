@@ -139,6 +139,8 @@ def _result(request, receipt, archive_hash):
         result["layer_algorithm"] = receipt["layers"]["algorithm"]
         result["layers_sha256"] = canonical_digest(receipt["layers"])
         result["layer_count"] = len(receipt["layers"]["entries"])
+        if request.layer_ducking is not None:
+            result["layer_ducking_sha256"] = canonical_digest(receipt["layers"]["ducking"])
     return result
 
 
