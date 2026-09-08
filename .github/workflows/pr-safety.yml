@@ -4,15 +4,24 @@ on:
   pull_request:
     branches: [master]
 
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-safety-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   hosted-pr-checks:
     name: Hosted PR checks
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
+          ref: ${{ github.event.pull_request.head.sha }}
       - id: classify
         name: Classify changes
         shell: bash
@@ -30,17 +39,18 @@ jobs:
       - name: Skip hosted checks
         if: steps.classify.outputs.code != 'true'
         run: echo "Code inputs unchanged; marking hosted PR checks successful."
-      - name: Install FFmpeg
+      - name: Install media backends
         if: steps.classify.outputs.code == 'true'
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          sudo apt-get install -y --no-install-recommends ffmpeg espeak-ng
           ffmpeg -version
           ffprobe -version
+          espeak-ng --version
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         if: steps.classify.outputs.code == 'true'
         with:
-          python-version: "3.14"
+          python-version: "3.13"
       - name: Install package
         if: steps.classify.outputs.code == 'true'
         # ruff pinned to the same version as the CI lint job so the hosted PR
@@ -51,6 +61,72 @@ jobs:
         run: |
           ruff check kinocut/ kinocut_sound/ mcp_video.py tests/
           ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/
-      - name: Test
+      - name: Record candidate and runtime
         if: steps.classify.outputs.code == 'true'
-        run: pytest tests/ -q -m "not slow" --tb=short
+        env:
+          EXPECTED_HEAD: ${{ github.event.pull_request.head.sha }}
+          VALIDATION_EVIDENCE_DIR: ${{ runner.temp }}/candidate-validation
+        run: |
+          test "$(git rev-parse HEAD)" = "$EXPECTED_HEAD"
+          echo "VALIDATION_EVIDENCE_DIR=$VALIDATION_EVIDENCE_DIR" >> "$GITHUB_ENV"
+          mkdir -p "$VALIDATION_EVIDENCE_DIR"
+          git rev-parse HEAD > "$VALIDATION_EVIDENCE_DIR/source-sha.txt"
+          python3 --version > "$VALIDATION_EVIDENCE_DIR/python-version.txt"
+          ffmpeg -version > "$VALIDATION_EVIDENCE_DIR/ffmpeg-version.txt"
+          ffprobe -version > "$VALIDATION_EVIDENCE_DIR/ffprobe-version.txt"
+          espeak-ng --version > "$VALIDATION_EVIDENCE_DIR/espeak-version.txt"
+          python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+      - name: Full candidate suite
+        id: full-suite
+        if: steps.classify.outputs.code == 'true'
+        run: |
+          set +e
+          python3 -m pytest tests/ -x -q --tb=short --junitxml="$VALIDATION_EVIDENCE_DIR/tests.xml"
+          result=$?
+          echo "$result" > "$VALIDATION_EVIDENCE_DIR/pytest-exit.txt"
+          exit "$result"
+      - name: Verify required media scenarios and summarize skips
+        if: always() && steps.classify.outputs.code == 'true'
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          import xml.etree.ElementTree as ET
+          from pathlib import Path
+
+          evidence = Path(os.environ["VALIDATION_EVIDENCE_DIR"])
+          cases = list(ET.parse(evidence / "tests.xml").iter("testcase"))
+          required = (
+              "test_sound_dub_render",
+              "test_sound_speech_spatial_public",
+              "test_sound_speech_spatial_transports",
+              "test_sound_speech_spatial_dsp",
+              "test_sound_rate_conversion_public",
+          )
+          missing = []
+          for module in required:
+              selected = [case for case in cases if case.get("classname", "").split(".")[-1] == module]
+              if not selected or any(case.find(tag) is not None for case in selected for tag in ("skipped", "failure", "error")):
+                  missing.append(module)
+          summary = {
+              "source_sha": (evidence / "source-sha.txt").read_text().strip(),
+              "command": "python3 -m pytest tests/ -x -q --tb=short --junitxml=<evidence>/tests.xml",
+              "pytest_exit": int((evidence / "pytest-exit.txt").read_text()),
+              "test_cases": len(cases),
+              "failures": sum(case.find("failure") is not None or case.find("error") is not None for case in cases),
+              "skipped": [case.get("classname", "") + "::" + case.get("name", "") for case in cases if case.find("skipped") is not None],
+              "required_media_not_passed": missing,
+              "cached_model_asr": "requires separate assigned-host evidence when changed; no model downloads",
+          }
+          (evidence / "summary.json").write_text(json.dumps(summary, indent=2) + "\n")
+          if not cases or summary["pytest_exit"] != 0 or summary["failures"] or missing:
+              raise SystemExit("Full suite or required media evidence did not pass")
+          PY
+      - name: Retain candidate validation evidence
+        if: always() && steps.classify.outputs.code == 'true'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: candidate-validation-${{ github.event.pull_request.head.sha }}
+          path: ${{ runner.temp }}/candidate-validation/
+          if-no-files-found: error
+          retention-days: 7
