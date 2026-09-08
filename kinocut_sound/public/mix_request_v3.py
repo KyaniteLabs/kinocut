@@ -61,14 +61,18 @@ class SoundMixRequestV3(SoundMixRequestV2):
 
 def validate_layers(request):
     try:
-        stack = LayerStack(tuple(item.layer for item in request.layer_assets))
+        stack = LayerStack(tuple(item.layer for item in request.layer_assets), ducking=request.layer_ducking)
     except WorldError as exc:
         raise mix_error("invalid ambient layer stack", MIX_INPUT_INVALID) from exc
     if stack.layer_ids != request.plan.layers:
         raise mix_error("ordered layer assets must match plan layer ids", MIX_INPUT_INVALID)
-    if request.layer_ducking is not None:
-        raise mix_error("layer ducking is not implemented", "mix_unsupported_intent")
     stems = request.plan.delivery.stems.stem_ids or DEFAULT_PUBLIC_MIX_STEMS
+    if request.layer_ducking is not None and (
+        not stack.layer_ids
+        or request.layer_ducking.target_bus_id != "ambience"
+        or request.layer_ducking.source_bus_id not in stems
+    ):
+        raise mix_error("layer ducking requires layers and a declared source feeding ambience", MIX_INPUT_INVALID)
     if stack.layer_ids and "ambience" not in stems:
         raise mix_error("layers require an ambience stem", MIX_INPUT_INVALID)
     if round(request.plan.authoritative_duration_seconds * request.plan.format.sample_rate_hz) < 1:

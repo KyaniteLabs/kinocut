@@ -91,7 +91,68 @@ one layer scratch canvas, stems and receipt overhead under the existing 2 GiB
 memory estimate. The worker retains its 300-second deadline. These are admission
 bounds, not measured host peak requirements.
 
-Non-null `layer_ducking` is rejected until its source/target/recovery semantics
-are implemented. Scene/location schedules, routing sends, automation, sidechains,
-format conversion and dither also remain unsupported. This produces an assembly,
+Scene/location schedules, routing sends, automation, general routing sidechains,
+format conversion and dither remain unsupported. This produces an assembly,
 not verified mastering; human listening and episode acceptance remain required.
+
+## Explicit layer ducking
+
+V3 may include one `layer_ducking` contract when at least one layer is present:
+
+```json
+{
+  "layer_ducking": {
+    "source_bus_id": "dialogue",
+    "target_bus_id": "ambience",
+    "attenuation_db": 9,
+    "attack_ms": 80,
+    "release_ms": 350,
+    "recovery_ms": 500
+  }
+}
+```
+
+The target must be `ambience`; the source must be a different declared bus.
+The source can be dialogue, SFX or another declared stem. Detection uses the
+maximum absolute channel level before bus gain, with activity strictly above
+0.02 of full scale. Both stereo layer channels share the same envelope.
+Source-bus gain therefore does not change detection. Ducking occurs after layer
+gain and fill, before layer accumulation and target-bus gain. It affects only
+explicit layers; ambience clips and the optional bed retain their own behavior.
+`duck_bed` can operate independently at the same time. General routing sidechains
+cannot be combined with this contract.
+
+Attack, release and recovery are rounded upward to whole frames. Gain starts at
+one; each activity transition starts a linear ramp from the current gain to the
+attenuated or unity target. The ramp reaches its exact target after the declared
+attack/release frames. Interrupted ramps restart from their current gain.
+Samples use ties-to-even rounding and PCM16 saturation. The separate legacy bed
+ducker is unchanged.
+
+`recovery_ms` is a deadline for returning to unity, not another processing phase;
+it must be at least `release_ms`. Recovery can complete only when the timeline
+contains enough uninterrupted inactive frames. The receipt records completed
+releases and a final truncated-release count/flag. `recovery_status` is `pass`
+when completed releases were observed within the deadline, or `not_exercised`
+when none completed. A `pass` for earlier completed releases can coexist with a
+truncated final recovery, so inspect both fields before accepting an episode.
+
+The existing receipt schema stays `4`, request schema `3`. A ducked request adds
+`layers.ducking` with algorithm `linked_layer_ducking_v1`, the contract, detector
+semantics, quantized frame settings and measured summary. Summary fields include
+active frames/runs, minimum/final gain, completed releases, maximum completed
+release frames, final detector activity and truncated recovery. Public results
+add `layer_ducking_sha256`; `layers_sha256` covers the complete layer section.
+Requests with `layer_ducking: null` or omitted retain their previous bytes/hashes.
+
+The parent independently verifies source identities/shapes and structural work
+counts, and checks summary types, ranges and relationships. It does not re-render
+the detector to independently prove the worker's acoustic measurements. Exact
+PCM tests verify the processor; listening remains a separate acceptance step.
+
+Ducked requests also have a 64-million sample-visit work ceiling. Admission counts
+source processing, worst-case loop writes, scratch/overlay and detector/envelope
+passes before rendering. Inactive sources and an all-inactive detector pass still
+count. Long layers, many layers or very wide loop overlaps may exceed this limit.
+This structural ceiling is not a measured speed guarantee; the worker's existing
+deadline remains a separate limit. No-duck admission remains unchanged.

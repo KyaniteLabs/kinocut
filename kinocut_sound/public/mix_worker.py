@@ -36,6 +36,7 @@ def _sources(request, root_fd):
         consumed += len(bed)
         check_mix_resources(request, consumed)
     layers = []
+    layer_frames = []
     if request.schema_version == 3:
         for item in request.layer_assets:
             data = read_asset(root_fd, item.source.path, item.source.sha256, MAX_MIX_INPUT_BYTES - consumed)
@@ -43,13 +44,18 @@ def _sources(request, root_fd):
             check_mix_resources(request, consumed)
             layer = MixLayer(item.layer, data, item.fill_mode, item.crossfade_frames)
             fmt = request.plan.format
-            _decode_layer(
+            decoded = _decode_layer(
                 layer,
                 fmt.sample_rate_hz,
                 fmt.channel_count,
                 round(request.plan.authoritative_duration_seconds * fmt.sample_rate_hz),
             )
+            layer_frames.append(len(decoded) // fmt.channel_count)
+            del decoded
             layers.append(layer)
+        from kinocut_sound.public.mix_layer_ducking import check_layer_ducking_work
+
+        check_layer_ducking_work(request, layer_frames)
     return tuple(clips), bed, tuple(layers)
 
 
@@ -112,7 +118,7 @@ def _write_bundle(output_fd, request, result):
         if request.schema_version == 3:
             from kinocut_sound.public.mix_layer_receipt import layer_evidence
 
-            layers = layer_evidence(request, result.layer_source_frames)
+            layers = layer_evidence(request, result.layer_source_frames, result.layer_ducking_summary)
         members["receipt.json"] = routed_receipt_bytes(receipt, request, layers)
     else:
         members["receipt.json"] = json.dumps(receipt, sort_keys=True, separators=(",", ":")).encode()
@@ -141,6 +147,7 @@ def render_to_stage(payload, root, output_fd):
         timeline=request.plan.timeline,
         routing=routing,
         layers=layers,
+        layer_ducking=request.layer_ducking if request.schema_version == 3 else None,
         clips=clips,
         bed_wav=bed,
         duck_bed=request.duck_bed,

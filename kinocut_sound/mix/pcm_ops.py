@@ -8,9 +8,13 @@ def _overlay(canvas, clip, start):
             canvas[index] = max(-32768, min(32767, canvas[index] + value))
 
 
+def _scale_sample(sample, factor):
+    return max(-32768, min(32767, round(sample * factor)))
+
+
 def _scale_in_place(samples, factors):
     if all(factor == 1 for factor in factors):
         return
     channels = len(factors)
     for i, sample in enumerate(samples):
-        samples[i] = max(-32768, min(32767, round(sample * factors[i % channels])))
+        samples[i] = _scale_sample(sample, factors[i % channels])
