@@ -13,6 +13,7 @@ from kinocut_sound.qa import QaError
 from kinocut_sound.qa import meter_process
 
 
+@pytest.mark.parametrize("reader_delay", [0, 0.4])
 @pytest.mark.parametrize("asynchronous", [False, True])
 @pytest.mark.parametrize(
     "script,code",
@@ -25,7 +26,7 @@ from kinocut_sound.qa import meter_process
         ("print('No such filter: alimiter');raise SystemExit(1)", "qa_unavailable"),
     ],
 )
-def test_real_meter_failure_kills_and_reaps(monkeypatch, asynchronous, script, code):
+def test_real_meter_failure_kills_and_reaps(monkeypatch, asynchronous, script, code, reader_delay):
     processes = []
     original = subprocess.Popen
 
@@ -35,13 +36,33 @@ def test_real_meter_failure_kills_and_reaps(monkeypatch, asynchronous, script, c
         return process
 
     monkeypatch.setattr(subprocess, "Popen", capture)
+    if reader_delay:
+        if asynchronous:
+            original_reader = meter_process._read_async
+
+            async def delayed_reader(process):
+                await asyncio.sleep(reader_delay)
+                return await original_reader(process)
+
+            monkeypatch.setattr(meter_process, "_read_async", delayed_reader)
+        else:
+            original_reader = meter_process._reader
+
+            def delayed_reader(*args):
+                time.sleep(reader_delay)
+                return original_reader(*args)
+
+            monkeypatch.setattr(meter_process, "_reader", delayed_reader)
     args = [sys.executable, "-c", script]
+    # Only the timeout fixture races a short deadline. Other cases must reach
+    # their intended guard even when the diagnostic reader starts late.
+    timeout = 0.3 if code == "qa_meter_timeout" else 3.0
     start = time.monotonic()
     with pytest.raises(QaError) as failure:
         if asynchronous:
-            asyncio.run(meter_process.run_meter_async(args, 0.3))
+            asyncio.run(meter_process.run_meter_async(args, timeout))
         else:
-            meter_process.run_meter_sync(args, 0.3)
+            meter_process.run_meter_sync(args, timeout)
     assert failure.value.code == code
     if code == "qa_unavailable":
         assert str(failure.value) == "required FFmpeg filter unavailable"
