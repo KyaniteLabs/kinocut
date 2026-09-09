@@ -88,7 +88,11 @@ class VisualQualityGuardrails(QualityChecksMixin):
         self.max_analyze_seconds = max_analyze_seconds
 
     def _movie_source(self, video: str, tail: str) -> str:
-        movie = f"movie={_escape_lavfi_path(video)}"
+        # Quote the value: FFmpeg runs two unescaping passes over filter args,
+        # so a single-escaped drive-letter colon ("D\:") is re-split on pass 2
+        # and the movie filter receives only "D". Quoting survives both passes
+        # on Windows and is a no-op for colon-free POSIX paths.
+        movie = f"movie='{_escape_lavfi_path(video)}'"
         limit = self.max_analyze_seconds
         if limit and limit > 0:
             movie = f"{movie},trim=duration={float(limit):.3f},setpts=PTS-STARTPTS"
