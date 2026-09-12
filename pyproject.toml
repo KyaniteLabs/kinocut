@@ -31,7 +31,7 @@ classifiers = [
 ]
 dependencies = [
     # mcp 2.0 removed mcp.server.fastmcp; Kinocut still uses FastMCP Context/app.
-    "mcp>=1.27.0,<2",
+    "mcp>=1.27.0,<3",
     "pydantic>=2.13.2",
     "rich>=15.0.0",
 ]
