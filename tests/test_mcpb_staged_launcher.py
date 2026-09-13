@@ -175,6 +175,22 @@ def _write_probe_fixture(path: Path, body: str) -> None:
     path.chmod(0o755)
 
 
+def _process_state(pid: int) -> str | None:
+    """Return the POSIX process state, or None once the PID is absent."""
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None
+    result = subprocess.run(
+        ["ps", "-o", "stat=", "-p", str(pid)],
+        capture_output=True,
+        text=True,
+        timeout=3,
+        check=False,
+    )
+    return result.stdout.strip() or None
+
+
 @pytest.mark.skipif(NODE is None or os.name == "nt", reason="POSIX executable fixture required")
 @pytest.mark.parametrize(
     ("body", "reason"),
@@ -218,8 +234,12 @@ def test_launcher_timeout_kills_probe_descendant(tmp_path: Path) -> None:
         time.sleep(0.02)
     assert pid_file.is_file()
     descendant = int(pid_file.read_text(encoding="utf-8"))
-    with pytest.raises(ProcessLookupError):
-        os.kill(descendant, 0)
+    deadline = time.monotonic() + 3
+    state = _process_state(descendant)
+    while state is not None and not state.startswith("Z") and time.monotonic() < deadline:
+        time.sleep(0.02)
+        state = _process_state(descendant)
+    assert state is None or state.startswith("Z"), f"probe descendant remains live: {state}"
 
 
 @pytest.mark.skipif(NODE is None, reason="Node is required")
