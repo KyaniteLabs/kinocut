@@ -38,6 +38,21 @@ _SCRIPT_INFO_HEADER = re.compile(r"(?i)^\s*\[Script Info\]\s*$")
 _ASS_DIALOGUE_LINE = re.compile(r"(?im)^\s*Dialogue\s*:")
 
 
+def _has_renderable_ass_dialogue(content: str) -> bool:
+    return _ASS_DIALOGUE_LINE.search(content) is not None
+
+
+def _require_renderable_ass_dialogue(content: str) -> None:
+    """Reject an ASS document that cannot render any caption event."""
+
+    if not _has_renderable_ass_dialogue(content):
+        raise MCPVideoError(
+            "subtitle file contains no renderable cues",
+            error_type="validation_error",
+            code="subtitle_no_cues",
+        )
+
+
 def _style_error() -> MCPVideoError:
     # Never echo the raw hostile value — only the closed, safe key list.
     return MCPVideoError(
@@ -150,10 +165,5 @@ def synthesize_dimensioned_ass(subtitle_path: str, display_size: tuple[int, int]
             with contextlib.suppress(OSError):
                 os.remove(temp_ass)
     normalized = _normalize_playres(converted, width, height)
-    if not _ASS_DIALOGUE_LINE.search(normalized):
-        raise MCPVideoError(
-            "subtitle file contains no renderable cues",
-            error_type="validation_error",
-            code="subtitle_no_cues",
-        )
+    _require_renderable_ass_dialogue(normalized)
     return normalized

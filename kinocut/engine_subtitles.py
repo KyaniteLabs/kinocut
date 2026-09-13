@@ -31,6 +31,8 @@ from .defaults import DEFAULT_SUBTITLE_STYLE
 from .errors import MCPVideoError
 from .models import EditResult
 from .subtitles_common import (
+    _has_renderable_ass_dialogue,
+    _require_renderable_ass_dialogue,
     _subtitle_format,
     parse_force_style,
     probe_display_dimensions,
@@ -61,6 +63,12 @@ def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_p
             with os.fdopen(fd, "wb") as dst:
                 fd = -1  # The stream now owns closure, including source-open failures.
                 with open(subtitle_path, "rb") as src:
+                    has_dialogue = any(
+                        _has_renderable_ass_dialogue(line.decode("utf-8", errors="replace")) for line in src
+                    )
+                    if not has_dialogue:
+                        _require_renderable_ass_dialogue("")
+                    src.seek(0)
                     shutil.copyfileobj(src, dst)
         else:
             width, height = probe_display_dimensions(input_path)
