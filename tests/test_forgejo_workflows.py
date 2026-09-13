@@ -83,3 +83,18 @@ def test_lint_checkout_curl_posts_before_heavy_git_python_install():
     assert "${desc:0:" not in checkout
     assert "timeout-minutes: 10" in checkout
     assert "Acquire::http::Timeout=30" in checkout
+
+
+def test_heavy_ci_jobs_and_ffmpeg_assets_target_x86_64_runner():
+    """G2 is x86_64; its dedicated label must never receive ARM64 assets."""
+    workflow = (WORKFLOWS / "ci.yml").read_text(encoding="utf-8")
+    _lint, separator, heavy_jobs = workflow.partition("\n  test:")
+    assert separator
+    assert heavy_jobs.count("runs-on: x86-heavy") == 3
+    assert "runs-on: arm64-heavy" not in heavy_jobs
+    assert "linuxarm64" not in heavy_jobs
+    assert set(re.findall(r"ffmpeg_asset: ([^\s]+)", heavy_jobs)) == {
+        "ffmpeg-n6.1.3-linux64-gpl-6.1.tar.xz",
+        "ffmpeg-n7.1.5-1-g7d0e842004-linux64-gpl-7.1.tar.xz",
+        "ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz",
+    }

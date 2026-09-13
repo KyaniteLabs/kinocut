@@ -124,7 +124,7 @@ jobs:
     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
     # Wait for lint: the capacity-2 runner otherwise starts pytest immediately and
     # starves the light job (lint then dies around 79s).
-    runs-on: arm64-heavy
+    runs-on: x86-heavy
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -184,7 +184,7 @@ jobs:
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
     # on push to master. Kept serial (no -n) because these tests do heavier real I/O.
     if: ${{ github.event_name == 'push' }}
-    runs-on: arm64-heavy
+    runs-on: x86-heavy
     steps:
       - name: Checkout
         run: |
@@ -229,13 +229,12 @@ jobs:
     # static ffmpeg 6/7/8 builds and runs the render/filtergraph tests against
     # each, so version-specific parse bugs fail loudly, every time.
     #
-    # Additive coverage — the apt `test` job stays as-is. Routed to `arm64-heavy`
+    # Additive coverage — the apt `test` job stays as-is. Routed to `x86-heavy`
     # because real renders are CPU-heavy and the assets are architecture-specific.
-    # Static builds are pinned to immutable BtbN release tags (repo policy: pin exact versions). Assets use the
-    # `linuxarm64` variant because the CI runner is Apple Silicon (ARM64);
-    # revisit if an x86_64 runner is added. The per-leg version assert fails
-    # the job if an asset ever drifts off its expected major.
-    runs-on: arm64-heavy
+    # Static builds are pinned to immutable BtbN release tags (repo policy: pin exact versions).
+    # Assets use the `linux64` variant because the dedicated G2 runner is x86_64.
+    # The per-leg version assert fails the job if an asset ever drifts off its expected major.
+    runs-on: x86-heavy
     strategy:
       fail-fast: false
       max-parallel: 1
@@ -243,7 +242,7 @@ jobs:
         include:
           - major: "6"
             ffmpeg_tag: autobuild-2025-08-31-13-00
-            ffmpeg_asset: ffmpeg-n6.1.3-linuxarm64-gpl-6.1.tar.xz
+            ffmpeg_asset: ffmpeg-n6.1.3-linux64-gpl-6.1.tar.xz
           - major: "7"
             # 7.1.0 (autobuild-2024-09-30) has an upstream `best_input >= 0`
             # assertion regression (ffmpeg_filter.c) that aborts on the glitch
@@ -251,10 +250,10 @@ jobs:
             # month-end build, which BtbN retains for two years; daily builds
             # expire after 14 days.
             ffmpeg_tag: autobuild-2026-06-30-13-34
-            ffmpeg_asset: ffmpeg-n7.1.5-1-g7d0e842004-linuxarm64-gpl-7.1.tar.xz
+            ffmpeg_asset: ffmpeg-n7.1.5-1-g7d0e842004-linux64-gpl-7.1.tar.xz
           - major: "8"
             ffmpeg_tag: autobuild-2026-06-30-13-34
-            ffmpeg_asset: ffmpeg-n8.1.2-21-gce3c09c101-linuxarm64-gpl-8.1.tar.xz
+            ffmpeg_asset: ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz
     steps:
       - name: Checkout
         run: |
