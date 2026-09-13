@@ -188,7 +188,56 @@ def _process_state(pid: int) -> str | None:
         timeout=3,
         check=False,
     )
-    return result.stdout.strip() or None
+    state = result.stdout.strip()
+    if result.returncode == 0 and state:
+        return state
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return None
+    detail = result.stderr.strip().replace("\n", " ")[:200] or "empty stdout"
+    return f"unknown (ps rc={result.returncode}: {detail})"
+
+
+def _wait_for_process_termination(pid: int, timeout: float = 3) -> str | None:
+    deadline = time.monotonic() + timeout
+    state = _process_state(pid)
+    while state is not None and not state.startswith("Z") and time.monotonic() < deadline:
+        time.sleep(0.02)
+        state = _process_state(pid)
+    return state
+
+
+@pytest.mark.parametrize(
+    ("returncode", "stderr", "expected"),
+    [
+        (1, "ps unavailable\nprivate detail", "unknown (ps rc=1: ps unavailable private detail)"),
+        (0, "", "unknown (ps rc=0: empty stdout)"),
+    ],
+)
+def test_process_state_does_not_treat_unusable_ps_as_absent(
+    monkeypatch: pytest.MonkeyPatch, returncode: int, stderr: str, expected: str
+) -> None:
+    monkeypatch.setattr(
+        subprocess,
+        "run",
+        lambda *_args, **_kwargs: subprocess.CompletedProcess([], returncode, "", stderr),
+    )
+
+    state = _process_state(os.getpid())
+
+    assert state == expected
+
+
+@pytest.mark.parametrize(("observed", "accepted"), [("Z", True), ("R", False)])
+def test_process_termination_distinguishes_zombie_from_live(
+    monkeypatch: pytest.MonkeyPatch, observed: str, accepted: bool
+) -> None:
+    monkeypatch.setattr(__name__ + "._process_state", lambda _pid: observed)
+
+    state = _wait_for_process_termination(43210, timeout=0)
+
+    assert (state is None or state.startswith("Z")) is accepted
 
 
 @pytest.mark.skipif(NODE is None or os.name == "nt", reason="POSIX executable fixture required")
@@ -234,11 +283,7 @@ def test_launcher_timeout_kills_probe_descendant(tmp_path: Path) -> None:
         time.sleep(0.02)
     assert pid_file.is_file()
     descendant = int(pid_file.read_text(encoding="utf-8"))
-    deadline = time.monotonic() + 3
-    state = _process_state(descendant)
-    while state is not None and not state.startswith("Z") and time.monotonic() < deadline:
-        time.sleep(0.02)
-        state = _process_state(descendant)
+    state = _wait_for_process_termination(descendant)
     assert state is None or state.startswith("Z"), f"probe descendant remains live: {state}"
 
 
