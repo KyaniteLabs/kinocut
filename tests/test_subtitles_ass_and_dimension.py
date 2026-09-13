@@ -248,7 +248,15 @@ def test_render_authored_ass_source_bytes_unchanged(solid_aspect_video, authored
 
 
 @requires_ffmpeg
-@pytest.mark.parametrize("content", ["", "[Script Info]\n[Events]\nFormat: Layer, Start, End, Style, Text\n"])
+@pytest.mark.parametrize(
+    "content",
+    [
+        "",
+        "[Script Info]\n[Events]\nFormat: Layer, Start, End, Style, Text\n",
+        "[Events]\nDialogue:\n",
+        "[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,   \n",
+    ],
+)
 def test_render_empty_authored_ass_is_rejected_before_burn(content, solid_aspect_video, tmp_path):
     from kinocut.engine_subtitles import subtitles
 
