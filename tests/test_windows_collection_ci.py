@@ -108,7 +108,7 @@ def _install_supervisor(monkeypatch, module, tmp_path, owner, process, *, receip
 
 def test_canonical_owner_is_byte_identical() -> None:
     assert hashlib.sha256(OWNER.read_bytes()).hexdigest() == (
-        "e60f20dde7a46edb123033b945f894c4bbf95d407ea52634ed40d6aa7a062681"
+        "9be0e923226599d110ae2415aa65d957ff5d8f4a4f74edd431e1410f5c815174"
     )
 
 

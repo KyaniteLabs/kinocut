@@ -159,6 +159,23 @@ def test_render_synthesized_ass_has_exactly_one_playres_equal_dims(fmt, srt_file
 
 
 @requires_ffmpeg
+def test_render_empty_vtt_track_is_rejected_before_burn(solid_aspect_video, tmp_path):
+    from kinocut.engine_subtitles import subtitles
+
+    source = tmp_path / "empty.vtt"
+    source.write_text("WEBVTT\n\n", encoding="utf-8")
+    video, _dims = solid_aspect_video
+    output = tmp_path / "captioned.mp4"
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        subtitles(video, str(source), output_path=str(output))
+
+    assert excinfo.value.code == "subtitle_no_cues"
+    assert not output.exists()
+    assert list(tmp_path.glob("tmp*.ass")) == []
+
+
+@requires_ffmpeg
 def test_render_generate_subtitles_clamps_entries_to_video_eof(tmp_path):
     from kinocut.engine_subtitle_generate import generate_subtitles
 
@@ -228,6 +245,33 @@ def test_render_authored_ass_source_bytes_unchanged(solid_aspect_video, authored
     subtitles(path, authored_ass_file, output_path=str(tmp_path / "o.mp4"))
     after = hashlib.sha256(Path(authored_ass_file).read_bytes()).hexdigest()
     assert before == after  # authored ASS is never rewritten
+
+
+@requires_ffmpeg
+@pytest.mark.parametrize(
+    "content",
+    [
+        "",
+        "[Script Info]\n[Events]\nFormat: Layer, Start, End, Style, Text\n",
+        "[Events]\nDialogue:\n",
+        "[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,   \n",
+    ],
+)
+def test_render_empty_authored_ass_is_rejected_before_burn(content, solid_aspect_video, tmp_path):
+    from kinocut.engine_subtitles import subtitles
+
+    source = tmp_path / "empty.ass"
+    source.write_text(content, encoding="utf-8")
+    video, _dims = solid_aspect_video
+    output = tmp_path / "captioned.mp4"
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        subtitles(video, str(source), output_path=str(output))
+
+    assert excinfo.value.code == "subtitle_no_cues"
+    assert source.read_text(encoding="utf-8") == content
+    assert not output.exists()
+    assert list(tmp_path.glob("tmp*.ass")) == []
 
 
 @requires_ffmpeg
@@ -513,7 +557,10 @@ def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, s
     from kinocut import engine_subtitles
 
     source = tmp_path / "source.ass"
-    source.write_text("[Script Info]\n", encoding="utf-8")
+    source.write_text(
+        "[Script Info]\n[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,Hello\n",
+        encoding="utf-8",
+    )
     output = tmp_path / "burn.ass"
     descriptor = os.open(output, os.O_CREAT | os.O_WRONLY, 0o600)
     original_fdopen = os.fdopen

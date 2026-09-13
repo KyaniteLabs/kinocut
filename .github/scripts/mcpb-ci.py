@@ -94,7 +94,52 @@ def _tree_exists(process: subprocess.Popen[bytes]) -> bool:
         return False
     except PermissionError:
         return True
+    live = _linux_group_has_live_member(process.pid)
+    if live is not None:
+        return live
     return True
+
+
+def _linux_group_has_live_member(pgid: int, proc_root: Path = Path("/proc")) -> bool | None:
+    """Return Linux group liveness, treating zombie-only groups as terminated."""
+    if not sys.platform.startswith("linux") or not proc_root.is_dir():
+        return None
+    found = False
+    try:
+        entries = list(proc_root.iterdir())
+    except OSError:
+        return None
+    for entry in entries:
+        if not entry.name.isdigit():
+            continue
+        try:
+            stat = (entry / "stat").read_text(encoding="utf-8")
+        except (FileNotFoundError, ProcessLookupError):
+            continue
+        except OSError:
+            return None
+        end = stat.rfind(")")
+        fields = stat[end + 2 :].split() if end >= 0 else []
+        if len(fields) < 3:
+            return None
+        try:
+            member_pgid = int(fields[2])
+        except ValueError:
+            return None
+        if member_pgid != pgid:
+            continue
+        found = True
+        if fields[0] != "Z":
+            return True
+    if found:
+        return False
+    try:
+        os.killpg(pgid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return None
 
 
 def _wait_tree_gone(process: subprocess.Popen[bytes], timeout: float) -> bool:

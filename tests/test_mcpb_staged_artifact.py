@@ -84,6 +84,48 @@ def test_ci_timeout_stops_owned_descendant_tree(tmp_path: Path) -> None:
     assert helper._owner_helper().wait_pid_gone(int(pid_file.read_text(encoding="utf-8")))
 
 
+@pytest.mark.parametrize(("states", "expected"), [(["Z"], False), (["Z", "R"], True)])
+def test_linux_group_liveness_distinguishes_zombies_from_running_members(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, states: list[str], expected: bool
+) -> None:
+    helper = _ci_helper()
+    monkeypatch.setattr(helper.sys, "platform", "linux")
+    pgid = 43210
+    for offset, state in enumerate(states, start=1):
+        process = tmp_path / str(1000 + offset)
+        process.mkdir()
+        (process / "stat").write_text(
+            f"{1000 + offset} (fixture process) {state} 1 {pgid} 0 0 0\n",
+            encoding="utf-8",
+        )
+
+    assert helper._linux_group_has_live_member(pgid, tmp_path) is expected
+
+
+def test_linux_group_liveness_fails_closed_on_unreadable_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    helper = _ci_helper()
+    monkeypatch.setattr(helper.sys, "platform", "linux")
+    process = tmp_path / "1001"
+    process.mkdir()
+    (process / "stat").write_text("malformed\n", encoding="utf-8")
+
+    assert helper._linux_group_has_live_member(43210, tmp_path) is None
+
+
+@pytest.mark.parametrize(("state", "expected"), [("Z", False), ("R", True)])
+def test_linux_pid_liveness_distinguishes_zombie_from_running(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch, state: str, expected: bool
+) -> None:
+    owner = _ci_helper()._owner_helper()
+    monkeypatch.setattr(owner.sys, "platform", "linux")
+    pid = 1001
+    process = tmp_path / str(pid)
+    process.mkdir()
+    (process / "stat").write_text(f"{pid} (fixture process) {state} 1 43210 0 0 0\n", encoding="utf-8")
+
+    assert owner._linux_pid_is_live(pid, tmp_path) is expected
+
+
 def test_cleanup_probe_records_observed_launcher_loss_and_suppresses_false_success(
     tmp_path: Path, monkeypatch: pytest.MonkeyPatch
 ) -> None:

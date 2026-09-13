@@ -459,7 +459,25 @@ def pid_exists(pid: int) -> bool:
         return False
     except PermissionError:
         return True
+    live = _linux_pid_is_live(pid)
+    if live is not None:
+        return live
     return True
+
+
+def _linux_pid_is_live(pid: int, proc_root: Path = Path("/proc")) -> bool | None:
+    """Return False for a terminated but unreaped Linux process."""
+    if not sys.platform.startswith("linux") or not proc_root.is_dir():
+        return None
+    try:
+        stat = (proc_root / str(pid) / "stat").read_text(encoding="utf-8")
+    except OSError:
+        return None
+    end = stat.rfind(")")
+    fields = stat[end + 2 :].split() if end >= 0 else []
+    if not fields:
+        return None
+    return fields[0] != "Z"
 
 
 def wait_pid_gone(pid: int, timeout: float = 5) -> bool:
