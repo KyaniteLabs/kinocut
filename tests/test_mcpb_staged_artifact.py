@@ -102,9 +102,7 @@ def test_linux_group_liveness_distinguishes_zombies_from_running_members(
     assert helper._linux_group_has_live_member(pgid, tmp_path) is expected
 
 
-def test_linux_group_liveness_fails_closed_on_unreadable_state(
-    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
-) -> None:
+def test_linux_group_liveness_fails_closed_on_unreadable_state(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     helper = _ci_helper()
     monkeypatch.setattr(helper.sys, "platform", "linux")
     process = tmp_path / "1001"
@@ -123,9 +121,7 @@ def test_linux_pid_liveness_distinguishes_zombie_from_running(
     pid = 1001
     process = tmp_path / str(pid)
     process.mkdir()
-    (process / "stat").write_text(
-        f"{pid} (fixture process) {state} 1 43210 0 0 0\n", encoding="utf-8"
-    )
+    (process / "stat").write_text(f"{pid} (fixture process) {state} 1 43210 0 0 0\n", encoding="utf-8")
 
     assert owner._linux_pid_is_live(pid, tmp_path) is expected
 
