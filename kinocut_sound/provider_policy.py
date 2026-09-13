@@ -281,14 +281,14 @@ class ProviderRequest(FrozenModel):
     @field_validator("territory")
     @classmethod
     def _territory(cls, value: str) -> str:
-        if not TERRITORY_RE.match(value):
+        if not TERRITORY_RE.fullmatch(value):
             raise ValueError("territory must be bounded")
         return value
 
     @field_validator("at_iso")
     @classmethod
     def _timestamp(cls, value: str) -> str:
-        if not ISO8601_RE.match(value):
+        if not ISO8601_RE.fullmatch(value):
             raise ValueError("at_iso must be UTC ISO-8601")
         return value
 
@@ -335,7 +335,7 @@ class CloudExecutionApproval(FrozenModel):
     @field_validator("territory")
     @classmethod
     def _territory(cls, value: str) -> str:
-        if not TERRITORY_RE.match(value):
+        if not TERRITORY_RE.fullmatch(value):
             raise ValueError("territory must be bounded")
         return value
 
@@ -415,7 +415,7 @@ def _sanitize_context(value: object) -> AuthorizationContext:
         "provider_class": value.provider_class,
     }
     checked = {name: BoundedCode(item) if item is not None else None for name, item in codes.items()}
-    if value.territory is not None and not TERRITORY_RE.match(value.territory):
+    if value.territory is not None and not TERRITORY_RE.fullmatch(value.territory):
         raise ValueError("authorization territory is invalid")
     return AuthorizationContext(**checked, territory=value.territory)
 

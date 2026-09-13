@@ -193,7 +193,8 @@ class BlendRenderer:
             duration_seconds=base.duration_seconds,
             sample_rate_hz=base.sample_rate_hz,
             channel_count=base.channel_count,
-            recipe_digest="sha256:" + hashlib.sha256(
+            recipe_digest="sha256:"
+            + hashlib.sha256(
                 profile.profile_id.encode("utf-8")
                 + b"|"
                 + "|".join(f"{s.grant_id}:{s.eq_preset}" for s in profile.sources).encode("utf-8")
@@ -309,7 +310,7 @@ class BlendRenderer:
         context: AuthorizationContext,
         at_iso: str,
     ) -> str:
-        if not isinstance(output_path, str) or not _SAFE_REL_PATH.match(output_path):
+        if not isinstance(output_path, str) or not _SAFE_REL_PATH.fullmatch(output_path):
             raise voice_error(
                 "blend export path must be a safe project-relative path",
                 ADAPTER_INPUT_INVALID,

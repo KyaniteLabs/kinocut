@@ -12,6 +12,17 @@ from __future__ import annotations
 
 import re
 
+PCM_MIX_CHANNEL_COUNTS = frozenset({1, 2})
+
+ASR_PYTHON_NAME_RE = re.compile(r"python(?:\d+(?:\.\d+)*)?")
+ASR_VERSION_RE = re.compile(r"[a-zA-Z0-9.+_-]{1,64}")
+ASR_MODEL_DIGEST_RE = re.compile(r"[a-f0-9]{64}")
+
+# Legacy SRT extraction patterns; strict dubbing validates whole blocks first.
+SRT_CUE_SPLIT_RE = re.compile(r"\n\s*\n")
+SRT_TIMESTAMP_RE = re.compile(r"(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})")
+ESPEAK_VERSION_RE = re.compile(r"eSpeak NG text-to-speech:\s*([0-9]+(?:\.[0-9]+){1,3}(?:[-+][A-Za-z0-9.-]+)?)")
+
 # --- Canonical typed-id patterns (strings for Pydantic Field pattern=) ---
 
 SHA256_PATTERN: str = r"^sha256:[0-9a-f]{64}$"
@@ -53,9 +64,7 @@ TERRITORY_RE: re.Pattern[str] = re.compile(r"^[A-Za-z0-9]{2,16}$")
 ADAPTER_KINDS: frozenset[str] = frozenset({"tts", "processor", "spatializer", "asset", "analyzer"})
 
 # Closed set of determinism classes. A stage declares exactly one.
-DETERMINISM_CLASSES: frozenset[str] = frozenset(
-    {"byte_deterministic", "signal_equivalent", "non_reproducible"}
-)
+DETERMINISM_CLASSES: frozenset[str] = frozenset({"byte_deterministic", "signal_equivalent", "non_reproducible"})
 
 # --- Canonical record policy ---
 
@@ -63,3 +72,13 @@ DETERMINISM_CLASSES: frozenset[str] = frozenset(
 # This set may never contain a semantic field; excluding one would let two
 # logically distinct records collide on the same id.
 INFORMATIONAL_FIELDS: frozenset[str] = frozenset({"created_at"})
+
+FFMPEG_METER_VERSION_RE = re.compile(r"^ffmpeg version ([A-Za-z0-9.+_~:-]{1,80})(?:\s|$)")
+FFMPEG_MASTER_LUFS_RANGE = (-70.0, -5.0)
+FFMPEG_MASTER_PEAK_RANGE = (-9.0, 0.0)
+EBUR128_SUMMARY_RE = re.compile(
+    r"Integrated loudness:\s+I:\s+(\S+) LUFS\s+Threshold:\s+\S+ LUFS\s+"
+    r"Loudness range:\s+LRA:\s+(\S+) LU\s+Threshold:\s+\S+ LUFS\s+"
+    r"LRA low:\s+\S+ LUFS\s+LRA high:\s+\S+ LUFS\s+"
+    r"True peak:\s+Peak:\s+(\S+) dBFS"
+)

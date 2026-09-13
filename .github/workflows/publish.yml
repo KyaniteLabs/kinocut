@@ -16,7 +16,7 @@ jobs:
   surface-audit:
     name: Check tracked release surface
     if: github.event_name == 'release'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
     permissions:
       contents: read
     steps:
@@ -33,7 +33,8 @@ jobs:
     name: Build release artifacts
     needs: surface-audit
     if: github.event_name == 'release'
-    runs-on: blacksmith-2vcpu-ubuntu-2404
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
     permissions:
       contents: read
     steps:
@@ -96,6 +97,21 @@ jobs:
           if package_versions != {version}:
               failures.append(f"server.json package versions {sorted(package_versions)!r} do not match {version!r}")
 
+          shim_server = json.loads(Path("compat/mcp-video-shim/server.json").read_text())
+          if shim_server.get("name") != "io.github.KyaniteLabs/mcp-video":
+              failures.append(f"compatibility server name is {shim_server.get('name')!r}, expected 'io.github.KyaniteLabs/mcp-video'")
+          if shim_server.get("version") != shim_version:
+              failures.append(f"compatibility server.json version {shim_server.get('version')!r} does not match mcp-video {shim_version!r}")
+          shim_packages = shim_server.get("packages", [])
+          if any(pkg.get("registryType") != "pypi" or pkg.get("identifier") != "mcp-video" for pkg in shim_packages):
+              failures.append("compatibility server.json packages must reference the mcp-video PyPI distribution")
+          shim_package_versions = {pkg.get("version") for pkg in shim_packages}
+          if shim_package_versions != {shim_version}:
+              failures.append(f"compatibility server.json package versions {sorted(shim_package_versions)!r} do not match {shim_version!r}")
+
+          if "mcp-name: io.github.KyaniteLabs/mcp-video" not in Path("compat/mcp-video-shim/README.md").read_text():
+              failures.append("shim README lost the mcp-name marker — PyPI ownership validation at registry publish would fail")
+
           def allow_existing_release_artifact(url, label):
               try:
                   urllib.request.urlopen(url, timeout=20).close()
@@ -132,16 +148,17 @@ jobs:
 
           from jsonschema import Draft7Validator
 
-          server = json.loads(Path("server.json").read_text())
-          with urllib.request.urlopen(server["$schema"], timeout=20) as response:
-              schema = json.load(response)
-          errors = sorted(Draft7Validator(schema).iter_errors(server), key=lambda error: list(error.path))
-          if errors:
-              for error in errors:
-                  path = "/".join(str(part) for part in error.path) or "<root>"
-                  print(f"{path}: {error.message}")
-              raise SystemExit(1)
-          print(f"MCP registry metadata is valid for {server['name']} {server['version']}.")
+          for metadata_path in ("server.json", "compat/mcp-video-shim/server.json"):
+              server = json.loads(Path(metadata_path).read_text())
+              with urllib.request.urlopen(server["$schema"], timeout=20) as response:
+                  schema = json.load(response)
+              errors = sorted(Draft7Validator(schema).iter_errors(server), key=lambda error: list(error.path))
+              if errors:
+                  for error in errors:
+                      path = "/".join(str(part) for part in error.path) or "<root>"
+                      print(f"{metadata_path}: {path}: {error.message}")
+                  raise SystemExit(1)
+              print(f"MCP registry metadata is valid for {server['name']} {server['version']} ({metadata_path}).")
           PY
       - name: Build Python distributions
         run: |
@@ -177,6 +194,29 @@ jobs:
           .venv-upgrade/bin/pip uninstall --yes mcp-video
           .venv-upgrade/bin/pip check
           .venv-upgrade/bin/python -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
+      - name: Verify clean-wheel timed-caption onboarding
+        env:
+          CANDIDATE_SHA: ${{ github.sha }}
+        run: |
+          if ! command -v ffmpeg &>/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y ffmpeg
+          fi
+          run_root="${RUNNER_TEMP}/kinocut-release-onboarding-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          python -m venv "${RUNNER_TEMP}/kinocut-release-onboarding-venv"
+          "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/pip" install release-dist/kinocut-*.whl
+          "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/pip" check
+          mkdir -p "$run_root"
+          "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/python" scripts/verify_onboarding_release.py \
+            --wheel "$(find release-dist -maxdepth 1 -name 'kinocut-*.whl' -print -quit)" \
+            --source "$run_root/source.mp4" \
+            --captions "$GITHUB_WORKSPACE/tests/fixtures/onboarding-captions.srt" \
+            --output-dir "$run_root/output" \
+            --python "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/python" \
+            --kino "${RUNNER_TEMP}/kinocut-release-onboarding-venv/bin/kino" \
+            --candidate-commit "$CANDIDATE_SHA" \
+            --evidence-class synthetic_fixture \
+            --generate-synthetic-source
       - name: Upload Python artifacts
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -308,4 +348,6 @@ jobs:
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc
       - name: Publish server metadata
-        run: ./mcp-publisher publish
+        run: |
+          ./mcp-publisher publish
+          ./mcp-publisher publish compat/mcp-video-shim/server.json

@@ -59,7 +59,7 @@ def test_translate_captions_en_es(tmp_path: Path) -> None:
     out = Path(result.output_path).read_text(encoding="utf-8").lower()
     assert "hola" in out or "mundo" in out or "gracias" in out
     assert result.cue_count == 2
-    assert result.coverage["surfaces"]["dub"]["available"] is False
+    assert result.coverage["surfaces"]["dub"]["translation_applied"] is False
 
 
 def test_translate_unsupported_pair_fails(tmp_path: Path) -> None:
@@ -69,11 +69,17 @@ def test_translate_unsupported_pair_fails(tmp_path: Path) -> None:
         translate_caption_file(str(srt), source_lang="en", target_lang="fr")
 
 
-def test_language_coverage_principle() -> None:
+@pytest.mark.parametrize("installed", [False, True])
+def test_language_coverage_principle(monkeypatch, installed) -> None:
+    monkeypatch.setattr(
+        "kinocut.intent.language_coverage.shutil.which", lambda _: "/candidate/espeak-ng" if installed else None
+    )
     report = language_coverage_report()
     assert report["principle"].startswith("transcribe/translate/dub")
     assert report["surfaces"]["translate"]["available"] is True
-    assert report["surfaces"]["dub"]["available"] is False
+    assert report["surfaces"]["dub"]["available"] is installed
+    assert report["surfaces"]["dub"]["implemented_languages"] == ["en", "es"]
+    assert report["surfaces"]["dub"]["supported_languages_or_pairs"] == (["en", "es"] if installed else [])
 
 
 def test_review_run_and_decide() -> None:

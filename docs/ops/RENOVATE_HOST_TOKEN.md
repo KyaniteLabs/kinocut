@@ -1,65 +1,47 @@
-# Renovate host token (#3)
+# Renovate host token (#3) — superseded for Kinocut
 
-**Status:** agent-prep complete · live enablement is **human/Forgejo admin**  
-**Related:** `docs/HUMAN_GATES.md` · `.renovaterc.json` · `.forgejo/workflows/renovate.yml` · `.github/dependabot.yml`
+**Status:** superseded 2026-09-06 by Kinocut's GitHub-primary policy
+**Proposal and transition context:** [#499](https://github.com/KyaniteLabs/kinocut/issues/499)
+**Related:** `docs/HUMAN_GATES.md` · `.renovaterc.json` · `.github/dependabot.yml`
 
-## What is already in-repo
+## Current direction
+
+GitHub is the canonical host for Kinocut dependency PRs. Use
+`.github/dependabot.yml` and review dependency updates through the normal GitHub
+PR and CI path. Forgejo is a downstream mirror; a scheduled Renovate job there
+must not create or merge an independent normal change.
+
+The [GitHub-to-Forgejo sync implementation](../../.github/workflows/sync-forgejo.yml)
+is present. Bootstrap, activation, and live verification remain pending. Until
+those gates pass, report drift and do not restore the removed Forgejo Renovate
+workflow as a workaround.
+
+## Repository artifacts during cutover
 
 | Artifact | Role |
 | --- | --- |
-| `.renovaterc.json` | Recommended Renovate config (`config:recommended`, automerge on) |
-| `.forgejo/workflows/renovate.yml` | Scheduled Renovate job (every 6h + `workflow_dispatch`) on Forgejo |
-| `.github/dependabot.yml` | GitHub-side dependency PRs (mirror host) |
+| `.github/dependabot.yml` | Canonical GitHub dependency PRs |
+| Former path: `.forgejo/workflows/renovate.yml` | Removed Forgejo-primary job, retained here as historical context |
+| `.renovaterc.json` | Legacy configuration; its Forgejo workflow has been removed |
 
-The workflow expects these **secrets on the Forgejo repo or org**:
+## Superseded setup
 
-| Secret | Purpose |
-| --- | --- |
-| `RENOVATE_TOKEN` | Forgejo personal access token (or app token) with repo write for PR creation |
-| `MIRROR_GITHUB_TOKEN` | Mapped to `GITHUB_COM_TOKEN` so Renovate can read release notes / changelogs on github.com |
+Earlier versions of this runbook directed an operator to provision
+`RENOVATE_TOKEN` and `MIRROR_GITHUB_TOKEN` on Forgejo, dispatch the scheduled
+Renovate workflow, and accept Forgejo dependency PRs. Those directions belonged
+to the former Forgejo-primary topology and must not be executed for Kinocut.
 
-## Human ops steps (Forgejo admin)
+Do not mint, copy, rotate, or install either credential for this superseded path.
+Do not add `hostRules` carrying a GitHub token to `.renovaterc.json`. Existing
+credentials, if any, are an administrator-owned inventory and revocation matter;
+this document makes no claim about their live state.
 
-1. **Create a bot account or use a machine user** with access to `KyaniteLabs/kinocut`.
-2. **Mint `RENOVATE_TOKEN`** with scopes that allow:
-   - repository contents read
-   - pull/PR create + write
-   - issues write (labels/comments as needed by Renovate)
-3. **Mint or reuse a GitHub PAT** (`MIRROR_GITHUB_TOKEN`) with `public_repo` (or fine-grained read on public deps) so github.com rate limits do not starve changelog lookups.
-4. In Forgejo: **Settings → Actions → Secrets** (repo or org) set:
-   - `RENOVATE_TOKEN`
-   - `MIRROR_GITHUB_TOKEN`
-5. Confirm the runner label used by `.forgejo/workflows/renovate.yml` (`heavy` today) is online.
-6. Trigger once: Actions → **Renovate** → `workflow_dispatch`, or wait for the cron.
-7. Verify a dependency PR opens (or logs show “no updates”).
+## Cutover acceptance
 
-## Optional hostRules (when github.com is blocked or needs a different token)
+- [ ] A GitHub Dependabot PR runs the normal exact-head GitHub CI and review gates.
+- [ ] No scheduled or manual Forgejo Renovate job creates an independent PR.
+- [ ] The separate GitHub-to-Forgejo sync gate proves the accepted GitHub commit reaches Forgejo unchanged.
+- [ ] Documentation no longer directs maintainers or contributors to land dependency changes on Forgejo.
 
-If the runner cannot reach github.com anonymously, extend `.renovaterc.json`:
-
-```json
-{
-  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "extends": ["config:recommended"],
-  "automerge": true,
-  "platformAutomerge": true,
-  "hostRules": [
-    {
-      "hostType": "github",
-      "matchHost": "github.com",
-      "token": "{{ secrets.GITHUB_COM_TOKEN }}"
-    }
-  ]
-}
-```
-
-Secrets must be injected via the workflow env (already sets `GITHUB_COM_TOKEN` from `MIRROR_GITHUB_TOKEN`). Do **not** commit real tokens.
-
-## Done criteria for #3
-
-- [ ] `RENOVATE_TOKEN` present on Forgejo host
-- [ ] `MIRROR_GITHUB_TOKEN` present (for github.com)
-- [ ] At least one successful Renovate workflow run (green or “no updates”)
-- [ ] Optional: first dependency PR reviewed/merged
-
-This file is the agent-closable runbook. Checking the boxes above is human/ops only.
+These checks describe the desired state; they do not claim the GitHub-to-Forgejo downstream sync gate
+or any credential cleanup has completed.

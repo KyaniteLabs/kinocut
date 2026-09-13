@@ -159,6 +159,23 @@ def test_render_synthesized_ass_has_exactly_one_playres_equal_dims(fmt, srt_file
 
 
 @requires_ffmpeg
+def test_render_empty_vtt_track_is_rejected_before_burn(solid_aspect_video, tmp_path):
+    from kinocut.engine_subtitles import subtitles
+
+    source = tmp_path / "empty.vtt"
+    source.write_text("WEBVTT\n\n", encoding="utf-8")
+    video, _dims = solid_aspect_video
+    output = tmp_path / "captioned.mp4"
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        subtitles(video, str(source), output_path=str(output))
+
+    assert excinfo.value.code == "subtitle_no_cues"
+    assert not output.exists()
+    assert list(tmp_path.glob("tmp*.ass")) == []
+
+
+@requires_ffmpeg
 def test_render_generate_subtitles_clamps_entries_to_video_eof(tmp_path):
     from kinocut.engine_subtitle_generate import generate_subtitles
 
@@ -231,6 +248,33 @@ def test_render_authored_ass_source_bytes_unchanged(solid_aspect_video, authored
 
 
 @requires_ffmpeg
+@pytest.mark.parametrize(
+    "content",
+    [
+        "",
+        "[Script Info]\n[Events]\nFormat: Layer, Start, End, Style, Text\n",
+        "[Events]\nDialogue:\n",
+        "[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,   \n",
+    ],
+)
+def test_render_empty_authored_ass_is_rejected_before_burn(content, solid_aspect_video, tmp_path):
+    from kinocut.engine_subtitles import subtitles
+
+    source = tmp_path / "empty.ass"
+    source.write_text(content, encoding="utf-8")
+    video, _dims = solid_aspect_video
+    output = tmp_path / "captioned.mp4"
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        subtitles(video, str(source), output_path=str(output))
+
+    assert excinfo.value.code == "subtitle_no_cues"
+    assert source.read_text(encoding="utf-8") == content
+    assert not output.exists()
+    assert list(tmp_path.glob("tmp*.ass")) == []
+
+
+@requires_ffmpeg
 def test_render_authored_ass_position_is_centered(solid_aspect_video, authored_ass_file, tmp_path):
     from kinocut.engine_subtitles import subtitles
 
@@ -250,9 +294,13 @@ def test_render_authored_ass_position_is_centered(solid_aspect_video, authored_a
 
 @requires_ffmpeg
 @pytest.mark.parametrize("fmt", ["srt", "vtt"])
-def test_render_dimension_aware_caption_renders_in_frame(fmt, solid_aspect_video, srt_file, vtt_file, tmp_path):
+def test_render_dimension_aware_caption_renders_in_frame(
+    fmt, solid_aspect_video, srt_file, vtt_file, tmp_path, monkeypatch
+):
     from kinocut.engine_subtitles import subtitles
+    from tests.subtitle_capture import SubtitleCapture
 
+    capture = SubtitleCapture(tmp_path, monkeypatch)
     sub = srt_file if fmt == "srt" else vtt_file
     path, _dims = solid_aspect_video
     out = str(tmp_path / f"o_{fmt}.mp4")
@@ -261,6 +309,7 @@ def test_render_dimension_aware_caption_renders_in_frame(fmt, solid_aspect_video
     dst = _extract_ppm(out, 1.0)
     bottom = _region_peak_diff(src, dst, (0.10, 0.62, 0.90, 0.99))
     top = _region_peak_diff(src, dst, (0.0, 0.0, 1.0, 0.12))
+    capture.pixels(path, out, _dims, bottom, top)
     assert bottom > 80  # caption is rendered in-frame at the bottom for this aspect
     assert top < 40  # header region untouched
 
@@ -501,6 +550,40 @@ def test_render_cli_forwards_style_and_defaults_none(monkeypatch):
         handle_initial_command(_ns(None), use_json=True)
     assert captured.get("input") == "in.mp4"  # engine reached
     assert "style" not in captured  # omitted -> not forwarded (engine default None)
+
+
+@pytest.mark.parametrize("subtitle_format", ["ass", "srt"])
+def test_burn_source_does_not_close_a_reused_descriptor(monkeypatch, tmp_path, subtitle_format):
+    from kinocut import engine_subtitles
+
+    source = tmp_path / "source.ass"
+    source.write_text(
+        "[Script Info]\n[Events]\nDialogue: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,Hello\n",
+        encoding="utf-8",
+    )
+    output = tmp_path / "burn.ass"
+    descriptor = os.open(output, os.O_CREAT | os.O_WRONLY, 0o600)
+    original_fdopen = os.fdopen
+    reused = []
+
+    @contextlib.contextmanager
+    def recycle_after_close(fd, *args, **kwargs):
+        with original_fdopen(fd, *args, **kwargs) as stream:
+            yield stream
+        replacement = os.open(tmp_path / "unrelated.txt", os.O_CREAT | os.O_WRONLY, 0o600)
+        reused.append(replacement)
+        assert replacement == fd
+
+    monkeypatch.setattr(engine_subtitles.os, "fdopen", recycle_after_close)
+    monkeypatch.setattr(engine_subtitles, "probe_display_dimensions", lambda _: (320, 240))
+    monkeypatch.setattr(engine_subtitles, "synthesize_dimensioned_ass", lambda *_: "[Script Info]\n")
+    try:
+        engine_subtitles._fill_burn_source(descriptor, subtitle_format, str(source), "unused.mp4")
+        assert os.write(reused[0], b"still owned by another operation") > 0
+    finally:
+        for fd in reused:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
 def test_render_cli_subtitles_parser_has_style_flag():

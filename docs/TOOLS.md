@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino exposes **196** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes video authoring, repurposing packages, audio, effects, analysis, and image workflows. In 1.14.0, 360 dual-cam assembly reuses `video_intent` + `video_review_decide` — it is **not** a 197th tool. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions. High-risk video/audio operations also run preflight guardrails that warn or fail early before FFmpeg can silently produce unusable output.
+kino's development tip exposes **200** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.1 remains at **196 MCP tools / 167 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
 
 ---
 
@@ -243,6 +243,30 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 
 ---
 
+## Revideo — guarded local code video (4 tools, development tip)
+
+| Tool | Purpose |
+| --- | --- |
+| `revideo_materialize` | Copy Kinocut's pinned bridge template and write a validated job. |
+| `revideo_install` | Run bounded `npm ci` against the committed lockfile. |
+| `revideo_render` | Render a verified materialized project and atomically publish its output. |
+| `revideo_render_job` | Run materialize, install, render, decode verification, and receipt generation. |
+
+`npm ci` can access the npm registry; rendering then runs on the local machine.
+A supplied `scene_source` is trusted executable TypeScript. Kinocut rejects altered
+control files, symlinks below the project root, malformed jobs, invalid timeouts,
+and unverified output. Each render uses a fresh private project output, verifies
+counted frames plus a full decode, and updates prior project and final outputs
+only after validation. Render responses include output and exact on-disk job-file
+SHA-256 digests, observed dimensions, fps, frame count, duration, render time,
+and project directory. `.mp4`, `.webm`, and `.mov` select pinned MP4, WebM,
+and ProRes 4444 exporter modes, with encoded format checks before publication. Run a
+quality check and human visual review before publication. Local concurrent path
+replacement, process crashes, and trusted scene behavior remain outside this
+bounded in-process rollback guard. The job file is capped at one MiB; its
+pre/post render binding is byte-exact, so formatting-only mutation also rejects
+publication.
+
 ## Repurposing (2 tools)
 
 Create local YouTube/social media packages from one source video. Publishing and scheduling are intentionally out of scope for v1; the tools produce files, manifests, thumbnails, storyboards, and optional release-checkpoint artifacts for a human or downstream publisher to review.
@@ -268,18 +292,19 @@ See [STREAM_SHORTS.md](STREAM_SHORTS.md).
 
 ---
 
-## Sound public join (thin S12, 6 tools)
+## Sound public operations
 
 Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This is **not** full-episode sonic-world completion. Results are JSON-safe and fail closed on hostile/privacy boundaries.
 
 | Tool | Description |
 |------|-------------|
 | `sound_capabilities` | Discover the bounded public sound operation set (local-first, non-TTY JSON) |
-| `sound_plan_validate` | Validate a SoundPlan payload (or a built-in minimal plan when omitted) |
-| `sound_voice_batch` | Render a local deterministic voice batch from a SoundPlan (relative paths only) |
-| `sound_mix_render` | Render a bounded local mix for a minimal timeline (duration/stem smoke path) |
-| `sound_qa_loudness` | Measure loudness against the default delivery policy on synthetic audio |
-| `sound_qa_asr` | Run the local fake ASR verification port against script hashes |
+| `sound_plan_validate` | Validate a supplied SoundPlan, including typed state; explicit invalid plans fail. Omission retains the minimal example. See [input validation](SOUND_INPUT_VALIDATION.md). |
+| `sound_voice_batch` | Retain local EN/ES caption speech with `request` + `project_root`, including V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy `plan` mode is a labelled synthetic demo. See [caption speech](SOUND_DUB_REQUESTS.md). |
+| `sound_mix_render` | Assemble supplied WAVs with [routing](SOUND_ROUTING_REQUESTS.md), [automation](SOUND_AUTOMATION_REQUESTS.md), [sends](SOUND_SEND_REQUESTS.md), [final sidechains](SOUND_SIDECHAIN_REQUESTS.md), [layers/loop fill/ducking](SOUND_LAYER_REQUESTS.md) and V4 [source-rate conversion](SOUND_RATE_CONVERSION.md). Takes a persisted request and project root. No-argument labelled demo remains available. See [request contract](SOUND_MIX_REQUESTS.md). |
+| `sound_qa_loudness` | Measure hashed local mono/stereo PCM16 WAVs with FFmpeg and report actual policy compliance; omit inputs for a labelled demo. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
+| `sound_master_render` | Retain a mono/stereo two-pass master ZIP only after measuring final audio against its policy. Requires `request` and `project_root`; see [master request](SOUND_MASTER_REQUESTS.md). |
+| `sound_qa_asr` | Recognize hashed local audio and retain reference comparison; omitted request is a labelled simulation ([contract](SOUND_ASR_REQUESTS.md)) |
 
 ---
 

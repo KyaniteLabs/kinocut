@@ -18,6 +18,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 
 from pydantic import Field, field_validator
@@ -95,9 +97,9 @@ class CatalogAsset(FrozenModel):
             raise ValueError("asset tags must be unique")
         return value
 
-    @field_validator("duration_seconds")
+    @field_validator("duration_seconds", mode="before")
     @classmethod
-    def _duration_not_boolean(cls, value: float) -> float:
+    def _duration_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("duration_seconds must not be a boolean")
         return value

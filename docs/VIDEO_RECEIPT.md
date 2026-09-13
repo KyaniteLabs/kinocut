@@ -8,9 +8,17 @@ Use it when a workflow creates or edits media that may be published, handed to a
 
 ```json
 {
+  "run_id": "4f1e...",
+  "candidate": {
+    "package": "kinocut",
+    "version": "1.15.1",
+    "commit": "0123456789abcdef0123456789abcdef01234567"
+  },
   "user_intent": "Turn a source clip into a captioned vertical short.",
   "source_media": {
     "path": "output/source.mp4",
+    "sha256": "sha256:...",
+    "byte_size": 123456,
     "duration_seconds": 6.0,
     "width": 1280,
     "height": 720
@@ -32,11 +40,12 @@ Use it when a workflow creates or edits media that may be published, handed to a
   "guardrails_triggered": [],
   "quality": {
     "all_passed": true,
-    "overall_score": 70.3,
+    "overall_score": 90.3,
     "recommendations": []
   },
   "review_artifacts": {
     "final_video": "output/final_clip.mp4",
+    "final_sha256": "sha256:...",
     "thumbnail": "output/checkpoint/thumbnail.jpg",
     "storyboard": [
       "output/checkpoint/storyboard/frame_01.jpg",
@@ -61,7 +70,19 @@ Use it when a workflow creates or edits media that may be published, handed to a
 - Do not hide quality warnings. Warnings are part of the proof.
 - Do not overwrite source media.
 - Do not mark human review complete automatically.
+- Bind source, final output, wheel, and candidate identities before treating a receipt as release evidence.
 - Keep generated videos, thumbnails, and storyboards out of git unless they are intentionally curated release/demo assets.
+
+The clean-wheel timed-caption gate is documented in
+[GOLDEN_PATH.md](GOLDEN_PATH.md). Its synthetic and real-media rows use the same
+technical harness, but both emit `human_review.status: pending`.
+
+Record a later human decision separately with the exact final-output SHA-256,
+candidate commit, wheel SHA-256, reviewer identity, UTC timestamp, an
+`approve | reject` decision, and explicit booleans for caption timing, caption
+readability, visual integrity, and audio intelligibility. Do not include source
+paths, output paths, transcripts, or private media. Any source change, new
+wheel, or rerender invalidates the decision.
 
 ## Local Verification
 

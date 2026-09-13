@@ -563,24 +563,41 @@ def _escape_ffmpeg_filter_value(value: str) -> str:
     )
 
 
+_WINDOWS_FILTER_PATH_RE = re.compile(r"^(?:[A-Za-z]:[\\/]{1,2}|\\\\)")
+
+
 def _escape_ffmpeg_filter_path(value: str) -> str:
-    """Escape a filesystem path used as an *unquoted* FFmpeg filter option value.
+    """Escape a filesystem path used as an FFmpeg filter option value.
 
-    An unquoted option value is unescaped twice: once by the filtergraph parser and
-    once by the filter's own argument parser. ``_escape_ffmpeg_filter_value`` escapes
-    only once, which is enough on POSIX but breaks on Windows: the drive-letter colon
-    survives the first pass and is then read as an option separator, and the
-    backslashes are consumed as escape characters.
+    Two shapes, two strategies — both verified against a real ``subtitles=``
+    burn-in (ffmpeg 7.x, 2026-08-31), because every rule here was learned from
+    an actual decoder failure, not from the docs:
 
-    ``C:\\dir\\subs.ass`` currently becomes ``C\\:\\\\dir\\\\subs.ass``, which FFmpeg
-    resolves to the filename ``C`` plus a bogus ``original_size`` option. Normalising
-    the separators to forward slashes (accepted by FFmpeg on Windows) keeps them from
-    being eaten, and escaping the colon twice lets it survive both passes.
+    **Windows-style paths** (drive-letter or UNC prefix) stay *unquoted* with
+    double-escaped colons and forward-slashed separators: ``C:\\dir\\subs.ass``
+    becomes ``C\\\\:/dir/subs.ass``. Unquoted is what the two-parser reality
+    requires here — the drive-letter colon must survive BOTH the filtergraph
+    parser and the filter's own option parser, and quoting does not protect a
+    colon from the option parser.
 
-    No-op for ordinary POSIX paths, and correct for POSIX paths that do contain a
-    colon, since the same two-pass parsing applies there.
+    **POSIX-style paths** are emitted *quoted* with a single escaping pass:
+    ``'/tmp/a\\ b,x.ass'``-style output produced by wrapping
+    :func:`_escape_ffmpeg_filter_value` in single quotes. Empirically the
+    quoted single-pass form is the only strategy that lets literal
+    backslashes and the filtergraph metacharacters ``, ; [ ] =`` reach the
+    filter intact; every doubled-backslash variant tested fails one parser
+    or the other, and the pre-quote unquoted form corrupted legal POSIX
+    filenames (``/tmp/a\\b.ass`` opened as ``/tmp/a/b.ass``) and passed
+    ``, ; [ ]`` through raw, splitting the filtergraph.
+
+    Known limitation (fails under every strategy, including all historical
+    ones — not a regression): a filename containing an apostrophe cannot be
+    passed through this seam; FFmpeg's two quote-processing layers eat it in
+    every quoting/escaping combination we tested.
     """
-    return value.replace("\\", "/").replace(":", "\\\\:")
+    if _WINDOWS_FILTER_PATH_RE.match(value):
+        return value.replace("\\", "/").replace(":", "\\\\:")
+    return f"'{_escape_ffmpeg_filter_value(value)}'"
 
 
 def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> float:
@@ -607,7 +624,12 @@ def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> f
         ) from None
 
 
-def _run_ffprobe_json(path: str, *, pass_fds: tuple[int, ...] = ()) -> dict[str, Any]:
+def _run_ffprobe_json(
+    path: str,
+    *,
+    pass_fds: tuple[int, ...] = (),
+    count_frames: bool = False,
+) -> dict[str, Any]:
     """Run ffprobe returning full JSON (format + streams)."""
     import json as _json
 
@@ -619,8 +641,10 @@ def _run_ffprobe_json(path: str, *, pass_fds: tuple[int, ...] = ()) -> dict[str,
         "json",
         "-show_format",
         "-show_streams",
-        path,
     ]
+    if count_frames:
+        cmd.append("-count_frames")
+    cmd.append(path)
     result = (
         _run_command(cmd, timeout=FFPROBE_TIMEOUT, pass_fds=pass_fds)
         if pass_fds

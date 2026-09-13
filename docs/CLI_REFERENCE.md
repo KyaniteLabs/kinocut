@@ -40,7 +40,7 @@ inspection, decision, protection, derivative, and re-review sequence.
 
 ## Intent, review, and cutfiles
 
-Published surface (since 1.14.1; current 1.15.0). These commands do **not** add a 360 CLI verb.
+Published surface (since 1.14.1; current 1.15.1). These commands do **not** add a 360 CLI verb.
 
 | Command | Description |
 |---------|-------------|
@@ -107,13 +107,14 @@ Published surface (since 1.14.1; current 1.15.0). These commands do **not** add 
 | `shorts-render` | Render approved platform drafts from a saved shorts plan |
 | `shorts-package` | Package approved platform renders from a saved shorts plan. Fails closed on quality unless `--allow-fail`. |
 | `sound-capabilities` | Discover the bounded public sound operation set |
-| `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional) |
-| `sound-voice-batch` | Local deterministic voice batch (`--plan-json` optional) |
-| `sound-mix-render` | Bounded local mix render for a minimal timeline |
-| `sound-qa-loudness` | Loudness check against the default delivery policy |
-| `sound-qa-asr` | Fake ASR verification (`--script-hashes`, `--audio-duration-seconds`) |
+| `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional); explicit empty or invalid plans fail. See [input validation](SOUND_INPUT_VALIDATION.md). |
+| `sound-voice-batch` | Retained local caption speech (`--request-json`, `--project-root`) with V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy synthetic demo (`--plan-json` optional). See [caption speech](SOUND_DUB_REQUESTS.md). |
+| `sound-mix-render` | Supplied-media mix ZIP with [routing](SOUND_ROUTING_REQUESTS.md), [automation](SOUND_AUTOMATION_REQUESTS.md), [sends](SOUND_SEND_REQUESTS.md), [sidechains](SOUND_SIDECHAIN_REQUESTS.md), [layers/loop fill/ducking](SOUND_LAYER_REQUESTS.md) and V4 [source-rate conversion](SOUND_RATE_CONVERSION.md), via `--request-json` and `--project-root`; omit both for a labelled demo. See [request contract](SOUND_MIX_REQUESTS.md). |
+| `sound-qa-loudness` | Actual mono/stereo PCM16 FFmpeg measurement via `--request-json` and `--project-root`; valid noncompliant audio reports `within_tolerance=false`. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
+| `sound-master-render` | Retain a verified mono/stereo two-pass master ZIP with required `--request-json` and `--project-root`. See [master request](SOUND_MASTER_REQUESTS.md). |
+| `sound-qa-asr` | Local cached speech recognition (`--request-json`, `--project-root`); legacy hash/duration flags remain a labelled simulation. [Contract](SOUND_ASR_REQUESTS.md) |
 
-Namespaced aliases (same handlers): `kino sound capabilities|plan-validate|voice-batch|mix-render|qa-loudness|qa-asr`.
+Namespaced aliases (same handlers): `kino sound capabilities|plan-validate|voice-batch|mix-render|master-render|qa-loudness|qa-asr`.
 
 ## Visual Effects
 
@@ -346,6 +347,29 @@ Quality JSON identifies each saturation and contrast metric, its unit, measured 
 | `hyperframes-pipeline` | Render + post-process in one step |
 
 Hyperframes project paths may be relative or absolute. Relative paths are resolved once against the caller's working directory before the command is executed.
+
+## Revideo commands (development tip)
+
+```bash
+kino revideo-materialize DEST --job-json JSON [--scene-source PATH]
+kino revideo-install PROJECT_DIR [--timeout SECONDS]
+kino revideo-render PROJECT_DIR OUTPUT_PATH [--timeout SECONDS]
+kino revideo-render-job OUTPUT_PATH --job-json JSON [--work-dir DIR] \
+  [--scene-source PATH] [--install-timeout SECONDS] [--render-timeout SECONDS]
+```
+
+`--job-json` is a required inline JSON object with a one-megabyte limit. It is
+never interpreted as a filename. Install and render are bounded; install may use
+the npm registry, while render executes locally. `--format json` returns the
+same flat success payloads as MCP. Render payloads retain the full receipt,
+including output and exact on-disk job-file SHA-256 digests plus observed,
+job-matched media metadata. The job file is capped at one MiB and even a
+whitespace-only mutation during rendering invalidates its receipt binding.
+Output formats are closed to `.mp4`, `.webm`, and `.mov`; the pinned exporter
+uses MP4, WebM, and ProRes 4444 modes respectively and verifies that identity
+before publication.
+Custom scenes are trusted local
+TypeScript and require quality and human review before release.
 
 ## Global Options
 

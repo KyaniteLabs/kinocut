@@ -65,9 +65,9 @@ CHANNEL_COUNT: dict[ChannelLayout, int] = {
 class ConversionPolicy(FrozenModel):
     """How a format may be converted — fail-closed against silent upmix.
 
-    ``allow_implicit_upmix`` is structural False: a channel-count increase is
-    rejected unless the plan explicitly names a standards-based downmix preset
-    in ``allowed_downmix_presets``. A preset is a bounded code so a host path,
+    ``allow_implicit_upmix`` is structural False: implicit channel-count increases
+    are rejected. ``allowed_downmix_presets`` names permitted channel reductions;
+    it does not authorize an increase. A preset is a bounded code so a host path,
     URL, or prose cannot ride in on it.
     """
 
@@ -87,7 +87,7 @@ class ConversionPolicy(FrozenModel):
     @classmethod
     def _upmix_always_disabled(cls, value: bool) -> bool:
         if value is True:
-            raise ValueError("implicit upmix is prohibited; name an explicit downmix preset instead")
+            raise ValueError("implicit upmix is prohibited")
         return value
 
 

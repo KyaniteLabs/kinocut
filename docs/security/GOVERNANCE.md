@@ -1,7 +1,9 @@
 # Governance & stewardship (GOV.1)
 
-**Status:** living doc · **Date:** 2026-08-07  
-**Issue:** Forgejo #91
+**Status:** living doc · **Date:** 2026-09-06
+**Current authority:** GitHub primary; Forgejo downstream mirror
+**Proposal and transition context:** [GitHub #499](https://github.com/KyaniteLabs/kinocut/issues/499)
+**Original GOV.1 record:** Forgejo #91
 
 ## Why this exists
 
@@ -13,8 +15,8 @@ stewardship** — not performance theater.
 
 | Surface | Where |
 | --- | --- |
-| Source of truth | Forgejo `KyaniteLabs/kinocut` (`git.kyanitelabs.tech`) |
-| Collaboration mirror | GitHub `KyaniteLabs/kinocut` |
+| Source of truth | GitHub [`KyaniteLabs/kinocut`](https://github.com/KyaniteLabs/kinocut): code, issues, PRs, CI, tags, and releases |
+| Downstream mirror | Forgejo `KyaniteLabs/kinocut` (`git.kyanitelabs.tech`); automation-only updates to `master` |
 | License | Apache-2.0 |
 | Releases | Annotated tags `v*`, CHANGELOG, dual PyPI (`kinocut` + `mcp-video` shim) |
 | Security model | [`PROJECTSTORE_THREAT_MODEL.md`](PROJECTSTORE_THREAT_MODEL.md) |
@@ -29,13 +31,13 @@ stewardship** — not performance theater.
 
 ## Maintainer commitments (honest)
 
-1. **No silent public-face hollowing** — dual-host README/S+ floor applies.
+1. **No silent public-face hollowing** — the dual-host README/S+ floor applies, with GitHub as Kinocut's authority host.
 2. **No invented human gates** — listening/user programs stay human-owned.
 3. **Release claims match packages** — `public_claims.json` is the lockstep file.
 4. **Security findings** route through the threat model and fail-closed defaults.
 
 ## How to contribute
 
-Issues and PRs on Forgejo preferred; GitHub PRs are mirrored collaboration.
+Open issues, discussions, and PRs on GitHub. Do not land normal changes independently on Forgejo; its GitHub-to-Forgejo sync mechanism is pending live-gate verification.
 Security-sensitive reports: open a private channel or a redacted public issue
 linking the threat-model control that is affected.

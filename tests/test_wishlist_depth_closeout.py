@@ -98,17 +98,20 @@ def test_generative_paid_path_rigor() -> None:
     assert denied.allowed is False
     assert denied.executable is False
     assert denied.paid_path is True
-    with pytest.raises(MCPVideoError, match="not executable"):
+    with pytest.raises(MCPVideoError, match="not executable") as denied_error:
         assert_generative_executable(denied)
+    assert denied_error.value.code == "generative_not_executable"
 
     allowed = plan_generative_last_mile("x", provider="openai", max_spend_usd=2.0, estimated_spend_usd=0.5)
     assert allowed.allowed is True
-    assert allowed.executable is True
-    assert assert_generative_executable(allowed)["provider"] == "openai"
+    assert allowed.executable is False
+    with pytest.raises(MCPVideoError) as unavailable_error:
+        assert_generative_executable(allowed)
+    assert unavailable_error.value.code == "generative_backend_unavailable"
 
     local = plan_generative_last_mile("x", provider="local")
     assert local.local_only is True
-    assert local.executable is True
+    assert local.executable is False
 
 
 def test_tts_backend_probe_shape() -> None:
@@ -119,7 +122,8 @@ def test_tts_backend_probe_shape() -> None:
     assert plan["artifact_kind"] == "tts_dub_plan"
     assert plan["brand_primary"] is True
     assert "backend" in plan
-    assert plan["executable"] is bool(backend["available"])
+    assert plan["executable"] is False
+    assert "adapter" in plan["reason"].lower()
 
 
 def test_foreign_otio_local_media_import(tmp_path: Path, sample_video: str) -> None:

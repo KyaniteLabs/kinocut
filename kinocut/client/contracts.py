@@ -24,6 +24,10 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     },
     "body_swap": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
     "salvage": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "revideo_materialize": {"category": "report", "return_type": "dict", "aliases": {}},
+    "revideo_install": {"category": "report", "return_type": "dict", "aliases": {}},
+    "revideo_render": {"category": "report", "return_type": "RevideoRenderResult", "aliases": {}},
+    "revideo_render_job": {"category": "report", "return_type": "RevideoRenderResult", "aliases": {}},
     # Media editing
     "trim": {
         "category": "media",
@@ -386,6 +390,7 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "sound_plan_validate": {"category": "report", "return_type": "dict"},
     "sound_voice_batch": {"category": "report", "return_type": "dict"},
     "sound_mix_render": {"category": "report", "return_type": "dict"},
+    "sound_master_render": {"category": "report", "return_type": "dict"},
     "sound_qa_loudness": {"category": "report", "return_type": "dict"},
     "sound_qa_asr": {"category": "report", "return_type": "dict"},
 }

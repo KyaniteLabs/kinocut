@@ -11,6 +11,7 @@ from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -81,6 +82,8 @@ EXTERNAL_CONTRIBUTOR_PATHS = (
     ROOT / "compat" / "mcp-video-shim" / "pyproject.toml",
     ROOT / "docs" / "ENTERPRISE.md",
     ROOT / "docs" / "launch-checklist.md",
+    ROOT / "npm" / "package.json",
+    ROOT / "mcpb" / "manifest.json",
 )
 
 
@@ -104,353 +107,6 @@ def _maintained_markdown_paths() -> list[Path]:
     return sorted(paths)
 
 
-EXPECTED_CLI_COMMANDS = {
-    "video-verdict",
-    "video-acceptance-eval",
-    "video-body-swap",
-    "video-salvage",
-    "video-ingest",
-    "video-preflight",
-    "video-inspect-temporal",
-    "doctor",
-    "info",
-    "extract-frame",
-    "trim",
-    "merge",
-    "add-text",
-    "add-audio",
-    "resize",
-    "speed",
-    "convert",
-    "thumbnail",
-    "preview",
-    "storyboard",
-    "subtitles",
-    "watermark",
-    "crop",
-    "rotate",
-    "fade",
-    "export",
-    "extract-audio",
-    "edit",
-    "filter",
-    "blur",
-    "reverse",
-    "chroma-key",
-    "color-grade",
-    "normalize-audio",
-    "overlay-video",
-    "split-screen",
-    "batch",
-    "detect-scenes",
-    "create-from-images",
-    "export-frames",
-    "compare-quality",
-    "read-metadata",
-    "write-metadata",
-    "stabilize",
-    "apply-mask",
-    "audio-waveform",
-    "generate-subtitles",
-    "templates",
-    "template",
-    "hyperframes-render",
-    "hyperframes-compositions",
-    "hyperframes-preview",
-    "hyperframes-still",
-    "hyperframes-snapshot",
-    "hyperframes-inspect",
-    "hyperframes-info",
-    "hyperframes-catalog",
-    "hyperframes-capture",
-    "hyperframes-tts",
-    "hyperframes-transcribe",
-    "hyperframes-remove-background",
-    "hyperframes-doctor",
-    "hyperframes-benchmark",
-    "hyperframes-init",
-    "hyperframes-add-block",
-    "hyperframes-validate",
-    "hyperframes-pipeline",
-    "repurpose-plan",
-    "repurpose",
-    "effect-vignette",
-    "effect-glow",
-    "effect-noise",
-    "effect-scanlines",
-    "effect-chromatic-aberration",
-    "transition-glitch",
-    "transition-morph",
-    "transition-pixelate",
-    "video-ai-transcribe",
-    "video-analyze",
-    "video-ai-upscale",
-    "video-ai-stem-separation",
-    "video-ai-scene-detect",
-    "video-ai-color-grade",
-    "video-ai-remove-silence",
-    "audio-synthesize",
-    "audio-compose",
-    "audio-preset",
-    "audio-sequence",
-    "audio-effects",
-    "video-text-animated",
-    "video-mograph-count",
-    "video-mograph-progress",
-    "video-layout-grid",
-    "video-layout-pip",
-    "composite-layers",
-    "video-add-generated-audio",
-    "video-audio-spatial",
-    "video-auto-chapters",
-    "video-extract-frame",
-    "video-info-detailed",
-    "video-quality-check",
-    "video-design-quality-check",
-    "video-fix-design-issues",
-    "image-extract-colors",
-    "image-generate-palette",
-    "image-analyze-product",
-    "still-match",
-    "intent",
-    "propose-broll",
-    "translate-captions",
-    "language-coverage",
-    "review-run",
-    "review-decide",
-    "init",
-    "estimate",
-    "brand-kit",
-    "cutfile-validate",
-    "cutfile-render",
-    "metric-qc",
-    "propose-mutations",
-    "qc-vision",
-    "qc-narrative",
-    "publish-validate",
-    "hook-candidates",
-    "seek-frame",
-    "otio-export",
-    "otio-import",
-    "review-ui",
-    "edit-session",
-    "still-grade",
-    "still-gate",
-    "image-edit",
-    "still-package",
-    "workflow-validate",
-    "workflow-plan",
-    "workflow-render",
-    "workflow-inspect",
-    "rescue-plan",
-    "rescue-render",
-    "rescue-inspect",
-    "semantic-timeline",
-    "semantic-query",
-    "timeline-edit-plan",
-    "visual-transform-plan",
-    "restoration-plan",
-    "composition-plan",
-    "creative-autopilot-plan",
-    "remote-egress-plan",
-    "video-review-package",
-    "video-publish-gate",
-    "video-review-decision",
-    "video-learning-report",
-    "video-cost-ledger",
-    "video-recipe-capture",
-    "video-capabilities",
-    "video-benchmark-run",
-    "audio-bed",
-    "shorts-plan-show",
-    "shorts-review",
-    "shorts-render",
-    "shorts-package",
-    "sound-capabilities",
-    "sound-plan-validate",
-    "sound-voice-batch",
-    "sound-mix-render",
-    "sound-qa-loudness",
-    "sound-qa-asr",
-}
-
-EXPECTED_SERVER_TOOLS = {
-    "video_verdict",
-    "video_acceptance_eval",
-    "video_body_swap",
-    "video_salvage",
-    "video_ingest",
-    "video_preflight",
-    "video_inspect_temporal",
-    "video_info",
-    "video_trim",
-    "video_merge",
-    "video_add_text",
-    "video_add_audio",
-    "video_resize",
-    "video_convert",
-    "video_speed",
-    "search_tools",
-    "video_thumbnail",
-    "video_preview",
-    "video_storyboard",
-    "video_subtitles",
-    "video_watermark",
-    "video_export",
-    "video_crop",
-    "video_rotate",
-    "video_fade",
-    "video_edit",
-    "video_extract_audio",
-    "video_filter",
-    "video_reverse",
-    "video_chroma_key",
-    "video_normalize_audio",
-    "video_overlay",
-    "video_composite_layers",
-    "video_split_screen",
-    "video_batch",
-    "video_cleanup",
-    "video_detect_scenes",
-    "video_template_preview",
-    "video_create_from_images",
-    "video_export_frames",
-    "video_generate_subtitles",
-    "video_compare_quality",
-    "video_read_metadata",
-    "video_write_metadata",
-    "video_stabilize",
-    "video_apply_mask",
-    "video_audio_waveform",
-    "hyperframes_render",
-    "hyperframes_compositions",
-    "hyperframes_preview",
-    "hyperframes_still",
-    "hyperframes_snapshot",
-    "hyperframes_inspect",
-    "hyperframes_info",
-    "hyperframes_catalog",
-    "hyperframes_capture",
-    "hyperframes_tts",
-    "hyperframes_transcribe",
-    "hyperframes_remove_background",
-    "hyperframes_doctor",
-    "hyperframes_benchmark",
-    "hyperframes_init",
-    "hyperframes_add_block",
-    "hyperframes_validate",
-    "hyperframes_to_mcpvideo",
-    "video_repurpose_plan",
-    "video_repurpose",
-    "audio_synthesize",
-    "audio_preset",
-    "audio_sequence",
-    "audio_compose",
-    "audio_effects",
-    "video_add_generated_audio",
-    "effect_vignette",
-    "effect_chromatic_aberration",
-    "effect_scanlines",
-    "effect_noise",
-    "effect_glow",
-    "video_text_animated",
-    "video_subtitles_styled",
-    "video_mograph_count",
-    "video_mograph_progress",
-    "video_layout_grid",
-    "video_layout_pip",
-    "video_auto_chapters",
-    "video_info_detailed",
-    "transition_glitch",
-    "transition_pixelate",
-    "transition_morph",
-    "video_ai_remove_silence",
-    "video_ai_transcribe",
-    "video_analyze",
-    "video_ai_scene_detect",
-    "video_ai_stem_separation",
-    "video_ai_upscale",
-    "video_ai_color_grade",
-    "video_audio_spatial",
-    "video_quality_check",
-    "video_release_checkpoint",
-    "video_design_quality_check",
-    "video_fix_design_issues",
-    "image_extract_colors",
-    "image_generate_palette",
-    "image_analyze_product",
-    "still_match",
-    "still_grade",
-    "still_gate",
-    "image_edit",
-    "still_package",
-    "video_project_create",
-    "style_pack_read",
-    "storyboard_read",
-    "shot_prompt_render",
-    "video_add_texts",
-    "video_validate_text_layout",
-    "video_extract_frame",
-    "video_duck_audio",
-    "video_workflow_validate",
-    "video_workflow_plan",
-    "video_workflow_render",
-    "video_workflow_inspect",
-    "video_rescue_plan",
-    "video_rescue_render",
-    "video_rescue_inspect",
-    "video_semantic_timeline",
-    "video_semantic_query",
-    "video_find_moments",
-    "video_intent",
-    "video_propose_broll",
-    "video_translate_captions",
-    "video_language_coverage",
-    "video_review_run",
-    "video_review_decide",
-    "video_propose_mutations",
-    "video_init_project",
-    "video_brand_kit",
-    "video_estimate_operation",
-    "video_cutfile_validate",
-    "video_cutfile_render",
-    "video_metric_qc",
-    "video_timeline_ir_validate",
-    "video_qc_vision",
-    "video_qc_narrative",
-    "video_generative_plan",
-    "video_otio_export",
-    "video_otio_import",
-    "video_review_ui",
-    "video_dub_plan",
-    "video_publish_validate",
-    "video_hook_candidates",
-    "video_audiogram_plan",
-    "video_punch_zoom_plan",
-    "video_seek_frame",
-    "video_edit_session",
-    "video_project_recipe_export",
-    "video_project_recipe_replay",
-    "video_timeline_edit_plan",
-    "video_visual_transform_plan",
-    "video_restoration_plan",
-    "video_composition_plan",
-    "video_creative_autopilot_plan",
-    "video_remote_egress_plan",
-    "video_audio_bed",
-    "shorts_plan_show",
-    "shorts_review",
-    "shorts_render",
-    "shorts_package",
-    "sound_capabilities",
-    "sound_plan_validate",
-    "sound_voice_batch",
-    "sound_mix_render",
-    "sound_qa_loudness",
-    "sound_qa_asr",
-}
-
-
 def test_cli_help_lists_all_commands():
     result = subprocess.run(
         [sys.executable, "-m", "mcp_video", "--help"],
@@ -465,7 +121,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 167
+    assert len(EXPECTED_CLI_COMMANDS) == 172
 
 
 def test_agent_cookbook_dry_run():
@@ -487,7 +143,7 @@ def test_server_tool_registry_keeps_public_tool_names():
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
     assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 196
+    assert len(tool_names) == 201
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
@@ -512,7 +168,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 196
+        assert len(tool_names) == 201
 
     asyncio.run(check_server())
 
@@ -597,7 +253,7 @@ def test_server_json_and_readme_match_registry_identity():
 
     assert server["name"] == "io.github.KyaniteLabs/kinocut"
     assert server["websiteUrl"] == "https://kinocut.dev/"
-    # GitHub is the public registry/collaboration repository; Forgejo is canonical source.
+    # GitHub is the canonical source and public registry/collaboration repository.
     assert server["repository"]["url"] == "https://github.com/KyaniteLabs/kinocut"
     assert server["repository"]["source"] == "github"
     assert server["packages"][0]["identifier"] == "kinocut"
@@ -607,23 +263,20 @@ def test_server_json_and_readme_match_registry_identity():
 
 
 def test_readme_declares_repository_topology():
-    """README states the repository topology unambiguously:
-    Forgejo is canonical source; GitHub is the public clone/collaboration surface.
-    """
+    """README identifies GitHub as primary and Forgejo as its downstream mirror."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
-    forgejo_canonical = "https://git.kyanitelabs.tech/KyaniteLabs/kinocut"
-    github_public = "https://github.com/KyaniteLabs/kinocut"
-
-    assert forgejo_canonical in readme, "README must declare the Forgejo canonical source URL"
-    assert "Forgejo" in readme
-    assert "canonical source" in readme.lower()
-    assert github_public in readme, "README must keep the GitHub public collaboration URL"
+    source_row = next(line for line in readme.splitlines() if line.startswith("| **Source** |"))
+    primary, downstream = source_row.split(" · ", 1)
+    assert "https://github.com/KyaniteLabs/kinocut" in primary
+    assert "canonical" in primary.lower()
+    assert "https://git.kyanitelabs.tech/KyaniteLabs/kinocut" in downstream
+    assert "downstream mirror" in downstream.lower()
 
 
 def test_external_routing_surfaces_route_exclusively_to_github():
     """External bug/support/security/contribution routes remain GitHub-exclusive.
 
-    Forgejo may appear as canonical source attribution, but every surface an
+    Forgejo may appear as downstream mirror attribution, but every surface an
     external contributor follows to file a bug, report a vulnerability, ask a
     question, or open a pull request must keep routing to GitHub. Contributors
     never need Forgejo access.
@@ -648,17 +301,38 @@ def test_external_routing_surfaces_route_exclusively_to_github():
         project_urls[key].startswith("https://github.com/KyaniteLabs/kinocut")
         for key in ("Documentation", "Repository", "Bug Tracker", "Changelog", "Discussions")
     )
+    npm_package = json.loads((ROOT / "npm" / "package.json").read_text(encoding="utf-8"))
+    mcpb_manifest = json.loads((ROOT / "mcpb" / "manifest.json").read_text(encoding="utf-8"))
+    expected_issues = "https://github.com/KyaniteLabs/kinocut/issues"
+    assert npm_package["bugs"] == expected_issues
+    assert mcpb_manifest["support"] == expected_issues
 
 
-def test_github_sync_is_fast_forward_only_and_ref_scoped():
-    workflow = (ROOT / ".forgejo" / "workflows" / "sync-github.yml").read_text(encoding="utf-8")
+def test_forgejo_is_a_ci_gated_fast_forward_downstream():
+    workflow = (ROOT / ".github" / "workflows" / "sync-forgejo.yml").read_text(encoding="utf-8")
+    helper = (ROOT / "scripts" / "forgejo_sync.py").read_text(encoding="utf-8")
+    topology = (ROOT / "docs" / "CI_RUNNER_TOPOLOGY.md").read_text(encoding="utf-8")
+    human_gates = (ROOT / "docs" / "HUMAN_GATES.md").read_text(encoding="utf-8")
 
-    assert "git merge-base --is-ancestor github-mirror/master HEAD" in workflow
-    assert "refs/heads/master:refs/remotes/github-mirror/master" in workflow
-    assert "exit 1" in workflow
-    assert workflow.count("git push ") == 1
-    assert "git push github-mirror HEAD:refs/heads/master" in workflow
-    assert all(flag not in workflow for flag in ("--mirror", "--force", "--prune"))
+    assert not (ROOT / ".forgejo" / "workflows" / "sync-github.yml").exists()
+    assert not (ROOT / ".forgejo" / "workflows" / "renovate.yml").exists()
+    assert "workflow_run:" in workflow
+    assert 'workflows: ["CI"]' in workflow
+    assert "environment: forgejo-mirror" in workflow
+    assert '"push", "forgejo-downstream"' in helper
+    assert 'f"{source_sha}:refs/heads/master"' in helper
+    assert "--force" not in helper
+    assert workflow.count("vars.KINOCUT_FORGEJO_SYNC_ACTIVE == 'true'") == 2
+    for guidance in (topology, human_gates):
+        normalized_guidance = " ".join(guidance.split())
+        assert "KINOCUT_FORGEJO_SYNC_ACTIVE" in guidance
+        assert "staged and inactive" in guidance
+        assert "case-insensitive string equality" in guidance
+        assert "`true`, `True`, and `TRUE`" in normalized_guidance
+        assert "canonical lowercase" in guidance
+        assert "repository-scoped" in guidance and "`false`" in guidance
+        assert "skipped" in guidance
+        assert "one-commit" in guidance
 
 
 def test_public_tree_does_not_track_local_agent_state_artifacts():

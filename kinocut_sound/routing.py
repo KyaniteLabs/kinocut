@@ -15,6 +15,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
@@ -25,6 +27,7 @@ from kinocut_sound.defaults import (
     DEFAULT_LATENCY_RESIDUAL_SAMPLES,
     DEFAULT_PAN_POSITION,
     DEFAULT_SEND_GAIN_DB,
+    DEFAULT_SEND_POST_FADER,
 )
 from kinocut_sound.limits import (
     MAX_DUCKING_ATTACK_MS,
@@ -67,9 +70,9 @@ class Track(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db", "pan_position")
+    @field_validator("gain_db", "pan_position", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -88,9 +91,9 @@ class Bus(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db")
+    @field_validator("gain_db", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -103,16 +106,16 @@ class SendReturn(FrozenModel):
     source_bus_id: str = Field(min_length=1)
     destination_bus_id: str = Field(min_length=1)
     gain_db: float = Field(default=DEFAULT_SEND_GAIN_DB, ge=MIN_GAIN_DB, le=MAX_GAIN_DB)
-    post_fader: bool = True
+    post_fader: bool = DEFAULT_SEND_POST_FADER
 
     @field_validator("send_id", "source_bus_id", "destination_bus_id")
     @classmethod
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db")
+    @field_validator("gain_db", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -139,9 +142,9 @@ class DuckingSidechain(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms")
+    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -161,9 +164,9 @@ class AutomationPoint(FrozenModel):
     time_seconds: float = Field(ge=MIN_TIME_SECONDS)
     value: float
 
-    @field_validator("time_seconds", "value")
+    @field_validator("time_seconds", "value", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("numeric field must not be a boolean")
         return value
@@ -195,7 +198,16 @@ class LatencyCompensation(FrozenModel):
     """The latency compensation policy and measured residual."""
 
     policy: str
-    residual_samples: int = Field(default=DEFAULT_LATENCY_RESIDUAL_SAMPLES, ge=MIN_LATENCY_RESIDUAL_SAMPLES, le=MAX_LATENCY_RESIDUAL_SAMPLES)
+    residual_samples: int = Field(
+        default=DEFAULT_LATENCY_RESIDUAL_SAMPLES, ge=MIN_LATENCY_RESIDUAL_SAMPLES, le=MAX_LATENCY_RESIDUAL_SAMPLES
+    )
+
+    @field_validator("residual_samples", mode="before")
+    @classmethod
+    def _residual_not_boolean(cls, value: Any) -> Any:
+        if isinstance(value, bool):
+            raise ValueError("residual_samples must not be a boolean")
+        return value
 
     @field_validator("policy")
     @classmethod
@@ -240,7 +252,5 @@ class Routing(FrozenModel):
                 raise ValueError(f"sidechain references unknown target bus {sidechain.target_bus_id}")
         for envelope in self.envelopes:
             if envelope.target_track_id not in track_ids:
-                raise ValueError(
-                    f"envelope references unknown track {envelope.target_track_id}"
-                )
+                raise ValueError(f"envelope references unknown track {envelope.target_track_id}")
         return self

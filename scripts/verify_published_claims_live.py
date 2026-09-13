@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Fail-closed live oracle for docs/public_claims.json published_version.
-
-Merge mode (default): exit 1 iff published_version != live PyPI JSON.
-npm and GitHub /releases/latest are printed as annotations (ignore drafts).
-Does not compare git tips or tags.
-
-Network errors on the PyPI probe are a red failure, not a skip.
-"""
+"""Fail closed unless all official registries match the published claim."""
 
 from __future__ import annotations
 
@@ -14,27 +7,33 @@ import argparse
 import json
 import sys
 import urllib.error
+import urllib.parse
 import urllib.request
 from pathlib import Path
+from typing import Any
+from collections.abc import Callable
 
 ROOT = Path(__file__).resolve().parents[1]
 CLAIMS = ROOT / "docs" / "public_claims.json"
-USER_AGENT = "kinocut-verify-published-claims/1.0"
+USER_AGENT = "kinocut-verify-published-claims/2.0"
 TIMEOUT = 20
+MAX_RESPONSE_BYTES = 2 * 1024 * 1024
 
 
-def _get_json(url: str) -> tuple[int, dict | None, str]:
-    req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+def _get_json(url: str) -> tuple[int, dict[str, Any] | None, str]:
+    request = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     try:
-        with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
-            raw = resp.read()
-            try:
-                return resp.status, json.loads(raw.decode("utf-8")), ""
-            except json.JSONDecodeError as exc:
-                return resp.status, None, f"invalid JSON: {exc}"
+        with urllib.request.urlopen(request, timeout=TIMEOUT) as response:
+            raw = response.read(MAX_RESPONSE_BYTES + 1)
+            if len(raw) > MAX_RESPONSE_BYTES:
+                return response.status, None, "response exceeded byte limit"
+            body = json.loads(raw.decode("utf-8"))
+            if not isinstance(body, dict):
+                return response.status, None, "expected JSON object"
+            return response.status, body, ""
     except urllib.error.HTTPError as exc:
-        return exc.code, None, str(exc)
-    except Exception as exc:
+        return exc.code, None, f"HTTP {exc.code}"
+    except (urllib.error.URLError, TimeoutError, OSError, UnicodeError, json.JSONDecodeError) as exc:
         return 0, None, str(exc)
 
 
@@ -46,58 +45,70 @@ def load_claimed_published(path: Path = CLAIMS) -> str:
     return version.strip()
 
 
+def _version(url: str, extract: Callable[[dict[str, Any]], object]) -> tuple[str | None, str]:
+    status, body, error = _get_json(url)
+    if status != 200 or body is None:
+        return None, error or f"HTTP {status}"
+    try:
+        value = extract(body)
+    except (KeyError, TypeError):
+        return None, "unexpected response schema"
+    if not isinstance(value, str) or not value.strip():
+        return None, "missing version"
+    return value.removeprefix("v"), ""
+
+
 def pypi_latest(package: str = "kinocut") -> tuple[str | None, str]:
-    status, body, err = _get_json(f"https://pypi.org/pypi/{package}/json")
-    if status != 200 or not body:
-        return None, err or f"HTTP {status}"
-    version = (body.get("info") or {}).get("version")
-    if not isinstance(version, str):
-        return None, "missing info.version"
-    return version, ""
+    return _version(f"https://pypi.org/pypi/{package}/json", lambda body: body["info"]["version"])
 
 
 def npm_latest(package: str = "kinocut") -> tuple[str | None, str]:
-    status, body, err = _get_json(f"https://registry.npmjs.org/{package}/latest")
-    if status != 200 or not body:
-        return None, err or f"HTTP {status}"
-    version = body.get("version")
-    if not isinstance(version, str):
-        return None, "missing version"
-    return version, ""
+    return _version(f"https://registry.npmjs.org/{package}/latest", lambda body: body["version"])
 
 
 def github_latest_release(repo: str = "KyaniteLabs/kinocut") -> tuple[str | None, str]:
-    status, body, err = _get_json(f"https://api.github.com/repos/{repo}/releases/latest")
-    if status != 200 or not body:
-        return None, err or f"HTTP {status}"
-    tag = body.get("tag_name")
-    if not isinstance(tag, str):
-        return None, "missing tag_name"
-    return tag, ""
+    return _version(f"https://api.github.com/repos/{repo}/releases/latest", lambda body: body["tag_name"])
+
+
+def mcp_registry_latest(server: str = "io.github.KyaniteLabs/kinocut") -> tuple[str | None, str]:
+    identifier = urllib.parse.quote(server, safe="")
+    return _version(
+        f"https://registry.modelcontextprotocol.io/v0/servers/{identifier}/versions/latest",
+        lambda body: body["server"]["version"],
+    )
+
+
+PROVIDERS = (
+    ("pypi", pypi_latest),
+    ("npm", npm_latest),
+    ("github_release", github_latest_release),
+    ("mcp_registry", mcp_registry_latest),
+)
+
+
+def verify_claim(claimed: str) -> list[str]:
+    failures: list[str] = []
+    for name, probe in PROVIDERS:
+        version, error = probe()
+        print(f"{name}={version or 'unresolved'}")
+        if version is None:
+            failures.append(f"{name}: {error or 'unresolved'}")
+        elif version != claimed:
+            failures.append(f"{name}: expected {claimed}, got {version}")
+    return failures
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--claims", type=Path, default=CLAIMS)
     args = parser.parse_args(argv)
-
     claimed = load_claimed_published(args.claims)
     print(f"claimed_published={claimed}")
-
-    pypi, pypi_err = pypi_latest()
-    npm, npm_err = npm_latest()
-    gh, gh_err = github_latest_release()
-    print(f"pypi={pypi or pypi_err}")
-    print(f"npm_annotation={npm or npm_err}")
-    print(f"github_latest_release_annotation={gh or gh_err}")
-
-    if pypi is None:
-        print(f"FAIL: PyPI probe failed ({pypi_err})", file=sys.stderr)
+    failures = verify_claim(claimed)
+    if failures:
+        print("FAIL: " + "; ".join(failures), file=sys.stderr)
         return 1
-    if pypi != claimed:
-        print(f"FAIL: published_version {claimed} != PyPI {pypi}", file=sys.stderr)
-        return 1
-    print("OK: published_version matches live PyPI")
+    print("OK: all official providers match published_version")
     return 0
 
 

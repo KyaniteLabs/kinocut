@@ -37,7 +37,7 @@ Those may be separate projects if they become real products.
 
 ## Visible stewardship (GOV.1)
 
-Source of truth is Forgejo; GitHub is the collaboration mirror. Security model:
+GitHub is Kinocut's source of truth for code, issues, pull requests, CI, tags, and releases. Forgejo is a downstream mirror; only verified GitHub-to-Forgejo sync automation may update its code, and normal changes must not be independently merged there. [GitHub #499](https://github.com/KyaniteLabs/kinocut/issues/499) records the original proposal and transition context. Security model:
 [`docs/security/PROJECTSTORE_THREAT_MODEL.md`](docs/security/PROJECTSTORE_THREAT_MODEL.md).
 Phase go/no-go gates: [`docs/status/PHASE_CHECKPOINTS.md`](docs/status/PHASE_CHECKPOINTS.md).
 Extended notes: [`docs/security/GOVERNANCE.md`](docs/security/GOVERNANCE.md).

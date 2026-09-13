@@ -1,6 +1,6 @@
 ---
 name: kinocut
-description: Use Kinocut for guarded video editing, source-backed planning, FFmpeg operations, media analysis, subtitles, audio workflows, Hyperframes rendering, repurposing packages, and release checkpoints through an MCP server, Python client, or CLI. Trigger when an agent needs to inspect, plan, edit, render, validate, or package local media safely.
+description: Use Kinocut for guarded video editing, source-backed planning, FFmpeg operations, media analysis, subtitles, audio workflows, Hyperframes or Revideo rendering, repurposing packages, and release checkpoints through an MCP server, Python client, or CLI. Trigger when an agent needs to inspect, plan, edit, render, validate, or package local media safely.
 ---
 
 # Kinocut
@@ -10,12 +10,24 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
-2. Plan with `video_intent` (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`) — do not list 196 tools.
+2. Plan with `video_intent` (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`) — do not list 200 tools.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
 5. Human visual/audio review. Never treat a receipt as published.
 
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
+
+## Revideo local code-video flow (development tip)
+
+Use `revideo_materialize`, `revideo_install`, and `revideo_render` when the
+caller needs an inspectable staged project. Use `revideo_render_job` for the
+same guarded steps in one call. A supplied scene is trusted executable
+TypeScript: inspect it before use and never run untrusted scene code. Dependency
+installation may access npm; rendering runs locally against Kinocut's pinned
+template. The render receipt binds observed media and output bytes to the exact
+bounded on-disk job-file digest. `.mp4`, `.webm`, and `.mov` select pinned MP4,
+WebM, and ProRes 4444 exporter modes and are verified before publication. Verify the receipt against the output bytes, run `video_quality_check`
+and `video_release_checkpoint`, then require human visual review.
 
 ## Start Here
 
@@ -39,9 +51,9 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 
 There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director plugs (Ollama first; cloud only with `allow_cloud`) may propose JSON; they never write pixels. In pip 1.14.0.
 
-## Product / object matte (landing; not in 1.15.0)
+## Product / object matte (published in 1.15.1)
 
-Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+The optional object-matte extra is available in published 1.15.1. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
 2. `pip install "kinocut[object-matte]"` then `model="birefnet-general"`.
@@ -154,6 +166,16 @@ Receipts store workspace-relative paths only — keep specs and example receipts
    - Hyperframes `inspect`, `snapshot`, or `still` before full render.
    - For saved shorts plans: `shorts-plan-show` → `shorts-review` → `shorts-render` → `shorts-package`.
    - For thin sound: `sound-capabilities` then `sound-plan-validate` / `sound-voice-batch` / `sound-mix-render` / `sound-qa-loudness` / `sound-qa-asr` (or `kino sound <action>`).
+   - Supply numeric values for sound durations, gains, loudness and profile versions; booleans are rejected before coercion. Explicit invalid plans cannot select the example plan. Typed plans are revalidated; see `docs/SOUND_INPUT_VALIDATION.md` for field-specific compatibility rules.
+   - Real ASR uses a hashed audio/reference request and explicit root; retain its transcript ZIP and report mismatches honestly. Cached local Whisper only; no automatic downloads. Legacy hash-only calls are simulations. See `docs/SOUND_ASR_REQUESTS.md`.
+   - For real mono/stereo PCM16 loudness QA, supply `SoundLoudnessRequest` plus project root and inspect `within_tolerance`; successful measurement can be noncompliant. FFmpeg is required, and the no-input fixture is labelled as a demo. See `docs/SOUND_LOUDNESS_REQUESTS.md`.
+   - For retained mono/stereo mastering, supply `SoundMasterRequest` and explicit root to `sound-master-render`; see `docs/SOUND_MASTER_REQUESTS.md`. Inspect the verified ZIP, actual normalization mode and measured final policy compliance, then listen before release. Input channels are preserved; existing output is never replaced.
+   - For actual local EN/ES caption speech, supply a hashed `SoundDubRequest` and explicit project root to `sound-voice-batch`; see `docs/SOUND_DUB_REQUESTS.md`. V2 adds explicit `close_mic_dry` or `off_screen_distance` profiles (`docs/SOUND_SPEECH_SPATIAL.md`); inspect processed cue hashes and use the retained mix manifest. This optional eSpeak NG path does not translate, clone voices or apply mastering; legacy plan mode remains a labelled synthetic demo.
+   - For supplied-media mixing, pass a persisted request plus explicit project root to `sound_mix_render`, or use `sound-mix-render --request-json request.json --project-root .`. Verify the ZIP receipt and decoded media; assembly is not loudness mastering or human listening acceptance. See `docs/SOUND_MIX_REQUESTS.md` for format, filesystem, cancellation and resource limits.
+   - For track/bus gain, pan and mute/solo, use version2 with explicit cue-track bindings; see `docs/SOUND_ROUTING_REQUESTS.md`. V2/V3 support envelopes, sends and final bus sidechains (`docs/SOUND_AUTOMATION_REQUESTS.md`, `docs/SOUND_SEND_REQUESTS.md`, `docs/SOUND_SIDECHAIN_REQUESTS.md`). Inspect graph hashes, independent source-window evidence and the separate measured sidechain summaries. Send cycles and unsupported parameters/effects are rejected.
+   - For supplied ambient layers, use version3 with ordered layer/source bindings and explicit pad or crossfaded loop fill; see `docs/SOUND_LAYER_REQUESTS.md`. Layer ducking uses a pre-send/fader detector; final bus sidechains use fixed post-send/fader detectors. Inspect both completed releases and truncated recovery, with each effect's hash and measured summary. Bed ducking affects only the separate bed. Scene schedules remain unsupported. Listen to seams and gain recovery before acceptance.
+   - For mixed source rates, use version4 with required `source_resampling.profile: soxr_vhq_pcm16_guarded_v1`; see `docs/SOUND_RATE_CONVERSION.md`. It normalizes clips, bed and layers before trimming/routing and preserves original source identities. Same-rate copies need no backend; rate changes require FFmpeg/libsoxr with no fallback. Verify conversion hashes and all source-window evidence. Channel conversion, other sample formats and dither remain unsupported.
+   - Cue in/out points select source samples before placement and crossfades; post-roll must remain inside that selection. Verify `source_windows` in the receipt. A ducked bed adds to existing ambience clips.
 4. Produce release artifacts before publishing:
    - `video-quality-check`
    - `storyboard` or `thumbnail`

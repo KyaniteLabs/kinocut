@@ -125,9 +125,9 @@ class ParsedLine(FrozenModel):
             raise ValueError("line_index must be an integer")
         return value
 
-    @field_validator("pause_after_seconds")
+    @field_validator("pause_after_seconds", mode="before")
     @classmethod
-    def _pause_is_not_boolean(cls, value: float) -> float:
+    def _pause_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("pause_after_seconds must not be a boolean")
         return value
@@ -162,9 +162,9 @@ class ParsedScene(FrozenModel):
             BoundedCode(event_id)
         return value
 
-    @field_validator("pause_after_seconds")
+    @field_validator("pause_after_seconds", mode="before")
     @classmethod
-    def _pause_is_not_boolean(cls, value: float) -> float:
+    def _pause_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("pause_after_seconds must not be a boolean")
         return value
@@ -326,9 +326,9 @@ class _LineInput(FrozenModel):
             raise ValueError("line text must not be blank")
         return value
 
-    @field_validator("pause_after_seconds")
+    @field_validator("pause_after_seconds", mode="before")
     @classmethod
-    def _pause_is_not_boolean(cls, value: float) -> float:
+    def _pause_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("pause_after_seconds must not be a boolean")
         return value
@@ -394,9 +394,9 @@ class _SceneInput(FrozenModel):
             raise ValueError("scene event count exceeds resource ceiling")
         return self
 
-    @field_validator("pause_after_seconds")
+    @field_validator("pause_after_seconds", mode="before")
     @classmethod
-    def _pause_is_not_boolean(cls, value: float) -> float:
+    def _pause_is_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("pause_after_seconds must not be a boolean")
         return value

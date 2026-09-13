@@ -35,6 +35,31 @@ _VTT_SUFFIXES = (".vtt",)
 
 _PLAYRES_LINE = re.compile(r"(?i)^\s*PlayRes[XY]\s*:")
 _SCRIPT_INFO_HEADER = re.compile(r"(?i)^\s*\[Script Info\]\s*$")
+_ASS_DIALOGUE_LINE = re.compile(r"(?i)^\s*Dialogue\s*:\s*(.*)$")
+
+
+def _has_renderable_ass_dialogue(content: str) -> bool:
+    for line in content.splitlines():
+        match = _ASS_DIALOGUE_LINE.match(line)
+        if not match:
+            continue
+        # ASS Dialogue has nine metadata fields followed by the event text.
+        # A prefix alone or an event with an empty text field cannot draw a cue.
+        fields = match.group(1).split(",", 9)
+        if len(fields) == 10 and fields[9].strip():
+            return True
+    return False
+
+
+def _require_renderable_ass_dialogue(content: str) -> None:
+    """Reject an ASS document that cannot render any caption event."""
+
+    if not _has_renderable_ass_dialogue(content):
+        raise MCPVideoError(
+            "subtitle file contains no renderable cues",
+            error_type="validation_error",
+            code="subtitle_no_cues",
+        )
 
 
 def _style_error() -> MCPVideoError:
@@ -148,4 +173,6 @@ def synthesize_dimensioned_ass(subtitle_path: str, display_size: tuple[int, int]
         if os.path.exists(temp_ass):
             with contextlib.suppress(OSError):
                 os.remove(temp_ass)
-    return _normalize_playres(converted, width, height)
+    normalized = _normalize_playres(converted, width, height)
+    _require_renderable_ass_dialogue(normalized)
+    return normalized

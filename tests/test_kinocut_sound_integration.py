@@ -138,7 +138,7 @@ def test_sidecar_boundary_kinocut_sound_does_not_import_kinocut_runtime():
 
     package_root = Path(kinocut_sound.__file__).resolve().parent
     offenders: dict[str, list[str]] = {}
-    for module_path in sorted(package_root.glob("*.py")):
+    for module_path in sorted(package_root.rglob("*.py")):
         tree = ast.parse(module_path.read_text(encoding="utf-8"), filename=str(module_path))
         bad: list[str] = []
         for node in ast.walk(tree):
@@ -153,7 +153,7 @@ def test_sidecar_boundary_kinocut_sound_does_not_import_kinocut_runtime():
                     if alias.name == "kinocut" or alias.name.startswith("kinocut."):
                         bad.append(f"import {alias.name}")
         if bad:
-            offenders[module_path.name] = bad
+            offenders[str(module_path.relative_to(package_root))] = bad
     assert offenders == {}, "kinocut_sound must not import the kinocut runtime; sidecar boundary broken: " + repr(
         offenders
     )
