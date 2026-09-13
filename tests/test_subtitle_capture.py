@@ -6,10 +6,13 @@ from pathlib import Path
 import subprocess
 import tempfile
 
+import pytest
+
+from kinocut.errors import MCPVideoError
 from tests.subtitle_capture import SubtitleCapture
 
 
-def test_header_only_conversion_is_retained_after_cleanup(tmp_path, monkeypatch):
+def test_header_only_conversion_is_retained_and_rejected_before_burn(tmp_path, monkeypatch):
     from kinocut import engine_subtitles, subtitles_common
 
     def conversion(args, **kwargs):
@@ -22,14 +25,15 @@ def test_header_only_conversion_is_retained_after_cleanup(tmp_path, monkeypatch)
     subtitle = tmp_path / "a.vtt"
     subtitle.write_text("WEBVTT\n\n00:00.000 --> 00:01.000\nHello\n")
     fd, path = tempfile.mkstemp(suffix=".ass", dir=tmp_path)
-    engine_subtitles._fill_burn_source(fd, "vtt", str(subtitle), "unused")
+    with pytest.raises(MCPVideoError) as excinfo:
+        engine_subtitles._fill_burn_source(fd, "vtt", str(subtitle), "unused")
     os.unlink(path)
+    assert excinfo.value.code == "subtitle_no_cues"
     evidence = json.loads((capture.root / "capture.json").read_text())
     assert evidence["stages"]["conversion"]["returncode"] == 0
     assert evidence["stages"]["conversion"]["dialogue_count"] == 0
-    assert evidence["stages"]["staged"]["dialogue_count"] == 0
+    assert "staged" not in evidence["stages"]
     assert (capture.root / "conversion.ass").read_text() == "[Script Info]\n"
-    assert "PlayResX: 320" in (capture.root / "staged.ass").read_text()
 
 
 def test_zero_exit_burn_with_missing_pixels_keeps_correct_ass(tmp_path, monkeypatch):

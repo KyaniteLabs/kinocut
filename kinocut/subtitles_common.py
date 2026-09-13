@@ -35,6 +35,7 @@ _VTT_SUFFIXES = (".vtt",)
 
 _PLAYRES_LINE = re.compile(r"(?i)^\s*PlayRes[XY]\s*:")
 _SCRIPT_INFO_HEADER = re.compile(r"(?i)^\s*\[Script Info\]\s*$")
+_ASS_DIALOGUE_LINE = re.compile(r"(?im)^\s*Dialogue\s*:")
 
 
 def _style_error() -> MCPVideoError:
@@ -148,4 +149,11 @@ def synthesize_dimensioned_ass(subtitle_path: str, display_size: tuple[int, int]
         if os.path.exists(temp_ass):
             with contextlib.suppress(OSError):
                 os.remove(temp_ass)
-    return _normalize_playres(converted, width, height)
+    normalized = _normalize_playres(converted, width, height)
+    if not _ASS_DIALOGUE_LINE.search(normalized):
+        raise MCPVideoError(
+            "subtitle file contains no renderable cues",
+            error_type="validation_error",
+            code="subtitle_no_cues",
+        )
+    return normalized

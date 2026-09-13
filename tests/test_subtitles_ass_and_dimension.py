@@ -159,6 +159,23 @@ def test_render_synthesized_ass_has_exactly_one_playres_equal_dims(fmt, srt_file
 
 
 @requires_ffmpeg
+def test_render_empty_vtt_track_is_rejected_before_burn(solid_aspect_video, tmp_path):
+    from kinocut.engine_subtitles import subtitles
+
+    source = tmp_path / "empty.vtt"
+    source.write_text("WEBVTT\n\n", encoding="utf-8")
+    video, _dims = solid_aspect_video
+    output = tmp_path / "captioned.mp4"
+
+    with pytest.raises(MCPVideoError) as excinfo:
+        subtitles(video, str(source), output_path=str(output))
+
+    assert excinfo.value.code == "subtitle_no_cues"
+    assert not output.exists()
+    assert list(tmp_path.glob("tmp*.ass")) == []
+
+
+@requires_ffmpeg
 def test_render_generate_subtitles_clamps_entries_to_video_eof(tmp_path):
     from kinocut.engine_subtitle_generate import generate_subtitles
 
