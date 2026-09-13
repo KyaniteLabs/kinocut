@@ -33,7 +33,7 @@ Doctor reports:
 
 - image stack present/missing (Pillow)
 - free edit backend (`free_establish_match`) vs unavailable
-- paid gen backend is **not claimed** until configured
+- no paid still-generation adapter exists
 
 ## Commands / tools
 
@@ -59,7 +59,8 @@ Receipts record this honestly:
 
 Do not claim that intent drives generative or semantic edits until a backend
 exists and `intent_policy` changes. Paid gen remains `prefer=gen` +
-`allow_paid_gen=true` and is **unavailable** until configured.
+`allow_paid_gen=true`; the request still returns `paid_edit_backend_unavailable`
+because no paid still-generation adapter exists.
 
 ### CLI examples
 
@@ -113,8 +114,9 @@ re-match; do not claim pass on vibes.
 ## Cost policy
 
 - Default `prefer=edit`, `allow_paid_gen=false`.
-- Paid generative still edit is **unavailable until configured** — agents get a
-  typed error, not a silent spend.
+- No paid generative still adapter exists. Opted-in requests return the typed
+  `paid_edit_backend_unavailable` error; the free establish-match path is the
+  only pixel implementation.
 
 ## Receipts
 

@@ -65,6 +65,31 @@ Preserve user-owned repository state and inspect it before any Git cleanup.
 - A clean working tree is a goal only when the task requires it. Never convert
   an existing dirty state into a cleanup task or overwrite user work.
 
+## Contributor CI ownership
+
+When checking external contributions, own the CI investigation instead of handing
+the user an unexplained approval gate.
+
+- An empty PR check list is not evidence that CI is absent. Inspect workflow runs
+  for the exact PR head; distinguish `action_required`, queued, running, failed,
+  skipped and successful runs. Confirm the reason for `action_required`.
+- Explain first-time-contributor approval as permission to execute CI. It does
+  not approve the code, merge the PR, or grant the contributor repository access.
+- Before enabling a run, inspect the complete diff, workflow definitions and
+  invoked scripts, token permissions, secrets exposure and runner isolation.
+  Do not execute untrusted code on a persistent or privileged runner merely to
+  clear the gate. Recheck that the reviewed head still matches the pending run.
+- When existing user authority covers normal CI execution and review establishes
+  that the run is safe, approve the specific pending runs and verify their actual
+  states. Do not ask the user to repeat authorization or perform a routine click.
+- If authority, access or safety is unresolved, state the exact blocker, the
+  investigation already completed, and the smallest decision or action needed.
+  Never substitute a bare "maintainer approval required" status for that work.
+- Keep run approval separate from code review and merge gates. Do not disable
+  protections, expand token permissions, change repository settings, approve
+  future contributions indiscriminately, or post contributor messages without
+  the applicable authorization.
+
 ## Testing
 
 20. **Every fix must pass `python3 -m pytest tests/ -x -q --tb=short`** before committing.

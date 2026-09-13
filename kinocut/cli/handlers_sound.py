@@ -29,6 +29,36 @@ def _load_plan_json(raw: str | None) -> dict[str, Any] | None:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def _loudness(a, j):
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.mix_files import load_request_file
+    from kinocut.errors import MCPVideoError
+
+    try:
+        if a.request_json is None and a.project_root is None:
+            result = _invoke("sound-qa-loudness")
+        else:
+            raw = a.request_json
+            request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+            result = _invoke("sound-qa-loudness", request=request, project_root=a.project_root)
+        _out(result, j)
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+
+
+def _master(a, j):
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound.public.mix_files import load_request_file
+    from kinocut.errors import MCPVideoError
+
+    try:
+        raw = a.request_json
+        request = raw if raw.lstrip().startswith("{") else load_request_file(raw)
+        _out(_invoke("sound-master-render", request=request, project_root=a.project_root), j)
+    except SoundContractError as exc:
+        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+
+
 def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
     runner = CommandRunner(args, use_json)
 
@@ -40,31 +70,65 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
         _out(_invoke("sound-plan-validate", plan=plan), j)
 
     def _voice(a, j):
-        plan = _load_plan_json(getattr(a, "plan_json", None))
-        _out(_invoke("sound-voice-batch", plan=plan), j)
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.mix_files import load_request_file
+        from kinocut.errors import MCPVideoError
 
-    def _mix(_a, j):
-        _out(_invoke("sound-mix-render"), j)
+        try:
+            if a.request_json is None and a.project_root is None:
+                result = _invoke("sound-voice-batch", plan=_load_plan_json(a.plan_json))
+            else:
+                if a.plan_json is not None:
+                    raise MCPVideoError(
+                        "caption request and synthetic plan modes conflict", error_type="validation_error"
+                    )
+                raw = a.request_json
+                request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+                result = _invoke("sound-voice-batch", request=request, project_root=a.project_root)
+            _out(result, j)
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
-    def _loud(_a, j):
-        _out(_invoke("sound-qa-loudness"), j)
+    def _mix(a, j):
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.mix_files import load_request_file
+        from kinocut.errors import MCPVideoError
+
+        raw, root = a.request_json, a.project_root
+        try:
+            if raw is None and root is None:
+                result = _invoke("sound-mix-render")
+            else:
+                request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+                result = _invoke("sound-mix-render", request=request, project_root=root)
+            _out(result, j)
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
     def _asr(a, j):
-        hashes = getattr(a, "script_hashes", None)
-        duration = getattr(a, "audio_duration_seconds", 1.0)
-        _out(
-            _invoke(
-                "sound-qa-asr",
-                script_hashes=hashes,
-                audio_duration_seconds=duration,
-            ),
-            j,
-        )
+        from kinocut_sound._errors import SoundContractError
+        from kinocut_sound.public.mix_files import load_request_file
+        from kinocut.errors import MCPVideoError
+
+        try:
+            if a.request_json is not None or a.project_root is not None:
+                if a.script_hashes is not None or a.audio_duration_seconds is not None:
+                    raise MCPVideoError("real ASR and legacy flags conflict", error_type="validation_error")
+                raw = a.request_json
+                request = raw if raw is None or raw.lstrip().startswith("{") else load_request_file(raw)
+                result = _invoke("sound-qa-asr", request=request, project_root=a.project_root)
+            else:
+                duration = 1.0 if a.audio_duration_seconds is None else a.audio_duration_seconds
+                result = _invoke("sound-qa-asr", script_hashes=a.script_hashes, audio_duration_seconds=duration)
+            _out(result, j)
+        except SoundContractError as exc:
+            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
 
     runner.register("sound-capabilities", _caps)
     runner.register("sound-plan-validate", _plan)
     runner.register("sound-voice-batch", _voice)
     runner.register("sound-mix-render", _mix)
-    runner.register("sound-qa-loudness", _loud)
+    runner.register("sound-master-render", _master)
+    runner.register("sound-qa-loudness", _loudness)
     runner.register("sound-qa-asr", _asr)
     return runner.dispatch()

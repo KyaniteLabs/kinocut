@@ -7,6 +7,7 @@ import math
 import re
 from pathlib import Path
 
+from .defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP
 from .engine_runtime_utils import _build_edit_result, _has_audio, _require_filter, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import (
@@ -114,7 +115,7 @@ def normalize_audio(
     lra: float = 11.0,
     output_path: str | None = None,
     *,
-    true_peak_dbtp: float = -1.0,
+    true_peak_dbtp: float = DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP,
     fade_seconds: float = 0.01,
 ) -> EditResult:
     """Normalize audio with FFmpeg's two-pass loudnorm filter."""

@@ -13,6 +13,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from pydantic import Field, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
@@ -64,7 +66,9 @@ class Prosody(FrozenModel):
     """
 
     rate: float = Field(default=DEFAULT_PROSODY_RATE, gt=MIN_PROSODY_RATE, le=MAX_PROSODY_RATE)
-    pitch: float = Field(default=DEFAULT_PROSODY_PITCH_SEMITONES, ge=MIN_PROSODY_PITCH_SEMITONES, lt=MAX_PROSODY_PITCH_SEMITONES)
+    pitch: float = Field(
+        default=DEFAULT_PROSODY_PITCH_SEMITONES, ge=MIN_PROSODY_PITCH_SEMITONES, lt=MAX_PROSODY_PITCH_SEMITONES
+    )
     volume_db: float = Field(default=DEFAULT_PROSODY_VOLUME_DB, ge=MIN_PROSODY_VOLUME_DB, le=MAX_PROSODY_VOLUME_DB)
     emphasis: float = Field(default=DEFAULT_PROSODY_EMPHASIS, ge=MIN_NORMALIZED_LEVEL, le=MAX_NORMALIZED_LEVEL)
 
@@ -80,9 +84,9 @@ class Emotion(FrozenModel):
     def _label_is_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("intensity")
+    @field_validator("intensity", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("intensity must not be a boolean")
         return value
@@ -128,9 +132,9 @@ class Line(FrozenModel):
     def _ids_are_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("text_length_chars")
+    @field_validator("text_length_chars", mode="before")
     @classmethod
-    def _length_is_strict_int(cls, value: int) -> int:
+    def _length_is_strict_int(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("text_length_chars must be an integer")
         return value

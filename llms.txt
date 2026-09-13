@@ -13,10 +13,10 @@ Kinocut is a free, open-source Model Context Protocol (MCP) server that gives AI
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.15.0 (2026-08-19)
-- **Last-updated:** 2026-08-19
-- **Published surface (1.15.0):** 196 MCP tools / 167 CLI commands
-- **Development tip (master, 1.15.0):** 196 MCP tools / 167 CLI commands — matches the published 1.15.0 release.
+- **Latest published release:** 1.15.1 (2026-08-31)
+- **Last-updated:** 2026-09-06
+- **Published surface (1.15.1):** 196 MCP tools / 167 CLI commands
+- **Development tip (master):** 201 MCP tools / 172 CLI commands — includes four guarded local Revideo operations and verified sound mastering; not yet published.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
@@ -46,15 +46,15 @@ Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
 Compatibility:
 
 ```bash
-pip install --upgrade mcp-video   # 1.6.11 shim → kinocut 1.15.0
+pip install --upgrade mcp-video   # 1.6.12 shim → kinocut 1.15.1
 ```
 
 ## Canonical links
 
 - Product: https://kinocut.dev/
 - Site llms.txt: https://kinocut.dev/llms.txt
-- GitHub: https://github.com/KyaniteLabs/kinocut
-- Forgejo (canonical): https://git.kyanitelabs.tech/KyaniteLabs/kinocut
+- GitHub (canonical code, issues, PRs, CI, and releases): https://github.com/KyaniteLabs/kinocut
+- Forgejo (downstream mirror; automated sync cutover pending verification): https://git.kyanitelabs.tech/KyaniteLabs/kinocut
 - PyPI: https://pypi.org/project/kinocut/
 - MCP Registry: https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest
 - Tool reference: https://github.com/KyaniteLabs/kinocut/blob/master/docs/TOOLS.md

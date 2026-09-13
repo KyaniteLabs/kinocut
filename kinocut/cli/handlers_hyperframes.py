@@ -198,9 +198,7 @@ def _register_media_commands(runner: CommandRunner) -> None:
 
         info = bool(getattr(a, "info", False))
         message = (
-            "Listing people vs product cutout models..."
-            if info
-            else "Cutting person or product from background..."
+            "Listing people vs product cutout models..." if info else "Cutting person or product from background..."
         )
         r = _with_spinner(
             message,

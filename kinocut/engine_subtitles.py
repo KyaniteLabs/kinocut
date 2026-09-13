@@ -31,6 +31,8 @@ from .defaults import DEFAULT_SUBTITLE_STYLE
 from .errors import MCPVideoError
 from .models import EditResult
 from .subtitles_common import (
+    _has_renderable_ass_dialogue,
+    _require_renderable_ass_dialogue,
     _subtitle_format,
     parse_force_style,
     probe_display_dimensions,
@@ -58,12 +60,21 @@ def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_p
     """
     try:
         if subtitle_format == "ass":
-            with os.fdopen(fd, "wb") as dst, open(subtitle_path, "rb") as src:
-                shutil.copyfileobj(src, dst)
+            with os.fdopen(fd, "wb") as dst:
+                fd = -1  # The stream now owns closure, including source-open failures.
+                with open(subtitle_path, "rb") as src:
+                    has_dialogue = any(
+                        _has_renderable_ass_dialogue(line.decode("utf-8", errors="replace")) for line in src
+                    )
+                    if not has_dialogue:
+                        _require_renderable_ass_dialogue("")
+                    src.seek(0)
+                    shutil.copyfileobj(src, dst)
         else:
             width, height = probe_display_dimensions(input_path)
             content = synthesize_dimensioned_ass(subtitle_path, (width, height))
             with os.fdopen(fd, "w", encoding="utf-8") as handle:
+                fd = -1
                 handle.write(content)
     except OSError as exc:
         raise MCPVideoError(
@@ -72,10 +83,11 @@ def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_p
             code="subtitle_prepare_failed",
         ) from exc
     finally:
-        # Own fd closure on every path; harmless (suppressed) after os.fdopen has
-        # already closed it, and essential when probe/synthesis raised first.
-        with contextlib.suppress(OSError):
-            os.close(fd)
+        # Close only while ownership has not transferred to a stream. Closing
+        # the old number again can close an unrelated, newly allocated file.
+        if fd >= 0:
+            with contextlib.suppress(OSError):
+                os.close(fd)
 
 
 def subtitles(

@@ -14,6 +14,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from enum import StrEnum
 
 from pydantic import Field, field_validator, model_validator
@@ -59,7 +61,7 @@ class CostDisclosure(FrozenModel):
     @field_validator("region")
     @classmethod
     def _region_bounded(cls, value: str) -> str:
-        if not REGION_RE.match(value):
+        if not REGION_RE.fullmatch(value):
             raise ValueError("region must be a bounded code (no spaces or paths)")
         return value
 
@@ -79,9 +81,9 @@ class CostDisclosure(FrozenModel):
             raise ValueError("retention_ceiling_days must be a non-negative integer")
         return value
 
-    @field_validator("estimated_cost_usd_per_call")
+    @field_validator("estimated_cost_usd_per_call", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("estimated_cost_usd_per_call must not be a boolean")
         return value
@@ -113,9 +115,9 @@ class AdapterDescriptor(FrozenModel):
             raise ValueError(f"kind must be one of {sorted(ADAPTER_KINDS)}")
         return value
 
-    @field_validator("timeout_seconds")
+    @field_validator("timeout_seconds", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("timeout_seconds must not be a boolean")
         return value
@@ -150,7 +152,7 @@ class CapabilityResult(FrozenModel):
     @field_validator("remediation")
     @classmethod
     def _remediation_advisory(cls, value: str | None) -> str | None:
-        if value is not None and not ADVISORY_RE.match(value):
+        if value is not None and not ADVISORY_RE.fullmatch(value):
             raise ValueError("remediation must be short and free of paths, URLs, or metacharacters")
         return value
 

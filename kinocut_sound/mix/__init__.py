@@ -21,6 +21,7 @@ from kinocut_sound.mix._errors import (
     mix_error,
 )
 from kinocut_sound.mix.crossfade import crossfade_pair
+from kinocut_sound.mix.transitions import CrossfadeTransition
 from kinocut_sound.mix.ducking import duck_bed_under_speech
 from kinocut_sound.mix.latency import compensate_latency
 from kinocut_sound.mix.placement import PlacedClip, PlacementPlan, place_clips
@@ -41,6 +42,7 @@ __all__ = [
     "MIX_PLACEMENT_INVALID",
     "MIX_STEM_RECOMBINE_FAILED",
     "MIX_UNSAFE_PATH",
+    "CrossfadeTransition",
     "MixClip",
     "MixError",
     "MixRenderer",

@@ -20,6 +20,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 from dataclasses import dataclass
 
 from pydantic import Field, field_validator, model_validator
@@ -28,6 +30,10 @@ from kinocut_sound._canonical import BoundedCode, FrozenModel
 from kinocut_sound.defaults import (
     DEFAULT_BUS_GAIN_DB,
     DEFAULT_SEND_GAIN_DB,
+    DEFAULT_LAYER_DUCKING_ATTENUATION_DB,
+    DEFAULT_LAYER_DUCKING_ATTACK_MS,
+    DEFAULT_LAYER_DUCKING_RELEASE_MS,
+    DEFAULT_LAYER_DUCKING_RECOVERY_MS,
 )
 from kinocut_sound.limits import (
     MAX_DUCKING_ATTENUATION_DB,
@@ -38,21 +44,12 @@ from kinocut_sound.limits import (
     MIN_DUCKING_ATTENUATION_DB,
     MIN_DUCKING_TIME_MS,
     MIN_GAIN_DB,
+    MAX_AMBIENT_LAYERS,
 )
 from kinocut_sound.world._errors import world_error
 
 # S8-leaf-specific ceiling: a hostile layer table cannot grow unbounded.
-_MAX_LAYERS = 64
-
-# Ducking defaults for the contract side. The full numeric policy (9 dB
-# attenuation, 80 ms attack, 350 ms release, 500 ms recovery) is named in the
-# sonic-world design; the S9 mix leaf owns the operational policy. The shared
-# defaults.py module cannot be edited by this leaf, so the bed-author-facing
-# defaults are declared here.
-DEFAULT_LAYER_DUCKING_ATTENUATION_DB = 9.0
-DEFAULT_LAYER_DUCKING_ATTACK_MS = 80.0
-DEFAULT_LAYER_DUCKING_RELEASE_MS = 350.0
-DEFAULT_LAYER_DUCKING_RECOVERY_MS = 500.0
+_MAX_LAYERS = MAX_AMBIENT_LAYERS
 
 
 class DuckingContract(FrozenModel):
@@ -92,9 +89,9 @@ class DuckingContract(FrozenModel):
     def _bus_ids_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms")
+    @field_validator("attenuation_db", "attack_ms", "release_ms", "recovery_ms", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("ducking numeric must not be a boolean")
         return value
@@ -122,9 +119,9 @@ class AmbientLayer(FrozenModel):
     def _ids_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator("gain_db")
+    @field_validator("gain_db", mode="before")
     @classmethod
-    def _gain_not_boolean(cls, value: float) -> bool | float:
+    def _gain_not_boolean(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("gain_db must not be a boolean")
         return value

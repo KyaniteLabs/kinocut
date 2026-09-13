@@ -18,6 +18,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 import hashlib
 import json
 from dataclasses import dataclass
@@ -25,12 +27,12 @@ from dataclasses import dataclass
 from pydantic import Field, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256
-from kinocut_sound.limits import MIN_TIME_SECONDS
+from kinocut_sound.limits import MIN_TIME_SECONDS, MAX_AMBIENT_EXTRA_REPEATS
 from kinocut_sound.world._errors import world_error
 
 # A loop step must add a strictly positive amount of new audio. The crossfade
 # may not consume the whole source (otherwise the effective step is zero).
-_MAX_REPEATS = 10_000
+_MAX_REPEATS = MAX_AMBIENT_EXTRA_REPEATS
 
 
 class SeamlessLoop(FrozenModel):
@@ -52,13 +54,9 @@ class SeamlessLoop(FrozenModel):
     def _label_bounded(cls, value: str) -> str:
         return BoundedCode(value)
 
-    @field_validator(
-        "source_duration_seconds",
-        "target_duration_seconds",
-        "crossfade_seconds",
-    )
+    @field_validator("source_duration_seconds", "target_duration_seconds", "crossfade_seconds", mode="before")
     @classmethod
-    def _reject_bool_numerics(cls, value: float) -> float:
+    def _reject_bool_numerics(cls, value: Any) -> Any:
         if isinstance(value, bool):
             raise ValueError("loop numeric must not be a boolean")
         return value

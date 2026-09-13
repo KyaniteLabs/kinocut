@@ -19,6 +19,8 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+from typing import Any
+
 import hashlib
 import json
 from dataclasses import dataclass
@@ -66,9 +68,9 @@ class AuditionRequest(FrozenModel):
             raise ValueError("layer ids must be unique")
         return value
 
-    @field_validator("target_duration_seconds")
+    @field_validator("target_duration_seconds", mode="before")
     @classmethod
-    def _duration_not_boolean(cls, value: float | None) -> float | None:
+    def _duration_not_boolean(cls, value: Any) -> Any:
         if value is not None and isinstance(value, bool):
             raise ValueError("target_duration_seconds must not be a boolean")
         return value

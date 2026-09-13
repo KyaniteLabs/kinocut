@@ -30,20 +30,33 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         default=None,
         help="SoundPlan as JSON string or path to a JSON file; omit for minimal plan",
     )
+    voice.add_argument(
+        "--request-json", default=None, help="SoundDubRequest JSON or file for real local caption speech"
+    )
+    voice.add_argument("--project-root", default=None, help="Explicit root for caption input and retained output")
 
-    subparsers.add_parser(
+    mix = subparsers.add_parser(
         "sound-mix-render",
-        help="Render a bounded local mix for a minimal timeline",
+        help="Assemble supplied WAVs into a new ZIP (omit inputs for a demo)",
     )
-    subparsers.add_parser(
+    mix.add_argument("--request-json", default=None, help="SoundMixRequest JSON or path to a JSON file")
+    mix.add_argument("--project-root", default=None, help="Explicit local root for request media and output")
+    master = subparsers.add_parser("sound-master-render", help="Retain a verified two-pass audio master")
+    master.add_argument("--request-json", required=True, help="SoundMasterRequest JSON or file")
+    master.add_argument("--project-root", required=True, help="Explicit root for source audio and new output ZIP")
+    loudness = subparsers.add_parser(
         "sound-qa-loudness",
-        help="Measure loudness against the default delivery policy",
+        help="Measure local audio and report actual loudness compliance",
     )
+    loudness.add_argument("--request-json", default=None, help="SoundLoudnessRequest JSON or file")
+    loudness.add_argument("--project-root", default=None, help="Explicit root for hashed audio input")
 
     asr = subparsers.add_parser(
         "sound-qa-asr",
-        help="Run the local fake ASR verification port against script hashes",
+        help="Recognize supplied local audio or inspect a labelled simulation",
     )
+    asr.add_argument("--request-json", default=None, help="SoundAsrRequest JSON or file")
+    asr.add_argument("--project-root", default=None, help="Explicit root for audio, reference and new ZIP")
     asr.add_argument(
         "--script-hashes",
         nargs="*",
@@ -53,6 +66,6 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     asr.add_argument(
         "--audio-duration-seconds",
         type=float,
-        default=1.0,
+        default=None,
         help="Audio duration in seconds for the fake ASR port (default 1.0)",
     )

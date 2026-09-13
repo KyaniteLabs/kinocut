@@ -66,7 +66,7 @@ Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection
 
 ## Can I cut a product out of a turntable or tabletop video?
 
-Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That extra is **not** in published 1.15.0; it lands with the object-matte work. `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is published in **1.15.1**. `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 
 ## Is it free?
 

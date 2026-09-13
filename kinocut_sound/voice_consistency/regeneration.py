@@ -44,9 +44,7 @@ def _filter_plans(
                 "episodes must be SoundPlan instances",
                 CONSISTENCY_METRIC_INVALID,
             )
-        matching = tuple(
-            line for line in episode.lines if line.profile.profile_id == profile_id
-        )
+        matching = tuple(line for line in episode.lines if line.profile.profile_id == profile_id)
         if matching:
             result.append(episode.model_copy(update={"lines": matching}))
     return tuple(result)

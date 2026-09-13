@@ -54,9 +54,7 @@ def _parse_wav(wav_bytes: bytes) -> tuple[tuple[int, ...], int]:
     data_size = struct.unpack_from("<I", wav_bytes, data_offset + 4)[0]
     start = data_offset + 8
     count = data_size // 2
-    samples = tuple(
-        struct.unpack_from("<h", wav_bytes, start + i * 2)[0] for i in range(count)
-    )
+    samples = tuple(struct.unpack_from("<h", wav_bytes, start + i * 2)[0] for i in range(count))
     return samples, sample_rate
 
 
@@ -72,15 +70,9 @@ def _features(samples: tuple[int, ...], sample_rate: int) -> tuple[float, float,
         return (0.0, 0.0, 0.0, 0.0)
     sum_squares = sum(s * s for s in samples)
     rms = math.sqrt(sum_squares / n) / 32768.0
-    crossings = sum(
-        1 for i in range(1, n) if (samples[i - 1] >= 0) != (samples[i] >= 0)
-    )
+    crossings = sum(1 for i in range(1, n) if (samples[i - 1] >= 0) != (samples[i] >= 0))
     zcr = crossings / n
-    highband = (
-        sum(abs(samples[i] - samples[i - 1]) for i in range(1, n)) / ((n - 1) * 65536.0)
-        if n > 1
-        else 0.0
-    )
+    highband = sum(abs(samples[i] - samples[i - 1]) for i in range(1, n)) / ((n - 1) * 65536.0) if n > 1 else 0.0
 
     # Fast pitch proxy via decimated samples and a short lag window.
     factor = max(1, sample_rate // 5512)

@@ -207,7 +207,7 @@ def test_doctor_still_plates_check() -> None:
     still = next(c for c in report["checks"] if c["name"] == "still_plates")
     assert still["category"] == "still-plates"
     assert "details" in still
-    assert still["details"]["paid_gen_backend"] == "not_configured"
+    assert still["details"]["paid_gen_backend"] == "adapter_unavailable"
 
 
 def test_client_parity(still_fixture_dir: Path) -> None:

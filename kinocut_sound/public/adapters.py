@@ -20,7 +20,7 @@ from kinocut_sound.lines import Emotion, Line, ProfileRef, Prosody
 from kinocut_sound.mix import MixClip, MixRenderer
 from kinocut_sound.mix._wav import synthesize_tone
 from kinocut_sound.public.discovery import discover_sound_capabilities
-from kinocut_sound.qa import FakeAsrPort, check_loudness, verify_script_asr
+from kinocut_sound.qa import FakeAsrPort, verify_script_asr
 from kinocut_sound.routing import Routing
 from kinocut_sound.sound_plan import PlanProvenance, SoundPlan
 from kinocut_sound.timeline import Cue, CueKind, Timeline
@@ -36,6 +36,7 @@ _KNOWN_OPS = frozenset(
         "sound-plan-validate",
         "sound-voice-batch",
         "sound-mix-render",
+        "sound-master-render",
         "sound-qa-loudness",
         "sound-qa-asr",
     }
@@ -111,6 +112,20 @@ def _minimal_plan(**overrides: Any) -> SoundPlan:
     return SoundPlan(**base)
 
 
+def _validated_plan(plan):
+    if plan is None:
+        return _minimal_plan()
+    payload = plan.model_dump(mode="python") if isinstance(plan, SoundPlan) else plan
+    return SoundPlan.model_validate(payload)
+
+
+def _plan_argument(kwargs):
+    plan, alias = kwargs.get("plan"), kwargs.get("plan_json")
+    if plan is not None and alias is not None:
+        raise ValueError("choose one sound plan argument")
+    return plan if plan is not None else alias
+
+
 class SoundPythonAdapter:
     """Thin Python facade over stable sound leaves."""
 
@@ -126,12 +141,7 @@ class SoundPythonAdapter:
 
     def plan_validate(self, plan: dict[str, Any] | SoundPlan | None = None) -> dict[str, Any]:
         try:
-            if plan is None:
-                validated = _minimal_plan()
-            elif isinstance(plan, SoundPlan):
-                validated = plan
-            else:
-                validated = SoundPlan.model_validate(plan)
+            validated = _validated_plan(plan)
         except (ValidationError, TypeError, ValueError) as exc:
             raise ValueError("sound plan validation failed") from exc
         return {
@@ -141,14 +151,18 @@ class SoundPythonAdapter:
             "line_count": len(validated.lines),
         }
 
-    def voice_batch(self, plan: dict[str, Any] | SoundPlan | None = None) -> dict[str, Any]:
+    def voice_batch(
+        self, plan: dict[str, Any] | SoundPlan | None = None, *, request=None, project_root=None
+    ) -> dict[str, Any]:
+        if request is not None or project_root is not None:
+            from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
+            from kinocut_sound.public.dub_job import render_dub_request
+
+            if plan is not None:
+                raise mix_error("caption speech request cannot be combined with synthetic plan mode", MIX_INPUT_INVALID)
+            return render_dub_request(request, project_root)
         try:
-            if plan is None:
-                sound_plan = _minimal_plan()
-            elif isinstance(plan, SoundPlan):
-                sound_plan = plan
-            else:
-                sound_plan = SoundPlan.model_validate(plan)
+            sound_plan = _validated_plan(plan)
             with tempfile.TemporaryDirectory(prefix="kinocut-sound-batch-") as tmp:
                 planner = BatchPlanner(
                     adapter=LocalSynthesisAdapter(),
@@ -162,6 +176,9 @@ class SoundPythonAdapter:
             raise ValueError("sound voice batch failed") from exc
         return {
             "ok": True,
+            "demo": True,
+            "synthesis_kind": "deterministic_tone",
+            "audio_retained": False,
             "plan_hash": result.plan_hash,
             "clip_count": len(result.clips),
             "clips": [
@@ -178,7 +195,11 @@ class SoundPythonAdapter:
             "human_review_required": result.receipt_section.human_review_required,
         }
 
-    def mix_render(self) -> dict[str, Any]:
+    def mix_render(self, request=None, project_root=None) -> dict[str, Any]:
+        if request is not None or project_root is not None:
+            from kinocut_sound.public.mix_job import render_mix_request
+
+            return render_mix_request(request, project_root)
         timeline = Timeline(
             cues=(
                 Cue(
@@ -195,21 +216,24 @@ class SoundPythonAdapter:
             clips=(MixClip(cue_id="line_1", wav_bytes=synthesize_tone(duration_seconds=0.2, seed=2)),),
         )
         return {
+            "demo": True,
             "declared_duration_seconds": result.declared_duration_seconds,
             "measured_duration_seconds": result.measured_duration_seconds,
             "within_tolerance": result.within_tolerance,
             "stem_ids": list(result.stems.stems.keys()),
         }
 
-    def qa_loudness(self, wav_bytes: bytes | None = None) -> dict[str, Any]:
-        wav = wav_bytes or synthesize_tone(duration_seconds=0.2, seed=1)
-        rep = check_loudness(wav, DeliveryPolicy())
-        return {
-            "integrated_lufs": rep.integrated_lufs,
-            "true_peak_dbtp": rep.true_peak_dbtp,
-            "within_tolerance": rep.within_tolerance,
-            "preset": rep.preset,
-        }
+    def master_render(self, request, project_root) -> dict[str, Any]:
+        from kinocut_sound.public.master_job import render_master_request
+
+        return render_master_request(request, project_root)
+
+    def qa_loudness(
+        self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
+    ) -> dict[str, Any]:
+        from kinocut_sound.public.loudness_request import inspect_loudness
+
+        return inspect_loudness(wav_bytes, request=request, project_root=project_root, delivery=delivery)
 
     def qa_asr(
         self,
@@ -217,7 +241,23 @@ class SoundPythonAdapter:
         script_hashes: tuple[str, ...] | list[str] | None = None,
         audio_duration_seconds: float = 1.0,
         available: bool = True,
+        request=None,
+        project_root=None,
     ) -> dict[str, Any]:
+        if request is not None or project_root is not None:
+            from kinocut_sound.public.asr_job import recognize_sync
+            from kinocut_sound.public.asr_request import real_mode
+
+            real_mode(
+                dict(
+                    request=request,
+                    project_root=project_root,
+                    script_hashes=script_hashes,
+                    audio_duration_seconds=audio_duration_seconds,
+                    available=available,
+                )
+            )
+            return recognize_sync(request, project_root)
         hashes = tuple(script_hashes) if script_hashes else (_SHA_ZERO,)
         try:
             rep = verify_script_asr(
@@ -232,6 +272,9 @@ class SoundPythonAdapter:
             "ok": rep.ok,
             "mismatch_count": rep.mismatch_count,
             "segment_count": len(rep.segments),
+            "demo": True,
+            "verification_status": "simulated",
+            "human_review_required": True,
         }
 
 
@@ -245,19 +288,55 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
     if key == "sound-capabilities":
         result = adapter.capabilities()
     elif key == "sound-plan-validate":
-        result = adapter.plan_validate(kwargs.get("plan") or kwargs.get("plan_json"))
+        if set(kwargs) - {"plan", "plan_json"}:
+            raise ValueError("unknown sound plan validation arguments")
+        result = adapter.plan_validate(_plan_argument(kwargs))
     elif key == "sound-voice-batch":
-        result = adapter.voice_batch(kwargs.get("plan") or kwargs.get("plan_json"))
+        from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
+
+        if set(kwargs) - {"plan", "plan_json", "request", "project_root"}:
+            raise mix_error("unknown voice request arguments", MIX_INPUT_INVALID)
+        plan = _plan_argument(kwargs)
+        if "request" in kwargs or "project_root" in kwargs:
+            if kwargs.get("request") is None or not kwargs.get("project_root"):
+                raise mix_error("caption speech requires request and project_root", MIX_INPUT_INVALID)
+            return adapter.voice_batch(plan, request=kwargs["request"], project_root=kwargs["project_root"])
+        result = adapter.voice_batch(plan)
     elif key == "sound-mix-render":
-        result = adapter.mix_render()
+        from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
+
+        if set(kwargs) - {"request", "project_root"} or (kwargs and kwargs.get("request") is None):
+            raise mix_error("mix requires a request and project_root or no arguments for the demo", MIX_INPUT_INVALID)
+        result = adapter.mix_render(**kwargs)
+        if kwargs:
+            # The supplied-media response contains typed relative paths and
+            # hashes only. A caller's filename is not leaked host context;
+            # legacy substring checks after publication would report failure
+            # for harmless names such as password-reset-podcast.zip.
+            return result
+    elif key == "sound-master-render":
+        from kinocut_sound.public.master_request import master_error
+
+        if set(kwargs) - {"request", "project_root"}:
+            raise master_error("unknown mastering request arguments", "master_input_invalid")
+        return adapter.master_render(kwargs.get("request"), kwargs.get("project_root"))
     elif key == "sound-qa-loudness":
-        result = adapter.qa_loudness(kwargs.get("wav_bytes"))
+        from kinocut_sound.qa._errors import QA_INPUT_INVALID, qa_error
+
+        if set(kwargs) - {"wav_bytes", "request", "project_root", "delivery"}:
+            raise qa_error("unknown loudness request arguments", QA_INPUT_INVALID)
+        if ("request" in kwargs or "project_root" in kwargs) and (
+            kwargs.get("request") is None or not kwargs.get("project_root")
+        ):
+            raise qa_error("loudness requires request and project_root", QA_INPUT_INVALID)
+        if "wav_bytes" in kwargs and kwargs["wav_bytes"] is None:
+            raise qa_error("explicit audio input cannot be empty", QA_INPUT_INVALID)
+        return adapter.qa_loudness(**kwargs)
     elif key == "sound-qa-asr":
-        result = adapter.qa_asr(
-            script_hashes=kwargs.get("script_hashes"),
-            audio_duration_seconds=kwargs.get("audio_duration_seconds", 1.0),
-            available=kwargs.get("available", True),
-        )
+        from kinocut_sound.public.asr_request import real_mode
+
+        real_mode(kwargs)
+        return adapter.qa_asr(**kwargs)
     else:  # pragma: no cover - guarded by _KNOWN_OPS
         raise KeyError(f"unknown sound operation: {name}")
 

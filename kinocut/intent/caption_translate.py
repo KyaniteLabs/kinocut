@@ -11,9 +11,7 @@ from collections.abc import Callable, Mapping
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_input_path, _validate_output_path
 from kinocut.intent.language_coverage import language_coverage_report
-
-_CUE_SPLIT = re.compile(r"\n\s*\n")
-_TS = re.compile(r"(\d{2}:\d{2}:\d{2}[,.]\d{3})\s*-->\s*(\d{2}:\d{2}:\d{2}[,.]\d{3})")
+from kinocut_sound.captions import _parse_srt as _parse_srt
 
 # Small deterministic EN→ES map for offline honesty tests (not a full MT system).
 _EN_ES: Mapping[str, str] = {
@@ -120,24 +118,6 @@ def _default_translate(text: str, source_lang: str, target_lang: str) -> str:
         pattern = re.compile(re.escape(en), re.IGNORECASE)
         lower = pattern.sub(es, lower)
     return lower
-
-
-def _parse_srt(text: str) -> list[tuple[str, str, str]]:
-    blocks = [b.strip() for b in _CUE_SPLIT.split(text.strip()) if b.strip()]
-    cues: list[tuple[str, str, str]] = []
-    for block in blocks:
-        lines = block.splitlines()
-        # index line optional
-        if lines and lines[0].strip().isdigit():
-            lines = lines[1:]
-        if not lines:
-            continue
-        m = _TS.search(lines[0])
-        if not m:
-            continue
-        body = "\n".join(lines[1:]).strip()
-        cues.append((m.group(1), m.group(2), body))
-    return cues
 
 
 def _render_srt(cues: list[tuple[str, str, str]]) -> str:

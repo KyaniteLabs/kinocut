@@ -39,6 +39,12 @@ def test_capability_manifest_local_first_json_safe():
 
 def test_invoke_all_discovered_operations():
     for name in list_flat_commands():
+        if name == "sound-master-render":
+            from kinocut_sound.public.master_request import MasterError
+
+            with pytest.raises(MasterError):
+                invoke_sound_operation(name)  # This operation requires supplied media, never a demo.
+            continue
         result = invoke_sound_operation(name)
         assert isinstance(result, dict)
         text = json.dumps(result)
@@ -63,7 +69,9 @@ def test_invoke_all_discovered_operations():
     assert mix["within_tolerance"] is True
 
     loud = invoke_sound_operation("sound.qa.loudness")
-    assert loud["within_tolerance"] is True
+    assert loud["demo"] is True
+    assert loud["artifact_kind"] == "sound_loudness_measurement"
+    assert loud["within_tolerance"] is False  # Demo tone is not mastered to the default policy.
 
     asr = invoke_sound_operation("sound-qa-asr")
     assert asr["ok"] is True
