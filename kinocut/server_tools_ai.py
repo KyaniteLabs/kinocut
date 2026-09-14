@@ -258,11 +258,14 @@ def video_release_checkpoint(
     output_dir: str | None = None,
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     frame_count: int = 6,
+    require_audio: bool = True,
 ) -> dict[str, Any]:
     """Create preview artifacts only after the video passes quality gates.
 
     Use this before publishing or chaining more polish effects. It runs a hard
     quality gate, then writes a thumbnail and storyboard for human inspection.
+    A video with no audio stream fails the gate unless ``require_audio`` is
+    explicitly disabled.
     """
     if min_score < 0 or min_score > 100:
         return _validation_error(f"min_score must be 0-100, got {min_score}")
@@ -273,7 +276,7 @@ def video_release_checkpoint(
     from .engine_thumbnail import thumbnail
     from .engine_storyboard import storyboard
 
-    report = assert_quality(input_path, min_score=min_score)
+    report = assert_quality(input_path, min_score=min_score, require_audio=require_audio)
     review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
     os.makedirs(review_dir, exist_ok=True)
     thumb = thumbnail(input_path, output_path=os.path.join(review_dir, "thumbnail.jpg"))

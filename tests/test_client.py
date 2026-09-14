@@ -688,7 +688,11 @@ class TestClientAgentApiConsistency:
     def test_release_checkpoint_runs_quality_then_preview_artifacts(self, editor, monkeypatch, tmp_path):
         video = tmp_path / "video.mp4"
         video.write_bytes(b"placeholder")
-        monkeypatch.setattr(editor, "assert_quality", lambda input_path, min_score=80.0: {"overall_score": 99.0})
+        monkeypatch.setattr(
+            editor,
+            "assert_quality",
+            lambda input_path, min_score=80.0, require_audio=True: {"overall_score": 99.0},
+        )
         monkeypatch.setattr(
             editor,
             "thumbnail",
