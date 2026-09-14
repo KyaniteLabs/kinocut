@@ -30,11 +30,13 @@ class ClientQualityMixin:
 
         return quality_check(video, fail_on_warning)
 
-    def assert_quality(self, video: str, min_score: float = DEFAULT_QUALITY_GATE_SCORE) -> dict:
+    def assert_quality(
+        self, video: str, min_score: float = DEFAULT_QUALITY_GATE_SCORE, require_audio: bool = True
+    ) -> dict:
         """Raise if a video fails release-quality guardrails."""
         from ..quality_guardrails import assert_quality
 
-        return assert_quality(video, min_score=min_score)
+        return assert_quality(video, min_score=min_score, require_audio=require_audio)
 
     def release_checkpoint(
         self,
@@ -42,9 +44,10 @@ class ClientQualityMixin:
         output_dir: str | None = None,
         min_score: float = DEFAULT_QUALITY_GATE_SCORE,
         frame_count: int = 6,
+        require_audio: bool = True,
     ) -> dict:
         """Run a hard quality gate, then create human-review artifacts."""
-        quality = self.assert_quality(input_path, min_score=min_score)
+        quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio)
         review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
         os.makedirs(review_dir, exist_ok=True)
         thumb = self.thumbnail(input_path, output=os.path.join(review_dir, "thumbnail.jpg"))

@@ -108,6 +108,25 @@ def create_colorful_test_video(output_path: str, duration: float = 2.0) -> str:
     return output_path
 
 
+def make_silent_master_report(video: str, overall_score: float) -> dict:
+    """Quality report shape whose audio check failed for a missing audio stream."""
+    return {
+        "video": video,
+        "overall_score": overall_score,
+        "all_passed": False,
+        "checks": [
+            {
+                "name": "audio_levels",
+                "passed": False,
+                "score": 0.0,
+                "message": "No audio stream detected in video (audio stream required)",
+                "details": {"has_audio": False, "reason": "no_audio_stream"},
+            }
+        ],
+        "recommendations": ["No audio stream detected in video (audio stream required)"],
+    }
+
+
 class TestQualityReport:
     """Tests for QualityReport dataclass."""
 
@@ -339,7 +358,7 @@ class TestVisualQualityGuardrails:
         assert "lufs" in report.details or report.details.get("has_audio") is False
 
     def test_check_audio_levels_no_audio(self, guardrails, tmp_path):
-        """Test audio levels check on video without audio."""
+        """Videos without an audio stream fail the audio check (fail closed)."""
         video_path = str(tmp_path / "no_audio.mp4")
         create_video_no_audio(video_path, "gray")
 
@@ -347,11 +366,13 @@ class TestVisualQualityGuardrails:
 
         assert report.check_name == "audio_levels"
         assert report.details.get("has_audio") is False
-        assert report.passed is True
-        assert report.score == 100.0
+        assert report.passed is False
+        assert report.score == 0.0
+        assert "No audio stream" in report.message
+        assert report.details.get("reason") == "no_audio_stream"
 
     def test_check_audio_levels_skips_loudnorm_for_silent_video(self, guardrails):
-        """No-audio videos should not turn loudnorm missing JSON into a hard failure."""
+        """No-audio videos fail closed without running loudnorm analysis."""
         with (
             patch(
                 "mcp_video.quality_guardrails._run_ffprobe_json", return_value={"streams": [{"codec_type": "video"}]}
@@ -361,8 +382,22 @@ class TestVisualQualityGuardrails:
             report = guardrails.check_audio_levels("/tmp/silent.mp4")
 
         loudnorm.assert_not_called()
-        assert report.passed is True
-        assert report.details == {"has_audio": False}
+        assert report.passed is False
+        assert report.score == 0.0
+        assert report.details == {"has_audio": False, "reason": "no_audio_stream"}
+
+    def test_generate_report_fails_silent_video(self, guardrails, tmp_path):
+        """A silent master must fail the quality aggregate, not auto-pass."""
+        video_path = str(tmp_path / "silent_master.mp4")
+        create_video_no_audio(video_path, "gray")
+
+        report = guardrails.generate_report(video_path)
+
+        audio = next(c for c in report["checks"] if c["name"] == "audio_levels")
+        assert audio["passed"] is False
+        assert audio["details"]["reason"] == "no_audio_stream"
+        assert report["all_passed"] is False
+        assert any("No audio stream" in rec for rec in report["recommendations"])
 
     def test_check_audio_levels_reports_loudnorm_failure_when_audio_exists(self, guardrails):
         """Real audio streams should still fail when loudnorm analysis cannot produce metrics."""
@@ -504,6 +539,70 @@ class TestQualityCheckAPI:
         report = assert_quality(video_path, min_score=60)
 
         assert report["overall_score"] == 70.0
+        assert report["all_passed"] is True
+
+    def test_assert_quality_fails_silent_master_above_score_threshold(self, tmp_path, monkeypatch):
+        """A silent master must fail the gate even when its score clears min_score."""
+        from mcp_video.quality_guardrails import assert_quality
+
+        video_path = str(tmp_path / "test.mp4")
+        create_test_video(video_path, "gray")
+
+        monkeypatch.setattr(
+            VisualQualityGuardrails,
+            "generate_report",
+            lambda self, video: make_silent_master_report(video, overall_score=90.0),
+        )
+
+        with pytest.raises(Exception, match="no audio stream detected"):
+            assert_quality(video_path, min_score=80)
+
+    def test_assert_quality_allows_silent_master_when_require_audio_false(self, tmp_path, monkeypatch):
+        """require_audio=False is an explicit opt-out from the audio-presence gate."""
+        from mcp_video.quality_guardrails import assert_quality
+
+        video_path = str(tmp_path / "test.mp4")
+        create_test_video(video_path, "gray")
+
+        monkeypatch.setattr(
+            VisualQualityGuardrails,
+            "generate_report",
+            lambda self, video: make_silent_master_report(video, overall_score=90.0),
+        )
+
+        report = assert_quality(video_path, min_score=80, require_audio=False)
+
+        assert report["all_passed"] is True
+
+    def test_assert_quality_bad_but_present_audio_stays_score_gated(self, tmp_path, monkeypatch):
+        """Measurable-but-bad audio keeps the score-only gate; presence rules don't apply."""
+        from mcp_video.quality_guardrails import assert_quality
+
+        video_path = str(tmp_path / "test.mp4")
+        create_test_video(video_path, "gray")
+
+        monkeypatch.setattr(
+            VisualQualityGuardrails,
+            "generate_report",
+            lambda self, video: {
+                "video": video,
+                "overall_score": 90.0,
+                "all_passed": False,
+                "checks": [
+                    {
+                        "name": "audio_levels",
+                        "passed": False,
+                        "score": 40.0,
+                        "message": "Audio is too quiet (-42.0 LUFS). Target: -16 LUFS",
+                        "details": {"has_audio": True, "lufs": -42.0},
+                    }
+                ],
+                "recommendations": ["Audio is too quiet"],
+            },
+        )
+
+        report = assert_quality(video_path, min_score=80)
+
         assert report["all_passed"] is True
 
     def test_client_assert_quality_method_raises_on_low_score(self, tmp_path, monkeypatch):

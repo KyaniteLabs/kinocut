@@ -996,6 +996,59 @@ class TestServerReleaseGuardrails:
         assert result["success"] is False
         assert "quality" in result["error"]["message"].lower()
 
+    def test_release_checkpoint_requires_audio_by_default(self, monkeypatch, tmp_path):
+        """The release checkpoint passes require_audio to the quality gate; silent masters fail closed."""
+        import types
+
+        from mcp_video import server_tools_ai
+
+        video = tmp_path / "video.mp4"
+        video.write_bytes(b"placeholder")
+        recorded: dict = {}
+        fake_quality = {
+            "video": str(video),
+            "overall_score": 99.0,
+            "all_passed": True,
+            "checks": [],
+            "recommendations": [],
+        }
+
+        def fake_assert_quality(path, min_score=80.0, require_audio=True, **_kwargs):
+            recorded["require_audio"] = require_audio
+            if require_audio:
+                raise MCPVideoError(
+                    "Quality gate failed: no audio stream detected (audio required)",
+                    error_type="quality_error",
+                    code="quality_gate_failed",
+                )
+            return fake_quality
+
+        monkeypatch.setattr(server_tools_ai, "_validate_input_path", lambda path: path)
+        monkeypatch.setattr("mcp_video.quality_guardrails.assert_quality", fake_assert_quality)
+        monkeypatch.setattr(
+            "mcp_video.engine_thumbnail.thumbnail",
+            lambda *_a, **_k: types.SimpleNamespace(frame_path=str(tmp_path / "thumbnail.jpg")),
+        )
+        monkeypatch.setattr(
+            "mcp_video.engine_storyboard.storyboard",
+            lambda *_a, **_k: types.SimpleNamespace(model_dump=lambda: {"frames": []}),
+        )
+
+        blocked = server_tools_ai.video_release_checkpoint(str(video), output_dir=str(tmp_path / "review-blocked"))
+
+        assert recorded["require_audio"] is True
+        assert blocked["success"] is False
+        assert blocked["error"]["code"] == "quality_gate_failed"
+        assert not (tmp_path / "review-blocked").exists()
+
+        allowed = server_tools_ai.video_release_checkpoint(
+            str(video), output_dir=str(tmp_path / "review-allowed"), require_audio=False
+        )
+
+        assert recorded["require_audio"] is False
+        assert allowed["success"] is True
+        assert allowed["review_required"] is True
+
 
 class TestServerAIEdgeCases:
     def test_analyze_url_skips_path_validation(self, monkeypatch):

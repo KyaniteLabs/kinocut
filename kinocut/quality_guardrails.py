@@ -21,6 +21,10 @@ from .quality_guardrail_types import QualityReport, _diagnostic, _metric
 
 logger = logging.getLogger(__name__)
 
+# Value of `details.reason` on an audio_levels report that failed because the
+# video has no audio stream at all (as opposed to measurable-but-bad audio).
+NO_AUDIO_STREAM_REASON = "no_audio_stream"
+
 
 def _escape_lavfi_path(path: str) -> str:
     """Escape special characters in a file path for FFmpeg lavfi movie= filter.
@@ -419,12 +423,14 @@ class VisualQualityGuardrails(QualityChecksMixin):
         """Check audio isn't clipping or too quiet."""
         has_audio = self._has_audio_stream(video)
         if has_audio is False:
+            # Fail closed: a silent master must not pass as a perfect score,
+            # and audio/no-audio scores must stay comparable.
             return QualityReport(
                 check_name="audio_levels",
-                passed=True,
-                score=100.0,
-                message="No audio stream detected in video",
-                details={"has_audio": False},
+                passed=False,
+                score=0.0,
+                message="No audio stream detected in video (audio stream required)",
+                details={"has_audio": False, "reason": NO_AUDIO_STREAM_REASON},
             )
 
         loudness_data = self._analyze_loudnorm(video)
@@ -756,18 +762,40 @@ def quality_check(
     return report
 
 
+def _report_missing_audio_stream(report: dict[str, Any]) -> bool:
+    """Whether a quality report's audio_levels check failed for having no audio stream."""
+    for check in report.get("checks", []):
+        if check.get("name") != "audio_levels":
+            continue
+        details = check.get("details") or {}
+        return details.get("reason") == NO_AUDIO_STREAM_REASON and check.get("passed") is not True
+    return False
+
+
 def assert_quality(
     video: str,
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     max_analyze_seconds: float | None = None,
+    require_audio: bool = True,
 ) -> dict[str, Any]:
-    """Hard quality gate for agent workflows before publishing output."""
+    """Hard quality gate for agent workflows before publishing output.
+
+    A video with no audio stream fails this gate even when its overall score
+    meets ``min_score``; pass ``require_audio=False`` to opt out explicitly.
+    """
     report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds)
-    report["all_passed"] = report["overall_score"] >= min_score
+    audio_missing = require_audio and _report_missing_audio_stream(report)
+    score_ok = report["overall_score"] >= min_score
+    report["all_passed"] = score_ok and not audio_missing
     if not report["all_passed"]:
+        failures: list[str] = []
+        if not score_ok:
+            failures.append(f"score {report['overall_score']:.1f} < {min_score:.1f}")
+        if audio_missing:
+            failures.append("no audio stream detected (audio required)")
         recommendations = "; ".join(report.get("recommendations", []))
         raise MCPVideoError(
-            f"Quality gate failed: score {report['overall_score']:.1f} < {min_score:.1f}. {recommendations}",
+            f"Quality gate failed: {'; '.join(failures)}. {recommendations}",
             error_type="quality_error",
             code="quality_gate_failed",
             suggested_action={
