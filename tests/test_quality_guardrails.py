@@ -277,7 +277,18 @@ class TestVisualQualityGuardrails:
 
         cmd = fake.call_args.args[0]
         lavfi_arg = cmd[cmd.index("-i") + 1]
-        assert lavfi_arg.startswith("movie=/tmp/with\\:comma\\,\\[brackets\\].mp4")
+        assert lavfi_arg.startswith("movie='/tmp/with\\:comma\\,\\[brackets\\].mp4'")
+
+    def test_movie_source_quotes_windows_drive_paths(self, guardrails):
+        """Windows drive-letter paths must be quoted, not just escaped.
+
+        FFmpeg runs two unescaping passes over filter args. With only the
+        per-character escaping, the drive colon in "C\\:" is re-split on the
+        second pass and the movie filter receives just "C", so every
+        lavfi-based check fails on Windows absolute paths.
+        """
+        source = guardrails._movie_source("C:\\Users\\me\\clip.mp4", "signalstats")
+        assert source == "movie='C\\:\\\\Users\\\\me\\\\clip.mp4',signalstats"
 
     def test_run_ffprobe_logs_nonzero_exit(self, guardrails):
         fake = Mock(return_value=Mock(returncode=1, stdout="", stderr="ffprobe failed"))
