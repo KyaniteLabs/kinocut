@@ -121,7 +121,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 172
+    assert len(EXPECTED_CLI_COMMANDS) == 173
 
 
 def test_agent_cookbook_dry_run():

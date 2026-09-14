@@ -10,6 +10,7 @@ from .formatting import (
     _format_design_quality,
     _format_fix_design_issues,
     _format_quality_check,
+    _format_release_checkpoint_text,
     _format_thumbnail_text,
     _format_video_info_detailed,
 )
@@ -85,5 +86,24 @@ def handle_advanced_commands(args: Any, *, use_json: bool) -> bool:
         _out(r, j, _format_fix_design_issues, json_transform=lambda r: {"success": True, "output_path": r})
 
     runner.register("video-fix-design-issues", _fix_design)
+
+    def _release_checkpoint(a, j):
+        # Pure passthrough of the MCP video_release_checkpoint tool (same
+        # validations, hard gate, artifacts, and result shape — no logic here).
+        from ..server_tools_ai import video_release_checkpoint
+
+        r = _with_spinner(
+            "Running release checkpoint...",
+            video_release_checkpoint,
+            a.input,
+            output_dir=a.output_dir,
+            min_score=a.min_score,
+            frame_count=a.frame_count,
+        )
+        _out(r, j, _format_release_checkpoint_text)
+        if not r.get("success", False):
+            raise SystemExit(1)
+
+    runner.register("release-checkpoint", _release_checkpoint)
 
     return runner.dispatch()

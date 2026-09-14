@@ -319,6 +319,7 @@ class TestParserQuality:
             "video-quality-check",
             "video-design-quality-check",
             "video-fix-design-issues",
+            "release-checkpoint",
         }
         assert expected <= names
 
@@ -332,6 +333,7 @@ class TestParserQuality:
             ["video-quality-check", "input.mp4", "--format", "json"],
             ["video-design-quality-check", "input.mp4", "--format", "json"],
             ["video-fix-design-issues", "input.mp4", "--format", "json"],
+            ["release-checkpoint", "input.mp4", "--format", "json"],
         ]
 
         for argv in cases:

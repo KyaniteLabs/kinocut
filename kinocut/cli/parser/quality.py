@@ -53,3 +53,21 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     dfix_p.add_argument("input", help="Input video file")
     dfix_p.add_argument("-o", "--output", help="Output file path (auto-generated if omitted)")
     _add_command_output_format(dfix_p)
+
+    # release-checkpoint (CLI passthrough of the MCP video_release_checkpoint tool)
+    from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE
+
+    rcheck_p = subparsers.add_parser(
+        "release-checkpoint",
+        help="Hard release quality gate, then thumbnail + storyboard for human review",
+    )
+    rcheck_p.add_argument("input", help="Input video file")
+    rcheck_p.add_argument("-o", "--output-dir", help="Review artifact directory (default: <input>_release_review)")
+    rcheck_p.add_argument(
+        "--min-score",
+        type=float,
+        default=DEFAULT_QUALITY_GATE_SCORE,
+        help=f"Minimum quality score 0-100 (default: {DEFAULT_QUALITY_GATE_SCORE})",
+    )
+    rcheck_p.add_argument("--frame-count", type=int, default=6, help="Storyboard frame count (default: 6)")
+    _add_command_output_format(rcheck_p)

@@ -312,8 +312,9 @@ Use `--format json` for machine-readable output. Request files are capped at 4 M
 | `video-quality-check` | Visual quality checks (brightness, contrast, audio) |
 | `video-design-quality-check` | Design quality analysis |
 | `video-fix-design-issues` | Auto-fix design issues |
+| `release-checkpoint` | Hard release quality gate, then thumbnail + storyboard for human review |
 
-Quality JSON identifies each saturation and contrast metric, its unit, measured value, and whether the measurement was available. Technical and design checks use the same definitions. `video-quality-check --fail-on-warning` is a CI-style gate: it exits nonzero when `all_passed` is false.
+Quality JSON identifies each saturation and contrast metric, its unit, measured value, and whether the measurement was available. Technical and design checks use the same definitions. `video-quality-check --fail-on-warning` is a CI-style gate: it exits nonzero when `all_passed` is false. `release-checkpoint` is the CLI passthrough of the `video_release_checkpoint` MCP tool: it exits nonzero when the hard quality gate or validation fails, otherwise it writes a thumbnail and storyboard and marks `review_required: true` — inspect the artifacts before publishing.
 
 ## Image Analysis
 
