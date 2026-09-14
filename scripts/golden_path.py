@@ -17,6 +17,7 @@ from typing import Any
 
 from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT, DEFAULT_QUALITY_GATE_SCORE
 from kinocut.errors import MCPVideoError
+from kinocut.receipts_composition import SEVERITY_ERROR, composition_source_findings
 from kinocut.source_identity import SourceIdentity, stream_source_identity
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -204,6 +205,15 @@ def _validate_checkpoint(checkpoint: dict[str, Any], output: Path) -> None:
         _review_path(frame, output, "storyboard frame")
 
 
+def _validate_composition(receipt: dict[str, Any]) -> list[dict[str, str]]:
+    """Fail closed on schema-invalid composition provenance; surface capture warnings."""
+    findings = composition_source_findings(receipt)
+    for finding in findings:
+        if finding["severity"] == SEVERITY_ERROR:
+            raise GoldenPathError(f"video receipt composition provenance: {finding['message']}")
+    return [finding for finding in findings if finding["severity"] != SEVERITY_ERROR]
+
+
 def _validate_artifacts(
     output: Path, run_id: str, expected_commit: str
 ) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
@@ -214,6 +224,8 @@ def _validate_artifacts(
         raise GoldenPathError("video receipt run_id does not match this run")
     if not isinstance(receipt.get("tool_calls"), list) or not receipt["tool_calls"]:
         raise GoldenPathError("video receipt has no tool_calls")
+    for warning in _validate_composition(receipt):
+        print(f"WARN: {warning['message']}", file=sys.stderr)
     _validate_candidate(receipt, expected_commit)
     source, claimed_source = _source_identity(receipt)
     source = _inside_output(source.as_posix(), output, "source", expected=output / "source.mp4")

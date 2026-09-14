@@ -137,6 +137,8 @@ def main() -> None:
     print("\n[5/5] Writing Video Receipt...")
     receipt = {
         "user_intent": "Create a local platform-ready repurposing package from one source video.",
+        "composition_source": "capture",
+        "composition_source_detail": "user-supplied source video",
         "source_media": {
             "path": str(source),
             "duration_seconds": _value(info, "duration"),

@@ -255,6 +255,8 @@ def _receipt(
         "run_id": run_id,
         "candidate": {"package": "kinocut", "version": version("kinocut"), "commit": candidate_commit},
         "user_intent": "Prove Kinocut can produce a checked vertical video from generated or local source media.",
+        "composition_source": "capture",
+        "composition_source_detail": "synthetic ffmpeg testsrc2/sine fixture",
         "source_media": {
             "path": str(source),
             "sha256": source_before.asset_id,

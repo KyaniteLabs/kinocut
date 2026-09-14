@@ -12,6 +12,7 @@ from typing import Any
 
 from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
 from kinocut.errors import ProcessingError
+from kinocut.receipts_composition import composition_source_findings
 
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -29,6 +30,21 @@ def _path_exists(value: Any) -> bool:
     return Path(str(value)).expanduser().exists()
 
 
+def _composition_source_check(receipt: dict[str, Any]) -> dict[str, str]:
+    """Schema errors fail; a ``capture`` composition stays visible as a warn, never a block."""
+    findings = composition_source_findings(receipt)
+    errors = [finding["message"] for finding in findings if finding["severity"] == "error"]
+    if errors:
+        return {"name": "composition_source_schema", "status": "fail", "detail": "; ".join(errors)}
+    if any(finding["code"] == "composition_source_capture" for finding in findings):
+        return {
+            "name": "composition_source_capture",
+            "status": "warn",
+            "detail": "composition uses captured/generated media; live-html is expected for product-facing compositions",
+        }
+    return {"name": "composition_source_live_html", "status": "pass"}
+
+
 def _check_receipt(receipt: dict[str, Any]) -> list[dict[str, str]]:
     checks = [
         ("receipt_has_intent", bool(receipt.get("user_intent"))),
@@ -42,7 +58,9 @@ def _check_receipt(receipt: dict[str, Any]) -> list[dict[str, str]]:
         ("human_review_required", receipt.get("human_review", {}).get("required") is True),
         ("human_review_pending", receipt.get("human_review", {}).get("status") == "pending"),
     ]
-    return [{"name": name, "status": "pass" if passed else "fail"} for name, passed in checks]
+    status_checks = [{"name": name, "status": "pass" if passed else "fail"} for name, passed in checks]
+    status_checks.append(_composition_source_check(receipt))
+    return status_checks
 
 
 def _run_workflow(workflow_dir: Path) -> subprocess.CompletedProcess[str]:
@@ -98,7 +116,7 @@ def main() -> int:
     if not args.skip_run:
         workflow_completed = run_result is not None and run_result.returncode == 0
         checks.insert(1, {"name": "workflow_completed", "status": "pass" if workflow_completed else "fail"})
-    passed = all(check["status"] == "pass" for check in checks)
+    passed = all(check["status"] != "fail" for check in checks)
     report = {
         "benchmark": "confidence-baseline",
         "passed": passed,

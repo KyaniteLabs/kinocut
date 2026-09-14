@@ -15,6 +15,8 @@ Use it when a workflow creates or edits media that may be published, handed to a
     "commit": "0123456789abcdef0123456789abcdef01234567"
   },
   "user_intent": "Turn a source clip into a captioned vertical short.",
+  "composition_source": "live-html",
+  "composition_source_detail": "hyperframes://projects/vertical-short-v2",
   "source_media": {
     "path": "output/source.mp4",
     "sha256": "sha256:...",
@@ -63,6 +65,25 @@ Use it when a workflow creates or edits media that may be published, handed to a
   "next_edit_suggestion": "Adjust hook text and rerun release checkpoint after human review."
 }
 ```
+
+## Composition provenance
+
+`composition_source` is **schema-required** and records how the visual composition was
+sourced. `composition_source_detail` is a free-form identifier for that source (project
+or URL for live HTML; capture provenance note otherwise).
+
+| Value | Meaning |
+|---|---|
+| `live-html` | The composition derives from live application HTML — a native Hyperframes project or a `hyperframes-capture` ingest of a live URL. |
+| `capture` | The composition derives from captured or generated media files — screenshots, screen recordings, footage clips, synthetic fixtures — rather than live app HTML. |
+
+A `capture` receipt always carries a **warning-class finding** so screenshot-sourced
+compositions are mechanically distinguishable. The warning is visible in the confidence
+benchmark report (`composition_source_capture`, status `warn`) and in golden-path output;
+it never blocks a pipeline by itself. A missing or unknown `composition_source` is a
+schema error: the confidence benchmark fails it (`composition_source_schema`) and the
+golden path refuses the receipt. See `kinocut/receipts_composition.py` for the shared
+validation used by both.
 
 ## Trust Rules
 

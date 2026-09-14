@@ -255,6 +255,8 @@ def _write_receipt(
     info = client.info(final_video)
     receipt = {
         "user_intent": "Build a branded explainer video from generated scenes, procedural audio, effects, and transitions.",
+        "composition_source": "capture",
+        "composition_source_detail": "locally generated scene cards and procedural audio (no live app HTML)",
         "source_media": {
             "path": "generated-from-scenes",
             "duration_seconds": _value(info, "duration"),
