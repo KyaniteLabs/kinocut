@@ -438,6 +438,33 @@ def _format_quality_check(result: Any) -> None:
     console.print(f"[bold]Overall: {overall}[/bold]")
 
 
+def _format_release_checkpoint_text(result: Any) -> None:
+    data = _model_dump(result)
+    if not isinstance(data, dict):
+        data = {}
+    if data.get("error"):
+        message = data["error"].get("message", "release checkpoint failed")
+        console.print(f"[bold red]RELEASE CHECKPOINT FAILED:[/bold red] {escape(str(message))}")
+        return
+    quality = data.get("quality") or {}
+    score = quality.get("overall_score")
+    lines = []
+    if score is not None:
+        lines.append(f"[bold green]Quality score:[/bold green] {score}")
+    if data.get("thumbnail"):
+        lines.append(f"[bold green]Thumbnail:[/bold green] {data['thumbnail']}")
+    storyboard = data.get("storyboard") or {}
+    if isinstance(storyboard, dict) and storyboard.get("output_path"):
+        lines.append(
+            f"[bold green]Storyboard:[/bold green] {storyboard['output_path']} ({storyboard.get('count', '?')} frames)"
+        )
+    if data.get("review_required"):
+        lines.append("[bold yellow]Review required:[/bold yellow] inspect the artifacts before publishing.")
+    if data.get("instructions"):
+        lines.append(escape(str(data["instructions"])))
+    _format_success_panel(lines, title="Release Checkpoint")
+
+
 def _format_design_quality(result: Any) -> None:
     data = _model_dump(result)
     score = data.get("overall_score", "N/A")
