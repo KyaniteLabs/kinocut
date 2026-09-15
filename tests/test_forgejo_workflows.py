@@ -29,24 +29,26 @@ def test_workflows_never_pass_ff_only_to_git_push():
     assert offenders == {}
 
 
-def test_lint_checkout_fails_closed_before_apt_and_clones_into_empty_dir():
-    """Invisible ~40s lint: token/clone fail after apt, no ruff status, tests skip.
+def test_lint_runs_in_prebuilt_base_image_and_fails_closed_before_clone():
+    """Lint jobs run in the baked base image; no per-job apt, fail-closed clone.
 
-    Colima images cannot clone Forgejo anonymously. `secrets.GITHUB_TOKEN` is not
-    always injected; `github.token` is the automatic job token. Runner workspaces
-    are not always empty, so clone into `.` is not reliable.
+    The prebuilt `ci-images-base` image carries git/curl/python3/ca-certificates,
+    so the workflow must not apt-install anything. Colima/G2 images cannot clone
+    Forgejo anonymously: `secrets.GITHUB_TOKEN` is not always injected, so
+    `github.token` is the fallback and an empty token must exit before cloning.
+    Runner workspaces are not always empty, so clone into WORKDIR, not `.`.
     """
     lint = _lint_job_text()
+    assert "ci-images-base:v1" in lint, "lint must run in the prebuilt base image"
+    assert "apt-get" not in lint, "toolchain is baked into the image; no per-job apt"
     token_gate = lint.find('if [ -z "$TOKEN" ]')
-    apt = lint.find("apt-get update")
-    workdir = lint.find("WORKDIR=")
     assert token_gate != -1, "lint must refuse an empty clone token"
-    assert apt != -1 and token_gate < apt, "empty token must fail before apt-get"
     assert "secrets.GITHUB_TOKEN" in lint
     assert "github.token" in lint
+    workdir = lint.find("WORKDIR=")
     clone = lint.find("git clone --depth")
     assert workdir != -1 and 'mkdir -p "$WORKDIR"' in lint and 'cd "$WORKDIR"' in lint
-    assert clone != -1 and workdir < clone
+    assert clone != -1 and token_gate < clone and workdir < clone, "token gate must fail before cloning"
     assert "lint-checkout" in lint
     assert "set -x" not in lint.split("Install ruff")[0]
     assert "working-directory: src" in lint
@@ -59,30 +61,25 @@ def test_claims_live_does_not_share_the_light_runner_with_lint():
     assert "runs-on: light" not in text
 
 
-def test_lint_checkout_curl_posts_before_heavy_git_python_install():
-    """Bare ubuntu:24.04 has no python3/curl; tiny apt curl, then fail-closed POST.
+def test_lint_checkout_posts_fail_closed_status_without_runtime_apt():
+    """Baked curl posts the lint-checkout status; ruff installs into its own venv.
 
-    Do not require the POST before the first apt-get update. Assert against the
-    heavy install argv (git/python3), not a naive find("python3") that hits the
-    later ruff helper.
+    The status POST must be visible to the API-only debugger (context
+    `lint-checkout`), use `curl --fail` so a failed POST fails the step, and sit
+    inside the checkout step's EXIT trap so failures are reported. The heavy
+    apt-get bootstrap this used to interleave with is gone with the prebuilt image.
     """
     lint = _lint_job_text()
     assert "curl --fail" in lint
-    assert "ca-certificates" in lint
-    tiny = lint.find("curl ca-certificates")
-    assert tiny != -1, "expected tiny apt-get install curl ca-certificates"
-    heavy = re.search(r"apt-get install[^\n]*\bgit\b[^\n]*\bpython3\b", lint)
-    assert heavy, "expected apt-get install ... git ... python3"
     post = lint.find('"context":"lint-checkout"')
     assert post != -1, "expected JSON lint-checkout payload"
-    assert tiny < post < heavy.start(), "curl POST must sit after tiny apt and before git/python3 install"
-    assert lint.find("apt-get update") != -1
-    assert lint.find("apt-get update") < post
+    trap = lint.find("trap 'post_checkout_status error")
+    assert trap != -1 and trap < lint.find("git clone --depth"), "checkout failures must POST an error status"
     checkout = lint.split("Install ruff")[0]
     assert "shell: bash" in checkout
     assert "${desc:0:" not in checkout
     assert "timeout-minutes: 10" in checkout
-    assert "Acquire::http::Timeout=30" in checkout
+    assert "apt-get" not in lint, "no apt bootstrap left once the toolchain is baked"
 
 
 def test_heavy_ci_jobs_and_ffmpeg_assets_target_x86_64_runner():
