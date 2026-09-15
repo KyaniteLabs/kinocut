@@ -636,4 +636,4 @@ def test_variant_flags_do_not_add_cli_commands():
     assert result.returncode == 0
     command_lists = re.findall(r"\{([^}]+)\}", result.stdout)
     command_list = max(command_lists, key=lambda value: len(value.split(",")))
-    assert len(set(command_list.split(","))) == 172  # Current development-tip CLI surface.
+    assert len(set(command_list.split(","))) == 173  # Current development-tip CLI surface.

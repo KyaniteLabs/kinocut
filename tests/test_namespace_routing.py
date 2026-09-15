@@ -253,7 +253,7 @@ def test_flat_command_set_remains_authoritative():
     over the 172-command development-tip flat parser.
     """
 
-    assert len(EXPECTED_CLI_COMMANDS) == 172
+    assert len(EXPECTED_CLI_COMMANDS) == 173
     assert len(NAMESPACED_ALIASES) == 42
     groups = namespaced_groups()
     assert set(groups) == {"aivideo", "audio", "qa", "edit", "shorts", "sound"}
