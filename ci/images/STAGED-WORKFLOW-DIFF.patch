@@ -1,0 +1,106 @@
+--- a/.forgejo/workflows/ci.yml
++++ b/.forgejo/workflows/ci.yml
+@@ -4,6 +4,8 @@
+   pull_request:
+ jobs:
+   lint:
++    container:
++      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-base:v1
+     # Lightweight: ruff only. Routed to `light` so lint never queues behind
+     # heavy test jobs on the capacity-2 runner.
+     # Uses manual git clone instead of actions/checkout@v4 because the CI
+@@ -32,13 +34,6 @@
+             echo "runner images cannot clone Forgejo anonymously"
+             exit 1
+           fi
+-          export DEBIAN_FRONTEND=noninteractive
+-          apt_curl() {
+-            apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=30
+-            apt-get install -y -o Acquire::Retries=3 -o Acquire::http::Timeout=30 curl ca-certificates
+-          }
+-          apt_curl || apt_curl
+-          command -v curl >/dev/null
+           post_checkout_status() {
+             state="$1"
+             desc="$2"
+@@ -54,7 +49,6 @@
+           }
+           trap 'post_checkout_status error "checkout failed token_len=${#TOKEN}"' EXIT
+           post_checkout_status pending "curl-ok token_len=${#TOKEN}"
+-          apt-get install -y -qq git python3 python3-venv
+           WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/src"
+           mkdir -p "$WORKDIR"
+           cd "$WORKDIR"
+@@ -119,6 +113,8 @@
+           raise SystemExit(1)
+           PY
+   test:
++    container:
++      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-base:v1
+     needs: lint
+     # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
+     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
+@@ -133,8 +129,6 @@
+     steps:
+       - name: Checkout
+         run: |
+-          export DEBIAN_FRONTEND=noninteractive
+-          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg nodejs=18.19.1+dfsg-6ubuntu5
+           set -eux
+           export GIT_TERMINAL_PROMPT=0
+           TOKEN='${{ secrets.GITHUB_TOKEN }}'
+@@ -180,6 +174,8 @@
+           raise SystemExit(pytest.main([*(str(path) for path in selected), "-q", "-m", "not slow"]))
+           PY
+   test-slow:
++    container:
++      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-base:v1
+     needs: test-ffmpeg-matrix
+     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
+     # on push to master. Kept serial (no -n) because these tests do heavier real I/O.
+@@ -188,8 +184,6 @@
+     steps:
+       - name: Checkout
+         run: |
+-          export DEBIAN_FRONTEND=noninteractive
+-          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
+           set -eux
+           export GIT_TERMINAL_PROMPT=0
+           TOKEN='${{ secrets.GITHUB_TOKEN }}'
+@@ -217,6 +211,8 @@
+       - name: Slow tests
+         run: .venv/bin/pytest tests/ -q -m "slow"
+   test-ffmpeg-matrix:
++    container:
++      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-ffmpeg-${{ matrix.major }}:v1
+     needs: test
+     # Cross-FFmpeg-version filtergraph portability matrix.
+     #
+@@ -257,8 +253,6 @@
+     steps:
+       - name: Checkout
+         run: |
+-          export DEBIAN_FRONTEND=noninteractive
+-          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv curl xz-utils
+           set -eux
+           export GIT_TERMINAL_PROMPT=0
+           TOKEN='${{ secrets.GITHUB_TOKEN }}'
+@@ -278,18 +272,6 @@
+           git checkout "$SHA" || git checkout FETCH_HEAD
+           git log -1 --oneline
+           git rev-parse HEAD
+-      - name: Fetch pinned static FFmpeg ${{ matrix.major }}
+-        run: |
+-          set -euo pipefail
+-          url="https://github.com/BtbN/FFmpeg-Builds/releases/download/${{ matrix.ffmpeg_tag }}/${{ matrix.ffmpeg_asset }}"
+-          echo "Downloading $url"
+-          dest="${RUNNER_TEMP:-/tmp}/ffmpeg-static"
+-          mkdir -p "$dest"
+-          curl -fsSL --retry 3 --retry-delay 5 "$url" -o "${RUNNER_TEMP:-/tmp}/ffmpeg.tar.xz"
+-          tar -xf "${RUNNER_TEMP:-/tmp}/ffmpeg.tar.xz" -C "$dest"
+-          bindir="$(dirname "$(find "$dest" -type f -name ffmpeg | head -1)")"
+-          echo "Resolved static FFmpeg bin dir: $bindir"
+-          echo "$bindir" >> "$GITHUB_PATH"
+       - name: Assert FFmpeg major is ${{ matrix.major }}
+         run: |
+           set -euo pipefail

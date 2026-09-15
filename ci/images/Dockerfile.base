@@ -1,0 +1,28 @@
+# ci-images-base — prebuilt kinocut CI base image (FAST-CI program, 2026-09-14).
+# Replaces the per-job apt installs in .forgejo/workflows/ci.yml so jobs start
+# without the fresh-install tax. Built for linux/amd64 (G2 runner is x86_64).
+#
+# Toolchain deltas vs. the previous Ubuntu 24.04 runner-host behavior, accepted
+# per the CI-images brief (node:22-bookworm spec) and recorded for the workflow
+# PR owner in CI-IMAGES-RESULT.md:
+#   node:   22.x (image default) replaces apt pin nodejs=18.19.1+dfsg-6ubuntu5
+#   ffmpeg: bookworm apt 5.1.x replaces Ubuntu's 6.1.1
+#   python: 3.11 (bookworm) replaces Ubuntu's 3.12
+# If the `test` job trips ffmpeg-5-vs-6 filtergraph gaps, the documented
+# fallback is pointing `test` at ci-images-ffmpeg-6 (static 6.1.3 on PATH).
+FROM node:22-bookworm
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+ && apt-get install -y --no-install-recommends \
+      -o Acquire::Retries=3 -o Acquire::http::Timeout=30 \
+      git \
+      python3 \
+      python3-pip \
+      python3-venv \
+      ffmpeg \
+      curl \
+      ca-certificates \
+      xz-utils \
+ && rm -rf /var/lib/apt/lists/*
