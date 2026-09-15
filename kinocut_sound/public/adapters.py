@@ -20,7 +20,6 @@ from kinocut_sound.lines import Emotion, Line, ProfileRef, Prosody
 from kinocut_sound.mix import MixClip, MixRenderer
 from kinocut_sound.mix._wav import synthesize_tone
 from kinocut_sound.public.discovery import discover_sound_capabilities
-from kinocut_sound.qa import FakeAsrPort, verify_script_asr
 from kinocut_sound.routing import Routing
 from kinocut_sound.sound_plan import PlanProvenance, SoundPlan
 from kinocut_sound.timeline import Cue, CueKind, Timeline
@@ -235,47 +234,12 @@ class SoundPythonAdapter:
 
         return inspect_loudness(wav_bytes, request=request, project_root=project_root, delivery=delivery)
 
-    def qa_asr(
-        self,
-        *,
-        script_hashes: tuple[str, ...] | list[str] | None = None,
-        audio_duration_seconds: float = 1.0,
-        available: bool = True,
-        request=None,
-        project_root=None,
-    ) -> dict[str, Any]:
-        if request is not None or project_root is not None:
-            from kinocut_sound.public.asr_job import recognize_sync
-            from kinocut_sound.public.asr_request import real_mode
+    def qa_asr(self, *, request, project_root) -> dict[str, Any]:
+        from kinocut_sound.public.asr_job import recognize_sync
+        from kinocut_sound.public.asr_request import real_mode
 
-            real_mode(
-                dict(
-                    request=request,
-                    project_root=project_root,
-                    script_hashes=script_hashes,
-                    audio_duration_seconds=audio_duration_seconds,
-                    available=available,
-                )
-            )
-            return recognize_sync(request, project_root)
-        hashes = tuple(script_hashes) if script_hashes else (_SHA_ZERO,)
-        try:
-            rep = verify_script_asr(
-                port=FakeAsrPort(available=available),
-                script_hashes=hashes,
-                audio_duration_seconds=float(audio_duration_seconds),
-            )
-        except Exception as exc:
-            # Bounded surface: never leak provider internals.
-            raise ValueError("sound qa asr failed") from exc
-        return {
-            "ok": rep.ok,
-            "mismatch_count": rep.mismatch_count,
-            "segment_count": len(rep.segments),
-            "demo": True,
-            "verification_status": "simulated",
-            "human_review_required": True,
-        }
+        real_mode(dict(request=request, project_root=project_root))
+        return recognize_sync(request, project_root)
 
 
 def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
@@ -333,9 +297,12 @@ def invoke_sound_operation(name: str, **kwargs: Any) -> dict[str, Any]:
             raise qa_error("explicit audio input cannot be empty", QA_INPUT_INVALID)
         return adapter.qa_loudness(**kwargs)
     elif key == "sound-qa-asr":
-        from kinocut_sound.public.asr_request import real_mode
+        from kinocut_sound.public.asr_request import asr_error, real_mode
 
         real_mode(kwargs)
+        if kwargs.get("request") is None or not kwargs.get("project_root"):
+            # The synthetic-hash demo port is removed; recognition requires real inputs.
+            raise asr_error("real ASR requires request and project_root")
         return adapter.qa_asr(**kwargs)
     else:  # pragma: no cover - guarded by _KNOWN_OPS
         raise KeyError(f"unknown sound operation: {name}")

@@ -67,16 +67,11 @@ class ClientSoundMixin:
 
     def sound_qa_asr(
         self,
-        script_hashes: list[str] | None = None,
-        audio_duration_seconds: float = 1.0,
         *,
-        request: dict[str, Any] | str | None = None,
-        project_root: str | None = None,
+        request: dict[str, Any] | str,
+        project_root: str,
     ) -> dict[str, Any]:
-        """Recognize supplied audio locally, or return an explicitly simulated demo."""
+        """Recognize supplied audio locally against a reference script."""
         from kinocut_sound.public import invoke_sound_operation
 
-        arguments = dict(script_hashes=script_hashes, audio_duration_seconds=audio_duration_seconds)
-        if request is not None or project_root is not None:
-            arguments.update(request=request, project_root=project_root)
-        return invoke_sound_operation("sound-qa-asr", **arguments)
+        return invoke_sound_operation("sound-qa-asr", request=request, project_root=project_root)

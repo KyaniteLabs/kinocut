@@ -45,6 +45,12 @@ def test_invoke_all_discovered_operations():
             with pytest.raises(MasterError):
                 invoke_sound_operation(name)  # This operation requires supplied media, never a demo.
             continue
+        if name == "sound-qa-asr":
+            from kinocut_sound.public.asr_request import AsrError
+
+            with pytest.raises(AsrError):
+                invoke_sound_operation(name)  # Requires supplied media; the synthetic demo port is removed.
+            continue
         result = invoke_sound_operation(name)
         assert isinstance(result, dict)
         text = json.dumps(result)
@@ -72,10 +78,6 @@ def test_invoke_all_discovered_operations():
     assert loud["demo"] is True
     assert loud["artifact_kind"] == "sound_loudness_measurement"
     assert loud["within_tolerance"] is False  # Demo tone is not mastered to the default policy.
-
-    asr = invoke_sound_operation("sound-qa-asr")
-    assert asr["ok"] is True
-    assert asr["mismatch_count"] == 0
 
 
 def test_plan_validate_rejects_hostile_payload():

@@ -12,7 +12,6 @@ from kinocut_sound.qa._errors import (
     qa_error,
 )
 from kinocut_sound.qa.loudness import LoudnessReport, check_loudness, measure_loudness
-from kinocut_sound.qa.asr import AsrReport, AsrSegment, FakeAsrPort, verify_script_asr
 from kinocut_sound.qa.artifact import ArtifactReport, detect_artifacts
 from kinocut_sound.qa.metadata import ChapterMarker, EpisodeMetadata, build_metadata
 from kinocut_sound.qa.season import EpisodeQaSummary, SeasonQaReport, rollup_season
@@ -25,12 +24,9 @@ __all__ = [
     "QA_STEM_FAIL",
     "QA_UNAVAILABLE",
     "ArtifactReport",
-    "AsrReport",
-    "AsrSegment",
     "ChapterMarker",
     "EpisodeMetadata",
     "EpisodeQaSummary",
-    "FakeAsrPort",
     "LoudnessReport",
     "QaError",
     "SeasonQaReport",
@@ -40,5 +36,4 @@ __all__ = [
     "measure_loudness",
     "qa_error",
     "rollup_season",
-    "verify_script_asr",
 ]
