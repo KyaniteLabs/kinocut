@@ -12,6 +12,10 @@ jobs:
     # runner (Colima VM) cannot reach gitea.com to download the action.
     runs-on: light
     timeout-minutes: 15
+    # Conservative docs/meta path filter consumed by test-ffmpeg-matrix and
+    # test-slow (see the derivation comment on the "Compute CI scope" step).
+    outputs:
+      code_changed: ${{ steps.scope.outputs.code_changed }}
     steps:
       - name: Checkout
         shell: bash
@@ -62,6 +66,41 @@ jobs:
           git rev-parse HEAD
           trap - EXIT
           post_checkout_status success "ok token_len=${#TOKEN}"
+
+      - name: Compute CI scope
+        id: scope
+        working-directory: src
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          set -eu
+          # Conservative path filter (derivation + safety argument in
+          # scripts/ci_scope.py; measured basis: KINOCUT-CI-OPTIMIZATION-PLAN.md,
+          # org-hq 2026-09-14). The ffmpeg-matrix test files transitively import
+          # 394 of the repo's 854 python modules, so module-level filtering is
+          # useless; the provable line is code vs docs/meta. None of the matrix
+          # test files, their conftest chain, or any slow-marked test reads
+          # docs/**, **/*.md, LICENSE*, .gitignore/.editorconfig/.gitattributes,
+          # robots.txt, sitemap.xml or og-social-preview.png, and every
+          # docs-bound test lives in the not-slow shards that always run — so
+          # skipping matrix+slow on a docs/meta-only diff cannot mask a failure.
+          # Any code path (including this workflow) keeps the full pipeline,
+          # and every failure mode below fails OPEN (runs everything).
+          code_changed=true
+          base=""
+          if [ "$EVENT_NAME" = "pull_request" ] && [ -n "$BASE_REF" ]; then
+            if git fetch --depth 50 origin "$BASE_REF" 2>/dev/null; then
+              base="$(git merge-base HEAD FETCH_HEAD 2>/dev/null || echo FETCH_HEAD)"
+            fi
+          elif [ "$EVENT_NAME" = "push" ]; then
+            base="$(git rev-parse HEAD^ 2>/dev/null || true)"
+          fi
+          if [ -n "$base" ] && git diff --name-only "$base" HEAD | python3 scripts/ci_scope.py > ci-scope.txt; then
+            code_changed="$(cat ci-scope.txt)"
+          fi
+          echo "CI scope: code_changed=$code_changed"
+          echo "code_changed=$code_changed" >> "$GITHUB_OUTPUT"
 
       - name: Install ruff
         working-directory: src
@@ -186,8 +225,11 @@ jobs:
       image: ubuntu:24.04
     needs: test-ffmpeg-matrix
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
-    # on push to master. Kept serial (no -n) because these tests do heavier real I/O.
-    if: ${{ github.event_name == 'push' }}
+    # on push to master — and only when the matrix actually ran: a skipped
+    # matrix means a docs/meta-only diff, and no slow-marked test reads
+    # docs/** or *.md, so the slow suite's inputs are unchanged. Kept serial
+    # (no -n) because these tests do heavier real I/O.
+    if: ${{ github.event_name == 'push' && needs.test-ffmpeg-matrix.result == 'success' }}
     runs-on: x86-heavy
     steps:
       - name: Checkout
@@ -223,8 +265,15 @@ jobs:
   test-ffmpeg-matrix:
     container:
       image: git.kyanitelabs.tech/kyanitelabs/ci-images-ffmpeg-${{ matrix.major }}:v1
-    needs: test
+    needs: [test, lint]
     # Cross-FFmpeg-version filtergraph portability matrix.
+    #
+    # Path filter: skipped only when lint's "Compute CI scope" step classified
+    # the diff as docs/meta-only (derivation in scripts/ci_scope.py). The
+    # needs.test.result guard keeps the matrix off broken trees exactly like
+    # the pre-filter dependency behavior did. Workflow changes and every code
+    # path always run the full matrix.
+    if: ${{ needs.test.result == 'success' && needs.lint.outputs.code_changed == 'true' }}
     #
     # WHY: the apt-based `test` job exercises exactly ONE ffmpeg — the runner
     # OS's build (currently 6.1.1). A filtergraph that parses on dev-local
