@@ -114,7 +114,11 @@ jobs:
           PY
   test:
     container:
-      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
+      # Deterministic noble test env on every runner (matches the historically
+      # green G2 lane). The suite's not-slow shards still fail on bookworm-based
+      # fresh venvs (pre-existing, py3.11/pip-resolution sensitive), so the test
+      # job keeps the apt toolchain instead of the baked bookworm base image.
+      image: ubuntu:24.04
     needs: lint
     # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
@@ -129,6 +133,8 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg nodejs=18.19.1+dfsg-6ubuntu5
           set -eux
           export GIT_TERMINAL_PROMPT=0
           TOKEN='${{ secrets.GITHUB_TOKEN }}'
@@ -175,7 +181,9 @@ jobs:
           PY
   test-slow:
     container:
-      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
+      # Same noble posture as `test` (see rationale there); the slow suite has
+      # the same bookworm latent failures.
+      image: ubuntu:24.04
     needs: test-ffmpeg-matrix
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
     # on push to master. Kept serial (no -n) because these tests do heavier real I/O.
@@ -184,6 +192,8 @@ jobs:
     steps:
       - name: Checkout
         run: |
+          export DEBIAN_FRONTEND=noninteractive
+          apt-get update -qq && apt-get install -y -qq git python3 python3-pip python3-venv ffmpeg
           set -eux
           export GIT_TERMINAL_PROMPT=0
           TOKEN='${{ secrets.GITHUB_TOKEN }}'
