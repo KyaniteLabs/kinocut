@@ -108,6 +108,7 @@ EXPECTED_CLI_COMMANDS = {
     "video-quality-check",
     "video-design-quality-check",
     "video-fix-design-issues",
+    "release-checkpoint",
     "image-extract-colors",
     "image-generate-palette",
     "image-analyze-product",

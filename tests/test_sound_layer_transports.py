@@ -122,20 +122,28 @@ def test_cancel_real_layer_worker_reaps_and_resumes(layered_project, monkeypatch
         return process
 
     async def scenario():
-        monkeypatch.setattr(mix_job.asyncio, "create_subprocess_exec", stopped_worker)
-        task = asyncio.create_task(mix_job.render_mix_request_async(request, str(root)))
-        for _ in range(100):
-            if workers:
-                break
-            await asyncio.sleep(0.01)
-        assert workers
-        task.cancel()
-        with pytest.raises(asyncio.CancelledError):
-            await asyncio.wait_for(task, 5)
-        assert workers[0].returncode is not None
-        assert not (root / request["output_path"]).exists()
-        assert not list(root.glob(".kinocut-mix-*"))
-        monkeypatch.setattr(mix_job.asyncio, "create_subprocess_exec", original)
-        return await mix_job.render_mix_request_async(request, str(root))
+        try:
+            monkeypatch.setattr(mix_job.asyncio, "create_subprocess_exec", stopped_worker)
+            task = asyncio.create_task(mix_job.render_mix_request_async(request, str(root)))
+            for _ in range(100):
+                if workers:
+                    break
+                await asyncio.sleep(0.01)
+            assert workers
+            task.cancel()
+            with pytest.raises(asyncio.CancelledError):
+                await asyncio.wait_for(task, 5)
+            assert workers[0].returncode is not None
+            assert not (root / request["output_path"]).exists()
+            assert not list(root.glob(".kinocut-mix-*"))
+            monkeypatch.setattr(mix_job.asyncio, "create_subprocess_exec", original)
+            return await mix_job.render_mix_request_async(request, str(root))
+        finally:
+            # A stopped child ignores SIGTERM, and a pending kill must land even on
+            # the failure path: asyncio.run teardown cannot reap a SIGSTOPped child
+            # and would hang the whole suite instead of reporting the assertion.
+            for worker in workers:
+                if worker.returncode is None:
+                    worker.kill()
 
     inspect(root, asyncio.run(asyncio.wait_for(scenario(), 20)), False)

@@ -478,7 +478,7 @@ def test_public_counts_and_client_contracts():
 
     commands = build_parser()._subparsers._group_actions[0].choices
     assert {"video-ingest", "video-preflight", "video-inspect-temporal"} <= set(commands)
-    assert len(commands) == 172
+    assert len(commands) == 173
     assert Client().inspect("ingest")["return_type"] == "report"
     assert Client().inspect("preflight")["return_type"] == "report"
     assert Client().inspect("inspect_temporal")["return_type"] == "report"

@@ -2,6 +2,8 @@
 
 import argparse
 
+import pytest
+
 
 def _get_subparser_names(parser_module):
     """Return set of subparser names added by a parser module."""
@@ -319,6 +321,7 @@ class TestParserQuality:
             "video-quality-check",
             "video-design-quality-check",
             "video-fix-design-issues",
+            "release-checkpoint",
         }
         assert expected <= names
 
@@ -332,6 +335,7 @@ class TestParserQuality:
             ["video-quality-check", "input.mp4", "--format", "json"],
             ["video-design-quality-check", "input.mp4", "--format", "json"],
             ["video-fix-design-issues", "input.mp4", "--format", "json"],
+            ["release-checkpoint", "input.mp4", "--format", "json"],
         ]
 
         for argv in cases:
@@ -352,3 +356,26 @@ class TestParserInit:
 
         parser = build_parser()
         assert isinstance(parser, argparse.ArgumentParser)
+
+
+class TestParserReleaseCheckpoint:
+    def test_release_checkpoint_subcommand_exists_on_real_parser(self):
+        from mcp_video.cli.parser import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(["release-checkpoint", "clip.mp4"])
+        assert args.command == "release-checkpoint"
+        assert args.input == "clip.mp4"
+        assert args.output_dir is None
+        assert args.frame_count == 6
+
+    def test_flags_map_to_mcp_tool_parameters(self):
+        from mcp_video.cli.parser import build_parser
+
+        parser = build_parser()
+        args = parser.parse_args(
+            ["release-checkpoint", "clip.mp4", "-o", "review", "--min-score", "65.5", "--frame-count", "3"]
+        )
+        assert args.output_dir == "review"
+        assert args.min_score == pytest.approx(65.5)
+        assert args.frame_count == 3

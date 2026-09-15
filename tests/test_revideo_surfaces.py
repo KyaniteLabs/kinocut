@@ -264,7 +264,7 @@ def test_revideo_names_and_count_split_are_documented() -> None:
     assert claims["published_mcp_tools"] == 196
     assert claims["published_cli_commands"] == 167
     assert claims["development_mcp_tools"] == 201
-    assert claims["development_cli_commands"] == 172
+    assert claims["development_cli_commands"] == 173
     surfaces = [
         ROOT / "docs" / "TOOLS.md",
         ROOT / "docs" / "CLI_REFERENCE.md",
