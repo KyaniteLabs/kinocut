@@ -37,7 +37,6 @@ _CAPS = (
     "mix_stems",
     "qa_loudness",
     "master_measured",
-    "qa_asr_fake",
     "qa_asr_recognized",
     "post_chain",
     "world_ambience",

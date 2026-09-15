@@ -11,6 +11,9 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Changed
+- `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
+
 ### Fixed
 - Absolute trim-end handling now preserves the requested endpoint ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)).
 - Windows drive paths survive command parsing without losing their drive prefix ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)).

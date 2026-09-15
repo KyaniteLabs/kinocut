@@ -79,7 +79,31 @@ def test_actual_mismatch_is_retained(asr_project):
     assert (root / "recognized.zip").is_file()
 
 
-def test_legacy_is_explicitly_simulated():
-    result = invoke_sound_operation("sound-qa-asr")
-    assert result["demo"] is True
-    assert result["verification_status"] == "simulated"
+def test_legacy_simulated_port_is_removed():
+    from kinocut_sound.public.asr_request import AsrError
+
+    with pytest.raises(AsrError) as bare:
+        invoke_sound_operation("sound-qa-asr")
+    assert bare.value.code == "asr_input_invalid"
+
+    with pytest.raises(AsrError):
+        invoke_sound_operation(
+            "sound-qa-asr",
+            script_hashes=["sha256:" + "0" * 64],
+            audio_duration_seconds=1.0,
+        )
+
+
+def test_real_request_rejects_legacy_hash_intent(asr_project):
+    from kinocut_sound.public.asr_request import AsrError
+
+    root, prepare = asr_project
+    request = prepare()
+
+    with pytest.raises(AsrError):
+        invoke_sound_operation(
+            "sound-qa-asr",
+            request=request,
+            project_root=str(root),
+            script_hashes=["sha256:" + "0" * 64],
+        )

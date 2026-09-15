@@ -30,10 +30,12 @@ kinocut --format json sound qa-asr --request-json request.json --project-root ./
 ```
 
 The flat command is `sound-qa-asr`; MCP uses `sound_qa_asr` with the same request
-and root. Real requests reject legacy hash/duration intent. Python/MCP defaults
-`script_hashes=None` and duration `1.0` count as omitted; CLI rejects explicitly
-supplied legacy flags. Legacy-only calls remain labelled `demo=true` and
-`verification_status=simulated`; they do not recognize or verify audio.
+and root. Both require the request and root; there is no synthetic demo. The
+former legacy hash/duration surface (`--script-hashes`,
+`--audio-duration-seconds`, `script_hashes`, `audio_duration_seconds`,
+`available`) is removed: the CLI no longer accepts those flags and Python/MCP
+calls supplying them fail with `asr_input_invalid` instead of returning a
+`verification_status=simulated` result.
 
 The ZIP retains actual text and timed segments in `transcript.json`, plus a
 receipt binding input, reference, request, transcript and model identities,
