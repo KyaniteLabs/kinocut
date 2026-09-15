@@ -5,7 +5,7 @@
  jobs:
    lint:
 +    container:
-+      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-base:v1
++      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
      # Lightweight: ruff only. Routed to `light` so lint never queues behind
      # heavy test jobs on the capacity-2 runner.
      # Uses manual git clone instead of actions/checkout@v4 because the CI
@@ -36,7 +36,7 @@
            PY
    test:
 +    container:
-+      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-base:v1
++      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
      needs: lint
      # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
      # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
@@ -54,7 +54,7 @@
            PY
    test-slow:
 +    container:
-+      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-base:v1
++      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
      needs: test-ffmpeg-matrix
      # Slow real-media integration suite, skipped by the PR `test` job. Runs only
      # on push to master. Kept serial (no -n) because these tests do heavier real I/O.
@@ -72,7 +72,7 @@
          run: .venv/bin/pytest tests/ -q -m "slow"
    test-ffmpeg-matrix:
 +    container:
-+      image: git.kyanitelabs.tech/KyaniteLabs/ci-images-ffmpeg-${{ matrix.major }}:v1
++      image: git.kyanitelabs.tech/kyanitelabs/ci-images-ffmpeg-${{ matrix.major }}:v1
      needs: test
      # Cross-FFmpeg-version filtergraph portability matrix.
      #
