@@ -17,9 +17,8 @@ from .formatting import (
 from .runner import CommandRunner, _out, engine_cmd
 
 
-def handle_advanced_commands(args: Any, *, use_json: bool) -> bool:
-    """Handle quality, info, and advanced analysis commands extracted from the main dispatcher."""
-    runner = CommandRunner(args, use_json)
+def _register_analysis_command_handlers(runner: CommandRunner) -> None:
+    """Register chapter/frame/info and release-checkpoint handlers."""
 
     def _auto_chapters(a, j):
         from ..effects_engine import auto_chapters
@@ -55,6 +54,29 @@ def handle_advanced_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-info-detailed", _info_detailed)
 
+    def _release_checkpoint(a, j):
+        # Pure passthrough of the MCP video_release_checkpoint tool (same
+        # validations, hard gate, artifacts, and result shape — no logic here).
+        from ..server_tools_ai import video_release_checkpoint
+
+        r = _with_spinner(
+            "Running release checkpoint...",
+            video_release_checkpoint,
+            a.input,
+            output_dir=a.output_dir,
+            min_score=a.min_score,
+            frame_count=a.frame_count,
+        )
+        _out(r, j, _format_release_checkpoint_text)
+        if not r.get("success", False):
+            raise SystemExit(1)
+
+    runner.register("release-checkpoint", _release_checkpoint)
+
+
+def _register_quality_command_handlers(runner: CommandRunner) -> None:
+    """Register quality and design-quality handlers."""
+
     def _quality_check(a, j):
         from ..quality_guardrails import quality_check
 
@@ -87,23 +109,10 @@ def handle_advanced_commands(args: Any, *, use_json: bool) -> bool:
 
     runner.register("video-fix-design-issues", _fix_design)
 
-    def _release_checkpoint(a, j):
-        # Pure passthrough of the MCP video_release_checkpoint tool (same
-        # validations, hard gate, artifacts, and result shape — no logic here).
-        from ..server_tools_ai import video_release_checkpoint
 
-        r = _with_spinner(
-            "Running release checkpoint...",
-            video_release_checkpoint,
-            a.input,
-            output_dir=a.output_dir,
-            min_score=a.min_score,
-            frame_count=a.frame_count,
-        )
-        _out(r, j, _format_release_checkpoint_text)
-        if not r.get("success", False):
-            raise SystemExit(1)
-
-    runner.register("release-checkpoint", _release_checkpoint)
-
+def handle_advanced_commands(args: Any, *, use_json: bool) -> bool:
+    """Handle quality, info, and advanced analysis commands extracted from the main dispatcher."""
+    runner = CommandRunner(args, use_json)
+    _register_analysis_command_handlers(runner)
+    _register_quality_command_handlers(runner)
     return runner.dispatch()
