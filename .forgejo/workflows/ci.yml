@@ -122,12 +122,14 @@ jobs:
     needs: lint
     # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
-    # Wait for lint: the capacity-2 runner otherwise starts pytest immediately and
-    # starves the light job (lint then dies around 79s).
+    # Two x86-heavy runners on G2 (colima-ci-runner + g2-runner-2) allow 2-way
+    # shard parallelism. The old serial constraint (max-parallel: 1) existed because
+    # a single capacity-constrained runner starved the light lint job; with
+    # prebuilt images and dual runners, that contention is gone.
     runs-on: x86-heavy
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 2
       matrix:
         shard: [0, 1, 2, 3]
     steps:
@@ -243,7 +245,7 @@ jobs:
     runs-on: x86-heavy
     strategy:
       fail-fast: false
-      max-parallel: 1
+      max-parallel: 3
       matrix:
         include:
           - major: "6"
