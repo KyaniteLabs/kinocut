@@ -1,0 +1,8 @@
+# pip-audit allowlist (dep-audit CI job).
+# One advisory ID per line (GHSA-xxxx-yyyy or PYSEC-xxxx-yyy), trailing
+# "# reason" REQUIRED; exceptions are reviewer-approved via PR review.
+# IDs listed here are passed to pip-audit as --ignore-vuln.
+#
+# Baseline 2026-09-18: pip-audit over the full runtime dependency freeze
+# (33 pins, resolved exactly as the pipeline installs them) reported
+# "No known vulnerabilities found" — empty allowlist by evidence, not by omitting the run.

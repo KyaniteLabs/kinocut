@@ -2,6 +2,7 @@ on:
   push:
     branches: [master]
   pull_request:
+  workflow_dispatch:
 jobs:
   lint:
     container:
@@ -373,3 +374,160 @@ jobs:
             tests/test_rescue_e2e.py::test_fix_this_clip_end_to_end \
             tests/test_rescue_e2e.py::test_container_inputs_produce_verified_universal_package \
             tests/test_rescue_e2e.py::test_plan_and_render_semantics_are_reproducible
+  secret-scan:
+    container:
+      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
+    # Head-of-Security card F5 (AUDIT-2026-09-15): the repo had zero secret-scan
+    # gates. Deterministic vendored scanner (scripts/secret_scan.py): stdlib
+    # only, no new runner dependencies, no network. Always-on by design —
+    # secrets can land in any path (docs included), so this job takes no path
+    # filter, and nothing needs it (fail-closed, never blocks other lanes).
+    # Posts a `secret-scan` commit status because workflow_dispatch runs do
+    # not get automatic statuses on this Forgejo (15.0.3, no actions-log API).
+    runs-on: light
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        shell: bash
+        timeout-minutes: 10
+        env:
+          JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_TOKEN_FALLBACK: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.head_ref }}
+          PR: ${{ github.event.number }}
+        run: |
+          set -eu
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN="${JOB_TOKEN:-${JOB_TOKEN_FALLBACK:-}}"
+          if [ -z "$TOKEN" ]; then
+            echo "clone token empty; secrets.GITHUB_TOKEN and github.token are unset"
+            exit 1
+          fi
+          WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/src"
+          mkdir -p "$WORKDIR"
+          cd "$WORKDIR"
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "${REF:-}" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "${PR:-}" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
+          git log -1 --oneline
+      - name: Secret scan
+        working-directory: src
+        shell: bash
+        env:
+          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_TOKEN_FALLBACK: ${{ github.token }}
+          STATUS_SHA: ${{ github.sha }}
+          STATUS_REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          post_status() {
+            state="$1"; desc="$2"
+            desc=$(printf '%s' "$desc" | tr '\n' '|' | cut -c1-140)
+            payload=$(printf '{"state":"%s","context":"secret-scan","description":"%s"}' "$state" "$desc")
+            curl --fail --silent --show-error --max-time 20 \
+              -X POST \
+              -H "Authorization: token ${STATUS_TOKEN:-${STATUS_TOKEN_FALLBACK}}" \
+              -H "Content-Type: application/json" \
+              -H "User-Agent: kinocut-ci" \
+              --data "$payload" \
+              "https://git.kyanitelabs.tech/api/v1/repos/${STATUS_REPO}/statuses/${STATUS_SHA}" \
+              || echo "status post failed (non-fatal)"
+          }
+          if python3 scripts/secret_scan.py 2>&1 | tee secret-scan-out.txt; then
+            post_status success "$(tail -1 secret-scan-out.txt)"
+          else
+            post_status failure "$(grep -m1 '^FINDING\|^ALLOWLIST ERROR' secret-scan-out.txt || tail -1 secret-scan-out.txt)"
+            exit 1
+          fi
+  dep-audit:
+    container:
+      image: git.kyanitelabs.tech/kyanitelabs/ci-images-base:v1
+    # Head-of-Security card F5: zero dependency-audit gates. Audits the SHIPPED
+    # runtime surface exactly as the pipeline installs it (pip install -e . ->
+    # pip freeze -> pip-audit over the pinned set; --no-deps keeps the audit on
+    # exactly what the freeze shows). The npm package is a thin uvx launcher
+    # with zero runtime deps and no lockfile today: that step honestly no-ops
+    # until a lockfile lands. Review-approved exceptions: scripts/pip_audit_allowlist.txt.
+    # Posts a `dep-audit` commit status (see secret-scan note).
+    runs-on: light
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        shell: bash
+        timeout-minutes: 10
+        env:
+          JOB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          JOB_TOKEN_FALLBACK: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          SHA: ${{ github.sha }}
+          REF: ${{ github.head_ref }}
+          PR: ${{ github.event.number }}
+        run: |
+          set -eu
+          export GIT_TERMINAL_PROMPT=0
+          TOKEN="${JOB_TOKEN:-${JOB_TOKEN_FALLBACK:-}}"
+          if [ -z "$TOKEN" ]; then
+            echo "clone token empty; secrets.GITHUB_TOKEN and github.token are unset"
+            exit 1
+          fi
+          WORKDIR="${GITHUB_WORKSPACE:-$(pwd)}/src"
+          mkdir -p "$WORKDIR"
+          cd "$WORKDIR"
+          git clone --depth 1 "https://x-access-token:${TOKEN}@git.kyanitelabs.tech/${REPO}.git" .
+          if ! git fetch --depth 50 origin "$SHA"; then
+            if [ -n "${REF:-}" ]; then git fetch --depth 50 origin "$REF" || true; fi
+            if [ -n "${PR:-}" ]; then git fetch origin "refs/pull/${PR}/head:refs/heads/pr-head" || true; fi
+          fi
+          git checkout "$SHA" || git checkout FETCH_HEAD
+          git log -1 --oneline
+      - name: Python dependency audit
+        working-directory: src
+        shell: bash
+        env:
+          STATUS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          STATUS_TOKEN_FALLBACK: ${{ github.token }}
+          STATUS_SHA: ${{ github.sha }}
+          STATUS_REPO: ${{ github.repository }}
+        run: |
+          set -o pipefail
+          post_status() {
+            state="$1"; desc="$2"
+            desc=$(printf '%s' "$desc" | tr '\n' '|' | cut -c1-140)
+            payload=$(printf '{"state":"%s","context":"dep-audit","description":"%s"}' "$state" "$desc")
+            curl --fail --silent --show-error --max-time 20 \
+              -X POST \
+              -H "Authorization: token ${STATUS_TOKEN:-${STATUS_TOKEN_FALLBACK}}" \
+              -H "Content-Type: application/json" \
+              -H "User-Agent: kinocut-ci" \
+              --data "$payload" \
+              "https://git.kyanitelabs.tech/api/v1/repos/${STATUS_REPO}/statuses/${STATUS_SHA}" \
+              || echo "status post failed (non-fatal)"
+          }
+          python3 -m venv .venv-audit
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 --upgrade pip
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 -e .
+          .venv-audit/bin/pip freeze --exclude-editable > audit-frozen.txt
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 pip-audit
+          mapfile -t ignore_flags < <(grep -vE '^[[:space:]]*(#|$)' scripts/pip_audit_allowlist.txt | awk '{print "--ignore-vuln", $1}')
+          if .venv-audit/bin/pip-audit --no-deps -r audit-frozen.txt "${ignore_flags[@]}" 2>&1 | tee pip-audit-out.txt; then
+            post_status success "$(grep -m1 'No known vulnerabilities' pip-audit-out.txt || tail -1 pip-audit-out.txt)"
+          else
+            post_status failure "$(grep -m1 -E 'GHSA-|PYSEC-' pip-audit-out.txt || tail -1 pip-audit-out.txt)"
+            exit 1
+          fi
+      - name: npm dependency audit
+        working-directory: src
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f npm/package-lock.json ]; then
+            echo "npm surface: no package-lock.json (thin uvx launcher, zero runtime deps) — nothing to audit yet"
+            exit 0
+          fi
+          cd npm
+          npm audit --package-lock-only --audit-level=high
