@@ -15,6 +15,7 @@
 </p>
 
 <p align="center">
+  <a href="https://lobehub.com/mcp/kyanitelabs-kinocut"><img src="https://lobehub.com/badge/mcp/kyanitelabs-kinocut" alt="LobeHub MCP"></a>
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
