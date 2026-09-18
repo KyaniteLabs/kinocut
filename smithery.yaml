@@ -1,0 +1,31 @@
+# smithery.yaml — Smithery registry descriptor for kinocut
+# Canonical start command per README: uvx --from kinocut kino  (stdio; `kino doctor` verifies ffmpeg/env)
+startCommand:
+  type: stdio
+  configSchema:
+    # JSON Schema for user configuration (rendered as Smithery's install form)
+    type: object
+    properties:
+      kino_default_model:
+        type: string
+        default: "claude"
+        description: "Default planner model name for job planning hints."
+      kino_receipts_dir:
+        type: string
+        default: ""
+        description: "Optional directory for video receipts (defaults to per-job temp)."
+    additionalProperties: false
+  commandFunction:
+    # JS function producing the CLI command from the given config
+    |-
+    ({ config }) => ({
+      command: 'uvx',
+      args: [
+        '--from', 'kinocut',
+        'kino'
+      ],
+      env: {
+        KINO_DEFAULT_MODEL: config.kino_default_model || 'claude',
+        ...(config.kino_receipts_dir ? { KINO_RECEIPTS_DIR: config.kino_receipts_dir } : {})
+      }
+    })
