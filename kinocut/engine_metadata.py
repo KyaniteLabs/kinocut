@@ -79,8 +79,9 @@ def write_metadata(
             )
 
     output = output_path or _auto_output(input_path, "tagged")
-    _validate_output_path(output)
 
+    # Specific same-path check first so its message stays authoritative over
+    # the generic central self-overwrite guard.
     if os.path.abspath(output) == os.path.abspath(input_path):
         raise MCPVideoError(
             "output_path cannot be the same as input_path for metadata writes. "
@@ -88,6 +89,7 @@ def write_metadata(
             error_type="validation_error",
             code="invalid_parameter",
         )
+    _validate_output_path(output)
 
     args = ["-i", input_path]
     for key, value in metadata.items():

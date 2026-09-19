@@ -101,6 +101,24 @@ class TestInputFileError:
         assert "suggested_action" in d
         assert d["suggested_action"]["auto_fix"] is False
 
+    def test_huge_path_is_truncated_not_echoed(self):
+        # F4 regression: a 100 KB invalid path must not amplify into a
+        # ~200 KB error reply echoing the caller's own garbage back.
+        huge = "/tmp/" + "x" * 100_000 + ".mp4"
+        err = InputFileError(huge)
+        message = str(err)
+        assert len(message) < 400
+        assert "chars truncated" in message
+        assert message.endswith(".mp4 — File not found (archivo no encontrado)")
+
+    def test_to_dict_caps_oversized_messages(self):
+        from mcp_video.errors import MCPVideoError
+
+        err = MCPVideoError("boom: " + "y" * 10_000)
+        d = err.to_dict()
+        assert len(d["message"]) <= 2000
+        assert "chars truncated" in d["message"]
+
 
 class TestCodecError:
     def test_message_includes_codec(self):

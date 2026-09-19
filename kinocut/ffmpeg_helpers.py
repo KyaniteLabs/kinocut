@@ -14,6 +14,7 @@ import subprocess
 import tempfile
 import threading
 from collections.abc import Callable, Iterator
+from contextvars import ContextVar
 from typing import Any
 
 from .errors import InputFileError, MCPVideoError, ProcessingError, parse_ffmpeg_error
@@ -69,6 +70,90 @@ _SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
 )
 
 
+# Operation-scoped record of resolved input and written paths (self-overwrite guard).
+#
+# Every engine validates inputs through ``_validate_input_path`` and outputs
+# through ``_validate_output_path``/``_validate_artifact_path``. Recording the
+# inputs here lets the write guard reject an output that resolves to a path
+# already read *in the same operation*, so ``output_path == input_path`` gets a
+# structured guardrail error instead of silently destroying the source file.
+#
+# A ``ContextVar`` (not a module global) scopes the records safely: each MCP
+# tool call runs as its own task or ``anyio.to_thread`` copy of the caller's
+# context, so concurrent tool calls never see each other's paths, and nothing
+# leaks between calls. Direct engine callers in one process share one scope —
+# deliberately conservative (a write-back onto a previously read path is
+# blocked there too).
+#
+# Written paths are tracked alongside inputs because engines probe their own
+# render result after writing (``_build_edit_result`` → ``probe`` →
+# ``_validate_input_path``). A path this operation has already validated as a
+# write target is therefore *not* recorded as an input: re-rendering over an
+# earlier output stays legal, while destroying a declared input stays blocked.
+_OPERATION_INPUTS: ContextVar[frozenset[str]] = ContextVar("kinocut_operation_inputs", default=frozenset())
+_OPERATION_WRITES: ContextVar[frozenset[str]] = ContextVar("kinocut_operation_writes", default=frozenset())
+
+
+def _record_operation_input(resolved: str) -> None:
+    """Record a validated input path for the current operation scope."""
+    if resolved in _OPERATION_WRITES.get():
+        return
+    _OPERATION_INPUTS.set(_OPERATION_INPUTS.get() | {resolved})
+
+
+def _note_operation_write(resolved: str) -> None:
+    """Record a path this operation has validated as a write target."""
+    _OPERATION_WRITES.set(_OPERATION_WRITES.get() | {resolved})
+
+
+def _reset_operation_inputs() -> None:
+    """Start a fresh operation scope for the self-overwrite guard.
+
+    MCP tool calls never need this (context isolation scopes them already);
+    long-running direct callers may use it between distinct operations.
+    """
+    _OPERATION_INPUTS.set(frozenset())
+    _OPERATION_WRITES.set(frozenset())
+
+
+def _reject_self_overwrite(path: str) -> None:
+    """Reject a write whose target resolves to a path read as input this operation.
+
+    Resolved-path compare (``realpath``) plus a ``samefile`` fallback for
+    hardlinked spellings — the same shape as the provenance lanes' explicit
+    ``_reject_output_alias`` guards, centralised for every media/artifact
+    writer, and using their canonical message. Without it, a media-suffix
+    output may legitimately overwrite an existing file, and when that file is
+    also the operation's input, FFmpeg's ``-y`` silently destroys the source
+    mid-render.
+    """
+    recorded = _OPERATION_INPUTS.get()
+    if not recorded:
+        return
+    resolved_output = os.path.realpath(path)
+    for input_path in recorded:
+        if resolved_output == os.path.realpath(input_path):
+            raise MCPVideoError(
+                f"output path aliases an input of this operation: {path!r}",
+                error_type="validation_error",
+                code="invalid_output_path",
+            )
+    if not os.path.exists(path):
+        return
+    for input_path in recorded:
+        try:
+            if os.path.samefile(path, input_path):
+                raise MCPVideoError(
+                    f"output path aliases an input of this operation (same file): {path!r}",
+                    error_type="validation_error",
+                    code="invalid_output_path",
+                )
+        except OSError:
+            # The realpath compare above already ran; an unreadable path here
+            # cannot be proven identical, so fail open for the hardlink probe.
+            continue
+
+
 def _validate_input_path(path: str) -> str:
     """Validate and resolve a file path. Rejects null bytes, symlinks, and oversize files."""
     if "\x00" in path:
@@ -85,6 +170,7 @@ def _validate_input_path(path: str) -> str:
             resolved,
             f"File size ({size_mb:.1f} MB) exceeds maximum of {MAX_FILE_SIZE_MB} MB",
         )
+    _record_operation_input(resolved)
     return resolved
 
 
@@ -110,9 +196,11 @@ def _validate_write_path(
     """Shared write-path guard used by output-media and artifact writers.
 
     Blocks null bytes, ``..`` traversal, symlink targets, system directories,
-    and sensitive home dotfiles. When the target already exists, refuses to
-    overwrite it unless its suffix is in ``allowed_existing_suffixes`` (media
-    suffixes for renders; ``.json`` only for provenance artifacts).
+    sensitive home dotfiles, and targets that resolve to a path already read
+    as an input of the current operation (self-overwrite). When the target
+    already exists, refuses to overwrite it unless its suffix is in
+    ``allowed_existing_suffixes`` (media suffixes for renders; ``.json`` only
+    for provenance artifacts).
     """
     if "\x00" in path:
         raise MCPVideoError(
@@ -120,6 +208,7 @@ def _validate_write_path(
             error_type="validation_error",
             code="invalid_output_path",
         )
+    _reject_self_overwrite(path)
     raw_parts = re.split(r"[\\/]+", path)
     if ".." in raw_parts:
         raise MCPVideoError(
@@ -153,6 +242,7 @@ def _validate_write_path(
             )
 
     if os.path.isdir(resolved):
+        _note_operation_write(resolved)
         return path
 
     if os.path.exists(resolved):
@@ -163,6 +253,7 @@ def _validate_write_path(
                 error_type="validation_error",
                 code="unsafe_path",
             )
+    _note_operation_write(resolved)
     return path
 
 

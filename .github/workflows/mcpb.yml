@@ -44,15 +44,15 @@ jobs:
       - name: Validate source and extracted manifests
         run: |
           python .github/scripts/mcpb-ci.py official \
-            --bundle dist/kinocut-1.15.1.mcpb \
-            --wheel dist/kinocut-1.15.1-py3-none-any.whl \
+            --bundle dist/kinocut-1.15.2.mcpb \
+            --wheel dist/kinocut-1.15.2-py3-none-any.whl \
             --validator tools/mcpb-validator/node_modules/.bin/mcpb \
             --source-sha "$GITHUB_SHA" \
             --receipt dist/mcpb-official-validation.json
       - id: archive
         name: Record archive digest
         run: |
-          sha="$(python -c 'import hashlib; print(hashlib.sha256(open("dist/kinocut-1.15.1.mcpb", "rb").read()).hexdigest())')"
+          sha="$(python -c 'import hashlib; print(hashlib.sha256(open("dist/kinocut-1.15.2.mcpb", "rb").read()).hexdigest())')"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -141,7 +141,7 @@ jobs:
         shell: bash
         run: |
           python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-venv"
-          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.1.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
+          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.2.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
       - name: Prove bounded process-tree cleanup
         shell: bash
         run: |
@@ -158,8 +158,8 @@ jobs:
           python .github/scripts/mcpb-ci.py runtime \
             --mode core \
             --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
-            --bundle mcpb-artifacts/kinocut-1.15.1.mcpb \
-            --wheel mcpb-artifacts/kinocut-1.15.1-py3-none-any.whl \
+            --bundle mcpb-artifacts/kinocut-1.15.2.mcpb \
+            --wheel mcpb-artifacts/kinocut-1.15.2-py3-none-any.whl \
             --venv "$RUNNER_TEMP/mcpb-venv" \
             --node "$(command -v node)" \
             --ffmpeg "$MCPB_FFMPEG" \
@@ -238,14 +238,14 @@ jobs:
         run: |
           python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-ai-venv" --extra ai-scene
           npm install --ignore-scripts --prefix "$RUNNER_TEMP/hyperframes" hyperframes@0.8.30
-          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.1.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
+          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.2.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
       - name: Prove discovery and public-tool callability
         run: |
           python .github/scripts/mcpb-ci.py runtime \
             --mode optional \
             --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
-            --bundle mcpb-artifacts/kinocut-1.15.1.mcpb \
-            --wheel mcpb-artifacts/kinocut-1.15.1-py3-none-any.whl \
+            --bundle mcpb-artifacts/kinocut-1.15.2.mcpb \
+            --wheel mcpb-artifacts/kinocut-1.15.2-py3-none-any.whl \
             --venv "$RUNNER_TEMP/mcpb-ai-venv" \
             --node "$(command -v node)" \
             --ffmpeg "$MCPB_FFMPEG" \

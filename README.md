@@ -152,7 +152,7 @@ Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.1](https://github.c
 
 ## Beyond 1.15.1 (draft / gated)
 
-**1.15.1 is the latest published release.** Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+**1.15.1 is the latest published release.** The `master` tip carries release candidate **1.15.2** (staged; hardening: the MCP handshake reports the real kinocut version, a self-overwrite guard, and error-echo truncation) — it is not on PyPI until the release gate runs. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 
