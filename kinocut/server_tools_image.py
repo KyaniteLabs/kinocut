@@ -66,7 +66,9 @@ def image_analyze_product(
 
     Args:
         image_path: Absolute path to the image or video file. If video, extracts a representative frame.
-        use_ai: If True, use Claude Vision to generate a description (requires ANTHROPIC_API_KEY).
+        use_ai: If True, use Claude Vision to generate a description (requires ANTHROPIC_API_KEY;
+            or set KINOCUT_VISION_BASE_URL to a local Anthropic-compatible endpoint —
+            local endpoints need no API key; KINOCUT_VISION_MODEL overrides the model id).
         n_colors: Number of dominant colors to extract (default 5).
     """
     image_path = _validate_input_path(image_path)

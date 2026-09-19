@@ -305,3 +305,122 @@ class TestGracefulError:
                     _require_image_deps()
                 assert exc_info.value.code == "missing_optional_dep"
                 assert "kinocut[image]" in str(exc_info.value)
+
+
+class TestVisionEndpoint:
+    """Workstream C (2026-09-19): local-endpoint path for the AI description.
+
+    Pins: env/param resolution, local-host classification, fail-closed key law
+    (no key + no local endpoint = missing_api_key; local endpoint = no cloud
+    credential needed), and client construction pass-through — all offline.
+    """
+
+    def test_resolve_defaults(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint, DEFAULT_VISION_MODEL
+
+        monkeypatch.delenv("KINOCUT_VISION_BASE_URL", raising=False)
+        monkeypatch.delenv("KINOCUT_VISION_MODEL", raising=False)
+        r = resolve_vision_endpoint()
+        assert r == {"base_url": None, "model": DEFAULT_VISION_MODEL, "endpoint_kind": None}
+
+    def test_resolve_env_local_host(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint
+
+        monkeypatch.setenv("KINOCUT_VISION_BASE_URL", "http://127.0.0.1:8817")
+        monkeypatch.setenv("KINOCUT_VISION_MODEL", "qwen3.8-27b-vision")
+        r = resolve_vision_endpoint()
+        assert r["base_url"] == "http://127.0.0.1:8817"
+        assert r["endpoint_kind"] == "local"
+        assert r["model"] == "qwen3.8-27b-vision"
+
+    def test_resolve_param_beats_env(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint
+
+        monkeypatch.setenv("KINOCUT_VISION_BASE_URL", "http://localhost:8788")
+        r = resolve_vision_endpoint(base_url="http://localhost:9999", model="m2")
+        assert r["base_url"] == "http://localhost:9999"
+        assert r["model"] == "m2"
+
+    def test_resolve_cloud_host_classified(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint
+
+        monkeypatch.delenv("KINOCUT_VISION_BASE_URL", raising=False)
+        r = resolve_vision_endpoint(base_url="https://api.example.com")
+        assert r["endpoint_kind"] == "cloud"
+
+    def test_api_key_fail_closed_without_local_endpoint(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint, _resolve_vision_api_key
+
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.delenv("KINOCUT_VISION_BASE_URL", raising=False)
+        with pytest.raises(MCPVideoError) as exc_info:
+            _resolve_vision_api_key(resolve_vision_endpoint())
+        assert exc_info.value.code == "missing_api_key"
+
+    def test_api_key_fail_closed_for_cloud_base_url(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint, _resolve_vision_api_key
+
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        with pytest.raises(MCPVideoError) as exc_info:
+            _resolve_vision_api_key(resolve_vision_endpoint(base_url="https://api.example.com"))
+        assert exc_info.value.code == "missing_api_key"
+
+    def test_local_endpoint_needs_no_cloud_credential(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint, _resolve_vision_api_key
+
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        key = _resolve_vision_api_key(resolve_vision_endpoint(base_url="http://localhost:8788"))
+        assert key == "local-endpoint"
+
+    def test_env_key_wins_over_local_placeholder(self, monkeypatch):
+        from mcp_video.image_engine import resolve_vision_endpoint, _resolve_vision_api_key
+
+        monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test-real-key")
+        key = _resolve_vision_api_key(resolve_vision_endpoint(base_url="http://localhost:8788"))
+        assert key == "sk-test-real-key"
+
+    def test_analyze_product_local_endpoint_end_to_end(self, monkeypatch):
+        """Full opt-in AI path against a FAKE local Anthropic-compatible client.
+
+        No network, no real anthropic package (injected into sys.modules). Pins:
+        base_url + placeholder key + env model all reach the client; the local
+        path raises nothing despite no ANTHROPIC_API_KEY.
+        """
+        import sys
+        import types
+
+        captured: dict[str, object] = {}
+
+        class _Messages:
+            def create(self, **kwargs):
+                captured["create_kwargs"] = kwargs
+                content = types.SimpleNamespace(text="A solid blue product image.")
+                return types.SimpleNamespace(content=[content])
+
+        class _FakeAnthropic:
+            def __init__(self, **kwargs):
+                captured["client_kwargs"] = kwargs
+                self.messages = _Messages()
+
+        fake = types.ModuleType("anthropic")
+        fake.Anthropic = _FakeAnthropic
+        monkeypatch.setitem(sys.modules, "anthropic", fake)
+
+        monkeypatch.delenv("ANTHROPIC_API_KEY", raising=False)
+        monkeypatch.setenv("KINOCUT_VISION_BASE_URL", "http://127.0.0.1:8817")
+        monkeypatch.setenv("KINOCUT_VISION_MODEL", "qwen3.8-27b-vision")
+
+        from mcp_video.image_engine import analyze_product
+
+        path = _create_solid_image((64, 128, 200))
+        try:
+            result = analyze_product(path, use_ai=True)
+            assert result.ai_description is True
+            assert result.description == "A solid blue product image."
+            assert captured["client_kwargs"] == {
+                "api_key": "local-endpoint",
+                "base_url": "http://127.0.0.1:8817",
+            }
+            assert captured["create_kwargs"]["model"] == "qwen3.8-27b-vision"
+        finally:
+            os.unlink(path)

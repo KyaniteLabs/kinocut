@@ -29,10 +29,10 @@ llama-server, Ollama) instead of a fixed cloud API? `yes` / `no` / `partial`.
 | Call | `anthropic.Anthropic(api_key=...)` → messages with image, `model="claude-sonnet-4-20250514"` |
 | Sites | `kinocut/image_engine.py:318-347`; registered `kinocut/server_tools_image.py:69` (`use_ai` flag) and CLI `kinocut/cli/parser/image.py:34` (`--use-ai`) |
 | Transport | Anthropic cloud HTTPS API |
-| Local-endpoint | **no** — no `base_url` exposure; the SDK supports one but kinocut never passes it |
+| Local-endpoint | **yes (2026-09-19, workstream C item 1)** — `base_url` param + env `KINOCUT_VISION_BASE_URL` / `KINOCUT_VISION_MODEL` (pattern replicated from the sphere-director exemplar); local-host endpoints (`localhost`/`127.0.0.1`/`::1`) need no cloud credential (SDK placeholder key), non-local base_urls keep the fail-closed key law |
 | Cloud-default | cloud WITHIN the feature, but the feature is opt-in (`use_ai=False` default; without it the local structural/EXIF description path runs). NOT cloud-default at the tool level |
-| Degradation | fail-closed `missing_api_key` (`image_engine.py:333-338`) and package-missing install hint (`:318-322`) |
-| Gap for hardening | the only true cloud-API call in the package: needs a `base_url`/OpenAI-compatible vision option and/or a local VLM path to reach 100% local-endpoint-first |
+| Degradation | fail-closed `missing_api_key` (`image_engine.py:333-338` — error text now names the local-endpoint alternative) and package-missing install hint (`:318-322`) |
+| Gap for hardening | ~~the only true cloud-API call in the package: needs a `base_url`/OpenAI-compatible vision option~~ **CLOSED 2026-09-19** (local-endpoint path landed, tests pin resolution/classification/key-law/client pass-through offline; `tests/test_image_engine.py` TestVisionEndpoint). Remaining C-work: runtime verification against a real local vision endpoint (org-engines T1 tier) when the matrix harness exists |
 
 ## 3. Vision QC (VLM-adjacent, structural default)
 
@@ -108,7 +108,7 @@ llama-server, Ollama) instead of a fixed cloud API? `yes` / `no` / `partial`.
 
 ## Verdict against workstream C acceptance
 
-- **Cloud-default paths: 0 tool-level defaults.** The single cloud API surface (Claude Vision, §2) is opt-in (`use_ai=False` default) and fail-closed without a key — but it has **no local-endpoint path today**, which blocks "100% of calls mapped local-endpoint-first" until §2 gains `base_url`/OpenAI-compatible support or a local VLM alternative.
+- **Cloud-default paths: 0 tool-level defaults.** The single cloud API surface (Claude Vision, §2) is opt-in (`use_ai=False` default) and fail-closed without a key — and as of **2026-09-19 it HAS a local-endpoint path** (`KINOCUT_VISION_BASE_URL`/`KINOCUT_VISION_MODEL`, workstream C item 1), removing the seed-pass blocker on "100% of calls mapped local-endpoint-first". Runtime verification against a live local vision endpoint rides the compat-matrix harness (COMPAT-MATRIX-SPEC build order, Lead-sequenced burst).
 - Everything else is in-process local inference (weights fetched once, integrity-pinned where downloaded) with honest fail-closed receipts and — in four places (vision QC, sphere director, smart thumbnail, doctor) — graceful degradation that already meets the receipt-honesty bar.
 - **Test posture**: no test requires `ANTHROPIC_API_KEY` or any cloud key (whisper/anthropic are optional extras probed, not assumed) — cloud-key-free tests hold at seed-pass level; the hardening pass must pin this with explicit no-cloud-key CI assertions.
 
