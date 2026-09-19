@@ -4,6 +4,25 @@ from __future__ import annotations
 
 from typing import Any
 
+# Caller-supplied values echoed into error messages are capped so a hostile
+# or accidental 100 KB parameter cannot amplify into a ~200 KB error reply
+# that dumps doubled garbage into the caller's agent context window.
+_MAX_ECHO_CHARS = 200
+_MAX_MESSAGE_CHARS = 2000
+
+
+def truncate_echo(value: str, limit: int = _MAX_ECHO_CHARS) -> str:
+    """Collapse an oversized caller-supplied value for an error message.
+
+    Keeps head and tail so both the prefix and the filename end stay
+    identifiable, and states how much was elided.
+    """
+    if len(value) <= limit:
+        return value
+    half = max((limit - 40) // 2, 1)
+    elided = len(value) - 2 * half
+    return f"{value[:half]}…[{elided} chars truncated]…{value[-half:]}"
+
 
 class MCPVideoError(Exception):
     """Base error for all Kinocut operations."""
@@ -26,7 +45,9 @@ class MCPVideoError(Exception):
         result: dict[str, Any] = {
             "type": self.error_type,
             "code": self.code,
-            "message": str(self),
+            # Backstop against echo amplification on any error lane; normal
+            # bilingual messages stay far below the cap.
+            "message": truncate_echo(str(self), limit=_MAX_MESSAGE_CHARS),
         }
         if self.suggested_action:
             result["suggested_action"] = self.suggested_action
@@ -129,7 +150,7 @@ class InputFileError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "File not found (archivo no encontrado)") -> None:
         super().__init__(
-            f"Input file error: {path} — {reason}",
+            f"Input file error: {truncate_echo(path)} — {reason}",
             error_type="input_error",
             code="invalid_input",
             suggested_action={

@@ -137,7 +137,7 @@ def test_run_owned_maps_owner_creation_failure_to_bounded_receipt(monkeypatch: p
     assert caught.value.cleanup == "failed"
 
 
-def _probe(candidate: str, version: str = "1.15.1", **options: int) -> subprocess.CompletedProcess[str]:
+def _probe(candidate: str, version: str = "1.15.2", **options: int) -> subprocess.CompletedProcess[str]:
     source = """
 const launcher = require(process.argv[1]);
 const opts = JSON.parse(process.argv[4]);
@@ -372,7 +372,7 @@ def test_launcher_hands_off_to_exact_configured_python_as_one_executable(tmp_pat
     candidate.write_text(
         "#!/bin/sh\n"
         'if [ "$1" = "-c" ]; then\n'
-        '  printf \'%s\\n\' \'{"python":[3,11,0],"kinocut":"1.15.1"}\'\n'
+        '  printf \'%s\\n\' \'{"python":[3,11,0],"kinocut":"1.15.2"}\'\n'
         "  exit 0\n"
         "fi\n"
         'if [ "$1" = "-m" ] && [ "$2" = "kinocut" ] && [ "$3" = "--mcp" ]; then\n'
@@ -433,7 +433,7 @@ def test_supervised_launcher_keeps_child_in_owner_group_and_records_redirector_i
         """
         import json, os, sys, time
         if sys.argv[1] == '-c':
-            print(json.dumps({'python': [3, 11, 0], 'kinocut': '1.15.1'}))
+            print(json.dumps({'python': [3, 11, 0], 'kinocut': '1.15.2'}))
         else:
             time.sleep(60)
         """,

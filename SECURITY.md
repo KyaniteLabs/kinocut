@@ -41,3 +41,18 @@ Out of scope:
 - Reports requiring malicious local code execution before using Kinocut.
 - Issues only affecting third-party FFmpeg builds outside this project.
 - Denial-of-service reports that require unrealistic media sizes beyond documented limits.
+
+## Write-path policy (documented design)
+
+Kinocut is a user-level local tool, so its output guardrails target *sneaky*
+writes, not explicit ones:
+
+- Relative output paths containing `..` traversal, symlink targets, blocked
+  system directories, and sensitive home dotfiles are rejected outright.
+- Explicit **absolute output paths are allowed by design**: a user pointing the
+  tool at their own absolute destination (for example `/tmp/…` or a project
+  folder) is stating intent, and the same trust boundary already governs input
+  reads.
+- An output that resolves to a path read as an **input of the same operation**
+  is rejected with `invalid_output_path`, so `output_path == input_path` can
+  never silently destroy the source file.

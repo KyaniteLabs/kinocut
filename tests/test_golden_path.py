@@ -53,7 +53,7 @@ def _valid_artifacts(output: Path, run_id: str = "fresh-run") -> None:
     }
     receipt = {
         "run_id": run_id,
-        "candidate": {"package": "kinocut", "version": "1.15.1", "commit": COMMIT},
+        "candidate": {"package": "kinocut", "version": "1.15.2", "commit": COMMIT},
         "source_media": {
             "path": str(source),
             "sha256": source_identity.asset_id,

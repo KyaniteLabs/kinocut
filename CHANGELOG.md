@@ -15,9 +15,15 @@ This project follows a simple release-note style:
 - `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
 
 ### Fixed
+- The MCP `initialize` handshake now reports the installed kinocut version in `serverInfo.version` instead of the underlying MCP SDK version, sourced from package metadata (single source of truth; adversarial audit F1).
+- An output path that resolves to a path read as an input of the same operation is now rejected with a structured `invalid_output_path` guardrail error, so `output_path == input_path` can no longer silently destroy the source file (adversarial audit F2).
+- Oversized caller-supplied values echoed in error messages are truncated, so a 100 KB invalid parameter no longer amplifies into a ~200 KB error reply (adversarial audit F4).
 - Absolute trim-end handling now preserves the requested endpoint ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)).
 - Windows drive paths survive command parsing without losing their drive prefix ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)).
 - CLI tests capture UTF-8 output consistently across supported consoles ([#498](https://github.com/KyaniteLabs/kinocut/pull/498)).
+
+### Docs
+- SECURITY.md now states the write-path policy plainly: relative traversal/symlink/system targets are blocked, explicit absolute output writes are allowed by design, and outputs may not alias inputs of the same operation (adversarial audit F6).
 
 ### Acknowledgements
 - Thanks to [@WohaibHasan](https://github.com/WohaibHasan) for contributing [#493](https://github.com/KyaniteLabs/kinocut/pull/493), [#496](https://github.com/KyaniteLabs/kinocut/pull/496), and [#498](https://github.com/KyaniteLabs/kinocut/pull/498).
