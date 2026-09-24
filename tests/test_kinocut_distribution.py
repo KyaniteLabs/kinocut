@@ -19,7 +19,7 @@ import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
 KINOCUT_VERSION = "1.15.2"
-SHIM_VERSION = "1.6.12"
+SHIM_VERSION = "1.6.13"
 
 
 def _toml(path: Path) -> dict:
@@ -125,12 +125,19 @@ def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
     shim = _toml(ROOT / "compat" / "mcp-video-shim" / "pyproject.toml")
     claims = json.loads((ROOT / "docs" / "public_claims.json").read_text(encoding="utf-8"))
     published = claims["published_version"]
+    candidate = claims["release_candidate_version"]
 
     assert shim["project"]["name"] == "mcp-video"
     assert shim["project"]["version"] == SHIM_VERSION
-    # Mid-cutover: the published shim must pin the live PyPI kinocut, not the
-    # in-repo candidate, or `pip install mcp-video` asks for an unpublished wheel.
-    assert shim["project"]["dependencies"] == [f"kinocut=={published}"]
+    # Mid-cutover: the published shim must pin the live PyPI kinocut, not an
+    # arbitrary version, or `pip install mcp-video` asks for an unpublished wheel.
+    # During a staged release window (release-prep landed, tag not yet cut) the
+    # in-repo shim may pin the release candidate instead: the shim publishes
+    # simultaneously with the release via .github/workflows/publish.yml, which
+    # itself requires candidate pins at tag time, so candidate pins never reach
+    # PyPI ahead of the kinocut wheel they name.
+    allowed_pins = ([f"kinocut=={published}"], [f"kinocut=={candidate}"])
+    assert shim["project"]["dependencies"] in allowed_pins
     assert shim["project"]["scripts"] == {"mcp-video": "kinocut.__main__:main"}
     assert shim["tool"]["hatch"]["build"]["targets"]["wheel"]["bypass-selection"] is True
     assert not (ROOT / "compat" / "mcp-video-shim" / "mcp_video").exists()
@@ -139,7 +146,10 @@ def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
     shim_extras = shim["project"]["optional-dependencies"]
     assert set(shim_extras) == set(canonical_extras)
     for extra in canonical_extras:
-        assert shim_extras[extra] == [f"kinocut[{extra}]=={published}"]
+        assert shim_extras[extra] in (
+            [f"kinocut[{extra}]=={published}"],
+            [f"kinocut[{extra}]=={candidate}"],
+        )
 
 
 def test_npm_package_is_a_thin_uvx_bootstrap_not_a_second_runtime() -> None:
