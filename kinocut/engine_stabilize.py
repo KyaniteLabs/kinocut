@@ -99,6 +99,7 @@ def _detect_motion_vectors(input_path: str, vectors_file: str) -> None:
                 "null",
                 "-",
             ],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             # Some FFmpeg builds (e.g. Debian 5.1 vidstab) emit raw binary on

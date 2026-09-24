@@ -353,6 +353,7 @@ def _run_command(
             kwargs["pass_fds"] = pass_fds
         result = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -388,6 +389,7 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
             kwargs["pass_fds"] = pass_fds
         proc = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -422,6 +424,7 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
     try:
         proc = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             timeout=DEFAULT_FFMPEG_TIMEOUT,
         )
@@ -466,10 +469,7 @@ def _run_ffmpeg_with_progress(
 
     cmd = [_ffmpeg(), "-y", *args]
     proc = subprocess.Popen(  # noqa: S603
-        cmd,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.PIPE,
-        text=True,
+        cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
     )
 
     stderr_lines: list[str] = []

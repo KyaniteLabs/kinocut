@@ -132,7 +132,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             if result.returncode != 0:
                 logger.warning("ffprobe batch signalstats returned nonzero exit")
                 self._signalstats_cache[cache_key] = {}
@@ -173,7 +175,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             if result.returncode != 0:
                 diagnostic = _diagnostic(
                     "ffprobe_signalstats",
@@ -250,7 +254,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             # Parse stderr for signalstats output
             stderr = result.stderr
             stats = {}
@@ -304,7 +310,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             # Parse JSON from the output (it's embedded in stderr)
             stderr = result.stderr
 
@@ -589,7 +597,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             if result.returncode != 0:
                 diagnostic = _diagnostic(
                     "ffprobe_tblend_motion",
