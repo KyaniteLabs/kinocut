@@ -143,11 +143,22 @@ def test_drawtext_font_path_passthrough_unchanged():
     assert "fontfile=" in _drawtext_font_option(concrete)
 
 
-def test_unresolvable_family_falls_back_to_legacy_option():
+def test_unresolvable_family_falls_back_gracefully():
+    import platform
+
     resolved = _resolve_font_family_to_file("DefinitelyNotARealFontFamily12345")
-    assert resolved is None
-    option = _drawtext_font_option("DefinitelyNotARealFontFamily12345")
-    assert option.startswith("font=")
+    if platform.system() == "Linux":
+        # Deliberate resolver fallback: on fontconfig systems an unknown family
+        # still resolves to a concrete file (DejaVu) rather than the
+        # fontconfig-dependent font= option.
+        assert resolved is not None and os.path.isfile(resolved)
+        assert "fontfile=" in _drawtext_font_option("DefinitelyNotARealFontFamily12345")
+    else:
+        # macOS/Windows resolve by directory listing: an unknown family has no
+        # file, so the legacy family-name option is kept.
+        assert resolved is None
+        option = _drawtext_font_option("DefinitelyNotARealFontFamily12345")
+        assert option.startswith("font=")
 
 
 def test_pil_font_loader_has_no_glob_name_error():
