@@ -7,7 +7,7 @@ MCPB does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, or AI model wei
 ## Runtime Requirements
 
 - Node.js 18 or newer, used only by the MCPB launcher.
-- Python 3.11 or newer with `kinocut==1.15.1` installed.
+- Python 3.11 or newer with `kinocut==1.15.2` installed.
 - FFmpeg and ffprobe available on `PATH`, or an executable named `ffmpeg` configured through the installer field with an adjacent `ffprobe`.
 - Optional AI features require the matching Kinocut extras and local model dependencies.
 - Hyperframes tools require a resolvable Hyperframes command; leave the field blank if you do not use those tools.
@@ -30,7 +30,7 @@ The script validates Kinocut's manifest invariants, audits the exact three regul
 and writes a SHA-256-bound build receipt. The locked official validator runs separately in CI.
 
 ```text
-dist/kinocut-1.15.1.mcpb
+dist/kinocut-1.15.2.mcpb
 ```
 
 Focused validation:

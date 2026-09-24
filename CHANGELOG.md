@@ -11,6 +11,11 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.15.2 - 2026-09-24
+
+### Added
+- Verified sound mastering preserves stereo through the measured mastering chain ([#523](https://github.com/KyaniteLabs/kinocut/pull/523), [#525](https://github.com/KyaniteLabs/kinocut/pull/525), [#526](https://github.com/KyaniteLabs/kinocut/pull/526)); real caption speech is processed with distance profiles; four guarded local Revideo operations are exposed with rendered-format validation ([#508](https://github.com/KyaniteLabs/kinocut/pull/508)); `release-checkpoint` passes the MCP release gate through from the CLI. Surface grows to 201 MCP tools / 173 CLI commands.
+
 ### Changed
 - `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
 
