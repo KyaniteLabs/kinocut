@@ -73,6 +73,7 @@ def _check_filter_available(name: str) -> bool:
     if _AVAILABLE_FILTERS is None:
         proc = subprocess.run(  # noqa: S603
             [_ffmpeg(), "-filters"],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=10,
@@ -180,6 +181,7 @@ def _generate_thumbnail_base64(video_path: str) -> str | None:
                 "scale=320:-1",
                 tmp_path,
             ],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=DOCTOR_COMMAND_TIMEOUT,

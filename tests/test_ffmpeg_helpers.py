@@ -141,6 +141,32 @@ def test_subprocess_helpers_propagate_inherited_descriptor_allowlist(monkeypatch
     assert inherited == [(17, 19), (23,)]
 
 
+def test_subprocess_helpers_never_let_ffmpeg_inherit_stdin(monkeypatch):
+    """FFmpeg reads stdin for interactive keys; under an MCP stdio server stdin is the protocol channel."""
+    from mcp_video import ffmpeg_helpers
+
+    stdins = []
+
+    def fake_run(cmd, **kwargs):
+        stdins.append(kwargs.get("stdin"))
+        return subprocess.CompletedProcess(cmd, 0, b"" if "pipe:1" in cmd else "", b"" if "pipe:1" in cmd else "")
+
+    class FakePopen:
+        def __init__(self, cmd, **kwargs):
+            stdins.append(kwargs.get("stdin"))
+            raise OSError("stop after capturing the arguments")
+
+    monkeypatch.setattr(ffmpeg_helpers.subprocess, "run", fake_run)
+    monkeypatch.setattr(ffmpeg_helpers.subprocess, "Popen", FakePopen)
+    ffmpeg_helpers._run_command(["ffprobe", "-version"])
+    ffmpeg_helpers._run_ffmpeg(["-version"])
+    ffmpeg_helpers._run_ffmpeg_bytes(["-i", "in.mp4", "-f", "image2pipe", "pipe:1"])
+    with pytest.raises(OSError):
+        ffmpeg_helpers._run_ffmpeg_with_progress(["-i", "in.mp4", "out.mp4"], 1.0, lambda _: None)
+
+    assert stdins == [subprocess.DEVNULL] * 4
+
+
 def test_run_ffmpeg_rejects_full_ffprobe_command():
     """The dual-mode signature was removed: full commands belong to _run_command."""
     from mcp_video import ffmpeg_helpers

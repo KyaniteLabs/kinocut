@@ -36,7 +36,9 @@ class ProbeMixin:
             "json",
             video_path,
         ]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+        result = subprocess.run(  # noqa: S603
+            cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+        )
         data = json.loads(result.stdout)
 
         if data.get("streams"):
@@ -67,7 +69,9 @@ class ProbeMixin:
         """Get mean luminance. Returns None if analysis fails."""
         cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.TimeoutExpired:
             logger.warning("ffmpeg signalstats timed out for %s", video_path)
             return None

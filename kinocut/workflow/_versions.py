@@ -33,7 +33,7 @@ def ffmpeg_version() -> str | None:
     _ffmpeg_version_probed = True
     command = ["ffmpeg", "-version"]
     try:
-        result = subprocess.run(command, capture_output=True, text=True, timeout=10)  # noqa: S603
+        result = subprocess.run(command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=10)  # noqa: S603
     except (OSError, subprocess.SubprocessError):
         _ffmpeg_version_cache = None
         return None
