@@ -138,7 +138,7 @@ Kinocut **1.15.0** (2026-08-19) was the Windows/diagnostics release: first-class
 - **Faster 360 and import path** — single-pass split/PiP/switch `filter_complex` (source audio kept); sampled quality-gate analyze window; SHA-256 path/mtime cache; merge can skip re-probe when `infos=` is supplied; batched 360 storyboard stills; lazy `mcp_video` / CLI / `Client.search_tools`; doctor skips `npx --yes` unless Hyperframes is already on PATH.
 - **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
 - **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; durable MCP `video_repurpose` does not apply `min_score`.
-- **Compatibility window** — `mcp-video==1.6.12` installs `kinocut==1.15.1`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**.
+- **Compatibility window** — `mcp-video==1.6.12` installs `kinocut==1.15.1`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**. The staged next pair `mcp-video==1.6.13` → `kinocut==1.15.2` ships with the 1.15.2 release train (not yet published).
 
 Also already on the published line from 1.13.x:
 
