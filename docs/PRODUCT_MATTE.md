@@ -8,13 +8,13 @@ Default `hyperframes-remove-background` is **people**
 (`u2net_human_seg`). A bottle, shoe, ring, mug, phone, or boxed SKU is not a
 person. Pass `--model birefnet-general` for objects.
 
-**Published in 1.15.1.** The optional `kinocut[object-matte]` extra ships with a known
+**Published in 1.15.2** (first shipped in 1.15.1). The optional `kinocut[object-matte]` extra ships with a known
 frame-count gate, streaming rawvideo decode, scratch-byte caps, stalled-decode
 timeouts, and an optional studio-equipment intersection gate. Until the extra
 is installed, the object model fails closed. It never falls through to the
 people model.
 
-No new MCP/CLI name — still **196 / 167**.
+No new MCP/CLI name — still rides existing commands (**201 / 173** overall in 1.15.2).
 
 ## Who this is for
 
@@ -31,7 +31,7 @@ It is **not** a portrait / talking-head feature. For people, omit `--model`.
    background. Motorized turntables, lightbox sweeps, and tabletop shots are
    the intended inputs.
 2. `pip install "kinocut[object-matte]"` for ONNX Runtime. The extra is
-   available in published pip **1.15.1**. The ~1 GB pinned birefnet-general
+   available in published pip **1.15.2**. The ~1 GB pinned birefnet-general
    ONNX is fetched into `~/.cache/mcp-video/models/` on first object-model
    use, never by `kino doctor`.
 3. FFmpeg on `PATH`. `kino doctor` reports an optional `object_matte` check
