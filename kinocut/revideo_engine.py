@@ -85,6 +85,7 @@ def _require_revideo_deps() -> None:
     try:
         probe = subprocess.run(  # noqa: S603
             [node, "--version"],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=DOCTOR_COMMAND_TIMEOUT,

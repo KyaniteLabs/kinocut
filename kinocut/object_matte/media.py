@@ -207,6 +207,7 @@ def iter_video_rgb(input_path: str, width: int, height: int, deadline: float | N
     ends = time.monotonic() + DEFAULT_OBJECT_MATTE_TIMEOUT if deadline is None else deadline
     proc = subprocess.Popen(  # noqa: S603
         decode_video_argv(input_path, width, height),
+        stdin=subprocess.DEVNULL,
         stdout=subprocess.PIPE,
         stderr=subprocess.DEVNULL,
     )

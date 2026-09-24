@@ -164,8 +164,17 @@ def test_layout_pip_rejects_unknown_position_before_ffmpeg(tmp_path, monkeypatch
     output = tmp_path / "out.mp4"
     main.write_bytes(b"placeholder")
     pip.write_bytes(b"placeholder")
-    monkeypatch.setattr(layout_engine, "_run_ffmpeg", lambda cmd: type("Probe", (), {"stdout": "1920x1080"})())
-    monkeypatch.setattr(layout_engine, "_run_command", lambda cmd: output.write_bytes(b"output"))
+
+    class _Probe:
+        stdout = "1920x1080"
+
+    def _fake_run_command(cmd, *args, **kwargs):
+        if cmd and cmd[0] == "ffprobe":
+            return _Probe()
+        output.write_bytes(b"output")
+        return None
+
+    monkeypatch.setattr(layout_engine, "_run_command", _fake_run_command)
 
     with pytest.raises(MCPVideoError, match="position"):
         layout_pip(str(main), str(pip), str(output), position="middle")

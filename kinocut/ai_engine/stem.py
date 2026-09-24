@@ -82,7 +82,9 @@ def _run_demucs_separation(
 
     demucs_cmd = [sys.executable, "-m", "demucs.separate", *demucs_args]
     try:
-        result = subprocess.run(demucs_cmd, capture_output=True, text=True, timeout=DEFAULT_AI_TIMEOUT)  # noqa: S603
+        result = subprocess.run(  # noqa: S603
+            demucs_cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_AI_TIMEOUT
+        )
     except subprocess.TimeoutExpired:
         raise ProcessingError(
             " ".join(demucs_cmd), -1, f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"

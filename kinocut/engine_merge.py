@@ -305,6 +305,8 @@ def _run_transition_merge(
                     "-filter_complex",
                     filter_complex,
                     *map_args,
+                    "-pix_fmt",
+                    "yuv420p",
                 ],
             )
         )
@@ -321,6 +323,8 @@ def _run_transition_merge(
                     "-filter_complex",
                     filter_complex,
                     *map_args,
+                    "-pix_fmt",
+                    "yuv420p",
                 ],
             )
         )

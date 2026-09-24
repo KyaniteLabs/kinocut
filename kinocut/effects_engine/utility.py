@@ -49,7 +49,7 @@ def _extract_representative_colors(video: str, duration: float, max_colors: int 
             "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            result = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
         except subprocess.TimeoutExpired as exc:
             raise ProcessingError(
                 " ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
@@ -82,7 +82,7 @@ def _detect_scene_changes(video: str) -> list[float]:
             "null",
             "-",
         ]
-        scene_result = subprocess.run(scene_cmd, capture_output=True, text=True, timeout=30)  # noqa: S603
+        scene_result = subprocess.run(scene_cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=30)  # noqa: S603
         # Parse scene change timestamps from stderr
         for line in scene_result.stderr.split("\n"):
             if "pts_time:" in line:

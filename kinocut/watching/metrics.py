@@ -142,6 +142,7 @@ def _blackdetect_ratio(path: str, duration: float) -> float | None:
     try:
         proc = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=DEFAULT_FFMPEG_TIMEOUT,
@@ -173,6 +174,7 @@ def _integrated_lufs(path: str) -> float | None:
     try:
         proc = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=DEFAULT_FFMPEG_TIMEOUT,

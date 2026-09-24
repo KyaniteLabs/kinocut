@@ -43,6 +43,7 @@ def _ffmpeg_filters(executable: str) -> frozenset[str]:
     try:
         result = subprocess.run(  # noqa: S603
             [executable, "-hide_banner", "-filters"],
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=10,

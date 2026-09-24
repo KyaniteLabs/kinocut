@@ -133,6 +133,7 @@ def run_ffmpeg(args: Sequence[str], *, timeout: float | None = None) -> None:
     try:
         proc = subprocess.run(  # noqa: S603 - command list built from validated components
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -164,6 +165,7 @@ def run_sox(args: Sequence[str], *, timeout: float | None = None) -> None:
     try:
         proc = subprocess.run(  # noqa: S603 - command list built from validated components
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",
