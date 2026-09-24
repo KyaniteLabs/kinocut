@@ -730,6 +730,59 @@ def test_composite_layers_renders_transformed_masked_timed_layer(tmp_path):
     assert result.layer_plan["output_hash"].startswith("sha256:")
 
 
+@pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="requires ffmpeg")
+def test_composite_layers_keeps_canvas_duration_at_non_25_fps(tmp_path):
+    """The lavfi canvas must run at the canvas fps: at its 25 fps default a 30 fps canvas came out 1/6 short."""
+    bg = tmp_path / "bg.mp4"
+    output = tmp_path / "out.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=64x64:d=1:r=30",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(bg),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=20,
+    )
+    spec = {
+        "canvas": {"width": 64, "height": 64, "background": "#000000", "fps": 30, "duration": 1.0},
+        "layers": [{"id": "background", "type": "video", "src": "bg.mp4", "position": {"x": 0, "y": 0}}],
+        "output": {"format": "mp4"},
+    }
+
+    composite_layers(str(_write_spec(tmp_path, spec)), output_path=str(output))
+
+    frames = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-count_frames",
+            "-select_streams",
+            "v:0",
+            "-show_entries",
+            "stream=nb_read_frames",
+            "-of",
+            "csv=p=0",
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=20,
+    ).stdout.strip()
+    assert int(frames) == 30
+
+
 # --- Story 7: rotation + pivot ---------------------------------------------
 
 _PIVOTS = ["center", "top_left", "top_right", "bottom_left", "bottom_right"]
