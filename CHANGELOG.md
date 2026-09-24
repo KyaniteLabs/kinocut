@@ -11,6 +11,16 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+- Every FFmpeg/ffprobe child process now names `stdin=DEVNULL` explicitly (source contract pinned): children can no longer inherit — and consume or block — the MCP stdio protocol channel on any code path (integrator report #547; PR #559 fixed the central runners, this completes the tree).
+- Merge transitions and the video-filter path (e.g. `sepia`) now pin `yuv420p` instead of inheriting `yuv444p`, so outputs play in browsers/phones and concatenate with yuv420p segments (#548, #556).
+- `layout_pip` no longer passes a full ffprobe command to the raw-args runner — the call failed with `ValueError` on every invocation since the runner split (#550).
+- `drawtext` font family names resolve to a concrete font file before reaching FFmpeg; the bare `font=<family>` option access-violated FFmpeg builds without fontconfig on Windows (0xC0000005) (#553).
+- The PIL text-measurement font loader no longer fails silently with a `NameError`, which had pushed every measurement onto the fallback path (found while fixing #553).
+
+### Acknowledgements
+- Thanks to [@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt) for the 15-issue production-integrator batch of 2026-09-24 (reports #546–#560 with repro + root cause) and PRs #558/#559, which landed within 24 hours.
+
 ## 1.15.2 - 2026-09-24
 
 ### Added

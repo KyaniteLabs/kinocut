@@ -563,6 +563,7 @@ def preview(
     cmd = [*_hyperframes_command_prefix(cwd=project), "preview", str(project), "--port", str(port)]
     proc = subprocess.Popen(  # noqa: S603
         cmd,
+        stdin=subprocess.DEVNULL,
         cwd=str(project),
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,

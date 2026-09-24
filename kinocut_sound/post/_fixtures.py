@@ -281,6 +281,7 @@ def _ffmpeg_query_stderr(args: list[str], *, timeout: float = 15.0) -> str:
     try:
         proc = subprocess.run(  # noqa: S603 - measurement query list
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",
