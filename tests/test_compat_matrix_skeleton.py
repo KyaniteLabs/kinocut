@@ -66,12 +66,20 @@ def test_receipts_append_only_law(tmp_path: Path) -> None:
 
 def test_receipt_schema_validation() -> None:
     good = {
-        "tier": "T2", "model": "llama-3-8b", "endpoint": "http://mini:8788/v1",
-        "step": "trim", "attempt": 1, "tool_call": "video_trim",
-        "tool_args_valid": True, "outcome": "pass", "fail_reason": None,
+        "tier": "T2",
+        "model": "llama-3-8b",
+        "endpoint": "http://mini:8788/v1",
+        "step": "trim",
+        "attempt": 1,
+        "tool_call": "video_trim",
+        "tool_args_valid": True,
+        "outcome": "pass",
+        "fail_reason": None,
         "tokens": {"prompt": 10, "completion": 5, "manifest_bytes": 100},
-        "latency_ms": 250, "artifact_sha256": "a" * 64,
-        "ground_truth_diff": "identical", "cloud_keys_present": False,
+        "latency_ms": 250,
+        "artifact_sha256": "a" * 64,
+        "ground_truth_diff": "identical",
+        "cloud_keys_present": False,
         "timestamp_utc": "2026-09-25T00:00:00Z",
     }
     assert validate_receipt(good) == []
@@ -101,8 +109,7 @@ def test_writer_rejects_invalid_receipt(tmp_path: Path) -> None:
 def test_mcp_client_handshake_and_manifest() -> None:
     from mcp_client import MCPStdioClient
 
-    with MCPStdioClient([sys.executable, "-m", "kinocut", "--mcp"],
-                        cwd=str(REPO_ROOT), timeout=90.0) as client:
+    with MCPStdioClient([sys.executable, "-m", "kinocut", "--mcp"], cwd=str(REPO_ROOT), timeout=90.0) as client:
         info = client.handshake()
     assert info.tools_count >= 100, "kinocut's MCP surface is ~196 tools"
     assert info.manifest_bytes > 10_000, "manifest byte accounting must produce a real number"
