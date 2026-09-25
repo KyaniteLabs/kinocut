@@ -78,17 +78,17 @@ canonical contributor or release gate.
 - Raising lint `timeout-minutes` to hide a missing `lint-checkout` (the 80s virtiofs kill ignored that field)
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
-capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
+capacity 1 and `gpu-host-ci` at capacity 4. Those observations are historical,
 not a live inventory. The repository token does not have `read:admin`.
 
 **Live inventory (2026-08-19, `GET …/repos/KyaniteLabs/kinocut/actions/runners`):**
 one runner, `colima-ci-runner` (id=15, v13.0.0), labels `heavy` `light` `default`
-`arm64-heavy`, status `idle` at probe time. **`nucbox-ci` is not registered on
-this repository.** A busy nucbox running *other* Forgejo jobs would not dequeue
+`arm64-heavy`, status `idle` at probe time. **`gpu-host-ci` is not registered on
+this repository.** A busy gpu-host running *other* Forgejo jobs would not dequeue
 Kinocut `light`/`arm64-heavy` work unless an admin attaches that runner here.
 
 Busy-host failures on Kinocut therefore mean **this Colima VM** (capacity 2,
-every label on one daemon), not a hidden nucbox queue. Signature already seen:
+every label on one daemon), not a hidden gpu-host queue. Signature already seen:
 lint dies ~80s–1m21s with **no** `lint-checkout` (apt/curl never ran, or the
 job was killed first). PR #405 retrigger `16a083e` (run 929) is that
 signature again. Do not merge red; do not raise `timeout-minutes`; rerun when
@@ -98,7 +98,7 @@ new push only.
 ## Active runner: colima-ci-runner
 
 **Host (live 2026-08-19):** Colima is **not** on the Mac Mini and **not** on
-nucbox. It runs on the operator’s local Apple M4 Mac (`tech.kyanitelabs.colima`
+gpu-host. It runs on the operator’s local Apple M4 Mac (`tech.kyanitelabs.colima`
 launchd, `colima status` → Virtualization.Framework, virtiofs). The Forgejo
 daemon is `forgejo-runner.service` **inside that Colima VM** (`hostname=colima`).
 

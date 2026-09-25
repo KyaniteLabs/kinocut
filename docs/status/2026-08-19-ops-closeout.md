@@ -56,20 +56,20 @@ Empty-commit retrigger `16a083e` (Actions run 929): lint **Failing after 1m21s**
 Earlier head `62bbbfd` (run 928): `test (2)` **Failing after 1s** (job never
 reached pytest). `origin/master` `5b1936e` remains combined **success**.
 
-Operator hypothesis: **a box is busy** (named nucbox). Treat as *busy host /
-capacity*, not as a proven nucbox queue:
+Operator hypothesis: **a box is busy** (named gpu-host). Treat as *busy host /
+capacity*, not as a proven gpu-host queue:
 
 | Check (live 2026-08-19) | Result |
 | --- | --- |
 | Runners registered on `KyaniteLabs/kinocut` | **one**: `colima-ci-runner` (id=15, forgejo-runner v13.0.0) |
 | Labels on that runner | `heavy`, `light`, `default`, `arm64-heavy` (all `docker://ubuntu:24.04`) |
 | Runner status at this probe | `idle` |
-| `nucbox-ci` on this repo’s runner list | **absent** (2026-07-10 topology mention is historical) |
+| `gpu-host-ci` on this repo’s runner list | **absent** (2026-07-10 topology mention is historical) |
 
-So Kinocut jobs do not wait on a separate nucbox runner unless an admin attaches
+So Kinocut jobs do not wait on a separate gpu-host runner unless an admin attaches
 one. Contention that *does* match the ~80s / no-`lint-checkout` signature is
 **Colima capacity-2**: lint (`light`) and pytest/ffmpeg (`arm64-heavy`) share the
-same VM. A busy **other** Forgejo repo on nucbox would not show up here and
+same VM. A busy **other** Forgejo repo on gpu-host would not show up here and
 would not pick these labels.
 
 Do not force-merge. Do not raise `timeout-minutes`. Rerun when `colima-ci-runner`

@@ -16,9 +16,9 @@ Source of truth: Forgejo `git.kyanitelabs.tech/KyaniteLabs/kinocut`. GitHub is t
    ```
 5. **Constraints** — Forgejo land first; never merge #405 while lint has no `lint-checkout`; never squash `v1.15.0` @ `64c5799`; never re-Enterprise `kinocut.dev`.
 6. **Definition of done** — #405 merge-commit on Forgejo master; combined success **including** `lint-checkout`; live site still 1.15.0.
-7. **Required evidence** — `fj status` on the merge SHA; runner list still documents colima vs nucbox; `https://kinocut.dev/llms.txt` says 1.15.0.
+7. **Required evidence** — `fj status` on the merge SHA; runner list still documents colima vs gpu-host; `https://kinocut.dev/llms.txt` says 1.15.0.
 8. **What NOT to touch** — `.mimosa/`; perf-committee reports; PW dirty tree; Cloudflare Enterprise; `skills_agent/` unless named.
 9. **Report format** — BLUF: result / blocker / owner word. Then: fixed / parked / needs-you.
-10. **Mode** — Inspect-only unless the operator names `rerun 405` (only when `colima-ci-runner` is idle). Stop-and-ask: force-merge, nucbox label remap, timeout-minutes bump.
+10. **Mode** — Inspect-only unless the operator names `rerun 405` (only when `colima-ci-runner` is idle). Stop-and-ask: force-merge, gpu-host label remap, timeout-minutes bump.
 
-Cold-start: read item 3. Live fact: this repo’s only Actions runner is `colima-ci-runner` (id=15). `nucbox-ci` is not registered here. Busy-host = Colima capacity-2.
+Cold-start: read item 3. Live fact: this repo’s only Actions runner is `colima-ci-runner` (id=15). `gpu-host-ci` is not registered here. Busy-host = Colima capacity-2.
