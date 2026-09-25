@@ -114,3 +114,39 @@ def test_mcp_client_handshake_and_manifest() -> None:
     assert info.tools_count >= 100, "kinocut's MCP surface is ~196 tools"
     assert info.manifest_bytes > 10_000, "manifest byte accounting must produce a real number"
     assert info.server_name
+
+
+def test_artifacts_are_workspace_relative(tmp_path: Path) -> None:
+    """Privacy regression pin (tests/test_receipt_privacy.py law).
+
+    The 2026-09-25 committed receipts leaked absolute home paths in
+    quality-gate.json and repurpose_manifest.json (PR #438 red). The harness
+    now sanitizes at record time: every JSON artifact under the run dir —
+    harness-dumped AND CLI-written — must contain no absolute repo-root path,
+    even when the kino CLI embeds one.
+    """
+    from matrix_harness import sanitize_artifact_text, sanitize_artifact_tree
+
+    root = tmp_path / "repo"
+    root.mkdir()
+    leaky = json.dumps({"video": f"{root}/docs/run/a.mp4", "src": f"{root}/x.mp4"})
+    clean = sanitize_artifact_text(leaky, root)
+    assert str(root) not in clean
+    assert json.loads(clean) == {"video": "docs/run/a.mp4", "src": "x.mp4"}
+
+    art_dir = tmp_path / "artifacts"
+    (art_dir / "repurpose").mkdir(parents=True)
+    (art_dir / "repurpose" / "manifest.json").write_text(
+        json.dumps(
+            {
+                "path": f"{root}/tests/fixtures/golden/workflow_final.mp4",
+                "output_path": f"{root}/docs/local-first/out.mp4",
+            }
+        ),
+        encoding="utf-8",
+    )
+    changed = sanitize_artifact_tree(art_dir, root)
+    assert [p.name for p in changed] == ["manifest.json"]
+    data = json.loads((art_dir / "repurpose" / "manifest.json").read_text())
+    assert data["path"] == "tests/fixtures/golden/workflow_final.mp4"
+    assert data["output_path"] == "docs/local-first/out.mp4"

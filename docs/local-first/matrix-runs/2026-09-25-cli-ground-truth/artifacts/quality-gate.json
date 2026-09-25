@@ -1,6 +1,6 @@
 
 {
-  "video": "/Users/simongonzalezdecruz/workspaces/kinocut-g2-x86-ci-20260913/docs/local-first/matrix-runs/2026-09-25-cli-ground-truth/artifacts/trim-0.5s.mp4",
+  "video": "docs/local-first/matrix-runs/2026-09-25-cli-ground-truth/artifacts/trim-0.5s.mp4",
   "overall_score": 62.1,
   "all_passed": false,
   "checks": [
