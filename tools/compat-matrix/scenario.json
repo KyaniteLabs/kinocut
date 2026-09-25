@@ -1,0 +1,23 @@
+{
+  "scenario_id": "canonical-v1",
+  "description": "Pinned canonical scenario (COMPAT-MATRIX-SPEC): ingest -> trim -> caption -> repurpose -> quality-gate -> receipt",
+  "clip": {
+    "path": "tests/fixtures/golden/workflow_final.mp4",
+    "sha256": "589173bdf495a5c483873a543b52e3faf24b1a6aec539fff8e6b296315f9a634",
+    "duration_s": 1.0
+  },
+  "steps": {
+    "ingest": {"tool": "video-ingest", "usage_rights_status": "cleared"},
+    "trim": {"tool": "trim", "start_s": 0.0, "duration_s": 0.5},
+    "caption": {"tool": "video-ai-transcribe", "mode": "not_wired", "note": "local whisper ground truth is a mini/G2 lane (model inference); wired at a later build order"},
+    "repurpose": {"tool": "repurpose-plan", "platforms": ["youtube-shorts"]},
+    "quality-gate": {"tool": "video-quality-check", "fail_on_warning": false}
+  },
+  "tolerances": {
+    "trim": "exact",
+    "caption": "CER threshold (set when caption lane wired)",
+    "repurpose": "plan-validity + render success",
+    "quality-gate": "gate green without retry-loop abuse"
+  },
+  "loop_budget": {"max_tool_calls_per_step": 5, "max_step_retries": 1}
+}

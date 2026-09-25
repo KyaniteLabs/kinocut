@@ -1,0 +1,108 @@
+
+{
+  "video": "docs/local-first/matrix-runs/2026-09-25-cli-ground-truth/artifacts/trim-0.5s.mp4",
+  "overall_score": 62.1,
+  "all_passed": false,
+  "checks": [
+    {
+      "name": "brightness",
+      "passed": true,
+      "score": 68.2,
+      "message": "Brightness is well-balanced (brightness: 87.3)",
+      "details": {
+        "y_avg": 87.3497,
+        "target_range": [
+          40,
+          200
+        ]
+      }
+    },
+    {
+      "name": "contrast",
+      "passed": true,
+      "score": 79.2,
+      "message": "Contrast is good (std dev: 60.4)",
+      "details": {
+        "y_std": 60.390625,
+        "y_low": 16.0,
+        "y_high": 170.6,
+        "target_range": [
+          20,
+          100
+        ],
+        "metric": {
+          "name": "ffmpeg.signalstats.YHIGH-YLOW",
+          "available": true,
+          "value": 60.390625,
+          "unit": "percent_of_8bit_luma_range",
+          "raw": {
+            "y_low": 16.0,
+            "y_high": 170.6,
+            "unit": "8bit_luma"
+          }
+        }
+      }
+    },
+    {
+      "name": "saturation",
+      "passed": true,
+      "score": 78.0,
+      "message": "Saturation is well-balanced (estimated: 39.0%)",
+      "details": {
+        "saturation_pct": 38.98202209944752,
+        "sat_avg": 70.55746,
+        "metric": {
+          "name": "ffmpeg.signalstats.SATAVG",
+          "available": true,
+          "value": 38.98202209944752,
+          "unit": "percent_of_8bit_yuv_saturation_range",
+          "raw": {
+            "value": 70.55746,
+            "unit": "signalstats_chroma_magnitude",
+            "full_scale": 181.0
+          }
+        }
+      }
+    },
+    {
+      "name": "audio_levels",
+      "passed": false,
+      "score": 0.0,
+      "message": "No audio stream detected in video (audio stream required)",
+      "details": {
+        "has_audio": false,
+        "reason": "no_audio_stream"
+      }
+    },
+    {
+      "name": "color_balance",
+      "passed": true,
+      "score": 85.3,
+      "message": "Color balance is good (max deviation: 4.9%)",
+      "details": {
+        "r_mean": 88.94209159999998,
+        "g_mean": 85.30767868640001,
+        "b_mean": 93.68778959999999,
+        "max_deviation": 4.89883124977516,
+        "color_cast": null
+      }
+    },
+    {
+      "name": "temporal_motion",
+      "passed": true,
+      "score": 100.0,
+      "message": "Temporal motion is adequate (0% near-static frames)",
+      "details": {
+        "static_fraction": 0.0,
+        "mean_motion": 3.85745,
+        "median_motion": 3.908925,
+        "frames_analyzed": 4,
+        "static_frame_floor": 0.35,
+        "static_fraction_threshold": 0.9
+      }
+    }
+  ],
+  "recommendations": [
+    "No audio stream detected in video (audio stream required)"
+  ]
+}

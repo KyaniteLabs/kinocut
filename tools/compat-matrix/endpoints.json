@@ -1,0 +1,45 @@
+{
+  "tiers": {
+    "T1": {
+      "class": "org-heavy",
+      "model": "qwen3.8-27b",
+      "endpoint": "http://mini:8788/v1",
+      "alt_endpoint": "http://nucbox-air:8817/v1",
+      "host_lane": "mini-or-nucbox",
+      "api": "openai-chat-completions",
+      "cloud_keys": false
+    },
+    "T2": {
+      "class": "old-7-8b",
+      "model": "llama-3-8b",
+      "endpoint": null,
+      "host_lane": "mini-or-g2",
+      "api": "openai-chat-completions",
+      "cloud_keys": false
+    },
+    "T3": {
+      "class": "tiny-3-4b",
+      "model": "qwen3-4b-class",
+      "endpoint": null,
+      "host_lane": "mini-or-g2",
+      "api": "openai-chat-completions",
+      "cloud_keys": false
+    },
+    "cli-ground-truth": {
+      "class": "deterministic-cli",
+      "model": null,
+      "endpoint": null,
+      "host_lane": "any (ffmpeg-only steps; no model inference)",
+      "api": "kino-cli",
+      "cloud_keys": false
+    }
+  },
+  "laws": {
+    "zero_spend": "DIR-0010 - free pulls + owned hardware only",
+    "heavy_runs_hosts": ["mini", "g2"],
+    "never_host": "mba (compute law)",
+    "cloud_keys_forbidden": true,
+    "receipts": "append-only"
+  },
+  "notes": "T2/T3 endpoints are deliberately null: they get wired at build order 3 (free pulls on mini/G2), never on the MBA. The cli-ground-truth pseudo-tier is the deterministic reference lane of COMPAT-MATRIX-SPEC.md (every step also runs once via CLI)."
+}
