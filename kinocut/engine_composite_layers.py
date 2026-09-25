@@ -535,11 +535,12 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             width = _escape_ffmpeg_filter_value(str(canvas.width))
             height = _escape_ffmpeg_filter_value(str(canvas.height))
             chain = f"{chain},scale={width}:{height}"
-        chains.append(f"[{layer.input_index}:v]{chain}[{layer_label}raw]")
+        chains.append(f"[{layer.input_index}:v]{_start_shift(layer, layer.type)}{chain}[{layer_label}raw]")
         if layer.mask_input_index is not None:
             mask_label = f"{layer_label}mask"
             layer_ref_label = f"{layer_label}ref"
-            chains.append(f"[{layer.mask_input_index}:v]format=gray[{mask_label}raw]")
+            mask_type = "image" if layer.mask_src is not None and _is_image_path(layer.mask_src) else "video"
+            chains.append(f"[{layer.mask_input_index}:v]{_start_shift(layer, mask_type)}format=gray[{mask_label}raw]")
             processed_mask_label = f"{mask_label}processed"
             chains.extend(mask_effect_chains(layer, f"{mask_label}raw", processed_mask_label))
             # Bare scale2ref scales the mask to the layer size on all FFmpeg
@@ -563,6 +564,19 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
         chains.append(step)
         previous = out_label
     return ";".join(chains)
+
+
+def _start_shift(layer: _ResolvedLayer, source_type: str) -> str:
+    """Delay a video source so its first frame plays at the layer start.
+
+    The enable window only hides the layer before ``start``; without this
+    shift a video layer keeps playing from the canvas origin, so its opening
+    frames are lost and a clip shorter than ``start`` never shows at all.
+    """
+    if source_type != "video" or not layer.start:
+        return ""
+    safe_start = _escape_ffmpeg_filter_value(_num(layer.start))
+    return f"setpts=PTS-STARTPTS+{safe_start}/TB,"
 
 
 def _layer_filter_chain(layer: _ResolvedLayer) -> str:
