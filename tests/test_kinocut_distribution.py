@@ -18,7 +18,7 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.15.2"
+KINOCUT_VERSION = "1.15.3"
 SHIM_VERSION = "1.6.13"
 
 
