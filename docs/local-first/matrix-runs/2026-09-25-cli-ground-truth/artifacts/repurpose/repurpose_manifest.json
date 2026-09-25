@@ -1,0 +1,32 @@
+{
+  "source": {
+    "aspect_ratio": "1:1",
+    "duration": 1.0,
+    "path": "/Users/simongonzalezdecruz/workspaces/kinocut-g2-x86-ci-20260913/tests/fixtures/golden/workflow_final.mp4",
+    "resolution": "120x120"
+  },
+  "success": true,
+  "variants": [
+    {
+      "aspect_ratio": "9:16",
+      "height": 1920,
+      "hyperframes_blocks": [
+        "captions-slam",
+        "yt-lower-third"
+      ],
+      "max_duration": 180,
+      "output_path": "/Users/simongonzalezdecruz/workspaces/kinocut-g2-x86-ci-20260913/docs/local-first/matrix-runs/2026-09-25-cli-ground-truth/artifacts/repurpose/youtube_shorts.mp4",
+      "planned_ops": [
+        "resize",
+        "normalize_audio",
+        "export",
+        "thumbnail",
+        "storyboard"
+      ],
+      "platform": "youtube-shorts",
+      "render": false,
+      "target_lufs": -14.0,
+      "width": 1080
+    }
+  ]
+}
