@@ -17,7 +17,7 @@ from typing import Any
 
 ROOT = Path(__file__).resolve().parents[1]
 MCPB_DIR = ROOT / "mcpb"
-VERSION = "1.15.2"
+VERSION = "1.15.3"
 MEMBERS = ("README.md", "manifest.json", "server/launcher.js")
 TOP_LEVEL_KEYS = {
     "$schema",

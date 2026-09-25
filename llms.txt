@@ -47,6 +47,7 @@ Compatibility:
 
 ```bash
 pip install --upgrade mcp-video   # 1.6.13 shim → kinocut 1.15.2
+- Release candidate: 1.6.14 shim → kinocut 1.15.3
 ```
 
 ## Canonical links
