@@ -346,6 +346,70 @@ def generate_palette(
     )
 
 
+def _describe_product_with_vision(
+    image_path: str,
+    base_url: str | None = None,
+    model: str | None = None,
+) -> str:
+    """Return an AI text description of ``image_path`` (opt-in vision call).
+
+    ``base_url``/``model`` (or ``KINOCUT_VISION_BASE_URL``/``KINOCUT_VISION_MODEL``)
+    route the call at a local Anthropic-compatible endpoint — workstream C
+    local-first path; cloud remains the default when unset. Credentials are
+    resolved at runtime via :func:`_resolve_vision_api_key` (BYOK, fail-closed;
+    no literal is ever stored here).
+    """
+    try:
+        import anthropic
+    except ImportError:
+        raise MCPVideoError(
+            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]",
+            error_type="dependency_error",
+            code="missing_ai_dep",
+            suggested_action={
+                "auto_fix": False,
+                "description": "Run: pip install kinocut[image-ai]",
+            },
+        ) from None
+
+    import base64
+    import mimetypes
+
+    endpoint = resolve_vision_endpoint(base_url, model)
+    api_key = _resolve_vision_api_key(endpoint)
+
+    mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+    with open(image_path, "rb") as f:
+        img_data = base64.b64encode(f.read()).decode("utf-8")
+
+    client = anthropic.Anthropic(api_key=api_key, base_url=endpoint["base_url"])
+    response = client.messages.create(
+        model=endpoint["model"],
+        max_tokens=300,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime_type,
+                            "data": img_data,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": "Describe this product image concisely in 2-3 sentences. "
+                        "Focus on the product type, colors, and key visual features.",
+                    },
+                ],
+            }
+        ],
+    )
+    return response.content[0].text
+
+
 def analyze_product(
     image_path: str,
     use_ai: bool = False,
@@ -371,55 +435,7 @@ def analyze_product(
 
     description: str | None = None
     if use_ai:
-        try:
-            import anthropic
-        except ImportError:
-            raise MCPVideoError(
-                "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]",
-                error_type="dependency_error",
-                code="missing_ai_dep",
-                suggested_action={
-                    "auto_fix": False,
-                    "description": "Run: pip install kinocut[image-ai]",
-                },
-            ) from None
-
-        import base64
-        import mimetypes
-
-        endpoint = resolve_vision_endpoint(base_url, model)
-        api_key = _resolve_vision_api_key(endpoint)
-
-        mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
-        with open(image_path, "rb") as f:
-            img_data = base64.b64encode(f.read()).decode("utf-8")
-
-        client = anthropic.Anthropic(api_key=api_key, base_url=endpoint["base_url"])
-        response = client.messages.create(
-            model=endpoint["model"],
-            max_tokens=300,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": mime_type,
-                                "data": img_data,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": "Describe this product image concisely in 2-3 sentences. "
-                            "Focus on the product type, colors, and key visual features.",
-                        },
-                    ],
-                }
-            ],
-        )
-        description = response.content[0].text
+        description = _describe_product_with_vision(image_path, base_url, model)
 
     return ProductAnalysisResult(
         image_path=image_path,
