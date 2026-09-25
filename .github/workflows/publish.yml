@@ -23,6 +23,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.release.tag_name || github.ref }}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.14'
@@ -42,6 +43,7 @@ jobs:
         with:
           persist-credentials: false
           fetch-depth: 0
+          ref: ${{ github.event.release.tag_name || github.ref }}
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
         with:
           python-version: '3.14'
@@ -336,6 +338,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
+          ref: ${{ github.event.release.tag_name || github.ref }}
       - name: Install mcp-publisher
         env:
           MCP_PUBLISHER_VERSION: v1.7.9
@@ -348,6 +351,23 @@ jobs:
       - name: Authenticate to MCP Registry
         run: ./mcp-publisher login github-oidc
       - name: Publish server metadata
+        # Recovery-safe: the registry rejects duplicate versions with a hard 400
+        # ("cannot publish duplicate version"), so check the published-version
+        # list first and skip entries this release already shipped.
         run: |
-          ./mcp-publisher publish
-          ./mcp-publisher publish compat/mcp-video-shim/server.json
+          publish_if_new() {
+            metadata="$1"
+            name="$(python3 -c "import json;print(json.load(open('${metadata}'))['name'])")"
+            version="$(python3 -c "import json;print(json.load(open('${metadata}'))['version'])")"
+            encoded="$(python3 -c "import urllib.parse;print(urllib.parse.quote('${name}',safe=''))")"
+            published="$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers/${encoded}/versions" \
+              | python3 -c "import json,sys;print('\n'.join(e['server']['version'] for e in json.load(sys.stdin).get('servers',[])))" \
+              || true)"
+            if printf '%s\n' "$published" | grep -qx "$version"; then
+              echo "$name $version already published; skipping on recovery attempt."
+            else
+              ./mcp-publisher publish "$metadata"
+            fi
+          }
+          publish_if_new server.json
+          publish_if_new compat/mcp-video-shim/server.json
