@@ -366,7 +366,14 @@ jobs:
             if printf '%s\n' "$published" | grep -qx "$version"; then
               echo "$name $version already published; skipping on recovery attempt."
             else
-              ./mcp-publisher publish "$metadata"
+              if ! out="$(./mcp-publisher publish "$metadata" 2>&1)"; then
+                if printf '%s' "$out" | grep -q "duplicate version"; then
+                  echo "$name $version already published (registry duplicate-version accepted); skipping."
+                else
+                  printf '%s\n' "$out" >&2
+                  exit 1
+                fi
+              fi
             fi
           }
           publish_if_new server.json
