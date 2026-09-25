@@ -3,7 +3,7 @@
   "name": "io.github.KyaniteLabs/mcp-video",
   "title": "mcp-video",
   "description": "Compatibility package: mcp-video now installs Kinocut (formerly mcp-video).",
-  "version": "1.6.13",
+  "version": "1.6.14",
   "websiteUrl": "https://kinocut.dev/",
   "repository": {
     "url": "https://github.com/KyaniteLabs/kinocut",
@@ -13,7 +13,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-video",
-      "version": "1.6.13",
+      "version": "1.6.14",
       "runtimeHint": "uvx",
       "transport": {
         "type": "stdio"
