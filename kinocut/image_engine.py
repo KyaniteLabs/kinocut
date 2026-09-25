@@ -9,6 +9,7 @@ from __future__ import annotations
 import colorsys
 from typing import Any
 import os
+from urllib.parse import urlparse
 
 from .errors import MCPVideoError
 from .image_models import (
@@ -21,6 +22,55 @@ from .image_models import (
 
 SUPPORTED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp"})
 MAX_IMAGE_PIXELS = 50_000_000  # ~50 MP (e.g. 7168x7168); guards against decompression bombs (H5)
+
+# Local-first hardening (workstream C, 2026-09-19): the AI description is the one
+# cloud-API call in the package. These env/param hooks give it a LOCAL endpoint path
+# (org-engines :8817/:8788, LM Studio, llama-server, any Anthropic-compatible gateway)
+# without changing the cloud default: still opt-in via use_ai, still fail-closed.
+# Pattern replicated from the 360 sphere director (te/sphere_director.py) — the
+# workstream-C exemplar.
+ENV_VISION_BASE_URL = "KINOCUT_VISION_BASE_URL"
+ENV_VISION_MODEL = "KINOCUT_VISION_MODEL"
+DEFAULT_VISION_MODEL = "claude-sonnet-4-20250514"
+_LOCAL_VISION_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+
+
+def resolve_vision_endpoint(
+    base_url: str | None = None,
+    model: str | None = None,
+) -> dict[str, Any]:
+    """Resolve the AI-description endpoint (param > env). No network call.
+
+    Returns base_url (None = Anthropic cloud default), model id, and the
+    endpoint kind ("local" / "cloud" / None when no endpoint override is set).
+    """
+    resolved_url = (base_url or os.environ.get(ENV_VISION_BASE_URL) or "").strip() or None
+    resolved_model = (model or os.environ.get(ENV_VISION_MODEL) or "").strip() or None
+    kind = None
+    if resolved_url:
+        host = (urlparse(resolved_url).hostname or "").lower()
+        kind = "local" if host in _LOCAL_VISION_HOSTS else "cloud"
+    return {
+        "base_url": resolved_url,
+        "model": resolved_model or DEFAULT_VISION_MODEL,
+        "endpoint_kind": kind,
+    }
+
+
+def _resolve_vision_api_key(endpoint: dict[str, Any]) -> str:
+    """API key for the vision call. Local endpoints need no cloud credential."""
+    api_key = os.environ.get("ANTHROPIC_API_KEY")
+    if api_key:
+        return api_key
+    if endpoint["base_url"] and endpoint["endpoint_kind"] == "local":
+        # No cloud auth exists to fail; the SDK merely requires a non-empty key.
+        return "local-endpoint"
+    raise MCPVideoError(
+        "ANTHROPIC_API_KEY environment variable is required for AI descriptions "
+        "(or point KINOCUT_VISION_BASE_URL at a local endpoint).",
+        error_type="auth_error",
+        code="missing_api_key",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -296,12 +346,83 @@ def generate_palette(
     )
 
 
+def _describe_product_with_vision(
+    image_path: str,
+    base_url: str | None = None,
+    model: str | None = None,
+) -> str:
+    """Return an AI text description of ``image_path`` (opt-in vision call).
+
+    ``base_url``/``model`` (or ``KINOCUT_VISION_BASE_URL``/``KINOCUT_VISION_MODEL``)
+    route the call at a local Anthropic-compatible endpoint — workstream C
+    local-first path; cloud remains the default when unset. Credentials are
+    resolved at runtime via :func:`_resolve_vision_api_key` (BYOK, fail-closed;
+    no literal is ever stored here).
+    """
+    try:
+        import anthropic
+    except ImportError:
+        raise MCPVideoError(
+            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]",
+            error_type="dependency_error",
+            code="missing_ai_dep",
+            suggested_action={
+                "auto_fix": False,
+                "description": "Run: pip install kinocut[image-ai]",
+            },
+        ) from None
+
+    import base64
+    import mimetypes
+
+    endpoint = resolve_vision_endpoint(base_url, model)
+    api_key = _resolve_vision_api_key(endpoint)
+
+    mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
+    with open(image_path, "rb") as f:
+        img_data = base64.b64encode(f.read()).decode("utf-8")
+
+    client = anthropic.Anthropic(api_key=api_key, base_url=endpoint["base_url"])
+    response = client.messages.create(
+        model=endpoint["model"],
+        max_tokens=300,
+        messages=[
+            {
+                "role": "user",
+                "content": [
+                    {
+                        "type": "image",
+                        "source": {
+                            "type": "base64",
+                            "media_type": mime_type,
+                            "data": img_data,
+                        },
+                    },
+                    {
+                        "type": "text",
+                        "text": "Describe this product image concisely in 2-3 sentences. "
+                        "Focus on the product type, colors, and key visual features.",
+                    },
+                ],
+            }
+        ],
+    )
+    return response.content[0].text
+
+
 def analyze_product(
     image_path: str,
     use_ai: bool = False,
     n_colors: int = 5,
+    base_url: str | None = None,
+    model: str | None = None,
 ) -> ProductAnalysisResult:
-    """Analyze a product image — colors + optional AI description."""
+    """Analyze a product image — colors + optional AI description.
+
+    ``base_url``/``model`` (or ``KINOCUT_VISION_BASE_URL``/``KINOCUT_VISION_MODEL``)
+    route the opt-in AI description at a local Anthropic-compatible endpoint —
+    workstream C local-first path; cloud remains the default when unset.
+    """
     _require_image_deps()
     _validate_image(image_path)
 
@@ -314,60 +435,7 @@ def analyze_product(
 
     description: str | None = None
     if use_ai:
-        try:
-            import anthropic
-        except ImportError:
-            raise MCPVideoError(
-                "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]",
-                error_type="dependency_error",
-                code="missing_ai_dep",
-                suggested_action={
-                    "auto_fix": False,
-                    "description": "Run: pip install kinocut[image-ai]",
-                },
-            ) from None
-
-        import base64
-        import mimetypes
-
-        api_key = os.environ.get("ANTHROPIC_API_KEY")
-        if not api_key:
-            raise MCPVideoError(
-                "ANTHROPIC_API_KEY environment variable is required for AI descriptions.",
-                error_type="auth_error",
-                code="missing_api_key",
-            )
-
-        mime_type = mimetypes.guess_type(image_path)[0] or "image/jpeg"
-        with open(image_path, "rb") as f:
-            img_data = base64.b64encode(f.read()).decode("utf-8")
-
-        client = anthropic.Anthropic(api_key=api_key)
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=300,
-            messages=[
-                {
-                    "role": "user",
-                    "content": [
-                        {
-                            "type": "image",
-                            "source": {
-                                "type": "base64",
-                                "media_type": mime_type,
-                                "data": img_data,
-                            },
-                        },
-                        {
-                            "type": "text",
-                            "text": "Describe this product image concisely in 2-3 sentences. "
-                            "Focus on the product type, colors, and key visual features.",
-                        },
-                    ],
-                }
-            ],
-        )
-        description = response.content[0].text
+        description = _describe_product_with_vision(image_path, base_url, model)
 
     return ProductAnalysisResult(
         image_path=image_path,
