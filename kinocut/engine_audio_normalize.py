@@ -94,19 +94,50 @@ def _build_loudnorm_render_filter(
     lra_s: str,
     peak_s: str,
     analysis_stderr: str,
-) -> str:
-    """Build the second-pass loudnorm filter from measured or target values."""
+    resample: str = "",
+) -> tuple[str, list[str]]:
+    """Build the second-pass loudnorm filter from measured or target values.
+
+    Returns the filter and the warnings to report. ``resample`` is appended
+    after loudnorm, which always outputs 192 kHz.
+    """
     try:
         measured = _measurement(analysis_stderr)
     except MCPVideoError:
         if "input_i" not in analysis_stderr or "-inf" not in analysis_stderr:
             raise
-        return f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}"
+        return f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}{resample}", []
     measured_filter = ":".join(
         f"{key}={_escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, key)))}"
         for key, value in measured.items()
     )
-    return f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:{measured_filter}:linear=true"
+    warnings = []
+    # loudnorm keeps linear=true only if the gain keeps the true peak under TP; otherwise it silently
+    # switches to its dynamic limiter, which reshapes the dynamics and can end above the ceiling.
+    peak_after_gain = measured["measured_TP"] + float(target_s) - measured["measured_I"]
+    if peak_after_gain > float(peak_s):
+        warnings.append(
+            f"A linear gain to {target_s} LUFS would put the true peak at {peak_after_gain:.1f} dBTP, above "
+            f"{peak_s} dBTP, so FFmpeg loudnorm used dynamic mode: short peaks may exceed the ceiling. "
+            "Lower target_lufs or compress the peaks first to keep the gain linear."
+        )
+    return (
+        f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:{measured_filter}:linear=true{resample}",
+        warnings,
+    )
+
+
+def _resample_filter(probe: dict) -> str:
+    """Bring loudnorm's 192 kHz output back to the source sample rate."""
+    for stream in probe.get("streams", []):
+        if stream.get("codec_type") == "audio":
+            try:
+                rate = int(stream.get("sample_rate") or 0)
+            except (TypeError, ValueError):
+                rate = 0
+            if 8000 <= rate <= 192000:
+                return f",aresample={rate}"
+    return ",aresample=48000"
 
 
 def normalize_audio(
@@ -137,6 +168,7 @@ def normalize_audio(
     )
     probe = _run_ffprobe_json(input_path)
     has_audio = _has_audio(probe)
+    warnings: list[str] = []
     with _timed_operation() as timing:
         if not has_audio:
             _run_ffmpeg(
@@ -160,7 +192,9 @@ def normalize_audio(
                     "-",
                 ]
             )
-            render_filter = _build_loudnorm_render_filter(fade_filter, target_s, lra_s, peak_s, analysis.stderr)
+            render_filter, warnings = _build_loudnorm_render_filter(
+                fade_filter, target_s, lra_s, peak_s, analysis.stderr, _resample_filter(probe)
+            )
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
@@ -170,6 +204,7 @@ def normalize_audio(
                     audio_bitrate="192k",
                 )
             )
-    return _build_edit_result(
+    result = _build_edit_result(
         output, "normalize_audio", timing, format=Path(output).suffix.lstrip(".") or "wav", audio_only=True
     )
+    return result.model_copy(update={"warnings": [*result.warnings, *warnings]}) if warnings else result
