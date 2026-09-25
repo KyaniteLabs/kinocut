@@ -7,6 +7,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from kinocut.models import EditResult
 from kinocut.engine_audio_normalize import _measurement, normalize_audio
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffmpeg
@@ -29,7 +30,9 @@ def _mock_normalize(monkeypatch, tmp_path, *, duration: object = "2.0", audio: b
         "kinocut.engine_audio_normalize._run_ffmpeg",
         lambda command: calls.append(command) or SimpleNamespace(stderr=stderr),
     )
-    monkeypatch.setattr("kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: args[0])
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
+    )
     return source, output, calls
 
 
