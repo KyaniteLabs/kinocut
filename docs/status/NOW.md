@@ -12,8 +12,8 @@
 
 **Public site:** source has been corrected for **1.15.1**, but production deployment and rendered verification remain pending. Package publication does not prove the deployed website version.
 
-**Desk residual:** Colima is the operator M4 Mac, not Mini. Do not restart `forgejo-runner` mid-job (exact 80s fail). Perf-committee reports are inspect receipts only ([README](perf-committee/README.md)). Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
+**Desk residual:** Colima is the operator M4 Mac, not Mini. Do not restart `forgejo-runner` mid-job (exact 80s fail). Perf-committee reports are inspect receipts only ([README](perf-committee/README.md)).
 
 **Perf receipt:** cheap CLI + import timings in [golden-path-timings.md](golden-path-timings.md) — baseline only, not an optimized claim.
 
-**Living authority:** [ops closeout 2026-08-19](2026-08-19-ops-closeout.md) · [residual matrix](2026-08-12-residual-maturity-matrix.md) · [HUMAN_GATES](../HUMAN_GATES.md). S+ excellence PRD is local-only (`.omx/plans/`, gitignored).
+**Living authority:** [residual matrix](2026-08-12-residual-maturity-matrix.md) · [HUMAN_GATES](../HUMAN_GATES.md). S+ excellence PRD is local-only (`.omx/plans/`, gitignored).

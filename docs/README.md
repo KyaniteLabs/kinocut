@@ -22,7 +22,6 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Agent discovery](AI_AGENT_DISCOVERY.md) - concise capability and setup summary.
 - [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
 - [Kinocut now](status/NOW.md) - published vs tip, human residuals, site honesty leftover.
-- [2026-08-19 ops closeout](status/2026-08-19-ops-closeout.md) - dual-host, CI, Cloudflare DNS, parked owner words.
 - [Post-campaign tip status](status/2026-07-27-post-campaign-tip-status.md) - historical 1.11.1-versus-development-tip snapshot (superseded by NOW.md).
 - [Post-1.10 program status](status/2026-07-24-post-1-10-program-status.md) - historical published-release and remaining-program boundary recorded after 1.11.1.
 - [Post-1.8 program status](status/2026-07-14-post-1.8-program-status.md) - historical published-release boundary (superseded for planning).
@@ -71,7 +70,7 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - Date-prefixed audits, handoffs, plans, and `docs/status/` entries are snapshots,
   not current install or source-layout instructions, unless they explicitly identify
   themselves as the current release record. For current release and program state,
-  use [NOW.md](status/NOW.md) and the [2026-08-19 ops closeout](status/2026-08-19-ops-closeout.md);
+  use [NOW.md](status/NOW.md);
 - [Performance committee receipts](status/perf-committee/README.md) — inspect-only
   2026-08-13 reports. Do not re-implement the 360 split; `render_window_single_pass`
   already shipped in 1.14.0.

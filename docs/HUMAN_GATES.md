@@ -62,8 +62,7 @@ invisible ~80s lint hole (virtiofs checkout + `claims-live` on `light`
 starving apt/curl) is closed: runner home is VM-local
 `/mnt/lima-colima/forgejo-runner`; `claims-live.yml` runs on `heavy`.
 See [CI_RUNNER_TOPOLOGY.md](CI_RUNNER_TOPOLOGY.md) (**Agent land recipe**: idle
-restart → ~90s warm → empty-commit retrigger) and
-[ops closeout](status/2026-08-19-ops-closeout.md).
+restart → ~90s warm → empty-commit retrigger).
 
 The Actions API still does not expose step-level logs. If a future job is
 red without statuses, read
