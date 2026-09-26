@@ -8,6 +8,7 @@ from typing import Literal
 
 from ..engine import (
     audio_waveform as _audio_waveform,
+    mix_audio as _mix_audio,
 )
 from ..models import (
     EditResult,
@@ -17,6 +18,21 @@ from ..models import (
 
 class ClientAudioMixin:
     """Audio operations mixin."""
+
+    def mix_audio(
+        self,
+        video: str,
+        tracks: list[dict],
+        output: str | None = None,
+        keep_source: bool = True,
+    ) -> EditResult:
+        """Layer several sounds on a video in one pass, encoding the soundtrack once.
+
+        Prefer it to repeated ``add_audio(mix=True)`` calls: each of those re-encodes
+        the whole soundtrack, and the coding noise adds up into an audible hiss.
+        Each track is ``{"path", "start", "volume", "fade_in", "fade_out"}``.
+        """
+        return _mix_audio(video, tracks, output_path=output, keep_source=keep_source)
 
     def audio_waveform(
         self,

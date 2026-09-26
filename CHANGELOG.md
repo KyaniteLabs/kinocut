@@ -11,6 +11,9 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Added
+- `Client.mix_audio` (engine `mix_audio`) layers many timed sounds on a video in one FFmpeg pass and encodes the soundtrack once (AAC 256k, picture stream-copied). Stacking `add_audio(mix=True)` calls re-encodes the whole soundtrack each time; on quiet music beds the coding noise builds up into an audible hiss.
+
 ### Changed
 - `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
 
