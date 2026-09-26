@@ -9,7 +9,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 from mcp_video import Client
 
-TEST_VIDEO = "/Users/simongonzalezdecruz/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media/2023-04-23_14-43-35_UTC.mp4"
+TEST_VIDEO = "~/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media/2023-04-23_14-43-35_UTC.mp4"
 OUTPUT_DIR = tempfile.mkdtemp(prefix="mcp_video_real_test_")
 
 print("🎬 Real Video Integration Test")
