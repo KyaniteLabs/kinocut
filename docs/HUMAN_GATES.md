@@ -71,10 +71,10 @@ red without statuses, read
 Do not raise `timeout-minutes` to paper over a missing `lint-checkout`.
 
 PR **#405** retrigger (`16a083e`, run 929): lint **Failing after 1m21s**, no
-`lint-checkout`; tests skipped. Operator hypothesis “nucbox is busy” is a
+`lint-checkout`; tests skipped. Operator hypothesis “gpu-host is busy” is a
 **busy-host** guess. Live runner list for this repo is only `colima-ci-runner`
 (id=15, labels `light`+`heavy`+`arm64-heavy`, status idle at the 2026-08-19
-probe). `nucbox-ci` is not registered here. Same ~80s signature as Colima
+probe). `gpu-host-ci` is not registered here. Same ~80s signature as Colima
 capacity-2 / virtiofs starvation. Do not merge #405 red. See
 [CI_RUNNER_TOPOLOGY.md](CI_RUNNER_TOPOLOGY.md).
 
