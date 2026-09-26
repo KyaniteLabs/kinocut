@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from .errors import MCPVideoError
-from .ffmpeg_helpers import _validate_input_path
+from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _format_ffmpeg_number, _validate_input_path
 
 
 def resolve_layer_source(layer: Any, spec_dir: Path) -> tuple[str | None, str | None]:
@@ -102,3 +102,16 @@ class _suppress_value_error:
 
     def __exit__(self, exc_type: Any, exc: Any, tb: Any) -> bool:
         return exc_type is ValueError
+
+
+def start_shift(layer: Any, source_type: str) -> str:
+    """Delay a video source so its first frame plays at the layer start.
+
+    The enable window only hides the layer before ``start``; without this
+    shift a video layer keeps playing from the canvas origin, so its opening
+    frames are lost and a clip shorter than ``start`` never shows at all.
+    """
+    if source_type != "video" or not layer.start:
+        return ""
+    safe_start = _escape_ffmpeg_filter_value(_format_ffmpeg_number(layer.start))
+    return f"setpts=PTS-STARTPTS+{safe_start}/TB,"
