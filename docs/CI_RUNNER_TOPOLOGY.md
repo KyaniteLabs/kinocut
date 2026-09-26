@@ -40,7 +40,7 @@ It is not evidence that a Forgejo administrator has applied the configuration.
 - Mapping `arm64-heavy` onto the Forgejo application VM under load
 
 The 2026-07-10 incident audit observed `vps-runner-01` on the Forgejo host at
-capacity 1 and `nucbox-ci` at capacity 4. Those observations are historical,
+capacity 1 and `gpu-host-ci` at capacity 4. Those observations are historical,
 not a live inventory. An administrator must re-check runner placement,
 capacity, and label mappings before changing production labels. The repository
 token does not have `read:admin`, so CI cannot truthfully infer this topology.
