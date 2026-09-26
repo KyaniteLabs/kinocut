@@ -32,7 +32,7 @@ from .engine_composite_layers_rotate import (
     rotate_filter,
     validate_rotation,
 )
-from .engine_composite_layers_source import _receipt_source, resolve_layer_source, resolve_mask_source
+from .engine_composite_layers_source import _receipt_source, resolve_layer_source, resolve_mask_source, start_shift
 from .engine_runtime_utils import _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
@@ -535,11 +535,12 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             width = _escape_ffmpeg_filter_value(str(canvas.width))
             height = _escape_ffmpeg_filter_value(str(canvas.height))
             chain = f"{chain},scale={width}:{height}"
-        chains.append(f"[{layer.input_index}:v]{chain}[{layer_label}raw]")
+        chains.append(f"[{layer.input_index}:v]{start_shift(layer, layer.type)}{chain}[{layer_label}raw]")
         if layer.mask_input_index is not None:
             mask_label = f"{layer_label}mask"
             layer_ref_label = f"{layer_label}ref"
-            chains.append(f"[{layer.mask_input_index}:v]format=gray[{mask_label}raw]")
+            mask_type = "image" if layer.mask_src is not None and _is_image_path(layer.mask_src) else "video"
+            chains.append(f"[{layer.mask_input_index}:v]{start_shift(layer, mask_type)}format=gray[{mask_label}raw]")
             processed_mask_label = f"{mask_label}processed"
             chains.extend(mask_effect_chains(layer, f"{mask_label}raw", processed_mask_label))
             # Bare scale2ref scales the mask to the layer size on all FFmpeg

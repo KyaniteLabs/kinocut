@@ -390,6 +390,93 @@ def test_composite_layers_full_canvas_blend_is_ssim_stable_across_renders(tmp_pa
     assert quality.metrics["ssim"] >= 0.98
 
 
+def _mean_rgb_at(video, seconds):
+    frame = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-ss",
+            str(seconds),
+            "-i",
+            str(video),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=1:1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+        ],
+        capture_output=True,
+        check=True,
+    ).stdout
+    return tuple(frame[:3])
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="requires ffmpeg")
+def test_composite_layers_video_layer_plays_from_its_start(tmp_path):
+    """A timed video layer starts playing at ``start``, not at the canvas origin.
+
+    The clip is red for 0.4 s then blue. Shown from 1.0 s, its first frames
+    must be red; before the fix the layer had already played for 1 s, so the
+    window showed blue (or nothing, for a clip shorter than its start).
+    """
+    clip = tmp_path / "clip.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=64x64:r=10:d=0.4",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=64x64:r=10:d=0.4",
+            "-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1[v]",
+            "-map",
+            "[v]",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(clip),
+        ],
+        check=True,
+    )
+    spec = {
+        "canvas": {"width": 64, "height": 64, "background": "#000000", "fps": 10, "duration": 2.0},
+        "layers": [
+            {"id": "base", "type": "solid", "color": "#000000"},
+            {
+                "id": "clip",
+                "type": "video",
+                "src": str(clip),
+                "position": {"x": 0, "y": 0},
+                "start": 1.0,
+                "duration": 0.8,
+            },
+        ],
+    }
+    output = tmp_path / "timed.mp4"
+    composite_layers(str(_write_spec(tmp_path, spec)), output_path=str(output))
+
+    red, green, blue = _mean_rgb_at(output, 0.5)
+    assert max(red, green, blue) < 40, "hidden before its start"
+    red, green, blue = _mean_rgb_at(output, 1.15)
+    assert red > 150 and blue < 80, "first frames of the clip at the layer start"
+    red, green, blue = _mean_rgb_at(output, 1.65)
+    assert blue > 150 and red < 80, "then the clip keeps playing"
+
+
 # --- Story P1: positioned in-canvas non-normal blend -----------------------
 
 
