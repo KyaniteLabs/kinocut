@@ -37,7 +37,7 @@ from mcp_video import (
 )
 
 # Output paths
-OUT_DIR = Path("/Users/simongonzalezdecruz/workspaces/mcp-video/out")
+OUT_DIR = Path("~/workspaces/mcp-video/out")
 TMP_DIR = Path("/tmp/mcp_video_explainer")
 OUT_DIR.mkdir(exist_ok=True)
 TMP_DIR.mkdir(exist_ok=True)

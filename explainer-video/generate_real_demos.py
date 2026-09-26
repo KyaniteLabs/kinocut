@@ -16,12 +16,12 @@ from mcp_video import Client
 client = Client()
 
 # Paths
-EXP_DIR = Path("/Users/simongonzalezdecruz/workspaces/mcp-video/explainer-video")
+EXP_DIR = Path("~/workspaces/mcp-video/explainer-video")
 DEMO_DIR = EXP_DIR / "public" / "demos"
 DEMO_DIR.mkdir(parents=True, exist_ok=True)
 
 # Real pottery footage source
-POTTERY_DIR = Path("/Users/simongonzalezdecruz/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media")
+POTTERY_DIR = Path("~/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media")
 SOURCE_VIDEOS = list(POTTERY_DIR.glob("*.mp4"))[:5]  # Get first 5 videos
 
 print(f"Found {len(SOURCE_VIDEOS)} pottery videos")
