@@ -26,7 +26,7 @@ FFMPEG_FULL = "/opt/homebrew/opt/ffmpeg-full/bin/ffmpeg"
 FFPROBE_FULL = "/opt/homebrew/opt/ffmpeg-full/bin/ffprobe"
 
 # Original test video
-SOURCE_VIDEO = "/Users/simongonzalezdecruz/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media/2023-04-23_14-43-35_UTC.mp4"
+SOURCE_VIDEO = "~/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media/2023-04-23_14-43-35_UTC.mp4"
 OUTPUT_DIR = tempfile.mkdtemp(prefix="mcp_video_comprehensive_")
 
 print("🎬 Comprehensive Integration Test")

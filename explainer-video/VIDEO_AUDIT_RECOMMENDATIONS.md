@@ -1,6 +1,6 @@
 Address everything critical, high, medium, low, all of the priorities.# mcp-video Explainer Video - Red Team Audit & Implementation Guide
 
-**Video Analyzed:** `/Users/simongonzalezdecruz/workspaces/mcp-video/explainer-video/out/video-social.mp4`  
+**Video Analyzed:** `~/workspaces/mcp-video/explainer-video/out/video-social.mp4`  
 **Duration:** ~48 seconds  
 **Audit Date:** 2026-03-28  
 **Auditor:** AI Red Team Analysis

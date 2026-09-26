@@ -18,14 +18,14 @@ import tempfile
 from pathlib import Path
 from datetime import datetime
 
-sys.path.insert(0, "/Users/simongonzalezdecruz/workspaces/mcp-video")
+sys.path.insert(0, "~/workspaces/mcp-video")
 
 from mcp_video import Client
 
-OUT_DIR = Path("/Users/simongonzalezdecruz/workspaces/mcp-video/out")
+OUT_DIR = Path("~/workspaces/mcp-video/out")
 TMP_DIR = Path("/tmp/mcp_video_explainer_v2")
-MEDIA_DIR = Path("/Users/simongonzalezdecruz/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media")
-TESTS_DIR = Path("/Users/simongonzalezdecruz/workspaces/mcp-video/tests")
+MEDIA_DIR = Path("~/Desktop/Workspaces/ceramics-instagram/data/archive/cerafica_media")
+TESTS_DIR = Path("~/workspaces/mcp-video/tests")
 
 OUT_DIR.mkdir(exist_ok=True)
 TMP_DIR.mkdir(exist_ok=True)
@@ -55,10 +55,10 @@ def record_test_execution():
     print()
     
     # Run tests with verbose output using venv python
-    python_path = "/Users/simongonzalezdecruz/workspaces/mcp-video/.venv/bin/python"
+    python_path = "~/workspaces/mcp-video/.venv/bin/python"
     result = subprocess.run(
         [python_path, "-m", "pytest", str(TESTS_DIR / "test_real_all_features.py"), "-v", "--tb=short"],
-        cwd="/Users/simongonzalezdecruz/workspaces/mcp-video",
+        cwd="~/workspaces/mcp-video",
         capture_output=True,
         text=True,
         timeout=600
