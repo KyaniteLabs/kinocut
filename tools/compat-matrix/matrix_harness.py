@@ -319,7 +319,7 @@ def main(argv: list[str] | None = None) -> int:
     if args.mode == "agent":
         print(
             "agent mode is not wired: T1 wiring is COMPAT-MATRIX-SPEC build order 2 "
-            "(org-engines endpoint, mini/nucbox lane). Refusing to fake a model run."
+            "(engines endpoint, mini/gpu-host lane). Refusing to fake a model run."
         )
         return 2
 

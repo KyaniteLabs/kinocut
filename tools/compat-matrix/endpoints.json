@@ -4,8 +4,8 @@
       "class": "org-heavy",
       "model": "qwen3.8-27b",
       "endpoint": "http://mini:8788/v1",
-      "alt_endpoint": "http://nucbox-air:8817/v1",
-      "host_lane": "mini-or-nucbox",
+      "alt_endpoint": "http://gpu-host-air:8817/v1",
+      "host_lane": "mini-or-gpu-host",
       "api": "openai-chat-completions",
       "cloud_keys": false
     },

@@ -78,7 +78,7 @@ jobs:
           set -eu
           # Conservative path filter (derivation + safety argument in
           # scripts/ci_scope.py; measured basis: KINOCUT-CI-OPTIMIZATION-PLAN.md,
-          # org-hq 2026-09-14). The ffmpeg-matrix test files transitively import
+          # infra 2026-09-14). The ffmpeg-matrix test files transitively import
           # 394 of the repo's 854 python modules, so module-level filtering is
           # useless; the provable line is code vs docs/meta. None of the matrix
           # test files, their conftest chain, or any slow-marked test reads

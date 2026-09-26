@@ -16,7 +16,7 @@ work (manifest subsetting, guidance) reacts to.
 
 | Tier | Class | Concrete driver | Host (compute law) |
 |---|---|---|---|
-| T1 | org heavy | Qwen3.8-27B via org-engines (nucbox Air `:8817` / mini `:8788` OpenAI-compatible endpoint) | nucbox / Mac mini |
+| T1 | org heavy | Qwen3.8-27B via engines (gpu-host Air `:8817` / mini `:8788` OpenAI-compatible endpoint) | gpu-host / Mac mini |
 | T2 | old 7-8B | Llama-3-8B / Qwen-7B / Mistral-7B (free pulls, owned hardware only — DIR-0010) | Mac mini or G2 |
 | T3 | tiny 3-4B | Qwen3-4B-class tiny model, same endpoint shape | Mac mini or G2 |
 
@@ -96,7 +96,7 @@ the evidence of record for acceptance criterion 1; store under
 
 1. Harness skeleton: MCP client + endpoint config + receipt writer (CLI
    ground-truth mode first, no model).
-2. T1 wiring (org-engines) — proves the harness against the known-good tier.
+2. T1 wiring (engines) — proves the harness against the known-good tier.
 3. T2/T3 free pulls on mini/G2 (never the MBA — compute law).
 4. Matrix sweep + first small-driver-profile recommendation, numbers attached.
 
