@@ -16,6 +16,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 - The MCP `initialize` handshake now reports the installed kinocut version in `serverInfo.version` instead of the underlying MCP SDK version, sourced from package metadata (single source of truth; adversarial audit F1).
+- `trim(accurate=True)` now seeks the input like the default path: the trim always re-encodes, so input seeking is already frame-exact, while output seeking decoded the whole file up to `start` (27.5 s instead of 0.8 s for a 4 s shot 21 minutes into a 1080p recording, identical frames). `end` becomes a duration on both paths.
 - An output path that resolves to a path read as an input of the same operation is now rejected with a structured `invalid_output_path` guardrail error, so `output_path == input_path` can no longer silently destroy the source file (adversarial audit F2).
 - Oversized caller-supplied values echoed in error messages are truncated, so a 100 KB invalid parameter no longer amplifies into a ~200 KB error reply (adversarial audit F4).
 - Absolute trim-end handling now preserves the requested endpoint ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)).

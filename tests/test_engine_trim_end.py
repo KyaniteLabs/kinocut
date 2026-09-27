@@ -68,11 +68,12 @@ class TestTrimEndFFmpegArgs:
         assert "-t" in cmd
         assert float(cmd[cmd.index("-t") + 1]) == pytest.approx(5.0)
 
-    def test_output_seeking_keeps_end_absolute(self, monkeypatch, tmp_path):
-        # -ss after -i preserves source timestamps, so -to is already absolute.
+    def test_accurate_mode_seeks_the_input_too(self, monkeypatch, tmp_path):
+        # The trim re-encodes, so input seeking is already frame-accurate.
         cmd = self._capture_trim(monkeypatch, tmp_path, start="5", end="10", accurate=True)
-        assert "-to" in cmd
-        assert cmd[cmd.index("-to") + 1] == "10"
+        assert cmd.index("-ss") < cmd.index("-i")
+        assert "-to" not in cmd
+        assert float(cmd[cmd.index("-t") + 1]) == pytest.approx(5.0)
 
     def test_explicit_duration_is_passed_through(self, monkeypatch, tmp_path):
         cmd = self._capture_trim(monkeypatch, tmp_path, start="5", duration="10")

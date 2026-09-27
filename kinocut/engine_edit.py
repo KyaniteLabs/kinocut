@@ -101,8 +101,13 @@ def trim(
     """Trim a video by start time and duration or end time.
 
     Args:
-        accurate: When True, place ``-ss`` after ``-i`` for frame-accurate
-            seeking (slower).  Default False uses input seeking (fast).
+        accurate: Kept for compatibility; both values give the same frames.
+            The trim always re-encodes, and a re-encoding FFmpeg seeks the
+            input frame-accurately: it decodes from the keyframe before
+            ``start`` and drops the frames up to it. Seeking on the output
+            instead (the former ``accurate=True``) gave the same frames but
+            decoded the whole file up to ``start`` (27 s instead of 0.8 s for
+            a 4 s shot 21 minutes into a 1080p screen recording).
     """
     input_path = _validate_input_path(input_path)
     output = output_path or _auto_output(input_path, "trimmed")
@@ -110,25 +115,19 @@ def trim(
 
     start_sec = _validate_trim_times(start, duration, end)
 
+    del accurate  # same frames either way, see above
     prefix: list[str] = []
-    if not accurate and start:
-        # Input seeking — fast but may land on nearest keyframe
+    if start:
+        # Input seeking: frame-accurate because the output is re-encoded.
         prefix.extend(["-ss", str(start)])
     prefix.extend(["-i", input_path])
-    if accurate and start:
-        # Output seeking — frame accurate but slower
-        prefix.extend(["-ss", str(start)])
     if duration:
         prefix.extend(["-t", str(duration)])
     elif end:
-        if accurate:
-            # Output seeking preserves source timestamps, so -to is absolute.
-            prefix.extend(["-to", str(end)])
-        else:
-            # Input seeking (-ss before -i) rebases output timestamps to zero,
-            # so a trailing -to is measured from the seek point and silently
-            # behaves as a duration. Convert the absolute end time explicitly.
-            prefix.extend(["-t", str(_time_to_seconds(end) - start_sec)])
+        # Input seeking (-ss before -i) rebases output timestamps to zero,
+        # so a trailing -to is measured from the seek point and silently
+        # behaves as a duration. Convert the absolute end time explicitly.
+        prefix.extend(["-t", str(_time_to_seconds(end) - start_sec)])
 
     with _timed_operation() as timing:
         _run_ffmpeg(prefix + _build_ffmpeg_cmd(output_path=output))
