@@ -29,7 +29,7 @@ def _rms(path, chain: str = "") -> float:
 def test_default_keeps_the_highs_of_a_bright_voice(tmp_path):
     # A bright, voice-like tone over a quiet room noise (-50 dB), as from a laptop microphone.
     clip = tmp_path / "voice.mp4"
-    voice = "aevalsrc='0.2*(2*mod(180*t\,1)-1)*(0.6+0.4*sin(2*PI*3*t))':s=48000:d=3"
+    voice = r"aevalsrc='0.2*(2*mod(180*t\,1)-1)*(0.6+0.4*sin(2*PI*3*t))':s=48000:d=3"
     subprocess.run(
         [
             "ffmpeg",
