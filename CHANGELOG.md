@@ -15,6 +15,7 @@ This project follows a simple release-note style:
 - `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
 
 ### Fixed
+- `crop()` now works in display pixels: FFmpeg rotates the picture upright before the crop filter, but sizes were checked and the default centre computed against the stored frame. A portrait phone video (stored 1920x1080, rotated 90°) refused crops taller than 1080 and was cropped off-centre.
 - The MCP `initialize` handshake now reports the installed kinocut version in `serverInfo.version` instead of the underlying MCP SDK version, sourced from package metadata (single source of truth; adversarial audit F1).
 - An output path that resolves to a path read as an input of the same operation is now rejected with a structured `invalid_output_path` guardrail error, so `output_path == input_path` can no longer silently destroy the source file (adversarial audit F2).
 - Oversized caller-supplied values echoed in error messages are truncated, so a 100 KB invalid parameter no longer amplifies into a ~200 KB error reply (adversarial audit F4).
