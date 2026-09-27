@@ -6,6 +6,7 @@ import warnings as _warnings
 
 from typing import Any
 
+from .defaults import DEFAULT_NOISE_REDUCTION_FLOOR_DB
 from .engine_probe import probe
 from .engine_runtime_utils import (
     _build_edit_result,
@@ -183,7 +184,7 @@ def _filter_map(params: dict[str, Any], width: int, height: int) -> dict[FilterT
             True,
         ),
         "pitch_shift": ("asetrate", _build_pitch_shift_filter(params.get("semitones", 0)), True),
-        "noise_reduction": ("afftdn", f"afftdn=nf={_param(params, 'noise_level', -25)}", True),
+        "noise_reduction": ("afftdn", f"afftdn=nf={_param(params, 'noise_level', DEFAULT_NOISE_REDUCTION_FLOOR_DB)}", True),
     }
 
 

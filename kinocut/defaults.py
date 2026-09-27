@@ -93,6 +93,9 @@ DEFAULT_AUDIO_VOLUME = 0.5
 DEFAULT_LUFS_TARGET = -16.0
 DEFAULT_LRA_TARGET = 11.0
 DEFAULT_AUDIO_BITRATE = "128k"
+# afftdn noise floor for filter noise_reduction: a quiet room through a laptop or phone microphone sits near -50 dB.
+# Higher floors treat speech as noise (-25 took up to 10 dB of highs off a recorded voice); -50 is afftdn's own default.
+DEFAULT_NOISE_REDUCTION_FLOOR_DB = -50
 DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP = -1.5
 DEFAULT_PROCEDURAL_AUDIO_BED_WARNING_SECONDS = 10.0
 

@@ -11,6 +11,9 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+- `filter` `noise_reduction` defaults to an afftdn noise floor of -50 dB (was -25): the old floor treated speech as noise and took up to 10 dB of highs off a recorded voice, which came out muffled.
+
 ### Changed
 - `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
 
