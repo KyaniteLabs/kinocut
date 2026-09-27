@@ -26,6 +26,10 @@ def _rms(path, chain: str = "") -> float:
     return float(re.search(r"RMS level dB: (-?[\d.]+)", report).group(1))
 
 
+def _brightness(path) -> float:
+    return _rms(path, _HIGHS) - _rms(path)
+
+
 def test_default_keeps_the_highs_of_a_bright_voice(tmp_path):
     # A bright, voice-like tone over a quiet room noise (-50 dB), as from a laptop microphone.
     clip = tmp_path / "voice.mp4"
@@ -87,5 +91,5 @@ def test_default_keeps_the_highs_of_a_bright_voice(tmp_path):
         timeout=120,
     )
     cleaned = apply_filter(str(clip), filter_type="noise_reduction", output_path=str(tmp_path / "clean.mp4"))
-    brightness = lambda p: _rms(p, _HIGHS) - _rms(p)
-    assert brightness(cleaned.output_path) > brightness(clip) - 2, (brightness(cleaned.output_path), brightness(clip))
+    kept, before = _brightness(cleaned.output_path), _brightness(clip)
+    assert kept > before - 2, (kept, before)
