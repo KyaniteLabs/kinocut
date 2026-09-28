@@ -728,12 +728,12 @@ def _build_composite_result(
 
 def _canvas_filter(canvas: _Canvas) -> str:
     color = _escape_ffmpeg_filter_value(_ffmpeg_color(canvas.background))
-    return f"color=c={color}:s={canvas.width}x{canvas.height}:d={_num(canvas.duration)}"
+    return f"color=c={color}:s={canvas.width}x{canvas.height}:d={_num(canvas.duration)}:r={_num(canvas.fps)}"
 
 
 def _solid_filter(layer: _ResolvedLayer, canvas: _Canvas) -> str:
     color = _escape_ffmpeg_filter_value(_ffmpeg_color(layer.color or "#000000"))
-    return f"color=c={color}:s={canvas.width}x{canvas.height}:d={_num(canvas.duration)}"
+    return f"color=c={color}:s={canvas.width}x{canvas.height}:d={_num(canvas.duration)}:r={_num(canvas.fps)}"
 
 
 def _validate_color(value: str, name: str) -> str:

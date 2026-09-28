@@ -44,6 +44,7 @@ def audio_waveform(
     try:
         proc = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             timeout=DEFAULT_FFMPEG_TIMEOUT,

@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import MCPVideoError
-from ..ffmpeg_helpers import _validate_artifact_path
+from ..ffmpeg_helpers import _reset_operation_inputs, _validate_artifact_path
 from ._errors import (
     INVALID_WORKFLOW_RECEIPT,
     INVALID_WORKFLOW_SPEC,
@@ -118,6 +118,11 @@ def _render_one(
     resuming, prior_by_id, run_dir_rel, run_dir_abs = _resolve_run_dir(
         resume_receipt, spec_hash, workspace_root, variant
     )
+    # The load phase above reads the spec, sources, and a prior resume receipt
+    # that execution then re-persists in place — a legitimate write-back, not a
+    # self-overwrite. Reset the guard's operation scope so only the steps' own
+    # declared inputs are protected.
+    _reset_operation_inputs()
     hash_cache: dict[str, str | None] = {}
     work_paths: dict[str, Path] = {}  # @work name -> absolute path on disk
     sources = _build_sources(verdict, workspace_root, hash_cache)

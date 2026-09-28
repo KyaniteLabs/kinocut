@@ -103,6 +103,7 @@ def _afir_supports_gtype_4() -> bool:
     try:
         proc = subprocess.run(  # noqa: S603 - command list built from validated components
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",

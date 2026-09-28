@@ -229,12 +229,87 @@ def _escape_sendcmd_value(value: str) -> str:
     return _escape_ffmpeg_filter_value(value)
 
 
+def _resolve_font_family_to_file(family: str) -> str | None:
+    """Resolve a font family name to a concrete font file path (best effort).
+
+    A bare ``font=<family>`` in drawtext requires fontconfig; several FFmpeg builds
+    (notably Windows gyan.dev without fontconfig configured) fail hard on it —
+    an access violation inside FFmpeg (#553). Resolving to a real file first keeps
+    drawtext working everywhere fontconfig is missing.
+    """
+    import platform
+
+    wanted = family.strip().lower().replace(" ", "")
+    system = platform.system()
+    if system == "Windows":
+        bases = [os.path.join(os.environ.get("WINDIR", "C:\\Windows"), "Fonts")]
+        exts = (".ttf", ".ttc", ".otf")
+    elif system == "Darwin":
+        bases = [
+            "/Library/Fonts",
+            "/System/Library/Fonts",
+            os.path.expanduser("~/Library/Fonts"),
+        ]
+        exts = (".ttf", ".ttc", ".otf", ".dfont")
+    else:
+        bases = []
+        exts = ()
+    candidates: list[tuple[int, int, str]] = []
+    for base in bases:
+        try:
+            names = os.listdir(base)
+        except OSError:
+            continue
+        for name in names:
+            stem, ext = os.path.splitext(name.lower())
+            if ext not in exts:
+                continue
+            if stem == wanted:
+                candidates.append((0, len(stem), os.path.join(base, name)))
+            elif stem.startswith(wanted):
+                # prefer the shortest variant (plain Arial over ArialHB/ArialBD)
+                candidates.append((1, len(stem), os.path.join(base, name)))
+    if candidates:
+        candidates.sort()
+        return candidates[0][2]
+    if system != "Darwin" and system != "Windows":
+        # Linux: fontconfig first, then the common DejaVu locations.
+        try:
+            import subprocess as _sp
+
+            out = _sp.run(  # noqa: S603
+                ["fc-match", "--format=%{file}", family],  # noqa: S607
+                stdin=_sp.DEVNULL,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+            candidate = out.stdout.strip()
+            if out.returncode == 0 and candidate and os.path.isfile(candidate):
+                return candidate
+        except (OSError, _sp.SubprocessError):
+            pass
+        for candidate in (
+            "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+            "/usr/share/fonts/TTF/DejaVuSans.ttf",
+            "/usr/share/fonts/dejavu/DejaVuSans.ttf",
+        ):
+            if os.path.isfile(candidate):
+                return candidate
+    return None
+
+
 def _drawtext_font_option(font: str | None) -> str:
     """Return a drawtext font option that works for both font names and paths."""
     if font and os.path.exists(font):
         return f"fontfile={_escape_ffmpeg_filter_path(font)}"
-    safe_font = _escape_ffmpeg_filter_value(font or "Arial")
-    return f"font={safe_font}"
+    family = font or "Arial"
+    resolved = _resolve_font_family_to_file(family)
+    if resolved:
+        return f"fontfile={_escape_ffmpeg_filter_path(resolved)}"
+    # No concrete file found: keep the legacy family-name option. This still
+    # works wherever fontconfig exists and matches the historical behavior.
+    return f"font={_escape_ffmpeg_filter_value(family)}"
 
 
 def _build_typewriter_filter(

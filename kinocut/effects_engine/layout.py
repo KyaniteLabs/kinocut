@@ -10,7 +10,6 @@ import warnings as _warnings
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import (
-    _run_ffmpeg,
     _validate_input_path,
     _validate_output_path,
     _run_command,
@@ -243,7 +242,7 @@ def layout_pip(
         "csv=s=x:p=0",
         main,
     ]
-    probe = _run_ffmpeg(probe_cmd)
+    probe = _run_command(probe_cmd)
     dims = [d for d in probe.stdout.strip().split("x") if d]
     main_w, main_h = map(int, dims)
 

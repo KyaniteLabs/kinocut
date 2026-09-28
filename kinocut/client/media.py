@@ -552,9 +552,12 @@ class ClientMediaMixin:
         video: str,
         target_lufs: float = -16.0,
         output: str | None = None,
+        true_peak_dbtp: float | None = None,
     ) -> EditResult:
-        """Normalize audio loudness to a target LUFS level."""
-        return _normalize_audio(video, target_lufs=target_lufs, output_path=output)
+        """Normalize audio loudness to a target LUFS level, true peak under ``true_peak_dbtp``."""
+        if true_peak_dbtp is None:
+            return _normalize_audio(video, target_lufs=target_lufs, output_path=output)
+        return _normalize_audio(video, target_lufs=target_lufs, output_path=output, true_peak_dbtp=true_peak_dbtp)
 
     def overlay_video(
         self,

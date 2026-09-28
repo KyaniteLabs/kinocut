@@ -24,7 +24,9 @@ class FixesMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", "eq=brightness=0.1:gamma=1.1", "-c:a", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -38,7 +40,9 @@ class FixesMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", "eq=contrast=1.1", "-c:a", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -53,7 +57,9 @@ class FixesMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", f"eq=saturation={safe_boost}", "-c:a", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -77,7 +83,9 @@ class FixesMixin:
         ]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -91,7 +99,9 @@ class FixesMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:v", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e

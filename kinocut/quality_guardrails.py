@@ -92,7 +92,11 @@ class VisualQualityGuardrails(QualityChecksMixin):
         self.max_analyze_seconds = max_analyze_seconds
 
     def _movie_source(self, video: str, tail: str) -> str:
-        movie = f"movie={_escape_lavfi_path(video)}"
+        # Quote the value: FFmpeg runs two unescaping passes over filter args,
+        # so a single-escaped drive-letter colon ("D\:") is re-split on pass 2
+        # and the movie filter receives only "D". Quoting survives both passes
+        # on Windows and is a no-op for colon-free POSIX paths.
+        movie = f"movie='{_escape_lavfi_path(video)}'"
         limit = self.max_analyze_seconds
         if limit and limit > 0:
             movie = f"{movie},trim=duration={float(limit):.3f},setpts=PTS-STARTPTS"
@@ -132,7 +136,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             if result.returncode != 0:
                 logger.warning("ffprobe batch signalstats returned nonzero exit")
                 self._signalstats_cache[cache_key] = {}
@@ -173,7 +179,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             if result.returncode != 0:
                 diagnostic = _diagnostic(
                     "ffprobe_signalstats",
@@ -250,7 +258,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             # Parse stderr for signalstats output
             stderr = result.stderr
             stats = {}
@@ -304,7 +314,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             # Parse JSON from the output (it's embedded in stderr)
             stderr = result.stderr
 
@@ -589,7 +601,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
+            )
             if result.returncode != 0:
                 diagnostic = _diagnostic(
                     "ffprobe_tblend_motion",

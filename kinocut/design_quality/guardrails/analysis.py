@@ -48,7 +48,7 @@ class AnalysisMixin:
             frame_path = tmp_file.name
         try:
             cmd = ["ffmpeg", "-y", "-i", video_path, "-ss", str(time_sec), "-vframes", "1", frame_path]
-            subprocess.run(cmd, capture_output=True, timeout=30)  # noqa: S603
+            subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)  # noqa: S603
 
             if not os.path.exists(frame_path):
                 return []
@@ -56,7 +56,9 @@ class AnalysisMixin:
             # Analyze frame for text regions using ffmpeg's signature filter
             # This gives us an estimate of complexity which correlates with text amount
             cmd = ["ffmpeg", "-y", "-i", frame_path, "-vf", "signature=format=xml", "-f", "null", "-"]
-            subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
 
             # Text detection is not yet implemented (would require OCR).
             # Return empty list rather than fabricated data.
@@ -88,7 +90,9 @@ class AnalysisMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", "eq=brightness=0.1:gamma=1.1", "-c:a", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -102,7 +106,9 @@ class AnalysisMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", "eq=contrast=1.1", "-c:a", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -117,7 +123,9 @@ class AnalysisMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-vf", f"eq=saturation={safe_boost}", "-c:a", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -141,7 +149,9 @@ class AnalysisMixin:
         ]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -155,7 +165,9 @@ class AnalysisMixin:
         cmd = ["ffmpeg", "-y", "-i", video_path, "-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:v", "copy", output_path]
 
         try:
-            subprocess.run(cmd, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.CalledProcessError as e:
             stderr = e.stderr.decode("utf-8", errors="replace") if isinstance(e.stderr, bytes) else e.stderr
             raise ProcessingError(" ".join(cmd), e.returncode, stderr or "Auto-fix failed") from e
@@ -173,7 +185,9 @@ class AnalysisMixin:
 
         # Get mean RGB values
         cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+        result = subprocess.run(  # noqa: S603
+            cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+        )
 
         rgb_means = [128, 128, 128]
         for line in result.stderr.split("\n"):
@@ -237,7 +251,9 @@ class AnalysisMixin:
             "-",
         ]
         try:
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+            result = subprocess.run(  # noqa: S603
+                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+            )
         except subprocess.TimeoutExpired:
             logger.warning("ffmpeg tblend motion timed out for %s", video_path)
             return None
@@ -283,7 +299,9 @@ class AnalysisMixin:
     def _detect_scene_changes(self, video_path: str) -> list[dict]:
         """Detect scene change timestamps."""
         cmd = ["ffmpeg", "-i", video_path, "-vf", "select='gt(scene,0.3)',showinfo", "-f", "null", "-"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+        result = subprocess.run(  # noqa: S603
+            cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+        )
 
         scenes = []
         for line in result.stderr.split("\n"):
@@ -335,7 +353,9 @@ class AnalysisMixin:
     def _calculate_audio_score(self, video_path: str) -> float:
         """Calculate audio quality score."""
         cmd = ["ffmpeg", "-i", video_path, "-af", "loudnorm=print_format=json", "-f", "null", "-"]
-        result = subprocess.run(cmd, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
+        result = subprocess.run(  # noqa: S603
+            cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
+        )
 
         try:
             loudness_start = result.stderr.find("{")

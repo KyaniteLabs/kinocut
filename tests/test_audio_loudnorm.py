@@ -9,7 +9,8 @@ import pytest
 
 from kinocut.engine_audio_normalize import _measurement, normalize_audio
 from kinocut.errors import MCPVideoError
-from kinocut.ffmpeg_helpers import _run_ffmpeg
+from kinocut.ffmpeg_helpers import _run_ffmpeg, _run_ffprobe_json
+from kinocut.models import EditResult
 from kinocut.quality_guardrails import quality_check
 
 
@@ -55,12 +56,52 @@ def test_two_pass_commands_and_measured_values(tmp_path, monkeypatch) -> None:
         lambda _path: {"format": {"duration": "1.0"}, "streams": [{"codec_type": "audio"}]},
     )
     monkeypatch.setattr("kinocut.engine_audio_normalize._run_ffmpeg", lambda command: calls.append(command) or analysis)
-    monkeypatch.setattr("kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: args[0])
-    assert normalize_audio(str(source), -14, 8, str(output), true_peak_dbtp=-2) == str(output)
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
+    )
+    result = normalize_audio(str(source), -14, 8, str(output), true_peak_dbtp=-2)
+    assert result.output_path == str(output)
     assert len(calls) == 2 and all(isinstance(command, list) for command in calls)
     assert "measured_I=-20.0" in calls[1][calls[1].index("-af") + 1]
     assert "TP=-2.0" in calls[1][calls[1].index("-af") + 1]
     assert "linear=true" in calls[1][calls[1].index("-af") + 1]
+    # loudnorm upsamples to 192 kHz; the output goes back to 48 kHz when the source rate is unknown.
+    assert calls[1][calls[1].index("-af") + 1].endswith(",aresample=48000")
+    # -3 dBTP + 6 dB of gain = +3 dBTP > -2: loudnorm cannot stay linear, and says so.
+    assert len(result.warnings) == 1 and "dynamic mode" in result.warnings[0]
+
+
+def test_linear_gain_within_ceiling_has_no_warning_and_keeps_source_rate(tmp_path, monkeypatch) -> None:
+    source, output = tmp_path / "in.wav", tmp_path / "out.wav"
+    source.write_bytes(b"x")
+    calls = []
+    analysis = SimpleNamespace(
+        stderr=json.dumps({"input_i": -20, "input_lra": 2, "input_tp": -12, "input_thresh": -30, "target_offset": 1})
+    )
+    monkeypatch.setattr("kinocut.engine_audio_normalize._require_filter", lambda *args: None)
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._run_ffprobe_json",
+        lambda _path: {"format": {"duration": "1.0"}, "streams": [{"codec_type": "audio", "sample_rate": "44100"}]},
+    )
+    monkeypatch.setattr("kinocut.engine_audio_normalize._run_ffmpeg", lambda command: calls.append(command) or analysis)
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
+    )
+    result = normalize_audio(str(source), -16, 11, str(output), true_peak_dbtp=-2)
+    assert result.warnings == []
+    assert calls[1][calls[1].index("-af") + 1].endswith("linear=true,aresample=44100")
+
+
+def test_real_output_keeps_the_source_sample_rate(sample_video: str, tmp_path) -> None:
+    output = tmp_path / "normalized.mp4"
+    result = normalize_audio(sample_video, target_lufs=-16.0, output_path=str(output))
+    rates = {
+        stream["sample_rate"]
+        for path in (sample_video, result.output_path)
+        for stream in _run_ffprobe_json(path)["streams"]
+        if stream.get("codec_type") == "audio"
+    }
+    assert len(rates) == 1, rates
 
 
 def test_no_audio_input_uses_stream_copy_fallback(tmp_path, monkeypatch) -> None:

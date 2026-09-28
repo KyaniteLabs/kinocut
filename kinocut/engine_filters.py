@@ -228,6 +228,7 @@ def _run_video_filter(input_path: str, filter_string: str, output: str, crf: int
             audio_codec="copy",
             crf=crf,
             preset=preset,
+            extra=["-pix_fmt", "yuv420p"],
         )
     )
 

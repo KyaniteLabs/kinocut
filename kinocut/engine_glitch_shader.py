@@ -73,6 +73,7 @@ def _crush_canvas_available() -> bool:
         return False
     probe = subprocess.run(  # noqa: S603
         [node, "-e", "require.resolve('canvas')"],
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         timeout=30,
@@ -215,6 +216,7 @@ def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
     render_cmd = [node, str(_RENDER_SCRIPT), json.dumps(render_params)]
     render_result = subprocess.run(  # noqa: S603
         render_cmd,
+        stdin=subprocess.DEVNULL,
         capture_output=True,
         text=True,
         timeout=300,  # 5 minute max

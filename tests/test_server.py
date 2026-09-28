@@ -81,6 +81,39 @@ class TestServerInitialization:
         assert mcp is not None
         assert mcp.name == "kinocut"
 
+    def test_initialization_options_report_product_version(self):
+        # F1 regression: serverInfo.version must carry the real kinocut release,
+        # not the underlying MCP SDK version FastMCP would default to.
+        from importlib import metadata as _metadata
+
+        from mcp_video.server_app import _product_version
+
+        options = mcp._mcp_server.create_initialization_options()
+        assert options.server_version == _product_version()
+        assert options.server_version == _metadata.version("kinocut")
+        assert options.server_version != _metadata.version("mcp")
+
+    def test_stdio_handshake_reports_product_version(self):
+        # End-to-end: a real initialize over stdio must report the installed
+        # kinocut version in serverInfo, never the MCP SDK's own version.
+        import sys
+        from importlib import metadata as _metadata
+
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+        from mcp_video.server_app import _product_version
+
+        async def run():
+            params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"])
+            async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+                result = await session.initialize()
+                return result.serverInfo
+
+        info = asyncio.run(run())
+        assert info.name == "kinocut"
+        assert info.version == _product_version()
+        assert info.version != _metadata.version("mcp")
+
     def test_tools_registered(self):
         # Check that the server has tools registered
         tool_names = [t.name for t in mcp._tool_manager.list_tools()]

@@ -11,13 +11,34 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Fixed
+- Every FFmpeg/ffprobe child process now names `stdin=DEVNULL` explicitly (source contract pinned): children can no longer inherit — and consume or block — the MCP stdio protocol channel on any code path (integrator report #547; PR #559 fixed the central runners, this completes the tree).
+- Merge transitions and the video-filter path (e.g. `sepia`) now pin `yuv420p` instead of inheriting `yuv444p`, so outputs play in browsers/phones and concatenate with yuv420p segments (#548, #556).
+- `layout_pip` no longer passes a full ffprobe command to the raw-args runner — the call failed with `ValueError` on every invocation since the runner split (#550).
+- `drawtext` font family names resolve to a concrete font file before reaching FFmpeg; the bare `font=<family>` option access-violated FFmpeg builds without fontconfig on Windows (0xC0000005) (#553).
+- The PIL text-measurement font loader no longer fails silently with a `NameError`, which had pushed every measurement onto the fallback path (found while fixing #553).
+
+### Acknowledgements
+- Thanks to [@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt) for the 15-issue production-integrator batch of 2026-09-24 (reports #546–#560 with repro + root cause) and PRs #558/#559, which landed within 24 hours.
+
+## 1.15.2 - 2026-09-24
+
+### Added
+- Verified sound mastering preserves stereo through the measured mastering chain ([#523](https://github.com/KyaniteLabs/kinocut/pull/523), [#525](https://github.com/KyaniteLabs/kinocut/pull/525), [#526](https://github.com/KyaniteLabs/kinocut/pull/526)); real caption speech is processed with distance profiles; four guarded local Revideo operations are exposed with rendered-format validation ([#508](https://github.com/KyaniteLabs/kinocut/pull/508)); `release-checkpoint` passes the MCP release gate through from the CLI. Surface grows to 201 MCP tools / 173 CLI commands.
+
 ### Changed
 - `sound-qa-asr` (CLI, MCP, Python client) now requires the real recognition request (`--request-json` + `--project-root`); the legacy hash/duration demo that reported `verification_status=simulated` without recognizing audio is removed and fails closed ([#432](https://git.kyanitelabs.tech/KyaniteLabs/kinocut/pulls/432)).
 
 ### Fixed
+- The MCP `initialize` handshake now reports the installed kinocut version in `serverInfo.version` instead of the underlying MCP SDK version, sourced from package metadata (single source of truth; adversarial audit F1).
+- An output path that resolves to a path read as an input of the same operation is now rejected with a structured `invalid_output_path` guardrail error, so `output_path == input_path` can no longer silently destroy the source file (adversarial audit F2).
+- Oversized caller-supplied values echoed in error messages are truncated, so a 100 KB invalid parameter no longer amplifies into a ~200 KB error reply (adversarial audit F4).
 - Absolute trim-end handling now preserves the requested endpoint ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)).
 - Windows drive paths survive command parsing without losing their drive prefix ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)).
 - CLI tests capture UTF-8 output consistently across supported consoles ([#498](https://github.com/KyaniteLabs/kinocut/pull/498)).
+
+### Docs
+- SECURITY.md now states the write-path policy plainly: relative traversal/symlink/system targets are blocked, explicit absolute output writes are allowed by design, and outputs may not alias inputs of the same operation (adversarial audit F6).
 
 ### Acknowledgements
 - Thanks to [@WohaibHasan](https://github.com/WohaibHasan) for contributing [#493](https://github.com/KyaniteLabs/kinocut/pull/493), [#496](https://github.com/KyaniteLabs/kinocut/pull/496), and [#498](https://github.com/KyaniteLabs/kinocut/pull/498).

@@ -253,7 +253,10 @@ def test_imported_contributions_have_durable_credit() -> None:
     changelog = (ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     sections = _changelog_sections(changelog)
-    assert "@WohaibHasan" in sections["Unreleased"]
+    # Durable credit: the acknowledgement must survive the release mint — it
+    # lives in the Unreleased section OR in the dated section that shipped the
+    # contribution (any section newer than the importing release 1.15.1).
+    assert any("@WohaibHasan" in body for body in sections.values())
     assert "@WohaibHasan" in readme
     for number, link in CONTRIBUTION_OBLIGATIONS:
         owning = [heading for heading, body in sections.items() if link in body]

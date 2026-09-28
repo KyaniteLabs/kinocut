@@ -100,6 +100,7 @@ def _run_c2patool(
     try:
         result = subprocess.run(  # noqa: S603
             cmd,
+            stdin=subprocess.DEVNULL,
             capture_output=True,
             text=True,
             encoding="utf-8",
