@@ -11,7 +11,11 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.15.3 - 2026-09-25
+
 ### Fixed
+- `normalize_audio` warns when `loudnorm` leaves linear mode and keeps the source sample rate instead of drifting to the filter's default (#569).
+- The `lavfi` `movie=` filter value is quoted so Windows drive paths survive (e.g. `C:\\...` no longer parses as a filtergraph escape) (#532).
 - Every FFmpeg/ffprobe child process now names `stdin=DEVNULL` explicitly (source contract pinned): children can no longer inherit — and consume or block — the MCP stdio protocol channel on any code path (integrator report #547; PR #559 fixed the central runners, this completes the tree).
 - Merge transitions and the video-filter path (e.g. `sepia`) now pin `yuv420p` instead of inheriting `yuv444p`, so outputs play in browsers/phones and concatenate with yuv420p segments (#548, #556).
 - `layout_pip` no longer passes a full ffprobe command to the raw-args runner — the call failed with `ValueError` on every invocation since the runner split (#550).

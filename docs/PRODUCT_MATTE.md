@@ -8,7 +8,7 @@ Default `hyperframes-remove-background` is **people**
 (`u2net_human_seg`). A bottle, shoe, ring, mug, phone, or boxed SKU is not a
 person. Pass `--model birefnet-general` for objects.
 
-**Published in 1.15.2** (first shipped in 1.15.1). The optional `kinocut[object-matte]` extra ships with a known
+**Published in 1.15.3** (first shipped in 1.15.1). The optional `kinocut[object-matte]` extra ships with a known
 frame-count gate, streaming rawvideo decode, scratch-byte caps, stalled-decode
 timeouts, and an optional studio-equipment intersection gate. Until the extra
 is installed, the object model fails closed. It never falls through to the
