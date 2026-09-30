@@ -1,0 +1,22 @@
+{
+  "source_head_at_run": "581add657e9eeddd600241fc61f2dc4ff865dda6",
+  "source_state": "Working tree; runtime/tests unchanged, CI diagnostics and docs prepared separately",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm /tmp/kinocut-ci314/bin/python -m pytest tests/ -x -q --tb=short",
+  "python": "3.14.7",
+  "dependency_setup": "uv sync --frozen --extra dev --python 3.14 in a separate environment",
+  "ffmpeg": "7.1.5",
+  "exit_code": 0,
+  "passed": 7412,
+  "skipped": 185,
+  "warnings": 8,
+  "duration_seconds": 954.12,
+  "checks": {
+    "pinned_ruff_ci_scope": "passed;1068 files",
+    "ci_diagnostic_manual_fixtures": "passed; real pytest exit1 retained, escaped and bounded annotations, absent/all-pass/oversize/DTD/UTF16/symlink handling"
+  },
+  "limits": [
+    "Does not reproduce hosted failure: hosted FFmpeg build and unlocked pip dependencies differ",
+    "Optional skipped backends remain unvalidated",
+    "CI annotations must be assessed on subsequent pushed head"
+  ]
+}

@@ -22,7 +22,7 @@ jobs:
           head="${{ github.event.pull_request.head.sha }}"
           changed="$(git diff --name-only "$base" "$head")"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml)'; then
+          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml|scripts/annotate-pytest-failures\.py)'; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -49,8 +49,12 @@ jobs:
       - name: Lint
         if: steps.classify.outputs.code == 'true'
         run: |
-          ruff check kinocut/ kinocut_sound/ mcp_video.py tests/
-          ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/
+          ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py
+          ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py
       - name: Test
+        id: pytest
         if: steps.classify.outputs.code == 'true'
-        run: pytest tests/ -q -m "not slow" --tb=short
+        run: pytest tests/ -q -m "not slow" --tb=short --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
+      - name: Annotate failing tests
+        if: failure() && steps.classify.outputs.code == 'true' && steps.pytest.outcome == 'failure'
+        run: python scripts/annotate-pytest-failures.py "$RUNNER_TEMP/kinocut-pytest.xml"

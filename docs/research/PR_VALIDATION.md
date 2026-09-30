@@ -7,9 +7,9 @@ adapted, not merged. See the [backlog dispositions](github-backlog/2026-09-30/RE
 [external-report action ledger](external-ai-audits/2026-09-30/REPORT.md) and
 [Unreleased changelog](../../CHANGELOG.md).
 
-## Current frozen-tree gate
+## Completed Python 3.12 runtime checkpoint
 
-The final implementation passed **7,412 tests, 185 skipped, 8 warnings** in
+The frozen runtime/test implementation passed **7,412 tests, 185 skipped, 8 warnings** in
 966.23 seconds, exit 0:
 
 ```sh
@@ -47,6 +47,23 @@ The original head `0ff4fa51518b11aa2e36f74e0c5cc7287c5d5510` completed 13 checks
 reproduced the formatting failure; the current changes repair it. New-head CI
 must be assessed against the exact pushed SHA rather than inherited results.
 No workflow protections were disabled, and no issue or draft PR was closed.
+
+The next head `581add657e9eeddd600241fc61f2dc4ff865dda6` passed hosted Lint and
+12 other checks, but hosted Test failed after 930 seconds. Raw downloads were
+blocked at the CONNECT proxy; generic exit-code annotations do not identify a
+failing test. [The investigation](external-ai-audits/2026-09-30/HOSTED-TEST-INVESTIGATION.md)
+records the diagnostic work and separates it from a verified runtime repair.
+
+A separate Python 3.14.7 environment with frozen development dependencies also
+passed the required full suite: **7,412 passed, 185 skipped, 8 warnings** in
+954.12 seconds, exit 0. [Result](runtime-allocation/iteration-3/python314-validation.json)
+and [log](runtime-allocation/iteration-3/python314-full-suite.log) record the
+unchanged runtime/test tree and locally prepared CI diagnostics. This still uses
+FFmpeg 7.1.5 and does not reproduce the hosted failure; hosted FFmpeg and unlocked
+pip dependencies differ. Pinned lint/format now cover 1,068 files including the
+new reporter, whose bounded annotations were separately exercised with real
+pytest failures and malformed-input fixtures. Subsequent hosted annotations are
+needed to identify the actual failing case.
 
 Published PyPI/npm identity is 1.15.3, shim 1.6.14. This PR adds **Unreleased**
 behavior without a version bump. Website identity and existing JSON-LD were

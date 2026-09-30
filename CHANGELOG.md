@@ -32,6 +32,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Hosted pytest failures publish bounded, escaped test-case annotations through the check API, retaining the original suite selection and exit status when raw log downloads are unavailable.
 - Trim and playback-speed edits render into a sibling staged output and construct their result before replacing the destination; render/result failure preserves existing output. Trim time validation rejects nonfinite values and overflow before FFmpeg runs. This does not make all engine writers transactional.
 - Audio normalization selects PCM16 for WAV and AAC for supported M4A/video outputs, reports the observed codec/container, and publishes only after staged codec verification and full error-free audio decoding (#584).
 - Hash-bound host loudness requests admit supported local encoded audio/video containers, meter the first audio stream without video decoding, and bind original source bytes to the unchanged EBU R128/true-peak delivery policy; bytes and standalone PCM contracts remain unchanged (#580).
