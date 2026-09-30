@@ -32,6 +32,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Audio timeline regression fixtures explicitly preserve delayed picture timestamps across FFmpeg 6/7 and verify source origin/duration before checking mixed audio; signal thresholds and picture-frame checks remain unchanged.
 - Multi-track mixing preserves retained source-audio timing relative to the primary picture start and uses picture duration instead of a longer container audio tail. It stream-copies picture and encodes AAC once, then performs a separate bounded audio-only staged decode. Packet-timeline fallback caps producer packets with an overflow sentinel and checks metadata size after writing; it does not guarantee a hard transient byte peak.
 - Staged normalization accepts its advertised `.ogg`, `.opus`, `.aif` and `.aiff` output suffixes through the shared output guard.
 - Runtime-source auditing reports stale classification manifests with a structured `stale_audit_manifest` error; audit entry-point/function-size regressions cover its maintained architecture limits.

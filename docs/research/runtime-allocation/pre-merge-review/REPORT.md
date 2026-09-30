@@ -1,5 +1,8 @@
 # Pre-merge review corrections for PR #586
 
+This is the six-fix implementation checkpoint. Its subsequent hosted fixture
+failure and correction are recorded in the [later CI investigation](../audio-timeline-ci/REPORT.md).
+
 The final inline-review pass on head `5d3c4317c748b94fa4280259fdc759945f114fce`
 identified six actionable findings despite all thirteen checks passing on that
 head. The user explicitly authorized merging #586; these corrections precede

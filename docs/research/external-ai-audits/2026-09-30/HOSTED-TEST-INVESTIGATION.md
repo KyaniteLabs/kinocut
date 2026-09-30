@@ -146,3 +146,11 @@ require their own full local gate and fresh published-head CI. The earlier
 green head does not validate the later changes; inspect the exact head on
 [PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) for its final delivery
 and check status.
+
+Head `ee7c5d6` then passed twelve checks but failed the hosted early-audio
+regression fixture. Native FFmpeg 6 reproduction found that default frame
+synchronization changed the fixture's actual picture origin and duration.
+The [fixture correction](../../runtime-allocation/audio-timeline-ci/REPORT.md)
+adds explicit passthrough and verifies source timing before measuring mixed
+audio, retaining the signal thresholds and production mixer. Its own full
+gate and published-head hosted results remain separate from the earlier head.

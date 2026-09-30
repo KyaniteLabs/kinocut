@@ -330,12 +330,19 @@ def test_source_audio_stays_relative_to_picture_origin(tmp_path, video_start, au
         "1:a:0",
         "-c:v",
         "libx264",
+        "-fps_mode",
+        "passthrough",
         "-pix_fmt",
         "yuv420p",
         "-c:a",
         "aac",
         str(source),
     )
+    from kinocut.ffmpeg_helpers import _run_ffprobe_json
+
+    original_picture = next(item for item in _run_ffprobe_json(str(source))["streams"] if item["codec_type"] == "video")
+    assert float(original_picture["start_time"]) == pytest.approx(video_start, abs=0.001)
+    assert float(original_picture["duration"]) == pytest.approx(3, abs=0.04)
     _ffmpeg("-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "0.1", str(silence))
     result = mix_audio(str(source), [{"path": str(silence)}], str(tmp_path / "mixed.mp4"))
     assert _rms(result.output_path, 0.1, 0.25) < -80
@@ -343,8 +350,6 @@ def test_source_audio_stays_relative_to_picture_origin(tmp_path, video_start, au
     assert _rms(result.output_path, audible, 0.15) > -30
     assert result.duration == pytest.approx(3, abs=0.05)
     assert _picture_hashes(source) == _picture_hashes(result.output_path)
-    from kinocut.ffmpeg_helpers import _run_ffprobe_json
-
     picture = next(item for item in _run_ffprobe_json(result.output_path)["streams"] if item["codec_type"] == "video")
     assert float(picture["start_time"]) == pytest.approx(0, abs=0.001)
     assert float(picture["duration"]) == pytest.approx(3, abs=0.04)
