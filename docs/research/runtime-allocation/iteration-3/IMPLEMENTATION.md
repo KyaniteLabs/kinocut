@@ -5,6 +5,8 @@ and [GitHub backlog review](../../github-backlog/2026-09-30/REPORT.md).
 [PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) contains the combined
 work. The [external-report ledger](../../external-ai-audits/2026-09-30/REPORT.md)
 distinguishes verified recommendations from stale or unsupported assertions.
+This is a historical checkpoint; the later [pre-merge review record](../pre-merge-review/REPORT.md)
+contains the six final corrections, refreshed allocation and full-suite gate.
 
 ## Changes
 

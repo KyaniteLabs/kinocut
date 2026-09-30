@@ -2,12 +2,37 @@
 
 [PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) reviews branch
 `codex/kinocut-reliability-and-backlog` against `master`. The user authorized
-commits, branch pushes and PR creation. Draft contributor PRs were reviewed and
+commits, branch pushes, PR creation and subsequently merging #586 after its
+corrected head passes review and checks. Draft contributor PRs were reviewed and
 adapted, not merged. See the [backlog dispositions](github-backlog/2026-09-30/REPORT.md),
 [external-report action ledger](external-ai-audits/2026-09-30/REPORT.md) and
 [Unreleased changelog](../../CHANGELOG.md).
 
-## Final grayscale and source-metadata gate
+## Final pre-merge review gate
+
+Implementation `cfdf03a` resolves six inline-review findings after the earlier
+green head. The required full suite passed **7,451 tests, 185 skipped, 8 warnings**
+in 936.30 seconds, exit 0. [Result](runtime-allocation/pre-merge-review/validation.json)
+records the command and eight frozen source hashes; [log](runtime-allocation/pre-merge-review/full-suite.log)
+preserves the completed run. Ruff 0.15.11 check and format pass for the expanded
+1,073-file scope, including the runtime audit; canonical/compatibility import
+identity and touched-module/function limits pass.
+
+The [review ledger](runtime-allocation/pre-merge-review/REPORT.md) records all
+six findings, their corrections and actual regression evidence. The focused
+audio/normalization/client-contract set passed 73 tests, the advertised-suffix
+set passed eight, and audit-contract tests passed four. Primary FFprobe 6.1 also
+passed five scoped timing/picture-tail/packet-cap cases, retaining FFmpeg 7.1.5
+for fixture encoding, mixing and staged decode. Focused counts overlap the full
+suite; skips do not validate optional inference backends.
+
+Published head `5d3c4317c748b94fa4280259fdc759945f114fce` passed all thirteen CI
+checks before this final review. That result is historical evidence, not CI for
+`cfdf03a` or subsequent evidence commits. Inspect the exact published head on
+the [PR checks page](https://github.com/KyaniteLabs/kinocut/pull/586/checks)
+before merging; the PR records its final delivery status.
+
+## Earlier grayscale and source-metadata gate
 
 Implementation `1d35a9f9c1cf1c2df9d83da54ac090c3b68016a7` passed the required
 full suite: **7,429 passed, 185 skipped, 8 warnings** in 938.46 seconds, exit 0.
@@ -52,7 +77,7 @@ recorded in the external-report evidence; inspecting metadata is not installatio
 
 ## Source inventory
 
-The [current allocation](runtime-allocation/iteration-3/allocation.json) classifies
+The [current allocation](runtime-allocation/pre-merge-review/allocation.json) classifies
 625 runtime source files into deterministic code, operational LLM prose and
 traditional/non-LLM ML integration. Percentages sum to 100%; they measure source
 bytes, not execution time, cost, inference frequency or quality. Host skill prose
@@ -107,7 +132,8 @@ Published PyPI/npm identity is 1.15.3, shim 1.6.14. This PR adds **Unreleased**
 behavior without a version bump. Website identity and existing JSON-LD were
 verified, but no deployment or complete browser/TLS review was performed.
 GitHub latest release is 1.15.0; registry verification remains unavailable.
-No release, merge, directory submission or external message is implied.
+Merge #586 is separately authorized after its checks; release publication and
+directory submissions have their own prerequisites.
 
 ## Grayscale repair: scope and hosted verification
 

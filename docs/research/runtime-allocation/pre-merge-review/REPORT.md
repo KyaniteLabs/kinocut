@@ -45,3 +45,18 @@ claimed. The allocation report measures source units, not runtime activity,
 quality, model frequency, token usage or cost. Earlier grayscale and full-suite
 checkpoints remain under `iteration-3/`; this directory records the later review
 corrections separately.
+
+## Completed local gate and source snapshot
+
+Implementation `cfdf03a3b8fb59aa285e7a20509518b2503c4660` passed the required
+full suite: **7,451 passed, 185 skipped, 8 warnings**, exit 0, in 936.30 seconds.
+[Structured result](validation.json) includes eight frozen source hashes;
+[full log](full-suite.log) retains the completed output. Ruff 0.15.11 check and
+format passed the expanded 1,073-file scope, alongside import identity and
+module/function limits. Exact published-head CI remains separate evidence on
+the [PR checks page](https://github.com/KyaniteLabs/kinocut/pull/586/checks).
+
+[Allocation](allocation.json) covers 625 runtime source files: **96.9369%
+deterministic, 2.6338% operational LLM prose and 0.4293% non-LLM ML**, totaling
+100%. Runtime proportions changed through intentional deterministic timing and
+validation code; no prose or model lane was added to manufacture a target share.
