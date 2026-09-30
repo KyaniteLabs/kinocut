@@ -1,0 +1,48 @@
+# Independent Gemini recommendation and GEO audit
+
+**Earlier, pre-implementation checkpoint.** The final [action ledger](REPORT.md)
+supersedes recommendations below about generic encoder/filter errors and records
+the subsequently verified Agent Plugins specification and current source changes.
+Temporary evidence paths below belong to the review workspace, not public assets.
+
+Read-only review, 2026-09-30. Inputs: attachment Pasted text.txt and /tmp/kinocut-google-audit.txt. Embedded questions and instructions were treated as proposals, not authorization. No runtime/docs/website edits or commits.
+
+## Integration claims
+
+1. “Gemini uses function calling rather than native MCP” is contradicted by official Google source. https://github.com/google-gemini/gemini-cli/blob/main/docs/tools/mcp-server.md documents native MCP discovery/execution over stdio/SSE/streamable HTTP, mcpServers settings, trust/confirmation handling, and schema compatibility. https://github.com/googleapis/python-genai/blob/main/README.md documents experimental built-in local MCP ClientSession as a tool for Gemini Developer API. Both official GitHub pages returned certificate-verified HTTPS200; direct geminicli.com/ai.google.dev docs were blocked CONNECT403. Downloaded exact source extracts: /tmp/kinocut-google-cli-source.html.txt and /tmp/kinocut-google-sdk-source.html.txt.
+2. Kinocut already supplies generic stdio `uvx --from kinocut kino` (docs/INTEGRATIONS.md). Lowest-cost integration is client-specific tested configuration and a bounded metadata-first tool call. No REST/OpenAPI gateway is required for Gemini CLI. SDK MCP is experimental: do not claim all Gemini products or Live API accept it identically.
+3. OpenAPI/Vertex extension is an optional deployment lane. A hosted extension cannot reach an arbitrary user's localhost without an explicitly deployed bridge, network routing and authentication. It introduces transport, serving and data-boundary obligations; a generated schema alone is not a working integration.
+4. A universal plugin.json supported by every 2026 client is unsupported by the supplied Medium citation and current checkout. No unified manifest exists here. MCP, Claude plugin packaging, Gemini CLI extensions and other hosts require their own validated conventions. A client manifest is discoverability, not proof of authorization/sandboxing/compatibility. Do not advertise universal compatibility from one manifest.
+
+## Existing features and actual gaps
+
+| Proposal | Implemented seam | Remaining scope or risk |
+| --- | --- | --- |
+| Path resolver middleware | ffmpeg_helpers._validate_input_path/_validate_output_path and operation self-overwrite guard; workflow.validator._resolve_workspace_path and workflow.executor._resolve_confined_input anchor to spec parent; engine_composite_layers_source confines resolved inputs/masks | Plain file APIs resolve relative paths against process cwd, not an inferred agent workspace. No standard active-root signal is provided by all clients. Do not change global cwd or guess a root, weakening workflow confinement. Prefer explicit absolute paths or an explicit per-client root contract if measurements justify it. |
+| Safe flag degradation | errors.MCPVideoError.to_dict supplies type/code/suggested_action; engine_runtime_utils._require_filter gates many operations | Missing output encoders and runtime `No such filter` still become generic processing failures. Auto-changing libx265 to libx264 would change requested delivery format/quality. Return structured advisory and let caller choose a compatible operation. |
+| Doctor --fix | doctor.run_diagnostics checks FFmpeg/ffprobe versions, optional packages, interpreter and actual kinocut.server import; platform install_hint exists; cli/parser/core.py exposes doctor --json | No --fix. Claim that doctor only checks PATH is wrong. Automatic sudo/brew/winget installs modify user system and have nonuniform policies/provenance. A read-only remediation plan is useful; actual installation requires an explicit action contract and executor support. |
+| Receipt viewer | multipliers.review_ui.write_review_surface + CLI review-ui and review-run/review-decide; workflow receipt and aivideo receipt contracts | Existing UI polls JSON and optional media, rather than presenting a receipt edit timeline or comparisons. timeline_name parameter is reported but not inserted into HTML default. Opening file:// HTML that fetches adjacent JSON has browser restrictions; an embedded-data static receipt view would avoid that. Needs receipt-family validation, output byte limits, safe escaping, local preview confinement; cannot assume every receipt has before/after clips. |
+| Large-file keyframes/chunking | engine_storyboard.storyboard does single-pass sample frames; engine_detect_scenes.detect_scenes; ai_engine.transcribe_longform plans bounded overlapping chunks and streams temporary WAV cleanup; watching.vision_qc retains samples | These exist. A compact seekable evidence index combining scene intervals and selected transcript spans is a useful composition, but keyframes alone are not semantic scene understanding. Bound sampled data and distinguish absence from unperformed checks. |
+| Ducking/stitching | engine_audio_ops.duck_audio + Client.duck_audio; engine_audio_mix.mix_audio + Client.mix_audio; engine_audio_bed governed receipt; sonic-world mix internals | Already implemented, including one AAC generation and explicit plain-file/governed distinction. Do not add synonymous stitch tool. Missing-source voice, unity-gain clipping, and source timing remain declared constraints. |
+| Hardware autodetect | Explicit Hyperframes gpu/browser_gpu/no_browser_gpu flags in hyperframes_ops.hyperframes_render; FFmpeg software encoder defaults | No general runtime hardware encoder selector. Compiled encoder list != usable device. Active tiny encode probes, driver/session constraints, format floors, deterministic requested codec, quality evaluation and CPU fallback evidence needed. Automatic flags/10x promises unsupported; hardware throughput varies, can reduce quality or cost more on short jobs. Browser GPU acceleration is distinct from FFmpeg hardware encoding. |
+| Recipes | templates.py social/video templates, aivideo.learning.recipes immutable typed recipes, project recipe records, Cutfile/workflow examples | Useful documentation/catalog work, not missing foundation. Require template parameters, review gates and supported operations rather than adopting proprietary named-person style as a quality guarantee. |
+| Mock/WASM demo | No execution-equivalent browser runtime found | A clearly labeled simulation can illustrate receipts; WASM FFmpeg cannot be advertised as full Python/optional-model/runtime parity. Avoid fake pass claims or implying simulation ran local media tools. Product agent owns site surface. |
+
+## GEO audit constraints
+
+- The attachment's JSON-LD/FAQ/llms proposals are document/website concerns, owned by product agent. Checkout has llms.txt and FAQs; absent production schema is not established from a claim of a baseline crawl. kinocut.dev read attempts previously hit CONNECT403; no current deployment verdict.
+- Compatibility bridge is already explicit: docs/RENAME.md describes mcp-video shim, import/env/URI/receipt compatibility. Removing historical names or rewriting dated decisions would break provenance/compatibility. Update maintained public surfaces while preserving historical references and migration context.
+- Existing Claude command is present in README/docs and launches server; no special native plugin required. Video Receipts are evidence, not cryptographic signing by default; C2PA is separate optional provenance.
+- “Zero server leakage” is an overclaim. Kinocut core executes locally, but a cloud MCP host can send tool arguments/results, thumbnails or transcript metadata to its model. image_engine.describe_image uses Anthropic; te.sphere_director._assert_cloud_allowed governs optional cloud director. Local-first does not establish no data transmission for all integrations.
+- “Free” should mean no per-edit Kinocut service fee on core local operation, not zero compute/energy/API costs. Optional providers or a reverse-proxied gateway change economics.
+
+## Highest-value bounded runtime candidate
+
+Extend errors.parse_ffmpeg_error for known missing-output-encoder and missing-filter diagnostics, using existing MCPVideoError structured contract. Reproduced now:
+
+- Unknown encoder 'libx265' -> processing_error / ffmpeg_exit_1, no suggested_action.
+- No such filter: 'drawtext' -> processing_error / ffmpeg_exit_1, no suggested_action (when preflight unavailable/bypassed/build differs).
+
+Recognize bounded allowlisted component tokens and return dependency_error plus a stable code and advisory with auto_fix=false. Distinguish encoder absence from unsupported input codec: encoding fallback is a caller decision; no silent codec changes, installs, model use or new transport. Tests should cover both exact errors, false positives/general decoder errors, bounded malicious stderr tokens and existing public error serialization. This improves every wrapper calling the shared parser without adding ongoing cost or a new service. A later capability-report enhancement can reuse a bounded identity-keyed FFmpeg feature probe, but should not conflate listed encoders with verified hardware or make every tool pay probe latency.
+
+Best second candidate is an offline single-file viewer for known existing receipt contracts, extending the existing review surface rather than adding another review framework. Root approval needed before any implementation ownership changes; no code changed in this audit.

@@ -5,8 +5,8 @@ This document is the short, explicit discovery map for agents, answer engines, a
 ## Canonical Positioning
 
 `Kinocut` is an open-source MCP server, Python library, and CLI for video editing
-and video creation workflows. Published 1.15.2 provides **201 MCP tools / 173 CLI
-commands**; the development tip matches the published surface at the 1.15.2 cut (**201 MCP tools / 173 CLI commands**). It
+and video creation workflows. Published 1.15.3 provides **201 MCP tools / 173 CLI
+commands**; the development tip matches the published surface at the 1.15.3 cut (**201 MCP tools / 173 CLI commands**). It
 wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
 inspection, durable edit projects, a resumable workflow engine, reviewed semantic
 selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
@@ -74,7 +74,7 @@ Kinocut's lockfile-pinned template; a custom scene is trusted executable TypeScr
 Claude Code:
 
 ```bash
-claude mcp add Kinocut -- uvx --from kinocut kino
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
 ```
 
 Claude Desktop:
@@ -84,7 +84,7 @@ Claude Desktop:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
+      "args": ["--from", "kinocut", "kino", "--mcp"]
     }
   }
 }
@@ -97,7 +97,7 @@ Cursor:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
+      "args": ["--from", "kinocut", "kino", "--mcp"]
     }
   }
 }
@@ -125,7 +125,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 
 High-leverage listing targets:
 
-- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) - active release metadata for `io.github.KyaniteLabs/kinocut`, published from `server.json` after package publication.
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) - registry endpoint for `io.github.KyaniteLabs/kinocut`; live verification returned 403 on 2026-09-30, so its current published version is unverified.
 - [Directory rebrand status](DIRECTORY_REBRAND_STATUS.md) - live reconciliation ledger for stale former-name listings and downstream mirrors.
 - [Glama MCP Registry](https://glama.ai/mcp/servers) — Submit via GitHub repo URL.
 - [Smithery](https://smithery.ai) — Submit via GitHub repo URL once the official registry and Glama listings are fresh.

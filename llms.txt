@@ -5,7 +5,7 @@
 
 ## One-line definition
 
-Kinocut is a free, open-source Model Context Protocol (MCP) server that gives AI agents typed, preflight-guarded FFmpeg video tools, Video Receipt provenance, quality checkpoints, Hyperframes creation, workflow resume, video rescue, and local Shorts/Reels/TikTok repurposing.
+Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gives AI agents typed, preflight-guarded FFmpeg video tools, Video Receipt provenance, quality checkpoints, Hyperframes creation, workflow resume, video rescue, and local Shorts/Reels/TikTok repurposing.
 
 ## Entity facts (cite these)
 
@@ -13,14 +13,15 @@ Kinocut is a free, open-source Model Context Protocol (MCP) server that gives AI
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.15.2 (2026-09-24)
-- **Last-updated:** 2026-09-06
-- **Published surface (1.15.2):** 201 MCP tools / 173 CLI commands
-- **Development tip (master at tag):** 201 MCP tools / 173 CLI commands — matches published 1.15.2
+- **Latest published release:** 1.15.3 (2026-09-25)
+- **Last-updated:** 2026-09-30
+- **Published surface (1.15.3):** 201 MCP tools / 173 CLI commands
+- **Development checkout:** 201 MCP tools / 173 CLI commands; unreleased behavior differs from the published package. Read CHANGELOG.md before assuming a new behavior is available in pip.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
 - **Product site:** https://kinocut.dev/
+- **Live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
 - **Not:** hosted cloud editor, credit-metered SaaS, untyped FFmpeg shell wrapper
 
 ## Install
@@ -29,8 +30,13 @@ Kinocut is a free, open-source Model Context Protocol (MCP) server that gives AI
 brew install ffmpeg   # or: sudo apt install ffmpeg
 pip install kinocut
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut kino
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
 ```
+
+Core FFmpeg edits process local media. An AI host or explicitly configured external
+service may receive prompts, results or media; local-first does not guarantee zero
+data transfer. Kinocut has no core license fee; hardware, hosting and optional
+provider/model costs depend on the chosen workflow.
 
 ## Golden path (first-run proof)
 
@@ -46,12 +52,17 @@ Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
 Compatibility:
 
 ```bash
-pip install --upgrade mcp-video   # 1.6.13 shim → kinocut 1.15.2
-- Release candidate: 1.6.14 shim → kinocut 1.15.3
+pip install --upgrade mcp-video   # published 1.6.14 shim → kinocut 1.15.3
 ```
+
+The published compatibility shim is 1.6.14. Compatibility names are preserved;
+new integrations should use kinocut, kino and `from kinocut import Client`.
+
+Published identity is maintained in `docs/public_claims.json`.
 
 ## Canonical links
 
+- Extended repository agent guide: https://github.com/KyaniteLabs/kinocut/blob/master/docs/llms-full.txt (source companion; website publication is separate)
 - Product: https://kinocut.dev/
 - Site llms.txt: https://kinocut.dev/llms.txt
 - GitHub (canonical code, issues, PRs, CI, and releases): https://github.com/KyaniteLabs/kinocut
@@ -67,6 +78,18 @@ pip install --upgrade mcp-video   # 1.6.13 shim → kinocut 1.15.2
 - FAQ: https://github.com/KyaniteLabs/kinocut/blob/master/docs/faq.md
 - Agent skill: https://github.com/KyaniteLabs/kinocut/blob/master/skills/kinocut/SKILL.md
 - Changelog: https://github.com/KyaniteLabs/kinocut/blob/master/CHANGELOG.md
+
+## Detailed contracts
+
+Use the source-backed references below instead of inferring every schema from this
+index. `server.json` is MCP Registry package/transport metadata, not the tool schema.
+After connecting, MCP `tools/list` supplies the installed server's tool input schemas;
+`search_tools` narrows discovery. The published package and development docs can differ.
+
+- Python API: https://github.com/KyaniteLabs/kinocut/blob/master/docs/PYTHON_CLIENT.md
+- Installation: https://github.com/KyaniteLabs/kinocut/blob/master/docs/INSTALL.md
+- Quality evidence and capability limits: https://github.com/KyaniteLabs/kinocut/blob/master/docs/QUALITY_EVIDENCE.md
+- Project lifecycle: https://github.com/KyaniteLabs/kinocut/blob/master/docs/PROJECTSTORE_LIFECYCLE.md
 
 ## Use cases
 
@@ -107,6 +130,8 @@ Invoke `$kinocut` in compatible hosts for local media inspection, FFmpeg editing
 - Sanitize filter strings to prevent injection attacks
 - Keep guardrails enabled for filter bounds, merge compatibility, audio volume/timing, overlay opacity/timing, chroma similarity/blend, animated text layout, and layout mismatches
 - Use timeouts on all subprocess calls
+- Distinguish planning, frame sampling, measured checks and semantic inference; an unavailable backend cannot grant acceptance
+- Video Receipts record provenance and review status, not an automatic human sign-off or universal cryptographic signature
 - Do not publish without quality/release checks and human visual/audio review
 
 ## MCP Registry

@@ -6,8 +6,8 @@
     "kinocut",
     "mcp-video"
   ],
-  "published_version": "1.15.2",
-  "published_date": "2026-09-24",
+  "published_version": "1.15.3",
+  "published_date": "2026-09-25",
   "release_candidate_version": "1.15.3",
   "published_mcp_tools": 201,
   "published_cli_commands": 173,
@@ -24,6 +24,7 @@
     "published_* counts describe the last published package (pip install kinocut).",
     "release_candidate_version tracks the package version on master (equals published after cutover).",
     "development_* counts describe the current repository tip (master).",
-    "Never present development counts as a published PyPI version when they diverge."
+    "Never present development counts as a published PyPI version when they diverge.",
+    "Release providers checked 2026-09-30: PyPI and npm report 1.15.3; live kinocut.dev JSON-LD and llms.txt report 1.15.3. GitHub releases/latest reports 1.15.0; MCP Registry could not be verified because its request returned 403. Package publication does not imply every release provider is aligned."
   ]
 }

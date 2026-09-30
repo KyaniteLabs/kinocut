@@ -2,9 +2,9 @@
 
 GitHub backlog review and local fixes: [September 30 report](../research/github-backlog/2026-09-30/REPORT.md).
 
-**Published:** 1.15.2 · **201 MCP / 173 CLI** · `docs/public_claims.json`
+**Published:** 1.15.3 · **201 MCP / 173 CLI** · 2026-09-25 · `docs/public_claims.json`
 
-**Tip (`master`):** 1.15.3 · **201 MCP / 173 CLI** (release candidate; 1.15.3 integrator-train + audio/composite/Windows fixes). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Tip (`master`):** 1.15.3 · **201 MCP / 173 CLI** (same registered surface as published 1.15.3; current local changes remain Unreleased). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Product pipeline:** Phase 1–4 + Track E **GO**.
 
@@ -12,7 +12,7 @@ GitHub backlog review and local fixes: [September 30 report](../research/github-
 
 **Human residuals:** directories #88 and launch #90. GitHub Dependabot is canonical; the old Forgejo Renovate-token gate is superseded and those tokens must not be provisioned for Kinocut ([HUMAN_GATES](../HUMAN_GATES.md)). First-10 **closed**. MCPB unsigned is the selected `user-configured-local-access` path; its exact-digest hosted and desktop-install gates remain distinct. Real X4 dogfood is optional; synthetic 2:1 fixtures cover the compiler.
 
-**Public site:** source corrections for **1.15.2** are pending (the site still describes 1.15.1); production deployment and rendered verification remain pending. Package publication does not prove the deployed website version.
+**Provider verification (2026-09-30):** PyPI and npm report **1.15.3**; live kinocut.dev JSON-LD and llms.txt also report **1.15.3**. GitHub `releases/latest` reports **1.15.0**. The MCP Registry request returned **403**, so its current version is unverified. These checks do not prove every provider is aligned or every site page is visually correct.
 
 **Desk residual:** Colima is the operator M4 Mac, not Mini. Do not restart `forgejo-runner` mid-job (exact 80s fail). Perf-committee reports are inspect receipts only ([README](perf-committee/README.md)). Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
 

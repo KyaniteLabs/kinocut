@@ -9,7 +9,7 @@ requests commits and a review PR; see [PR validation](../../PR_VALIDATION.md)
 for the publication-stage gate and scope. [Inventory](inventory.json) preserves
 the inspected issue identities and exact PR heads.
 
-GitHub REST and GraphQL requests returned `Forbidden`. Public repository HTML,
+At the initial checkpoint, GitHub REST and GraphQL requests returned `Forbidden`. Public repository HTML,
 embedded pagination payloads and native Git fetch remained available. All five
 complete PR diffs were reviewed before executing their regression tests or
 adapting their changes. Review found no contributed workflow/dependency changes
@@ -56,7 +56,7 @@ or a remote closure.
 | [#574](https://github.com/KyaniteLabs/kinocut/issues/574) | Default `afftdn` noise floor becomes −50 dB; explicit −25 dB remains available; PR #575 adapted. |
 | [#572](https://github.com/KyaniteLabs/kinocut/issues/572) | Add one-pass multi-track mixing to avoid repeated AAC generations; PR #573 adapted. |
 | [#566](https://github.com/KyaniteLabs/kinocut/issues/566) | Delayed video and masks play from their opening frames at layer start; PR #567 adapted. |
-| [#560](https://github.com/KyaniteLabs/kinocut/issues/560) | Apply glow color math in RGB rather than screening chroma planes; neutral-color control remains neutral. |
+| [#560](https://github.com/KyaniteLabs/kinocut/issues/560) | Screen glow luma while preserving chroma; neutral-color control remains neutral. |
 | [#557](https://github.com/KyaniteLabs/kinocut/issues/557) | Vignette darkens edges and preserves neutral hue; documented unused smoothness parameter remains a limitation. |
 | [#556](https://github.com/KyaniteLabs/kinocut/issues/556) | Expose Client LUT path, document source confinement, and support opacity/timing in bounded non-normal blend geometries. Explicit RGB blending preserves source alpha. Sepia pixel-format fix was already present. |
 | [#555](https://github.com/KyaniteLabs/kinocut/issues/555) | Allow bounded added-track looping during mixing, including late offsets and source-audio preservation. |
@@ -88,8 +88,12 @@ while correcting stale present-day blockers.
 
 Public MCPB run [36167328576](https://github.com/KyaniteLabs/kinocut/actions/runs/36167328576)
 succeeded for the exact base commit, including three runtime jobs and aggregate
-evidence. It does not validate these local adaptations or prove a real desktop import. Production site and credential-disabled Forgejo checks hit proxy HTTP
-403; their current deployed state remains unknown. Publication, private backend
+evidence. It does not validate these local adaptations or prove a real desktop import.
+Initial production-site and credential-disabled Forgejo checks hit proxy HTTP 403.
+Subsequent site checks verified existing JSON-LD/FAQ and 1.15.3 identity; the
+[external-report ledger](../../external-ai-audits/2026-09-30/REPORT.md) records
+that live evidence and recovered GitHub API access. Forgejo remains unverified.
+Publication, private backend
 provisioning, operator/company actions and representative full-episode listening
 require their respective owners or infrastructure; local code does not close
 those gates.

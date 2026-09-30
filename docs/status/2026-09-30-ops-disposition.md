@@ -5,13 +5,14 @@ current checkout. It records local preparation and remaining evidence; it is not
 a deployment receipt, publication approval, company role appointment, or proof
 that a remote workflow has run. Historical issue bodies are inputs, not current
 execution authority. Repository package version is 1.15.3; the maintained
-[current status](NOW.md) distinguishes that candidate from published 1.15.2.
+[current status](NOW.md) now records verified PyPI/npm publication of 1.15.3 and
+separates the Unreleased PR changes from the published artifacts.
 
 | Issue | Disposition | Evidence and next concrete requirement |
 | --- | --- | --- |
 | [#476](https://github.com/KyaniteLabs/kinocut/issues/476), gated-surface wayfinder | Local map supplied; retain external gates | This board assigns each child a disposition. Projectstore, watching, and multiplier planning already exist; [phase checkpoints](PHASE_CHECKPOINTS.md) describe their scoped exits. Neither backend execution nor product listening approval follows from those phase exits. |
 | [#477](https://github.com/KyaniteLabs/kinocut/issues/477), MCPB product direction | Staged direction embodied locally; native remains separate | [MCPB.md](../MCPB.md) selects an unsigned launcher using an existing installed Python environment and calls its access model `user-configured-local-access`. Native bundles have separate [runtime supply-chain requirements](../MCPB_SUPPLY_CHAIN.md). A native-bundle decision does not block staged artifact validation; it does not authorize staged publication either. |
-| [#479](https://github.com/KyaniteLabs/kinocut/issues/479), site version and TLS | Keep external deployment verification pending | The maintained status board records source corrections and pending production rendering. Read-only HTTPS requests to `https://kinocut.dev/` and `/llms.txt` on this review date failed with CONNECT/proxy HTTP 403, so this review establishes neither production content nor site TLS health. The separate site repository and Netlify deployment are outside this checkout. Site owner must deploy the intended source and capture production version/count, HTTPS, and `llms.txt` evidence. A source edit alone cannot close this gate. |
+| [#479](https://github.com/KyaniteLabs/kinocut/issues/479), site version and TLS | Live identity verified; complete visual/deployment review remains separate | Earlier attempts failed at the CONNECT proxy. After workspace/network recovery, certificate-verified HTTPS returned 200 for the homepage and `/llms.txt`; both report 1.15.3. The homepage already contains valid software/organization/FAQ JSON-LD and rename links. [Live evidence](../research/external-ai-audits/2026-09-30/live-evidence.json) records the response hashes and scope. No deployment, complete browser review or comprehensive TLS audit was performed, and the separate site repository was not modified. |
 | [#481](https://github.com/KyaniteLabs/kinocut/issues/481), sound S14/product scope | Keep full-episode claim gated; accept bounded fixture scope | The [sound checkpoint](PHASE_CHECKPOINTS.md#sound-program-not-a-phase-14-exit-residual-portfolio) distinguishes synthetic fixture plumbing from product completion. The [August rerun](../evidence/2026-08-12-sound-s14-live-rerun.json) records Apple hardware and an unavailable x86 host. `kinocut/sound_joins/benchmark.py` synthesizes tones: hardware provenance alone does not turn this into a real episode or a human listening pass. Claim owner must supply representative end-to-end episode/listening evidence or explicitly retain the narrower scope. |
 | [#482](https://github.com/KyaniteLabs/kinocut/issues/482), still-plate/paid adapters | Ship documented deterministic features; keep paid execution gated | [STILL_PLATES.md](../STILL_PLATES.md) documents shipped Pillow operations, mean-RGB establishment matching, and cohesion checks. Image-edit intent is audit metadata and does not drive pixels. Paid requests return `paid_edit_backend_unavailable`; do not remove useful deterministic features because a paid adapter is absent. A future execution adapter needs an approved provider, explicit capability semantics, and spend controls. No credentials were provisioned. |
 | [#483](https://github.com/KyaniteLabs/kinocut/issues/483), directories/launch | Preparation exists; retain external approval and publication | [HUMAN_GATES.md](../HUMAN_GATES.md), [directory ledger](../DIRECTORY_REBRAND_STATUS.md), and [launch drafts](LAUNCH_MOMENTS.md) track outcomes. Awesome MCP merged is recorded evidence; other reviews and post approval remain owner actions. Neither a draft nor an open submission is a published result. |
@@ -34,8 +35,8 @@ substitute today's candidate version.
 | Clean installed `kino` CLI | Package metadata, compatibility tests, installed-runtime CI preparation | Identify the tested published artifact and attach clean-install execution evidence. |
 | Renamed source repository | Canonical GitHub links and downstream policy | Capture the intended remote identity and reconciliation status; a local remote name is insufficient. |
 | Registry listing | `server.json`, directory ledger, published-claims checks | Attach the registry response for the intended published release, not only its checked-in descriptor. |
-| Site/docs identity and counts | Maintained claims and site correction notes | Production deployment, HTTPS, rendered identity/counts, and `llms.txt` verification from the site owner. |
-| Compatibility shim resolves | Distribution metadata and compatibility tests | Attach published shim dependency and clean-install resolution evidence. |
+| Site/docs identity and counts | Live HTTP 200 homepage JSON-LD and `llms.txt` report 1.15.3/201 MCP/173 CLI; response hashes retained | Complete browser/deployment review and the historical exit decision remain separate. |
+| Compatibility shim resolves | Published artifacts hash-verified; wheel metadata binds shim 1.6.14 to kinocut 1.15.3 | Clean-install resolution and the retrospective exit decision remain separate; metadata inspection is not execution. |
 
 Until those references and the explicit exit decision are recorded, Phase 0 is
 **pending retrospective verification**, while the later implementation checkpoints
@@ -48,6 +49,9 @@ GitHub workflow listing and run details returned HTTPS 200 with certificate
 verification enabled. The run page records the source commit and successful
 workflow status above; the raw downloaded pages are investigation evidence, not
 a newly generated publication receipt. Artifact contents were not retrieved.
-Site and Forgejo requests failed at the network CONNECT proxy, so their HTTP 403
-errors must not be presented as failures of the deployed product itself. No
-credentials, settings, or remote branches were changed.
+Initial site and Forgejo requests failed at the network CONNECT proxy. Later
+homepage and `llms.txt` checks succeeded after workspace/network recovery; the
+earlier 403 responses did not prove product failures. This board retains its
+historical checks; the [new audit](../research/external-ai-audits/2026-09-30/REPORT.md)
+records the subsequent live verification and PR preparation. Forgejo remains
+unverified by this pass.

@@ -13,6 +13,8 @@ This project follows a simple release-note style:
 
 ### Added
 
+- Missing FFmpeg encoders and filters return bounded structured dependency advisories through existing processing errors. Suggested alternatives require an intentional caller decision; no codec substitution or dependency installation occurs.
+- Native Gemini CLI MCP setup examples and an on-demand extended agent guide, with host data-egress boundaries and installed-schema discovery.
 - Temporal inspection returns and persists source-hash-bound `motion_coherence` with chronological low-resolution luma-difference windows, coverage/gaps/budget and advisory transition candidates. Frame-budget overflow rejects instead of silently truncating; human viewing and acceptance remain separate (#583).
 - Python `Client.mix_audio` layers timed sounds in one AAC encode with picture stream copy, source-audio preservation by default, bounded streaming fades and staged validation; `Client.duck_audio` exposes the existing plain-file sidechain mixer. Neither adds MCP/CLI names or a governed audio-bed receipt (adapted from draft PR #573; issues #572 and #549).
 - `Client.ai_color_grade` accepts optional `lut_path` for explicit `.cube` LUTs (#556).
@@ -62,6 +64,7 @@ This project follows a simple release-note style:
 
 ### Docs
 
+- Refresh active release discovery to verified PyPI/npm 1.15.3 and compatibility shim 1.6.14; retain explicit GitHub release and MCP Registry drift. Review Google/Gemini audit claims against live site and pinned official sources, and qualify cost, privacy, performance and receipt claims.
 - Document measured, unavailable and unevaluated quality evidence; waveform units and fallback; conversion publication; and projectstore repair, cancellation and resume contracts. Correct the waveform result example to its actual model fields.
 - Keep published-release identity separate from development changes. Research benchmarks remain local measurements with their corpus, optional-provider and validation limits recorded.
 
@@ -69,6 +72,13 @@ This project follows a simple release-note style:
 
 - Thanks to [@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt) for draft PRs [#577](https://github.com/KyaniteLabs/kinocut/pull/577), [#575](https://github.com/KyaniteLabs/kinocut/pull/575), [#573](https://github.com/KyaniteLabs/kinocut/pull/573), [#579](https://github.com/KyaniteLabs/kinocut/pull/579) and [#567](https://github.com/KyaniteLabs/kinocut/pull/567), whose reviewed fixes were adapted locally. These acknowledgements do not claim those draft PRs were merged.
 - Thanks to [@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt) for the 15-issue production-integrator batch of 2026-09-24 (reports #546–#560 with repro + root cause) and PRs #558/#559, which landed within 24 hours.
+
+## 1.15.3 - 2026-09-25
+
+### Publication record
+
+- PyPI and npm publication of 1.15.3 verified on 2026-09-30; published compatibility shim `mcp-video==1.6.14` requires `kinocut==1.15.3`. The public surface remains 201 MCP tools / 173 CLI commands.
+- Live site identity reports 1.15.3. GitHub's latest release entry remains 1.15.0; MCP Registry verification was unavailable. Changes listed under Unreleased are development changes beyond these published artifacts.
 
 ## 1.15.2 - 2026-09-24
 

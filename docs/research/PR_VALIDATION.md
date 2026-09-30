@@ -1,49 +1,69 @@
 # PR validation and publication scope
 
-The user authorized banking the reviewed changes in commits and creating a PR.
-This document records validation separately from published-package status and
-from contributor draft PRs; those draft PRs were reviewed and adapted, not merged.
-See [the backlog review](github-backlog/2026-09-30/REPORT.md) and
-[Unreleased changes](../../CHANGELOG.md).
+[PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) reviews branch
+`codex/kinocut-reliability-and-backlog` against `master`. The user authorized
+commits, branch pushes and PR creation. Draft contributor PRs were reviewed and
+adapted, not merged. See the [backlog dispositions](github-backlog/2026-09-30/REPORT.md),
+[external-report action ledger](external-ai-audits/2026-09-30/REPORT.md) and
+[Unreleased changelog](../../CHANGELOG.md).
 
-## Earlier integration checkpoint
+## Current frozen-tree gate
 
-At base `a820bd42205e43ca81eebc435e8529b2d0d42fcc`, the frozen local integration
-checkpoint passed **7,320 tests, 183 skipped, 8 warnings** in 899.29 seconds.
-[Recorded command and scope](github-backlog/2026-09-30/validation.json) and
-[full log](github-backlog/2026-09-30/full-suite.log) retain that evidence.
-Focused counts overlap the full suite and must not be added to it. Optional skips
-are not validation of the missing backends.
-
-## Final source inventory
-
-The [PR checkpoint allocation](runtime-allocation/pr-checkpoint/allocation.json)
-records 624 runtime files, 1,431 tracked paths (1,515 inventoried paths including
-unignored new files), and source shares of **96.9297% deterministic, 2.6400% prose,
-0.4303% traditional ML**. These are source-byte classifications, not execution
-cost, inference frequency or measured quality. Host skill prose is separate.
-The review branch is `codex/kinocut-reliability-and-backlog`.
-
-## Final publication gate
-
-The required frozen-tree gate passed **7,390 tests, 185 skipped, 8 warnings**
-in 1,003.32 seconds, exit 0. Command:
+The final implementation passed **7,412 tests, 185 skipped, 8 warnings** in
+966.23 seconds, exit 0:
 
 ```sh
 UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/ -x -q --tb=short
 ```
 
-[Final log](runtime-allocation/pr-checkpoint/full-suite.log) and
-[structured result](runtime-allocation/pr-checkpoint/validation.json) retain the
-outcome. Changed Python files passed Ruff; whitespace checks and the canonical
-`kinocut.Client is mcp_video.Client` import check passed. The implementation
-commit is `2ced642928ac93423fc6d92a260f7c4503919aaa`. Documentation-only publication metadata follows separately.
+[Full log](runtime-allocation/iteration-3/full-suite.log) and
+[structured result](runtime-allocation/iteration-3/validation.json) retain the
+command and outcome. Runtime/test changes are banked through
+`eb7b5ce42ae37bb948882c833360c2b0b2b743b2`; documentation follows separately.
+The exact CI Ruff 0.15.11 check and format commands passed locally for 1,067
+files, as did the canonical `kinocut.Client is mcp_video.Client` import check.
+Local Python is 3.12 and FFmpeg is 7.1.5; the hosted PR safety lane uses Python
+3.14. Optional skips are not validation of unavailable model backends.
 
-Native HTTPS Git publication passed its dry run. GitHub API requests currently
-return `Forbidden`; the PR creation outcome is reported separately from branch
-publication. [Review branch comparison](https://github.com/KyaniteLabs/kinocut/compare/master...codex/kinocut-reliability-and-backlog?expand=1).
-This evidence does not assert a submitted PR, remote CI success or a merge.
+Real MCP stdio initialization, listing all 201 tools and metadata-only
+`search_tools` discovery passed without a model call. Source-verified Gemini CLI
+configuration does not establish a paid Gemini/Claude end-to-end model session.
+Live HTTP/site/provider observations and hash-verified package artifacts are
+recorded in the external-report evidence; inspecting metadata is not installation.
 
-Final scope includes staged trim/speed failure preservation, finite trim-time
-validation, and canonical Client mixing/ducking aliases. These do not extend
-transactional publication to every engine writer or add MCP/CLI tool names.
+## Source inventory
+
+The [current allocation](runtime-allocation/iteration-3/allocation.json) classifies
+624 runtime source files into deterministic code, operational LLM prose and
+traditional/non-LLM ML integration. Percentages sum to 100%; they measure source
+bytes, not execution time, cost, inference frequency or quality. Host skill prose
+is reported separately. The [implementation checkpoint](runtime-allocation/iteration-3/IMPLEMENTATION.md)
+records both retained changes and remaining measured-work opportunities.
+
+## Hosted CI and release boundaries
+
+The original head `0ff4fa51518b11aa2e36f74e0c5cc7287c5d5510` completed 13 checks:
+12 passed, while Hosted PR checks failed at Lint and skipped Test. Pinned Ruff
+reproduced the formatting failure; the current changes repair it. New-head CI
+must be assessed against the exact pushed SHA rather than inherited results.
+No workflow protections were disabled, and no issue or draft PR was closed.
+
+Published PyPI/npm identity is 1.15.3, shim 1.6.14. This PR adds **Unreleased**
+behavior without a version bump. Website identity and existing JSON-LD were
+verified, but no deployment or complete browser/TLS review was performed.
+GitHub latest release is 1.15.0; registry verification remains unavailable.
+No release, merge, directory submission or external message is implied.
+
+## Earlier checkpoints
+
+At base `a820bd42205e43ca81eebc435e8529b2d0d42fcc`, the earlier integration gate
+passed **7,320 tests, 183 skipped, 8 warnings** in 899.29 seconds.
+[Recorded scope](github-backlog/2026-09-30/validation.json) and
+[log](github-backlog/2026-09-30/full-suite.log) preserve that result.
+
+The subsequently banked implementation `2ced642928ac93423fc6d92a260f7c4503919aaa`
+passed **7,390 tests, 185 skipped, 8 warnings** in 1,003.32 seconds.
+[Recorded result](runtime-allocation/pr-checkpoint/validation.json),
+[log](runtime-allocation/pr-checkpoint/full-suite.log) and
+[source inventory](runtime-allocation/pr-checkpoint/allocation.json) are historical
+evidence. Focused and successive full-suite counts overlap and are not additive.

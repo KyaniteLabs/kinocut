@@ -2,7 +2,7 @@
 
 ## What is Kinocut?
 
-Kinocut is an open-source MCP server, Python library, and CLI that wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes, and local repurposing workflows for AI-agent video editing and creation. It runs locally, requires no cloud services, and is free under the Apache-2.0 license.
+Kinocut is an open-source MCP server, Python library, and CLI that wraps FFmpeg, PUSHING CREATION-style planning, Hyperframes, and local repurposing workflows for AI-agent video editing and creation. Core FFmpeg editing runs locally and the code is licensed under Apache-2.0. Optional models and authoring tools have their own dependencies; the AI host or an explicitly configured service may have separate data-transfer and cost requirements.
 
 ## What is MCP?
 
@@ -10,7 +10,7 @@ MCP (Model Context Protocol) is a standard protocol that lets AI agents like Cla
 
 ## Is Kinocut on the MCP Registry?
 
-Yes. Kinocut is published on the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) under the immutable identifier `io.github.KyaniteLabs/kinocut`. Release metadata is published from `server.json` after package publication.
+Kinocut's canonical identifier is `io.github.KyaniteLabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry latest endpoint](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) returned HTTP 403 during the September 30, 2026 verification, so its current listing version is unverified. PyPI, npm and the product site report published 1.15.3 (September 25, 2026); GitHub's latest release entry still reports 1.15.0. These publication surfaces can differ.
 
 ## Which AI agents work with Kinocut?
 
@@ -26,7 +26,7 @@ Yes. Kinocut works on macOS, Linux, and Windows as long as FFmpeg is installed a
 
 ## What video formats are supported?
 
-All formats that FFmpeg supports: MP4, WebM, MOV, AVI, MKV, GIF, and more. Input and output formats are auto-detected from file extensions.
+Support depends on the operation, its admitted containers/codecs and the installed FFmpeg build. Common workflows use MP4, WebM, MOV, AVI, MKV and GIF. A decoder accepting a file does not mean every edit or output codec is supported; consult the tool parameters and run `kino doctor`.
 
 ## Can I use it without an AI agent?
 
@@ -44,9 +44,31 @@ For AI features like transcription and upscaling, install the extras:
 pip install "kinocut[ai]"
 ```
 
+## How do I connect Kinocut to Claude Code?
+
+Install FFmpeg and [uv](https://docs.astral.sh/uv/getting-started/installation/), then register the local stdio server:
+
+```bash
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
+```
+
+Run `kino doctor` in an installed Kinocut environment to inspect dependencies. The explicit `--mcp` selects server mode; invoking `kino` without a command also selects MCP today. See [installation](INSTALL.md) and [integrations](INTEGRATIONS.md) for other hosts.
+
+## Why use Kinocut rather than invoking FFmpeg directly?
+
+Kinocut supplies structured tools, path and parameter validation, bounded subprocess execution and operation-specific preflight checks. Workflows can record Video Receipts with source/output hashes, tool calls and review status. This helps an agent inspect and reproduce an edit; it does not replace FFmpeg expertise, guarantee a creative result or grant human approval. See [receipt contracts](VIDEO_RECEIPT.md) and [quality evidence](QUALITY_EVIDENCE.md).
+
+## Does local-first mean no data leaves my machine?
+
+Core media edits execute locally. Your AI host decides which prompts, tool results or media it shares, and optional services have their own policies. Review the host permissions and configured providers before handling sensitive media; local-first alone is not a zero-transfer guarantee.
+
+## Is mcp-video a separate product?
+
+No. Kinocut is the renamed project. The compatibility package and `mcp-video` command/`mcp_video` import remain supported. New installations should use `kinocut`, `kino` and `from kinocut import Client`; historical release evidence retains its original names. See [the rename guide](RENAME.md).
+
 ## What are the AI-powered features?
 
-Kinocut includes 7 AI features: silence removal, Whisper transcription, scene detection, stem separation (isolate vocals/drums), AI upscaling (2x/4x super-resolution), auto color grading, and spatial audio positioning.
+Optional model-backed operations include Whisper transcription, stem separation and upscaling. The wider AI-labelled area also contains deterministic helpers such as silence/scene detection, color grading and spatial audio positioning; the label does not mean each operation invokes a model. Check the required extra and backend with `kino doctor`. Planning or retained frame sampling is separate from completed inference; see [quality evidence and capability limits](QUALITY_EVIDENCE.md).
 
 ## What tool areas does it cover?
 
@@ -54,7 +76,7 @@ Kinocut covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered me
 
 ## Can it edit Insta360 X4 360 video?
 
-Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is in pip `kinocut==1.15.0`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.15.3`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## What are the cinematic creation tools?
 
@@ -66,15 +88,15 @@ Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection
 
 ## Can I cut a product out of a turntable or tabletop video?
 
-Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is published in **1.15.2**. `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.15.3** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 
 ## Is it free?
 
-Yes. Kinocut is open-source under the Apache-2.0 license. There are no API costs because everything runs locally using FFmpeg and optional local AI models.
+Kinocut has no core license fee and is open-source under Apache-2.0. Local hardware, electricity and hosting still cost money; your AI host, optional services or separately licensed models may incur fees. There is no universal zero-cost claim.
 
 ## How fast is it?
 
-Very fast. Since it wraps FFmpeg directly, operations like trimming, merging, and format conversion run at near-native FFmpeg speed. AI features depend on your hardware (GPU recommended for upscaling and transcription).
+Runtime depends on source duration/resolution, codec, requested operations, hardware, optional models and verification passes. Some operations copy streams; others decode and re-encode. Measure the intended workload rather than assuming a universal speedup or equivalence to an unverified FFmpeg command.
 
 ## Can I use it in production?
 

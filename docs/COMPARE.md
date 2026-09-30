@@ -1,12 +1,14 @@
 # Compare: Kinocut vs alternatives
 
-Honest criteria for July 2026 evaluation. Prefer this page over generic “best AI video” roundups.
+Evaluation criteria updated September 30, 2026. This is a deployment comparison,
+not a measured vendor benchmark or a claim that every competing service behaves
+the same way.
 
 ## Criteria
 
 | Criterion | Why it matters for agents |
 | --- | --- |
-| Local-first | Client/media privacy; no upload tax |
+| Local-first | Execution location and the actual data sent by the host/provider |
 | Typed tool surface | Agents pick tools without inventing flags |
 | Preflight / fail-closed | Stops silent bad renders |
 | Receipt / provenance | Next agent or human can audit |
@@ -31,14 +33,19 @@ Honest criteria for July 2026 evaluation. Prefer this page over generic “best 
 
 | | Kinocut | Typical cloud editor API |
 | --- | --- | --- |
-| Media location | Local disk | Upload required |
-| Cost | Free core (Apache-2.0) | Often metered |
-| Latency | Machine-bound | Network + queue |
-| Offline | Yes (core) | No |
-| Trust model | Receipts + local inspection | Vendor dashboard |
+| Media location | Local for core FFmpeg operations; host prompts/results and optional providers can leave the machine | Depends on service deployment and input method |
+| Cost | No software license fee; compute/storage and optional providers still cost money | Depends on the provider's pricing and deployment |
+| Latency | Local decode/filter/encode and hardware; host model calls can add latency | Processing, requests and queues depend on the service |
+| Offline | Core FFmpeg operations after dependencies are installed | Requires access to the selected service |
+| Review evidence | Receipts and local inspection; explicit human decision remains separate | Provider-specific logs, receipts and review controls |
 
 **Pick cloud** for collaborative hosted timelines and managed rendering fleets.  
 **Pick Kinocut** for local, agent-driven pipelines and private media.
+
+Verify the exact data boundary and benchmark representative media on named
+hardware before making privacy, speed or total-cost claims. Local execution alone
+is not a zero-egress guarantee, and encoder availability does not prove a fixed
+hardware-acceleration speedup.
 
 ## Kinocut vs “video MCP servers” (category)
 

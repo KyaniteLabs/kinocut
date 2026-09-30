@@ -2,7 +2,7 @@
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
+      "args": ["--from", "kinocut", "kino", "--mcp"]
     }
   }
 }
