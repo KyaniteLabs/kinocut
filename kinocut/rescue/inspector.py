@@ -13,7 +13,8 @@ from .models import receipt_integrity_sha256
 
 
 def _hash(path: Path) -> str:
-    return "sha256:" + hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as handle:
+        return "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 def _confined(path: Path, root: Path) -> bool:

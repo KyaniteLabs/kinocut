@@ -75,8 +75,9 @@ def test_glow_uses_non_additive_blend_by_default(tmp_path, monkeypatch):
     assert len(calls) == 1
     filter_graph = calls[0][5]
     assert "all_mode='addition'" not in filter_graph
-    assert "all_mode='screen'" in filter_graph
-    assert "all_opacity=0.25" in filter_graph
+    assert "c0_mode=screen" in filter_graph
+    assert "c0_opacity=0.25" in filter_graph
+    assert "c1_expr=A:c2_expr=A" in filter_graph
 
 
 def test_film_noise_uses_luma_only_noise_filter(tmp_path, monkeypatch):

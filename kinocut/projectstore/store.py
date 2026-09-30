@@ -57,6 +57,7 @@ from kinocut.contracts.verdict import ClipVerdict
 from kinocut.contracts.trusted_execution import (
     CASManifestRecord,
     CASGCReceiptRecord,
+    CASBlobLifecycleRecord,
     BranchRecord,
     EditProjectRecord,
     EditRevisionRecord,
@@ -82,7 +83,7 @@ _PROJECT_METADATA_FIELDS = frozenset({"schema_version", "project_id"})
 # the write boundary — independently of any model validator — so a record
 # smuggled past validation (e.g. via ``model_copy``) still cannot persist an
 # absolute, traversing, URL, or control-char path.
-_PATH_FIELDS = ("original_location", "usage_rights_evidence_ref", "blob_location")
+_PATH_FIELDS = ("original_location", "usage_rights_evidence_ref", "blob_location", "backup_location")
 
 # Every canonical record kind maps to the model that reads it back with full
 # strict validation. Adding a record kind means adding one registry entry.
@@ -110,6 +111,7 @@ _RECORD_REGISTRY: dict[str, type[RecordBase]] = {
     "render_job": RenderJobRecord,
     "cas_manifest": CASManifestRecord,
     "cas_gc": CASGCReceiptRecord,
+    "cas_blob_lifecycle": CASBlobLifecycleRecord,
     "kernel_event": KernelEventRecord,
     "revision_sources": RevisionSourcesRecord,
     "event_cursor": EventCursorRecord,

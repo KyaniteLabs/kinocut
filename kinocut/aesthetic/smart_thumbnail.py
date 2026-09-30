@@ -13,6 +13,7 @@ import contextlib
 import logging
 import os
 import tempfile
+from collections.abc import Iterator
 
 from ..defaults import DEFAULT_NIMA_CANDIDATES, DEFAULT_NIMA_MIN_DURATION
 from ..errors import ProcessingError
@@ -64,34 +65,35 @@ def _select_best_with_nima(
         logger.debug("Video too short (%.2fs) for smart selection", duration)
         return None
 
-    frame_paths = _extract_candidates(input_path, duration, num_candidates)
-    if not frame_paths:
-        return None
+    with _extract_candidates(input_path, duration, num_candidates) as frame_paths:
+        if not frame_paths:
+            return None
 
-    scorer = NimaScorer.get()
-    paths_only = [p for _, p in frame_paths]
-    scores = scorer.score_frames(paths_only)
+        scorer = NimaScorer.get()
+        paths_only = [p for _, p in frame_paths]
+        scores = scorer.score_frames(paths_only)
 
-    best_idx = scores.index(max(scores))
-    best_ts = frame_paths[best_idx][0]
-    best_score = scores[best_idx]
-    logger.info(
-        "NIMA smart thumbnail: selected t=%.2fs (score %.2f) from %d candidates (avg %.2f, range %.2f-%.2f)",
-        best_ts,
-        best_score,
-        len(scores),
-        sum(scores) / len(scores),
-        min(scores),
-        max(scores),
-    )
-    return best_ts
+        best_idx = scores.index(max(scores))
+        best_ts = frame_paths[best_idx][0]
+        best_score = scores[best_idx]
+        logger.info(
+            "NIMA smart thumbnail: selected t=%.2fs (score %.2f) from %d candidates (avg %.2f, range %.2f-%.2f)",
+            best_ts,
+            best_score,
+            len(scores),
+            sum(scores) / len(scores),
+            min(scores),
+            max(scores),
+        )
+        return best_ts
 
 
+@contextlib.contextmanager
 def _extract_candidates(
     input_path: str,
     duration: float,
     num_candidates: int,
-) -> list[tuple[float, str]]:
+) -> Iterator[list[tuple[float, str]]]:
     """Extract candidate frames across the video. Returns (timestamp, path) pairs.
 
     Samples uniformly between 5% and 95% of duration, skipping the very
@@ -127,7 +129,7 @@ def _extract_candidates(
                 continue
             if os.path.isfile(frame_path):
                 frame_paths.append((ts, frame_path))
-        return frame_paths
+        yield frame_paths
     finally:
         _cleanup_candidates(frame_paths, tmp_dir)
 

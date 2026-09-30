@@ -13,6 +13,9 @@ from .limits import *  # noqa: F403 — re-export all limit constants
 # policy here avoids each workflow inventing a subtly different comparison.
 DEFECT_SEVERITY_RANK = {"low": 0, "medium": 1, "high": 2, "critical": 3}
 
+# Bound parsing work for seconds and colon-delimited trim parameters.
+MAX_TRIM_TIME_TEXT_LENGTH = 128
+
 VALID_FORMATS = {"mp4", "webm", "gif", "mov", "hevc", "av1", "prores"}
 VALID_AUDIO_FORMATS = {"mp3", "aac", "wav", "ogg", "flac"}
 VALID_PRESETS = {"ultrafast", "fast", "medium", "slow", "veryslow"}

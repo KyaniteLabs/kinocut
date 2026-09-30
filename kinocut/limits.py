@@ -10,6 +10,7 @@ MIN_SHORTS_PREVIEW_DURATION_SECONDS = 1.0
 
 # Processing limits
 DEFAULT_FFMPEG_TIMEOUT = 600  # 10 minutes
+FFMPEG_STDERR_DIAGNOSTIC_BYTES = 4096  # Read at most this much from redirected failure logs.
 DEFAULT_AI_TIMEOUT = 3600  # 1 hour for AI operations (demucs, whisper, etc.)
 DOCTOR_COMMAND_TIMEOUT = 10  # Short version/probe commands should not hang
 FFPROBE_TIMEOUT = 30  # Metadata probes should fail quickly
@@ -97,3 +98,9 @@ MAX_WORKFLOW_VARIANTS = 32
 # Graphics composition bounds (receipt-bound editor layer stack).
 MAX_GRAPHICS_LAYERS = 32
 MAX_GRAPHICS_CANVAS_DURATION = 60.0  # seconds; protects the receipt output window
+
+# Bounds for a single multi-track audio mixing graph.
+MAX_AUDIO_MIX_TRACKS = 64
+MAX_AUDIO_MIX_VOLUME = 4.0
+MIN_AUDIO_MIX_BITRATE_KBPS = 8
+MAX_AUDIO_MIX_BITRATE_KBPS = 512

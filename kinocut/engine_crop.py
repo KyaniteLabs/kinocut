@@ -30,8 +30,8 @@ def _resolve_crop_dimensions(
                 error_type="validation_error",
                 code="invalid_crop_percent",
             )
-        w = max(1, int(info.width * crop_percent / 100))
-        h = max(1, int(info.height * crop_percent / 100))
+        w = max(1, int(info.display_width * crop_percent / 100))
+        h = max(1, int(info.display_height * crop_percent / 100))
         return w, h
     if width is None or height is None:
         raise MCPVideoError(
@@ -64,16 +64,20 @@ def crop(
     width, height = _resolve_crop_dimensions(info, width, height, crop_percent)
     if width <= 0 or height <= 0:
         raise MCPVideoError("Crop dimensions must be positive", code="invalid_crop")
-    if width > info.width or height > info.height:
+    # FFmpeg rotates the picture upright before the crop filter, so sizes and
+    # offsets are in display pixels (a portrait phone video stored 1920x1080
+    # with a 90° rotation is cropped as 1080x1920).
+    frame_w, frame_h = info.display_width, info.display_height
+    if width > frame_w or height > frame_h:
         raise MCPVideoError(
-            f"Crop size ({width}x{height}) larger than video ({info.width}x{info.height})",
+            f"Crop size ({width}x{height}) larger than video ({frame_w}x{frame_h})",
             code="crop_too_large",
         )
 
     if x is None:
-        x = (info.width - width) // 2
+        x = (frame_w - width) // 2
     if y is None:
-        y = (info.height - height) // 2
+        y = (frame_h - height) // 2
 
     suffix = f"crop_{width}x{height}"
     output = output_path or _auto_output(input_path, suffix)

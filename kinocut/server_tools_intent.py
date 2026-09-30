@@ -490,7 +490,12 @@ def video_timeline_ir_validate(timeline: dict[str, Any]) -> dict[str, Any]:
 @mcp.tool()
 @_safe_tool
 def video_qc_vision(input_path: str, require_vlm: bool = False) -> dict[str, Any]:
-    """Vision QC third — graceful if VLM unavailable (P3.3)."""
+    """Prepare keyframes for visual review; semantic vision QC is not evaluated.
+
+    Returns retained frame paths, sampling_status and assessment_status. Frame
+    preparation is not a visual-quality pass. No executable VLM is available;
+    require_vlm=True returns verdict=fail and blocked=True.
+    """
 
     from kinocut.watching import run_vision_qc
 

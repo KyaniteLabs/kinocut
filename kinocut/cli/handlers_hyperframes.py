@@ -50,6 +50,8 @@ def _register_render_commands(runner: CommandRunner) -> None:
             variables_file=getattr(a, "variables_file", None),
         )
         _out(r, j, lambda res: _format_hyperframes_render(res, a.project_path))
+        if not (r.get("success", True) if isinstance(r, dict) else r.success):
+            raise SystemExit(1)
 
     runner.register("hyperframes-render", _render)
 

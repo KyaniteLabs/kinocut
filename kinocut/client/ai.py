@@ -143,8 +143,12 @@ class ClientAiMixin:
 
         return ai_upscale(video, output, scale, model)
 
-    def ai_color_grade(self, video: str, output: str, reference: str | None = None, style: str = "auto") -> str:
-        """Auto color grade video."""
+    def ai_color_grade(
+        self, video: str, output: str, reference: str | None = None, style: str = "auto", lut_path: str | None = None
+    ) -> str:
+        """Color grade video using a style, reference, or explicit .cube LUT."""
         from ..ai_engine import ai_color_grade
 
-        return ai_color_grade(video, output, reference, style)
+        if lut_path is None:
+            return ai_color_grade(video, output, reference, style)
+        return ai_color_grade(video, output, reference, style, lut_path=lut_path)

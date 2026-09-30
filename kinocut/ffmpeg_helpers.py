@@ -15,10 +15,10 @@ import tempfile
 import threading
 from collections.abc import Callable, Iterator
 from contextvars import ContextVar
-from typing import Any
+from typing import Any, BinaryIO
 
 from .errors import InputFileError, MCPVideoError, ProcessingError, parse_ffmpeg_error
-from .limits import DEFAULT_FFMPEG_TIMEOUT, FFPROBE_TIMEOUT, MAX_FILE_SIZE_MB
+from .limits import DEFAULT_FFMPEG_TIMEOUT, FFMPEG_STDERR_DIAGNOSTIC_BYTES, FFPROBE_TIMEOUT, MAX_FILE_SIZE_MB
 
 _BLOCKED_OUTPUT_PREFIXES = (
     "/bin",
@@ -325,11 +325,15 @@ def _run_command(
     timeout: int = DEFAULT_FFMPEG_TIMEOUT,
     *,
     pass_fds: tuple[int, ...] = (),
+    stderr_sink: BinaryIO | None = None,
 ) -> subprocess.CompletedProcess[str]:
     """Run an arbitrary command with timeout and error handling.
 
     Bare ``ffmpeg``/``ffprobe`` names are replaced with the resolved runtime
-    binaries so every code path finds FFmpeg the same way.
+    binaries so every code path finds FFmpeg the same way. Optional ``stderr_sink``
+    must be a seekable binary file; it keeps verbose diagnostics out of Python
+    memory. Failed commands read only a bounded prefix; successful callers inspect
+    the sink themselves (``result.stderr`` is then ``None``).
     """
     from .engine_runtime_utils import _ffmpeg, _ffprobe
 
@@ -351,10 +355,13 @@ def _run_command(
         kwargs: dict[str, Any] = {}
         if pass_fds:
             kwargs["pass_fds"] = pass_fds
+        if stderr_sink is None:
+            kwargs["capture_output"] = True
+        else:
+            kwargs.update(stdout=subprocess.PIPE, stderr=stderr_sink)
         result = subprocess.run(  # noqa: S603
             cmd,
             stdin=subprocess.DEVNULL,
-            capture_output=True,
             text=True,
             encoding="utf-8",
             errors="replace",
@@ -364,6 +371,10 @@ def _run_command(
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
     if result.returncode != 0:
+        if stderr_sink is not None:
+            stderr_sink.seek(0)
+            result.stderr = stderr_sink.read(FFMPEG_STDERR_DIAGNOSTIC_BYTES).decode("utf-8", errors="replace")
+            stderr_sink.seek(0)
         raise ProcessingError(cmd_str, result.returncode, result.stderr)
     return result
 

@@ -7,10 +7,11 @@ import math
 import re
 from pathlib import Path
 
-from .defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP
+from .defaults import DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP, DEFAULT_AUDIO_NORMALIZE_BITRATE
 from .engine_runtime_utils import _build_edit_result, _has_audio, _require_filter, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import (
+    _atomic_output,
     _build_ffmpeg_cmd,
     _escape_ffmpeg_filter_value,
     _run_ffmpeg,
@@ -21,6 +22,7 @@ from .ffmpeg_helpers import (
 )
 from .errors import MCPVideoError
 from .models import EditResult
+from .engine_audio_normalize_output import NormalizedAudioResult, _normalization_codec, _validate_normalized_output
 
 
 def _number(value: object, name: str, low: float, high: float) -> float:
@@ -140,6 +142,18 @@ def _resample_filter(probe: dict) -> str:
     return ",aresample=48000"
 
 
+def _render_extra(probe: dict, video_container: bool) -> list[str]:
+    extra = [] if video_container else ["-vn"]
+    audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
+    try:
+        duration = float(audio.get("duration") or probe.get("format", {}).get("duration") or 0)
+    except (TypeError, ValueError):
+        duration = 0
+    if math.isfinite(duration) and duration > 0 and not video_container:
+        extra += ["-t", str(duration)]
+    return extra
+
+
 def normalize_audio(
     input_path: str,
     target_lufs: float = -16.0,
@@ -157,24 +171,23 @@ def normalize_audio(
     _require_filter("loudnorm", "Audio normalization")
     output = output_path or _auto_output(input_path, "normalized")
     _validate_output_path(output)
+    codec, video_container = _normalization_codec(output)
 
     def _escaped(value: float, name: str) -> str:
         return _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, name)))
 
-    target_s, lra_s, peak_s = (
-        _escaped(target, "target_lufs"),
-        _escaped(loudness_range, "lra"),
-        _escaped(peak, "true_peak_dbtp"),
-    )
+    target_s = _escaped(target, "target_lufs")
+    lra_s, peak_s = _escaped(loudness_range, "lra"), _escaped(peak, "true_peak_dbtp")
     probe = _run_ffprobe_json(input_path)
     has_audio = _has_audio(probe)
     warnings: list[str] = []
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+        _validate_output_path(staged)
         if not has_audio:
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
-                    output_path=output,
+                    output_path=staged,
                     video_codec="copy",
                     audio_codec="copy",
                 )
@@ -185,6 +198,7 @@ def normalize_audio(
                 [
                     "-i",
                     input_path,
+                    "-vn",
                     "-af",
                     f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:print_format=json",
                     "-f",
@@ -198,13 +212,24 @@ def normalize_audio(
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
-                    output_path=output,
-                    video_codec="copy",
-                    audio_filter=render_filter,
-                    audio_bitrate="192k",
+                    output_path=staged,
+                    video_codec="copy" if video_container else None,
+                    audio_codec=codec,
+                    audio_filter=render_filter if video_container else render_filter + ",asetpts=N/SR/TB,apad",
+                    audio_bitrate=DEFAULT_AUDIO_NORMALIZE_BITRATE,
+                    extra=_render_extra(probe, video_container),
                 )
             )
-    result = _build_edit_result(
-        output, "normalize_audio", timing, format=Path(output).suffix.lstrip(".") or "wav", audio_only=True
-    )
-    return result.model_copy(update={"warnings": [*result.warnings, *warnings]}) if warnings else result
+        observed = _validate_normalized_output(staged, codec if has_audio else None)
+        result = _build_edit_result(
+            staged,
+            "normalize_audio",
+            timing,
+            format=observed.get("format", {}).get("format_name") or Path(output).suffix.lstrip("."),
+            audio_only=True,
+        )
+        audio = next((item for item in observed.get("streams", []) if item.get("codec_type") == "audio"), {})
+        result = NormalizedAudioResult(
+            **{**result.model_dump(), "audio_codec": audio.get("codec_name"), "warnings": [*result.warnings, *warnings]}
+        )
+    return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})

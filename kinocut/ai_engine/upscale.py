@@ -60,7 +60,8 @@ def _verify_model_hash(path: Path, expected_hash: str) -> None:
     Raises:
         MCPVideoError: If the computed hash does not match the expected value.
     """
-    sha256 = hashlib.sha256(path.read_bytes()).hexdigest()
+    with path.open("rb") as handle:
+        sha256 = hashlib.file_digest(handle, "sha256").hexdigest()
     if sha256 != expected_hash:
         path.unlink(missing_ok=True)
         raise MCPVideoError(

@@ -112,7 +112,11 @@ def test_vision_narrative_graceful_without_vlm(sample_video: str) -> None:
     vision_req = run_vision_qc(sample_video, require_vlm=True)
     assert isinstance(vision_req, dict)
     findings = vision_req.get("findings") or []
-    # when VLM missing, expect graceful warn not hard product failure
+    # Missing executor is a structured failed requirement, not an exception or
+    # a semantic pass. The default optional inspection remains non-blocking.
+    assert vision_req["verdict"] == "fail"
+    assert vision_req["blocked"] is True
+    assert vision["blocked"] is False
     if findings:
         assert all(f.get("severity") != "error" for f in findings if isinstance(f, dict))
     narrative = run_narrative_qc(sample_video)

@@ -32,7 +32,7 @@ from .engine_composite_layers_rotate import (
     rotate_filter,
     validate_rotation,
 )
-from .engine_composite_layers_source import _receipt_source, resolve_layer_source, resolve_mask_source
+from .engine_composite_layers_source import _enable_expression, _receipt_source, resolve_layer_source, resolve_mask_source, _start_shift
 from .engine_runtime_utils import _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
@@ -155,7 +155,10 @@ def composite_layers(
     reference point (see ``engine_composite_layers_rotate``), and a
     deterministic layer-plan receipt. Inputs declare straight or premultiplied
     alpha, and allowlisted effects can route to a layer, mask, or mask edge.
-    Positioned masked/timed/scaled/rotated blend and rotation combined with a
+    File sources and masks must resolve inside the spec's directory; place the
+    spec in a common parent of its media rather than referencing outside files.
+    Non-normal blends support opacity and timing windows. Positioned
+    masked/scaled/rotated blend and rotation combined with a
     mask remain deferred and fail closed.
     """
     spec_resolved = _validate_spec_path(spec_path)
@@ -535,11 +538,12 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             width = _escape_ffmpeg_filter_value(str(canvas.width))
             height = _escape_ffmpeg_filter_value(str(canvas.height))
             chain = f"{chain},scale={width}:{height}"
-        chains.append(f"[{layer.input_index}:v]{chain}[{layer_label}raw]")
+        chains.append(f"[{layer.input_index}:v]{_start_shift(layer, layer.type)}{chain}[{layer_label}raw]")
         if layer.mask_input_index is not None:
             mask_label = f"{layer_label}mask"
             layer_ref_label = f"{layer_label}ref"
-            chains.append(f"[{layer.mask_input_index}:v]format=gray[{mask_label}raw]")
+            mask_type = "image" if layer.mask_src is not None and _is_image_path(layer.mask_src) else "video"
+            chains.append(f"[{layer.mask_input_index}:v]{_start_shift(layer, mask_type)}format=gray[{mask_label}raw]")
             processed_mask_label = f"{mask_label}processed"
             chains.extend(mask_effect_chains(layer, f"{mask_label}raw", processed_mask_label))
             # Bare scale2ref scales the mask to the layer size on all FFmpeg
@@ -552,13 +556,11 @@ def _build_filter_complex(canvas: _Canvas, layers: list[_ResolvedLayer]) -> str:
             x, y = overlay_position(layer)
             step = f"[{previous}][{layer_label}]overlay={x}:{y}:format=auto:eof_action=pass"
             step = f"{step}{_enable_expression(layer)}"
-        elif is_positioned_blend(layer):
-            positioned_chains, step = positioned_blend_chains(layer, previous, layer_label)
-            chains.extend(positioned_chains)
         else:
-            # Mode is resolved through the allowlist dict, never interpolated from
-            # the raw spec value.
-            step = f"[{previous}][{layer_label}]blend=all_mode={BLEND_ALL_MODES[layer.blend]}"
+            positioned_chains, step = positioned_blend_chains(
+                layer, previous, layer_label, canvas=canvas, enable=_enable_expression(layer)
+            )
+            chains.extend(positioned_chains)
         step = f"{step},format=yuv420p[{out_label}]" if idx == len(layers) else f"{step}[{out_label}]"
         chains.append(step)
         previous = out_label
@@ -575,7 +577,10 @@ def _layer_filter_chain(layer: _ResolvedLayer) -> str:
     if layer.rotation is not None:
         parts.append(rotate_filter(layer.rotation))
     parts.extend(effect_filters(layer, "layer"))
-    opacity = _escape_ffmpeg_filter_value(f"{_validate_opacity(layer.opacity, layer.id):.2f}")
+    # Non-normal opacity interpolates the blended color against the running base;
+    # applying it to alpha here would change the strength a second time.
+    opacity_value = _validate_opacity(layer.opacity, layer.id) if layer.blend == "normal" else 1.0
+    opacity = _escape_ffmpeg_filter_value(f"{opacity_value:.2f}")
     parts.append(f"colorchannelmixer=aa={opacity}")
     return ",".join(parts)
 
@@ -591,14 +596,6 @@ def _scale_filter(layer: _ResolvedLayer) -> str | None:
     return f"scale={width}:{height}"
 
 
-def _enable_expression(layer: _ResolvedLayer) -> str:
-    if layer.start is None:
-        return ""
-    safe_start = _escape_ffmpeg_filter_value(_num(layer.start))
-    if layer.duration is None:
-        return f":enable='gte(t\\,{safe_start})'"
-    safe_end = _escape_ffmpeg_filter_value(_num(layer.start + layer.duration))
-    return f":enable='between(t\\,{safe_start}\\,{safe_end})'"
 
 
 def _build_layer_plan(

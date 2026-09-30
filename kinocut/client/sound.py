@@ -54,7 +54,7 @@ class ClientSoundMixin:
         self, wav_bytes: bytes | None = None, *, request=None, project_root=None, delivery=None
     ) -> dict[str, Any]:
         """Measure supplied audio and report actual compliance; omit inputs for a demo."""
-        from kinocut_sound.public import invoke_sound_operation
+        from kinocut.sound_joins.loudness import invoke_sound_operation
 
         arguments: dict[str, Any] = {}
         if request is not None or project_root is not None:

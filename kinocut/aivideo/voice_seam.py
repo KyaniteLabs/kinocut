@@ -486,6 +486,7 @@ def _loudness_summary(audio_path: str) -> LoudnessSummary:
         "-hide_banner",
         "-i",
         audio_path,
+        "-vn",
         "-af",
         "loudnorm=print_format=json",
         "-f",

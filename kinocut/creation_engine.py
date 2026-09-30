@@ -11,7 +11,7 @@ from typing import Any
 from .errors import MCPVideoError
 
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,79}$")
-_BLOCK_RE = re.compile(r"^##\s+((?:STYLE|NEG)_[A-Z0-9_]+)\s*$")
+_BLOCK_RE = re.compile(r"^##\s+((?:STYLE|NEG)_[A-Z0-9_]+)(?:\s+\(([^()]+)\))?\s*$")
 _STORYBOARD_COLUMNS = (
     "shot",
     "provider",
@@ -103,8 +103,19 @@ def read_style_pack(path: str) -> dict[str, Any]:
     for line in text.splitlines():
         match = _BLOCK_RE.match(line.strip())
         if match:
+            if match.group(2) is not None and not match.group(2).strip():
+                raise _creation_error(f"Empty style annotation: {line.strip()}", code="invalid_style_heading")
+            if any(block["name"] == match.group(1) for block in blocks) or current_name == match.group(1):
+                raise _creation_error(f"Duplicate style heading: {match.group(1)}", code="invalid_style_heading")
             flush()
             current_name = match.group(1)
+            current_lines = []
+            continue
+        if re.match(r"^##\s+(?:STYLE|NEG)_", line.strip()):
+            raise _creation_error(f"Unsupported style heading: {line.strip()}", code="invalid_style_heading")
+        if line.strip().startswith("## "):
+            flush()
+            current_name = None
             current_lines = []
             continue
         if current_name is not None and not line.lstrip().startswith("<!--"):
@@ -178,7 +189,7 @@ def _find_shot(storyboard: dict[str, Any], shot: str | int) -> dict[str, Any]:
 
 
 def render_shot_prompt(project_path: str, shot: str | int) -> dict[str, Any]:
-    """Expand storyboard style references into a provider-ready shot prompt."""
+    """Expand generic shot directions and style blocks without model dialect compilation."""
     project = Path(project_path).expanduser().resolve()
     style_pack = read_style_pack(str(project))
     storyboard = read_storyboard(str(project))
@@ -191,12 +202,17 @@ def render_shot_prompt(project_path: str, shot: str | int) -> dict[str, Any]:
 
     style_parts = [block_map[name] for name in row["style"] if name]
     negative_parts = [block_map[name] for name in row["neg"] if name]
-    prompt_parts = [row["action"], *style_parts]
+    prompt_parts = [f"Camera: {row['camera']}" if row["camera"] else "",
+                    f"Lens: {row['lens']}" if row["lens"] else "", row["action"], *style_parts]
 
     return {
         "shot": row["shot"],
         "provider": row["provider"],
         "model": row["model"],
+        "camera": row["camera"],
+        "lens": row["lens"],
+        "prompt_dialect": "generic",
+        "model_dialect_compiled": False,
         "mode": row["mode"],
         "duration": row["duration"],
         "aspect": row["aspect"],

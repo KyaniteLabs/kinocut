@@ -3,14 +3,25 @@
 from __future__ import annotations
 
 import json
+import contextlib
+import logging
+import math
+import os
 import re
 import subprocess
+import tempfile
+from collections.abc import Iterable
 from dataclasses import asdict, dataclass
+from pathlib import Path
 from typing import Any
 
 from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
-from kinocut.errors import InputFileError
-from kinocut.ffmpeg_helpers import _get_video_duration, _validate_input_path
+from kinocut.errors import InputFileError, MCPVideoError
+from kinocut.ffmpeg_helpers import (
+    _escape_ffmpeg_filter_path, _get_video_duration, _run_command, _validate_input_path,
+)
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -125,38 +136,76 @@ def run_metric_qc(
 
 
 def _blackdetect_ratio(path: str, duration: float) -> float | None:
+    """Measure displayed black coverage over decoded video, including its last frame.
+
+    Container duration may include a longer audio track. Compact frame metadata
+    stays on a managed temporary file and is reduced incrementally, so Python
+    memory does not grow with video length. Failed decoding is never a zero ratio.
+    """
     if duration <= 0:
         return None
-    cmd = [
-        "ffmpeg",
-        "-hide_banner",
-        "-i",
-        path,
-        "-vf",
-        "blackdetect=d=0.1:pix_th=0.10",
-        "-an",
-        "-f",
-        "null",
-        "-",
-    ]
     try:
-        proc = subprocess.run(  # noqa: S603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-            check=False,
-        )
-    except (OSError, subprocess.TimeoutExpired):
+        with contextlib.ExitStack() as stack:
+            metadata_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix="kinocut_black_"))
+            metadata = Path(metadata_dir) / "frames.txt"
+            diagnostics = stack.enter_context(tempfile.TemporaryFile())
+            movie_path, pass_fds = path, ()
+            if os.name == "posix" and Path("/proc/self/fd").is_dir():
+                source = stack.enter_context(open(path, "rb"))
+                movie_path, pass_fds = f"/proc/self/fd/{source.fileno()}", (source.fileno(),)
+            _run_command([
+                "ffprobe", "-v", "error", "-f", "lavfi", "-i",
+                f"movie={_escape_ffmpeg_filter_path(movie_path)},blackdetect=d=0.1:pix_th=0.10",
+                "-show_frames", "-show_entries",
+                "frame=best_effort_timestamp_time,duration_time,pkt_duration_time:"
+                "frame_tags=lavfi.black_start,lavfi.black_end",
+                "-of", "compact", "-o", str(metadata),
+            ], timeout=DEFAULT_FFMPEG_TIMEOUT, pass_fds=pass_fds, stderr_sink=diagnostics)
+            # Some decoders conceal damage and exit zero despite error diagnostics.
+            diagnostics.seek(0)
+            if diagnostics.read(1):
+                logger.warning("Black coverage decode emitted error diagnostics")
+                return None
+            with metadata.open(encoding="utf-8") as frames:
+                return _black_coverage_from_frames(frames)
+    except (OSError, MCPVideoError, ValueError, TypeError, KeyError) as exc:
+        logger.warning("Black coverage unavailable: %s", type(exc).__name__)
         return None
-    text = (proc.stderr or "") + (proc.stdout or "")
-    # black_start:0 black_end:1.2 black_duration:1.2
-    spans = re.findall(r"black_duration:([0-9.]+)", text)
-    if not spans and "blackdetect" not in text.lower() and proc.returncode != 0:
+
+
+def _black_coverage_from_frames(frames: Iterable[str]) -> float | None:
+    """Reduce blackdetect transitions using PTS intervals and terminal duration."""
+    previous_time = None
+    previous_black = False
+    black_seconds = total_seconds = terminal_duration = 0.0
+    for line in frames:
+        if not line.strip():
+            continue
+        if not line.startswith("frame|"):
+            return None
+        fields = dict(part.split("=", 1) for part in line.strip().split("|")[1:])
+        timestamp = float(fields["best_effort_timestamp_time"])
+        terminal_duration = float(fields.get("duration_time", fields.get("pkt_duration_time", "0")))
+        if not math.isfinite(timestamp) or not math.isfinite(terminal_duration) or terminal_duration < 0:
+            return None
+        if previous_time is not None:
+            interval = timestamp - previous_time
+            if interval <= 0:
+                return None
+            total_seconds += interval
+            if previous_black:
+                black_seconds += interval
+        if "tag:lavfi.black_start" in fields:
+            previous_black = True
+        if "tag:lavfi.black_end" in fields:
+            previous_black = False
+        previous_time = timestamp
+    if previous_time is None or terminal_duration <= 0:
         return None
-    total_black = sum(float(x) for x in spans)
-    return min(1.0, total_black / duration)
+    total_seconds += terminal_duration
+    if previous_black:
+        black_seconds += terminal_duration
+    return black_seconds / total_seconds
 
 
 def _integrated_lufs(path: str) -> float | None:
@@ -165,6 +214,7 @@ def _integrated_lufs(path: str) -> float | None:
         "-hide_banner",
         "-i",
         path,
+        "-vn",
         "-af",
         "loudnorm=print_format=json",
         "-f",

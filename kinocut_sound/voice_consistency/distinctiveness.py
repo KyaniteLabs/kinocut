@@ -54,7 +54,7 @@ def _parse_wav(wav_bytes: bytes) -> tuple[tuple[int, ...], int]:
     data_size = struct.unpack_from("<I", wav_bytes, data_offset + 4)[0]
     start = data_offset + 8
     count = data_size // 2
-    samples = tuple(struct.unpack_from("<h", wav_bytes, start + i * 2)[0] for i in range(count))
+    samples = struct.unpack_from(f"<{count}h", wav_bytes, start) if count else ()
     return samples, sample_rate
 
 
@@ -76,11 +76,11 @@ def _features(samples: tuple[int, ...], sample_rate: int) -> tuple[float, float,
 
     # Fast pitch proxy via decimated samples and a short lag window.
     factor = max(1, sample_rate // 5512)
-    ds = samples[::factor]
+    ds = samples[: 1024 * factor : factor]
     ds_rate = sample_rate / factor
     min_lag = max(1, int(ds_rate / 400))
     max_lag = min(len(ds) - 1, max(min_lag + 1, int(ds_rate / 80)))
-    window = ds[: min(len(ds), 1024)]
+    window = ds
     w = len(window)
     max_lag = min(max_lag, w - 1)
     denom = sum(s * s for s in window) or 1.0
@@ -106,6 +106,11 @@ def spectral_distance(wav_a: bytes, wav_b: bytes) -> float:
         )
     feat_a = _features(samples_a, rate_a)
     feat_b = _features(samples_b, rate_b)
+    return _feature_distance(feat_a, feat_b)
+
+
+def _feature_distance(feat_a: tuple[float, ...], feat_b: tuple[float, ...]) -> float:
+    """Compare precomputed features without decoding the source again."""
     # Weighted L1 over (rms, zcr, highband, pitch). ZCR/highband are amplified
     # so roster pitch/formant deltas separate above the collision threshold.
     weights = (2.0, 25.0, 25.0, 12.0)
@@ -155,11 +160,26 @@ def detect_collisions(
     compared: list[tuple[str, str]] = []
     distances: list[float] = []
     collisions: list[tuple[str, str]] = []
+    features: dict[int, tuple[tuple[float, ...], int]] = {}
+
+    def feature(index: int) -> tuple[tuple[float, ...], int]:
+        if index not in features:
+            samples, rate = _parse_wav(pairs[index][1])
+            features[index] = (_features(samples, rate), rate)
+        return features[index]
+
     for i in range(len(pairs)):
-        id_a, wav_a = pairs[i]
+        id_a = pairs[i][0]
         for j in range(i + 1, len(pairs)):
-            id_b, wav_b = pairs[j]
-            dist = spectral_distance(wav_a, wav_b)
+            id_b = pairs[j][0]
+            feat_a, rate_a = feature(i)
+            feat_b, rate_b = feature(j)
+            if rate_a != rate_b:
+                raise bounded_consistency_error(
+                    "spectral_distance requires matching sample rates",
+                    CONSISTENCY_METRIC_INVALID,
+                )
+            dist = _feature_distance(feat_a, feat_b)
             compared.append((id_a, id_b))
             distances.append(dist)
             if dist < threshold:

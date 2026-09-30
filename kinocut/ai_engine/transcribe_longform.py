@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 import tempfile
+from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _get_video_duration
@@ -97,6 +98,7 @@ def transcribe_longform(
     segments: list[LongformSegment] = []
     detected_language = language or "unknown"
     previous_end: float | None = None
+    model_cache: dict[str, Any] = {}
     with tempfile.TemporaryDirectory(prefix="kc_longform_") as work_dir:
         for chunk in plan.chunks:
             chunk_result = _transcribe_chunk(
@@ -105,6 +107,7 @@ def transcribe_longform(
                 model=model,
                 language=language,
                 work_dir=work_dir,
+                model_cache=model_cache,
             )
             if chunk_result.get("language", "unknown") != "unknown":
                 detected_language = str(chunk_result["language"])

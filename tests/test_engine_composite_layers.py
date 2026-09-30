@@ -284,7 +284,7 @@ def test_composite_layers_accepts_full_canvas_blend(tmp_path, monkeypatch, mode)
     assert "scale=64:64" in graph
     # The base layer ("base") is normal and still overlays onto the canvas;
     # only the "tint" blend layer uses the blend filter.
-    assert graph.count("overlay=") == 1
+    assert graph.count("overlay=") == 2  # preserve base for timed/partial-strength RGB blend
     assert graph.count("blend=all_mode=") == 1
     assert graph.endswith(",format=yuv420p[vout]")
     assert result.layer_plan["layers"][1]["blend"] == mode
@@ -307,9 +307,6 @@ def test_composite_layers_normal_layers_never_use_blend_filter(tmp_path, monkeyp
         lambda layer: layer.update({"scale": 2}),
         lambda layer: layer.update({"width": 32}),
         lambda layer: layer.update({"height": 32}),
-        lambda layer: layer.update({"start": 0.1}),
-        lambda layer: layer.update({"start": 0.1, "duration": 0.2}),
-        lambda layer: layer.update({"opacity": 0.5}),
         lambda layer: layer.update({"mask": "mask.png"}),
         lambda layer: layer.update({"matte": "mask.png"}),
     ],
@@ -390,6 +387,97 @@ def test_composite_layers_full_canvas_blend_is_ssim_stable_across_renders(tmp_pa
     assert quality.metrics["ssim"] >= 0.98
 
 
+def _mean_rgb_at(video, seconds):
+    frame = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-ss",
+            str(seconds),
+            "-i",
+            str(video),
+            "-frames:v",
+            "1",
+            "-vf",
+            "scale=1:1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+        ],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        check=True,
+        timeout=30,
+    ).stdout
+    return tuple(frame[:3])
+
+
+@pytest.mark.slow
+@pytest.mark.skipif(shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None, reason="requires ffmpeg")
+def test_composite_layers_video_layer_plays_from_its_start(tmp_path):
+    """A timed video layer starts playing at ``start``, not at the canvas origin.
+
+    The clip is red for 0.4 s then blue. Shown from 1.0 s, its first frames
+    must be red; before the fix the layer had already played for 1 s, so the
+    window showed blue (or nothing, for a clip shorter than its start).
+    """
+    clip = tmp_path / "clip.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=64x64:r=10:d=0.4",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=64x64:r=10:d=0.4",
+            "-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1[v]",
+            "-map",
+            "[v]",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(clip),
+        ],
+        stdin=subprocess.DEVNULL,
+        check=True,
+        timeout=30,
+    )
+    spec = {
+        "canvas": {"width": 64, "height": 64, "background": "#000000", "fps": 10, "duration": 2.0},
+        "layers": [
+            {"id": "base", "type": "solid", "color": "#000000"},
+            {
+                "id": "clip",
+                "type": "video",
+                "src": str(clip),
+                "position": {"x": 0, "y": 0},
+                "start": 1.0,
+                "duration": 0.8,
+            },
+        ],
+    }
+    output = tmp_path / "timed.mp4"
+    composite_layers(str(_write_spec(tmp_path, spec)), output_path=str(output))
+
+    red, green, blue = _mean_rgb_at(output, 0.5)
+    assert max(red, green, blue) < 40, "hidden before its start"
+    red, green, blue = _mean_rgb_at(output, 1.15)
+    assert red > 150 and blue < 80, "first frames of the clip at the layer start"
+    red, green, blue = _mean_rgb_at(output, 1.65)
+    assert blue > 150 and red < 80, "then the clip keeps playing"
+
+
 # --- Story P1: positioned in-canvas non-normal blend -----------------------
 
 
@@ -441,8 +529,9 @@ def test_composite_layers_positioned_blend_filtergraph_splits_base_before_crop_a
     # The running base is split so each output is consumed exactly once: one is
     # kept for the final overlay and the other is cropped for the tile blend.
     assert "[base1]split=2[layer2keep][layer2cropsource]" in graph
-    assert "[layer2cropsource]crop=24:32:8:16[layer2base]" in graph
-    assert "[layer2base][layer2]blend=all_mode=overlay[layer2blend]" in graph
+    assert "[layer2cropsource]crop=24:32:8:16,format=gbrp[layer2base]" in graph
+    assert "[layer2colorinput]format=gbrp[layer2color]" in graph
+    assert "[layer2base][layer2color]blend=all_mode=overlay:all_opacity=1.0[layer2blendedcolor]" in graph
     assert "[layer2keep][layer2blend]overlay=8:16:format=auto:eof_action=pass" in graph
     assert "[base1]crop=" not in graph
     assert "[base1][layer2blend]overlay=" not in graph
@@ -509,9 +598,6 @@ def test_composite_layers_positioned_blend_summary_note(tmp_path, monkeypatch):
         lambda layer: layer.update({"mask": "mask.png"}),  # positioned + mask deferred
         lambda layer: layer.update({"matte": "mask.png"}),  # positioned + matte deferred
         lambda layer: layer.update({"rotation": 45}),  # positioned + rotation deferred
-        lambda layer: layer.update({"start": 0.1}),  # positioned + timing deferred
-        lambda layer: layer.update({"start": 0.1, "duration": 0.2}),
-        lambda layer: layer.update({"opacity": 0.5}),  # blend opacity stays full this release
     ],
 )
 def test_composite_layers_rejects_invalid_positioned_blend(tmp_path, mutator):

@@ -217,7 +217,8 @@ def test_otio_kinocut_ir_still_preferred(tmp_path: Path) -> None:
 def test_vision_qc_structural_keyframes(sample_video: str) -> None:
     result = run_vision_qc(sample_video, sample_times=[0.1], require_vlm=False)
     assert result["artifact_kind"] == "vision_qc"
-    assert result["verdict"] in {"pass", "fail"}
+    assert result["verdict"] in {"not_evaluated", "inconclusive"}
+    assert result["assessment_status"] == "not_evaluated"
     assert "keyframe_count" in result
     # At least attempted structural sample
     assert any(f["check_id"] == "vision.keyframe_sample" for f in result["findings"])

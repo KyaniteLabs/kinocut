@@ -337,6 +337,7 @@ class TestVisualQualityGuardrails:
         ):
             result = guardrails._analyze_loudnorm("/tmp/test.mp4")
             assert result["_error"]["stage"] == "ffmpeg_loudnorm"
+        assert "-vn" in fake.call_args.args[0]
         mock_warning.assert_called()
 
     def test_check_color_balance_exposes_diagnostic_details(self, guardrails):

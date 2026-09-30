@@ -2,30 +2,48 @@
 
 from __future__ import annotations
 
-from .ffmpeg_helpers import _build_ffmpeg_cmd
+from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _sanitize_ffmpeg_number
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_runtime_utils import _build_edit_result, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg
 from .errors import MCPVideoError
 from .models import EditResult
+from .validation import MAX_TRIM_TIME_TEXT_LENGTH
 
 
 def _time_to_seconds(value: str | float) -> float:
     """Convert a time string (HH:MM:SS or seconds) to float seconds."""
-    if isinstance(value, (int, float)):
-        return float(value)
-    value = value.strip()
-    # Handle HH:MM:SS or MM:SS
-    if ":" in value:
-        parts = value.split(":")
-        if len(parts) == 2:
-            m, s = parts
-            return int(m) * 60 + float(s)
-        elif len(parts) == 3:
-            h, m, s = parts
-            return int(h) * 3600 + int(m) * 60 + float(s)
-    return float(value)
+    if isinstance(value, bool) or not isinstance(value, (int, float, str)):
+        raise MCPVideoError(
+            "Trim time must be numeric seconds or a time string",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    try:
+        if isinstance(value, str):
+            if len(value) > MAX_TRIM_TIME_TEXT_LENGTH:
+                raise MCPVideoError(
+                    "Trim time string is too long",
+                    error_type="validation_error",
+                    code="invalid_parameter",
+                )
+            value = value.strip()
+            if ":" in value:
+                parts = value.split(":")
+                if len(parts) == 2:
+                    minutes, seconds = parts
+                    value = int(minutes) * 60 + float(seconds)
+                elif len(parts) == 3:
+                    hours, minutes, seconds = parts
+                    value = int(hours) * 3600 + int(minutes) * 60 + float(seconds)
+        return _sanitize_ffmpeg_number(value, "trim time")
+    except OverflowError:
+        raise MCPVideoError(
+            "Trim time must be a finite number",
+            error_type="validation_error",
+            code="invalid_parameter",
+        ) from None
 
 
 def _validate_trim_times(
@@ -101,8 +119,8 @@ def trim(
     """Trim a video by start time and duration or end time.
 
     Args:
-        accurate: When True, place ``-ss`` after ``-i`` for frame-accurate
-            seeking (slower).  Default False uses input seeking (fast).
+        accurate: Kept for compatibility. Both values use frame-accurate
+            input seeking because this operation always re-encodes.
     """
     input_path = _validate_input_path(input_path)
     output = output_path or _auto_output(input_path, "trimmed")
@@ -111,30 +129,20 @@ def trim(
     start_sec = _validate_trim_times(start, duration, end)
 
     prefix: list[str] = []
-    if not accurate and start:
-        # Input seeking — fast but may land on nearest keyframe
+    if start:
+        # Re-encoding uses FFmpeg's default accurate input seek.
         prefix.extend(["-ss", str(start)])
     prefix.extend(["-i", input_path])
-    if accurate and start:
-        # Output seeking — frame accurate but slower
-        prefix.extend(["-ss", str(start)])
     if duration:
         prefix.extend(["-t", str(duration)])
     elif end:
-        if accurate:
-            # Output seeking preserves source timestamps, so -to is absolute.
-            prefix.extend(["-to", str(end)])
-        else:
-            # Input seeking (-ss before -i) rebases output timestamps to zero,
-            # so a trailing -to is measured from the seek point and silently
-            # behaves as a duration. Convert the absolute end time explicitly.
-            prefix.extend(["-t", str(_time_to_seconds(end) - start_sec)])
+        # Input seeking rebases timestamps; convert the absolute endpoint.
+        prefix.extend(["-t", str(_time_to_seconds(end) - start_sec)])
 
-    with _timed_operation() as timing:
-        _run_ffmpeg(prefix + _build_ffmpeg_cmd(output_path=output))
+    with _atomic_output(output) as staged:
+        _validate_output_path(staged)
+        with _timed_operation() as timing:
+            _run_ffmpeg(prefix + _build_ffmpeg_cmd(output_path=staged))
+        result = _build_edit_result(staged, "trim", timing)
 
-    return _build_edit_result(
-        output,
-        "trim",
-        timing,
-    )
+    return result.model_copy(update={"output_path": output})

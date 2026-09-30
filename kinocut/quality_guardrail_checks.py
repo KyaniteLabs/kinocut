@@ -6,7 +6,7 @@ from .quality_guardrail_types import QualityReport, _diagnostic, _metric
 
 
 class QualityChecksMixin:
-    """Brightness and contrast checks for the visual guardrail engine."""
+    """Brightness, contrast and saturation checks for the visual guardrail engine."""
 
     def check_brightness(self, video: str) -> QualityReport:
         """Check video brightness is in acceptable range."""
@@ -106,4 +106,57 @@ class QualityChecksMixin:
                 "target_range": [self.CONTRAST_MIN, self.CONTRAST_MAX],
                 "metric": metric,
             },
+        )
+
+    def check_saturation(self, video: str) -> QualityReport:
+        """Check saturation levels."""
+        sat_avg = self._mean_signalstat(video, "SATAVG")
+        if sat_avg is None:
+            metric = _metric(
+                "ffmpeg.signalstats.SATAVG",
+                None,
+                "percent_of_8bit_yuv_saturation_range",
+                raw={"value": None, "unit": "signalstats_chroma_magnitude", "full_scale": 181.0},
+            )
+            return QualityReport(
+                check_name="saturation",
+                passed=False,
+                score=0.0,
+                message="Could not analyze saturation (analysis failed)",
+                details={
+                    "diagnostic": _diagnostic("ffprobe_signalstats", "missing SATAVG values"),
+                    "metric": metric,
+                },
+            )
+
+        # signalstats SATAVG is a per-pixel saturation average. 181 is a
+        # practical full-saturation ceiling for 8-bit YUV in FFmpeg output.
+        saturation_pct = (sat_avg / 181) * 100
+        metric = _metric(
+            "ffmpeg.signalstats.SATAVG",
+            saturation_pct,
+            "percent_of_8bit_yuv_saturation_range",
+            raw={"value": sat_avg, "unit": "signalstats_chroma_magnitude", "full_scale": 181.0},
+        )
+
+        passed = self.SATURATION_MIN <= saturation_pct <= self.SATURATION_MAX
+
+        # Calculate score
+        optimal_sat = 50
+        deviation = abs(saturation_pct - optimal_sat)
+        score = float(max(0, 100 - (deviation / optimal_sat) * 100))
+
+        if saturation_pct < self.SATURATION_MIN:
+            message = f"Video appears desaturated (estimated: {saturation_pct:.1f}%). Consider increasing saturation."
+        elif saturation_pct > self.SATURATION_MAX:
+            message = f"Video appears oversaturated (estimated: {saturation_pct:.1f}%). Consider reducing saturation."
+        else:
+            message = f"Saturation is well-balanced (estimated: {saturation_pct:.1f}%)"
+
+        return QualityReport(
+            check_name="saturation",
+            passed=passed,
+            score=score,
+            message=message,
+            details={"saturation_pct": saturation_pct, "sat_avg": sat_avg, "metric": metric},
         )

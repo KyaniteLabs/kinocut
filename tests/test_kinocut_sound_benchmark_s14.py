@@ -13,6 +13,7 @@ from kinocut.sound_joins.benchmark import (
     detect_benchmark_class,
     run_cold_warm_benchmark,
 )
+from kinocut.sound_joins import benchmark
 from kinocut.sound_joins.scheduler import (
     BoundedProcessPool,
     CancelledError,
@@ -58,7 +59,26 @@ def test_detect_class_is_named():
     assert hw.platform
 
 
-def test_cold_warm_benchmark_small_fixture():
+def test_default_benchmark_reports_missing_perceptual_voice_backend(monkeypatch):
+    def must_not_run(*args, **kwargs):
+        pytest.fail("Missing required capabilities must not produce benchmark timings")
+
+    monkeypatch.setattr(benchmark, "_run_fixture", must_not_run)
+    receipt = run_cold_warm_benchmark(fixture=FixtureSpec(clip_count=8))
+    assert receipt.required_capabilities["d42_style"] is False
+    assert receipt.required_capabilities["d42_identity"] is False
+    assert receipt.status == "failed"
+    assert receipt.notes == ("required_capabilities_missing",)
+    assert not receipt.cold_ok and not receipt.warm_ok and not receipt.under_30m
+    assert receipt.cold_seconds == receipt.warm_seconds == 0.0
+    assert receipt.to_payload()["required_capabilities"]["d42_identity"] is False
+
+
+def test_cold_warm_benchmark_small_fixture_with_explicit_test_capabilities(monkeypatch):
+    # This exercises timing/scheduling only, not perceptual backend certification.
+    monkeypatch.setattr(benchmark, "_probe_required", lambda: {
+        "d41_bed": True, "d41_audition": True, "d42_style": True, "d42_identity": True,
+    })
     # Focused unit uses 8 clips; full 64-clip dual-class evidence is in receipts.
     receipt = run_cold_warm_benchmark(
         fixture=FixtureSpec(clip_count=8, clip_duration_seconds=0.05),

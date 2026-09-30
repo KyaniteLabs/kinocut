@@ -8,6 +8,8 @@ returns promptly. The child (``main``) opens the project, observes a cooperative
 cancel, resumes from an existing receipt when one is present, invokes the
 synchronous workflow engine with ``keep_intermediates=True``, and records the
 terminal (succeeded/failed) via the render-job repository.
+Stop requests make the runner leave execution; the stop controller/reconciliation
+owns the terminal record after observing group quiescence and lease release.
 
 INTERNAL ONLY: no daemon, no public MCP/CLI surface, no raw host path persisted.
 """
@@ -23,6 +25,7 @@ import sys
 import time
 
 from kinocut.projectstore._filelock import lock_exclusive
+from kinocut.errors import MCPVideoError
 from kinocut.projectstore.render_jobs import (
     RenderJobStatus,
     get_render_job,
@@ -34,6 +37,7 @@ from kinocut.projectstore.render_jobs import (
     start_render_job,
 )
 from kinocut.projectstore.store import Project, open_project
+from kinocut.projectstore.render_control import CANCELLATION_REQUESTED, STOP_REQUEST_STAGES
 from kinocut.server_tools_workflow import video_workflow_render
 from kinocut.workflow.executor import attach_receipt_lineage
 
@@ -41,14 +45,18 @@ __all__ = ["run_job", "start_render_job"]
 
 
 def run_job(project: Project, job_id: str) -> str:
-    """Run one job to a terminal in-process and return its terminal label.
+    """Run one job until completion or a stop request and return its outcome label.
 
     Observes a cooperative cancel, then invokes the synchronous workflow engine
     with the stored frozen spec, resuming from an existing receipt, and records
     the terminal (succeeded/failed) with bounded failure text.
+    A requested cancelled/failed label means this runner leaves execution; its
+    stored job remains RUNNING until the stop controller confirms quiescence.
     """
     if get_render_job(project, job_id).status is RenderJobStatus.CANCELLED:
         return "cancelled"
+    if requested := _requested_stop_label(project, job_id):
+        return requested
     receipt_path = job_receipt_path(project, job_id)
     resume_receipt = str(receipt_path) if receipt_path.exists() else None
     # Production ALWAYS invokes the synchronous workflow engine with keep_intermediates=True;
@@ -62,17 +70,28 @@ def run_job(project: Project, job_id: str) -> str:
             keep_intermediates=True,
         )
     except Exception as exc:  # defensive: never lose a terminal
+        if requested := _requested_stop_label(project, job_id):
+            return requested
         mark_failed(project, job_id, "render_failed", repr(exc)[:256])
         return "failed"
+    if requested := _requested_stop_label(project, job_id):
+        return requested
     if isinstance(result, dict) and result.get("success"):
         try:
             # The synchronous engine returns the authoritative workflow receipt (plus
             # ``success``); derive/persist lineage directly from it — never reread the file.
             result = _attach_job_lineage(project, job_id, receipt_path, result)
         except Exception:  # lineage is required provenance: never succeed without it
+            if requested := _requested_stop_label(project, job_id):
+                return requested
             mark_failed(project, job_id, "lineage_failed", "workflow receipt lineage could not be attached")
             return "failed"
-        mark_succeeded(project, job_id, result)
+        try:
+            mark_succeeded(project, job_id, result)
+        except MCPVideoError:
+            if requested := _requested_stop_label(project, job_id):
+                return requested
+            raise
         return "succeeded"
     error = result.get("error") if isinstance(result, dict) else None
     mark_failed(
@@ -82,6 +101,13 @@ def run_job(project: Project, job_id: str) -> str:
         (error or {}).get("message") or "",
     )
     return "failed"
+
+
+def _requested_stop_label(project: Project, job_id: str) -> str | None:
+    head = get_render_job(project, job_id)
+    if head.status is RenderJobStatus.RUNNING and head.stage in STOP_REQUEST_STAGES:
+        return "cancelled" if head.stage == CANCELLATION_REQUESTED else "failed"
+    return None
 
 
 def _attach_job_lineage(project: Project, job_id: str, receipt_path: Path, receipt: dict[str, Any]) -> dict[str, Any]:
@@ -148,7 +174,8 @@ def main(argv: list[str]) -> int:
             run_job(project, args.job_id)
         except Exception as exc:  # defensive: record a bounded failure, never hang the job
             with contextlib.suppress(Exception):
-                mark_failed(project, args.job_id, "render_failed", repr(exc)[:256])
+                if _requested_stop_label(project, args.job_id) is None:
+                    mark_failed(project, args.job_id, "render_failed", repr(exc)[:256])
     return 0
 
 

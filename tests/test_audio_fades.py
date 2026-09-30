@@ -17,7 +17,8 @@ MEASUREMENT = json.dumps({"input_i": -20, "input_lra": 2, "input_tp": -3, "input
 
 
 def _mock_normalize(monkeypatch, tmp_path, *, duration: object = "2.0", audio: bool = True, stderr: str = MEASUREMENT):
-    source, output = tmp_path / "in.wav", tmp_path / "out.wav"
+    suffix = "wav" if audio else "mp4"
+    source, output = tmp_path / f"in.{suffix}", tmp_path / f"out.{suffix}"
     source.write_bytes(b"x")
     calls: list[list[str]] = []
     streams = [{"codec_type": "audio" if audio else "video"}]
@@ -32,6 +33,16 @@ def _mock_normalize(monkeypatch, tmp_path, *, duration: object = "2.0", audio: b
     )
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
+    )
+    # This fixture exercises filter construction with a mocked renderer. Real
+    # codec/decode validation remains exercised by the actual-media tests.
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._validate_normalized_output",
+        lambda _path, _codec: {
+            "format": {"format_name": suffix, "duration": duration},
+            "streams": [{"codec_type": "audio", "codec_name": "pcm_s16le", "sample_rate": "48000", "channels": 1}]
+            if audio else [{"codec_type": "video", "codec_name": "h264"}],
+        },
     )
     return source, output, calls
 

@@ -3,6 +3,14 @@
 from __future__ import annotations
 
 from ..errors import MCPVideoError
+from ..defaults import (
+    DEFAULT_AUDIO_MIX_BITRATE,
+    DEFAULT_DUCK_MUSIC_VOLUME,
+    DEFAULT_DUCK_THRESHOLD,
+    DEFAULT_DUCK_RATIO,
+    DEFAULT_DUCK_ATTACK_MS,
+    DEFAULT_DUCK_RELEASE_MS,
+)
 
 from typing import Literal
 
@@ -17,6 +25,48 @@ from ..models import (
 
 class ClientAudioMixin:
     """Audio operations mixin."""
+
+    def mix_audio(
+        self,
+        video: str,
+        tracks: list[dict],
+        output: str | None = None,
+        keep_source: bool = True,
+        *,
+        audio_bitrate: str = DEFAULT_AUDIO_MIX_BITRATE,
+    ) -> EditResult:
+        """Mix timed tracks once, stream-copying picture and preserving video duration.
+
+        Each track accepts path, start, volume, fade_in and fade_out. Gains sum
+        without normalization and may clip; listen before publishing. Fades apply
+        to the audible segment, clipped at the video's end. No project store is
+        needed. This API encodes AAC once instead of repeatedly re-encoding with
+        add_audio(mix=True).
+        """
+        from ..engine_audio_mix import mix_audio
+
+        return mix_audio(video, tracks, output, keep_source=keep_source, audio_bitrate=audio_bitrate)
+
+    def duck_audio(
+        self,
+        video: str,
+        music: str,
+        output: str | None = None,
+        music_volume: float = DEFAULT_DUCK_MUSIC_VOLUME,
+        threshold: float = DEFAULT_DUCK_THRESHOLD,
+        ratio: float = DEFAULT_DUCK_RATIO,
+        attack: float = DEFAULT_DUCK_ATTACK_MS,
+        release: float = DEFAULT_DUCK_RELEASE_MS,
+    ) -> EditResult:
+        """Duck music against the video's audio on plain files, without a project store.
+
+        This sidechain mix provides no governed audio-bed receipt or loudness
+        normalization. Use audio_bed with a verified project-store snapshot when
+        those guarantees are required.
+        """
+        from ..engine_audio_ops import duck_audio
+
+        return duck_audio(video, music, output, music_volume, threshold, ratio, attack, release)
 
     def audio_waveform(
         self,

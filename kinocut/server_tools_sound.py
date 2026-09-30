@@ -84,7 +84,7 @@ async def sound_master_render(request: dict[str, Any], project_root: str) -> dic
 async def sound_qa_loudness(request: dict[str, Any] | None = None, project_root: str | None = None) -> dict[str, Any]:
     """Measure hashed local audio against its policy; omit inputs for a labelled demo."""
     from kinocut_sound._errors import SoundContractError
-    from kinocut_sound.public.loudness_request import inspect_loudness_async
+    from kinocut.sound_joins.loudness import inspect_loudness_async
     from .errors import MCPVideoError
 
     try:

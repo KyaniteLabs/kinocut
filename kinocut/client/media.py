@@ -190,6 +190,9 @@ class ClientMediaMixin:
     ) -> dict[str, Any]:
         """Governed one-shot audio-bed: duck music under voice, normalize, receipt.
 
+        Requires immutable verified source snapshots from a project store. For
+        standalone plain files, use duck_audio instead; it has no governed receipt.
+
         Composes a music bed under a voice source with sidechain ducking and
         loudness normalization, then emits a deterministic edit receipt under
         the ``receipt`` key (an ``AudioBedReceipt`` as JSON). The bed is looped
@@ -714,6 +717,7 @@ class ClientMediaMixin:
         Supports explicit straight/premultiplied input alpha, opacity,
         transforms, timing windows, masks/mattes, allowlisted blend modes,
         and effect-noise routes to named layer/mask/mask-edge streams.
+        File sources and masks must resolve inside the spec's directory.
         """
         return _composite_layers(spec, output_path=output, save_layer_plan=save_layer_plan, dry_run=dry_run)
 

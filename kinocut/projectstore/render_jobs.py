@@ -3,10 +3,9 @@
 from __future__ import annotations
 
 import hashlib
+import contextlib
 import json
-import os
 import secrets
-import signal
 import subprocess
 import sys
 from collections.abc import Callable
@@ -14,12 +13,21 @@ from datetime import UTC, datetime
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from kinocut.defaults import DEFAULT_RENDER_STOP_TIMEOUT
+
 from kinocut.projectstore._filelock import lock_exclusive, unlock
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import RenderJobRecord, RenderJobStatus, can_transition_job
 from kinocut.projectstore.edit_projects import _append_transaction, get_branch
 from kinocut.projectstore.events import _build_event_locked
+from kinocut.projectstore.render_control import (
+    CANCELLATION_REQUESTED,
+    STOP_REQUEST_STAGES,
+    TERMINATION_REQUESTED,
+    group_quiescent,
+    stop_runner_group,
+)
 from kinocut.projectstore.store import (
     Project,
     _project_lock,
@@ -119,6 +127,14 @@ def _transition(project: Project, job_id: str, target: RenderJobStatus, **change
         head = _job_heads(project).get(job_id)
         if head is None:
             raise contract_error("render job not found", INVALID_RECORD)
+        if (
+            head.status is RenderJobStatus.RUNNING
+            and target is RenderJobStatus.FAILED
+            and head.stage in STOP_REQUEST_STAGES
+        ):
+            # The stop controller owns the terminal once requested. A racing
+            # runner failure must not discard its PID before quiescence.
+            return head
         if not can_transition_job(head.status, target):
             raise contract_error(f"illegal render-job transition {head.status.value} -> {target.value}", INVALID_RECORD)
         return _append_from(project, head, target, **changes)
@@ -194,6 +210,8 @@ def mark_succeeded(project: Project, job_id: str, receipt: dict[str, Any]) -> Re
         head = _job_heads(project).get(job_id)
         if head is None:
             raise contract_error("render job not found", INVALID_RECORD)
+        if head.stage in STOP_REQUEST_STAGES:
+            raise contract_error("render job cannot succeed while stop is requested", INVALID_RECORD)
         if not can_transition_job(head.status, RenderJobStatus.SUCCEEDED):
             raise contract_error(
                 f"illegal render-job transition {head.status.value} -> {RenderJobStatus.SUCCEEDED.value}",
@@ -315,9 +333,18 @@ def render_job_status(project: Project, job_id: str) -> dict[str, Any]:
 
 
 def cancel_render_job(project: Project, job_id: str) -> RenderJobRecord:
-    """Durable CANCELLED marker (legal transition only); a runner observes it cooperatively."""
+    """Cancel queued work immediately; running work is terminal only after verified
+    stop. An unconfirmed stop returns RUNNING with stage cancellation_requested
+    and runner_pid retained, allowing retry or later reconciliation."""
     _require_job_id(job_id)
-    return _transition(project, job_id, RenderJobStatus.CANCELLED, runner_pid=None)
+    with _project_lock(project):
+        head = _job_heads(project).get(job_id)
+        if head is None or not can_transition_job(head.status, RenderJobStatus.CANCELLED):
+            raise contract_error("render job cannot be cancelled in its current state", INVALID_RECORD)
+        if head.status is RenderJobStatus.QUEUED:
+            return _append_from(project, head, RenderJobStatus.CANCELLED, stage="cancelled", runner_pid=None)
+        head = _prepare_stop_locked(project, head, CANCELLATION_REQUESTED)
+    return _request_stop(project, head)
 
 
 def resume_render_job(project: Project, job_id: str) -> RenderJobRecord:
@@ -339,7 +366,9 @@ def _runner_lease_is_held(project: Project, job_id: str) -> bool:
 
 
 def terminate_render_job(project: Project, job_id: str) -> RenderJobRecord:
-    """Kill only a live runner proven by its process group and held job lease."""
+    """Kill only a runner proven by its process group and held job lease. Keep
+    RUNNING and its PID if stop cannot be confirmed; preserve a prior cancellation
+    request so verified completion records CANCELLED rather than FAILED."""
     _require_job_id(job_id)
     with _project_lock(project):
         head = _job_heads(project).get(job_id)
@@ -348,65 +377,114 @@ def terminate_render_job(project: Project, job_id: str) -> RenderJobRecord:
         if head.status is not RenderJobStatus.RUNNING:
             return head
 
-        pid = head.runner_pid
-        verified = isinstance(pid, int) and pid > 1 and pid != os.getpid() and pid != os.getpgrp()
-        if verified:
-            try:
-                verified = os.getpgid(pid) == pid and _runner_lease_is_held(project, job_id)
-            except OSError:
-                verified = False
+        head = _prepare_stop_locked(project, head, TERMINATION_REQUESTED)
+    return _request_stop(project, head)
 
-        artifacts, completed = _best_effort_progress(project, job_id)
-        error_code = "orphaned_runner"
-        error_message = "runner identity could not be verified"
-        if verified:
-            os.killpg(pid, signal.SIGKILL)
-            error_code = "terminated"
-            error_message = "runner terminated by request"
+
+def _prepare_stop_locked(project: Project, head: RenderJobRecord, stage: str) -> RenderJobRecord:
+    """Append intent while locked; process signaling/waiting happens after release."""
+    if head.stage == CANCELLATION_REQUESTED:
+        stage = CANCELLATION_REQUESTED
+    if head.stage != stage:
+        head = _append_from(project, head, RenderJobStatus.RUNNING, stage=stage)
+    return head
+
+
+def _request_stop(project: Project, head: RenderJobRecord) -> RenderJobRecord:
+    """Wait without holding the project lock; keep PID if stop is unconfirmed."""
+    outcome = stop_runner_group(head.runner_pid, lambda: _runner_lease_is_held(project, head.job_id))
+    with _project_lock(project):
+        current = _job_heads(project).get(head.job_id)
+        if current is None:
+            raise contract_error("render job not found", INVALID_RECORD)
+        if current.status is not RenderJobStatus.RUNNING:
+            return current
+        if current.runner_pid != head.runner_pid or current.stage not in STOP_REQUEST_STAGES:
+            raise contract_error("runner identity changed during stop", INVALID_RECORD)
+        if outcome == "stopped":
+            return _finish_stop_locked(project, current)
+        code = f"runner_stop_{outcome}"
+        if current.error_code == code:
+            return current
         return _append_from(
             project,
-            head,
-            RenderJobStatus.FAILED,
-            stage="failed",
-            stage_index=completed,
-            completed_artifacts=artifacts,
-            error_code=error_code,
-            error_message=error_message,
-            runner_pid=None,
+            current,
+            RenderJobStatus.RUNNING,
+            stage=current.stage,
+            error_code=code,
+            error_message="runner stop is unconfirmed; PID retained for retry",
         )
+
+
+def _finish_stop_locked(project: Project, head: RenderJobRecord) -> RenderJobRecord:
+    cancelled = head.stage == CANCELLATION_REQUESTED
+    artifacts, completed = _best_effort_progress(project, head.job_id)
+    return _append_from(
+        project,
+        head,
+        RenderJobStatus.CANCELLED if cancelled else RenderJobStatus.FAILED,
+        stage="cancelled" if cancelled else "failed",
+        stage_index=completed,
+        completed_artifacts=artifacts,
+        runner_pid=None,
+        error_code=None if cancelled else "terminated",
+        error_message=None if cancelled else "runner terminated by request",
+    )
 
 
 def start_render_job(project: Project, job_id: str) -> RenderJobRecord:
     """Spawn the detached runner for ``job_id``, persist RUNNING with its PID, and return; the child owns its own terminal transition."""
     _require_job_id(job_id)
-    proc = subprocess.Popen(  # noqa: S603 - argv is fully controlled; shell is never used
-        [
-            sys.executable,
-            "-m",
-            "kinocut.projectstore.render_runner",
-            "--project",
-            str(project.root),
-            "--job-id",
-            job_id,
-        ],
-        stdin=subprocess.DEVNULL,
-        stdout=subprocess.DEVNULL,
-        stderr=subprocess.DEVNULL,
-        start_new_session=True,
-        close_fds=True,
-        shell=False,
-    )
-    return mark_running(project, job_id, proc.pid)
+    proc = None
+    try:
+        with _project_lock(project):
+            head = _job_heads(project).get(job_id)
+            if head is None or not can_transition_job(head.status, RenderJobStatus.RUNNING):
+                raise contract_error("render job cannot be started in its current state", INVALID_RECORD)
+            proc = subprocess.Popen(  # noqa: S603 - argv is fully controlled; shell is never used
+                [
+                    sys.executable,
+                    "-m",
+                    "kinocut.projectstore.render_runner",
+                    "--project",
+                    str(project.root),
+                    "--job-id",
+                    job_id,
+                ],
+                stdin=subprocess.DEVNULL,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+                close_fds=True,
+                shell=False,
+            )
+            return _append_from(project, head, RenderJobStatus.RUNNING, runner_pid=proc.pid, stage="running")
+    except BaseException:
+        if proc is not None:
+            # This is our newly spawned child, which cannot render before RUNNING
+            # contains its PID. A failed persistence must not leave it detached.
+            with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+                proc.kill()
+                proc.wait(timeout=DEFAULT_RENDER_STOP_TIMEOUT)
+        raise
 
 
 def reconcile_render_jobs(project: Project, *, is_alive: Callable[[int], bool] | None = None) -> list[RenderJobRecord]:
-    """Reconcile RUNNING snapshots against caller-supplied liveness facts: any RUNNING job whose ``runner_pid`` is not reported alive moves to FAILED (recoverable via :func:`resume_render_job`). Idempotent."""
+    """Finalize only observably quiescent groups with no held lease. An optional
+    positive liveness hint preserves an ordinary RUNNING job; a negative hint
+    never substitutes for proof that descendants have stopped. Idempotent."""
     changed: list[RenderJobRecord] = []
     with _project_lock(project):
         for job_id, head in _job_heads(project).items():
             if head.status is not RenderJobStatus.RUNNING:
                 continue
+            if head.stage in STOP_REQUEST_STAGES:
+                if group_quiescent(head.runner_pid) and not _runner_lease_is_held(project, job_id):
+                    changed.append(_finish_stop_locked(project, head))
+                continue
             if is_alive is not None and head.runner_pid is not None and is_alive(head.runner_pid):
+                continue
+            if not group_quiescent(head.runner_pid) or _runner_lease_is_held(project, job_id):
                 continue
             artifacts, completed = _best_effort_progress(project, job_id)
             changed.append(

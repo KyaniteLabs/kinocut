@@ -47,13 +47,11 @@ def effect_vignette(
     # angle of PI/2 = corner to center, angle of PI/5 = closer to edges
     angle = 3.14159 * (1 - radius * 0.8)  # Scale to reasonable range
 
-    # Build filter chain
-    # vignette creates the darkening, we overlay it with the original
+    # Blend the forward darkening directly, without interpreting YUV as RGB alpha.
     filters = (
         f"split[original][vignetted];"
-        f"[vignetted]vignette=angle={angle}:mode=backward[a];"
-        f"[a]format=pix_fmts=yuva420p,colorchannelmixer=aa={intensity}[vignette];"
-        f"[original][vignette]overlay=format=auto"
+        f"[vignetted]vignette=angle={angle}:mode=forward[vignette];"
+        f"[original][vignette]blend=all_expr='A*(1-{intensity})+B*{intensity}'"
     )
 
     cmd = [
@@ -291,7 +289,7 @@ def effect_glow(
         f"split[original][highlights];"
         f"[highlights]geq=lum='if(lt(lum(X,Y),{threshold_8bit}),0,lum(X,Y))',"
         f"gblur=sigma={radius}[glow];"
-        f"[original][glow]blend=all_mode='screen':all_opacity={safe_intensity}"
+        f"[original][glow]blend=c0_mode=screen:c0_opacity={safe_intensity}:c1_expr=A:c2_expr=A"
     )
 
     cmd = [
@@ -321,7 +319,7 @@ def effect_glow(
             f"split[original][highlights];"
             f"[highlights]geq=lum='if(lt(lum(X,Y),{threshold_8bit}),0,lum(X,Y))',"
             f"boxblur={radius}:{radius}[glow];"
-            f"[original][glow]blend=all_mode='screen':all_opacity={safe_intensity}"
+            f"[original][glow]blend=c0_mode=screen:c0_opacity={safe_intensity}:c1_expr=A:c2_expr=A"
         )
         cmd[5] = filters
         _run_command(cmd)
