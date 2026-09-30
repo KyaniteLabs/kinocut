@@ -1,0 +1,471 @@
+{
+  "success": true,
+  "platform": {
+    "python": "3.12.14",
+    "executable": "/workspace/kinocut/.venv/bin/python",
+    "system": "Linux-6.18.44-x86_64-with-glibc2.41"
+  },
+  "summary": {
+    "required_ok": true,
+    "missing_required": [],
+    "missing_optional": [
+      "hyperframes",
+      "@hyperframes/core",
+      "anthropic",
+      "openai-whisper",
+      "demucs",
+      "realesrgan",
+      "basicsr",
+      "opencv-contrib-python",
+      "torch",
+      "torchaudio",
+      "torchcodec",
+      "imagehash",
+      "soundfile",
+      "librosa",
+      "basic-pitch",
+      "meltysynth",
+      "crush_shaders",
+      "object_matte"
+    ],
+    "total_checks": 37,
+    "passed": 19,
+    "optional_available": 12
+  },
+  "checks": [
+    {
+      "name": "mcp-video",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "path": "/workspace/kinocut/kinocut/__init__.py",
+      "version": "1.15.3",
+      "install_hint": null
+    },
+    {
+      "name": "mcp-server-import",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "detail": "kinocut.server imports cleanly"
+    },
+    {
+      "name": "ffmpeg",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "path": "/usr/bin/ffmpeg",
+      "version": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+      "command": [
+        "ffmpeg",
+        "-version"
+      ],
+      "install_hint": null,
+      "major_version": 7
+    },
+    {
+      "name": "ffprobe",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "path": "/usr/bin/ffprobe",
+      "version": "ffprobe version 7.1.5-0+deb13u1 Copyright (c) 2007-2026 the FFmpeg developers",
+      "command": [
+        "ffprobe",
+        "-version"
+      ],
+      "install_hint": null
+    },
+    {
+      "name": "node",
+      "category": "hyperframes",
+      "required": false,
+      "ok": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "version": "v24.19.0",
+      "command": [
+        "node",
+        "--version"
+      ],
+      "install_hint": null
+    },
+    {
+      "name": "npx",
+      "category": "hyperframes",
+      "required": false,
+      "ok": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npx",
+      "version": "11.9.0",
+      "command": [
+        "npx",
+        "--version"
+      ],
+      "install_hint": null
+    },
+    {
+      "name": "npm",
+      "category": "hyperframes",
+      "required": false,
+      "ok": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/npm",
+      "version": "11.9.0",
+      "command": [
+        "npm",
+        "--version"
+      ],
+      "install_hint": null
+    },
+    {
+      "name": "python",
+      "category": "core",
+      "required": false,
+      "ok": true,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/python/bin/python3",
+      "version": "Python 3.12.14",
+      "command": [
+        "python3",
+        "--version"
+      ],
+      "install_hint": null
+    },
+    {
+      "name": "hyperframes",
+      "category": "hyperframes",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "command": [
+        "hyperframes",
+        "--version"
+      ],
+      "install_hint": "Install a pinned Hyperframes package, add hyperframes to PATH, or set MCP_VIDEO_HYPERFRAMES_COMMAND."
+    },
+    {
+      "name": "@hyperframes/core",
+      "category": "hyperframes",
+      "required": false,
+      "ok": false,
+      "path": "/opt/codex/runtimes/codex-primary-runtime/dependencies/node/bin/node",
+      "version": null,
+      "command": [
+        "node",
+        "-e",
+        "const fs=require('fs');const path=require('path');const dirs=require.resolve.paths('@hyperframes/core')||[];for(const dir of dirs){const file=path.join(dir,'@hyperframes/core','package.json');if(fs.existsSync(file)){console.log(JSON.parse(fs.readFileSync(file,'utf8')).version);process.exit(0);}}process.exit(1);"
+      ],
+      "install_hint": "Install @hyperframes/core in the active Node package layout."
+    },
+    {
+      "name": "mcp",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "path": null,
+      "version": "1.27.1",
+      "install_hint": null
+    },
+    {
+      "name": "pydantic",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "path": null,
+      "version": "2.13.4",
+      "install_hint": null
+    },
+    {
+      "name": "rich",
+      "category": "core",
+      "required": true,
+      "ok": true,
+      "path": null,
+      "version": "15.0.0",
+      "install_hint": null
+    },
+    {
+      "name": "pillow",
+      "category": "image",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "12.2.0",
+      "install_hint": null
+    },
+    {
+      "name": "scikit-learn",
+      "category": "image",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "1.8.0",
+      "install_hint": null
+    },
+    {
+      "name": "webcolors",
+      "category": "image",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "25.10.0",
+      "install_hint": null
+    },
+    {
+      "name": "anthropic",
+      "category": "image-ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install image AI extras: pip install \"kinocut[image-ai]\""
+    },
+    {
+      "name": "openai-whisper",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install transcription extras: pip install \"kinocut[transcribe]\""
+    },
+    {
+      "name": "demucs",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install stem-separation extras: pip install \"kinocut[stems]\""
+    },
+    {
+      "name": "realesrgan",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install upscale extras: pip install \"kinocut[upscale]\""
+    },
+    {
+      "name": "basicsr",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install upscale extras: pip install \"kinocut[upscale]\""
+    },
+    {
+      "name": "numpy",
+      "category": "audio",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "2.4.5",
+      "install_hint": null
+    },
+    {
+      "name": "opencv-contrib-python",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install upscale extras: pip install \"kinocut[upscale]\""
+    },
+    {
+      "name": "torch",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install stem/upscale extras: pip install \"kinocut[stems]\" or \"kinocut[upscale]\""
+    },
+    {
+      "name": "torchaudio",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install stem-separation extras: pip install \"kinocut[stems]\""
+    },
+    {
+      "name": "torchcodec",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install stem-separation extras: pip install \"kinocut[stems]\""
+    },
+    {
+      "name": "imagehash",
+      "category": "ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install AI scene extras: pip install \"kinocut[ai-scene]\""
+    },
+    {
+      "name": "scipy",
+      "category": "audio-enhanced",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "1.17.1",
+      "install_hint": null
+    },
+    {
+      "name": "soundfile",
+      "category": "audio-enhanced",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install enhanced audio extras: pip install \"kinocut[audio-enhanced]\""
+    },
+    {
+      "name": "librosa",
+      "category": "audio-enhanced",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Install enhanced audio extras: pip install \"kinocut[audio-enhanced]\""
+    },
+    {
+      "name": "basic-pitch",
+      "category": "audio-ai",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "BasicPitch is a manual optional integration because its TensorFlow dependency chain is not safely resolvable by the package extras. Use Python 3.11 or 3.12 if you specifically need audio AI pitch extraction."
+    },
+    {
+      "name": "meltysynth",
+      "category": "manual-midi",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "MeltySynth is not currently published on PyPI; install a compatible meltysynth module manually."
+    },
+    {
+      "name": "crush_shaders",
+      "category": "crush",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "CRUSH shaders not found. Set MCP_VIDEO_CRUSH_PATH env var or install to ~/.mcp-video/crush-js/src. See https://github.com/pushingsquares/crush for installation."
+    },
+    {
+      "name": "audio_engine",
+      "category": "audio",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "enhanced",
+      "install_hint": null,
+      "details": {
+        "numpy": true,
+        "scipy": true,
+        "pedalboard": false
+      }
+    },
+    {
+      "name": "still_plates",
+      "category": "still-plates",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": "12.2.0",
+      "install_hint": null,
+      "details": {
+        "pillow": true,
+        "numpy": true,
+        "free_edit_backend": "free_establish_match",
+        "paid_gen_backend": "adapter_unavailable",
+        "missing": [],
+        "docs": "docs/STILL_PLATES.md"
+      }
+    },
+    {
+      "name": "object_matte",
+      "category": "object-matte",
+      "required": false,
+      "ok": false,
+      "path": null,
+      "version": null,
+      "install_hint": "Product/object cutouts need pip install \"kinocut[object-matte]\" and the pinned BiRefNet-general weights. People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md.",
+      "details": {
+        "onnxruntime": false,
+        "weightsCached": false,
+        "sha256": null,
+        "sha256Match": false,
+        "expectedSha256": "58f621f00f5d756097615970a88a791584600dcf7c45b18a0a6267535a1ebd3c",
+        "providers": [],
+        "docs": "docs/PRODUCT_MATTE.md"
+      }
+    },
+    {
+      "name": "sphere_director",
+      "category": "optional",
+      "required": false,
+      "ok": true,
+      "path": null,
+      "version": null,
+      "install_hint": null,
+      "details": {
+        "available": false,
+        "id": null,
+        "kind": null,
+        "model": null,
+        "base_url": null,
+        "local_ids": [
+          "lmstudio",
+          "ollama",
+          "openai_compat"
+        ],
+        "cloud_ids": [
+          "anthropic",
+          "gemini",
+          "openai",
+          "openrouter"
+        ]
+      }
+    }
+  ],
+  "rescue": {
+    "core_ready": true,
+    "local_only": true,
+    "captions_available": false,
+    "automatic_repair_types": [
+      "audio_loudness",
+      "container_timestamps",
+      "exposure",
+      "metadata",
+      "rotation",
+      "universal_mp4"
+    ]
+  },
+  "migrations": [
+    {
+      "name": "alias_identity",
+      "category": "migration",
+      "ok": true,
+      "detail": "kinocut.Client is mcp_video.Client",
+      "remediation": "The 1.7 rename must keep one Client. Reinstall kinocut so that mcp_video.Client is kinocut.Client."
+    },
+    {
+      "name": "legacy_env_paths",
+      "category": "migration",
+      "ok": true,
+      "detail": "clean",
+      "remediation": "No stale pre-rename paths."
+    }
+  ]
+}

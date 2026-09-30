@@ -1,0 +1,134 @@
+{
+  "revision": "62c49484733beed60ef485d0e614f5bc3c89a0f0",
+  "unit": "UTF-8 source-token bytes (Python); non-whitespace code bytes (other languages)",
+  "source_state": "working tree",
+  "runtime_files": 625,
+  "tracked_files_inventoried": 1566,
+  "inventoried_files": 1568,
+  "inventory_scope": "tracked and unignored new working-tree paths",
+  "registered_mcp_functions": 201,
+  "totals": {
+    "deterministic": 2678945,
+    "prose_llm": 72789,
+    "traditional_ml": 11865
+  },
+  "denominator": 2763599,
+  "percent": {
+    "deterministic": 96.9369,
+    "prose_llm": 2.6338,
+    "traditional_ml": 0.4293
+  },
+  "rounding": "Deterministic share absorbs the rounding residual so displayed percentages sum to 100%.",
+  "host_skill_prose_bytes_separate": 24008,
+  "ml_function_manifest": [
+    {
+      "path": "kinocut/aesthetic/__init__.py",
+      "function": "__init__",
+      "start": 87,
+      "end": 121
+    },
+    {
+      "path": "kinocut/aesthetic/__init__.py",
+      "function": "score_frame",
+      "start": 137,
+      "end": 147
+    },
+    {
+      "path": "kinocut/aesthetic/__init__.py",
+      "function": "score_frames",
+      "start": 149,
+      "end": 162
+    },
+    {
+      "path": "kinocut/aesthetic/__init__.py",
+      "function": "score_pil",
+      "start": 164,
+      "end": 171
+    },
+    {
+      "path": "kinocut/ai_engine/_longform_runtime.py",
+      "function": "_transcribe_chunk",
+      "start": 27,
+      "end": 70
+    },
+    {
+      "path": "kinocut/ai_engine/stem.py",
+      "function": "_run_demucs_separation",
+      "start": 66,
+      "end": 102
+    },
+    {
+      "path": "kinocut/ai_engine/transcribe.py",
+      "function": "ai_transcribe",
+      "start": 146,
+      "end": 220
+    },
+    {
+      "path": "kinocut/ai_engine/upscale.py",
+      "function": "_init_opencv_sr",
+      "start": 143,
+      "end": 167
+    },
+    {
+      "path": "kinocut/ai_engine/upscale.py",
+      "function": "_init_realesrgan",
+      "start": 170,
+      "end": 204
+    },
+    {
+      "path": "kinocut/ai_engine/upscale.py",
+      "function": "_ai_upscale_opencv",
+      "start": 269,
+      "end": 309
+    },
+    {
+      "path": "kinocut/ai_engine/upscale.py",
+      "function": "_upscale_with_realesrgan",
+      "start": 312,
+      "end": 351
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/basic_pitch_bridge.py",
+      "function": "detect_pitch",
+      "start": 28,
+      "end": 75
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/basic_pitch_bridge.py",
+      "function": "audio_to_midi",
+      "start": 78,
+      "end": 103
+    },
+    {
+      "path": "kinocut/image_engine.py",
+      "function": "extract_colors",
+      "start": 167,
+      "end": 228
+    },
+    {
+      "path": "kinocut/object_matte/infer.py",
+      "function": "infer_mask",
+      "start": 44,
+      "end": 49
+    },
+    {
+      "path": "kinocut/object_matte/runtime.py",
+      "function": "make_session",
+      "start": 58,
+      "end": 64
+    },
+    {
+      "path": "kinocut_sound/public/asr_worker.py",
+      "function": "recognize",
+      "start": 18,
+      "end": 46
+    }
+  ],
+  "limits": [
+    "Static authored-source allocation, not runtime time, cost, invocation frequency or a quality score.",
+    "Model function bodies include their local orchestration; preprocessing outside those functions remains code.",
+    "Operational MCP tool/resource descriptions, schema descriptions, server instructions and the direct LLM prompt count as prose; ordinary docstrings/comments excluded.",
+    "External models, FFmpeg, libraries, generated bundles, manifests and example assets excluded.",
+    "Host skills are reported separately; creation templates target external generative media, not an in-process LLM."
+  ]
+}

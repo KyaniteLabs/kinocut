@@ -33,7 +33,7 @@ from pydantic import Field
 
 from kinocut.contracts._common import ValueObject
 from kinocut.contracts.asset import AssetRecord
-from kinocut.engine_probe import probe
+from kinocut.engine_probe import probe_audio_input as probe
 from kinocut.errors import InputFileError, MCPVideoError, ProcessingError
 from kinocut.ffmpeg_helpers import (
     _run_ffmpeg,
@@ -97,6 +97,7 @@ class ColorInfo(ValueObject):
     """Mean RGB balance; ``analyzed`` is ``False`` if signalstats was unavailable."""
 
     analyzed: bool
+    applicable: bool = True
     r_mean: float | None = None
     g_mean: float | None = None
     b_mean: float | None = None
@@ -229,10 +230,12 @@ def build_preflight_report(path: str) -> PreflightReport:
         logger.warning("preflight input validation failed: %s", type(exc).__name__)
         raise MCPVideoError(_INPUT_FAILED, error_type="input_error", code="preflight_input_failed") from exc
     guard = VisualQualityGuardrails()
+    technical = _technical(validated)
+    has_video = any(stream.codec_type == "video" for stream in technical.streams)
     return PreflightReport(
-        technical=_technical(validated),
+        technical=technical,
         loudness=_loudness(guard, validated),
-        color=_color(guard, validated),
+        color=_color(guard, validated) if has_video else ColorInfo(analyzed=False, applicable=False),
         integrity=_integrity(validated),
     )
 

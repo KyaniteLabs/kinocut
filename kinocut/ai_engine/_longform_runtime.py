@@ -31,6 +31,7 @@ def _transcribe_chunk(
     model: str,
     language: str | None,
     work_dir: str,
+    model_cache: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Extract and locally transcribe one chunk; always remove its temporary WAV."""
     audio_path: str | None = None
@@ -53,7 +54,11 @@ def _transcribe_chunk(
                     "description": 'Run: pip install "kinocut[transcribe]" to enable transcription',
                 },
             ) from exc
-        whisper_model = whisper.load_model(model)
+        whisper_model = model_cache.get(model) if model_cache is not None else None
+        if whisper_model is None:
+            whisper_model = whisper.load_model(model)
+            if model_cache is not None:
+                model_cache[model] = whisper_model
         options: dict[str, Any] = {"word_timestamps": True, "task": "transcribe"}
         if language:
             options["language"] = language

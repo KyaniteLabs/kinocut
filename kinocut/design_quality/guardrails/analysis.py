@@ -352,7 +352,7 @@ class AnalysisMixin:
 
     def _calculate_audio_score(self, video_path: str) -> float:
         """Calculate audio quality score."""
-        cmd = ["ffmpeg", "-i", video_path, "-af", "loudnorm=print_format=json", "-f", "null", "-"]
+        cmd = ["ffmpeg", "-i", video_path, "-vn", "-af", "loudnorm=print_format=json", "-f", "null", "-"]
         result = subprocess.run(  # noqa: S603
             cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
         )

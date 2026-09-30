@@ -60,7 +60,7 @@ def shape_mask(
 ) -> EditResult:
     """Apply a geometric shape mask to a video.
 
-    Generates a mask image and composites it using alphamerge.
+    MOV output retains alpha; other containers composite the shape over black.
 
     Args:
         input_path: Path to the input video.
@@ -70,32 +70,16 @@ def shape_mask(
     """
     input_path = _validate_input_path(input_path)
     info = probe(input_path)
-    output = output_path or _auto_output(input_path, f"mask_{shape}")
+    output = output_path or _auto_output(input_path, f"mask_{shape}", ext=".mov")
     _validate_output_path(output)
 
     # Generate mask image
     tmpdir = tempfile.mkdtemp(prefix="mcp_video_mask_")
     mask_path = os.path.join(tmpdir, "mask.png")
-    _generate_shape_mask(info.width, info.height, shape, mask_path, feather)
-
     try:
+        _generate_shape_mask(info.width, info.height, shape, mask_path, feather)
         with _timed_operation() as timing:
-            _run_ffmpeg(
-                [
-                    "-i",
-                    input_path,
-                    "-i",
-                    mask_path,
-                    "-filter_complex",
-                    "[0:v][1:v]alphamerge",
-                    "-c:v",
-                    "prores_ks",
-                    "-pix_fmt",
-                    "yuva444p12le",
-                    *_movflags_args(output),
-                    output,
-                ]
-            )
+            _run_ffmpeg(_shape_mask_command(input_path, mask_path, output))
     finally:
         import shutil
 
@@ -105,8 +89,42 @@ def shape_mask(
         output,
         "shape_mask",
         timing,
-        format="mov",
+        format=os.path.splitext(output)[1].lower().lstrip("."),
     )
+
+
+def _shape_mask_command(input_path: str, mask_path: str, output: str) -> list[str]:
+    suffix = os.path.splitext(output)[1].lower()
+    if suffix == ".mov":
+        graph = "[0:v][1:v]alphamerge=shortest=1[masked]"
+        codec = ["-c:v", "prores_ks", "-profile:v", "4", "-pix_fmt", "yuva444p12le"]
+    else:
+        graph = (
+            "[0:v]split[background][content];"
+            "[background]drawbox=color=black:t=fill[black];"
+            "[content][1:v]alphamerge=shortest=1[cutout];"
+            "[black][cutout]overlay=shortest=1:format=auto[masked]"
+        )
+        codec = ["-c:v", "libvpx-vp9" if suffix == ".webm" else "libx264", "-pix_fmt", "yuv420p"]
+    return [
+        "-i",
+        input_path,
+        "-loop",
+        "1",
+        "-i",
+        mask_path,
+        "-filter_complex",
+        graph,
+        "-map",
+        "[masked]",
+        "-map",
+        "0:a?",
+        *codec,
+        "-c:a",
+        "libopus" if suffix == ".webm" else "copy",
+        *_movflags_args(output),
+        output,
+    ]
 
 
 def _generate_shape_mask(width: int, height: int, shape: str, output_path: str, feather: int) -> None:

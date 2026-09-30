@@ -2,12 +2,16 @@
 
 from __future__ import annotations
 
+import logging
 import tempfile
 from dataclasses import asdict, dataclass
 from pathlib import Path
 from typing import Any
 
 from kinocut.ffmpeg_helpers import _run_ffmpeg, _validate_input_path
+from kinocut.defaults import DEFAULT_VISION_SAMPLE_TIMES
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass(frozen=True)
@@ -22,12 +26,14 @@ class VisionFinding:
         return asdict(self)
 
 
-def _vlm_available() -> bool:
+def _vlm_package_installed() -> bool:
+    """Probe the optional SDK only; package presence is not an executable scorer."""
     try:
         import importlib.util
 
         return importlib.util.find_spec("anthropic") is not None
-    except Exception:
+    except Exception as exc:
+        logger.warning("Optional vision SDK probe failed: %s", type(exc).__name__)
         return False
 
 
@@ -63,8 +69,10 @@ def _sample_keyframes(path: str, times: list[float]) -> list[dict[str, Any]]:
                 else:
                     samples.append({"time": float(t), "path": None, "error": "empty_frame"})
             except Exception as exc:
+                logger.warning("Vision keyframe extraction failed: %s", type(exc).__name__)
                 samples.append({"time": float(t), "path": None, "error": type(exc).__name__})
-    except Exception:
+    except Exception as exc:
+        logger.warning("Vision keyframe sampling incomplete: %s", type(exc).__name__)
         return samples
     return samples
 
@@ -75,67 +83,59 @@ def run_vision_qc(
     sample_times: list[float] | None = None,
     require_vlm: bool = False,
 ) -> dict[str, Any]:
-    """Sample keyframe rubric. VLM is optional; never hard-require for pass."""
+    """Prepare retained keyframes; semantic vision quality is not evaluated.
+
+    No provider executor is implemented here. Optional inspection remains usable
+    without one, but cannot pass semantic QC; an explicitly required VLM fails
+    closed as a structured result. Extracted paths stay available for host review.
+    """
     path = _validate_input_path(input_path)
-    times = sample_times or [0.5, 1.0, 2.0]
+    times = sample_times or list(DEFAULT_VISION_SAMPLE_TIMES)
     findings: list[VisionFinding] = []
-    vlm_available = _vlm_available()
+    package_installed = _vlm_package_installed()
     keyframes = _sample_keyframes(path, times)
     sampled = sum(1 for k in keyframes if k.get("path"))
+    complete = sampled == len(times)
+    sampling_status = "complete" if complete else "partial" if sampled else "unavailable"
 
     findings.append(
         VisionFinding(
             check_id="vision.keyframe_sample",
-            severity="info",
+            severity="info" if complete else "warn",
             message=f"Structural keyframe sample: {sampled}/{len(times)} frames extracted",
             keyframe_times=list(times),
-            evidence={"keyframes": keyframes, "sampled": sampled},
+            evidence={"keyframes": keyframes, "sampled": sampled, "sampling_status": sampling_status},
         )
     )
 
-    if require_vlm and not vlm_available:
-        findings.append(
-            VisionFinding(
-                check_id="vision.vlm",
-                severity="warn",
-                message="VLM not installed; vision QC skipped (graceful)",
-                keyframe_times=list(times),
-                evidence={"vlm_available": False, "require_vlm": True},
-            )
+    findings.append(
+        VisionFinding(
+            check_id="vision.vlm",
+            severity="fail" if require_vlm else "info",
+            message="No executable VLM scorer; semantic vision QC was not evaluated.",
+            keyframe_times=list(times),
+            evidence={
+                "vlm_available": False,
+                "vlm_package_installed": package_installed,
+                "require_vlm": require_vlm,
+                "auto_scored": False,
+                "assessment_status": "not_evaluated",
+                "reason": "provider_executor_unavailable",
+                "keyframes": keyframes,
+            },
         )
-    elif not vlm_available:
-        findings.append(
-            VisionFinding(
-                check_id="vision.vlm",
-                severity="info",
-                message="VLM unavailable — structural keyframe sample only",
-                keyframe_times=list(times),
-                evidence={"vlm_available": False, "mode": "structural"},
-            )
-        )
-    else:
-        # Package present: still no auto-score without explicit provider credentials.
-        # Evidence includes keyframe paths so a host can call a VLM out-of-band.
-        findings.append(
-            VisionFinding(
-                check_id="vision.vlm",
-                severity="info",
-                message="VLM package present — rubric deferred to explicit provider call; keyframes ready",
-                keyframe_times=list(times),
-                evidence={
-                    "vlm_available": True,
-                    "auto_scored": False,
-                    "keyframes": keyframes,
-                    "next_action": "call_provider_with_keyframe_paths",
-                },
-            )
-        )
+    )
 
     return {
         "artifact_kind": "vision_qc",
         "input_path": path,
-        "vlm_available": vlm_available,
+        "vlm_available": False,
+        "vlm_package_installed": package_installed,
+        "auto_scored": False,
+        "assessment_status": "not_evaluated",
+        "sampling_status": sampling_status,
+        "blocked": require_vlm,
         "keyframe_count": sampled,
         "findings": [f.to_dict() for f in findings],
-        "verdict": "pass" if not any(f.severity == "fail" for f in findings) else "fail",
+        "verdict": "fail" if require_vlm else "not_evaluated" if complete else "inconclusive",
     }

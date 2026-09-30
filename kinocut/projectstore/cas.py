@@ -11,6 +11,7 @@ from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import CASManifestRecord
 from kinocut.projectstore import layout, store
+from kinocut.projectstore.cas_lifecycle import cleanup_backups, restore_blob, unavailable_digests
 from kinocut.projectstore.ingest import _best_effort_unlink, _hash_copy_to_temp
 
 _CHUNK = 1 << 20
@@ -34,6 +35,13 @@ def ingest_blob(project: store.Project, source_path: str | Path, *, media_type: 
         digest, byte_size, temporary = _hash_copy_to_temp(project, Path(source_path))
         try:
             if existing := _manifest(project, digest):
+                if byte_size != existing.byte_size:
+                    raise contract_error("CAS manifest byte size disagrees with its source digest", INVALID_RECORD)
+                target = store.safe_target(project, existing.blob_location)
+                if digest in unavailable_digests(project) or not _blob_matches(target, existing):
+                    restore_blob(project, existing, temporary)
+                else:
+                    cleanup_backups(project, digest)
                 return existing
             relative = layout.blob_relative_path(digest)
             target = store.safe_target(project, relative)
@@ -63,31 +71,40 @@ def ingest_blob(project: store.Project, source_path: str | Path, *, media_type: 
 def resolve_blob(project: store.Project, digest: str) -> Path:
     """Resolve and integrity-check a recorded blob after any project reopen."""
 
-    manifest = _manifest(project, digest)
-    if manifest is None:
-        raise contract_error("CAS digest is not recorded in this project", INVALID_RECORD)
-    if digest in _deleted_digests(project):
-        raise contract_error("CAS blob was deleted by garbage collection", INVALID_RECORD)
-    target, actual, size = store.safe_target(project, manifest.blob_location), hashlib.sha256(), 0
+    with store._project_lock(project):
+        manifest = _manifest(project, digest)
+        if manifest is None:
+            raise contract_error("CAS digest is not recorded in this project", INVALID_RECORD)
+        if digest in _deleted_digests(project):
+            raise contract_error(
+                "CAS blob is unavailable after garbage collection or interrupted restoration", INVALID_RECORD
+            )
+        target = store.safe_target(project, manifest.blob_location)
+        if not _blob_matches(target, manifest):
+            raise contract_error("CAS blob is unavailable or failed its manifest integrity check", INVALID_RECORD)
+        return target
+
+
+def _blob_matches(target: Path, manifest: CASManifestRecord) -> bool:
+    actual, size = hashlib.sha256(), 0
     try:
-        with target.open("rb") as reader:
+        if not target.is_file():
+            return False
+        fd = os.open(target, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0))
+        with os.fdopen(fd, "rb") as reader:
+            if os.fstat(reader.fileno()).st_size != manifest.byte_size:
+                return False
             while chunk := reader.read(_CHUNK):
                 actual.update(chunk)
                 size += len(chunk)
-    except OSError as exc:
-        raise contract_error("CAS blob is unavailable", INVALID_RECORD) from exc
-    if "sha256:" + actual.hexdigest() != digest or size != manifest.byte_size:
-        raise contract_error("CAS blob failed its manifest integrity check", INVALID_RECORD)
-    return target
+    except OSError:
+        return False
+    return "sha256:" + actual.hexdigest() == manifest.digest and size == manifest.byte_size
 
 
 def _deleted_digests(project: store.Project) -> set[str]:
-    """Return every digest removed by a prior append-only ``cas_gc`` receipt."""
-
-    deleted: set[str] = set()
-    for receipt in store.read_records(project, "cas_gc"):
-        deleted.update(receipt.deleted_digests)
-    return deleted
+    """Return unavailable digests, honoring recorded restoration generations."""
+    return unavailable_digests(project)
 
 
 __all__ = ["ingest_blob", "resolve_blob"]

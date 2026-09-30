@@ -1,0 +1,172 @@
+{
+  "query_results": [
+    {
+      "query": "speech to text",
+      "before_count": 1,
+      "count": 3,
+      "top3": [
+        "video_ai_transcribe",
+        "hyperframes_transcribe",
+        "video_analyze"
+      ],
+      "tools": [
+        "video_ai_transcribe",
+        "hyperframes_transcribe",
+        "video_analyze"
+      ]
+    },
+    {
+      "query": "captions",
+      "before_count": 3,
+      "count": 6,
+      "top3": [
+        "video_subtitles",
+        "video_generate_subtitles",
+        "video_ai_transcribe"
+      ],
+      "tools": [
+        "video_subtitles",
+        "video_generate_subtitles",
+        "video_ai_transcribe",
+        "video_translate_captions",
+        "video_add_text",
+        "video_add_texts"
+      ]
+    },
+    {
+      "query": "portrait",
+      "before_count": 1,
+      "count": 3,
+      "top3": [
+        "video_resize",
+        "video_visual_transform_plan",
+        "hyperframes_render"
+      ],
+      "tools": [
+        "video_resize",
+        "video_visual_transform_plan",
+        "hyperframes_render"
+      ]
+    },
+    {
+      "query": "remove filler words",
+      "before_count": 0,
+      "count": 1,
+      "top3": [
+        "video_timeline_edit_plan"
+      ],
+      "tools": [
+        "video_timeline_edit_plan"
+      ]
+    },
+    {
+      "query": "find pauses",
+      "before_count": 0,
+      "count": 2,
+      "top3": [
+        "video_audio_waveform",
+        "video_ai_remove_silence"
+      ],
+      "tools": [
+        "video_audio_waveform",
+        "video_ai_remove_silence"
+      ]
+    },
+    {
+      "query": "foreground segmentation",
+      "before_count": 0,
+      "count": 1,
+      "top3": [
+        "hyperframes_remove_background"
+      ],
+      "tools": [
+        "hyperframes_remove_background"
+      ]
+    },
+    {
+      "query": "resume render",
+      "before_count": 0,
+      "count": 2,
+      "top3": [
+        "video_workflow_render",
+        "video_rescue_render"
+      ],
+      "tools": [
+        "video_workflow_render",
+        "video_rescue_render"
+      ]
+    },
+    {
+      "query": "safe to publish",
+      "before_count": 0,
+      "count": 2,
+      "top3": [
+        "video_publish_gate",
+        "video_release_checkpoint"
+      ],
+      "tools": [
+        "video_publish_gate",
+        "video_release_checkpoint"
+      ]
+    },
+    {
+      "query": "change volume",
+      "before_count": 0,
+      "count": 3,
+      "top3": [
+        "audio_effects",
+        "audio_compose",
+        "video_normalize_audio"
+      ],
+      "tools": [
+        "audio_effects",
+        "audio_compose",
+        "video_normalize_audio"
+      ]
+    },
+    {
+      "query": "keep face in frame",
+      "before_count": 0,
+      "count": 1,
+      "top3": [
+        "video_visual_transform_plan"
+      ],
+      "tools": [
+        "video_visual_transform_plan"
+      ]
+    },
+    {
+      "query": "subtitle",
+      "before_count": 4,
+      "count": 4,
+      "top3": [
+        "video_generate_subtitles",
+        "video_subtitles",
+        "video_subtitles_styled"
+      ],
+      "tools": [
+        "video_generate_subtitles",
+        "video_subtitles",
+        "video_subtitles_styled",
+        "video_analyze"
+      ]
+    },
+    {
+      "query": "trim",
+      "before_count": 4,
+      "count": 4,
+      "top3": [
+        "video_trim",
+        "video_batch",
+        "video_workflow_render"
+      ],
+      "tools": [
+        "video_trim",
+        "video_batch",
+        "video_workflow_render",
+        "video_workflow_validate"
+      ]
+    }
+  ],
+  "note": "Illustrative discovery regressions, not general agent success benchmark; no models called."
+}

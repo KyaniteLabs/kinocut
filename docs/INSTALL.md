@@ -43,7 +43,7 @@ python scripts/golden_path.py   # from a clone
 ### Claude Code
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
 ```
 
 ### Cursor / generic stdio JSON
@@ -53,7 +53,7 @@ claude mcp add kinocut -- uvx --from kinocut kino
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
+      "args": ["--from", "kinocut", "kino", "--mcp"]
     }
   }
 }

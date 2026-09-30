@@ -6,6 +6,7 @@ import warnings as _warnings
 
 from typing import Any
 
+from .defaults import DEFAULT_FPS, DEFAULT_KEN_BURNS_FRAME_DURATION, DEFAULT_NOISE_REDUCTION_FLOOR_DB
 from .engine_probe import probe
 from .engine_runtime_utils import (
     _build_edit_result,
@@ -97,7 +98,7 @@ def apply_filter(
     _validate_output_path(output)
     info = probe(input_path)
 
-    filter_map = _filter_map(params, info.width, info.height)
+    filter_map = _filter_map(params, info.width, info.height, info.fps)
     if filter_type not in filter_map:
         valid = ", ".join(sorted(filter_map))
         raise MCPVideoError(
@@ -129,7 +130,9 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     return sanitized
 
 
-def _filter_map(params: dict[str, Any], width: int, height: int) -> dict[FilterType, tuple[str, str, bool]]:
+def _filter_map(
+    params: dict[str, Any], width: int, height: int, fps: float = DEFAULT_FPS
+) -> dict[FilterType, tuple[str, str, bool]]:
     return {
         "blur": ("boxblur", f"boxblur={_param(params, 'radius', 5)}:{_param(params, 'strength', 1)}", False),
         "sharpen": ("unsharp", f"unsharp=5:5:{_param(params, 'amount', 1.0)}:5:5:0.0", False),
@@ -155,10 +158,11 @@ def _filter_map(params: dict[str, Any], width: int, height: int) -> dict[FilterT
         "ken_burns": (
             "zoompan",
             (
-                f"zoompan=z='min(zoom+{_param(params, 'zoom_speed', 0.0015)},1.5)':"
-                f"d={_param(params, 'duration', 150)}:"
+                f"zoompan=z='min(max(zoom,pzoom)+{_param(params, 'zoom_speed', 0.0015)},1.5)':"
+                f"d={_param(params, 'duration', DEFAULT_KEN_BURNS_FRAME_DURATION)}:"
                 f"x='iw/2-(iw/zoom)/2':y='ih/2-(ih/zoom)/2':"
-                f"s={_safe_filter_int(width, 'width')}x{_safe_filter_int(height, 'height')}"
+                f"s={_safe_filter_int(width, 'width')}x{_safe_filter_int(height, 'height')}:"
+                f"fps={_safe_filter_number(fps, 'fps')}"
             ),
             False,
         ),
@@ -183,7 +187,11 @@ def _filter_map(params: dict[str, Any], width: int, height: int) -> dict[FilterT
             True,
         ),
         "pitch_shift": ("asetrate", _build_pitch_shift_filter(params.get("semitones", 0)), True),
-        "noise_reduction": ("afftdn", f"afftdn=nf={_param(params, 'noise_level', -25)}", True),
+        "noise_reduction": (
+            "afftdn",
+            f"afftdn=nf={_param(params, 'noise_level', DEFAULT_NOISE_REDUCTION_FLOOR_DB)}",
+            True,
+        ),
     }
 
 

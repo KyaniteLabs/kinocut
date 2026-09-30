@@ -17,6 +17,7 @@ from kinocut.contracts.trusted_execution import (
 )
 from kinocut.projectstore import layout, store
 from kinocut.projectstore.cas import _deleted_digests
+from kinocut.projectstore.cas_lifecycle import availability, cleanup_backups, owned_blob_bytes
 
 #: Default upper bound on total CAS blob bytes before GC evicts unreachable blobs.
 DEFAULT_GC_BUDGET_BYTES = 20 * (1 << 30)  # 20 GiB
@@ -119,16 +120,15 @@ def collect_cas_garbage(
     if budget_bytes < 0:
         raise contract_error("CAS GC budget must be non-negative", INVALID_RECORD)
     with store._project_lock(project):
+        latest_gc, heads = availability(project)
         already_deleted = _deleted_digests(project)  # prior append-only GC receipts
-        alive = [
-            r
-            for r in store.read_records(project, "cas_manifest")
-            if isinstance(r, CASManifestRecord) and r.digest not in already_deleted
-        ]
+        manifests = [r for r in store.read_records(project, "cas_manifest") if isinstance(r, CASManifestRecord)]
+        observed = owned_blob_bytes(project, manifests)
+        alive = [r for r in manifests if r.digest not in already_deleted or observed[r.digest] > 0]
         reachable = _reachable_digests(project)
         unreachable = [m for m in alive if m.digest not in reachable]
         retained_reachable = sum(1 for m in alive if m.digest in reachable)
-        total = sum(m.byte_size for m in alive)
+        total = sum(observed[m.digest] for m in alive)
         target = int(budget_bytes * _GC_TARGET_FRACTION)
         to_delete: list[CASManifestRecord] = []
         if total > budget_bytes:
@@ -136,12 +136,15 @@ def collect_cas_garbage(
                 if total <= target:
                     break
                 to_delete.append(manifest)
-                total -= manifest.byte_size
+                total -= observed[manifest.digest]
         if not to_delete:
             return None
         with store._mapped_os_errors():
             for manifest in to_delete:
-                store.safe_target(project, layout.blob_relative_path(manifest.digest)).unlink(missing_ok=True)
+                target_path = store.safe_target(project, layout.blob_relative_path(manifest.digest))
+                target_path.unlink(missing_ok=True)
+                store._fsync_dir(target_path.parent)
+                cleanup_backups(project, manifest.digest)
         receipt = validate_record(
             CASGCReceiptRecord,
             {
@@ -149,8 +152,18 @@ def collect_cas_garbage(
                 "created_by": "tool",
                 "budget_bytes": budget_bytes,
                 "deleted_digests": tuple(m.digest for m in to_delete),
-                "deleted_bytes": sum(m.byte_size for m in to_delete),
+                "deleted_bytes": sum(observed[m.digest] for m in to_delete),
                 "retained_reachable": retained_reachable,
+                "source_record_ids": tuple(
+                    sorted(
+                        {
+                            record.record_id
+                            for m in to_delete
+                            for record in (heads.get(m.digest), latest_gc.get(m.digest))
+                            if record is not None
+                        }
+                    )
+                ),
             },
         )
         return cast(CASGCReceiptRecord, store.append_record_locked(project, receipt))

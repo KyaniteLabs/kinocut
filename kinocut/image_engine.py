@@ -198,9 +198,8 @@ def extract_colors(
     labels = kmeans.fit_predict(pixels)
 
     # Count pixels per cluster
-    counts: dict[int, int] = {}
-    for label in labels:
-        counts[int(label)] = counts.get(int(label), 0) + 1
+    histogram = np.bincount(labels)
+    counts = {label: int(histogram[label]) for label in dict.fromkeys(labels.tolist())}
     total = len(labels)
 
     # Sort by pixel count descending

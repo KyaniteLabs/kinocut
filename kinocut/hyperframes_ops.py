@@ -20,6 +20,7 @@ import logging
 import math
 import os
 import re
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -27,7 +28,7 @@ from typing import Any
 from .defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
 from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from .errors import HyperframesRenderError, MCPVideoError
-from .ffmpeg_helpers import _validate_output_path
+from .ffmpeg_helpers import _atomic_output, _validate_output_path
 from .hyperframes_engine import (
     _hyperframes_op,
     _require_hyperframes_deps,
@@ -143,6 +144,7 @@ def render(
     """Render a Hyperframes composition to video."""
     if output_path is None:
         output_path = _default_render_output(project_path, format)
+    output_path = _validate_output_path(str(Path(output_path).expanduser().absolute()))
 
     effective_resolution = _resolve_render_resolution(width, height, resolution)
     variables_file = _validate_variables_file(variables_file)
@@ -348,13 +350,22 @@ def still(
 ) -> HyperframesStillResult:
     """Render a single frame from a Hyperframes composition.
 
-    Hyperframes writes snapshot PNGs into the project ``snapshots/``
-    directory and does not accept an output file flag. Return the actual
-    generated frame path instead of echoing a requested-but-unwritten path.
+    A requested output is resolved from the caller's working directory and
+    copied atomically, so subsequent snapshots cannot replace that artifact.
     """
-    seconds = frame / 30.0
+    destination = _validate_output_path(str(Path(output_path).expanduser().absolute())) if output_path else None
+    seconds = frame / DEFAULT_COMPOSITION_FPS
     snap = snapshot(project_path, at=[seconds], frames=1, variables=variables, variables_file=variables_file)
-    actual_output = snap.frame_paths[0] if snap.frame_paths else output_path or ""
+    if not snap.success or not snap.frame_paths or not Path(snap.frame_paths[0]).is_file():
+        raise HyperframesRenderError("snapshot", 1, "Hyperframes snapshot produced no still image")
+    actual_output = snap.frame_paths[0]
+    if destination and Path(destination) != Path(actual_output).absolute():
+        try:
+            with _atomic_output(destination) as temporary:
+                shutil.copyfile(actual_output, temporary)
+        except OSError as exc:
+            raise HyperframesRenderError("snapshot", 1, "Could not copy requested still image") from exc
+        actual_output = destination
 
     return HyperframesStillResult(
         output_path=actual_output,

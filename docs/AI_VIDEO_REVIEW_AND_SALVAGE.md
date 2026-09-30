@@ -9,7 +9,10 @@ derivatives; they do not publish media or replace human creative review.
    content-addressed project store and returns the authoritative `asset_id`.
 2. **Inspect before deciding.** Run `video_preflight` and `video_inspect_temporal`. Review the
    audible/muted previews, motion strip, late frames, declared-region crops, integrity findings,
-   and optional-provider availability.
+   and optional-provider availability. The `motion_coherence` artifact preserves chronological
+   low-resolution difference evidence and reports coverage/gaps/budget; its findings are
+   advisory candidates and do not establish semantic motion quality or human acceptance.
+   See [quality evidence](QUALITY_EVIDENCE.md#whole-film-temporal-motion-evidence).
 3. **Create the acceptance contract.** Record objective requirements and the exact required human
    evidence. Do not manufacture acceptance evidence from analyzer output.
 4. **Record the human decision.** The decision must be active, target the exact artifact, name the

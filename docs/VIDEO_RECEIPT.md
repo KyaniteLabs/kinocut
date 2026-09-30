@@ -66,6 +66,10 @@ Use it when a workflow creates or edits media that may be published, handed to a
 
 ## Trust Rules
 
+Record whether each quality property was measured, unavailable or not evaluated.
+A synthetic waveform, retained keyframes or an installed SDK does not establish
+quality. See [quality evidence and capability limits](QUALITY_EVIDENCE.md).
+
 - Do not treat a rendered video as publishable until a receipt exists.
 - Do not hide quality warnings. Warnings are part of the proof.
 - Do not overwrite source media.
@@ -213,9 +217,12 @@ variant with no cross-variant leakage:
 
 Emitted by `video_composite_layers` (dry-run plan or render receipt). v2 adds
 `transform.rotation` + `transform.pivot` (null when rotation is unused), a `features.rotation`
-flag, and `features.blend_modes` may now contain the five full-canvas blend modes —
+flag, and `features.blend_modes` may contain the five allowlisted full-canvas or
+positioned blend modes, including opacity and timing windows —
 `features.blend_modes` lists the modes **used in the spec** (including `normal`), not the
-catalog. The additive `features.alpha` block records the straight-alpha working mode and
+catalog. Existing per-layer `start`, `duration`, `opacity`, `position` and transform
+fields record the reviewed timing and geometry; video/mask playback begins at the
+layer start. `features.positioned_blend` identifies positioned blend use. The additive `features.alpha` block records the straight-alpha working mode and
 each layer's declared input mode. `features.effect_routes` records normalized, ordered
 layer/mask/mask-edge routing decisions. Audio is dropped (`audio_policy:
 "dropped_video_only"`, `features.audio: "dropped"`).

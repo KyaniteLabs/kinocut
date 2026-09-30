@@ -1,0 +1,136 @@
+# Kinocut: extended agent guide
+
+This is the repository's detailed companion to ../llms.txt. Load that index
+first and retrieve this guide or a specific reference when needed. These files
+are discovery aids; neither promises search ranking or universal crawler support.
+Availability at kinocut.dev is a separate website publication check.
+
+## Identity and release truth
+
+Kinocut is an Apache-2.0 MCP server, Python client and CLI for guarded media
+workflows. KyaniteLabs publishes it. The CLI is kino. The former mcp-video name,
+compatibility import and shim bridge to Kinocut rather than describing a competing
+product. Preserve documented compatibility instead of deleting historical names.
+
+Canonical release facts: public_claims.json. Current operational status:
+status/NOW.md. Package, repository, website and directory publication are separate
+observations. A source edit or local test does not prove an external release.
+
+## Setup and host integration
+
+Install Python 3.11+ and FFmpeg/ffprobe using the appropriate supported platform
+setup. Install uv for the uvx examples, or use pip and the installed kino command.
+Install kinocut, then run kino doctor. Optional model packages,
+weights, Node-based creation tools and providers have their own prerequisites.
+
+Explicit MCP stdio launch:
+
+```bash
+uvx --from kinocut kino --mcp
+```
+
+Claude Code:
+
+```bash
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
+```
+
+Gemini CLI and other clients: INTEGRATIONS.md. Use the client's supported MCP
+configuration and retain workspace trust and tool confirmations. Kinocut also
+defaults to MCP without a subcommand; --mcp states the intended mode explicitly.
+MCP support does not imply support for every host's plugin package format.
+
+## Select the smallest sufficient operation
+
+Use deterministic code for path validation, exact times, FFmpeg construction,
+codec selection, hashing, source confinement, budgets and release authority.
+Use specialized models only where perception is required and the installed
+backend provides real evidence. Use generative prose for requested, grounded
+editorial work; preserve source names, numbers, negations and qualifications.
+
+Discover tools with search_tools using the task phrase or exact name. Query
+the connected server's MCP tools/list for its exact JSON schemas. That installed
+surface is authoritative; TOOLS.md is the readable reference. Avoid loading or
+duplicating all schemas for every task. Optional tool registration does not mean
+the tool's model or provider is installed or executable.
+
+For Python, start with Client().info(absolute_input_path). For an agent workflow,
+inspect metadata, select an operation, validate its parameters, render, inspect
+the resulting artifact and retain the receipt. Follow WORKFLOWS.md for the
+operation allowlist and durable resume semantics; do not invent workflow names
+from engine functions or tool descriptions.
+
+## Paths and execution boundaries
+
+Use explicit absolute input and output paths for plain-file APIs when the host's
+working directory is uncertain. Relative plain-file paths use process cwd.
+Workflow assets resolve against the job-spec directory, with confinement rules.
+Compositor sources and masks resolve against their declared spec directory.
+Do not guess an agent root or change cwd to bypass these checks.
+
+An output must not alias an input, including resolved symlink and hardlink aliases.
+Missing dependencies and unsupported filters are structured failures. A suggested
+alternative is advice, not execution: choosing another codec changes the request
+and must be intentional. Do not silently install dependencies or substitute a
+delivery codec. Check supported local capabilities before scheduling a render.
+
+## Existing media workflows
+
+Long media: use storyboard sampling, scene detection and bounded longform
+transcription before a heavy edit. Sampled frames are not a complete viewing
+record. A transcript backend is not interchangeable with semantic video analysis.
+
+Audio: AUDIO_MIXING.md describes single-encode timed mixing, plain-file ducking
+and looping. New development-only Client additions must be checked against the
+installed version. A governed audio-bed workflow also needs its immutable project
+snapshot and approval contracts. Loudness measurements do not prove listening
+quality, and silence detection does not prove editorial cut correctness.
+
+Recipes: use the existing examples/workflows/captioned-vertical-short job and
+WORKFLOWS.md. Build on supported job operations rather than inventing a second
+recipe format or promising a person's distinctive editing style.
+
+Creation: Hyperframes and local Revideo have separate runtime requirements.
+Custom executable scenes are trusted code. CPU/GPU availability alone does not
+prove encoder usability, decoded fidelity, portability or a fixed speedup.
+
+## Evidence, receipts and human decisions
+
+QUALITY_EVIDENCE.md distinguishes measured, unavailable and not-evaluated
+evidence. A synthetic waveform is labelled synthetic. Native signal depth and
+range matter. Missing visual/voice inference must not become a positive score.
+Chronological image-change proxies do not establish semantic coherence.
+
+VIDEO_RECEIPT.md defines receipt families and schema discriminators. Receipts
+record artifacts, calls and findings; they do not automatically sign off an edit.
+Use kino review-ui OUTPUT_DIR for the existing review surface. Consult
+AI_VIDEO_REVIEW_AND_SALVAGE.md and VIDEO_RECEIPT.md for exact-artifact review and
+decision contracts. An HTML review surface does not establish completed human
+viewing or permission to publish. Verify the actual receipt and artifact hashes.
+
+PROJECTSTORE_LIFECYCLE.md documents CAS repair and cancellation. Availability
+must be supported by integrity/lifecycle evidence. A stop request does not prove
+that a process has stopped; retain runner identity until shutdown is verified.
+
+## Privacy and cost
+
+FFmpeg editing can run locally without required cloud keys. Kinocut has no
+software license fee. Local hardware, storage and electricity still cost money;
+optional model providers and the host agent can have separate usage charges.
+
+Prompts and tool results can reach the host's model provider. Results may contain
+paths, transcripts or frames. Review the selected backend and exact data sent;
+local execution is not a zero-egress guarantee. Do not upload private source
+material merely to obtain tool discovery or advertise unsupported privacy claims.
+
+## Source references
+
+- INTEGRATIONS.md: host-specific setup and primary-source integration references.
+- INSTALL.md: runtime prerequisites and platform setup.
+- TOOLS.md and CLI_REFERENCE.md: readable public surfaces.
+- WORKFLOWS.md: executable job schema and resume contracts.
+- QUALITY_EVIDENCE.md: measurement domains and unavailable inference.
+- VIDEO_RECEIPT.md and HUMAN_GATES.md: receipt families and exact-artifact review.
+- PROJECTSTORE_LIFECYCLE.md: recovery, integrity and cancellation.
+- faq.md: human-readable questions and answers.
+- research/external-ai-audits/2026-09-30/REPORT.md: checked Google/Gemini proposals.

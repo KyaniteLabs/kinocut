@@ -76,6 +76,7 @@ def _detect_silence_regions(
         "ffmpeg",
         "-i",
         video,
+        "-vn",
         "-af",
         f"silencedetect=noise={silence_threshold}dB:d={min_silence_duration}",
         "-f",

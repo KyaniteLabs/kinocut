@@ -113,6 +113,7 @@ def test_vision_and_narrative_on_golden() -> None:
     if not media.is_file():
         return
     v = run_vision_qc(str(media))
-    assert v["verdict"] in {"pass", "fail"}
+    assert v["verdict"] in {"not_evaluated", "inconclusive"}
+    assert v["auto_scored"] is False
     n = run_narrative_qc(str(media))
     assert "findings" in n

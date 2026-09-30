@@ -141,6 +141,17 @@ class CASGCReceiptRecord(RecordBase):
     retained_reachable: int = Field(ge=0)
 
 
+class CASBlobLifecycleRecord(RecordBase):
+    """Append-only repair intent/completion; immutable manifests never change."""
+
+    record_kind: Literal["cas_blob_lifecycle"] = "cas_blob_lifecycle"
+    digest: Sha256
+    manifest_record_id: Sha256
+    state: Literal["restoring", "available"]
+    after_gc_receipt_id: Sha256 | None = None
+    backup_location: str | None = Field(default=None, pattern=r"^\.kinocut/blobs/sha256/\.cas-repair\.[0-9a-f]{32}$")
+
+
 class SemanticIndexArtifactRecord(RecordBase):
     """A semantic-index CAS blob bound to one reachable edit revision."""
 

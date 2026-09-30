@@ -1,0 +1,19 @@
+{
+  "implementation_commit": "2ced642928ac93423fc6d92a260f7c4503919aaa",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/ -x -q --tb=short",
+  "exit_code": 0,
+  "passed": 7390,
+  "skipped": 185,
+  "warnings": 8,
+  "duration_seconds": 1003.32,
+  "scope": "Final frozen implementation tree, including staged trim/speed and Client audio contracts",
+  "checks": {
+    "ruff_changed_python": "passed",
+    "git_diff_check": "passed",
+    "canonical_compatibility_import_identity": "passed"
+  },
+  "limits": [
+    "Skipped optional backends remain unvalidated",
+    "Local tests do not establish remote CI, Windows execution, desktop import or deployed behavior"
+  ]
+}

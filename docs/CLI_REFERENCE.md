@@ -40,7 +40,7 @@ inspection, decision, protection, derivative, and re-review sequence.
 
 ## Intent, review, and cutfiles
 
-Published surface (since 1.14.1; current 1.15.2). These commands do **not** add a 360 CLI verb.
+Published surface (since 1.14.1; current 1.15.3). These commands do **not** add a 360 CLI verb.
 
 | Command | Description |
 |---------|-------------|
@@ -60,13 +60,13 @@ Published surface (since 1.14.1; current 1.15.2). These commands do **not** add 
 | Command | Description |
 |---------|-------------|
 | `info` | Get video metadata |
-| `trim` | Trim a video |
+| `trim` | Trim a video with finite times and staged output publication |
 | `merge` | Merge multiple clips |
 | `add-text` | Overlay text on a video |
 | `add-audio` | Add or replace audio track |
 | `resize` | Resize or change aspect ratio |
 | `convert` | Convert video format (with two-pass encoding) |
-| `speed` | Change playback speed |
+| `speed` | Change playback speed with staged output publication |
 | `thumbnail` | Extract a single frame |
 | `extract-frame` | Extract a single frame (with --time flag) |
 | `preview` | Generate fast low-res preview |
@@ -74,17 +74,17 @@ Published surface (since 1.14.1; current 1.15.2). These commands do **not** add 
 | `subtitles` | Burn `.srt`/`.vtt`/authored `.ass` subtitles into video; `--style` sets a force_style override (omit to preserve authored ASS styles/positions; SRT/VTT render dimension-aware) |
 | `generate-subtitles` | Create SRT subtitles from text |
 | `watermark` | Add image watermark |
-| `crop` | Crop to rectangular region |
+| `crop` | Crop in upright display pixels, including rotation-tagged phone video |
 | `rotate` | Rotate and/or flip video |
 | `fade` | Add video fade in/out |
 | `export` | Export with quality settings; optional C2PA signing via `--c2pa-manifest` for final MP4s |
 | `extract-audio` | Extract audio track |
 | `edit` | Execute timeline-based edit from JSON (file path or inline) |
-| `filter` | Apply visual filter (blur, sharpen, grayscale, ken_burns, etc.) |
+| `filter` | Apply visual/audio filters; Ken Burns defaults to one frame per input, noise reduction defaults to -50 dB with `noise_level` override |
 | `blur` | Blur video |
 | `color-grade` | Apply color preset (warm, cool, vintage, etc.) |
-| `normalize-audio` | Normalize audio-only or video input to a LUFS target |
-| `audio-waveform` | Extract audio waveform data |
+| `normalize-audio` | Normalize audio-only or video input to a LUFS target; WAV uses PCM16, supported M4A/video output uses AAC, with staged full-decode validation |
+| `audio-waveform` | Measure first-stream RMS dBFS bins and silence; inspect `synthetic` in JSON output. [Evidence contract](QUALITY_EVIDENCE.md#audio-waveform) |
 | `reverse` | Reverse video playback |
 | `chroma-key` | Remove solid color background (green screen) |
 | `stabilize` | Stabilize shaky footage |
@@ -110,7 +110,7 @@ Published surface (since 1.14.1; current 1.15.2). These commands do **not** add 
 | `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional); explicit empty or invalid plans fail. See [input validation](SOUND_INPUT_VALIDATION.md). |
 | `sound-voice-batch` | Retained local caption speech (`--request-json`, `--project-root`) with V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy synthetic demo (`--plan-json` optional). See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound-mix-render` | Supplied-media mix ZIP with [routing](SOUND_ROUTING_REQUESTS.md), [automation](SOUND_AUTOMATION_REQUESTS.md), [sends](SOUND_SEND_REQUESTS.md), [sidechains](SOUND_SIDECHAIN_REQUESTS.md), [layers/loop fill/ducking](SOUND_LAYER_REQUESTS.md) and V4 [source-rate conversion](SOUND_RATE_CONVERSION.md), via `--request-json` and `--project-root`; omit both for a labelled demo. See [request contract](SOUND_MIX_REQUESTS.md). |
-| `sound-qa-loudness` | Actual mono/stereo PCM16 FFmpeg measurement via `--request-json` and `--project-root`; valid noncompliant audio reports `within_tolerance=false`. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
+| `sound-qa-loudness` | Actual first-audio-stream FFmpeg measurement of supported local audio/video containers via `--request-json` and `--project-root`; valid noncompliant audio reports `within_tolerance=false`. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
 | `sound-master-render` | Retain a verified mono/stereo two-pass master ZIP with required `--request-json` and `--project-root`. See [master request](SOUND_MASTER_REQUESTS.md). |
 | `sound-qa-asr` | Local cached speech recognition against a reference script with required `--request-json` and `--project-root`. [Contract](SOUND_ASR_REQUESTS.md) |
 
@@ -207,7 +207,7 @@ kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan
 
 The compositor uses straight alpha internally. Layer `alpha_mode` defaults to `straight`; image/video inputs declared `premultiplied` are explicitly unpremultiplied before transforms and compositing. Per-layer opacity, fixed x/y positioning, `transform.width`, `transform.height`, `transform.scale`, `start`/`duration` timing windows, image/video/solid layers, and optional `mask`/`matte` alpha sources are supported. Top-level `passes` currently allowlist `effect-noise` and route it to `layer:<id>`, `layer:<id>.mask`, or `layer:<id>.mask.edge`; the receipt records normalized route decisions. Unknown effects, targets, arguments, and mask routes without a mask fail closed.
 
-Allowlisted blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) work in full-canvas form and in a bounded positioned form. Positioned blend requires explicit `width` **and** `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing. Rotation remains available for normal-blend layers (`rotation` within `[-360, 360]`, with `pivot`: `center`, `top_left`, `top_right`, `bottom_left`, or `bottom_right`; ordering is scale → rotate → routed layer effects → opacity → position). `anchor` remains a position alias. Output is video-only (`audio_policy: dropped_video_only`). Relative media paths must stay inside the spec directory. Rotation + mask remains deferred and fails closed.
+Allowlisted blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) work in full-canvas form and in a bounded positioned form. Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids color arithmetic on subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed. Video layers and video masks begin playback at their declared start. Rotation remains available for normal-blend layers (`rotation` within `[-360, 360]`, with `pivot`: `center`, `top_left`, `top_right`, `bottom_left`, or `bottom_right`; ordering is scale → rotate → routed layer effects → opacity → position). `anchor` remains a position alias. Output is video-only (`audio_policy: dropped_video_only`). Relative media paths must stay inside the spec directory. Rotation + mask remains deferred and fails closed.
 
 ## Workflow Engine
 
@@ -326,12 +326,19 @@ Quality JSON identifies each saturation and contrast metric, its unit, measured 
 
 ## Hyperframes Commands
 
+Relative render and requested still output paths resolve from the caller working
+directory. A requested still output is atomically copied independently of mutable
+snapshots and contains PNG bytes; changing its extension does not transcode it.
+Without an explicit output, the existing snapshot path may be replaced by a later
+snapshot. Missing still artifacts are errors.
+
+
 | Command | Description |
 |---------|-------------|
-| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence (`--composition`, `--resolution`, `--variables`, `--variables-file`; width/height must map to a preset) |
+| `hyperframes-render` | Render a Hyperframes composition to video or PNG sequence; relative output resolves from caller cwd, false render results exit nonzero (`--composition`, `--resolution`, `--variables`, `--variables-file`; width/height must map to a preset) |
 | `hyperframes-compositions` | List compositions in a Hyperframes project |
 | `hyperframes-preview` | Launch Hyperframes preview studio |
-| `hyperframes-still` | Render a single frame as an image; accepts `--variables` and `--variables-file` runtime data |
+| `hyperframes-still` | Render a single frame to the requested `-o` path, retaining it independently of mutable snapshots; accepts `--variables` and `--variables-file` runtime data |
 | `hyperframes-snapshot` | Capture one or more rendered PNG snapshots; accepts `--variables` and `--variables-file` runtime data |
 | `hyperframes-inspect` | Inspect rendered layout overflow and visual issues |
 | `hyperframes-info` | Show Hyperframes project metadata |

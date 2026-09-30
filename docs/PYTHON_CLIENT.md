@@ -203,22 +203,24 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 |--------|---------|-------------|
 | `info(path)` | `VideoInfo` | Video metadata (duration, resolution, codec, fps, size) |
 | `video_info_detailed(video)` | `dict` | Extended metadata with scene detection and dominant colors |
-| `trim(input, start, duration?, end?, output?)` | `EditResult` | Trim by start time + duration or end time |
+| `trim(input, start, duration?, end?, output?, accurate?)` | `EditResult` | Trim by finite start time + duration or absolute end; staged output publication |
 | `merge(clips, output?, transitions?, transition_duration?)` | `EditResult` | Concatenate clips with per-pair transitions |
 | `add_text(video, text, position?, font?, size?, color?, shadow?, start_time?, duration?, output?)` | `EditResult` | Overlay text on video |
-| `add_audio(video, audio, volume?, fade_in?, fade_out?, mix?, start_time?, output?)` | `EditResult` | Add or replace audio track |
+| `add_audio(video, audio, volume?, fade_in?, fade_out?, mix?, start_time?, output?, duration_policy?)` | `EditResult` | Add or replace audio; `loop_audio` is supported with mixing. [Contract](AUDIO_MIXING.md#loop-one-added-track) |
+| `mix_audio(video, tracks, output?, keep_source?, audio_bitrate?)` | `EditResult` | Mix timed tracks in one AAC encode with picture copied. [Contract](AUDIO_MIXING.md) |
+| `duck_audio(video, music, output?, music_volume?, threshold?, ratio?, attack?, release?)` | `EditResult` | Plain-file sidechain ducking; no governed audio-bed receipt or delivery normalization. [Contract](AUDIO_MIXING.md#duck-music-under-existing-speech) |
 | `resize(video, width?, height?, aspect_ratio?, quality?, output?)` | `EditResult` | Resize or change aspect ratio |
 | `convert(video, format?, quality?, output?)` | `EditResult` | Convert format (mp4/webm/gif/mov) |
 | `export(video, output?, quality?, format?, c2pa_manifest_path?, c2pa_tool_path?, c2pa_signer_path?)` | `EditResult` | Render with quality settings; optionally C2PA-sign final MP4 output |
-| `speed(video, factor?, output?)` | `EditResult` | Change playback speed |
+| `speed(video, factor?, output?)` | `EditResult` | Change playback speed with staged output publication |
 | `reverse(video, output?)` | `EditResult` | Reverse video and audio playback |
 | `fade(video, fade_in?, fade_out?, output?)` | `EditResult` | Video fade in/out effect |
-| `crop(video, width, height, x?, y?, output?)` | `EditResult` | Crop to rectangular region |
+| `crop(video, width, height, x?, y?, output?)` | `EditResult` | Crop in upright display pixels, including rotation-tagged phone video |
 | `rotate(video, angle?, flip_horizontal?, flip_vertical?, output?)` | `EditResult` | Rotate and/or flip video |
-| `filter(video, filter_type, params?, output?)` | `EditResult` | Apply visual filter |
+| `filter(video, filter_type, params?, output?)` | `EditResult` | Apply bounded visual/audio filters; `noise_reduction` defaults to -50 dB, Ken Burns retains source frame rate by default |
 | `blur(video, radius?, strength?, output?)` | `EditResult` | Blur video |
 | `color_grade(video, preset?, output?)` | `EditResult` | Apply color preset |
-| `normalize_audio(video, target_lufs?, output?)` | `EditResult` | Normalize audio to LUFS target |
+| `normalize_audio(video, target_lufs?, output?)` | `EditResult` | Normalize audio/video to LUFS target; PCM16 WAV or AAC supported M4A/video output, staged validation and observed codec/container metadata |
 | `chroma_key(video, color?, similarity?, blend?, output?)` | `EditResult` | Remove solid color background |
 | `stabilize(video, smoothing?, zoom?, output?)` | `EditResult` | Stabilize shaky footage |
 | `overlay_video(background, overlay, position?, width?, opacity?, start_time?, duration?, output?)` | `EditResult` | Picture-in-picture overlay |
@@ -244,7 +246,7 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | `ai_scene_detect(video, threshold?, use_ai?)` | `list[dict]` | Scene change detection |
 | `ai_stem_separation(video, output_dir, stems?, model?)` | `dict[str, str]` | Isolate vocals, drums, bass, other with Demucs |
 | `ai_upscale(video, output, scale?, model?)` | `str` | AI super-resolution upscaling |
-| `ai_color_grade(video, output, reference?, style?)` | `str` | Auto color grading |
+| `ai_color_grade(video, output, reference?, style?, lut_path?)` | `str` | Color grade with a style, reference or explicit `.cube` LUT |
 | `ai_remove_silence(video, output, silence_threshold?, min_silence_duration?, keep_margin?)` | `str` | Auto-remove silent sections |
 
 ---
@@ -264,7 +266,7 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | `compare_quality(video, reference, output?)` | `QualityMetricsResult` | Compare PSNR/SSIM metrics |
 | `read_metadata(video)` | `MetadataResult` | Read video metadata tags |
 | `write_metadata(video, metadata, output?)` | `EditResult` | Write video metadata tags |
-| `audio_waveform(video, bins?)` | `WaveformResult` | Extract audio waveform |
+| `audio_waveform(video, bins?)` | `WaveformResult` | Measure video/audio-only first-stream RMS dBFS bins; inspect `synthetic` before using level/silence data. [Contract](QUALITY_EVIDENCE.md#audio-waveform) |
 | `auto_chapters(video, threshold?)` | `list[tuple[float, str]]` | Auto-detect scenes and create chapter timestamps |
 | `generate_subtitles(entries, output?, burn?)` | `SubtitleResult` | Create SRT subtitles |
 
@@ -305,7 +307,7 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | `mograph_count(start, end, duration, output, style?, fps?)` | `EditResult` | Animated number counter video |
 | `mograph_progress(duration, output, style?, color?, track_color?, fps?)` | `EditResult` | Progress bar/circle/dots animation |
 
-Positioned non-`normal` blend requires explicit `width` and `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing window. The client preserves the existing `position` and `transform` receipt fields and reports `features.positioned_blend`; the renderer crops the running base, blends the same-size layer, and overlays the result back. Full-canvas blend remains supported, while other geometry fails closed with `unsupported_blend_geometry`.
+Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video layers and video masks begin at the declared layer start. Sources and masks must resolve inside the spec directory; put the spec in a common parent of its media. The existing `position`/`transform` receipt fields and additive `features.positioned_blend` remain available.
 
 ---
 
@@ -321,6 +323,13 @@ Positioned non-`normal` blend requires explicit `width` and `height`, an integra
 ---
 
 ## Hyperframes Methods
+
+Relative render and requested still output paths resolve from the caller working
+directory. A requested still output is atomically copied independently of mutable
+snapshots and contains PNG bytes; changing its extension does not transcode it.
+Without an explicit output, the existing snapshot path may be replaced by a later
+snapshot. Missing still artifacts are errors.
+
 
 | Method | Returns | Description |
 |--------|---------|-------------|
@@ -468,7 +477,8 @@ ImageSequenceResult(success=True, frame_count=120, fps=30, duration=4.0, output_
 
 SubtitleResult(success=True, output_path, srt_path, video_path, entry_count=15)
 
-WaveformResult(success=True, peaks=[...], silence_regions=[...], bin_count=50)
+WaveformResult(success=True, duration=3.0, peaks=[...], mean_level=-24.7,
+               max_level=-20.0, min_level=-120.0, silence_regions=[...], synthetic=False)
 
 QualityMetricsResult(success=True, psnr=45.2, ssim=0.98)
 

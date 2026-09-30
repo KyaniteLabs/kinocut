@@ -32,6 +32,7 @@ from kinocut.limits import (
     MAX_TEMPORAL_INSPECTION_FRAMES,
     MAX_VIDEO_DURATION,
 )
+from .motion_coherence import chronological_motion_report
 
 _REASON_CODES = frozenset({"decode_error", "missing_frame", "invalid_timestamp"})
 _REGION_NAME_RE = re.compile(r"^[a-z][a-z0-9_]{0,63}$")
@@ -112,6 +113,7 @@ class TemporalInspectionResult(ValueObject):
     playable_end: float = Field(gt=0.0, le=MAX_VIDEO_DURATION)
     opening_closing_difference: float = Field(ge=0.0)
     findings: tuple[DefectFinding, ...]
+    motion_coherence: dict = Field(default_factory=dict)
 
 
 def _measurement(name: str, value: float, unit: str) -> Measurement:
@@ -362,6 +364,7 @@ def analyze_temporal_observations(
         playable_end=expected_end,
         opening_closing_difference=round(opening_closing, 6),
         findings=tuple(found),
+        motion_coherence=chronological_motion_report(ordered, expected_end),
     )
 
 
@@ -571,10 +574,16 @@ def inspect_temporal_media(
 
     try:
         validated = _validate_input_path(path)
+        from pathlib import Path
+        from kinocut.rescue.operations import _sha256
+
+        media = Path(validated)
+        source_stat = media.stat()
+        source_digest = _sha256(media)
         frames, opening_closing, decoded_end = _probe_frames(validated)
         expected_end = _expected_video_end(validated, decoded_end, trusted_expected_video_end)
         corrupt_intervals = _integrity_scan(validated, decoded_end, expected_end)
-        return analyze_temporal_observations(
+        result = analyze_temporal_observations(
             frames,
             target_id=target_id,
             project_id=project_id,
@@ -582,6 +591,28 @@ def inspect_temporal_media(
             corrupt_intervals=corrupt_intervals,
             region_differences=region_differences,
             opening_closing_difference=opening_closing,
+        )
+        final_stat = media.stat()
+        if any(
+            getattr(final_stat, field) != getattr(source_stat, field)
+            for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+        ):
+            raise _invalid_observations("media changed during temporal inspection")
+        return result.model_copy(
+            update={
+                "motion_coherence": {
+                    **result.motion_coherence,
+                    "source_sha256": source_digest,
+                    "source_binding_status": "hashed_media_unchanged_during_inspection",
+                    "decoded_media_end": decoded_end,
+                    "decoded_coverage_seconds": round(decoded_end - frames[0].timestamp, 6),
+                    "coverage_scope": "complete_bounded_decode"
+                    if not corrupt_intervals and decoded_end == expected_end
+                    else "decoded_observations_with_incomplete_or_corrupt_media",
+                    "frame_budget": MAX_TEMPORAL_INSPECTION_FRAMES,
+                    "budget_policy": "excess_frames_reject; never_silently_truncated",
+                }
+            }
         )
     except Exception as exc:
         logger.warning("temporal media probe failed: %s", type(exc).__name__)

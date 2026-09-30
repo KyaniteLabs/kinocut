@@ -254,6 +254,16 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "video_info_detailed": {"category": "report", "return_type": "dict", "aliases": {"video": "input_path"}},
     "auto_chapters": {"category": "report", "return_type": "list", "aliases": {"video": "input_path"}},
     # Audio
+    "mix_audio": {
+        "category": "media",
+        "return_type": MEDIA_RETURN,
+        "aliases": {"video": "input_path", "output": "output_path"},
+    },
+    "duck_audio": {
+        "category": "media",
+        "return_type": MEDIA_RETURN,
+        "aliases": {"video": "input_path", "music": "music_path", "output": "output_path"},
+    },
     "audio_waveform": {"category": "report", "return_type": "WaveformResult", "aliases": {"video": "input_path"}},
     "audio_synthesize": {"category": "media", "return_type": MEDIA_RETURN, "aliases": {"output": "output_path"}},
     "audio_preset": {"category": "media", "return_type": MEDIA_RETURN, "aliases": {"output": "output_path"}},

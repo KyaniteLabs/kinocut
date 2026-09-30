@@ -1,8 +1,15 @@
-"""S13 host-join tests: real D41/D42 bindings under kinocut.sound_joins."""
+"""S13 host-join contracts and truthful semantic voice capability status."""
 
 from __future__ import annotations
 
 import json
+import shutil
+
+import pytest
+
+from kinocut.errors import MCPVideoError
+from kinocut.sound_joins.d42_bind import PathAssetIndex
+from kinocut_sound.voice_consistency._errors import VoiceConsistencyError
 
 from kinocut.sound_joins import (
     D41_BED_KINOCUT_ADAPTER_ID,
@@ -77,53 +84,77 @@ def test_kinocut_d41_audition_always_human_review():
     assert reel.reel_hash.startswith("sha256:")
 
 
-def test_kinocut_d42_port_probes_and_style_check():
+def test_kinocut_d42_ports_do_not_claim_ffmpeg_is_a_perceptual_backend(monkeypatch):
+    monkeypatch.setattr(shutil, "which", lambda executable: f"/fake/bin/{executable}")
     port = default_kinocut_d42_port()
     assert isinstance(port, KinocutD42Port)
-    s, i = port.probe()
-    assert s.available is True
-    assert i.available is True
+    style, identity = port.probe()
+    assert style.available is False
+    assert identity.available is False
+    assert style.reason_code == identity.reason_code == "d42_voice_seam_unavailable"
+    assert "calibrated" in style.remediation
+    assert "calibrated" in identity.remediation
     assert port.style.descriptor.adapter_id == D42_STYLE_KINOCUT_ADAPTER_ID
-    result = port.style.check_style(
-        StyleCheckSpec(
+
+
+@pytest.mark.parametrize("reference", [_SHA, _SHA2])
+@pytest.mark.parametrize("registered", [False, True])
+def test_host_voice_ports_never_certify_hash_equality_or_invent_scores(tmp_path, reference, registered):
+    assets = PathAssetIndex()
+    if registered:
+        audio = tmp_path / "unassessed.wav"
+        audio.write_bytes(b"not a measured voice")
+        assets.register(_SHA, str(audio))
+        assets.register(reference, str(audio))
+    port = default_kinocut_d42_port(assets)
+    calls = [
+        lambda: port.style.check_style(
+            StyleCheckSpec(
+                profile_id="narrator_main",
+                audio_hash=_SHA,
+                reference_hash=reference,
+            )
+        ),
+        lambda: port.identity.compare_identity(IdentityCheckSpec(audio_hash_a=_SHA, audio_hash_b=reference)),
+    ]
+    for call in calls:
+        with pytest.raises(MCPVideoError) as failure:
+            call()
+        assert failure.value.error_type == "dependency_error"
+        assert failure.value.code == "d42_voice_seam_unavailable"
+        assert failure.value.suggested_action["auto_fix"] is False
+        if registered:
+            assert str(audio) not in str(failure.value)
+
+
+def test_kinocut_d42_metrics_facade_reports_unavailability():
+    port = default_kinocut_d42_port()
+    with pytest.raises(VoiceConsistencyError) as failure:
+        style_check(
+            port=port,  # type: ignore[arg-type]
             profile_id="narrator_main",
             audio_hash=_SHA,
             reference_hash=_SHA,
         )
-    )
-    assert result.similarity == 1.0
-    assert result.drift is False
-    result2 = port.style.check_style(
-        StyleCheckSpec(
-            profile_id="narrator_main",
-            audio_hash=_SHA,
-            reference_hash=_SHA2,
+    assert failure.value.code == "consistency_d42_unavailable"
+    with pytest.raises(VoiceConsistencyError) as failure:
+        identity_similarity(
+            port=port,  # type: ignore[arg-type]
+            audio_hash_a=_SHA,
+            audio_hash_b=_SHA2,
         )
-    )
-    assert 0.0 <= result2.similarity <= 1.0
-    assert "assets_unresolved" in result2.flags
+    assert failure.value.code == "consistency_d42_unavailable"
 
 
-def test_kinocut_d42_identity_and_metrics_facade():
-    port = default_kinocut_d42_port()
-    ident = port.identity.compare_identity(IdentityCheckSpec(audio_hash_a=_SHA, audio_hash_b=_SHA))
-    assert ident.same_identity is True
-    assert ident.similarity == 1.0
-    # metrics helpers accept the host port facade (duck-typed)
-    metrics = style_check(
-        port=port,  # type: ignore[arg-type]
-        profile_id="narrator_main",
-        audio_hash=_SHA,
-        reference_hash=_SHA,
-    )
-    assert metrics.similarity == 1.0
-    assert metrics.drift is False
-    sim = identity_similarity(
-        port=port,  # type: ignore[arg-type]
-        audio_hash_a=_SHA,
-        audio_hash_b=_SHA2,
-    )
-    assert 0.0 <= sim <= 1.0
+def test_path_asset_index_still_registers_actual_streamed_file_digest(tmp_path):
+    import hashlib
+
+    audio = tmp_path / "audio.wav"
+    audio.write_bytes(b"preserved index bytes")
+    assets = PathAssetIndex()
+    digest = assets.register_file(str(audio))
+    assert digest == "sha256:" + hashlib.sha256(audio.read_bytes()).hexdigest()
+    assert assets.resolve(digest) == str(audio)
 
 
 def test_host_join_payloads_have_no_leaks():

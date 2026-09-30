@@ -5,7 +5,14 @@ from __future__ import annotations
 import logging
 import warnings as _warnings
 
-from .defaults import DEFAULT_AUDIO_BITRATE
+from .defaults import (
+    DEFAULT_AUDIO_BITRATE,
+    DEFAULT_DUCK_MUSIC_VOLUME,
+    DEFAULT_DUCK_THRESHOLD,
+    DEFAULT_DUCK_RATIO,
+    DEFAULT_DUCK_ATTACK_MS,
+    DEFAULT_DUCK_RELEASE_MS,
+)
 from .engine_probe import probe, probe_audio_input
 from .engine_runtime_utils import (
     _build_edit_result,
@@ -77,9 +84,15 @@ def _build_mix_audio_args(
     else:
         second_chain = f"[1:a]{af}[a1]"
     filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
+    loop_prefix = (
+        ["-stream_loop", "-1", "-t", str(video_duration)]
+        if duration_policy == "loop_audio" and video_duration is not None
+        else []
+    )
     return [
         "-i",
         video_path,
+        *loop_prefix,
         "-i",
         audio_path,
         "-filter_complex",
@@ -111,8 +124,8 @@ def _build_replace_audio_args(
 ) -> list[str]:
     """Construct FFmpeg arguments for add_audio in replace (or add) mode.
 
-    Duration control (replace path only, so loop/pad never feed an unbounded
-    stream into amix): non-shortest policies cap the output at the video length.
+    Non-shortest policies cap output at the video length. Mix-mode looping
+    is handled separately with a duration-bounded audio input.
     """
     loop_prefix = ["-stream_loop", "-1"] if duration_policy == "loop_audio" else []
     audio_filters = [*filters, "apad"] if duration_policy == "pad_audio" else list(filters)
@@ -182,12 +195,12 @@ def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
             error_type="validation_error",
             code="invalid_duration_policy",
         )
-    if mix and duration_policy in ("loop_audio", "pad_audio"):
-        # Looping/padding an added track feeds an unbounded stream into ``amix``;
-        # rather than hang or silently ignore the policy, fail closed.
+    if mix and duration_policy == "pad_audio":
+        # Mix-mode padding has no implemented duration-bounded input chain.
+        # Keep its existing fail-closed policy; looping is now bounded above.
         raise MCPVideoError(
             f"duration_policy={duration_policy!r} is not supported with mix=True; "
-            "use keep_video, trim_audio, or shortest",
+            "use keep_video, loop_audio, trim_audio, or shortest",
             error_type="validation_error",
             code="unsupported_duration_policy_for_mix",
         )
@@ -326,11 +339,11 @@ def duck_audio(
     video_path: str,
     music_path: str,
     output_path: str | None = None,
-    music_volume: float = 0.6,
-    threshold: float = 0.05,
-    ratio: float = 8.0,
-    attack: float = 20.0,
-    release: float = 300.0,
+    music_volume: float = DEFAULT_DUCK_MUSIC_VOLUME,
+    threshold: float = DEFAULT_DUCK_THRESHOLD,
+    ratio: float = DEFAULT_DUCK_RATIO,
+    attack: float = DEFAULT_DUCK_ATTACK_MS,
+    release: float = DEFAULT_DUCK_RELEASE_MS,
 ) -> EditResult:
     """Mix background music under a video's audio, auto-ducking it when the voice plays.
 
@@ -363,10 +376,11 @@ def duck_audio(
             code="missing_audio_stream",
         )
 
+    safe = [_escape_ffmpeg_filter_value(str(value)) for value in (music_volume, threshold, ratio, attack, release)]
     filter_complex = (
-        f"[1:a]volume={music_volume:g}[bg];"
-        f"[bg][0:a]sidechaincompress=threshold={threshold:g}:ratio={ratio:g}"
-        f":attack={attack:g}:release={release:g}[duck];"
+        f"[1:a]volume={safe[0]}[bg];"
+        f"[bg][0:a]sidechaincompress=threshold={safe[1]}:ratio={safe[2]}"
+        f":attack={safe[3]}:release={safe[4]}[duck];"
         f"[0:a][duck]amix=inputs=2:duration=first:normalize=0[aout]"
     )
 

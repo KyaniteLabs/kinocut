@@ -22,7 +22,7 @@ pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg n
 
 
 def _ffmpeg(args: list[str]) -> None:
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *args], check=True)
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", *args], check=True, timeout=120)
 
 
 def _make_video(path, duration: float, *, with_audio: bool = True) -> str:
@@ -76,6 +76,7 @@ def _audio_stream_count(path: str) -> int:
         check=True,
         capture_output=True,
         text=True,
+        timeout=30,
     ).stdout
     return len([line for line in out.splitlines() if line.strip()])
 
@@ -161,8 +162,8 @@ def test_mix_shortest_actually_shortens(tmp_path, media):
     assert any("duration" in w.lower() for w in res.warnings)
 
 
-@pytest.mark.parametrize("policy", ["loop_audio", "pad_audio"])
-def test_mix_loop_or_pad_fails_closed(tmp_path, media, policy):
+@pytest.mark.parametrize("policy", ["pad_audio"])
+def test_mix_pad_still_fails_closed(tmp_path, media, policy):
     with pytest.raises(MCPVideoError):
         add_audio(
             media["video_10s"], media["audio_3s"], mix=True, duration_policy=policy, output_path=str(tmp_path / "x.mp4")
@@ -218,8 +219,8 @@ def test_multistream_source_mix_keep_video_caps(tmp_path, media):
     assert abs(_get_video_duration(str(out)) - 10.0) < 0.3
 
 
-@pytest.mark.parametrize("policy", ["loop_audio", "pad_audio"])
-def test_multistream_mix_loop_or_pad_fails_closed(tmp_path, media, policy):
+@pytest.mark.parametrize("policy", ["pad_audio"])
+def test_multistream_mix_pad_still_fails_closed(tmp_path, media, policy):
     with pytest.raises(MCPVideoError):
         add_audio(
             media["video_multistream"],

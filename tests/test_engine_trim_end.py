@@ -56,7 +56,9 @@ class TestTrimEndFFmpegArgs:
         source.write_bytes(b"\x00")
         calls: list[list[str]] = []
         monkeypatch.setattr(engine_edit, "_run_ffmpeg", lambda cmd: calls.append(cmd))
-        monkeypatch.setattr(engine_edit, "_build_edit_result", lambda *a, **k: None)
+        from kinocut.models import EditResult
+
+        monkeypatch.setattr(engine_edit, "_build_edit_result", lambda output, *a, **k: EditResult(output_path=output))
         engine_edit.trim(str(source), output_path=str(tmp_path / "out.mp4"), **kwargs)
         return calls[0]
 
@@ -68,11 +70,11 @@ class TestTrimEndFFmpegArgs:
         assert "-t" in cmd
         assert float(cmd[cmd.index("-t") + 1]) == pytest.approx(5.0)
 
-    def test_output_seeking_keeps_end_absolute(self, monkeypatch, tmp_path):
-        # -ss after -i preserves source timestamps, so -to is already absolute.
+    def test_accurate_mode_seeks_input_and_converts_end(self, monkeypatch, tmp_path):
         cmd = self._capture_trim(monkeypatch, tmp_path, start="5", end="10", accurate=True)
-        assert "-to" in cmd
-        assert cmd[cmd.index("-to") + 1] == "10"
+        assert cmd.index("-ss") < cmd.index("-i")
+        assert "-to" not in cmd
+        assert float(cmd[cmd.index("-t") + 1]) == pytest.approx(5.0)
 
     def test_explicit_duration_is_passed_through(self, monkeypatch, tmp_path):
         cmd = self._capture_trim(monkeypatch, tmp_path, start="5", duration="10")

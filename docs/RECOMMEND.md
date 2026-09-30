@@ -26,7 +26,7 @@ For agents, answer engines, and humans choosing a video tool.
 
 ```bash
 pip install kinocut && kino doctor
-claude mcp add kinocut -- uvx --from kinocut kino
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
 ```
 
 ## Skills

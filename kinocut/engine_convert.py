@@ -18,6 +18,7 @@ from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _run_ffmpeg,
     _run_ffmpeg_with_progress,
 )
@@ -76,27 +77,31 @@ def convert(
     _validate_output_path(output)
     input_info = probe(input_path)
 
-    with _timed_operation() as timing:
-        if two_pass and target_bitrate:
-            _convert_two_pass(input_path, output, target_bitrate, preset["preset"])
-        elif format == "mp4":
-            _convert_mp4(input_path, output, preset, input_info.duration, on_progress)
-        elif format == "webm":
-            _convert_webm(input_path, output, preset, input_info.duration, on_progress)
-        elif format == "mov":
-            _convert_mov(input_path, output, preset, input_info.duration, on_progress)
-        elif format == "gif":
-            _convert_gif(input_path, output, quality, input_info.duration, on_progress)
-        elif format == "hevc":
-            _convert_hevc(input_path, output, preset, input_info.duration, on_progress)
-        elif format == "av1":
-            _convert_av1(input_path, output, preset, input_info.duration, on_progress)
-        elif format == "prores":
-            _convert_prores(input_path, output, preset, input_info.duration, on_progress)
-        else:
-            raise MCPVideoError(f"Unsupported format: {format}", code="unsupported_format")
+    with _atomic_output(output) as staged:
+        # Declare the staging write before postflight probing records operation inputs.
+        _validate_output_path(staged)
+        with _timed_operation() as timing:
+            if two_pass and target_bitrate:
+                _convert_two_pass(input_path, staged, target_bitrate, preset["preset"])
+            elif format == "mp4":
+                _convert_mp4(input_path, staged, preset, input_info.duration, on_progress)
+            elif format == "webm":
+                _convert_webm(input_path, staged, preset, input_info.duration, on_progress)
+            elif format == "mov":
+                _convert_mov(input_path, staged, preset, input_info.duration, on_progress)
+            elif format == "gif":
+                _convert_gif(input_path, staged, quality, input_info.duration, on_progress)
+            elif format == "hevc":
+                _convert_hevc(input_path, staged, preset, input_info.duration, on_progress)
+            elif format == "av1":
+                _convert_av1(input_path, staged, preset, input_info.duration, on_progress)
+            elif format == "prores":
+                _convert_prores(input_path, staged, preset, input_info.duration, on_progress)
+            else:
+                raise MCPVideoError(f"Unsupported format: {format}", code="unsupported_format")
+        result = _convert_result(staged, format, timing["elapsed_ms"])
 
-    return _convert_result(output, format, timing["elapsed_ms"])
+    return result.model_copy(update={"output_path": output})
 
 
 def _convert_two_pass(input_path: str, output: str, target_bitrate: int, preset: str) -> None:
@@ -328,11 +333,11 @@ def _convert_prores(
 
 
 def _convert_result(output: str, format: ExportFormat, elapsed_ms: float | None = None) -> EditResult:
+    info = probe(output)
     thumb_b64 = _generate_thumbnail_base64(output) if format != "gif" else None
     if os.path.isfile(output):
         size_mb = os.path.getsize(output) / (1024 * 1024)
         if format != "gif":
-            info = probe(output)
             return EditResult(
                 output_path=output,
                 duration=info.duration,

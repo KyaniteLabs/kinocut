@@ -96,7 +96,10 @@ class KinocutBedAdapter:
 
         receipt = audio_bed(voice_source, music_path, output_path, **audio_bed_kwargs)
         out = Path(output_path)
-        digest = hashlib.sha256(out.read_bytes()).hexdigest() if out.is_file() else "missing"
+        digest = "missing"
+        if out.is_file():
+            with out.open("rb") as handle:
+                digest = hashlib.file_digest(handle, "sha256").hexdigest()
         descriptor_hash = _hash_payload(
             {
                 "adapter_id": D41_BED_KINOCUT_ADAPTER_ID,

@@ -1,0 +1,23 @@
+{
+  "implementation_parent": "c7f4cc43c75592c57a36a598e0ab865a486de296",
+  "source_state": "same runtime/test source now banked in implementation_commit",
+  "python312": {
+    "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/test_quality_source.py tests/test_quality_signalstats_bitdepth.py tests/test_quality_cache_lifecycle.py tests/test_quality_guardrails.py tests/test_aivideo_preflight.py -x -q --tb=short",
+    "passed": 130,
+    "duration_seconds": 31.2,
+    "exit_code": 0
+  },
+  "python314_current_dependencies": {
+    "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm /tmp/kinocut-ci314-unlocked/bin/python -m pytest tests/test_quality_source.py tests/test_quality_cache_lifecycle.py tests/test_quality_signalstats_bitdepth.py tests/test_aivideo_preflight.py -x -q --tb=short",
+    "passed": 90,
+    "duration_seconds": 23.15,
+    "exit_code": 0
+  },
+  "limits": [
+    "Focused suites overlap; counts are not additive",
+    "FFmpeg fallback and fixture creation use system FFmpeg7.1.5 in the cross-version FFprobe6.1 comparison",
+    "Earlier full gate stopped after a relocated private test mock failed:1failed262passed9skipped; updatedmocktargetsnewmetadataowner",
+    "Full required gate passed7429tests; exact published-head hostedchecks remain separate"
+  ],
+  "implementation_commit": "1d35a9f9c1cf1c2df9d83da54ac090c3b68016a7"
+}

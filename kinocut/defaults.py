@@ -27,6 +27,7 @@ DEFAULT_GIF_FPS = 15
 DEFAULT_THUMBNAIL_WIDTH = 320
 DEFAULT_STORYBOARD_WIDTH = 480
 DEFAULT_STORYBOARD_HEIGHT = 270
+DEFAULT_VISION_SAMPLE_TIMES = (0.5, 1.0, 2.0)
 DEFAULT_SPHERE_FOV = 90.0
 DEFAULT_SPHERE_TABLE_PITCH = -35.0
 DEFAULT_SPHERE_OUTPUT_WIDTH = 1920
@@ -90,10 +91,30 @@ DEFAULT_SAMPLE_RATE = 44100
 DEFAULT_CHANNELS = 1
 DEFAULT_AUDIO_CHANNELS = 2
 DEFAULT_AUDIO_VOLUME = 0.5
+# FFmpeg afftdn default; higher floors can remove voiced harmonics.
+DEFAULT_NOISE_REDUCTION_FLOOR_DB = -50
+# One output frame per input frame prevents video zoompan from expanding time.
+DEFAULT_KEN_BURNS_FRAME_DURATION = 1
 DEFAULT_LUFS_TARGET = -16.0
 DEFAULT_LRA_TARGET = 11.0
 DEFAULT_AUDIO_BITRATE = "128k"
 DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP = -1.5
+DEFAULT_AUDIO_NORMALIZE_BITRATE = "192k"
+AUDIO_NORMALIZE_OUTPUT_CODECS = {
+    ".wav": "pcm_s16le",
+    ".m4a": "aac",
+    ".aac": "aac",
+    ".mp3": "libmp3lame",
+    ".flac": "flac",
+    ".ogg": "libvorbis",
+    ".opus": "libopus",
+    ".aiff": "pcm_s16be",
+    ".aif": "pcm_s16be",
+    ".mp4": "aac",
+    ".mov": "aac",
+    ".mkv": "aac",
+}
+AUDIO_NORMALIZE_VIDEO_CONTAINERS = frozenset({".mp4", ".mov", ".mkv"})
 DEFAULT_PROCEDURAL_AUDIO_BED_WARNING_SECONDS = 10.0
 
 # Audio-bed defaults (field-proven sidechain ducking + loudness normalization).
@@ -126,6 +147,17 @@ MIN_FFMPEG_VERSION = 6
 MIN_PYTHON_VERSION = (3, 11)
 DEFAULT_GLOW_MAX_SAFE_INTENSITY = 0.25
 DEFAULT_QUALITY_GATE_SCORE = 80.0
+# Quality heuristics use an 8-bit limited-range signal domain, not HDR luminance.
+DEFAULT_QUALITY_GRAYSCALE_INPUT_FILTER = "setparams=range=full"
+# Motion converts gray to YUV before differencing so conversion cannot add a
+# limited-range black offset to an already-computed difference image.
+DEFAULT_QUALITY_MOTION_PIXEL_FORMATS = "yuv444p|yuvj444p|yuv444p9le|yuv444p10le|yuv444p12le|yuv444p14le|yuv444p16le"
+DEFAULT_QUALITY_MOTION_FILTER = (
+    f"format=pix_fmts={DEFAULT_QUALITY_MOTION_PIXEL_FORMATS},tblend=all_mode=difference,signalstats"
+)
+DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS = "yuv420p|yuv422p|yuv444p|yuv440p|yuv411p|yuv410p"
+# Bound retained signal measurements on long-lived quality guardrail instances.
+QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES = 32
 DEFAULT_C2PA_TIMEOUT = 120
 
 # Transition defaults
@@ -213,6 +245,8 @@ DEFAULT_REVIDEO_SEED = 1
 DEFAULT_REVIDEO_OUT_FILE = "video.mp4"
 DEFAULT_REVIDEO_INSTALL_TIMEOUT = 300
 DEFAULT_REVIDEO_RENDER_TIMEOUT = 900
+DEFAULT_RENDER_STOP_TIMEOUT = 5.0
+DEFAULT_RENDER_STOP_POLL_INTERVAL = 0.02
 # macOS may refuse to exec puppeteer's downloaded chrome-headless-shell
 # (protected com.apple.provenance xattr -> spawn ECANCELED); the engine
 # forwards this env var so the bridge can use a system Chrome instead.
@@ -222,3 +256,28 @@ REVIDEO_EXECUTABLE_PATH_ENV = "KINOCUT_REVIDEO_EXECUTABLE_PATH"
 # the frozen-at-export contract Kino ingests; judges is deliberately absent
 # pending the envelope-pin answer on #999).
 REVIDEO_WINNERS_SCHEMA_VERSION = "sinter.winners/0.1"
+
+# Finite dBFS convention and silence boundary for audio waveform analysis.
+DEFAULT_WAVEFORM_LEVEL_FLOOR = -120.0
+DEFAULT_WAVEFORM_SILENCE_THRESHOLD = -50.0
+DEFAULT_WAVEFORM_FRAME_SAMPLES = 1024
+
+# One-pass audio mixing and standalone sidechain ducking.
+DEFAULT_AUDIO_MIX_BITRATE = "256k"
+DEFAULT_AUDIO_MIX_SAMPLE_RATE = 48000
+DEFAULT_AUDIO_MIX_TRACK_VOLUME = 1.0
+DEFAULT_DUCK_MUSIC_VOLUME = 0.6
+DEFAULT_DUCK_THRESHOLD = 0.05
+DEFAULT_DUCK_RATIO = 8.0
+DEFAULT_DUCK_ATTACK_MS = 20.0
+DEFAULT_DUCK_RELEASE_MS = 300.0
+
+# Chronological image-change QA is advisory; these are luma-change proxies,
+# not optical flow, semantic coherence, or delivery approval thresholds.
+DEFAULT_MOTION_COHERENCE_WINDOW_SECONDS = 1.0
+DEFAULT_MOTION_COHERENCE_LURCH_RATIO = 4.0
+DEFAULT_MOTION_COHERENCE_LURCH_DELTA = 60.0
+DEFAULT_MOTION_COHERENCE_HIGH_RATE = 120.0
+DEFAULT_MOTION_COHERENCE_CALM_RATE = 1.0
+DEFAULT_MOTION_COHERENCE_SUSTAINED_WINDOWS = 2
+DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE = 40.0

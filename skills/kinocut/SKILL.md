@@ -10,12 +10,14 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
-2. Plan with `video_intent` (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`) — do not list 200 tools.
+2. For an unfamiliar task, call `search_tools` with the user's task (for example, "remove filler words" or "keep face in frame"), then inspect the returned tool's required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
 5. Human visual/audio review. Never treat a receipt as published.
 
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
+
+Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
 
 ## Revideo local code-video flow (development tip)
 
@@ -49,18 +51,18 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
 4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
 
-There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director plugs (Ollama first; cloud only with `allow_cloud`) may propose JSON; they never write pixels. In pip 1.14.0.
+There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director hooks accept an injected JSON proposer; a configured model name alone does not execute a model. Cloud proposals require `allow_cloud`; directors never write pixels.
 
-## Product / object matte (published in 1.15.1; current in 1.15.2)
+## Product / object matte (published in 1.15.1; current in 1.15.3)
 
-The optional object-matte extra is available in published 1.15.2. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+The optional object-matte extra is available in published 1.15.3. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
 2. `pip install "kinocut[object-matte]"` then `model="birefnet-general"`.
 3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
 4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
 
-Do **not** invent `video_product_matte` or a 197th tool. Do **not** fall back to the people model when the object extra is missing. Guide: `docs/PRODUCT_MATTE.md`. Example: `examples/product-matte/`.
+Do **not** invent `video_product_matte`; this is not a new MCP tool. Do **not** fall back to the people model when the object extra is missing. Guide: `docs/PRODUCT_MATTE.md`. Example: `examples/product-matte/`.
 
 ## Dedicated Video Rescue
 
@@ -140,11 +142,11 @@ Plan-first flow:
 4. Render only after the plan looks right.
 5. Run `video-quality-check`, `storyboard` or `thumbnail`, and `video_release_checkpoint`.
 
-The compositor supports allowlisted **full-canvas and positioned** blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a `pivot` reference point; the `layer_plan` receipt is v2. Positioned non-`normal` blend requires explicit `width` and `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing window. It crops the running base, blends the same-size layer, and overlays the result back. Full-canvas blend remains supported; other blend geometry fails closed with `unsupported_blend_geometry`. The receipt uses existing per-layer `position` and `transform` fields plus additive `features.positioned_blend`. Output is video-only, and `anchor` remains a position alias distinct from `pivot`. Still deferred and fail-closed: other positioned/scaled/masked/timed blend combinations, rotation + mask, per-layer effect routing, audio compositing, and full NLE adapters. Do not use `composite-layers` as a full NLE replacement.
+The compositor supports allowlisted full-canvas and positioned blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) with opacity and timing windows; receipts remain `layer_plan` v2. Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video layers and video masks begin playback at their declared start. Keep all sources and masks inside the spec directory. Output is video-only; `anchor` is a position alias distinct from `pivot`. Rotation + mask, audio compositing and full NLE adapters remain deferred. Inspect the receipt before human review; do not treat this as a full NLE replacement.
 
 ## Agent Workflow Engine
 
-When the edit is a multi-step job (not a single tool call), use the workflow engine to plan, validate, render, recover, and prove it from one JSON job-spec — through `video_workflow_*` (MCP), `workflow-*` (CLI), or `Client.workflow_*` (Python). Ops are a small allowlist (`probe | trim | resize | convert | merge | add_text`) mapped 1:1 to vetted engines; media references are symbolic (`@sources.*`, `@work/*`, `@outputs.*`) and workspace-confined; everything fails closed. See `../../docs/WORKFLOWS.md`.
+When the edit is a multi-step job (not a single tool call), use the workflow engine to plan, validate, render, recover, and prove it from one JSON job-spec — through `video_workflow_*` (MCP), `workflow-*` (CLI), or `Client.workflow_*` (Python). Ops are a small allowlist (`probe | trim | resize | convert | crop | add_text | merge | composite_layers | burn_in`) bound to vetted engines; media references are symbolic (`@sources.*`, `@work/*`, `@outputs.*`) and workspace-confined; everything fails closed. See `../../docs/WORKFLOWS.md`.
 
 Plan → validate → render → inspect → resume:
 

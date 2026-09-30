@@ -13,6 +13,7 @@ import hashlib
 import json
 import os
 from concurrent.futures import ThreadPoolExecutor
+from itertools import pairwise
 
 import pytest
 
@@ -123,9 +124,10 @@ def test_stale_snapshot_is_superseded_but_chain_retained(tmp_path):
     head = get_render_job(project, job.job_id)
     assert head.record_id == cancelled.record_id  # only the latest head is current
     assert running.supersedes == queued_id  # stale snapshots link forward ...
-    assert cancelled.supersedes == running.record_id
     chain = read_records(project, "render_job")  # ... yet the whole chain is retained (append-only)
-    assert len(chain) == 3
+    assert chain[2].supersedes == running.record_id
+    assert chain[-1].record_id == cancelled.record_id
+    assert all(after.supersedes == before.record_id for before, after in pairwise(chain))
 
 
 def test_failed_and_resume_preserve_progress(tmp_path):
@@ -141,7 +143,7 @@ def test_failed_and_resume_preserve_progress(tmp_path):
     assert resumed.completed_artifacts == failed.completed_artifacts  # progress carried forward for resume
 
 
-def test_orphan_reconcile_uses_caller_supplied_liveness(tmp_path):
+def test_orphan_reconcile_uses_caller_supplied_liveness(tmp_path, monkeypatch):
     project = open_project(tmp_path / "proj")
     ep_id, rev_id = _rev(project)
     live = submit_render_job(project, edit_project_id=ep_id, revision_id=rev_id, spec_path=str(_write_spec(project)))
@@ -150,12 +152,15 @@ def test_orphan_reconcile_uses_caller_supplied_liveness(tmp_path):
     )
     _run(project, live.job_id, 111)
     _run(project, dead.job_id, 222)
+    monkeypatch.setattr(render_jobs, "group_quiescent", lambda pid: pid == 222)
     changed = reconcile_render_jobs(project, is_alive=lambda pid: pid == 111)
     assert {c.job_id for c in changed} == {dead.job_id}
     assert get_render_job(project, dead.job_id).error_code == "orphaned_runner"
     assert get_render_job(project, live.job_id).status.value == "running"  # live runner untouched
     assert reconcile_render_jobs(project, is_alive=lambda pid: pid == 111) == []  # idempotent
-    changed2 = reconcile_render_jobs(project)  # fail-closed default: no probe -> all RUNNING orphaned
+    assert reconcile_render_jobs(project) == []  # no false orphan without quiescence proof
+    monkeypatch.setattr(render_jobs, "group_quiescent", lambda _pid: True)
+    changed2 = reconcile_render_jobs(project)
     assert len(changed2) == 1 and changed2[0].job_id == live.job_id
 
 
@@ -236,8 +241,9 @@ def test_terminate_rejects_self_pid_without_signalling(tmp_path, monkeypatch):
     failed = render_jobs.terminate_render_job(project, job.job_id)
 
     assert signals == []
-    assert failed.status.value == "failed"
-    assert failed.error_code == "orphaned_runner"
+    assert failed.status.value == "running"
+    assert failed.runner_pid == os.getpid()
+    assert failed.error_code == "runner_stop_identity_unverified"
 
 
 def test_terminate_rejects_acquirable_lease_without_signalling(tmp_path, monkeypatch):
@@ -246,13 +252,16 @@ def test_terminate_rejects_acquirable_lease_without_signalling(tmp_path, monkeyp
     job = submit_render_job(project, edit_project_id=ep_id, revision_id=rev_id, spec_path=str(_write_spec(project)))
     _run(project, job.job_id, 424242)
     monkeypatch.setattr(os, "getpgid", lambda pid: pid)
+    monkeypatch.setattr(render_jobs, "stop_runner_group", lambda *_: "identity_unverified")
     signals = []
     monkeypatch.setattr(os, "killpg", lambda *args: signals.append(args))
 
     failed = render_jobs.terminate_render_job(project, job.job_id)
 
     assert signals == []
-    assert failed.error_code == "orphaned_runner"
+    assert failed.status.value == "running"
+    assert failed.runner_pid == 424242
+    assert failed.error_code == "runner_stop_identity_unverified"
 
 
 def test_terminate_terminal_job_is_idempotent_and_never_signals(tmp_path, monkeypatch):

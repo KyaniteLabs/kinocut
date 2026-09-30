@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino's development tip exposes **200** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.1 remains at **196 MCP tools / 167 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
+kino's development tip exposes **201** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.2 exposes **201 MCP tools / 173 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
 
 ---
 
@@ -59,15 +59,28 @@ The end-to-end sequence and stop conditions are in
 
 | Tool | Description |
 |------|-------------|
-| `search_tools` | Search all registered MCP tools by keyword. Returns matching tool names, descriptions, and required parameters. Use this when you need to find the right tool without loading the full registry into context. |
+| `search_tools` | Rank registered MCP tools by exact name, keyword, or supported task phrases such as `remove filler words`, `resume render`, and `keep face in frame`. Returns matching names, descriptions, and required parameters; planning tools remain plans and discovery does not verify optional backends. An empty query returns no matches. Clients that eagerly load all MCP tools still receive the full registry. |
 
 **Python Client:**
 ```python
 from kinocut import Client
 editor = Client()
 results = editor.search_tools("subtitle")
-# Returns: {"success": True, "count": 3, "tools": [...]}
+# Returns matching tool metadata: {success, query, count, tools}.
 ```
+
+---
+
+## Visual review evidence
+
+`video_qc_vision` prepares retained keyframes for human visual review. It reports
+`sampling_status` separately from `assessment_status`; preparing frames does not
+establish visual quality. With no executable VLM scorer, complete sampling returns
+`verdict="not_evaluated"` and incomplete sampling returns `"inconclusive"`.
+Setting `require_vlm=true` returns `verdict="fail"` and `blocked=true`. Installing
+a provider SDK alone does not make visual assessment available. See
+[quality evidence](QUALITY_EVIDENCE.md) for waveform, objective visual measurement
+and perceptual voice limits.
 
 ---
 
@@ -78,17 +91,17 @@ Plan video generation like a director of photography before rendering. These too
 | Tool | Description |
 |------|-------------|
 | `video_project_create` | Scaffold `projects/<slug>/style.md`, `storyboard.md`, and `refs/` using cinematic starter templates |
-| `style_pack_read` | Parse STYLE_ and NEG_ blocks from `style.md` or a project directory |
+| `style_pack_read` | Parse STYLE_/NEG_ blocks, including one parenthesized heading annotation; malformed or duplicate declared headings fail |
 | `storyboard_read` | Parse storyboard rows from `storyboard.md` or a project directory |
-| `shot_prompt_render` | Expand one storyboard shot into `prompt` and `negative_prompt` strings for a generation provider |
+| `shot_prompt_render` | Expand camera/lens direction and style blocks into generic positive/negative prompts; `model_dialect_compiled=false`, no provider execution |
 
 ---
 
 ## Agent Workflow Engine (4 tools)
 
 Plan, validate, render, recover, and prove a multi-step local video job from one JSON
-job-spec over a small allowlisted op set (`probe | trim | resize | convert | merge |
-add_text`). Every op maps 1:1 to a vetted engine function; params are introspected from
+job-spec over a small allowlisted op set (`probe | trim | resize | convert | crop | merge |
+add_text | composite_layers | burn_in`). Every op maps 1:1 to a vetted engine function; params are introspected from
 the engine signature; media references are symbolic and workspace-confined. Full schema,
 `@ref` grammar, variants, resume, and cleanup are in [WORKFLOWS.md](WORKFLOWS.md); receipt
 shapes are in [VIDEO_RECEIPT.md](VIDEO_RECEIPT.md).
@@ -141,19 +154,19 @@ download models, contact providers, or submit jobs. See
 |------|-------------|
 | `video_info` | Get metadata: duration, resolution, codec, fps, file size |
 | `video_info_detailed` | Extended metadata with scene detection and dominant colors |
-| `video_trim` | Trim by start time + duration or end time |
+| `video_trim` | Trim by finite start time + duration or absolute end; staged output preserves the destination on render/result failure |
 | `video_merge` | Concatenate clips with optional per-pair transitions; warns on resolution/FPS/audio mismatches and rejects transitions longer than the shortest clip |
 | `video_add_text` | Overlay text with positioning, font, color, shadow |
 | `video_add_texts` | Overlay multiple text elements in a single FFmpeg pass; auto-detects overlaps and distributes stacked texts at the same named position |
 | `video_add_audio` | Add, replace, or mix audio tracks with fade effects; validates volume and warns on timing/sample-rate risks |
 | `video_resize` | Change resolution or apply preset aspect ratios (16:9, 9:16, 1:1, etc.) |
-| `video_convert` | Convert between mp4, webm, gif, mov, hevc, av1, prores (two-pass encoding) |
-| `video_speed` | Speed up or slow down (0.5x = slow-mo, 2x = time-lapse) |
+| `video_convert` | Convert between mp4, webm, gif, mov, hevc, av1, prores (two-pass encoding); validate a staged output before publication so failures preserve an existing destination |
+| `video_speed` | Speed up or slow down (0.5x = slow-mo, 2x = time-lapse), with staged output publication |
 | `video_reverse` | Reverse video and audio playback |
 | `video_fade` | Fade in/out effects |
-| `video_crop` | Crop to rectangular region with offset |
+| `video_crop` | Crop in upright display pixels with offsets, including rotation-tagged phone video |
 | `video_rotate` | Rotate 90/180/270 and flip horizontal/vertical |
-| `video_filter` | Apply filters: blur, sharpen, grayscale, sepia, invert, brightness, contrast, saturation, denoise, deinterlace, ken_burns; numeric parameters are bounded/clamped before FFmpeg execution |
+| `video_filter` | Apply bounded visual/audio filters; Ken Burns defaults to one frame per input at source fps, noise reduction uses -50 dB by default with explicit `noise_level` override |
 | `video_chroma_key` | Remove solid color background (green screen) with bounded similarity/blend parameters |
 | `video_stabilize` | Stabilize shaky footage (requires FFmpeg with vidstab) |
 | `video_subtitles` | Burn `.srt`/`.vtt`/authored `.ass` subtitles into video; optional `style` force_style override (omit to preserve authored ASS PlayRes/styles/positions). SRT/VTT are rendered dimension-aware via a synthesized ASS whose PlayResX/Y match the probed display size |
@@ -169,14 +182,14 @@ download models, contact providers, or submit jobs. See
 | `video_extract_frame` | Extract a single frame at a given timestamp for visual verification |
 | `video_extract_audio` | Extract audio as mp3, wav, aac, ogg, or flac |
 | `video_export` | Render with quality and format settings; optional C2PA signing for final MP4 exports via `c2pa_manifest_path` |
-| `video_normalize_audio` | Normalize audio loudness to a target LUFS level |
+| `video_normalize_audio` | Normalize audio/video loudness; WAV uses PCM16, supported M4A/video output uses AAC, with staged codec/full-decode validation |
 | `video_batch` | Apply the same operation to multiple video files |
 | `video_cleanup` | Remove Kinocut-managed intermediate files |
 | `video_hls_segment` | Segment video into HLS format with multi-quality variants |
 | `video_template_preview` | Preview social/video template operations before rendering |
 | `video_validate_text_layout` | Validate text overlays for overlap, low contrast, unsafe positioning, and missing shadows before rendering |
 
-For `video_composite_layers`, positioned non-`normal` blend requires explicit `width` and `height`, an integral nonnegative in-canvas `position`, full opacity, and no scale, rotation/pivot, mask/matte, or timing window. The compositor crops the running base, blends the same-size layer, and overlays the result back. Full-canvas blend remains supported; other geometry fails closed with `unsupported_blend_geometry`.
+Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video layers and video masks start playing from their declared layer `start`; a timing window does not merely hide footage already playing from the canvas origin. File sources and masks must resolve inside the spec directory; place the spec in a common parent of its media.
 Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs are explicitly unpremultiplied before transforms and compositing. Top-level `passes` route `effect-noise` through `layer:<id>`, `layer:<id>.mask`, or `layer:<id>.mask.edge`. Unknown targets, effects, route/argument fields, and mask routes without a mask fail closed with stable validation errors.
 
 ---
@@ -197,7 +210,7 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 | `video_ai_scene_detect` | ML-enhanced scene change detection (perceptual hashing) | [imagehash](https://pypi.org/project/imagehash/), Pillow |
 | `video_ai_stem_separation` | Isolate vocals, drums, bass, other instruments | [demucs](https://pypi.org/project/demucs/), Torch, TorchAudio, TorchCodec |
 | `video_ai_upscale` | AI super-resolution upscaling (2x or 4x) | [opencv-contrib-python](https://pypi.org/project/opencv-contrib-python/); Real-ESRGAN/BasicSR where supported |
-| `video_ai_color_grade` | Auto color grading with style presets or reference matching | FFmpeg |
+| `video_ai_color_grade` | Color grading with style presets, reference matching or an explicit `lut_path` | FFmpeg |
 | `video_quality_check` | Check brightness, contrast, saturation, audio levels, color balance |
 | `video_design_quality_check` | Full design quality analysis: layout, typography, color, motion, composition |
 | `video_fix_design_issues` | Auto-fix brightness, contrast, saturation, and audio level issues |
@@ -217,6 +230,13 @@ pip install yt-dlp                   # only for downloading platform URLs (YouTu
 ---
 
 ## Hyperframes — HTML-Native Video (18 tools)
+
+Relative render and requested still output paths resolve from the caller working
+directory. A requested still output is atomically copied independently of mutable
+snapshots and contains PNG bytes; changing its extension does not transcode it.
+Without an explicit output, the existing snapshot path may be replaced by a later
+snapshot. Missing still artifacts are errors.
+
 
 Create videos programmatically using [Hyperframes](https://hyperframes.io/) — an HTML-native framework for video (Apache 2.0). Hyperframes owns HTML-video authoring, catalog blocks, website capture, local TTS, transcription import, background removal, layout inspection, diagnostics, benchmarking, and rendering; Kinocut wraps those operations for MCP-safe orchestration and FFmpeg post-processing.
 
@@ -302,13 +322,16 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 | `sound_plan_validate` | Validate a supplied SoundPlan, including typed state; explicit invalid plans fail. Omission retains the minimal example. See [input validation](SOUND_INPUT_VALIDATION.md). |
 | `sound_voice_batch` | Retain local EN/ES caption speech with `request` + `project_root`, including V2 [dry/distance profiles](SOUND_SPEECH_SPATIAL.md); legacy `plan` mode is a labelled synthetic demo. See [caption speech](SOUND_DUB_REQUESTS.md). |
 | `sound_mix_render` | Assemble supplied WAVs with [routing](SOUND_ROUTING_REQUESTS.md), [automation](SOUND_AUTOMATION_REQUESTS.md), [sends](SOUND_SEND_REQUESTS.md), [final sidechains](SOUND_SIDECHAIN_REQUESTS.md), [layers/loop fill/ducking](SOUND_LAYER_REQUESTS.md) and V4 [source-rate conversion](SOUND_RATE_CONVERSION.md). Takes a persisted request and project root. No-argument labelled demo remains available. See [request contract](SOUND_MIX_REQUESTS.md). |
-| `sound_qa_loudness` | Measure hashed local mono/stereo PCM16 WAVs with FFmpeg and report actual policy compliance; omit inputs for a labelled demo. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
+| `sound_qa_loudness` | Measure the first audio stream of hashed supported local audio/video containers with FFmpeg and report actual policy compliance; omit inputs for a labelled demo. See [meter request](SOUND_LOUDNESS_REQUESTS.md). |
 | `sound_master_render` | Retain a mono/stereo two-pass master ZIP only after measuring final audio against its policy. Requires `request` and `project_root`; see [master request](SOUND_MASTER_REQUESTS.md). |
 | `sound_qa_asr` | Recognize hashed local audio and retain reference comparison. Requires `request` and `project_root` ([contract](SOUND_ASR_REQUESTS.md)) |
 
 ---
 
 ## Audio Synthesis (9 tools)
+
+For Python plain-file `Client.mix_audio` and `Client.duck_audio`, see
+[audio mixing](AUDIO_MIXING.md). These client additions do not add MCP tool names.
 
 Generate audio from code — no external audio files needed. Pure NumPy, no extra dependencies.
 
@@ -337,7 +360,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 | `effect_glow` | Bloom/glow for highlights |
 | `video_apply_mask` | Apply image mask with edge feathering |
 | `video_luma_key` | Mask out dark regions based on luminance (brightness) |
-| `video_shape_mask` | Apply geometric shape mask: circle, rounded_rect, oval |
+| `video_shape_mask` | Circle, rounded_rect or oval mask; default MOV retains alpha, explicit MP4 composites over black; static masks loop for video duration |
 
 ---
 
@@ -396,7 +419,7 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 | `video_compare_quality` | Compare PSNR/SSIM quality metrics between videos |
 | `video_read_metadata` | Read video metadata tags |
 | `video_write_metadata` | Write video metadata tags |
-| `video_audio_waveform` | Extract audio waveform peaks and silence regions |
+| `video_audio_waveform` | Measure first-stream RMS dBFS bins and silence regions; distinguish real measurements from `synthetic=true` fallback. [Evidence contract](QUALITY_EVIDENCE.md#audio-waveform) |
 
 ---
 

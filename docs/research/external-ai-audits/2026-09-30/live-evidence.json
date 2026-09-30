@@ -1,0 +1,91 @@
+{
+  "site": {
+    "url": "https://kinocut.dev/",
+    "http_status": 200,
+    "response_bytes": 47853,
+    "sha256": "3674e2b5fa7d93d731400cbb5a59414fba61b92053d9a1dba8a5740ab46d7902",
+    "json_ld_types": [
+      "WebSite",
+      "Organization",
+      [
+        "SoftwareApplication",
+        "SoftwareSourceCode"
+      ],
+      "VideoObject",
+      "FAQPage",
+      "BreadcrumbList",
+      "HowTo"
+    ],
+    "software_name": "Kinocut",
+    "software_version": "1.15.3",
+    "alternate_names": [
+      "kino",
+      "mcp-video",
+      "kinocut MCP server"
+    ],
+    "same_as": [
+      "https://github.com/KyaniteLabs/kinocut",
+      "https://git.kyanitelabs.tech/KyaniteLabs/kinocut",
+      "https://pypi.org/project/kinocut/",
+      "https://registry.modelcontextprotocol.io/servers/io.github.KyaniteLabs/kinocut",
+      "https://pypi.org/project/mcp-video/"
+    ],
+    "faq_questions": 7
+  },
+  "site_llms": {
+    "url": "https://kinocut.dev/llms.txt",
+    "http_status": 200,
+    "sha256": "3c9984f89b5aea22b68b2fcceb9ea261afec87ab4dc5169e9350b7f36528bdfc",
+    "reported_version": "1.15.3"
+  },
+  "release_providers": [
+    {
+      "provider": "pypi",
+      "version": "1.15.3",
+      "error": ""
+    },
+    {
+      "provider": "npm",
+      "version": "1.15.3",
+      "error": ""
+    },
+    {
+      "provider": "github_release",
+      "version": "1.15.0",
+      "error": ""
+    },
+    {
+      "provider": "mcp_registry",
+      "version": null,
+      "error": "<urlopen error Tunnel connection failed: 403 Forbidden>"
+    }
+  ],
+  "additional_site_requests": [
+    {
+      "path": "/docs/llms-full.txt",
+      "status": 403,
+      "scope": "HTTPError; does not establish absence or origin diagnosis"
+    },
+    {
+      "path": "/llms-full.txt",
+      "status": 403,
+      "scope": "HTTPError; does not establish absence or origin diagnosis"
+    },
+    {
+      "path": "/robots.txt",
+      "status": 403,
+      "scope": "HTTPError; does not establish absence or origin diagnosis"
+    },
+    {
+      "path": "/sitemap.xml",
+      "status": 403,
+      "scope": "HTTPError; does not establish absence or origin diagnosis"
+    }
+  ],
+  "limits": [
+    "Certificate-verified HTTPS observations and static HTML/JSON-LD parsing; no browser interaction or deployment performed",
+    "No quantitative ranking/traffic baseline supplied by either external AI-generated report",
+    "Live provider responses are point-in-time evidence, not a perpetual freshness guarantee"
+  ],
+  "verification_date_utc": "2026-09-30"
+}

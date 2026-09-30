@@ -640,6 +640,7 @@ def video_composite_layers(
     transforms, timing windows, masks/mattes, allowlisted blend modes, rotation,
     and effect-noise routes to named layer/mask/mask-edge streams. Emits a
     deterministic layer-plan receipt; unsupported routes fail closed.
+    File sources and masks must resolve inside the spec's directory.
 
     Args:
         spec_path: Path to a composite-layers JSON spec.

@@ -10,6 +10,7 @@ from __future__ import annotations
 import math
 
 from .engine_runtime_utils import _build_edit_result, _get_video_stream, _timed_operation
+from .engine_probe import probe
 from .errors import ProcessingError
 from .ffmpeg_helpers import (
     _run_command,
@@ -375,6 +376,8 @@ def glitch_macroblocking(
     block_size = int(_sanitize_ffmpeg_number(max(2, block_size), "block_size"))
     intensity = _sanitize_ffmpeg_number(intensity, "intensity")
     color_reduction = _sanitize_ffmpeg_number(color_reduction, "color_reduction")
+    info = probe(input_path)
+    width, height = (info.height, info.width) if info.rotation % 180 else (info.width, info.height)
 
     # Posterization: reduce levels based on color_reduction
     # colorlevels input minimum adjustment pushes values toward quantized steps
@@ -382,13 +385,12 @@ def glitch_macroblocking(
 
     # Scale down then up with neighbor interpolation for blocky look,
     # then posterize, then blend with original.
-    # We use iw*block_size to restore original dimensions after downscale,
-    # since "iw" in the second scale refers to the already-downscaled width.
+    # Restore the exact decoded dimensions; downscaling rounds fractional sizes.
     vf = (
         f"split[orig][blocked];"
         f"[blocked]"
         f"scale='iw/{block_size}':'ih/{block_size}':flags=neighbor,"
-        f"scale='iw*{block_size}':'ih*{block_size}':flags=neighbor,"
+        f"scale={width}:{height}:flags=neighbor,"
         f"colorlevels=rimin={levels:.3f}:gimin={levels:.3f}:bimin={levels:.3f}"
         f"[blk];"
         f"[orig][blk]blend=all_expr='A*(1-{intensity:.2f})+B*{intensity:.2f}'"

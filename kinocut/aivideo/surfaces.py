@@ -224,6 +224,7 @@ def _measurement_artifact(project: Project, result: Any) -> ArtifactRef:
         {
             "decoded_timestamps": result.decoded_timestamps,
             "opening_closing_difference": result.opening_closing_difference,
+            "motion_coherence": result.motion_coherence,
         },
         sort_keys=True,
         separators=(",", ":"),
@@ -306,6 +307,7 @@ def _inspect(
             "inspection_package": _json(package),
             "inspection_manifest": _json(manifest),
             "temporal_findings": list(finding_ids),
+            "motion_coherence": temporal.motion_coherence,
             "provider_analyses": [_json(item) for item in analyses],
         }
     )

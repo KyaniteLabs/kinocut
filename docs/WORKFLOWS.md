@@ -19,6 +19,11 @@ Four surfaces, one behaviour:
 Everything fails **closed**: any structural violation raises `MCPVideoError` with a
 specific `code` and a `suggested_action`, and nothing unsupported silently degrades.
 
+For internal project-backed detached jobs, stop requests and resume follow the
+[projectstore lifecycle contract](PROJECTSTORE_LIFECYCLE.md). These repository APIs
+are separate from the four public workflow tools above; a requested stop is not a
+verified stopped process.
+
 ---
 
 ## Job-spec schema (`schema_version: 1`)
@@ -70,7 +75,7 @@ all rejected (the models are strict — `extra="forbid"`).
 ```
 
 - `id` — unique, non-empty string; duplicates fail closed.
-- `op` — one of the seven allowlisted ops (below). Anything else → `unsupported_workflow_op`.
+- `op` — one of the nine allowlisted ops (below). Anything else → `unsupported_workflow_op`.
 - `inputs` — exactly the input key the op expects: `src` for single-input ops, `srcs`
   (a non-empty list of refs) for multi-input `merge`, `layers` (a structured layer stack)
   for `composite_layers`. Any other input key fails closed.
@@ -83,7 +88,7 @@ all rejected (the models are strict — `extra="forbid"`).
   target). Required for output-producing ops; must be **absent** for the inspection-only
   `probe` op.
 
-### Op allowlist (7 ops)
+### Op allowlist (9 ops)
 
 Every op maps 1:1 to an existing vetted engine function. `params` are whatever that
 engine accepts.
@@ -94,9 +99,11 @@ engine accepts.
 | `trim` | `trim` | `src` | required | `start`, `duration`, `end` |
 | `resize` | `resize` | `src` | required | `width`, `height`, `aspect_ratio`, `quality` |
 | `convert` | `convert` | `src` | required | `format`, `quality` |
+| `crop` | `crop` | `src` | required | `width`, `height`, `x`, `y`, `crop_percent` |
 | `add_text` | `add_text` | `src` | required | `text`, `position`, `size`, `color`, … |
 | `merge` | `merge` | `srcs` (list) | required | `transitions`, `transition_duration` |
 | `composite_layers` | `composite_layers` | `layers` (stack) | required | `canvas` |
+| `burn_in` | `subtitles` | `srcs` (video then subtitle) | required | `style` |
 
 #### `composite_layers` (multi-layer compositing)
 
@@ -130,6 +137,8 @@ confinement + per-step hashing). Instead the workflow layer OWNS the layer-spec:
 ```
 
 Composite rides the existing `video_workflow_*` tools / `workflow-*` CLI (no new surface).
+Video sources and masks begin at the declared layer start. Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`.
+
 For the full non-workflow compositor feature set (masks, blend modes, rotation), call
 `video_composite_layers` directly.
 
@@ -300,7 +309,7 @@ For the exact receipt shapes (`workflow`, `workflow_plan`, `workflow_batch`, and
 |---|---|
 | `invalid_workflow_spec` | Malformed spec: wrong `schema_version`, missing steps, unknown key, duplicate id, bad output target. |
 | `unknown_workflow_ref` | A `@ref` that is undeclared, forward, or the wrong namespace for its position. |
-| `unsupported_workflow_op` | A step `op` outside the seven-op allowlist. |
+| `unsupported_workflow_op` | A step `op` outside the nine-op allowlist. |
 | `unsafe_workflow_source` | An absolute path, `../` escape, symlink escape, or null byte in a path (also re-checked at execution time). |
 | `invalid_workflow_params` | A step param the backing engine does not accept, or a param VALUE whose type cannot satisfy the engine (e.g. a string for an int). |
 | `invalid_workflow_variant` | An unknown variant id, a malformed override key/value, or two variants writing the same output path. |
@@ -325,4 +334,4 @@ These are intentionally out of scope this release and fail closed if requested:
 - Cross-machine/distributed jobs.
 - `--force` resume (a full restart-from-scratch flag); today a changed spec simply fails
   the resume gate and you re-run without `--resume`.
-- Any op beyond the seven allowlisted.
+- Any op beyond the nine allowlisted.

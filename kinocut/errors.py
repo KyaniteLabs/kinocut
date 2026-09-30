@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 # Caller-supplied values echoed into error messages are capped so a hostile
@@ -236,6 +237,8 @@ _ACTIONABLE_PATTERNS = (
     "protocol not found",
     "unable to open",
     "cannot open",
+    "unknown encoder",
+    "no such filter",
 )
 
 
@@ -342,12 +345,51 @@ def _input_path_from_command(command: list[str] | None) -> str:
     return ""
 
 
+_MISSING_FFMPEG_COMPONENT = re.compile(
+    r"^[ \t]*(?:\[[^\]\r\n]{1,128}\][ \t]*)?"
+    r"(?:Unknown encoder[ \t]+'(?P<encoder>[A-Za-z][A-Za-z0-9_]{0,63})'"
+    r"|No such filter:[ \t]+'(?P<filter>[A-Za-z][A-Za-z0-9_]{0,63})')"
+    r"[ \t]*\r?$",
+    re.IGNORECASE | re.MULTILINE | re.ASCII,
+)
+
+
+def _missing_component_error(stderr: str, command: str, original_stderr: str) -> ProcessingError | None:
+    """Add advisory metadata without changing processing-error catch compatibility.
+
+    Match complete diagnostics, never arbitrary mentions in paths/metadata.
+    Bounded ASCII names are safe to include in existing per-component reason codes.
+    Missing output encoders are distinct from unsupported input codecs: there is
+    no automatic format substitution or environment mutation.
+    """
+    match = _MISSING_FFMPEG_COMPONENT.search(stderr)
+    if match is None:
+        return None
+    kind = "encoder" if match.group("encoder") is not None else "filter"
+    requested_name = match.group(kind)
+    name = requested_name.lower()
+    error = ProcessingError(command, 1, original_stderr)
+    error.error_type = "dependency_error"
+    error.code = f"missing_{kind}_{name}"
+    error.suggested_action = {
+        "auto_fix": False,
+        "description": (
+            f"FFmpeg did not recognize the requested {kind} '{requested_name}'. "
+            "Check the exact component name and selected build's support, "
+            "or explicitly choose a compatible operation. "
+            "Kinocut has not changed the requested codec or filters."
+        ),
+    }
+    return error
+
+
 def parse_ffmpeg_error(stderr: str, command: list[str] | None = None) -> MCPVideoError:
     """Parse FFmpeg stderr and return the most specific error type.
 
     When the failing *command* is provided, file errors carry the actual
     input path instead of an empty string.
     """
+    original_stderr = stderr
     stderr = _strip_ffmpeg_banner(stderr)
     stderr_lower = stderr.lower()
     input_path = _input_path_from_command(command)
@@ -357,6 +399,8 @@ def parse_ffmpeg_error(stderr: str, command: list[str] | None = None) -> MCPVide
         return InputFileError(input_path, "File not found")
     if "invalid data found when processing input" in stderr_lower:
         return InputFileError(input_path, "Not a valid video file")
+    if missing := _missing_component_error(stderr, cmd_str, original_stderr):
+        return missing
     if "unsupported codec" in stderr_lower or "decoder" in stderr_lower:
         codec = "unknown"
         for line in stderr.split("\n"):

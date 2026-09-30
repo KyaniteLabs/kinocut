@@ -1,0 +1,6098 @@
+[
+  {
+    "fixture": [
+      "gray",
+      8,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "gray",
+      8,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "gray",
+      10,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 53.0,
+          "lavfi.signalstats.YLOW": 65.125,
+          "lavfi.signalstats.YAVG": 117.244125,
+          "lavfi.signalstats.YHIGH": 169.375,
+          "lavfi.signalstats.YMAX": 182.125,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 117.244125,
+          "values": [
+            114.65625,
+            116.38275,
+            118.1015,
+            119.836
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7265625,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7192998533724342,
+          "median": 1.719299853372434,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.5245601173020589
+  },
+  {
+    "fixture": [
+      "gray",
+      10,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 53.0,
+          "lavfi.signalstats.YLOW": 65.125,
+          "lavfi.signalstats.YAVG": 117.244125,
+          "lavfi.signalstats.YHIGH": 169.375,
+          "lavfi.signalstats.YMAX": 182.125,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 117.244125,
+          "values": [
+            114.65625,
+            116.38275,
+            118.1015,
+            119.836
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7265625,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7192998533724342,
+          "median": 1.719299853372434,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.5245601173020589
+  },
+  {
+    "fixture": [
+      "gray",
+      12,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 53.0625,
+          "lavfi.signalstats.YLOW": 65.140625,
+          "lavfi.signalstats.YAVG": 117.314375,
+          "lavfi.signalstats.YHIGH": 169.4375,
+          "lavfi.signalstats.YMAX": 182.359375,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 117.314375,
+          "values": [
+            114.72625,
+            116.449375,
+            118.1775,
+            119.904375
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7259104166666666,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7191526739926737,
+          "median": 1.7197088644688643,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.6119391025640937
+  },
+  {
+    "fixture": [
+      "gray",
+      12,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 53.0625,
+          "lavfi.signalstats.YLOW": 65.140625,
+          "lavfi.signalstats.YAVG": 117.314375,
+          "lavfi.signalstats.YHIGH": 169.4375,
+          "lavfi.signalstats.YMAX": 182.359375,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 117.314375,
+          "values": [
+            114.72625,
+            116.449375,
+            118.1775,
+            119.904375
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7259104166666666,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7191526739926737,
+          "median": 1.7197088644688643,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.6119391025640937
+  },
+  {
+    "fixture": [
+      "gray",
+      16,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 53.0693359375,
+          "lavfi.signalstats.YLOW": 65.1376953125,
+          "lavfi.signalstats.YAVG": 117.31513671875,
+          "lavfi.signalstats.YHIGH": 169.4384765625,
+          "lavfi.signalstats.YMAX": 182.3681640625,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 117.31513671875,
+          "values": [
+            114.729296875,
+            116.453125,
+            118.176953125,
+            119.901171875
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7239583333333333,
+          "median": 1.724,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.6152228860294144
+  },
+  {
+    "fixture": [
+      "gray",
+      16,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 53.0693359375,
+          "lavfi.signalstats.YLOW": 65.1376953125,
+          "lavfi.signalstats.YAVG": 117.31513671875,
+          "lavfi.signalstats.YHIGH": 169.4384765625,
+          "lavfi.signalstats.YMAX": 182.3681640625,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 117.31513671875,
+          "values": [
+            114.729296875,
+            116.453125,
+            118.176953125,
+            119.901171875
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7239583333333333,
+          "median": 1.724,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.6152228860294144
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      8,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.531,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.417,
+          "lavfi.signalstats.SATAVG": 12.401
+        },
+        "individual": {
+          "mean": 117.531,
+          "values": [
+            114.531,
+            116.531,
+            118.531,
+            120.531
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.531,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.417,
+          "lavfi.signalstats.SATAVG": 12.401
+        },
+        "individual": {
+          "mean": 117.531,
+          "values": [
+            114.531,
+            116.531,
+            118.531,
+            120.531
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      8,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.73101176470588,
+          "lavfi.signalstats.SATAVG": 10.893427450980392
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.375,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.75,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 11.0625,
+          "sathigh": 17.0,
+          "satmax": 22.0,
+          "huemed": 130.0,
+          "hueavg": 154.802,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.71875,
+          "median": 1.71875,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.73101176470588,
+          "lavfi.signalstats.SATAVG": 10.893427450980392
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.375,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.75,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 11.0625,
+          "sathigh": 17.0,
+          "satmax": 22.0,
+          "huemed": 130.0,
+          "hueavg": 154.802,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.71875,
+          "median": 1.71875,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      10,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.41675,
+          "lavfi.signalstats.SATAVG": 12.677075
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.41675,
+          "lavfi.signalstats.SATAVG": 12.677075
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      10,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 125.37243401759531,
+          "lavfi.signalstats.VAVG": 125.73744672531768,
+          "lavfi.signalstats.SATAVG": 11.10328367546432
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.443,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.76,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.8646,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.734,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7265625,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 125.37243401759531,
+          "lavfi.signalstats.VAVG": 125.73744672531768,
+          "lavfi.signalstats.SATAVG": 11.10328367546432
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.443,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.76,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.8646,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.734,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7265625,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      12,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.416875,
+          "lavfi.signalstats.SATAVG": 12.7756875
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.416875,
+          "lavfi.signalstats.SATAVG": 12.7756875
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      12,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 125.36396581196581,
+          "lavfi.signalstats.VAVG": 125.72991452991452,
+          "lavfi.signalstats.SATAVG": 11.222482051282052
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.417,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.76,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.9115,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.771,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7259104166666666,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 125.36396581196581,
+          "lavfi.signalstats.VAVG": 125.72991452991452,
+          "lavfi.signalstats.SATAVG": 11.222482051282052
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.417,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.76,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.9115,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.771,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7259104166666666,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      16,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.416796875,
+          "lavfi.signalstats.SATAVG": 12.801796875
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.416796875,
+          "lavfi.signalstats.SATAVG": 12.801796875
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.417,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.401,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 130.0,
+          "hueavg": 154.797,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv420p",
+      16,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.73077592126344,
+          "lavfi.signalstats.SATAVG": 11.245186236362247
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.422,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.76,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.9062,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.771,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7239583333333333,
+          "median": 1.724,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.73077592126344,
+          "lavfi.signalstats.SATAVG": 11.245186236362247
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.422,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.76,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.9062,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.771,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7239583333333333,
+          "median": 1.724,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      8,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.531,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.1432
+        },
+        "individual": {
+          "mean": 117.531,
+          "values": [
+            114.531,
+            116.531,
+            118.531,
+            120.531
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.531,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.1432
+        },
+        "individual": {
+          "mean": 117.531,
+          "values": [
+            114.531,
+            116.531,
+            118.531,
+            120.531
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      8,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.7670274509804,
+          "lavfi.signalstats.SATAVG": 10.666967843137254
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.375,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.75,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.763,
+          "sathigh": 16.0,
+          "satmax": 22.0,
+          "huemed": 128.0,
+          "hueavg": 154.758,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.71875,
+          "median": 1.71875,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.7670274509804,
+          "lavfi.signalstats.SATAVG": 10.666967843137254
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.375,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.75,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.763,
+          "sathigh": 16.0,
+          "satmax": 22.0,
+          "huemed": 128.0,
+          "hueavg": 154.758,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.71875,
+          "median": 1.71875,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      10,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.40495
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.40495
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      10,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 125.37243401759531,
+          "lavfi.signalstats.VAVG": 125.77379472140763,
+          "lavfi.signalstats.SATAVG": 10.864941544477029
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.445,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.792,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.6406,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.792,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7265625,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 125.37243401759531,
+          "lavfi.signalstats.VAVG": 125.77379472140763,
+          "lavfi.signalstats.SATAVG": 10.864941544477029
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.445,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.792,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.6406,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.792,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7265625,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      12,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.4944375
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.4944375
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      12,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 125.36396581196581,
+          "lavfi.signalstats.VAVG": 125.76875213675214,
+          "lavfi.signalstats.SATAVG": 10.976054700854702
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.414,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 114.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.6901,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.802,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7259104166666666,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 125.36396581196581,
+          "lavfi.signalstats.VAVG": 125.76875213675214,
+          "lavfi.signalstats.SATAVG": 10.976054700854702
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.414,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 114.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.6901,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 130.0,
+          "hueavg": 154.802,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7259104166666666,
+          "median": 1.7265625,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      16,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5225
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5225
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      16,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.76734874494545,
+          "lavfi.signalstats.SATAVG": 11.00004577706569
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.414,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 114.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.6927,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 154.807,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7239583333333333,
+          "median": 1.724,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 125.36470588235294,
+          "lavfi.signalstats.VAVG": 125.76734874494545,
+          "lavfi.signalstats.SATAVG": 11.00004577706569
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 125.414,
+          "uhigh": 137.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 114.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.6927,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 154.807,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7239583333333333,
+          "median": 1.724,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      8,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.531,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.531,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.2201
+        },
+        "individual": {
+          "mean": 117.531,
+          "values": [
+            114.531,
+            116.531,
+            118.531,
+            120.531
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.531,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.531,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.2201
+        },
+        "individual": {
+          "mean": 117.531,
+          "values": [
+            114.531,
+            116.531,
+            118.531,
+            120.531
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      8,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 124.95272156862745,
+          "lavfi.signalstats.VAVG": 125.7670274509804,
+          "lavfi.signalstats.SATAVG": 10.734519215686275
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 124.969,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.75,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.7812,
+          "sathigh": 16.0,
+          "satmax": 22.0,
+          "huemed": 126.0,
+          "hueavg": 154.974,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93838823529413,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 124.95272156862745,
+          "lavfi.signalstats.VAVG": 125.7670274509804,
+          "lavfi.signalstats.SATAVG": 10.734519215686275
+        },
+        "individual": {
+          "mean": 116.93838823529413,
+          "values": [
+            114.36191764705883,
+            116.07956470588236,
+            117.79721176470588,
+            119.51485882352941
+          ]
+        },
+        "fallback": {
+          "ymin": 53.0,
+          "ylow": 65.0,
+          "yavg": 116.953,
+          "yhigh": 168.75,
+          "ymax": 181.75,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 124.969,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.75,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 10.7812,
+          "sathigh": 16.0,
+          "satmax": 22.0,
+          "huemed": 126.0,
+          "hueavg": 154.974,
+          "ydif": 1.2890625,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      10,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.4759
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.4759
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      10,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 124.96187683284458,
+          "lavfi.signalstats.VAVG": 125.77379472140763,
+          "lavfi.signalstats.SATAVG": 10.9270834799609
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 124.969,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.792,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 0.0,
+          "satlow": 5.0,
+          "satavg": 10.6771,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 155.062,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7192998533724342,
+          "median": 1.719299853372434,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.928152492668616,
+          "lavfi.signalstats.YLOW": 65.02346041055718,
+          "lavfi.signalstats.YAVG": 116.94695821114371,
+          "lavfi.signalstats.YHIGH": 168.85043988269794,
+          "lavfi.signalstats.YMAX": 181.6950146627566,
+          "lavfi.signalstats.UAVG": 124.96187683284458,
+          "lavfi.signalstats.VAVG": 125.77379472140763,
+          "lavfi.signalstats.SATAVG": 10.9270834799609
+        },
+        "individual": {
+          "mean": 116.94695821114371,
+          "values": [
+            114.36803519061584,
+            116.0872815249267,
+            117.80652785923755,
+            119.52598826979472
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.24125000000001,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 114.0,
+          "uavg": 124.969,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.792,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 0.0,
+          "satlow": 5.0,
+          "satavg": 10.6771,
+          "sathigh": 16.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 155.062,
+          "ydif": 1.2792975,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7192998533724342,
+          "median": 1.719299853372434,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      12,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.56025
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.56025
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      12,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 124.95206837606837,
+          "lavfi.signalstats.VAVG": 125.76875213675214,
+          "lavfi.signalstats.SATAVG": 11.034967521367522
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 113.0,
+          "uavg": 124.949,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 0.0,
+          "satlow": 5.0,
+          "satavg": 10.7318,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 155.06,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7191526739926737,
+          "median": 1.7197088644688643,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.927838827838826,
+          "lavfi.signalstats.YLOW": 64.9474358974359,
+          "lavfi.signalstats.YAVG": 116.93947985347985,
+          "lavfi.signalstats.YHIGH": 168.87216117216119,
+          "lavfi.signalstats.YMAX": 181.7474358974359,
+          "lavfi.signalstats.UAVG": 124.95206837606837,
+          "lavfi.signalstats.VAVG": 125.76875213675214,
+          "lavfi.signalstats.SATAVG": 11.034967521367522
+        },
+        "individual": {
+          "mean": 116.93947985347985,
+          "values": [
+            114.36121611721612,
+            116.078989010989,
+            117.7989010989011,
+            119.51881318681319
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.3065,
+          "yhigh": 169.75,
+          "ymax": 182.5,
+          "umin": 112.0,
+          "ulow": 113.0,
+          "uavg": 124.949,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 0.0,
+          "satlow": 5.0,
+          "satavg": 10.7318,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 155.06,
+          "ydif": 1.2822275,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7191526739926737,
+          "median": 1.7197088644688643,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      16,
+      "tv",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5903125
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 43.0,
+          "lavfi.signalstats.YLOW": 57.0,
+          "lavfi.signalstats.YAVG": 117.53125,
+          "lavfi.signalstats.YHIGH": 178.0,
+          "lavfi.signalstats.YMAX": 193.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5903125
+        },
+        "individual": {
+          "mean": 117.53125,
+          "values": [
+            114.53125,
+            116.53125,
+            118.53125,
+            120.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 43.0,
+          "ylow": 57.0,
+          "yavg": 117.531,
+          "yhigh": 178.0,
+          "ymax": 193.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 1.5,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 2.0,
+          "median": 2.0,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      16,
+      "pc",
+      true
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 124.95283436331731,
+          "lavfi.signalstats.VAVG": 125.76734874494545,
+          "lavfi.signalstats.SATAVG": 11.0596218814374
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 112.0,
+          "ulow": 113.0,
+          "uavg": 124.957,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 0.0,
+          "satlow": 5.0,
+          "satavg": 10.7279,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 155.057,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 52.92941176470588,
+          "lavfi.signalstats.YLOW": 64.95294117647059,
+          "lavfi.signalstats.YAVG": 116.93849851224536,
+          "lavfi.signalstats.YHIGH": 168.87058823529412,
+          "lavfi.signalstats.YMAX": 181.75294117647059,
+          "lavfi.signalstats.UAVG": 124.95283436331731,
+          "lavfi.signalstats.VAVG": 125.76734874494545,
+          "lavfi.signalstats.SATAVG": 11.0596218814374
+        },
+        "individual": {
+          "mean": 116.93849851224536,
+          "values": [
+            114.36202792401006,
+            116.0796749828336,
+            117.79732204165713,
+            119.51496910048066
+          ]
+        },
+        "fallback": {
+          "ymin": 52.75,
+          "ylow": 64.75,
+          "yavg": 117.32525,
+          "yhigh": 169.75,
+          "ymax": 182.75,
+          "umin": 112.0,
+          "ulow": 113.0,
+          "uavg": 124.957,
+          "uhigh": 136.0,
+          "umax": 139.0,
+          "vmin": 112.0,
+          "vlow": 115.0,
+          "vavg": 125.776,
+          "vhigh": 137.0,
+          "vmax": 139.0,
+          "satmin": 0.0,
+          "satlow": 5.0,
+          "satavg": 10.7279,
+          "sathigh": 17.0,
+          "satmax": 21.0,
+          "huemed": 126.0,
+          "hueavg": 155.057,
+          "ydif": 1.28418,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 1.7176470588235293,
+          "median": 1.7176470588235293,
+          "static_fraction": 0.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "gray",
+      8,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.35294117647059,
+          "lavfi.signalstats.YLOW": 62.37647058823529,
+          "lavfi.signalstats.YAVG": 114.36191764705883,
+          "lavfi.signalstats.YHIGH": 166.2941176470588,
+          "lavfi.signalstats.YMAX": 179.1764705882353,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36191764705883,
+          "values": [
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.375,
+          "yhigh": 166.0,
+          "ymax": 179.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.35294117647059,
+          "lavfi.signalstats.YLOW": 62.37647058823529,
+          "lavfi.signalstats.YAVG": 114.36191764705883,
+          "lavfi.signalstats.YHIGH": 166.2941176470588,
+          "lavfi.signalstats.YMAX": 179.1764705882353,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36191764705883,
+          "values": [
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.375,
+          "yhigh": 166.0,
+          "ymax": 179.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "gray",
+      8,
+      "pc",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.35294117647059,
+          "lavfi.signalstats.YLOW": 62.37647058823529,
+          "lavfi.signalstats.YAVG": 114.36191764705883,
+          "lavfi.signalstats.YHIGH": 166.2941176470588,
+          "lavfi.signalstats.YMAX": 179.1764705882353,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36191764705883,
+          "values": [
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.375,
+          "yhigh": 166.0,
+          "ymax": 179.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.35294117647059,
+          "lavfi.signalstats.YLOW": 62.37647058823529,
+          "lavfi.signalstats.YAVG": 114.36191764705883,
+          "lavfi.signalstats.YHIGH": 166.2941176470588,
+          "lavfi.signalstats.YMAX": 179.1764705882353,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36191764705883,
+          "values": [
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883,
+            114.36191764705883
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.375,
+          "yhigh": 166.0,
+          "ymax": 179.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "gray",
+      10,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.25,
+          "lavfi.signalstats.YLOW": 62.5,
+          "lavfi.signalstats.YAVG": 114.65625,
+          "lavfi.signalstats.YHIGH": 166.75,
+          "lavfi.signalstats.YMAX": 179.5,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.65625,
+          "values": [
+            114.65625,
+            114.65625,
+            114.65625,
+            114.65625
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.684,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.252199413489734,
+          "lavfi.signalstats.YLOW": 62.45454545454545,
+          "lavfi.signalstats.YAVG": 114.36803519061584,
+          "lavfi.signalstats.YHIGH": 166.28152492668622,
+          "lavfi.signalstats.YMAX": 179.12609970674487,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36803519061584,
+          "values": [
+            114.36803519061584,
+            114.36803519061584,
+            114.36803519061584,
+            114.36803519061584
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.684,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.46847507331378324
+  },
+  {
+    "fixture": [
+      "gray",
+      10,
+      "pc",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.25,
+          "lavfi.signalstats.YLOW": 62.5,
+          "lavfi.signalstats.YAVG": 114.65625,
+          "lavfi.signalstats.YHIGH": 166.75,
+          "lavfi.signalstats.YMAX": 179.5,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.65625,
+          "values": [
+            114.65625,
+            114.65625,
+            114.65625,
+            114.65625
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.684,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.252199413489734,
+          "lavfi.signalstats.YLOW": 62.45454545454545,
+          "lavfi.signalstats.YAVG": 114.36803519061584,
+          "lavfi.signalstats.YHIGH": 166.28152492668622,
+          "lavfi.signalstats.YMAX": 179.12609970674487,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36803519061584,
+          "values": [
+            114.36803519061584,
+            114.36803519061584,
+            114.36803519061584,
+            114.36803519061584
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.684,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.46847507331378324
+  },
+  {
+    "fixture": [
+      "gray",
+      12,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.4375,
+          "lavfi.signalstats.YLOW": 62.5625,
+          "lavfi.signalstats.YAVG": 114.72625,
+          "lavfi.signalstats.YHIGH": 166.8125,
+          "lavfi.signalstats.YMAX": 179.75,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.72625,
+          "values": [
+            114.72625,
+            114.72625,
+            114.72625,
+            114.72625
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.738,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.33406593406593,
+          "lavfi.signalstats.YLOW": 62.36703296703297,
+          "lavfi.signalstats.YAVG": 114.36121611721612,
+          "lavfi.signalstats.YHIGH": 166.2783882783883,
+          "lavfi.signalstats.YMAX": 179.16703296703298,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36121611721612,
+          "values": [
+            114.36121611721612,
+            114.36121611721612,
+            114.36121611721612,
+            114.36121611721612
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.738,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.5829670329670193
+  },
+  {
+    "fixture": [
+      "gray",
+      12,
+      "pc",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.4375,
+          "lavfi.signalstats.YLOW": 62.5625,
+          "lavfi.signalstats.YAVG": 114.72625,
+          "lavfi.signalstats.YHIGH": 166.8125,
+          "lavfi.signalstats.YMAX": 179.75,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.72625,
+          "values": [
+            114.72625,
+            114.72625,
+            114.72625,
+            114.72625
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.738,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.33406593406593,
+          "lavfi.signalstats.YLOW": 62.36703296703297,
+          "lavfi.signalstats.YAVG": 114.36121611721612,
+          "lavfi.signalstats.YHIGH": 166.2783882783883,
+          "lavfi.signalstats.YMAX": 179.16703296703298,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36121611721612,
+          "values": [
+            114.36121611721612,
+            114.36121611721612,
+            114.36121611721612,
+            114.36121611721612
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.738,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.5829670329670193
+  },
+  {
+    "fixture": [
+      "gray",
+      16,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.484375,
+          "lavfi.signalstats.YLOW": 62.55078125,
+          "lavfi.signalstats.YAVG": 114.729296875,
+          "lavfi.signalstats.YHIGH": 166.8515625,
+          "lavfi.signalstats.YMAX": 179.78125,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.729296875,
+          "values": [
+            114.729296875,
+            114.729296875,
+            114.729296875,
+            114.729296875
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.75,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.35294117647059,
+          "lavfi.signalstats.YLOW": 62.37647058823529,
+          "lavfi.signalstats.YAVG": 114.36202792401006,
+          "lavfi.signalstats.YHIGH": 166.2941176470588,
+          "lavfi.signalstats.YMAX": 179.1764705882353,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36202792401006,
+          "values": [
+            114.36202792401006,
+            114.36202792401006,
+            114.36202792401006,
+            114.36202792401006
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.75,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.6047794117646959
+  },
+  {
+    "fixture": [
+      "gray",
+      16,
+      "pc",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.484375,
+          "lavfi.signalstats.YLOW": 62.55078125,
+          "lavfi.signalstats.YAVG": 114.729296875,
+          "lavfi.signalstats.YHIGH": 166.8515625,
+          "lavfi.signalstats.YMAX": 179.78125,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.729296875,
+          "values": [
+            114.729296875,
+            114.729296875,
+            114.729296875,
+            114.729296875
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.75,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 50.35294117647059,
+          "lavfi.signalstats.YLOW": 62.37647058823529,
+          "lavfi.signalstats.YAVG": 114.36202792401006,
+          "lavfi.signalstats.YHIGH": 166.2941176470588,
+          "lavfi.signalstats.YMAX": 179.1764705882353,
+          "lavfi.signalstats.UAVG": 128.0,
+          "lavfi.signalstats.VAVG": 128.0,
+          "lavfi.signalstats.SATAVG": 0.0
+        },
+        "individual": {
+          "mean": 114.36202792401006,
+          "values": [
+            114.36202792401006,
+            114.36202792401006,
+            114.36202792401006,
+            114.36202792401006
+          ]
+        },
+        "fallback": {
+          "ymin": 50.0,
+          "ylow": 62.0,
+          "yavg": 114.75,
+          "yhigh": 167.0,
+          "ymax": 180.0,
+          "umin": 128.0,
+          "ulow": 128.0,
+          "uavg": 128.0,
+          "uhigh": 128.0,
+          "umax": 128.0,
+          "vmin": 128.0,
+          "vlow": 128.0,
+          "vavg": 128.0,
+          "vhigh": 128.0,
+          "vmax": 128.0,
+          "satmin": 0.0,
+          "satlow": 0.0,
+          "satavg": 0.0,
+          "sathigh": 0.0,
+          "satmax": 0.0,
+          "huemed": 180.0,
+          "hueavg": 180.0,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 1.0,
+          "vbitdepth": 1.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.6047794117646959
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      8,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.531,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.531,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.2201
+        },
+        "individual": {
+          "mean": 114.531,
+          "values": [
+            114.531,
+            114.531,
+            114.531,
+            114.531
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.531,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.531,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.2201
+        },
+        "individual": {
+          "mean": 114.531,
+          "values": [
+            114.531,
+            114.531,
+            114.531,
+            114.531
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      10,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.4759
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.4759
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      12,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.56025
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.56025
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv444p",
+      16,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5903125
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 124.53125,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5903125
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 124.531,
+          "uhigh": 137.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.2201,
+          "sathigh": 19.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.996,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 8.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      8,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.531,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.1432
+        },
+        "individual": {
+          "mean": 114.531,
+          "values": [
+            114.531,
+            114.531,
+            114.531,
+            114.531
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.531,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458,
+          "lavfi.signalstats.SATAVG": 12.1432
+        },
+        "individual": {
+          "mean": 114.531,
+          "values": [
+            114.531,
+            114.531,
+            114.531,
+            114.531
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      10,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.40495
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.45825,
+          "lavfi.signalstats.SATAVG": 12.40495
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      12,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.4944375
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458125,
+          "lavfi.signalstats.SATAVG": 12.4944375
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  },
+  {
+    "fixture": [
+      "yuv422p",
+      16,
+      "tv",
+      false
+    ],
+    "measurements": [
+      {
+        "version": 6,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5225
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      },
+      {
+        "version": 7,
+        "stats": {
+          "lavfi.signalstats.YMIN": 40.0,
+          "lavfi.signalstats.YLOW": 54.0,
+          "lavfi.signalstats.YAVG": 114.53125,
+          "lavfi.signalstats.YHIGH": 175.0,
+          "lavfi.signalstats.YMAX": 190.0,
+          "lavfi.signalstats.UAVG": 125.0,
+          "lavfi.signalstats.VAVG": 125.458203125,
+          "lavfi.signalstats.SATAVG": 12.5225
+        },
+        "individual": {
+          "mean": 114.53125,
+          "values": [
+            114.53125,
+            114.53125,
+            114.53125,
+            114.53125
+          ]
+        },
+        "fallback": {
+          "ymin": 40.0,
+          "ylow": 54.0,
+          "yavg": 114.531,
+          "yhigh": 175.0,
+          "ymax": 190.0,
+          "umin": 110.0,
+          "ulow": 112.0,
+          "uavg": 125.0,
+          "uhigh": 138.0,
+          "umax": 140.0,
+          "vmin": 110.0,
+          "vlow": 113.0,
+          "vavg": 125.458,
+          "vhigh": 138.0,
+          "vmax": 140.0,
+          "satmin": 1.0,
+          "satlow": 5.0,
+          "satavg": 12.1432,
+          "sathigh": 18.0,
+          "satmax": 25.0,
+          "huemed": 126.0,
+          "hueavg": 154.781,
+          "ydif": 0.0,
+          "udif": 0.0,
+          "vdif": 0.0,
+          "ybitdepth": 8.0,
+          "ubitdepth": 7.0,
+          "vbitdepth": 8.0
+        },
+        "motion": {
+          "mean": 0.0,
+          "median": 0.0,
+          "static_fraction": 1.0,
+          "frames": 3
+        }
+      }
+    ],
+    "cross_version_max_diff": 0.0
+  }
+]

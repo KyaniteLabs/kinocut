@@ -22,7 +22,7 @@ kino doctor
 Connect MCP (optional):
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino
+claude mcp add kinocut -- uvx --from kinocut kino --mcp
 ```
 
 ## Path A — Agent (recommended)

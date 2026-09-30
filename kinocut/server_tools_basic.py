@@ -534,11 +534,13 @@ def video_speed(
 @mcp.tool()
 @_safe_tool
 def search_tools(query: str) -> dict[str, Any]:
-    """Search registered MCP video tools by keyword.
+    """Find registered MCP tools by name, keyword, or a supported task phrase.
 
     Returns JSON {success, query, count, tools:[{name, description, required_params}]}.
     Use to find the right tool for a task without reading every description. Pass query
-    with a term such as blur, resize, subtitle, audio, or trim.
+    with a term such as blur, resize, subtitle, audio, or trim, or a task such as
+    "remove filler words", "resume render", or "keep face in frame". Exact names
+    rank first. Discovery describes contracts, not installed backend availability.
 
     Args:
         query: Search term — e.g. "blur", "resize", "subtitle", "audio", "trim".
@@ -557,23 +559,19 @@ def search_tools(query: str) -> dict[str, Any]:
         server_tools_media,
         server_tools_shorts,
         server_tools_sound,
+        server_tools_intent,
+        server_tools_postrescue,
+        server_tools_release,
+        server_tools_workflow,
     )
+    from .tool_discovery import discover_tools
 
-    query_lower = query.lower()
-    matches: list[dict[str, Any]] = []
-    for name, tool in mcp._tool_manager._tools.items():
-        if name == "search_tools":
-            continue
-        desc = (tool.description or "").lower()
-        if query_lower in name.lower() or query_lower in desc:
-            # Extract required params from JSON schema
-            params = tool.parameters or {}
-            required = params.get("required", [])
-            matches.append(
-                {
-                    "name": name,
-                    "description": (tool.description or "").split("\n")[0].strip(),
-                    "required_params": required,
-                }
-            )
-    return {"success": True, "query": query, "count": len(matches), "tools": matches}
+    catalog = [
+        {
+            "name": name,
+            "description": tool.description,
+            "required_params": (tool.parameters or {}).get("required", []),
+        }
+        for name, tool in mcp._tool_manager._tools.items()
+    ]
+    return discover_tools(query, catalog)

@@ -1,0 +1,41 @@
+{
+  "implementation_commit": "cfdf03a3b8fb59aa285e7a20509518b2503c4660",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/ -x -q --tb=short",
+  "exit_code": 0,
+  "passed": 7451,
+  "skipped": 185,
+  "warnings": 8,
+  "duration_seconds": 936.3,
+  "scope": "Frozen six premerge review corrections; evidence and source inventory banked separately after validation",
+  "python": "3.12.14",
+  "ffmpeg": "7.1.5",
+  "source_files_sha256": {
+    "kinocut/engine_audio_mix.py": "9ae5e060f354bcce297c7f465850b1b12bad5c5a451456c5e1e3392e0b899cf9",
+    "kinocut/engine_audio_normalize_output.py": "13e3e6e83381304014d000c6c3c52da95decf16ca601bb4e5c298d949e65d7cb",
+    "kinocut/ffmpeg_helpers.py": "8890fcec4c1fd345bd4003e3ee49cf4d86fb727c40975d3864a65c47c9a3759f",
+    "kinocut/limits.py": "c3283ac6bfdf68b72e2c3403ccaaa262202fd3bd33ec20c0e4f09343198ee400",
+    "scripts/audit-runtime-allocation.py": "b7fe04f9fa83f4f1b0f3283d056b2cba1ecacc34d61c7e9f7db91edb33a47ae1",
+    "tests/test_audio_mix.py": "6399cd1f565e9807200cb3ebd55966835d292ce6c5796a39b514b87c13a38a55",
+    "tests/test_audio_normalization_suffixes.py": "f13499690c847133d351a7c94313ea53e2031a33f352c6681b36a1ad11fb9a49",
+    "tests/test_runtime_allocation_audit.py": "63aa144ee46b2cafce9a377392e346ef1c72acef5e38c85fc25b98e4a4704ffc"
+  },
+  "checks": {
+    "ruff_version": "0.15.11",
+    "ruff_check": "passed; CI scope plus audit script",
+    "ruff_format": "passed; expanded scope 1073 files",
+    "canonical_compatibility_import_identity": "passed",
+    "focused_audio_normalization_client_contracts": "73 passed in 39.31s",
+    "advertised_normalization_suffixes": "8 passed in 5.60s",
+    "runtime_allocation_audit_contract": "4 passed",
+    "primary_ffprobe6_1_timing_and_packet_cap": "5 passed, 34 deselected in 3.11s; FFmpeg7.1.5 encoding/render/decode",
+    "final_documentation_claims_surface_privacy": "57 passed in 7.11s"
+  },
+  "limits": [
+    "Focused counts overlap the required full suite and are not additive",
+    "Audio-only staged decoding adds bounded work; one AAC encode is not one FFmpeg invocation",
+    "Timeline metadata byte cap is checked after writing; selected-packet and time caps bound execution",
+    "FFprobe6.1 scoped comparison is not a full FFmpeg6 platform gate",
+    "Skipped optional backends do not establish inference availability or quality",
+    "Exact published-head hosted results must be assessed separately"
+  ]
+}

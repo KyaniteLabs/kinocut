@@ -1,0 +1,356 @@
+{
+  "quality_loudnorm": {
+    "False": {
+      "result": {
+        "input_i": "-21.11",
+        "input_tp": "-15.13",
+        "input_lra": "0.00",
+        "input_thresh": "-31.11",
+        "output_i": "-24.01",
+        "output_tp": "-18.03",
+        "output_lra": "0.00",
+        "output_thresh": "-34.01",
+        "normalization_type": "dynamic",
+        "target_offset": "0.01"
+      },
+      "elapsed_s": 0.2886973200002103,
+      "commands": [
+        [
+          "ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "True": {
+      "result": {
+        "input_i": "-21.11",
+        "input_tp": "-15.13",
+        "input_lra": "0.00",
+        "input_thresh": "-31.11",
+        "output_i": "-24.01",
+        "output_tp": "-18.03",
+        "output_lra": "0.00",
+        "output_thresh": "-34.01",
+        "normalization_type": "dynamic",
+        "target_offset": "0.01"
+      },
+      "elapsed_s": 0.1775409989995751,
+      "commands": [
+        [
+          "ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-vn",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "equal_result": true
+  },
+  "watching_lufs": {
+    "False": {
+      "result": -21.11,
+      "elapsed_s": 0.28240845799973613,
+      "commands": [
+        [
+          "ffmpeg",
+          "-hide_banner",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "True": {
+      "result": -21.11,
+      "elapsed_s": 0.17671806099951937,
+      "commands": [
+        [
+          "ffmpeg",
+          "-hide_banner",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-vn",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "equal_result": true
+  },
+  "design_audio_score": {
+    "False": {
+      "result": 74.45,
+      "elapsed_s": 0.26928355600011855,
+      "commands": [
+        [
+          "ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "True": {
+      "result": 74.45,
+      "elapsed_s": 0.20420223999917653,
+      "commands": [
+        [
+          "ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-vn",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "equal_result": true
+  },
+  "voice_loudness": {
+    "False": {
+      "result": {
+        "integrated_lufs": -21.11,
+        "loudness_range": 0.0,
+        "true_peak_dbtp": -15.13,
+        "analysis_available": true
+      },
+      "elapsed_s": 0.2633785930001977,
+      "commands": [
+        [
+          "/usr/bin/ffmpeg",
+          "-hide_banner",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "True": {
+      "result": {
+        "integrated_lufs": -21.11,
+        "loudness_range": 0.0,
+        "true_peak_dbtp": -15.13,
+        "analysis_available": true
+      },
+      "elapsed_s": 0.17918049699983385,
+      "commands": [
+        [
+          "/usr/bin/ffmpeg",
+          "-hide_banner",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-vn",
+          "-af",
+          "loudnorm=print_format=json",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "equal_result": true
+  },
+  "silence_regions": {
+    "False": {
+      "result": [],
+      "elapsed_s": 0.2552181090004524,
+      "commands": [
+        [
+          "/usr/bin/ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-af",
+          "silencedetect=noise=-40.0dB:d=0.5",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "True": {
+      "result": [],
+      "elapsed_s": 0.0749110840006324,
+      "commands": [
+        [
+          "/usr/bin/ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-vn",
+          "-af",
+          "silencedetect=noise=-40.0dB:d=0.5",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "equal_result": true
+  },
+  "waveform": {
+    "False": {
+      "result": {
+        "success": true,
+        "duration": 8.0,
+        "peaks": [
+          {
+            "time": 0.4,
+            "level": -20.0
+          },
+          {
+            "time": 1.2,
+            "level": -20.0
+          },
+          {
+            "time": 2.0,
+            "level": -20.0
+          },
+          {
+            "time": 2.8,
+            "level": -20.0
+          },
+          {
+            "time": 3.6,
+            "level": -20.0
+          },
+          {
+            "time": 4.4,
+            "level": -20.0
+          },
+          {
+            "time": 5.2,
+            "level": -20.0
+          },
+          {
+            "time": 6.0,
+            "level": -20.0
+          },
+          {
+            "time": 6.8,
+            "level": -20.0
+          },
+          {
+            "time": 7.6,
+            "level": -20.0
+          }
+        ],
+        "mean_level": -20.0,
+        "max_level": -20.0,
+        "min_level": -20.0,
+        "silence_regions": [],
+        "synthetic": true,
+        "text": "          \n          \n          \n          \n          \n          \n          \n          \n          \n          "
+      },
+      "elapsed_s": 0.14083470300010958,
+      "commands": [
+        [
+          "/usr/bin/ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-af",
+          "astats=metadata=1:reset=0,ametadata=1",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "True": {
+      "result": {
+        "success": true,
+        "duration": 8.0,
+        "peaks": [
+          {
+            "time": 0.4,
+            "level": -20.0
+          },
+          {
+            "time": 1.2,
+            "level": -20.0
+          },
+          {
+            "time": 2.0,
+            "level": -20.0
+          },
+          {
+            "time": 2.8,
+            "level": -20.0
+          },
+          {
+            "time": 3.6,
+            "level": -20.0
+          },
+          {
+            "time": 4.4,
+            "level": -20.0
+          },
+          {
+            "time": 5.2,
+            "level": -20.0
+          },
+          {
+            "time": 6.0,
+            "level": -20.0
+          },
+          {
+            "time": 6.8,
+            "level": -20.0
+          },
+          {
+            "time": 7.6,
+            "level": -20.0
+          }
+        ],
+        "mean_level": -20.0,
+        "max_level": -20.0,
+        "min_level": -20.0,
+        "silence_regions": [],
+        "synthetic": true,
+        "text": "          \n          \n          \n          \n          \n          \n          \n          \n          \n          "
+      },
+      "elapsed_s": 0.07186418199944455,
+      "commands": [
+        [
+          "/usr/bin/ffmpeg",
+          "-i",
+          "/tmp/kinocut-latency/source.mp4",
+          "-vn",
+          "-af",
+          "astats=metadata=1:reset=0,ametadata=1",
+          "-f",
+          "null",
+          "-"
+        ]
+      ]
+    },
+    "equal_result": true
+  }
+}

@@ -9,7 +9,7 @@ from .runner import CommandRunner, _out
 
 
 def _invoke(name: str, **kwargs: Any) -> dict[str, Any]:
-    from kinocut_sound.public import invoke_sound_operation
+    from kinocut.sound_joins.loudness import invoke_sound_operation
 
     return invoke_sound_operation(name, **kwargs)
 

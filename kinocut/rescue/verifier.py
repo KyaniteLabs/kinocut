@@ -29,7 +29,8 @@ CHECK_IDS = (
 
 
 def _sha(path: str) -> str:
-    return "sha256:" + hashlib.sha256(Path(path).read_bytes()).hexdigest()
+    with Path(path).open("rb") as handle:
+        return "sha256:" + hashlib.file_digest(handle, "sha256").hexdigest()
 
 
 def _metric(name: str, value: Any, unit: str, definition: str, available: bool = True) -> Metric:

@@ -1,0 +1,86 @@
+[
+  {
+    "version": 6,
+    "mode": "default",
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "0.000000",
+        "duration": "4.000000",
+        "nb_frames": "100",
+        "r_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "4.000000",
+        "nb_frames": "189",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format_duration": "4.000000"
+  },
+  {
+    "version": 6,
+    "mode": "passthrough",
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "1.000000",
+        "duration": "3.000000",
+        "nb_frames": "75",
+        "r_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "4.000000",
+        "nb_frames": "189",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format_duration": "4.000000"
+  },
+  {
+    "version": 7,
+    "mode": "default",
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "1.000000",
+        "duration": "3.000000",
+        "nb_frames": "75",
+        "r_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "4.000000",
+        "nb_frames": "189",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format_duration": "4.000000"
+  },
+  {
+    "version": 7,
+    "mode": "passthrough",
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "1.000000",
+        "duration": "3.000000",
+        "nb_frames": "75",
+        "r_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "4.000000",
+        "nb_frames": "189",
+        "r_frame_rate": "0/0"
+      }
+    ],
+    "format_duration": "4.000000"
+  }
+]

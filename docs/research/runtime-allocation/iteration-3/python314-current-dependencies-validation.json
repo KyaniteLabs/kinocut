@@ -1,0 +1,36 @@
+{
+  "source_head_at_run": "00e07539f7ce7f83fb118b5c310bc6ccdc0770a9",
+  "source_state": "Working tree; runtime/tests unchanged, FFmpeg CI setup/docs prepared separately",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm /tmp/kinocut-ci314-unlocked/bin/python -m pytest tests/ -x -q --tb=short",
+  "dependency_setup": "uv pip install --python /tmp/kinocut-ci314-unlocked/bin/python -e .[dev] ruff==0.15.11; current allowed versions without frozen lock",
+  "python": "3.14.7",
+  "packages": {
+    "mcp": "1.30.0",
+    "pydantic": "2.13.5",
+    "numpy": "2.5.3",
+    "scikit-learn": "1.9.1",
+    "pytest": "9.1.1",
+    "pytest-asyncio": "1.4.0",
+    "anyio": "4.15.1",
+    "pillow": "12.3.0",
+    "ruff": "0.15.11"
+  },
+  "ffmpeg": "7.1.5",
+  "exit_code": 0,
+  "passed": 7412,
+  "skipped": 185,
+  "warnings": 8,
+  "duration_seconds": 957.04,
+  "setup_controls": [
+    "Existing FFmpeg and ffprobe skip package installation",
+    "Missing ffprobe triggers the existing apt install recipe",
+    "Installer failure remains nonzero",
+    "Dependency setup step has ten-minute timeout"
+  ],
+  "limits": [
+    "Python version and current dependency resolution alone did not reproduce the hosted failure",
+    "Hosted operating system, FFmpeg build and installed versions require their own observation",
+    "Counts overlap earlier full-suite runs and are not additive",
+    "Hosted diagnostic run pending"
+  ]
+}

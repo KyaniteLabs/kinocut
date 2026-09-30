@@ -13,7 +13,7 @@ where noted. Residual portfolio authority:
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
 
-## Live adoption signals (re-verified 2026-08-12; package 2026-08-31)
+## Live adoption signals (re-verified 2026-08-12; package 2026-09-30)
 
 | Signal | Value | Source |
 | --- | --- | --- |
@@ -22,7 +22,7 @@ where noted. Residual portfolio authority:
 | PyPI downloads (last day) | **608** | pypistats / pypi.org API |
 | PyPI downloads (last week) | **6,715** | same |
 | PyPI downloads (last month) | **23,034** | same |
-| Published package | **1.15.2** | PyPI |
+| Published package | **1.15.3** | PyPI (published 2026-09-25; verified 2026-09-30) |
 
 Downloads are not a unique-user census, but stars + forks + multi‑k weekly installs
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
@@ -80,9 +80,10 @@ capacity-2 / virtiofs starvation. Do not merge #405 red. See
 
 ## Product site
 
-The website source has been corrected for **1.15.1**, but production deployment
-and rendered verification remain pending. Package publication does not prove
-site deployment.
+Live `kinocut.dev` JSON-LD and `llms.txt` report **1.15.3** (verified 2026-09-30).
+This verifies live release metadata; it does not establish rendered verification
+of every page. PyPI and npm also report 1.15.3, while GitHub latest release reports
+1.15.0. MCP Registry verification returned 403, so its current version is unknown.
 
 ## Adversarial audit residuals
 

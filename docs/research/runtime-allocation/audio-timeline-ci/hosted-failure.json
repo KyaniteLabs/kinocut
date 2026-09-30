@@ -1,0 +1,23 @@
+{
+  "head": "ee7c5d6e823223673a382bda8a3a11349aaa68b1",
+  "run_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36775058293",
+  "checks": {
+    "success": 12,
+    "failure": 1
+  },
+  "hosted_test_summary": {
+    "failed": 1,
+    "passed": 7425,
+    "skipped": 46,
+    "deselected": 164,
+    "warnings": 8,
+    "seconds": 881.8,
+    "failure_node": "tests/test_audio_mix.py::test_source_audio_stays_relative_to_picture_origin[1-0]",
+    "failure_line": 343,
+    "observed_rms_db": -200.0,
+    "expected_rms_db_above": -30,
+    "sample_start_seconds": 0.65,
+    "sample_duration_seconds": 0.15,
+    "ffmpeg_version": "6.1.1-3ubuntu5"
+  }
+}

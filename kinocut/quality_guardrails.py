@@ -7,17 +7,25 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
 import contextlib
 
-from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
-from .errors import MCPVideoError, ProcessingError
-from .defaults import DEFAULT_QUALITY_GATE_SCORE
+from .ffmpeg_helpers import _validate_input_path
+from .errors import MCPVideoError
+from .defaults import (
+    DEFAULT_QUALITY_GATE_SCORE,
+    DEFAULT_QUALITY_MOTION_FILTER,
+    DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS,
+    QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES,
+)
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
+from .quality_signal_domain import _normalized_signalstat, _signalstats_frames
+from .quality_source import QualitySourceMixin
 from .quality_guardrail_checks import QualityChecksMixin
-from .quality_guardrail_types import QualityReport, _diagnostic, _metric
+from .quality_guardrail_types import QualityReport, _diagnostic
 
 logger = logging.getLogger(__name__)
 
@@ -45,7 +53,7 @@ def _escape_lavfi_path(path: str) -> str:
     return path
 
 
-class VisualQualityGuardrails(QualityChecksMixin):
+class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
     """Automated visual quality checks for video output."""
 
     # Quality thresholds
@@ -108,19 +116,42 @@ class VisualQualityGuardrails(QualityChecksMixin):
             return ["-t", f"{float(limit):.3f}"]
         return []
 
-    _signalstats_cache: dict[str, dict[str, float]]
+    _signalstats_cache: dict[tuple[Any, ...], dict[str, float]]
+
+    def _signalstats_cache_key(self, video: str) -> tuple[Any, ...] | None:
+        """Short-lived measurement identity, not a cryptographic integrity check."""
+        try:
+            source = Path(video).resolve()
+            stat = source.stat()
+        except (OSError, RuntimeError) as exc:
+            logger.debug("Signalstats source identity unavailable: %s", type(exc).__name__)
+            return None
+        return (
+            str(source),
+            stat.st_dev,
+            stat.st_ino,
+            stat.st_size,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+            self.max_analyze_seconds,
+            self._SIGNALSTATS_ALL_TAGS,
+            "limited_8bit_code_units_gray_full_v2",
+        )
 
     def _get_all_signalstats(self, video: str) -> dict[str, float]:
-        """Fetch all signalstats tags in a single ffprobe pass, cached per video path.
+        """Fetch all signalstats tags once per unchanged source and analysis window.
 
         Returns a dict mapping ``lavfi.signalstats.TAG`` to the mean across frames.
         On failure, returns an empty dict so callers fall back gracefully.
         """
-        cache_key = f"{Path(video)}:{self.max_analyze_seconds}"
+        cache_key = self._signalstats_cache_key(video)
         if not hasattr(self, "_signalstats_cache"):
             self._signalstats_cache = {}
-        elif cache_key in self._signalstats_cache:
-            return self._signalstats_cache[cache_key]
+        elif cache_key is not None:
+            means = self._signalstats_cache.pop(cache_key, None)
+            if means is not None:
+                self._signalstats_cache[cache_key] = means  # refresh LRU order
+                return means
 
         cmd = [
             "ffprobe",
@@ -131,36 +162,36 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-i",
             self._movie_source(video, "signalstats"),
             "-show_entries",
-            f"frame_tags={self._SIGNALSTATS_ALL_TAGS}",
+            f"frame=pix_fmt,color_range,color_transfer:frame_tags={self._SIGNALSTATS_ALL_TAGS}",
             "-of",
             "json",
         ]
         try:
+            cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
             if result.returncode != 0:
                 logger.warning("ffprobe batch signalstats returned nonzero exit")
-                self._signalstats_cache[cache_key] = {}
                 return {}
-            data = json.loads(result.stdout)
-            frames = data.get("frames", [])
+            frames = _signalstats_frames(result.stdout)
             if not frames:
                 logger.warning("ffprobe batch signalstats returned no frames")
-                self._signalstats_cache[cache_key] = {}
                 return {}
             tag_accum: dict[str, list[float]] = {}
             for frame in frames:
                 tags = frame.get("tags", {})
                 for tag_name, tag_val in tags.items():
-                    with contextlib.suppress(ValueError, TypeError):
-                        tag_accum.setdefault(tag_name, []).append(float(tag_val))
+                    with contextlib.suppress(ValueError, TypeError, MCPVideoError):
+                        tag_accum.setdefault(tag_name, []).append(_normalized_signalstat(frame, tag_name, tag_val))
             means = {tag: sum(vals) / len(vals) for tag, vals in tag_accum.items() if vals}
-            self._signalstats_cache[cache_key] = means
+            if means and cache_key is not None and self._signalstats_cache_key(video) == cache_key:
+                self._signalstats_cache[cache_key] = means
+                while len(self._signalstats_cache) > QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES:
+                    self._signalstats_cache.pop(next(iter(self._signalstats_cache)), None)
             return means
         except Exception as exc:
             logger.warning("ffprobe batch signalstats failed: %s", type(exc).__name__)
-            self._signalstats_cache[cache_key] = {}
             return {}
 
     def _run_ffprobe(self, video: str, filter_name: str) -> dict[str, Any]:
@@ -174,11 +205,12 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-i",
             self._movie_source(video, "signalstats"),
             "-show_entries",
-            f"frame_tags={filter_name}",
+            f"frame=pix_fmt,color_range,color_transfer:frame_tags={filter_name}",
             "-of",
             "json",
         ]
         try:
+            cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
@@ -196,8 +228,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
                     result.stderr.strip()[:200],
                 )
                 return {"_error": diagnostic}
-            data = json.loads(result.stdout)
-            frames = data.get("frames", [])
+            frames = _signalstats_frames(result.stdout)
             if not frames:
                 diagnostic = _diagnostic(
                     "ffprobe_signalstats",
@@ -212,8 +243,8 @@ class VisualQualityGuardrails(QualityChecksMixin):
                 tags = frame.get("tags", {})
                 if filter_name in tags:
                     try:
-                        values.append(float(tags[filter_name]))
-                    except (ValueError, TypeError):
+                        values.append(_normalized_signalstat(frame, filter_name, tags[filter_name]))
+                    except (ValueError, TypeError, MCPVideoError):
                         continue
             if not values:
                 diagnostic = _diagnostic(
@@ -252,35 +283,34 @@ class VisualQualityGuardrails(QualityChecksMixin):
             video,
             *self._input_limit_args(),
             "-vf",
-            "signalstats",
+            (
+                "scale=out_range=tv,"
+                f"format=pix_fmts={DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS},"
+                "signalstats,metadata=mode=print"
+            ),
             "-f",
             "null",
             "-",
         ]
         try:
+            filter_index = cmd.index("-vf") + 1
+            cmd[filter_index] = self._quality_input_filter(video, cmd[filter_index])
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
-            # Parse stderr for signalstats output
-            stderr = result.stderr
-            stats = {}
-
-            # Extract mean values from the output
-            for line in stderr.split("\n"):
-                if "YUV AVG:" in line or "YAVG:" in line:
-                    parts = line.split()
-                    for i, part in enumerate(parts):
-                        if "YAVG=" in part or "YUV" in part:
-                            try:
-                                # Try to find numeric value
-                                for p in parts[i:]:
-                                    if "=" in p:
-                                        key, val = p.split("=", 1)
-                                        with contextlib.suppress(ValueError):
-                                            stats[key.lower()] = float(val)
-                            except (ValueError, IndexError):
-                                continue
-            return stats
+            if result.returncode != 0:
+                logger.warning("ffmpeg signalstats returned nonzero exit")
+                return {}
+            # Metadata printing is explicit; ordinary signalstats does not
+            # emit measurements to stderr. Average all frames, not only last.
+            values: dict[str, list[float]] = {}
+            for line in result.stderr.splitlines():
+                match = re.search(r"lavfi\.signalstats\.(\w+)=([^\s]+)", line)
+                if match:
+                    with contextlib.suppress(ValueError, TypeError, MCPVideoError):
+                        sample = _normalized_signalstat({}, match[1], match[2])
+                        values.setdefault(match[1].lower(), []).append(sample)
+            return {name: sum(samples) / len(samples) for name, samples in values.items()}
         except subprocess.TimeoutExpired:
             logger.warning("ffmpeg signalstats timed out for %s", video)
             return {}
@@ -307,6 +337,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-i",
             video,
             *self._input_limit_args(),
+            "-vn",
             "-af",
             "loudnorm=print_format=json",
             "-f",
@@ -347,15 +378,6 @@ class VisualQualityGuardrails(QualityChecksMixin):
             logger.warning("ffmpeg loudnorm failed: %s", type(exc).__name__)
             return {"_error": diagnostic}
 
-    def _has_audio_stream(self, video: str) -> bool | None:
-        """Return whether ffprobe can see an audio stream, or None if probing fails."""
-        try:
-            probe = _run_ffprobe_json(video)
-        except ProcessingError as exc:
-            logger.warning("ffprobe audio stream check failed: %s", type(exc).__name__)
-            return None
-        return any(stream.get("codec_type") == "audio" for stream in probe.get("streams", []))
-
     def _get_rgb_means(self, video: str) -> dict[str, Any] | None:
         """Get approximate mean RGB values for color balance analysis.
 
@@ -377,59 +399,6 @@ class VisualQualityGuardrails(QualityChecksMixin):
         g = max(0.0, min(255.0, y - 0.344136 * u - 0.714136 * v))
         b = max(0.0, min(255.0, y + 1.772 * u))
         return {"r": r, "g": g, "b": b}
-
-    def check_saturation(self, video: str) -> QualityReport:
-        """Check saturation levels."""
-        sat_avg = self._mean_signalstat(video, "SATAVG")
-        if sat_avg is None:
-            metric = _metric(
-                "ffmpeg.signalstats.SATAVG",
-                None,
-                "percent_of_8bit_yuv_saturation_range",
-                raw={"value": None, "unit": "signalstats_chroma_magnitude", "full_scale": 181.0},
-            )
-            return QualityReport(
-                check_name="saturation",
-                passed=False,
-                score=0.0,
-                message="Could not analyze saturation (analysis failed)",
-                details={
-                    "diagnostic": _diagnostic("ffprobe_signalstats", "missing SATAVG values"),
-                    "metric": metric,
-                },
-            )
-
-        # signalstats SATAVG is a per-pixel saturation average. 181 is a
-        # practical full-saturation ceiling for 8-bit YUV in FFmpeg output.
-        saturation_pct = (sat_avg / 181) * 100
-        metric = _metric(
-            "ffmpeg.signalstats.SATAVG",
-            saturation_pct,
-            "percent_of_8bit_yuv_saturation_range",
-            raw={"value": sat_avg, "unit": "signalstats_chroma_magnitude", "full_scale": 181.0},
-        )
-
-        passed = self.SATURATION_MIN <= saturation_pct <= self.SATURATION_MAX
-
-        # Calculate score
-        optimal_sat = 50
-        deviation = abs(saturation_pct - optimal_sat)
-        score = float(max(0, 100 - (deviation / optimal_sat) * 100))
-
-        if saturation_pct < self.SATURATION_MIN:
-            message = f"Video appears desaturated (estimated: {saturation_pct:.1f}%). Consider increasing saturation."
-        elif saturation_pct > self.SATURATION_MAX:
-            message = f"Video appears oversaturated (estimated: {saturation_pct:.1f}%). Consider reducing saturation."
-        else:
-            message = f"Saturation is well-balanced (estimated: {saturation_pct:.1f}%)"
-
-        return QualityReport(
-            check_name="saturation",
-            passed=passed,
-            score=score,
-            message=message,
-            details={"saturation_pct": saturation_pct, "sat_avg": sat_avg, "metric": metric},
-        )
 
     def check_audio_levels(self, video: str) -> QualityReport:
         """Check audio isn't clipping or too quiet."""
@@ -578,14 +547,10 @@ class VisualQualityGuardrails(QualityChecksMixin):
     def _measure_temporal_motion(self, video: str) -> dict[str, Any]:
         """Measure inter-frame temporal motion across the clip.
 
-        Uses FFmpeg's ``tblend=all_mode=difference`` to produce the absolute
-        difference between consecutive frames, then ``signalstats`` to read the
-        mean luma (YAVG) of each difference frame. A near-zero YAVG means the
-        two frames were almost identical (no motion).
-
-        Returns a dict with ``mean``, ``median``, ``static_fraction`` and
-        ``frames`` keys, or ``{"_error": ...}`` if analysis fails. Uses only
-        FFmpeg (no extra dependencies).
+        FFmpeg ``tblend=all_mode=difference`` computes frame differences;
+        ``signalstats`` measures their mean luma. Near-zero means little motion.
+        Returns ``mean``, ``median``, ``static_fraction`` and ``frames``, or an
+        ``_error`` diagnostic if analysis fails. Requires only FFmpeg.
         """
         cmd = [
             "ffprobe",
@@ -594,13 +559,14 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-f",
             "lavfi",
             "-i",
-            self._movie_source(video, "tblend=all_mode=difference,signalstats"),
+            self._movie_source(video, DEFAULT_QUALITY_MOTION_FILTER),
             "-show_entries",
-            "frame_tags=lavfi.signalstats.YAVG",
+            "frame=pix_fmt,color_range,color_transfer:frame_tags=lavfi.signalstats.YAVG",
             "-of",
             "json",
         ]
         try:
+            cmd[6] = self._movie_source(video, self._quality_input_filter(video, DEFAULT_QUALITY_MOTION_FILTER))
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
@@ -614,14 +580,15 @@ class VisualQualityGuardrails(QualityChecksMixin):
                     "ffprobe tblend motion returned nonzero exit for %s: %s", video, result.stderr.strip()[:200]
                 )
                 return {"_error": diagnostic}
-            data = json.loads(result.stdout)
-            frames = data.get("frames", [])
+            frames = _signalstats_frames(result.stdout)
             values = []
             for frame in frames:
                 tags = frame.get("tags", {})
                 if "lavfi.signalstats.YAVG" in tags:
-                    with contextlib.suppress(ValueError, TypeError):
-                        values.append(float(tags["lavfi.signalstats.YAVG"]))
+                    with contextlib.suppress(ValueError, TypeError, MCPVideoError):
+                        values.append(
+                            _normalized_signalstat(frame, "YAVG", tags["lavfi.signalstats.YAVG"], difference=True)
+                        )
             # tblend emits one fewer diff frame than source frames; a single
             # source frame yields no diff frames and cannot have "motion".
             if not values:
@@ -737,6 +704,13 @@ class VisualQualityGuardrails(QualityChecksMixin):
 
         return {
             "video": video,
+            "analysis_domain": {
+                "signal_units": "8bit_limited_range_code_values",
+                "input_range": "frame_metadata_or_yuvj; otherwise_limited_assumed",
+                "grayscale_input": "full_range_even_if_tv_tagged",
+                "transfer_conversion": "none",
+                "applicability": "SDR_code_value_heuristics; HDR_delivery_acceptance_not_evaluated",
+            },
             "overall_score": round(overall_score, 1),
             "all_passed": all_passed,
             "checks": [

@@ -906,7 +906,8 @@ class TestStill:
                 frame=42,
             )
 
-            assert result.output_path == str(actual)
+            assert result.output_path == "/tmp/frame.png"
+            assert Path(result.output_path).read_bytes() == b"png"
             assert result.frame == 42
 
             cmd = mock_run.call_args[0][0]
@@ -921,6 +922,9 @@ class TestStill:
         variables_file = tmp_path / "runtime.json"
         variables_file.write_text('{"headline":"Runtime"}')
         fake_cp = _make_completed_process(stdout="Rendered frame.")
+        snapshot_dir = project / "snapshots"
+        snapshot_dir.mkdir()
+        (snapshot_dir / "frame.png").write_bytes(b"png")
 
         with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp) as mock_run:
             still(str(project), frame=42, variables={"headline": "Runtime"}, variables_file=str(variables_file))
@@ -989,7 +993,7 @@ class TestSnapshot:
 
         mock_run.assert_not_called()
 
-    def test_still_returns_actual_snapshot_path_not_requested_path(self, sample_hyperframes_project):
+    def test_still_copies_to_requested_path(self, sample_hyperframes_project):
         project = Path(sample_hyperframes_project)
         snapshot_dir = project / "snapshots"
         snapshot_dir.mkdir()
@@ -1003,9 +1007,8 @@ class TestSnapshot:
         with _mock_deps_ok(), patch("mcp_video.hyperframes_engine.subprocess.run", side_effect=fake_run):
             result = still(str(project), output_path=requested, frame=0)
 
-        assert result.output_path == str(actual)
-        assert result.output_path != requested
-        assert Path(result.output_path).is_file()
+        assert result.output_path == requested
+        assert Path(requested).read_bytes() == b"png"
 
 
 class TestHyperframes05Tools:

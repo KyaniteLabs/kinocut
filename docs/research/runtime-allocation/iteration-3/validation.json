@@ -1,0 +1,25 @@
+{
+  "implementation_commit": "eb7b5ce42ae37bb948882c833360c2b0b2b743b2",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/ -x -q --tb=short",
+  "exit_code": 0,
+  "passed": 7412,
+  "skipped": 185,
+  "warnings": 8,
+  "duration_seconds": 966.23,
+  "scope": "Frozen runtime/test tree including FFmpeg dependency advisories, release-claims guards and pinned CI formatter repairs; docs banked separately",
+  "checks": {
+    "ruff_version": "0.15.11",
+    "ruff_ci_check": "passed",
+    "ruff_ci_format": "passed; 1067 files",
+    "canonical_compatibility_import_identity": "passed",
+    "mcp_stdio_initialize": "passed; kinocut 1.15.3",
+    "mcp_stdio_tools_list": "passed; 201 tools",
+    "mcp_stdio_metadata_search": "passed; no model call"
+  },
+  "limits": [
+    "Optional skips do not establish backend availability or inference quality",
+    "Local Python 3.12 and FFmpeg 7.1.5 do not substitute for hosted Python 3.14 or every platform",
+    "No model benchmark, paid host roundtrip, deployment, desktop import or release publication performed",
+    "Prior pre-correction full run was interrupted and is excluded from passing counts"
+  ]
+}

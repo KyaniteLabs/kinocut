@@ -93,3 +93,19 @@ mask-edge/feather semantics; audio compositing/mixing (output is video-only `-an
 `composite_layers` as a workflow op once nested sources are `@ref`-confined and hashed;
 more workflow ops; parallel step execution via an optional `needs:` field; a `--force`
 full-restart resume flag; a multi-FFmpeg-build CI matrix; signed/attested receipts.
+
+
+## Development scope update — 2026-09-30
+
+The decision and release counts above describe the original implementation. Current
+workflow adapters allow `probe`, `trim`, `resize`, `convert`, `crop`, `merge`,
+`add_text`, `composite_layers` and `burn_in`; sources remain confined and hashed.
+
+Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video and mask source PTS is shifted so playback begins at the declared layer start.
+File sources and masks must resolve within the spec directory; place the spec in a
+common parent of its media. The schema remains `layer_plan` v2, with existing timing,
+position and transform fields plus additive feature metadata. Output is still video-only.
+
+See [the workflow guide](../WORKFLOWS.md), [tools](../TOOLS.md) and
+[receipt fields](../VIDEO_RECEIPT.md) for current contracts. This update does not
+rewrite historical release evidence or claim byte-identical cross-build renders.

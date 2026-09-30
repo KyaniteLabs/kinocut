@@ -1,0 +1,26 @@
+{
+  "date": "2026-09-30",
+  "source_state": "uncommitted working tree",
+  "base_sha": "a820bd42205e43ca81eebc435e8529b2d0d42fcc",
+  "full_suite": {
+    "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/ -q --tb=short",
+    "passed": 7320,
+    "skipped": 183,
+    "warnings": 8,
+    "seconds": 899.29,
+    "exit_code": 0,
+    "code_frozen_before_collection": true
+  },
+  "focused_runs_note": "Counts overlap each other and the full suite; do not add them",
+  "ruff": "passed on all changed/new Python files",
+  "diff_check": "passed",
+  "compatibility_imports": "passed",
+  "doctor_success": true,
+  "python_files_parsed": 1113,
+  "open_issues_reviewed": 34,
+  "draft_prs_reviewed": 5,
+  "new_runtime_api_reports_addressed_locally": 19,
+  "runtime_reports_already_fixed_in_base": 3,
+  "ops_product_dispositions": 12,
+  "remote_merges_pushes_comments_reviews_or_issue_state_changes": false
+}
