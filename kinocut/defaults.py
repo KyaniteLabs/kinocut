@@ -148,9 +148,13 @@ MIN_PYTHON_VERSION = (3, 11)
 DEFAULT_GLOW_MAX_SAFE_INTENSITY = 0.25
 DEFAULT_QUALITY_GATE_SCORE = 80.0
 # Quality heuristics use an 8-bit limited-range signal domain, not HDR luminance.
+DEFAULT_QUALITY_GRAYSCALE_INPUT_FILTER = "setparams=range=full"
 # Motion converts gray to YUV before differencing so conversion cannot add a
 # limited-range black offset to an already-computed difference image.
 DEFAULT_QUALITY_MOTION_PIXEL_FORMATS = "yuv444p|yuvj444p|yuv444p9le|yuv444p10le|yuv444p12le|yuv444p14le|yuv444p16le"
+DEFAULT_QUALITY_MOTION_FILTER = (
+    f"format=pix_fmts={DEFAULT_QUALITY_MOTION_PIXEL_FORMATS},tblend=all_mode=difference,signalstats"
+)
 DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS = "yuv420p|yuv422p|yuv444p|yuv440p|yuv411p|yuv410p"
 # Bound retained signal measurements on long-lived quality guardrail instances.
 QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES = 32

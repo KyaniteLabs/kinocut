@@ -84,8 +84,15 @@ decode evidence is unavailable, rather than a zero-black result.
 
 Brightness, chroma and related SDR measurements normalize native 8/10/12/16-bit
 full/limited-range samples into the units used by existing thresholds. This does
-not establish HDR delivery acceptance. Transient measurement caches bind successful
-observations to source filesystem identity and analysis settings, retry failures
+not establish HDR delivery acceptance. Grayscale samples use an explicit full-range
+input policy, including TV-tagged gray formats, matching the existing 8-bit behavior
+across FFmpeg versions. Native YUV retains its own range. Mixed gray/color video
+streams report unavailable evidence when stream selection is ambiguous.
+
+The first standalone visual measurement probes source metadata before conversion.
+That metadata is shared with audio-stream checks and reused for an unchanged source;
+this correctness check is not a universal latency improvement. Transient caches
+bind successful observations to source filesystem identity and analysis settings, retry failures
 and bound retained entries. This cache is not a cryptographic integrity boundary.
 
 ## Whole-film temporal motion evidence

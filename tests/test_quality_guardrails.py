@@ -291,7 +291,13 @@ class TestVisualQualityGuardrails:
         special_path = "/tmp/with:comma,[brackets].mp4"
         fake = Mock(return_value=Mock(returncode=1, stdout="", stderr="bad path"))
 
-        with patch("mcp_video.quality_guardrails.subprocess.run", fake):
+        with (
+            patch("mcp_video.quality_guardrails.subprocess.run", fake),
+            patch(
+                "kinocut.quality_source._run_ffprobe_json",
+                return_value={"streams": [{"codec_type": "video", "pix_fmt": "yuv420p"}]},
+            ),
+        ):
             guardrails._get_rgb_means(special_path)
 
         cmd = fake.call_args.args[0]
@@ -387,7 +393,8 @@ class TestVisualQualityGuardrails:
         """No-audio videos fail closed without running loudnorm analysis."""
         with (
             patch(
-                "mcp_video.quality_guardrails._run_ffprobe_json", return_value={"streams": [{"codec_type": "video"}]}
+                "kinocut.quality_source._run_ffprobe_json",
+                return_value={"streams": [{"codec_type": "video", "pix_fmt": "yuv420p"}]},
             ),
             patch.object(guardrails, "_analyze_loudnorm") as loudnorm,
         ):
@@ -415,9 +422,7 @@ class TestVisualQualityGuardrails:
         """Real audio streams should still fail when loudnorm analysis cannot produce metrics."""
         diagnostic = {"stage": "ffmpeg_loudnorm", "message": "ffmpeg loudnorm returned no JSON payload"}
         with (
-            patch(
-                "mcp_video.quality_guardrails._run_ffprobe_json", return_value={"streams": [{"codec_type": "audio"}]}
-            ),
+            patch("kinocut.quality_source._run_ffprobe_json", return_value={"streams": [{"codec_type": "audio"}]}),
             patch.object(guardrails, "_analyze_loudnorm", return_value={"_error": diagnostic}),
         ):
             report = guardrails.check_audio_levels("/tmp/with-audio.mp4")

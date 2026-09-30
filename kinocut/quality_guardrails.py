@@ -13,16 +13,17 @@ from pathlib import Path
 from typing import Any
 import contextlib
 
-from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
-from .errors import MCPVideoError, ProcessingError
+from .ffmpeg_helpers import _validate_input_path
+from .errors import MCPVideoError
 from .defaults import (
     DEFAULT_QUALITY_GATE_SCORE,
-    DEFAULT_QUALITY_MOTION_PIXEL_FORMATS,
+    DEFAULT_QUALITY_MOTION_FILTER,
     DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS,
     QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES,
 )
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
 from .quality_signal_domain import _normalized_signalstat, _signalstats_frames
+from .quality_source import QualitySourceMixin
 from .quality_guardrail_checks import QualityChecksMixin
 from .quality_guardrail_types import QualityReport, _diagnostic
 
@@ -52,7 +53,7 @@ def _escape_lavfi_path(path: str) -> str:
     return path
 
 
-class VisualQualityGuardrails(QualityChecksMixin):
+class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
     """Automated visual quality checks for video output."""
 
     # Quality thresholds
@@ -134,7 +135,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             stat.st_ctime_ns,
             self.max_analyze_seconds,
             self._SIGNALSTATS_ALL_TAGS,
-            "limited_8bit_code_units_v1",
+            "limited_8bit_code_units_gray_full_v2",
         )
 
     def _get_all_signalstats(self, video: str) -> dict[str, float]:
@@ -166,6 +167,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
+            cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
@@ -208,6 +210,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "json",
         ]
         try:
+            cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
@@ -290,6 +293,8 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-",
         ]
         try:
+            filter_index = cmd.index("-vf") + 1
+            cmd[filter_index] = self._quality_input_filter(video, cmd[filter_index])
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
@@ -372,15 +377,6 @@ class VisualQualityGuardrails(QualityChecksMixin):
             )
             logger.warning("ffmpeg loudnorm failed: %s", type(exc).__name__)
             return {"_error": diagnostic}
-
-    def _has_audio_stream(self, video: str) -> bool | None:
-        """Return whether ffprobe can see an audio stream, or None if probing fails."""
-        try:
-            probe = _run_ffprobe_json(video)
-        except ProcessingError as exc:
-            logger.warning("ffprobe audio stream check failed: %s", type(exc).__name__)
-            return None
-        return any(stream.get("codec_type") == "audio" for stream in probe.get("streams", []))
 
     def _get_rgb_means(self, video: str) -> dict[str, Any] | None:
         """Get approximate mean RGB values for color balance analysis.
@@ -563,16 +559,14 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "-f",
             "lavfi",
             "-i",
-            self._movie_source(
-                video,
-                f"format=pix_fmts={DEFAULT_QUALITY_MOTION_PIXEL_FORMATS},tblend=all_mode=difference,signalstats",
-            ),
+            self._movie_source(video, DEFAULT_QUALITY_MOTION_FILTER),
             "-show_entries",
             "frame=pix_fmt,color_range,color_transfer:frame_tags=lavfi.signalstats.YAVG",
             "-of",
             "json",
         ]
         try:
+            cmd[6] = self._movie_source(video, self._quality_input_filter(video, DEFAULT_QUALITY_MOTION_FILTER))
             result = subprocess.run(  # noqa: S603
                 cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
             )
@@ -713,6 +707,7 @@ class VisualQualityGuardrails(QualityChecksMixin):
             "analysis_domain": {
                 "signal_units": "8bit_limited_range_code_values",
                 "input_range": "frame_metadata_or_yuvj; otherwise_limited_assumed",
+                "grayscale_input": "full_range_even_if_tv_tagged",
                 "transfer_conversion": "none",
                 "applicability": "SDR_code_value_heuristics; HDR_delivery_acceptance_not_evaluated",
             },

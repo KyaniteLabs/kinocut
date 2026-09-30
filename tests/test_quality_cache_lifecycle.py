@@ -13,13 +13,20 @@ from kinocut import quality_guardrails
 from kinocut.quality_guardrails import VisualQualityGuardrails
 
 
+@pytest.fixture
+def source_metadata(monkeypatch):
+    probe = Mock(return_value={"streams": [{"codec_type": "video", "pix_fmt": "yuv420p"}]})
+    monkeypatch.setattr("kinocut.quality_source._run_ffprobe_json", probe)
+    return probe
+
+
 def _probe_result(value=128):
     return subprocess.CompletedProcess(
         [], 0, json.dumps({"frames": [{"tags": {"lavfi.signalstats.YAVG": str(value)}}]}), ""
     )
 
 
-def test_unchanged_source_reuses_measurement_but_changed_window_reanalyzes(tmp_path, monkeypatch):
+def test_unchanged_source_reuses_measurement_but_changed_window_reanalyzes(tmp_path, monkeypatch, source_metadata):
     video = tmp_path / "clip.mp4"
     video.write_bytes(b"fixture")
     probe = Mock(return_value=_probe_result())
@@ -28,12 +35,16 @@ def test_unchanged_source_reuses_measurement_but_changed_window_reanalyzes(tmp_p
     assert guardrails.check_brightness(str(video)).passed
     assert guardrails.check_brightness(str(video)).passed
     assert probe.call_count == 1
+    assert source_metadata.call_count == 1
+    assert guardrails._has_audio_stream(str(video)) is False
+    assert source_metadata.call_count == 1
     guardrails.max_analyze_seconds = 1.0
     assert guardrails.check_brightness(str(video)).passed
     assert probe.call_count == 2
+    assert source_metadata.call_count == 2
 
 
-def test_same_size_source_replacement_with_preserved_mtime_reanalyzes(tmp_path, monkeypatch):
+def test_same_size_source_replacement_with_preserved_mtime_reanalyzes(tmp_path, monkeypatch, source_metadata):
     video = tmp_path / "clip.mp4"
     video.write_bytes(b"old")
     old_stat = video.stat()
@@ -47,9 +58,10 @@ def test_same_size_source_replacement_with_preserved_mtime_reanalyzes(tmp_path, 
     replacement.replace(video)
     assert not guardrails.check_brightness(str(video)).passed
     assert probe.call_count == 2
+    assert source_metadata.call_count == 2
 
 
-def test_source_mutation_during_probe_is_not_cached(tmp_path, monkeypatch):
+def test_source_mutation_during_probe_is_not_cached(tmp_path, monkeypatch, source_metadata):
     video = tmp_path / "clip.mp4"
     video.write_bytes(b"before")
 
@@ -76,7 +88,7 @@ def test_source_mutation_during_probe_is_not_cached(tmp_path, monkeypatch):
         subprocess.TimeoutExpired("ffprobe", 1),
     ],
 )
-def test_failed_probe_retries_on_next_request(tmp_path, monkeypatch, failure):
+def test_failed_probe_retries_on_next_request(tmp_path, monkeypatch, failure, source_metadata):
     video = tmp_path / "clip.mp4"
     video.write_bytes(b"fixture")
     probe = Mock(side_effect=[failure, _probe_result()])
@@ -87,7 +99,8 @@ def test_failed_probe_retries_on_next_request(tmp_path, monkeypatch, failure):
     assert probe.call_count == 2
 
 
-def test_signalstats_cache_evicts_least_recent_measurement(tmp_path, monkeypatch):
+def test_signalstats_cache_evicts_least_recent_measurement(tmp_path, monkeypatch, source_metadata):
+    monkeypatch.setattr("kinocut.quality_source.QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES", 2)
     monkeypatch.setattr(quality_guardrails, "QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES", 2)
     probe = Mock(return_value=_probe_result())
     monkeypatch.setattr(quality_guardrails.subprocess, "run", probe)
@@ -101,9 +114,10 @@ def test_signalstats_cache_evicts_least_recent_measurement(tmp_path, monkeypatch
     assert guardrails.check_brightness(str(videos[1])).passed
     assert probe.call_count == 4
     assert len(guardrails._signalstats_cache) == 2
+    assert len(guardrails._quality_source_cache) == 2
 
 
-def test_unstatable_mock_source_still_analyzes_without_caching(tmp_path, monkeypatch):
+def test_unstatable_mock_source_still_analyzes_without_caching(tmp_path, monkeypatch, source_metadata):
     probe = Mock(return_value=_probe_result())
     monkeypatch.setattr(quality_guardrails.subprocess, "run", probe)
     guardrails = VisualQualityGuardrails()

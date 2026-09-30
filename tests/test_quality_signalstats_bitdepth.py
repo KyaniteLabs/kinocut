@@ -175,10 +175,15 @@ def test_range_metadata_and_unknown_assumption_are_explicit(monkeypatch):
     assert domain["transfer_conversion"] == "none"
     assert "HDR_delivery_acceptance_not_evaluated" in domain["applicability"]
     assert "limited_assumed" in domain["input_range"]
+    assert domain["grayscale_input"] == "full_range_even_if_tv_tagged"
 
 
 @pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
 def test_nonfinite_probe_values_are_unusable(value, monkeypatch):
+    monkeypatch.setattr(
+        "kinocut.quality_source._run_ffprobe_json",
+        lambda source: {"streams": [{"codec_type": "video", "pix_fmt": "yuv420p"}]},
+    )
     result = subprocess.CompletedProcess(
         [],
         0,
@@ -196,6 +201,15 @@ def test_nonfinite_probe_values_are_unusable(value, monkeypatch):
     assert guardrails._get_all_signalstats("invalid") == {}
     assert "_error" in guardrails._run_ffprobe("invalid", "lavfi.signalstats.YAVG")
     assert "_error" in guardrails._measure_temporal_motion("invalid")
+
+
+@pytest.mark.parametrize("depth", [8, 10, 12, 16])
+@pytest.mark.parametrize("color_range", ["pc", "tv"])
+def test_grayscale_samples_have_explicit_full_range_policy(ramps, depth, color_range):
+    stats = VisualQualityGuardrails()._get_all_signalstats(ramps["gray", depth, color_range])
+    # The four frames have native 8-bit minima40,42,44,46. Pin the absolute
+    # domain, not just agreement between depths on one FFmpeg version.
+    assert stats["lavfi.signalstats.YMIN"] == pytest.approx(16 + 43 * 219 / 255, abs=0.2)
 
 
 def test_invalid_depth_is_unusable():

@@ -399,8 +399,8 @@ def test_audio_stream_probe_failure_logs_no_path_or_raw_stderr(monkeypatch, capl
     def _boom(_path):
         raise ProcessingError("ffprobe", 1, _MARKER_STDERR)
 
-    monkeypatch.setattr(quality_guardrails, "_run_ffprobe_json", _boom)
-    with caplog.at_level("WARNING", logger=quality_guardrails.__name__):
+    monkeypatch.setattr("kinocut.quality_source._run_ffprobe_json", _boom)
+    with caplog.at_level("WARNING", logger="kinocut.quality_source"):
         assert guard._has_audio_stream(_MARKER_HOST_PATH) is None
     assert _MARKER_HOST_PATH not in caplog.text
     assert _MARKER_STDERR not in caplog.text
