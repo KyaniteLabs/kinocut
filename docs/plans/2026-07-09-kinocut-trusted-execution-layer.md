@@ -1,5 +1,16 @@
 # Kinocut — The Trusted Execution Layer for Agentic Video
 
+> **Current-status amendment (2026-09-30):** The approval, counts, Forgejo-primary
+> baseline, and hard-gate language below preserve the July decision record.
+> They are not a current inventory or authority to re-block shipped code.
+> Projectstore, watching, and multiplier planning now have scoped implementation
+> exits in [PHASE_CHECKPOINTS.md](../status/PHASE_CHECKPOINTS.md); the missing
+> Phase 0 distribution receipt remains **pending retrospective verification**.
+> The [ops disposition board](../status/2026-09-30-ops-disposition.md) records the
+> unresolved production-site and receipt evidence without inventing a historical
+> GO. Current source/contribution/CI policy is GitHub-primary with gated Forgejo
+> downstream activation, as documented in [HUMAN_GATES.md](../HUMAN_GATES.md).
+
 **status: APPROVED (Simon, 2026-07-10) - Phase 0 in progress. Repository/package rename merged under #53; publication, registry, site/TLS, and verification receipts remain before Phase 0 exit. Backlog filed: epic #85, issues #54-#84 + Track D #86-#94 + Track E #95-#107, gated `blocked:post-release` / milestone `kinocut-v2`.**
 **Mode:** RALPLAN-DR consensus (DELIBERATE — high-risk, multi-phase architecture bet). Planner draft → Architect → Critic.
 **Date:** 2026-07-09

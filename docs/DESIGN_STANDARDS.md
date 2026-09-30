@@ -111,6 +111,11 @@ border-radius: 12px;
 
 ## Quality Guardrails
 
+The development checkout normalizes native SDR sample depth and full/limited range
+before applying the existing 8-bit thresholds. Missing measurements and unevaluated
+semantic properties are separate from a pass; see [quality evidence](QUALITY_EVIDENCE.md).
+These checks do not establish HDR delivery acceptance.
+
 ### Technical Checks (Auto-enforced)
 - Brightness target: FFmpeg `signalstats.YAVG` from 40-200 on the 8-bit luma scale (0-255).
 - Contrast target: 20-100 percent of the 8-bit luma range, derived from `YHIGH-YLOW`.

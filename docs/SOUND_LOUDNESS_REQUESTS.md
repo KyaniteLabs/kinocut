@@ -6,8 +6,11 @@ are requested targets, not measured compliance. Single-pass normalization can
 still miss the target on transient-heavy material; measure the final output with
 this QA operation before accepting it. Successful processing alone is insufficient.
 
-`sound_qa_loudness` analyzes unchanged local mono or stereo PCM16 WAV audio with an installed
-FFmpeg `ebur128` meter. It reports integrated loudness, reconstructed true peak,
+`sound_qa_loudness` request mode analyzes hash-bound local audio or video using the
+first audio stream and an installed FFmpeg `ebur128` meter. Decoder-supported
+RIFF/AIFF, ISO BMFF (including AAC/M4A and MP4), MPEG audio (including MP3), FLAC,
+Ogg and Matroska container families are admitted; playlists and network resources
+are rejected. Video decoding is disabled. It reports integrated loudness, reconstructed true peak,
 loudness range and actual delivery-policy compliance. Missing FFmpeg or its filter
 is an explicit error; there is no proxy-meter fallback.
 
@@ -33,7 +36,9 @@ kino --format json sound-qa-loudness --request-json request.json --project-root 
 ```
 
 MCP accepts `request` and `project_root`. Python also accepts `wav_bytes` with an
-optional `delivery` policy. Bytes and request modes cannot be combined. Unknown
+optional `delivery` policy. Bytes mode and the standalone `kinocut_sound` API
+retain their PCM16 WAV contract; encoded media support belongs to the host request
+adapter. Bytes and request modes cannot be combined. Unknown
 fields, explicit empty audio, changed hashes, symlinks and unsafe paths fail.
 Source reads follow the [public mixing filesystem policy](SOUND_MIX_REQUESTS.md).
 
@@ -41,10 +46,12 @@ The report binds source SHA256, policy hash and FFmpeg version. It contains no
 source paths or raw diagnostics. No media output is published; private analysis
 files are removed after the child is reaped.
 
-Stereo is measured without downmixing. Its report adds `schema_version=2`,
+PCM stereo is measured without downmixing. Its report adds `schema_version=2`,
 `channel_count`, `frame_count`, `interleaved_sample_count` and `sample_rate_hz`.
 Mono reports retain their existing fields. Duration limits count frames, so
-adding a second channel does not double the admitted duration.
+adding a second channel does not double the admitted duration. Encoded-media
+receipts use schema version 2, report the observed codec, channel count and sample
+rate, and bind the original container bytes rather than a decoded derivative.
 
 Processing success is distinct from compliance: valid noncompliant audio returns
 `within_tolerance=false`, including in a successful CLI/MCP inspection response.
@@ -59,8 +66,11 @@ perceptual quality, run ASR or replace human listening.
 
 ## Bounds and measurement validity
 
-Inputs are at most 256 MiB, 8–96 kHz and one hour. Material must contain nonzero
-samples and last at least 3 seconds. Undefined/nonfinite results and integrated
+Inputs are at most 256 MiB and one hour, with a minimum duration of 3 seconds.
+The standalone PCM/bytes contract additionally requires mono/stereo PCM16 at
+8–96 kHz; encoded host requests retain the decoder/meter channel and sample-rate
+capabilities and disclose their observed values. Missing audio,
+silence, a changed source hash or failed decode cannot certify compliance. Undefined/nonfinite results and integrated
 results at or below -70 LUFS fail as `qa_unmeasurable`. Zero LRA is valid. The
 3-second admission floor does not establish representative programme statistics
 for every short clip.

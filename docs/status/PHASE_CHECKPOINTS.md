@@ -9,6 +9,16 @@ when its **go** criteria are evidence-backed; otherwise **no-go** with a residua
 ticket or human decision. **PENDING ≠ missing packages** when the residual matrix
 classifies the family as deepen/re-run.
 
+## Phase 0 — Rename distribution verification
+
+**Status (2026-09-30): pending retrospective verification.** The original plan
+requires clean installed CLI, renamed repository, registry, current site/docs,
+and compatibility-shim evidence. Later implementation phases have their own exit
+records below; they do not replace the missing Phase 0 receipt. See the
+[criterion-by-criterion evidence board](2026-09-30-ops-disposition.md#phase-0-verification-record-still-needed)
+and GitHub #487. Production site verification and the dated exit decision remain
+external evidence requirements; this row records neither a GO nor a label change.
+
 ## Phase 1 — Kernel corners (projectstore)
 
 | Gate | Go | No-go |
@@ -95,13 +105,19 @@ shipped public boundary remains the thin S12 join; deeper internals do not make
 the sonic-world product complete. Evidence: both sound S14 JSON receipts and
 sound GO tests.
 
-## Human-only (never agent-close)
+## Current human / ops residuals
 
-- First-10 real users program (#92) — open
+- First-10 real users program (#92) — closed as obsolete (2026-08-12), per
+  [current human gates](../HUMAN_GATES.md); do not recreate it as a maturity gate
 - Directory/registry third-party approval (#88) — external reviews still pending (Awesome MCP merged)
 - Launch media final cut approval (#90) — open
-- Renovate host token (#3) — open
+- Renovate host token (#3) — superseded by GitHub Dependabot; do not provision
+  the old Forgejo tokens, per [current human gates](../HUMAN_GATES.md)
 - Do **not** invent completions for the above
+
+The [2026-09-30 ops disposition board](2026-09-30-ops-disposition.md) separates
+implemented local preparation from remaining deployment, hosted artifact, native
+runtime, directory, company-operator, and product-claim decisions.
 
 The earlier residual phase note is superseded by the current Phase 3, Phase 4,
 and Track E exit statements above. Its dated receipt remains historical evidence,

@@ -11,14 +11,63 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Added
+
+- Temporal inspection returns and persists source-hash-bound `motion_coherence` with chronological low-resolution luma-difference windows, coverage/gaps/budget and advisory transition candidates. Frame-budget overflow rejects instead of silently truncating; human viewing and acceptance remain separate (#583).
+- Python `Client.mix_audio` layers timed sounds in one AAC encode with picture stream copy, source-audio preservation by default, bounded streaming fades and staged validation; `Client.duck_audio` exposes the existing plain-file sidechain mixer. Neither adds MCP/CLI names or a governed audio-bed receipt (adapted from draft PR #573; issues #572 and #549).
+- `Client.ai_color_grade` accepts optional `lut_path` for explicit `.cube` LUTs (#556).
+- Deterministic task-phrase aliases for tool discovery, including filler cleanup, resumable renders and subject framing. Exact tool-name matches retain priority; discovery neither invokes models nor establishes optional-backend availability.
+- Reproducible runtime-source allocation inventories, output-equivalence microbenchmarks, architecture review, and current ASR/typed-decision research under `docs/research/runtime-allocation/`. Source share is not execution cost; no new ASR, VLM or Jev backend is installed or integrated by this work.
+
+### Changed
+
+- `noise_reduction` defaults to a -50 dB noise floor instead of -25 dB; explicit `noise_level` remains supported (adapted from draft PR #575; issue #574). This conservative default does not establish speech recognition or universal denoising quality.
+- Shape masks default to alpha-capable MOV output; explicit MP4 output composites the mask over black instead of pretending to retain alpha (#551).
+- Visual review distinguishes frame sampling from semantic assessment. Without an executable scorer, `video_qc_vision` returns `not_evaluated` or `inconclusive`; `require_vlm=true` blocks instead of passing. Installing a provider SDK does not establish inference availability.
+- Default D42 voice-style and speaker-identity ports report `d42_voice_seam_unavailable` until a perceptual backend is supplied. Cryptographic audio hashes remain integrity evidence and no longer produce invented voice-similarity scores.
+- Detached render cancellation and termination retain stop intent and runner identity until the process group is observably stopped and its job lease is released. Unconfirmed stops remain pending; queued cancellation is immediate. Reconciliation no longer treats an absent liveness callback as evidence that work stopped.
+- Host workflow instructions separate source-backed creative proposals from execution and protect names, numbers, qualifications and negations. A prepared plan or model package is not presented as completed inference.
+
 ### Fixed
+
+- Trim and playback-speed edits render into a sibling staged output and construct their result before replacing the destination; render/result failure preserves existing output. Trim time validation rejects nonfinite values and overflow before FFmpeg runs. This does not make all engine writers transactional.
+- Audio normalization selects PCM16 for WAV and AAC for supported M4A/video outputs, reports the observed codec/container, and publishes only after staged codec verification and full error-free audio decoding (#584).
+- Hash-bound host loudness requests admit supported local encoded audio/video containers, meter the first audio stream without video decoding, and bind original source bytes to the unchanged EBU R128/true-peak delivery policy; bytes and standalone PCM contracts remain unchanged (#580).
+- Project preflight accepts audio-only assets, measures loudness/decode evidence and marks color checks inapplicable rather than fabricating video evidence (#582).
+- Accurate trimming seeks the input before decoding while retaining tested frame selections; absolute end is converted to the corresponding duration (adapted from draft PR #577; issue #576).
+- Glow blends luma while preserving chroma; vignette darkens edges without the previous color cast (#560, #557).
+- Ken Burns defaults to one output frame per input frame at the source frame rate, with continuous zoom, instead of multiplying ordinary video duration (#554).
+- Macroblocking restores exact source dimensions for portrait and nonmultiple sizes; static shape masks loop for the bounded video duration and preserve feathering (#552, #551).
+- Creation prompts preserve storyboard camera/lens directions and explicitly report generic, noncompiled prompt dialect. Style parsing accepts a bounded heading annotation, rejects malformed/duplicate declared headings and ends blocks at unrelated headings (#581).
+- Hyperframes relative render paths resolve from the caller cwd consistently for rendering and output inspection. Still rendering honors `-o` and copies the requested artifact independently of mutable snapshots; missing stills and false render results fail. Still output remains PNG bytes, without extension-based transcoding; omitted output retains the existing snapshot path (#585).
+- Cropping uses upright display dimensions and centered offsets for rotation-tagged phone video (adapted from draft PR #579; issue #578).
+- Timed video layers and video masks start playback at their declared layer start instead of hiding already-advanced footage. Full-canvas and positioned non-normal blends support opacity and timing windows, with explicit RGB arithmetic; unsupported scale/rotation/mask geometry remains fail-closed (adapted from draft PR #567; issues #566 and #556).
+- `add_audio(mix=True, duration_policy="loop_audio")` loops the added track with capped input/output duration. `pad_audio` with mixing remains explicitly unsupported (#555).
+- Audio waveform extraction now reads real per-window RMS measurements instead of falling into synthetic output because of invalid FFmpeg metadata options. The overall mean uses duration-weighted linear power; silence stays finite, audio offsets remain aligned, final-window padding is compensated, and opposite-phase stereo is not mistaken for silence. Video decoding is disabled, aggregation frames and metadata output are bounded, and retained compatibility fallback is explicitly marked `synthetic=true`. Audio-only inputs now use the audio-capable probe instead of requiring a video stream (#582).
+- Black-frame coverage uses decoded presentation intervals, including the terminal frame and short black spans. Variable frame rates and audio tracks longer than the picture no longer distort the ratio; corrupt or unverifiable decoding reports unavailable evidence.
+- Visual quality thresholds receive normalized native 8/10/12/16-bit SDR luma/chroma in full or limited range. Motion measurement negotiates its pixel format before grayscale conversion. These repairs do not establish HDR delivery acceptance.
+- Quality measurement caching retains only successful, nonempty observations of unchanged source identity and analysis window. Failed observations retry, replaced files invalidate entries, and retained entries are bounded. Filesystem cache identity does not substitute for cryptographic provenance.
+- Conversion validates a staged output before publication. Encoding, progress-callback, timeout or postflight failure preserves an existing destination; source and hardlink aliases remain rejected. Other engine writers are not covered by this conversion-specific guarantee.
+- Content-addressed re-import verifies stored bytes and records lifecycle repairs without changing immutable manifests or erasing GC history. Backup ownership and interrupted-repair cleanup are checked; availability no longer relies only on file presence.
+- A runner completing or failing during a stop request cannot discard its retained identity or overwrite the requested stop outcome before shutdown is verified.
+- NIMA thumbnail candidates remain on disk through scoring and are cleaned up on success or failure, instead of being removed before the scorer could read them.
+- Longform transcription reuses a Whisper model within one job while preserving decoding options and releasing job-owned references afterward. Voice-roster comparisons reuse extracted features, PCM parsing and palette-label counting avoid per-element Python loops, and pitch analysis bounds temporary windows. No model-quality or end-to-end latency improvement is claimed from these changes.
+- Model verification, rescue inspection/verification, sound bindings and project hashing stream SHA-256 input instead of reading entire artifacts into Python memory; checksum verification remains enabled.
+- Audio-only loudness, silence and related analysis passes disable video processing while preserving intended streams in delivery renders.
 - Every FFmpeg/ffprobe child process now names `stdin=DEVNULL` explicitly (source contract pinned): children can no longer inherit — and consume or block — the MCP stdio protocol channel on any code path (integrator report #547; PR #559 fixed the central runners, this completes the tree).
 - Merge transitions and the video-filter path (e.g. `sepia`) now pin `yuv420p` instead of inheriting `yuv444p`, so outputs play in browsers/phones and concatenate with yuv420p segments (#548, #556).
 - `layout_pip` no longer passes a full ffprobe command to the raw-args runner — the call failed with `ValueError` on every invocation since the runner split (#550).
 - `drawtext` font family names resolve to a concrete font file before reaching FFmpeg; the bare `font=<family>` option access-violated FFmpeg builds without fontconfig on Windows (0xC0000005) (#553).
 - The PIL text-measurement font loader no longer fails silently with a `NameError`, which had pushed every measurement onto the fallback path (found while fixing #553).
 
+### Docs
+
+- Document measured, unavailable and unevaluated quality evidence; waveform units and fallback; conversion publication; and projectstore repair, cancellation and resume contracts. Correct the waveform result example to its actual model fields.
+- Keep published-release identity separate from development changes. Research benchmarks remain local measurements with their corpus, optional-provider and validation limits recorded.
+
 ### Acknowledgements
+
+- Thanks to [@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt) for draft PRs [#577](https://github.com/KyaniteLabs/kinocut/pull/577), [#575](https://github.com/KyaniteLabs/kinocut/pull/575), [#573](https://github.com/KyaniteLabs/kinocut/pull/573), [#579](https://github.com/KyaniteLabs/kinocut/pull/579) and [#567](https://github.com/KyaniteLabs/kinocut/pull/567), whose reviewed fixes were adapted locally. These acknowledgements do not claim those draft PRs were merged.
 - Thanks to [@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt) for the 15-issue production-integrator batch of 2026-09-24 (reports #546–#560 with repro + root cause) and PRs #558/#559, which landed within 24 hours.
 
 ## 1.15.2 - 2026-09-24

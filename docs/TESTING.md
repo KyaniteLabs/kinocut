@@ -237,3 +237,38 @@ Every MCP tool has a corresponding test:
 - Error handling verified
 - Edge cases covered (silent videos, different codecs, etc.)
 - Remotion integration completely removed in v1.3.1 (PR #163)
+
+
+## Quality and lifecycle regressions
+
+Focused coverage includes actual FFmpeg waveform levels and source-time offsets
+(`tests/test_waveform_measurements.py`), immutable CAS repair/re-import
+(`tests/test_projectstore_cas_lifecycle.py`), quality cache invalidation
+(`tests/test_quality_cache_lifecycle.py`) and job stop/reconciliation behavior
+(`tests/test_projectstore_render_cancel.py` and
+`tests/test_projectstore_render_jobs.py`). Additional lifecycle tests cover
+model reuse, candidate-file cleanup and output equivalence in
+`tests/test_optimization_lifecycles.py`.
+
+Run these alongside the affected engine and public-surface tests. A fake model
+can verify call ownership and cleanup; it cannot establish real perception
+accuracy or model latency. Refer to [quality evidence](QUALITY_EVIDENCE.md) and
+[projectstore lifecycle](PROJECTSTORE_LIFECYCLE.md) for the operating contracts.
+
+Real-media issue regressions additionally cover encoded loudness surface parity
+(`tests/test_sound_loudness_encoded.py`), audio-only inputs
+(`tests/test_audio_input_kinds.py`), normalization publication
+(`tests/test_audio_loudnorm.py`), sample-aligned timed mixing
+(`tests/test_audio_mix.py`), accurate decoded-frame trimming
+(`tests/test_trim_accurate_seek.py`), rotated phone crops
+(`tests/test_crop_rotation.py`), timed RGB blends
+(`tests/test_composite_blend_windows.py`), conservative denoising
+(`tests/test_noise_reduction_default.py`), effect geometry/chroma
+(`tests/test_integrator_effects_quality.py`), prompt contracts
+(`tests/test_creation_prompt_contracts.py`), temporal proxy coverage
+(`tests/test_motion_coherence.py`) and Hyperframes artifact paths
+(`tests/test_hyperframes_output_contracts.py`). These fixtures establish the
+specified technical behavior, not universal perceptual or creative quality.
+Client forwarding and canonical/alias conflicts are covered in
+`tests/test_client_audio_contracts.py`; staged trim/speed failure preservation
+and trim-time validation are covered in `tests/test_basic_writer_transactions.py`.

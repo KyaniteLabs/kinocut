@@ -1,0 +1,18 @@
+{
+  "baseline": {
+    "error": "callback_failed",
+    "sha256_before": "6ebfc2d0aab4c3f1bc55c8b610caab30caf40ecfda05151e6dc5477c55dcbfc3",
+    "sha256_after": "da131972268cab49ce21e430c2ea5dc17ed944db13a92c80d7d261a98a5ba2af",
+    "preserved": false,
+    "bytes_before": 2524267,
+    "bytes_after": 565917
+  },
+  "staged": {
+    "error": "callback_failed",
+    "sha256_before": "6ebfc2d0aab4c3f1bc55c8b610caab30caf40ecfda05151e6dc5477c55dcbfc3",
+    "sha256_after": "6ebfc2d0aab4c3f1bc55c8b610caab30caf40ecfda05151e6dc5477c55dcbfc3",
+    "preserved": true,
+    "bytes_before": 2524267,
+    "bytes_after": 2524267
+  }
+}

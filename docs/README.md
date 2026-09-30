@@ -1,5 +1,7 @@
 # Kinocut Documentation Map
 
+GitHub backlog review and local fixes: [September 30 report](research/github-backlog/2026-09-30/REPORT.md).
+
 Use this page to distinguish current operating guidance from dated evidence. The
 project was renamed from `mcp-video` to **Kinocut** on 2026-07-10; historical
 artifacts keep the names, versions, commands, and paths they actually verified.
@@ -16,12 +18,18 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Stream shorts](STREAM_SHORTS.md) - saved-plan review, render, and package stages (local-only).
 - [Agent workflows](WORKFLOWS.md) - job specs, render receipts, resume, and cleanup.
 - [Video rescue](RESCUE.md) - review-first repair pipeline.
+- [PR validation](research/PR_VALIDATION.md) - final publication gate and earlier checkpoint boundaries.
+- [GitHub backlog review](research/github-backlog/2026-09-30/REPORT.md) - reviewed issue/PR inventory and local adaptations.
 - [Testing](TESTING.md) - focused, integration, and real-media verification.
+- [Plain-file audio mixing](AUDIO_MIXING.md) - single-encode timed tracks, ducking and bounded looping.
+- [Quality evidence](QUALITY_EVIDENCE.md) - measured RMS/visual evidence, unavailable inference, and conversion guarantees.
+- [Projectstore lifecycle](PROJECTSTORE_LIFECYCLE.md) - verified CAS repair, detached stop requests and resumable jobs.
 - [Design standards](DESIGN_STANDARDS.md) - visual metrics, units, and guardrails.
 - [Licensing notes](LEGAL_REVIEW.md) - project and dependency obligations.
 - [Agent discovery](AI_AGENT_DISCOVERY.md) - concise capability and setup summary.
 - [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
 - [Kinocut now](status/NOW.md) - published vs tip, human residuals, site honesty leftover.
+- [2026-09-30 ops disposition](status/2026-09-30-ops-disposition.md) - current gate applicability and owner-evidence boundaries.
 - [2026-08-19 ops closeout](status/2026-08-19-ops-closeout.md) - dual-host, CI, Cloudflare DNS, parked owner words.
 - [Post-campaign tip status](status/2026-07-27-post-campaign-tip-status.md) - historical 1.11.1-versus-development-tip snapshot (superseded by NOW.md).
 - [Post-1.10 program status](status/2026-07-24-post-1-10-program-status.md) - historical published-release and remaining-program boundary recorded after 1.11.1.

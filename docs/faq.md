@@ -58,7 +58,7 @@ Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 36
 
 ## What are the cinematic creation tools?
 
-The cinematic creation tools add a PUSHING CREATION-compatible pre-production workflow: `video_project_create` scaffolds a project with `style.md`, `storyboard.md`, and `refs/`; `style_pack_read` parses STYLE_ and NEG_ blocks; `storyboard_read` parses shot rows; and `shot_prompt_render` expands a storyboard shot into generation-ready positive and negative prompts.
+The cinematic creation tools add a PUSHING CREATION-compatible pre-production workflow: `video_project_create` scaffolds a project with `style.md`, `storyboard.md`, and `refs/`; `style_pack_read` parses STYLE_ and NEG_ blocks; `storyboard_read` parses shot rows; and `shot_prompt_render` expands camera/lens direction and style references into generic positive and negative prompts. The result explicitly reports `prompt_dialect="generic"` and `model_dialect_compiled=false`; it does not compile a model-specific dialect or call a generation provider.
 
 ## What do the Hyperframes and repurposing tools add?
 

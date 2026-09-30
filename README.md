@@ -154,6 +154,11 @@ Also already on the published line from 1.13.x:
 
 Full notes: [CHANGELOG.md](CHANGELOG.md) · published [v1.15.2](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.15.2)
 
+Development-checkout quality and plain-file audio contracts are documented in
+[quality evidence](docs/QUALITY_EVIDENCE.md), [audio mixing](docs/AUDIO_MIXING.md) and
+[projectstore lifecycle](docs/PROJECTSTORE_LIFECYCLE.md). See [Unreleased](CHANGELOG.md)
+for local changes beyond the published package.
+
 ## Beyond 1.15.2 (draft / gated)
 
 **1.15.2 is the latest published release.** Draft/gated work beyond it stays out of release claims until a cut lands. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
@@ -176,7 +181,7 @@ Agents can **plan, validate, render, recover, and prove** a multi-step local vid
 a single JSON job-spec — through MCP (`video_workflow_*`), the CLI (`workflow-*`), or the
 Python client (`Client.workflow_*`) — with receipts strong enough for another agent or a
 human to trust before *and* after a render. Ops are a small allowlist
-(`probe | trim | resize | convert | merge | add_text | composite_layers`) mapped 1:1 to the same vetted engine
+(`probe | trim | resize | convert | crop | merge | add_text | composite_layers | burn_in`) mapped 1:1 to the same vetted engine
 functions the individual tools use; media references are symbolic and workspace-confined;
 everything fails closed.
 
@@ -253,14 +258,14 @@ sharing copy are always verified; optional captions remain sidecars. See
 
 ## Layered Compositing
 
-`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
+`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas and positioned blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
 
 ```bash
 kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
 kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
 ```
 
-Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates, or platform variants that should be reviewed before rendering. A non-`normal` blend layer must be full-canvas (position `{0,0}`, full opacity, no scale/mask/timing) or it fails closed; output is video-only. Positioned/scaled/masked/timed blend, rotation + mask, and per-layer effect routing are tracked as later phases so this surface stays deterministic and preflightable.
+Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates or platform variants reviewed before rendering. Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video layers and masks begin playback at the declared layer start. Keep sources and masks inside the spec directory, placing the spec in a common parent of its media. Output remains video-only.
 
 ## 360 dual-cam assembly
 

@@ -8,9 +8,13 @@ private project store that every later AI-video wave composes over. Wave 0 adds
 **contracts, storage, and serialization only** — no new editing behaviour and no
 public MCP/CLI/Python editing command.
 
-All models live under `kinocut/contracts/` and are re-exported from
+The Wave 0 models live under `kinocut/contracts/` and are re-exported from
 `kinocut.contracts` (and `kinocut` re-exports the `contracts` package). The
 project store lives under `kinocut/projectstore/`.
+
+For the current CAS availability and detached-render behavior added after this
+foundation, see [Projectstore lifecycle](PROJECTSTORE_LIFECYCLE.md). The Wave 0
+status above records its original review stage, not a current release receipt.
 
 ## Record catalog
 
@@ -57,6 +61,8 @@ Layout under a project's `.kinocut/`:
 
 - `records/<kind>.jsonl` — append-only canonical records, one JSON line each.
 - `assets/sha256/<digest>/<sanitized-name>` — content-addressed asset bytes.
+- `blobs/sha256/<digest>` — canonical CAS blobs; recorded repair-owned backups
+  share this directory while restoration is pending.
 - `indexes/` — disposable, rebuildable id manifests.
 - `locks/`, `observations/` — internal.
 
@@ -68,12 +74,34 @@ Guarantees (`kinocut/projectstore/`):
 - **Append-only** — corrections *supersede* by `record_id`; history is never
   rewritten. Supersession requires exactly one existing, same-project,
   not-yet-superseded target, and must not form a cycle.
-- **Lock-guarded & atomic** — every mutation holds an exclusive project lock and
-  swaps files with a secure temp (`mkstemp`) + `fsync` + `os.replace` + dir
-  `fsync`, with all-or-nothing rollback. `rebuild_indexes` stages the whole set
-  and swaps it transactionally.
+- **Lock-guarded writes** — record mutations hold an exclusive project lock and
+  swap files with a secure temp (`mkstemp`) + `fsync` + `os.replace` + directory
+  `fsync`. Paired record transactions provide exception rollback, not a blanket
+  cross-file crash-atomic guarantee. `rebuild_indexes` stages the whole set and
+  swaps it transactionally. Render signaling/polling runs outside the lock.
 - **Exact-type write boundary** — each record is re-validated through its
   `record_kind`-bound concrete model (subclasses and duplicate ids are rejected).
+
+### CAS and render records added after Wave 0
+
+These records live in `kinocut.contracts.trusted_execution` and are registered
+with the store. The new lifecycle kind leaves the existing manifest and
+render-job schemas unchanged.
+
+| Record | `record_kind` | Meaning |
+| --- | --- | --- |
+| `CASManifestRecord` | `cas_manifest` | Immutable content identity/location, byte size and original media type; existence alone is not availability. |
+| `CASGCReceiptRecord` | `cas_gc` | Append-only deletion history, observed bytes freed and causal references. |
+| `CASBlobLifecycleRecord` | `cas_blob_lifecycle` | Per-digest `restoring`/`available` chain, immutable manifest reference, latest deleting receipt and optional recorded backup ownership. |
+| `RenderJobRecord` | `render_job` | Existing queued/running/succeeded/failed/cancelled states, frozen spec identity and progress. Pending stops use existing `stage` metadata and retain `runner_pid`. |
+
+CAS restoration uses explicit receipt references and supersession rather than
+timestamps to order independent logs. Resolution verifies actual bytes under
+the project lock; interrupted repair remains unavailable until recorded
+completion. Running cancellation may return `running` with
+`stage="cancellation_requested"`; confirmed terminal status requires actual
+group quiescence and lease release. Recovery details and examples are in the
+[lifecycle guide](PROJECTSTORE_LIFECYCLE.md).
 
 ## Privacy
 

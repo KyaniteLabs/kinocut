@@ -13,3 +13,43 @@ A **creation project** belongs to `creation_engine.py`; a **Hyperframes project*
 ## Consequences
 
 Phase 1 is internal and additive, so MCP, CLI, and client surfaces do not change. Detached execution, startup reconciliation, public kernel tools, proxies, reachability GC, and repurposing adapters are later slices that must build on these contracts.
+
+## CAS restoration clarification
+
+An immutable CAS manifest records identity, not perpetual availability. Collection
+receipts remain append-only. Re-ingesting collected, missing or corrupt bytes keeps
+the original manifest and records a `cas_blob_lifecycle` restoration intent before
+installing bytes, followed by a completion after installation and directory fsync.
+Per-digest supersession and explicit references to the latest deleting GC receipt
+define availability across independently ordered record logs; timestamps never do.
+A later collection invalidates earlier restoration. GC receipts reference the
+current lifecycle heads so repeated collection generations have distinct semantic
+identities. An interrupted restoration remains unavailable on reopen, even if its
+bytes are already correct, and re-ingestion can safely finish a new recorded repair.
+This is an internal additive record kind; no public tool or manifest schema changes.
+Repair intents also record bounded private backup locations before moving old
+bytes. Retry and collection remove only those recorded owned files. Collection
+budgets use observed canonical/backup byte sizes and can reclaim unreachable
+pending installations; reachable sources remain protected even during repair.
+
+## Detached render cancellation clarification
+
+Queued cancellation is immediate. A running cancellation first appends a
+`running` snapshot with `stage: cancellation_requested`, retaining its runner
+PID. Termination similarly uses `stage: termination_requested`; an outstanding
+cancellation keeps its meaning if termination is retried. These request snapshots
+change existing stage metadata, without extending hashed record schemas or states.
+Only a detached session leader with the held job lease may receive a process-group
+signal. Signaling and bounded quiescence checks run outside the project lock.
+Unverified identity or an unconfirmed stop keeps the request and PID for retry;
+`cancelled` is recorded only after no executing group members and no held lease
+remain. Reconciliation uses the same proof and never treats a missing or negative
+caller liveness hint as proof that descendants stopped. Linux ignores zombie-only
+groups; other platforms conservatively require process-group disappearance.
+The runner observes a pre-start request before invoking the engine, and racing
+success/failure cannot replace pending stop ownership. A PID/lease check is existing
+execution evidence, not a cryptographic identity guarantee or a lease on output paths.
+
+The [Projectstore lifecycle guide](../PROJECTSTORE_LIFECYCLE.md) records current
+helper return values, repair ownership, conservative reconciliation, platform
+limits and focused validation without replacing this decision's original scope.
