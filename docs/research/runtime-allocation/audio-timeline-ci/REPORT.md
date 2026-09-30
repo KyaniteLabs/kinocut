@@ -51,3 +51,19 @@ FFprobe has `8e1e2ed4b6c3bda15278e868f1e1cd0a8fccc346ffddfc1857494db96dd5db0f`.
 This is a scoped native comparison, not complete FFmpeg 6 platform acceptance.
 The corrected published head needs its own local full gate and hosted CI;
 the failed head's twelve successes do not validate the correction.
+
+## Completed local full gate
+
+Fixture correction `62c4948` passed **7,451 tests, 185 skipped, 8 warnings**
+in 940.71 seconds, exit 0. [Result](validation.json) records frozen source
+hashes and the recovered exit status; [log](full-suite.log) retains the complete
+output. The session handle expired while the original command continued; after
+completion, the original shell's kernel wait status was observed as zero.
+Pytest was that shell's final command. Lint, format and import checks also pass.
+
+The [refreshed allocation](allocation.json) retains 625 runtime files and
+**96.9369% deterministic, 2.6338% operational LLM prose, 0.4293% non-LLM ML**,
+totaling 100%; production runtime is unchanged by the fixture correction.
+Focused, repeated and full-suite counts overlap and must not be added together.
+Published-head CI and merge status remain separate evidence on
+[PR #586](https://github.com/KyaniteLabs/kinocut/pull/586).

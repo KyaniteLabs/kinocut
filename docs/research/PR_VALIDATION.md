@@ -8,7 +8,25 @@ adapted, not merged. See the [backlog dispositions](github-backlog/2026-09-30/RE
 [external-report action ledger](external-ai-audits/2026-09-30/REPORT.md) and
 [Unreleased changelog](../../CHANGELOG.md).
 
-## Final pre-merge review gate
+## Final audio-fixture CI correction gate
+
+Implementation `62c4948` corrects the hosted fixture's timestamp assumption;
+production runtime remains unchanged from `cfdf03a`. The required full suite
+passed **7,451 tests, 185 skipped, 8 warnings** in 940.71 seconds, exit 0.
+[Result](runtime-allocation/audio-timeline-ci/validation.json) records the eight
+frozen source hashes and recovered original-shell exit status; [log](runtime-allocation/audio-timeline-ci/full-suite.log)
+preserves the completed run. Ruff 0.15.11 check/format pass for 1,073 files,
+with canonical import identity. The [investigation](runtime-allocation/audio-timeline-ci/REPORT.md)
+records the failed hosted head, native generator/mixer comparisons and the
+explicit passthrough correction without weakening signal thresholds.
+
+All 39 mixer tests pass with complete FFmpeg 7. The temporary native FFmpeg 6
+build passes 37 scoped mixer tests, excluding two unavailable components; those
+exclusions apply only to that local build. Hosted test selection is unchanged.
+Final CI must be read for the exact corrected published head on the
+[PR checks page](https://github.com/KyaniteLabs/kinocut/pull/586/checks).
+
+## Earlier pre-merge review gate
 
 Implementation `cfdf03a` resolves six inline-review findings after the earlier
 green head. The required full suite passed **7,451 tests, 185 skipped, 8 warnings**
@@ -77,7 +95,7 @@ recorded in the external-report evidence; inspecting metadata is not installatio
 
 ## Source inventory
 
-The [current allocation](runtime-allocation/pre-merge-review/allocation.json) classifies
+The [current allocation](runtime-allocation/audio-timeline-ci/allocation.json) classifies
 625 runtime source files into deterministic code, operational LLM prose and
 traditional/non-LLM ML integration. Percentages sum to 100%; they measure source
 bytes, not execution time, cost, inference frequency or quality. Host skill prose
