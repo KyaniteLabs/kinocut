@@ -108,9 +108,13 @@ def test_host_voice_ports_never_certify_hash_equality_or_invent_scores(tmp_path,
         assets.register(reference, str(audio))
     port = default_kinocut_d42_port(assets)
     calls = [
-        lambda: port.style.check_style(StyleCheckSpec(
-            profile_id="narrator_main", audio_hash=_SHA, reference_hash=reference,
-        )),
+        lambda: port.style.check_style(
+            StyleCheckSpec(
+                profile_id="narrator_main",
+                audio_hash=_SHA,
+                reference_hash=reference,
+            )
+        ),
         lambda: port.identity.compare_identity(IdentityCheckSpec(audio_hash_a=_SHA, audio_hash_b=reference)),
     ]
     for call in calls:
@@ -128,13 +132,16 @@ def test_kinocut_d42_metrics_facade_reports_unavailability():
     with pytest.raises(VoiceConsistencyError) as failure:
         style_check(
             port=port,  # type: ignore[arg-type]
-            profile_id="narrator_main", audio_hash=_SHA, reference_hash=_SHA,
+            profile_id="narrator_main",
+            audio_hash=_SHA,
+            reference_hash=_SHA,
         )
     assert failure.value.code == "consistency_d42_unavailable"
     with pytest.raises(VoiceConsistencyError) as failure:
         identity_similarity(
             port=port,  # type: ignore[arg-type]
-            audio_hash_a=_SHA, audio_hash_b=_SHA2,
+            audio_hash_a=_SHA,
+            audio_hash_b=_SHA2,
         )
     assert failure.value.code == "consistency_d42_unavailable"
 

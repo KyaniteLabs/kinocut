@@ -6,7 +6,9 @@ import subprocess
 import pytest
 
 from kinocut.aivideo.inspection.temporal_checks import (
-    TemporalFrameObservation, analyze_temporal_observations, inspect_temporal_media,
+    TemporalFrameObservation,
+    analyze_temporal_observations,
+    inspect_temporal_media,
 )
 
 
@@ -18,14 +20,21 @@ def _frames(rates, step=0.1):
     for index in range(1, round(len(rates) / step) + 1):
         timestamp = round(index * step, 6)
         rate = rates[min(int(timestamp - step / 2), len(rates) - 1)]
-        frames.append(TemporalFrameObservation(timestamp=timestamp, mean_luma=100,
-                                              difference_from_previous=rate * step, signature=ASSET_ID))
+        frames.append(
+            TemporalFrameObservation(
+                timestamp=timestamp, mean_luma=100, difference_from_previous=rate * step, signature=ASSET_ID
+            )
+        )
     return tuple(frames)
 
 
 def _report(frames, expected_end=None):
-    return analyze_temporal_observations(frames, target_id=ASSET_ID, project_id="project-1",
-                                         expected_end=expected_end or max(item.timestamp for item in frames) + 0.1).motion_coherence
+    return analyze_temporal_observations(
+        frames,
+        target_id=ASSET_ID,
+        project_id="project-1",
+        expected_end=expected_end or max(item.timestamp for item in frames) + 0.1,
+    ).motion_coherence
 
 
 @pytest.mark.parametrize("rates", [[0, 0, 0, 0], [20, 20, 20, 20]])
@@ -66,8 +75,7 @@ def test_isolated_cut_candidate_is_separate_from_sustained_rate_without_claiming
 def test_observation_rate_and_input_order_do_not_change_window_rates():
     first = _report(_frames([10, 20, 10, 20], step=0.1))
     second = _report(tuple(reversed(_frames([10, 20, 10, 20], step=0.05))))
-    assert [item["rate"] for item in first["windows"]] == pytest.approx(
-        [item["rate"] for item in second["windows"]])
+    assert [item["rate"] for item in first["windows"]] == pytest.approx([item["rate"] for item in second["windows"]])
 
 
 def test_missing_span_is_excluded_and_coverage_is_not_full_watch():
@@ -82,9 +90,24 @@ def test_missing_span_is_excluded_and_coverage_is_not_full_watch():
 
 def test_real_media_report_binds_source_hash_and_bounded_decode(tmp_path):
     source = tmp_path / "calm.mp4"
-    subprocess.run(["ffmpeg", "-hide_banner", "-loglevel", "error", "-f", "lavfi", "-i",
-                    "color=c=gray:s=32x32:r=10:d=1", "-c:v", "libx264", str(source)],
-                   check=True, timeout=30, capture_output=True)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=gray:s=32x32:r=10:d=1",
+            "-c:v",
+            "libx264",
+            str(source),
+        ],
+        check=True,
+        timeout=30,
+        capture_output=True,
+    )
     report = inspect_temporal_media(str(source), target_id=ASSET_ID, project_id="project-1").motion_coherence
     assert report["source_sha256"] == "sha256:" + hashlib.sha256(source.read_bytes()).hexdigest()
     assert report["decoded_frame_count"] == 10

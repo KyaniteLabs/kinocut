@@ -593,20 +593,27 @@ def inspect_temporal_media(
             opening_closing_difference=opening_closing,
         )
         final_stat = media.stat()
-        if any(getattr(final_stat, field) != getattr(source_stat, field)
-               for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")):
+        if any(
+            getattr(final_stat, field) != getattr(source_stat, field)
+            for field in ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
+        ):
             raise _invalid_observations("media changed during temporal inspection")
-        return result.model_copy(update={"motion_coherence": {
-            **result.motion_coherence,
-            "source_sha256": source_digest,
-            "source_binding_status": "hashed_media_unchanged_during_inspection",
-            "decoded_media_end": decoded_end,
-            "decoded_coverage_seconds": round(decoded_end - frames[0].timestamp, 6),
-            "coverage_scope": "complete_bounded_decode" if not corrupt_intervals and decoded_end == expected_end
-                              else "decoded_observations_with_incomplete_or_corrupt_media",
-            "frame_budget": MAX_TEMPORAL_INSPECTION_FRAMES,
-            "budget_policy": "excess_frames_reject; never_silently_truncated",
-        }})
+        return result.model_copy(
+            update={
+                "motion_coherence": {
+                    **result.motion_coherence,
+                    "source_sha256": source_digest,
+                    "source_binding_status": "hashed_media_unchanged_during_inspection",
+                    "decoded_media_end": decoded_end,
+                    "decoded_coverage_seconds": round(decoded_end - frames[0].timestamp, 6),
+                    "coverage_scope": "complete_bounded_decode"
+                    if not corrupt_intervals and decoded_end == expected_end
+                    else "decoded_observations_with_incomplete_or_corrupt_media",
+                    "frame_budget": MAX_TEMPORAL_INSPECTION_FRAMES,
+                    "budget_policy": "excess_frames_reject; never_silently_truncated",
+                }
+            }
+        )
     except Exception as exc:
         logger.warning("temporal media probe failed: %s", type(exc).__name__)
         if isinstance(exc, MCPVideoError) and exc.code == "invalid_temporal_observations":

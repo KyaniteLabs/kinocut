@@ -31,14 +31,19 @@ def test_complete_meaningful_token_coverage_and_stable_ranking():
 
 
 def test_exact_name_precedes_mentions_and_preserves_response_contract():
-    result = discover_tools("VIDEO_TRIM", [
-        _tool("mention", "Call video_trim before this tool"),
-        _tool("video_trim", "Trim video\nArgs: source", ("input_path",)),
-        _tool("video_trim_batch", "Trim many clips"),
-    ])
+    result = discover_tools(
+        "VIDEO_TRIM",
+        [
+            _tool("mention", "Call video_trim before this tool"),
+            _tool("video_trim", "Trim video\nArgs: source", ("input_path",)),
+            _tool("video_trim_batch", "Trim many clips"),
+        ],
+    )
     assert [tool["name"] for tool in result["tools"]] == ["video_trim", "video_trim_batch", "mention"]
     assert result["tools"][0] == {
-        "name": "video_trim", "description": "Trim video", "required_params": ["input_path"],
+        "name": "video_trim",
+        "description": "Trim video",
+        "required_params": ["input_path"],
     }
     assert result["query"] == "VIDEO_TRIM"
     assert result["count"] == 3
@@ -58,17 +63,20 @@ def test_phrase_aliases_use_boundaries_and_only_existing_tools():
     assert discover_tools("remove filler words", catalog)["count"] == 0
 
 
-@pytest.mark.parametrize(("query", "expected"), [
-    ("remove filler words", "video_timeline_edit_plan"),
-    ("find pauses", "video_audio_waveform"),
-    ("foreground segmentation", "hyperframes_remove_background"),
-    ("resume render", "video_workflow_render"),
-    ("safe to publish", "video_publish_gate"),
-    ("change volume", "audio_effects"),
-    ("keep face in frame", "video_visual_transform_plan"),
-    ("captions", "video_subtitles"),
-    ("portrait", "video_resize"),
-])
+@pytest.mark.parametrize(
+    ("query", "expected"),
+    [
+        ("remove filler words", "video_timeline_edit_plan"),
+        ("find pauses", "video_audio_waveform"),
+        ("foreground segmentation", "hyperframes_remove_background"),
+        ("resume render", "video_workflow_render"),
+        ("safe to publish", "video_publish_gate"),
+        ("change volume", "audio_effects"),
+        ("keep face in frame", "video_visual_transform_plan"),
+        ("captions", "video_subtitles"),
+        ("portrait", "video_resize"),
+    ],
+)
 def test_registered_task_discovery_regressions(query, expected):
     from kinocut.server import search_tools
 

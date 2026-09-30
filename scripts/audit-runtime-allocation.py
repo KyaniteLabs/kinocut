@@ -151,10 +151,16 @@ def main() -> None:
     paths = tracked_paths
     if not args.baseline_head:
         # Newly implemented runtime modules count before they are committed.
-        paths = sorted(set(subprocess.check_output(
-            ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
-            cwd=ROOT, text=True, timeout=15,
-        ).splitlines()))
+        paths = sorted(
+            set(
+                subprocess.check_output(
+                    ["git", "ls-files", "--cached", "--others", "--exclude-standard"],
+                    cwd=ROOT,
+                    text=True,
+                    timeout=15,
+                ).splitlines()
+            )
+        )
     tools, descriptions = tool_functions()
     if args.baseline_head:
         changed = subprocess.check_output(
@@ -192,7 +198,9 @@ def main() -> None:
         "runtime_files": len(rows),
         "tracked_files_inventoried": len(tracked_paths),
         "inventoried_files": len(inventory),
-        "inventory_scope": "tracked HEAD paths" if args.baseline_head else "tracked and unignored new working-tree paths",
+        "inventory_scope": "tracked HEAD paths"
+        if args.baseline_head
+        else "tracked and unignored new working-tree paths",
         "registered_mcp_functions": len(tools),
         "totals": dict(total),
         "denominator": denominator,

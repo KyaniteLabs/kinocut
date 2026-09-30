@@ -30,7 +30,7 @@ def _normalized_signalstat(frame: dict[str, Any], tag: str, value: Any, *, diffe
     component = tag.rsplit(".", 1)[-1]
     if not full_range:
         return number / (2 ** (depth - 8))
-    full_scale = (2 ** depth) - 1
+    full_scale = (2**depth) - 1
     if difference:
         return number * 219 / full_scale
     if component in {"UAVG", "VAVG"}:

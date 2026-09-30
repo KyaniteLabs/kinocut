@@ -15,24 +15,50 @@ pytestmark = pytest.mark.skipif(
 
 def _pixel(video, seconds, x=32, y=32):
     result = subprocess.run(
-        ["ffmpeg", "-v", "error", "-ss", str(seconds), "-i", str(video),
-         "-vf", f"format=rgb24,crop=1:1:{x}:{y}", "-frames:v", "1",
-         "-f", "rawvideo", "-pix_fmt", "rgb24", "-"],
-        stdin=subprocess.DEVNULL, capture_output=True, check=True, timeout=30,
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-ss",
+            str(seconds),
+            "-i",
+            str(video),
+            "-vf",
+            f"format=rgb24,crop=1:1:{x}:{y}",
+            "-frames:v",
+            "1",
+            "-f",
+            "rawvideo",
+            "-pix_fmt",
+            "rgb24",
+            "-",
+        ],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        check=True,
+        timeout=30,
     )
     assert len(result.stdout) == 3
     return tuple(result.stdout)
 
 
 def _render(tmp_path, opacity, positioned=False, timed=False):
-    layer = {"id": "blend", "type": "solid", "color": "#808080", "blend": "multiply",
-             "opacity": opacity, "position": {"x": 16 if positioned else 0, "y": 16 if positioned else 0}}
+    layer = {
+        "id": "blend",
+        "type": "solid",
+        "color": "#808080",
+        "blend": "multiply",
+        "opacity": opacity,
+        "position": {"x": 16 if positioned else 0, "y": 16 if positioned else 0},
+    }
     if positioned:
         layer.update(width=32, height=32)
     if timed:
         layer.update(start=0.3, duration=0.3)
-    spec = {"canvas": {"width": 64, "height": 64, "fps": 10, "duration": 1},
-            "layers": [{"id": "base", "type": "solid", "color": "#808080"}, layer]}
+    spec = {
+        "canvas": {"width": 64, "height": 64, "fps": 10, "duration": 1},
+        "layers": [{"id": "base", "type": "solid", "color": "#808080"}, layer],
+    }
     path = tmp_path / "spec.json"
     path.write_text(json.dumps(spec))
     output = tmp_path / f"blend-{opacity}-{positioned}-{timed}.mp4"
@@ -61,17 +87,49 @@ def test_blend_window_preserves_base_before_and_after(tmp_path, positioned):
 def test_timed_video_blend_plays_opening_frames_at_layer_start(tmp_path, positioned):
     clip = tmp_path / "clip.mp4"
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=red:s=64x64:r=10:d=0.4",
-         "-f", "lavfi", "-i", "color=blue:s=64x64:r=10:d=0.4", "-filter_complex",
-         "[0:v][1:v]concat=n=2:v=1[v]", "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(clip)],
-        stdin=subprocess.DEVNULL, check=True, timeout=30,
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=red:s=64x64:r=10:d=0.4",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=blue:s=64x64:r=10:d=0.4",
+            "-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1[v]",
+            "-map",
+            "[v]",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(clip),
+        ],
+        stdin=subprocess.DEVNULL,
+        check=True,
+        timeout=30,
     )
-    layer = {"id": "clip", "type": "video", "src": "clip.mp4", "blend": "multiply", "opacity": 0.5,
-             "start": 1, "duration": 0.8, "position": {"x": 16 if positioned else 0, "y": 16 if positioned else 0}}
+    layer = {
+        "id": "clip",
+        "type": "video",
+        "src": "clip.mp4",
+        "blend": "multiply",
+        "opacity": 0.5,
+        "start": 1,
+        "duration": 0.8,
+        "position": {"x": 16 if positioned else 0, "y": 16 if positioned else 0},
+    }
     if positioned:
         layer.update(width=32, height=32)
-    spec = {"canvas": {"width": 64, "height": 64, "fps": 10, "duration": 2},
-            "layers": [{"id": "base", "type": "solid", "color": "#808080"}, layer]}
+    spec = {
+        "canvas": {"width": 64, "height": 64, "fps": 10, "duration": 2},
+        "layers": [{"id": "base", "type": "solid", "color": "#808080"}, layer],
+    }
     path = tmp_path / "spec.json"
     path.write_text(json.dumps(spec))
     output = tmp_path / "timed.mp4"
@@ -95,14 +153,37 @@ def test_client_color_grade_forwards_explicit_lut(monkeypatch):
 def test_video_mask_plays_from_its_layer_start(tmp_path):
     mask = tmp_path / "mask.mp4"
     subprocess.run(
-        ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=black:s=64x64:r=10:d=0.4",
-         "-f", "lavfi", "-i", "color=white:s=64x64:r=10:d=0.4", "-filter_complex",
-         "[0:v][1:v]concat=n=2:v=1[v]", "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(mask)],
-        stdin=subprocess.DEVNULL, check=True, timeout=30,
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=black:s=64x64:r=10:d=0.4",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=white:s=64x64:r=10:d=0.4",
+            "-filter_complex",
+            "[0:v][1:v]concat=n=2:v=1[v]",
+            "-map",
+            "[v]",
+            "-c:v",
+            "libx264",
+            "-pix_fmt",
+            "yuv420p",
+            str(mask),
+        ],
+        stdin=subprocess.DEVNULL,
+        check=True,
+        timeout=30,
     )
-    spec = {"canvas": {"width": 64, "height": 64, "fps": 10, "duration": 2, "background": "#000000"},
-            "layers": [{"id": "red", "type": "solid", "color": "#ff0000", "mask": "mask.mp4",
-                        "start": 1, "duration": 0.8}]}
+    spec = {
+        "canvas": {"width": 64, "height": 64, "fps": 10, "duration": 2, "background": "#000000"},
+        "layers": [{"id": "red", "type": "solid", "color": "#ff0000", "mask": "mask.mp4", "start": 1, "duration": 0.8}],
+    }
     path = tmp_path / "spec.json"
     path.write_text(json.dumps(spec))
     output = tmp_path / "masked.mp4"
@@ -118,12 +199,20 @@ def test_video_mask_plays_from_its_layer_start(tmp_path):
 def test_rgb_blending_preserves_source_alpha_coverage(tmp_path, positioned, alpha, opacity):
     image = pytest.importorskip("PIL.Image")
     image.new("RGBA", (64, 64), (0, 0, 0, alpha)).save(tmp_path / "alpha.png")
-    layer = {"id": "alpha", "type": "image", "src": "alpha.png", "blend": "multiply", "opacity": opacity,
-             "position": {"x": 16 if positioned else 0, "y": 16 if positioned else 0}}
+    layer = {
+        "id": "alpha",
+        "type": "image",
+        "src": "alpha.png",
+        "blend": "multiply",
+        "opacity": opacity,
+        "position": {"x": 16 if positioned else 0, "y": 16 if positioned else 0},
+    }
     if positioned:
         layer.update(width=32, height=32)
-    spec = {"canvas": {"width": 64, "height": 64, "fps": 10, "duration": 0.5},
-            "layers": [{"id": "base", "type": "solid", "color": "#808080"}, layer]}
+    spec = {
+        "canvas": {"width": 64, "height": 64, "fps": 10, "duration": 0.5},
+        "layers": [{"id": "base", "type": "solid", "color": "#808080"}, layer],
+    }
     path = tmp_path / "spec.json"
     path.write_text(json.dumps(spec))
     output = tmp_path / "alpha.mp4"

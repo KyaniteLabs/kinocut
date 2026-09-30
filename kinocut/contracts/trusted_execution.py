@@ -149,9 +149,7 @@ class CASBlobLifecycleRecord(RecordBase):
     manifest_record_id: Sha256
     state: Literal["restoring", "available"]
     after_gc_receipt_id: Sha256 | None = None
-    backup_location: str | None = Field(
-        default=None, pattern=r"^\.kinocut/blobs/sha256/\.cas-repair\.[0-9a-f]{32}$"
-    )
+    backup_location: str | None = Field(default=None, pattern=r"^\.kinocut/blobs/sha256/\.cas-repair\.[0-9a-f]{32}$")
 
 
 class SemanticIndexArtifactRecord(RecordBase):

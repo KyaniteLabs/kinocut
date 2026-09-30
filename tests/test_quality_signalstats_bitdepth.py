@@ -12,7 +12,8 @@ from kinocut.errors import MCPVideoError
 
 
 pytestmark = pytest.mark.skipif(
-    not shutil.which("ffmpeg") or not shutil.which("ffprobe"), reason="FFmpeg/FFprobe required",
+    not shutil.which("ffmpeg") or not shutil.which("ffprobe"),
+    reason="FFmpeg/FFprobe required",
 )
 
 
@@ -20,36 +21,67 @@ def _fixture_video(root, base, depth, color_range, moving=True):
     width, height = 32, 24
     values = []
     for frame in range(4):
-        values.extend(40 + x * 150 // (width - 1) + (frame * 2 if moving else 0)
-                      for _ in range(height) for x in range(width))
+        values.extend(
+            40 + x * 150 // (width - 1) + (frame * 2 if moving else 0) for _ in range(height) for x in range(width)
+        )
         if base != "gray":
             chroma_width = width // 2 if base in {"yuv420p", "yuv422p"} else width
             chroma_height = height // 2 if base == "yuv420p" else height
-            values.extend(110 + x * 30 // (chroma_width - 1)
-                          for _ in range(chroma_height) for x in range(chroma_width))
-            values.extend(140 - y * 30 // (chroma_height - 1)
-                          for y in range(chroma_height) for _ in range(chroma_width))
+            values.extend(110 + x * 30 // (chroma_width - 1) for _ in range(chroma_height) for x in range(chroma_width))
+            values.extend(
+                140 - y * 30 // (chroma_height - 1) for y in range(chroma_height) for _ in range(chroma_width)
+            )
     # Limited YUV code values scale by bit shift. Full-range luma instead uses
     # the actual maximum; chroma is centered at the native neutral code value.
     if depth > 8:
         plane_size = width * height
         chroma_size = 0 if base == "gray" else chroma_width * chroma_height
         frame_size = plane_size + 2 * chroma_size
-        values = [
-            round(value * ((2 ** depth) - 1) / 255) if index % frame_size < plane_size
-            else round((2 ** (depth - 1)) + (value - 128) * ((2 ** depth) - 1) / 255)
-            for index, value in enumerate(values)
-        ] if color_range == "pc" or base == "gray" else [value << (depth - 8) for value in values]
+        values = (
+            [
+                round(value * ((2**depth) - 1) / 255)
+                if index % frame_size < plane_size
+                else round((2 ** (depth - 1)) + (value - 128) * ((2**depth) - 1) / 255)
+                for index, value in enumerate(values)
+            ]
+            if color_range == "pc" or base == "gray"
+            else [value << (depth - 8) for value in values]
+        )
     pixel_format = base if depth == 8 else f"{base}{depth}le"
     raw = root / f"{base}-{depth}-{color_range}-{moving}.raw"
     raw.write_bytes(bytes(values) if depth == 8 else struct.pack(f"<{len(values)}H", *values))
     output = raw.with_suffix(".mkv")
-    subprocess.run([
-        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "rawvideo",
-        "-pixel_format", pixel_format, "-video_size", f"{width}x{height}", "-framerate", "4",
-        "-color_range", color_range, "-i", str(raw), "-c:v", "ffv1", "-pix_fmt", pixel_format,
-        "-color_range", color_range, str(output),
-    ], check=True, capture_output=True, timeout=30)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "rawvideo",
+            "-pixel_format",
+            pixel_format,
+            "-video_size",
+            f"{width}x{height}",
+            "-framerate",
+            "4",
+            "-color_range",
+            color_range,
+            "-i",
+            str(raw),
+            "-c:v",
+            "ffv1",
+            "-pix_fmt",
+            pixel_format,
+            "-color_range",
+            color_range,
+            str(output),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=30,
+    )
     return str(output)
 
 
@@ -91,17 +123,29 @@ def test_equivalent_ramps_share_limited_8bit_measurements(ramps, base, color_ran
 def test_limited_8bit_baseline_preserves_native_chroma_and_sample_values(ramps, base):
     source = ramps[base, 8, "tv"]
     guardrails = VisualQualityGuardrails()
-    result = subprocess.run([
-        "ffprobe", "-v", "error", "-f", "lavfi", "-i", guardrails._movie_source(source, "signalstats"),
-        "-show_entries", f"frame=pix_fmt,color_range:frame_tags={guardrails._SIGNALSTATS_ALL_TAGS}", "-of", "json",
-    ], check=True, capture_output=True, text=True, timeout=30)
+    result = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            guardrails._movie_source(source, "signalstats"),
+            "-show_entries",
+            f"frame=pix_fmt,color_range:frame_tags={guardrails._SIGNALSTATS_ALL_TAGS}",
+            "-of",
+            "json",
+        ],
+        check=True,
+        capture_output=True,
+        text=True,
+        timeout=30,
+    )
     frames = json.loads(result.stdout)["frames"]
     assert {frame["pix_fmt"] for frame in frames} == {base}
     assert {frame["color_range"] for frame in frames} == {"tv"}
-    reference = {
-        tag: sum(float(frame["tags"][tag]) for frame in frames) / len(frames)
-        for tag in frames[0]["tags"]
-    }
+    reference = {tag: sum(float(frame["tags"][tag]) for frame in frames) / len(frames) for tag in frames[0]["tags"]}
     assert guardrails._get_all_signalstats(source) == reference
     rgb = guardrails._get_rgb_means(source)
     assert rgb and all(0 <= rgb[channel] <= 255 for channel in ("r", "g", "b"))
@@ -135,9 +179,18 @@ def test_range_metadata_and_unknown_assumption_are_explicit(monkeypatch):
 
 @pytest.mark.parametrize("value", ["nan", "inf", "-inf"])
 def test_nonfinite_probe_values_are_unusable(value, monkeypatch):
-    result = subprocess.CompletedProcess([], 0, json.dumps({"frames": [
-        {"pix_fmt": "yuv420p", "tags": {"lavfi.signalstats.YAVG": value}},
-    ]}), "")
+    result = subprocess.CompletedProcess(
+        [],
+        0,
+        json.dumps(
+            {
+                "frames": [
+                    {"pix_fmt": "yuv420p", "tags": {"lavfi.signalstats.YAVG": value}},
+                ]
+            }
+        ),
+        "",
+    )
     monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: result)
     guardrails = VisualQualityGuardrails()
     assert guardrails._get_all_signalstats("invalid") == {}
@@ -155,8 +208,9 @@ def test_real_hdr_transfer_metadata_emits_scope_warning(ramps, monkeypatch, capl
     movie_source = guardrails._movie_source
     # Stamp decoded frames: these SDR sample values do not simulate HDR
     # content, but FFprobe must surface the transfer metadata from real frames.
-    monkeypatch.setattr(guardrails, "_movie_source", lambda source, tail:
-                        movie_source(source, f"setparams=color_trc=smpte2084,{tail}"))
+    monkeypatch.setattr(
+        guardrails, "_movie_source", lambda source, tail: movie_source(source, f"setparams=color_trc=smpte2084,{tail}")
+    )
     assert guardrails._get_all_signalstats(ramps["yuv420p", 10, "tv"])
     assert caplog.text.count("HDR transfer observed") == 1
     assert "do not evaluate HDR delivery acceptance" in caplog.text

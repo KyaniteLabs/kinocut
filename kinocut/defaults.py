@@ -101,9 +101,18 @@ DEFAULT_AUDIO_BITRATE = "128k"
 DEFAULT_AUDIO_NORMALIZE_TRUE_PEAK_DBTP = -1.5
 DEFAULT_AUDIO_NORMALIZE_BITRATE = "192k"
 AUDIO_NORMALIZE_OUTPUT_CODECS = {
-    ".wav": "pcm_s16le", ".m4a": "aac", ".aac": "aac", ".mp3": "libmp3lame",
-    ".flac": "flac", ".ogg": "libvorbis", ".opus": "libopus", ".aiff": "pcm_s16be",
-    ".aif": "pcm_s16be", ".mp4": "aac", ".mov": "aac", ".mkv": "aac",
+    ".wav": "pcm_s16le",
+    ".m4a": "aac",
+    ".aac": "aac",
+    ".mp3": "libmp3lame",
+    ".flac": "flac",
+    ".ogg": "libvorbis",
+    ".opus": "libopus",
+    ".aiff": "pcm_s16be",
+    ".aif": "pcm_s16be",
+    ".mp4": "aac",
+    ".mov": "aac",
+    ".mkv": "aac",
 }
 AUDIO_NORMALIZE_VIDEO_CONTAINERS = frozenset({".mp4", ".mov", ".mkv"})
 DEFAULT_PROCEDURAL_AUDIO_BED_WARNING_SECONDS = 10.0
@@ -141,9 +150,7 @@ DEFAULT_QUALITY_GATE_SCORE = 80.0
 # Quality heuristics use an 8-bit limited-range signal domain, not HDR luminance.
 # Motion converts gray to YUV before differencing so conversion cannot add a
 # limited-range black offset to an already-computed difference image.
-DEFAULT_QUALITY_MOTION_PIXEL_FORMATS = (
-    "yuv444p|yuvj444p|yuv444p9le|yuv444p10le|yuv444p12le|yuv444p14le|yuv444p16le"
-)
+DEFAULT_QUALITY_MOTION_PIXEL_FORMATS = "yuv444p|yuvj444p|yuv444p9le|yuv444p10le|yuv444p12le|yuv444p14le|yuv444p16le"
 DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS = "yuv420p|yuv422p|yuv444p|yuv440p|yuv411p|yuv410p"
 # Bound retained signal measurements on long-lived quality guardrail instances.
 QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES = 32

@@ -64,8 +64,13 @@ def discover_tools(query: str, tools: Sequence[Mapping[str, Any]]) -> dict[str, 
         # Boolean priorities avoid blending different match kinds into a
         # misleading probability. Sort remaining matches by specificity/name.
         priority = (
-            exact, alias, -aliases.get(name, 0), name_match, description_match,
-            len(query_tokens & name_tokens), len(query_tokens & description_tokens),
+            exact,
+            alias,
+            -aliases.get(name, 0),
+            name_match,
+            description_match,
+            len(query_tokens & name_tokens),
+            len(query_tokens & description_tokens),
         )
         item = {
             "name": name,

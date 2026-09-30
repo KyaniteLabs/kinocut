@@ -32,7 +32,13 @@ from .engine_composite_layers_rotate import (
     rotate_filter,
     validate_rotation,
 )
-from .engine_composite_layers_source import _enable_expression, _receipt_source, resolve_layer_source, resolve_mask_source, _start_shift
+from .engine_composite_layers_source import (
+    _enable_expression,
+    _receipt_source,
+    resolve_layer_source,
+    resolve_mask_source,
+    _start_shift,
+)
 from .engine_runtime_utils import _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
@@ -594,8 +600,6 @@ def _scale_filter(layer: _ResolvedLayer) -> str | None:
     width = _escape_ffmpeg_filter_value(_num(layer.width)) if layer.width is not None else "-1"
     height = _escape_ffmpeg_filter_value(_num(layer.height)) if layer.height is not None else "-1"
     return f"scale={width}:{height}"
-
-
 
 
 def _build_layer_plan(

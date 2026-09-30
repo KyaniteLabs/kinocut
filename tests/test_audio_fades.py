@@ -41,7 +41,8 @@ def _mock_normalize(monkeypatch, tmp_path, *, duration: object = "2.0", audio: b
         lambda _path, _codec: {
             "format": {"format_name": suffix, "duration": duration},
             "streams": [{"codec_type": "audio", "codec_name": "pcm_s16le", "sample_rate": "48000", "channels": 1}]
-            if audio else [{"codec_type": "video", "codec_name": "h264"}],
+            if audio
+            else [{"codec_type": "video", "codec_name": "h264"}],
         },
     )
     return source, output, calls

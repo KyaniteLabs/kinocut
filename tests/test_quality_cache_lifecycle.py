@@ -67,12 +67,15 @@ def test_source_mutation_during_probe_is_not_cached(tmp_path, monkeypatch):
     assert probe.call_count == 2
 
 
-@pytest.mark.parametrize("failure", [
-    subprocess.CompletedProcess([], 1, "", "probe unavailable"),
-    subprocess.CompletedProcess([], 0, "not JSON", ""),
-    subprocess.CompletedProcess([], 0, '{"frames": []}', ""),
-    subprocess.TimeoutExpired("ffprobe", 1),
-])
+@pytest.mark.parametrize(
+    "failure",
+    [
+        subprocess.CompletedProcess([], 1, "", "probe unavailable"),
+        subprocess.CompletedProcess([], 0, "not JSON", ""),
+        subprocess.CompletedProcess([], 0, '{"frames": []}', ""),
+        subprocess.TimeoutExpired("ffprobe", 1),
+    ],
+)
 def test_failed_probe_retries_on_next_request(tmp_path, monkeypatch, failure):
     video = tmp_path / "clip.mp4"
     video.write_bytes(b"fixture")
@@ -116,9 +119,23 @@ def test_real_video_replacement_updates_brightness(tmp_path: Path):
     guardrails = VisualQualityGuardrails()
     values = []
     for color in ("black", "white"):
-        subprocess.run([
-            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi",
-            "-i", f"color=c={color}:s=160x120:r=25:d=0.52", "-c:v", "libx264", str(video),
-        ], check=True, timeout=30)
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                f"color=c={color}:s=160x120:r=25:d=0.52",
+                "-c:v",
+                "libx264",
+                str(video),
+            ],
+            check=True,
+            timeout=30,
+        )
         values.append(guardrails.check_brightness(str(video)).details["y_avg"])
     assert values == pytest.approx([16.0, 235.0])

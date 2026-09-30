@@ -76,9 +76,16 @@ def test_default_benchmark_reports_missing_perceptual_voice_backend(monkeypatch)
 
 def test_cold_warm_benchmark_small_fixture_with_explicit_test_capabilities(monkeypatch):
     # This exercises timing/scheduling only, not perceptual backend certification.
-    monkeypatch.setattr(benchmark, "_probe_required", lambda: {
-        "d41_bed": True, "d41_audition": True, "d42_style": True, "d42_identity": True,
-    })
+    monkeypatch.setattr(
+        benchmark,
+        "_probe_required",
+        lambda: {
+            "d41_bed": True,
+            "d41_audition": True,
+            "d42_style": True,
+            "d42_identity": True,
+        },
+    )
     # Focused unit uses 8 clips; full 64-clip dual-class evidence is in receipts.
     receipt = run_cold_warm_benchmark(
         fixture=FixtureSpec(clip_count=8, clip_duration_seconds=0.05),

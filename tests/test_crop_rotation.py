@@ -17,7 +17,9 @@ pytestmark = pytest.mark.skipif(
 
 
 def _ffmpeg(*args: str) -> str:
-    done = subprocess.run(["ffmpeg", "-hide_banner", "-y", *args], stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=120)
+    done = subprocess.run(
+        ["ffmpeg", "-hide_banner", "-y", *args], stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=120
+    )
     assert done.returncode == 0, done.stderr
     return done.stderr
 

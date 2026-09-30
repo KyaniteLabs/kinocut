@@ -11,10 +11,25 @@ from kinocut.watching import metrics, run_review
 
 
 def _render(path: Path, source: str, *extra: str) -> None:
-    subprocess.run([
-        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi",
-        "-i", source, *extra, "-c:v", "ffv1", str(path),
-    ], check=True, timeout=20)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            source,
+            *extra,
+            "-c:v",
+            "ffv1",
+            str(path),
+        ],
+        check=True,
+        timeout=20,
+    )
 
 
 @pytest.fixture
@@ -40,11 +55,14 @@ def test_short_all_black_clip_fails_default_review(tmp_path, ffmpeg):
     assert review.blocked and review.verdict == "fail"
 
 
-@pytest.mark.parametrize("enabled,expected", [
-    ("lt(t,0.3)", 0.3),
-    ("gte(t,0.9)", 0.1),
-    ("lt(t,0.2)+gte(t,0.3)", 0.9),
-])
+@pytest.mark.parametrize(
+    "enabled,expected",
+    [
+        ("lt(t,0.3)", 0.3),
+        ("gte(t,0.9)", 0.1),
+        ("lt(t,0.2)+gte(t,0.3)", 0.9),
+    ],
+)
 def test_mixed_black_spans_and_nonblack_tail(tmp_path, ffmpeg, enabled, expected):
     video = tmp_path / "mixed.mkv"
     _render(video, "color=white:s=32x32:r=10:d=1", "-vf", f"drawbox=color=black:t=fill:enable='{enabled}'")
@@ -59,19 +77,47 @@ def test_black_frame_shorter_than_log_minimum_is_still_counted(tmp_path, ffmpeg)
 
 def test_vfr_coverage_uses_presentation_gaps_instead_of_frame_count(tmp_path, ffmpeg):
     video = tmp_path / "vfr.mkv"
-    _render(video, "color=white:s=32x32:r=10:d=1", "-vf",
-            "drawbox=color=black:t=fill:enable='lt(t,0.3)',select='eq(n,0)+eq(n,1)+eq(n,3)+eq(n,9)'",
-            "-fps_mode", "vfr")
+    _render(
+        video,
+        "color=white:s=32x32:r=10:d=1",
+        "-vf",
+        "drawbox=color=black:t=fill:enable='lt(t,0.3)',select='eq(n,0)+eq(n,1)+eq(n,3)+eq(n,9)'",
+        "-fps_mode",
+        "vfr",
+    )
     assert metrics._blackdetect_ratio(str(video), 1) == pytest.approx(0.3)
 
 
 def test_longer_audio_does_not_dilute_black_video_coverage(tmp_path, ffmpeg):
     video = tmp_path / "long-audio.mkv"
-    subprocess.run([
-        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi",
-        "-i", "color=black:s=32x32:r=10:d=1", "-f", "lavfi", "-i", "sine=duration=3",
-        "-map", "0:v:0", "-map", "1:a:0", "-c:v", "ffv1", "-c:a", "pcm_s16le", str(video),
-    ], check=True, timeout=20)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=black:s=32x32:r=10:d=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=duration=3",
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-c:v",
+            "ffv1",
+            "-c:a",
+            "pcm_s16le",
+            str(video),
+        ],
+        check=True,
+        timeout=20,
+    )
     assert metrics._blackdetect_ratio(str(video), 3) == pytest.approx(1.0)
 
 
@@ -84,12 +130,28 @@ def test_filename_filter_metacharacters_do_not_change_measurement(tmp_path, ffmp
 
 def test_truncated_decode_does_not_claim_zero_black_ratio(tmp_path, ffmpeg):
     video = tmp_path / "truncated.mp4"
-    subprocess.run([
-        "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-f", "lavfi",
-        "-i", "testsrc2=s=64x64:r=10:d=3", "-c:v", "libx264", "-movflags", "+faststart", str(video),
-    ], check=True, timeout=20)
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=64x64:r=10:d=3",
+            "-c:v",
+            "libx264",
+            "-movflags",
+            "+faststart",
+            str(video),
+        ],
+        check=True,
+        timeout=20,
+    )
     content = video.read_bytes()
-    video.write_bytes(content[:int(len(content) * 0.7)])
+    video.write_bytes(content[: int(len(content) * 0.7)])
     assert metrics._blackdetect_ratio(str(video), 3) is None
 
 
@@ -109,9 +171,11 @@ def test_probe_failure_is_unavailable_and_leaves_no_managed_metadata(tmp_path, m
 def test_zero_exit_with_decoder_errors_is_unavailable(tmp_path, monkeypatch):
     video = tmp_path / "fixture.mkv"
     video.write_bytes(b"fixture")
+
     def concealed_error(command, **kwargs):
         Path(command[command.index("-o") + 1]).write_text(
-            "frame|best_effort_timestamp_time=0|duration_time=1\n", encoding="utf-8",
+            "frame|best_effort_timestamp_time=0|duration_time=1\n",
+            encoding="utf-8",
         )
         kwargs["stderr_sink"].write(b"decoder error")
         return subprocess.CompletedProcess([], 0, "", None)
@@ -120,12 +184,15 @@ def test_zero_exit_with_decoder_errors_is_unavailable(tmp_path, monkeypatch):
     assert metrics._blackdetect_ratio(str(video), 1) is None
 
 
-@pytest.mark.parametrize("lines", [
-    [],
-    ["frame|best_effort_timestamp_time=0\n"],
-    ["frame|best_effort_timestamp_time=nan|duration_time=0.04\n"],
-    ["frame|best_effort_timestamp_time=0|duration_time=0.04\n"] * 2,
-])
+@pytest.mark.parametrize(
+    "lines",
+    [
+        [],
+        ["frame|best_effort_timestamp_time=0\n"],
+        ["frame|best_effort_timestamp_time=nan|duration_time=0.04\n"],
+        ["frame|best_effort_timestamp_time=0|duration_time=0.04\n"] * 2,
+    ],
+)
 def test_missing_or_ambiguous_frame_coverage_is_unavailable(lines):
     assert metrics._black_coverage_from_frames(lines) is None
 

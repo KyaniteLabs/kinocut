@@ -202,8 +202,12 @@ def render_shot_prompt(project_path: str, shot: str | int) -> dict[str, Any]:
 
     style_parts = [block_map[name] for name in row["style"] if name]
     negative_parts = [block_map[name] for name in row["neg"] if name]
-    prompt_parts = [f"Camera: {row['camera']}" if row["camera"] else "",
-                    f"Lens: {row['lens']}" if row["lens"] else "", row["action"], *style_parts]
+    prompt_parts = [
+        f"Camera: {row['camera']}" if row["camera"] else "",
+        f"Lens: {row['lens']}" if row["lens"] else "",
+        row["action"],
+        *style_parts,
+    ]
 
     return {
         "shot": row["shot"],

@@ -37,14 +37,22 @@ def _chronological_windows(frames: tuple[Any, ...]) -> tuple[list[dict], list[di
         difference = right.difference_from_previous
         isolated = difference >= DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE and (
             frames[index - 1].difference_from_previous < DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE
-            and (index + 1 == len(frames) or
-                 frames[index + 1].difference_from_previous < DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE)
+            and (
+                index + 1 == len(frames)
+                or frames[index + 1].difference_from_previous < DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE
+            )
         )
         coverage += duration
         if isolated:
-            transitions.append({"start": left.timestamp, "end": right.timestamp,
-                                "difference": difference, "classification": "isolated_transition_candidate",
-                                "intent_assessed": False})
+            transitions.append(
+                {
+                    "start": left.timestamp,
+                    "end": right.timestamp,
+                    "difference": difference,
+                    "classification": "isolated_transition_candidate",
+                    "intent_assessed": False,
+                }
+            )
             continue
         start = left.timestamp
         while start < right.timestamp:
@@ -57,9 +65,15 @@ def _chronological_windows(frames: tuple[Any, ...]) -> tuple[list[dict], list[di
             bucket[0] += difference * (end - start) / duration
             bucket[1] += end - start
             start = end
-    windows = [{"start": max(key * width, frames[0].timestamp), "end": min((key + 1) * width, frames[-1].timestamp),
-                "measured_seconds": round(duration, 6), "rate": round(total / duration, 6)}
-               for key, (total, duration) in sorted(buckets.items())]
+    windows = [
+        {
+            "start": max(key * width, frames[0].timestamp),
+            "end": min((key + 1) * width, frames[-1].timestamp),
+            "measured_seconds": round(duration, 6),
+            "rate": round(total / duration, 6),
+        }
+        for key, (total, duration) in sorted(buckets.items())
+    ]
     return windows, transitions, coverage
 
 
@@ -73,20 +87,38 @@ def _chronological_findings(windows: list[dict]) -> list[dict]:
         rate = window["rate"]
         if contiguous:
             delta = abs(rate - previous["rate"])
-            ratio = max(rate, previous["rate"]) / max(DEFAULT_MOTION_COHERENCE_CALM_RATE,
-                                                       min(rate, previous["rate"]))
+            ratio = max(rate, previous["rate"]) / max(DEFAULT_MOTION_COHERENCE_CALM_RATE, min(rate, previous["rate"]))
             if delta >= DEFAULT_MOTION_COHERENCE_LURCH_DELTA and ratio >= DEFAULT_MOTION_COHERENCE_LURCH_RATIO:
-                findings.append({"code": "image_change_rate_lurch", "start": previous["start"],
-                                 "end": window["end"], "rate_delta": round(delta, 6), "rate_ratio": round(ratio, 6)})
+                findings.append(
+                    {
+                        "code": "image_change_rate_lurch",
+                        "start": previous["start"],
+                        "end": window["end"],
+                        "rate_delta": round(delta, 6),
+                        "rate_ratio": round(ratio, 6),
+                    }
+                )
         if rate >= DEFAULT_MOTION_COHERENCE_HIGH_RATE:
             if len(calm_run) >= DEFAULT_MOTION_COHERENCE_SUSTAINED_WINDOWS:
-                findings.append({"code": "calm_to_high_image_change", "start": calm_run[0]["start"],
-                                 "end": window["end"], "rate": rate})
+                findings.append(
+                    {
+                        "code": "calm_to_high_image_change",
+                        "start": calm_run[0]["start"],
+                        "end": window["end"],
+                        "rate": rate,
+                    }
+                )
             high_run.append(window)
             calm_run = []
             if len(high_run) == DEFAULT_MOTION_COHERENCE_SUSTAINED_WINDOWS:
-                findings.append({"code": "sustained_high_image_change", "start": high_run[0]["start"],
-                                 "end": window["end"], "rate": rate})
+                findings.append(
+                    {
+                        "code": "sustained_high_image_change",
+                        "start": high_run[0]["start"],
+                        "end": window["end"],
+                        "rate": rate,
+                    }
+                )
             elif len(high_run) > DEFAULT_MOTION_COHERENCE_SUSTAINED_WINDOWS:
                 # Extend the same sustained interval instead of duplicating it.
                 for finding in reversed(findings):

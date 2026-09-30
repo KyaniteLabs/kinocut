@@ -12,8 +12,11 @@ from kinocut.limits import FFMPEG_STDERR_DIAGNOSTIC_BYTES
 
 
 def test_large_binary_failure_diagnostics_remain_on_disk_and_error_prefix_is_bounded():
-    command = [sys.executable, "-c",
-               "import sys; sys.stderr.buffer.write(b'\\xffdecode failure ' * 100000); sys.exit(9)"]
+    command = [
+        sys.executable,
+        "-c",
+        "import sys; sys.stderr.buffer.write(b'\\xffdecode failure ' * 100000); sys.exit(9)",
+    ]
     with tempfile.TemporaryFile() as diagnostics:
         with pytest.raises(ProcessingError) as failure:
             _run_command(command, timeout=10, stderr_sink=diagnostics)
@@ -37,9 +40,14 @@ def test_redirected_success_retains_stdout_and_caller_can_check_diagnostics():
 
 
 def test_default_runner_still_captures_both_streams():
-    result = _run_command([
-        sys.executable, "-c", "import sys; print('result'); sys.stderr.write('diagnostic')",
-    ], timeout=10)
+    result = _run_command(
+        [
+            sys.executable,
+            "-c",
+            "import sys; print('result'); sys.stderr.write('diagnostic')",
+        ],
+        timeout=10,
+    )
     assert result.stdout == "result\n"
     assert result.stderr == "diagnostic"
 

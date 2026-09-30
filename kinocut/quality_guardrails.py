@@ -126,9 +126,14 @@ class VisualQualityGuardrails(QualityChecksMixin):
             logger.debug("Signalstats source identity unavailable: %s", type(exc).__name__)
             return None
         return (
-            str(source), stat.st_dev, stat.st_ino, stat.st_size,
-            stat.st_mtime_ns, stat.st_ctime_ns,
-            self.max_analyze_seconds, self._SIGNALSTATS_ALL_TAGS,
+            str(source),
+            stat.st_dev,
+            stat.st_ino,
+            stat.st_size,
+            stat.st_mtime_ns,
+            stat.st_ctime_ns,
+            self.max_analyze_seconds,
+            self._SIGNALSTATS_ALL_TAGS,
             "limited_8bit_code_units_v1",
         )
 
@@ -546,14 +551,10 @@ class VisualQualityGuardrails(QualityChecksMixin):
     def _measure_temporal_motion(self, video: str) -> dict[str, Any]:
         """Measure inter-frame temporal motion across the clip.
 
-        Uses FFmpeg's ``tblend=all_mode=difference`` to produce the absolute
-        difference between consecutive frames, then ``signalstats`` to read the
-        mean luma (YAVG) of each difference frame. A near-zero YAVG means the
-        two frames were almost identical (no motion).
-
-        Returns a dict with ``mean``, ``median``, ``static_fraction`` and
-        ``frames`` keys, or ``{"_error": ...}`` if analysis fails. Uses only
-        FFmpeg (no extra dependencies).
+        FFmpeg ``tblend=all_mode=difference`` computes frame differences;
+        ``signalstats`` measures their mean luma. Near-zero means little motion.
+        Returns ``mean``, ``median``, ``static_fraction`` and ``frames``, or an
+        ``_error`` diagnostic if analysis fails. Requires only FFmpeg.
         """
         cmd = [
             "ffprobe",
@@ -591,7 +592,9 @@ class VisualQualityGuardrails(QualityChecksMixin):
                 tags = frame.get("tags", {})
                 if "lavfi.signalstats.YAVG" in tags:
                     with contextlib.suppress(ValueError, TypeError, MCPVideoError):
-                        values.append(_normalized_signalstat(frame, "YAVG", tags["lavfi.signalstats.YAVG"], difference=True))
+                        values.append(
+                            _normalized_signalstat(frame, "YAVG", tags["lavfi.signalstats.YAVG"], difference=True)
+                        )
             # tblend emits one fewer diff frame than source frames; a single
             # source frame yields no diff frames and cannot have "motion".
             if not values:

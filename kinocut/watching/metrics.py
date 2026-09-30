@@ -18,7 +18,10 @@ from typing import Any
 from kinocut.defaults import DEFAULT_FFMPEG_TIMEOUT
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.ffmpeg_helpers import (
-    _escape_ffmpeg_filter_path, _get_video_duration, _run_command, _validate_input_path,
+    _escape_ffmpeg_filter_path,
+    _get_video_duration,
+    _run_command,
+    _validate_input_path,
 )
 
 logger = logging.getLogger(__name__)
@@ -153,14 +156,28 @@ def _blackdetect_ratio(path: str, duration: float) -> float | None:
             if os.name == "posix" and Path("/proc/self/fd").is_dir():
                 source = stack.enter_context(open(path, "rb"))
                 movie_path, pass_fds = f"/proc/self/fd/{source.fileno()}", (source.fileno(),)
-            _run_command([
-                "ffprobe", "-v", "error", "-f", "lavfi", "-i",
-                f"movie={_escape_ffmpeg_filter_path(movie_path)},blackdetect=d=0.1:pix_th=0.10",
-                "-show_frames", "-show_entries",
-                "frame=best_effort_timestamp_time,duration_time,pkt_duration_time:"
-                "frame_tags=lavfi.black_start,lavfi.black_end",
-                "-of", "compact", "-o", str(metadata),
-            ], timeout=DEFAULT_FFMPEG_TIMEOUT, pass_fds=pass_fds, stderr_sink=diagnostics)
+            _run_command(
+                [
+                    "ffprobe",
+                    "-v",
+                    "error",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    f"movie={_escape_ffmpeg_filter_path(movie_path)},blackdetect=d=0.1:pix_th=0.10",
+                    "-show_frames",
+                    "-show_entries",
+                    "frame=best_effort_timestamp_time,duration_time,pkt_duration_time:"
+                    "frame_tags=lavfi.black_start,lavfi.black_end",
+                    "-of",
+                    "compact",
+                    "-o",
+                    str(metadata),
+                ],
+                timeout=DEFAULT_FFMPEG_TIMEOUT,
+                pass_fds=pass_fds,
+                stderr_sink=diagnostics,
+            )
             # Some decoders conceal damage and exit zero despite error diagnostics.
             diagnostics.seek(0)
             if diagnostics.read(1):

@@ -44,7 +44,10 @@ def test_numeric_validation(name: str, value: object, tmp_path, monkeypatch) -> 
 
 
 def test_two_pass_commands_and_measured_values(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("kinocut.engine_audio_normalize._validate_normalized_output", lambda *_args: {"format": {"format_name": "wav"}, "streams": []})
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._validate_normalized_output",
+        lambda *_args: {"format": {"format_name": "wav"}, "streams": []},
+    )
     source, output = tmp_path / "in.wav", tmp_path / "out.wav"
     source.write_bytes(b"x")
     calls = []
@@ -76,7 +79,10 @@ def test_two_pass_commands_and_measured_values(tmp_path, monkeypatch) -> None:
 
 
 def test_linear_gain_within_ceiling_has_no_warning_and_keeps_source_rate(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("kinocut.engine_audio_normalize._validate_normalized_output", lambda *_args: {"format": {"format_name": "wav"}, "streams": []})
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._validate_normalized_output",
+        lambda *_args: {"format": {"format_name": "wav"}, "streams": []},
+    )
     source, output = tmp_path / "in.wav", tmp_path / "out.wav"
     source.write_bytes(b"x")
     calls = []
@@ -110,7 +116,10 @@ def test_real_output_keeps_the_source_sample_rate(sample_video: str, tmp_path) -
 
 
 def test_no_audio_input_uses_stream_copy_fallback(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("kinocut.engine_audio_normalize._validate_normalized_output", lambda *_args: {"format": {"format_name": "wav"}, "streams": []})
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._validate_normalized_output",
+        lambda *_args: {"format": {"format_name": "wav"}, "streams": []},
+    )
     source, output = tmp_path / "in.mp4", tmp_path / "out.mp4"
     source.write_bytes(b"x")
     calls = []
@@ -123,7 +132,9 @@ def test_no_audio_input_uses_stream_copy_fallback(tmp_path, monkeypatch) -> None
         "kinocut.engine_audio_normalize._run_ffmpeg",
         lambda command: calls.append(command) or SimpleNamespace(stderr=""),
     )
-    monkeypatch.setattr("kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0]))
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
+    )
 
     assert normalize_audio(str(source), output_path=str(output)).output_path == str(output)
     assert len(calls) == 1
@@ -131,7 +142,10 @@ def test_no_audio_input_uses_stream_copy_fallback(tmp_path, monkeypatch) -> None
 
 
 def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, monkeypatch) -> None:
-    monkeypatch.setattr("kinocut.engine_audio_normalize._validate_normalized_output", lambda *_args: {"format": {"format_name": "wav"}, "streams": []})
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._validate_normalized_output",
+        lambda *_args: {"format": {"format_name": "wav"}, "streams": []},
+    )
     source, output = tmp_path / "in.wav", tmp_path / "out.wav"
     source.write_bytes(b"x")
     calls = []
@@ -155,7 +169,9 @@ def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, m
         "kinocut.engine_audio_normalize._run_ffmpeg",
         lambda command: calls.append(command) or analysis,
     )
-    monkeypatch.setattr("kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0]))
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
+    )
 
     normalize_audio(str(source), output_path=str(output))
 

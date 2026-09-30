@@ -29,8 +29,9 @@ def test_camera_and_lens_independently_survive(tmp_path, camera, lens):
     assert result["model_dialect_compiled"] is False
 
 
-@pytest.mark.parametrize("heading", ["## STYLE_TEST (unfinished", "## STYLE_TEST ()",
-                                    "## STYLE_TEST (a) (b)", "## STYLE_TEST ambiguous"])
+@pytest.mark.parametrize(
+    "heading", ["## STYLE_TEST (unfinished", "## STYLE_TEST ()", "## STYLE_TEST (a) (b)", "## STYLE_TEST ambiguous"]
+)
 def test_malformed_declared_heading_rejects(tmp_path, heading):
     source = tmp_path / "style.md"
     source.write_text(heading + "\nsoft light")
