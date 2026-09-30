@@ -334,7 +334,7 @@ def test_current_release_references_name_published_version(
 def test_readme_current_release_references_name_published_version(claims: dict) -> None:
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     notes_line = next((line for line in text.splitlines() if line.startswith("Full notes:")), "")
-    assert re.findall(r"/tag/v([0-9.]+)\)", notes_line) == [claims["published_version"]]
+    assert re.findall(r"https://pypi\.org/project/kinocut/([0-9.]+)/\)", notes_line) == [claims["published_version"]]
     answer = _markdown_section("README.md", "### Can Kinocut turn an Insta360 X4 file into a two-cam edit?")
     assert re.findall(r"remains in published (\d+\.\d+\.\d+)", answer) == [claims["published_version"]]
 
@@ -342,8 +342,12 @@ def test_readme_current_release_references_name_published_version(claims: dict) 
 def test_site_status_separates_package_publication_from_deployment() -> None:
     section = _markdown_section("docs/HUMAN_GATES.md", "## Product site")
     assert "Pip/npm/MCP/site agree" not in section
-    assert re.search(r"website source has been corrected for", section, re.IGNORECASE)
-    assert re.search(r"production deployment\s+and rendered verification remain pending", section)
+    assert "Live `kinocut.dev` JSON-LD and `llms.txt`" in section
+    assert "verified 2026-09-30" in section
+    assert "does not establish rendered verification" in section
+    assert "GitHub latest release reports\n1.15.0" in section
+    assert "MCP Registry verification returned 403" in section
+    assert "current version is unknown" in section
 
 
 def test_readme_status_does_not_present_object_matte_as_tip_only(claims: dict) -> None:
