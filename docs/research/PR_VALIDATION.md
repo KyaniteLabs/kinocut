@@ -65,6 +65,14 @@ new reporter, whose bounded annotations were separately exercised with real
 pytest failures and malformed-input fixtures. Subsequent hosted annotations are
 needed to identify the actual failing case.
 
+The current-dependency Python 3.14.7 reproduction also passed **7,412 tests,
+185 skipped, 8 warnings** in 957.04 seconds, exit 0: [result](runtime-allocation/iteration-3/python314-current-dependencies-validation.json)
+and [log](runtime-allocation/iteration-3/python314-current-dependencies-full-suite.log).
+It resolves the hosted dependency constraints without the lock, including MCP
+1.30.0, NumPy 2.5.3 and pytest 9.1.1, but still uses local FFmpeg 7.1.5. This is
+not an observed inventory of the hosted runner. Neither Python version nor current
+dependency resolution alone has reproduced the failure.
+
 Published PyPI/npm identity is 1.15.3, shim 1.6.14. This PR adds **Unreleased**
 behavior without a version bump. Website identity and existing JSON-LD were
 verified, but no deployment or complete browser/TLS review was performed.

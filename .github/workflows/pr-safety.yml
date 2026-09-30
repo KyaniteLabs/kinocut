@@ -30,11 +30,14 @@ jobs:
       - name: Skip hosted checks
         if: steps.classify.outputs.code != 'true'
         run: echo "Code inputs unchanged; marking hosted PR checks successful."
-      - name: Install FFmpeg
+      - name: Ensure FFmpeg
+        timeout-minutes: 10
         if: steps.classify.outputs.code == 'true'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends ffmpeg
+          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
+            sudo apt-get update
+            sudo apt-get install -y --no-install-recommends ffmpeg
+          fi
           ffmpeg -version
           ffprobe -version
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0

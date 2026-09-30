@@ -60,3 +60,20 @@ reproduced the hosted failure. Hosted FFmpeg and unlocked pip dependencies remai
 different. Subsequent exact-head annotations must identify the actual failing
 case; this diagnostic change alone does not establish that the original hosted
 failure is fixed.
+
+The subsequent current-dependency Python 3.14.7 run passed **7,412 tests,
+185 skipped, 8 warnings** in 957.04 seconds. [Result](../../runtime-allocation/iteration-3/python314-current-dependencies-validation.json)
+records the locally resolved versions, including MCP 1.30.0, NumPy 2.5.3,
+scikit-learn 1.9.1 and pytest 9.1.1. This does not establish the hosted inventory;
+the hosted FFmpeg build and operating environment remain different.
+
+## Avoidable runner setup
+
+The diagnostic head `00e07539f7ce7f83fb118b5c310bc6ccdc0770a9` spent 14 minutes
+55 seconds in the unconditional FFmpeg install step before reaching tests. The
+existing integration workflow checks for installed FFmpeg first. Hosted safety
+now follows that pattern for both FFmpeg and ffprobe, retaining version checks
+and the existing apt recipe when either binary is missing. A ten-minute step
+timeout bounds dependency installation. Controlled shell fixtures verify the
+skip, missing-tool installation and retained installer-error paths. This setup
+change is separate from diagnosing the earlier test failure.
