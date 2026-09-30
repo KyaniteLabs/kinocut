@@ -170,7 +170,7 @@ kinocut/creative/models.py,6245,0,0
 kinocut/creative/preview.py,2628,0,0
 kinocut/creative/verification_models.py,1923,0,0
 kinocut/creative/verifier.py,6770,0,0
-kinocut/defaults.py,6950,0,0
+kinocut/defaults.py,7139,0,0
 kinocut/design_guardrails.py,9588,0,0
 kinocut/design_quality/__init__.py,1599,0,0
 kinocut/design_quality/guardrails/__init__.py,104,0,0
@@ -313,8 +313,9 @@ kinocut/projectstore/semantic_indexes.py,5004,0,0
 kinocut/projectstore/store.py,14672,0,0
 kinocut/quality_guardrail_checks.py,4420,0,0
 kinocut/quality_guardrail_types.py,527,0,0
-kinocut/quality_guardrails.py,18474,0,0
+kinocut/quality_guardrails.py,18571,0,0
 kinocut/quality_signal_domain.py,1336,0,0
+kinocut/quality_source.py,2232,0,0
 kinocut/receipts_ai_video.py,952,0,0
 kinocut/registry/__init__.py,751,0,0
 kinocut/registry/_duplicate.py,1468,0,0

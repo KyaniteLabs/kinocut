@@ -1,0 +1,41 @@
+{
+  "implementation_commit": "1d35a9f9c1cf1c2df9d83da54ac090c3b68016a7",
+  "command": "UV_CACHE_DIR=/workspace/.cache/uv npm_config_cache=/workspace/.cache/npm .venv/bin/python -m pytest tests/ -x -q --tb=short",
+  "exit_code": 0,
+  "passed": 7429,
+  "skipped": 185,
+  "warnings": 8,
+  "duration_seconds": 938.46,
+  "scope": "Frozen grayscale/source-metadata repair; docs and source inventory banked separately after validation",
+  "python": "3.12.14",
+  "ffmpeg": "7.1.5",
+  "source_files_sha256": {
+    "kinocut/defaults.py": "ef8842c00f78c9db6b300a896eaabbd4465d5b768ac941c335f93a790fb941a3",
+    "kinocut/quality_guardrails.py": "28bcc9ba61a48a2e2846c892ffd448e60ce772ae4ca9e44e9e8493894dca78ed",
+    "kinocut/quality_source.py": "a8896a833d85e2c009443bc7be0e83d30e23cd70a93100f634eaddfec31a4bb2",
+    "tests/test_aivideo_preflight.py": "5a0e72572e128e2c0cabd046270925bd7fcd8f4dce7d58ddf2bb99cf6e0afcc6",
+    "tests/test_quality_cache_lifecycle.py": "b206d039a924aa67fd6f375da7c6b9bca225910bcfb7b961d585ab3ce21d6103",
+    "tests/test_quality_guardrails.py": "5019fbf2284d45fb936b17579db182ca049f21cec25f2cbdfff290ba0897bb58",
+    "tests/test_quality_signalstats_bitdepth.py": "3681b91caa3f555da9fee7bfcc8406090ba2daf0cfeedc2331654ccca200545c",
+    "tests/test_quality_source.py": "52324b41b61f2c891e8e72d87748c2008b9eb7299ae24a67a61d677ec11f6f7b"
+  },
+  "checks": {
+    "ruff_version": "0.15.11",
+    "ruff_ci_check": "passed",
+    "ruff_ci_format": "passed; 1,070 files",
+    "canonical_compatibility_import_identity": "passed",
+    "focused_python312": "130 passed in31.20s",
+    "focused_python314_current_dependencies": "90 passed in23.15s",
+    "ffprobe6_1_signalstats_tests": "29passed5.46s",
+    "ffprobe6_1_and7_1_5_matrix": "48fixtures96measurementsets; nativeYUVdelta0; absolutegrayYMINerror<0.2; existingtolerancesunchanged",
+    "final_documentation_claims_surface_privacy": "57 passed in7.05s"
+  },
+  "limits": [
+    "Source metadata adds a first standalone visual probe and is reused across measurements/audio-stream checks; no universal latency claim",
+    "Minimal source-built FFprobe6.1 comparison retains FFmpeg7.1.5 for fixture creation and FFmpeg fallback",
+    "Filesystem identity cache does not establish immutable source snapshot or cryptographic provenance",
+    "Skipped optional backends do not establish availability; SDR measurements do not establish HDR acceptance",
+    "Earlier full gate with stale private test mock failed1testafter262passes and is excluded from passing counts",
+    "Exact published-head hostedchecks must be assessed separately"
+  ]
+}

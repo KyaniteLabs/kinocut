@@ -1,22 +1,22 @@
 {
-  "revision": "eb7b5ce42ae37bb948882c833360c2b0b2b743b2",
+  "revision": "1d35a9f9c1cf1c2df9d83da54ac090c3b68016a7",
   "unit": "UTF-8 source-token bytes (Python); non-whitespace code bytes (other languages)",
   "source_state": "working tree",
-  "runtime_files": 624,
-  "tracked_files_inventoried": 1539,
-  "inventoried_files": 1539,
+  "runtime_files": 625,
+  "tracked_files_inventoried": 1547,
+  "inventoried_files": 1554,
   "inventory_scope": "tracked and unignored new working-tree paths",
   "registered_mcp_functions": 201,
   "totals": {
-    "deterministic": 2673592,
+    "deterministic": 2676110,
     "prose_llm": 72789,
     "traditional_ml": 11865
   },
-  "denominator": 2758246,
+  "denominator": 2760764,
   "percent": {
-    "deterministic": 96.9308,
-    "prose_llm": 2.639,
-    "traditional_ml": 0.4302
+    "deterministic": 96.9336,
+    "prose_llm": 2.6366,
+    "traditional_ml": 0.4298
   },
   "rounding": "Deterministic share absorbs the rounding residual so displayed percentages sum to 100%.",
   "host_skill_prose_bytes_separate": 24008,

@@ -10,8 +10,9 @@ That job uses Python 3.14 and the runner's FFmpeg build; the passing local
 
 ## Evidence boundary
 
-The check annotation contains only `Process completed with exit code 1`.
-There is no test failure text in the accessible summary or artifacts. Both run
+For head `581add657e9eeddd600241fc61f2dc4ff865dda6`, the check annotation
+contained only `Process completed with exit code 1`; that run's accessible
+summary and artifacts did not identify a failing case. Both run
 and job log requests redirect to signed storage destinations, and the environment
 proxy rejects CONNECT before those origins respond. This is log transport denial,
 not evidence about which test failed. Signed URLs and credentials were not copied
@@ -59,13 +60,65 @@ that evidence. It used local FFmpeg 7.1.5, so Python version alone has not
 reproduced the hosted failure. Hosted FFmpeg and unlocked pip dependencies remain
 different. Subsequent exact-head annotations must identify the actual failing
 case; this diagnostic change alone does not establish that the original hosted
-failure is fixed.
+failure is fixed. The subsequent diagnostic run below supplied that case.
 
 The subsequent current-dependency Python 3.14.7 run passed **7,412 tests,
 185 skipped, 8 warnings** in 957.04 seconds. [Result](../../runtime-allocation/iteration-3/python314-current-dependencies-validation.json)
 records the locally resolved versions, including MCP 1.30.0, NumPy 2.5.3,
 scikit-learn 1.9.1 and pytest 9.1.1. This does not establish the hosted inventory;
 the hosted FFmpeg build and operating environment remain different.
+
+## Accessible failure on the diagnostic head
+
+At exact head `00e07539f7ce7f83fb118b5c310bc6ccdc0770a9`,
+[hosted safety run 36754704771](https://github.com/KyaniteLabs/kinocut/actions/runs/36754704771)
+passed Lint but failed Test. The failure-only reporter completed successfully and
+exposed the assertion through check annotations:
+
+```text
+tests/test_quality_signalstats_bitdepth.py
+test_equivalent_ramps_share_limited_8bit_measurements[tv-gray]
+YMIN: observed 43.125; expected 52.92941176470588 ± 1
+```
+
+The other twelve checks passed. Reporter success establishes accessible failure
+diagnostics, not a passing test suite. This case identifies a limited-range gray
+measurement discrepancy on that hosted run; it does not identify the failing
+case from the earlier `581add` run, establish the root cause or verify a repair.
+A locally validated conversion repair is described below. A subsequent
+exact-head hosted result remains required before claiming hosted resolution.
+
+## Locally validated grayscale conversion repair
+
+Grayscale-only measurement now declares `setparams=range=full` before conversion.
+This intentionally treats grayscale samples as full-range even with a TV/limited
+range tag, matching the existing 8-bit grayscale policy and removing an implicit
+FFmpeg-version-dependent conversion choice. Ordinary native YUV measurement is
+unchanged. The official FFmpeg 6.1 reproduction and related later swscale repairs
+provide context; no upstream commit was bisected as the sole cause.
+
+The shared measurement path caches source metadata and audio-stream checks for
+unchanged source identity; failed probes retry. A first standalone visual
+measurement now adds a metadata probe. Mixed grayscale/color video streams are
+ambiguous and report unavailable rather than selecting an invented range policy.
+No universal latency improvement is claimed.
+
+Local comparison covers **48 fixtures, 96 measurement sets** across FFmpeg 6.1
+and 7.1.5. Native YUV cross-version delta is zero. Maximum grayscale delta across
+range tags is 0.6153 (below 1), and maximum absolute YMIN error is 0.13993
+(below 0.2). Individual-measurement comparison error is zero; fallback error is
+0.38798 (below 0.6), motion error is 0.00892, and all sixteen static controls
+report zero motion. The final focused quality/source/cache/preflight gate passed **130 tests**.
+
+The [matrix](../../runtime-allocation/iteration-3/grayscale-version-matrix.json)
+and [review](../../runtime-allocation/iteration-3/grayscale-version-review.md)
+preserve the comparison. These fixtures validate the scoped measurement
+repair locally. The final full-suite gate passed **7,429 tests, 185 skipped,
+8 warnings** in 938.46 seconds, exit 0, with source banked in `1d35a9f`.
+[Result](../../runtime-allocation/iteration-3/grayscale-validation.json) and
+[log](../../runtime-allocation/iteration-3/grayscale-full-suite.log) preserve
+that outcome. Published-head hosted results remain separate evidence; neither
+a local pass nor the earlier successful suites imply hosted resolution.
 
 ## Avoidable runner setup
 

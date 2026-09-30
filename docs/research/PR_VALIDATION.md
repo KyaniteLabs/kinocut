@@ -7,7 +7,26 @@ adapted, not merged. See the [backlog dispositions](github-backlog/2026-09-30/RE
 [external-report action ledger](external-ai-audits/2026-09-30/REPORT.md) and
 [Unreleased changelog](../../CHANGELOG.md).
 
-## Completed Python 3.12 runtime checkpoint
+## Final grayscale and source-metadata gate
+
+Implementation `1d35a9f9c1cf1c2df9d83da54ac090c3b68016a7` passed the required
+full suite: **7,429 passed, 185 skipped, 8 warnings** in 938.46 seconds, exit 0.
+[Result](runtime-allocation/iteration-3/grayscale-validation.json) records the
+command, source hashes and scope; [log](runtime-allocation/iteration-3/grayscale-full-suite.log)
+preserves the completed run. Exact CI Ruff 0.15.11 check/format pass for 1,070
+files, along with canonical/compatibility import identity and architecture limits.
+Final documentation claims/surface/privacy checks passed 57 tests in 7.05 seconds.
+The Python 3.12 focused quality/cache/source/preflight gate passed 130 tests;
+Python 3.14 with current dependencies passed its 90-test scoped gate.
+
+The [cross-version comparison](runtime-allocation/iteration-3/grayscale-version-review.md)
+reproduced the hosted assertion with primary FFprobe 6.1, then verified the repair
+against FFprobe 7.1.5 across 48 fixtures/96 measurement sets without loosening
+existing tolerances. Fixture creation and FFmpeg fallback used FFmpeg 7.1.5.
+Earlier full-suite results below precede this repair and are historical checkpoints.
+Published-head hosted results remain separate evidence on the PR checks page.
+
+## Earlier Python 3.12 runtime checkpoint
 
 The frozen runtime/test implementation passed **7,412 tests, 185 skipped, 8 warnings** in
 966.23 seconds, exit 0:
@@ -34,7 +53,7 @@ recorded in the external-report evidence; inspecting metadata is not installatio
 ## Source inventory
 
 The [current allocation](runtime-allocation/iteration-3/allocation.json) classifies
-624 runtime source files into deterministic code, operational LLM prose and
+625 runtime source files into deterministic code, operational LLM prose and
 traditional/non-LLM ML integration. Percentages sum to 100%; they measure source
 bytes, not execution time, cost, inference frequency or quality. Host skill prose
 is reported separately. The [implementation checkpoint](runtime-allocation/iteration-3/IMPLEMENTATION.md)
@@ -62,8 +81,8 @@ unchanged runtime/test tree and locally prepared CI diagnostics. This still uses
 FFmpeg 7.1.5 and does not reproduce the hosted failure; hosted FFmpeg and unlocked
 pip dependencies differ. Pinned lint/format now cover 1,068 files including the
 new reporter, whose bounded annotations were separately exercised with real
-pytest failures and malformed-input fixtures. Subsequent hosted annotations are
-needed to identify the actual failing case.
+pytest failures and malformed-input fixtures. The subsequent diagnostic head
+identified a concrete hosted failure, recorded below.
 
 The current-dependency Python 3.14.7 reproduction also passed **7,412 tests,
 185 skipped, 8 warnings** in 957.04 seconds, exit 0: [result](runtime-allocation/iteration-3/python314-current-dependencies-validation.json)
@@ -73,11 +92,46 @@ It resolves the hosted dependency constraints without the lock, including MCP
 not an observed inventory of the hosted runner. Neither Python version nor current
 dependency resolution alone has reproduced the failure.
 
+At diagnostic head `00e07539f7ce7f83fb118b5c310bc6ccdc0770a9`,
+[run 36754704771](https://github.com/KyaniteLabs/kinocut/actions/runs/36754704771)
+passed Lint and the failure reporter completed successfully; the other twelve
+checks passed, while hosted Test failed. Its accessible annotation identifies
+`test_equivalent_ramps_share_limited_8bit_measurements[tv-gray]` in
+`tests/test_quality_signalstats_bitdepth.py`: `YMIN=43.125` versus expected
+`52.92941176470588 ± 1`. That run establishes accessible diagnosis, not
+hosted-suite success. A scoped conversion repair was subsequently validated
+locally, as recorded below.
+The earlier `581add` run's failing case remains unknown.
+
 Published PyPI/npm identity is 1.15.3, shim 1.6.14. This PR adds **Unreleased**
 behavior without a version bump. Website identity and existing JSON-LD were
 verified, but no deployment or complete browser/TLS review was performed.
 GitHub latest release is 1.15.0; registry verification remains unavailable.
 No release, merge, directory submission or external message is implied.
+
+## Grayscale repair: scope and hosted verification
+
+Grayscale-only measurements now declare full range before conversion, including
+TV-tagged grayscale, intentionally retaining the existing 8-bit grayscale policy.
+Ordinary native YUV measurements remain unchanged. Shared source metadata/audio
+stream checks reuse successful observations for unchanged sources and retry failed
+probes; a first standalone visual measurement adds a metadata probe. Ambiguous
+mixed grayscale/color video streams report unavailable. No universal latency
+benefit or bisected upstream sole-cause claim is made.
+
+The FFmpeg 6.1/7.1.5 matrix covers 48 fixtures and 96 measurement sets: native YUV
+cross-version delta zero, maximum grayscale delta 0.6153, maximum absolute YMIN
+error 0.13993, individual-measurement error zero, fallback error 0.38798 and
+motion error 0.00892; sixteen static controls report zero motion. The final focused
+quality/source/cache/preflight gate passed 130 tests. The
+[matrix](runtime-allocation/iteration-3/grayscale-version-matrix.json) and
+[review](runtime-allocation/iteration-3/grayscale-version-review.md) preserve
+the scoped converter comparison.
+
+The later full-suite gate passed as recorded above. Exact published-head hosted
+checks must still be assessed separately; the converter comparison and earlier
+checkpoints alone do not establish a successful hosted run. See the [hosted investigation](external-ai-audits/2026-09-30/HOSTED-TEST-INVESTIGATION.md)
+for the diagnostic chronology and repair scope.
 
 ## Earlier checkpoints
 

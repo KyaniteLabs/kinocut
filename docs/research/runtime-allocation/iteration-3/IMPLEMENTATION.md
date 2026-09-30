@@ -24,20 +24,29 @@ distinguishes verified recommendations from stale or unsupported assertions.
 - Pinned Ruff 0.15.11 reproduced the original head's hosted Lint failure. Formatting
   repairs preserve executable ASTs; four docstring lines were compacted to retain
   architecture size limits. The exact CI lint/format commands pass locally.
+- The hosted grayscale failure was reproduced with primary FFprobe 6.1.
+  Gray-only full-range input metadata makes native-depth measurements consistent
+  with FFprobe 7.1.5; ordinary YUV measurements are unchanged. Source metadata
+  caching is shared with audio-stream checks and rejects unusable observations.
+  The [converter matrix](grayscale-version-review.md) and
+  [hosted investigation](../../external-ai-audits/2026-09-30/HOSTED-TEST-INVESTIGATION.md)
+  retain the evidence and first-probe latency tradeoff.
 
 ## Evidence and remaining opportunities
 
 | Authored runtime source | Share |
 | --- | ---: |
-| Deterministic code | 96.9308% |
-| Operational LLM prose | 2.6390% |
-| Traditional/non-LLM ML integration | 0.4302% |
+| Deterministic code | 96.9336% |
+| Operational LLM prose | 2.6366% |
+| Traditional/non-LLM ML integration | 0.4298% |
 | Total | 100.0000% |
 
 [Allocation](allocation.json) inventories the frozen runtime tree; source shares
 are neither execution cost nor measured product quality. Host skill prose is
-reported separately. [Validation](validation.json) and [full log](full-suite.log)
-record the required final gate rather than adding overlapping focused counts.
+reported separately. [Final validation](grayscale-validation.json) and [full log](grayscale-full-suite.log)
+record 7,429 passed, 185 skipped and 8 warnings in 938.46 seconds.
+[Earlier validation](validation.json) preserves the preceding checkpoint;
+focused and repeated counts are not additive.
 Real MCP stdio initialization, listing 201 tools and metadata-only `search_tools`
 discovery passed without a model call. This does not establish a paid host roundtrip.
 
