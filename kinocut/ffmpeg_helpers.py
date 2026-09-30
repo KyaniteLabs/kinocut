@@ -43,6 +43,8 @@ _SENSITIVE_HOME_PARTS = {".aws", ".azure", ".config", ".docker", ".gnupg", ".kub
 _SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
     {
         ".aac",
+        ".aif",
+        ".aiff",
         ".ass",
         ".avi",
         ".csv",
@@ -58,6 +60,8 @@ _SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
         ".mov",
         ".mp3",
         ".mp4",
+        ".ogg",
+        ".opus",
         ".png",
         ".srt",
         ".ts",

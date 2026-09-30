@@ -11,7 +11,9 @@ receipt is not required.
 
 `Client.mix_audio(video, tracks, output=None, keep_source=True, *, audio_bitrate="256k")`
 adds timed tracks in one FFmpeg filter graph, encodes the resulting AAC soundtrack
-once as stereo 48 kHz AAC and stream-copies the picture. This avoids repeatedly calling
+once as stereo 48 kHz AAC and stream-copies the picture. A separate bounded
+audio-only decode checks the staged soundtrack before publication; one audio
+encode does not mean one FFmpeg invocation. This avoids repeatedly calling
 `add_audio(mix=True)` and repeatedly encoding an already lossy soundtrack.
 
 ```python
@@ -34,14 +36,24 @@ Each track requires `path`. Optional `start`, `fade_in` and `fade_out` are secon
 There are at most 64 tracks; unknown fields, nonfinite numbers and booleans supplied
 as numbers are rejected. The bitrate is an integer-kilobit string within `8k`–`512k`.
 
-The video duration is preserved. Short tracks end normally; long tracks are clipped
-at the video end. Fades apply to the audible, clipped segment. Set
+The primary picture stream determines the output origin and duration, including
+when the container has a longer audio tail. Retained source audio preserves its
+timing relative to the picture start, rather than moving delayed speech to time
+zero. Short tracks end normally; long tracks are clipped at the picture end.
+Fades apply to the audible, clipped segment. Set
 `keep_source=False` to omit the original soundtrack.
 
 Tracks sum at unity without automatic attenuation or loudness normalization; the
 returned warning identifies clipping risk. Reduce gains and listen before publishing.
 The mixer validates a staged output, including a bounded audio decode, before replacing
 its destination. This operation does not produce the governed audio-bed receipt.
+
+When picture timing cannot be established from stream metadata, packet-timeline
+fallback limits the producer to 1,000,001 packets, including an overflow sentinel;
+more than 1,000,000 timeline packets are rejected. Metadata is written to a private
+temporary file and rejected if it exceeds 64 MiB. This byte-size check occurs after
+writing and is not a hard guarantee on transient metadata-file size. The packet
+and execution-time limits bound the fallback; video is not decoded to obtain it.
 
 ## Duck music under existing speech
 

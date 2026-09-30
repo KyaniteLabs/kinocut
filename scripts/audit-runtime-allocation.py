@@ -115,7 +115,13 @@ def python_units(path: str, tools: set[tuple[str, str]], descriptions: set[str])
             spans.append((node, "prose_llm"))
     missing = ML_FUNCTIONS.get(path, set()) - found
     if missing:
-        raise ValueError(f"Audit manifest stale for {path}: {sorted(missing)}")
+        from kinocut.errors import MCPVideoError
+
+        raise MCPVideoError(
+            f"Audit manifest stale for {path}: {sorted(missing)}",
+            error_type="validation_error",
+            code="stale_audit_manifest",
+        )
     # Most specific spans win: exclude ordinary docstrings inside model functions.
     spans.sort(key=lambda s: (s[0].end_lineno - s[0].lineno, s[0].end_col_offset - s[0].col_offset))
     counts = Counter({category: 0 for category in CATEGORIES})
@@ -135,6 +141,42 @@ def other_units(path: str) -> Counter:
     lines = (ROOT / path).read_text(encoding="utf-8").splitlines()
     text = "".join("".join(line.split()) for line in lines if not line.lstrip().startswith(("//", "#", "/*", "*")))
     return Counter({"deterministic": len(text.encode("utf-8"))})
+
+
+def _collect_inventory(paths, tools, descriptions):
+    """Classify the supplied source inventory without changing its allocation rules."""
+    total = Counter({category: 0 for category in CATEGORIES})
+    rows, classified, inventory = [], [], []
+    for path in paths:
+        extension = Path(path).suffix
+        role = "runtime_source" if runtime(path) and extension in SOURCE_EXTENSIONS else "support_or_data"
+        size = len(TEXT_OVERRIDES[path].encode("utf-8")) if path in TEXT_OVERRIDES else (ROOT / path).stat().st_size
+        inventory.append({"path": path, "role": role, "bytes": size})
+        if role != "runtime_source":
+            continue
+        if extension == ".py":
+            counts, functions = python_units(path, tools, descriptions)
+            classified.extend(functions)
+        else:
+            counts = other_units(path)
+        total.update(counts)
+        rows.append({"path": path, **{c: counts[c] for c in CATEGORIES}})
+    return total, rows, classified, inventory
+
+
+def _write_reports(output: Path, summary: dict, rows: list[dict], inventory: list[dict]) -> None:
+    """Publish the existing JSON/CSV schema and concise command output."""
+    (output / "allocation.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
+    for name, data in (("runtime-allocation.csv", rows), ("repository-inventory.csv", inventory)):
+        with (output / name).open("w", encoding="utf-8", newline="") as handle:
+            writer = csv.DictWriter(handle, fieldnames=list(data[0]))
+            writer.writeheader()
+            writer.writerows(data)
+    print(
+        json.dumps(
+            {k: summary[k] for k in ("runtime_files", "tracked_files_inventoried", "totals", "percent")}, indent=2
+        )
+    )
 
 
 def main() -> None:
@@ -171,22 +213,7 @@ def main() -> None:
                 TEXT_OVERRIDES[path] = subprocess.check_output(
                     ["git", "show", f"HEAD:{path}"], cwd=ROOT, text=True, timeout=15
                 )
-    total = Counter({category: 0 for category in CATEGORIES})
-    rows, classified, inventory = [], [], []
-    for path in paths:
-        extension = Path(path).suffix
-        role = "runtime_source" if runtime(path) and extension in SOURCE_EXTENSIONS else "support_or_data"
-        size = len(TEXT_OVERRIDES[path].encode("utf-8")) if path in TEXT_OVERRIDES else (ROOT / path).stat().st_size
-        inventory.append({"path": path, "role": role, "bytes": size})
-        if role != "runtime_source":
-            continue
-        if extension == ".py":
-            counts, functions = python_units(path, tools, descriptions)
-            classified.extend(functions)
-        else:
-            counts = other_units(path)
-        total.update(counts)
-        rows.append({"path": path, **{c: counts[c] for c in CATEGORIES}})
+    total, rows, classified, inventory = _collect_inventory(paths, tools, descriptions)
     host_prose = sum((ROOT / p).stat().st_size for p in paths if p.startswith("skills/") and p.endswith("SKILL.md"))
     denominator = sum(total.values())
     percent = {c: round(total[c] / denominator * 100, 4) for c in CATEGORIES}
@@ -216,17 +243,7 @@ def main() -> None:
             "Host skills are reported separately; creation templates target external generative media, not an in-process LLM.",
         ],
     }
-    (args.output / "allocation.json").write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
-    for name, data in (("runtime-allocation.csv", rows), ("repository-inventory.csv", inventory)):
-        with (args.output / name).open("w", encoding="utf-8", newline="") as handle:
-            writer = csv.DictWriter(handle, fieldnames=list(data[0]))
-            writer.writeheader()
-            writer.writerows(data)
-    print(
-        json.dumps(
-            {k: summary[k] for k in ("runtime_files", "tracked_files_inventoried", "totals", "percent")}, indent=2
-        )
-    )
+    _write_reports(args.output, summary, rows, inventory)
 
 
 if __name__ == "__main__":

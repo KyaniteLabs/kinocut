@@ -17,7 +17,12 @@ pytestmark = pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="needs ff
 
 def _ffmpeg(*args: str) -> str:
     return subprocess.run(
-        ["ffmpeg", "-hide_banner", "-y", *args], capture_output=True, text=True, timeout=120, check=True
+        ["ffmpeg", "-hide_banner", "-y", *args],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        timeout=120,
+        check=True,
     ).stderr
 
 
@@ -284,3 +289,225 @@ def test_keep_source_is_strict_boolean(media, tmp_path, keep):
     video, tick = media
     with pytest.raises(MCPVideoError, match="boolean"):
         mix_audio(str(video), [{"path": str(tick)}], str(tmp_path / "bool.mp4"), keep_source=keep)
+
+
+def _picture_hashes(path):
+    result = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", str(path), "-map", "0:v:0", "-f", "framemd5", "-"],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=120,
+    )
+    return [line.rsplit(",", 1)[-1].strip() for line in result.stdout.splitlines() if not line.startswith("#")]
+
+
+@pytest.mark.parametrize("video_start,audio_start", [(0, 1), (1, 0)])
+def test_source_audio_stays_relative_to_picture_origin(tmp_path, video_start, audio_start):
+    source, silence = tmp_path / "offset.mp4", tmp_path / "silence.wav"
+    tone = (
+        "sine=frequency=440:sample_rate=48000:d=2"
+        if audio_start
+        else (r"aevalsrc=0.15*sin(2*PI*440*t)*between(t\,1.5\,2):s=48000:d=4")
+    )
+    _ffmpeg(
+        "-itsoffset",
+        str(video_start),
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=gray:s=160x90:r=25:d=3",
+        "-itsoffset",
+        str(audio_start),
+        "-f",
+        "lavfi",
+        "-i",
+        tone,
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        str(source),
+    )
+    _ffmpeg("-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo", "-t", "0.1", str(silence))
+    result = mix_audio(str(source), [{"path": str(silence)}], str(tmp_path / "mixed.mp4"))
+    assert _rms(result.output_path, 0.1, 0.25) < -80
+    audible = 1.25 if audio_start else 0.65
+    assert _rms(result.output_path, audible, 0.15) > -30
+    assert result.duration == pytest.approx(3, abs=0.05)
+    assert _picture_hashes(source) == _picture_hashes(result.output_path)
+    from kinocut.ffmpeg_helpers import _run_ffprobe_json
+
+    picture = next(item for item in _run_ffprobe_json(result.output_path)["streams"] if item["codec_type"] == "video")
+    assert float(picture["start_time"]) == pytest.approx(0, abs=0.001)
+    assert float(picture["duration"]) == pytest.approx(3, abs=0.04)
+
+
+@pytest.mark.parametrize("suffix", ["mp4", "mkv"])
+def test_mix_caps_at_primary_picture_end_when_source_audio_is_longer(tmp_path, suffix):
+    source, added = tmp_path / f"long-audio.{suffix}", tmp_path / "tone.wav"
+    _ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=gray:s=160x90:r=25:d=2",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:sample_rate=48000:d=5",
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        str(source),
+    )
+    _ffmpeg("-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:d=4", str(added))
+    result = mix_audio(str(source), [{"path": str(added)}], str(tmp_path / "capped.mp4"))
+    assert result.duration == pytest.approx(2, abs=0.08)
+    assert _picture_hashes(source) == _picture_hashes(result.output_path)
+    with pytest.raises(MCPVideoError, match="start"):
+        mix_audio(str(source), [{"path": str(added), "start": 2.5}], str(tmp_path / "invalid-start.mp4"))
+
+
+def test_actual_audio_decode_failure_preserves_previous_destination(media, tmp_path, monkeypatch):
+    import json
+    from kinocut import engine_audio_mix as module
+
+    video, tick = media
+    output = tmp_path / "prior.mp4"
+    output.write_bytes(video.read_bytes())
+    previous = output.read_bytes()
+    render = module._run_ffmpeg
+
+    def damage_encoded_audio(args):
+        result = render(args)
+        staged = args[-1]
+        process = subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "a:0",
+                "-show_packets",
+                "-show_entries",
+                "packet=pos,size",
+                "-of",
+                "json",
+                staged,
+            ],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            check=True,
+        )
+        packet = json.loads(process.stdout)["packets"][2]
+        with open(staged, "r+b") as handle:
+            handle.seek(int(packet["pos"]))
+            handle.write(b"\xff" * int(packet["size"]))
+        return result
+
+    monkeypatch.setattr(module, "_run_ffmpeg", damage_encoded_audio)
+    with pytest.raises(MCPVideoError):
+        mix_audio(str(video), [{"path": str(tick)}], str(output))
+    assert output.read_bytes() == previous
+    assert not list(tmp_path.glob(".kinocut_tmp_*"))
+
+
+@pytest.mark.parametrize("limit", ["packets", "metadata"])
+def test_packet_duration_fallback_limit_never_publishes_a_truncated_mix(tmp_path, monkeypatch, limit):
+    from kinocut import engine_audio_mix as module
+
+    source, added, output = tmp_path / "source.mkv", tmp_path / "added.wav", tmp_path / "previous.mp4"
+    _ffmpeg(
+        "-f", "lavfi", "-i", "color=c=gray:s=160x90:r=25:d=2", "-c:v", "libx264", "-pix_fmt", "yuv420p", str(source)
+    )
+    _ffmpeg("-f", "lavfi", "-i", "sine=frequency=440:sample_rate=48000:d=1", str(added))
+    output.write_bytes(b"prior result")
+    constant = "MAX_AUDIO_MIX_TIMELINE_PACKETS" if limit == "packets" else "MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES"
+    monkeypatch.setattr(module, constant, 2)
+    with pytest.raises(MCPVideoError) as error:
+        mix_audio(str(source), [{"path": str(added)}], str(output))
+    assert error.value.code == "audio_mix_timeline_over_limit"
+    assert output.read_bytes() == b"prior result"
+    assert not list(tmp_path.glob(".kinocut_tmp_*"))
+
+
+def test_decode_validation_checks_primary_audio_without_decoding_picture(media, tmp_path, monkeypatch):
+    from kinocut import engine_audio_normalize_output as validator
+
+    video, tick = media
+    calls = []
+    run = validator._run_ffmpeg
+
+    def capture(args):
+        calls.append(args)
+        return run(args)
+
+    monkeypatch.setattr(validator, "_run_ffmpeg", capture)
+    mix_audio(str(video), [{"path": str(tick)}], str(tmp_path / "validated.mp4"))
+    assert len(calls) == 1
+    assert "-xerror" in calls[0] and "-vn" in calls[0]
+    assert calls[0][calls[0].index("-map") + 1] == "0:a:0"
+
+
+def test_packet_producer_cap_counts_selected_video_with_dense_interleaved_audio(tmp_path, monkeypatch):
+    from kinocut import engine_audio_mix as module
+
+    source, added = tmp_path / "dense-audio.mkv", tmp_path / "tone.wav"
+    # About47 AAC packets for each picture packet: an all-demux-packet cap would
+    # stop near the beginning and falsely infer a short picture extent.
+    _ffmpeg(
+        "-f",
+        "lavfi",
+        "-i",
+        "color=c=gray:s=160x90:r=1:d=6",
+        "-f",
+        "lavfi",
+        "-i",
+        "sine=frequency=440:sample_rate=48000:d=6",
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "libx264",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        str(source),
+    )
+    _ffmpeg("-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:d=1", str(added))
+    monkeypatch.setattr(module, "MAX_AUDIO_MIX_TIMELINE_PACKETS", 3)
+    with pytest.raises(MCPVideoError) as error:
+        mix_audio(str(source), [{"path": str(added)}], str(tmp_path / "must-not-publish.mp4"))
+    assert error.value.code == "audio_mix_timeline_over_limit"
+    assert not (tmp_path / "must-not-publish.mp4").exists()
+
+
+def test_packet_without_presentation_timestamp_cannot_certify_partial_extent(media, monkeypatch):
+    from pathlib import Path
+    from kinocut import engine_audio_mix as module
+
+    def malformed_metadata(args, **kwargs):
+        Path(args[args.index("-o") + 1]).write_text("duration_time=0.04\npts_time=0.04|duration_time=0.04\n")
+
+    monkeypatch.setattr(module, "_run_command", malformed_metadata)
+    with pytest.raises(MCPVideoError) as error:
+        module._packet_timeline(str(media[0]))
+    assert error.value.code == "invalid_media_duration"

@@ -11,30 +11,109 @@ from __future__ import annotations
 
 import math
 import re
+import tempfile
+from fractions import Fraction
 from pathlib import Path
 
 from .defaults import DEFAULT_AUDIO_MIX_BITRATE, DEFAULT_AUDIO_MIX_SAMPLE_RATE, DEFAULT_AUDIO_MIX_TRACK_VOLUME
-from .engine_probe import probe, probe_audio_input
-from .engine_runtime_utils import _build_edit_result, _has_audio, _movflags_args, _timed_operation
+from .engine_probe import _parse_probe_duration, probe_audio_input
+from .engine_audio_normalize_output import _validate_normalized_output
+from .engine_runtime_utils import _build_edit_result, _get_video_stream, _has_audio, _movflags_args, _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
     _atomic_output,
     _escape_ffmpeg_filter_value,
+    _run_command,
     _run_ffmpeg,
     _run_ffprobe_json,
     _validate_input_path,
     _validate_output_path,
 )
-from .limits import MAX_AUDIO_MIX_TRACKS, MAX_AUDIO_MIX_VOLUME, MIN_AUDIO_MIX_BITRATE_KBPS, MAX_AUDIO_MIX_BITRATE_KBPS
+from .limits import (
+    MAX_AUDIO_MIX_TRACKS,
+    MAX_AUDIO_MIX_VOLUME,
+    MIN_AUDIO_MIX_BITRATE_KBPS,
+    MAX_AUDIO_MIX_BITRATE_KBPS,
+    MAX_VIDEO_DURATION,
+    FFPROBE_TIMEOUT,
+    MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES,
+    MAX_AUDIO_MIX_TIMELINE_PACKETS,
+)
 from .models import EditResult
 from .paths import _auto_output
 
 _TRACK_KEYS = {"path", "start", "volume", "fade_in", "fade_out"}
-_STEREO_48K = f"aresample={DEFAULT_AUDIO_MIX_SAMPLE_RATE},aformat=sample_fmts=fltp:channel_layouts=stereo"
+_STEREO_FORMAT = "aformat=sample_fmts=fltp:channel_layouts=stereo"
+_STEREO_48K = f"aresample={DEFAULT_AUDIO_MIX_SAMPLE_RATE},{_STEREO_FORMAT}"
+_SOURCE_STEREO = f"aresample={DEFAULT_AUDIO_MIX_SAMPLE_RATE}:async=1:first_pts=0,{_STEREO_FORMAT}"
 
 
 def _invalid(message: str, code: str = "invalid_parameter") -> MCPVideoError:
     return MCPVideoError(message, error_type="validation_error", code=code)
+
+
+def _packet_timeline(path: str) -> tuple[float, float]:
+    """Read presentation extent without decoding video or buffering all packets."""
+    with tempfile.TemporaryDirectory(prefix="kinocut_mix_timeline_") as folder, tempfile.TemporaryFile() as diagnostics:
+        metadata = Path(folder) / "packets.txt"
+        _run_command(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "v:0",
+                "-read_intervals",
+                f"%+#{MAX_AUDIO_MIX_TIMELINE_PACKETS + 1}",
+                "-show_packets",
+                "-show_entries",
+                "packet=pts_time,duration_time",
+                "-of",
+                "compact=p=0",
+                "-o",
+                str(metadata),
+                path,
+            ],
+            timeout=FFPROBE_TIMEOUT,
+            stderr_sink=diagnostics,
+        )
+        diagnostics.seek(0)
+        if diagnostics.read(1):
+            raise _invalid("video timeline could not be read cleanly", "invalid_media_duration")
+        if metadata.stat().st_size > MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES:
+            raise _invalid("video timeline metadata exceeds the supported limit", "audio_mix_timeline_over_limit")
+        start, end, count = math.inf, -math.inf, 0
+        with metadata.open(encoding="utf-8") as packets:
+            for line in packets:
+                count += 1
+                if count > MAX_AUDIO_MIX_TIMELINE_PACKETS:
+                    raise _invalid("video timeline packet limit reached", "audio_mix_timeline_over_limit")
+                fields = dict(part.split("=", 1) for part in line.strip().split("|") if "=" in part)
+                pts = _parse_probe_duration(fields.get("pts_time"))
+                width = _parse_probe_duration(fields.get("duration_time"))
+                if pts is None or not math.isfinite(pts) or width is None or not math.isfinite(width) or width <= 0:
+                    raise _invalid("video has an unmeasurable packet timeline", "invalid_media_duration")
+                start, end = min(start, pts), max(end, pts + width)
+        return start, end - start
+
+
+def _picture_timeline(path: str, raw: dict) -> tuple[float, float]:
+    """Prefer primary-picture extent, never the container's longer audio tail."""
+    video = _get_video_stream(raw)
+    if video is None:
+        raise _invalid("mix_audio requires a video stream", "missing_video_stream")
+    start = _parse_probe_duration(video.get("start_time"))
+    duration = _parse_probe_duration(video.get("duration"))
+    if duration is None and video.get("duration_ts") is not None:
+        try:
+            duration = float(Fraction(str(video["time_base"])) * int(video["duration_ts"]))
+        except (ValueError, TypeError, KeyError, ZeroDivisionError, OverflowError):
+            duration = None
+    if start is None or not math.isfinite(start) or duration is None or not math.isfinite(duration) or duration <= 0:
+        start, duration = _packet_timeline(path)
+    if not math.isfinite(start) or not math.isfinite(duration) or not 0 < duration <= MAX_VIDEO_DURATION:
+        raise _invalid("video has no supported measurable duration", "invalid_media_duration")
+    return start, duration
 
 
 def _number(track: dict, key: str, index: int, default: float, high: float) -> float:
@@ -106,16 +185,23 @@ def _track_chain(input_index: int, track: dict) -> str:
 
 
 def _build_mix_args(
-    video_path: str, tracks: list[dict], keep_source: bool, duration: float, output: str, bitrate: str
+    video_path: str,
+    tracks: list[dict],
+    keep_source: bool,
+    duration: float,
+    output: str,
+    bitrate: str,
+    *,
+    video_start: float = 0.0,
 ) -> list[str]:
     """FFmpeg arguments: every sound summed at unity in one graph, one AAC encode, picture copied."""
-    args = ["-i", video_path]
+    args = ["-copyts", "-itsoffset", str(-video_start), "-i", video_path]
     for track in tracks:
         args += ["-t", str(track["duration"]), "-i", track["path"]]
     chains = [_track_chain(i + 1, track) for i, track in enumerate(tracks)]
     labels = [f"[t{i + 1}]" for i in range(len(tracks))]
     if keep_source:
-        chains.insert(0, f"[0:a:0]asetpts=PTS-STARTPTS,{_STEREO_48K}[t0]")
+        chains.insert(0, f"[0:a:0]{_SOURCE_STEREO}[t0]")
         labels.insert(0, "[t0]")
     length = _escape_ffmpeg_filter_value(f"{duration:.6f}")
     mix = f"amix=inputs={len(labels)}:duration=longest:normalize=0," if len(labels) > 1 else ""
@@ -156,7 +242,8 @@ def mix_audio(
     linear gain (0 to 4). Fades apply to the audible segment,
     clipped at the video end, without buffering whole tracks. The video's own sound stays under the tracks unless
     ``keep_source`` is false. Tracks sum at unity (no 1/n attenuation); the output
-    keeps the video's duration, with the picture stream-copied.
+    keeps the primary picture's duration and relative source-audio timing, with
+    picture stream-copied. A bounded audio decode validates staging before publication.
     """
     video_path = _validate_input_path(video_path)
     output = output_path or _auto_output(video_path, "mixed")
@@ -169,16 +256,18 @@ def mix_audio(
         raise _invalid(
             f"audio_bitrate must be between '{MIN_AUDIO_MIX_BITRATE_KBPS}k' and '{MAX_AUDIO_MIX_BITRATE_KBPS}k'"
         )
-    duration = probe(video_path).duration
-    if not duration or not math.isfinite(duration) or duration <= 0:
-        raise _invalid("video has no measurable duration", "invalid_media_duration")
+    raw = _run_ffprobe_json(video_path)
+    video_start, duration = _picture_timeline(video_path, raw)
     clean = _validate_tracks(tracks, duration)
     _validate_output_path(output)
-    keep = bool(keep_source) and _has_audio(_run_ffprobe_json(video_path))
+    keep = keep_source and _has_audio(raw)
     with _atomic_output(output) as staged:
         _validate_output_path(staged)
         with _timed_operation() as timing:
-            _run_ffmpeg(_build_mix_args(video_path, clean, keep, duration, staged, audio_bitrate))
+            _run_ffmpeg(
+                _build_mix_args(video_path, clean, keep, duration, staged, audio_bitrate, video_start=video_start)
+            )
+            _validate_normalized_output(staged, "aac", audio_only=True)
         result = _build_edit_result(staged, "mix_audio", timing, format=Path(output).suffix.lstrip("."))
     return result.model_copy(
         update={

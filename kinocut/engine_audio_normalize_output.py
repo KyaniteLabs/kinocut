@@ -28,7 +28,7 @@ def _normalization_codec(output: str) -> tuple[str, bool]:
     return codec, suffix in AUDIO_NORMALIZE_VIDEO_CONTAINERS
 
 
-def _validate_normalized_output(path: str, codec: str | None) -> dict:
+def _validate_normalized_output(path: str, codec: str | None, *, audio_only: bool = False) -> dict:
     """Require a real expected audio stream and a complete error-free decode."""
     probe = _run_ffprobe_json(path)
     stream = next((item for item in probe.get("streams", []) if item.get("codec_type") == "audio"), None)
@@ -39,7 +39,8 @@ def _validate_normalized_output(path: str, codec: str | None) -> dict:
             error_type="processing_error",
             code="invalid_normalized_output",
         )
-    decoded = _run_ffmpeg(["-v", "error", "-xerror", "-i", path, "-f", "null", "-"])
+    selection = ["-map", "0:a:0", "-vn"] if audio_only else []
+    decoded = _run_ffmpeg(["-v", "error", "-xerror", "-i", path, *selection, "-f", "null", "-"])
     if decoded.stderr.strip():
         raise MCPVideoError(
             "Normalized output did not decode cleanly",

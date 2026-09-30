@@ -130,3 +130,19 @@ and the existing apt recipe when either binary is missing. A ten-minute step
 timeout bounds dependency installation. Controlled shell fixtures verify the
 skip, missing-tool installation and retained installer-error paths. This setup
 change is separate from diagnosing the earlier test failure.
+
+## Subsequent hosted result and pre-merge review
+
+Published head `5d3c4317c748b94fa4280259fdc759945f114fce` subsequently passed
+all thirteen exact-head checks. Hosted safety [run 36765393126](https://github.com/KyaniteLabs/kinocut/actions/runs/36765393126)
+passed Lint and Test; Test completed in 15 minutes 20 seconds and the failure
+reporter was correctly skipped. FFmpeg setup completed in 84 seconds on this
+run. Runner conditions vary, so comparison with the earlier 14-minute-55-second
+setup is an observation rather than a universal speed guarantee.
+
+Final inline review found six actionable audit/audio issues despite those green
+checks. Their later [corrections and evidence](../../runtime-allocation/pre-merge-review/REPORT.md)
+require their own full local gate and fresh published-head CI. The earlier
+green head does not validate the later changes; inspect the exact head on
+[PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) for its final delivery
+and check status.

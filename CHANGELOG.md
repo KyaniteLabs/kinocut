@@ -32,6 +32,9 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Multi-track mixing preserves retained source-audio timing relative to the primary picture start and uses picture duration instead of a longer container audio tail. It stream-copies picture and encodes AAC once, then performs a separate bounded audio-only staged decode. Packet-timeline fallback caps producer packets with an overflow sentinel and checks metadata size after writing; it does not guarantee a hard transient byte peak.
+- Staged normalization accepts its advertised `.ogg`, `.opus`, `.aif` and `.aiff` output suffixes through the shared output guard.
+- Runtime-source auditing reports stale classification manifests with a structured `stale_audit_manifest` error; audit entry-point/function-size regressions cover its maintained architecture limits.
 - Hosted pytest failures publish bounded, escaped test-case annotations through the check API, retaining the original suite selection and exit status when raw log downloads are unavailable.
 - Hosted safety reuses installed FFmpeg/ffprobe and bounds missing-dependency setup to ten minutes, avoiding redundant package-index refreshes on prepared runners.
 - Trim and playback-speed edits render into a sibling staged output and construct their result before replacing the destination; render/result failure preserves existing output. Trim time validation rejects nonfinite values and overflow before FFmpeg runs. This does not make all engine writers transactional.
