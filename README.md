@@ -417,9 +417,15 @@ Mix freely, e.g. `pip install "kinocut[transcribe,image]"`. Run `kino doctor` af
 Kinocut preserves the original surface during the rename window. Existing installs can upgrade without changing code:
 
 ```bash
-pip install --upgrade mcp-video
+pip install --upgrade 'mcp-video==1.6.14'
+pip install --force-reinstall --no-deps 'kinocut==1.15.3'
 mcp-video doctor
 ```
+
+Older shim installer records can delete the shared executable during an upgrade,
+even when dependency checks pass. The canonical reinstall restores ownership;
+use the intended release pin and preserve configured extras in locked deployments.
+See [fleet migration instructions](docs/FLEET_UPGRADE.md) for the pinned sequence.
 
 Published `mcp-video==1.6.14` is a metadata-only compatibility installer for `kinocut==1.15.3`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 

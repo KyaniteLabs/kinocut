@@ -8,6 +8,7 @@ WORKDIR /app
 
 COPY pyproject.toml README.md LICENSE ./
 COPY kinocut/ kinocut/
+COPY kinocut_sound/ kinocut_sound/
 COPY mcp_video.py ./
 
 RUN pip install --no-cache-dir .

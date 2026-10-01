@@ -32,6 +32,13 @@ full-episode and listening acceptance require separate evidence. See the
 
 **Provider verification (2026-09-30):** PyPI and npm report **1.15.3**; live kinocut.dev JSON-LD and llms.txt also report **1.15.3**. GitHub `releases/latest` reports **1.15.0**. The MCP Registry request returned **403**, so its current version is unverified. These checks do not prove every provider is aligned or every site page is visually correct.
 
+**Fresh site verification (2026-10-01, 22:58 UTC):** certificate-verified homepage
+and llms requests returned 200 for the disclosed verification client and confirmed
+the published 1.15.3 stamp. [Response digests and client limits](../proofs/2026-10-01-published-site-verification.md)
+supersede the earlier blocked observations for issue #479. Candidate 1.16.0,
+other pages/providers, visual acceptance and the Phase-0 exit are not accepted
+by this check.
+
 **Desk residual:** Colima is the operator M4 Mac, not Mini. Do not restart `forgejo-runner` mid-job (exact 80s fail). Perf-committee reports are inspect receipts only ([README](perf-committee/README.md)). Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
 
 **Perf receipt:** cheap CLI + import timings in [golden-path-timings.md](golden-path-timings.md) — baseline only, not an optimized claim.

@@ -19,8 +19,9 @@ dependency lock. Check active render jobs and use the host's normal graceful
 shutdown before restarting its MCP server. Do not kill active renders or replace
 another service's Python environment to force an upgrade.
 
-For a managed Python environment, use that environment's interpreter and retain
-the explicitly configured extras:
+For a managed Python environment without the legacy distribution, use that
+environment's interpreter and retain its explicitly configured extras. Consumers
+with `mcp-video` must use the joint upgrade and ownership repair below:
 
 ```bash
 /path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.0'
@@ -43,12 +44,36 @@ These commands preserve the same release and diagnostics workflow. Retain the
 consumer's configured extras and verify its actual running interpreter on every
 OS; platform-specific environment paths do not establish optional-model parity.
 
-If the environment already installs the legacy distribution, upgrade its exact
-pin to `mcp-video==1.6.15` too; the old shim otherwise still requires Kinocut
-1.15.3. Preserve existing extra names when changing the canonical/shim pins.
-The new metadata-only shim delegates console scripts to Kinocut. If removing an
-older installed shim, reinstall the intended canonical wheel afterward before
-relying on its legacy CLI alias; older shims share ownership of that executable.
+For a legacy consumer, replace both exact pins together and repair canonical
+ownership afterward. Safe pip fixtures reproduced the old shim deleting
+`mcp-video` after canonical installation, while `pip check` still passed.
+The reinstall uses `--no-deps` to preserve the just-resolved dependency graph:
+
+```bash
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.0' 'mcp-video==1.6.15'
+/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==1.16.0'
+/path/to/environment/bin/python -m pip check
+/path/to/environment/bin/kino --version
+/path/to/environment/bin/kinocut --version
+/path/to/environment/bin/mcp-video --version
+```
+
+The equivalent PowerShell sequence uses that environment's `Scripts` executables:
+
+```powershell
+& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==1.16.0' 'mcp-video==1.6.15'
+& .\.venv\Scripts\python.exe -m pip install --force-reinstall --no-deps 'kinocut==1.16.0'
+& .\.venv\Scripts\python.exe -m pip check
+& .\.venv\Scripts\kino.exe --version
+& .\.venv\Scripts\kinocut.exe --version
+& .\.venv\Scripts\mcp-video.exe --version
+```
+
+Preserve existing extra names in the initial joint upgrade. The old shim requires
+Kinocut 1.15.3, so upgrading canonical alone leaves a dependency conflict until
+the shim is replaced. The new metadata-only shim owns no console scripts;
+after repair, removing it preserves all three aliases. If removing an older
+shim directly, perform the same canonical reinstall before relying on any alias.
 Update and commit dependency locks through the consumer repository's normal
 workflow. The candidate raises security floors for nine previously affected dependencies, including optional Pillow, and updates affected optional Torch/audio dependencies with their compatible GPU graph. BasicSR retains an unpatched advisory in an unused distributed path; legacy Real-ESRGAN import/inference and GPU driver compatibility need separate acceptance. Refresh the consumer lock instead of retaining affected transitive pins. Source-installed consumers must use the verified release tag/commit.
 
