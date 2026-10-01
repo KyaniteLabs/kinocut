@@ -1,0 +1,11 @@
+{
+  "worker_pid": 333915,
+  "worker_session": 333915,
+  "ffmpeg_pid": 333916,
+  "ffmpeg_session": 333916,
+  "ffmpeg_group": 333916,
+  "stop_controller_result": "stopped",
+  "native_ffmpeg_alive_after_terminal_stop": true,
+  "ppid_after": 1,
+  "native_command": "/usr/bin/ffmpeg -y -re -f lavfi -i color=s=64x64:r=2:d=30 -f null - "
+}

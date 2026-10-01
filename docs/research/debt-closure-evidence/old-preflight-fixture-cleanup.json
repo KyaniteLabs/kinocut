@@ -1,0 +1,21 @@
+{
+  "fixtures": [
+    {
+      "pid": 206871,
+      "start_ticks": 1126665,
+      "task_fixture": "failed initial parallel preflight pytest-56",
+      "verified_exact_argv": true,
+      "signal_via_pidfd": true,
+      "state_after": "Z"
+    },
+    {
+      "pid": 223948,
+      "start_ticks": 1137054,
+      "task_fixture": "failed initial parallel preflight pytest-56",
+      "verified_exact_argv": true,
+      "signal_via_pidfd": true,
+      "state_after": "Z"
+    }
+  ],
+  "scope": "Only exact task-owned producers predating final repaired source; no unrelated or numeric-only target signal"
+}

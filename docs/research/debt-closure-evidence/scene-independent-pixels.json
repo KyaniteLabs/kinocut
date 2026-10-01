@@ -1,0 +1,31 @@
+{
+  "binary": "/usr/bin/ffmpeg",
+  "cases": [
+    {
+      "source_size": "64x64",
+      "proxy_size": [
+        320,
+        320
+      ],
+      "decoded_pixels_identical_to_old": true
+    },
+    {
+      "source_size": "160x90",
+      "proxy_size": [
+        320,
+        180
+      ],
+      "decoded_pixels_identical_to_old": true
+    },
+    {
+      "source_size": "90x160",
+      "proxy_size": [
+        320,
+        569
+      ],
+      "decoded_pixels_identical_to_old": true
+    }
+  ],
+  "phash_algorithm_changed": false,
+  "imagehash_optional_package_installed": false
+}

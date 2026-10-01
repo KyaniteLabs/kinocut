@@ -4,6 +4,14 @@
 **Branch:** `product/pipeline-complete`  
 **Scope:** Phase 3/4 GO, Track E GO, sound S14/S15 maturity, G004 synthetic fixtures, MCPB pack checklist — **not** human growth programs.
 
+**Current scope amendment (2026-10-01):** this is a historical checkpoint, not a
+current full-episode sound or listening acceptance receipt. Supported sound claims
+cover the implemented deterministic processing, measured policy contracts and
+retained synthetic/resource controls. A representative Apple-host episode and
+human listening review remain unverified. The current MCPB direction is the
+staged `user-configured-local-access` launcher; native bundles are separate scope.
+See [the current supported-scope decisions](../research/debt-closure-operations.md).
+
 ## Phase exits
 
 | Phase | Exit | Evidence |

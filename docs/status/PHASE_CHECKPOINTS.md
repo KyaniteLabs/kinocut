@@ -1,5 +1,14 @@
 # Phase go / no-go checkpoints (DEC.1)
 
+**Current supported-scope amendment (2026-10-01):** the dated phase exits below
+retain their original evidence scope. Current support selects the staged
+local-access MCPB launcher, keeps paid generation as an unavailable draft, and
+retains the separately requested local eSpeak speech adapter. Deterministic
+sound processing does not establish full-episode or listening acceptance. See
+the [current disposition and scope record](../research/debt-closure-operations.md)
+for the remaining host, provider, desktop and operator criteria. This amendment
+does not grant Phase 0 GO or invent a missing external verification receipt.
+
 **Status:** living · **Date:** 2026-08-12 (L1.2 truth pass)  
 **Issue:** Forgejo #94  
 **Residual authority:** [`2026-08-12-residual-maturity-matrix.md`](2026-08-12-residual-maturity-matrix.md) · [L1 truth pass](2026-08-12-l1-truth-pass.md)

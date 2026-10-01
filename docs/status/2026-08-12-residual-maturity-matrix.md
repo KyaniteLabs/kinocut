@@ -5,6 +5,11 @@
 **Ultragoal:** `.omc/ultragoal/plans/kinocut-full-build` G001  
 **Evidence basis:** code + tests + evidence paths (not July prose alone)
 
+**Current scope amendment (2026-10-01):** historical GO entries do not establish
+current full-episode sound, artistic quality, paid-provider execution or desktop
+installation acceptance. Current supported claims and external evidence limits
+are recorded in [the debt-closure ledger](../research/DEBT_CLOSURE.md).
+
 | family | class | evidence_paths | residual_tickets | blocks_claim? |
 |--------|-------|----------------|------------------|---------------|
 | ssrf_c1 | verify-only | `kinocut/ai_engine/download.py` pin/peer; `tests/test_ai_features.py` SSRF; 60-pass SSRF/preview filter suite | HUMAN_GATES C1 closed L1.2 (2026-08-12) | N (security already on tip) |

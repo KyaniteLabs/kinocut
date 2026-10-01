@@ -1,0 +1,46 @@
+{
+  "source_identity_sha256": "fe57832a86cea67326405da24f390a8df701c9c1e24ca87776a8e4351e34697d",
+  "checks": [
+    {
+      "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py",
+      "exit_code": 0
+    },
+    {
+      "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py",
+      "exit_code": 0,
+      "formatted_files": 1133
+    },
+    {
+      "command": "tools-venv/bin/pyright",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 0
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/bin/python -c 'import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client'",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/bin/kino doctor",
+      "exit_code": 0,
+      "scope": "required core readiness; optional backends may be absent"
+    }
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "ffmpeg": "7.1.5-0+deb13u1",
+    "ruff": "0.15.11",
+    "pyright": "1.1.414"
+  },
+  "scope": "Maintained CI lint/type scopes; historical research scripts are not included in lint scope. No optional model execution or live-provider accuracy claim.",
+  "post_documentation_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_public_surface.py tests/test_public_claims.py tests/test_architecture_guardrails.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 64,
+    "seconds": 13.2
+  }
+}

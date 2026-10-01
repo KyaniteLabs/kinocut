@@ -1,0 +1,66 @@
+[
+  {
+    "mode": "python",
+    "projection": "{}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "python",
+    "projection": "{'include': {'loudness', 'plan_hash'}}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "python",
+    "projection": "{'exclude': {'loudness'}}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "python",
+    "projection": "{'exclude_none': True}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "python",
+    "projection": "{'exclude_defaults': True}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "python",
+    "projection": "{'exclude_unset': True}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "json",
+    "projection": "{}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "json",
+    "projection": "{'include': {'loudness', 'plan_hash'}}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "json",
+    "projection": "{'exclude': {'loudness'}}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "json",
+    "projection": "{'exclude_none': True}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "json",
+    "projection": "{'exclude_defaults': True}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "mode": "json",
+    "projection": "{'exclude_unset': True}",
+    "legacy_shape_preserved": true
+  },
+  {
+    "case": "nested_canonical_and_full_json_roundtrips",
+    "legacy_measured_and_explicit_unmeasured": true
+  }
+]

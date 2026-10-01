@@ -1,0 +1,19 @@
+{
+  "command": [
+    "/workspace/kinocut/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-q",
+    "--tb=short",
+    "-n",
+    "4",
+    "--dist",
+    "loadfile"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 642.2470742840014,
+  "source_identity_sha256": "dca95584d8293e4b5ece468f351fb7f0d9b07cd41a7c9db75adb76fa59636b26",
+  "source_unchanged": true,
+  "file_count": 1206
+}

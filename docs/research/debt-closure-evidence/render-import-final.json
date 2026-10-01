@@ -1,0 +1,31 @@
+{
+  "trials": [
+    {
+      "seconds": 0.4005489179980941,
+      "mcp_imported": false,
+      "server_app_imported": false,
+      "guardian_owner_imported": false
+    },
+    {
+      "seconds": 0.43599098800041247,
+      "mcp_imported": false,
+      "server_app_imported": false,
+      "guardian_owner_imported": false
+    },
+    {
+      "seconds": 0.3373389410007803,
+      "mcp_imported": false,
+      "server_app_imported": false,
+      "guardian_owner_imported": false
+    }
+  ],
+  "median_seconds": 0.4005489179980941,
+  "python_version": "3.12.14",
+  "all_sources_parse_python311": true,
+  "native_platforms_executed": [
+    "Linux"
+  ],
+  "windows_macos_review": "static collection/dependency/skip check only",
+  "source_identity_sha256": "fe57832a86cea67326405da24f390a8df701c9c1e24ca87776a8e4351e34697d",
+  "scope": "Fresh-process render_runner import only; no render or model initialization throughput claim"
+}

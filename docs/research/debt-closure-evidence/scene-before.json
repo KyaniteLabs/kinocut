@@ -1,0 +1,11 @@
+{
+  "producer_frame_ceiling": 2,
+  "actual_frames_before": 6,
+  "tall_proxy_dimensions_before": [
+    320,
+    40960
+  ],
+  "nan": "nonfinite",
+  "negative": -1.0,
+  "huge_integer": "OverflowError"
+}

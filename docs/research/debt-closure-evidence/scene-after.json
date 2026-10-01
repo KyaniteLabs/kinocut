@@ -1,0 +1,11 @@
+{
+  "overflow_code": "scene_frame_limit_exceeded",
+  "producer_frames_after": 3,
+  "tall_proxy_dimensions_after": [
+    15,
+    1920
+  ],
+  "nan": "invalid_media_duration",
+  "negative": "invalid_media_duration",
+  "huge_integer": "invalid_media_duration"
+}

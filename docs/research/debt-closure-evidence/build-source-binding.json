@@ -1,0 +1,10 @@
+{
+  "scope": "Local Unreleased development build, not a publication of version 1.15.3",
+  "wheel_name": "kinocut-1.15.3-py3-none-any.whl",
+  "wheel_sha256": "abb8652b61ee9e509e8690534d81f0889744f65a5e6d3303b6b69a4e6b016b52",
+  "sdist_name": "kinocut-1.15.3.tar.gz",
+  "sdist_sha256": "682963ff5d48ba008e06de97ab7858c0c335acc53242f8a28480add39002fbc7",
+  "shipped_python_files": 644,
+  "mismatches_or_missing": [],
+  "source_identity_sha256": "fe57832a86cea67326405da24f390a8df701c9c1e24ca87776a8e4351e34697d"
+}

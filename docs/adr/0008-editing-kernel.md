@@ -39,16 +39,26 @@ Queued cancellation is immediate. A running cancellation first appends a
 PID. Termination similarly uses `stage: termination_requested`; an outstanding
 cancellation keeps its meaning if termination is retried. These request snapshots
 change existing stage metadata, without extending hashed record schemas or states.
-Only a detached session leader with the held job lease may receive a process-group
-signal. Signaling and bounded quiescence checks run outside the project lock.
-Unverified identity or an unconfirmed stop keeps the request and PID for retry;
-`cancelled` is recorded only after no executing group members and no held lease
-remain. Reconciliation uses the same proof and never treats a missing or negative
-caller liveness hint as proof that descendants stopped. Linux ignores zombie-only
-groups; other platforms conservatively require process-group disappearance.
+The external controller never signals a recorded PID. A dedicated worker validates
+a RUNNING journal head naming its own live PID and consumes stop intent by signaling
+only its own private group/session. Forked copies and mismatched identities cannot
+acquire stop authority. Bounded verification runs outside the project lock; an
+unwatched or unresponsive legacy worker stays pending rather than receiving an
+unsafe external force kill.
+
+Worker-scoped POSIX command guardians inherit the job lease and own a liveness
+pipe. Worker death stops each guardian's own live group. Confirmed cancellation
+requires both no executing worker-group members and a released inherited lease.
+Reconciliation uses the same proof and never treats a missing or negative caller
+liveness hint as proof that descendants stopped. Linux ignores zombie-only groups;
+other platforms conservatively require group disappearance. Normal commands are
+reaped, while abnormal zombies still require host PID1 reaping. Windows commands
+retain kill-on-close Job ownership. These controls are local execution evidence,
+not a sandbox, cryptographic identity guarantee or lease on output paths.
+
 The runner observes a pre-start request before invoking the engine, and racing
-success/failure cannot replace pending stop ownership. A PID/lease check is existing
-execution evidence, not a cryptographic identity guarantee or a lease on output paths.
+success/failure cannot replace pending stop ownership. No public hashed journal
+schema or state is added by this repair.
 
 The [Projectstore lifecycle guide](../PROJECTSTORE_LIFECYCLE.md) records current
 helper return values, repair ownership, conservative reconciliation, platform

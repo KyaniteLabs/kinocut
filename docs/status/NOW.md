@@ -2,11 +2,21 @@
 
 GitHub backlog review and local fixes: [September 30 report](../research/github-backlog/2026-09-30/REPORT.md).
 
+**Latest merged audit:** [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)
+landed at `3db9ba9f9cad590f4c018b76091ee3c27e7106fd`. Its tested source passed
+8,013 tests with 189 skips and thirteen exact-head checks. Further resource,
+architecture and acceptance work is tracked in the
+[debt closure ledger](../research/DEBT_CLOSURE.md); pending results there are
+separate from the merged audit's evidence.
+
 **Published:** 1.15.3 · **201 MCP / 173 CLI** · 2026-09-25 · `docs/public_claims.json`
 
-**Tip (`master`):** 1.15.3 · **201 MCP / 173 CLI** (same registered surface as published 1.15.3; current local changes remain Unreleased). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Tip (`master`):** 1.15.3 · **201 MCP / 173 CLI** (same registered surface as published 1.15.3; merged source changes remain Unreleased). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
-**Product pipeline:** Phase 1–4 + Track E **GO**.
+**Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
+support covers deterministic processing and measured policy/resource controls;
+full-episode and listening acceptance require separate evidence. See the
+[supported-scope amendment](../research/debt-closure-operations.md).
 
 **Default agent path:** doctor/info → `video_intent` (`goal=` compiles a cutfile; a 360/desk/table goal also proposes a `360_assembly_plan`) → review → render → QC → human review. Operator guide: [360_ASSEMBLY.md](../360_ASSEMBLY.md).
 

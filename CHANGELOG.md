@@ -13,6 +13,10 @@ This project follows a simple release-note style:
 
 ### Added
 
+- Python `Client.record_motion_acceptance` records a separate source/report-bound whole-film human-viewing attestation, complete coverage and purposeful-motion/intended-cut dispositions. Invalid or unresolved evidence cannot grant acceptance (#583).
+- Explicit `KINOCUT_VISION_MODEL` plus `ANTHROPIC_API_KEY` enables one bounded Anthropic keyframe request through an isolated standard-library worker. No default model, retry or request occurs from SDK installation alone; results cover sampled frames, with live provider accuracy separately unverified.
+- Whole-package module/function size guardrails cover both runtime packages, including newly added subsystems.
+
 - Missing FFmpeg encoders and filters return bounded structured dependency advisories through existing processing errors. Suggested alternatives require an intentional caller decision; no codec substitution or dependency installation occurs.
 - Native Gemini CLI MCP setup examples and an on-demand extended agent guide, with host data-egress boundaries and installed-schema discovery.
 - Temporal inspection returns and persists source-hash-bound `motion_coherence` with chronological low-resolution luma-difference windows, coverage/gaps/budget and advisory transition candidates. Frame-budget overflow rejects instead of silently truncating; human viewing and acceptance remain separate (#583).
@@ -22,6 +26,12 @@ This project follows a simple release-note style:
 - Reproducible runtime-source allocation inventories, output-equivalence microbenchmarks, architecture review, and current ASR/typed-decision research under `docs/research/runtime-allocation/`. Source share is not execution cost; no new ASR, VLM or Jev backend is installed or integrated by this work.
 
 ### Changed
+
+- Detached render jobs call the workflow engine directly, preserving typed failures, cancellation, resume and lineage while removing MCP transport imports. Three-trial same-host import medians changed from 0.847s before repair to 0.452s initially and 0.401s in the final check; rendering throughput is unmeasured.
+- PR safety tests use bounded two-worker file grouping with unchanged selection, assertions and JUnit reporting. The same 257-case baseline measured 204.2s serial versus 112.4s with two workers; full-suite speed is not inferred.
+- ASR reuses same-job verified PCM instead of decoding identical WAV bytes twice. Sound policy constants are centralized with compatible aliases and static package exports, resolving thirteen maintenance TODOs.
+- Voice-batch receipts expose `loudness=null` and `loudness_assessment_status="not_evaluated"` instead of fabricated -16 LUFS/-1 dBTP compliance. Measured receipt paths retain their evidence; consumers needing loudness must meter the assembled master.
+- Current support claims select staged local-access MCPB, retain paid generation as an unavailable draft and separate deterministic sound processing from full-episode/listening acceptance. The existing 1.15.3 release draft and tag are bound to its verified original source and notes; new source changes remain Unreleased.
 
 - Split Client mask operations and CLI quality renderables into focused modules while preserving public methods, aliases and formatter behavior. Design checks share source-aware, bounded, defensive-copy measurements rather than maintaining divergent analysis paths.
 - Signalstats reads compact bounded frame output and computes running means instead of retaining full FFprobe frame dictionaries. ASR frontend resampling uses the installed FFmpeg band-limited converter with disclosed version/policy, bounded PCM input and exact-length checks; native 16 kHz audio bypasses conversion. Source-bound resource and synthetic anti-aliasing trials do not establish model latency, recognition accuracy or speech quality.
@@ -33,6 +43,15 @@ This project follows a simple release-note style:
 - Host workflow instructions separate source-backed creative proposals from execution and protect names, numbers, qualifications and negations. A prepared plan or model package is not presented as completed inference.
 
 ### Fixed
+
+- Detached-worker media commands retain their job lease under a parent-liveness guardian, so hard worker termination stops native FFmpeg and ordinary descendants instead of leaving processing alive. Normal commands are reaped. Controllers never signal reusable recorded PIDs: current workers consume stop intent themselves; unresponsive legacy workers remain pending until shutdown is proven. Abnormal zombies still require host PID1 reaping.
+- Shared FFmpeg command runners enforce captured stdout/stderr and binary-output ceilings while draining; overflow rejects instead of returning truncated success. Sink writes reject invalid byte counts. POSIX sessions and Windows kill-on-close Jobs clean up owned descendants, including children whose leader exits successfully.
+- Timeline and black-measurement metadata use owned stdout sinks with byte checks before disk writes; existing packet, line and deadline bounds remain.
+- Anchored publication creates missing ancestry safely, verifies directory/inode identity after replacement and reports detected partial output explicitly. Composite receipt failure after media commits returns the committed media identity without unsafe rollback; exclusive destination-writer ownership remains required.
+- Google Fonts downloads run in an isolated deadline-limited worker with allowlisted keys, byte ceilings and bounded diagnostics. Owned cache staging plus structural SFNT/TTC checks reject incomplete tables and prevent interrupted downloads becoming cached success. Windows unresolved font families fail before FFmpeg; macOS resolves Supplemental system fonts.
+- AI scene thumbnails have a hard frame ceiling with an overflow sentinel and bounded width/height. Inconsistent duration metadata cannot silently truncate analysis or create unbounded tall thumbnails; invalid and overflowing durations return typed errors before extraction.
+- Vision sampling rejects malformed, duplicate, nonfinite or excessive timestamps before extraction. Fixed-origin provider transport bounds successful bodies before parsing, refuses redirects/compression and closes error bodies unread; private request files are removed on every outcome.
+- Perceptual voice evidence rejects invalid, nonfinite and out-of-range scores and malformed metadata instead of falsely reporting no drift; backend-detected drift remains authoritative.
 
 - Audio processing rejects severity-tagged FFmpeg decoder errors even when the process exits zero, including ANSI-colored diagnostics on FFmpeg 6. Existing analysis/render/postflight passes are reused; strict flags alone do not establish rejection. Failure diagnostics preserve the actual process exit status and retain at most 4,096 UTF-8 bytes of complete-codepoint context; public messages retain the existing 500-character bound, while existing captured stderr is collected before extraction.
 - Native Windows timeout tests verify actual child reaping, closed pipes and reader cleanup without an unsafe dead-PID signal probe. This is a test portability correction; production cancellation behavior is unchanged.
