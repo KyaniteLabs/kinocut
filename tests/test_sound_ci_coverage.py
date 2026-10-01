@@ -15,19 +15,6 @@ def _workflow(name):
 
 
 @pytest.mark.parametrize("workflow", ["ci.yml", "pr-safety.yml"])
-def test_sound_sources_trigger_every_code_and_docker_classifier(workflow):
-    patterns = re.findall(r"grep -Eq '([^']+)'", _workflow(workflow))
-    assert patterns, "no classifier expressions were inspected"
-    for pattern in patterns:
-        for path, expected in [
-            ("kinocut_sound/public/dub_job.py", True),
-            ("kinocut_sound/mix/_wav.py", True),
-            ("docs/notes.md", False),
-        ]:
-            assert bool(re.search(pattern, path)) is expected, (workflow, pattern, path)
-
-
-@pytest.mark.parametrize("workflow", ["ci.yml", "pr-safety.yml"])
 def test_sound_package_is_in_every_existing_lint_and_format_gate(workflow):
     inspected = 0
     for command in _workflow(workflow).splitlines():

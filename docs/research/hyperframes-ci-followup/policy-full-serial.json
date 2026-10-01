@@ -1,0 +1,27 @@
+{
+  "command": [
+    ".venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 1863.1049311930037,
+  "source_identity_sha256": "604be219d8f563d9a4dec5ad7ce0ad514dd8d183ed825976f8b0707b55a80631",
+  "source_unchanged": true,
+  "file_count": 1216,
+  "passed": 8348,
+  "skipped": 189,
+  "warnings": 8,
+  "pytest_seconds": 1858.59,
+  "log_sha256": "4bded8b551dc06a2c75ac8035b2bb7bba81d590267e348ace5b8e899c00917be",
+  "cache_policy": "Explicit writable UV, XDG and npm cache exports; source unchanged",
+  "focused_policy_guard_and_classifier_tests": 51,
+  "actual_hyperframes_cli": "0.8.104",
+  "actual_cli_integration_passed": 2,
+  "initial_passing_checkpoint": "initial-full-serial.json",
+  "scope": "Full serial gate after both PR589 review repairs; separate actual CLI/static HTML controls do not establish browser rendering or paid provider quality"
+}

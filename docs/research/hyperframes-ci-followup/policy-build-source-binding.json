@@ -1,0 +1,24 @@
+{
+  "scope": "Local Unreleased review-fix wheel and sdist; not published over existing 1.15.3; no inference/render/full-suite execution",
+  "wheel_name": "kinocut-1.15.3-py3-none-any.whl",
+  "wheel_sha256": "d8ef9ff8fc14b7146e6a9d43dfe81830561cba14ec73929f4c72d755102b95a7",
+  "sdist_name": "kinocut-1.15.3.tar.gz",
+  "sdist_sha256": "3d14869d731f42018298c9786220e13af0e9184ee03581fb7078b83857e2e040",
+  "build_tool": "existing pinned build1.6.1/hatchling environment; no isolation dependency installs",
+  "source_identity_sha256": "604be219d8f563d9a4dec5ad7ce0ad514dd8d183ed825976f8b0707b55a80631",
+  "selected_source_files": 1216,
+  "shipped_python_files": 645,
+  "mismatches_or_missing": [],
+  "current_selected_source_mismatches": [],
+  "ci_test_or_workflow_leakage": {
+    "wheel": [],
+    "sdist": []
+  },
+  "installed_wheel_import": {
+    "canonical_client_identity": true,
+    "origins_within_isolated_wheel_install": true,
+    "ci_report_bytes": 65536,
+    "ci_minimum_executed_cases": 2
+  },
+  "dependency_scope": "Fresh isolated venv installed this wheel only; existing regression-venv dependencies appended after installed site-packages; wheel import origins verified; not a fresh dependency resolution"
+}

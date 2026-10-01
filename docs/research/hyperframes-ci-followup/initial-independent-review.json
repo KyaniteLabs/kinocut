@@ -1,0 +1,114 @@
+{
+  "collected_utc": "2026-10-01T15:02:51.801393+00:00",
+  "review": "independent read-only workflow/CLI/JUnit review",
+  "source_sha256": {
+    ".github/workflows/ci.yml": "c5017344e51c03ce71d80225fe05a761c3e708632744653acd8ab1d9e2bd49d0",
+    ".github/scripts/check-hyperframes-results.py": "04d8ddb281483015baf94f9d1b4f6447070fbaf5c46388c68bed8afcaf42877d",
+    "tests/test_hyperframes_engine.py": "7f13b160f3284d50ded74b9e6bf6c847629d15068cf6bed4ead135ad4bb0de03"
+  },
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "hyperframes_cli": "0.8.104",
+  "actual_optin_tests": {
+    "selector": "tests/test_hyperframes_engine.py -m hyperframes",
+    "passed": 2,
+    "skipped": 0,
+    "deselected": 94,
+    "seconds": 1.0,
+    "pytest_exit": 0,
+    "checker_exit": 0,
+    "junit_sha256": "861c15aee8c48e56d0d6da5b3e03be434d74ea4984a28f1b4c450624a439b591"
+  },
+  "negative_optout": {
+    "passed": 0,
+    "skipped": 2,
+    "deselected": 94,
+    "pytest_exit": 0,
+    "checker_bash_exit": 1,
+    "next_command_marker_absent": true
+  },
+  "workflow_review": {
+    "yaml_parser": "system PyYAML6.0.2 parse succeeded",
+    "job_timeout_minutes": 30,
+    "npm_cli_pin": "hyperframes@0.8.104",
+    "npm_lifecycle_scripts": "--ignore-scripts",
+    "cli_install_timeout_minutes": 5,
+    "test_checker_step_timeout_minutes": 5,
+    "optin_scope": "only Hyperframes test step, MCP_VIDEO_RUN_HYPERFRAMES_INTEGRATION string1",
+    "shell_fail_closed": "GitHub Linux default shell -e, independent bash -e report rejection verified",
+    "junit_guard": "actual successful report accepted; actual optout skipped report rejected",
+    "concrete_correctness_issues": []
+  },
+  "scope": [
+    "Only CLI dependency checks and static safe HTML project validation; no rendering/provider/model/API calls.",
+    "No source edits, no commits, no dependency install by independent reviewer.",
+    "This does not assert rendered media quality or provider callability."
+  ],
+  "evidence_sha256": {
+    "optout.xml": "3aad9929538402318af284813fadfddf9bcd0d0adc997949182e660814fce3a6",
+    "results.xml": "861c15aee8c48e56d0d6da5b3e03be434d74ea4984a28f1b4c450624a439b591",
+    "optout-pytest.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "shell-rejection.log": "d5b2b60287f5d292527257f0523f5bd51616d2e3c14e86214800784166edaf72",
+    "shell-rejection.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "pytest.log": "6a3cb353a1883998e27277c4eb074aaed0ada40592f077f7dcb187aa81b69411",
+    "optout.log": "cf3c6e0a9a5069e7375563cf6812d2b4047f8b7de863684e7663f8cda0c20ba4",
+    "pytest.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "classifier-boundary.json": "fbf7ac4ed63456f7e711c7e0a758173574e3cef183824f4154b62f38df46b3a7",
+    "classifier-large-list.json": "0dacf34436b3ac9a86a5202477b285a842df0e4c973567ba7b192acef43f7731",
+    "classifier-final-boundaries.json": "45e61be29ed83f4f7e71a3f8e057d7c6c7731a341f31ab756ee736382cdc7213"
+  },
+  "workflow_before_classifier_refresh_sha256": "bda38d59dd29a1d80ecc0d851110f79e755e3a7638a2f8542c4aad11b657b56f",
+  "classifier_boundary_review": {
+    "tested_utc": "2026-10-01T15:02:51.801393+00:00",
+    "workflow_sha256": "c5017344e51c03ce71d80225fe05a761c3e708632744653acd8ab1d9e2bd49d0",
+    "actual_conditions": [
+      "grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\\.py|tests/|pyproject\\.toml|uv\\.lock|Dockerfile|\\.github/workflows/ci\\.yml|\\.github/scripts/check-hyperframes-results\\.py)' <<< \"$changed\"",
+      "grep -Eq '^(Dockerfile|kinocut/|kinocut_sound/|mcp_video\\.py|pyproject\\.toml|uv\\.lock|\\.dockerignore|\\.github/workflows/ci\\.yml)' <<< \"$changed\""
+    ],
+    "bash_modes": "set -euo pipefail",
+    "results": {
+      "checker-plus-large-docs": {
+        "bytes": 67544,
+        "expected_code": true,
+        "expected_docker": false,
+        "actual_code": true,
+        "actual_docker": false
+      },
+      "runtime-plus-large-docs": {
+        "bytes": 67529,
+        "expected_code": true,
+        "expected_docker": true,
+        "actual_code": true,
+        "actual_docker": true
+      },
+      "large-docs-only": {
+        "bytes": 67499,
+        "expected_code": false,
+        "expected_docker": false,
+        "actual_code": false,
+        "actual_docker": false
+      },
+      "checker-only": {
+        "bytes": 44,
+        "expected_code": true,
+        "expected_docker": false,
+        "actual_code": true,
+        "actual_docker": false
+      },
+      "docs-only": {
+        "bytes": 23,
+        "expected_code": false,
+        "expected_docker": false,
+        "actual_code": false,
+        "actual_docker": false
+      }
+    },
+    "yaml_parser": "system PyYAML6.0.2 parse succeeded",
+    "large_list_issue": "fixed: here-string conditions do not create printf-to-grep-q producer pipeline"
+  },
+  "resolved_classifier_issue": {
+    "previous_proof": "classifier-large-list.json",
+    "current_validation": "classifier-final-boundaries.json",
+    "status": "fixed; actual code and docker conditions pass large-list controls"
+  },
+  "cli_resolution": "explicit task-local pinned CLI"
+}

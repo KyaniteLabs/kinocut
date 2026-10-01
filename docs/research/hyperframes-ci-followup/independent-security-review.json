@@ -1,0 +1,122 @@
+{
+  "schema_version": 1,
+  "review_type": "independent_read_only_security_and_correctness",
+  "reviewed_at_utc": "2026-10-01T18:22:22.129368+00:00",
+  "prior_published_head": "6264b0cb773c91268754bb53a1f78a72c21e5857",
+  "frozen_source": {
+    "identity_sha256": "4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd",
+    "file_count": 1218,
+    "verified_current_file_count": 1218,
+    "file_mismatches": []
+  },
+  "reviewed_source_sha256": {
+    ".github/scripts/check-hyperframes-results.py": "5c40fd272889d9973b82fb2c42215d0c8513e3be4b5f005cd8e7e0840d0ba29e",
+    ".github/workflows/ci.yml": "687bfd4ffd2abef462abd8e8d0c98f46ecd874ef7b66019bbec990c6c10a5ec5",
+    ".github/workflows/pr-safety.yml": "e3456e715ae84f99f581231f9aac8e6bbb050f2ea20862ed74bce2c7c7e3a6d9",
+    ".github/workflows/integration-smoke.yml": "d161292e31ef207314fabead8a2de652aa3553704b18711645eed08cc62d9021",
+    "kinocut/limits.py": "843d5da211c4cc8f32129471c34e952569b2a804d3329f053e1782118f117e6b",
+    "kinocut/validation.py": "36ef47ebd8e05e90f6865113f469a7c8291dab65d1b8b815567c8595cf17993b",
+    "tests/test_hyperframes_ci.py": "1935df29cdbb6e82bb609b1208093e293f08ebb3efee9fc237e25067b531b77a",
+    "tests/test_hyperframes_ci_policy.py": "2c0a5bb078822e08ab528dfa56165eedc9c58a350d0a24ef9e894a0388f1dd59",
+    "tests/test_ci_change_classification.py": "be56c7664c11c1e65103131c5552237b027980823a9e849edf26bc79cfdae76f",
+    "tests/test_ci_ffmpeg_setup.py": "93098f1f41f40b0b97a38073be2d3c607df63b511285cd694f28883169d4de66",
+    "tests/test_hyperframes_engine.py": "7f13b160f3284d50ded74b9e6bf6c847629d15068cf6bed4ead135ad4bb0de03",
+    "tests/test_sound_ci_coverage.py": "e1b5a7f2a4e223d374d78e9e9b1f6463e6883fb7515b479cd70b67809093629c"
+  },
+  "classifier_body_sha256": {
+    "ci.yml": "7614001523d68b1259aacdd1d8d32ac67d485f7e81f7a28c6834c0766b71ccd4",
+    "pr-safety.yml": "e1d033059eaadade5dbc97975681b7dff1b3ad5627f52cb5ad819152ef8ae873"
+  },
+  "independent_controls": {
+    "actual_git_shell_cases": 96,
+    "checks": [
+      "Unicode, tab, LF, backslash and quoted filenames",
+      "literal shell expressions do not execute",
+      "annotation-like filenames do not create commands",
+      "runtime-to-docs and docs-to-runtime renames preserve checks",
+      "all workflow and script owners trigger code checks",
+      "integration-only and future CI guard changes trigger code checks",
+      "unusual Unicode/LF CI guard paths and owner near-misses classify correctly",
+      "Docker classification remains separate",
+      "missing/all-zero push before uses valid parent",
+      "invalid refs and partial failed Git output produce no outputs",
+      "owned temporary files removed on success and failure"
+    ],
+    "unchanged_on_frozen_source": true
+  },
+  "xml_guard_controls": {
+    "additional_cases": 8,
+    "expected_decisions_passed": 8,
+    "parser_and_shared_policy_byte_identical_to_tested_source": true,
+    "bounded_read_bytes": 65537,
+    "checks": [
+      "consistent multi-suite report accepted",
+      "internal and external DTD/entity declarations rejected",
+      "negative and Unicode counters rejected",
+      "nested cases and misplaced failures rejected",
+      "partial root counters rejected"
+    ]
+  },
+  "earlier_independent_focused_tests": {
+    "passed": 90,
+    "duration_seconds": 6.42,
+    "provenance": "Earlier stage; superseded by expanded-owner controls and parent final focused gate."
+  },
+  "parent_reported_final_focused_tests": {
+    "passed": 148,
+    "duration_seconds": 7.05,
+    "source_identity_sha256": "4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd"
+  },
+  "ffmpeg_setup_review": {
+    "phase_timeout_minutes": 45,
+    "linux_phases": 7,
+    "requires_both_ffmpeg_and_ffprobe": true,
+    "package_manager_failures_not_masked": true
+  },
+  "remaining_concrete_blockers": [],
+  "new_token_permission_grants": false,
+  "automated_security_review": {
+    "completed": false,
+    "reason": "payer_usage_limit"
+  },
+  "provider_or_browser_requests_performed": false,
+  "product_repository_or_remote_mutations_performed": false,
+  "isolated_cache_git_fixtures_created": true,
+  "parent_full_serial_gate": {
+    "status_at_review": "running",
+    "successful_completion_claimed": false,
+    "source_identity_sha256": "4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd"
+  },
+  "supersedes_reviewed_source_identity_sha256": "de01c5ee7ff9fb82160f5adb1ba654838705536b508fb231985678b8cd44c154",
+  "changes_since_previous_frozen_source": {
+    "paths": [
+      "tests/test_ci_change_classification.py",
+      "tests/test_sound_ci_coverage.py"
+    ],
+    "runtime_helper_workflow_and_shared_policy_changes": false,
+    "behavioral_strengthening_verified": true,
+    "explanation": "Replaced obsolete grep-regex syntax inspection with execution of the real NUL-safe Bash classifiers against committed nested sound paths; retained lint and integration trigger checks."
+  },
+  "independent_sound_controls": {
+    "passed": 7,
+    "deselected": 79,
+    "duration_seconds": 0.45,
+    "actual_git_paths": [
+      "kinocut_sound/public/dub_job.py",
+      "kinocut_sound/mix/_wav.py"
+    ],
+    "classifier_cases": 4,
+    "residual_lint_and_integration_cases": 3,
+    "code_checks_enabled_for_both_workflows": true,
+    "docker_enabled_in_master_ci": true
+  },
+  "previous_parent_full_serial_gate": {
+    "source_identity_sha256": "de01c5ee7ff9fb82160f5adb1ba654838705536b508fb231985678b8cd44c154",
+    "status": "failed",
+    "failed": 1,
+    "passed": 6096,
+    "skipped": 161,
+    "duration_seconds": 1256.91,
+    "failure": "obsolete grep-regex classifier test"
+  }
+}

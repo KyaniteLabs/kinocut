@@ -1,0 +1,80 @@
+{
+  "frozen_identity": "4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd",
+  "manifest_file_count": 1218,
+  "whole_manifest_verified_files": 1218,
+  "whole_manifest_mismatches": [],
+  "source_manifest_path": "Private task-local evidence path omitted; source and artifact hashes retained",
+  "source_manifest_sha256": "192966044a561df861c629695f001e2d8a3be298036f84480472f1d40a2abf32",
+  "previous_de01_identity": "de01c5ee7ff9fb82160f5adb1ba654838705536b508fb231985678b8cd44c154",
+  "changed_paths_vs_de01": [
+    "tests/test_ci_change_classification.py",
+    "tests/test_sound_ci_coverage.py"
+  ],
+  "source_sha256": {
+    ".github/scripts/check-hyperframes-results.py": "5c40fd272889d9973b82fb2c42215d0c8513e3be4b5f005cd8e7e0840d0ba29e",
+    ".github/workflows/ci.yml": "687bfd4ffd2abef462abd8e8d0c98f46ecd874ef7b66019bbec990c6c10a5ec5",
+    ".github/workflows/pr-safety.yml": "e3456e715ae84f99f581231f9aac8e6bbb050f2ea20862ed74bce2c7c7e3a6d9",
+    ".github/workflows/integration-smoke.yml": "d161292e31ef207314fabead8a2de652aa3553704b18711645eed08cc62d9021",
+    "kinocut/limits.py": "843d5da211c4cc8f32129471c34e952569b2a804d3329f053e1782118f117e6b",
+    "kinocut/validation.py": "36ef47ebd8e05e90f6865113f469a7c8291dab65d1b8b815567c8595cf17993b",
+    "tests/test_hyperframes_ci.py": "1935df29cdbb6e82bb609b1208093e293f08ebb3efee9fc237e25067b531b77a",
+    "tests/test_hyperframes_ci_policy.py": "2c0a5bb078822e08ab528dfa56165eedc9c58a350d0a24ef9e894a0388f1dd59",
+    "tests/test_hyperframes_engine.py": "7f13b160f3284d50ded74b9e6bf6c847629d15068cf6bed4ead135ad4bb0de03",
+    "tests/test_ci_change_classification.py": "be56c7664c11c1e65103131c5552237b027980823a9e849edf26bc79cfdae76f",
+    "tests/test_ci_ffmpeg_setup.py": "93098f1f41f40b0b97a38073be2d3c607df63b511285cd694f28883169d4de66",
+    "kinocut/hyperframes_engine.py": "53e07696875b4fcd69c8d33b3727c5ac48ed83905b1e3193c5a12c1785c64afd",
+    "tests/test_sound_ci_coverage.py": "e1b5a7f2a4e223d374d78e9e9b1f6463e6883fb7515b479cd70b67809093629c"
+  },
+  "test_review": {
+    "removed": "Two obsolete regex-only classifier parametrizations, incompatible with approved NUL/case classifier",
+    "replacement": "Nested kinocut_sound/public/dub_job.py and kinocut_sound/mix/_wav.py run actual Git/Bash classifier in both workflows, assert code=true in both and Docker=true in main CI (4actual cases)",
+    "remaining_sound_guards": "Existinglint+format inclusion and integration trigger tests retained",
+    "root_reported_focused_result": "148passed; not rerun by independent reviewer"
+  },
+  "reused_actual_cli_control": {
+    "receipt": "Private task-local evidence path omitted; source and artifact hashes retained",
+    "receipt_sha256": "f3e19545a3dd1e7d1e7ede4d6cd3733e54082a45e49cfe32cc1251969a339514",
+    "optin": {
+      "pytest_exit": 0,
+      "checker_exit": 0,
+      "passed": 2,
+      "skipped": 0,
+      "deselected": 94,
+      "seconds": 0.69
+    },
+    "optout": {
+      "pytest_exit": 0,
+      "checker_exit": 1,
+      "passed": 0,
+      "skipped": 2,
+      "deselected": 94,
+      "seconds": 0.19
+    },
+    "optout_shell_exit": 1,
+    "optout_next_step_marker_absent": true,
+    "basis": "Entire1218-file source comparison differs only2workflow classifiers+classifiertests. CLIhelper/sharedpolicy/livefixture/runtimeengine/allotherinputs identical. Actualcontrol deliberately reused, not rerun."
+  },
+  "prior_review_receipt": "Private task-local evidence path omitted; source and artifact hashes retained",
+  "prior_review_receipt_sha256": "4f1c9aa98636dd7e79d1ee0f37cbcfee7872e5bd96d2693ed0cacc601cbc7e1b",
+  "workflow_review": {
+    "parsed_by": "PyYAML 6.0.3",
+    "parsed_workflows": [
+      "ci.yml",
+      "pr-safety.yml",
+      "integration-smoke.yml"
+    ],
+    "code_family_selectors": "Both .github/workflows/* and .github/scripts/*",
+    "docker_selector": "unchanged vs50",
+    "classifier_timeout_minutes": 1,
+    "NUL_no_renames": true,
+    "hyperframes_job_minutes": 30,
+    "ffmpeg_step_minutes": 45,
+    "effective_ffmpeg_bound": "overall30minutejob",
+    "npm_test_checker_step_minutes": 5,
+    "scoped_optin_string": "1",
+    "npm_pin": "0.8.104",
+    "ignore_scripts": true
+  },
+  "scope": "Only two test files changed; every workflow/runtimehelper/policy/livefixture and allother1216source inputs byteidentical vs independently reviewedDE01. Safely reused source-identical actual CLI behavior controls, no needlessrerun. New fullserial pending, no claim fullpassed.",
+  "no_source_docs_git_installs_tests_by_reviewer": true
+}

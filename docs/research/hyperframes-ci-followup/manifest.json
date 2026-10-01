@@ -1,0 +1,16 @@
+{
+  "sha256": {
+    "build-source-binding.json": "665c26efa5e96498201d6f7ffafc728a66a3a4ffc9f8b2a4674298956e73f481",
+    "ffmpeg-provisioning.json": "36fea2c1b75aa3b0f860900f83fa602505a569d54635a1ccd1fec24707213dc8",
+    "full-serial.json": "c63b9c497d2b95fe150f8bb2a1b7db9dcc8a4934db1ea9bf113bdc6cd694f8bd",
+    "independent-review.json": "95d6d17273e98e79d3300fb06872110761f0ecd2bc56ce6a0a65ea2d03ee3e3a",
+    "independent-security-review.json": "384eb968bddd2834225f86626cad5ce01b2cbef00df71f6de7d1cc93a94e3873",
+    "initial-full-serial.json": "5dc3a1603406cf1dd5bb283a4412399f4a26de7bdcba8065268051479f2c735e",
+    "initial-hosted-ci.json": "fdd3397f881ea25e53cb21d61eb832bdc438f2d0d7f6f89f65efe6dd613fe8bb",
+    "initial-independent-review.json": "3e7d1d2c15a3253407244153820b77f413a1a6cc07c3e0b28e416723f7249ea8",
+    "policy-build-source-binding.json": "0e2b2c485a19c4cd6c0341e2b10ea871649397dd5274109e3b34469047291d6c",
+    "policy-full-serial.json": "9e6a56046cd1f295361a65a9b6181719291594fd134aaac8694be867617b4d00",
+    "policy-hosted-ci.json": "3d14cb06a2c815a69a842231c0d809532be654334dae75c5903b970d7ecacfdf",
+    "policy-independent-review.json": "c7ed451977f4866fc6bff0193a628cdc6496d6eab22b131aa50365fee2137106"
+  }
+}

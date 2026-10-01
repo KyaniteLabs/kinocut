@@ -1,0 +1,93 @@
+{
+  "scope": "Actual completed logs; cross-run package footprint comparison, not controlled elapsed-time benchmark",
+  "records": {
+    "pr589-6264b0c-safety.zip:Hosted PR checks/5_Ensure FFmpeg.txt": [
+      "0 upgraded, 87 newly installed, 0 to remove and 25 not upgraded.",
+      "Need to get 62.8 MB of archives.",
+      "After this operation, 173 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Slow suite (real-media)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Compatibility (Python 3.12)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Compatibility (Python 3.13)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Hyperframes integration/7_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Test (Python 3.13)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Compatibility (Python 3.11)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "pr589-manual-ci.zip:Minimal install (no extras)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 21 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Compatibility (Python 3.13)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 20 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Slow suite (real-media)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 20 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Compatibility (Python 3.11)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 20 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Compatibility (Python 3.12)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 43 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Test (Python 3.13)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 20 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Hyperframes integration/7_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 20 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ],
+    "master-6f0b9cb-ci.zip:Minimal install (no extras)/6_Ensure FFmpeg.txt": [
+      "4 upgraded, 100 newly installed, 0 to remove and 20 not upgraded.",
+      "Need to get 105 MB of archives.",
+      "After this operation, 227 MB of additional disk space will be used."
+    ]
+  },
+  "current_policy": {
+    "linux_provisioning_blocks": 7,
+    "both_tools_required": [
+      "ffmpeg",
+      "ffprobe"
+    ],
+    "apt_recommended_packages": false,
+    "phase_timeout_minutes": 45,
+    "hyperframes_overall_job_timeout_minutes": 30,
+    "effective_hyperframes_provisioning_bound_minutes": 30,
+    "controlled_elapsed_time_speedup": "not_measured",
+    "legacy_check_context": "Retained; runtime/skip message correctly identify Python3.14"
+  }
+}
