@@ -213,3 +213,65 @@ def test_startup_protocol_malformed_or_oversized_response_fails_closed(payload):
     finally:
         guardian.close()
     assert not guardian.descriptors
+
+
+def test_retaining_supervisor_releases_streams_before_reporting_native_exit(monkeypatch):
+    import select
+
+    from kinocut import process_observation
+    from kinocut.process_tree import ProcessTree
+
+    monkeypatch.setattr(process_observation, "supports_nonreaping_wait", lambda: False)
+    tree = ProcessTree(
+        [sys.executable, "-c", "import os;os.write(1,b'payload');os.write(2,b'diagnostic');raise SystemExit(23)"]
+    )
+    try:
+        assert tree.wait(timeout=1) == 23
+        assert tree.process.returncode is None
+        for stream, expected in ((tree.process.stdout, b"payload"), (tree.process.stderr, b"diagnostic")):
+            assert select.select([stream], [], [], 1)[0]
+            assert stream.read1(1024) == expected
+            assert select.select([stream], [], [], 1)[0], "supervisor still holds producer pipe"
+            assert stream.read1(1024) == b""
+        assert tree.process.returncode is None  # Live authority retained until close.
+    finally:
+        tree.close()
+        tree.process.stdout.close()
+        tree.process.stderr.close()
+    assert tree.process.returncode is not None and tree.wait(timeout=0) == 23
+
+
+@pytest.mark.parametrize("inherited_writer", [False, True])
+def test_retaining_supervisor_preserves_signal_reader_eof_and_descendant_deadline(
+    tmp_path, monkeypatch, inherited_writer
+):
+    import threading
+
+    from kinocut import process_observation, quality_signal_reader
+
+    monkeypatch.setattr(process_observation, "supports_nonreaping_wait", lambda: False)
+    monkeypatch.setattr(quality_signal_reader, "QUALITY_GUARDRAILS_TIMEOUT", 0.5)
+    heartbeat = tmp_path / "descendant-beat"
+    descendant = f"import pathlib,time;p=pathlib.Path({str(heartbeat)!r});\nwhile True:p.write_text(str(time.monotonic()));time.sleep(.02)"
+    script = "import subprocess,sys,time;"
+    if inherited_writer:
+        script += f"subprocess.Popen([sys.executable,'-c',{descendant!r}],stdin=subprocess.DEVNULL);time.sleep(.1);"
+    script += "print('frame:0 pts:0 pts_time:0\\nlavfi.signalstats.YAVG=37',flush=True)"
+    before = {thread.ident for thread in threading.enumerate()}
+    start = time.monotonic()
+    if inherited_writer:
+        with pytest.raises(subprocess.TimeoutExpired):
+            quality_signal_reader._run_reduction(
+                [sys.executable, "-c", script], quality_signal_reader.MetadataReduction()
+            )
+        assert heartbeat.exists()
+        snapshot = heartbeat.read_bytes()
+        time.sleep(0.1)
+        assert heartbeat.read_bytes() == snapshot
+    else:
+        result = quality_signal_reader._run_reduction(
+            [sys.executable, "-c", script], quality_signal_reader.MetadataReduction()
+        )
+        assert result.frames == 1 and result.means()["lavfi.signalstats.YAVG"] == 37
+    assert time.monotonic() - start < 2
+    assert {thread.ident for thread in threading.enumerate()} == before

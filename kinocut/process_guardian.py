@@ -64,6 +64,10 @@ def main():
         os.close(error)
         returncode = child.wait()
         if status >= 0:
+            # Retain group authority, not producer pipes. Real descendants may
+            # still hold their own copies and must keep reader deadline semantics.
+            os.close(1)
+            os.close(2)
             os.write(status, b"C" + str(returncode).encode("ascii"))
             os.close(status)
             watcher.join()  # Parent cleanup kills this still-owned live group.
