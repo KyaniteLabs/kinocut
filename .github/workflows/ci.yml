@@ -31,12 +31,12 @@ jobs:
           fi
           changed="$(git diff --name-only "$base" "$head" 2>/dev/null || git diff --name-only HEAD^ HEAD)"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|Dockerfile|\.github/workflows/ci\.yml)'; then
+          if grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|Dockerfile|\.github/workflows/ci\.yml|\.github/scripts/check-hyperframes-results\.py)' <<< "$changed"; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
           fi
-          if printf '%s\n' "$changed" | grep -Eq '^(Dockerfile|kinocut/|kinocut_sound/|mcp_video\.py|pyproject\.toml|uv\.lock|\.dockerignore|\.github/workflows/ci\.yml)'; then
+          if grep -Eq '^(Dockerfile|kinocut/|kinocut_sound/|mcp_video\.py|pyproject\.toml|uv\.lock|\.dockerignore|\.github/workflows/ci\.yml)' <<< "$changed"; then
             echo "docker=true" >> "$GITHUB_OUTPUT"
           else
             echo "docker=false" >> "$GITHUB_OUTPUT"
@@ -251,6 +251,7 @@ jobs:
     name: Hyperframes integration
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Skip hyperframes integration
         if: needs.changes.outputs.code != 'true'
@@ -279,16 +280,22 @@ jobs:
           fi
       - name: Install Hyperframes CLI
         if: needs.changes.outputs.code == 'true'
+        timeout-minutes: 5
         run: |
           node --version
-          npm install -g hyperframes
+          npm install --ignore-scripts -g hyperframes@0.8.104
           hyperframes --version
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e ".[dev]"
       - name: Run hyperframes-marked tests
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "hyperframes" --tb=short
+        timeout-minutes: 5
+        env:
+          MCP_VIDEO_RUN_HYPERFRAMES_INTEGRATION: '1'
+        run: |
+          .venv/bin/pytest tests/ -q -m "hyperframes" --tb=short --junitxml="$RUNNER_TEMP/hyperframes-results.xml"
+          .venv/bin/python .github/scripts/check-hyperframes-results.py "$RUNNER_TEMP/hyperframes-results.xml"
 
   ffmpeg-matrix:
     name: FFmpeg matrix (FFmpeg ${{ matrix.major }})

@@ -1771,3 +1771,5 @@ class TestHyperframesIntegration:
         (tmp_path / "index.html").write_text("<!DOCTYPE html><html><div data-composition-id='test'></div></html>")
         result = validate(str(tmp_path))
         assert result.valid is True
+        assert result.issues == []
+        assert result.warnings == []

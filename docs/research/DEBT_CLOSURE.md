@@ -27,6 +27,7 @@ Published 1.15.3 artifacts remain distinct from these Unreleased source changes.
 | Raw launch failures and drainer errors | Missing/unexecutable launches return redacted typed processing errors. Cleanup error channels are bounded; original cap/callback errors survive verified cleanup. Windows unassigned suspended startup still uses its stable handle. | Actual missing/unexecutable native and forced-fallback fixtures, descriptor census and startup-handle control. |
 | Cancellation shutdown transition | A lease becoming free during initial checks triggers a fresh quiescence and lease check before a terminal result. Live/reacquired cases remain unconfirmed. | Actual before failure in one of 30 repeats; after 30/30 confirmed. Three deterministic zero-signal transition controls. |
 | Portable supervisor pipe EOF | After native completion the retaining supervisor closes only its own stdout/stderr descriptors before reporting native status, while preserving live group/lease ownership. Native descendant writers still hold their own descriptors and trigger the original deadline. | Actual locally forced fallback reproduces all five native-macOS failure classes; after repair 176 native-selector controls and 29 reader controls pass, with real FFprobe/FFmpeg measurements. New full/native gates below. |
+| Hyperframes skipped-only integration gate | The GitHub job explicitly enables the existing real-CLI integration tests, pins the observed CLI version, bounds execution and rejects absent, empty, malformed or skipped JUnit evidence. The live project fixture rejects warning-only lint failures. | Reproduced the old opt-out as two skips with exit zero; explicit opt-in executes both tests against Hyperframes 0.8.104. Follow-up gates and scope are recorded below. |
 
 ## Measured performance scope
 
@@ -251,3 +252,69 @@ security bot's usage limit remains outside completed-review evidence.
 binding. The final documentation commit keeps selected source identity
 `0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d` unchanged; its exact-head
 checks and eventual merge metadata remain observable on [PR588](https://github.com/KyaniteLabs/kinocut/pull/588).
+
+## Merged delivery and Hyperframes follow-up
+
+PR588 merged normally as `6f0b9cbb73efe9b8435cf4f74145bbf48702c60d`, preserving
+all seven commits through final head `895096477f454fb98b0be945105a3fdc1f3aaa58`.
+Actual master, final head and generated merge `dafe33f11d629378726119a0275ace80dda1702e`
+share tree `3347c330e81fe3deff68cbd70169d216a7e6d4ed`. All thirteen final-head
+checks passed; hosted tests passed 8,272 with 50 skips, 164 deselected and eight
+warnings in 476.95s. Native Linux passed 176 with three skips, macOS 174 with five,
+and Windows 129 with 50. Fresh review inspection found one resolved thread and
+zero unresolved threads; the separate security bot did not complete its review.
+
+The actual master CI run [36874422473](https://github.com/KyaniteLabs/kinocut/actions/runs/36874422473),
+Integration, MCPB and MirrorSmoke workflows succeeded. The commit had 27 successful
+checks and three conditional skips, including two excluded Forgejo downstream
+gates. Main coverage and each Python 3.11/3.12/3.13 compatibility selection passed
+8,272 tests with 50 skips and eight warnings. The main job label says Python 3.13,
+but its configured and observed interpreter was Python 3.14.7. The separate slow
+selection passed 159 tests with five skips; FFmpeg 6/7/8 selections each passed
+125 tests. Selections overlap and must not be added. Hyperframes dependency setup
+took 838 seconds; Python 3.12 FFmpeg setup took 958 seconds before its passing
+tests. These are hosted dependency-install delays, not measured application latency.
+
+Detailed logs exposed one further integration gap: the Hyperframes job succeeded
+with **two skips and zero executed integration tests** because it omitted
+`MCP_VIDEO_RUN_HYPERFRAMES_INTEGRATION=1`. CLI installation itself succeeded with
+Node 24.21.0 and Hyperframes 0.8.104. Local safe fixtures reproduce two skips with
+exit zero when opt-in is absent, versus two executed passes with explicit opt-in
+and the same pinned CLI. The follow-up enables that flag before collection and
+requires actual, consistent, unskipped JUnit cases, rather than treating pytest
+exit zero alone as sufficient evidence. Checker-only changes are classified as
+code changes so future guard repairs cannot silently skip this integration job.
+Both code and Docker classification use here-strings: an independently reproduced
+67,544-byte changed-file list made the previous `printf | grep -q` pipeline fail
+under `pipefail` after grep's early success, incorrectly classifying code as unchanged.
+The identical large-list fixture must retain its expected code/Docker results.
+The CLI installation disables package
+lifecycle scripts; the job, install and test phases have explicit deadlines.
+The live project fixture also requires empty issues and warnings so a caught
+lint launch error cannot masquerade as successful validation. This validates CLI
+discovery and a small HTML project, **not browser rendering, pixel output or paid
+provider quality**.
+
+The follow-up required full serial command passed **8,330 tests, 189 skips and
+eight warnings in 2,271.43 seconds**, exit zero, on unchanged **1,215-file** source
+identity `202de724d5bed9457f5936473ed47d31ad0a43103ce14ff824953f5a617002d9`.
+Thirty-three focused guard/classifier controls passed. Two independent reviewers
+checked the actual CLI/JUnit and large-list Bash boundaries. Configured Ruff
+checks and formatting passed for the selected code paths, including the new
+checker. The earlier review-driven interruptions and failed writable-cache
+checkpoint are retained and explicitly superseded; none is counted as a passing
+full gate. After writable cache exports were restored, all 17 distribution
+controls passed and the unchanged full source passed. PR588's existing gates
+remain separate historical evidence.
+
+[Follow-up local receipts](hyperframes-ci-followup/README.md) include actual
+counts, command, source identity, log digest, independent review and payload
+manifest. Exact-head hosted results and eventual merge metadata are recorded in
+the [associated follow-up PR](https://github.com/KyaniteLabs/kinocut/pulls?q=is%3Apr+head%3Acodex%2Fkinocut-hyperframes-ci)
+and its Actions runs; local passes do not establish completion of those runs.
+
+Six issues closed with documented original-scope dispositions: 477, 481, 482,
+485, 553 and 583. The retained external owner/evidence requirements are 476,
+479, 487, 484, 483 and 502; Forgejo issues 499 and 488 are excluded by the user.
+Missing owner appointments, private operations readbacks, directory acceptance,
+site verification and historical human approval are not invented or marked done.
