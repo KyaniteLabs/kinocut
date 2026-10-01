@@ -280,13 +280,11 @@ class TestBoundaryValues:
             pass
 
     def test_resize_tiny_video(self, sample_video):
-        """Resizing to 1x1 should work or fail gracefully."""
-        try:
-            result = crop(sample_video, width=1, height=1)
-            assert os.path.exists(_get_output_path(result))
-        except (ProcessingError, ValueError):
-            # Also acceptable - may be below minimum size
-            pass
+        """An unencodable 1x1 crop is rejected with a typed parameter error."""
+        with pytest.raises(MCPVideoError) as failure:
+            crop(sample_video, width=1, height=1)
+        assert failure.value.error_type == "validation_error"
+        assert failure.value.code == "invalid_crop"
 
     def test_convert_to_gif(self, sample_video):
         """Converting to GIF format should work."""

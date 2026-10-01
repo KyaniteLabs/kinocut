@@ -170,6 +170,11 @@ jobs:
             --architecture "$RUNNER_ARCH" \
             --cleanup-probe-receipt "mcpb-cleanup-${{ matrix.os }}.json" \
             --receipt "mcpb-runtime-${{ matrix.os }}.json"
+      - name: Native publication and bounded-reader regressions
+        shell: bash
+        run: |
+          python -m pip install pytest pytest-asyncio mcpb-artifacts/*.whl
+          python -m pytest tests/test_publication_process_boundaries.py tests/test_composite_publication_boundaries.py tests/test_quality_signal_reader.py -q --tb=short
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         if: always()
         with:

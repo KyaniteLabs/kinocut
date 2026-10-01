@@ -33,7 +33,16 @@ def test_measurement_reads_final_json() -> None:
 
 
 @pytest.mark.parametrize(
-    "name,value", [("target_lufs", True), ("target_lufs", math.inf), ("lra", -1), ("true_peak_dbtp", 1)]
+    "name,value",
+    [
+        ("target_lufs", True),
+        ("target_lufs", math.inf),
+        ("target_lufs", 10**1000),
+        ("lra", -1),
+        ("lra", 0),
+        ("true_peak_dbtp", 1),
+        ("true_peak_dbtp", -10),
+    ],
 )
 def test_numeric_validation(name: str, value: object, tmp_path, monkeypatch) -> None:
     source = tmp_path / "in.wav"
@@ -57,7 +66,7 @@ def test_two_pass_commands_and_measured_values(tmp_path, monkeypatch) -> None:
     monkeypatch.setattr("kinocut.engine_audio_normalize._require_filter", lambda *args: None)
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._run_ffprobe_json",
-        lambda _path: {"format": {"duration": "1.0"}, "streams": [{"codec_type": "audio"}]},
+        lambda _path: {"format": {"duration": "1.0"}, "streams": [{"codec_type": "audio", "duration": "1.0"}]},
     )
     monkeypatch.setattr("kinocut.engine_audio_normalize._run_ffmpeg", lambda command: calls.append(command) or analysis)
     monkeypatch.setattr(
@@ -92,7 +101,10 @@ def test_linear_gain_within_ceiling_has_no_warning_and_keeps_source_rate(tmp_pat
     monkeypatch.setattr("kinocut.engine_audio_normalize._require_filter", lambda *args: None)
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._run_ffprobe_json",
-        lambda _path: {"format": {"duration": "1.0"}, "streams": [{"codec_type": "audio", "sample_rate": "44100"}]},
+        lambda _path: {
+            "format": {"duration": "1.0"},
+            "streams": [{"codec_type": "audio", "sample_rate": "44100", "duration": "1.0"}],
+        },
     )
     monkeypatch.setattr("kinocut.engine_audio_normalize._run_ffmpeg", lambda command: calls.append(command) or analysis)
     monkeypatch.setattr(
@@ -163,7 +175,7 @@ def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, m
     monkeypatch.setattr("kinocut.engine_audio_normalize._require_filter", lambda *args: None)
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._run_ffprobe_json",
-        lambda _path: {"format": {"duration": "0.1"}, "streams": [{"codec_type": "audio"}]},
+        lambda _path: {"format": {"duration": "0.1"}, "streams": [{"codec_type": "audio", "duration": "0.1"}]},
     )
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._run_ffmpeg",

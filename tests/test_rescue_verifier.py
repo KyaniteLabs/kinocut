@@ -3,10 +3,39 @@
 from __future__ import annotations
 
 import shutil
+import math
+
+import pytest
 
 import mcp_video.engine_runtime_utils as runtime
 from mcp_video.engine_edit import trim
 from mcp_video.rescue.verifier import CHECK_IDS, verify_package
+from kinocut.rescue.verifier import _av_end_delta, _within_time_tolerance
+
+
+@pytest.mark.parametrize("base", [0.0, 3.0, 14400.0])
+def test_time_tolerance_includes_decimal_boundary_without_allowing_overrun(base):
+    assert _within_time_tolerance(base + 0.1, base, 0.1)
+    assert _within_time_tolerance(base + 0.099, base, 0.1)
+    assert not _within_time_tolerance(base + 0.100000001, base, 0.1)
+    assert not _within_time_tolerance(base + 0.101, base, 0.1)
+
+
+@pytest.mark.parametrize("bad", [math.nan, math.inf, -math.inf])
+def test_time_tolerance_cannot_accept_nonfinite_measurements(bad):
+    assert not _within_time_tolerance(bad, 3, 0.1)
+    assert not _within_time_tolerance(3, bad, 0.1)
+    assert not _within_time_tolerance(3, 3, bad)
+
+
+def test_shared_av_delta_contract_keeps_difference_and_missing_stream_semantics():
+    raw = {"streams": [{"index": 0, "codec_type": "video"}, {"index": 1, "codec_type": "audio"}]}
+    packets = [
+        {"stream_index": 0, "pts_time": "3.0", "duration_time": "0.1"},
+        {"stream_index": 1, "pts_time": "2.9", "duration_time": "0.1"},
+    ]
+    assert _av_end_delta(raw, packets) == pytest.approx(0.1)
+    assert _av_end_delta(raw, packets[:1]) is None
 
 
 def test_verifier_rejects_duration_regression(tmp_path, sample_video):

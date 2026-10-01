@@ -10,6 +10,7 @@ from .engine_runtime_utils import (
 from .paths import (
     _auto_output,
 )
+from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
@@ -34,12 +35,12 @@ def reverse(
 
     input_info = probe(input_path)
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         if input_info.audio_codec:
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
-                    output_path=output,
+                    output_path=staged,
                     video_filter="reverse",
                     audio_filter="areverse",
                 )
@@ -48,15 +49,18 @@ def reverse(
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
-                    output_path=output,
+                    output_path=staged,
                     video_filter="reverse",
                     audio_codec=None,
                     extra=["-an"],
                 )
             )
 
-    return _build_edit_result(
-        output,
-        "reverse",
-        timing,
-    )
+        result = _build_edit_result(
+            staged,
+            "reverse",
+            timing,
+        )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result

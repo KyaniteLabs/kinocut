@@ -17,6 +17,7 @@ from .paths import (
 from .models import (
     _resolve_position,
 )
+from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
@@ -84,23 +85,26 @@ def overlay_video(
         f"[0:v]format=rgba[base];[1:v]{overlay_chain}[ov];[base][ov]overlay={overlay_pos}{enable_expr},format=yuv420p"
     )
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 background_path,
                 overlay_path,
-                output_path=output,
+                output_path=staged,
                 crf=crf,
                 preset=preset,
                 extra=["-filter_complex", filter_complex],
             )
         )
 
-    return _build_edit_result(
-        output,
-        "overlay_video",
-        timing,
-    )
+        result = _build_edit_result(
+            staged,
+            "overlay_video",
+            timing,
+        )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _validate_dimensions(width: int | None, height: int | None) -> None:

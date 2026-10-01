@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import shutil
 import subprocess
+from pathlib import Path
 from types import SimpleNamespace
 
 import pytest
@@ -53,7 +54,7 @@ def test_composite_layers_builds_three_layer_filtergraph_and_receipt(tmp_path, m
 
     def fake_run_ffmpeg(args):
         calls.append(args.copy())
-        output.write_bytes(b"render")
+        Path(args[-1]).write_bytes(b"render")
 
     monkeypatch.setattr("mcp_video.engine_composite_layers._run_ffmpeg", fake_run_ffmpeg)
     monkeypatch.setattr(
@@ -221,7 +222,7 @@ def test_composite_layers_scales_mask_to_transformed_layer(tmp_path, monkeypatch
 
     def fake_run_ffmpeg(args):
         calls.append(args.copy())
-        output.write_bytes(b"render")
+        Path(args[-1]).write_bytes(b"render")
 
     monkeypatch.setattr("mcp_video.engine_composite_layers._run_ffmpeg", fake_run_ffmpeg)
     monkeypatch.setattr(
@@ -263,7 +264,7 @@ def _render_graph(tmp_path, spec, monkeypatch):
 
     def fake_run_ffmpeg(args):
         calls.append(args.copy())
-        output.write_bytes(b"render")
+        Path(args[-1]).write_bytes(b"render")
 
     monkeypatch.setattr("mcp_video.engine_composite_layers._run_ffmpeg", fake_run_ffmpeg)
     monkeypatch.setattr(

@@ -8,7 +8,11 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _get_video_duration
-from ..limits import LONGFORM_TRANSCRIBE_OVERLAP_SECONDS, MAX_LONGFORM_TRANSCRIBE_CHUNK_SECONDS
+from ..limits import (
+    LONGFORM_TRANSCRIBE_OVERLAP_SECONDS,
+    MAX_LONGFORM_TRANSCRIBE_CHUNK_SECONDS,
+    MAX_LONGFORM_TRANSCRIBE_CHUNKS,
+)
 from ._longform_merge import _merge_chunk, _word_probability
 from ._longform_models import (
     LongformChunk,
@@ -16,6 +20,7 @@ from ._longform_models import (
     LongformTranscribePlan,
     LongformTranscribeResult,
     LongformWord,
+    LongformTimingAdjustment,
 )
 from ._longform_planning import plan_longform_transcription
 from ._longform_runtime import _format_chunk_result, _transcribe_chunk
@@ -26,8 +31,6 @@ from ._longform_validation import (
 )
 from .transcribe import _validate_whisper_model
 
-_MIN_WORD_WIDTH_SECONDS = 0.001
-
 
 def _invalid_plan(message: str) -> MCPVideoError:
     return MCPVideoError(message, error_type="validation_error", code="invalid_plan")
@@ -35,8 +38,16 @@ def _invalid_plan(message: str) -> MCPVideoError:
 
 def _validate_replay_plan(video: str, plan: LongformTranscribePlan, *, verify_media: bool) -> None:
     """Fail closed when a replay plan does not describe this complete source."""
-    if not plan.chunks:
-        raise _invalid_plan("Long-form plan is empty; refusing to transcribe")
+    if not isinstance(plan, LongformTranscribePlan):
+        raise _invalid_plan("Long-form replay requires a validated plan")
+    if not isinstance(plan.chunks, tuple) or not plan.chunks:
+        raise _invalid_plan("Long-form plan has no validated chunks; refusing to transcribe")
+    if len(plan.chunks) > MAX_LONGFORM_TRANSCRIBE_CHUNKS:
+        raise _invalid_plan(f"Long-form plan exceeds {MAX_LONGFORM_TRANSCRIBE_CHUNKS} chunks")
+    try:
+        LongformTranscribePlan.model_validate(plan.model_dump(mode="python"))
+    except (ValueError, TypeError) as exc:
+        raise _invalid_plan("Long-form replay plan contains invalid typed fields") from exc
     if Path(plan.video_path).resolve() != Path(video).resolve():
         raise _invalid_plan("Long-form plan source does not match the requested video")
     if verify_media and abs(_get_video_duration(video) - plan.duration) > 0.05:
@@ -49,6 +60,8 @@ def _validate_replay_plan(video: str, plan: LongformTranscribePlan, *, verify_me
             raise _invalid_plan("Long-form plan chunk exceeds its source or configured cap")
         if expected_index == 0 and chunk.start != 0.0:
             raise _invalid_plan("Long-form plan must start at zero")
+        if expected_index and (chunk.start <= plan.chunks[expected_index - 1].start or chunk.end <= previous_end):
+            raise _invalid_plan("Long-form plan chunks must advance source starts and ends")
         if expected_index and (chunk.start > previous_end or previous_end - chunk.start > plan.overlap_seconds + 1e-9):
             raise _invalid_plan("Long-form plan chunks must provide bounded, gap-free coverage")
         previous_end = chunk.end
@@ -56,15 +69,37 @@ def _validate_replay_plan(video: str, plan: LongformTranscribePlan, *, verify_me
         raise _invalid_plan("Long-form plan must cover the complete source duration")
 
 
-def _enforce_monotonic_words(words: list[LongformWord]) -> None:
-    """Snap boundary overlaps forward while retaining at least 1ms word width."""
+def _enforce_monotonic_words(words: list[LongformWord]) -> tuple[LongformTimingAdjustment, ...]:
+    """Trim overlapping prefixes within observed spans; never manufacture new time."""
+    adjustments = []
     for index in range(1, len(words)):
         previous = words[index - 1]
         current = words[index]
         if current.start < previous.end:
             start = previous.end
-            end = max(current.end, start + _MIN_WORD_WIDTH_SECONDS)
-            words[index] = current.model_copy(update={"start": start, "end": end})
+            if current.end <= start:
+                raise MCPVideoError(
+                    "Distinct word timing is fully covered by its predecessor; explicit alignment required",
+                    error_type="validation_error",
+                    code="invalid_transcript_timing",
+                    suggested_action={
+                        "auto_fix": False,
+                        "word_index": index,
+                        "chunk_index": current.chunk_index,
+                        "description": "Review conflicting observed word spans; no timing was invented",
+                    },
+                )
+            adjustments.append(
+                LongformTimingAdjustment(
+                    word_index=index,
+                    chunk_index=current.chunk_index,
+                    original_start=current.start,
+                    observed_end=current.end,
+                    trimmed_start=start,
+                )
+            )
+            words[index] = current.model_copy(update={"start": start})
+    return tuple(adjustments)
 
 
 def transcribe_longform(
@@ -123,7 +158,7 @@ def transcribe_longform(
 
     words.sort(key=lambda word: (word.start, word.end, word.chunk_index))
     segments.sort(key=lambda segment: (segment.start, segment.end, segment.chunk_index))
-    _enforce_monotonic_words(words)
+    timing_adjustments = _enforce_monotonic_words(words)
     transcript = " ".join(word.word for word in words).strip()
     if not transcript:
         transcript = " ".join(segment.text for segment in segments).strip()
@@ -137,6 +172,7 @@ def transcribe_longform(
         chunk_count=len(plan.chunks),
         model=model,
         plan=plan,
+        timing_adjustments=timing_adjustments,
     )
 
 

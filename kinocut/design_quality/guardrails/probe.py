@@ -4,9 +4,8 @@ from __future__ import annotations
 
 import json
 import logging
-import subprocess
-
-from ...defaults import DEFAULT_FFMPEG_TIMEOUT
+from ...errors import ProcessingError
+from ...ffmpeg_helpers import _run_command, _validate_input_path
 
 logger = logging.getLogger(__name__)
 
@@ -24,6 +23,7 @@ class ProbeMixin:
 
     def _probe_video(self, video_path: str) -> dict:
         """Get video metadata."""
+        video_path = _validate_input_path(video_path)
         cmd = [
             "ffprobe",
             "-v",
@@ -36,10 +36,11 @@ class ProbeMixin:
             "json",
             video_path,
         ]
-        result = subprocess.run(  # noqa: S603
-            cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
-        )
-        data = json.loads(result.stdout)
+        result = _run_command(cmd)
+        try:
+            data = json.loads(result.stdout)
+        except json.JSONDecodeError as exc:
+            raise ProcessingError(" ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {exc}") from None
 
         if data.get("streams"):
             return data["streams"][0]
@@ -66,34 +67,16 @@ class ProbeMixin:
         return float(duration) if duration else 0
 
     def _get_mean_luma(self, video_path: str) -> float | None:
-        """Get mean luminance. Returns None if analysis fails."""
-        cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=mode=print", "-f", "null", "-"]
-        try:
-            result = subprocess.run(  # noqa: S603
-                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
-            )
-        except subprocess.TimeoutExpired:
-            logger.warning("ffmpeg signalstats timed out for %s", video_path)
-            return None
+        """Return clip-average canonical luma, or None if unavailable."""
+        from .measurements import _quality_engine
 
-        if result.returncode != 0:
-            logger.warning("ffmpeg signalstats failed for %s: %s", video_path, result.stderr[:200])
-            return None
-
-        for line in result.stderr.split("\n"):
-            if "lavfi.signalstats.YAVG" in line:
-                try:
-                    return float(line.split("=")[-1].strip())
-                except Exception as exc:
-                    logger.debug("Luma parsing failed: %s", exc)
-        logger.warning("No YAVG signalstats found for %s", video_path)
-        return None
+        return _quality_engine(self)._mean_signalstat(video_path, "YAVG")
 
     def _get_contrast(self, video_path: str) -> float | None:
         """Get the shared YHIGH/YLOW contrast metric used by technical QA."""
-        from ...quality_guardrails import VisualQualityGuardrails
+        from .measurements import _quality_engine
 
-        report = VisualQualityGuardrails().check_contrast(video_path)
+        report = _quality_engine(self).check_contrast(video_path)
         metric = report.details["metric"]
         self.metrics["contrast"] = metric
         return metric["value"] if metric["available"] else None

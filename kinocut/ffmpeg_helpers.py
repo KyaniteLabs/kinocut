@@ -11,8 +11,6 @@ import math
 import os
 import re
 import subprocess
-import tempfile
-import threading
 from collections.abc import Callable, Iterator
 from contextvars import ContextVar
 from typing import Any, BinaryIO
@@ -91,8 +89,8 @@ _SAFE_EXISTING_OUTPUT_SUFFIXES = frozenset(
 #
 # Written paths are tracked alongside inputs because engines probe their own
 # render result after writing (``_build_edit_result`` → ``probe`` →
-# ``_validate_input_path``). A path this operation has already validated as a
-# write target is therefore *not* recorded as an input: re-rendering over an
+# ``_validate_input_path``). A path this operation has actually written is
+# therefore *not* recorded as an input: re-rendering over an
 # earlier output stays legal, while destroying a declared input stays blocked.
 _OPERATION_INPUTS: ContextVar[frozenset[str]] = ContextVar("kinocut_operation_inputs", default=frozenset())
 _OPERATION_WRITES: ContextVar[frozenset[str]] = ContextVar("kinocut_operation_writes", default=frozenset())
@@ -106,8 +104,8 @@ def _record_operation_input(resolved: str) -> None:
 
 
 def _note_operation_write(resolved: str) -> None:
-    """Record a path this operation has validated as a write target."""
-    _OPERATION_WRITES.set(_OPERATION_WRITES.get() | {resolved})
+    """Record an owned stage or successfully written artifact, never a precheck."""
+    _OPERATION_WRITES.set(_OPERATION_WRITES.get() | {os.path.realpath(resolved)})
 
 
 def _reset_operation_inputs() -> None:
@@ -246,7 +244,6 @@ def _validate_write_path(
             )
 
     if os.path.isdir(resolved):
-        _note_operation_write(resolved)
         return path
 
     if os.path.exists(resolved):
@@ -257,7 +254,6 @@ def _validate_write_path(
                 error_type="validation_error",
                 code="unsafe_path",
             )
-    _note_operation_write(resolved)
     return path
 
 
@@ -268,10 +264,10 @@ def _validate_output_path(path: str) -> str:
     projects and temp directories. It must not overwrite system files, symlink
     targets, sensitive home dotfiles, or obviously non-media source/config files.
 
-    Note: this is a pure pre-check. The window between it and FFmpeg's open is a
-    symlink-swap TOCTOU race; callers that must close it should render through
-    :func:`_atomic_output`, which writes to a private temp file and publishes
-    with an atomic ``os.replace``.
+    This is a prospective precheck. ``_atomic_output`` binds registered producer
+    writes to an owned staging descriptor and anchors each file's publication.
+    These protections do not provide a universal integrity guarantee against
+    concurrent hostile writers in the destination directory.
     """
     return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
 
@@ -289,39 +285,27 @@ def _validate_artifact_path(path: str) -> str:
 
 @contextlib.contextmanager
 def _atomic_output(path: str) -> Iterator[str]:
-    """Validate ``path`` and yield a private temp path to write, then publish atomically.
+    """Stage and publish through an anchored output directory."""
+    from .atomic_publication import anchored_output
 
-    Closes the symlink-swap TOCTOU race left by the pure :func:`_validate_output_path`
-    pre-check. The writer (FFmpeg or otherwise) writes into a freshly-created,
-    unpredictable temp file in the *same* directory as the final path; on exit the
-    written file is re-validated (symlink check included) and atomically renamed onto
-    the final path via ``os.replace``. On any failure the temp file is removed so no
-    partial artifact is ever published.
+    with anchored_output(path, _validate_output_path) as staged:
+        yield staged
 
-    Centralises the staging pattern already used ad hoc by ``engine_audio_bed`` /
-    ``engine_body_swap`` / ``product.package`` so new output paths can opt in without
-    re-implementing it.
-    """
-    validated = _validate_output_path(path)
-    final = os.path.realpath(validated)
-    directory = os.path.dirname(final) or "."
-    os.makedirs(directory, exist_ok=True)
-    fd, tmp_path = tempfile.mkstemp(
-        dir=directory,
-        prefix=".kinocut_tmp_",
-        suffix=os.path.splitext(final)[1] or ".tmp",
-    )
-    os.close(fd)
-    try:
-        yield tmp_path
-        # Re-validate after the write: catches a temp-path symlink swap before the rename.
-        _validate_output_path(tmp_path)
-        os.replace(tmp_path, final)
-    except BaseException:
-        with contextlib.suppress(OSError):
-            if os.path.lexists(tmp_path):
-                os.remove(tmp_path)
-        raise
+
+@contextlib.contextmanager
+def _atomic_artifact(path: str) -> Iterator[str]:
+    """Use the same anchored publication with the stricter JSON artifact guard."""
+    from .atomic_publication import anchored_output
+
+    with anchored_output(path, _validate_artifact_path) as staged:
+        yield staged
+
+
+def _open_staged_writer(path: str):
+    """Return a binary writer bound to the transaction's original staging inode."""
+    from .staged_writers import open_staged_writer
+
+    return open_staged_writer(path)
 
 
 def _run_command(
@@ -354,24 +338,43 @@ def _run_command(
                 os.makedirs(out_dir, exist_ok=True)
             break
     cmd_str = " ".join(cmd)
+    from .staged_writers import is_staged_output, staged_ffmpeg_command
+
+    output = cmd[-1] if cmd else ""
+    is_ffmpeg = bool(cmd and os.path.basename(cmd[0]).lower() in {"ffmpeg", "ffmpeg.exe"})
+    if (
+        cmd
+        and is_staged_output(output)
+        and not is_ffmpeg
+        and os.path.basename(cmd[0]).lower() not in {"ffprobe", "ffprobe.exe"}
+    ):
+        from .errors import FFmpegNotFoundError
+
+        try:
+            is_ffmpeg = cmd[0] == _ffmpeg()
+        except FFmpegNotFoundError:
+            is_ffmpeg = False
     try:
-        # cmd is always a list built from trusted internal ffmpeg/ffprobe paths; no shell=True
-        kwargs: dict[str, Any] = {}
-        if pass_fds:
-            kwargs["pass_fds"] = pass_fds
-        if stderr_sink is None:
-            kwargs["capture_output"] = True
-        else:
-            kwargs.update(stdout=subprocess.PIPE, stderr=stderr_sink)
-        result = subprocess.run(  # noqa: S603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=timeout,
-            **kwargs,
-        )
+        with contextlib.ExitStack() as lease:
+            if is_ffmpeg:
+                cmd, pass_fds = lease.enter_context(staged_ffmpeg_command(cmd, pass_fds))
+            # cmd is always a list built from trusted internal ffmpeg/ffprobe paths; no shell=True
+            kwargs: dict[str, Any] = {}
+            if pass_fds:
+                kwargs["pass_fds"] = pass_fds
+            if stderr_sink is None:
+                kwargs["capture_output"] = True
+            else:
+                kwargs.update(stdout=subprocess.PIPE, stderr=stderr_sink)
+            result = subprocess.run(  # noqa: S603
+                cmd,
+                stdin=subprocess.DEVNULL,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=timeout,
+                **kwargs,
+            )
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
     if result.returncode != 0:
@@ -380,6 +383,8 @@ def _run_command(
             result.stderr = stderr_sink.read(FFMPEG_STDERR_DIAGNOSTIC_BYTES).decode("utf-8", errors="replace")
             stderr_sink.seek(0)
         raise ProcessingError(cmd_str, result.returncode, result.stderr)
+    if is_ffmpeg and os.path.isfile(output):
+        _note_operation_write(output)
     return result
 
 
@@ -397,25 +402,30 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
             "prepended); use _run_command for full ffmpeg/ffprobe command lists"
         )
     cmd = [_ffmpeg(), "-y", *args]
+    from .staged_writers import staged_ffmpeg_command
+
     try:
-        # cmd is always a list-form ffmpeg invocation; no shell=True
-        kwargs: dict[str, Any] = {}
-        if pass_fds:
-            kwargs["pass_fds"] = pass_fds
-        proc = subprocess.run(  # noqa: S603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            encoding="utf-8",
-            errors="replace",
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-            **kwargs,
-        )
+        with staged_ffmpeg_command(cmd, pass_fds) as (cmd, pass_fds):
+            # cmd is always a list-form ffmpeg invocation; no shell=True
+            kwargs: dict[str, Any] = {}
+            if pass_fds:
+                kwargs["pass_fds"] = pass_fds
+            proc = subprocess.run(  # noqa: S603
+                cmd,
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                encoding="utf-8",
+                errors="replace",
+                timeout=DEFAULT_FFMPEG_TIMEOUT,
+                **kwargs,
+            )
     except subprocess.TimeoutExpired as e:
         raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from e
     if proc.returncode != 0:
         raise parse_ffmpeg_error(proc.stderr, command=cmd)
+    if args and os.path.isfile(args[-1]):
+        _note_operation_write(args[-1])
     return proc
 
 
@@ -455,9 +465,6 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
     return proc.stdout
 
 
-_TIME_RE = re.compile(r"time=(\d+:\d+:\d+\.\d+)")
-
-
 def _parse_ffmpeg_time(time_str: str) -> float:
     """Parse FFmpeg time= value (HH:MM:SS.xx) to seconds."""
     m = re.match(r"(\d+):(\d+):(\d+)\.(\d+)", time_str)
@@ -482,68 +489,22 @@ def _run_ffmpeg_with_progress(
     if estimated_duration is None or estimated_duration <= 0 or on_progress is None:
         return _run_ffmpeg(args)
 
-    cmd = [_ffmpeg(), "-y", *args]
-    proc = subprocess.Popen(  # noqa: S603
-        cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, text=True
-    )
+    from .ffmpeg_progress import run_progress
 
-    stderr_lines: list[str] = []
-    progress_errors: list[BaseException] = []
-    _MAX_STDERR_LINES = 10_000
-    _MAX_STDERR_BYTES = 10_000_000  # ~10 MB hard cap
-    _stderr_bytes = 0
+    from .staged_writers import staged_ffmpeg_command
 
-    def _read_stderr() -> None:
-        nonlocal _stderr_bytes
-        while proc.stderr is not None:
-            line = proc.stderr.readline()
-            if not line:
-                break
-            line_bytes = len(line.encode("utf-8", errors="replace"))
-            if len(stderr_lines) < _MAX_STDERR_LINES and _stderr_bytes + line_bytes <= _MAX_STDERR_BYTES:
-                stderr_lines.append(line)
-                _stderr_bytes += line_bytes
-
-            match = _TIME_RE.search(line)
-            if match:
-                current_time = _parse_ffmpeg_time(match.group(1))
-                pct = min(100.0, (current_time / estimated_duration) * 100)
-                try:
-                    on_progress(pct)
-                except BaseException as exc:  # propagate callback failures from the reader thread
-                    progress_errors.append(exc)
-                    if proc.poll() is None:
-                        proc.terminate()
-                    break
-
-    reader = threading.Thread(target=_read_stderr)
-    reader.start()
-
-    try:
-        proc.wait(timeout=DEFAULT_FFMPEG_TIMEOUT)
-    except subprocess.TimeoutExpired:
-        proc.kill()
-        proc.wait()
-        reader.join(timeout=5)
-        raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from None
-    finally:
-        reader.join(timeout=5)
-
-    stderr = "".join(stderr_lines)
-    if progress_errors:
-        raise progress_errors[0]
-    if proc.returncode != 0:
-        raise parse_ffmpeg_error(stderr, command=cmd)
-
-    # Report 100% on success
-    on_progress(100.0)
-
-    return subprocess.CompletedProcess(
-        cmd,
-        proc.returncode,
-        "",
-        stderr,
-    )
+    with staged_ffmpeg_command([_ffmpeg(), "-y", *args]) as (cmd, pass_fds):
+        result = run_progress(
+            cmd,
+            estimated_duration,
+            on_progress,
+            _parse_ffmpeg_time,
+            pass_fds=pass_fds,
+            timeout=DEFAULT_FFMPEG_TIMEOUT,
+        )
+    if args and os.path.isfile(args[-1]):
+        _note_operation_write(args[-1])
+    return result
 
 
 def _build_ffmpeg_cmd(
@@ -619,9 +580,11 @@ def _build_ffmpeg_cmd(
 
 def _sanitize_ffmpeg_number(value: Any, name: str) -> float:
     """Ensure a value is numeric and finite before FFmpeg interpolation. Returns float(value)."""
+    if isinstance(value, bool):
+        raise MCPVideoError(f"{name} must be numeric", error_type="validation_error", code="invalid_parameter")
     try:
         result = float(value)
-    except (TypeError, ValueError):
+    except (TypeError, ValueError, OverflowError):
         raise MCPVideoError(
             f"Invalid {name}: expected number, got {type(value).__name__}",
             error_type="validation_error",

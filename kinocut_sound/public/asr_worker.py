@@ -22,11 +22,12 @@ def recognize():
 
     config = json.loads(Path("config.json").read_text())
     torch.set_num_threads(config["threads"])
-    pcm = np.fromfile("source.pcm", dtype="<i2").astype(np.float32) / 32768.0
-    count = round(len(pcm) * config["target_rate"] / config["source_rate"])
-    if config["source_rate"] != config["target_rate"]:
-        positions = np.arange(count, dtype=np.float64) * config["source_rate"] / config["target_rate"]
-        pcm = np.interp(positions, np.arange(len(pcm)), pcm).astype(np.float32)
+    if config["resampled"]:
+        pcm = np.fromfile("source.f32", dtype="<f4")
+    else:
+        pcm = np.fromfile("source.pcm", dtype="<i2").astype(np.float32) / 32768.0
+    if not len(pcm) or not np.isfinite(pcm).all():
+        return {"error": "invalid_preprocessed_audio"}
     # Explicit path is essential: named models could download a missing checkpoint.
     checkpoint = Path("checkpoint.pt").resolve(strict=True)
     with checkpoint.open("rb") as stream:

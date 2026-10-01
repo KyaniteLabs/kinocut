@@ -11,6 +11,7 @@ from .engine_runtime_utils import (
 from .paths import (
     _auto_output,
 )
+from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
@@ -45,12 +46,12 @@ def apply_mask(
     info = probe(input_path)
     filter_complex = _mask_filter(info.width, info.height, feather)
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 input_path,
                 mask_path,
-                output_path=output,
+                output_path=staged,
                 audio_codec="copy",
                 extra=[
                     "-filter_complex",
@@ -63,11 +64,14 @@ def apply_mask(
             )
         )
 
-    return _build_edit_result(
-        output,
-        "apply_mask",
-        timing,
-    )
+        result = _build_edit_result(
+            staged,
+            "apply_mask",
+            timing,
+        )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _mask_filter(width: int, height: int, feather: int) -> str:

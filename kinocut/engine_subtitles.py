@@ -23,6 +23,7 @@ from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _build_ffmpeg_cmd,
     _run_ffmpeg,
 )
@@ -141,22 +142,21 @@ def subtitles(
         if force_style:
             video_filter += f":force_style='{force_style}'"
 
-        with _timed_operation() as timing:
+        with _timed_operation() as timing, _atomic_output(output) as staged:
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
-                    output_path=output,
+                    output_path=staged,
                     video_filter=video_filter,
                     audio_codec="copy",
                 )
             )
+            result = _build_edit_result(staged, "subtitles", timing)
     finally:
         if temp_ass is not None and os.path.exists(temp_ass):
             with contextlib.suppress(OSError):
                 os.remove(temp_ass)
 
-    return _build_edit_result(
-        output,
-        "subtitles",
-        timing,
-    )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result

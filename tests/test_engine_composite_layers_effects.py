@@ -41,7 +41,7 @@ def _captured_graph(tmp_path: Path, monkeypatch, spec: dict):
 
     def fake_run(args):
         calls.append(args.copy())
-        (tmp_path / "out.png").write_bytes(b"rendered")
+        Path(args[-1]).write_bytes(b"rendered")
 
     monkeypatch.setattr("kinocut.engine_composite_layers._run_ffmpeg", fake_run)
     result = composite_layers(str(_write_spec(tmp_path, spec)), output_path=str(tmp_path / "out.png"))

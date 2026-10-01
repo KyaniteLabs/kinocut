@@ -157,18 +157,19 @@ def test_one_ffmpeg_encode_and_one_probe_per_unique_track(media, tmp_path, monke
 
     video, tick = media
     calls, probes = [], []
-    real_run, real_probe = module._run_ffmpeg, module.probe_audio_input
+    real_run, real_probe = module._run_ffmpeg, module._run_ffprobe_json
 
     def run(args):
         calls.append(args)
         return real_run(args)
 
     def probe(path):
-        probes.append(path)
+        if path == str(tick):
+            probes.append(path)
         return real_probe(path)
 
     monkeypatch.setattr(module, "_run_ffmpeg", run)
-    monkeypatch.setattr(module, "probe_audio_input", probe)
+    monkeypatch.setattr(module, "_run_ffprobe_json", probe)
     result = Client().mix_audio(
         str(video),
         [{"path": str(tick), "start": start} for start in (1.0, 2.0, 3.0)],

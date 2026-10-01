@@ -7,11 +7,9 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import subprocess
 from pathlib import Path
 from typing import Any
-import contextlib
 
 from .ffmpeg_helpers import _validate_input_path
 from .errors import MCPVideoError
@@ -22,7 +20,7 @@ from .defaults import (
     QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES,
 )
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
-from .quality_signal_domain import _normalized_signalstat, _signalstats_frames
+from .quality_signal_reader import read_signalstats, read_ffmpeg_signalstats
 from .quality_source import QualitySourceMixin
 from .quality_guardrail_checks import QualityChecksMixin
 from .quality_guardrail_types import QualityReport, _diagnostic
@@ -168,23 +166,11 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         ]
         try:
             cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
-            result = subprocess.run(  # noqa: S603
-                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
-            )
-            if result.returncode != 0:
-                logger.warning("ffprobe batch signalstats returned nonzero exit")
+            reduction = read_signalstats(cmd)
+            means = reduction.means()
+            if not means:
+                logger.warning("ffprobe batch signalstats returned no usable frames")
                 return {}
-            frames = _signalstats_frames(result.stdout)
-            if not frames:
-                logger.warning("ffprobe batch signalstats returned no frames")
-                return {}
-            tag_accum: dict[str, list[float]] = {}
-            for frame in frames:
-                tags = frame.get("tags", {})
-                for tag_name, tag_val in tags.items():
-                    with contextlib.suppress(ValueError, TypeError, MCPVideoError):
-                        tag_accum.setdefault(tag_name, []).append(_normalized_signalstat(frame, tag_name, tag_val))
-            means = {tag: sum(vals) / len(vals) for tag, vals in tag_accum.items() if vals}
             if means and cache_key is not None and self._signalstats_cache_key(video) == cache_key:
                 self._signalstats_cache[cache_key] = means
                 while len(self._signalstats_cache) > QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES:
@@ -211,57 +197,14 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         ]
         try:
             cmd[6] = self._movie_source(video, self._quality_input_filter(video, "signalstats"))
-            result = subprocess.run(  # noqa: S603
-                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
-            )
-            if result.returncode != 0:
-                diagnostic = _diagnostic(
-                    "ffprobe_signalstats",
-                    "ffprobe returned nonzero exit",
-                    stderr_excerpt=result.stderr.strip()[:200],
-                    filter_name=filter_name,
-                )
-                logger.warning(
-                    "ffprobe signalstats returned nonzero exit for %s (filter=%s): %s",
-                    video,
-                    filter_name,
-                    result.stderr.strip()[:200],
-                )
-                return {"_error": diagnostic}
-            frames = _signalstats_frames(result.stdout)
-            if not frames:
-                diagnostic = _diagnostic(
-                    "ffprobe_signalstats",
-                    "ffprobe returned no frames",
-                    filter_name=filter_name,
-                )
-                logger.warning("ffprobe signalstats returned no frames for %s (filter=%s)", video, filter_name)
-                return {"_error": diagnostic}
-            # Average across all frames
-            values = []
-            for frame in frames:
-                tags = frame.get("tags", {})
-                if filter_name in tags:
-                    try:
-                        values.append(_normalized_signalstat(frame, filter_name, tags[filter_name]))
-                    except (ValueError, TypeError, MCPVideoError):
-                        continue
+            reduction = read_signalstats(cmd, retain_values=True)
+            values = reduction.values.get(filter_name)
             if not values:
-                diagnostic = _diagnostic(
-                    "ffprobe_signalstats",
-                    "ffprobe returned no usable values",
-                    filter_name=filter_name,
-                )
-                logger.warning("ffprobe signalstats returned no usable values for %s (filter=%s)", video, filter_name)
-                return {"_error": diagnostic}
-            return {"mean": sum(values) / len(values), "values": values}
+                return {"_error": _diagnostic("ffprobe_signalstats", "ffprobe returned no usable values")}
+            return {"mean": reduction.means()[filter_name], "values": list(values)}
         except subprocess.TimeoutExpired:
             diagnostic = _diagnostic("ffprobe_signalstats", "ffprobe timed out", filter_name=filter_name)
             logger.warning("ffprobe signalstats timed out for %s (filter=%s)", video, filter_name)
-            return {"_error": diagnostic}
-        except json.JSONDecodeError:
-            diagnostic = _diagnostic("ffprobe_signalstats", "ffprobe returned invalid JSON", filter_name=filter_name)
-            logger.warning("ffprobe signalstats returned invalid JSON for %s (filter=%s)", video, filter_name)
             return {"_error": diagnostic}
         except Exception as exc:
             diagnostic = _diagnostic(
@@ -295,22 +238,8 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         try:
             filter_index = cmd.index("-vf") + 1
             cmd[filter_index] = self._quality_input_filter(video, cmd[filter_index])
-            result = subprocess.run(  # noqa: S603
-                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
-            )
-            if result.returncode != 0:
-                logger.warning("ffmpeg signalstats returned nonzero exit")
-                return {}
-            # Metadata printing is explicit; ordinary signalstats does not
-            # emit measurements to stderr. Average all frames, not only last.
-            values: dict[str, list[float]] = {}
-            for line in result.stderr.splitlines():
-                match = re.search(r"lavfi\.signalstats\.(\w+)=([^\s]+)", line)
-                if match:
-                    with contextlib.suppress(ValueError, TypeError, MCPVideoError):
-                        sample = _normalized_signalstat({}, match[1], match[2])
-                        values.setdefault(match[1].lower(), []).append(sample)
-            return {name: sum(samples) / len(samples) for name, samples in values.items()}
+            reduction = read_ffmpeg_signalstats(cmd)
+            return {tag.rsplit(".", 1)[-1].lower(): value for tag, value in reduction.means().items()}
         except subprocess.TimeoutExpired:
             logger.warning("ffmpeg signalstats timed out for %s", video)
             return {}
@@ -567,37 +496,17 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         ]
         try:
             cmd[6] = self._movie_source(video, self._quality_input_filter(video, DEFAULT_QUALITY_MOTION_FILTER))
-            result = subprocess.run(  # noqa: S603
-                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=QUALITY_GUARDRAILS_TIMEOUT
-            )
-            if result.returncode != 0:
-                diagnostic = _diagnostic(
-                    "ffprobe_tblend_motion",
-                    "ffprobe returned nonzero exit",
-                    stderr_excerpt=result.stderr.strip()[:200],
-                )
-                logger.warning(
-                    "ffprobe tblend motion returned nonzero exit for %s: %s", video, result.stderr.strip()[:200]
-                )
-                return {"_error": diagnostic}
-            frames = _signalstats_frames(result.stdout)
-            values = []
-            for frame in frames:
-                tags = frame.get("tags", {})
-                if "lavfi.signalstats.YAVG" in tags:
-                    with contextlib.suppress(ValueError, TypeError, MCPVideoError):
-                        values.append(
-                            _normalized_signalstat(frame, "YAVG", tags["lavfi.signalstats.YAVG"], difference=True)
-                        )
+            reduction = read_signalstats(cmd, retain_values=True, difference=True)
+            values = reduction.values.get("lavfi.signalstats.YAVG", [])
             # tblend emits one fewer diff frame than source frames; a single
             # source frame yields no diff frames and cannot have "motion".
             if not values:
                 diagnostic = _diagnostic("ffprobe_tblend_motion", "ffprobe returned no usable difference frames")
                 logger.warning("ffprobe tblend motion returned no usable frames for %s", video)
                 return {"_error": diagnostic}
-            values.sort()
+            values = sorted(values)
             n = len(values)
-            mean = sum(values) / n
+            mean = reduction.means()["lavfi.signalstats.YAVG"]
             median = values[n // 2] if n % 2 else (values[n // 2 - 1] + values[n // 2]) / 2
             static = sum(1 for v in values if v < self.MOTION_STATIC_FRAME_FLOOR)
             return {
@@ -609,10 +518,6 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         except subprocess.TimeoutExpired:
             diagnostic = _diagnostic("ffprobe_tblend_motion", "ffprobe timed out")
             logger.warning("ffprobe tblend motion timed out for %s", video)
-            return {"_error": diagnostic}
-        except json.JSONDecodeError:
-            diagnostic = _diagnostic("ffprobe_tblend_motion", "ffprobe returned invalid JSON")
-            logger.warning("ffprobe tblend motion returned invalid JSON for %s", video)
             return {"_error": diagnostic}
         except Exception as exc:
             diagnostic = _diagnostic(

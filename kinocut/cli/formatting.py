@@ -11,6 +11,8 @@ from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
+from .quality_formatting import design_quality_panel, quality_report_renderables, release_checkpoint_renderable
+
 logger = logging.getLogger(__name__)
 
 console = Console()
@@ -404,82 +406,16 @@ def _format_video_info_detailed(result: dict[str, Any]) -> None:
 
 
 def _format_quality_check(result: Any) -> None:
-    data = _model_dump(result)
-    if not isinstance(data, dict):
-        data = {}
-    table = Table(title="Quality Check")
-    table.add_column("Check", style="bold cyan")
-    table.add_column("Status")
-    table.add_column("Value")
-    checks = data.get("checks", {})
-    if isinstance(checks, dict):
-        for check, info in checks.items():
-            status = "[green]PASS[/green]" if info.get("passed") else "[red]FAIL[/red]"
-            table.add_row(check, status, str(info.get("value", "")))
-    elif isinstance(checks, list):
-        for info in checks:
-            if not isinstance(info, dict):
-                continue
-            status = "[green]PASS[/green]" if info.get("passed") else "[red]FAIL[/red]"
-            score = info.get("score")
-            message = info.get("message")
-            value_parts = []
-            if score is not None:
-                try:
-                    value_parts.append(f"{float(score):.1f}")
-                except (TypeError, ValueError):
-                    value_parts.append(escape(str(score)))
-            if message:
-                value_parts.append(escape(str(message)))
-            table.add_row(str(info.get("name", "unknown")), status, " — ".join(value_parts))
-    overall_passed = data.get("all_passed", data.get("passed", False))
-    overall = "[green]PASS[/green]" if overall_passed else "[red]FAIL[/red]"
-    console.print(table)
-    console.print(f"[bold]Overall: {overall}[/bold]")
+    for renderable in quality_report_renderables(_model_dump(result)):
+        console.print(renderable)
 
 
 def _format_release_checkpoint_text(result: Any) -> None:
-    data = _model_dump(result)
-    if not isinstance(data, dict):
-        data = {}
-    if data.get("error"):
-        message = data["error"].get("message", "release checkpoint failed")
-        console.print(f"[bold red]RELEASE CHECKPOINT FAILED:[/bold red] {escape(str(message))}")
-        return
-    quality = data.get("quality") or {}
-    score = quality.get("overall_score")
-    lines = []
-    if score is not None:
-        lines.append(f"[bold green]Quality score:[/bold green] {score}")
-    if data.get("thumbnail"):
-        lines.append(f"[bold green]Thumbnail:[/bold green] {data['thumbnail']}")
-    storyboard = data.get("storyboard") or {}
-    if isinstance(storyboard, dict) and storyboard.get("output_path"):
-        lines.append(
-            f"[bold green]Storyboard:[/bold green] {storyboard['output_path']} ({storyboard.get('count', '?')} frames)"
-        )
-    if data.get("review_required"):
-        lines.append("[bold yellow]Review required:[/bold yellow] inspect the artifacts before publishing.")
-    if data.get("instructions"):
-        lines.append(escape(str(data["instructions"])))
-    _format_success_panel(lines, title="Release Checkpoint")
+    console.print(release_checkpoint_renderable(_model_dump(result)))
 
 
 def _format_design_quality(result: Any) -> None:
-    data = _model_dump(result)
-    score = data.get("overall_score", "N/A")
-    issues = data.get("issues", [])
-    warnings = data.get("warnings", [])
-    lines = [f"[bold green]Score:[/bold green] {score}"]
-    if issues:
-        lines.append(f"[red]Issues ({len(issues)}):[/red]")
-        for issue in issues[:5]:
-            lines.append(f"  - {issue}")
-    if warnings:
-        lines.append(f"[yellow]Warnings ({len(warnings)}):[/yellow]")
-        for w in warnings[:5]:
-            lines.append(f"  - {w}")
-    _format_success_panel(lines, title="Design Quality")
+    console.print(design_quality_panel(_model_dump(result)))
 
 
 def _format_fix_design_issues(result: str) -> None:

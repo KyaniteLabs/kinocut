@@ -12,9 +12,10 @@ from importlib import metadata as _importlib_metadata
 from typing import Any
 
 import mcp.server.fastmcp.server as _fastmcp_server
-from mcp.server.fastmcp import Context, FastMCP
+from mcp.server.fastmcp import Context
 
 from .errors import MCPVideoError
+from .server_tool_contracts import _ContractFastMCP
 
 # MCP 1.29 leaves Settings.lifespan as a forward reference. Rebuild it after the
 # module is loaded so pydantic-settings 2.15 cannot emit warnings into JSON CLI stderr.
@@ -38,7 +39,7 @@ def _product_version() -> str:
         return _source_version
 
 
-mcp = FastMCP(
+mcp = _ContractFastMCP(
     "kinocut",
     instructions=(
         "Kinocut is a video editing MCP server. Default path: inspect (info/doctor) → "

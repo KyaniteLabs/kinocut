@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import math
 import warnings as _warnings
 
 from .defaults import (
@@ -24,26 +25,34 @@ from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _run_ffmpeg,
 )
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_value, _run_ffprobe_json
 from .audio_guardrails import validate_audio_mix
 from .errors import MCPVideoError
 from .models import EditResult
-from .validation import DURATION_POLICIES
+from .validation import DURATION_POLICIES, AUDIO_DUCK_PARAMETER_RANGES
+from .engine_audio_validation import _audio_number
+from .engine_audio_normalize_output import _validate_normalized_output
+from .engine_media_timeline import _packet_extent, _primary_audio_timeline, _timestamp
+from .limits import MAX_VIDEO_DURATION
 
 logger = logging.getLogger(__name__)
 
 
-def _build_audio_filters(volume: float, fade_in: float, fade_out: float, duration: float) -> list[str]:
-    """Build audio filter strings for volume and fade effects."""
+def _build_audio_filters(
+    volume: float, fade_in: float, fade_out: float, duration: float, *, audio_start: float = 0.0
+) -> list[str]:
+    """Fade the audible interval after native timestamps and requested delay."""
     filters: list[str] = []
     if volume != 1.0:
         filters.append(f"volume={_escape_ffmpeg_filter_value(str(volume))}")
     if fade_in > 0:
-        filters.append(f"afade=t=in:st=0:d={_escape_ffmpeg_filter_value(str(fade_in))}")
+        start = _escape_ffmpeg_filter_value(str(audio_start) if audio_start else "0")
+        filters.append(f"afade=t=in:st={start}:d={_escape_ffmpeg_filter_value(str(fade_in))}")
     if fade_out > 0:
-        fade_start = max(0.0, duration - fade_out)
+        fade_start = audio_start + max(0.0, duration - fade_out)
         filters.append(
             f"afade=t=out:st={_escape_ffmpeg_filter_value(str(fade_start))}:"
             f"d={_escape_ffmpeg_filter_value(str(fade_out))}"
@@ -62,7 +71,7 @@ def _build_mix_audio_args(
 ) -> list[str]:
     """Construct FFmpeg arguments for add_audio in mix mode.
 
-    The added track is one chain: [1:a] -> optional adelay -> filters -> [a1].
+    The added track is one chain: [1:a:0] -> optional adelay -> filters -> [a1].
     Mix mode disables amix's default 1/n normalization (``normalize=0``) so both
     tracks sum at unity instead of being attenuated ~6 dB (issue #289).
     """
@@ -76,14 +85,17 @@ def _build_mix_audio_args(
         if duration_policy == "shortest" or video_duration is None
         else ["-t", _escape_ffmpeg_filter_value(f"{float(video_duration):.6f}")]
     )
-    # Referencing [1:a] a second time mid-chain is invalid filtergraph syntax
+    # Referencing [1:a:0] a second time mid-chain is invalid filtergraph syntax
     # even where some FFmpeg builds tolerate it.
     if start_time:
         safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
-        second_chain = f"[1:a]adelay={safe_delay}|{safe_delay},{af}[a1]"
+        second_chain = f"[1:a:0]adelay={safe_delay}|{safe_delay},{af}[a1]"
     else:
-        second_chain = f"[1:a]{af}[a1]"
-    filter_complex = f"[0:a]anull[a0];{second_chain};[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
+        second_chain = f"[1:a:0]{af}[a1]"
+    filter_complex = (
+        f"[0:a:0]aresample=async=1:first_pts=0[a0];{second_chain};"
+        f"[a0][a1]amix=inputs=2:duration={amix_duration}:normalize=0[aout]"
+    )
     loop_prefix = (
         ["-stream_loop", "-1", "-t", str(video_duration)]
         if duration_policy == "loop_audio" and video_duration is not None
@@ -98,7 +110,7 @@ def _build_mix_audio_args(
         "-filter_complex",
         filter_complex,
         "-map",
-        "0:v",
+        "0:v:0",
         "-map",
         "[aout]",
         "-c:v",
@@ -128,7 +140,9 @@ def _build_replace_audio_args(
     is handled separately with a duration-bounded audio input.
     """
     loop_prefix = ["-stream_loop", "-1"] if duration_policy == "loop_audio" else []
-    audio_filters = [*filters, "apad"] if duration_policy == "pad_audio" else list(filters)
+    audio_filters = list(filters)
+    if duration_policy == "pad_audio":
+        audio_filters.append("apad")
     if duration_policy == "shortest" or video_duration is None:
         tail = ["-shortest"]
     else:
@@ -140,7 +154,7 @@ def _build_replace_audio_args(
         # FFmpeg forbids combining -filter_complex and -af on the same output
         # stream, so fold the filters into the complex chain after the delay.
         safe_delay = _escape_ffmpeg_filter_value(str(int(start_time * 1000)))
-        delay_chain = f"[1:a]adelay={safe_delay}|{safe_delay}"
+        delay_chain = f"[1:a:0]adelay={safe_delay}|{safe_delay}"
         if audio_filters:
             delay_chain += "," + ",".join(audio_filters)
         delay_chain += "[a]"
@@ -188,7 +202,7 @@ def _build_add_audio_args(
 def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
     """Validate the duration policy without echoing hostile input into errors."""
 
-    if duration_policy not in DURATION_POLICIES:
+    if not isinstance(duration_policy, str) or duration_policy not in DURATION_POLICIES:
         # Never echo the raw (possibly hostile) value back into a public error.
         raise MCPVideoError(
             f"duration_policy must be one of {DURATION_POLICIES}",
@@ -235,6 +249,42 @@ def _emit_add_audio_guardrails(video_info, audio_path: str, volume: float, start
         _warnings.warn(message, stacklevel=2)
 
 
+def _validate_add_params(volume, fade_in, fade_out, mix, start_time):
+    if not isinstance(mix, bool):
+        raise MCPVideoError("mix must be a boolean", error_type="validation_error", code="invalid_parameter")
+    volume = _audio_number(volume, "volume", 0, math.inf)
+    fade_in = _audio_number(fade_in, "fade_in", 0, MAX_VIDEO_DURATION)
+    fade_out = _audio_number(fade_out, "fade_out", 0, MAX_VIDEO_DURATION)
+    if start_time is not None:
+        start_time = _audio_number(start_time, "start_time", 0, MAX_VIDEO_DURATION)
+    return volume, fade_in, fade_out, start_time
+
+
+def _render_audio_edit(args: list[str], output: str, operation: str) -> EditResult:
+    """Publish only after encoding, decoding and result construction succeed."""
+    with _atomic_output(output) as staged, _timed_operation() as timing:
+        _validate_output_path(staged)
+        _run_ffmpeg(["-xerror", *args[:-1], staged])
+        _validate_normalized_output(staged, "aac", audio_only=True)
+        result = _build_edit_result(staged, operation, timing)
+    return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})
+
+
+def _attachment_window(video_path, audio_path, video_probe, audio_probe, start_time, duration_policy, mix):
+    picture_start, picture_duration = _packet_extent(video_path, "v:0")
+    picture_origin = _timestamp(video_probe.get("format", {}).get("start_time")) or 0.0
+    picture_end = picture_start - picture_origin + picture_duration
+    audio_start, audio_duration = _primary_audio_timeline(audio_path, audio_probe)
+    audio_origin = _timestamp(audio_probe.get("format", {}).get("start_time")) or 0.0
+    # Match adelay's existing millisecond quantization rather than moving media.
+    audible_start = max(0.0, audio_start - audio_origin) + int((start_time or 0) * 1000) / 1000
+    audible_end = picture_end if duration_policy == "loop_audio" else min(picture_end, audible_start + audio_duration)
+    if duration_policy == "shortest" and mix and _has_audio(video_probe):
+        source_start, source_duration = _primary_audio_timeline(video_path, video_probe)
+        audible_end = min(audible_end, source_start - picture_origin + source_duration)
+    return audible_start, max(0.0, audible_end - audible_start), picture_end
+
+
 def add_audio(
     video_path: str,
     audio_path: str,
@@ -255,6 +305,7 @@ def add_audio(
     it; ``trim_audio`` caps long audio; ``shortest`` reproduces the legacy
     ``-shortest`` behaviour (which can eat the outro) and appends a warning.
     """
+    volume, fade_in, fade_out, start_time = _validate_add_params(volume, fade_in, fade_out, mix, start_time)
     _validate_duration_policy(duration_policy, mix)
     video_path = _validate_input_path(video_path)
     audio_path = _validate_input_path(audio_path)
@@ -262,23 +313,35 @@ def add_audio(
     _validate_output_path(output)
 
     video_info = probe(video_path)
-    source_has_audio = _has_audio(_run_ffprobe_json(video_path))
+    video_probe, audio_probe = _run_ffprobe_json(video_path), _run_ffprobe_json(audio_path)
+    source_has_audio = _has_audio(video_probe)
+    audible_start, audible_duration, picture_end = _attachment_window(
+        video_path, audio_path, video_probe, audio_probe, start_time, duration_policy, mix
+    )
     _emit_add_audio_guardrails(video_info, audio_path, volume, start_time)
 
-    with _timed_operation() as timing:
-        filters = _build_audio_filters(volume, fade_in, fade_out, video_info.duration)
-        cmd = _build_add_audio_args(
-            video_path,
-            audio_path,
-            filters,
-            mix,
-            start_time,
-            source_has_audio,
-            output,
-            duration_policy=duration_policy,
-            video_duration=video_info.duration,
-        )
-        _run_ffmpeg(cmd)
+    filters = [
+        "aresample=async=1:first_pts=0",
+        *_build_audio_filters(
+            volume,
+            min(fade_in, audible_duration),
+            min(fade_out, audible_duration),
+            audible_duration,
+            audio_start=audible_start,
+        ),
+    ]
+    cmd = _build_add_audio_args(
+        video_path,
+        audio_path,
+        filters,
+        mix,
+        start_time,
+        source_has_audio,
+        output,
+        duration_policy=duration_policy,
+        video_duration=picture_end,
+    )
+    result = _render_audio_edit(cmd, output, "add_audio")
 
     warnings = []
     if source_has_audio and not mix:
@@ -292,7 +355,7 @@ def add_audio(
             "video duration (the outro can be trimmed). Use 'keep_video' to preserve it."
         )
 
-    return _build_edit_result(output, "add_audio", timing).model_copy(update={"warnings": warnings})
+    return result.model_copy(update={"warnings": [*result.warnings, *warnings]})
 
 
 def _validate_duck_params(
@@ -301,38 +364,17 @@ def _validate_duck_params(
     ratio: float,
     attack: float,
     release: float,
-) -> None:
-    """Validate duck_audio parameters."""
-    if not 0 < music_volume <= 2:
-        raise MCPVideoError(
-            f"music_volume must be in (0, 2], got {music_volume}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 0 < threshold <= 1:
-        raise MCPVideoError(
-            f"threshold must be in (0, 1], got {threshold}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 1 <= ratio <= 20:
-        raise MCPVideoError(
-            f"ratio must be between 1 and 20, got {ratio}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 1 <= attack <= 2000:
-        raise MCPVideoError(
-            f"attack must be between 1 and 2000 ms, got {attack}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
-    if not 1 <= release <= 9000:
-        raise MCPVideoError(
-            f"release must be between 1 and 9000 ms, got {release}",
-            error_type="validation_error",
-            code="invalid_parameter",
-        )
+) -> tuple[float, ...]:
+    """Validate types before numeric comparison and match the backend domain."""
+    values = (music_volume, threshold, ratio, attack, release)
+    names = ("music_volume", "threshold", "ratio", "attack", "release")
+    clean = tuple(
+        _audio_number(value, name, *AUDIO_DUCK_PARAMETER_RANGES[name])
+        for name, value in zip(names, values, strict=True)
+    )
+    if clean[0] <= 0:
+        raise MCPVideoError("music_volume must be positive", error_type="validation_error", code="invalid_parameter")
+    return clean
 
 
 def duck_audio(
@@ -366,9 +408,12 @@ def duck_audio(
     output = output_path or _auto_output(video_path, "ducked")
     _validate_output_path(output)
 
-    _validate_duck_params(music_volume, threshold, ratio, attack, release)
+    music_volume, threshold, ratio, attack, release = _validate_duck_params(
+        music_volume, threshold, ratio, attack, release
+    )
 
-    if not _has_audio(_run_ffprobe_json(video_path)):
+    source_probe = _run_ffprobe_json(video_path)
+    if not _has_audio(source_probe):
         raise MCPVideoError(
             "duck_audio requires the video to have an audio track to duck against. "
             "Use add_audio to attach music to a silent video instead.",
@@ -376,36 +421,35 @@ def duck_audio(
             code="missing_audio_stream",
         )
 
+    _primary_audio_timeline(video_path, source_probe)
+    _primary_audio_timeline(music_path, _run_ffprobe_json(music_path))
+
     safe = [_escape_ffmpeg_filter_value(str(value)) for value in (music_volume, threshold, ratio, attack, release)]
     filter_complex = (
-        f"[1:a]volume={safe[0]}[bg];"
-        f"[bg][0:a]sidechaincompress=threshold={safe[1]}:ratio={safe[2]}"
+        f"[1:a:0]volume={safe[0]}[bg];"
+        f"[bg][0:a:0]sidechaincompress=threshold={safe[1]}:ratio={safe[2]}"
         f":attack={safe[3]}:release={safe[4]}[duck];"
-        f"[0:a][duck]amix=inputs=2:duration=first:normalize=0[aout]"
+        f"[0:a:0][duck]amix=inputs=2:duration=first:normalize=0[aout]"
     )
 
-    with _timed_operation() as timing:
-        _run_ffmpeg(
-            [
-                "-i",
-                video_path,
-                "-i",
-                music_path,
-                "-filter_complex",
-                filter_complex,
-                "-map",
-                "0:v?",
-                "-map",
-                "[aout]",
-                "-c:v",
-                "copy",
-                "-c:a",
-                "aac",
-                "-b:a",
-                DEFAULT_AUDIO_BITRATE,
-                *_movflags_args(output),
-                output,
-            ]
-        )
-
-    return _build_edit_result(output, "duck_audio", timing)
+    args = [
+        "-i",
+        video_path,
+        "-i",
+        music_path,
+        "-filter_complex",
+        filter_complex,
+        "-map",
+        "0:v:0?",
+        "-map",
+        "[aout]",
+        "-c:v",
+        "copy",
+        "-c:a",
+        "aac",
+        "-b:a",
+        DEFAULT_AUDIO_BITRATE,
+        *_movflags_args(output),
+        output,
+    ]
+    return _render_audio_edit(args, output, "duck_audio")

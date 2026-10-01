@@ -13,6 +13,7 @@ from .engine_runtime_utils import (
 from .paths import (
     _auto_output,
 )
+from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
@@ -20,6 +21,7 @@ from .ffmpeg_helpers import (
 )
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_value
 from .models import EditResult, SplitLayout
+from .errors import MCPVideoError
 
 logger = logging.getLogger(__name__)
 
@@ -80,12 +82,12 @@ def split_screen(
 
     filter_complex = _split_filter(left_info.width, left_info.height, right_info.width, right_info.height, layout)
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 left_path,
                 right_path,
-                output_path=output,
+                output_path=staged,
                 extra=[
                     "-filter_complex",
                     filter_complex,
@@ -97,14 +99,15 @@ def split_screen(
             )
         )
 
-    return _build_edit_result(
-        output,
-        f"split_screen_{layout}",
-        timing,
-    )
+        result = _build_edit_result(staged, f"split_screen_{layout}", timing)
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _split_filter(left_width: int, left_height: int, right_width: int, right_height: int, layout: SplitLayout) -> str:
+    if layout not in ("side-by-side", "top-bottom"):
+        raise MCPVideoError("Unknown split-screen layout", error_type="validation_error", code="invalid_layout")
     if layout == "side-by-side":
         target_h = _safe_dimension(max(left_height, right_height), "target_h")
         if left_height != right_height:

@@ -462,3 +462,63 @@ def test_trusted_playable_end_must_be_finite_positive_and_within_video_limit(pla
         )
 
     assert exc.value.code == "inspection_provider_request_invalid"
+
+
+@pytest.mark.parametrize(
+    "capabilities", [([],), ({},), (123,), (None,), ["visual.motion_intent"], ("visual.motion_intent",) * 2]
+)
+def test_malformed_provider_capabilities_raise_custom_error_before_analysis(capabilities):
+    provider = _Provider(_batch())
+    provider.capability_ids = capabilities
+    with pytest.raises(MCPVideoError) as error:
+        analyze_optional_visual_findings(
+            _package(),
+            playable_end=10,
+            capability_id="visual.motion_intent",
+            provider_id="fixture_visual",
+            project_id="project-7",
+            created_by="agent:inspection",
+            registry=_registry(provider),
+        )
+    assert error.value.code == "inspection_provider_invalid"
+    assert provider.calls == 0
+
+
+@pytest.mark.parametrize("provider_id", [123, [], {}, b"fixture_visual", True])
+def test_malformed_requested_provider_id_raises_custom_error(provider_id):
+    with pytest.raises(MCPVideoError) as error:
+        analyze_optional_visual_findings(
+            _package(),
+            playable_end=10,
+            capability_id="visual.motion_intent",
+            provider_id=provider_id,
+            project_id="project-7",
+            created_by="agent:inspection",
+        )
+    assert error.value.code == "inspection_provider_id_invalid"
+
+
+@pytest.mark.parametrize(
+    "definitions", [None, 123, ({"provider_id": "fixture_visual"},), (ProviderDefinition(123, lambda: None),)]
+)
+def test_malformed_registry_definitions_raise_custom_error(definitions):
+    with pytest.raises(MCPVideoError) as error:
+        ProviderRegistry(definitions)
+    assert error.value.code == "inspection_provider_registry_invalid"
+
+
+def test_malformed_constructed_provider_identity_raises_custom_error_before_analysis():
+    provider = _Provider(_batch())
+    provider.provider_id = ["fixture_visual"]
+    with pytest.raises(MCPVideoError) as error:
+        analyze_optional_visual_findings(
+            _package(),
+            playable_end=10,
+            capability_id="visual.motion_intent",
+            provider_id="fixture_visual",
+            project_id="project-7",
+            created_by="agent:inspection",
+            registry=_registry(provider),
+        )
+    assert error.value.code == "inspection_provider_invalid"
+    assert provider.calls == 0

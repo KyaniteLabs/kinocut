@@ -289,10 +289,12 @@ class TestVisualQualityGuardrails:
     def test_get_rgb_means_escapes_lavfi_path(self, guardrails):
         """RGB analysis should escape lavfi movie paths the same way as other ffprobe helpers."""
         special_path = "/tmp/with:comma,[brackets].mp4"
-        fake = Mock(return_value=Mock(returncode=1, stdout="", stderr="bad path"))
+        from kinocut.errors import ProcessingError
+
+        fake = Mock(side_effect=ProcessingError("ffprobe", 1, "bad path"))
 
         with (
-            patch("mcp_video.quality_guardrails.subprocess.run", fake),
+            patch("mcp_video.quality_guardrails.read_signalstats", fake),
             patch(
                 "kinocut.quality_source._run_ffprobe_json",
                 return_value={"streams": [{"codec_type": "video", "pix_fmt": "yuv420p"}]},
@@ -316,9 +318,11 @@ class TestVisualQualityGuardrails:
         assert source == "movie='C\\:\\\\Users\\\\me\\\\clip.mp4',signalstats"
 
     def test_run_ffprobe_logs_nonzero_exit(self, guardrails):
-        fake = Mock(return_value=Mock(returncode=1, stdout="", stderr="ffprobe failed"))
+        from kinocut.errors import ProcessingError
+
+        fake = Mock(side_effect=ProcessingError("ffprobe", 1, "ffprobe failed"))
         with (
-            patch("mcp_video.quality_guardrails.subprocess.run", fake),
+            patch("mcp_video.quality_guardrails.read_signalstats", fake),
             patch("mcp_video.quality_guardrails.logger.warning") as mock_warning,
         ):
             result = guardrails._run_ffprobe("/tmp/test.mp4", "lavfi.signalstats.YAVG")
@@ -326,9 +330,11 @@ class TestVisualQualityGuardrails:
         mock_warning.assert_called()
 
     def test_get_rgb_means_logs_nonzero_exit(self, guardrails):
-        fake = Mock(return_value=Mock(returncode=1, stdout="", stderr="ffprobe failed"))
+        from kinocut.errors import ProcessingError
+
+        fake = Mock(side_effect=ProcessingError("ffprobe", 1, "ffprobe failed"))
         with (
-            patch("mcp_video.quality_guardrails.subprocess.run", fake),
+            patch("mcp_video.quality_guardrails.read_signalstats", fake),
             patch("mcp_video.quality_guardrails.logger.warning") as mock_warning,
         ):
             result = guardrails._get_rgb_means("/tmp/test.mp4")

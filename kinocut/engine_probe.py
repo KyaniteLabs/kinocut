@@ -3,35 +3,68 @@
 from __future__ import annotations
 
 import contextlib
+import math
 import os
 import threading
-from typing import Any
+from typing import Any, NamedTuple
 
 from .errors import InputFileError, MCPVideoError, ProcessingError
+from .defaults import DEFAULT_FPS
 from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
 from .models import VideoInfo
 from .engine_runtime_utils import _get_audio_stream, _get_video_stream
 from .limits import MAX_FILE_SIZE_MB, MAX_VIDEO_DURATION
 
 # ---------------------------------------------------------------------------
-# Probe cache — keyed by (path, mtime, size) so stale data is never returned
+# Probe cache — source identity includes replacements and nanosecond changes.
 # ---------------------------------------------------------------------------
 
-_probe_cache: dict[tuple[str, float, int], VideoInfo] = {}
+
+class _ProbeCacheEntry(NamedTuple):
+    info: VideoInfo
+    has_video: bool
+
+
+_probe_cache: dict[tuple[str, int, int, int, int, int], _ProbeCacheEntry] = {}
 _MAX_PROBE_CACHE = 256
 _probe_cache_lock = threading.Lock()
 
 
-def _cache_key(path: str) -> tuple[str, float, int]:
-    stat = os.stat(path)
-    return (path, stat.st_mtime, stat.st_size)
+def _cache_key(path: str) -> tuple[str, int, int, int, int, int]:
+    try:
+        stat = os.stat(path)
+    except OSError as exc:
+        raise InputFileError(path, "Cannot inspect media identity") from exc
+    return (path, stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+
+
+def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | None:
+    with _probe_cache_lock:
+        cached = _probe_cache.get(key)
+    if cached is None:
+        return None
+    if _cache_key(path) != key:
+        raise InputFileError(path, "Media changed while reading cached metadata")
+    if require_video and not cached.has_video:
+        raise InputFileError(path, "No video stream found")
+    return cached.info.model_copy(deep=True)
+
+
+def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool) -> None:
+    if _cache_key(path) != key:
+        raise InputFileError(path, "Media changed while probing; retry with a stable source")
+    with _probe_cache_lock:
+        if len(_probe_cache) >= _MAX_PROBE_CACHE:
+            _probe_cache.pop(next(iter(_probe_cache)))
+        _probe_cache[key] = _ProbeCacheEntry(info.model_copy(deep=True), has_video)
 
 
 def _parse_probe_duration(value: Any) -> float | None:
     try:
-        return float(value)
-    except (TypeError, ValueError):
+        duration = float(value)
+    except (TypeError, ValueError, OverflowError):
         return None
+    return duration if math.isfinite(duration) and duration >= 0 else None
 
 
 def _build_video_info(path: str, data: dict) -> VideoInfo:
@@ -59,20 +92,20 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
         width = height = 0
 
     # FPS — r_frame_rate is "num/den"
-    rfr = vs.get("r_frame_rate", "30/1")
+    rfr = vs.get("r_frame_rate", str(DEFAULT_FPS))
     try:
         if "/" in rfr:
             num, den = rfr.split("/")
             den_val = float(den)
-            fps = float(num) / den_val if den_val != 0 else 30.0
+            fps = float(num) / den_val if den_val != 0 else float(DEFAULT_FPS)
         else:
-            fps = float(rfr) if float(rfr) != 0 else 30.0
-    except (ValueError, ZeroDivisionError):
-        fps = 30.0
-    if fps <= 0:
+            fps = float(rfr) if float(rfr) != 0 else float(DEFAULT_FPS)
+    except (ValueError, TypeError, OverflowError, ZeroDivisionError):
+        fps = float(DEFAULT_FPS)
+    if not math.isfinite(fps) or fps <= 0:
         # ffprobe reports r_frame_rate as "0/1" for some attached-pic and
         # audio-derived video streams; 0 fps poisons all downstream frame math.
-        fps = 30.0
+        fps = float(DEFAULT_FPS)
 
     # Codecs
     codec = vs.get("codec_name", "unknown")
@@ -119,16 +152,15 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
 def probe(path: str) -> VideoInfo:
     """Get metadata about a video file using ffprobe.
 
-    Results are cached by (path, mtime, size) so repeated calls on the
-    same unmodified file skip the ffprobe subprocess.
+    Results are cached by filesystem identity and copied for each caller.
+    Changing a source during a probe fails instead of returning mixed metadata.
     """
     path = _validate_input_path(path)
     key = _cache_key(path)
 
-    with _probe_cache_lock:
-        cached = _probe_cache.get(key)
-        if cached is not None:
-            return cached
+    cached = _cached_info(path, key, require_video=True)
+    if cached is not None:
+        return cached
 
     try:
         data = _run_ffprobe_json(path)
@@ -136,12 +168,7 @@ def probe(path: str) -> VideoInfo:
         raise InputFileError(path, "Not a valid video file") from exc
     info = _build_video_info(path, data)
 
-    with _probe_cache_lock:
-        # Evict oldest entries when cache is full
-        if len(_probe_cache) >= _MAX_PROBE_CACHE:
-            _probe_cache.pop(next(iter(_probe_cache)))
-        _probe_cache[key] = info
-
+    _cache_info(path, key, info, has_video=True)
     return info
 
 
@@ -160,10 +187,9 @@ def probe_audio_input(path: str) -> VideoInfo:
     path = _validate_input_path(path)
     key = _cache_key(path)
 
-    with _probe_cache_lock:
-        cached = _probe_cache.get(key)
-        if cached is not None:
-            return cached
+    cached = _cached_info(path, key, require_video=False)
+    if cached is not None:
+        return cached
 
     try:
         data = _run_ffprobe_json(path)
@@ -207,11 +233,7 @@ def probe_audio_input(path: str) -> VideoInfo:
             format=fmt.get("format_name"),
         )
 
-    with _probe_cache_lock:
-        if len(_probe_cache) >= _MAX_PROBE_CACHE:
-            _probe_cache.pop(next(iter(_probe_cache)))
-        _probe_cache[key] = info
-
+    _cache_info(path, key, info, has_video=_get_video_stream(data) is not None)
     return info
 
 
@@ -221,6 +243,7 @@ def invalidate_probe_cache(path: str | None = None) -> None:
         if path is None:
             _probe_cache.clear()
         else:
+            path = os.path.realpath(path)
             keys_to_remove = [k for k in _probe_cache if k[0] == path]
             for k in keys_to_remove:
                 del _probe_cache[k]

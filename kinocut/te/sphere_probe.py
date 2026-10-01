@@ -2,13 +2,14 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 from typing import Any
 
-from kinocut.defaults import DEFAULT_HASH_CACHE_MAX, DEFAULT_HASH_CHUNK_BYTES
+from kinocut.defaults import DEFAULT_HASH_CACHE_MAX
+from kinocut.engine_probe import _cache_key
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
+from kinocut.source_identity import stream_source_identity
 from kinocut.validation import (
     SPHERE_EQUIRECT_ASPECT,
     SPHERE_EQUIRECT_ASPECT_TOLERANCE,
@@ -16,7 +17,7 @@ from kinocut.validation import (
     SPHERE_SPHERICAL_MARKERS,
 )
 
-_HASH_CACHE: dict[tuple[str, int, int], str] = {}
+_HASH_CACHE: dict[tuple, str] = {}
 
 _VENDOR_HINTS = (
     ("insta360", "insta360"),
@@ -33,7 +34,12 @@ def probe_360_source(path: str) -> dict[str, Any]:
     """Return source facts if ``path`` is a stitched equirect video."""
     _reject_raw_container(path)
     resolved = _validate_input_path(path)
+    digest = _file_sha256(resolved)
     width, height, duration, spherical, tag_blob = _probe_geometry(resolved)
+    if _file_sha256(resolved) != digest:
+        raise MCPVideoError(
+            "360 source changed while probing", error_type="validation_error", code="source_identity_changed"
+        )
     if not _looks_equirect(width, height, spherical):
         raise MCPVideoError(
             f"Not a 360 equirect source ({width}x{height}). Export a stitched "
@@ -44,7 +50,7 @@ def probe_360_source(path: str) -> dict[str, Any]:
     via = "spherical_metadata" if spherical else "aspect"
     return {
         "path": resolved,
-        "sha256": _file_sha256(resolved),
+        "sha256": digest,
         "width": width,
         "height": height,
         "duration_seconds": duration,
@@ -102,16 +108,16 @@ def _probe_geometry(path: str) -> tuple[int, int, float, bool, str]:
 
 
 def _file_sha256(path: str) -> str:
-    stat = Path(path).stat()
-    key = (str(Path(path).resolve()), stat.st_size, stat.st_mtime_ns)
+    resolved = _validate_input_path(path)
+    key = _cache_key(resolved)
     cached = _HASH_CACHE.get(key)
     if cached:
         return cached
-    digest = hashlib.sha256()
-    with open(path, "rb") as handle:
-        for chunk in iter(lambda: handle.read(DEFAULT_HASH_CHUNK_BYTES), b""):
-            digest.update(chunk)
-    value = "sha256:" + digest.hexdigest()
+    value = stream_source_identity(resolved).asset_id
+    if _cache_key(resolved) != key:
+        raise MCPVideoError(
+            "360 source changed while hashing", error_type="validation_error", code="source_identity_changed"
+        )
     if len(_HASH_CACHE) >= DEFAULT_HASH_CACHE_MAX:
         _HASH_CACHE.pop(next(iter(_HASH_CACHE)))
     _HASH_CACHE[key] = value

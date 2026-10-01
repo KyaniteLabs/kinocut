@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from copy import deepcopy
+import math
 from typing import Any
 
 from kinocut.defaults import (
@@ -14,6 +15,7 @@ from kinocut.defaults import (
     DEFAULT_SPHERE_VERTICAL_WIDTH,
 )
 from kinocut.errors import MCPVideoError
+from kinocut.limits import MAX_RESOLUTION
 from kinocut.te.sphere_probe import probe_360_source
 from kinocut.validation import SPHERE_LAYOUTS, SPHERE_PRESETS, SPHERE_WRITER_KINDS
 
@@ -100,7 +102,7 @@ def validate_sphere_plan(plan: dict[str, Any]) -> dict[str, Any]:
     if plan.get("schema_version") != 1:
         raise MCPVideoError("Unsupported 360 plan schema.", error_type="validation_error", code="invalid_sphere_plan")
     layout = plan.get("layout")
-    if layout not in SPHERE_LAYOUTS:
+    if not isinstance(layout, str) or layout not in SPHERE_LAYOUTS:
         raise MCPVideoError(
             f"Unknown layout {layout!r}. Use single, split, pip, or switch.",
             error_type="validation_error",
@@ -109,18 +111,24 @@ def validate_sphere_plan(plan: dict[str, Any]) -> dict[str, Any]:
     cameras = plan.get("cameras")
     if not isinstance(cameras, list) or not cameras:
         raise MCPVideoError("360 plan requires cameras.", error_type="validation_error", code="invalid_sphere_plan")
+    _validate_source(plan.get("source"))
     _validate_cameras(cameras)
-    _validate_windows(plan.get("windows"), {str(cam["id"]) for cam in cameras})
+    _validate_windows(
+        plan.get("windows"), {str(cam["id"]) for cam in cameras}, float(plan["source"]["duration_seconds"])
+    )
     writer = plan.get("writer") or {}
-    if writer.get("kind") not in SPHERE_WRITER_KINDS:
+    if (
+        not isinstance(writer, dict)
+        or not isinstance(writer.get("kind"), str)
+        or writer["kind"] not in SPHERE_WRITER_KINDS
+    ):
         raise MCPVideoError(
             "360 plan writer kind must be heuristic, single, or model.",
             error_type="validation_error",
             code="invalid_sphere_plan",
         )
-    if plan.get("status") not in {"proposed", "approved", "rejected"}:
+    if not isinstance(plan.get("status"), str) or plan["status"] not in {"proposed", "approved", "rejected"}:
         raise MCPVideoError("360 plan status is invalid.", error_type="validation_error", code="invalid_sphere_plan")
-    _validate_source(plan.get("source"))
     _validate_output(plan.get("output"))
     return plan
 
@@ -180,6 +188,22 @@ def _default_windows(duration: float, cameras: list[dict[str, Any]], layout: str
     return [{"id": "w1", "start": 0.0, "end": duration, "cameras": ids, "layout": layout}]
 
 
+def _finite_number(value: Any, label: str) -> float:
+    try:
+        if isinstance(value, bool):
+            raise ValueError("Boolean is not a measurement")
+        number = float(value)
+        if not math.isfinite(number):
+            raise ValueError("Nonfinite measurement")
+        return number
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise MCPVideoError(
+            f"360 plan {label} must be a finite number.",
+            error_type="validation_error",
+            code="invalid_sphere_plan",
+        ) from exc
+
+
 def _validate_source(source: Any) -> None:
     if not isinstance(source, dict) or not source.get("path"):
         raise MCPVideoError(
@@ -187,14 +211,7 @@ def _validate_source(source: Any) -> None:
             error_type="validation_error",
             code="invalid_sphere_plan",
         )
-    try:
-        duration = float(source.get("duration_seconds", 0))
-    except (TypeError, ValueError) as exc:
-        raise MCPVideoError(
-            "360 plan source.duration_seconds must be numeric.",
-            error_type="validation_error",
-            code="invalid_sphere_plan",
-        ) from exc
+    duration = _finite_number(source.get("duration_seconds", 0), "source.duration_seconds")
     if duration <= 0 or not str(source.get("sha256") or "").startswith("sha256:"):
         raise MCPVideoError(
             "360 plan source needs a positive duration and sha256 digest.",
@@ -211,24 +228,21 @@ def _validate_output(output: Any) -> None:
             code="invalid_sphere_plan",
         )
     aspect = output.get("aspect")
-    if aspect not in {"16:9", "9:16"}:
+    if not isinstance(aspect, str) or aspect not in {"16:9", "9:16"}:
         raise MCPVideoError(
             "360 plan output.aspect must be 16:9 or 9:16.",
             error_type="validation_error",
             code="invalid_sphere_aspect",
         )
-    try:
-        width = int(output.get("width"))
-        height = int(output.get("height"))
-    except (TypeError, ValueError) as exc:
+    width = _finite_number(output.get("width"), "output.width")
+    height = _finite_number(output.get("height"), "output.height")
+    if (
+        not width.is_integer()
+        or not height.is_integer()
+        or not (1 <= width <= MAX_RESOLUTION and 1 <= height <= MAX_RESOLUTION)
+    ):
         raise MCPVideoError(
-            "360 plan output width and height must be integers.",
-            error_type="validation_error",
-            code="invalid_sphere_plan",
-        ) from exc
-    if width < 1 or height < 1:
-        raise MCPVideoError(
-            "360 plan output dimensions must be positive.",
+            f"360 plan output dimensions must be integers between 1 and {MAX_RESOLUTION}.",
             error_type="validation_error",
             code="invalid_sphere_plan",
         )
@@ -237,6 +251,10 @@ def _validate_output(output: Any) -> None:
 def _validate_cameras(cameras: list[dict[str, Any]]) -> None:
     seen: set[str] = set()
     for camera in cameras:
+        if not isinstance(camera, dict):
+            raise MCPVideoError(
+                "360 camera must be an object.", error_type="validation_error", code="invalid_sphere_plan"
+            )
         cam_id = str(camera.get("id") or "")
         if not cam_id or cam_id in seen:
             raise MCPVideoError(
@@ -246,37 +264,38 @@ def _validate_cameras(cameras: list[dict[str, Any]]) -> None:
             )
         seen.add(cam_id)
         for key in ("yaw", "pitch", "roll", "fov"):
-            try:
-                float(camera[key])
-            except (KeyError, TypeError, ValueError) as exc:
-                raise MCPVideoError(
-                    f"Camera {cam_id!r} is missing a numeric {key}.",
-                    error_type="validation_error",
-                    code="invalid_sphere_plan",
-                ) from exc
+            _finite_number(camera.get(key), f"camera.{key}")
 
 
-def _validate_windows(windows: Any, camera_ids: set[str]) -> None:
+def _validate_windows(windows: Any, camera_ids: set[str], source_duration: float) -> None:
     if not isinstance(windows, list) or not windows:
         raise MCPVideoError("360 plan requires windows.", error_type="validation_error", code="invalid_sphere_plan")
     for window in windows:
-        start = float(window.get("start", -1))
-        end = float(window.get("end", -1))
-        if end <= start:
+        if not isinstance(window, dict):
             raise MCPVideoError(
-                "Each 360 window needs end greater than start.",
+                "360 window must be an object.", error_type="validation_error", code="invalid_sphere_plan"
+            )
+        start = _finite_number(window.get("start", -1), "window.start")
+        end = _finite_number(window.get("end", -1), "window.end")
+        if not 0 <= start < end <= source_duration:
+            raise MCPVideoError(
+                "Each 360 window must have positive width within its source duration.",
                 error_type="validation_error",
                 code="invalid_sphere_plan",
             )
         used = window.get("cameras") or []
-        if not used or any(cam_id not in camera_ids for cam_id in used):
+        if (
+            not isinstance(used, list)
+            or not used
+            or any(not isinstance(cam_id, str) or cam_id not in camera_ids for cam_id in used)
+        ):
             raise MCPVideoError(
                 "Window cameras must exist on the plan.",
                 error_type="validation_error",
                 code="invalid_sphere_plan",
             )
         layout = window.get("layout")
-        if layout is not None and layout not in SPHERE_LAYOUTS:
+        if layout is not None and (not isinstance(layout, str) or layout not in SPHERE_LAYOUTS):
             raise MCPVideoError(
                 f"Unknown window layout {layout!r}.",
                 error_type="validation_error",

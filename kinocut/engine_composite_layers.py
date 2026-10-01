@@ -39,6 +39,7 @@ from .engine_composite_layers_source import (
     resolve_mask_source,
     _start_shift,
 )
+from .engine_composite_layers_publication import publish_composite, resolve_layer_plan_path as _resolve_layer_plan_path
 from .engine_runtime_utils import _timed_operation
 from .errors import MCPVideoError
 from .ffmpeg_helpers import (
@@ -178,17 +179,17 @@ def composite_layers(
     args = _build_ffmpeg_args(canvas, layers, filter_complex, output)
     receipt = _build_layer_plan(spec_bytes, canvas, layers, filter_complex, output, spec_resolved.parent)
 
-    if dry_run:
-        timing: dict[str, float | None] = {"elapsed_ms": None}
-    else:
-        with _timed_operation() as timing:
-            _run_ffmpeg(args)
-        receipt["output_hash"] = _file_hash(output)
-
-    if layer_plan_output is not None:
-        Path(layer_plan_output).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
-
-    return _build_composite_result(output, timing, receipt, layer_plan_output, dry_run=dry_run)
+    return publish_composite(
+        output,
+        layer_plan_output,
+        args,
+        receipt,
+        dry_run,
+        _run_ffmpeg,
+        _file_hash,
+        _build_composite_result,
+        _timed_operation,
+    )
 
 
 def _validate_spec_path(spec_path: str) -> Path:
@@ -467,16 +468,6 @@ def _resolve_output_path(output_path: str | None, spec_path: Path, spec_data: di
         output_path = str(spec_path.parent / output_path)
     _validate_output_path(output_path)
     return output_path
-
-
-def _resolve_layer_plan_path(save_layer_plan: str | None, output_path: str) -> str | None:
-    if save_layer_plan is None:
-        return None
-    path = save_layer_plan
-    if not Path(path).is_absolute():
-        path = str(Path(output_path).parent / path)
-    _validate_output_path(path)
-    return path
 
 
 def _build_ffmpeg_args(

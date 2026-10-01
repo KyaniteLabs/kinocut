@@ -18,7 +18,7 @@ from .defaults import (
 from .engine_probe import get_duration, probe
 from .engine_runtime_utils import _build_edit_result, _movflags_args, _timed_operation
 from .paths import _auto_output
-from .ffmpeg_helpers import _build_ffmpeg_cmd, _run_ffmpeg
+from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _open_staged_writer, _run_ffmpeg
 from .errors import InputFileError, MCPVideoError
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
 from .merge_guardrails import validate_merge_compatibility
@@ -78,15 +78,14 @@ def _merge_single_clip(clip: str, output_path: str | None) -> EditResult:
     _validate_output_path(output)
     input_ext = os.path.splitext(clip)[1].lower()
     output_ext = os.path.splitext(output)[1].lower()
-    if output_path is not None and input_ext != output_ext:
-        _run_ffmpeg(["-i", clip, "-c", "copy", *_movflags_args(output), output])
-    else:
-        shutil.copy2(clip, output)
-    return _build_edit_result(
-        output,
-        "merge",
-        {"elapsed_ms": 0.0},
-    )
+    with _atomic_output(output) as staged:
+        if output_path is not None and input_ext != output_ext:
+            _run_ffmpeg(["-i", clip, "-c", "copy", *_movflags_args(staged), staged])
+        else:
+            with open(clip, "rb") as source, _open_staged_writer(staged) as destination:
+                shutil.copyfileobj(source, destination)
+        result = _build_edit_result(staged, "merge", {"elapsed_ms": 0.0})
+    return result.model_copy(update={"output_path": output})
 
 
 def _concat_clips(clips: list[str], output: str, tmpdir: str) -> None:
@@ -181,18 +180,18 @@ def merge(
             elif transition and len(working_clips) > 1:
                 transition_types = [transition] * (len(working_clips) - 1)
 
-            if transition_types and len(working_clips) > 1:
-                _merge_with_transitions(working_clips, output, transition_types, transition_duration)
-            else:
-                _concat_clips(working_clips, output, tmpdir)
+            with _atomic_output(output) as staged:
+                if transition_types and len(working_clips) > 1:
+                    _merge_with_transitions(working_clips, staged, transition_types, transition_duration)
+                else:
+                    _concat_clips(working_clips, staged, tmpdir)
+                result = _build_edit_result(staged, "merge", timing)
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
 
-    return _build_edit_result(
-        output,
-        "merge",
-        timing,
-    )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _add_silent_audio(clips: list[str], infos: list, tmpdir: str) -> list[str]:

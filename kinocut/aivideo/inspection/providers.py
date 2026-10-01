@@ -125,8 +125,14 @@ class ProviderRegistry:
 
     def __init__(self, definitions: Iterable[ProviderDefinition] = ()) -> None:
         indexed: dict[str, ProviderDefinition] = {}
+        if not isinstance(definitions, Iterable):
+            raise _provider_error("inspection_provider_registry_invalid")
         for definition in definitions:
-            if _PROVIDER_ID_RE.fullmatch(definition.provider_id) is None:
+            if (
+                not isinstance(definition, ProviderDefinition)
+                or not isinstance(definition.provider_id, str)
+                or _PROVIDER_ID_RE.fullmatch(definition.provider_id) is None
+            ):
                 raise _provider_error("inspection_provider_registry_invalid")
             if definition.provider_id in indexed or not callable(definition.factory):
                 raise _provider_error("inspection_provider_registry_invalid")
@@ -142,7 +148,7 @@ class ProviderRegistry:
     def resolve(self, provider_id: str) -> ProviderDefinition | None:
         """Resolve a bounded static identifier without dynamic loading."""
 
-        if _PROVIDER_ID_RE.fullmatch(provider_id) is None:
+        if not isinstance(provider_id, str) or _PROVIDER_ID_RE.fullmatch(provider_id) is None:
             raise _provider_error("inspection_provider_id_invalid")
         return self._definitions.get(provider_id)
 
@@ -253,10 +259,15 @@ def _construct_provider(
         raise _provider_error("inspection_provider_invalid") from exc
     valid_capabilities = (
         isinstance(capabilities, tuple)
+        and all(isinstance(item, str) and item in VISUAL_CAPABILITIES for item in capabilities)
         and len(capabilities) == len(set(capabilities))
-        and all(item in VISUAL_CAPABILITIES for item in capabilities)
     )
-    if provider_id != definition.provider_id or not valid_capabilities or not callable(analyze):
+    if (
+        not isinstance(provider_id, str)
+        or provider_id != definition.provider_id
+        or not valid_capabilities
+        or not callable(analyze)
+    ):
         raise _provider_error("inspection_provider_invalid")
     return provider
 

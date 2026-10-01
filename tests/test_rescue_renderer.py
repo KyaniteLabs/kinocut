@@ -381,12 +381,21 @@ def _cancel_after_first_repair(tmp_path, sample_video, monkeypatch):
 
     def execute_then_cancel(*args, **kwargs):
         result = original(*args, **kwargs)
-        cancel.write_text("stop", encoding="utf-8")
+        # Other approved repairs may precede metadata when actual backend
+        # capabilities are available. Cancel after the repair this fixture names.
+        if args[0].id == repair_id:
+            assert result.repair_id == repair_id
+            cancel.write_text("stop", encoding="utf-8")
         return result
 
     monkeypatch.setattr(renderer, "execute_repair", execute_then_cancel)
     with pytest.raises(MCPVideoError):
         render_rescue(str(plan_path), save_receipt=str(receipt), cancel_file=str(cancel))
+    payload = json.loads(receipt.read_text(encoding="utf-8"))
+    completed = next(entry for entry in payload["operations"] if entry["repair_id"] == repair_id)
+    assert completed["status"] == "completed"
+    artifact = tmp_path / completed["output_path"]
+    assert completed["output_sha256"] == "sha256:" + hashlib.sha256(artifact.read_bytes()).hexdigest()
     return plan_path, receipt, repair_id
 
 

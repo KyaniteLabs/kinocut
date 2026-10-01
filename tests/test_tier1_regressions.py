@@ -173,7 +173,7 @@ def test_split_filter_forces_even_auto_dimension():
     assert "scale=-1:" not in side
     assert "scale=-2:" in side
 
-    stacked = _split_filter(640, 480, 320, 240, "stacked")
+    stacked = _split_filter(640, 480, 320, 240, "top-bottom")
     assert ":-1," not in stacked
     assert ":-2," in stacked
 

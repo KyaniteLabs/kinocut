@@ -254,3 +254,14 @@ def test_no_new_functions_exceed_size_limit() -> None:
 
 def _sum_baseline() -> int:
     return sum(len(names) for names in _FUNCTION_SIZE_BASELINE.values())
+
+
+def test_all_runtime_python_modules_stay_below_project_size_limit() -> None:
+    """Apply the same ceiling to every host and neutral runtime package module."""
+    oversized = {
+        path.relative_to(ROOT).as_posix(): module_line_count(path)
+        for package in (PACKAGE, ROOT / "kinocut_sound")
+        for path in package.rglob("*.py")
+        if module_line_count(path) > 800
+    }
+    assert oversized == {}, f"runtime modules exceeded 800 LOC: {oversized}"

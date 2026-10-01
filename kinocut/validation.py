@@ -2,12 +2,26 @@
 
 from __future__ import annotations
 
+import math
 import re
 from pathlib import Path
 from typing import NamedTuple
 
 from .errors import MCPVideoError
+from .limits import MAX_RESOLUTION
 from .limits import *  # noqa: F403 — re-export all limit constants
+
+
+def _validate_pixel_integer(value: object, name: str, *, minimum: int = 0, maximum: int = MAX_RESOLUTION) -> int:
+    """Reject boolean/fractional dimensions and offsets before filter construction."""
+    if type(value) is not int or not minimum <= value <= maximum:
+        raise MCPVideoError(
+            f"{name} must be an integer between {minimum} and {maximum}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    return value
+
 
 # Closed severity ordering used by governed acceptance evaluation. Keeping the
 # policy here avoids each workflow inventing a subtly different comparison.
@@ -497,13 +511,13 @@ def _validate_normalized_float(
     """
     try:
         f = float(value)
-    except (TypeError, ValueError) as e:
+    except (TypeError, ValueError, OverflowError) as e:
         raise MCPVideoError(
             f"{name} must be a number, got {type(value).__name__}",
             error_type="validation_error",
             code="invalid_parameter",
         ) from e
-    if f < lo or f > hi:
+    if not math.isfinite(f) or f < lo or f > hi:
         raise MCPVideoError(
             f"{name} must be between {lo} and {hi}, got {f}",
             error_type="validation_error",
@@ -600,3 +614,22 @@ REVIDEO_MEDIA_IDENTITIES = {
 }
 REVIDEO_SEED_MIN = 0
 REVIDEO_SEED_MAX = 2**32 - 1
+# FFmpeg loudnorm's supported parameter domain, shared with public validation.
+AUDIO_NORMALIZE_MIN_TARGET_LUFS = -70
+AUDIO_NORMALIZE_MAX_TARGET_LUFS = -5
+AUDIO_NORMALIZE_MIN_LRA = 1
+AUDIO_NORMALIZE_MAX_LRA = 50
+AUDIO_NORMALIZE_MIN_TRUE_PEAK_DBTP = -9
+AUDIO_NORMALIZE_MAX_TRUE_PEAK_DBTP = 0
+AUDIO_NORMALIZE_MIN_FADE_SECONDS = 0
+AUDIO_NORMALIZE_MAX_FADE_SECONDS = 1
+
+# Preserve attachment's nonnegative gain domain and ducking's public ranges,
+# while matching sidechaincompress's actual minimum threshold (1/1024).
+AUDIO_DUCK_PARAMETER_RANGES = {
+    "music_volume": (0, 2),
+    "threshold": (1 / 1024, 1),
+    "ratio": (1, 20),
+    "attack": (1, 2000),
+    "release": (1, 9000),
+}

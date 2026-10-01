@@ -8,7 +8,6 @@ from ..engine import (
     add_audio as _add_audio,
     add_text as _add_text,
     apply_filter as _apply_filter,
-    apply_mask as _apply_mask,
     compare_quality as _compare_quality,
     composite_layers as _composite_layers,
     convert as _convert,
@@ -22,7 +21,6 @@ from ..engine import (
     fade as _fade,
     generate_subtitles as _generate_subtitles,
     hls_segment as _hls_segment,
-    luma_key as _luma_key,
     merge as _merge,
     normalize_audio as _normalize_audio,
     overlay_video as _overlay_video,
@@ -30,7 +28,6 @@ from ..engine import (
     read_metadata as _read_metadata,
     resize as _resize,
     rotate as _rotate,
-    shape_mask as _shape_mask,
     split_screen as _split_screen,
     stabilize as _stabilize,
     storyboard as _storyboard,
@@ -68,7 +65,10 @@ from ..models import (
 )
 
 
-class ClientMediaMixin:
+from .masks import ClientMasksMixin
+
+
+class ClientMediaMixin(ClientMasksMixin):
     """Media operations mixin."""
 
     def trim(
@@ -739,35 +739,6 @@ class ClientMediaMixin:
     ) -> EditResult:
         """Stabilize a shaky video."""
         return _stabilize(video, smoothing=smoothing, zooming=zooming, output_path=output)
-
-    def apply_mask(
-        self,
-        video: str,
-        mask: str,
-        feather: int = 5,
-        output: str | None = None,
-    ) -> EditResult:
-        """Apply an image mask to a video with edge feathering."""
-        return _apply_mask(video, mask_path=mask, feather=feather, output_path=output)
-
-    def luma_key(
-        self,
-        video: str,
-        threshold: float = 0.5,
-        output: str | None = None,
-    ) -> EditResult:
-        """Mask out dark regions based on luminance (brightness)."""
-        return _luma_key(video, threshold=threshold, output_path=output)
-
-    def shape_mask(
-        self,
-        video: str,
-        shape: str = "circle",
-        output: str | None = None,
-        feather: int = 0,
-    ) -> EditResult:
-        """Apply a geometric shape mask (circle, rounded_rect, oval)."""
-        return _shape_mask(video, shape=shape, output_path=output, feather=feather)
 
     def hls_segment(
         self,

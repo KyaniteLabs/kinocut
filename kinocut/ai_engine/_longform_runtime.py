@@ -7,13 +7,15 @@ import os
 from typing import Any
 
 from ..errors import MCPVideoError
+from ._longform_merge import _validate_chunk_result_shape
 from ._longform_models import LongformChunk
 from .transcribe import _extract_audio_segment, _format_json_transcript
 
 
 def _format_chunk_result(result_data: dict[str, Any]) -> dict[str, Any]:
     """Normalize Whisper output while retaining its real word timing entries."""
-    raw_segments = list(result_data.get("segments") or ())
+    _validate_chunk_result_shape(result_data)
+    raw_segments = [segment for segment in result_data.get("segments") or () if isinstance(segment, dict)]
     formatted = _format_json_transcript(
         str(result_data.get("text", "")).strip(),
         raw_segments,

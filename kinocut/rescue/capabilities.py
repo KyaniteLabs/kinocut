@@ -5,7 +5,7 @@ from __future__ import annotations
 import importlib.util
 import hashlib
 import os
-import shutil
+import re
 import subprocess
 from collections.abc import Callable
 from functools import lru_cache
@@ -13,7 +13,8 @@ from importlib import metadata
 from typing import Any
 from pathlib import Path
 
-from ..workflow._versions import ffmpeg_version
+from ..errors import FFmpegNotFoundError, FFprobeNotFoundError, ProcessingError
+from ..workflow._versions import _binary_identity, ffmpeg_version
 
 
 def _package_version(name: str) -> str | None:
@@ -39,37 +40,54 @@ def _file_sha256(path: Path) -> str | None:
 
 
 @lru_cache(maxsize=4)
-def _ffmpeg_filters(executable: str) -> frozenset[str]:
-    try:
-        result = subprocess.run(  # noqa: S603
-            [executable, "-hide_banner", "-filters"],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=10,
-            check=False,
-        )
-    except (OSError, subprocess.SubprocessError):
-        return frozenset()
-    if result.returncode != 0:
-        return frozenset()
-
+def _probe_ffmpeg_filters(executable: str, identity: tuple) -> frozenset[str]:
+    result = subprocess.run(  # noqa: S603
+        [executable, "-hide_banner", "-filters"],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=10,
+    )
+    if result.returncode != 0 or _binary_identity(executable) != identity:
+        raise ProcessingError("FFmpeg filter discovery", result.returncode, "Filter probe failed or executable changed")
     filters: set[str] = set()
     for line in result.stdout.splitlines():
         columns = line.split()
-        if len(columns) >= 2 and columns[0].strip(".").isalpha():
+        if len(columns) >= 3 and re.fullmatch(r"[.T][.S][.C]", columns[0]) and "->" in columns[2]:
             filters.add(columns[1])
     return frozenset(filters)
 
 
+def _ffmpeg_filters(executable: str) -> frozenset[str]:
+    identity = _binary_identity(executable)
+    if identity is None:
+        return frozenset()
+    try:
+        return _probe_ffmpeg_filters(executable, identity)
+    except (OSError, subprocess.SubprocessError, ProcessingError):
+        return frozenset()
+
+
+def _runtime_executable(name: str) -> str | None:
+    from ..engine_runtime_utils import _ffmpeg, _ffprobe
+
+    try:
+        return _ffmpeg() if name == "ffmpeg" else _ffprobe()
+    except (FFmpegNotFoundError, FFprobeNotFoundError):
+        return None
+
+
 def snapshot_capabilities(
     *,
-    which: Callable[[str], str | None] = shutil.which,
+    which: Callable[[str], str | None] | None = None,
     find_spec: Callable[[str], Any] | None = None,
     package_version: Callable[[str], str | None] = _package_version,
 ) -> dict[str, Any]:
     """Return local capability metadata without importing or installing tools."""
 
+    which = _runtime_executable if which is None else which
     find_spec = find_spec or importlib.util.find_spec
     ffmpeg_path = which("ffmpeg")
     ffprobe_path = which("ffprobe")
@@ -84,7 +102,7 @@ def snapshot_capabilities(
             "available": ffmpeg_available,
             "ffmpeg": bool(ffmpeg_path),
             "ffprobe": bool(ffprobe_path),
-            "version": ffmpeg_version() if ffmpeg_path else None,
+            "version": ffmpeg_version(ffmpeg_path) if ffmpeg_path else None,
         },
         "whisper": {
             "available": whisper_spec is not None,

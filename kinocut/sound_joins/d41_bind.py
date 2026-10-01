@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import hashlib
 import json
-import shutil
+import logging
+import subprocess
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
@@ -26,6 +27,7 @@ from kinocut_sound.world.d41_port import (
 D41_BED_KINOCUT_ADAPTER_ID = "d41_bed_kinocut_audio_bed"
 D41_AUDITION_KINOCUT_ADAPTER_ID = "d41_audition_kinocut"
 _ENGINE_STAMP = "kinocut.engine_audio_bed.v1"
+logger = logging.getLogger(__name__)
 
 
 def _hash_payload(payload: dict[str, object]) -> Sha256:
@@ -34,11 +36,16 @@ def _hash_payload(payload: dict[str, object]) -> Sha256:
 
 
 def _ffmpeg_ready() -> bool:
-    if shutil.which("ffmpeg") is None or shutil.which("ffprobe") is None:
-        return False
-    from kinocut.engine_runtime_utils import _check_filter_available
+    from kinocut.engine_runtime_utils import _check_filter_available, _ffmpeg, _ffprobe
+    from kinocut.errors import FFmpegNotFoundError, FFprobeNotFoundError
 
-    return bool(_check_filter_available("sidechaincompress") and _check_filter_available("loudnorm"))
+    try:
+        _ffmpeg()
+        _ffprobe()
+        return bool(_check_filter_available("sidechaincompress") and _check_filter_available("loudnorm"))
+    except (FFmpegNotFoundError, FFprobeNotFoundError, OSError, subprocess.TimeoutExpired) as exc:
+        logger.debug("D41 audio-bed backend unavailable: %s", type(exc).__name__)
+        return False
 
 
 class KinocutBedAdapter:

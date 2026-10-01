@@ -289,4 +289,5 @@ def test_atomic_output_rejects_symlink_swapped_temp(tmp_path):
     # The symlink target was never written through; nothing was published.
     assert secret.read_text(encoding="utf-8") == "do not overwrite"
     assert not final.exists()
-    assert not any(p.name.startswith(".kinocut_tmp_") for p in tmp_path.iterdir())
+    # Cleanup must not remove a replacement inode installed by another actor.
+    assert os.path.islink(tmp)

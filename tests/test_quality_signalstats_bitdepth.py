@@ -7,7 +7,8 @@ import subprocess
 
 import pytest
 
-from kinocut.quality_guardrails import VisualQualityGuardrails, _normalized_signalstat
+from kinocut.quality_guardrails import VisualQualityGuardrails
+from kinocut.quality_signal_domain import _normalized_signalstat
 from kinocut.errors import MCPVideoError
 
 
@@ -184,19 +185,14 @@ def test_nonfinite_probe_values_are_unusable(value, monkeypatch):
         "kinocut.quality_source._run_ffprobe_json",
         lambda source: {"streams": [{"codec_type": "video", "pix_fmt": "yuv420p"}]},
     )
-    result = subprocess.CompletedProcess(
-        [],
-        0,
-        json.dumps(
-            {
-                "frames": [
-                    {"pix_fmt": "yuv420p", "tags": {"lavfi.signalstats.YAVG": value}},
-                ]
-            }
-        ),
-        "",
-    )
-    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: result)
+    from kinocut.quality_signal_reader import SignalReduction
+
+    def unavailable(*args, **kwargs):
+        result = SignalReduction(retain_values=True)
+        result.consume(f"pix_fmt=yuv420p|tag:lavfi.signalstats.YAVG={value}\n".encode())
+        return result
+
+    monkeypatch.setattr("kinocut.quality_guardrails.read_signalstats", unavailable)
     guardrails = VisualQualityGuardrails()
     assert guardrails._get_all_signalstats("invalid") == {}
     assert "_error" in guardrails._run_ffprobe("invalid", "lavfi.signalstats.YAVG")

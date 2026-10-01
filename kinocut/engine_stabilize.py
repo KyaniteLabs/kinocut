@@ -17,6 +17,7 @@ from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _build_ffmpeg_cmd,
     _run_ffmpeg,
     _sanitize_ffmpeg_number,
@@ -54,7 +55,7 @@ def stabilize(
     safe_smoothing = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(smoothing, "smoothing")))
     safe_zooming = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(zooming, "zooming")))
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         tmpdir = tempfile.mkdtemp(prefix="mcp_video_stab_")
         try:
             vectors_file = os.path.join(tmpdir, "vectors.trf")
@@ -64,18 +65,16 @@ def stabilize(
             _run_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
-                    output_path=output,
+                    output_path=staged,
                     video_filter=f"vidstabtransform=input={safe_vectors_file}:smoothing={safe_smoothing}:zoom={safe_zooming}:crop=black",
                 )
             )
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)
-
-    return _build_edit_result(
-        output,
-        "stabilize",
-        timing,
-    )
+        result = _build_edit_result(staged, "stabilize", timing)
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _detect_motion_vectors(input_path: str, vectors_file: str) -> None:

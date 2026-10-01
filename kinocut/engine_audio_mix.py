@@ -11,12 +11,11 @@ from __future__ import annotations
 
 import math
 import re
-import tempfile
-from fractions import Fraction
 from pathlib import Path
 
 from .defaults import DEFAULT_AUDIO_MIX_BITRATE, DEFAULT_AUDIO_MIX_SAMPLE_RATE, DEFAULT_AUDIO_MIX_TRACK_VOLUME
-from .engine_probe import _parse_probe_duration, probe_audio_input
+from .engine_media_timeline import _packet_extent, _primary_audio_timeline
+from .engine_audio_validation import _audio_number
 from .engine_audio_normalize_output import _validate_normalized_output
 from .engine_runtime_utils import _build_edit_result, _get_video_stream, _has_audio, _movflags_args, _timed_operation
 from .errors import MCPVideoError
@@ -35,7 +34,6 @@ from .limits import (
     MIN_AUDIO_MIX_BITRATE_KBPS,
     MAX_AUDIO_MIX_BITRATE_KBPS,
     MAX_VIDEO_DURATION,
-    FFPROBE_TIMEOUT,
     MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES,
     MAX_AUDIO_MIX_TIMELINE_PACKETS,
 )
@@ -53,82 +51,28 @@ def _invalid(message: str, code: str = "invalid_parameter") -> MCPVideoError:
 
 
 def _packet_timeline(path: str) -> tuple[float, float]:
-    """Read presentation extent without decoding video or buffering all packets."""
-    with tempfile.TemporaryDirectory(prefix="kinocut_mix_timeline_") as folder, tempfile.TemporaryFile() as diagnostics:
-        metadata = Path(folder) / "packets.txt"
-        _run_command(
-            [
-                "ffprobe",
-                "-v",
-                "error",
-                "-select_streams",
-                "v:0",
-                "-read_intervals",
-                f"%+#{MAX_AUDIO_MIX_TIMELINE_PACKETS + 1}",
-                "-show_packets",
-                "-show_entries",
-                "packet=pts_time,duration_time",
-                "-of",
-                "compact=p=0",
-                "-o",
-                str(metadata),
-                path,
-            ],
-            timeout=FFPROBE_TIMEOUT,
-            stderr_sink=diagnostics,
-        )
-        diagnostics.seek(0)
-        if diagnostics.read(1):
-            raise _invalid("video timeline could not be read cleanly", "invalid_media_duration")
-        if metadata.stat().st_size > MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES:
-            raise _invalid("video timeline metadata exceeds the supported limit", "audio_mix_timeline_over_limit")
-        start, end, count = math.inf, -math.inf, 0
-        with metadata.open(encoding="utf-8") as packets:
-            for line in packets:
-                count += 1
-                if count > MAX_AUDIO_MIX_TIMELINE_PACKETS:
-                    raise _invalid("video timeline packet limit reached", "audio_mix_timeline_over_limit")
-                fields = dict(part.split("=", 1) for part in line.strip().split("|") if "=" in part)
-                pts = _parse_probe_duration(fields.get("pts_time"))
-                width = _parse_probe_duration(fields.get("duration_time"))
-                if pts is None or not math.isfinite(pts) or width is None or not math.isfinite(width) or width <= 0:
-                    raise _invalid("video has an unmeasurable packet timeline", "invalid_media_duration")
-                start, end = min(start, pts), max(end, pts + width)
-        return start, end - start
+    """Measure primary-picture presentation extent, including VFR B frames."""
+    return _packet_extent(
+        path,
+        "v:0",
+        runner=_run_command,
+        packet_limit=MAX_AUDIO_MIX_TIMELINE_PACKETS,
+        metadata_limit=MAX_AUDIO_MIX_TIMELINE_METADATA_BYTES,
+    )
 
 
 def _picture_timeline(path: str, raw: dict) -> tuple[float, float]:
-    """Prefer primary-picture extent, never the container's longer audio tail."""
-    video = _get_video_stream(raw)
-    if video is None:
+    """Use packet presentation ends: stream.duration may describe decode extent."""
+    if _get_video_stream(raw) is None:
         raise _invalid("mix_audio requires a video stream", "missing_video_stream")
-    start = _parse_probe_duration(video.get("start_time"))
-    duration = _parse_probe_duration(video.get("duration"))
-    if duration is None and video.get("duration_ts") is not None:
-        try:
-            duration = float(Fraction(str(video["time_base"])) * int(video["duration_ts"]))
-        except (ValueError, TypeError, KeyError, ZeroDivisionError, OverflowError):
-            duration = None
-    if start is None or not math.isfinite(start) or duration is None or not math.isfinite(duration) or duration <= 0:
-        start, duration = _packet_timeline(path)
+    start, duration = _packet_timeline(path)
     if not math.isfinite(start) or not math.isfinite(duration) or not 0 < duration <= MAX_VIDEO_DURATION:
         raise _invalid("video has no supported measurable duration", "invalid_media_duration")
     return start, duration
 
 
 def _number(track: dict, key: str, index: int, default: float, high: float) -> float:
-    value = track.get(key, default)
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise _invalid(f"tracks[{index}].{key} must be a finite number")
-    try:
-        value = float(value)
-    except OverflowError:
-        raise _invalid(f"tracks[{index}].{key} must be a finite number") from None
-    if not math.isfinite(value):
-        raise _invalid(f"tracks[{index}].{key} must be a finite number")
-    if not 0 <= float(value) <= high:
-        raise _invalid(f"tracks[{index}].{key} must be between 0 and {high:g}")
-    return float(value)
+    return _audio_number(track.get(key, default), f"tracks[{index}].{key}", 0, high)
 
 
 def _validate_tracks(tracks: list[dict], duration: float) -> list[dict]:
@@ -149,7 +93,7 @@ def _validate_tracks(tracks: list[dict], duration: float) -> list[dict]:
         if start >= duration:
             raise _invalid(f"tracks[{index}].start must precede the end of the video")
         if path not in durations:
-            durations[path] = probe_audio_input(path).duration
+            durations[path] = _primary_audio_timeline(path, _run_ffprobe_json(path))[1]
         audio_duration = durations[path]
         if not audio_duration or not math.isfinite(audio_duration) or audio_duration <= 0:
             raise _invalid(f"tracks[{index}] has no measurable audio duration", "invalid_media_duration")
@@ -195,7 +139,7 @@ def _build_mix_args(
     video_start: float = 0.0,
 ) -> list[str]:
     """FFmpeg arguments: every sound summed at unity in one graph, one AAC encode, picture copied."""
-    args = ["-copyts", "-itsoffset", str(-video_start), "-i", video_path]
+    args = ["-xerror", "-copyts", "-itsoffset", str(-video_start), "-i", video_path]
     for track in tracks:
         args += ["-t", str(track["duration"]), "-i", track["path"]]
     chains = [_track_chain(i + 1, track) for i, track in enumerate(tracks)]

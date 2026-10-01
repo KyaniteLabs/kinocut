@@ -12,12 +12,13 @@ from .paths import (
 from .models import (
     _resolve_position,
 )
+from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
 )
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
-from .validation import _validate_normalized_float
+from .validation import _validate_normalized_float, _validate_pixel_integer
 from .models import EditResult, NamedPosition, Position
 
 
@@ -34,6 +35,7 @@ def watermark(
     """Add an image watermark to a video."""
     input_path = _validate_input_path(input_path)
     image_path = _validate_input_path(image_path)
+    margin = _escape_ffmpeg_filter_value(str(_validate_pixel_integer(margin, "margin")))
     safe_opacity = _validate_normalized_float(opacity, "opacity")
     output = output_path or _auto_output(input_path, "watermarked")
     _validate_output_path(output)
@@ -41,13 +43,13 @@ def watermark(
     # Position expressions for the overlay
     position_map: dict[NamedPosition, str] = {
         "top-left": f"{margin}:{margin}",
-        "top-center": "(main_w-overlay_w)/2:{margin}",
+        "top-center": f"(main_w-overlay_w)/2:{margin}",
         "top-right": f"main_w-overlay_w-{margin}:{margin}",
         "center-left": f"{margin}:(main_h-overlay_h)/2",
         "center": "(main_w-overlay_w)/2:(main_h-overlay_h)/2",
         "center-right": f"main_w-overlay_w-{margin}:(main_h-overlay_h)/2",
         "bottom-left": f"{margin}:main_h-overlay_h-{margin}",
-        "bottom-center": "(main_w-overlay_w)/2:main_h-overlay_h-{margin}",
+        "bottom-center": f"(main_w-overlay_w)/2:main_h-overlay_h-{margin}",
         "bottom-right": f"main_w-overlay_w-{margin}:main_h-overlay_h-{margin}",
     }
 
@@ -55,12 +57,12 @@ def watermark(
     # Format opacity for FFmpeg (0.0 to 1.0)
     opacity_fmt = _escape_ffmpeg_filter_value(f"{safe_opacity:.2f}")
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 input_path,
                 image_path,
-                output_path=output,
+                output_path=staged,
                 audio_codec="copy",
                 crf=crf,
                 preset=preset,
@@ -71,8 +73,11 @@ def watermark(
             )
         )
 
-    return _build_edit_result(
-        output,
-        "watermark",
-        timing,
-    )
+        result = _build_edit_result(
+            staged,
+            "watermark",
+            timing,
+        )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result

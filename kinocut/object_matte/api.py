@@ -10,6 +10,7 @@ from typing import Any
 
 from PIL import Image
 
+from ..audio_bed_validation import reject_output_alias
 from ..defaults import DEFAULT_OBJECT_MATTE_TIMEOUT, DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _validate_input_path
@@ -71,6 +72,7 @@ def _write_outputs(
     fps: float,
     count: int,
 ) -> tuple[str, str | None]:
+    _validate_output_pair(dest, hole)
     if Path(dest).suffix.lower() == ".png":
         if first_cut is None or count != 1:
             raise MCPVideoError(
@@ -85,6 +87,14 @@ def _write_outputs(
     written = write_alpha_video(cut_dir, dest, fps, "cut_%06d.png")
     hole_written = write_alpha_video(hole_dir, hole, fps, "hole_%06d.png") if hole else None
     return written, hole_written
+
+
+def _validate_output_pair(dest: str, hole: str | None) -> None:
+    """Reject canonical/hardlink aliases before inference or either writer runs."""
+    if hole is not None:
+        # The shared guard compares existing aliases when its input exists.
+        output, source = (hole, dest) if Path(dest).exists() else (dest, hole)
+        reject_output_alias(output, (source,))
 
 
 def run_object_matte(
@@ -122,6 +132,7 @@ def run_object_matte(
     source = _validate_input_path(input_path)
     dest = assert_alpha_output(output_path or _default_output(source))
     hole = assert_alpha_output(background_output_path) if background_output_path else None
+    _validate_output_pair(dest, hole)
     still = is_still(source)
     if still:
         with Image.open(source) as preview:
