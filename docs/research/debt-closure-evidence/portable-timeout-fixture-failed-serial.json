@@ -1,0 +1,30 @@
+{
+  "command": [
+    "/workspace/kinocut/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 1008.0824252009988,
+  "source_identity_sha256": "aea162427e6d61ceaacaaa7c4845a471a7920e832819a09cf96f59ef5e0e3af9",
+  "source_unchanged": true,
+  "file_count": 1213,
+  "passed": 4722,
+  "failed": 1,
+  "skipped": 152,
+  "warnings": 6,
+  "pytest_seconds": 1002.5,
+  "log_sha256": "751f0f8f19c534e81709baeef0797c466c7cf67d92e845e2646943775ffddddd",
+  "failure": "Timeout fixture assumed native PID/PGID marker existed before0.1s deadline under scheduler load",
+  "repair": "Real owned ProcessTree startup waits at most5s for native ready marker before unchanged0.1s reader deadline; every cleanup assertion preserved",
+  "post_repair_focused_controls": {
+    "passed": 40,
+    "seconds": 7.91,
+    "exit_code": 0
+  },
+  "new_selected_source_identity_sha256": "0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d"
+}

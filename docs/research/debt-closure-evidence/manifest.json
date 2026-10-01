@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "build-source-binding.json",
-      "sha256": "75920067f15714b1634cf4bb9c336aee17af6533c88e6652e5f681f930f194fa"
+      "sha256": "04ae643f3b94f9af1d449070540d169e2b5adc8a060da984121c4eaad99f9739"
     },
     {
       "path": "ci-worker-comparison.json",
@@ -11,7 +11,7 @@
     },
     {
       "path": "full-serial.json",
-      "sha256": "907059819e5ad5ecba2594a2748ca40372e77f78ecdc46c77c36fd31f1e4e85e"
+      "sha256": "44ab816184011eb2aa44ae30572c0a5b8b3f047990520c1568178d3754319a94"
     },
     {
       "path": "guardian-live-census.json",
@@ -50,8 +50,28 @@
       "sha256": "2805109e6f4dfdd189e7dddea220bcc91e49b30ae980f345ee6752ec64f20d78"
     },
     {
+      "path": "portable-pre-handshake-build-source-binding.json",
+      "sha256": "bdb3fe6ea732054623daa1015cfbdcf7eb5ae64d2d8ab72b7c46039617b6e5a2"
+    },
+    {
+      "path": "portable-readiness-independent.json",
+      "sha256": "59d354531306a1fc12138c0f38487dbbc2d9b57c0bdeccb7b2faf2465826e38f"
+    },
+    {
+      "path": "portable-stdio-doc-privacy-failed-serial.json",
+      "sha256": "0dce8f1aa55c76c6d34ac5686841b31ba825e97a3173753b78f07a3fceff5747"
+    },
+    {
+      "path": "portable-stdio-independent.json",
+      "sha256": "f11695c7a9a3771a0d123243de3a966a70a588df307285f9b4fdf8a5cf86a135"
+    },
+    {
+      "path": "portable-timeout-fixture-failed-serial.json",
+      "sha256": "8f19c227f1ab0bfd1d6f5e2e136a3451ef4cbb273144336f7e25f0014ca4b58a"
+    },
+    {
       "path": "post-full-live-census.json",
-      "sha256": "e275bd6c223ef5376cd89563fbe5f7b27285f57a245396d356fdb55441c7c05e"
+      "sha256": "fd7ad1c59e9822bdcea9d37de24fd0bebafa8ded3c8b454f7b05a65de3a8538b"
     },
     {
       "path": "post-review-failed-serial.json",
@@ -68,6 +88,22 @@
     {
       "path": "pre-review-passing-serial.json",
       "sha256": "7b7dce8de55173204c58abadb5dea9813c5b09393184aaf1a7f29e243802940d"
+    },
+    {
+      "path": "pre-stdio-build-source-binding.json",
+      "sha256": "75920067f15714b1634cf4bb9c336aee17af6533c88e6652e5f681f930f194fa"
+    },
+    {
+      "path": "pre-stdio-full-serial.json",
+      "sha256": "907059819e5ad5ecba2594a2748ca40372e77f78ecdc46c77c36fd31f1e4e85e"
+    },
+    {
+      "path": "pre-stdio-hosted-ci.json",
+      "sha256": "d67dc94e251c1d506f0b5db4dc03eb15391173631ff4ccc0310df118667d5311"
+    },
+    {
+      "path": "pre-stdio-static-checks.json",
+      "sha256": "db10388307290b85857dcf1918e07fadc1944cfbab724fbbdb0eba33af97e95a"
     },
     {
       "path": "reaped-leader-before.json",
@@ -115,7 +151,7 @@
     },
     {
       "path": "static-checks.json",
-      "sha256": "db10388307290b85857dcf1918e07fadc1944cfbab724fbbdb0eba33af97e95a"
+      "sha256": "658ae46d20bcfdbf80e01bc9b417d0cbb285f57e31c36ebd129370cc3461324b"
     },
     {
       "path": "stop-transition-after.json",

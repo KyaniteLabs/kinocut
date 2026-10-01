@@ -112,6 +112,9 @@ the guardian's own private group when the worker dies, including on hard kill.
 Generic POSIX command completion retains the unreaped leader until owned-group
 cleanup. Hosts without nonreaping wait support retain a live supervisor, use a
 bounded private native-status pipe, and stop through parent-only EOF before reap.
+After native completion the live supervisor releases its own stdout/stderr so
+readers can observe EOF. Genuine descendant writers retain their own descriptors
+and remain subject to the reader deadline and owned cleanup.
 Detected external reaping rejects numeric group signals. This requires sole-reaper
 ownership: callers must not concurrently reap the owned child outside cleanup.
 Normal native commands and their guardians are reaped by their live parents.

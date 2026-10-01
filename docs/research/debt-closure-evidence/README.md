@@ -55,8 +55,18 @@ explicit earlier passing checkpoints, not evidence for subsequent repairs.
 
 `post-review-failed-serial.json` records the stale raw-spawn expectation and
 its correction without weakening stdin isolation. `retained-leader-review-manifest.json`
-records the final independent cleanup selection and source hashes; referenced
+records the pre-stdio independent cleanup selection and source hashes; referenced
 large logs remain in the original local cache.
 
 `post-review-resolver-failed-serial.json` preserves the asymmetric CI resolver
 failure, its repair and the complete 267-test MCPB/distribution/architecture gate.
+
+`portable-stdio-independent.json` retains the actual pre-fix fallback failures,
+all-selector/reader results, native measurements and exact process/test hashes.
+`pre-stdio-full-serial.json` and `pre-stdio-build-source-binding.json` identify the
+passing Linux checkpoint before that cross-platform repair; they do not certify
+its successor. Native `8328a26` failures remain explicit in the ledger. `full-serial.json`, `post-full-live-census.json`, the build and current static checks identify the passing portable/readiness successor. `pre-stdio-static-checks.json` preserves the prior static/documentation checkpoint.
+
+`portable-stdio-doc-privacy-failed-serial.json` records the rejected hosted-receipt home path and failed gate, followed by redaction and the four passing privacy controls. The raw hosted log checksum and failure counts remain unchanged.
+
+`portable-timeout-fixture-failed-serial.json` preserves the subsequent scheduler-dependent marker failure and the explicit readiness repair. Its startup allowance does not alter the0.1-second reader execution deadline or cleanup assertions.

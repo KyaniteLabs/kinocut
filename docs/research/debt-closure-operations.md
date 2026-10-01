@@ -99,3 +99,7 @@ The retained [execution receipt](debt-closure-evidence/release-draft-alignment.j
 records the final source and body checksum. This repairs the metadata/source
 binding; it does not establish a current MCP registry listing, new site TLS
 observation, public launch or desktop installation acceptance.
+
+## Windows reporter confirmation (October 1)
+
+The [original issue553 reporter](https://github.com/KyaniteLabs/kinocut/issues/553#issuecomment-5930188366) re-tested published PyPI `kinocut==1.15.3` on Windows11, Python3.12 and the FFmpeg9.0.1 gyan full build using the same reproduction script. They report that default-font `text_animated` renders without the former access violation and explicitly permit closure. This is user-reported original-environment confirmation, separate from the current branch native hosted tests and from this environment's Linux measurements. The initial proposal table above predates that confirmation.

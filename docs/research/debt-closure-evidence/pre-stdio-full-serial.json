@@ -1,0 +1,21 @@
+{
+  "command": [
+    "/workspace/kinocut/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 1932.355250923003,
+  "source_identity_sha256": "4e06562528aec90609c8a24a3976888fb99c1da833700094541544fb1ce8a831",
+  "source_unchanged": true,
+  "file_count": 1213,
+  "passed": 8281,
+  "skipped": 189,
+  "warnings": 8,
+  "pytest_seconds": 1927.42,
+  "log_sha256": "5d254170840087ff608e82cabc8e9a9412c1c00d4e883d83df26d51a542396ff"
+}

@@ -1,0 +1,45 @@
+{
+  "forced_supports_nonreaping_wait": false,
+  "quality_reader_default_timeout_seconds": 1,
+  "before_result": "5 failed, 11 passed in6.51s (same hosted failure classes)",
+  "post_fix_quality_result": "29 passed in4.92s",
+  "full_native_mcpb_selector_result": "176 passed, 3 nativeWindows skipped in22.95s",
+  "full_native_mcpb_selector_exit": 0,
+  "source_sha256": {
+    "kinocut/process_guardian.py": "ab95ea37febd43bb7d5d7b97c01495320c137d0eab43ba110cdac9faa1bec6e5",
+    "kinocut/process_guardian_owner.py": "7ce52c0ecc6a071c3d8615ad4340f2c629e7bb1c90e233cdde2c288151272a6b",
+    "kinocut/process_tree.py": "123d84950dbf702c7aae3e67ed6a37788729b602147716ee329a6982a0b18594",
+    "kinocut/quality_signal_reader.py": "a543a418e85b9359ccaae754f72aa542f2b9a54949a3e3cb2f2def6f5b971f49",
+    "tests/test_process_guardian.py": "0d2c988506beaf86f25b50f043f71921a23513752cf246e0a8ce7e6f49e0e6c6",
+    "tests/test_quality_signal_reader.py": "5f05d93a9e86d015a7469c2d9339cb4d6acd6c0e83fa35d4da99c01f86396cc2"
+  },
+  "actual_native_quality": {
+    "forced_portable_supervisor": true,
+    "actual_ffprobe_frames": 5,
+    "actual_ffprobe_YAVG": 235.0,
+    "ffprobe_seconds": 0.13695194799947785,
+    "actual_ffmpeg_frames": 5,
+    "actual_ffmpeg_YAVG": 235.0,
+    "default_reader_deadline_seconds": 1,
+    "source_sha256": {
+      "kinocut/process_guardian.py": "ab95ea37febd43bb7d5d7b97c01495320c137d0eab43ba110cdac9faa1bec6e5",
+      "kinocut/process_guardian_owner.py": "7ce52c0ecc6a071c3d8615ad4340f2c629e7bb1c90e233cdde2c288151272a6b",
+      "kinocut/process_tree.py": "123d84950dbf702c7aae3e67ed6a37788729b602147716ee329a6982a0b18594",
+      "kinocut/quality_signal_reader.py": "a543a418e85b9359ccaae754f72aa542f2b9a54949a3e3cb2f2def6f5b971f49",
+      "tests/test_process_guardian.py": "0d2c988506beaf86f25b50f043f71921a23513752cf246e0a8ce7e6f49e0e6c6",
+      "tests/test_quality_signal_reader.py": "5f05d93a9e86d015a7469c2d9339cb4d6acd6c0e83fa35d4da99c01f86396cc2"
+    }
+  },
+  "artifacts_sha256": {
+    "run.py": "ea653de4dff3ad71dcbc2c3d1d8e7d7dbe64556523edb1b7abfd50c6622fcca0",
+    "selector.json": "f6738b77dab33f5d9183f5ee8bf20f3c8f4664776a350d83a28eba6cd25c23cd",
+    "before.log": "f8b7edeec82d554b2b2ff01c8aa90beab99e3456d0120542630382b0b537ac0e",
+    "quality-after.log": "6fbb5d8a8cb350d4050e507d9f54bc0de76480dbc1f84945332f81f773b6ad21",
+    "full-selector.log": "290886b136a3053c1682260cf48638af5b292120a1080a5d304162647ff8ee5a",
+    "full-selector-exit.json": "124fd50cb6d223cdd18fedc166d00af7254199b6e6dedf9be82f71db87af6d01",
+    "native-quality.py": "78e676cc80fc9d3eba5bc440adb1c3d45bf9b8ad2412315e1c0197aae7aef6f8",
+    "native-quality.json": "36d60633e421dbd0afc2cf24a7f17ea9d3b90e10f4797d7af4b8a7e5127262be",
+    "native-quality.log": "1e28181ad44a40f5da3b2b2e9439832a26e39afca57ba89e6a7932491778d14f"
+  },
+  "scope": "Linux forced portable-supervisor protocol. Does not replace native macOS or Windows hosted receipts. Managed child reaping asserted; no universal abnormal host PID1 zombie reaping claim."
+}

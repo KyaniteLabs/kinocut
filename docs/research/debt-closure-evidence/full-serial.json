@@ -9,13 +9,13 @@
     "--tb=short"
   ],
   "exit_code": 0,
-  "wall_seconds": 1932.355250923003,
-  "source_identity_sha256": "4e06562528aec90609c8a24a3976888fb99c1da833700094541544fb1ce8a831",
+  "wall_seconds": 2168.771929101,
+  "source_identity_sha256": "0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d",
   "source_unchanged": true,
   "file_count": 1213,
-  "passed": 8281,
+  "passed": 8297,
   "skipped": 189,
   "warnings": 8,
-  "pytest_seconds": 1927.42,
-  "log_sha256": "5d254170840087ff608e82cabc8e9a9412c1c00d4e883d83df26d51a542396ff"
+  "pytest_seconds": 2163.75,
+  "log_sha256": "e28801cc9d51b8be600029e56a113eb0b983905c9a08a00abfff7e387008cede"
 }

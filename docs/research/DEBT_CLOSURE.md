@@ -9,7 +9,7 @@ Published 1.15.3 artifacts remain distinct from these Unreleased source changes.
 
 | Finding | Implemented result | Acceptance |
 | --- | --- | --- |
-| Captured subprocess output | Shared bounded draining rejects oversized stdout/stderr instead of retaining arbitrary output or returning truncated JSON. Explicit sinks check their byte budget before writes. | Actual flood, exact-bound, binary, partial-sink and invalid-sink fixtures; final full gate passed. |
+| Captured subprocess output | Shared bounded draining rejects oversized stdout/stderr instead of retaining arbitrary output or returning truncated JSON. Explicit sinks check their byte budget before writes. | Actual flood, exact-bound, binary, partial-sink and invalid-sink fixtures; passing serial checkpoints are recorded below. |
 | Windows process descendants | Children start suspended, enter a kill-on-close Job Object, then resume. POSIX uses owned sessions; both stop surviving descendants when the leader exits. | Actual Linux grandchild heartbeat/timeout controls plus Windows ABI controls; native hosted gate pending. |
 | Timeline/visual metadata disk use | FFprobe writes through an anonymous owned stdout sink with a producer byte ceiling. Packet/line/deadline limits remain. | Real flooding producer verifies disk bytes never exceed the selected budget. |
 | Publication failures and hostile paths | Missing ancestry creation is anchored and no-follow on supported POSIX systems. Directory and inode identities are checked after replacement. Observed post-publication substitutions and media/receipt split failures return explicit partial-publication errors. | Safe path, directory, inode and sidecar failure fixtures; exclusive writer ownership remains required. |
@@ -26,6 +26,7 @@ Published 1.15.3 artifacts remain distinct from these Unreleased source changes.
 | Generic POSIX process identity after completion | Nonreaping observation retains the leader until group cleanup and sole reap. Unsupported POSIX uses a live supervisor, bounded native-status pipe and self-stop on parent-only EOF. Detected external reaping refuses numeric signals; sole-reaper ownership is required. | Safe old-signal interception, native/forced-fallback status/FD/stream/descendant controls; 92 independent tests passed at the earlier integration checkpoint; final cleanup selection passed 81 with three native-Windows skips. |
 | Raw launch failures and drainer errors | Missing/unexecutable launches return redacted typed processing errors. Cleanup error channels are bounded; original cap/callback errors survive verified cleanup. Windows unassigned suspended startup still uses its stable handle. | Actual missing/unexecutable native and forced-fallback fixtures, descriptor census and startup-handle control. |
 | Cancellation shutdown transition | A lease becoming free during initial checks triggers a fresh quiescence and lease check before a terminal result. Live/reacquired cases remain unconfirmed. | Actual before failure in one of 30 repeats; after 30/30 confirmed. Three deterministic zero-signal transition controls. |
+| Portable supervisor pipe EOF | After native completion the retaining supervisor closes only its own stdout/stderr descriptors before reporting native status, while preserving live group/lease ownership. Native descendant writers still hold their own descriptors and trigger the original deadline. | Actual locally forced fallback reproduces all five native-macOS failure classes; after repair 176 native-selector controls and 29 reader controls pass, with real FFprobe/FFmpeg measurements. New full/native gates below. |
 
 ## Measured performance scope
 
@@ -91,7 +92,7 @@ executing native media or guardian processes.
 Normal and abnormal reaping limits above remain unchanged.
 
 PR [#588](https://github.com/KyaniteLabs/kinocut/pull/588) banks implementation
-`2db0b90`, documentation `f55a816`, and post-review repairs `bedcaa7`. On that exact head, hosted Linux passed
+`2db0b90`, documentation `f55a816`, and post-review repairs `bedcaa7`. On the earlier `f55a816` head, hosted Linux passed
 **8,232 tests, 50 skips and eight warnings in 546.58s** using two workers. Native
 macOS passed the guardian/controller controls but two text renders failed because
 the selected Homebrew FFmpeg lacked `drawtext`; three drainer cleanup warnings
@@ -103,24 +104,24 @@ harfbuzz; CI now selects that keg and explicitly checks `drawtext` before use.
 
 The code reviewer requested typed spawn failures; that request is implemented.
 The independent review additionally reproduced the generic lifetime and
-cancellation transition failures above. Runtime/test/workflow files are now
+cancellation transition failures above. The pre-stdio runtime/test/workflow checkpoint was
 frozen at 1,213-file identity
 `4e06562528aec90609c8a24a3976888fb99c1da833700094541544fb1ce8a831`
-for the new required serial gate. A post-review attempt stopped after 2,142
+for its required serial gate. A post-review attempt stopped after 2,142
 passes and 143 skips because the old stdin fixture expected raw `OSError`. Its
 four `DEVNULL` assertions remain; expectations now require the reviewed typed
 error. The 54-test helper/process selection passed. The next attempt found
 that only the core toolchain resolver checked `drawtext`; the optional lane
 still used the prior duplicate resolver. Both now use the same bounded probe,
 with missing-filter rejection controls on both. All 267 MCPB, distribution and
-architecture controls passed before this new freeze. Prior passing results remain separate checkpoints. The final required serial
+architecture controls passed before this new freeze. Prior passing results remain separate checkpoints. That pre-stdio required serial
 gate passed **8,281 tests, 189 skips and eight warnings in 1,927.42s**, exit
 zero. The wrapper observed exit zero in 1,932.36s; all 1,213 selected files
 retained the frozen identity above. Post-run census found no matching executing
 native media or guardian processes. Rebuilt wheel/source archive checks pass,
 with all **645 shipped Python files** matching this frozen source. Configured
 Ruff check/format covers 1,135 files; Pyright reports zero errors and warnings.
-New exact-head CI and resolution of the review thread remain before merge. The separate security-review
+The spawn-error review thread is resolved; current-source full/native gates remain before merge. The separate security-review
 bot reports its payer's usage limit; it is not a completed security review.
 
 ## Product scope and external prerequisites
@@ -150,3 +151,73 @@ snapshot; online trust freshness and current registry alignment remain unverifie
 No unavailable hardware, provider, external approval or human viewing is marked
 as tested. Open issues close only when their actual criteria have evidence or an
 explicit scope decision, never merely because a checklist exists.
+
+## Portable supervisor follow-up
+
+The `8328a26` checkpoint passed hosted Linux **8,256 tests, 50 skips and eight
+warnings in 485.28s**, using the logged two-worker cap; Linux native **160 passed, three skipped** and
+Windows **129 passed, 34 skipped** also passed. macOS failed five controls (154 passed, four
+skips): four quality-reader paths waited for EOF while the retaining supervisor
+still held its own stdout/stderr, and a timeout fixture equated native and
+supervisor PIDs. The aggregate check was skipped. This is a failed cross-platform
+checkpoint, not merge evidence.
+
+The failure reproduced locally with nonreaping support forced off and a one-second
+reader deadline: five failed and eleven passed. The supervisor now releases its
+own stdout/stderr after reaping the native child, before reporting native status;
+it remains live for owned group cleanup. Native descendants retain their own
+writers, so genuine inherited-writer cases still time out. The timeout fixture
+binds the native child's written group to the managed process and verifies the
+managed process is reaped, with supervisor and native identity distinguished.
+Quality child fixtures exercise both the platform-selected path and forced
+portable supervision on POSIX. Their assertions and resource budgets remain.
+
+Independent full native-selector validation passed **176 tests, three native
+Windows skips in 22.95s**; the reader selection passed **29 tests**. Real FFprobe and FFmpeg
+both returned five correct signalstats frames under the one-second deadline.
+These Linux forced-fallback checks supplement native macOS verification.
+That portable repair checkpoint had **1,213 selected files**:
+`aea162427e6d61ceaacaaa7c4845a471a7920e832819a09cf96f59ef5e0e3af9`.
+The current required serial gate passes below; exact-head native CI remains before merge.
+
+The first serial attempt on this portable repair stopped at the public-surface
+privacy check after **4,866 passes, 152 skips and six warnings** in 1,132.10s:
+a retained hosted receipt included a runner-home path. That path was redacted
+without changing toolchain or failure evidence. All four privacy tests then
+passed. The complete serial gate restarted; the failed attempt is retained as
+`portable-stdio-doc-privacy-failed-serial.json`, not a passing result.
+
+The next serial attempt exposed a scheduler-dependent timeout fixture after
+**4,722 passes, 152 skips and six warnings** in 1,002.50s: a native child was
+stopped before writing its PID. The fixture now waits up to five seconds for
+the real owned child's explicit readiness after PID/group writes, before the
+unchanged **0.1-second reader execution deadline**. The startup failure path
+still closes/reaps the owned tree and streams; all original cleanup assertions
+remain. Forty reader/guardian controls passed in 7.91s. This failed checkpoint
+is retained as `portable-timeout-fixture-failed-serial.json`. Current selected
+source is frozen at **1,213 files**, `0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d`;
+the restarted full gate passed as recorded below.
+
+Independent readiness review passed all **29 reader controls** in 4.44s and
+**ten delayed-startup cases** (five repetitions for each ownership mode), with
+a deliberate0.3-second native startup delay and the unchanged0.1-second execution
+deadline. The source-bound receipt is `portable-readiness-independent.json`.
+
+## Current passing delivery gate
+
+The required serial command passed **8,297 tests, 189 skips and eight warnings**
+in **2,163.75s**, exit zero. The wrapper observed exit zero in2,168.77s. All
+**1,213 selected files** retained frozen identity
+`0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d`.
+The completed-run census found no matching executing native media commands or
+shipped guardians. This is the current portable/readiness repair gate; earlier
+passing and failed checkpoints remain separately identified. Current wheel and
+source archive remain content-clean, and all **645 shipped Python files** match
+the same selected source. Native exact-head CI and fresh review-thread inspection
+are the remaining repository delivery checks. External prerequisites below are
+not marked complete by this passing suite.
+
+Post-gate documentation/public-surface/architecture/privacy controls passed
+**68 tests** in17.87s. Whole configured Ruff check/format again pass for1,135
+files, and canonical import identity passes. The independent configured Pyright
+result remains zero errors/warnings on unchanged runtime source.
