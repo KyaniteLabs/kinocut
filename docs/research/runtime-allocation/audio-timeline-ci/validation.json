@@ -45,5 +45,19 @@
     "kernel_wait_status": 0,
     "pytest_was_final_shell_command": true,
     "reason": "Tool session handle expired while original command continued; actual exit0 recovered from completed shell"
-  }
+  },
+  "evidence_corrections": [
+    {
+      "scope": "native_ffmpeg6_independent_origin_cases only",
+      "status": "original independent four-case native-render attribution superseded; full local suite result unchanged",
+      "evidence": "corrections/supersession.json",
+      "corrected_rerun_cases": 4,
+      "merged_baseline_source_match": false,
+      "unaffected": [
+        "native 37-case scoped suite",
+        "native eight-case matrix",
+        "actual hosted FFmpeg-six CI"
+      ]
+    }
+  ]
 }

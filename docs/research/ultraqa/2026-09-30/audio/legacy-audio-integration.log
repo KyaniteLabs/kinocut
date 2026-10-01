@@ -1,0 +1,30 @@
+........................................................................ [ 14%]
+........................................................................ [ 28%]
+........................................................................ [ 43%]
+..sssssssssssssssssssssssssssssssssssssssssssssssssssssss............... [ 57%]
+........................................................................ [ 72%]
+...........................................s............................ [ 86%]
+....................................................................     [100%]
+=============================== warnings summary ===============================
+tests/test_engine.py::TestAddTexts::test_add_texts_overlay
+  /workspace/kinocut/tests/test_engine.py:244: UserWarning: [ERROR] text_overlap: Text 'Line 1...' and 'Line 2...' overlap at position (center, center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Middle...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Middle...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine_advanced.py::TestEditTimeline::test_timeline_passes_every_audio_clip_field_to_add_audio
+  /workspace/kinocut/kinocut/engine_audio_ops.py:321: UserWarning: [AUDIO GUARDRAIL] volume=1.4 > 1.0. If source audio is already near peak, this may cause digital clipping/distortion.
+    _emit_add_audio_guardrails(video_info, audio_path, volume, start_time)
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+444 passed, 56 skipped, 5 warnings in 531.67s (0:08:51)

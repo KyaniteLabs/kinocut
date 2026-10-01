@@ -1,0 +1,6 @@
+{
+  "ffmpeg_configured": true,
+  "ffprobe_configured": true,
+  "error_type": "FileNotFoundError",
+  "message": "[Errno 2] No such file or directory: 'ffprobe'"
+}

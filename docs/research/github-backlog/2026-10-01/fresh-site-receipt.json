@@ -1,0 +1,16 @@
+{
+  "observed_utc": "2026-10-01T02:46:41.494932+00:00",
+  "tls_context": "ssl.create_default_context; certificate and hostname verification enabled",
+  "responses": [
+    {
+      "url": "https://kinocut.dev/",
+      "error_type": "HTTPError",
+      "error": "HTTP Error 403: Forbidden"
+    },
+    {
+      "url": "https://kinocut.dev/llms.txt",
+      "error_type": "HTTPError",
+      "error": "HTTP Error 403: Forbidden"
+    }
+  ]
+}

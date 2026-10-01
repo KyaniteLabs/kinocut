@@ -9,8 +9,20 @@ from .engine_runtime_utils import _build_edit_result, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg, _sanitize_ffmpeg_number
 from .errors import MCPVideoError
-from .limits import MAX_SPEED_CHAIN_COUNT
+from .limits import MAX_SPEED_CHAIN_COUNT, MIN_SPEED_FACTOR, MAX_SPEED_FACTOR, MAX_VIDEO_DURATION
 from .models import EditResult
+
+
+def _speed_audio_filter(factor: float) -> str:
+    """Split slow playback into supported atempo stages within the public bound."""
+    if factor >= 0.5:
+        return f"atempo={factor}"
+    chain_count = 2
+    while factor ** (1 / chain_count) < 0.5:
+        chain_count += 1
+        if chain_count > MAX_SPEED_CHAIN_COUNT:
+            raise MCPVideoError("Speed requires too many audio filters", error_type="validation_error")
+    return ",".join([f"atempo={factor ** (1 / chain_count)}"] * chain_count)
 
 
 def speed(
@@ -21,44 +33,28 @@ def speed(
     """Change playback speed. factor > 1 = faster, < 1 = slower."""
     input_path = _validate_input_path(input_path)
     factor = _sanitize_ffmpeg_number(factor, "factor")
-    if factor <= 0:
-        raise MCPVideoError("Speed factor must be positive")
+    if not MIN_SPEED_FACTOR <= factor <= MAX_SPEED_FACTOR:
+        raise MCPVideoError(
+            f"Speed factor must be between {MIN_SPEED_FACTOR} and {MAX_SPEED_FACTOR}",
+            error_type="validation_error",
+            code="speed_out_of_range",
+        )
 
     output = output_path or _auto_output(input_path, f"speed_{factor}x")
     _validate_output_path(output)
 
     # Use setpts for video, atempo for audio
     video_filter = f"setpts={1 / factor}*PTS"
-    audio_filter = f"atempo={factor}"
-
-    # atempo only supports 0.5 to 100.0; chain if needed
-    if factor < 0.5:
-        chain_count = 2
-        while factor ** (1 / chain_count) < 0.5:
-            chain_count += 1
-            if chain_count > MAX_SPEED_CHAIN_COUNT:
-                raise MCPVideoError(
-                    "Speed factor too extreme: would require more than 20 atempo filters",
-                    error_type="validation_error",
-                    code="invalid_parameter",
-                )
-        tempo_val = factor ** (1 / chain_count)
-        audio_filter = ",".join([f"atempo={tempo_val}"] * chain_count)
-    elif factor > 100:
-        chain_count = 2
-        while factor ** (1 / chain_count) > 100:
-            chain_count += 1
-            if chain_count > MAX_SPEED_CHAIN_COUNT:
-                raise MCPVideoError(
-                    "Speed factor too extreme: would require more than 20 atempo filters",
-                    error_type="validation_error",
-                    code="invalid_parameter",
-                )
-        tempo_val = factor ** (1 / chain_count)
-        audio_filter = ",".join([f"atempo={tempo_val}"] * chain_count)
+    audio_filter = _speed_audio_filter(factor)
 
     # Check if input has audio
     info = probe(input_path)
+    if info.duration / factor > MAX_VIDEO_DURATION:
+        raise MCPVideoError(
+            "Speed-adjusted video exceeds the supported duration",
+            error_type="validation_error",
+            code="duration_too_long",
+        )
     has_audio = info.audio_codec is not None
 
     with _atomic_output(output) as staged:

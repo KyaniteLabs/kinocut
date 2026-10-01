@@ -1,0 +1,23 @@
+{
+  "observed_utc": "2026-10-01",
+  "provenance": "Audio owner/reviewer supplied frozen findings and durable logs",
+  "artifact_sha256": {
+    "fade_review.json": "ea447e2cf382c349a5abf4e43c398acab377499e35c9eb6139a028f0f7872bda",
+    "rescue-boundary.log": "e0de9bcd76dabe37a07045cb140fb55e5d98b0d8a157b4625d2026c7ac45fa14",
+    "legacy-audio-integration.json": "1131e2e108c6b07247b494659ea989083c432426105be77f1a142c4564506dee",
+    "fade_review.py": "1aa075912abda4a59c8a3fbe18e0cc803ddf65341a44f04c34666ed4e6265a61",
+    "verifier-compatibility.log": "d1a5575bf639419be60d8a11dc9b9919e9b18ff2bca7578f94314809eeb43ac9",
+    "core_geometry_review.py": "e0767db6f11d6078f12c782aaa2d707ec4844276e7a8f930e6c776a2c1e8c8e8",
+    "attachment-final.log": "cf072fc7a5afaacaae31e7e34c7cc87ff3f4e67635bbb098a6e2f860b39a51fd",
+    "AUDIO-FINDINGS.md": "7331c4129cc10f63e62cc6a730e4d133cfed42f5d4670944865aac1fcddd7635",
+    "legacy-audio-integration.log": "ba775b5c15f1130c57ff601f8dc7ab3ec11b5b29c0ce2a1593a19e74dfd8b9ac",
+    "all-tests-collection.log": "de27708e231d4bbab723057f7dd23cabf0dba859f8d220c1383ab62e9546e512",
+    "final-audio-boundaries.log": "49910550b3bed5b7b1ad49a710cd2e75bc11ffcb7334e1871e4ededbd3732451",
+    "core_geometry_review.json": "e83e91b830afaa4e946a1c099bfd53cfc27bb103188cab2cfbdbf140ea2247f9"
+  },
+  "limits": [
+    "Focused selections overlap; logs include chronology/intermediate defects.",
+    "Native6 historical binaries erased; no post-descriptor-write native6 rerun claimed",
+    "Final whole-repository/listening/production acceptance not established"
+  ]
+}

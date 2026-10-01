@@ -10,7 +10,8 @@ X4 is one example, not a requirement. No vendor SDK. One ffprobe, no extra
 decode until you approve a render.
 
 **Published in Kinocut 1.14.0** (`pip install kinocut`).
-No new MCP or CLI name — still **196 / 167**.
+The initial 1.14.0 launch added no MCP or CLI names (**196 / 167** then).
+The current catalog is documented in [TOOLS.md](TOOLS.md).
 Not an optimized-AI-director claim. The model never writes pixels.
 
 Design/PRD: [2026-08-13-x4-360-assembly-design.md](superpowers/specs/2026-08-13-x4-360-assembly-design.md) ·
@@ -37,7 +38,7 @@ Kinocut does **not** stitch dual-fisheye, cubemap, or vendor RAW.
 | Approve / reject | `video_review_decide` on the `360_assembly_plan` | `decide_360_assembly` | `kino review-decide` is the watching floor only — it does **not** approve a sphere plan. |
 | Render | `video_review_decide` with `output_path` after approve | `render_360_assembly` | — |
 
-Default agent path: do **not** list 196 tools. Call `video_intent`.
+Default agent path: call `video_intent` to discover the relevant workflow.
 
 ## Propose → approve → render
 
@@ -65,6 +66,12 @@ video_review_decide(
 
 Approve without `output_path` only marks the plan `approved`.
 Reject never renders. Render without approve fails closed (`human_apply_required`).
+
+In the unreleased development changes, rendering checks that the source bytes
+still match the approved plan before work and again before publishing. A changed
+source returns `source_identity_changed`; propose and review a new plan. Source
+hash and file-identity checks detect observed changes but do not provide an
+immutable source snapshot throughout every consumer.
 
 ### Python
 
@@ -121,6 +128,11 @@ export KINOCUT_360_DIRECTOR_MODEL=qwen-vl
 
 Cloud requires `allow_cloud=True` or `KINOCUT_360_DIRECTOR_ALLOW_CLOUD=1`.
 Without opt-in: `cloud_execution_denied`.
+Unreleased endpoint validation also treats non-loopback and LAN base URLs as
+cloud endpoints, including URLs configured for a nominally local provider.
+Injected callbacks receive a separate copy of the proposal, must retain its
+source, and cannot change the fallback by mutating that copy. Custom Python
+callbacks remain trusted extension code; endpoint validation does not sandbox them.
 Bad director JSON falls back to heuristic (`unavailable: true`) or
 `capability_unavailable`. `kino doctor` reports `sphere_director` (probe only, no network).
 
@@ -141,9 +153,11 @@ or inject `propose=` for tests / custom adapters.
 | `human_apply_required` | Render called before approve |
 | `cloud_execution_denied` | Cloud director without opt-in |
 | `capability_unavailable` | Director returned unusable JSON |
+| `source_identity_changed` | Development render source no longer matches its reviewed plan |
 
-Quality gate after render uses the same score-80 ship seam as other exports
+Quality evaluation of the rendered output uses the same score-80 ship seam as other exports
 unless `allow_fail=True`. Synthetic fixtures can score low; that is a gate, not a silent pass.
+Development rendering evaluates the staged output before replacing a prior delivery.
 
 ## Not in v1
 

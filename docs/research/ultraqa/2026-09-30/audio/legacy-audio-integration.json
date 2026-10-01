@@ -1,0 +1,26 @@
+{
+  "observed_utc": "2026-10-01",
+  "provenance": "Audio owner supplied completed legacy audio/engine integration; frozen source before next aggregate repairs",
+  "result": {
+    "passed": 444,
+    "skipped": 56,
+    "warnings": 5,
+    "duration_seconds": 531.67
+  },
+  "behavior": "Legacy direct helper/builder fade declarations preserved; audible-window clamps and timestamp-aware resampling remain in add_audio caller; actual delay/native-offset/loop signal controls retained",
+  "source_sha256_at_archive": {
+    "kinocut/engine_audio_ops.py": "2539a5c19800ac812376808fa58ab57c1bb3ac8c6d39cc24d8b620b10ea8ce8d",
+    "kinocut/engine_audio_normalize.py": "84e7bd7a0a6e0e7079d5e7a55e85a0ec474d0868d2a23655fe6fc871243f0005",
+    "kinocut/engine_audio_mix.py": "c05c0f11ea5a0d71bf74ab85bd9d6c38918e16bdb86143f1242adf3effb778d9",
+    "kinocut/engine_audio_validation.py": "63c2667ef5addb0e30dcd9aab5f14fd887bd6eddcac95800c827969f8ab92569",
+    "kinocut/engine_media_timeline.py": "afc6a2f93d336067e186f49714f947e2128a3b44600078d162b81656622814bd",
+    "kinocut/ffmpeg_helpers.py": "5881ce51117d5745582328e5cadb96a9e3f0da3fc8c3d7906e50c407d7a8ff1f",
+    "tests/test_audio_fades.py": "cd12c36ca2edfda9e47cbb28538946549097ebb576f96bd5a8ad0858a61951f4"
+  },
+  "log_sha256": "ba775b5c15f1130c57ff601f8dc7ab3ec11b5b29c0ce2a1593a19e74dfd8b9ac",
+  "limits": [
+    "Focused integration, not whole-repository success",
+    "Completion-time source hashes alone do not prove no changes during earlier execution",
+    "Optional/platform skips are not backend execution evidence"
+  ]
+}

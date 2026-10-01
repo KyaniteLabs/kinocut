@@ -17,6 +17,7 @@ from .paths import (
     _auto_output,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _build_ffmpeg_cmd,
     _run_ffmpeg,
     _sanitize_ffmpeg_number,
@@ -109,17 +110,15 @@ def apply_filter(
     filter_name, filter_string, is_audio = filter_map[filter_type]
     _require_filter(filter_name, f"Filter '{filter_type}'")
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         if is_audio:
-            _run_audio_filter(input_path, filter_type, filter_string, output)
+            _run_audio_filter(input_path, filter_type, filter_string, staged)
         else:
-            _run_video_filter(input_path, filter_string, output, crf, preset)
-
-    return _build_edit_result(
-        output,
-        f"filter_{filter_type}",
-        timing,
-    )
+            _run_video_filter(input_path, filter_string, staged, crf, preset)
+        result = _build_edit_result(staged, f"filter_{filter_type}", timing)
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:

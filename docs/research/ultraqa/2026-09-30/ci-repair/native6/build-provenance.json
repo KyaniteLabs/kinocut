@@ -1,0 +1,22 @@
+{
+  "official_repository": "https://github.com/FFmpeg/FFmpeg.git",
+  "official_tag": "n6.1.1",
+  "tag_object": "6f4048827982a8f48f71f551a6e1ed2362816eec",
+  "peeled_commit": "e38092ef9395d7049f871ef4d5411eb410e283e0",
+  "git_archive_tar_sha256": "79318c22f6b29b8b71a2fbcc2c34a42a18a150cc0f89ba21733dbfd2ce4cc157",
+  "tracked_source_status": "",
+  "fetch": "git HTTPS with normal TLS verification; no verification disabled",
+  "compiler": "gcc (Debian 14.2.0-19) 14.2.0",
+  "binary_paths": {
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe"
+  },
+  "binary_sha256": {
+    "ffmpeg": "6206bf77c710645d7c3e6fd50607ad2f0c9a0af17228589d6d7e903e010a6214",
+    "ffprobe": "ff435962da7d9f61f489cc725fde8faaa6056559daaeca07a2da2ba37270d4e4"
+  },
+  "ffmpeg_version": "ffmpeg version n6.1.1 Copyright (c) 2000-2023 the FFmpeg developers",
+  "ffprobe_version": "ffprobe version n6.1.1 Copyright (c) 2007-2023 the FFmpeg developers",
+  "configure_command": "# ./configure --disable-everything --disable-autodetect --disable-doc --disable-debug --disable-x86asm --disable-network --enable-decoder='aac,mpeg4,h264,rawvideo,wrapped_avframe,pcm_s16le,pcm_f32le,pcm_f64le,pcm_u8' --enable-parser='aac,mpeg4video,h264' --enable-encoder='aac,mpeg4,pcm_s16le,pcm_f32le,wrapped_avframe' --enable-demuxer='mov,wav,matroska' --enable-muxer='mov,mp4,wav,null,matroska' --enable-filter='aresample,anull,amix,adelay,afade,sidechaincompress,asplit,volume,loudnorm,aformat,apad,atrim,asetpts,color,sine,anullsrc,aevalsrc' --enable-indev=lavfi --enable-protocol='file,pipe'",
+  "tracked_source_status_after_build": ""
+}

@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino's development tip exposes **201** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.2 exposes **201 MCP tools / 173 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with auto-fix suggestions.
+kino's development tip exposes **201** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.3 exposes **201 MCP tools / 173 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with operation-specific diagnostics and suggestions when available.
 
 ---
 
@@ -163,8 +163,8 @@ download models, contact providers, or submit jobs. See
 | `video_convert` | Convert between mp4, webm, gif, mov, hevc, av1, prores (two-pass encoding); validate a staged output before publication so failures preserve an existing destination |
 | `video_speed` | Speed up or slow down (0.5x = slow-mo, 2x = time-lapse), with staged output publication |
 | `video_reverse` | Reverse video and audio playback |
-| `video_fade` | Fade in/out effects |
-| `video_crop` | Crop in upright display pixels with offsets, including rotation-tagged phone video |
+| `video_fade` | Fade in/out over the bounded primary-picture window, preserving delayed origins rather than using longer container/audio duration |
+| `video_crop` | Crop in upright display pixels, including rotation-tagged phone video; explicit odd dimensions reject, percentage dimensions become even, pixel offsets stay exact |
 | `video_rotate` | Rotate 90/180/270 and flip horizontal/vertical |
 | `video_filter` | Apply bounded visual/audio filters; Ken Burns defaults to one frame per input at source fps, noise reduction uses -50 dB by default with explicit `noise_level` override |
 | `video_chroma_key` | Remove solid color background (green screen) with bounded similarity/blend parameters |

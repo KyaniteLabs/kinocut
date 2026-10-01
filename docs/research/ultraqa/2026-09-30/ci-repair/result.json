@@ -1,0 +1,46 @@
+{
+  "status": "Final scoped source frozen; focused and independent repairs validated; required sequential attempt5 running; corrected hosted outcomes pending",
+  "production_audio": "FFmpeg6.1.1 can report genuine AAC decoding errors and exit0 despite xerror, max_error_rate0 and err_detect explode. Final shared audio runner requests severity tags and recognizes ANSI SGR in the severity prefix without splitting or copying the whole log. It rejects error/fatal/panic diagnostics with at most4096 UTF8 bytes of complete-codepoint context, preserving actual process returncode0. Existing analysis/render/postflight passes are reused without another production decode. Nonfatal info/warning error literals are accepted; no immediate-abort or universal damaged-media detection claim.",
+  "diagnostic_bounds": "Published typed diagnostics are bounded. Existing capture_output-based subprocess passes collect stderr before diagnostic truncation; no hard transient stderr-memory bound is claimed.",
+  "focused": {
+    "native6_forced_color": "FINAL75passed1skip22.48s; earlier74/1skip retained as interim",
+    "installed7_audio": "FINAL159passed1skip106.07s; earlier155/1skip retained as interim",
+    "installed7_diagnostic_tags": "7passed68deselected0.13s",
+    "windows_test_linux": "16passed1.69s; independent16pass1.66s; actual repairedWindows hosted pending"
+  },
+  "limits": [
+    "Minimal pinned official6.1.1 build capabilities are documented; no all-codec parity claim.",
+    "Source snippets/logs retain their measured stage; root final diagnostic exit-code review and later aggregate source binding are separate.",
+    "Windows portability changes only test assertions, retain actual child ownership/reaping/closed pipes/readers and add no platform skip.",
+    "Interim operations-native6-after.log reports ffmpeg_exit1; final actual exit0 preservation supersedes that earlier wrapper, as bound by final independent controls."
+  ],
+  "artifact_sha256": {
+    "aac-corruption-review/installed7-audio-final.log": "60881fd1a29c10f5d777538255eb0a5af250bd86e47d1288ac57321b20465798",
+    "aac-corruption-review/operations.py": "b7e981288f5f2eeed19d967b95a2f0d1153f4b4c01b42c501932814939acd4e7",
+    "aac-corruption-review/loglevel-native6.log": "8161aecd60064f77ecf9c39a42b964b9cc4a222cdc11e23fc8ad9ec50d00dfdf",
+    "aac-corruption-review/operations-native6-before.log": "d5664c1ec37056fb706389acfe8286b7e9c24bcc4e0115e62409a6789a62b849",
+    "aac-corruption-review/operations-native6-after.log": "d2d09445c6dc838b49bbfa9b206ceee4514315c763a5fddab3e06def0445ac66",
+    "aac-corruption-review/installed7-diagnostic-tags.log": "8e1efd3e5accd9b756323d126d6c41af2cf8eaeaf899d71e3280439717236bbd",
+    "aac-corruption-review/manifest-final.json": "eb68cb225f4d4afd6279978b5fbcd4e3d24088de02340e043595447c1143073c",
+    "aac-corruption-review/native6-color-boundaries.log": "d8d50212c707d9c07b1b570a40803bc7979fa82a74e8604cd1dd8d9a210ed5e2",
+    "aac-corruption-review/compare.json": "df5f47e8cd39838dc3e246af90e1d52ca5c55e64b4b9892a1adec5d7207110a0",
+    "aac-corruption-review/compare.py": "dcdf6913e12ece3295ce3c7a082153966b2a4f126589896207602826c16fc4a8",
+    "aac-corruption-review/native6-color-boundaries-final.log": "4f2b38a63fd92d1ccd7786784239c3c2c85b42288fa6f01ea3992dc9059f994b",
+    "aac-corruption-review/installed7-audio.log": "d9848809644e6c2b89277d2b61856f0bf34f9b26d7d8134bac128c2173e93dd5",
+    "aac-corruption-review/operations-native6.json": "5b5bc1972690cf24174b966690657f3dcd6a5b302d8159021cb7beeb6e575954",
+    "aac-corruption-review/compare.log": "e03e91c1f23e88901a0339441a10cf70c958617d0ff6935ec6d1a4594a8926ad",
+    "aac-corruption-review/strict-flags.json": "d09f6efbb4ce5e8d2cec31e8fde1efdc3a6b30f12f485eafb1fb4c9b603ef25e",
+    "latency/windows-timeout-portability.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "latency/windows-timeout-portability.json": "0b93429ff8b3b2b7180beef1e49858bb72c7e7e9728dd81596d03868f41aa11b",
+    "latency/windows-timeout-portability.log": "90f3740621fecc6a321af9e6825204fb669fce4c31a18b4602e7b67aed2a3d03",
+    "native6/color-error-wrapper-repaired.log": "d5bd8d4c1504a71a449921007214b6c03e69e8d0bb8569cab4403dc41cd4b624",
+    "native6/color-error-wrapper-review.log": "bb92b5a0334146a3debb297c7e7c83862ffc69ee5ddfa62dba9104af3fea2328",
+    "native6/build-provenance.json": "5e7cb2936a441d2fd643fd2207bf004b34734f8a748a93c970d0223898917283",
+    "native6/audio-final-independent-review.log": "316792a2ca33d2d79d72781e05f870720e8e0a7a40d35c9dadf5c4962a647448",
+    "native6/audio-final-independent-review.py": "8423715f2932ed9827ea0f3771411bbe2c7c148883a1529173964c6c4122a4f8",
+    "native6/source-provenance.json": "6b1233d52fcbbf1d81cafe4ef92a181fc3d585e4afb041f6abcd45ff0cee7686",
+    "native6/audio-final-independent-review.json": "316792a2ca33d2d79d72781e05f870720e8e0a7a40d35c9dadf5c4962a647448",
+    "native6/strict-error-level.log": "9d4ac1c28b1ee73e55474054e92fbd5a4c2c18ec616cdf53113d44f6b14159f2"
+  },
+  "final_manifest": "aac-corruption-review/manifest-final.json"
+}

@@ -1,0 +1,23 @@
+{
+  "current_sources": {
+    "kinocut_sound/__init__.py": "0c1ac7d0ab34f528646c7a0bbe5b8d4015e0f08e7b3592a829c4bd23393d4233",
+    "kinocut_sound/public/asr_input.py": "f580bc0d435e57b6363f76992411631503a750969ff5be3a6894b9de10b0751c",
+    "tests/test_asr_resampling.py": "d3b2d4b96965cf449496084a3be452cf27d41fb5ad2683632c929c9a4d4b02dc",
+    "tests/test_quality_source.py": "2d20b5eb2d391b42f8fcffb3c652676b47f15ef7bf132e966a1a37f7ef285939"
+  },
+  "logs": {
+    "repair-final-ruff.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "repair-final.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "repair-final.log": "aca7fd361c4abbe2109c3e64bf4e3837ca33a94a1b5274157deafece9babf953"
+  },
+  "parent_formatted_manifest_sha256": "881d6f024f0837a9e6ff2fcc69f31d771bd38c7c28e3d677eb2cf9fa9a88790f",
+  "recorded_utc": "2026-10-01T02:47:51.549243+00:00",
+  "relationship": "Narrow compatibility repairs after parallel full-preflight; original measured manifest.json and formatting-only manifest-formatted.json remain unchanged historical snapshots. Benchmarks were not rerun after this error-code/export/test-seam repair; the valid mono/timing frontend numerical behavior was not edited.",
+  "repairs": [
+    "Restore qa_input_invalid for malformed RIFF/format/nonmono/unaligned headers before PCM allocation; retain asr_over_limit for named rate/duration/metadata resource ceilings.",
+    "Export fourASRresamplerdefaults andtwoASRinputlimits fromkinocut_sound.__init__.",
+    "Source-quality retries mockread_signalstats andactualSignalReduction; additionallyassertwarmreuse andsourceidentitychange re-probes.",
+    "Header-onlyreadtests assertQaError.code forstructuralfailures, includingnewinvalidRIFFmagic/declaredcontainerlength cases."
+  ],
+  "validation": "106passed49.78s, exit0; Ruff0.15.11check+formatcheck passed; gitdiffcheckpassed; sourcesfrozen, nocommits."
+}

@@ -1,0 +1,254 @@
+[
+  {
+    "binary": "ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror",
+      "-max_error_rate",
+      "0"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror",
+      "-err_detect",
+      "explode"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror",
+      "-threads",
+      "1"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror"
+    ],
+    "code": 246,
+    "stderr": "[aac @ 0x561f0dcf1a80] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x561f0dcf3180] [dec:aac @ 0x561f0dcee340] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x561f0dcf3180] [dec:aac @ 0x561f0dcee340] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x561f0dcf3180] [dec:aac @ 0x561f0dcee340] Task finished with error code: -50531338 (Error number -50531338 occurred)\n[aist#0:1/aac @ 0x561f0dcf3180] [dec:aac @ 0x561f0dcee340] Terminating thread with return code -50531338 (Error number -50531338 occurred)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror",
+      "-max_error_rate",
+      "0"
+    ],
+    "code": 246,
+    "stderr": "[aac @ 0x5604cf9cfb40] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x5604cf9d1180] [dec:aac @ 0x5604cf9cc340] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x5604cf9d1180] [dec:aac @ 0x5604cf9cc340] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x5604cf9d1180] [dec:aac @ 0x5604cf9cc340] Task finished with error code: -50531338 (Error number -50531338 occurred)\n[aist#0:1/aac @ 0x5604cf9d1180] [dec:aac @ 0x5604cf9cc340] Terminating thread with return code -50531338 (Error number -50531338 occurred)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror",
+      "-err_detect",
+      "explode"
+    ],
+    "code": 246,
+    "stderr": "[aac @ 0x55d8d18dad00] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x55d8d18dc480] [dec:aac @ 0x55d8d18d74c0] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x55d8d18dc480] [dec:aac @ 0x55d8d18d74c0] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x55d8d18dc480] [dec:aac @ 0x55d8d18d74c0] Task finished with error code: -50531338 (Error number -50531338 occurred)\n[aist#0:1/aac @ 0x55d8d18dc480] [dec:aac @ 0x55d8d18d74c0] Terminating thread with return code -50531338 (Error number -50531338 occurred)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror",
+      "-threads",
+      "1"
+    ],
+    "code": 246,
+    "stderr": "[aac @ 0x5621b83379c0] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x5621b83391c0] [dec:aac @ 0x5621b83341c0] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x5621b83391c0] [dec:aac @ 0x5621b83341c0] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x5621b83391c0] [dec:aac @ 0x5621b83341c0] Task finished with error code: -50531338 (Error number -50531338 occurred)\n[aist#0:1/aac @ 0x5621b83391c0] [dec:aac @ 0x5621b83341c0] Terminating thread with return code -50531338 (Error number -50531338 occurred)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror"
+    ],
+    "code": 183,
+    "stderr": "[aac @ 0x5560f71d4a80] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x5560f71d6180] [dec:aac @ 0x5560f71d1340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5560f71d6180] [dec:aac @ 0x5560f71d1340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5560f71d6180] [dec:aac @ 0x5560f71d1340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x5560f71d6180] [dec:aac @ 0x5560f71d1340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror",
+      "-max_error_rate",
+      "0"
+    ],
+    "code": 183,
+    "stderr": "[aac @ 0x564b8e519b40] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x564b8e51b180] [dec:aac @ 0x564b8e516340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x564b8e51b180] [dec:aac @ 0x564b8e516340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x564b8e51b180] [dec:aac @ 0x564b8e516340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x564b8e51b180] [dec:aac @ 0x564b8e516340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror",
+      "-err_detect",
+      "explode"
+    ],
+    "code": 183,
+    "stderr": "[aac @ 0x56247e422d00] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x56247e424480] [dec:aac @ 0x56247e41f4c0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x56247e424480] [dec:aac @ 0x56247e41f4c0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x56247e424480] [dec:aac @ 0x56247e41f4c0] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x56247e424480] [dec:aac @ 0x56247e41f4c0] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "binary": "ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror",
+      "-threads",
+      "1"
+    ],
+    "code": 183,
+    "stderr": "[aac @ 0x555fdd2749c0] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x555fdd2761c0] [dec:aac @ 0x555fdd2711c0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x555fdd2761c0] [dec:aac @ 0x555fdd2711c0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x555fdd2761c0] [dec:aac @ 0x555fdd2711c0] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x555fdd2761c0] [dec:aac @ 0x555fdd2711c0] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror",
+      "-max_error_rate",
+      "0"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror",
+      "-err_detect",
+      "explode"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "source.mp4",
+    "flags": [
+      "-xerror",
+      "-threads",
+      "1"
+    ],
+    "code": 0,
+    "stderr": ""
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x56394df4c400] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x56394df37ac0] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x56394df37ac0] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x56394df37ac0] Decoder thread returned error: Error number -50531338 occurred\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror",
+      "-max_error_rate",
+      "0"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x5616cc04bfc0] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x5616cc04d680] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x5616cc04d680] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x5616cc04d680] Decoder thread returned error: Error number -50531338 occurred\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror",
+      "-err_detect",
+      "explode"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x55e6d9061100] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x55e6d9034c00] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x55e6d9034c00] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x55e6d9034c00] Decoder thread returned error: Error number -50531338 occurred\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-255.mp4",
+    "flags": [
+      "-xerror",
+      "-threads",
+      "1"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x559b96f93480] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x559b96f7eb40] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x559b96f7eb40] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x559b96f7eb40] Decoder thread returned error: Error number -50531338 occurred\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x557cf86b3400] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x557cf869eac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x557cf869eac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x557cf869eac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror",
+      "-max_error_rate",
+      "0"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x5570aa6f3fc0] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x5570aa6f5680] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5570aa6f5680] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5570aa6f5680] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror",
+      "-err_detect",
+      "explode"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x5631c002e100] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x5631c0001c00] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5631c0001c00] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5631c0001c00] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "input": "damaged-16.mp4",
+    "flags": [
+      "-xerror",
+      "-threads",
+      "1"
+    ],
+    "code": 0,
+    "stderr": "[aac @ 0x55affdd2e480] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x55affdd19b40] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55affdd19b40] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55affdd19b40] Decoder thread returned error: Invalid data found when processing input\n"
+  }
+]

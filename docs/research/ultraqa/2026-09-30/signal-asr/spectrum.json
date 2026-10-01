@@ -1,0 +1,25 @@
+{
+  "input_rate_hz": 48000,
+  "input_frames": 48000,
+  "source_sha256": "aec79066a2d89b90761d3e2d2c8355a98d1b792ccb74de831b0e46c3e5f5f363",
+  "output_rate_hz": 16000,
+  "expected_output_frames": 16000,
+  "edge_exclusion_frames": 1600,
+  "baseline_linear": {
+    "frames": 16000,
+    "finite": true,
+    "passband_1000hz_amplitude": 0.3662211633908457,
+    "alias_5000hz_amplitude": 0.36621210332789794,
+    "alias_5000hz_dbfs": -8.72534612686583
+  },
+  "fixed_bandlimited": {
+    "frames": 16000,
+    "finite": true,
+    "passband_1000hz_amplitude": 0.3662125020915233,
+    "alias_5000hz_amplitude": 2.6483339017449136e-06,
+    "alias_5000hz_dbfs": -111.54054519927365
+  },
+  "ffmpeg_version": "7.1.5-0+deb13u1",
+  "numpy_version": "2.4.5",
+  "scope": "PCM frontend tone controls only; no model, speech corpus, listening or WER evaluation"
+}

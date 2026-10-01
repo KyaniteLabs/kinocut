@@ -1,0 +1,346 @@
+{
+  "observed_utc": "2026-10-01T03:17:02.853260+00:00",
+  "merged_baseline_commit": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "mode": "execute",
+  "prechecked_issues": [
+    {
+      "issue": 585,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/585",
+      "state": "open",
+      "updated_at": "2026-09-30T08:49:09Z",
+      "body_sha256": "6c2a7e6df15e438b113758ac992f062475b9f5d9f19087926a9489952ceadbac",
+      "merged_resolution": "Still honors requested durable output; render resolves caller-relative path consistently; false artifact outcome exits nonzero.",
+      "remaining_limit": "Tests exercise mocked child artifacts; no Hyperframes provider/model execution claim."
+    },
+    {
+      "issue": 584,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/584",
+      "state": "open",
+      "updated_at": "2026-09-30T06:59:36Z",
+      "body_sha256": "eecc1115c15ab287fbe71448d28699f7a4bcdabf2662ee6af70ca0dab0592059",
+      "merged_resolution": "WAV PCM16 / M4A AAC chosen and actual codec/rate/channels/duration/decode verified before publication.",
+      "remaining_limit": "Closure covers reported container defect; later unmerged stream-origin/publication hardening is not part of this proof."
+    },
+    {
+      "issue": 582,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/582",
+      "state": "open",
+      "updated_at": "2026-09-30T06:13:44Z",
+      "body_sha256": "b0c4100445a5951c386d599f864c6a1a5f956065a8eaa5babc80bd9810d8331b",
+      "merged_resolution": "Audio-only WAV/MP3 mono/stereo have measured non-synthetic bins; preflight marks color inapplicable and measures decode/loudness.",
+      "remaining_limit": "Unsupported FFmpeg builds may return explicitly flagged fallback; missing audio remains rejected."
+    },
+    {
+      "issue": 581,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/581",
+      "state": "open",
+      "updated_at": "2026-09-30T06:07:17Z",
+      "body_sha256": "2b0fcdff87a4af16680321779ba861e227dae31199da334ee62ba6a227284b3b",
+      "merged_resolution": "Camera/lens survive explicit prompt inclusion; bounded annotated headings accepted; ambiguous declarations reject; dialect visibly generic.",
+      "remaining_limit": "No provider-specific dialect compilation/model generation claim."
+    },
+    {
+      "issue": 580,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/580",
+      "state": "open",
+      "updated_at": "2026-09-30T05:54:26Z",
+      "body_sha256": "902c99d08600d5f236d779591999f3d7c0bb7a7257dd87e578aeca235173a27c",
+      "merged_resolution": "Real encoded-media requests bind original SHA, genuine EBU R128 meter and policy; CLI/Client/MCP receipts agree; invalid policy/hash rejects.",
+      "remaining_limit": "Audio compliance is not visual decoding or listening acceptance; standalone byte/demo routes remain distinct."
+    },
+    {
+      "issue": 578,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/578",
+      "state": "open",
+      "updated_at": "2026-09-27T12:45:01Z",
+      "body_sha256": "6bd005569e64ff59d6d8554200c76d81a74572571878949c8bf3a565f1bcb09b",
+      "merged_resolution": "Crop size/default center/percent use upright display geometry.",
+      "remaining_limit": "Later explicit odd-dimension policy is unmerged and not used for this resolution."
+    },
+    {
+      "issue": 576,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/576",
+      "state": "open",
+      "updated_at": "2026-09-27T12:37:46Z",
+      "body_sha256": "d7d54dde3e2d1e5d44c8722658925b0277b4966995d9b8f47877736c457c2466",
+      "merged_resolution": "Accurate seek precedes input; end converts to duration with decoded frame equality.",
+      "remaining_limit": "Tested CFR controls; not universal VFR or reporter-private speed benchmark."
+    },
+    {
+      "issue": 574,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/574",
+      "state": "open",
+      "updated_at": "2026-09-27T08:11:29Z",
+      "body_sha256": "c7dafedaf716183ebf3a5db2c863fe31296aa83d24d49b30c9c5a34b455ac279",
+      "merged_resolution": "Default afftdn floor -50dB; explicit override retained; spectral control preserves highs.",
+      "remaining_limit": "No universal voice/ASR quality or listening claim."
+    },
+    {
+      "issue": 572,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/572",
+      "state": "open",
+      "updated_at": "2026-09-26T22:39:25Z",
+      "body_sha256": "df6688d50fbe07840801037c4dd188f0c313adcace2e5e48eabfdc25f484b2bf",
+      "merged_resolution": "Client.mix_audio sums timed tracks and encodes AAC once with copied picture; actual high-frequency hiss control improves versus repeated encoding.",
+      "remaining_limit": "Plain Python API; no new MCP tool, universal hiss guarantee or delivery acceptance."
+    },
+    {
+      "issue": 566,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/566",
+      "state": "open",
+      "updated_at": "2026-09-25T13:19:34Z",
+      "body_sha256": "6a92c5c7dde00c51bcd617785d4f8b2d18d49450575575b922eb88cedc20c61b",
+      "merged_resolution": "Timed video begins its opening frames at declared layer start.",
+      "remaining_limit": "Independent masks/timing and publication extensions remain separately scoped."
+    },
+    {
+      "issue": 560,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/560",
+      "state": "open",
+      "updated_at": "2026-09-24T21:03:06Z",
+      "body_sha256": "91d7809cddcbecae12bb909636ce7829fe08fef7dbec2101e407cc91648ea9fa",
+      "merged_resolution": "Glow screens luma while retaining neutral chroma.",
+      "remaining_limit": "No broad artistic acceptance."
+    },
+    {
+      "issue": 557,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/557",
+      "state": "open",
+      "updated_at": "2026-09-24T21:03:04Z",
+      "body_sha256": "d34aadfa2169dc0c19182f9b3732bc1efcc2bf35d57262cfaa07172a1de7fa3f",
+      "merged_resolution": "Forward vignette darkens neutral corners without cast.",
+      "remaining_limit": "Existing smoothness parameter remains unused; outside reported edge-lightening/cast fix."
+    },
+    {
+      "issue": 556,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/556",
+      "state": "open",
+      "updated_at": "2026-09-26T03:41:55Z",
+      "body_sha256": "0a1afb565e3171f1b6aaa9981223b41e2236f871dbb8c8fac83f8d503d57ad24",
+      "merged_resolution": "All four reported points addressed: Client LUT path, sepia420, bounded blend opacity/time, source-directory docstring.",
+      "remaining_limit": "Non-normal rotation/mask/scale remain deliberately deferred; closure does not imply full NLE geometry support."
+    },
+    {
+      "issue": 555,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/555",
+      "state": "open",
+      "updated_at": "2026-09-24T21:03:03Z",
+      "body_sha256": "4bd5c208851007bf5aee4e1a6d910c76fbc82aaafde9b55cd0ee483d3491ddf6",
+      "merged_resolution": "Loop added audio during mix bounded by selected video duration; original soundtrack retained.",
+      "remaining_limit": "pad_audio with mix remains intentionally unsupported; latest offset/fade enhancements unmerged."
+    },
+    {
+      "issue": 554,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/554",
+      "state": "open",
+      "updated_at": "2026-09-24T21:03:02Z",
+      "body_sha256": "7412e7f6c9adea1a9653ee69f29f265caa522518d889d50e41d6a0da56edf36d",
+      "merged_resolution": "Ken Burns produces one frame per input at source frame rate rather than 150 per frame.",
+      "remaining_limit": "VFR equivalence remains unproven."
+    },
+    {
+      "issue": 552,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/552",
+      "state": "open",
+      "updated_at": "2026-09-24T21:02:59Z",
+      "body_sha256": "542882c28b1f887123e09b8bd8eccfc362b41806dbf54cf6e7867ab06da78ff6",
+      "merged_resolution": "Macroblocking restores original portrait/nonmultiple dimensions and encodes successfully.",
+      "remaining_limit": "No whole-effects publication guarantee."
+    },
+    {
+      "issue": 551,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/551",
+      "state": "open",
+      "updated_at": "2026-09-24T21:02:58Z",
+      "body_sha256": "667dd505a463c309749165eb06b1c67327a1d891ea0971e872326dadda785cac",
+      "merged_resolution": "Shape-mask graph uses compatible alpha MOV or black-backed MP4, retaining feather/duration/audio.",
+      "remaining_limit": "MP4 cannot retain alpha; deliberate explicit contract."
+    },
+    {
+      "issue": 550,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/550",
+      "state": "open",
+      "updated_at": "2026-09-24T22:03:37Z",
+      "body_sha256": "a2427bfef7421bcd670c19b62f75662f91482b028e72437aba36a93d55e07f9c",
+      "merged_resolution": "PiP probe uses full-command runner and completes a real render.",
+      "remaining_limit": "No font/platform guarantees inferred."
+    },
+    {
+      "issue": 549,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/549",
+      "state": "open",
+      "updated_at": "2026-09-24T21:02:55Z",
+      "body_sha256": "7c6b4f81c10b8f9fcecb65cf647460f0a63e56ef7f9291ea5f11717b43d00e58",
+      "merged_resolution": "Client exposes plain duck_audio; governed audio_bed documents verified immutable snapshot requirement.",
+      "remaining_limit": "Plain ducking is not governed loudness/receipt fallback; snapshot requirements remain intentional."
+    },
+    {
+      "issue": 548,
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/548",
+      "state": "open",
+      "updated_at": "2026-09-24T22:03:36Z",
+      "body_sha256": "a74b538c37ef9fb948a126796c95de58c2bde73445a91777f12a01ba9eeee2ed",
+      "merged_resolution": "Transition and sepia outputs pin yuv420p.",
+      "remaining_limit": "No native browser/phone playback matrix claim."
+    }
+  ],
+  "actions": [
+    {
+      "issue": 585,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:15Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/585"
+    },
+    {
+      "issue": 584,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:17Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/584"
+    },
+    {
+      "issue": 582,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:19Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/582"
+    },
+    {
+      "issue": 581,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:21Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/581"
+    },
+    {
+      "issue": 580,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:22Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/580"
+    },
+    {
+      "issue": 578,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:24Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/578"
+    },
+    {
+      "issue": 576,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:26Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/576"
+    },
+    {
+      "issue": 574,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:28Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/574"
+    },
+    {
+      "issue": 572,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:29Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/572"
+    },
+    {
+      "issue": 566,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:31Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/566"
+    },
+    {
+      "issue": 560,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:33Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/560"
+    },
+    {
+      "issue": 557,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:34Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/557"
+    },
+    {
+      "issue": 556,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:36Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/556"
+    },
+    {
+      "issue": 555,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:37Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/555"
+    },
+    {
+      "issue": 554,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:38Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/554"
+    },
+    {
+      "issue": 552,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:40Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/552"
+    },
+    {
+      "issue": 551,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:42Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/551"
+    },
+    {
+      "issue": 550,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:44Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/550"
+    },
+    {
+      "issue": 549,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:46Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/549"
+    },
+    {
+      "issue": 548,
+      "state": "closed",
+      "state_reason": "completed",
+      "closed_at": "2026-10-01T03:17:47Z",
+      "url": "https://github.com/KyaniteLabs/kinocut/issues/548"
+    }
+  ],
+  "excluded": [
+    583,
+    553,
+    479,
+    502,
+    499,
+    488,
+    487,
+    485,
+    484,
+    483,
+    482,
+    481,
+    477,
+    476
+  ],
+  "rollback": "Reopen the recorded issue numbers; no comments or source changes are made."
+}

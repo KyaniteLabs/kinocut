@@ -1,0 +1,279 @@
+[
+  {
+    "number": 579,
+    "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+    "draft": true,
+    "title": "fix(crop): work in display pixels (rotated phone videos)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/pull/579",
+    "checks": [
+      {
+        "name": "Aggregate exact evidence",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (macos)",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (windows)",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (linux)",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Optional discovery and callability",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "agent-law",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "FFmpeg operation smoke",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Image extra smoke",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Base CLI and doctor",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build and validate staged artifact",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Clean-wheel onboarding journey",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "AI module metadata smoke",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Hosted PR checks",
+        "head_sha": "f1891a9a1c9e6b34c64fb0e232a48f25b33edecd",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  {
+    "number": 577,
+    "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+    "draft": true,
+    "title": "fix(trim): accurate=True seeks the input (same frames, no full decode)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/pull/577",
+    "checks": [
+      {
+        "name": "Aggregate exact evidence",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Optional discovery and callability",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (windows)",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (linux)",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (macos)",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build and validate staged artifact",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Hosted PR checks",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Base CLI and doctor",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Clean-wheel onboarding journey",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "agent-law",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "AI module metadata smoke",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "FFmpeg operation smoke",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Image extra smoke",
+        "head_sha": "8986a05c74aca4b8192823f293527aeb551e5683",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  },
+  {
+    "number": 575,
+    "head_sha": "ca896570f7da9b1a3b042081eceae64d9a9593fb",
+    "draft": true,
+    "title": "fix(filters): noise_reduction defaults to a -50 dB noise floor",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/pull/575",
+    "checks": []
+  },
+  {
+    "number": 573,
+    "head_sha": "c64aa001b2bd9215390addf81fe2980b114a1600",
+    "draft": true,
+    "title": "feat(audio): mix_audio layers many sounds in one pass, one AAC encode",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/pull/573",
+    "checks": []
+  },
+  {
+    "number": 567,
+    "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+    "draft": true,
+    "title": "fix(composite-layers): a timed video layer plays from its start",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/pull/567",
+    "checks": [
+      {
+        "name": "Aggregate exact evidence",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (windows)",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (linux)",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Optional discovery and callability",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Core runtime (macos)",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "FFmpeg operation smoke",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "AI module metadata smoke",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Base CLI and doctor",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Image extra smoke",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Clean-wheel onboarding journey",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Hosted PR checks",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "Build and validate staged artifact",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "name": "agent-law",
+        "head_sha": "684f8a632239884235e8fb80d3218f9fefe33d90",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ]
+  }
+]

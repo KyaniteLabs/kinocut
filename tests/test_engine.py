@@ -737,39 +737,36 @@ class TestMergeSingleClip:
     def test_copy_same_extension(self, sample_video, tmp_path, monkeypatch):
         from mcp_video.engine_merge import _merge_single_clip
 
-        copy_calls = []
-        monkeypatch.setattr("mcp_video.engine_merge.shutil.copy2", lambda s, d: copy_calls.append((s, d)))
-        monkeypatch.setattr("mcp_video.engine_merge._run_ffmpeg", lambda cmd: None)
+        from pathlib import Path
 
-        # Patch probe so it doesn't need the output file to exist
-        class FakeInfo:
-            duration = 1.0
-            resolution = "640x480"
-            size_mb = 0.1
+        def unexpected_encoding(cmd):
+            pytest.fail("Single-clip copy must preserve media bytes without encoding")
 
-        monkeypatch.setattr("mcp_video.engine_merge.probe", lambda p: FakeInfo())
-        monkeypatch.setattr("mcp_video.engine_probe.probe", lambda p: FakeInfo())
-
-        result = _merge_single_clip(sample_video, str(tmp_path / "out.mp4"))
-        assert len(copy_calls) == 1
+        monkeypatch.setattr("mcp_video.engine_merge._run_ffmpeg", unexpected_encoding)
+        output = tmp_path / "out.mp4"
+        result = _merge_single_clip(sample_video, str(output))
+        assert output.read_bytes() == Path(sample_video).read_bytes()
+        assert probe(str(output)).duration > 0
+        assert result.output_path == str(output)
         assert result.operation == "merge"
 
     def test_remux_different_extension(self, sample_video, tmp_path, monkeypatch):
         from mcp_video.engine_merge import _merge_single_clip
+        from mcp_video import engine_merge
 
         ffmpeg_calls = []
-        monkeypatch.setattr("mcp_video.engine_merge.shutil.copy2", lambda s, d: None)
-        monkeypatch.setattr("mcp_video.engine_merge._run_ffmpeg", lambda cmd: ffmpeg_calls.append(cmd))
+        run_ffmpeg = engine_merge._run_ffmpeg
 
-        class FakeInfo:
-            duration = 1.0
-            resolution = "640x480"
-            size_mb = 0.1
+        def observed_remux(cmd):
+            ffmpeg_calls.append(cmd)
+            return run_ffmpeg(cmd)
 
-        monkeypatch.setattr("mcp_video.engine_merge.probe", lambda p: FakeInfo())
-        monkeypatch.setattr("mcp_video.engine_probe.probe", lambda p: FakeInfo())
-
-        _merge_single_clip(sample_video, str(tmp_path / "out.mkv"))
+        monkeypatch.setattr(engine_merge, "_run_ffmpeg", observed_remux)
+        output = tmp_path / "out.mkv"
+        result = _merge_single_clip(sample_video, str(output))
         assert len(ffmpeg_calls) == 1
         assert "-c" in ffmpeg_calls[0]
         assert "copy" in ffmpeg_calls[0]
+        assert output.stat().st_size > 0
+        assert probe(str(output)).duration == pytest.approx(probe(sample_video).duration, abs=0.05)
+        assert result.output_path == str(output)

@@ -1,0 +1,21 @@
+{
+  "observed_utc": "2026-10-01",
+  "baseline": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "source_state": "shared dirty working tree after publication repair",
+  "result": "273 passed in 103.19s",
+  "command": ".venv/bin/python -m pytest tests/test_public_claims.py tests/test_public_surface.py tests/test_client.py tests/test_client_audio_contracts.py tests/test_cli_parsers.py tests/test_namespaced_cli.py tests/test_workflow_failclosed.py tests/test_workflow_security.py tests/test_workflow_variants.py tests/test_workflow_resume.py -q --tb=short",
+  "source_sha256_at_completion": {
+    "kinocut/ffmpeg_helpers.py": "10b63b575e764b7f6c3380878ced4c398ceec2c9f34df76da44d20908f0bd5f6",
+    "kinocut/atomic_publication.py": "426ef9e5ea4f4cf2a1564bf92e9681870eb70199bb6f14b4431c7fcabc4b967e",
+    "kinocut/publication_windows.py": "91388184914141584626453791091bde474645a077c6b1c31479c2183475a5b5",
+    "kinocut/staged_writers.py": "52dbe468e6ef009f26885ea180b136b348c98cf0da1966504b6463559cf377dd",
+    "kinocut/server_tool_contracts.py": "2441dddc4ea750669a3c728257b9cffc0cec8d3dfc55d8f9e6d54898a2c4e3db",
+    "kinocut/engine_resize.py": "5b3740bbd00e68f216fb12a68eec8d8884baca5bf374045c06d19a463eac4b00"
+  },
+  "log_sha256": "f68d495b9f793078518be4049b9c63f2d21af1d75756388dcc052f768bd85dea",
+  "limits": [
+    "Concurrent working tree, not immutable frozen final gate",
+    "Completion hashes alone do not establish no modifications during test execution",
+    "Focused API/workflow consumers only; counts overlap other suites"
+  ]
+}

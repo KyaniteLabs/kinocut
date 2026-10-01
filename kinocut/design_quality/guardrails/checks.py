@@ -115,8 +115,17 @@ class ChecksMixin:
         is_brand_theme = self._is_dark_brand_theme(mean_luma, color_stats)
 
         # Check for color casts (only flag non-brand colors)
-        rgb_means = color_stats.get("rgb_means", [128, 128, 128])
-        max_deviation = max(abs(c - 128) for c in rgb_means)
+        rgb_means = color_stats.get("rgb_means")
+        if rgb_means is None:
+            self.issues.append(
+                DesignIssue(
+                    category="color",
+                    severity="info",
+                    message="Color balance analysis unavailable; no color cast classification was made.",
+                    fix_available=False,
+                )
+            )
+        max_deviation = max(abs(c - 128) for c in rgb_means) if rgb_means else 0
 
         if max_deviation > 80 and not is_brand_theme:
             dominant = ["R", "G", "B"][rgb_means.index(max(rgb_means))]

@@ -55,7 +55,7 @@ def _chunk_results() -> list[dict]:
                     "end": 2,
                     "words": [
                         {"word": "beta", "start": 0.5, "end": 1},
-                        {"word": "gamma", "start": 0.8, "end": 0.9},
+                        {"word": "gamma", "start": 0.8, "end": 1.5},
                     ],
                 }
             ],
@@ -76,7 +76,10 @@ def test_transcribe_longform_merges_dedups_and_preserves_positive_width(monkeypa
     assert [word.start for word in result.words] == sorted(word.start for word in result.words)
     assert [segment.start for segment in result.segments] == sorted(segment.start for segment in result.segments)
     assert result.words[-1].start == result.words[-2].end
-    assert result.words[-1].end - result.words[-1].start >= 0.001 - 1e-9
+    assert result.words[-1].end == 36.5
+    assert len(result.timing_adjustments) == 1
+    assert result.timing_adjustments[0].original_start == 35.8
+    assert result.timing_adjustments[0].trimmed_start == 36
     assert isinstance(result.words, tuple)
     assert results == original
 

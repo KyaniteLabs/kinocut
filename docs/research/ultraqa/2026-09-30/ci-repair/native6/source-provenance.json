@@ -1,0 +1,10 @@
+{
+  "official_repository": "https://github.com/FFmpeg/FFmpeg.git",
+  "official_tag": "n6.1.1",
+  "tag_object": "6f4048827982a8f48f71f551a6e1ed2362816eec",
+  "peeled_commit": "e38092ef9395d7049f871ef4d5411eb410e283e0",
+  "git_archive_tar_sha256": "79318c22f6b29b8b71a2fbcc2c34a42a18a150cc0f89ba21733dbfd2ce4cc157",
+  "tracked_source_status": "",
+  "fetch": "git HTTPS with normal TLS verification; no verification disabled",
+  "compiler": "gcc (Debian 14.2.0-19) 14.2.0"
+}

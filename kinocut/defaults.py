@@ -246,6 +246,7 @@ DEFAULT_REVIDEO_OUT_FILE = "video.mp4"
 DEFAULT_REVIDEO_INSTALL_TIMEOUT = 300
 DEFAULT_REVIDEO_RENDER_TIMEOUT = 900
 DEFAULT_RENDER_STOP_TIMEOUT = 5.0
+DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT = 5.0
 DEFAULT_RENDER_STOP_POLL_INTERVAL = 0.02
 # macOS may refuse to exec puppeteer's downloaded chrome-headless-shell
 # (protected com.apple.provenance xattr -> spawn ECANCELED); the engine
@@ -281,3 +282,7 @@ DEFAULT_MOTION_COHERENCE_HIGH_RATE = 120.0
 DEFAULT_MOTION_COHERENCE_CALM_RATE = 1.0
 DEFAULT_MOTION_COHERENCE_SUSTAINED_WINDOWS = 2
 DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE = 40.0
+
+# Duplicate recognition across overlapping chunks must refer to the same
+# observed event, not merely repeat the same token somewhere in the overlap.
+DEFAULT_LONGFORM_DUPLICATE_TIME_TOLERANCE_SECONDS = 0.25

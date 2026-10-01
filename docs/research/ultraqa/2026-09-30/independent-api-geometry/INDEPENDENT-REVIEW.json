@@ -1,0 +1,8 @@
+{
+  "finding": "Before repair, SDK pre_parse_json JSON recursion surfaced raw RecursionError outside canonical argument error conversion. Verified independently via registered _ContractFastMCP custom dict tool in independent_contract_nested.py; pure and mixed cases in independent-contract-nested.json. Product subsequently added prevalidation-only RecursionError catch; current actual video_add_texts registered calls return bounded invalid_parameter in independent-registered-nested.json and custom tool now same in independent-contract-nested-fixed.json. Handler errors remain separate.",
+  "current_server_contracts_sha256": "860d9f8479fb96147b8d31ace091721ddf35ce124aa8ce56b601f1bd3b73b378",
+  "regressions": "11 passed in7.45s before recursion addition: MCP stdio/type/extra/bool/string/handler distinction and temporal geometry.",
+  "geometry": "Actual FFmpeg7.1.5 synthetic primary25video frames at+1s withAACaudio3sat0 preserved framecount, bothstreamorigins/audio3s duration in crop and fade. geometry-review/result.json includes actual metadata.",
+  "limitations": "Additional geometry review covers one MPEG4video+AACaudio delayed-origin fixture onnativeFFmpeg7.1.5, not all formats/VFR/negative timestamp/nonprimary stream combinations.",
+  "geometry_audio": "Source/crop/fade decoded monoPCM16audio hashes and byte counts all equal; actual results in geometry-review/decoded-audio.json."
+}

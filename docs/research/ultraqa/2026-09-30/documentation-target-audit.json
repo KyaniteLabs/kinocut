@@ -1,0 +1,8 @@
+{
+  "source_state": "Documentation after implementation258cb0076f9ade77c41f6a528cf4c62d0745543a/full attempt4 passed; GitHub state-only closure receipt archived",
+  "checked_files": 232,
+  "broken_targets": [],
+  "limits": [
+    "Markdown inline local target existence; does not verify remote URLs or anchors."
+  ]
+}

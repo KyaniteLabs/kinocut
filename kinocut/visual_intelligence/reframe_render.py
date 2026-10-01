@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-import hashlib
 from pathlib import Path
 
 from kinocut.defaults import DEFAULT_CRF, DEFAULT_PRESET, DEFAULT_REFRAME_PIXEL_FORMAT, DEFAULT_REFRAME_VIDEO_CODEC
-from kinocut.errors import ValidationError
-from kinocut.ffmpeg_helpers import _run_ffmpeg, _validate_input_path, _validate_output_path
+from kinocut.engine_probe import _cache_key, probe
+from kinocut.errors import MCPVideoError, ValidationError
+from kinocut.ffmpeg_helpers import _atomic_output, _run_ffmpeg, _validate_input_path, _validate_output_path
+from kinocut.source_identity import assert_source_identity, stream_source_identity
 from kinocut.workflow._versions import ffmpeg_version
 
 from .models import CropTrackSample, ReframePlan, StrictModel
@@ -31,11 +32,7 @@ def _axis_expression(samples: tuple[CropTrackSample, ...], axis: str, source_siz
 
 
 def _sha256(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as source:
-        while chunk := source.read(1024 * 1024):
-            digest.update(chunk)
-    return "sha256:" + digest.hexdigest()
+    return stream_source_identity(str(path)).asset_id
 
 
 def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, target_id: str) -> ReframeRenderReceipt:
@@ -49,6 +46,14 @@ def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, ta
     variant = variants[0]
     if not variant.crop_track:
         raise ValidationError("crop_track", "ready reframe variant must contain samples")
+    identity = stream_source_identity(source)
+    if identity.asset_id != plan.source.sha256:
+        raise MCPVideoError(
+            "Reframe plan source identity changed; analyze and replan",
+            error_type="validation_error",
+            code="source_identity_changed",
+        )
+    source_key = _cache_key(source)
     first = variant.crop_track[0]
     width = round(first.crop_box.width * plan.source.width)
     height = round(first.crop_box.height * plan.source.height)
@@ -57,32 +62,40 @@ def render_reframe_plan(input_path: str, output_path: str, plan: ReframePlan, ta
     filter_graph = (
         f"crop={width}:{height}:'{x_expression}':'{y_expression}',scale={variant.output_width}:{variant.output_height}"
     )
-    _run_ffmpeg(
-        [
-            "-i",
-            source,
-            "-vf",
-            filter_graph,
-            "-c:v",
-            DEFAULT_REFRAME_VIDEO_CODEC,
-            "-preset",
-            DEFAULT_PRESET,
-            "-crf",
-            str(DEFAULT_CRF),
-            "-pix_fmt",
-            DEFAULT_REFRAME_PIXEL_FORMAT,
-            "-c:a",
-            "copy",
-            target,
-        ]
-    )
-    return ReframeRenderReceipt(
-        plan_sha256=plan.plan_sha256,
-        target_id=target_id,
-        ffmpeg_version=ffmpeg_version(),
-        output_sha256=_sha256(Path(target)),
-        sample_count=len(variant.crop_track),
-    )
+    with _atomic_output(target) as staged:
+        _run_ffmpeg(
+            [
+                "-i",
+                source,
+                "-vf",
+                filter_graph,
+                "-c:v",
+                DEFAULT_REFRAME_VIDEO_CODEC,
+                "-preset",
+                DEFAULT_PRESET,
+                "-crf",
+                str(DEFAULT_CRF),
+                "-pix_fmt",
+                DEFAULT_REFRAME_PIXEL_FORMAT,
+                "-c:a",
+                "copy",
+                staged,
+            ]
+        )
+        probe(staged)
+        assert_source_identity(source, identity)
+        if _cache_key(source) != source_key:
+            raise MCPVideoError(
+                "Reframe source changed during rendering", error_type="validation_error", code="source_identity_changed"
+            )
+        receipt = ReframeRenderReceipt(
+            plan_sha256=plan.plan_sha256,
+            target_id=target_id,
+            ffmpeg_version=ffmpeg_version(),
+            output_sha256=_sha256(Path(staged)),
+            sample_count=len(variant.crop_track),
+        )
+    return receipt
 
 
 __all__ = ["ReframeRenderReceipt", "render_reframe_plan"]

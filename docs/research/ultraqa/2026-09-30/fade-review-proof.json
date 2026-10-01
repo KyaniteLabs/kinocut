@@ -1,0 +1,5 @@
+{
+  "early_delayed_fade_in_ratio": 1.0,
+  "short_track_tail_fade_out_ratio": 1.0,
+  "description": "Ratios close to1 mean requested fade was not audible in the observed audio interval; deterministic synthetic440Hz source."
+}

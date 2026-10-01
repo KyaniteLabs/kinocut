@@ -1,0 +1,54 @@
+{
+  "recorded_at": "2026-10-01T04:04:22.758956+00:00",
+  "repository_head": "dddf3e1c88b9c3016b8fd9673fc589e9a5901a59",
+  "worktree_sources": {
+    "kinocut/engine_audio_validation.py": "5e5f275bd60b287816576b9d438a7164dc1d658c5750c470e47189bc033a8d78",
+    "kinocut/engine_audio_ops.py": "199f869c0be258b2fde09262752b5e090d9c52d85bd70a8d08f402be9f38ee6c",
+    "kinocut/engine_audio_mix.py": "174a5e92c2c17df0bedc4954071b3c3dff24228e9a9372939e6c4be7920d6059",
+    "kinocut/engine_audio_normalize.py": "be9c05e872c4c5d962e1cdfbb167ce7b64c3061ec3110d1599e49e6c59831ce6",
+    "kinocut/engine_audio_normalize_output.py": "9527f47d99a8b48af7c3cfe3fda0660abd62fb590342612f7d015e0be0dd0338",
+    "tests/test_audio_ops_boundaries.py": "dff647f184d9ff7c629b50c1cdc0710b715ba485a789f9595f69e34cd6b6b797"
+  },
+  "runs": [
+    {
+      "command": "AV_LOG_FORCE_COLOR=1 KINOCUT_FFMPEG_EXECUTABLE=/workspace/.cache/kinocut-qa/native6/source/ffmpeg KINOCUT_FFPROBE_EXECUTABLE=/workspace/.cache/kinocut-qa/native6/source/ffprobe .venv/bin/python -m pytest tests/test_audio_ops_boundaries.py -q --tb=short",
+      "cwd": "/workspace/kinocut",
+      "exit_code": 0,
+      "result": "75 passed, 1 skipped in 22.48s",
+      "log": "/workspace/.cache/kinocut-qa/aac-corruption-review/native6-color-boundaries-final.log",
+      "log_sha256": "4f2b38a63fd92d1ccd7786784239c3c2c85b42288fa6f01ea3992dc9059f994b"
+    },
+    {
+      "command": ".venv/bin/python -m pytest tests/test_audio_ops_boundaries.py tests/test_audio_mix.py tests/test_audio_loudnorm.py tests/test_audio_fades.py tests/test_audio_normalization_suffixes.py -q --tb=short",
+      "cwd": "/workspace/kinocut",
+      "exit_code": 0,
+      "result": "159 passed, 1 skipped in 106.07s",
+      "log": "/workspace/.cache/kinocut-qa/aac-corruption-review/installed7-audio-final.log",
+      "log_sha256": "60881fd1a29c10f5d777538255eb0a5af250bd86e47d1288ac57321b20465798"
+    }
+  ],
+  "native6_build_provenance": "/workspace/.cache/kinocut-qa/native6/build-provenance.json",
+  "native6_source_provenance": "/workspace/.cache/kinocut-qa/native6/source-provenance.json",
+  "native6_ffmpeg_sha256": "6206bf77c710645d7c3e6fd50607ad2f0c9a0af17228589d6d7e903e010a6214",
+  "native6_ffprobe_sha256": "ff435962da7d9f61f489cc725fde8faaa6056559daaeca07a2da2ba37270d4e4",
+  "scope": [
+    "Actual native6 n6.1.1 binary selected for operations and strict decode; real-media generators use installed7 explicitly.",
+    "One intentional skip: start_time=None means no delay and is valid.",
+    "Severity search does not split/copy all captured stderr; bounded matched diagnostic <=4096 UTF8 bytes.",
+    "Diagnostic bound is post-collection; existing _run_ffmpeg captures full stderr in memory, not a streaming peak-byte cap.",
+    "Reported decoder errors are rejected even when real exit code is0; errors retain that exit code.",
+    "No extra production decode pass; no universal detection of all damaged media."
+  ],
+  "additional_evidence": [
+    "/workspace/.cache/kinocut-qa/aac-corruption-review/compare.json",
+    "/workspace/.cache/kinocut-qa/aac-corruption-review/strict-flags.json",
+    "/workspace/.cache/kinocut-qa/aac-corruption-review/operations-native6-before.log",
+    "/workspace/.cache/kinocut-qa/aac-corruption-review/operations-native6-after.log"
+  ],
+  "independent_final_review": {
+    "/workspace/.cache/kinocut-qa/native6/audio-final-independent-review.py": "8423715f2932ed9827ea0f3771411bbe2c7c148883a1529173964c6c4122a4f8",
+    "/workspace/.cache/kinocut-qa/native6/audio-final-independent-review.json": "316792a2ca33d2d79d72781e05f870720e8e0a7a40d35c9dadf5c4962a647448",
+    "/workspace/.cache/kinocut-qa/native6/audio-final-independent-review.log": "316792a2ca33d2d79d72781e05f870720e8e0a7a40d35c9dadf5c4962a647448"
+  },
+  "root_full_gate_frozen_identity": "7f21901bb4af79fe9041d39348b0329d3b7e8e43869fc653b8c42121ac1b2fd4"
+}

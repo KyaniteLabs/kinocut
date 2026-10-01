@@ -1,0 +1,35 @@
+[
+  {
+    "generator": 6,
+    "mode": "default",
+    "native_mixer": 6,
+    "duration": 4.0,
+    "rms_at_065": -200.0,
+    "rms_at_165": -19.499839477524223
+  },
+  {
+    "generator": 6,
+    "mode": "passthrough",
+    "native_mixer": 6,
+    "duration": 3.0,
+    "rms_at_065": -19.494621158468338,
+    "rms_at_165": -200.0
+  },
+  {
+    "generator": 7,
+    "mode": "default",
+    "native_mixer": 6,
+    "duration": 3.0,
+    "rms_at_065": -19.494621126484535,
+    "rms_at_165": -200.0
+  },
+  {
+    "generator": 7,
+    "mode": "passthrough",
+    "native_mixer": 6,
+    "duration": 3.0,
+    "rms_at_065": -19.494621126484535,
+    "rms_at_165": -200.0
+  }
+]
+ACTUAL_EXECUTABLES ["/tmp/kinocut-ffmpeg6-source/ffmpeg", "/tmp/kinocut-ffmpeg6-source/ffprobe"]

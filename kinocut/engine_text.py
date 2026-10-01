@@ -7,6 +7,7 @@ from typing import Any
 from .engine_probe import probe
 from .errors import MCPVideoError
 from .engine_runtime_utils import (
+    _build_edit_result,
     _default_font,
     _require_filter,
     _timed_operation,
@@ -18,6 +19,7 @@ from .models import (
     _position_coords,
 )
 from .ffmpeg_helpers import (
+    _atomic_output,
     _build_ffmpeg_cmd,
     _run_ffmpeg,
     _sanitize_ffmpeg_number,
@@ -274,11 +276,11 @@ def _render_text_overlay(
     operation: str,
 ) -> EditResult:
     """Run FFmpeg with the drawtext filtergraph and build the EditResult."""
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 input_path,
-                output_path=output,
+                output_path=staged,
                 video_filter=video_filter,
                 audio_codec="copy",
                 crf=crf,
@@ -286,16 +288,10 @@ def _render_text_overlay(
             )
         )
 
-    info = probe(output)
-    return EditResult(
-        output_path=output,
-        duration=info.duration,
-        resolution=info.resolution,
-        size_mb=info.size_mb,
-        format="mp4",
-        operation=operation,
-        elapsed_ms=timing["elapsed_ms"],
-    )
+        result = _build_edit_result(staged, operation, timing)
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result
 
 
 def _apply_auto_layout(

@@ -1,0 +1,9 @@
+{
+  "implementation_commit": "c28f7f30932212606eba14242f56bdbf20fff76e",
+  "scope": "Static source allocation with documentation working-tree inventory; not runtime latency/cost/usage/quality.",
+  "artifact_sha256": {
+    "allocation.json": "7aa88debc990ccfb0a9fd5fbd112b379a4e7cc379c4c123912fc4702d00385b3",
+    "repository-inventory.csv": "4dd8af3878e00900632e69d355a45e91f410fc4ca6c318527584cd4cd50886ba",
+    "runtime-allocation.csv": "2881f3d564876c6df2d54250485eb0c602a275b3c7a53ecf620441b9d12af35f"
+  }
+}

@@ -1,0 +1,119 @@
+{
+  "source": {
+    "format": {
+      "filename": "/workspace/.cache/kinocut-qa/latency/geometry-review/delayed.mp4",
+      "nb_streams": 2,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "start_time": "0.000000",
+      "duration": "3.000000",
+      "size": "90470",
+      "bit_rate": "241253",
+      "probe_score": 100,
+      "tags": {
+        "major_brand": "isom",
+        "minor_version": "512",
+        "compatible_brands": "isomiso2mp41",
+        "encoder": "Lavf61.7.103"
+      }
+    },
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "1.000000",
+        "duration": "1.000000",
+        "nb_frames": "25",
+        "r_frame_rate": "25/1",
+        "avg_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "3.000000",
+        "nb_frames": "142",
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0"
+      }
+    ]
+  },
+  "crop": {
+    "format": {
+      "filename": "/workspace/.cache/kinocut-qa/latency/geometry-review/crop.mp4",
+      "nb_streams": 2,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "start_time": "0.000000",
+      "duration": "3.000000",
+      "size": "43985",
+      "bit_rate": "117293",
+      "probe_score": 100,
+      "tags": {
+        "major_brand": "isom",
+        "minor_version": "512",
+        "compatible_brands": "isomiso2avc1mp41",
+        "encoder": "Lavf61.7.103"
+      }
+    },
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "1.000000",
+        "duration": "1.000000",
+        "nb_frames": "25",
+        "r_frame_rate": "25/1",
+        "avg_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "3.000000",
+        "nb_frames": "142",
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0"
+      }
+    ]
+  },
+  "fade": {
+    "format": {
+      "filename": "/workspace/.cache/kinocut-qa/latency/geometry-review/fade.mp4",
+      "nb_streams": 2,
+      "nb_programs": 0,
+      "nb_stream_groups": 0,
+      "format_name": "mov,mp4,m4a,3gp,3g2,mj2",
+      "format_long_name": "QuickTime / MOV",
+      "start_time": "0.000000",
+      "duration": "3.000000",
+      "size": "45048",
+      "bit_rate": "120128",
+      "probe_score": 100,
+      "tags": {
+        "major_brand": "isom",
+        "minor_version": "512",
+        "compatible_brands": "isomiso2avc1mp41",
+        "encoder": "Lavf61.7.103"
+      }
+    },
+    "streams": [
+      {
+        "codec_type": "video",
+        "start_time": "1.000000",
+        "duration": "1.000000",
+        "nb_frames": "25",
+        "r_frame_rate": "25/1",
+        "avg_frame_rate": "25/1"
+      },
+      {
+        "codec_type": "audio",
+        "start_time": "0.000000",
+        "duration": "3.000000",
+        "nb_frames": "142",
+        "r_frame_rate": "0/0",
+        "avg_frame_rate": "0/0"
+      }
+    ]
+  }
+}

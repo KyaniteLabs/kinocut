@@ -1,0 +1,122 @@
+[
+  {
+    "byte": 255,
+    "binary": "ffmpeg",
+    "code": 246,
+    "stderr": "[aac @ 0x56190e68da80] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x56190e68f180] [dec:aac @ 0x56190e68a340] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x56190e68f180] [dec:aac @ 0x56190e68a340] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x56190e68f180] [dec:aac @ 0x56190e68a340] Task finished with error code: -50531338 (Error number -50531338 occurred)\n[aist#0:1/aac @ 0x56190e68f180] [dec:aac @ 0x56190e68a340] Terminating thread with return code -50531338 (Error number -50531338 occurred)\n"
+  },
+  {
+    "byte": 255,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x55a31ec9d400] Error decoding AAC frame header.\n[aist#0:1/aac @ 0x55a31ec88ac0] Error submitting packet to decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x55a31ec88ac0] Error processing packet in decoder: Error number -50531338 occurred\n[aist#0:1/aac @ 0x55a31ec88ac0] Decoder thread returned error: Error number -50531338 occurred\n"
+  },
+  {
+    "byte": 0,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x55f5f2d0da80] channel element 0.0 is not allocated\n[aist#0:1/aac @ 0x55f5f2d0f180] [dec:aac @ 0x55f5f2d0a340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55f5f2d0f180] [dec:aac @ 0x55f5f2d0a340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55f5f2d0f180] [dec:aac @ 0x55f5f2d0a340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x55f5f2d0f180] [dec:aac @ 0x55f5f2d0a340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 0,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x5563bb058400] channel element 0.0 is not allocated\n[aist#0:1/aac @ 0x5563bb043ac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5563bb043ac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5563bb043ac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 1,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x564df0200a80] Reserved bit set.\n[aac @ 0x564df0200a80] Number of bands (8) exceeds limit (2).\n[aist#0:1/aac @ 0x564df0202180] [dec:aac @ 0x564df01fd340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x564df0202180] [dec:aac @ 0x564df01fd340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x564df0202180] [dec:aac @ 0x564df01fd340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x564df0202180] [dec:aac @ 0x564df01fd340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 1,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x55696760f400] Reserved bit set.\n[aac @ 0x55696760f400] Number of bands (8) exceeds limit (2).\n[aist#0:1/aac @ 0x5569675faac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5569675faac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5569675faac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 16,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x55bfdd2e3a80] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x55bfdd2e5180] [dec:aac @ 0x55bfdd2e0340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55bfdd2e5180] [dec:aac @ 0x55bfdd2e0340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55bfdd2e5180] [dec:aac @ 0x55bfdd2e0340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x55bfdd2e5180] [dec:aac @ 0x55bfdd2e0340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 16,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x55dc95911400] channel element 1.0 is not allocated\n[aist#0:1/aac @ 0x55dc958fcac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55dc958fcac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55dc958fcac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 32,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x564a6fc4aa80] Prediction is not allowed in AAC-LC.\n[aist#0:1/aac @ 0x564a6fc4c180] [dec:aac @ 0x564a6fc47340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x564a6fc4c180] [dec:aac @ 0x564a6fc47340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x564a6fc4c180] [dec:aac @ 0x564a6fc47340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x564a6fc4c180] [dec:aac @ 0x564a6fc47340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 32,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x563b94206400] Prediction is not allowed in AAC-LC.\n[aist#0:1/aac @ 0x563b941f1ac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x563b941f1ac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x563b941f1ac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 64,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x55c0701f2a80] channel element 2.0 is not allocated\n[aist#0:1/aac @ 0x55c0701f4180] [dec:aac @ 0x55c0701ef340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55c0701f4180] [dec:aac @ 0x55c0701ef340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55c0701f4180] [dec:aac @ 0x55c0701ef340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x55c0701f4180] [dec:aac @ 0x55c0701ef340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 64,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x55b344a88400] channel element 2.0 is not allocated\n[aist#0:1/aac @ 0x55b344a73ac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55b344a73ac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55b344a73ac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 127,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x5644f7827a80] channel element 3.15 is not allocated\n[aist#0:1/aac @ 0x5644f7829180] [dec:aac @ 0x5644f7824340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5644f7829180] [dec:aac @ 0x5644f7824340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5644f7829180] [dec:aac @ 0x5644f7824340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x5644f7829180] [dec:aac @ 0x5644f7824340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 127,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x5603e7253400] channel element 3.15 is not allocated\n[aist#0:1/aac @ 0x5603e723eac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5603e723eac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x5603e723eac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 128,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x55b86c589a80] skip_data_stream_element: Input buffer exhausted before END element found\n[aist#0:1/aac @ 0x55b86c58b180] [dec:aac @ 0x55b86c586340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55b86c58b180] [dec:aac @ 0x55b86c586340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55b86c58b180] [dec:aac @ 0x55b86c586340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x55b86c58b180] [dec:aac @ 0x55b86c586340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 128,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x56087e0dc400] skip_data_stream_element: Input buffer exhausted before END element found\n[aist#0:1/aac @ 0x56087e0c7ac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x56087e0c7ac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x56087e0c7ac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 170,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aist#0:1/aac @ 0x555955273180] [dec:aac @ 0x55595526e340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x555955273180] [dec:aac @ 0x55595526e340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x555955273180] [dec:aac @ 0x55595526e340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x555955273180] [dec:aac @ 0x55595526e340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 170,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aist#0:1/aac @ 0x55f592141ac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55f592141ac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55f592141ac0] Decoder thread returned error: Invalid data found when processing input\n"
+  },
+  {
+    "byte": 85,
+    "binary": "ffmpeg",
+    "code": 183,
+    "stderr": "[aac @ 0x55a669848a80] channel element 2.10 is not allocated\n[aist#0:1/aac @ 0x55a66984a180] [dec:aac @ 0x55a669845340] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55a66984a180] [dec:aac @ 0x55a669845340] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x55a66984a180] [dec:aac @ 0x55a669845340] Task finished with error code: -1094995529 (Invalid data found when processing input)\n[aist#0:1/aac @ 0x55a66984a180] [dec:aac @ 0x55a669845340] Terminating thread with return code -1094995529 (Invalid data found when processing input)\n"
+  },
+  {
+    "byte": 85,
+    "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "code": 0,
+    "stderr": "[aac @ 0x56137349e400] channel element 2.10 is not allocated\n[aist#0:1/aac @ 0x561373489ac0] Error submitting packet to decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x561373489ac0] Error processing packet in decoder: Invalid data found when processing input\n[aist#0:1/aac @ 0x561373489ac0] Decoder thread returned error: Invalid data found when processing input\n"
+  }
+]

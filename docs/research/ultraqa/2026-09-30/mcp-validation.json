@@ -1,0 +1,28 @@
+{
+  "baseline_commit": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "source_state": "dirty working tree; MCP repair after baseline merge",
+  "observed_utc": "2026-10-01",
+  "command": ".venv/bin/python -m pytest tests/test_mcp_argument_contracts.py tests/test_mcp_entry.py tests/test_public_surface.py tests/test_client_audio_contracts.py -q --tb=short",
+  "result": "55 passed in 16.01s",
+  "source_sha256": {
+    "kinocut/server_app.py": "14f0f07b8fb81d5d10f53b2ed37072237d61298a1e6a9313dccb329c4311a571",
+    "kinocut/server_tool_contracts.py": "09de329f8a6cf9a284b216a2809fe04ddb2586bd71aa8a8f9c2e76b59cf5fdd6",
+    "tests/test_mcp_argument_contracts.py": "48c3707f3021b0f632f634fb5df96149ae705ba8b062dec03763b09339d6cbb5"
+  },
+  "artifacts_sha256": {
+    "mcp-argument-gate.log": "b229a96fcedc6ff6d7e537a4f40965a4efccdf02bf479cfa34684dcf080aa5f0",
+    "mcp-boolean-repro.py": "2a560322771512b599ba583551a9a47c7c822aea74dc2be5101338d8dfc82c26",
+    "mcp-mixed-before.log": "2efb20a5ac1d7e67c277d8b5a04ef8d7d9f160727385e5bdfabafc0466430855",
+    "mcp-mixed-after.log": "939176dc0738fd51c604b67618549a06aa1fb96c111c238a151940b2f666c5a3",
+    "mcp-boolean-before.log": "64f90eea0c72dc4eeb1de3fef4f280002deaf18bf8222238bcd97aff716cb80e",
+    "mcp-boolean-after.log": "4216cde2c6bc517580049ec245514ff2135f2659c2a2ec206a45626b8a116790",
+    "mcp-mixed-repro.py": "84ff5f00bb42eeca6e8bbb76e0882b3729c667a2b53e0932de75fcc80c92a923"
+  },
+  "limits": [
+    "Focused gate; not whole repository validation",
+    "Mixed before and after are actual stdio; synthetic secret sentinel only",
+    "Earlier pure-unknown discovery before repair retained as historical observation, original temporary audit script lost in workspace refresh"
+  ],
+  "numeric_boolean_policy": "Before coercion, reject booleans in numeric-only int/float/None SDK fields; explicit boolean fields and existing numeric strings preserved.",
+  "serialized_argument_limits": "Deep JSON RecursionError and Python JSON integer-digit ValueError are bounded only within argument preparation; handler errors are unchanged."
+}

@@ -9,6 +9,7 @@ from .engine_runtime_utils import (
 from .paths import (
     _auto_output,
 )
+from .ffmpeg_helpers import _atomic_output
 from .ffmpeg_helpers import (
     _build_ffmpeg_cmd,
     _run_ffmpeg,
@@ -55,17 +56,20 @@ def rotate(
     output = output_path or _auto_output(input_path, f"rotated_{angle}")
     _validate_output_path(output)
 
-    with _timed_operation() as timing:
+    with _timed_operation() as timing, _atomic_output(output) as staged:
         _run_ffmpeg(
             _build_ffmpeg_cmd(
                 input_path,
-                output_path=output,
+                output_path=staged,
                 video_filter=vf,
             )
         )
 
-    return _build_edit_result(
-        output,
-        "rotate",
-        timing,
-    )
+        result = _build_edit_result(
+            staged,
+            "rotate",
+            timing,
+        )
+    result.output_path = output
+    result.elapsed_ms = timing["elapsed_ms"]
+    return result

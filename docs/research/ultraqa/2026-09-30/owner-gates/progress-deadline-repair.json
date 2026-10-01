@@ -1,0 +1,14 @@
+{
+  "observed_utc": "2026-10-01",
+  "provenance": "Reliability owner supplied repaired focused gate; after failed aggregate attempt2",
+  "result": "73 passed, 3 native-Windows skips in13.11s",
+  "behavior": "Forward explicit caller timeout into extracted run_progress; existing real encoding timeout preservation tests unchanged and green",
+  "source_sha256_at_archive": {
+    "kinocut/ffmpeg_helpers.py": "5881ce51117d5745582328e5cadb96a9e3f0da3fc8c3d7906e50c407d7a8ff1f",
+    "kinocut/ffmpeg_progress.py": "4ef846ef2cbf08d64c18722b77cf535156fb3585a5e8cd47b238ae2acf0a5dff"
+  },
+  "log_sha256": "fd066bd51db90a38ac4e5e5aac1c5219c8624921770343dccbb4b940f97a19e2",
+  "limits": [
+    "Focused repaired-source verification; does not replace failed attempt2 or establish full aggregate success"
+  ]
+}

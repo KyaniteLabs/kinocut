@@ -1,0 +1,65 @@
+{
+  "observed_utc": "2026-10-01",
+  "baseline_commit": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "baseline_tree": "44806e24c1e937040f1fe4c8471ece7aca979ad9",
+  "read_only": true,
+  "source_bindings": "baseline-source-bindings.json",
+  "import_origins": "import-origins.json",
+  "runs": [
+    {
+      "log": "focused.log",
+      "passed": 47,
+      "skipped": 0,
+      "seconds": 40.95,
+      "exit": 0,
+      "arguments": "-m pytest tests/test_creation_prompt_contracts.py tests/test_hyperframes_output_contracts.py tests/test_crop_rotation.py tests/test_noise_reduction_default.py tests/test_trim_accurate_seek.py tests/test_integrator_effects_quality.py tests/test_audio_input_kinds.py -q --tb=short"
+    },
+    {
+      "log": "focused-interfaces.log",
+      "passed": 49,
+      "skipped": 1,
+      "seconds": 40.37,
+      "exit": 0,
+      "skip_reason": "macOS concrete-font passthrough control skipped because /System/Library/Fonts/Helvetica.ttc is absent on this Linux host",
+      "arguments": "-m pytest tests/test_integrator_fixes.py tests/test_sound_loudness_encoded.py::test_encoded_public_parity_and_measured_policy tests/test_audio_mix.py::test_one_encode_adds_less_hiss_than_one_encode_per_sound tests/test_audio_mix.py::test_mix_loop_audio_fills_added_track_and_remains_bounded tests/test_engine_composite_layers.py::test_composite_layers_video_layer_plays_from_its_start tests/test_composite_blend_windows.py tests/test_client_audio_contracts.py -q --tb=short"
+    },
+    {
+      "log": "duck.log",
+      "passed": 1,
+      "skipped": 0,
+      "seconds": 1.25,
+      "exit": 0,
+      "arguments": "-m pytest tests/test_audio_mix.py::test_client_duck_audio_works_without_store_and_ducks_on_voice -q --tb=short"
+    }
+  ],
+  "artifact_sha256": {
+    "focused.log": "82ded97d0e78f023a39dcb629c281c4f023329ab0c255fde48ea7d0745fcd3f1",
+    "focused.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "focused-interfaces.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "REPORT.md": "22a5da35ee9f02bae100bd2ef02fe40386a07c7a179360b288d1aa62ab8335c6",
+    "duck.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "duck.log": "51618742eeb866d8fc291a2afa8556ab2397c1e4d001580e539b09705b91792c",
+    "baseline-source-bindings.json": "174a4699fde1af9b4b8aa2017ac5b3efe90af776102aa64bf992d3906a208998",
+    "focused-interfaces.log": "533a5ff0565901b1f70fb1bfe4b3342f2ac92b666acb9c0449af100b4381b5d1",
+    "fresh-site-receipt.json": "f0a1d2173c8ffe3968bf0bfb044328c8d2122fe208e7f1a781d7c4faf043bf0c",
+    "issue-dispositions.json": "806ae897e8c63c7b55e64c54622f08b8742b9905b193e9617a68bcb4ddf3460f",
+    "import-origins.json": "6c597318bcb1f2fe007b70f7976e8e5e1100490bf0fa873968f1f24e253d4472"
+  },
+  "limitations": [
+    "No closure is automatically authorized by this candidate inventory.",
+    "Eligibility uses merged e9f baseline, not currently unmerged UltraQA repairs.",
+    "Fresh safe fixtures/LinuxFFmpeg evidence plus merged source gates; host/native-model/private-corpus completeness not inferred.",
+    "Full bodies and available comments inspected; Forgejo-only follow-up excluded by user."
+  ],
+  "working_directory": "/workspace/.cache/kinocut-qa/latency/baseline-e9f6cac",
+  "environment": {
+    "PYTHONPATH": "/workspace/.cache/kinocut-qa/latency/baseline-e9f6cac"
+  },
+  "executable": "/workspace/kinocut/.venv/bin/python",
+  "versions": {
+    "pytest": "9.0.3",
+    "numpy": "2.4.5",
+    "mcp": "1.27.1",
+    "pydantic": "2.13.4"
+  }
+}

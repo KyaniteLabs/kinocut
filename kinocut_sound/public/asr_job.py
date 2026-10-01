@@ -24,10 +24,12 @@ from kinocut_sound.limits import (
     MAX_ASR_OUTPUT_BYTES,
     MAX_ASR_STAGING_BYTES,
     ASR_MEMORY_ESTIMATE_BYTES,
-    MAX_MIX_INPUT_BYTES,
+    MAX_ASR_INPUT_BYTES,
 )
 from kinocut_sound.mix._wav import parse_wav
 from kinocut_sound.public.asr_bundle import prepare_bundle
+from kinocut_sound.public import asr_resample
+from kinocut_sound.public.asr_input import validate_header
 from kinocut_sound.public.asr_compare import compare, remaining, validate_segments, words
 from kinocut_sound.public.asr_request import load_asr_request, asr_error
 from kinocut_sound.public.asr_runtime import copy_checkpoint, interpreters, parse_probe
@@ -65,9 +67,12 @@ def _job(payload, project_root):
     deadline = time.monotonic() + DEFAULT_ASR_TOTAL_TIMEOUT_SECONDS
     request = load_asr_request(payload, project_root)
     with open_root(project_root) as root:
-        data = read_asset(root, request.source.path, request.source.sha256, MAX_MIX_INPUT_BYTES)
+        data = read_asset(
+            root, request.source.path, request.source.sha256, MAX_ASR_INPUT_BYTES, validator=validate_header
+        )
         validate_material(data, channel_counts=(1,))
         samples, rate = parse_wav(data)
+        del data
         duration = len(samples) / rate
         if duration > MAX_ASR_DURATION_SECONDS or rate > MAX_ASR_SAMPLE_RATE_HZ:
             raise asr_error("ASR audio exceeds rate or duration bound", "asr_over_limit")
@@ -90,6 +95,8 @@ def _job(payload, project_root):
                 if sys.byteorder != "little":
                     samples.byteswap()
                 (folder / "source.pcm").write_bytes(samples.tobytes())
+                pcm_bytes = len(samples) * 2
+                del samples
                 (folder / "worker.py").write_bytes(Path(__file__).with_name("asr_worker.py").read_bytes())
                 with open_root(temporary) as workspace:
                     yield _AsrJob(
@@ -103,7 +110,7 @@ def _job(payload, project_root):
                         reference,
                         duration,
                         rate,
-                        len(samples) * 2,
+                        pcm_bytes,
                     )
 
 
@@ -123,8 +130,19 @@ def _pipeline(job):
     decoded_bytes = round(job.duration * DEFAULT_ASR_SAMPLE_RATE_HZ) * 4
     if model_bytes + job.pcm_bytes + decoded_bytes + MAX_ASR_OUTPUT_BYTES > MAX_ASR_STAGING_BYTES:
         raise asr_error("ASR staging exceeds bound", "asr_over_limit")
+    resampling = "pcm16-normalization-no-resampling-v1"
+    if job.rate != DEFAULT_ASR_SAMPLE_RATE_HZ:
+        binary = asr_resample.installed_resampler()
+        version = asr_resample.backend_version((yield ([binary, "-version"], False)))
+        yield (asr_resample.command(binary, job), False)
+        material = _read_regular_file(job.workspace_fd, "source.f32", decoded_bytes)
+        if len(material) != decoded_bytes:
+            raise asr_error("resampler output has invalid length", "asr_invalid_output")
+        del material
+        resampling = f"{asr_resample.RESAMPLING_ID};ffmpeg={version}"
     config = {
         "threads": DEFAULT_ASR_THREADS,
+        "resampled": job.rate != DEFAULT_ASR_SAMPLE_RATE_HZ,
         "source_rate": job.rate,
         "target_rate": DEFAULT_ASR_SAMPLE_RATE_HZ,
         "model_digest": digest,
@@ -149,7 +167,7 @@ def _pipeline(job):
         "threads": DEFAULT_ASR_THREADS,
         "language": job.request.language,
         "decode": DEFAULT_ASR_DECODE,
-        "resampling": "linear-interpolation-16khz",
+        "resampling": resampling,
         "working_memory_estimate_bytes": ASR_MEMORY_ESTIMATE_BYTES,
     }
     return prepare_bundle(job, transcript, segments, comparison, backend)

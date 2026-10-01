@@ -1,0 +1,15 @@
+{
+  "configured_binaries_with_empty_path": "passed, MP4 with audio and MP4 without audio",
+  "full_analyze_commands_use_configured_paths": true,
+  "focused_and_architecture_tests": "78 passed in 47.69s",
+  "canonical_compatibility_import_assertion": "passed",
+  "ruff_pinned_version": "0.15.11",
+  "files_sha256": {
+    "kinocut/design_quality/guardrails/probe.py": "f4a6f5f7e3f6c47eac0b5bdb99429eda7be9c0763cc31555b7fdc503258d46b9",
+    "kinocut/design_quality/guardrails/analysis.py": "530d8ca130b65c05075c8c92df2aaa759786f02de930a70e34e659658687a363",
+    "kinocut/design_quality/guardrails/scoring.py": "068b877c932575bb59a6d7929a9b35fefe2a94d773aa34bad1d437f84722fb31",
+    "tests/test_design_quality_configured_media.py": "113e0a167b73f8b2fcaf678a55c29d6d44b1a97355c16f8bf34021e3b125b099",
+    "tests/test_design_quality_fallback.py": "8a7ef54d2e05d484e018ee53fad2526aaaa7da233ae0deb4d1796407ce5ad826"
+  },
+  "source_frozen": true
+}

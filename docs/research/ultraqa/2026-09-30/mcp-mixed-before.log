@@ -1,0 +1,6 @@
+[10/01/26 01:45:03] INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+                    INFO     Processing request of type            server.py:727
+                             CallToolRequest                                    
+{"case": "missing", "isError": true, "secret_echo": true, "text_length": 467}
+{"case": "invalid_type", "isError": true, "secret_echo": true, "text_length": 490}

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import math
 import re
 from pathlib import Path
 from typing import Any
@@ -109,7 +110,7 @@ def _stream_counts(raw: dict[str, Any]) -> dict[str, int]:
     return counts
 
 
-def _av_end_delta(raw: dict[str, Any], packets: list[dict[str, Any]]) -> float | None:
+def _av_endpoints(raw: dict[str, Any], packets: list[dict[str, Any]]) -> tuple[float, float] | None:
     kinds = {int(s.get("index", -1)): s.get("codec_type") for s in raw.get("streams", [])}
     ends: dict[str, float] = {}
     for packet in packets:
@@ -123,7 +124,21 @@ def _av_end_delta(raw: dict[str, Any], packets: list[dict[str, Any]]) -> float |
         except (TypeError, ValueError):
             continue
         ends[kind] = max(ends.get(kind, end), end)
-    return abs(ends["video"] - ends["audio"]) if {"video", "audio"} <= ends.keys() else None
+    return (ends["video"], ends["audio"]) if {"video", "audio"} <= ends.keys() else None
+
+
+def _av_end_delta(raw: dict[str, Any], packets: list[dict[str, Any]]) -> float | None:
+    """Shared body-swap evidence retains its original difference-only contract."""
+    ends = _av_endpoints(raw, packets)
+    return abs(ends[0] - ends[1]) if ends is not None else None
+
+
+def _within_time_tolerance(left: float, right: float, tolerance: float) -> bool:
+    """Include the exact boundary, accounting only for operand rounding ULPs."""
+    if not all(math.isfinite(value) for value in (left, right, tolerance)) or tolerance < 0:
+        return False
+    rounding = math.ulp(left) + math.ulp(right) + math.ulp(tolerance)
+    return abs(left - right) <= tolerance + rounding
 
 
 def _caption_segments(path: str | None) -> list[tuple[float, float, str]]:
@@ -160,10 +175,12 @@ def _verification_facts(
     share_decode, share_error = _decode(sharing_copy)
     source_after = _sha(source)
     tolerance = max(0.10, 2 / max(_fps(source_raw), 1))
-    delta = abs(_duration(master_raw) - _duration(source_raw))
+    master_duration, source_duration = _duration(master_raw), _duration(source_raw)
+    delta = abs(master_duration - source_duration)
     master_packets, share_packets = _packets(master), _packets(sharing_copy)
     source_counts, master_counts = _stream_counts(source_raw), _stream_counts(master_raw)
-    sync_delta = _av_end_delta(master_raw, master_packets)
+    sync_ends = _av_endpoints(master_raw, master_packets)
+    sync_delta = abs(sync_ends[0] - sync_ends[1]) if sync_ends is not None else None
     segments = _caption_segments(caption_path)
     transcript = (
         Path(transcript_path).read_text(encoding="utf-8")
@@ -183,6 +200,7 @@ def _verification_facts(
         "share_error": share_error,
         "tolerance": tolerance,
         "delta": delta,
+        "duration_ok": _within_time_tolerance(master_duration, source_duration, tolerance),
         "monotonic": _monotonic(master_packets) and _monotonic(share_packets),
         "source_counts": source_counts,
         "master_counts": master_counts,
@@ -190,10 +208,13 @@ def _verification_facts(
             master_counts.get(kind, 0) >= count for kind, count in source_counts.items() if kind != "subtitle"
         ),
         "sync_delta": sync_delta,
-        "sync_ok": sync_delta is None or sync_delta <= tolerance,
+        "sync_ok": sync_ends is None or _within_time_tolerance(*sync_ends, tolerance),
         "caption_path": caption_path,
         "caption_ok": not caption_path
-        or all(0 <= start < end <= _duration(master_raw) + tolerance for start, end, _ in segments),
+        or all(
+            0 <= start < end and (end <= master_duration or _within_time_tolerance(end, master_duration, tolerance))
+            for start, end, _ in segments
+        ),
         "transcript": transcript,
         "spoken_ok": transcript is None or " ".join(transcript.split()) == " ".join(caption_text.split()),
         "universal_ok": "mp4" in formats
@@ -235,7 +256,7 @@ def _timeline_checks(facts: dict[str, Any]) -> list[VerificationCheck]:
     return [
         VerificationCheck(
             id="timeline_duration",
-            passed=facts["delta"] <= facts["tolerance"],
+            passed=facts["duration_ok"],
             message="Master duration compared with source.",
             metric=_metric(
                 "duration_delta", facts["delta"], "seconds", "Absolute master-to-source container duration difference."

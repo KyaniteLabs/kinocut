@@ -1,0 +1,15 @@
+{
+  "implementation_commit": "c28f7f30932212606eba14242f56bdbf20fff76e",
+  "public_claims": {
+    "passed": 25,
+    "seconds": 0.17,
+    "exit": 0
+  },
+  "artifact_sha256": {
+    "final-public-claims-5.log": "92536fc7d51cb85803c588bfd5cf246aa599a5906917e893e1a8b6b0085758a5",
+    "final-public-claims-5.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  },
+  "limits": [
+    "Corrected hosted outcomes pending at pre-push checkpoint; no platform/model inference from docs checks."
+  ]
+}

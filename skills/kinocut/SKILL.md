@@ -130,6 +130,11 @@ egress manifest and approval. A planner that lacks evidence or capability must a
 
 ## Layered Compositing
 
+For `video_crop`, use upright display-pixel coordinates. Explicit width and height
+must be even; percentage crops derive even encoded dimensions while preserving
+pixel offsets. `video_fade` measures the bounded primary-picture window, including
+delayed starts; a longer audio tail does not define the visible fade window.
+
 Use `composite-layers` / `video_composite_layers` when the edit is an ordered stack of image, video, or solid layers, especially lower thirds, picture-in-picture variants, blurback plates, masks/mattes, or platform-specific layout variants.
 
 Prefer this path over raw FFmpeg filtergraphs when an agent needs transforms, opacity, start/duration windows, mask/matte alpha sources, or a receipt that can be reviewed before publishing.

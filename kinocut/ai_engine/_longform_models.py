@@ -85,6 +85,22 @@ class LongformTranscribePlan(ValueObject):
         return self
 
 
+class LongformTimingAdjustment(ValueObject):
+    """A disclosed prefix trim that remains inside the provider's observed word span."""
+
+    word_index: int = Field(ge=0)
+    chunk_index: int = Field(ge=0)
+    original_start: float = Field(ge=0)
+    observed_end: float = Field(gt=0)
+    trimmed_start: float = Field(ge=0)
+
+    @model_validator(mode="after")
+    def _trim_is_inside_observed_span(self) -> LongformTimingAdjustment:
+        if not self.original_start < self.trimmed_start < self.observed_end:
+            raise ValueError("Timing adjustment must trim inside the original observed span")
+        return self
+
+
 class LongformTranscribeResult(ValueObject):
     """Strict-model result of a long-form transcription run."""
 
@@ -97,6 +113,10 @@ class LongformTranscribeResult(ValueObject):
     chunk_count: int = Field(ge=0)
     model: str = Field(min_length=1)
     plan: LongformTranscribePlan
+    timing_adjustments: tuple[LongformTimingAdjustment, ...] = ()
+    timing_policy: Literal["trim_overlap_prefix_inside_observed_span; reject_fully_covered_words"] = (
+        "trim_overlap_prefix_inside_observed_span; reject_fully_covered_words"
+    )
 
     @model_validator(mode="after")
     def _chunk_count_and_duration_match_plan(self) -> LongformTranscribeResult:
@@ -104,12 +124,15 @@ class LongformTranscribeResult(ValueObject):
             raise ValueError(f"chunk_count ({self.chunk_count}) must equal len(plan.chunks) ({len(self.plan.chunks)})")
         if self.duration != self.plan.duration:
             raise ValueError(f"duration ({self.duration}) must equal plan.duration ({self.plan.duration})")
+        if any(item.end > self.duration for item in (*self.words, *self.segments)):
+            raise ValueError("Transcript spans must stay within the source duration")
         return self
 
 
 __all__ = [
     "LongformChunk",
     "LongformSegment",
+    "LongformTimingAdjustment",
     "LongformTranscribePlan",
     "LongformTranscribeResult",
     "LongformWord",

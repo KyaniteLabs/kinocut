@@ -1,0 +1,49 @@
+{
+  "status": "supersedes independent four-case native-render attribution only",
+  "baseline_commit": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "baseline_tree": "44806e24c1e937040f1fe4c8471ece7aca979ad9",
+  "rerun_source_state": "working tree: engine_audio_mix.py differs from merged baseline; recorded hashes authoritative",
+  "exit_code": 0,
+  "cases": 4,
+  "command": "PYTHONPATH=/workspace/kinocut .venv/bin/python /tmp/kinocut-native6-mixer-origin-review.py",
+  "source_bindings": {
+    "kinocut/engine_audio_mix.py": {
+      "rerun_recorded_sha256": "d03004879d376d66ef457c14510facd39152fcbe6a2f450f83e33acf6dbd9c80",
+      "merged_baseline_sha256": "9ae5e060f354bcce297c7f465850b1b12bad5c5a451456c5e1e3392e0b899cf9",
+      "matches_baseline": false
+    },
+    "kinocut/ffmpeg_helpers.py": {
+      "rerun_recorded_sha256": "8890fcec4c1fd345bd4003e3ee49cf4d86fb727c40975d3864a65c47c9a3759f",
+      "merged_baseline_sha256": "8890fcec4c1fd345bd4003e3ee49cf4d86fb727c40975d3864a65c47c9a3759f",
+      "matches_baseline": true
+    },
+    "kinocut/engine_runtime_utils.py": {
+      "rerun_recorded_sha256": "30230c98231e14c3e920aefaacf1b3cd968d5cb565c3f092f23bc6d0aa928cfe",
+      "merged_baseline_sha256": "30230c98231e14c3e920aefaacf1b3cd968d5cb565c3f092f23bc6d0aa928cfe",
+      "matches_baseline": true
+    },
+    "kinocut/engine_audio_normalize_output.py": {
+      "rerun_recorded_sha256": "13e3e6e83381304014d000c6c3c52da95decf16ca601bb4e5c298d949e65d7cb",
+      "merged_baseline_sha256": "13e3e6e83381304014d000c6c3c52da95decf16ca601bb4e5c298d949e65d7cb",
+      "matches_baseline": true
+    }
+  },
+  "binary_hashes": {
+    "ffmpeg": "b7542bb856e51554ade492dfb3d00c71758b847007eae08ef2a4a66cb36fe615",
+    "ffprobe": "cba282ef3f99856e7df498a6c067c644b94e3c1e0d122915c4337c215c101d6e"
+  },
+  "artifact_sha256": {
+    "original-interception-reconstructed.py": "f56fe7f82a88319ce5ed5e62b48a49a5d433538b4cef96b76f79272357d1df5e",
+    "native-origin-direct-selection.py": "24685e92f881d678a35e6db2309f81741ec46e3b54dc48a220b7be4beb675982",
+    "corrected-rows.json": "5fbce073a8e441d0073b49f9ac2ebfa1cabddb1367b9a01539ec218b941458e4",
+    "executed-binaries.json": "b01893f77b0bdf75a36e97f040237b73deedfde6d4b82eb61eb8cdac14fef624",
+    "corrected-run.log": "00c3d1e68edbe1e9a8bbb4bbeca0070339869662ded043baed1b520cb70128c0",
+    "source-bindings.txt": "b33c6866ba6db61711e2a0fca3e6f3009720395e44caef86f15cdb070d6a6175"
+  },
+  "limits": [
+    "Original script reconstructed from retained tool history, not claimed to be original persisted bytes",
+    "Corrected run selects resolved runtime binaries and captures actual subprocess paths",
+    "Source differences mean this corrected rerun alone does not prove the merged baseline uses identical mixer source",
+    "37 scoped native-six tests, eight-case native matrix and hosted FFmpeg-six CI are separate unaffected evidence"
+  ]
+}

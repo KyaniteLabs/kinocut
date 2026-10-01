@@ -1,14 +1,10 @@
 """Normalize measured SDR code units without transfer-function conversion."""
 
-import json
-import logging
 import math
 import re
 from typing import Any
 
 from .errors import MCPVideoError
-
-logger = logging.getLogger(__name__)
 
 
 def _normalized_signalstat(frame: dict[str, Any], tag: str, value: Any, *, difference: bool = False) -> float:
@@ -38,11 +34,3 @@ def _normalized_signalstat(frame: dict[str, Any], tag: str, value: Any, *, diffe
     if component == "SATAVG":
         return number * 224 / full_scale
     return 16 + number * 219 / full_scale
-
-
-def _signalstats_frames(stdout: str) -> list[dict[str, Any]]:
-    """Read one analysis pass and warn once if decoded transfer is PQ/HLG."""
-    frames = json.loads(stdout).get("frames", [])
-    if any(frame.get("color_transfer") in {"smpte2084", "arib-std-b67"} for frame in frames):
-        logger.warning("HDR transfer observed: SDR signalstats heuristics do not evaluate HDR delivery acceptance")
-    return frames

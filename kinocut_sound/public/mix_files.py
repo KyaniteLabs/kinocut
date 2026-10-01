@@ -54,7 +54,7 @@ def open_parent(root_fd: int, path: str):
         os.close(fd)
 
 
-def _read_regular_file(root_fd: int, path: str, remaining: int) -> bytes:
+def _read_regular_file(root_fd: int, path: str, remaining: int, *, validator=None) -> bytes:
     with open_parent(root_fd, path) as (parent, name):
         try:
             fd = os.open(name, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent)
@@ -66,6 +66,9 @@ def _read_regular_file(root_fd: int, path: str, remaining: int) -> bytes:
                 raise mix_error("mix asset must be a regular file", MIX_UNSAFE_PATH)
             if before.st_size > min(remaining, MAX_MIX_INPUT_BYTES):
                 raise mix_error("mix asset exceeds byte limit", MIX_OVER_LIMIT)
+            if validator is not None:
+                validator(handle, before.st_size)
+                handle.seek(0)
             data = handle.read(min(remaining, MAX_MIX_INPUT_BYTES) + 1)
             after = os.fstat(handle.fileno())
     markers = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
@@ -74,8 +77,8 @@ def _read_regular_file(root_fd: int, path: str, remaining: int) -> bytes:
     return data
 
 
-def read_asset(root_fd: int, path: str, expected_hash: str, remaining: int) -> bytes:
-    data = _read_regular_file(root_fd, path, remaining)
+def read_asset(root_fd: int, path: str, expected_hash: str, remaining: int, *, validator=None) -> bytes:
+    data = _read_regular_file(root_fd, path, remaining, validator=validator)
     if "sha256:" + hashlib.sha256(data).hexdigest() != expected_hash:
         raise mix_error("mix asset hash mismatch", MIX_INPUT_INVALID)
     return data

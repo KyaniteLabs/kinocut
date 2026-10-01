@@ -1,0 +1,21 @@
+{
+  "observed_utc": "2026-10-01",
+  "status": "failed aggregate; audio filter grammar and caller-window compatibility repair pending",
+  "source_identity_sha256": "83be7eb0b3756f877e97a55b7e458532f83135e0ca0e474893c07ea0fe59cb41",
+  "command": ".venv/bin/python -m pytest tests/ -x -q --tb=short",
+  "result": {
+    "passed": 1628,
+    "failed": 1,
+    "skipped": 142,
+    "warnings": 4,
+    "duration_seconds": 467.11,
+    "exit_code": 1
+  },
+  "failing_case": "tests/test_engine.py::TestBuildAudioFilters::test_fade_in_only",
+  "observed_failure": "Expected existing filter grammar st=0; new shared fade helper rendered st=0.0. Adjacent explicit fade-length compatibility also under owner review; no assertions weakened.",
+  "artifact_sha256": {
+    "pytest.log": "6bdd3776081d70ca05e184706e95b26d5f58e8db879ff9f53b792e86ccbd73f1",
+    "frozen-source.json": "d20e507ce43f90443ad22afdc7726277c0e7fa9474f7feffbb9b714ed898b7df",
+    "pytest.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  }
+}

@@ -21,7 +21,9 @@ def _mock_normalize(monkeypatch, tmp_path, *, duration: object = "2.0", audio: b
     source, output = tmp_path / f"in.{suffix}", tmp_path / f"out.{suffix}"
     source.write_bytes(b"x")
     calls: list[list[str]] = []
-    streams = [{"codec_type": "audio" if audio else "video"}]
+    streams = [{"codec_type": "audio" if audio else "video", "duration": duration, "sample_rate": "48000"}]
+    # Invalid mocked metadata has no measurable fallback timeline either.
+    monkeypatch.setattr("kinocut.engine_media_timeline._packet_extent", lambda *args, **kwargs: (0, 0))
     monkeypatch.setattr("kinocut.engine_audio_normalize._require_filter", lambda *args: None)
     monkeypatch.setattr(
         "kinocut.engine_audio_normalize._run_ffprobe_json",

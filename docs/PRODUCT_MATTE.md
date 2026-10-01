@@ -122,6 +122,12 @@ hyperframes_remove_background(
 Receipt `data` names `model`, `backend` (`hyperframes` or `kinocut-onnx`), and
 `output`. Human visual review is still required before a shop publish.
 
+Unreleased development changes reject cutout/background outputs that name the
+same file, including existing hardlinks, before loading weights or running
+inference. Use distinct output files. Malformed or nonfinite model masks fail
+with a processing error rather than producing an apparently successful empty
+cutout. These boundary checks do not establish segmentation accuracy.
+
 ## Drop the cutout on a shop plate
 
 Use existing `composite-layers`. Keep every `src` **inside the spec
@@ -202,9 +208,10 @@ Not in v1. Hyperframes 0.7.96 has no `--model` flag. Kinocut owns the object
 backend. If Hyperframes later ships `birefnet-general`, Kinocut can retire
 the ONNX inferencer behind the same public command.
 
-### Will this invent a 197th tool?
+### Does this add another tool?
 
-No. Catalog pins stay 196 MCP / 167 CLI.
+The object model uses the existing remove-background command. The current
+catalog is 201 MCP tools / 173 CLI commands; see [TOOLS.md](TOOLS.md).
 
 ### Does this generate a new product photo?
 

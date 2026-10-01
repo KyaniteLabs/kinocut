@@ -1,0 +1,9 @@
+{
+  "baseline_commit": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "baseline_tree": "44806e24c1e937040f1fe4c8471ece7aca979ad9",
+  "scope": "every tracked baseline path, including runtime, tests, scripts, package/config, examples, skills, docs and assets",
+  "allocation_rule": "first matching domain owns each path once; root owns remaining media/adaptor/remainder paths; no implicit review completion",
+  "tracked_paths": 1571,
+  "code_or_configuration_paths": 1235,
+  "inventory_sha256": "de64fce7f7f1c0f1359f0a707dac0bbf53c770b7269ad4492eede06dd1bef660"
+}

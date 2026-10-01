@@ -1,0 +1,58 @@
+{
+  "observed_utc": "2026-10-01",
+  "status": "failed broad parallel integration preflight; diagnosed compatibility repairs precede required sequential attempt4",
+  "source_identity_sha256": "6f2a04d0bbec046f4a7c6bd4dabd76b3806a41f4f635b28b45a878c945169d82",
+  "result": {
+    "passed": 7981,
+    "failed": 14,
+    "skipped": 189,
+    "warnings": 8,
+    "duration_seconds": 792.32,
+    "exit_code": 1
+  },
+  "failing_cases": [
+    "tests/test_red_team.py::TestBoundaryValues::test_resize_tiny_video",
+    "tests/test_sound_stereo_mastering.py::test_asr_still_rejects_stereo_before_backend[normal]",
+    "tests/test_sound_stereo_mastering.py::test_asr_still_rejects_stereo_before_backend[silent]",
+    "tests/test_sound_stereo_mastering.py::test_asr_still_rejects_stereo_before_backend[short]",
+    "tests/test_tier1_regressions.py::test_split_filter_forces_even_auto_dimension",
+    "tests/test_kinocut_sound_centralization.py::test_centralized_constants_are_exported",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[None]",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid1]",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid2]",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid3]",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid4]",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid5]",
+    "tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid6]",
+    "tests/test_subprocess_stdin_contract.py::test_every_subprocess_call_names_stdin_explicitly"
+  ],
+  "owner_assignments": {
+    "root": [
+      "Legacy tiny-crop test now specifically asserts intentional typed invalid_crop for odd explicit dimensions; production strict policy unchanged",
+      "Split legacy test now uses documented top-bottom instead of invalid stacked fallback; production unknown-layout rejection unchanged"
+    ],
+    "latency_cost": [
+      "ASR stereo ingress contract",
+      "centralized sound constant exports",
+      "quality source retry mocks/validation"
+    ],
+    "reliability": [
+      "explicit-stdin AST source inventory"
+    ]
+  },
+  "artifact_sha256": {
+    "pytest.log": "2c214fd84fbd36c25192f48c32b743ff0f6f3a0bcf5b9f1f736d150d869678f5",
+    "frozen-source.json": "3c12130c740772096834abe6457f9a0a032eda296a853621f39e6758b5f26fca",
+    "pytest.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  },
+  "limits": [
+    "Parallel preflight is broader integration evidence, not the required sequential final gate",
+    "Failed result/source identities preserved; focused fixes do not overwrite this result"
+  ],
+  "command": ".venv/bin/python -m pytest tests/ -q --tb=short -n 4 --dist loadfile",
+  "environment": {
+    "UV_CACHE_DIR": "/workspace/.cache/uv",
+    "npm_config_cache": "/workspace/.cache/npm"
+  },
+  "interpretation": "Some failures expose production compatibility defects; root crop/layout cases are explicit documented validation-policy expectation updates, with stronger typed assertions rather than accepting any error."
+}

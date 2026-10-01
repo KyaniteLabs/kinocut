@@ -1,0 +1,583 @@
+....................................................................FF.. [ 26%]
+........................................................................ [ 52%]
+...................................F.................................... [ 79%]
+...........................FFF..F.FFFFFF..FFF...FFF..F.FF                [100%]
+=================================== FAILURES ===================================
+_______________ TestClientResize.test_resize_returns_edit_result _______________
+tests/test_client.py:134: in test_resize_returns_edit_result
+    result = editor.resize(sample_video, width=320, height=240)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/base.py:258: in guarded_call
+    result = method(self, *args, **self._normalize_kwargs_for_method(method_name, method, kwargs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/media.py:234: in resize
+    return _resize(
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/videos0/.kinocut_tmp_75j7l9ez.mp4'
+_________________ TestClientResize.test_resize_by_aspect_ratio _________________
+tests/test_client.py:139: in test_resize_by_aspect_ratio
+    result = editor.resize(sample_video, aspect_ratio="1:1")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/base.py:258: in guarded_call
+    result = method(self, *args, **self._normalize_kwargs_for_method(method_name, method, kwargs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/media.py:234: in resize
+    return _resize(
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/videos0/.kinocut_tmp_5afg2zye.mp4'
+___________ test_engine_runtime_error_is_wrapped_and_receipt_written ___________
+tests/test_workflow_failclosed.py:78: in test_engine_runtime_error_is_wrapped_and_receipt_written
+    resumed = render_workflow(spec_path, resume_receipt=str(receipt_path))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_engine_runtime_error_is_w0/.kinocut_tmp_aqeyk_r2.mp4'
+_______ test_single_variant_render_produces_distinct_output_and_receipt ________
+tests/test_workflow_variants.py:295: in test_single_variant_render_produces_distinct_output_and_receipt
+    receipt = render_workflow(spec_path, variant="wide", save_receipt=str(ws / "wide.json"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_single_variant_render_pro0/work/c91472bf-ff6f4369/.kinocut_tmp_6xus6eya.mp4'
+________________ test_all_variants_render_two_distinct_outputs _________________
+tests/test_workflow_variants.py:312: in test_all_variants_render_two_distinct_outputs
+    batch = render_workflow(spec_path, all_variants=True, save_receipt_dir=str(receipt_dir))
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:103: in render_workflow
+    return _render_all_variants(spec_path, save_receipt_dir, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:465: in _render_all_variants
+    receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_all_variants_render_two_d0/work/c91472bf-5980531c/.kinocut_tmp_tfq2d05n.mp4'
+______________ test_all_variants_use_distinct_run_dirs_no_leakage ______________
+tests/test_workflow_variants.py:336: in test_all_variants_use_distinct_run_dirs_no_leakage
+    batch = render_workflow(_write_spec(ws, _variant_spec()), all_variants=True)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:103: in render_workflow
+    return _render_all_variants(spec_path, save_receipt_dir, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:465: in _render_all_variants
+    receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_all_variants_use_distinct0/work/c91472bf-5527d296/.kinocut_tmp_xhqlprzq.mp4'
+______________ test_variant_resume_isolated_from_sibling_variant _______________
+tests/test_workflow_variants.py:370: in test_variant_resume_isolated_from_sibling_variant
+    a = render_workflow(spec_path, variant="wide", save_receipt=str(ws / "wide.json"))
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+tests/test_workflow_variants.py:121: in spy
+    return real(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_variant_resume_isolated_f0/work/c91472bf-ac7f3ccb/.kinocut_tmp_11n69t90.mp4'
+__________ test_keep_intermediates_persists_files_and_records_policy ___________
+tests/test_workflow_variants.py:431: in test_keep_intermediates_persists_files_and_records_policy
+    receipt = render_workflow(spec_path, keep_intermediates=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_keep_intermediates_persis0/work/c91472bf-e2c3835a/.kinocut_tmp_sdgf2enf.mp4'
+_________________ test_default_render_still_cleans_on_success __________________
+tests/test_workflow_variants.py:446: in test_default_render_still_cleans_on_success
+    receipt = render_workflow(_write_spec(ws, _variant_spec()))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_default_render_still_clea0/work/c91472bf-1e11840b/.kinocut_tmp_8nrf_47w.mp4'
+____________________ test_keep_intermediates_variant_render ____________________
+tests/test_workflow_variants.py:458: in test_keep_intermediates_variant_render
+    receipt = render_workflow(_write_spec(ws, _variant_spec()), variant="wide", keep_intermediates=True)
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_keep_intermediates_varian0/work/c91472bf-a5cc8762/.kinocut_tmp_0t4oct7x.mp4'
+_________________ test_variant_receipts_are_workspace_relative _________________
+tests/test_workflow_variants.py:472: in test_variant_receipts_are_workspace_relative
+    batch = render_workflow(_write_spec(ws, _variant_spec()), all_variants=True)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:103: in render_workflow
+    return _render_all_variants(spec_path, save_receipt_dir, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:465: in _render_all_variants
+    receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates))
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_variant_receipts_are_work0/work/c91472bf-f74e74ea/.kinocut_tmp_prbvp8ju.mp4'
+_______________________ test_mcp_render_variant_envelope _______________________
+tests/test_workflow_variants.py:492: in test_mcp_render_variant_envelope
+    assert result["success"] is True
+E   assert False is True
+____________________ test_mcp_render_all_variants_envelope _____________________
+tests/test_workflow_variants.py:502: in test_mcp_render_all_variants_envelope
+    assert result["success"] is True
+E   assert False is True
+______________________ test_client_render_variant_and_all ______________________
+tests/test_workflow_variants.py:529: in test_client_render_variant_and_all
+    single = Client().workflow_render(spec_path, variant="narrow")
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/base.py:258: in guarded_call
+    result = method(self, *args, **self._normalize_kwargs_for_method(method_name, method, kwargs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/workflow.py:150: in workflow_render
+    return render_workflow(
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_client_render_variant_and0/work/c91472bf-15e44c96/.kinocut_tmp_hqk6we5j.mp4'
+_________________________ test_cli_render_all_variants _________________________
+tests/test_workflow_variants.py:558: in test_cli_render_all_variants
+    assert completed.returncode == 0, completed.stderr
+E   AssertionError: {
+E       "success": false,
+E       "error": {
+E         "type": "validation_error",
+E         "code": "invalid_output_path",
+E         "message": "output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_cli_render_all_variants0/work/c91472bf-e11343cf/.kinocut_tmp_reqtwv4c.mp4'"
+E       }
+E     }
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/workspace/kinocut/.venv/bin/python', '-m', 'mcp_video', '--format', 'json', 'workflow-render'...pytest-of-agent/pytest-55/test_cli_render_all_variants0/work/c91472bf-e11343cf/.kinocut_tmp_reqtwv4c.mp4\'"\n  }\n}\n').returncode
+_______________ test_cli_render_variant_keep_intermediates_text ________________
+tests/test_workflow_variants.py:587: in test_cli_render_variant_keep_intermediates_text
+    assert completed.returncode == 0, completed.stderr
+E   AssertionError: ╭─────────────────────────────────── Error ────────────────────────────────────╮
+E     │ output path aliases an input of this operation:                              │
+E     │ '/tmp/pytest-of-agent/pytest-55/test_cli_render_variant_keep_i0/work/c91472b │
+E     │ f-a4c1c66f/.kinocut_tmp_lkzinysv.mp4'                                        │
+E     │ Code: invalid_output_path                                                    │
+E     ╰──────────────────────────────────────────────────────────────────────────────╯
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/workspace/kinocut/.venv/bin/python', '-m', 'mcp_video', 'workflow-render', '--spec', '/tmp/py...                                │\n╰──────────────────────────────────────────────────────────────────────────────╯\n").returncode
+_____________ test_resume_skips_completed_and_reruns_from_failure ______________
+tests/test_workflow_resume.py:144: in test_resume_skips_completed_and_reruns_from_failure
+    resume = render_workflow(spec_path, resume_receipt=str(ws / "fail.json"), save_receipt=str(ws / "ok.json"))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+tests/test_workflow_resume.py:58: in spy
+    return real(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_resume_skips_completed_an0/work/04d0635a-cad068ea/.kinocut_tmp_35ald32l.mp4'
+___________ test_resume_tampered_intermediate_reruns_producing_step ____________
+tests/test_workflow_resume.py:182: in test_resume_tampered_intermediate_reruns_producing_step
+    resume = render_workflow(spec_path, resume_receipt=str(ws / "fail.json"))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+tests/test_workflow_resume.py:58: in spy
+    return real(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_resume_tampered_intermedi0/work/04d0635a-7820933a/.kinocut_tmp_3xs4stut.mp4'
+___________________ test_resume_deleted_work_dir_full_rerun ____________________
+tests/test_workflow_resume.py:202: in test_resume_deleted_work_dir_full_rerun
+    resume = render_workflow(spec_path, resume_receipt=str(ws / "fail.json"))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+tests/test_workflow_resume.py:58: in spy
+    return real(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_resume_deleted_work_dir_f0/work/04d0635a-41b67cd9/.kinocut_tmp_piebura7.mp4'
+_______________________ test_mcp_render_resume_envelope ________________________
+tests/test_workflow_resume.py:248: in test_mcp_render_resume_envelope
+    assert result["success"] is True
+E   assert False is True
+__________________________ test_client_render_resume ___________________________
+tests/test_workflow_resume.py:272: in test_client_render_resume
+    receipt = Client().workflow_render(spec_path, resume_receipt=str(ws / "fail.json"))
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/base.py:258: in guarded_call
+    result = method(self, *args, **self._normalize_kwargs_for_method(method_name, method, kwargs))
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/client/workflow.py:150: in workflow_render
+    return render_workflow(
+kinocut/workflow/executor.py:104: in render_workflow
+    return _render_one(spec_path, resume_receipt, save_receipt, variant, keep_intermediates)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/workflow/executor.py:147: in _render_one
+    return _finalize_render(
+kinocut/workflow/executor.py:434: in _finalize_render
+    raise failure
+kinocut/workflow/executor.py:263: in _execute_steps
+    _run_step(adapter, step, workspace_root, source_paths, work_paths, output_abs, run_dir_abs)
+kinocut/workflow/executor.py:633: in _run_step
+    adapter.engine_fn(**kwargs)
+tests/test_workflow_resume.py:58: in spy
+    return real(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_resize.py:89: in resize
+    with _timed_operation() as timing, _atomic_output(output) as staged:
+                                       ^^^^^^^^^^^^^^^^^^^^^^
+/opt/codex/runtimes/codex-primary-runtime/dependencies/python/lib/python3.12/contextlib.py:144: in __exit__
+    next(self.gen)
+kinocut/ffmpeg_helpers.py:318: in _atomic_output
+    _validate_output_path(tmp_path)
+kinocut/ffmpeg_helpers.py:276: in _validate_output_path
+    return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/ffmpeg_helpers.py:215: in _validate_write_path
+    _reject_self_overwrite(path)
+kinocut/ffmpeg_helpers.py:140: in _reject_self_overwrite
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_client_render_resume0/work/04d0635a-fca2891b/.kinocut_tmp_i9v1tc88.mp4'
+____________________________ test_cli_render_resume ____________________________
+tests/test_workflow_resume.py:302: in test_cli_render_resume
+    assert completed.returncode == 0, completed.stderr
+E   AssertionError: {
+E       "success": false,
+E       "error": {
+E         "type": "validation_error",
+E         "code": "invalid_output_path",
+E         "message": "output path aliases an input of this operation: '/tmp/pytest-of-agent/pytest-55/test_cli_render_resume0/work/04d0635a-4b3e3e2b/.kinocut_tmp_yvj2gcd_.mp4'"
+E       }
+E     }
+E     
+E   assert 1 == 0
+E    +  where 1 = CompletedProcess(args=['/workspace/kinocut/.venv/bin/python', '-m', 'mcp_video', '--format', 'json', 'workflow-render'...'/tmp/pytest-of-agent/pytest-55/test_cli_render_resume0/work/04d0635a-4b3e3e2b/.kinocut_tmp_yvj2gcd_.mp4\'"\n  }\n}\n').returncode
+=========================== short test summary info ============================
+FAILED tests/test_client.py::TestClientResize::test_resize_returns_edit_result
+FAILED tests/test_client.py::TestClientResize::test_resize_by_aspect_ratio - ...
+FAILED tests/test_workflow_failclosed.py::test_engine_runtime_error_is_wrapped_and_receipt_written
+FAILED tests/test_workflow_variants.py::test_single_variant_render_produces_distinct_output_and_receipt
+FAILED tests/test_workflow_variants.py::test_all_variants_render_two_distinct_outputs
+FAILED tests/test_workflow_variants.py::test_all_variants_use_distinct_run_dirs_no_leakage
+FAILED tests/test_workflow_variants.py::test_variant_resume_isolated_from_sibling_variant
+FAILED tests/test_workflow_variants.py::test_keep_intermediates_persists_files_and_records_policy
+FAILED tests/test_workflow_variants.py::test_default_render_still_cleans_on_success
+FAILED tests/test_workflow_variants.py::test_keep_intermediates_variant_render
+FAILED tests/test_workflow_variants.py::test_variant_receipts_are_workspace_relative
+FAILED tests/test_workflow_variants.py::test_mcp_render_variant_envelope - as...
+FAILED tests/test_workflow_variants.py::test_mcp_render_all_variants_envelope
+FAILED tests/test_workflow_variants.py::test_client_render_variant_and_all - ...
+FAILED tests/test_workflow_variants.py::test_cli_render_all_variants - Assert...
+FAILED tests/test_workflow_variants.py::test_cli_render_variant_keep_intermediates_text
+FAILED tests/test_workflow_resume.py::test_resume_skips_completed_and_reruns_from_failure
+FAILED tests/test_workflow_resume.py::test_resume_tampered_intermediate_reruns_producing_step
+FAILED tests/test_workflow_resume.py::test_resume_deleted_work_dir_full_rerun
+FAILED tests/test_workflow_resume.py::test_mcp_render_resume_envelope - asser...
+FAILED tests/test_workflow_resume.py::test_client_render_resume - kinocut.err...
+FAILED tests/test_workflow_resume.py::test_cli_render_resume - AssertionError: {
+22 failed, 251 passed in 34.89s

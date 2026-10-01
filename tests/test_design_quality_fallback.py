@@ -31,7 +31,7 @@ class TestGetMeanLumaFallback:
 
     def test_returns_none_when_no_yavg_line(self, guardrails):
         """When ffmpeg stderr has no YAVG line, return None not 128."""
-        with patch("mcp_video.design_quality.guardrails.probe.subprocess.run") as mock_run:
+        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="frame=   10 fps=0.0 q=-1.0 N/A\nsome other output without signalstats\n",
             )
@@ -40,7 +40,7 @@ class TestGetMeanLumaFallback:
 
     def test_returns_none_when_subprocess_fails(self, guardrails):
         """When ffmpeg returns non-zero exit, return None not 128."""
-        with patch("mcp_video.design_quality.guardrails.probe.subprocess.run") as mock_run:
+        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="Error opening input file\n",
                 returncode=1,
@@ -54,7 +54,7 @@ class TestGetContrastFallback:
 
     def test_returns_none_when_no_ystd_line(self, guardrails):
         """When ffmpeg stderr has no YSTD line, return None not 50."""
-        with patch("mcp_video.design_quality.guardrails.probe.subprocess.run") as mock_run:
+        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="frame=   10 fps=0.0 q=-1.0 N/A\nsome other output without signalstats\n",
             )
@@ -63,7 +63,7 @@ class TestGetContrastFallback:
 
     def test_returns_none_when_subprocess_fails(self, guardrails):
         """When ffmpeg returns non-zero exit, return None not 50."""
-        with patch("mcp_video.design_quality.guardrails.probe.subprocess.run") as mock_run:
+        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="Error opening input file\n",
                 returncode=1,
@@ -74,7 +74,7 @@ class TestGetContrastFallback:
 
 class TestSaturationFallback:
     def test_missing_signalstats_is_explicitly_unavailable(self, guardrails):
-        with patch("mcp_video.design_quality.guardrails.analysis.subprocess.run") as mock_run:
+        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
             mock_run.return_value = FakeCompletedProcess(stderr="no signalstats metadata")
             color_stats = guardrails._analyze_colors("/tmp/nonexistent.mp4")
 
@@ -117,13 +117,15 @@ class TestTechnicalScoreDoesNotRewardFailure:
 class TestProbeVideoStreamSelection:
     """Design quality probing must use the video stream, not the first stream."""
 
-    def test_probe_selects_first_video_stream(self, guardrails):
+    def test_probe_selects_first_video_stream(self, guardrails, tmp_path):
         """ffprobe should explicitly select v:0 so audio-first MP4s do not produce 0/0 FPS."""
-        with patch("mcp_video.design_quality.guardrails.probe.subprocess.run") as mock_run:
+        source = tmp_path / "audio-first.mp4"
+        source.touch()
+        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stdout='{"streams":[{"width":1280,"height":720,"r_frame_rate":"30000/1001","duration":"8.0"}]}',
             )
-            result = guardrails._probe_video("/tmp/audio-first.mp4")
+            result = guardrails._probe_video(str(source))
 
         cmd = mock_run.call_args.args[0]
         assert "-select_streams" in cmd

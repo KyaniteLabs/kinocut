@@ -1,0 +1,14 @@
+{
+  "delayed": {
+    "decoded_audio_bytes": 288768,
+    "decoded_audio_sha256": "12c1838a9c82b4c358a1438b9d1461cdfcea4fe0fe08f62383bd426dabc61868"
+  },
+  "crop": {
+    "decoded_audio_bytes": 288768,
+    "decoded_audio_sha256": "12c1838a9c82b4c358a1438b9d1461cdfcea4fe0fe08f62383bd426dabc61868"
+  },
+  "fade": {
+    "decoded_audio_bytes": 288768,
+    "decoded_audio_sha256": "12c1838a9c82b4c358a1438b9d1461cdfcea4fe0fe08f62383bd426dabc61868"
+  }
+}

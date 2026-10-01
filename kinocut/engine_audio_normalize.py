@@ -14,6 +14,7 @@ from .ffmpeg_helpers import (
     _atomic_output,
     _build_ffmpeg_cmd,
     _escape_ffmpeg_filter_value,
+    _format_ffmpeg_number,
     _run_ffmpeg,
     _run_ffprobe_json,
     _sanitize_ffmpeg_number,
@@ -21,19 +22,21 @@ from .ffmpeg_helpers import (
     _validate_output_path,
 )
 from .errors import MCPVideoError
+from .engine_media_timeline import _primary_audio_timeline, _timestamp
+from .engine_audio_validation import _audio_number as _number
+from .engine_audio_validation import _run_audio_ffmpeg
 from .models import EditResult
 from .engine_audio_normalize_output import NormalizedAudioResult, _normalization_codec, _validate_normalized_output
-
-
-def _number(value: object, name: str, low: float, high: float) -> float:
-    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(float(value)):
-        raise MCPVideoError(f"{name} must be a finite number", error_type="validation_error", code="invalid_parameter")
-    result = float(value)
-    if not low <= result <= high:
-        raise MCPVideoError(
-            f"{name} must be {low} to {high}, got {value}", error_type="validation_error", code="invalid_parameter"
-        )
-    return result
+from .validation import (
+    AUDIO_NORMALIZE_MIN_TARGET_LUFS,
+    AUDIO_NORMALIZE_MAX_TARGET_LUFS,
+    AUDIO_NORMALIZE_MIN_LRA,
+    AUDIO_NORMALIZE_MAX_LRA,
+    AUDIO_NORMALIZE_MIN_TRUE_PEAK_DBTP,
+    AUDIO_NORMALIZE_MAX_TRUE_PEAK_DBTP,
+    AUDIO_NORMALIZE_MIN_FADE_SECONDS,
+    AUDIO_NORMALIZE_MAX_FADE_SECONDS,
+)
 
 
 def _measurement(stderr: str) -> dict[str, float]:
@@ -82,12 +85,19 @@ def _compute_loudnorm_fade_filter(probe: dict, fade: float) -> str:
             error_type="processing_error",
             code="invalid_media_duration",
         )
+    audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
+    start = _timestamp(audio.get("start_time")) or 0.0
+    origin = _timestamp(probe.get("format", {}).get("start_time")) or 0.0
+    start -= origin
     boundary = min(fade, duration / 2)
     if boundary <= 0:
         return ""
     boundary_s = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(boundary, "fade_seconds")))
-    fade_out_start_s = _escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(duration - boundary, "fade_out_start")))
-    return f"afade=t=in:st=0:d={boundary_s},afade=t=out:st={fade_out_start_s}:d={boundary_s},"
+    fade_out_start_s = _escape_ffmpeg_filter_value(
+        str(_sanitize_ffmpeg_number(start + duration - boundary, "fade_out_start"))
+    )
+    start_s = _escape_ffmpeg_filter_value(_format_ffmpeg_number(start))
+    return f"afade=t=in:st={start_s}:d={boundary_s},afade=t=out:st={fade_out_start_s}:d={boundary_s},"
 
 
 def _build_loudnorm_render_filter(
@@ -143,7 +153,7 @@ def _resample_filter(probe: dict) -> str:
 
 
 def _render_extra(probe: dict, video_container: bool) -> list[str]:
-    extra = [] if video_container else ["-vn"]
+    extra = ["-xerror", "-map", "0:v:0?", "-map", "0:a:0"] if video_container else ["-xerror", "-vn", "-map", "0:a:0"]
     audio = next((stream for stream in probe.get("streams", []) if stream.get("codec_type") == "audio"), {})
     try:
         duration = float(audio.get("duration") or probe.get("format", {}).get("duration") or 0)
@@ -152,6 +162,33 @@ def _render_extra(probe: dict, video_container: bool) -> list[str]:
     if math.isfinite(duration) and duration > 0 and not video_container:
         extra += ["-t", str(duration)]
     return extra
+
+
+def _normalization_probe(path: str) -> dict:
+    """Bind all normalization metadata to the explicitly mapped primary audio."""
+    probe = _run_ffprobe_json(path)
+    if not _has_audio(probe):
+        return probe
+    start, duration = _primary_audio_timeline(path, probe)
+    probe = {**probe, "streams": [dict(stream) for stream in probe["streams"]]}
+    audio = next(stream for stream in probe["streams"] if stream.get("codec_type") == "audio")
+    audio.update(start_time=start, duration=duration)
+    return probe
+
+
+def _normalized_result(staged: str, output: str, codec: str | None, timing: dict, warnings: list[str]) -> EditResult:
+    observed = _validate_normalized_output(staged, codec)
+    result = _build_edit_result(
+        staged,
+        "normalize_audio",
+        timing,
+        format=observed.get("format", {}).get("format_name") or Path(output).suffix.lstrip("."),
+        audio_only=True,
+    )
+    audio = next((item for item in observed.get("streams", []) if item.get("codec_type") == "audio"), {})
+    return NormalizedAudioResult(
+        **{**result.model_dump(), "audio_codec": audio.get("codec_name"), "warnings": [*result.warnings, *warnings]}
+    )
 
 
 def normalize_audio(
@@ -165,9 +202,12 @@ def normalize_audio(
 ) -> EditResult:
     """Normalize audio with FFmpeg's two-pass loudnorm filter."""
     input_path = _validate_input_path(input_path)
-    target, loudness_range = _number(target_lufs, "target_lufs", -70, -5), _number(lra, "lra", 0, 50)
-    peak = _number(true_peak_dbtp, "true_peak_dbtp", -12, 0)
-    fade = _number(fade_seconds, "fade_seconds", 0, 1)
+    target = _number(target_lufs, "target_lufs", AUDIO_NORMALIZE_MIN_TARGET_LUFS, AUDIO_NORMALIZE_MAX_TARGET_LUFS)
+    loudness_range = _number(lra, "lra", AUDIO_NORMALIZE_MIN_LRA, AUDIO_NORMALIZE_MAX_LRA)
+    peak = _number(
+        true_peak_dbtp, "true_peak_dbtp", AUDIO_NORMALIZE_MIN_TRUE_PEAK_DBTP, AUDIO_NORMALIZE_MAX_TRUE_PEAK_DBTP
+    )
+    fade = _number(fade_seconds, "fade_seconds", AUDIO_NORMALIZE_MIN_FADE_SECONDS, AUDIO_NORMALIZE_MAX_FADE_SECONDS)
     _require_filter("loudnorm", "Audio normalization")
     output = output_path or _auto_output(input_path, "normalized")
     _validate_output_path(output)
@@ -178,7 +218,7 @@ def normalize_audio(
 
     target_s = _escaped(target, "target_lufs")
     lra_s, peak_s = _escaped(loudness_range, "lra"), _escaped(peak, "true_peak_dbtp")
-    probe = _run_ffprobe_json(input_path)
+    probe = _normalization_probe(input_path)
     has_audio = _has_audio(probe)
     warnings: list[str] = []
     with _timed_operation() as timing, _atomic_output(output) as staged:
@@ -194,22 +234,26 @@ def normalize_audio(
             )
         else:
             fade_filter = _compute_loudnorm_fade_filter(probe, fade)
-            analysis = _run_ffmpeg(
+            analysis = _run_audio_ffmpeg(
                 [
+                    "-xerror",
                     "-i",
                     input_path,
                     "-vn",
+                    "-map",
+                    "0:a:0",
                     "-af",
                     f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}:print_format=json",
                     "-f",
                     "null",
                     "-",
-                ]
+                ],
+                runner=_run_ffmpeg,
             )
             render_filter, warnings = _build_loudnorm_render_filter(
                 fade_filter, target_s, lra_s, peak_s, analysis.stderr, _resample_filter(probe)
             )
-            _run_ffmpeg(
+            _run_audio_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
                     output_path=staged,
@@ -218,18 +262,8 @@ def normalize_audio(
                     audio_filter=render_filter if video_container else render_filter + ",asetpts=N/SR/TB,apad",
                     audio_bitrate=DEFAULT_AUDIO_NORMALIZE_BITRATE,
                     extra=_render_extra(probe, video_container),
-                )
+                ),
+                runner=_run_ffmpeg,
             )
-        observed = _validate_normalized_output(staged, codec if has_audio else None)
-        result = _build_edit_result(
-            staged,
-            "normalize_audio",
-            timing,
-            format=observed.get("format", {}).get("format_name") or Path(output).suffix.lstrip("."),
-            audio_only=True,
-        )
-        audio = next((item for item in observed.get("streams", []) if item.get("codec_type") == "audio"), {})
-        result = NormalizedAudioResult(
-            **{**result.model_dump(), "audio_codec": audio.get("codec_name"), "warnings": [*result.warnings, *warnings]}
-        )
+        result = _normalized_result(staged, output, codec if has_audio else None, timing, warnings)
     return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})

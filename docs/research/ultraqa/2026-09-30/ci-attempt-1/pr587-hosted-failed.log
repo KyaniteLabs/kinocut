@@ -1,0 +1,185 @@
+Hosted PR checks	Test	﻿2026-10-01T03:24:11.1306101Z ##[group]Run pytest tests/ -q -m "not slow" --tb=short --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
+Hosted PR checks	Test	2026-10-01T03:24:11.1306817Z [36;1mpytest tests/ -q -m "not slow" --tb=short --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"[0m
+Hosted PR checks	Test	2026-10-01T03:24:11.1370274Z shell: /usr/bin/bash -e {0}
+Hosted PR checks	Test	2026-10-01T03:24:11.1370532Z env:
+Hosted PR checks	Test	2026-10-01T03:24:11.1370797Z   pythonLocation: /opt/hostedtoolcache/Python/3.14.7/x64
+Hosted PR checks	Test	2026-10-01T03:24:11.1371243Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib/pkgconfig
+Hosted PR checks	Test	2026-10-01T03:24:11.1371679Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+Hosted PR checks	Test	2026-10-01T03:24:11.1372064Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+Hosted PR checks	Test	2026-10-01T03:24:11.1372454Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.14.7/x64
+Hosted PR checks	Test	2026-10-01T03:24:11.1372837Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.14.7/x64/lib
+Hosted PR checks	Test	2026-10-01T03:24:11.1373162Z ##[endgroup]
+Hosted PR checks	Test	2026-10-01T03:24:38.3055472Z ........................................................................ [  0%]
+Hosted PR checks	Test	2026-10-01T03:24:46.5897305Z .........................sss.s........................ss...sss.......... [  1%]
+Hosted PR checks	Test	2026-10-01T03:25:00.1502736Z ........................................................................ [  2%]
+Hosted PR checks	Test	2026-10-01T03:25:06.7048784Z ........................................................................ [  3%]
+Hosted PR checks	Test	2026-10-01T03:25:39.4630381Z ........................................................................ [  4%]
+Hosted PR checks	Test	2026-10-01T03:25:47.1915514Z ........................................................................ [  5%]
+Hosted PR checks	Test	2026-10-01T03:26:04.2142651Z ........................................................................ [  6%]
+Hosted PR checks	Test	2026-10-01T03:26:13.6702920Z ........................................................................ [  7%]
+Hosted PR checks	Test	2026-10-01T03:26:57.3802035Z ........................................................................ [  8%]
+Hosted PR checks	Test	2026-10-01T03:27:11.5954040Z ..........s......................................FFFF................... [  8%]
+Hosted PR checks	Test	2026-10-01T03:27:36.4769912Z ........................................................................ [  9%]
+Hosted PR checks	Test	2026-10-01T03:27:45.7012770Z ...............ss....................................................... [ 10%]
+Hosted PR checks	Test	2026-10-01T03:28:01.8906474Z ........................................................................ [ 11%]
+Hosted PR checks	Test	2026-10-01T03:28:08.0833575Z ........................................................................ [ 12%]
+Hosted PR checks	Test	2026-10-01T03:28:50.8894481Z ........................................................................ [ 13%]
+Hosted PR checks	Test	2026-10-01T03:28:51.8461246Z ss...................................................................... [ 14%]
+Hosted PR checks	Test	2026-10-01T03:29:03.5569631Z ........................................................................ [ 15%]
+Hosted PR checks	Test	2026-10-01T03:29:08.9954073Z ........................................................................ [ 16%]
+Hosted PR checks	Test	2026-10-01T03:29:14.9790178Z ........................................................................ [ 17%]
+Hosted PR checks	Test	2026-10-01T03:29:15.0346553Z ........................................................................ [ 17%]
+Hosted PR checks	Test	2026-10-01T03:29:16.3095124Z ........................................................................ [ 18%]
+Hosted PR checks	Test	2026-10-01T03:29:23.7702148Z ........................................................................ [ 19%]
+Hosted PR checks	Test	2026-10-01T03:29:35.6902712Z ........................................................................ [ 20%]
+Hosted PR checks	Test	2026-10-01T03:29:52.2545277Z ........................................................................ [ 21%]
+Hosted PR checks	Test	2026-10-01T03:30:11.9313107Z ........................................................................ [ 22%]
+Hosted PR checks	Test	2026-10-01T03:30:33.9469225Z ........................................................................ [ 23%]
+Hosted PR checks	Test	2026-10-01T03:30:55.0546247Z ........................................................................ [ 24%]
+Hosted PR checks	Test	2026-10-01T03:30:56.6509986Z ........................................................................ [ 25%]
+Hosted PR checks	Test	2026-10-01T03:31:00.6333131Z ........................................................................ [ 26%]
+Hosted PR checks	Test	2026-10-01T03:31:01.1304322Z ........................................................................ [ 26%]
+Hosted PR checks	Test	2026-10-01T03:31:01.6884815Z .............s.......................................................... [ 27%]
+Hosted PR checks	Test	2026-10-01T03:31:04.9154034Z ........................................................................ [ 28%]
+Hosted PR checks	Test	2026-10-01T03:31:06.5821973Z ........................................................................ [ 29%]
+Hosted PR checks	Test	2026-10-01T03:31:10.6698285Z ........................................................................ [ 30%]
+Hosted PR checks	Test	2026-10-01T03:31:19.1933940Z ........................................................................ [ 31%]
+Hosted PR checks	Test	2026-10-01T03:31:22.9507128Z ..........................ss............................................ [ 32%]
+Hosted PR checks	Test	2026-10-01T03:31:34.8393325Z ........................................................................ [ 33%]
+Hosted PR checks	Test	2026-10-01T03:31:45.0560875Z .....................................................s.............s.... [ 34%]
+Hosted PR checks	Test	2026-10-01T03:31:52.9090658Z ........................................................................ [ 34%]
+Hosted PR checks	Test	2026-10-01T03:31:54.4860163Z ........................................................................ [ 35%]
+Hosted PR checks	Test	2026-10-01T03:31:59.9100059Z ........................................................................ [ 36%]
+Hosted PR checks	Test	2026-10-01T03:32:03.0114514Z ........................................................................ [ 37%]
+Hosted PR checks	Test	2026-10-01T03:32:03.3447430Z ........................................................................ [ 38%]
+Hosted PR checks	Test	2026-10-01T03:32:04.2320785Z ........................................................................ [ 39%]
+Hosted PR checks	Test	2026-10-01T03:32:06.3604756Z ........................................................................ [ 40%]
+Hosted PR checks	Test	2026-10-01T03:32:06.4752665Z ........................................................................ [ 41%]
+Hosted PR checks	Test	2026-10-01T03:32:08.9435791Z ........................................................................ [ 42%]
+Hosted PR checks	Test	2026-10-01T03:32:09.0110669Z ........................................................................ [ 43%]
+Hosted PR checks	Test	2026-10-01T03:32:11.2111473Z ........................................................................ [ 43%]
+Hosted PR checks	Test	2026-10-01T03:32:12.7517373Z ........................................................................ [ 44%]
+Hosted PR checks	Test	2026-10-01T03:32:14.9188562Z ........................................................................ [ 45%]
+Hosted PR checks	Test	2026-10-01T03:32:15.1182592Z ........................................................................ [ 46%]
+Hosted PR checks	Test	2026-10-01T03:32:15.3209046Z ........................................................................ [ 47%]
+Hosted PR checks	Test	2026-10-01T03:32:25.3507457Z ........................................................................ [ 48%]
+Hosted PR checks	Test	2026-10-01T03:32:28.1918011Z ........................................................................ [ 49%]
+Hosted PR checks	Test	2026-10-01T03:32:31.7797511Z ........................................................................ [ 50%]
+Hosted PR checks	Test	2026-10-01T03:32:32.2250593Z ...............................ss..s.................................... [ 51%]
+Hosted PR checks	Test	2026-10-01T03:32:48.1559601Z ........................................................................ [ 52%]
+Hosted PR checks	Test	2026-10-01T03:32:50.1376023Z ........................................................................ [ 52%]
+Hosted PR checks	Test	2026-10-01T03:32:59.0904079Z ........................................................................ [ 53%]
+Hosted PR checks	Test	2026-10-01T03:32:59.8889157Z ........................................................................ [ 54%]
+Hosted PR checks	Test	2026-10-01T03:33:04.5723291Z ........................................................................ [ 55%]
+Hosted PR checks	Test	2026-10-01T03:33:12.9293503Z ........................................................................ [ 56%]
+Hosted PR checks	Test	2026-10-01T03:33:24.5490280Z ................ss.s.................................................... [ 57%]
+Hosted PR checks	Test	2026-10-01T03:33:44.0102137Z ........................................................................ [ 58%]
+Hosted PR checks	Test	2026-10-01T03:34:16.0802608Z ........................................................................ [ 59%]
+Hosted PR checks	Test	2026-10-01T03:34:42.9190765Z ........................................................................ [ 60%]
+Hosted PR checks	Test	2026-10-01T03:34:43.7201712Z ........................................................................ [ 60%]
+Hosted PR checks	Test	2026-10-01T03:34:43.9186485Z ........................................................................ [ 61%]
+Hosted PR checks	Test	2026-10-01T03:35:04.7548615Z ........................................................................ [ 62%]
+Hosted PR checks	Test	2026-10-01T03:35:36.1757637Z ........................................................................ [ 63%]
+Hosted PR checks	Test	2026-10-01T03:35:36.5224606Z ........................................................................ [ 64%]
+Hosted PR checks	Test	2026-10-01T03:35:39.2470526Z ........................................................................ [ 65%]
+Hosted PR checks	Test	2026-10-01T03:35:39.7308750Z ........................................................................ [ 66%]
+Hosted PR checks	Test	2026-10-01T03:35:45.9769118Z ........................................................................ [ 67%]
+Hosted PR checks	Test	2026-10-01T03:35:55.3524841Z ........................................................................ [ 68%]
+Hosted PR checks	Test	2026-10-01T03:35:58.3596841Z ........................................................................ [ 69%]
+Hosted PR checks	Test	2026-10-01T03:36:00.1361885Z ........................................................................ [ 69%]
+Hosted PR checks	Test	2026-10-01T03:36:02.8507191Z .................................................sss.s..........s....... [ 70%]
+Hosted PR checks	Test	2026-10-01T03:36:19.8056663Z ........................................................................ [ 71%]
+Hosted PR checks	Test	2026-10-01T03:36:33.8579885Z ........................................................................ [ 72%]
+Hosted PR checks	Test	2026-10-01T03:36:41.6638594Z ...ss........sss........................................................ [ 73%]
+Hosted PR checks	Test	2026-10-01T03:36:57.4565041Z ........................................................................ [ 74%]
+Hosted PR checks	Test	2026-10-01T03:37:43.8545547Z ........................................................................ [ 75%]
+Hosted PR checks	Test	2026-10-01T03:38:02.1824628Z ........................................................................ [ 76%]
+Hosted PR checks	Test	2026-10-01T03:38:02.2556240Z ........................................................................ [ 77%]
+Hosted PR checks	Test	2026-10-01T03:38:02.3315765Z ........................................................................ [ 78%]
+Hosted PR checks	Test	2026-10-01T03:38:02.4142475Z ........................................................................ [ 78%]
+Hosted PR checks	Test	2026-10-01T03:38:02.4926164Z ........................................................................ [ 79%]
+Hosted PR checks	Test	2026-10-01T03:38:02.5718281Z ........................................................................ [ 80%]
+Hosted PR checks	Test	2026-10-01T03:38:09.1693005Z ........................................................................ [ 81%]
+Hosted PR checks	Test	2026-10-01T03:38:27.0765247Z ........................................................................ [ 82%]
+Hosted PR checks	Test	2026-10-01T03:38:49.3099232Z ........................................................................ [ 83%]
+Hosted PR checks	Test	2026-10-01T03:39:05.2835762Z ....................................................................ss.. [ 84%]
+Hosted PR checks	Test	2026-10-01T03:39:49.1396146Z .sssssss.ssssss......................................................... [ 85%]
+Hosted PR checks	Test	2026-10-01T03:39:56.5172667Z ........................................................................ [ 86%]
+Hosted PR checks	Test	2026-10-01T03:39:56.5960286Z ........................................................................ [ 86%]
+Hosted PR checks	Test	2026-10-01T03:39:58.9388459Z ........................................................................ [ 87%]
+Hosted PR checks	Test	2026-10-01T03:40:14.1455739Z ........................................................................ [ 88%]
+Hosted PR checks	Test	2026-10-01T03:40:22.6790418Z ........................................................................ [ 89%]
+Hosted PR checks	Test	2026-10-01T03:40:23.4591886Z ........................................................................ [ 90%]
+Hosted PR checks	Test	2026-10-01T03:40:38.8075893Z ........................................................................ [ 91%]
+Hosted PR checks	Test	2026-10-01T03:40:43.1029749Z ........................................................................ [ 92%]
+Hosted PR checks	Test	2026-10-01T03:40:43.1773037Z ........................................................................ [ 93%]
+Hosted PR checks	Test	2026-10-01T03:40:52.8079906Z ........................................................................ [ 94%]
+Hosted PR checks	Test	2026-10-01T03:40:57.8447451Z ........................................................................ [ 95%]
+Hosted PR checks	Test	2026-10-01T03:41:14.9897357Z ........................................................................ [ 95%]
+Hosted PR checks	Test	2026-10-01T03:41:16.5593581Z ........................................................................ [ 96%]
+Hosted PR checks	Test	2026-10-01T03:41:19.1868766Z ........................................................................ [ 97%]
+Hosted PR checks	Test	2026-10-01T03:41:23.1752319Z ........................................................................ [ 98%]
+Hosted PR checks	Test	2026-10-01T03:41:23.9959967Z ........................................................................ [ 99%]
+Hosted PR checks	Test	2026-10-01T03:41:26.1614073Z ......................................                                   [100%]
+Hosted PR checks	Test	2026-10-01T03:41:26.1615110Z =================================== FAILURES ===================================
+Hosted PR checks	Test	2026-10-01T03:41:26.1616219Z _ test_corrupt_selected_aac_input_cannot_be_concealed_as_success[normalize_audio] _
+Hosted PR checks	Test	2026-10-01T03:41:26.1617753Z tests/test_audio_ops_boundaries.py:170: in test_corrupt_selected_aac_input_cannot_be_concealed_as_success
+Hosted PR checks	Test	2026-10-01T03:41:26.1618418Z     with pytest.raises(MCPVideoError):
+Hosted PR checks	Test	2026-10-01T03:41:26.1618749Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Hosted PR checks	Test	2026-10-01T03:41:26.1619069Z E   Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1620057Z __ test_corrupt_selected_aac_input_cannot_be_concealed_as_success[mix_audio] ___
+Hosted PR checks	Test	2026-10-01T03:41:26.1620959Z tests/test_audio_ops_boundaries.py:170: in test_corrupt_selected_aac_input_cannot_be_concealed_as_success
+Hosted PR checks	Test	2026-10-01T03:41:26.1621574Z     with pytest.raises(MCPVideoError):
+Hosted PR checks	Test	2026-10-01T03:41:26.1621891Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Hosted PR checks	Test	2026-10-01T03:41:26.1622197Z E   Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1622668Z __ test_corrupt_selected_aac_input_cannot_be_concealed_as_success[add_audio] ___
+Hosted PR checks	Test	2026-10-01T03:41:26.1623400Z tests/test_audio_ops_boundaries.py:170: in test_corrupt_selected_aac_input_cannot_be_concealed_as_success
+Hosted PR checks	Test	2026-10-01T03:41:26.1624007Z     with pytest.raises(MCPVideoError):
+Hosted PR checks	Test	2026-10-01T03:41:26.1624634Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Hosted PR checks	Test	2026-10-01T03:41:26.1624943Z E   Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1625419Z __ test_corrupt_selected_aac_input_cannot_be_concealed_as_success[duck_audio] __
+Hosted PR checks	Test	2026-10-01T03:41:26.1626155Z tests/test_audio_ops_boundaries.py:170: in test_corrupt_selected_aac_input_cannot_be_concealed_as_success
+Hosted PR checks	Test	2026-10-01T03:41:26.1626751Z     with pytest.raises(MCPVideoError):
+Hosted PR checks	Test	2026-10-01T03:41:26.1627062Z          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Hosted PR checks	Test	2026-10-01T03:41:26.1627368Z E   Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1627761Z =============================== warnings summary ===============================
+Hosted PR checks	Test	2026-10-01T03:41:26.1628292Z tests/test_engine.py::TestAddTexts::test_add_texts_overlay
+Hosted PR checks	Test	2026-10-01T03:41:26.1629556Z   /home/runner/work/kinocut/kinocut/tests/test_engine.py:244: UserWarning: [ERROR] text_overlap: Text 'Line 1...' and 'Line 2...' overlap at position (center, center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+Hosted PR checks	Test	2026-10-01T03:41:26.1630546Z     result = add_texts(
+Hosted PR checks	Test	2026-10-01T03:41:26.1630688Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1630859Z tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+Hosted PR checks	Test	2026-10-01T03:41:26.1631889Z   /home/runner/work/kinocut/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Middle...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+Hosted PR checks	Test	2026-10-01T03:41:26.1632839Z     result = add_texts(
+Hosted PR checks	Test	2026-10-01T03:41:26.1632977Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1634846Z tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+Hosted PR checks	Test	2026-10-01T03:41:26.1636488Z   /home/runner/work/kinocut/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+Hosted PR checks	Test	2026-10-01T03:41:26.1638265Z     result = add_texts(
+Hosted PR checks	Test	2026-10-01T03:41:26.1638491Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1638764Z tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+Hosted PR checks	Test	2026-10-01T03:41:26.1640800Z   /home/runner/work/kinocut/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Middle...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+Hosted PR checks	Test	2026-10-01T03:41:26.1642576Z     result = add_texts(
+Hosted PR checks	Test	2026-10-01T03:41:26.1642828Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1643387Z tests/test_engine_advanced.py::TestEditTimeline::test_timeline_passes_every_audio_clip_field_to_add_audio
+Hosted PR checks	Test	2026-10-01T03:41:26.1645066Z   /home/runner/work/kinocut/kinocut/kinocut/engine_audio_ops.py:321: UserWarning: [AUDIO GUARDRAIL] volume=1.4 > 1.0. If source audio is already near peak, this may cause digital clipping/distortion.
+Hosted PR checks	Test	2026-10-01T03:41:26.1646583Z     _emit_add_audio_guardrails(video_info, audio_path, volume, start_time)
+Hosted PR checks	Test	2026-10-01T03:41:26.1647082Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1647517Z tests/test_engine_overlay.py::test_overlay_converts_base_and_output_to_stable_pixel_formats
+Hosted PR checks	Test	2026-10-01T03:41:26.1650333Z   /home/runner/work/kinocut/kinocut/tests/test_engine_overlay.py:26: UserWarning: [OVERLAY GUARDRAIL] Could not validate timing: Input file error: /tmp/pytest-of-runner/pytest-0/test_overlay_converts_base_and0/background.mp4 — Not a valid video file
+Hosted PR checks	Test	2026-10-01T03:41:26.1652587Z     result = overlay_video(str(background), str(overlay), position="center", opacity=0.5, output_path=str(output))
+Hosted PR checks	Test	2026-10-01T03:41:26.1653335Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1653757Z tests/test_tier1_regressions.py::test_merge_transition_with_mixed_audio_presence
+Hosted PR checks	Test	2026-10-01T03:41:26.1656084Z   /home/runner/work/kinocut/kinocut/kinocut/engine_merge.py:148: UserWarning: [MERGE GUARDRAIL] Merged clips have mixed audio/no-audio. Clips without audio may cause concat demuxer errors or silent output. Consider normalizing all clips to the same audio presence.
+Hosted PR checks	Test	2026-10-01T03:41:26.1657847Z     _emit_merge_guardrails(infos, transition_duration, has_transitions)
+Hosted PR checks	Test	2026-10-01T03:41:26.1658367Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1658944Z tests/test_tier1_regressions.py::test_merge_rejects_unknown_transition_at_engine_layer
+Hosted PR checks	Test	2026-10-01T03:41:26.1660962Z   /home/runner/work/kinocut/kinocut/kinocut/engine_merge.py:148: UserWarning: [MERGE GUARDRAIL] Clips have different resolutions: [(320, 240), (640, 480)]. Merge will normalize by re-encoding all clips.
+Hosted PR checks	Test	2026-10-01T03:41:26.1662796Z     _emit_merge_guardrails(infos, transition_duration, has_transitions)
+Hosted PR checks	Test	2026-10-01T03:41:26.1663310Z 
+Hosted PR checks	Test	2026-10-01T03:41:26.1663668Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+Hosted PR checks	Test	2026-10-01T03:41:26.1664458Z =========================== short test summary info ============================
+Hosted PR checks	Test	2026-10-01T03:41:26.1665891Z FAILED tests/test_audio_ops_boundaries.py::test_corrupt_selected_aac_input_cannot_be_concealed_as_success[normalize_audio] - Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1667856Z FAILED tests/test_audio_ops_boundaries.py::test_corrupt_selected_aac_input_cannot_be_concealed_as_success[mix_audio] - Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1669979Z FAILED tests/test_audio_ops_boundaries.py::test_corrupt_selected_aac_input_cannot_be_concealed_as_success[add_audio] - Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1671934Z FAILED tests/test_audio_ops_boundaries.py::test_corrupt_selected_aac_input_cannot_be_concealed_as_success[duck_audio] - Failed: DID NOT RAISE MCPVideoError
+Hosted PR checks	Test	2026-10-01T03:41:26.1673348Z 4 failed, 7976 passed, 50 skipped, 164 deselected, 8 warnings in 1032.56s (0:17:12)
+Hosted PR checks	Test	2026-10-01T03:41:27.5298309Z ##[error]Process completed with exit code 1.

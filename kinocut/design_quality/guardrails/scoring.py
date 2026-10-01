@@ -4,10 +4,9 @@ from __future__ import annotations
 
 import logging
 import os
-import subprocess
 import tempfile
 
-from ...defaults import DEFAULT_FFMPEG_TIMEOUT
+from ...ffmpeg_helpers import _run_command, _validate_input_path
 
 logger = logging.getLogger(__name__)
 
@@ -67,10 +66,10 @@ class ScoringMixin:
         if mean_luma is None or mean_luma > 60:
             return False
 
-        rgb_means = color_stats.get("rgb_means", [128, 128, 128])
+        rgb_means = color_stats.get("rgb_means")
 
         # Check for purple/violet tint (Midnight Violet family)
-        has_violet_tint = rgb_means[0] > rgb_means[1] and rgb_means[2] > rgb_means[1]
+        has_violet_tint = bool(rgb_means and rgb_means[0] > rgb_means[1] and rgb_means[2] > rgb_means[1])
 
         # Check for high saturation accents (Electric Lime)
         saturation = color_stats.get("saturation")
@@ -214,12 +213,13 @@ class ScoringMixin:
         Uses edge detection and region analysis to estimate text presence.
         """
 
+        video_path = _validate_input_path(video_path)
         # Extract frame securely
         with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_file:
             frame_path = tmp_file.name
         try:
             cmd = ["ffmpeg", "-y", "-i", video_path, "-ss", str(time_sec), "-vframes", "1", frame_path]
-            subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=30)  # noqa: S603
+            _run_command(cmd)
 
             if not os.path.exists(frame_path):
                 return []
@@ -227,9 +227,7 @@ class ScoringMixin:
             # Analyze frame for text regions using ffmpeg's signature filter
             # This gives us an estimate of complexity which correlates with text amount
             cmd = ["ffmpeg", "-y", "-i", frame_path, "-vf", "signature=format=xml", "-f", "null", "-"]
-            subprocess.run(  # noqa: S603
-                cmd, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DEFAULT_FFMPEG_TIMEOUT
-            )
+            _run_command(cmd)
 
             # Text detection is not yet implemented (would require OCR).
             # Return empty list rather than fabricated data.

@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from .defaults import AUDIO_NORMALIZE_OUTPUT_CODECS, AUDIO_NORMALIZE_VIDEO_CONTAINERS
+from .engine_audio_validation import _run_audio_ffmpeg
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _run_ffmpeg, _run_ffprobe_json
 from .models import EditResult
@@ -40,7 +41,9 @@ def _validate_normalized_output(path: str, codec: str | None, *, audio_only: boo
             code="invalid_normalized_output",
         )
     selection = ["-map", "0:a:0", "-vn"] if audio_only else []
-    decoded = _run_ffmpeg(["-v", "error", "-xerror", "-i", path, *selection, "-f", "null", "-"])
+    decoded = _run_audio_ffmpeg(
+        ["-v", "error", "-xerror", "-i", path, *selection, "-f", "null", "-"], runner=_run_ffmpeg
+    )
     if decoded.stderr.strip():
         raise MCPVideoError(
             "Normalized output did not decode cleanly",

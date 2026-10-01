@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import logging
+import shutil
+from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
 from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE, DEFAULT_SPHERE_QC_SECONDS
 from kinocut.engine_merge import merge
+from kinocut.engine_probe import _cache_key
 from kinocut.errors import MCPVideoError
-from kinocut.ffmpeg_helpers import _validate_output_path
+from kinocut.ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_output_path
 from kinocut.quality_guardrails import assert_quality
+from kinocut.source_identity import assert_source_identity, stream_source_identity
 from kinocut.te.sphere_graph import render_window_single_pass
 from kinocut.te.sphere_plan import require_approved
 from kinocut.te.sphere_storyboard import extract_camera_clip
@@ -27,16 +31,35 @@ def render_sphere_plan(
     min_score: float | None = None,
 ) -> dict[str, Any]:
     """Extract cameras and assemble split/pip/switch/single. Requires approved."""
-    current = require_approved(plan)
+    current = require_approved(deepcopy(plan))
+    source = current["source"]["path"]
+    identity = stream_source_identity(source)
+    if identity.asset_id != current["source"]["sha256"]:
+        raise MCPVideoError(
+            "360 plan source identity changed; replan and review",
+            error_type="validation_error",
+            code="source_identity_changed",
+        )
+    source_key = _cache_key(source)
     _validate_output_path(output_path)
     root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
     root.mkdir(parents=True, exist_ok=True)
     pieces = [_render_window(current, window, root, index) for index, window in enumerate(current["windows"])]
-    if len(pieces) == 1:
-        Path(pieces[0]).replace(output_path)
-    else:
-        merge(pieces, output_path=output_path)
-    gate = _maybe_quality(output_path, allow_fail=allow_fail, min_score=min_score)
+    assembled = pieces[0]
+    if len(pieces) > 1:
+        assembled = str(root / "assembled.mp4")
+        merge(pieces, output_path=assembled)
+    with _atomic_output(output_path) as staged:
+        with open(assembled, "rb") as rendered, _open_staged_writer(staged) as writer:
+            shutil.copyfileobj(rendered, writer)
+        gate = _maybe_quality(staged, allow_fail=allow_fail, min_score=min_score)
+        assert_source_identity(source, identity)
+        if _cache_key(source) != source_key:
+            raise MCPVideoError(
+                "360 source changed during rendering", error_type="validation_error", code="source_identity_changed"
+            )
+    if isinstance(gate.get("report"), dict) and "video_path" in gate["report"]:
+        gate["report"]["video_path"] = output_path
     writer = current.get("writer") or {}
     return {
         "artifact_kind": "360_assembly_receipt",

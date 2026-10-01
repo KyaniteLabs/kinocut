@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/workspace/.cache/kinocut-qa/reframe-review-repro.py", line 8, in <module>
+    _reset_operation_inputs();receipt=m.render_reframe_plan(str(source),str(root/'output.mp4'),plan,'portrait')
+                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/workspace/kinocut/kinocut/visual_intelligence/reframe_render.py", line 51, in render_reframe_plan
+    raise MCPVideoError(
+kinocut.errors.MCPVideoError: Reframe plan source identity changed; analyze and replan

@@ -1,0 +1,12 @@
+{
+  "observed_utc": "2026-10-01",
+  "command": ".venv/bin/python -m pytest tests/ -x -q --tb=short",
+  "result": "collection error; zero tests executed; exit1 in0.78s",
+  "cause": "engine_body_swap imports _av_end_delta removed by rescue verifier refactor",
+  "status": "Root assigned restoration and separate collection/full rerun; no subsequent success assumed",
+  "artifact_sha256": {
+    "pytest.log": "82682906bcc47e5c09eba49d8bac09bbb3d961188a7e6d214f8bbd797379d824",
+    "frozen-source.json": "7b2091bdf7e13c430cf47645bf0c904135ea6f8527d82226e09d5540b0b198aa",
+    "pytest.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865"
+  }
+}

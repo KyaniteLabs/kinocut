@@ -3,9 +3,11 @@
 from __future__ import annotations
 
 import json
+import ipaddress
 import logging
 import os
 from collections.abc import Callable
+from copy import deepcopy
 from typing import Any
 from urllib.parse import urlparse
 
@@ -34,6 +36,8 @@ def detect_sphere_director(
     resolved_model = (model or os.environ.get(ENV_MODEL) or "").strip() or None
     resolved_url = (base_url or os.environ.get(ENV_BASE_URL) or "").strip() or None
     kind = _director_kind(chosen)
+    if resolved_url and _endpoint_kind(resolved_url) == "cloud":
+        kind = "cloud"
     return {
         "available": bool(chosen),
         "id": chosen,
@@ -73,8 +77,14 @@ def apply_director(
         }
         return heuristic
     try:
-        raw = propose(heuristic)
-        plan = validate_sphere_plan(raw)
+        raw = propose(deepcopy(heuristic))
+        plan = validate_sphere_plan(deepcopy(raw))
+        if plan["source"] != heuristic["source"]:
+            raise MCPVideoError(
+                "Director proposal changed the requested source snapshot",
+                error_type="validation_error",
+                code="source_identity_changed",
+            )
     except Exception as exc:
         logger.warning("360 director unavailable: %s", exc)
         heuristic["writer"] = {
@@ -84,7 +94,7 @@ def apply_director(
             "unavailable": True,
             "reason": "capability_unavailable",
         }
-        return heuristic
+        return validate_sphere_plan(heuristic)
     plan["writer"] = {
         "kind": "model",
         "provider": detected["id"] or "injected",
@@ -95,10 +105,18 @@ def apply_director(
     return validate_sphere_plan(plan)
 
 
+def _reject_json_constant(_value: str) -> None:
+    raise MCPVideoError(
+        "Director JSON contains a nonfinite numeric constant.",
+        error_type="validation_error",
+        code="invalid_sphere_plan",
+    )
+
+
 def parse_director_json(payload: str) -> dict[str, Any]:
     """Validate director output is JSON matching the plan schema."""
     try:
-        data = json.loads(payload)
+        data = json.loads(payload, parse_constant=_reject_json_constant)
     except json.JSONDecodeError as exc:
         raise MCPVideoError(
             "Director returned invalid JSON.",
@@ -114,6 +132,35 @@ def parse_director_json(payload: str) -> dict[str, Any]:
     return validate_sphere_plan(data)
 
 
+def _endpoint_kind(endpoint: str) -> str:
+    """Only literal loopback endpoints qualify as local; never resolve DNS."""
+    try:
+        parsed = urlparse(endpoint)
+        host = parsed.hostname
+        if (
+            parsed.scheme not in {"http", "https"}
+            or not host
+            or parsed.username is not None
+            or parsed.password is not None
+            or any(char.isspace() or ord(char) < 32 for char in endpoint)
+            or "\\" in endpoint
+        ):
+            raise ValueError("Invalid endpoint")
+        _ = parsed.port  # Validate malformed and out-of-range ports before adapter use.
+    except ValueError as exc:
+        raise MCPVideoError(
+            "360 director endpoint must be an HTTP(S) URL without user information.",
+            error_type="validation_error",
+            code="invalid_director_endpoint",
+        ) from exc
+    if host.lower() == "localhost":
+        return "local"
+    try:
+        return "local" if ipaddress.ip_address(host).is_loopback else "cloud"
+    except ValueError:
+        return "cloud"
+
+
 def _director_kind(director: str | None) -> str | None:
     if not director:
         return None
@@ -121,9 +168,8 @@ def _director_kind(director: str | None) -> str | None:
         return "cloud"
     if director in SPHERE_LOCAL_DIRECTORS:
         return "local"
-    if director.startswith("http"):
-        host = (urlparse(director).hostname or "").lower()
-        return "local" if host in {"localhost", "127.0.0.1", "::1"} else "cloud"
+    if director.lower().startswith("http") or "://" in director:
+        return _endpoint_kind(director)
     return "local"
 
 
@@ -131,7 +177,7 @@ def _assert_cloud_allowed(detected: dict[str, Any], allow_cloud: bool) -> None:
     env_allow = os.environ.get(ENV_ALLOW_CLOUD, "").strip().lower() in {"1", "true", "yes"}
     if detected.get("kind") != "cloud":
         return
-    if allow_cloud or env_allow:
+    if allow_cloud is True or env_allow:
         return
     raise MCPVideoError(
         "Cloud 360 director requires explicit allow_cloud opt-in.",

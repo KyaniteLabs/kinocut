@@ -1,0 +1,3257 @@
+{
+  "baseline_commit": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "baseline_tree": "44806e24c1e937040f1fe4c8471ece7aca979ad9",
+  "cached_sources_verified": 649,
+  "mismatches": [],
+  "files": [
+    {
+      "path": "kinocut/__init__.py",
+      "git_blob": "385964c55d5cb925c2ce5519a23c0e430b8224af",
+      "sha256": "1aff451ec5b25c328a13acefe69e795e3ad70ff61312889e0c0b9302d7eb6b52"
+    },
+    {
+      "path": "kinocut/__main__.py",
+      "git_blob": "85cc069a13eaaf788252b28fbd208f0a08a407a2",
+      "sha256": "6f898b753b4ce60482afa349698df8b86ef71105059bf1d92f94ef6b9a814aa1"
+    },
+    {
+      "path": "kinocut/_crush_shader/package.json",
+      "git_blob": "81a88f60b168c6b6ae67cffcaf3e9d57fb993622",
+      "sha256": "745784942917b90d1f7885717946ab19b187b1291638edb970352185bfe9663b"
+    },
+    {
+      "path": "kinocut/_crush_shader/render_frames.mjs",
+      "git_blob": "f72e2fa5b963e938b9234cadb596f2387003f111",
+      "sha256": "9d805f4148d2d0407d2ddec22c11597f407c434fa432a705951115dbbefe43ad"
+    },
+    {
+      "path": "kinocut/_mcpb_observation.py",
+      "git_blob": "34d5535ce232df85b346ff249de9a5ae0b2ed926",
+      "sha256": "82f8cb1aa508dc1c5257af22935f68bb8de94839b56b182d927f5596e060f042"
+    },
+    {
+      "path": "kinocut/aesthetic/__init__.py",
+      "git_blob": "0eacd70d4cb9bdbcff5628be0885393f6e3c2f17",
+      "sha256": "36dde34ffb6857a424f5b3a643787ab0434aaf7a1dc3013c0823d03095002d00"
+    },
+    {
+      "path": "kinocut/aesthetic/smart_thumbnail.py",
+      "git_blob": "00aa5459e2b263a179b1c338dd3ebab91c00d945",
+      "sha256": "19003181497e40eed955fc86c8514889c6b879388cf88ba94a5b9c348e67a3ba"
+    },
+    {
+      "path": "kinocut/ai_engine/__init__.py",
+      "git_blob": "4b218b893588aa5ebe2e9e4829f877c7e4fa30da",
+      "sha256": "45a38d32eab148c496fa48ebc848f1945677069b67b179d84d3c60d7d60590dd"
+    },
+    {
+      "path": "kinocut/ai_engine/_longform_merge.py",
+      "git_blob": "811157d27942bd7c63e81d5198d0a398fd7e333b",
+      "sha256": "43c826f0b6027338c8eab3143231bf54ae8be70e8731b084f22fb6826222b3c6"
+    },
+    {
+      "path": "kinocut/ai_engine/_longform_models.py",
+      "git_blob": "3ba746057b5de19d837e298677a3c8cb5fb9341d",
+      "sha256": "dc9b79c99fc8fbb9120d558208027897888e21036983b6d7bf20fd6681be3441"
+    },
+    {
+      "path": "kinocut/ai_engine/_longform_planning.py",
+      "git_blob": "6d4c48ce953c1e753b9fc89935113badd3ab9e95",
+      "sha256": "278229dac088ee07abd22622f6f7d18481075d5aeb08c24ee7abaab69afae394"
+    },
+    {
+      "path": "kinocut/ai_engine/_longform_runtime.py",
+      "git_blob": "32c9f9a8d6b5c12f462377acafbeb6c574282c5f",
+      "sha256": "59c18125b05afc74e1b26c9f23359d25cf46b72039163349a4ff0e20a7c0ab6d"
+    },
+    {
+      "path": "kinocut/ai_engine/_longform_validation.py",
+      "git_blob": "213b3f38a5be37d193656274dee7dd6573f9f5d2",
+      "sha256": "e5b3979e5415af87ba8537fc6856b788d661ac1c53270d82f442dccefff05247"
+    },
+    {
+      "path": "kinocut/ai_engine/color.py",
+      "git_blob": "899b4dd19a5bcc4d5d5edcc2439dc978b5ea1fc2",
+      "sha256": "a517a073c52e667f4f0d9e7742a07d7d02fa8daa6f7345add8ebe68b248f3b8f"
+    },
+    {
+      "path": "kinocut/ai_engine/download.py",
+      "git_blob": "55a1117f099569e5391793da911e04e29364ae6c",
+      "sha256": "bcfaa397dbd2b1a5c6c33463d777dbbb731deef8f164924098fa97e487869aa2"
+    },
+    {
+      "path": "kinocut/ai_engine/scene.py",
+      "git_blob": "76e9448831ed1f707f9b1ee35872ff6500f6730e",
+      "sha256": "61c2bcee50182db675c28ef5683091a65b57a7c61b82b832475f20a046a7ac43"
+    },
+    {
+      "path": "kinocut/ai_engine/silence.py",
+      "git_blob": "050dc969d901580ca987a0bc6f8c7b1b36102188",
+      "sha256": "0ae58a646621126e4aa85239c1d3f8b3167643705585cfba01941884bd714f11"
+    },
+    {
+      "path": "kinocut/ai_engine/spatial.py",
+      "git_blob": "d619c4eba1eb1c69df594a0c1f12343a4cf7b033",
+      "sha256": "61c0647336abb38cf9b481f815005d56d4e91916f919e299c546f18f891c683d"
+    },
+    {
+      "path": "kinocut/ai_engine/stem.py",
+      "git_blob": "165abc81e5de8be2f820c092f252e2483b6e390c",
+      "sha256": "d63f8888e13fa8db1a31951acf57b3bd0ba902a531c103f7d1f19210145dced8"
+    },
+    {
+      "path": "kinocut/ai_engine/transcribe.py",
+      "git_blob": "1ec2280235c5a5a9f5d9f2914456f0d6819cf2d7",
+      "sha256": "b644d0431270d3fb5c0c487e5ede6c599d516a479410f428d695cb2fcabd3157"
+    },
+    {
+      "path": "kinocut/ai_engine/transcribe_longform.py",
+      "git_blob": "d49bc750831c912e081c598e7e93dcf4a0f34f50",
+      "sha256": "ca8c7cb9a6e3f7bf76be0b118f7c77f5e9458d2f5700d8c1f107bfc0e0f3c80d"
+    },
+    {
+      "path": "kinocut/ai_engine/upscale.py",
+      "git_blob": "d006fa7f13f2b921f568837bfa276dde63818ce5",
+      "sha256": "28bd21a9fe68aac91a7352810aa300d296bf4f62614ca13b536b84abb10591fa"
+    },
+    {
+      "path": "kinocut/aivideo/__init__.py",
+      "git_blob": "d29c0e3f50d172d41bd5036f6128fed200190af1",
+      "sha256": "ecdc8f3ea800a216aeb653740c699245ba105067a8356bf4064c19b92791647e"
+    },
+    {
+      "path": "kinocut/aivideo/benchmark.py",
+      "git_blob": "fd4a761d3e9a75eb90afbe3d93852aa9880602f0",
+      "sha256": "afc29001a140af0e9775d9962983d732f05c2c0e5339f4f16fe4596da231c4e1"
+    },
+    {
+      "path": "kinocut/aivideo/editorial.py",
+      "git_blob": "5b481a7ca8fd7a6d2d987f9443c612238a6a0198",
+      "sha256": "3525e0ad3fac6a92e609d7cd75773e1a3d4b54a5069d908201a946abfadc12c9"
+    },
+    {
+      "path": "kinocut/aivideo/graphics_recipe.py",
+      "git_blob": "acc61baf6850ad6b5b19c77ca9d5d444680a8eee",
+      "sha256": "e43182ff34b9aac7417064947538f55a3e4da955e844bda3cda707b144b921c5"
+    },
+    {
+      "path": "kinocut/aivideo/graphics_recipe_checks.py",
+      "git_blob": "987d0380f70092c54a6ef3ca4c790c5c9608e2d6",
+      "sha256": "60a9cb928b5627c78c1cdef3f43f6a9f89b054317f59b008ae8784347eb128ca"
+    },
+    {
+      "path": "kinocut/aivideo/ingest.py",
+      "git_blob": "a82795a72a8fa0ca31b0da5cde96c3f85b6d03a2",
+      "sha256": "d390eb1a9e0af8c43736561bc8a50b7d595f556af3ea541a16715f66920d22aa"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/__init__.py",
+      "git_blob": "4eb47dc9c4e714e677c64cea85e274b5a07d8820",
+      "sha256": "55323c4d8cb715da1299d1cf6299ecd2cfb06932dec61c94f1124585463b53b9"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/manifest.py",
+      "git_blob": "03fafcc2e4b61057c083ccb3a1a4456d0a1ca65b",
+      "sha256": "ef7e45873720b7b66d3bf7a56942b81ce1660c6d26bea09983537a360be2a117"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/motion_coherence.py",
+      "git_blob": "ce324c9fee4a9767d425bf33f7543a7512b12d3d",
+      "sha256": "e76e1f85babde544b6235c8bb36d6dec98820e9fd7c3999d5ab87f61e787e007"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/motion_strip.py",
+      "git_blob": "9b19bf84d34935e8e83295a87dc8a06a05860e9d",
+      "sha256": "56ec666e901b3aadc605d5fbb18edbc95784aea6f0f355ccd43c43056453ae1a"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/providers.py",
+      "git_blob": "4ad2a521020ba8cd7b9d3e92ca37a1e777d3e4ef",
+      "sha256": "d360f45ce33942ee8e6d6dd788dae573f06cf3106039bf6ebedfb930352b7839"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/samplers.py",
+      "git_blob": "e5af7fd86c0ea98174e2a3022f46ae266f4f0de2",
+      "sha256": "03b400566a19da89173cb2c7aad35fb95af526cece9a7888c67ecdcd4507582c"
+    },
+    {
+      "path": "kinocut/aivideo/inspection/temporal_checks.py",
+      "git_blob": "c8ec0647184b5b655fcf280b7cbebaf3a88e27cd",
+      "sha256": "b4bb0e941244b88f2a4f065221a9e912d336441b9eaf61c85fefbb5f234bd6e3"
+    },
+    {
+      "path": "kinocut/aivideo/learning/__init__.py",
+      "git_blob": "3e4520a1575d1dfa5e2133fe7e1025110bee722e",
+      "sha256": "fa576977aee8ca8b0197b43e69dbb1ac915b4484fd734c7cd8205f21a24af15b"
+    },
+    {
+      "path": "kinocut/aivideo/learning/advice.py",
+      "git_blob": "bbaa9bb5011a92044adb5fd9600927b04b00c9b2",
+      "sha256": "0a4479452e0166d55d5ca93999bfeaba7dfdb6324c4f9b2c61ec83619d2cef19"
+    },
+    {
+      "path": "kinocut/aivideo/learning/cost.py",
+      "git_blob": "e7111bfb26720b4a48d5c3fd901b865cbbbad219",
+      "sha256": "d01452b20134d432546ce45957916e8b17d1f3d09030c4985b1419dd826dcff6"
+    },
+    {
+      "path": "kinocut/aivideo/learning/outcomes.py",
+      "git_blob": "d0c73ac1bc1089ccee0c595d32e7a707569a2b1d",
+      "sha256": "eb7f87e5ef00a0c3a355085da7de273272f00a20277eeebfe42f4207ecc1424f"
+    },
+    {
+      "path": "kinocut/aivideo/learning/project_recipes.py",
+      "git_blob": "fc1244e96bd4c76dc1b6ecf8dc20ec6037aa9bd8",
+      "sha256": "5b6fb6c722358a056b44239640893278d6bb1e745a241ea497a789d65697d7f3"
+    },
+    {
+      "path": "kinocut/aivideo/learning/recipes.py",
+      "git_blob": "9826b24c56a16ae1280aef2a71df9655437d9714",
+      "sha256": "dae31567e13a73d6f84e4902ce53ab68a0a12638460079c588c59965ec9677b0"
+    },
+    {
+      "path": "kinocut/aivideo/learning/report.py",
+      "git_blob": "068ef5b9592dec443f69a06bb557fb784e84e819",
+      "sha256": "074fead8fe1dd85cab7607d0240d12952208cc0868d1e047067ba23ab2f52cd2"
+    },
+    {
+      "path": "kinocut/aivideo/preflight.py",
+      "git_blob": "8d8300517b12ec2dfca501dde6051980df2cfa74",
+      "sha256": "c2935b6e37edadf3578fe5d09ceac313d8e5baabba8abc6af9e2ce5961d43199"
+    },
+    {
+      "path": "kinocut/aivideo/protection.py",
+      "git_blob": "9169db2b8ed47d1a18530784b4be24df38fea12a",
+      "sha256": "dc75616e5ac5f9ff280c6c8aebc6f6557356d9041190cab934001ac911f92287"
+    },
+    {
+      "path": "kinocut/aivideo/release_surfaces.py",
+      "git_blob": "8df3a4d5cc905f73540da129b5746005146b1d8a",
+      "sha256": "d02331e3fe04e2f9636608ef2d99e94175e7b2da6c6d2914f51c14a8eea62aae"
+    },
+    {
+      "path": "kinocut/aivideo/review.py",
+      "git_blob": "ace465114e3a52c5aa9eb993079c042497ee3fde",
+      "sha256": "2a39d6a97871c72321cc502218167502a39dceed4492d8b5c00e50b9671828da"
+    },
+    {
+      "path": "kinocut/aivideo/salvage.py",
+      "git_blob": "ebc5938e23276a804dd7fea9b6f179c223e4aade",
+      "sha256": "ae2a5fadc86f370d638ecbab78b8d4354f4dc557ba02d2b4da953a48f7b537a0"
+    },
+    {
+      "path": "kinocut/aivideo/salvage_checks.py",
+      "git_blob": "7f59d33182fde6e82129d552106c465e0e6f9790",
+      "sha256": "26dfacb2934516bcb49e6799e1fcfbb999ecfb9547db5cc9a139d7405bdca32a"
+    },
+    {
+      "path": "kinocut/aivideo/salvage_lineage.py",
+      "git_blob": "77472274e6aee0041c892de7da569c0f7a424215",
+      "sha256": "f9a08be50c22f7b7a9530428c84b8a0b040e059bc3bee68702fa98c939e3e010"
+    },
+    {
+      "path": "kinocut/aivideo/salvage_render.py",
+      "git_blob": "b27da43fe277880bf358d0db115665186f42ae44",
+      "sha256": "f8b6d050b0e5018737749d4f3c8aeda3d70509dd21ea6a4559bbe306e727fcea"
+    },
+    {
+      "path": "kinocut/aivideo/subtitle_qa.py",
+      "git_blob": "88d901a2919be45948425d0b99c9a0e5a7f48af6",
+      "sha256": "5ae9197e3f221fc0f431b6de631db9ff9a062c0ffb7ae489df9596bb23729be4"
+    },
+    {
+      "path": "kinocut/aivideo/subtitle_qa_validation.py",
+      "git_blob": "b114a9878d26ad11e2768d9035b038df976742d2",
+      "sha256": "e39afddfd85baac640ff4acbbbf1edd8e7a648dfc4152c5d73a9a007632d4723"
+    },
+    {
+      "path": "kinocut/aivideo/surfaces.py",
+      "git_blob": "f7283e6ea11da8cc8eec90f936f2836d43ce62e3",
+      "sha256": "8bbca16b35e1036cfb3a1c7d0abb9eb0d9148186c0a4d2f416530eca106d1e2e"
+    },
+    {
+      "path": "kinocut/aivideo/verdict.py",
+      "git_blob": "0051b21178177360e37fa7fb2ac837458f8ea4d6",
+      "sha256": "705352d80ff4ba92c586d67f5517e8c596a273f36d12f8ee1351949ebd72830d"
+    },
+    {
+      "path": "kinocut/aivideo/voice_seam.py",
+      "git_blob": "41e5b0c7c355038d880769d58f4259d3e245b98e",
+      "sha256": "240026a7c0fd19a0420b5bd12779512b9625c3e013f0efba92ce781343de4108"
+    },
+    {
+      "path": "kinocut/aivideo/wave3_surfaces.py",
+      "git_blob": "6bac22f6f1711f425bb756be51630bf03b67d35f",
+      "sha256": "7b486346b62d7d355d8626e5e9119fe0a704c516b9df3cfff6c1da5479068849"
+    },
+    {
+      "path": "kinocut/audio_bed_validation.py",
+      "git_blob": "204489facd55f2b4acb3e3dd58df181b166da71b",
+      "sha256": "a607a96256ef769edd67980f81fa5361d530d89a3e78db6e1e0c20bd4823d028"
+    },
+    {
+      "path": "kinocut/audio_engine/__init__.py",
+      "git_blob": "49b122690a61bb84026607118ea1857b37e39ee2",
+      "sha256": "1ceaea67f6f7d02623f075b5bc8d565bab4dcfb9c4bbb0ba236d8c928ebd7a6f"
+    },
+    {
+      "path": "kinocut/audio_engine/_legacy_core.py",
+      "git_blob": "14ab54578621237b0b6837c254b9a5278dcffc86",
+      "sha256": "9839e92117e995b23d50b1eade12f25d908959734eed06866a90b5d2af681101"
+    },
+    {
+      "path": "kinocut/audio_engine/audition.py",
+      "git_blob": "c5788c213244ae349433666203aaa24121a9cafb",
+      "sha256": "c62b62f8cbab40f56cda9e8c01000fa7a7ec4a5dea5cd7a03e067d333b5be09a"
+    },
+    {
+      "path": "kinocut/audio_engine/core.py",
+      "git_blob": "373e28e1215084549519e43a107414e6c88d7281",
+      "sha256": "dcf958c778d7ef1b5ef4bfdc16db3e8e33cbd746566f81c6686b05e13dd5dfd3"
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/__init__.py",
+      "git_blob": "db5694179cf48fb8150f9d99a492675e78d23673",
+      "sha256": "a4ca98b2c22b7582c4cf2979fa266da39dc540a2941107697ff768bb0a2974e0"
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/basic_pitch_bridge.py",
+      "git_blob": "1c425e2ceef13a86497aeee79aea2401936a827a",
+      "sha256": "c44c4150cd6ffa2680aae3cbff89a528bdd8ee4305ddc57756fa5f5080e8437d"
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/librosa_bridge.py",
+      "git_blob": "c3da70fab7bf080af2cf7bb878b79887a8884f63",
+      "sha256": "ef04805d881aded222738c42a6728b3286b97c3bc52d4f081f8826441098b5bc"
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/meltysynth_bridge.py",
+      "git_blob": "1624020a46a93af4dcb4108bcc97330a6d6cc16f",
+      "sha256": "50869d30e7888de3024b866ac7d74235c481ab2e61ce0b4ad90646a1a9973ceb"
+    },
+    {
+      "path": "kinocut/audio_engine/integrations/soundfile_bridge.py",
+      "git_blob": "21214d981cd7ba5daa43222e1f191a8641d76c0b",
+      "sha256": "205332ab92cb3804adf1fcef4fc125dba049ccf97a2bd75e86895b20b8ed1562"
+    },
+    {
+      "path": "kinocut/audio_engine/presets.py",
+      "git_blob": "cf882a45b8bb21729b1204825cae1bef3254cafa",
+      "sha256": "334c3024404056f4708efdd4c49c8b55330e7c5b17b9651b979a161616a92577"
+    },
+    {
+      "path": "kinocut/audio_engine/sequencing.py",
+      "git_blob": "b87b9a1e0fd3092ba28a9da327485abcd5b137d9",
+      "sha256": "54b0fd06016ae1119faa6c8fdfd7e26e73429bebcf5f1ef982984930f25e09be"
+    },
+    {
+      "path": "kinocut/audio_engine/synthesis.py",
+      "git_blob": "11fa20eaf439ac6ff4e1106d7485a21b0528d8ad",
+      "sha256": "d9ecea33f35358bccaf4e60f51188b44a1e8c1a900bb06cd6b25ebc934241420"
+    },
+    {
+      "path": "kinocut/audio_guardrails.py",
+      "git_blob": "1f27ef5d1c6843f00deda1ccabe82000f42c090e",
+      "sha256": "5fec3ad56f54df6eb65009d79d11b56e26c97960ae6a8e87b6814a2a20664106"
+    },
+    {
+      "path": "kinocut/c2pa.py",
+      "git_blob": "0ff32b5e2276e8b86271fadf72efe2f0db4fd7f0",
+      "sha256": "3d1cae78c05c18f8b774ce46adadb18a9d9d19050667e713aec65c2644eede39"
+    },
+    {
+      "path": "kinocut/capability_report.py",
+      "git_blob": "f2209da4952d21fd517831c3f81d41a630009a92",
+      "sha256": "170fbf4798eed3392795d3517d72a66b8925c817af93312deeb02bbb35606350"
+    },
+    {
+      "path": "kinocut/cli/__init__.py",
+      "git_blob": "25ef5184ecc5048a128d3d6bba3e3381ac1071cb",
+      "sha256": "6585e464c9bb1114ad0ad504ed8d3a4bcf54052c1ce4739759bc221b7ca0bd6e"
+    },
+    {
+      "path": "kinocut/cli/common.py",
+      "git_blob": "f4daa599f7434363d3e0601d2cf4db63633c3a07",
+      "sha256": "ca69066b3acfd4125c3f0b48246406f97a361f3c02cb014e84f0d11f4a773ef5"
+    },
+    {
+      "path": "kinocut/cli/formatting.py",
+      "git_blob": "8c8e9acb6f926350909e4fd60418a60dad729910",
+      "sha256": "0fa1b5f2d004bf060b5589a0dc372779e81a2390c0dba2392cdf9dab38fb1d2d"
+    },
+    {
+      "path": "kinocut/cli/handlers_advanced.py",
+      "git_blob": "3b36dfdd8783b548aa4e37ec0f7e5db45b0b1387",
+      "sha256": "108266fce7945bafad022da4d677535cee15d251a33962999727e2be105c0ff7"
+    },
+    {
+      "path": "kinocut/cli/handlers_ai.py",
+      "git_blob": "c3057e191501e7eca47920952b6ba59706646664",
+      "sha256": "f556997b942853032888258977f4e92d804b7274544beeecd779b67443c9214e"
+    },
+    {
+      "path": "kinocut/cli/handlers_aivideo.py",
+      "git_blob": "099c0294b29a91c4d5d474208bfa89299478985a",
+      "sha256": "b61ed5c34c16fc805af2a558b1d7566cf1539d869ab988899bfd06e946672413"
+    },
+    {
+      "path": "kinocut/cli/handlers_audio.py",
+      "git_blob": "2f38e31bb8e06b69bb86425706c302e7ea292a3a",
+      "sha256": "54e73895526942cc15c2414fe62b40e0767214db419560ea8a9f3505180e94e2"
+    },
+    {
+      "path": "kinocut/cli/handlers_composition.py",
+      "git_blob": "f4cb45776d1cfe106cb8be35d6a603a8b905b184",
+      "sha256": "d80ece774b0df59294ced1d419e5ce78cfb3540d7e4b72488253c9efa7407207"
+    },
+    {
+      "path": "kinocut/cli/handlers_core.py",
+      "git_blob": "8a0098fc76bcc37dc9f73e9cb24e75d5d2efde66",
+      "sha256": "016ed768ddf46bfce8f94a7e5ad7bc1aef762e1f34ad7b355c6465f84b156c2a"
+    },
+    {
+      "path": "kinocut/cli/handlers_effects.py",
+      "git_blob": "5fc2a6a1ccbbc7edc2eb898ba9291efee4b3e208",
+      "sha256": "b4f06818ced06886f671c01cc5ce01301ed431399fefa9eb38812f2eb4b509c9"
+    },
+    {
+      "path": "kinocut/cli/handlers_hyperframes.py",
+      "git_blob": "355eefc8875d7d0740a9cb0e6014a8c2ac6651c9",
+      "sha256": "7da81dd19b53233a2fd584766282e4405ffab407938f05c4c0f683132255a2bd"
+    },
+    {
+      "path": "kinocut/cli/handlers_image.py",
+      "git_blob": "6f4399d45a621f82580582d66ee315a16a5d2181",
+      "sha256": "de8bd73e9cd1a7ba5c6248907408eea3ca7e389bed11b6a1c0337904f395bef8"
+    },
+    {
+      "path": "kinocut/cli/handlers_inspection.py",
+      "git_blob": "36779843162b83dd138d7235fde628321505431c",
+      "sha256": "5d0ee10c5a4f7b79d4b64440e3f5149c5b7fa8e29b090b02675d1d08e6ce2cc7"
+    },
+    {
+      "path": "kinocut/cli/handlers_intent.py",
+      "git_blob": "0b3304e10aefbe27b2793755804c0cc07b5ee466",
+      "sha256": "dcfae1eb7ede07f01bf7bfbd835b3bccbebb0262ad471d5ef2e884711e07ae45"
+    },
+    {
+      "path": "kinocut/cli/handlers_media.py",
+      "git_blob": "d2703409d64452ab3179a8838b3428ed0470f20f",
+      "sha256": "585c3522322c711da3b0560597476feed3150b07e0514dc8cf557c5060342a68"
+    },
+    {
+      "path": "kinocut/cli/handlers_postrescue.py",
+      "git_blob": "1dac91b578c6d55723c43b333808767518fb202b",
+      "sha256": "37a86bd3f51e200d9e7583239fe47ddcbd49bd5664c60c7259854a0731b328e2"
+    },
+    {
+      "path": "kinocut/cli/handlers_release.py",
+      "git_blob": "b333a4795dc93b26618d0e71dac80195e9998907",
+      "sha256": "54815e568c2b53b6f56cdf3b1cec18d0264b35fab145451e4bdf013d45827e35"
+    },
+    {
+      "path": "kinocut/cli/handlers_rescue.py",
+      "git_blob": "7d3d8f466a68ba5f99cb757903c89e8304645d10",
+      "sha256": "66179c799d2343f693ef56a42baa4bfcb3a123cebfc386965fc798035cd74c2e"
+    },
+    {
+      "path": "kinocut/cli/handlers_revideo.py",
+      "git_blob": "2ef73687e04cfb1063fc4c730d87117dc3eea63f",
+      "sha256": "c882d16ff5daab3a9efe3c6a4f1f2db5b917bb31118a5c74deaaf18738da8102"
+    },
+    {
+      "path": "kinocut/cli/handlers_shorts.py",
+      "git_blob": "d8e6c653d64fc47f1a9ef0e929797c363f88433b",
+      "sha256": "4f3bb289e996bc29462cef3f5eeae2b11693096d0c50016bec277afded1dc5c3"
+    },
+    {
+      "path": "kinocut/cli/handlers_sound.py",
+      "git_blob": "97d80538b6d1a5590b3301ca600ec45020968c68",
+      "sha256": "13222647cdae6168e2a21b456795a8476ab4b479b747aa409ccec46bde42470a"
+    },
+    {
+      "path": "kinocut/cli/handlers_transitions.py",
+      "git_blob": "6a177e9840730521b4ef487c21c14d691b2c4ce1",
+      "sha256": "78979fd09e589f46065b21c1f6866228be8b323c5831b054ed5211aacd6cd086"
+    },
+    {
+      "path": "kinocut/cli/handlers_workflow.py",
+      "git_blob": "e034a03ae4e891bdf590e5e4b18c677ba5fa62f1",
+      "sha256": "cf531844cc2320e83aeabebc1c3eb9aee8690ae451d713b804739443ab0160e9"
+    },
+    {
+      "path": "kinocut/cli/namespaces.py",
+      "git_blob": "fbfb67386c4485a522a4a72d9be998320c3ea123",
+      "sha256": "1dc4563505d479af8a2e5232a89c32a4795865cee2fd2432821950d2e2194b20"
+    },
+    {
+      "path": "kinocut/cli/parser/__init__.py",
+      "git_blob": "3db3e0d0c79023baebeb16e2b8c08b751d240372",
+      "sha256": "26b1b89ae21b0d24d85ea1db273e6675870dcec1634be53efb3a6835a2344b2b"
+    },
+    {
+      "path": "kinocut/cli/parser/advanced.py",
+      "git_blob": "d27eead4b5b56faa97affc8a1dd5ef998450b4d9",
+      "sha256": "ab755b3033f999a1d5aa69f52a4a6fe13fe66fc2a484aeb0f4a79faada8ba31a"
+    },
+    {
+      "path": "kinocut/cli/parser/ai.py",
+      "git_blob": "2d0618ba15621fae1f7e39fd00e45fc769913b8c",
+      "sha256": "c2040ab01bbe8a9c3ab471f36f3a6ad4717a889bc397f231ce9de7bdde8daa79"
+    },
+    {
+      "path": "kinocut/cli/parser/aivideo.py",
+      "git_blob": "3ce0527650e9fadc4c707382911669208960a8cc",
+      "sha256": "e7c026dd41674a9c3f267904e7aaa128b70e3d97b1418610605886ac0a8381d2"
+    },
+    {
+      "path": "kinocut/cli/parser/audio.py",
+      "git_blob": "2a80f1fe182e9021afa2c2be064750855b598f56",
+      "sha256": "d55839daf1ef8423c2e4afdad88d4caec3aa31823beb7b5f78c2b1a1a99a549e"
+    },
+    {
+      "path": "kinocut/cli/parser/core.py",
+      "git_blob": "7a4d4e140b121228bfed1ac5162a96443608439e",
+      "sha256": "350d8846caaf2eaeecd45843b8fef8dcefef576bff6867ed6ef585e6f02fdb41"
+    },
+    {
+      "path": "kinocut/cli/parser/effects.py",
+      "git_blob": "651c3f0b1264209149f5c70f1f505cd8061b0f7c",
+      "sha256": "1e3bb983147190dcb3fbc0529d84d128df66e8c4d76610874011e09a7895c33b"
+    },
+    {
+      "path": "kinocut/cli/parser/hyperframes.py",
+      "git_blob": "8ab05e21a03cb01b40e8e9d057611e3b460c57ab",
+      "sha256": "fbcb2f15835f555f82aed8d1bcc402ab87d47b7e750e0938730b73215525fd6f"
+    },
+    {
+      "path": "kinocut/cli/parser/image.py",
+      "git_blob": "e81b369583deae8785f65e1f3c16cf48013c5e71",
+      "sha256": "0f1ffbfbc1253c74a809c6f2efce15fc6846dd9a718a10e68598746783be9794"
+    },
+    {
+      "path": "kinocut/cli/parser/inspection.py",
+      "git_blob": "ba540dc2d8676fa229a11206a8e59eff57d1b0fd",
+      "sha256": "56b934647a5668f77a64e445c30c664130bbdfdc392b2ef6e22f8fff8796c155"
+    },
+    {
+      "path": "kinocut/cli/parser/intent.py",
+      "git_blob": "fff75588a0753be9ee76352cbe68c51d1b1150c9",
+      "sha256": "ddd2506e279282c2f10ce54c7dacbc591b8e5512cb48f7564d0ba0546f18ff87"
+    },
+    {
+      "path": "kinocut/cli/parser/layout.py",
+      "git_blob": "29e7b4f1ef76853c8d883ee7ebf7b4105a2207ce",
+      "sha256": "68c15bb14f3c0162129b5efc48f46d9672e7f33fc08ea6f14368083799fbd9de"
+    },
+    {
+      "path": "kinocut/cli/parser/media.py",
+      "git_blob": "8b68daac6ca35fa3b11d6363dc14b6ec35ae7c30",
+      "sha256": "889c20e8c5604b8d17c6e32d418aba29cd1f08348826e95b5457b3de42a23170"
+    },
+    {
+      "path": "kinocut/cli/parser/postrescue.py",
+      "git_blob": "bd102da8d64950cedd332be2d90bc5c96b0d7ab7",
+      "sha256": "f0d5c810e53855b8ac2324deec70992deedac85675c53bbcf48827416f44fed9"
+    },
+    {
+      "path": "kinocut/cli/parser/quality.py",
+      "git_blob": "856fa863d83510af2150f5b67cead37d18b6c3a8",
+      "sha256": "38ac7a8689626e04f43520644f7d9547cc31fc306d2e034a285fcb716fa407de"
+    },
+    {
+      "path": "kinocut/cli/parser/release.py",
+      "git_blob": "2ca00a52e973b439ec8169a8f1498e6acf0a8c66",
+      "sha256": "6a45b830ecaf757b6994289aed936f684af622fe2e512a86574309bfb52ca8c8"
+    },
+    {
+      "path": "kinocut/cli/parser/rescue.py",
+      "git_blob": "bc21e7c7ee0749712953e6b03b7c9298c3b3e6ce",
+      "sha256": "137f7bee0835a7690cea8aec505a834b16ff18b45cc6036cc25a78676c91cafc"
+    },
+    {
+      "path": "kinocut/cli/parser/revideo.py",
+      "git_blob": "15c696ba512fff41c1b4db9aa3d38b795fd8bac1",
+      "sha256": "dd25d11009ba150054c9da3d3f855ea152190774f16d440c4ccf04ae5a1b8f8e"
+    },
+    {
+      "path": "kinocut/cli/parser/shorts.py",
+      "git_blob": "b6d50262d5fdfbad96930e53a9b4c8b2191e264c",
+      "sha256": "a6f2d380476bab9da2c1dbf1117bcd8992913ed83466dce88c7c7db03dda79d3"
+    },
+    {
+      "path": "kinocut/cli/parser/sound.py",
+      "git_blob": "8ebe9fcd7f724e149d7c62acbdafd9913442373b",
+      "sha256": "55ac1a9cb78ae0cca83dd7742c29bb07a452e2d8b85e1b87db35c3ee5a59b7bb"
+    },
+    {
+      "path": "kinocut/cli/parser/workflow.py",
+      "git_blob": "5c80c070f8db328e4bf3590f9182827db762e2c0",
+      "sha256": "a39e1d68e05fdefa939e341f990c3ec77e92e5516193e12e66299cd90ff11ec4"
+    },
+    {
+      "path": "kinocut/cli/rescue_formatting.py",
+      "git_blob": "92dadfe5164f7e9faa3b5835220e012b90db078c",
+      "sha256": "d5983b5bfc8491f3ee2ea84c0864cec4dc905ae3384ec015cdd55a20d166c85c"
+    },
+    {
+      "path": "kinocut/cli/runner.py",
+      "git_blob": "2c019bd22a4946b06c346444e7b7eefc4147ba64",
+      "sha256": "17fea655a396dbd28162d36d738ce8042204407261dca82e331f6c750f274bea"
+    },
+    {
+      "path": "kinocut/client/__init__.py",
+      "git_blob": "def1e461db4e7c748164dc21a6a157fe1f142b4a",
+      "sha256": "4c90b256ca111d46a2e2f4439c3dd839eae237e4f30966e1e4de7c16b95eda30"
+    },
+    {
+      "path": "kinocut/client/ai.py",
+      "git_blob": "3a60910b951a2988cd7b7160161418fa673bc692",
+      "sha256": "78df123a10bcd411432a2b9d26b846fe7c22b9afce77a9557e5214c96e13e21f"
+    },
+    {
+      "path": "kinocut/client/aivideo.py",
+      "git_blob": "65d6d5f2bfaedc876ef95b182c209dd4fa285af0",
+      "sha256": "00129435ef527d4b96686d749d7ba76afc5ee6d3164270e742dbe97d5e2ecff2"
+    },
+    {
+      "path": "kinocut/client/audio.py",
+      "git_blob": "24c538170bc56bc4a22e17daed7c0340a1a42d91",
+      "sha256": "d31f0d1d0d87b724bb814bde017f7dd35f011d0dde6ae5c50b498ed44b212924"
+    },
+    {
+      "path": "kinocut/client/base.py",
+      "git_blob": "88f6bd6cff9ca15559a5da02448dc7bfdd508872",
+      "sha256": "0793a5e859232518e9ea5cc8309e99859503cbaddaa612ff04a532597c9847bb"
+    },
+    {
+      "path": "kinocut/client/contracts.py",
+      "git_blob": "69d8ff66bf06f15e0b52db468ff2e1c752ad1e1b",
+      "sha256": "272a8040b0ff17797d5e946763949df473f27baf8b2ba07d9aab4debcdb7785e"
+    },
+    {
+      "path": "kinocut/client/effects.py",
+      "git_blob": "0ad1d9007d3423f1859650cd116190f5f4211f52",
+      "sha256": "90c25207c18135e5d5673a2504b12fdffe2bd013b3316aca099ad43d0cbfe596"
+    },
+    {
+      "path": "kinocut/client/hyperframes.py",
+      "git_blob": "5f06b2a63f8e35d32e851249e76c3848bef27b85",
+      "sha256": "adf70349cd956c9f4d9d1ed5553fd8e6e12ef571f6a533ebef5fee67439d807a"
+    },
+    {
+      "path": "kinocut/client/image.py",
+      "git_blob": "91ba0c7d3ebebb335e673fe7bc9850d69cb4425c",
+      "sha256": "fe97ff0bc3da32ed1bcc98a78fa08646084bf44ff42b0e558834aa553d78cf01"
+    },
+    {
+      "path": "kinocut/client/inspection.py",
+      "git_blob": "29bd83808be978bdc22dc72935d17eb5c244773c",
+      "sha256": "e159ba61c4b5d45203b7609cb7c72a2e13a82f234ed9f567464c6e3fef41fa10"
+    },
+    {
+      "path": "kinocut/client/media.py",
+      "git_blob": "d560ab494ddbfaafaec877937dd1c3402fc05662",
+      "sha256": "deb74423100d8aa1e97fbd8ee1343d836a2c84186919030d0315acdf2eb17545"
+    },
+    {
+      "path": "kinocut/client/meta.py",
+      "git_blob": "25d161a000b75a53b8f6f196bab500f82c3264ce",
+      "sha256": "58689bd4f049138f153d63523534ff1616e18f56df38bdaf509d0bddf857dd2b"
+    },
+    {
+      "path": "kinocut/client/postrescue.py",
+      "git_blob": "ba1829cf66c76e7e7574d7a2f7d5659029d14a9d",
+      "sha256": "69b3bf1e32b2cd4fe3395cb2e6fbf8f537193883eae8732aa0231c52cd1a589a"
+    },
+    {
+      "path": "kinocut/client/quality.py",
+      "git_blob": "2d5d5745181b6911f5883d0acac81e9c18d48ed6",
+      "sha256": "f4fafa25eaa61fbf7bddeb7909abe98b921cddb3b9d8c1c547ce3df59e301842"
+    },
+    {
+      "path": "kinocut/client/release.py",
+      "git_blob": "abb6d80368d022ba0fdd51ff6732830922e8513d",
+      "sha256": "14432919bb99472ce05744dde6e7bb1af557e5ecb0c858f1cc77344207690673"
+    },
+    {
+      "path": "kinocut/client/rescue.py",
+      "git_blob": "4e7d18e014a32cd737b42935020b4cc6b7e7b581",
+      "sha256": "c54cc9ace7c045b0c4675cf9877160b7c540c508a4fa02c3b624c8ac06952e3f"
+    },
+    {
+      "path": "kinocut/client/revideo.py",
+      "git_blob": "b6cf1563574ccb115b5ae76e5580d7fc27da51c7",
+      "sha256": "3ec8446023f473f0106841bc0b3c687a936f142e896479d785653cbe40385859"
+    },
+    {
+      "path": "kinocut/client/shorts.py",
+      "git_blob": "ab4e13d170ae6554f1a4026de9fdb481855bde6c",
+      "sha256": "3e8b5180d1d37a4117a16e48c17e6db4d7264999c62273f053d0389857c88ca1"
+    },
+    {
+      "path": "kinocut/client/sound.py",
+      "git_blob": "b2855db7720c281396f61503a5af2a6a75d13bb4",
+      "sha256": "708880acb79aadd3099d5f2be529e0ac390093e0cafb1f049040b1c0e30d476a"
+    },
+    {
+      "path": "kinocut/client/sphere.py",
+      "git_blob": "c925237171aea5b012efa6922ab9db964713cf39",
+      "sha256": "b926e973efb739b4814bda5adef8647f3aa9972caaf6aafcbbf2f440adcbd1e7"
+    },
+    {
+      "path": "kinocut/client/workflow.py",
+      "git_blob": "aebd987000f1ac25227addbdcdf7ee8810b15381",
+      "sha256": "ed13f05db9adcae3d3d14f8bc59b80b250f21576490ffdc84e068a1246f33f01"
+    },
+    {
+      "path": "kinocut/contracts/__init__.py",
+      "git_blob": "cae562d23cadbda40290539508dad7e5f9b9d9e5",
+      "sha256": "ab87abd62c476c2634200c694e113ff520892bf26e0509ee982762369ffea58b"
+    },
+    {
+      "path": "kinocut/contracts/_common.py",
+      "git_blob": "56aa9c9edd66efada6e937819dbd2e80b2369f0c",
+      "sha256": "2b94edcd26019ed7665ead5a79438875a7bcc149dc8d576e9d4cf06a04c8f785"
+    },
+    {
+      "path": "kinocut/contracts/_errors.py",
+      "git_blob": "e2f976e67036acabbfc6d7be6a3b526134c14d55",
+      "sha256": "535265fa0c18fc4e98a350f0a12183ca76836cf1b9f31d912c61a466cecb67db"
+    },
+    {
+      "path": "kinocut/contracts/_paths.py",
+      "git_blob": "5c5b2cc616bca5336a5c1331ce927f40abad481e",
+      "sha256": "2ffc5649278d75ffc8c51fc1f5bb4607894bce6afc56eb14ef474c5394b11442"
+    },
+    {
+      "path": "kinocut/contracts/acceptance.py",
+      "git_blob": "6898beb7509666edfa0528c4d5c789599d9878ea",
+      "sha256": "1aefbef8b896951bd81dea41da1a6ba1b7424f0d41069dcfd86c522f578faf77"
+    },
+    {
+      "path": "kinocut/contracts/adapter.py",
+      "git_blob": "696365fd0e143d0d7d149c49a63b068cfbc002f4",
+      "sha256": "0eca31ba87e979c795971742ca1398225904aec9fe7b4d19b594ac687a46a940"
+    },
+    {
+      "path": "kinocut/contracts/asset.py",
+      "git_blob": "944b053de6744670d3939fb9850181f45fc65151",
+      "sha256": "bdd1ef61104cb344462144db46457f072b9477798cc1292c241aef0f9fc809f6"
+    },
+    {
+      "path": "kinocut/contracts/audio_bed.py",
+      "git_blob": "8dcd9b9cf75193a0ee95da0e022ab2e2718276b0",
+      "sha256": "052a900907c20709de0bd8ed28ee5cd24d2fea06932c63fd3b2f83e570dc1b80"
+    },
+    {
+      "path": "kinocut/contracts/capability.py",
+      "git_blob": "858769cd5480119a25bacd4db6a075c3951f3277",
+      "sha256": "b57fe5386b78442807c81b2bfe175393363c6a96f96bc13371e613e6c105d99d"
+    },
+    {
+      "path": "kinocut/contracts/defect.py",
+      "git_blob": "9d579487ab474691be7d67eee0a19e3d0a0f6202",
+      "sha256": "479dca861afe37d1e6ca0660de45a64aff16b7ba12ac9fa1687e6b996a860857"
+    },
+    {
+      "path": "kinocut/contracts/editorial.py",
+      "git_blob": "32fe8687f30eb0483b7fffa0faa2172bfbf9ba6b",
+      "sha256": "cc5638d90cf3b3ebcd486378d8966a198a4f852299265e11bbf5b27826fb3ccf"
+    },
+    {
+      "path": "kinocut/contracts/learning.py",
+      "git_blob": "665335530b9ae09c19c2f735ce00180337005cf0",
+      "sha256": "ed6de3d6301bdfe2c0d70b2cee490d80e5f995cb64f0b8804a8d2209ecba96b9"
+    },
+    {
+      "path": "kinocut/contracts/protection.py",
+      "git_blob": "000a0399c523820a838afb574e2d5af9da1045d1",
+      "sha256": "5c4a68c613b3c4ab65537a8c2d550b56a676839838fa195ce642417491e7c41a"
+    },
+    {
+      "path": "kinocut/contracts/receipt_ai_video.py",
+      "git_blob": "bdcc9404d87e24c8b9197878e2332b98f7c8cbf0",
+      "sha256": "555ffd35cbc24b5029f28d407249fdbb9564862a466d46231bd5b2c19647a774"
+    },
+    {
+      "path": "kinocut/contracts/registry.py",
+      "git_blob": "4aafbadd5f26b178a5d1de69a634829a568ad9b3",
+      "sha256": "6f1271109945f6e62308c9642906c57e172db2b49ea4820685a4002848491b2a"
+    },
+    {
+      "path": "kinocut/contracts/review.py",
+      "git_blob": "6a73ffd41ed5873c5f327121fb7f1e9a99105ef6",
+      "sha256": "8ca8adeafc63cc51b56ed3a7caae8442cad2104e56509d3163f36a39920f968a"
+    },
+    {
+      "path": "kinocut/contracts/trusted_execution.py",
+      "git_blob": "bd669fc1057c0817062d34f1dd4d0d8b759548d7",
+      "sha256": "1e0a2cdb1c1a2cb0cb3f75d6e272507f40ffd8f94e06b67a52d80d156f83bfc7"
+    },
+    {
+      "path": "kinocut/contracts/verdict.py",
+      "git_blob": "351b6b1935ff2d580b1f4e4878d15a2d31387a6c",
+      "sha256": "76f0d11a1495424f4ce9938592e926d62c9670d87b65da90a2ca48d1917a9e0d"
+    },
+    {
+      "path": "kinocut/creation_engine.py",
+      "git_blob": "c4830cfc4a179a483ec542709c504a0167274ba5",
+      "sha256": "cd51105281a7b9d1e58e8486c1de9a6698ed0e9a7534effbeaae15bfcbd39ec4"
+    },
+    {
+      "path": "kinocut/creation_templates/__init__.py",
+      "git_blob": "37bbeb3aea961eff9a1773122ee74d4adc5456ff",
+      "sha256": "b5793af379b0be89f2ca0a9810f8ca00bd0f7c0391ccf21a1124ed7319fe749f"
+    },
+    {
+      "path": "kinocut/creation_templates/storyboard.md",
+      "git_blob": "5c68c918fa36ddf58f87ec76e7eef2b75f9dc545",
+      "sha256": "11802f3a8c4990a4f8de41d58a0b4fffaaadf77465b765d9059e6260a2b146aa"
+    },
+    {
+      "path": "kinocut/creation_templates/style.md",
+      "git_blob": "2f47ddea43a2e717e6d806942279f7a7e4a5235a",
+      "sha256": "a38fc42b1769cf802623f9503eebd62714a41d529545ba259c79b40b5305694e"
+    },
+    {
+      "path": "kinocut/creative/__init__.py",
+      "git_blob": "97b60ff011d2c986b3e0692e81a274ca17c4bbf8",
+      "sha256": "ebbbbef3458be99f0bddeec1b56a2119c8e3e677125aa01a690e8f0ca7b45868"
+    },
+    {
+      "path": "kinocut/creative/autopilot.py",
+      "git_blob": "78ba43cc60efd3f3692c59fae7afd6cbd4e7268e",
+      "sha256": "b5a4624b8027c6730f72cf6955e031883ec45ba25b2505e69d7258c7ec4ab5e8"
+    },
+    {
+      "path": "kinocut/creative/autopilot_models.py",
+      "git_blob": "c0e37aff8fd58345a42592f5dc8c8db171be085f",
+      "sha256": "0c55678091c5b2ede01ddeafa99a3d8c577ba4ac9c8acb4e36a2c31c89034c56"
+    },
+    {
+      "path": "kinocut/creative/compiler.py",
+      "git_blob": "ae63b543436450ea013963fe2baefb1206855992",
+      "sha256": "feeafac68ef632b674d3a97a66f9a483a84b9507a4fe3421089fb0b1125879e6"
+    },
+    {
+      "path": "kinocut/creative/composition.py",
+      "git_blob": "7af6307f9db2afd51608372e0e2326f06a9f2a21",
+      "sha256": "1099a2dc6b8d3cafb0753df489b47635159e1ee3392109e883ac88a315a5a56c"
+    },
+    {
+      "path": "kinocut/creative/composition_models.py",
+      "git_blob": "a4b3eb61222856212a42b137eed7117efdc15b95",
+      "sha256": "aecaa3e2fd4b6b48126563baccac36f85600dbea0a64b8820d031220c74408e1"
+    },
+    {
+      "path": "kinocut/creative/errors.py",
+      "git_blob": "5eaf797a89b2b02ad43480c25e340edd4ab60cb3",
+      "sha256": "36e26dadac579a283c29124b8205bb18baa05e050f4f40fd302982aafb794774"
+    },
+    {
+      "path": "kinocut/creative/manifest.py",
+      "git_blob": "3709a1de71a18475cccb8c869a1998058d6b3b14",
+      "sha256": "683768d619e197e162cfeb97f780e1274c5479ed06da1a3de0cd56c6e43287ae"
+    },
+    {
+      "path": "kinocut/creative/models.py",
+      "git_blob": "9c88275175bfca5d88fd205ed5b78117276c9637",
+      "sha256": "ea0b764e5bc40814070ab5085ea5e9f2fc8816c17d58aea5c4ab538e2372a373"
+    },
+    {
+      "path": "kinocut/creative/preview.py",
+      "git_blob": "af54a27c4d6fa0fab86b98311ea4d173c118513a",
+      "sha256": "3c4568bcafeb88a8ec315ab0e4cbf610e57b8622eb493d7d9d5e526d34e49693"
+    },
+    {
+      "path": "kinocut/creative/verification_models.py",
+      "git_blob": "482fbc8c8945e71121d287d02f683029a7acfdda",
+      "sha256": "110bdb6b3bc0fbc25352dad61edb228021c9dc8024d62e53ae9894cb26da59f0"
+    },
+    {
+      "path": "kinocut/creative/verifier.py",
+      "git_blob": "73b0c7e3b9df8bf185cffa911d08c36e01c2b190",
+      "sha256": "ff5190c2a91f0bcef3ef283540ec5c6fa69d81043d8973734850f9d14634fe22"
+    },
+    {
+      "path": "kinocut/defaults.py",
+      "git_blob": "8e676366aea321857cecc49f1d8a5a8b9d2fb945",
+      "sha256": "ef8842c00f78c9db6b300a896eaabbd4465d5b768ac941c335f93a790fb941a3"
+    },
+    {
+      "path": "kinocut/design_guardrails.py",
+      "git_blob": "1bcf7c5c93d2085eb3aa4e8cf24f4b71b58bc154",
+      "sha256": "9e5e8a4c14f052f6b7bab72a7eba6db059180cf88022283a6b40987479656cb5"
+    },
+    {
+      "path": "kinocut/design_quality/__init__.py",
+      "git_blob": "ac427d2279db88266d00d09f74bc4b74c73ddd23",
+      "sha256": "9b6561daa3d79bb6b5aa3bb8422833fb8df2fc2afb5d800654bebdde9ce5528c"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/__init__.py",
+      "git_blob": "660c1481b169466bb42c261c4120cbfc867b1748",
+      "sha256": "877a46785c8a59133e404018c3779869681d74974ee56e3bf104f6c544cb8c50"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/analysis.py",
+      "git_blob": "155eb1667af563ba334c0e6a8afc648eb94a1adf",
+      "sha256": "9b5cee645af2ac0e373006c9f7c3d2e9f9814faebcbd74c8ad004af8f0c05005"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/checks.py",
+      "git_blob": "76f5d26de5c654dca9f18e38dc6ccb59992e74a3",
+      "sha256": "b2699970d9abb60668363ba446dbadce8bffb5e71bb84e12a975cd3ed2788d65"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/core.py",
+      "git_blob": "d7325c32ec4ffafabbe56b11dc7cd37905310407",
+      "sha256": "104f1905124c2cc2b7cda2cb7ff735121219d7e13ce215a3ed1fb97a49c5ec3f"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/fixes.py",
+      "git_blob": "d8a0f5cc6e3a829b1172e5b7d95f3108cd2bf0f9",
+      "sha256": "9be1a7d298334e633d66bd7aceb8c959e33cd7c1125c60c9ab6c324791c360d6"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/probe.py",
+      "git_blob": "2aae77d5c3fa838745bc3358636fa97476834f5a",
+      "sha256": "ee7667cd60fd091706e46e99d62ce6cc7bba4b1da0ebade6489c269a3a54aa07"
+    },
+    {
+      "path": "kinocut/design_quality/guardrails/scoring.py",
+      "git_blob": "34dc03e256371bd24865634e756ea34d9f9f4e86",
+      "sha256": "82a3153b8d911bd978c540814f01ba37a1f2dc60b6a75ac2f2162d978bab382c"
+    },
+    {
+      "path": "kinocut/design_quality/models.py",
+      "git_blob": "faaf7d3183b34f4cd2ab2122aa5ffd30296cd314",
+      "sha256": "2ce2836f961bd26f93770f362007c9cd0a89e22d92794585b50d68030471dc98"
+    },
+    {
+      "path": "kinocut/doctor.py",
+      "git_blob": "e8130b9bd66f27e56c910d8af7b8eae31b82d24c",
+      "sha256": "b45de07552702fed7279e259d1fc04e10a7f4ea634d73d67430cc86707095141"
+    },
+    {
+      "path": "kinocut/effects_engine/__init__.py",
+      "git_blob": "c3fa35125669a95ce0d6bd11200181e9d7d7c714",
+      "sha256": "f6316ce185699d77c3939a5e3ae451461cfc9dc5e93d66dbe8414d44e966b25b"
+    },
+    {
+      "path": "kinocut/effects_engine/core.py",
+      "git_blob": "65b8575b786b13b38f71ab670d40bc944424587a",
+      "sha256": "6b2f4372a1f0d60fff0372ded25a3702365a6ff8cf86d299edee2b6f7cf246fd"
+    },
+    {
+      "path": "kinocut/effects_engine/layout.py",
+      "git_blob": "8c33d71d12a8e2b4a1588bc07fe6f7a13aa3c798",
+      "sha256": "8fc47583ac99b87d74ac884b0dd0a9ee562aa6a50715881c9271463673f64821"
+    },
+    {
+      "path": "kinocut/effects_engine/mograph.py",
+      "git_blob": "0618d50bbf66459c3d05f31013bf81edda1d5cf0",
+      "sha256": "e83bbc1ad7bdcb6c1d7ded5d916d24688b28d323de7b3feba7ed8531005aef40"
+    },
+    {
+      "path": "kinocut/effects_engine/text.py",
+      "git_blob": "b4492466663541ca1d429a88ab9f564207c3afc8",
+      "sha256": "60b36ab592d157460f5986f23ba07886febf41cf6523ee949c1ae6a8acc1ded7"
+    },
+    {
+      "path": "kinocut/effects_engine/utility.py",
+      "git_blob": "ca31f8ab82ad0ee71069e9b1112d5d79ac54cb31",
+      "sha256": "47e6b5375faa37d94353da4b6f01778ca0d9e2bb5290e46696415d3cb0feee8f"
+    },
+    {
+      "path": "kinocut/engine.py",
+      "git_blob": "e408a0a547ba2789e593098146d1f6e5f306e5bc",
+      "sha256": "b227d3adc723c35d9a4046dd49d1c641776a1f1350737f33b5dc1bf790450a7a"
+    },
+    {
+      "path": "kinocut/engine_advanced_mask.py",
+      "git_blob": "4b9fec366080459eca2f345b86e89e4a3562be02",
+      "sha256": "52ebf5b9f40ac0081467b3df2800dabab57972aba4d955c7469a85d5d4325c4d"
+    },
+    {
+      "path": "kinocut/engine_audio_bed.py",
+      "git_blob": "82ec40a7047f8f8bb364734c0ce03cef7efe3b62",
+      "sha256": "955dcb7e6dcb36490cf791b305e361c560d192876dc1b4c673ab2b045418078e"
+    },
+    {
+      "path": "kinocut/engine_audio_bed_filters.py",
+      "git_blob": "481e804dbb62aec7644558dd91591f0371ebee48",
+      "sha256": "58dcaf44d1b459dbcdd9470cbe9b655312a675275e2f8894153761d063c747a9"
+    },
+    {
+      "path": "kinocut/engine_audio_mix.py",
+      "git_blob": "b6b378a7996fa4f60a54234999fbec619bca9c45",
+      "sha256": "9ae5e060f354bcce297c7f465850b1b12bad5c5a451456c5e1e3392e0b899cf9"
+    },
+    {
+      "path": "kinocut/engine_audio_normalize.py",
+      "git_blob": "718e533007e7eadf2f18a1ecd072d6733f49e189",
+      "sha256": "6e21d5477ec6551c8f71aef6786036ab30c527e9544da804edc6847281b644ac"
+    },
+    {
+      "path": "kinocut/engine_audio_normalize_output.py",
+      "git_blob": "d7e56427e3e26a0c94c1dbbbb90a699ffe756450",
+      "sha256": "13e3e6e83381304014d000c6c3c52da95decf16ca601bb4e5c298d949e65d7cb"
+    },
+    {
+      "path": "kinocut/engine_audio_ops.py",
+      "git_blob": "5c605b03f30e2a124e1bc82321d9672e6f057079",
+      "sha256": "2460c89953b7f82dc34d11d6c69c347e93912fea89bf4823c440614ce7e15e23"
+    },
+    {
+      "path": "kinocut/engine_audio_waveform.py",
+      "git_blob": "bbc9e9a0349603fc774ee1d0bee96f8c10b31e15",
+      "sha256": "5afd04b62d1fd8bc2fceaca083caef7e45b342dc2bfa3126cadc011d1adb8978"
+    },
+    {
+      "path": "kinocut/engine_batch.py",
+      "git_blob": "5009712053117454a6fdbee18e0e5196c5770c95",
+      "sha256": "bc5f30368958bfda0c3d62ad3c11486c77d1cd2476e613bff6ec804723b8dbb8"
+    },
+    {
+      "path": "kinocut/engine_body_swap.py",
+      "git_blob": "f3f2c7c0c517055bba6ea71b6e768993ca05c44a",
+      "sha256": "8d8284e75d4633d6cb2ab96e56699631748fb13e8b79830bf22fae4d6c654751"
+    },
+    {
+      "path": "kinocut/engine_chroma_key.py",
+      "git_blob": "6dcbdae8a50894ab64740cee955535555d5429ae",
+      "sha256": "726b8afc3dde63ade8ae8263a0ed30e3406a3b2ef9ee73d7ecc0efef02c6ca69"
+    },
+    {
+      "path": "kinocut/engine_compare_quality.py",
+      "git_blob": "7fe0ccc6f8c6d1579cc37dd8679cdadff5ea281d",
+      "sha256": "b624fd3cb0585be055289caebc3c603dc54052a99efc264862e930f6922d804d"
+    },
+    {
+      "path": "kinocut/engine_composite_layers.py",
+      "git_blob": "59e765c25ad5dee05f2b5d41d2947003acdc8793",
+      "sha256": "167a718c6947808d6e4d8a23016e3c156623077a33dfa3812f7d3496768ebaf5"
+    },
+    {
+      "path": "kinocut/engine_composite_layers_blend.py",
+      "git_blob": "70fdcc7335274e488decb47b48144e9e23d829c3",
+      "sha256": "c547646711b3df98aa52a6bee163a9c3b0d6f8673d909dbb24bb73c961b420d4"
+    },
+    {
+      "path": "kinocut/engine_composite_layers_effects.py",
+      "git_blob": "cac35179c86b493244a7ec05209037b569f9d216",
+      "sha256": "3c972fd0d8acd63e8b8d976d145e8cf0a6f8f421f8612fc574d89d8da7dcc3b9"
+    },
+    {
+      "path": "kinocut/engine_composite_layers_rotate.py",
+      "git_blob": "122f332943eb9598eee627ec6e3cd9409a58fbe1",
+      "sha256": "111d10b6df55abecec25db80476b08af13391e67b312d3aac6052533204a6d95"
+    },
+    {
+      "path": "kinocut/engine_composite_layers_source.py",
+      "git_blob": "e42b8c8a29fda53f10837418b99f8790ab06c350",
+      "sha256": "8d68ae098860269436bc318de480ded842d41edd3f156d874cd34fd0f81140eb"
+    },
+    {
+      "path": "kinocut/engine_convert.py",
+      "git_blob": "9b06a73f9d9290b0b44f5a45446d577be11625cc",
+      "sha256": "bf4da4e3950b84b092c4721519aca56145cab0659098a6473d8b9319ed14b224"
+    },
+    {
+      "path": "kinocut/engine_crop.py",
+      "git_blob": "162733ea6f8bb3487d2424ffb349175c947dda40",
+      "sha256": "ff9d2a54519359daa725ffbfd006e8da7cc9a29fcf9e6dd0fe960929d7fd30f9"
+    },
+    {
+      "path": "kinocut/engine_detect_scenes.py",
+      "git_blob": "90df306a7976527c70d61ca9fa8d24101f95a1a9",
+      "sha256": "a74b303ed617064fa0cf3562172fc0838b9bd97b132dab36d3bf67d062053012"
+    },
+    {
+      "path": "kinocut/engine_edit.py",
+      "git_blob": "a38642e11586f20be7fb694693e8ab68de08885c",
+      "sha256": "de1a1fa4fb97ae10a591ed9fd9d02dccf7dffac090f22a37a6c9cf9374033a56"
+    },
+    {
+      "path": "kinocut/engine_export.py",
+      "git_blob": "358d00422ebd9188575b29c94c59d58737c9d297",
+      "sha256": "0e9ce4dcd63bb310b1cb8b96b85a0462df945e8308482b9cbfc4f2c08a8c1dc2"
+    },
+    {
+      "path": "kinocut/engine_extract_audio.py",
+      "git_blob": "13de362fec01f449d3cde3146425ac13d3cba982",
+      "sha256": "24f0a795855887bc8cc7fd06bb53c83c4eb4d77e92c9b3adc7b4f6dcd64a620f"
+    },
+    {
+      "path": "kinocut/engine_fade.py",
+      "git_blob": "b58d78079b7519bdef9c361056cabc89b499c73a",
+      "sha256": "be2ac07e12fd005b9f46c8c9d71db557810250aac3f990fc7cbe7e51aa14923d"
+    },
+    {
+      "path": "kinocut/engine_filters.py",
+      "git_blob": "7616b2ea2e77e572ef7be035e0dddf30cc1156ae",
+      "sha256": "e5c834ad73fe506fcae71dc22a0977622291748ffc20da2d932e92502f79c0c0"
+    },
+    {
+      "path": "kinocut/engine_frames.py",
+      "git_blob": "98255467097fb6d83f23cd8da1d189ece856788e",
+      "sha256": "28ab1c3834f5810c0cb5922ca491d6c3f4e339cf7f894e73c5d6bcd53d8b116f"
+    },
+    {
+      "path": "kinocut/engine_glitch.py",
+      "git_blob": "c6e461cf7ab55486a45b2dbe5af63b90f11be4db",
+      "sha256": "fa89c84d7b488a8ebf45220c8e378743c45a854bac2f028a4a5bb01205af613b"
+    },
+    {
+      "path": "kinocut/engine_glitch_shader.py",
+      "git_blob": "7bced2399e132761036d9fd86bca06842a833b3d",
+      "sha256": "451627ce9abb41da21571ad14b82c5ad06693e9e6832f92511e0df95354fdae6"
+    },
+    {
+      "path": "kinocut/engine_hls.py",
+      "git_blob": "397830a071b29a4df0d9100f32dc102af9f0d922",
+      "sha256": "f3259db7001ac2f6ea9c98d473be66c852d4db90ff295d3cb6f70201e8be3ef2"
+    },
+    {
+      "path": "kinocut/engine_images.py",
+      "git_blob": "2abba7be28c5dfc61298551960358c61fe6c7e3e",
+      "sha256": "4e179bc15e3add30f9c3ebbcf4e61542c202be49204140294d1d13f09d638cc9"
+    },
+    {
+      "path": "kinocut/engine_mask.py",
+      "git_blob": "a1e6dbdfd42049672297db122456994da7adcb0c",
+      "sha256": "f23bb9f527fa6f3c75ca205a0699e9e62d206ce01c7abf59e82e066fa268f21d"
+    },
+    {
+      "path": "kinocut/engine_merge.py",
+      "git_blob": "ce7b97a27438dd9fcb3540744581aacbcb0b446f",
+      "sha256": "d013b38064dc3784f5be09485b10d475fb694927a7c2a9c73340d03432ba2244"
+    },
+    {
+      "path": "kinocut/engine_metadata.py",
+      "git_blob": "4163e1992db38261377af1db5059b9adca6c787a",
+      "sha256": "94e0bc033af71497c86fe0372d9f42a26e7a0e3aefad7d741c9b37d0f261e64a"
+    },
+    {
+      "path": "kinocut/engine_overlay.py",
+      "git_blob": "0fd906149bc492330340d8079d1cb37ba80db41c",
+      "sha256": "7cb3fd131a07b5557714fba305cde25832f6e91ad1e98d38853fc67826e25f3f"
+    },
+    {
+      "path": "kinocut/engine_preview.py",
+      "git_blob": "92301078e374187ad088658a86f48e82ba27dd53",
+      "sha256": "d1d38533c0babc320ab7c9cdaf199f7a645733b86eb740c782cc421928912913"
+    },
+    {
+      "path": "kinocut/engine_probe.py",
+      "git_blob": "792f3049a543c383640445e3962fa291feeadfdf",
+      "sha256": "eddc4fb07d69d0d9b5d776f5e505c7501c217c5f07f3b3d9543f45c2ea39de3b"
+    },
+    {
+      "path": "kinocut/engine_repurpose.py",
+      "git_blob": "ce1679021f4254a32945eb2858716fc4e07737c6",
+      "sha256": "608e2ff1cf77bd5cdad0b563a1da7ba57440a87e876394f70ec49c8d2ff2ef66"
+    },
+    {
+      "path": "kinocut/engine_resize.py",
+      "git_blob": "7f7e31a96eee1a6e2cb3ded299a574d403888e7e",
+      "sha256": "fc95478061b06e00f14c285b7ad82b705b7a66d4e6cbda805ef4b86b9a34a309"
+    },
+    {
+      "path": "kinocut/engine_reverse.py",
+      "git_blob": "9631f40917f671a93655aa24c5b4ec1716ccbd3a",
+      "sha256": "39ba2eacebff154aca9def0ea8ec17d4df1407eae9329e8b07c775d994e4a20d"
+    },
+    {
+      "path": "kinocut/engine_rotate.py",
+      "git_blob": "272def700a2ebfbcdc317f8a09900802377f609f",
+      "sha256": "1064bccaa1855766573cc8527cc750d7fb3b4c16b9efd34f635d6054690d9176"
+    },
+    {
+      "path": "kinocut/engine_runtime_utils.py",
+      "git_blob": "43ca8c1a6960c0a0fe170f4208fac89790b20d70",
+      "sha256": "30230c98231e14c3e920aefaacf1b3cd968d5cb565c3f092f23bc6d0aa928cfe"
+    },
+    {
+      "path": "kinocut/engine_speed.py",
+      "git_blob": "b86c3f7ac1a83afb11a59acca146d85bc837b82d",
+      "sha256": "c947a8b449ce8cac9a979352831875758bc69d5ef6ff7db2435440fe1f5fd53f"
+    },
+    {
+      "path": "kinocut/engine_split_screen.py",
+      "git_blob": "6a34f0186fba6515ad286dc4f6b556bae81db769",
+      "sha256": "bb27de2d86474e71cb44d32bbdc502209cc2e15fdc6995f57c762442d9a01d0e"
+    },
+    {
+      "path": "kinocut/engine_stabilize.py",
+      "git_blob": "05a7ea43114a3f06c886301e9c92701ded91f0b0",
+      "sha256": "ea9b3176e8fef36efc99e3b119c1c4982df12950118ef7e778b3510497e57a19"
+    },
+    {
+      "path": "kinocut/engine_storyboard.py",
+      "git_blob": "8deb57f097c0f640e0b213623ecc7fac8a9d31c6",
+      "sha256": "8ad54cc0307baa0ca4b457a900699af37f7f5fd2b43ea92bb48d912385a632e8"
+    },
+    {
+      "path": "kinocut/engine_subtitle_generate.py",
+      "git_blob": "9acd32965a867219d1887afcfa8b7a432a24e3b8",
+      "sha256": "f0f25b1d7bf01935d64bf26278d6efd9cf11a51e0f62882afe024d0bba0409b1"
+    },
+    {
+      "path": "kinocut/engine_subtitles.py",
+      "git_blob": "8ea7e2476ae944b25fa3c07386db498df14c386d",
+      "sha256": "37de3a89355bd757b81705f7ae1c3ff2dda1f7d1aaf0a5def9cbe1353233bdd1"
+    },
+    {
+      "path": "kinocut/engine_text.py",
+      "git_blob": "64535e05a76912cf4074edf8b796ba82821b0b01",
+      "sha256": "7e02a6c77c09fb106b2f55b7ff50c3bade03ccf720aa1108537700cc7fe2c63b"
+    },
+    {
+      "path": "kinocut/engine_thumbnail.py",
+      "git_blob": "57d9d46b4e43793314f3d5b303205170b5d2deac",
+      "sha256": "e4d9d3c120a5c81f84a0798ad8dd117d2da2cf82fa675efea239290b3ffb85f6"
+    },
+    {
+      "path": "kinocut/engine_timeline.py",
+      "git_blob": "f021e9ddcb16f276451c8c8f613ca664f1d9d6dd",
+      "sha256": "1991e4e9b94a687fbc685282c74a53598e0a6ce9bacf152e0fa76c7c06728d8b"
+    },
+    {
+      "path": "kinocut/engine_transcode.py",
+      "git_blob": "1776c54337e9381e59a11e67998e7dcb4448b619",
+      "sha256": "895438c85b67616d929d76af9b7fbfc41f023e54206cc685fbe470ff9312c5dd"
+    },
+    {
+      "path": "kinocut/engine_watermark.py",
+      "git_blob": "1b3b342d10b7dc5a40764bb6eb01b73700e82097",
+      "sha256": "b13b18136c0ba3b0c1855039acf474b7e383e393506fb0e3f957df145f271e7a"
+    },
+    {
+      "path": "kinocut/errors.py",
+      "git_blob": "51ba6e151af4966523b6bc15aa6d489096d580c0",
+      "sha256": "ef7ada1899969a5f816f8e98f067fbc06a9eaf6d7a4f41505ae997b3986cf679"
+    },
+    {
+      "path": "kinocut/ffmpeg_helpers.py",
+      "git_blob": "9d78fbc3c8cf4d562a235d0b7d2a5ea20274a911",
+      "sha256": "8890fcec4c1fd345bd4003e3ee49cf4d86fb727c40975d3864a65c47c9a3759f"
+    },
+    {
+      "path": "kinocut/filter_guardrails.py",
+      "git_blob": "68654973aea529a92b8b297be570f65314dfe1cb",
+      "sha256": "22c6ae43fced4ed3f2925f9cb5c889d7941fc2650c35fe6858cbf943b22dd3c8"
+    },
+    {
+      "path": "kinocut/font_manager.py",
+      "git_blob": "1d84479aa7fe32fb32f5b6080d48ff3a9ba46117",
+      "sha256": "2b66f369d5cfe379d3e9c9c90504706b90b1adccdc19390eba693edd75aeca17"
+    },
+    {
+      "path": "kinocut/hyperframes_engine.py",
+      "git_blob": "5e3a8a5ae8abc5b9ed4d1b7d430139fcfbbec748",
+      "sha256": "53e07696875b4fcd69c8d33b3727c5ac48ed83905b1e3193c5a12c1785c64afd"
+    },
+    {
+      "path": "kinocut/hyperframes_models.py",
+      "git_blob": "873b272c8efe81ed139b19680027480c3c3e351a",
+      "sha256": "37359cc3e27deaad0deaaaca8f04c95d3420de3b186bb811b8010e0cc2d13bc0"
+    },
+    {
+      "path": "kinocut/hyperframes_ops.py",
+      "git_blob": "29c8952b85c6250da723de3fc51c7f37d1fc569a",
+      "sha256": "17c751622baf7e49e4a4ea239357964289ba565391b726328c776412e1b20c08"
+    },
+    {
+      "path": "kinocut/hyperframes_ops_helpers.py",
+      "git_blob": "bd300fd051bff89801cd0e260ecce6f5ae4cfc68",
+      "sha256": "4a550a2e19ed244b6362b083b46a4015e810888bdae472822f14842563539c2e"
+    },
+    {
+      "path": "kinocut/image_engine.py",
+      "git_blob": "69b1317f1f6d16f3376d2c7b0c45fd762f3b65fc",
+      "sha256": "86a036f5dab6f0412f88c7f32d48ac42a302741301c646146baf0d2875498c19"
+    },
+    {
+      "path": "kinocut/image_models.py",
+      "git_blob": "8cbad5bf5e8510d1db07f9bd3171f6478a0f00f8",
+      "sha256": "aa9543755c7d66afd8a7d9dc164bdc7fa4040f8dc02b34bcc0b0f959fe6b7b36"
+    },
+    {
+      "path": "kinocut/intent/__init__.py",
+      "git_blob": "a93f0c770ee8c97df83112e76d8cd25d89fef24c",
+      "sha256": "31b68b52e1aeac6541868975c31176857f1e16035241c8667bfd9cd3b23b63e7"
+    },
+    {
+      "path": "kinocut/intent/broll.py",
+      "git_blob": "ecb3481b3f17d01a2fe09936db2911296c61ffeb",
+      "sha256": "2bda8c8cc87996351c82014fde98556a3dc9903e101decd75ac6e2a4d24e1b93"
+    },
+    {
+      "path": "kinocut/intent/caption_translate.py",
+      "git_blob": "f06e71ea158bb5c44e9b40238bdf106346dbe0ac",
+      "sha256": "8c29f0371bfa97dc1246c4f9f119c82ee56c2bdeabbbda92adb0b1e6c2feefcf"
+    },
+    {
+      "path": "kinocut/intent/language_coverage.py",
+      "git_blob": "072348ff1a984bca205bd07a021203e4c0c30124",
+      "sha256": "fd6d2c01c2703e091b7decd3074848a265a27218c99bcdcbdaee95b2e6c044de"
+    },
+    {
+      "path": "kinocut/intent/router.py",
+      "git_blob": "8ba1e9b563ab777e301d5af8490f6568fee5bbbf",
+      "sha256": "b5675a97c4f6e2b1229488cccb4c92e53844e639d9ff3ae542f7ececd3b5383a"
+    },
+    {
+      "path": "kinocut/intent/verbs.py",
+      "git_blob": "5dfc05bbc5e7bd8eb24e1823872ca86f53b9ab71",
+      "sha256": "a272d33c23f51122ee360a84b4ea95c499efc3146eceb7aa6bbd5479dc39339f"
+    },
+    {
+      "path": "kinocut/limits.py",
+      "git_blob": "6d5755ac0d2590b9b24bab4c49f8e2ef486c2f51",
+      "sha256": "c3283ac6bfdf68b72e2c3403ccaaa262202fd3bd33ec20c0e4f09343198ee400"
+    },
+    {
+      "path": "kinocut/merge_guardrails.py",
+      "git_blob": "cb6433b1465728a57a9460d730a9634af4beb51a",
+      "sha256": "ce4b819972944da487be5f938c6645d12e8c69474d85b419322e85270daed5a2"
+    },
+    {
+      "path": "kinocut/models.py",
+      "git_blob": "95ed93d38f0eafc438e68e5b9239dd0302e5e5d7",
+      "sha256": "73c1923e601ed7992e2794f01c91f58bd6a4481afec3df9c020002df0c30794b"
+    },
+    {
+      "path": "kinocut/multipliers/__init__.py",
+      "git_blob": "34a3d50f5e26bbf32817d3d5bea88e9eb97589f2",
+      "sha256": "7564a8070a2f5c5079e31047702cb4c2d4adec9329fff9c6a32bbdd03d221a0b"
+    },
+    {
+      "path": "kinocut/multipliers/generative.py",
+      "git_blob": "33278105127ed9a3025da0d156b5fa1280575c08",
+      "sha256": "b5d0d3aaf794109fc271626cbc92e2304b413c1ad1ad4fd2e559b5d6c1fc93e1"
+    },
+    {
+      "path": "kinocut/multipliers/otio_io.py",
+      "git_blob": "f033206a880592b7fb7b85c1dfad37878568a213",
+      "sha256": "9779f2c2e95433a5afbff6b703d469971dc857cc1c1679335f635861099385d8"
+    },
+    {
+      "path": "kinocut/multipliers/review_ui.py",
+      "git_blob": "61bd9f13b5eeefef4fe70e3cff2f46dc3570a718",
+      "sha256": "424667832637b81c176cf765174152fce7c7f64804de20a409aa9edf59f46b57"
+    },
+    {
+      "path": "kinocut/multipliers/tts_dub.py",
+      "git_blob": "14cda273400d944a0d53d2a7440f9dac96883195",
+      "sha256": "b560db55a9cefc8d5365931bf2c99405b7b3fb545e737c82e7cd37ba64a533d6"
+    },
+    {
+      "path": "kinocut/next_action.py",
+      "git_blob": "aeb2f8760272a2bffa1d8aa4c4850efcf195a55d",
+      "sha256": "aa8f696737eb8bf2ab753565aa45b274f3be551931598fc67206935192e9611a"
+    },
+    {
+      "path": "kinocut/object_matte/__init__.py",
+      "git_blob": "c2dcf3fae3668cbf5c32b3fc1936d1e8dc69a873",
+      "sha256": "fe80a803c4e3d2cf9c100c0bfb74d869bece0b802580d6fc1a9e3ba2ddc39384"
+    },
+    {
+      "path": "kinocut/object_matte/api.py",
+      "git_blob": "ba6fcb7e4725e215cab499d0e6f38c2ed0a2b4cc",
+      "sha256": "7da472fb2070f6659098458e4e5adba48d34c3c972d22c0430d2412faf913fe2"
+    },
+    {
+      "path": "kinocut/object_matte/encode.py",
+      "git_blob": "dbcb76e08d0830761a0a1aa24188f5b229a6806b",
+      "sha256": "427313c33bc3ed2ec85ccdb39c36ca037bd81d02fcfe32810bc3e21cf2fafa0f"
+    },
+    {
+      "path": "kinocut/object_matte/equipment.py",
+      "git_blob": "38524feb6385976879227b173ab237f6c145f963",
+      "sha256": "2a396ec79088981e65fb661f4795ff243e5899fb945dd8b6c4f2bc58c4164a1a"
+    },
+    {
+      "path": "kinocut/object_matte/infer.py",
+      "git_blob": "34d1e6c4b7ce7fdcd311d7b468f3f651d26f9667",
+      "sha256": "398277577248601acb5c61a863419e5480f633d963730b2f5050abfc3025a6da"
+    },
+    {
+      "path": "kinocut/object_matte/media.py",
+      "git_blob": "da4afd20b8f9c76436b8f77b8dd1480b2d3154c8",
+      "sha256": "b956c70d5d2b30f41596eb947c11b3a1db17cb55f71b10423bfecc3a61df3cb2"
+    },
+    {
+      "path": "kinocut/object_matte/runtime.py",
+      "git_blob": "f01240be85cd65ed34e268295fca0c9337ddb920",
+      "sha256": "bc3eca17f97a87c7c3f1445f4d837be45ad974025a0377adfb429acf144a31fb"
+    },
+    {
+      "path": "kinocut/object_matte/temporal.py",
+      "git_blob": "f81daf417809ce81aef289f420c56a97da067c6e",
+      "sha256": "f4cf44d883c572fc2d99b7ea3cb1982c3e5baf5162588348427f6385faa09f09"
+    },
+    {
+      "path": "kinocut/object_matte/weights.py",
+      "git_blob": "b9db4b73bad84665dfbd7ab12a90f88787ca8cb4",
+      "sha256": "e9fa4ef4bec8dcf0e62fa7943a39642a4bb56d78be1da1305ba4d03ebc2b073c"
+    },
+    {
+      "path": "kinocut/paths.py",
+      "git_blob": "91a074355a6449cfe79ad2948b5c17f68aa5f37e",
+      "sha256": "969f83952d245d5481862187c5da511033414f1ac93e0f62d8f44a3027ee2e01"
+    },
+    {
+      "path": "kinocut/postrescue.py",
+      "git_blob": "0b4d734989fb0128dffd40fae98918e105b033ad",
+      "sha256": "0d0d8f092df08c3adedea4e27ccda58de7688ea46208aff64a89f82e1b93cdef"
+    },
+    {
+      "path": "kinocut/product/__init__.py",
+      "git_blob": "cc7281185bd277b1e5f9010ed2002edaabfd622b",
+      "sha256": "d03f5d483d5578a71f830a99fd69d5ad858f1d739972f00fdd152ea98d4cf013"
+    },
+    {
+      "path": "kinocut/product/captions.py",
+      "git_blob": "735d12aa4502f6e6af4204bcf9029c12f099c12b",
+      "sha256": "40e3093288426e16f1b6461e8cd8fcd88981e49cdaa4bef053135433346b6739"
+    },
+    {
+      "path": "kinocut/product/clip_pipeline.py",
+      "git_blob": "a114b0379410a3a04fcef6e55af76e6cb2667720",
+      "sha256": "2793414a7f995bd88093c4ef047e9b7dd469d8e6060493e6f098ddccf6ef0801"
+    },
+    {
+      "path": "kinocut/product/config.py",
+      "git_blob": "2b6ec708c2c3535dd12d5650f6885f6dafa1769f",
+      "sha256": "e07d111b1f6c972d95b3720e59d05abcc28983e570c72276afe1d7850f7e5513"
+    },
+    {
+      "path": "kinocut/product/highlight_discovery.py",
+      "git_blob": "781b33f0683b6e576b50240cb5b0b56d7c1c3b80",
+      "sha256": "287a82c7963524103f7ddd009396543a5931ee02feee3e17d350b84f6d98777d"
+    },
+    {
+      "path": "kinocut/product/models.py",
+      "git_blob": "1136cd45f90c32b16bdcec6a2ff34925f9692b49",
+      "sha256": "3c44ff6f7402704f72f27aaabb89336a4885c26bc7f90cbf218eaf6e49f49384"
+    },
+    {
+      "path": "kinocut/product/package.py",
+      "git_blob": "e37d8b21a881ade51d63244fd8a4277c5d4a3fa7",
+      "sha256": "0677c924e8a3d358f193c2a87ce93b13442a812d8734d2f1312e2a3510041bae"
+    },
+    {
+      "path": "kinocut/product/package_models.py",
+      "git_blob": "c229c48b62806b5ae77c65dec8b18337cb5bc651",
+      "sha256": "4f9a23b18a5a4a204d8f36337df746d5b112115ec4297aee376b94f6928bad13"
+    },
+    {
+      "path": "kinocut/product/selection_evidence.py",
+      "git_blob": "91ffdca877b1e019333511ed10aa9bab18a22a44",
+      "sha256": "6adb703664c16c33a022048290ae95e73aa315f4829aac6e84f1e10af34d2d6a"
+    },
+    {
+      "path": "kinocut/product/shorts_package.py",
+      "git_blob": "874dc47f74405643556cf9e71ea6f56adc64b9c1",
+      "sha256": "16d988521388f017dc6e1cbdbdcd4e76156cddb39e55cbed6a5deb5982df25f9"
+    },
+    {
+      "path": "kinocut/product/shorts_plan.py",
+      "git_blob": "d34f76a19cdb8cef10528ec62b821325aea14df9",
+      "sha256": "c4a759ce1037158fbfa509ca93f1043f0a9fcf3e81c6e2dfed8d440e1bd235b4"
+    },
+    {
+      "path": "kinocut/product/shorts_render.py",
+      "git_blob": "1e071bf4cfb5d9f6b3dfdbf3a09f20162dff7a00",
+      "sha256": "f14fdeb2d326efbbf352b36b19fb836db5aa03d5c487214541cf9ba3b7e15ad3"
+    },
+    {
+      "path": "kinocut/product/shorts_review.py",
+      "git_blob": "86a0c29a30771ff910bf36e29333d20c0daff883",
+      "sha256": "f580eda5f8d13aacc656fa81012e50707ecc9a50a6465c92b12ca8c07ba3e928"
+    },
+    {
+      "path": "kinocut/projectstore/__init__.py",
+      "git_blob": "f40fe583bad5912c65278570513d3a30bf77c59e",
+      "sha256": "36f43c503b97b59b4342e1fb628d430533f11d000cd0f5c7b593f3d00d682f8d"
+    },
+    {
+      "path": "kinocut/projectstore/_filelock.py",
+      "git_blob": "b87f71077daad3c45ac445c9639b23f6f064cfd9",
+      "sha256": "bca2a549ae02838a0c5d679be815426c7ebcd254811c3fb0c815e5be63f13658"
+    },
+    {
+      "path": "kinocut/projectstore/_migrations.py",
+      "git_blob": "590c2426d032ebd6b02a53eac1ad7833a74c5722",
+      "sha256": "4c167ebc31f0cea236ba66a35f4e6715a8e4dc315848e1eda6fb7eaac82448c5"
+    },
+    {
+      "path": "kinocut/projectstore/artifacts.py",
+      "git_blob": "cfbe103e0120be84f7c0dcda37ff2fb4ad1c11a7",
+      "sha256": "665ddf140ba27f1592f939c9b111f8c9ceb3c0be152623145126cc4b9acc556d"
+    },
+    {
+      "path": "kinocut/projectstore/cas.py",
+      "git_blob": "a0b9751cabb16de23fe627f2789a817a97278dc7",
+      "sha256": "3c198df97e442f847351a9fe1d683030523cdae7f95aa79a087166e5f5d1a541"
+    },
+    {
+      "path": "kinocut/projectstore/cas_derived.py",
+      "git_blob": "6ec83c2cc760ae87802e52c41a842bc34b8807a8",
+      "sha256": "2bcc1798faf1915ecae08adcf1d96fc980b05b08881ab307e2e89a4f4d3d14bc"
+    },
+    {
+      "path": "kinocut/projectstore/cas_gc.py",
+      "git_blob": "78a7224615d8fd03ddefa2cbd33ef18988e10e5f",
+      "sha256": "18899122d73cf915ec3b91bcefdad64ffdbfebc14199d10a74308764f9f9122d"
+    },
+    {
+      "path": "kinocut/projectstore/cas_lifecycle.py",
+      "git_blob": "ae395e9d25bd9a65fe7ae68c17e1b4e288baff67",
+      "sha256": "f30af7967473f593c16cc7464fece31c5117bd1970e09ecac77017d9927aebe5"
+    },
+    {
+      "path": "kinocut/projectstore/compat.py",
+      "git_blob": "9d6398d68fdc29b5f4bcf549741cf07924477434",
+      "sha256": "df20dd3acf841e27fb8d80da49f10e42a2e7e2c67c0cfc481fc9f5ce0ea923f7"
+    },
+    {
+      "path": "kinocut/projectstore/disfluency_cuts.py",
+      "git_blob": "f43418b23b80b5cab239973d2ef89dfd05f0725e",
+      "sha256": "2210dff82057ff7d52629dbf930a075be1a0757d2999b5aec4aed6f6226ba716"
+    },
+    {
+      "path": "kinocut/projectstore/edit_projects.py",
+      "git_blob": "dc01e036800737d36ec72647139ecb030888cdfc",
+      "sha256": "1f3b71db014a5cd358298f1017a17c50214a1e2eaaf65a03848af7898567f4c0"
+    },
+    {
+      "path": "kinocut/projectstore/event_retention.py",
+      "git_blob": "9c055080c2db64c8dfa2f00678a8bcc5aa48c8a2",
+      "sha256": "08880016f6bc2520bc37d6f97931b207ec52d835974fca2d918a0b7783618bf8"
+    },
+    {
+      "path": "kinocut/projectstore/events.py",
+      "git_blob": "312cedc171165e3b7817529d82f8893af4a0929f",
+      "sha256": "d66b17fc1414e4ad36e30a180aa92a11bf132e0519dc3cd38adcdb6d8eefc2be"
+    },
+    {
+      "path": "kinocut/projectstore/ingest.py",
+      "git_blob": "53b1422861ddadc316d063d8ad2c4323ff7005af",
+      "sha256": "01d308bca327dcefebe4c4c828c3e7fc8e6333dfb8150667d748473a2bd38b19"
+    },
+    {
+      "path": "kinocut/projectstore/layout.py",
+      "git_blob": "c11dd5810cc894f1d06a4ebfe3d1eeb73b98ee5b",
+      "sha256": "f066d4e289af3e572088f9968613b40d1b46debcfc0fd1813e70a7cd4de941a4"
+    },
+    {
+      "path": "kinocut/projectstore/render_control.py",
+      "git_blob": "5c3c20c246d52eb17fe2bb5b186dc1ae53090004",
+      "sha256": "7259ab41c35ed22f9685134aa112fa6a507401c4ed1e01625494b1694056cf93"
+    },
+    {
+      "path": "kinocut/projectstore/render_jobs.py",
+      "git_blob": "947c61c53bbe559b556e37bc6370b3cc0a35158e",
+      "sha256": "25cd74fc4c1c5798f80f284fdf501d15e56a98627503af303c614aa5d80227a7"
+    },
+    {
+      "path": "kinocut/projectstore/render_runner.py",
+      "git_blob": "d754a62c1bb207fc0790e94340edc6985db91e34",
+      "sha256": "8cc89e2b89172ede08100c1fa55e5154b1b899a6954b8c3636b336193169955d"
+    },
+    {
+      "path": "kinocut/projectstore/repurpose.py",
+      "git_blob": "9c727762603dec5ee3a205671e86a2dd379b0c14",
+      "sha256": "b699bc9c9f41ae8962b5d0d3244c340b1f879ff04f0704e3087ea0f85426f4ea"
+    },
+    {
+      "path": "kinocut/projectstore/semantic_indexes.py",
+      "git_blob": "620a9c256894a5d095da66c9375f072c9b5c1504",
+      "sha256": "9e8d30c4405d424a34ea1cb8e5e719aea4561964b49eee0f2da0e757830180cc"
+    },
+    {
+      "path": "kinocut/projectstore/store.py",
+      "git_blob": "42e823d7e4eb638a7c0d87e474c3b4deeba831cb",
+      "sha256": "050f3483612f6ed8a5d29ab780ea50f74000065162876a05c625e405125b9deb"
+    },
+    {
+      "path": "kinocut/quality_guardrail_checks.py",
+      "git_blob": "0ef8b8094ca43a230a989b90dd5678cb511be492",
+      "sha256": "795892abba91eaf76c53a25b3f2bfdc3101935e90b9152ffaedb1618dddbae10"
+    },
+    {
+      "path": "kinocut/quality_guardrail_types.py",
+      "git_blob": "095b5161759697c23e827c462c1d79c2ee30c88f",
+      "sha256": "44482e09c2c832dc305ad52d72b588d7c1edb81a6d53d1bba52854d1935d62e2"
+    },
+    {
+      "path": "kinocut/quality_guardrails.py",
+      "git_blob": "b6e67173e0de57291cfaec0498f645a2a1d6f029",
+      "sha256": "28bcc9ba61a48a2e2846c892ffd448e60ce772ae4ca9e44e9e8493894dca78ed"
+    },
+    {
+      "path": "kinocut/quality_signal_domain.py",
+      "git_blob": "10c7670ad322542f0b05095dcbda81fc39631231",
+      "sha256": "1e3ddf2f77ae1bd0c9eb7f818212a3e975c4c3f0f2ea4ab545b3c0dd51b6c618"
+    },
+    {
+      "path": "kinocut/quality_source.py",
+      "git_blob": "1e751b775f7cde9d5ed8e97413045167a13051de",
+      "sha256": "a8896a833d85e2c009443bc7be0e83d30e23cd70a93100f634eaddfec31a4bb2"
+    },
+    {
+      "path": "kinocut/receipts_ai_video.py",
+      "git_blob": "5aae50fa4c1d49f5d1288ff06f9678621338eb37",
+      "sha256": "c4b786716b22071959b7b8c7589db585d821fdcf85591b183d0f38b2e5ebdf7a"
+    },
+    {
+      "path": "kinocut/registry/__init__.py",
+      "git_blob": "75180877211b13fd9780462a7020dbd35dd64afe",
+      "sha256": "4047aa20079087e608caaf2964c8a6e4bf4bc360ae1c65b06976524b09dd34c4"
+    },
+    {
+      "path": "kinocut/registry/_duplicate.py",
+      "git_blob": "1a1a09198fe5c1770d77408bf44dff8b3f962760",
+      "sha256": "303a8884738cc3bc43f526668edf5548528134ce325547bddf848b11fa5aa7ab"
+    },
+    {
+      "path": "kinocut/registry/_lineage.py",
+      "git_blob": "e2dcb9ff095e9fa136f111c034831b71cd8a96e3",
+      "sha256": "7cafda162d97e23fb23d09f5ec57b9bb7e4abd67b8b54d9194dadb9f9bbf8762"
+    },
+    {
+      "path": "kinocut/registry/_query.py",
+      "git_blob": "2c28a503e19b03b1b49189c4d43e2679e4162660",
+      "sha256": "fe039a2e583946ef917c1afc44c26851d8a99227475b8ccc7d5e7bbb30ac82f0"
+    },
+    {
+      "path": "kinocut/registry/_store.py",
+      "git_blob": "32fc4d1bf62a43fb479e0983893100ba296f3d11",
+      "sha256": "85c82bf379b1555fca0e49a459204696d09d9dcc492036c675a2c701f93c0dcf"
+    },
+    {
+      "path": "kinocut/remote/__init__.py",
+      "git_blob": "cabcb561ab02c5807d9258906aa74792103f53b0",
+      "sha256": "bda64a2bfb543eef7e01db503456f3e0a6f94c7535efe8bfa5999f18ef43c879"
+    },
+    {
+      "path": "kinocut/remote/adapters.py",
+      "git_blob": "0f68611c17d0c1aa345b07616e96c8e77bb52f03",
+      "sha256": "c90d14eac51a9d87a12e365d992f6ee3b0239269dbaa2a0414f0c4e8c370c148"
+    },
+    {
+      "path": "kinocut/remote/api.py",
+      "git_blob": "5bac85615a456b9a8da4391a0592a93d3c8c0fc5",
+      "sha256": "9d10e34adeeb0ff821b36f2d1e68e60679beadd49084631c9bba387e5b14bdb9"
+    },
+    {
+      "path": "kinocut/remote/contracts.py",
+      "git_blob": "53609dce3b36326cb90fa57b06b69363025418f7",
+      "sha256": "9fb5348e7f408632e6fb69961c8c725aa6942eecd70ac99dd972a13c2f570cfd"
+    },
+    {
+      "path": "kinocut/remote/jobs.py",
+      "git_blob": "f7a8107483f58b61bd9cf1e65d2be154589ee677",
+      "sha256": "68787d56dc689ce06ddf49eda1b3e9cdc1aa6a05c1f7080d9e1706cd8124c804"
+    },
+    {
+      "path": "kinocut/render_dag/__init__.py",
+      "git_blob": "409d3f91b95ca849d4a5459dda261dbcd7142c97",
+      "sha256": "e6cd6b595c80166970a3e6fe410796e41ae7c1220092cf3b76e29a1467f7fe12"
+    },
+    {
+      "path": "kinocut/render_dag/compiler.py",
+      "git_blob": "8d9256a1ed115da2e987265603a83d5f94265c36",
+      "sha256": "30f0cf85908a8d88624450a5a79a450718b4fefd1ed8246208fb33cd459b6c18"
+    },
+    {
+      "path": "kinocut/render_dag/schema.py",
+      "git_blob": "3001f2bef8551b656caec47c778bca4b065af408",
+      "sha256": "f41668067a608ab6fe89b31379a7e08989a15f13b9ff8a4aac8562f69fe9c35c"
+    },
+    {
+      "path": "kinocut/render_dag/validation.py",
+      "git_blob": "9f68ced54c41cf8d66ee36a6304d8d7214c6faf1",
+      "sha256": "3614ea648ed363a769c3eca340a9e8cb96f39e21762b93b9808b0dba2e1f1b74"
+    },
+    {
+      "path": "kinocut/rescue/__init__.py",
+      "git_blob": "de1dca4aa49d4ef6ac689c0596766df30237b108",
+      "sha256": "5b27d21d7765c0780ef99880996475266dded7512639c2951e68aebc432af49f"
+    },
+    {
+      "path": "kinocut/rescue/_errors.py",
+      "git_blob": "48f9c3b7987257c8e6ec797e2049c186dec23d69",
+      "sha256": "3bd66ca721189139da9450fa1b265f29999c291c1a5e7fff3f89b23eccad362c"
+    },
+    {
+      "path": "kinocut/rescue/analyzer.py",
+      "git_blob": "ec5d741f71d2a7ce63886ba426996b9ec4c3b613",
+      "sha256": "8b2a45fffb682c905d7e9883faba7c3f61c1f8fc30931f0e9a225086b4333260"
+    },
+    {
+      "path": "kinocut/rescue/capabilities.py",
+      "git_blob": "2e9dd3a7f301fab97ef44c0321cc0e2c792b01da",
+      "sha256": "a6523c10f2399ece58d830ad825c39198b6f2e1ba31ba441cbc143483f58ee99"
+    },
+    {
+      "path": "kinocut/rescue/inspector.py",
+      "git_blob": "b2cc945dff4daf3e3f3f8bda7426422df8869c6c",
+      "sha256": "df43f04063df0ab43fac615619e46785d2e40e9e7ef06a3c4142f1d331d5f016"
+    },
+    {
+      "path": "kinocut/rescue/models.py",
+      "git_blob": "afba661e4fbad896dc21c716da2c93f3643657c7",
+      "sha256": "79f606d8c522189520bc5d64126f35159386ead49548b644310ce422acac327c"
+    },
+    {
+      "path": "kinocut/rescue/operations.py",
+      "git_blob": "0aaf9c4d987935e7d54fed98ff5cb7cbb7ea0d16",
+      "sha256": "da0907725a9896e7765c274d6fdd105226b2be785c07fddc3cc1b391267afb8e"
+    },
+    {
+      "path": "kinocut/rescue/planner.py",
+      "git_blob": "860ff6ed8581bef424dd45e4883ed8ae748e090e",
+      "sha256": "fa9ea86d4818374936ba120589f845f53cb575648120c1cc95dea130456a3adf"
+    },
+    {
+      "path": "kinocut/rescue/policy.py",
+      "git_blob": "56de14eb1ecae8e84b70db66d45eaf0c7a84cd23",
+      "sha256": "b3e3281a5c8121860200f238346180cd2319b81575720deb785fbf0b17d7ccfd"
+    },
+    {
+      "path": "kinocut/rescue/r1/__init__.py",
+      "git_blob": "cca3d7f68daa37793a560ea8c7ab4e2fa58e1642",
+      "sha256": "c5cf0093e802fd85aaf0dbdc0d98f5ce23f1da835a1158c95549b0758f58c1bc"
+    },
+    {
+      "path": "kinocut/rescue/r1/capabilities.py",
+      "git_blob": "e77bd628a05f5ba1e0de6d3bd529aa96c4da68fd",
+      "sha256": "4ba1884dd97f11ad053b21ee3271e2fdb9dd2dd62fdfabe3d93aa8e5441c2b72"
+    },
+    {
+      "path": "kinocut/rescue/r1/models.py",
+      "git_blob": "f8744effd79583278a8ad1a9effe7970dc169454",
+      "sha256": "78a5abac26170d47589a69600619fd3cb5b31132df6d45e35d92c74141de4a9c"
+    },
+    {
+      "path": "kinocut/rescue/r1/policy_registry.py",
+      "git_blob": "55846cf9e25a918cde45e3ad0ffdaf549e270bf7",
+      "sha256": "91fc011e4baa884d7638dd07fb19431487d7fc8661d52b5814028307281fc35f"
+    },
+    {
+      "path": "kinocut/rescue/r1/preview_diff.py",
+      "git_blob": "41db467978c4fc7e0853ccfb30104d363e52a588",
+      "sha256": "723d8de5d78ce4d98f325108dab5ee33bfbe704558eeda4331951722e2eeaf89"
+    },
+    {
+      "path": "kinocut/rescue/r1/verifier_registry.py",
+      "git_blob": "8dc70519da09c7c93c5c8e53b3b03f69e4127a45",
+      "sha256": "1dcfa9083ae398daf4b775e4c899e9b9d7be5f0bc65dfa86e0178f9314c3d10d"
+    },
+    {
+      "path": "kinocut/rescue/renderer.py",
+      "git_blob": "4b0c5d20d2e0e6416f452cb09a74565ae118f926",
+      "sha256": "87a763da6208b3fedd1d6b156b51a46e61ab6065cc296d6bdf7506960310783d"
+    },
+    {
+      "path": "kinocut/rescue/verifier.py",
+      "git_blob": "50a842ac038f41fd6ce5de0ced5a5c6b143c4b2a",
+      "sha256": "30e75a837900cd37f2e964a9d8efd8cc6d14cc962c22bf9ad19f70c3154d7173"
+    },
+    {
+      "path": "kinocut/restorative/__init__.py",
+      "git_blob": "ea13bb0651073c8c7d9938ea890d055ca7231e7a",
+      "sha256": "277675822ba67fdf1b72ac995ce0eed6a6932934cb014bf5533b9b04197f473b"
+    },
+    {
+      "path": "kinocut/restorative/api.py",
+      "git_blob": "21b2f7ad1cee3cd265a7d63db3f36fd95c1c6e0a",
+      "sha256": "8cf32232a14b26a0718d39b9a1806a7d1d47d0d4020e7aadd6d990d3371ea4c5"
+    },
+    {
+      "path": "kinocut/restorative/contracts.py",
+      "git_blob": "f5bdb8eb9d887a26191389c24082b8e2205e4f7f",
+      "sha256": "3766e3ace62edc8ff03de5666cc54502c8fe518eb3b1b8ee181a4abcb39c9359"
+    },
+    {
+      "path": "kinocut/restorative/evaluators.py",
+      "git_blob": "fbc6892264d461910882e85ca2a8acc05ab5d9ee",
+      "sha256": "60e452c47fc4231de9b928267a9705da138bd5486290c1ae4ce749270da9719c"
+    },
+    {
+      "path": "kinocut/restorative/evidence.py",
+      "git_blob": "56bf2560c608eea52a8ddc90199ae06f13e49285",
+      "sha256": "5987bf52c12486f74e545a2a5047e0ce8d267dc268776ac69fe99f8aac6f9357"
+    },
+    {
+      "path": "kinocut/revideo_engine.py",
+      "git_blob": "85673c3011ff81a437a7676867a590e9e64a734b",
+      "sha256": "fd0142c45b45ceda64c27fd30c1e5a1ae4515db162e418e673f737794f82922c"
+    },
+    {
+      "path": "kinocut/revideo_models.py",
+      "git_blob": "7346c56e64374af7209fbae58e51ba67539d9239",
+      "sha256": "727f4c1f5f5dd0b11a808320f4b108facd851bd412ae1c36424596bb1444bfc9"
+    },
+    {
+      "path": "kinocut/revideo_template/.gitignore",
+      "git_blob": "3191ead19eeb1adede4d6dd4b53ff8e584c25b84",
+      "sha256": "28ab7d6539f928f04c8a3a9c2b2cf8b9955cac408e7a685c24fbfd6b60be5c8f"
+    },
+    {
+      "path": "kinocut/revideo_template/README.md",
+      "git_blob": "9f5735c413d14963ac09ec8cf9d1247282611330",
+      "sha256": "9cc1ed225cf62b7d0d610eb1b190327db2692dc502ab4574f03a1e1bc8caeb44"
+    },
+    {
+      "path": "kinocut/revideo_template/package-lock.json",
+      "git_blob": "efd21b51bc908623c1f8f0a601e4363ca31004ee",
+      "sha256": "4da08adf0fc6d2bf4bbc3becefbfb16e3e6076601b5dc842096ddef7ad2336d7"
+    },
+    {
+      "path": "kinocut/revideo_template/package.json",
+      "git_blob": "66bd5ede075a518192430a909eff9d8f4d447f2f",
+      "sha256": "98bf8865cac998eb0337f8cb043f4eea5ff2c448dc46b40a3b8c9d70eda51c5c"
+    },
+    {
+      "path": "kinocut/revideo_template/render.mjs",
+      "git_blob": "49f5df58eb3db85c39651c80def972871768261a",
+      "sha256": "24bafdd719fd6dbf771e503770eccb689210d2a88884cc08ef6de46f64d5eec7"
+    },
+    {
+      "path": "kinocut/revideo_template/src/job.json",
+      "git_blob": "b6d6790cdfed9e1d68e4b5a3eb707777d496a944",
+      "sha256": "796ed890305fd75e52b4e0039b9ee21e803fe422f2b53ba68947e3104dcb8372"
+    },
+    {
+      "path": "kinocut/revideo_template/src/project.ts",
+      "git_blob": "b019686adc2c546421363bf5a41a6f28c2c2ac97",
+      "sha256": "95d0fe5bfbc3c934e56c0da3d57b9828526ac2488234499235bb0e47c2a03c73"
+    },
+    {
+      "path": "kinocut/revideo_template/src/scene.ts",
+      "git_blob": "7993ced55983e53fc9eeb0a893eac06bfa988d00",
+      "sha256": "0a0f9adcf821e8a0b3dc2444127ef0498250f69c14bc64110f45c0a16dbc6a3f"
+    },
+    {
+      "path": "kinocut/revideo_template/tsconfig.json",
+      "git_blob": "030e3a6a33f541869581c7123c1b732aae181a82",
+      "sha256": "a8e8132d113064ebfd09fa0e53cc37ad646d0a75f5a979365d08dc55319e8d0d"
+    },
+    {
+      "path": "kinocut/semantic/__init__.py",
+      "git_blob": "0d25a5349ae07d00fcaab08b76c6b35e40967eb9",
+      "sha256": "379c92aa98e3e63db252c83900b7f07869d0ad224a39285a6d5c473f31c50bcc"
+    },
+    {
+      "path": "kinocut/semantic/disfluency.py",
+      "git_blob": "0e0072d85c7c832d3e9a1b65d4e6035abc24edcc",
+      "sha256": "80ab17f73bc8f0b5ec2e33cdee1654d25289a05db45c1d6f79946424361a6421"
+    },
+    {
+      "path": "kinocut/semantic/edl.py",
+      "git_blob": "f1bbef19fc58fae50eda9059f7eba732905fd727",
+      "sha256": "7a5c5f14e5e724e0b98cf780813d07f53c889a82a7c4f6355cfdd33f40bd00e1"
+    },
+    {
+      "path": "kinocut/semantic/generators.py",
+      "git_blob": "32d180c5ad9349c8a23feb42ad8c6b0548defae2",
+      "sha256": "a5c1d24196370c562fff0d558557bb64273ecde0c4b340c41bbfe8bc0c65fbda"
+    },
+    {
+      "path": "kinocut/semantic/index.py",
+      "git_blob": "e8f1c83026dd2fd463b09ef3322e31ddb473c134",
+      "sha256": "8c1f70a13bbc84e8b0168557c27a54d91f672fe442d71f41391508a80a1e0a8d"
+    },
+    {
+      "path": "kinocut/semantic/models.py",
+      "git_blob": "34836dd9e89adc5b867dcc3cc2e2b0c1e860ef96",
+      "sha256": "a4798a75e8742b46027e7310e8296ff259bae4fdb167492130f2639e4b73d9fd"
+    },
+    {
+      "path": "kinocut/semantic/timeline.py",
+      "git_blob": "edcb4aad6ad6038fbbb81ea588bedf766d58023e",
+      "sha256": "a83d2bff53786ef654e3fdd6a38a33e83f9e94b6b9f03c27602bf2da6f2e102e"
+    },
+    {
+      "path": "kinocut/server.py",
+      "git_blob": "266f237bcfc743073c3642723cd94e9753d9f2f1",
+      "sha256": "d4fd16f9fdd250b22a98272aaadfb9fb82ec402cf9c5975b2cfd510d0d53d5ec"
+    },
+    {
+      "path": "kinocut/server_app.py",
+      "git_blob": "458e5001af824d1f32b7833daa4ed4bc84b5c853",
+      "sha256": "be625fb7fbceb42c9b7bdae0be7390182faba9be0dedb05a63c6a24e1c3e7557"
+    },
+    {
+      "path": "kinocut/server_facade_exports.py",
+      "git_blob": "2e1f8fd7074aa81e2e6c9bb9cc1f7052b6914ce0",
+      "sha256": "c9785e428e3d31345c48ac04fa0475ada8be19381243aadcd925886a67213ebf"
+    },
+    {
+      "path": "kinocut/server_resources.py",
+      "git_blob": "54abd86db859bbe2c16374a93f8ce1e6bb82541f",
+      "sha256": "2a2add26756674cbe31fed2e3e224437106cbf9bffe73065c1d279bad5df45e7"
+    },
+    {
+      "path": "kinocut/server_tools_advanced.py",
+      "git_blob": "2cc867f1122df17322bb02468e46c11c427a1c48",
+      "sha256": "48d4717851da7c6507c0db96d43feb43c9257e646a5f2d56d4f7d9d9e4b1dab4"
+    },
+    {
+      "path": "kinocut/server_tools_ai.py",
+      "git_blob": "e28a8728ee655a45ee7ca8438b7ffa41fdad0f5f",
+      "sha256": "71e11b0efbaf7a8a541dfb223812de70b612f401f4c94d733aae310b80195176"
+    },
+    {
+      "path": "kinocut/server_tools_aivideo.py",
+      "git_blob": "00a58925dc520a8af2e93a1565441054696a0a61",
+      "sha256": "5780647c52edfcf9740a4d4609fef9d07a0b5338006296739a89f148a2c8aca2"
+    },
+    {
+      "path": "kinocut/server_tools_audio.py",
+      "git_blob": "5b4a93b2823bb8e853a58d1be7ce846039706b98",
+      "sha256": "e56d15e3da6f20d30c8f23f436950996c77079f22a7fb464400f180d33de6697"
+    },
+    {
+      "path": "kinocut/server_tools_basic.py",
+      "git_blob": "c8eedb11ef58465ec2d42c751eace3478b635c81",
+      "sha256": "01245caa5bdb279871be3a0ba5a94a94651cbb4adce0f1dd23acde6acd0147ed"
+    },
+    {
+      "path": "kinocut/server_tools_creation.py",
+      "git_blob": "3e140594f6eb53763665eaff31bea66d1860058b",
+      "sha256": "e084c2828b29caf018482a56317207a60d1b310fcde73564b41e32cdfbcbf13d"
+    },
+    {
+      "path": "kinocut/server_tools_effects.py",
+      "git_blob": "e238a93f356578eedcf6e1817d43faa0dbddf8c9",
+      "sha256": "1813280846dba15ad9c42bd89f9242dc321073bf32ee3c49c89f21401977083e"
+    },
+    {
+      "path": "kinocut/server_tools_glitch.py",
+      "git_blob": "4ec5143b17cc845711ded986aafa8a2de306068f",
+      "sha256": "a4b084c4ec7ee93aba3aa50f3f18c63dd0161efbded714d8cf334e2a8642ac2a"
+    },
+    {
+      "path": "kinocut/server_tools_glitch_shader.py",
+      "git_blob": "f07edd58757a385201efccd7e3e5de31bced6131",
+      "sha256": "b49de0453c1e64347c92e73a5b08b98097b192a61810258f7b0bf23c3dceef05"
+    },
+    {
+      "path": "kinocut/server_tools_guardrails.py",
+      "git_blob": "8f060cc289550e58941117896e3d78ea1fee1ee1",
+      "sha256": "fd88bf19100b700ef75f782e06ea23ef75f4adba99f408c6f6d1911802c34a82"
+    },
+    {
+      "path": "kinocut/server_tools_hyperframes.py",
+      "git_blob": "d7e92e4194a71a2457b62dd3cefd8a1f1ae04502",
+      "sha256": "0fc18745cbd2c16a8878e8e84105028631e4cb449420fee4c729eaf4af88f9ab"
+    },
+    {
+      "path": "kinocut/server_tools_image.py",
+      "git_blob": "d0d568c7cafe5de074d48078959370acfb948c10",
+      "sha256": "0dc70c29a76fa9c475127384ccfeb494fdf757ad369299899b872a9bfcc8d44d"
+    },
+    {
+      "path": "kinocut/server_tools_inspection.py",
+      "git_blob": "b9d5c3f30ec1d170306014ce94572f24af409a5e",
+      "sha256": "c5b69d9fa023fa7ac6fb54ed254fe1d8fd7657957bb229c4fe169f81e1b52393"
+    },
+    {
+      "path": "kinocut/server_tools_intent.py",
+      "git_blob": "0d8041fc66adbf7fe4451d87c44722fed42bd394",
+      "sha256": "30be0b57b8fa2cd75cf168b08a1200df44008df3f9f06250371934afd5c7ea50"
+    },
+    {
+      "path": "kinocut/server_tools_media.py",
+      "git_blob": "71a4551a32f32ef8510f492f38cca41aceb6713d",
+      "sha256": "9f0e755ef3077dd0ddceaf97330a419dd6c58ffdcd714956a39332431b15b32d"
+    },
+    {
+      "path": "kinocut/server_tools_postrescue.py",
+      "git_blob": "3d3fa4942f49e2b59afb11b6d95b0939fd036951",
+      "sha256": "e00983141ff35cb9c5c1a3e64ab34fed56392564cb655cf13a0e8dbf70757da6"
+    },
+    {
+      "path": "kinocut/server_tools_release.py",
+      "git_blob": "2d85e10696c54d37dad69892664d092d88a0dafd",
+      "sha256": "909138a4b477f80097615d5fac4fa4b2173dacc1bb14315d879bad5893eead9d"
+    },
+    {
+      "path": "kinocut/server_tools_repurpose.py",
+      "git_blob": "84eab466170f27211785cffedbc86d245b1585ec",
+      "sha256": "2581e1f52aaa3fc4ac1fabd3b8964f7eb032c6042ec8f34479d2e84bbdbe55e3"
+    },
+    {
+      "path": "kinocut/server_tools_rescue.py",
+      "git_blob": "d15d1d0eea26201f943abaf44356a467d2993426",
+      "sha256": "810f7f8bd6e0643cf81584ffe1f3aaa7fc665d90b8ccb4e020e4286fbe32b6e3"
+    },
+    {
+      "path": "kinocut/server_tools_revideo.py",
+      "git_blob": "b51d7d162324295b855da2f77998089a04d2a2df",
+      "sha256": "005239032383334a09bb516ee17243ff884656ccd7bb00603c2303e24914a124"
+    },
+    {
+      "path": "kinocut/server_tools_shorts.py",
+      "git_blob": "442aea467f645622beb8049017a926418445c702",
+      "sha256": "d49b993f3c53f7daa259a630acf39b7b1bddffd90682a6cb1feedc202324d77c"
+    },
+    {
+      "path": "kinocut/server_tools_sound.py",
+      "git_blob": "93f2d8cacdf1d7cffe661fffe800b86c4f577db6",
+      "sha256": "516226856407da493c9ccd3548535d2de8e5a2b318b79c0a4ec901496221c4b9"
+    },
+    {
+      "path": "kinocut/server_tools_workflow.py",
+      "git_blob": "81d228558fc2682b5e6ccb90541f7662b0fe0592",
+      "sha256": "8a8bf565381d250c05596c1ff2e8df57e76ed5951effae4cc27e1986bfe75445"
+    },
+    {
+      "path": "kinocut/sound_joins/__init__.py",
+      "git_blob": "9f72065c8637da54809f33e2a5bb83f68d33d389",
+      "sha256": "2e407ff409cc2e6361883412c365de6cd67d30ef03cde7796a0284e1667d3834"
+    },
+    {
+      "path": "kinocut/sound_joins/benchmark.py",
+      "git_blob": "cd653e1776f71ce23e5122b612652807db7005d8",
+      "sha256": "c6ce6f61e924368ab1e109a801a46419e13f21d7058b345083e46d9490739193"
+    },
+    {
+      "path": "kinocut/sound_joins/d41_bind.py",
+      "git_blob": "27f990eb34f14b3b34bcec01022331bf1b3122f2",
+      "sha256": "73e38b09e3765368792df0ba264f2eb414603c33953fc3ff58c9a562e32310b9"
+    },
+    {
+      "path": "kinocut/sound_joins/d42_bind.py",
+      "git_blob": "65bfb2866e233b0059f09faffd942becce420854",
+      "sha256": "4fab08833ed2d8e1b60ed1e8194f406e125a07ccd4c0d27700e2c5cba0f8b40a"
+    },
+    {
+      "path": "kinocut/sound_joins/loudness.py",
+      "git_blob": "ffef7620f522d2e0d1614909fa5c5bd33501fa81",
+      "sha256": "8e7fdccd9cb8d8d0b9288cc35e39fa1d2de5b029cc053be259d7317e2c8a4e66"
+    },
+    {
+      "path": "kinocut/sound_joins/scheduler.py",
+      "git_blob": "79146257718b39cab7f823eeacb795509c85650c",
+      "sha256": "11b9c7d86985d3dd4b194d25b4d8ac1734d1071d0d8aabdd01bab3dc71a738a6"
+    },
+    {
+      "path": "kinocut/source_identity.py",
+      "git_blob": "b241ed50108ba021ac856e7aec59592cbdd4cf78",
+      "sha256": "b0ae3a4c1b8954ee286b771d1d05e8221f80e6937e9069e0175bdfe52cb0bbe6"
+    },
+    {
+      "path": "kinocut/still_plates/__init__.py",
+      "git_blob": "116d65b0b3bf63c2cda755259b943dc375012891",
+      "sha256": "59be043b74502ee319b1061eb407b716fe6cd3de2e22a6b15898fd10a4dbe554"
+    },
+    {
+      "path": "kinocut/still_plates/edit.py",
+      "git_blob": "3e3b36624c77cfbac945148934d73f543ca0b726",
+      "sha256": "a60e9876760637e64267d955d22cf88bcc2554681220dab4c23df8f2da9b4554"
+    },
+    {
+      "path": "kinocut/still_plates/gate.py",
+      "git_blob": "c1d19150886066f2886b261fb0c57088387414a6",
+      "sha256": "28cb416b4030898446933c814a65a0af1a50aa2c3c98ee311f0e3cd3351d4669"
+    },
+    {
+      "path": "kinocut/still_plates/grade.py",
+      "git_blob": "9608e5815379268ce2e109aee1bae045fde4f08a",
+      "sha256": "fc53e41bf874722ab2d523754a8694ee0d7d35d70a3cd5ef3741184fa6dc0a11"
+    },
+    {
+      "path": "kinocut/still_plates/io.py",
+      "git_blob": "4ff27b61e3ff9ff5355cfc0885f5c1b46bdca5f0",
+      "sha256": "054a723031f6812f7f8dde9b6ad01e7e63e474357b89f53e15bf390d07a27396"
+    },
+    {
+      "path": "kinocut/still_plates/match.py",
+      "git_blob": "b6c67fba96bf28788535ea8b022155a2d9b5e334",
+      "sha256": "0fa999ef4d7d5482f3b9225cebe2ca9c8a70afc0b6d298d9ae63b9df9813673f"
+    },
+    {
+      "path": "kinocut/still_plates/package.py",
+      "git_blob": "43697650a2c112404cd27021eb55575f442022fe",
+      "sha256": "e574591e210adf3d5d091e8b83eeee5a5cdd0be44823cdde6c8ce9e9bb28d660"
+    },
+    {
+      "path": "kinocut/still_plates/stats.py",
+      "git_blob": "2bc52f697b17e6202cb51307e0bd3aabfd0836eb",
+      "sha256": "737a08ef9e174dda36de2a70a278ce5408a5e351bbf860b9fe87cffb7d250909"
+    },
+    {
+      "path": "kinocut/subtitles_common.py",
+      "git_blob": "5005bbe4f82cf0bc0b0116b967efce0a89c4b603",
+      "sha256": "36bea78f92dba9fd143e52a0dd4a391f3f87610a659c987c58d3e93f6d2dccf1"
+    },
+    {
+      "path": "kinocut/subtitles_eof.py",
+      "git_blob": "bb9a38ddad28c9bd68a8f04cafab3ea0eb2e4fb2",
+      "sha256": "a56f3c7a3dc55478c5b558587d893905e9c6a1d1d1df48ad0cfa68b3bd093502"
+    },
+    {
+      "path": "kinocut/te/__init__.py",
+      "git_blob": "f540bdff1343f2f410ad72d6e729e0b59adfb81d",
+      "sha256": "a0d850abd860d65c5f8b6eb965bc36f525762c2ff44a6c09a3d3abc93bdf18be"
+    },
+    {
+      "path": "kinocut/te/audiogram.py",
+      "git_blob": "e36e758d4aeb778d9875a38235dfd5d926450573",
+      "sha256": "5bdc23557c8bf1f39876e47e108b041bfaf5e4609497cf7b765df36502493946"
+    },
+    {
+      "path": "kinocut/te/brand_kit.py",
+      "git_blob": "0451d94f6a75855f13c9a307410e483665c58475",
+      "sha256": "f549e6dd27539880f775c31b26f10bb10dc1fced7be0bdf9e2b2fe4d36cbede0"
+    },
+    {
+      "path": "kinocut/te/constraint_solve.py",
+      "git_blob": "bc55e6565df503141044dc475a9657f031a57ff1",
+      "sha256": "7e808018f8bb8de7eed697d3bc47eb3374ebedacc487573dc19b7a5ac8e16c0b"
+    },
+    {
+      "path": "kinocut/te/cost_oracle.py",
+      "git_blob": "670238189ce64970639d15745b5549cbed2746d2",
+      "sha256": "20b590afeee71a282afb9e4267c96a6244237ecafb151bbe928031d2936a4889"
+    },
+    {
+      "path": "kinocut/te/cutfile.py",
+      "git_blob": "2a0af253b00f0d20b2c1cf4872eef512e002da49",
+      "sha256": "d11e0b8a6ef0247573c56f06d77aee042310c6fede0d4afed684f7145ce23787"
+    },
+    {
+      "path": "kinocut/te/cutfile_render.py",
+      "git_blob": "f5ab1c97023c8277fcaa8267d0045f97333f59dc",
+      "sha256": "45aeef79416e1df801a265879336a7c04c9dc10557f9439850711ba742a4a56e"
+    },
+    {
+      "path": "kinocut/te/edit_session.py",
+      "git_blob": "25a68b9a55f9ef84a72c52475cb64ff34d8ff410",
+      "sha256": "3f4d727fb62eb8a3a05ab3e62db510c71d1e8c65caa46b6a7bd12b6877b76e24"
+    },
+    {
+      "path": "kinocut/te/edl_apply.py",
+      "git_blob": "7aadc5acc47f7901e6faeab19526eab6a055e0c0",
+      "sha256": "ca7007651fd8865cfa4a83552f9d2c63b5da191651d2eb780d602330152be545"
+    },
+    {
+      "path": "kinocut/te/goal_cutfile.py",
+      "git_blob": "ba370c001a674c66e75d0bd5b52994963138da9a",
+      "sha256": "928d59a0dbde11454f5b945620cf56b221f9970fcd51906eef0485ba40f7b673"
+    },
+    {
+      "path": "kinocut/te/hooks.py",
+      "git_blob": "bf2ac780ed48104757ee937b498c98905da7b5a4",
+      "sha256": "b7fb922c9a30130e467a70e54edc6d09c3306f0fe543e5f761c4b692d8a1adfa"
+    },
+    {
+      "path": "kinocut/te/init_project.py",
+      "git_blob": "2cf886b4f6ef029433b4235bad054015043dbbfe",
+      "sha256": "4acc70075f5915c435cb44948229348a6049e67e97629c14278963f10ea6c673"
+    },
+    {
+      "path": "kinocut/te/publish_connectors.py",
+      "git_blob": "50340b03d3c25378475ca065a7fb459b38b77b0a",
+      "sha256": "ce127826180d26eb214e36487bf56ab583f80aa43e40ac3cacb0cd82924da902"
+    },
+    {
+      "path": "kinocut/te/punch_zoom.py",
+      "git_blob": "e5b31df51dfdbd909a1914be8de213044aa389db",
+      "sha256": "e4b53624999d47801a1b302693ee2d076076e4ad9879811584909741784f1a62"
+    },
+    {
+      "path": "kinocut/te/receipt_diff.py",
+      "git_blob": "9099ae330ebf28aa705d6a54b1ebb8e6b8a5e633",
+      "sha256": "dda5de70034ea4e3518c9a48b5b0d1b9774db296e0c6ef932cb5ff1d5a6eb840"
+    },
+    {
+      "path": "kinocut/te/seek.py",
+      "git_blob": "5c2dc33f2f50f1c3ecafc502d8eb83cbb3bac35e",
+      "sha256": "e48bf11090e163a50b8e55edb9a3ac4c0967c69dc2894be9dc9a47994fa833e8"
+    },
+    {
+      "path": "kinocut/te/sphere_assembly.py",
+      "git_blob": "2a8f07b72216b5679be63044d0d841634d282a8f",
+      "sha256": "78e7bfcfd92164fb8e951e8641a8a599df773401a0bd3467d02c6f0afba16d0f"
+    },
+    {
+      "path": "kinocut/te/sphere_director.py",
+      "git_blob": "4cb2b42c6385475b64e0b276057d8219de520c73",
+      "sha256": "5da0ddf43d6056e25c606c3f4fc33fbd5cb1d67c274dcc275b804e5bd4413e9a"
+    },
+    {
+      "path": "kinocut/te/sphere_filters.py",
+      "git_blob": "5647ea3059fb69febe8f38e60d14cc954117cf89",
+      "sha256": "8be7bda067bf83e883a407b3878f376d95f9118f4435570a3d4b390f1b9260f3"
+    },
+    {
+      "path": "kinocut/te/sphere_graph.py",
+      "git_blob": "7c1f90ba5baffb82636983924f23c2042685ca15",
+      "sha256": "7925161ffb6efff42b6eec82550f1fb3bbf71bb02aec85d7045faf4d675b1438"
+    },
+    {
+      "path": "kinocut/te/sphere_plan.py",
+      "git_blob": "a94ad82c7eb72797ed31cff458343cb32dd04efd",
+      "sha256": "6c5c5e73b8cc509586c14c3cc2f2b7ab8fe9162b5b0d974bb346c5e596c61274"
+    },
+    {
+      "path": "kinocut/te/sphere_probe.py",
+      "git_blob": "c101dc09b1b0cfd7e9f4f25d875186778e480f2b",
+      "sha256": "b71b152cdcb837ba3f74c8b585a797e83add848721bc9221804ef3fd48419b64"
+    },
+    {
+      "path": "kinocut/te/sphere_render.py",
+      "git_blob": "df71556e2c5b53da4c893e61b2c24a1101ba5bb5",
+      "sha256": "95de16295593cf414bd84d27c2597818b6c326139b07d1b8646045f5ce0639ba"
+    },
+    {
+      "path": "kinocut/te/sphere_storyboard.py",
+      "git_blob": "293af41538baa126ae85eed6479bf20a32e26897",
+      "sha256": "5d0c1e074ad90cb66a067b0db503673e27ada3e3bde2a765493bd92fa8247c2e"
+    },
+    {
+      "path": "kinocut/te/timeline_view.py",
+      "git_blob": "43120411d953d09dad6191d27898e0927725dcda",
+      "sha256": "438c10cf73ecb4a77f9a67fd3bcb14767f0a3b96b024cd9f0736c9aae4d5c4da"
+    },
+    {
+      "path": "kinocut/templates.py",
+      "git_blob": "1cf476d2c855d328b7b19075f70357db7dc7e7f2",
+      "sha256": "d8894edccb1c3116d3983678552b1e6eb11502d249fb95717c4abf920e922b2c"
+    },
+    {
+      "path": "kinocut/timeline_ir/__init__.py",
+      "git_blob": "806538778585a8a65328e1d3bcfc6259947ae3d4",
+      "sha256": "4729974151a0eb7ffc0bd7ffdf97960f6b8ed9640734f857648efb6faee98411"
+    },
+    {
+      "path": "kinocut/timeline_ir/compiler.py",
+      "git_blob": "8ee0b94e02ced80e29f1d39837c4d80fa947cfe3",
+      "sha256": "a69cb55dcc4cc84e2fe6ab0d7c6578222a98d6403c9180ce1aac156e12fbaa6a"
+    },
+    {
+      "path": "kinocut/timeline_ir/schema.py",
+      "git_blob": "0c3886d0a1d2212a3add38d55b789b751c7e0d69",
+      "sha256": "b33ef75768e0a62d7d973b10772d48ea0a9a5fe5744cc2520039af2a349efa04"
+    },
+    {
+      "path": "kinocut/tool_discovery.py",
+      "git_blob": "23b2e923722266bdf7aa7ec2259c5b2507b386fc",
+      "sha256": "93474c86b8c8c392870265bbf2a614966824df960ac0f81e7472dc04b1fc8c85"
+    },
+    {
+      "path": "kinocut/transitions_engine.py",
+      "git_blob": "751dddbd85af1385c8a258ab3a52bcdb021eaf51",
+      "sha256": "1b5defbb4b1f2ab20614c5b2af123dd606b5ede9cc20aedee5745cee4add9839"
+    },
+    {
+      "path": "kinocut/validation.py",
+      "git_blob": "f1658c293fbb3f8f2f4a2a512dc5c09021597b8a",
+      "sha256": "094ad4df875f9ee06700ec53e61887a5974cca43e7e1d2d1450ba01f378d8ebc"
+    },
+    {
+      "path": "kinocut/visual_intelligence/__init__.py",
+      "git_blob": "b146847000fe0ed26188ceb438fbcf5a4fd24c0f",
+      "sha256": "c2dfd73da859e8829fa2c9107f252d027855d317e1b7a0c5887acb172a38b6a6"
+    },
+    {
+      "path": "kinocut/visual_intelligence/analysis.py",
+      "git_blob": "4aca01cf8590f2e5fbd99510284870e64773b1a6",
+      "sha256": "e797eeb53d86f52f8b04b772adfeda98d3947fbecdf326ffdb28f1e06498588c"
+    },
+    {
+      "path": "kinocut/visual_intelligence/models.py",
+      "git_blob": "bafb5cca59f714d896b99f7ab20444d8077c7720",
+      "sha256": "a50fcc2dff7e4546c5b3e21a6e097ad1ac4c41c549e0980a7b6d74e28a5e380a"
+    },
+    {
+      "path": "kinocut/visual_intelligence/reframe.py",
+      "git_blob": "d9a2f81cee0fa3cd014a1828d292b6d49a781801",
+      "sha256": "80b72fce3c96a2352cce39ae2e6cd939bc1d49becdf50492d56d5145fc204a0b"
+    },
+    {
+      "path": "kinocut/visual_intelligence/reframe_render.py",
+      "git_blob": "271fda4edc8d0bbc0139ea472430b24f7fd0c5bf",
+      "sha256": "72096bb4d11d0d324269c16767cc7110e28577a4073922d43095d978f8d91ce8"
+    },
+    {
+      "path": "kinocut/visual_intelligence/stabilization.py",
+      "git_blob": "a463066bbb0fa0da05c50fc26464ab8b17dcf617",
+      "sha256": "2788ee7e193e537f4accbf475db5faa9ab507b5d20825d261b6556e3f4f8f94b"
+    },
+    {
+      "path": "kinocut/visual_intelligence/verification.py",
+      "git_blob": "5275c28b9a7e9059e1f53f71d7d6f01a04e3a4f2",
+      "sha256": "1776a11fd4c89e5db4bcaae3e9939233a1b9e9d7fb8525b36546b7e028d2d803"
+    },
+    {
+      "path": "kinocut/watching/__init__.py",
+      "git_blob": "4f62a80d1b765832c7cab50100d7967066cd1f77",
+      "sha256": "25749bf509bba420b93aeb93a7f61f1c7bfe17536d002c97b3bf2d5bcf39dbde"
+    },
+    {
+      "path": "kinocut/watching/metrics.py",
+      "git_blob": "d1c8164e239dfc80fe7c3d6faffd312d8b159bf8",
+      "sha256": "822ca7d0fbfdb8e97d42b77730fedcc824d7146ae066d66310c345c29e330ccf"
+    },
+    {
+      "path": "kinocut/watching/mutations.py",
+      "git_blob": "b24e4f3c9fea0347d97ef2c08d0280789ec4c7c8",
+      "sha256": "e9381029c810d570bd93a18bee9ea794732834df0a0c09e9230e1f8bfa9d5ebe"
+    },
+    {
+      "path": "kinocut/watching/narrative_qc.py",
+      "git_blob": "baa46599194747ddf0075ad789ce38c70d8f7a90",
+      "sha256": "a15017954b419d808fdfa552a6e666f1113603dc670c5f2f7c49f0ef0e33202a"
+    },
+    {
+      "path": "kinocut/watching/review.py",
+      "git_blob": "e25327ba443ad7864ff560ab176db6417895b4eb",
+      "sha256": "8338f3e941ecdb386cf26cbe7e23204a0a87c816036f63b1612fdde2c15b1f53"
+    },
+    {
+      "path": "kinocut/watching/vision_qc.py",
+      "git_blob": "1c5446217136fa31e61ce87e6061559acbf5c036",
+      "sha256": "93ff03e9db6fa35465f22cd1596388489074f38accf6e91b6231e4dc83981405"
+    },
+    {
+      "path": "kinocut/winners_bundle.py",
+      "git_blob": "7b29363ce2a898e63f35de63a5add07405f05e4a",
+      "sha256": "a4dfb1a0ef81e0faf72174bce27f2ebc414a39993088b7b6fc715e799c5f7cc3"
+    },
+    {
+      "path": "kinocut/workflow/__init__.py",
+      "git_blob": "7a85b2f3af5ce12da6b150ca387a34144d9e53d4",
+      "sha256": "992fec36a44261d6c5cce1d56288c9b9590d6cfab867bf21bac4d36b7e0b63ef"
+    },
+    {
+      "path": "kinocut/workflow/_errors.py",
+      "git_blob": "1a4f0b38bb1011be0170cb30ee49b37b2eaad28e",
+      "sha256": "593a67f1dfb8e92fad4e39c1f2194a341e5e8522c93b071bf14280e987ff6f43"
+    },
+    {
+      "path": "kinocut/workflow/_versions.py",
+      "git_blob": "a394e2cc2698ed20076477c86f03398f55243b2a",
+      "sha256": "ca8e8645491614c14e447fb432643a48fecb9b74f3162211c5e09c156d5338bd"
+    },
+    {
+      "path": "kinocut/workflow/composite.py",
+      "git_blob": "50225d7e07dae6af55a4ce61767c442a351a2130",
+      "sha256": "2656f0161b5b46d6d4b1cfc368bab3359b5caf6c775bac7f2f952f331cfae0d3"
+    },
+    {
+      "path": "kinocut/workflow/executor.py",
+      "git_blob": "b4c84ee377ff4b67f905db09e3eb0e834f0aa3e2",
+      "sha256": "35cf125b4e8f2044b369f9df7e5013fb9b6e4422230a844c69f7c2b39fdd5cbc"
+    },
+    {
+      "path": "kinocut/workflow/inspector.py",
+      "git_blob": "8666b508b5aef6272d6d5f299424ad1c35bb4a30",
+      "sha256": "a7b96affec96265fb65fadb4024dc138bd5ad399ab89918e267ad7cccd1e4fd6"
+    },
+    {
+      "path": "kinocut/workflow/ops.py",
+      "git_blob": "01d4fbd0dfcc7ba3a367bd9e4e43d5243198462b",
+      "sha256": "47ff0b1008919c46dac5efa0d6b827298d70e923d75d68a3149b01ccba36a70d"
+    },
+    {
+      "path": "kinocut/workflow/planner.py",
+      "git_blob": "2fde6f4d179822bab22a49c1489256123901eb94",
+      "sha256": "a1e989033bd7453b8bc4cb46c9b27c5529a38467dc61290b2520b1772a10bd6d"
+    },
+    {
+      "path": "kinocut/workflow/receipt.py",
+      "git_blob": "d713c810bcba00e1a1a71e488830d5af41470c8c",
+      "sha256": "d9f821a1db111fb638e2c2b07d84d56d9fd58f7e4575039b09934619d5fc76d2"
+    },
+    {
+      "path": "kinocut/workflow/spec.py",
+      "git_blob": "8a468de733831726c0340147cb0dce72f06ffb71",
+      "sha256": "dac3918b3534e62185a546766d03a4d41df6740fbf03f67687c070c487928f55"
+    },
+    {
+      "path": "kinocut/workflow/validator.py",
+      "git_blob": "15e45686f048490a92db386ef2354e17284eac4c",
+      "sha256": "0a4cc3dd6fa4d89198ee9d0af700730b17365261114a0b8ba91d7d15615e0609"
+    },
+    {
+      "path": "kinocut/workflow/variants.py",
+      "git_blob": "19a186bc08bb25d7bdb7b3eb60492d5db01d406b",
+      "sha256": "058b2c789fb167c042caea2e316482cd269faca8763542d2a2395218e713ba10"
+    },
+    {
+      "path": "kinocut_sound/__init__.py",
+      "git_blob": "7180843fccdd5f3b22249ea4e6ca950d7d830796",
+      "sha256": "b73eea38d77fcf537d9cbb48144d8938ee62015e02e3ec91bd3fb033b737d197"
+    },
+    {
+      "path": "kinocut_sound/_assembly_integrity.py",
+      "git_blob": "5862ed77e743f84138f27a152d63e17a49ba990b",
+      "sha256": "d76348450fbb9281a23d210fb2fda651d233b0f9db0200da2e410c4e0368b34e"
+    },
+    {
+      "path": "kinocut_sound/_canonical.py",
+      "git_blob": "edac41e74541750a9d8011e1dc1747db4a1b1ed2",
+      "sha256": "c457678d328ee287da8ecd9f18ea360cb7405cb2ffbe1c1de95ce71c78f9637b"
+    },
+    {
+      "path": "kinocut_sound/_errors.py",
+      "git_blob": "84d590a3e369b51c1496fcaab68995f334ac0360",
+      "sha256": "825b0eb9693d20de992fa906cb8c40a5f4afba3e936e620ea52bba3b46369c15"
+    },
+    {
+      "path": "kinocut_sound/_input_bounds.py",
+      "git_blob": "bc67a2c0e98b0d2eb5ca2996afc61ec4ee295b2c",
+      "sha256": "9b8daf40d77a8b06c9ad14e2c446805a4f73d623084e42ffb2a1eb9a2b048f2b"
+    },
+    {
+      "path": "kinocut_sound/_model_boundary.py",
+      "git_blob": "08a14fee0f38b1c32d5227ce05bd91957a8edac7",
+      "sha256": "20d9e9f241a18d8b1780ff8cca5613bcbd9727b62e8ebeb966f19762dc37b019"
+    },
+    {
+      "path": "kinocut_sound/_process_ownership.py",
+      "git_blob": "6bfc59f6609bb89e2369a373995801f7dcdd2efb",
+      "sha256": "3e28210002e01c6e7db4a532adb84a7f61e6e85b3a74402072374246755501a2"
+    },
+    {
+      "path": "kinocut_sound/_script_integrity.py",
+      "git_blob": "3f30babf064b81a4d0f4131c6e68f47316c06997",
+      "sha256": "9c5c63ae0e2c1c75c0889cd764eee91e253c127453e397a6c5e5fbbd7e22d448"
+    },
+    {
+      "path": "kinocut_sound/_script_resource_limits.py",
+      "git_blob": "cf5ea7f10397a086f6ff5529821965ff0d6159a3",
+      "sha256": "e5cac1aa078e8f70b457ef21515c3c606c1dd3763e5da9521b817b52c41d6338"
+    },
+    {
+      "path": "kinocut_sound/_timeline_identity.py",
+      "git_blob": "c1b1fca61331939d50279363593aad66864d5188",
+      "sha256": "6ceb2fe35c6813cc025ed5a549d279ad2bf49fc285fa59aca7caee19f531a746"
+    },
+    {
+      "path": "kinocut_sound/authorization.py",
+      "git_blob": "13c8c152e5dcdde31b300b18e5ebb462c85931b7",
+      "sha256": "a858e69339076d629e43310d27bb83a472bf24acd6f70d5e8179eb540af041e0"
+    },
+    {
+      "path": "kinocut_sound/authorization_privacy.py",
+      "git_blob": "d4f5a842d63b541b2ca22ae1340fccb0b4f063f6",
+      "sha256": "fe661d204fe4824a9f8e05a290a814af7ee41b881e6d7d717080c96155907d2b"
+    },
+    {
+      "path": "kinocut_sound/capability.py",
+      "git_blob": "b6fc16305bc4a3280cafc2fe96ec282cb3ab747c",
+      "sha256": "972734621890bbf71a9c524d9a29a73584a83dc833748c612e5e4ba60c695c59"
+    },
+    {
+      "path": "kinocut_sound/captions.py",
+      "git_blob": "ad6b24efefd7f242176ca8016804969045286a48",
+      "sha256": "7717558d85e195bf72066b83f3e6fc2ef2128aef2b39e6135bf1b93090e543ec"
+    },
+    {
+      "path": "kinocut_sound/consent.py",
+      "git_blob": "07d86d5e17f886fc4c4fd6091965c60eb9c5f0d6",
+      "sha256": "d52fb5c6c3de130fa0a74223288724e7f784eed43c9e4363f67dccc9c3d68963"
+    },
+    {
+      "path": "kinocut_sound/defaults.py",
+      "git_blob": "db3f9be3487a3f417ed5789d9700b3f2f1290ebb",
+      "sha256": "e1fc79fa5e87e5e94658b1392bbb5b7de005f81c79458f01091a66671d031b00"
+    },
+    {
+      "path": "kinocut_sound/delivery.py",
+      "git_blob": "549055aaba72d342b7b0a3c09f5d5a1656c5d4ed",
+      "sha256": "e8a7662793ddcb8641162d0362cc2c70c3acbbc9cbdeeb64b17ef4f04244fe5e"
+    },
+    {
+      "path": "kinocut_sound/episode_assembly.py",
+      "git_blob": "a2fa1c280a7bcb898aacfdc5ca7265af7c62baa9",
+      "sha256": "67aee12f52a327cecc2ced94c7aef63715507f8dd255396f8e0695a03f0f0335"
+    },
+    {
+      "path": "kinocut_sound/format.py",
+      "git_blob": "e4fc0cb680799de01f230f4ac747531ba8d85aec",
+      "sha256": "8176c72c977ba639972c1b8f93915fc8520bfe196485324d30bbda965eb252d3"
+    },
+    {
+      "path": "kinocut_sound/limits.py",
+      "git_blob": "7e01a82c2d9940dcdc78cef40006d464f0469c63",
+      "sha256": "49d25b7d2d4b4d89080783bca0da666da2b9334b0b597ebbd7c8dfc49e3c5a5f"
+    },
+    {
+      "path": "kinocut_sound/lines.py",
+      "git_blob": "311edad70e71a39799c9f5a68d4abce7af9760fd",
+      "sha256": "af63e8e8cf70969ea2e31f147ee1cbdb638e445a16b9b8de08979663e978e1bd"
+    },
+    {
+      "path": "kinocut_sound/mix/__init__.py",
+      "git_blob": "3ad2e56a07a9fa7a33b8ae299141b720b6739c33",
+      "sha256": "2c0495a134dc7b7c582e60eec1c70e55b3ab63daf6368e44610deeafa08aaae7"
+    },
+    {
+      "path": "kinocut_sound/mix/_errors.py",
+      "git_blob": "551762bdaf6fd0ec442e670273e806f5d62775b9",
+      "sha256": "ed9e301fa6b0830a373ddfaaef00136c50ee68e9a894b4fdd3c5f4f06c8a9970"
+    },
+    {
+      "path": "kinocut_sound/mix/_wav.py",
+      "git_blob": "f1de99eacd5453e0300ee1ea7318085d1e7fe8d6",
+      "sha256": "aba3c8f91acddd175000f6e7c7307318bf5cf8a376f74d3752c7ed083ba583b8"
+    },
+    {
+      "path": "kinocut_sound/mix/automated_routing.py",
+      "git_blob": "c33568b6463110d96097ef5589e0d3fc18bfbbab",
+      "sha256": "2b4b6327d8451a65b449760c381434a6adac0e7f9e955408b9baccbe8adcd197"
+    },
+    {
+      "path": "kinocut_sound/mix/automation.py",
+      "git_blob": "378ab89d9dfecf92d4603f65a6643c8861f527a9",
+      "sha256": "250ccd51504e662b148f2843d817682d368d11c085f33d5394b0bdbc5354ddb6"
+    },
+    {
+      "path": "kinocut_sound/mix/bus_buffers.py",
+      "git_blob": "3a62d36094f1d9d5e7866bbd00de7e148b5572df",
+      "sha256": "ae57da5613eea42306a3e0bdb99067e9b26e8e97b3ec14ea204426055fee613d"
+    },
+    {
+      "path": "kinocut_sound/mix/bus_sends.py",
+      "git_blob": "6d5d6f85946c805a1da7f0b45ecd78c3b639fdc2",
+      "sha256": "14f24150fe3d196c2d99af4857cc2f5b3530eef43d65eadbc72afe1db8f8d670"
+    },
+    {
+      "path": "kinocut_sound/mix/bus_sidechains.py",
+      "git_blob": "0de92c22f1ad51f6c0d98b40e48a99a01f2d759e",
+      "sha256": "b2d32f76f2b8e578d0b9a071c6ff9bb31f5cbbb9339c0930e33151347aa0b26c"
+    },
+    {
+      "path": "kinocut_sound/mix/crossfade.py",
+      "git_blob": "296582b7d64f20062043de6613bf8e0ebcd20871",
+      "sha256": "b8834e1d987a99bc9b5e7d9f5687625aa9df0eba852616053420097d63014cfa"
+    },
+    {
+      "path": "kinocut_sound/mix/ducking.py",
+      "git_blob": "ca0ec45979fd4cc9b3f40a299bdda5f7d591c8ab",
+      "sha256": "32770d709178638ea18588ef8ebd43a07f1615c52f6c117b1627c6df11026233"
+    },
+    {
+      "path": "kinocut_sound/mix/latency.py",
+      "git_blob": "c43085feaa76028d82c9b7bf8346c40cc51c068a",
+      "sha256": "1cdadc0efb90d6f6cd9dd4eda1e39320fe0bf853c20c7074ee6cfcdb2f10d650"
+    },
+    {
+      "path": "kinocut_sound/mix/layer_ducking.py",
+      "git_blob": "7268ebc2d91ddcfeed3aecf742103701950b533e",
+      "sha256": "8b499e39dcfd64882342e7704b24ca308dd6242729fbed1dec6c8d96ea02f1ad"
+    },
+    {
+      "path": "kinocut_sound/mix/layer_work.py",
+      "git_blob": "6bb92eb58b1611193ba77ff0ece8169a219d50b0",
+      "sha256": "640ee3934f4aae6396e1bcb92508ce05c99edce11b0ac9a30f9b718d6e831fe5"
+    },
+    {
+      "path": "kinocut_sound/mix/layers.py",
+      "git_blob": "cc81f47fdca75035b38c3f6e49946dd433f3f23f",
+      "sha256": "d792e70d3bb73679402b44a8d63b8c07d60b4389c2fccfb1500b43bf6c20f6ee"
+    },
+    {
+      "path": "kinocut_sound/mix/pcm_ops.py",
+      "git_blob": "10fb0f80213b2e7fef407b1badbc2f842b78f711",
+      "sha256": "6b109663a529eec1405e7a2c5bb6ce5e1b4bc5fb6a4a18d0bb150d3390b964d3"
+    },
+    {
+      "path": "kinocut_sound/mix/placement.py",
+      "git_blob": "bc693feb97b7f2d91df32203d6990697fccd6080",
+      "sha256": "408cee50b91d7067d6100f8efce365f60499d1fa3e3029595275eb9cd6730e11"
+    },
+    {
+      "path": "kinocut_sound/mix/renderer.py",
+      "git_blob": "42a9064cd65ab8811e5fb58dd942eb270ad9216e",
+      "sha256": "328ad513bf0d9b2fa7b10e4d304307e00171c06f25c4e3ea0ec0cc1d53553783"
+    },
+    {
+      "path": "kinocut_sound/mix/routing_protocol.py",
+      "git_blob": "73f42cbdfbae05a8f0d606dc5bb78d100d13418d",
+      "sha256": "5f6d174990011357678896e476558513c2f6cebdcc699f542a171a504e874961"
+    },
+    {
+      "path": "kinocut_sound/mix/seam.py",
+      "git_blob": "3e6ba00aa8870919d9f56061eadd69664c3b7761",
+      "sha256": "390ab9df4621690fecf88ee18fd8da6ae200ef1363d84c525c97fd5cff6c062e"
+    },
+    {
+      "path": "kinocut_sound/mix/sent_routing.py",
+      "git_blob": "4e229beadcab5cfa16c3b2b238c0bc9f059a525e",
+      "sha256": "aeeb4b2d9f4640de1868b093cda658df16c24d808b09a614c38d7ded481423b6"
+    },
+    {
+      "path": "kinocut_sound/mix/sidechain_routing.py",
+      "git_blob": "1db39e1c2155e3069617142b7eeff1965a5b320e",
+      "sha256": "e19fcb3c5ce3cab69d044e2e57b5939394e275dafd295dd2167913418330f53e"
+    },
+    {
+      "path": "kinocut_sound/mix/silence.py",
+      "git_blob": "453afd7e6041f7d74e301bda989294573955678b",
+      "sha256": "a5a2a6f14f083ade4401b3ebf0c4a2e09a15b38489bb1294ab8f2f5bb06b2ec3"
+    },
+    {
+      "path": "kinocut_sound/mix/source_windows.py",
+      "git_blob": "07e21b3d39c10d56d1e4d573370237f3494fc5fa",
+      "sha256": "c713400d83072516117bf42fb78114b654c0ad2ca2ca2aca19af8619c07fd16d"
+    },
+    {
+      "path": "kinocut_sound/mix/static_routing.py",
+      "git_blob": "9bbba253280e4e126c1f5e4ed2aa7dbee76f9737",
+      "sha256": "d33c792ccd0d4aa4c541b244d9a29f6a300ee7b4c9c7100a091c893c75be04e5"
+    },
+    {
+      "path": "kinocut_sound/mix/stems.py",
+      "git_blob": "3b43c4a13900f3879e55ede732fff3fca138e3ed",
+      "sha256": "3af62a35aeba01863cac8040e4d2495f070f1a032823cec87a9bf978100e3a73"
+    },
+    {
+      "path": "kinocut_sound/mix/transitions.py",
+      "git_blob": "7693f89a51165e758c6c5bb3d62ee396b4925b49",
+      "sha256": "8e87ee184ea6560a591abf7691d83ed66a65cd9b228f7a6527bcde0134c242c0"
+    },
+    {
+      "path": "kinocut_sound/post/__init__.py",
+      "git_blob": "07d4072386b85b46e5a426b4c386f8384307dc73",
+      "sha256": "862e88acbd069409967618ea7678873ff2a3a622a48e823f6b3d886f2522a3dd"
+    },
+    {
+      "path": "kinocut_sound/post/_errors.py",
+      "git_blob": "c1a6a9a84a312c959ede15d51d49a96298d008c2",
+      "sha256": "4f86653af6200f971f805df478682a112386ca7bbdfc2b6a220d933106e31ed3"
+    },
+    {
+      "path": "kinocut_sound/post/_fixtures.py",
+      "git_blob": "85fbf0a93dddac505cce792c2b088dfe5f2410d6",
+      "sha256": "17d53a0547a625615e632e76cd007f4feab59281fe04aed2b39004007ad5c5f4"
+    },
+    {
+      "path": "kinocut_sound/post/_subprocess.py",
+      "git_blob": "93bf9118ac737009931fff7c00356771476d6a86",
+      "sha256": "2620276a5c1cb3f2d987372bdc5881e798a4ba2e32c2667155d58800d4964201"
+    },
+    {
+      "path": "kinocut_sound/post/batch.py",
+      "git_blob": "74dea84f5d8c624138a59e8c9f299e81bbde666b",
+      "sha256": "5c5f8ce0314d79019f2039690e841d27b10510a50b3d0184f1f674bb0fa5dd7f"
+    },
+    {
+      "path": "kinocut_sound/post/chain.py",
+      "git_blob": "5f2077c99b017d697d136dddb3b17392b72d4dc4",
+      "sha256": "35fce1e43a5d07971817a34191ea38b047a2ea4a820c0badb6fd070f6e03301c"
+    },
+    {
+      "path": "kinocut_sound/post/deess.py",
+      "git_blob": "7b46cf553e3908cdafca8a7c397bdcf4513f1e0f",
+      "sha256": "6b2cda6eac7ec8b6bda9a8589cf858b5952ab70106031fecc8c183b9a356e51b"
+    },
+    {
+      "path": "kinocut_sound/post/denoise.py",
+      "git_blob": "0097148d059740a8da58e957a62f99cb011ce041",
+      "sha256": "d97a7dd974ba20cac7d3b0a5d1212ff44f31bee9445d51cf93eb43294b9cf924"
+    },
+    {
+      "path": "kinocut_sound/post/dynamics.py",
+      "git_blob": "3a29fd3a0d41d9f9931f41081a4c0c98488ea932",
+      "sha256": "5c74c78f11d540935f449b4934e9d956e0c3491eadd4cf6f44e77ef2af571340"
+    },
+    {
+      "path": "kinocut_sound/post/eq.py",
+      "git_blob": "cb8e9bc1d5080a2e713477d30331b094a59b459e",
+      "sha256": "a00e246e017d561eee20e768a784ee7ae77c5c5ce58abeacc0d646a40cde7045"
+    },
+    {
+      "path": "kinocut_sound/post/loudness.py",
+      "git_blob": "793b524c94766b080cc6049046c841dc348ccada",
+      "sha256": "fdc8a5089be633728194eb15e7a0f9c030d611bb11716d71cd787861dfc8a415"
+    },
+    {
+      "path": "kinocut_sound/post/spatial.py",
+      "git_blob": "2c34d8f069f5425e69b3ab66d53024be904a7d9a",
+      "sha256": "72234057ccad3f8e24afbaa15d2346ebaa27231a803b0059009f773e4858c9ef"
+    },
+    {
+      "path": "kinocut_sound/provider_policy.py",
+      "git_blob": "1fb09d99067d386b5bd7ea30627381bba2172987",
+      "sha256": "5a057adfa99e18ba36b92d3de99a66f9a5a8b85bbe3980fd7dd9e3bddc493a8c"
+    },
+    {
+      "path": "kinocut_sound/public/__init__.py",
+      "git_blob": "36d0013ac0c846444ed3b12d2deb56d0577a23b6",
+      "sha256": "754377cf924ae8676e23f8539adf2a8af99dd15b0e36ad578816447a7180a694"
+    },
+    {
+      "path": "kinocut_sound/public/adapters.py",
+      "git_blob": "e31bbabab2a8d771de7176ce2d1f339f4ba70f7d",
+      "sha256": "ee54ef1fd57597099489abb20da566a3952ad36ead5100282466099a3dd14b6a"
+    },
+    {
+      "path": "kinocut_sound/public/asr_bundle.py",
+      "git_blob": "14e1ff4d4455208b14f4af436d209260fdbb0aa1",
+      "sha256": "3df3be2798aa61755d904dcb5fb70d06a9a10f856c041809bc2c4b1c77c3cebb"
+    },
+    {
+      "path": "kinocut_sound/public/asr_compare.py",
+      "git_blob": "9b4d6461807eed49255d67ee0a56cd86bcf9738a",
+      "sha256": "6cfa9bf8ee080b3f610bb05006f681c4c3aee43d9802768d451531c6be974fe8"
+    },
+    {
+      "path": "kinocut_sound/public/asr_job.py",
+      "git_blob": "4be3c57686d47def17a6c40598427228c7984cca",
+      "sha256": "9c0d7774d66bfa69c77208b9a4105526f8ad17eef9b62ee96f9166176cbed480"
+    },
+    {
+      "path": "kinocut_sound/public/asr_request.py",
+      "git_blob": "2251c3f8d59b816e5e96b0f009671c1675358551",
+      "sha256": "31b3e987a217b10a2af4da7a519df963894c6b27d1df73e73fd81e2eb63e3893"
+    },
+    {
+      "path": "kinocut_sound/public/asr_runtime.py",
+      "git_blob": "04dcc8e5c0ae552db8319e7481769ad84e87bd28",
+      "sha256": "7d9f8307ea3538891d496d89c3b77d86936c69f52adfde3ad88d8dfbf4c53972"
+    },
+    {
+      "path": "kinocut_sound/public/asr_worker.py",
+      "git_blob": "077c72c39de1ea96b99c6b6a8f64d663284b8542",
+      "sha256": "9e5a34c816fad6f497c7edc1b8a06a7ea35353e9a5f4e3a4cce330ed9233dde2"
+    },
+    {
+      "path": "kinocut_sound/public/discovery.py",
+      "git_blob": "2931008eaba4ead27aec53180272fa8833c07e1c",
+      "sha256": "5785ea934df551dc706cd8bb56bc09176a5b8f333a45499518810da5e6c69487"
+    },
+    {
+      "path": "kinocut_sound/public/dub_bundle.py",
+      "git_blob": "01d51140b1a491d331c0994e7cb03b9fa4c6a949",
+      "sha256": "b53ded01fe37d691f7b1a3da6fefd7fac0858f7ce997696ddd6149f8bcc40cba"
+    },
+    {
+      "path": "kinocut_sound/public/dub_job.py",
+      "git_blob": "213fb03508c8a0666446c8d6236be3995756aec1",
+      "sha256": "5dd2532d81046c85df06f39ef61d31a69f46a6728f3732345801923d56711a56"
+    },
+    {
+      "path": "kinocut_sound/public/dub_process.py",
+      "git_blob": "86c0de3040e4801116f5ef2dae43a4b40195d5c0",
+      "sha256": "2fc38dbf1ceead5c5c8c3b96620673b57c31315bf7e68dea87a8cb1acc2760da"
+    },
+    {
+      "path": "kinocut_sound/public/dub_request.py",
+      "git_blob": "0abc2306de842a46c31ba2ebb206883bee910945",
+      "sha256": "a97bb4cafbc92b372ee6eabf21d2129512f92d65a308f93a0b379ab353648609"
+    },
+    {
+      "path": "kinocut_sound/public/dub_spatial.py",
+      "git_blob": "701bc48a62876e511953498b5b3f154fe82b8709",
+      "sha256": "566b48e7fd9790c28b088e92876469ef87c14f7431f149708be35956640c07ca"
+    },
+    {
+      "path": "kinocut_sound/public/loudness_request.py",
+      "git_blob": "c334511ed2a83e2fbab247c5fe82b2dd4818bef4",
+      "sha256": "6e267b46841be67b2a0862256f8eae49b479a015a1fe5f0e8bdb7b25be5c7eec"
+    },
+    {
+      "path": "kinocut_sound/public/master_bundle.py",
+      "git_blob": "f309e921d4b2c736cdec03c252e579dffdfd45a9",
+      "sha256": "f29efd8a60741f3e882046cd850712ab0961b06b717a8acf028f15b02b2a4b00"
+    },
+    {
+      "path": "kinocut_sound/public/master_job.py",
+      "git_blob": "60a9d2e643f3622ec1570d38a8836d9b2480ec91",
+      "sha256": "97b8eecd6fba769e956ae8ff9cc1b4339fc80be02bc8f8eb2a94ee71172d9e2e"
+    },
+    {
+      "path": "kinocut_sound/public/master_render.py",
+      "git_blob": "6d7c68a28e1d2f4107bdb82ee890da9a1b2967ab",
+      "sha256": "0d649995c43897ed02157d239074ce17cb3cc79d619d355a91f7ecd371e8bff5"
+    },
+    {
+      "path": "kinocut_sound/public/master_request.py",
+      "git_blob": "b104ffd56d39c3aed889cc08ba65226e90ed5321",
+      "sha256": "5b8afe641d46b5d6487c00c1ba0417954f9b0be2a5ed1177f20db922691433d0"
+    },
+    {
+      "path": "kinocut_sound/public/mix_automation_receipt.py",
+      "git_blob": "2df9ea13f2dcdc023f8049232de1062917d1f84d",
+      "sha256": "a72e4560def0e1d2ec5db365daac42b1bffbe9555bcead8b5d8e717c94da6cc9"
+    },
+    {
+      "path": "kinocut_sound/public/mix_automation_request.py",
+      "git_blob": "f016ac0eacb96c738235ea8fd33ca4e2c020139c",
+      "sha256": "4a32817172db76f8775cfe5eac2122c8af202573954b546376381236d644a901"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_backend.py",
+      "git_blob": "84cd6b71251d423ef79c31be4afe817211278857",
+      "sha256": "949f45bfb92a2c6d50bab21d77d9736e66c9d18b8736b3c71b94524e76aa13c4"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_job.py",
+      "git_blob": "bb1c43807de6ad611758daf4d3a647c0b3585031",
+      "sha256": "507970ac11c800213e811df9aea7bfed585942d36d313f2518e99a6a2c9d6840"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_manifest.py",
+      "git_blob": "c8f9620462628aba462c78a2f7c9a8dd394676fc",
+      "sha256": "1efb430032a44c6f0bd5a623d5ee2cf07054360943b5e8c5db29073f9b90f335"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_prepare.py",
+      "git_blob": "fe6a3ea80b7e0447a7cbf29b2199ddb8e610968f",
+      "sha256": "cb409b9e6511748203aadf7e4d953f6fc6022b53bec5be7949a2a7d7b7e9990b"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_proof.py",
+      "git_blob": "2a145989fbe53223a246c81a2ccf37e61ec04e17",
+      "sha256": "eccdc8390beddb3b66832afb5baab0a0259e8de267ed07a5604b47763897d38a"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_shape.py",
+      "git_blob": "dd6bc3850f5ee928adb43dc3689598e61613decd",
+      "sha256": "38d053a0f609dea2d0d94c12f250375f7ed6610e8329d21280e8e93b3f130a8e"
+    },
+    {
+      "path": "kinocut_sound/public/mix_conversion_sources.py",
+      "git_blob": "0562cfa84034ba2737c373328847a5139bcd92bf",
+      "sha256": "da8998f43a624f8314592d3648afa2af398dba958dc4dd5abcd18263f3ab8496"
+    },
+    {
+      "path": "kinocut_sound/public/mix_files.py",
+      "git_blob": "45605d8f74a88a570e5c0687c490e2f1370e30d3",
+      "sha256": "ec5dc47a28baf5367ed933122a9f482b0a9c556d4f4d8e82c105f04f3e183322"
+    },
+    {
+      "path": "kinocut_sound/public/mix_job.py",
+      "git_blob": "43ae7902d345947c635019dcc706a137ee5a905e",
+      "sha256": "1e9f5b6d1d1d410e2692a7fdd7a9506b727f7d2decee46390b3b12dce6eb3ed9"
+    },
+    {
+      "path": "kinocut_sound/public/mix_layer_ducking.py",
+      "git_blob": "48d5c874e25258da57a702e4fcfe23e16db709dd",
+      "sha256": "2411a6b2f314db4f0162ebffac20d6a2287e0b7a3a455485ccfa8d81baac4e9a"
+    },
+    {
+      "path": "kinocut_sound/public/mix_layer_receipt.py",
+      "git_blob": "f09a140e095eb7f20309b605f9de1b4849cfd9ee",
+      "sha256": "6626f8d5c965d31d0e2c2654a7f878792266e8484b2694f40406f9e6f01c24e3"
+    },
+    {
+      "path": "kinocut_sound/public/mix_process.py",
+      "git_blob": "95ae4559737bc4bc65aa927bfb1dab90e8bc8e8c",
+      "sha256": "2ca58fdc3f7e45dce586d3a9f4ee8cb8bb3df1b6367f4f38b6046787e5cc83be"
+    },
+    {
+      "path": "kinocut_sound/public/mix_process_async.py",
+      "git_blob": "f3b3845f8c65c887c2f67c0096ab1c67d6a6d66e",
+      "sha256": "6339f2be1f18e4c77b530bfc953ab6382cee0cf7dba417f2404d16af30dfe318"
+    },
+    {
+      "path": "kinocut_sound/public/mix_process_output.py",
+      "git_blob": "d2ef2e49b0ed5cab11c3aef55b121764a0403378",
+      "sha256": "944af3557d9ef9784697e0a2bee6cab5321abc64f2ddfcac76d4c028f05c0e88"
+    },
+    {
+      "path": "kinocut_sound/public/mix_request.py",
+      "git_blob": "9bb21a98a005ecb878e159d44dce4743922647a1",
+      "sha256": "923d84d0290e1af3a6a0b2444b02a5456a193ebc5ef7ee261f4976291a4c8c1d"
+    },
+    {
+      "path": "kinocut_sound/public/mix_request_v2.py",
+      "git_blob": "bbf3169080733b42b0d91f122f4d46e4ae584cfa",
+      "sha256": "c2e989c3dd2c81cd1e24eb73df8ec6a6169789991421802c5da2d97e246295ea"
+    },
+    {
+      "path": "kinocut_sound/public/mix_request_v3.py",
+      "git_blob": "6258c7f182356ef36da7b31693166a9f62eee551",
+      "sha256": "12be39b47782032ac0236ba45ac94794960eba4bfe4fc7964eb50234f70566c4"
+    },
+    {
+      "path": "kinocut_sound/public/mix_request_v4.py",
+      "git_blob": "22b6016008e936eff81f201e6d0447c8f5b053d8",
+      "sha256": "67e719710871dd6e994e58bfa4ca86f912e79ef3a182636c365e50ef59f6e225"
+    },
+    {
+      "path": "kinocut_sound/public/mix_routing_receipt.py",
+      "git_blob": "4ea178f449e9ca5e5431b76fc0eede2b540e7ec1",
+      "sha256": "8cf6dd4a507870c6a72401b9f0a0320c26ec4dddd0c104c2cba6856e3a9a3e65"
+    },
+    {
+      "path": "kinocut_sound/public/mix_send_request.py",
+      "git_blob": "bdbb6176ad30d58cca1f0edc8d619da4cd2b0cfe",
+      "sha256": "bdefc6d90cf7a21feba2e3efaa47d428cc5ffbc69d962a03fdf620d81f3c9e24"
+    },
+    {
+      "path": "kinocut_sound/public/mix_sidechain_request.py",
+      "git_blob": "59869d29ea1f32ac365d3c52524dd4f4f26d601b",
+      "sha256": "6f46652ed3895e3f6f42c55d93dcb9977d4da6f77cac607779963d453233e175"
+    },
+    {
+      "path": "kinocut_sound/public/mix_source_shapes.py",
+      "git_blob": "db3a190c2f96fc927572351be93a2be90d7824d6",
+      "sha256": "d20258e9a4b3b7239a40fe7f24c5a8bb6ad04dc881f0972ef02476f8e1011cc7"
+    },
+    {
+      "path": "kinocut_sound/public/mix_window_receipt.py",
+      "git_blob": "f8521fadb9a1413a08fd87e70da8c51950d55b33",
+      "sha256": "e7d213dbcfe25790a41e61606add5769d8e5ec876e7b3b1900d372ce21c8b177"
+    },
+    {
+      "path": "kinocut_sound/public/mix_worker.py",
+      "git_blob": "ffe553e11c2d14fc949741a26996decd99029f06",
+      "sha256": "dc400eb3c7e12ee645a13702bbd0122854aaaabdad34ccbde4443a82e7917e29"
+    },
+    {
+      "path": "kinocut_sound/qa/__init__.py",
+      "git_blob": "13a19d83f6d787a0a656d7e051b575a20929f548",
+      "sha256": "127248bc0c66ed1fa640b4aaf581314e323fec8de2210d68f1142ca7381eee7d"
+    },
+    {
+      "path": "kinocut_sound/qa/_errors.py",
+      "git_blob": "df05875ea9784abd347ce710bfac423824774ba7",
+      "sha256": "cfff4c98af12203da95c9de29e1e78140397a5ec7a33fb03afeb54780dfa2fd2"
+    },
+    {
+      "path": "kinocut_sound/qa/artifact.py",
+      "git_blob": "7735dd262cbd6111880ccc44edfa04e7475d51d2",
+      "sha256": "899b38a2591eb734e27863e6354cdc3d2e3329be0274effce4aa793179ef0107"
+    },
+    {
+      "path": "kinocut_sound/qa/loudness.py",
+      "git_blob": "eb5abcfd8a802f65e159fa52416ad59b3918bc62",
+      "sha256": "753bf8c9eba69dcd6e448862bda0bc3519f26b65bd97813e3c4a12f4763cc288"
+    },
+    {
+      "path": "kinocut_sound/qa/metadata.py",
+      "git_blob": "060050eb50a65be9ebb807e1664fd924747c89f1",
+      "sha256": "5cde568cbb3bc7b44f2bd5384166fd3af9bd70439dcc6c1243cd31cc3d083ce3"
+    },
+    {
+      "path": "kinocut_sound/qa/meter.py",
+      "git_blob": "de7e7c97f604db3a976e831df674d86bc5594a3d",
+      "sha256": "1c5f21e6cb13a38a268e46b7389eaa45425d22f583a5126877e3ff4f615cad04"
+    },
+    {
+      "path": "kinocut_sound/qa/meter_process.py",
+      "git_blob": "5167d825450ed2237faa345d48b064ea61ae4b42",
+      "sha256": "168d98c36898bc980a09f87ffe8293ad8872110c4c6859493493d54d1d717275"
+    },
+    {
+      "path": "kinocut_sound/qa/season.py",
+      "git_blob": "0131dadd2ea7d658fb19aea6abeba16598bf6f98",
+      "sha256": "b150728f538f364c6a1dba98795fa3bf957b7e9636e85d5d2823a2c2e0edc401"
+    },
+    {
+      "path": "kinocut_sound/receipt.py",
+      "git_blob": "9af87fe71fc893286a1f73f82965a563ff7835b5",
+      "sha256": "2518e6e625dee349d1e5d7d204b0d26a5f97d214a6694ba9f74537b23fcd7c4e"
+    },
+    {
+      "path": "kinocut_sound/registry.py",
+      "git_blob": "6d1e9d6177c33a9d44e62a636dfbb48eae41025c",
+      "sha256": "d331434f07718f2836aede1bd37f2a66e8d16eb88a21492d34ab93a8fb8b3e50"
+    },
+    {
+      "path": "kinocut_sound/render_fingerprint.py",
+      "git_blob": "91518e9e9f00f49ffbdd55bf7bdc716097322e73",
+      "sha256": "a9f9cf1a0cd5fd7245b0e05f4bd9ed702ea0db19ca26e69defb74042e34af980"
+    },
+    {
+      "path": "kinocut_sound/routing.py",
+      "git_blob": "6a2a182f5348ed204ce5e4ba4fc1ae71209b4e57",
+      "sha256": "36e21633a5cc9164c3de99134d6c75a67c2f7c8d1ccb668a9228280d99901b65"
+    },
+    {
+      "path": "kinocut_sound/s3_cache.py",
+      "git_blob": "06dbbfb90171d6b814bb7cb980c0c825ea49daa5",
+      "sha256": "7ae53295ff1be92ec1e9caaad08e2c833ce385e1559ae52789c5be18b5c0706e"
+    },
+    {
+      "path": "kinocut_sound/s3_fingerprint.py",
+      "git_blob": "30dd5d640ac8864e5dd2a61f5b26f5124c0432f3",
+      "sha256": "92b5b59d0b52160c50dc9a4082f7305c357f1144d208b3632aadae67b658746d"
+    },
+    {
+      "path": "kinocut_sound/script_parser.py",
+      "git_blob": "24736019ef57ab23b016fc98c3aa3eac61afdd5a",
+      "sha256": "0927513dc9e8c496544995115f3b9115fdd1843d6b0cd29dd4104602daab69a5"
+    },
+    {
+      "path": "kinocut_sound/sound_config.py",
+      "git_blob": "774fe517821f5a8052aba2b1abfea65788e0bc72",
+      "sha256": "3242d91e0d9c664a6a5b806cc068e059ceb352438ed81760feda877304ff2cec"
+    },
+    {
+      "path": "kinocut_sound/sound_plan.py",
+      "git_blob": "0a7c374164f7a77dbfdcc9191255a8b0eb79e576",
+      "sha256": "d66161bb4b32f6777826e581253aeca6960f8b40af4643e14bbb24bb15f838ca"
+    },
+    {
+      "path": "kinocut_sound/timeline.py",
+      "git_blob": "e8cff9d30d0838e04d2aa30a400149204bfbe452",
+      "sha256": "ee214bfabc8331b28a8b65adc668d95781b0854c6144328109349782b1e67138"
+    },
+    {
+      "path": "kinocut_sound/validation.py",
+      "git_blob": "c6c6eb551cc8eb99a257d2bcb0e4b3da2a83df2d",
+      "sha256": "d4a199ee0f98ad8ee69097f03b00fbdd0d7c2b1cde8693f59ecdc57aa16e6abd"
+    },
+    {
+      "path": "kinocut_sound/voice/__init__.py",
+      "git_blob": "b321fb554f6d2e8a4928b68accc0273aff07002c",
+      "sha256": "da837ac964c5b46f43e3aaa56c85c4ae76c48958204c533fc84e86d081f3af41"
+    },
+    {
+      "path": "kinocut_sound/voice/_errors.py",
+      "git_blob": "b0197025d8fa13cb658536762e71b0983f96b44d",
+      "sha256": "7fab1b948cb000addb57b0a83bb4a93852767777686ee409ad7969ed6e3663bf"
+    },
+    {
+      "path": "kinocut_sound/voice/batch.py",
+      "git_blob": "1c361bf63ab7bd332b252bbb6c367d841f94dc1d",
+      "sha256": "a61e6990435b66e971adb8fec10d88612e39355610bda2c98c85986c404cdc22"
+    },
+    {
+      "path": "kinocut_sound/voice/blend.py",
+      "git_blob": "27cf49c472b747c400b39b10d0312ed6cfe8e7e7",
+      "sha256": "819598bda867db23d8600d743a90685d2902f52368e2c8db615840d9224eaf55"
+    },
+    {
+      "path": "kinocut_sound/voice/clone.py",
+      "git_blob": "5002647191bc09567e9e2e1fdda9947e330fa8c0",
+      "sha256": "be3e21258e98e36a163e6a172fc0e16aac91ba1a3fdefe7a52a17d050f62bf23"
+    },
+    {
+      "path": "kinocut_sound/voice/local_adapter.py",
+      "git_blob": "5a79f672178a9e025d5ef0c38da5f23367c771a3",
+      "sha256": "3f4e819fdb79e9e632052c6cca2914c905f88e387c73a6215fc0165bb2ad0112"
+    },
+    {
+      "path": "kinocut_sound/voice/pronunciation.py",
+      "git_blob": "7799594c35b3534647d4ea9428d2a81561727887",
+      "sha256": "c2c9bd3340bb39609c4a10ab3ecce484dbebca08011ca95ebddcc32aa2dd27e7"
+    },
+    {
+      "path": "kinocut_sound/voice/prosody.py",
+      "git_blob": "75493717ddacd2a945ba660493c35239187e0676",
+      "sha256": "9d80b510dd659de78dd867a5da843557d92f3ef295aa9d621d5fbaa7fcafaf01"
+    },
+    {
+      "path": "kinocut_sound/voice/roster.py",
+      "git_blob": "f2500ff992597c3b16987aa54a841c028489f55c",
+      "sha256": "358add1e89b5a8e7226ee9681a2e54963108dba5d72920cd6e6c0d48745c903b"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/__init__.py",
+      "git_blob": "23f42f84b24a3e7b98b8fff929f3eae026baffff",
+      "sha256": "74f8d78386b3b340e9fa2d51feba9b4a69b8bbec80a40d73d8a0510c424ca99a"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/_errors.py",
+      "git_blob": "6b8739cc4abfc68325b5a1c0c629a51385352a9a",
+      "sha256": "65594ae21e34b99f6e122a75149e90f6420443c116a8301ece1291b73a8bcd27"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/ab_reel.py",
+      "git_blob": "21e8ebf1b451d863a4d2dbf3c3ca94b9d35a9278",
+      "sha256": "b990b244e639c19731d5dd57ee97f740c5eafa8ef66cd03f25497ee28c47459d"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/d42_port.py",
+      "git_blob": "9cdcbafdf838c400c157d025838f94eebd209406",
+      "sha256": "75c7db381c5dd71283fb9cf7c539a4ed190e9974bb4074a7e97cacf9b9da4423"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/distinctiveness.py",
+      "git_blob": "1579a6c8525a59220fe0817ff7190377465886a9",
+      "sha256": "c5652acbda2ca56df6cb0ede1129d5a2af4115c42b4c6c3f3cad65a75232c6c2"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/drift.py",
+      "git_blob": "59d1233a461531103a313bd3d96ac53055b6c310",
+      "sha256": "13d7f3ca42eec4a48ef4998a17a25858329aa5de66477c99ff795400195c1af0"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/library.py",
+      "git_blob": "c5f574eefd7019f3407052edbf8929c171c26154",
+      "sha256": "adb53db2c7bdc843437bcfc234e962101449a55955f10af16e7acb9c7f99566a"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/metrics.py",
+      "git_blob": "615b2aeb500d90ea4fe44d76b4ce1a0d007fd7a0",
+      "sha256": "a9c2b38b33c7ab9682d8de94cbbaf1e00e230918eb94666cb6888b9cd8657381"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/profile.py",
+      "git_blob": "e64bcd78fa4b5071e116204283c7347de8a2c7ec",
+      "sha256": "3886aa90ef19df59b6456e94ebfa482bac282471a568662af0e2ddd072ea5b05"
+    },
+    {
+      "path": "kinocut_sound/voice_consistency/regeneration.py",
+      "git_blob": "dd735255e58ff9c558d67a69ca89e06682055e1d",
+      "sha256": "b8b237077e24f5e87508a6c429f2f3beeb3fd200d93e967c1ecb0dda3be52bac"
+    },
+    {
+      "path": "kinocut_sound/world/__init__.py",
+      "git_blob": "36004e2f0d5537f9c2a35e348376bbc58e94e199",
+      "sha256": "4507168ce6a7b113cb7836f87d6a25026d2f46583b9a6e13d58532148cfde306"
+    },
+    {
+      "path": "kinocut_sound/world/_errors.py",
+      "git_blob": "9d76619bb2ed6d8df3b3701cc79d0f0f24c8e351",
+      "sha256": "4d260d3f9f3c58905d447aeb894e0899d1964be31856405682659199750e5451"
+    },
+    {
+      "path": "kinocut_sound/world/audition.py",
+      "git_blob": "b3b0e6712c31740c1dd95a27c39663e96c5a2df2",
+      "sha256": "e03989479561205d25f331db2792090642b007a517e41645932e4e3be1ca4211"
+    },
+    {
+      "path": "kinocut_sound/world/catalog.py",
+      "git_blob": "727a798e4d8651c0c9954e4ec1608ff7ff165be3",
+      "sha256": "f974620de61fb65ed1103e31711205c1871ae6292c0a676ead46a80ffa8d448f"
+    },
+    {
+      "path": "kinocut_sound/world/d41_port.py",
+      "git_blob": "2aa9ef8f5afbe8e1026eb73275a51694015bc9b8",
+      "sha256": "25f7dbf373bf045f6052b6c4aede8f608a4de734068033f30af89100f7fb3485"
+    },
+    {
+      "path": "kinocut_sound/world/foley.py",
+      "git_blob": "daef64a8262a7b486617cc2fbd8e705968062f3c",
+      "sha256": "af506ecb288a1548400a68fc5d9e53a84bcf003e7b848f15610c26a676628f2e"
+    },
+    {
+      "path": "kinocut_sound/world/layers.py",
+      "git_blob": "d3576eb21b4c0c68071ed414952e346e0112ef6a",
+      "sha256": "905e1659019a930d7bcd44bdc4ce3401fe7b4d7cd4209987483f8ff97cf85a5b"
+    },
+    {
+      "path": "kinocut_sound/world/license.py",
+      "git_blob": "9b6b7b56e3be4280b8788a494ea603672552d2a4",
+      "sha256": "faf4de5ffdce4aac73ac6653cbdd8695a892b0833e3987a78ae368c1b921f2c0"
+    },
+    {
+      "path": "kinocut_sound/world/loop.py",
+      "git_blob": "9f2329504a5233c5cfa4017c65eec4e32d956bd4",
+      "sha256": "ddd9003fd89ff2cfdcdd553c28c3d116b67d86b26a31da971004b1f3209637e9"
+    },
+    {
+      "path": "kinocut_sound/world/presets.py",
+      "git_blob": "062835f811630c6389725c2a76e44af50d82353e",
+      "sha256": "12bee2ffca7236e335551f8bd40e617d08ad8545ad0110889eafa6d471d1caaf"
+    },
+    {
+      "path": "mcp_video.py",
+      "git_blob": "77d2b0528e36e0c24e16eb65e9910b6acbc14b8d",
+      "sha256": "2dd5554c211d869587c1718da3cbf73694695eb10ba933daaabe8c65c1307996"
+    },
+    {
+      "path": "tests/__init__.py",
+      "git_blob": "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "tests/conftest.py",
+      "git_blob": "a787e61548f40acaf8f75e65a470b561e28e5cc7",
+      "sha256": "002a8fd1085ebd7af0efb7f4993e935668983e51f3f4159c2032c037d78637d7"
+    },
+    {
+      "path": "tests/rescue_fixtures.py",
+      "git_blob": "7aad116d765ec1c6b1f5ddc2d36cb4ea0ab24db4",
+      "sha256": "d1f9290aefcefd30d6a838f7caf84e6be118f41d8086938975f301bd248370ef"
+    },
+    {
+      "path": "tests/test_audio_input_kinds.py",
+      "git_blob": "057a9b55c5927a4356f2ffd02301f6293c5f2579",
+      "sha256": "ca0c95a388fd42534cce4ecc3c92f79c95a6f914b131f0029fdc63eb18cfd5d4"
+    },
+    {
+      "path": "tests/test_audio_mix.py",
+      "git_blob": "0f449146c424712e89f22525cdc05780a1f0a15e",
+      "sha256": "42315270e913f5c1047041a69c17176cdb880945c51f22fb185043d8b504c31c"
+    },
+    {
+      "path": "tests/test_client_audio_contracts.py",
+      "git_blob": "22b99fa2d8de26816292aedf6f29fe68d699a2fa",
+      "sha256": "4923c8cf37f2e889ba00d6a7fa1932327bf6f34b532e8b695a8576a8923a5059"
+    },
+    {
+      "path": "tests/test_composite_blend_windows.py",
+      "git_blob": "f2c5f2fcbf182e74bb3be635676dd50d8abb63f1",
+      "sha256": "7c135b140aaf3f49577dbd10848c4954d1d47f568868975cf60fc156b70787d8"
+    },
+    {
+      "path": "tests/test_creation_prompt_contracts.py",
+      "git_blob": "d7c3d57535ad246c46f4df6b8fdbd1c0d63de77a",
+      "sha256": "165b9ab68df99746d2599857f588212cd9ab0d74516658fd9a13048db33a494e"
+    },
+    {
+      "path": "tests/test_crop_rotation.py",
+      "git_blob": "2e6274e2bd31573e775da831764dd47610443794",
+      "sha256": "cc462f2a25201a085a3bd3578ea942fe0d96440a3a70a4b9cad58db353d5d855"
+    },
+    {
+      "path": "tests/test_engine_composite_layers.py",
+      "git_blob": "302c2dcf0eb4854b08e26b95fe4f6e509abf082d",
+      "sha256": "180546244dacb17a62f9e6ade27410da379a26dabcfa6bf224fd592a3dc43bd6"
+    },
+    {
+      "path": "tests/test_hyperframes_output_contracts.py",
+      "git_blob": "90ee92688f582d5a697f59a449235ccd8b8c5035",
+      "sha256": "5b7fd799001c15b524b511c3d1865181c89cf2a05fda69a89461ba3680f4bab0"
+    },
+    {
+      "path": "tests/test_integrator_effects_quality.py",
+      "git_blob": "b1af3d3da0a17c7a69f9fc7e506e89ed6b582f32",
+      "sha256": "58033720004f56369ef43b43314e9639327727b2cd78d730ac4191e2002acf10"
+    },
+    {
+      "path": "tests/test_integrator_fixes.py",
+      "git_blob": "726ae2b9ec51001883597204c61c18bbbf6ba3d1",
+      "sha256": "2e0589b77e42e48ae7c35eed8f649c610d85d1fcafc71cbf0914acf90d1acffa"
+    },
+    {
+      "path": "tests/test_noise_reduction_default.py",
+      "git_blob": "2a21bd437d3b102ce5090186798c059639b59adc",
+      "sha256": "faa9cd4c39976f11072858b74fc3fea0df5eeac8be1367abf9ff858d27573c8c"
+    },
+    {
+      "path": "tests/test_sound_loudness_encoded.py",
+      "git_blob": "626f09a9aaad3f17e2111b2d4ba5fe7fc8844b9a",
+      "sha256": "aea1e23c919c235969c5f642cd9c267254b52482d36e745fd3b2ef01d87d69e5"
+    },
+    {
+      "path": "tests/test_sound_loudness_public.py",
+      "git_blob": "029aba0146838a682439049749865c45ce1d945b",
+      "sha256": "a775f077b3edf4fb99338bbf63713a85d7219bdf1367aeea9cda77f6d1e2ff8d"
+    },
+    {
+      "path": "tests/test_sound_measured_loudness.py",
+      "git_blob": "bce25a3ad99cd81fafc7604368154021977b2f87",
+      "sha256": "e639f40ce4c742ba610a17dd16902c1e5019fdab8df57d4c8bd6751ac1aaadd2"
+    },
+    {
+      "path": "tests/test_trim_accurate_seek.py",
+      "git_blob": "02f97193f49a1632de0a1db5a61793c64a486a9d",
+      "sha256": "03c93aff560dbd845d4ff2bb5d53d60f6b61ab0d3a9ee8f4bfcb4763704121da"
+    }
+  ],
+  "limits": [
+    "Only existing cached baseline files are listed; unexecuted tests are not inferred from source presence.",
+    "Original tests were copied with git show because repository export-ignore omits tests from git archive."
+  ]
+}

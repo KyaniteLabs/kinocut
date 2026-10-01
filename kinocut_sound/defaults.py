@@ -130,3 +130,9 @@ DEFAULT_ASR_DECODE = {
     "prompt": None,
     "prefix": None,
 }
+
+# Fixed anti-aliased ASR preprocessing, versioned by its receipt identity.
+DEFAULT_ASR_RESAMPLER_FILTER_SIZE = 32
+DEFAULT_ASR_RESAMPLER_PHASE_SHIFT = 10
+DEFAULT_ASR_RESAMPLER_CUTOFF = 0.97
+DEFAULT_ASR_RESAMPLER_GUARD_FRAMES = 1024
