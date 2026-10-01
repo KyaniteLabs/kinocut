@@ -139,3 +139,6 @@ MAX_VISION_REQUEST_BYTES = MAX_VISION_SAMPLE_FRAMES * MAX_VISION_KEYFRAME_BYTES 
 # Bound both dimensions of scene thumbnails, including extreme aspect ratios.
 MAX_AI_SCENE_FRAME_WIDTH = 320
 MAX_AI_SCENE_FRAME_HEIGHT = 1920
+
+# CI-only Hyperframes execution evidence; not a media or provider payload cap.
+MAX_CI_HYPERFRAMES_REPORT_BYTES = 64 * 1024

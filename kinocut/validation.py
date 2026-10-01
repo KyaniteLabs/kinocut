@@ -134,6 +134,9 @@ VALID_HYPERFRAMES_TEMPLATES = {"blank", "warm-grain", "swiss-grid"}
 VALID_HYPERFRAMES_QUALITIES = {"draft", "standard", "high"}
 VALID_HYPERFRAMES_FORMATS = {"mp4", "webm", "mov", "png-sequence"}
 VALID_HYPERFRAMES_RESOLUTIONS = {"landscape", "portrait", "landscape-4k", "portrait-4k", "1080p", "4k", "uhd"}
+
+# CI-only minimum for actually executed, successful Hyperframes integration cases.
+MIN_CI_HYPERFRAMES_EXECUTED_CASES = 2
 VALID_WHISPER_MODELS = {"tiny", "base", "small", "medium", "large", "turbo"}
 # Public remove-background models. Human default is people-only; the object
 # model is the product/catalog path (any SKU, not a brand-specific extra).

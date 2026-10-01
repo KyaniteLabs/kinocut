@@ -1,6 +1,10 @@
 {
   "sha256": {
-    "independent-review.json": "3e7d1d2c15a3253407244153820b77f413a1a6cc07c3e0b28e416723f7249ea8",
-    "full-serial.json": "5dc3a1603406cf1dd5bb283a4412399f4a26de7bdcba8065268051479f2c735e"
+    "build-source-binding.json": "0e2b2c485a19c4cd6c0341e2b10ea871649397dd5274109e3b34469047291d6c",
+    "full-serial.json": "9e6a56046cd1f295361a65a9b6181719291594fd134aaac8694be867617b4d00",
+    "independent-review.json": "c7ed451977f4866fc6bff0193a628cdc6496d6eab22b131aa50365fee2137106",
+    "initial-full-serial.json": "5dc3a1603406cf1dd5bb283a4412399f4a26de7bdcba8065268051479f2c735e",
+    "initial-hosted-ci.json": "fdd3397f881ea25e53cb21d61eb832bdc438f2d0d7f6f89f65efe6dd613fe8bb",
+    "initial-independent-review.json": "3e7d1d2c15a3253407244153820b77f413a1a6cc07c3e0b28e416723f7249ea8"
   }
 }

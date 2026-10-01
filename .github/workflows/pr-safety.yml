@@ -22,7 +22,7 @@ jobs:
           head="${{ github.event.pull_request.head.sha }}"
           changed="$(git diff --name-only "$base" "$head")"
           printf '%s\n' "$changed"
-          if printf '%s\n' "$changed" | grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml|scripts/annotate-pytest-failures\.py)'; then
+          if grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml|\.github/workflows/ci\.yml|\.github/scripts/check-hyperframes-results\.py|scripts/annotate-pytest-failures\.py)' <<< "$changed"; then
             echo "code=true" >> "$GITHUB_OUTPUT"
           else
             echo "code=false" >> "$GITHUB_OUTPUT"
@@ -52,8 +52,8 @@ jobs:
       - name: Lint
         if: steps.classify.outputs.code == 'true'
         run: |
-          ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py
-          ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py
+          ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py
+          ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py
       - name: Test
         id: pytest
         if: steps.classify.outputs.code == 'true'

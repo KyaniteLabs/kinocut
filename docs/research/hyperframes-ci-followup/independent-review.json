@@ -1,114 +1,57 @@
 {
-  "collected_utc": "2026-10-01T15:02:51.801393+00:00",
-  "review": "independent read-only workflow/CLI/JUnit review",
   "source_sha256": {
+    ".github/scripts/check-hyperframes-results.py": "5c40fd272889d9973b82fb2c42215d0c8513e3be4b5f005cd8e7e0840d0ba29e",
     ".github/workflows/ci.yml": "c5017344e51c03ce71d80225fe05a761c3e708632744653acd8ab1d9e2bd49d0",
-    ".github/scripts/check-hyperframes-results.py": "04d8ddb281483015baf94f9d1b4f6447070fbaf5c46388c68bed8afcaf42877d",
+    ".github/workflows/pr-safety.yml": "a5ebd2ba0cd89a589624ea74a7fedb617cce051978b9371e76a0bf738c5ce088",
+    "kinocut/limits.py": "843d5da211c4cc8f32129471c34e952569b2a804d3329f053e1782118f117e6b",
+    "kinocut/validation.py": "36ef47ebd8e05e90f6865113f469a7c8291dab65d1b8b815567c8595cf17993b",
+    "tests/test_hyperframes_ci.py": "b2690507f8fa1f9c3e0d8dc053c2a12e7ea4e640d9ae40fcdc1a721f86356abb",
+    "tests/test_hyperframes_ci_policy.py": "2c0a5bb078822e08ab528dfa56165eedc9c58a350d0a24ef9e894a0388f1dd59",
     "tests/test_hyperframes_engine.py": "7f13b160f3284d50ded74b9e6bf6c847629d15068cf6bed4ead135ad4bb0de03"
   },
-  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
   "hyperframes_cli": "0.8.104",
-  "actual_optin_tests": {
-    "selector": "tests/test_hyperframes_engine.py -m hyperframes",
-    "passed": 2,
-    "skipped": 0,
-    "deselected": 94,
-    "seconds": 1.0,
-    "pytest_exit": 0,
-    "checker_exit": 0,
-    "junit_sha256": "861c15aee8c48e56d0d6da5b3e03be434d74ea4984a28f1b4c450624a439b591"
-  },
-  "negative_optout": {
-    "passed": 0,
-    "skipped": 2,
-    "deselected": 94,
-    "pytest_exit": 0,
-    "checker_bash_exit": 1,
-    "next_command_marker_absent": true
-  },
-  "workflow_review": {
-    "yaml_parser": "system PyYAML6.0.2 parse succeeded",
-    "job_timeout_minutes": 30,
-    "npm_cli_pin": "hyperframes@0.8.104",
-    "npm_lifecycle_scripts": "--ignore-scripts",
-    "cli_install_timeout_minutes": 5,
-    "test_checker_step_timeout_minutes": 5,
-    "optin_scope": "only Hyperframes test step, MCP_VIDEO_RUN_HYPERFRAMES_INTEGRATION string1",
-    "shell_fail_closed": "GitHub Linux default shell -e, independent bash -e report rejection verified",
-    "junit_guard": "actual successful report accepted; actual optout skipped report rejected",
-    "concrete_correctness_issues": []
-  },
-  "scope": [
-    "Only CLI dependency checks and static safe HTML project validation; no rendering/provider/model/API calls.",
-    "No source edits, no commits, no dependency install by independent reviewer.",
-    "This does not assert rendered media quality or provider callability."
-  ],
-  "evidence_sha256": {
-    "optout.xml": "3aad9929538402318af284813fadfddf9bcd0d0adc997949182e660814fce3a6",
-    "results.xml": "861c15aee8c48e56d0d6da5b3e03be434d74ea4984a28f1b4c450624a439b591",
-    "optout-pytest.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
-    "shell-rejection.log": "d5b2b60287f5d292527257f0523f5bd51616d2e3c14e86214800784166edaf72",
-    "shell-rejection.exit": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
-    "pytest.log": "6a3cb353a1883998e27277c4eb074aaed0ada40592f077f7dcb187aa81b69411",
-    "optout.log": "cf3c6e0a9a5069e7375563cf6812d2b4047f8b7de863684e7663f8cda0c20ba4",
-    "pytest.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
-    "classifier-boundary.json": "fbf7ac4ed63456f7e711c7e0a758173574e3cef183824f4154b62f38df46b3a7",
-    "classifier-large-list.json": "0dacf34436b3ac9a86a5202477b285a842df0e4c973567ba7b192acef43f7731",
-    "classifier-final-boundaries.json": "45e61be29ed83f4f7e71a3f8e057d7c6c7731a341f31ab756ee736382cdc7213"
-  },
-  "workflow_before_classifier_refresh_sha256": "bda38d59dd29a1d80ecc0d851110f79e755e3a7638a2f8542c4aad11b657b56f",
-  "classifier_boundary_review": {
-    "tested_utc": "2026-10-01T15:02:51.801393+00:00",
-    "workflow_sha256": "c5017344e51c03ce71d80225fe05a761c3e708632744653acd8ab1d9e2bd49d0",
-    "actual_conditions": [
-      "grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\\.py|tests/|pyproject\\.toml|uv\\.lock|Dockerfile|\\.github/workflows/ci\\.yml|\\.github/scripts/check-hyperframes-results\\.py)' <<< \"$changed\"",
-      "grep -Eq '^(Dockerfile|kinocut/|kinocut_sound/|mcp_video\\.py|pyproject\\.toml|uv\\.lock|\\.dockerignore|\\.github/workflows/ci\\.yml)' <<< \"$changed\""
-    ],
-    "bash_modes": "set -euo pipefail",
-    "results": {
-      "checker-plus-large-docs": {
-        "bytes": 67544,
-        "expected_code": true,
-        "expected_docker": false,
-        "actual_code": true,
-        "actual_docker": false
-      },
-      "runtime-plus-large-docs": {
-        "bytes": 67529,
-        "expected_code": true,
-        "expected_docker": true,
-        "actual_code": true,
-        "actual_docker": true
-      },
-      "large-docs-only": {
-        "bytes": 67499,
-        "expected_code": false,
-        "expected_docker": false,
-        "actual_code": false,
-        "actual_docker": false
-      },
-      "checker-only": {
-        "bytes": 44,
-        "expected_code": true,
-        "expected_docker": false,
-        "actual_code": true,
-        "actual_docker": false
-      },
-      "docs-only": {
-        "bytes": 23,
-        "expected_code": false,
-        "expected_docker": false,
-        "actual_code": false,
-        "actual_docker": false
-      }
+  "cli_file_sha256": "d566bbc6149f07f76d2cef62ab687401f5245557581c4043403278ce20d6deb0",
+  "actual_controls": {
+    "optin": {
+      "pytest_exit": 0,
+      "checker_exit": 0,
+      "passed": 2,
+      "skipped": 0,
+      "deselected": 94,
+      "seconds": 0.82
     },
-    "yaml_parser": "system PyYAML6.0.2 parse succeeded",
-    "large_list_issue": "fixed: here-string conditions do not create printf-to-grep-q producer pipeline"
+    "optout": {
+      "pytest_exit": 0,
+      "checker_exit": 1,
+      "passed": 0,
+      "skipped": 2,
+      "deselected": 94,
+      "seconds": 0.22
+    }
   },
-  "resolved_classifier_issue": {
-    "previous_proof": "classifier-large-list.json",
-    "current_validation": "classifier-final-boundaries.json",
-    "status": "fixed; actual code and docker conditions pass large-list controls"
+  "optout_shell_exit": 1,
+  "optout_next_step_marker_absent": true,
+  "scope": "Actual local CLI dependency check and static safe HTML validation, no rendered-media/provider/model claims; no installs/source edits/Git changes by reviewer.",
+  "policy_checks": {
+    "passed": 51,
+    "skipped": 0,
+    "seconds": 3.56,
+    "log": "policy.log",
+    "large_list_bash_controls": "Actual ci.yml code+docker and pr-safety.yml code conditions executed with Bash -euo pipefail, early matches and docs-only 67KiB lists, five repeats per case"
   },
-  "cli_resolution": "explicit task-local pinned CLI"
+  "artifact_sha256": {
+    "repro.py": "c000327330d47ac7b0452e578b628bdea0b237a70c0db6ff6d2265edbff66ab7",
+    "proof.log": "f97bec363aca7c5db8590978092e55b7bc241969551db486ebc801481b629a51",
+    "policy.log": "db7921e266840e942c12d755054e5c130dfea4257ca00c80e271ead6aa63e149",
+    "optin.xml": "26941e8b016bce3d58a7f3738b182be85d08a6fd741ecd42d0ecb7d4d1066e08",
+    "optin.log": "90f6fae37324098564609f15eed117541d2fdef8f951a6d09bd160e1e8350eff",
+    "optin-checker.log": "3d512e0533230e4864c05e9a9524619c1cf502818fbe9bbf4f04177c528e5678",
+    "optout.xml": "01aa1992b3c30ca29addc20228dc07ecde6c4ecf82110085ecfed9832d365cfe",
+    "optout.log": "ebbd26a731c90f3084d61e418deb07f0be581ee3a0bd21543f2c3f400dc780ca",
+    "optout-checker.log": "d5b2b60287f5d292527257f0523f5bd51616d2e3c14e86214800784166edaf72",
+    "negative-shell.log": "d5b2b60287f5d292527257f0523f5bd51616d2e3c14e86214800784166edaf72"
+  },
+  "historical_initial_receipt": "initial-independent-review.json",
+  "cli_resolution": "Explicit task-local pinned CLI; private cache path omitted",
+  "review": "Independent read-only review of shared-policy and hosted PR classifier fixes"
 }

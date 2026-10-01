@@ -1,0 +1,323 @@
+{
+  "artifact_kind": "historical_initial_head_ci_receipt",
+  "scope": "Initial PR589 head only; does not validate later review repairs",
+  "pull_request": 589,
+  "head_sha": "77632f62c4204c5a1fcb135ff73fd6b2555c9469",
+  "base_sha": "6f0b9cbb73efe9b8435cf4f74145bbf48702c60d",
+  "generated_merge_sha": "dcf3cda94b66666fef195dcf8ce1294d59508ae4",
+  "head_and_merge_tree": "f79f196dda43a5f1141aad8767da263eb3b056c8",
+  "merge_tree_equals_head_tree": true,
+  "automatic_pr_checks_count": 8,
+  "manual_ci_jobs_count": 16,
+  "combined_checks_count": 24,
+  "all_checks_success": true,
+  "workflow_runs": [
+    {
+      "id": 36889830519,
+      "name": "CI",
+      "event": "workflow_dispatch",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36889176547,
+      "name": "Agent Law",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36889176602,
+      "name": "Staged MCPB",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36889176567,
+      "name": "PR safety",
+      "event": "pull_request",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "automatic_checks": [
+    {
+      "id": 110462653874,
+      "name": "Aggregate exact evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460297384,
+      "name": "Optional discovery and callability",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460296875,
+      "name": "Core runtime (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460296741,
+      "name": "Core runtime (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460296695,
+      "name": "Core runtime (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460126821,
+      "name": "Build and validate staged artifact",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460126426,
+      "name": "agent-law",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110460126416,
+      "name": "Hosted PR checks",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "manual_checks": [
+    {
+      "id": 110462428472,
+      "name": "FFmpeg matrix (FFmpeg 6)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462428373,
+      "name": "FFmpeg matrix (FFmpeg 7)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462428214,
+      "name": "FFmpeg matrix (FFmpeg 8)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462428067,
+      "name": "Compatibility (Python 3.13)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462428013,
+      "name": "Compatibility (Python 3.12)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427907,
+      "name": "Windows smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427850,
+      "name": "Compatibility (Python 3.11)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427829,
+      "name": "Minimal install (no extras)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427828,
+      "name": "Hyperframes integration",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427824,
+      "name": "Slow suite (real-media)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427785,
+      "name": "Docker build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462427765,
+      "name": "Test (Python 3.13)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462355311,
+      "name": "Package surface",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462355216,
+      "name": "Change detection",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462355156,
+      "name": "Lint",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110462354951,
+      "name": "Repository readiness",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "integration_smoke_scope": "Not triggered: PR changed paths excluded by existing pull_request filter; no inherited PR588 pass claimed",
+  "automatic_hosted_receipt": {
+    "passed": 8305,
+    "skipped": 50,
+    "warnings": 8,
+    "pytest_seconds": 653.0,
+    "python_toolcache": "3.14.7/x64",
+    "ffmpeg_version": "6.1.1-3ubuntu5",
+    "bounded_xdist_command_verified": true,
+    "lint_passed": true,
+    "formatted_files": 1136,
+    "exact_generated_merge_checkout_verified": true
+  },
+  "hyperframes_execution": {
+    "passed": 2,
+    "skipped": 0,
+    "deselected": 8517,
+    "pytest_seconds": 11.59,
+    "junit_guard": "2 executed, zero skipped or unsuccessful",
+    "source_head_sha": "77632f62c4204c5a1fcb135ff73fd6b2555c9469",
+    "source_tree": "f79f196dda43a5f1141aad8767da263eb3b056c8",
+    "scope": "CLI dependency checks and static safe HTML validation only; no rendering or provider callability claimed"
+  },
+  "native_receipts": {
+    "2_Core runtime (windows).txt": {
+      "summary": "129 passed, 50 skipped in 7.09s",
+      "same_merge_checkout": true
+    },
+    "3_Core runtime (macos).txt": {
+      "summary": "174 passed, 5 skipped in 54.19s",
+      "same_merge_checkout": true
+    },
+    "4_Core runtime (linux).txt": {
+      "summary": "176 passed, 3 skipped in 11.13s",
+      "same_merge_checkout": true
+    }
+  },
+  "mcpb_printed_checklist": {
+    "artifact": {
+      "sha256": "450e4f8d1705f7ee23463d61b6e6590f2cf077734d7dcab83854755264beeb1b",
+      "status": "built"
+    },
+    "artifact_kind": "mcpb_readiness_receipt",
+    "candidate_status": "ci_validated",
+    "desktop_install_review": {},
+    "hosted_runtime": {
+      "linux": {
+        "status": "passed"
+      },
+      "macos": {
+        "status": "passed"
+      },
+      "windows": {
+        "status": "passed"
+      }
+    },
+    "human_review": {
+      "status": "not_run"
+    },
+    "official_validation": {
+      "status": "passed",
+      "validator": "@anthropic-ai/mcpb@2.1.2",
+      "wheel_sha256": "bd10fab06caaea98f75b667800368e08123052d27fb29e763e2cc47012294f81"
+    },
+    "optional_dependencies": {
+      "absent": "passed",
+      "present": "passed"
+    },
+    "publication": {
+      "status": "not_attempted"
+    },
+    "signing": {
+      "rationale": "supported user-configured-local-access product",
+      "status": "unsigned"
+    },
+    "source_sha": "dcf3cda94b66666fef195dcf8ce1294d59508ae4"
+  },
+  "manual_ci_summaries": {
+    "0_Slow suite (real-media).txt": [
+      "159 passed, 5 skipped, 8355 deselected in 181.54s (0:03:01)"
+    ],
+    "1_FFmpeg matrix (FFmpeg 6).txt": [
+      "125 passed, 1 warning in 4.43s"
+    ],
+    "2_FFmpeg matrix (FFmpeg 8).txt": [
+      "125 passed, 1 warning in 4.20s"
+    ],
+    "3_FFmpeg matrix (FFmpeg 7).txt": [
+      "125 passed, 1 warning in 4.12s"
+    ],
+    "4_Compatibility (Python 3.12).txt": [
+      "8305 passed, 50 skipped, 8 warnings in 511.79s (0:08:31)"
+    ],
+    "5_Compatibility (Python 3.13).txt": [
+      "8305 passed, 50 skipped, 8 warnings in 431.44s (0:07:11)"
+    ],
+    "6_Hyperframes integration.txt": [
+      "2 passed, 8517 deselected in 11.59s"
+    ],
+    "7_Test (Python 3.13).txt": [
+      "8305 passed, 50 skipped, 8 warnings in 514.02s (0:08:34)"
+    ],
+    "8_Windows smoke.txt": [
+      "130 passed, 1 skipped in 16.78s",
+      "5 passed in 2.27s"
+    ],
+    "9_Compatibility (Python 3.11).txt": [
+      "8305 passed, 50 skipped, 8 warnings in 498.34s (0:08:18)"
+    ],
+    "10_Minimal install (no extras).txt": [
+      "123 passed in 13.65s"
+    ]
+  },
+  "review_status_at_snapshot": {
+    "unresolved_threads": 2,
+    "findings": [
+      "Move checker policy constants into shared config modules",
+      "Include checker path in pull-request classifier"
+    ],
+    "no_review_closure_claimed": true
+  },
+  "limitations": [
+    "Detailed artifact and per-job logs returned403; actual completed workflow ZIP logs were inspected.",
+    "MCPB receipt is ci_validated and unsigned; human review not_run and publication not_attempted.",
+    "Both Hyperframes integration cases executed; these static HTML/dependency checks do not validate rendering or provider calls."
+  ],
+  "log_archive_sha256": {
+    "pr589-safety.zip": "60a7dce58bff4542c832807c8eeaf8b0080547c36cd916b852d8d41c1547f07b",
+    "pr589-manual-ci.zip": "e05f53d4f12788ec073d2ee8454b924a4550d845a0500a9924c669402be36e1c",
+    "pr589-mcpb.zip": "ca9304355e6c7cee189a8e3a0ece0132117f1def70a63731e0281be7188a80be"
+  }
+}

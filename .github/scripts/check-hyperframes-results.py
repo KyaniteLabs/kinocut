@@ -7,8 +7,9 @@ import sys
 from typing import NoReturn
 from xml.etree import ElementTree
 
-MAX_REPORT_BYTES = 64 * 1024
-MIN_EXECUTED_CASES = 2
+from kinocut.limits import MAX_CI_HYPERFRAMES_REPORT_BYTES
+from kinocut.validation import MIN_CI_HYPERFRAMES_EXECUTED_CASES
+
 COUNTERS = ("tests", "skipped", "failures", "errors")
 
 
@@ -28,13 +29,13 @@ def _totals(element, expected: tuple[int, int, int, int]) -> None:
 
 
 def check_results(path: Path) -> int:
-    """Accept only bounded pytest JUnit with at least two successful cases."""
+    """Accept bounded pytest JUnit meeting the shared CI execution minimum."""
     try:
         with path.open("rb") as report:
-            payload = report.read(MAX_REPORT_BYTES + 1)
+            payload = report.read(MAX_CI_HYPERFRAMES_REPORT_BYTES + 1)
     except OSError:
         _reject("report is unavailable")
-    if len(payload) > MAX_REPORT_BYTES:
+    if len(payload) > MAX_CI_HYPERFRAMES_REPORT_BYTES:
         _reject("report exceeds its byte limit")
     try:
         text = payload.decode("utf-8")
@@ -65,8 +66,8 @@ def check_results(path: Path) -> int:
         _reject("unsupported case placement")
     if root.tag == "testsuites" and any(name in root.attrib for name in COUNTERS):
         _totals(root, (executed, 0, 0, 0))
-    if executed < MIN_EXECUTED_CASES:
-        _reject("fewer than two tests executed")
+    if executed < MIN_CI_HYPERFRAMES_EXECUTED_CASES:
+        _reject(f"fewer than {MIN_CI_HYPERFRAMES_EXECUTED_CASES} tests executed")
     return executed
 
 

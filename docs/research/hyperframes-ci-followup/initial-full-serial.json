@@ -1,0 +1,49 @@
+{
+  "command": [
+    ".venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 0,
+  "wall_seconds": 2276.7090002990008,
+  "source_identity_sha256": "202de724d5bed9457f5936473ed47d31ad0a43103ce14ff824953f5a617002d9",
+  "source_unchanged": true,
+  "file_count": 1215,
+  "passed": 8330,
+  "skipped": 189,
+  "warnings": 8,
+  "pytest_seconds": 2271.43,
+  "log_sha256": "909145eb20a727ff8b3cfdd462829375cf53a0751a140e06c7049a5fccbad873",
+  "cache_policy": "Explicit writable UV, XDG and npm cache exports; source unchanged",
+  "focused_guard_and_classifier_tests": 33,
+  "actual_hyperframes_cli": "0.8.104",
+  "actual_cli_integration_passed": 2,
+  "scope": "Full serial regression gate and separate actual CLI/static HTML validation; not browser rendering or paid provider quality",
+  "superseded_checkpoints": [
+    {
+      "exit_code": 2,
+      "wall_seconds": 586.298485223997,
+      "source_identity_sha256": "fff1c6179ab60e387ce9b37b507a0f62c853343722f00b3dfc8778cec3801f7e",
+      "source_unchanged": true,
+      "disposition": "Intentional interruption for helper-only change classification fix"
+    },
+    {
+      "exit_code": 2,
+      "wall_seconds": 121.99350057099946,
+      "source_identity_sha256": "3d213e35cf64109785fa88e7af2745972f11a9c304c048b5ef3f245c3ebfe78d",
+      "source_unchanged": true,
+      "disposition": "Intentional interruption for reproduced large-list pipefail classification fix"
+    },
+    {
+      "exit_code": 1,
+      "wall_seconds": 852.345225101999,
+      "source_identity_sha256": "202de724d5bed9457f5936473ed47d31ad0a43103ce14ff824953f5a617002d9",
+      "source_unchanged": true,
+      "disposition": "Failed package build because writable cache exports were omitted; fixed environment without source changes"
+    }
+  ]
+}

@@ -295,7 +295,8 @@ lint launch error cannot masquerade as successful validation. This validates CLI
 discovery and a small HTML project, **not browser rendering, pixel output or paid
 provider quality**.
 
-The follow-up required full serial command passed **8,330 tests, 189 skips and
+The initial follow-up head `77632f62c4204c5a1fcb135ff73fd6b2555c9469`
+passed the required full serial command with **8,330 tests, 189 skips and
 eight warnings in 2,271.43 seconds**, exit zero, on unchanged **1,215-file** source
 identity `202de724d5bed9457f5936473ed47d31ad0a43103ce14ff824953f5a617002d9`.
 Thirty-three focused guard/classifier controls passed. Two independent reviewers
@@ -307,10 +308,27 @@ full gate. After writable cache exports were restored, all 17 distribution
 controls passed and the unchanged full source passed. PR588's existing gates
 remain separate historical evidence.
 
+PR589 review identified two additional guardrail gaps. The result checker now
+imports its byte ceiling from `kinocut/limits.py` and its execution minimum from
+`kinocut/validation.py`, with semantic policy-change tests. Hosted PR classification
+also includes checker-only and CI-workflow-only changes, uses the same safe
+here-string construction, and lints the checker. Both actual workflow conditions
+have small and 67,544-byte changed-file-list regressions. All 51 focused
+policy/guard/classifier controls pass. The new required full serial gate passes
+**8,348 tests, 189 skips and eight warnings in 1,858.59 seconds**, exit zero,
+on unchanged **1,216-file** source identity
+`604be219d8f563d9a4dec5ad7ce0ad514dd8d183ed825976f8b0707b55a80631`.
+Independent review repeats both actual CLI cases with zero skips and the skipped-only
+shell rejection after the policy repair. Rebuilt wheel/source archive checks match
+all 645 shipped Python files against the frozen source; an isolated wheel import
+verifies the policy values and canonical Client identity, with existing dependency
+packages explicitly shared. These are new source-bound results, separate from the
+initial 8,330-test checkpoint and its 24 successful hosted checks.
+
 [Follow-up local receipts](hyperframes-ci-followup/README.md) include actual
 counts, command, source identity, log digest, independent review and payload
 manifest. Exact-head hosted results and eventual merge metadata are recorded in
-the [associated follow-up PR](https://github.com/KyaniteLabs/kinocut/pulls?q=is%3Apr+head%3Acodex%2Fkinocut-hyperframes-ci)
+the [associated follow-up PR](https://github.com/KyaniteLabs/kinocut/pull/589)
 and its Actions runs; local passes do not establish completion of those runs.
 
 Six issues closed with documented original-scope dispositions: 477, 481, 482,
