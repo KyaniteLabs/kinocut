@@ -284,7 +284,7 @@ and the same pinned CLI. The follow-up enables that flag before collection and
 requires actual, consistent, unskipped JUnit cases, rather than treating pytest
 exit zero alone as sufficient evidence. Checker-only changes are classified as
 code changes so future guard repairs cannot silently skip this integration job.
-Both code and Docker classification use here-strings: an independently reproduced
+The policy checkpoint used here-strings: an independently reproduced
 67,544-byte changed-file list made the previous `printf | grep -q` pipeline fail
 under `pipefail` after grep's early success, incorrectly classifying code as unchanged.
 The identical large-list fixture must retain its expected code/Docker results.
@@ -314,7 +314,7 @@ imports its byte ceiling from `kinocut/limits.py` and its execution minimum from
 also includes checker-only and CI-workflow-only changes, uses the same safe
 here-string construction, and lints the checker. Both actual workflow conditions
 have small and 67,544-byte changed-file-list regressions. All 51 focused
-policy/guard/classifier controls pass. The new required full serial gate passes
+policy/guard/classifier controls pass. The policy-stage full serial gate passes
 **8,348 tests, 189 skips and eight warnings in 1,858.59 seconds**, exit zero,
 on unchanged **1,216-file** source identity
 `604be219d8f563d9a4dec5ad7ce0ad514dd8d183ed825976f8b0707b55a80631`.
@@ -324,6 +324,39 @@ all 645 shipped Python files against the frozen source; an isolated wheel import
 verifies the policy values and canonical Client identity, with existing dependency
 packages explicitly shared. These are new source-bound results, separate from the
 initial 8,330-test checkpoint and its 24 successful hosted checks.
+
+Additional independent review found that Git's quoted Unicode/control filenames
+could hide code paths, and rename detection could omit removed runtime paths when
+the destination was docs. Both classifiers now consume NUL-separated records
+with `--no-renames`, including the entire workflow and CI-script input families.
+Their Git comparison fails closed, their private path list is always cleaned, logs
+escape filenames, and their classification phase is bounded to one minute.
+Actual isolated Git/workflow fixtures cover unusual names, deletion, both rename
+directions, large lists, malformed references and manual-parent fallback. All 148
+focused policy/classifier/setup/sound controls pass; independent review binds 96 Git/shell
+controls and eight XML adversarial cases to frozen 1,218-file identity
+`4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd`.
+Two obsolete sound-classifier regex assertions stopped the prior full run after
+6,096 passes and 161 skips; four actual Git/Bash sound-path cases replace them,
+while the remaining sound lint/format and integration-trigger checks stay intact.
+The final source-bound full serial gate passes **8,440 tests, 189 skips and eight
+guardrail-fixture warnings in 1,685.55 seconds**, exit zero, with all 1,218 source
+files unchanged. This result is separate from the policy checkpoint's 8,348 tests
+and 29 successful hosted checks. Failed and interrupted checkpoints retain their
+actual outcomes and are not counted as completed full gates.
+
+Seven Linux provisioning phases require both FFmpeg tools and install with
+`--no-install-recommends`, with a 45-minute phase cap. The existing Hyperframes
+30-minute job ceiling remains tighter. Safe tool-path fixtures verify present,
+partial, absent and failing package-manager cases while retaining version/filter
+assertions. Actual completed logs show a lean 87-package/62.8 MB/173 MB install
+against a default 100 packages plus four upgrades/105 MB/227 MB install; these
+cross-run footprints do not prove a timing speedup. The prior source's longest
+observed successful setup lasted 31m39s. Explicit version-matrix and MCPB native
+validation remain intact. The legacy main check context is preserved because its
+classic required-status configuration could not be read; its actual runtime and
+skip message identify Python 3.14. This preserves the existing status contract
+without pretending the name proves interpreter selection.
 
 [Follow-up local receipts](hyperframes-ci-followup/README.md) include actual
 counts, command, source identity, log digest, independent review and payload

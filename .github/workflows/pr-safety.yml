@@ -15,18 +15,24 @@ jobs:
           persist-credentials: false
       - id: classify
         name: Classify changes
+        timeout-minutes: 1
         shell: bash
         run: |
           set -euo pipefail
           base="${{ github.event.pull_request.base.sha }}"
           head="${{ github.event.pull_request.head.sha }}"
-          changed="$(git diff --name-only "$base" "$head")"
-          printf '%s\n' "$changed"
-          if grep -Eq '^(kinocut/|kinocut_sound/|mcp_video\.py|tests/|pyproject\.toml|uv\.lock|\.github/workflows/pr-safety\.yml|\.github/workflows/ci\.yml|\.github/scripts/check-hyperframes-results\.py|scripts/annotate-pytest-failures\.py)' <<< "$changed"; then
-            echo "code=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "code=false" >> "$GITHUB_OUTPUT"
-          fi
+          changed_file="$(mktemp "$RUNNER_TEMP/kinocut-changes.XXXXXX")"
+          trap 'rm -f -- "$changed_file"' EXIT
+          git diff --no-renames --name-only -z "$base" "$head" -- > "$changed_file"
+          code=false
+          while IFS= read -r -d '' changed_path; do
+            printf 'changed: %q\n' "$changed_path"
+            case "$changed_path" in
+              kinocut/*|kinocut_sound/*|tests/*|mcp_video.py|pyproject.toml|uv.lock|.github/workflows/*|.github/scripts/*|scripts/annotate-pytest-failures.py)
+                code=true ;;
+            esac
+          done < "$changed_file"
+          printf 'code=%s\n' "$code" >> "$GITHUB_OUTPUT"
       - name: Skip hosted checks
         if: steps.classify.outputs.code != 'true'
         run: echo "Code inputs unchanged; marking hosted PR checks successful."

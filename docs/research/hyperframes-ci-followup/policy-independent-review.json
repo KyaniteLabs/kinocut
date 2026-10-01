@@ -1,0 +1,57 @@
+{
+  "source_sha256": {
+    ".github/scripts/check-hyperframes-results.py": "5c40fd272889d9973b82fb2c42215d0c8513e3be4b5f005cd8e7e0840d0ba29e",
+    ".github/workflows/ci.yml": "c5017344e51c03ce71d80225fe05a761c3e708632744653acd8ab1d9e2bd49d0",
+    ".github/workflows/pr-safety.yml": "a5ebd2ba0cd89a589624ea74a7fedb617cce051978b9371e76a0bf738c5ce088",
+    "kinocut/limits.py": "843d5da211c4cc8f32129471c34e952569b2a804d3329f053e1782118f117e6b",
+    "kinocut/validation.py": "36ef47ebd8e05e90f6865113f469a7c8291dab65d1b8b815567c8595cf17993b",
+    "tests/test_hyperframes_ci.py": "b2690507f8fa1f9c3e0d8dc053c2a12e7ea4e640d9ae40fcdc1a721f86356abb",
+    "tests/test_hyperframes_ci_policy.py": "2c0a5bb078822e08ab528dfa56165eedc9c58a350d0a24ef9e894a0388f1dd59",
+    "tests/test_hyperframes_engine.py": "7f13b160f3284d50ded74b9e6bf6c847629d15068cf6bed4ead135ad4bb0de03"
+  },
+  "hyperframes_cli": "0.8.104",
+  "cli_file_sha256": "d566bbc6149f07f76d2cef62ab687401f5245557581c4043403278ce20d6deb0",
+  "actual_controls": {
+    "optin": {
+      "pytest_exit": 0,
+      "checker_exit": 0,
+      "passed": 2,
+      "skipped": 0,
+      "deselected": 94,
+      "seconds": 0.82
+    },
+    "optout": {
+      "pytest_exit": 0,
+      "checker_exit": 1,
+      "passed": 0,
+      "skipped": 2,
+      "deselected": 94,
+      "seconds": 0.22
+    }
+  },
+  "optout_shell_exit": 1,
+  "optout_next_step_marker_absent": true,
+  "scope": "Actual local CLI dependency check and static safe HTML validation, no rendered-media/provider/model claims; no installs/source edits/Git changes by reviewer.",
+  "policy_checks": {
+    "passed": 51,
+    "skipped": 0,
+    "seconds": 3.56,
+    "log": "policy.log",
+    "large_list_bash_controls": "Actual ci.yml code+docker and pr-safety.yml code conditions executed with Bash -euo pipefail, early matches and docs-only 67KiB lists, five repeats per case"
+  },
+  "artifact_sha256": {
+    "repro.py": "c000327330d47ac7b0452e578b628bdea0b237a70c0db6ff6d2265edbff66ab7",
+    "proof.log": "f97bec363aca7c5db8590978092e55b7bc241969551db486ebc801481b629a51",
+    "policy.log": "db7921e266840e942c12d755054e5c130dfea4257ca00c80e271ead6aa63e149",
+    "optin.xml": "26941e8b016bce3d58a7f3738b182be85d08a6fd741ecd42d0ecb7d4d1066e08",
+    "optin.log": "90f6fae37324098564609f15eed117541d2fdef8f951a6d09bd160e1e8350eff",
+    "optin-checker.log": "3d512e0533230e4864c05e9a9524619c1cf502818fbe9bbf4f04177c528e5678",
+    "optout.xml": "01aa1992b3c30ca29addc20228dc07ecde6c4ecf82110085ecfed9832d365cfe",
+    "optout.log": "ebbd26a731c90f3084d61e418deb07f0be581ee3a0bd21543f2c3f400dc780ca",
+    "optout-checker.log": "d5b2b60287f5d292527257f0523f5bd51616d2e3c14e86214800784166edaf72",
+    "negative-shell.log": "d5b2b60287f5d292527257f0523f5bd51616d2e3c14e86214800784166edaf72"
+  },
+  "historical_initial_receipt": "initial-independent-review.json",
+  "cli_resolution": "Explicit task-local pinned CLI; private cache path omitted",
+  "review": "Independent read-only review of shared-policy and hosted PR classifier fixes"
+}

@@ -1,0 +1,407 @@
+{
+  "scope": "Only policy-stage head6264b0cb773c91268754bb53a1f78a72c21e5857; predates NUL/no-renames/control-family and FFmpeg parity repairs",
+  "head_sha": "6264b0cb773c91268754bb53a1f78a72c21e5857",
+  "base_sha": "6f0b9cbb73efe9b8435cf4f74145bbf48702c60d",
+  "tested_generated_merge_sha": "0d12ea01d9b5cb4db0fd48db313736dcf9dc7c0b",
+  "head_tree": "605e688ffc139b37fa52a08da8e01b835d0914e7",
+  "merge_tree": "605e688ffc139b37fa52a08da8e01b835d0914e7",
+  "automatic_checks": 13,
+  "manual_jobs": 16,
+  "checks_total": 29,
+  "checks_success": 29,
+  "checks": [
+    {
+      "name": "Aggregate exact evidence",
+      "id": 110485867921,
+      "conclusion": "success"
+    },
+    {
+      "name": "Docker build",
+      "id": 110483343904,
+      "conclusion": "success"
+    },
+    {
+      "name": "Compatibility (Python 3.13)",
+      "id": 110483343704,
+      "conclusion": "success"
+    },
+    {
+      "name": "Windows smoke",
+      "id": 110483343681,
+      "conclusion": "success"
+    },
+    {
+      "name": "Compatibility (Python 3.11)",
+      "id": 110483343648,
+      "conclusion": "success"
+    },
+    {
+      "name": "FFmpeg matrix (FFmpeg 6)",
+      "id": 110483343640,
+      "conclusion": "success"
+    },
+    {
+      "name": "FFmpeg matrix (FFmpeg 7)",
+      "id": 110483343606,
+      "conclusion": "success"
+    },
+    {
+      "name": "Compatibility (Python 3.12)",
+      "id": 110483343582,
+      "conclusion": "success"
+    },
+    {
+      "name": "Minimal install (no extras)",
+      "id": 110483343537,
+      "conclusion": "success"
+    },
+    {
+      "name": "Slow suite (real-media)",
+      "id": 110483343499,
+      "conclusion": "success"
+    },
+    {
+      "name": "Test (Python 3.13)",
+      "id": 110483343424,
+      "conclusion": "success"
+    },
+    {
+      "name": "FFmpeg matrix (FFmpeg 8)",
+      "id": 110483343397,
+      "conclusion": "success"
+    },
+    {
+      "name": "Hyperframes integration",
+      "id": 110483343369,
+      "conclusion": "success"
+    },
+    {
+      "name": "Repository readiness",
+      "id": 110483294658,
+      "conclusion": "success"
+    },
+    {
+      "name": "Change detection",
+      "id": 110483294391,
+      "conclusion": "success"
+    },
+    {
+      "name": "Package surface",
+      "id": 110483294242,
+      "conclusion": "success"
+    },
+    {
+      "name": "Lint",
+      "id": 110483294026,
+      "conclusion": "success"
+    },
+    {
+      "name": "Core runtime (linux)",
+      "id": 110483014971,
+      "conclusion": "success"
+    },
+    {
+      "name": "Core runtime (windows)",
+      "id": 110483014826,
+      "conclusion": "success"
+    },
+    {
+      "name": "Core runtime (macos)",
+      "id": 110483014752,
+      "conclusion": "success"
+    },
+    {
+      "name": "Optional discovery and callability",
+      "id": 110483014422,
+      "conclusion": "success"
+    },
+    {
+      "name": "AI module metadata smoke",
+      "id": 110482891468,
+      "conclusion": "success"
+    },
+    {
+      "name": "Clean-wheel onboarding journey",
+      "id": 110482891467,
+      "conclusion": "success"
+    },
+    {
+      "name": "FFmpeg operation smoke",
+      "id": 110482891389,
+      "conclusion": "success"
+    },
+    {
+      "name": "Image extra smoke",
+      "id": 110482891204,
+      "conclusion": "success"
+    },
+    {
+      "name": "Base CLI and doctor",
+      "id": 110482891102,
+      "conclusion": "success"
+    },
+    {
+      "name": "Build and validate staged artifact",
+      "id": 110482890720,
+      "conclusion": "success"
+    },
+    {
+      "name": "agent-law",
+      "id": 110482889551,
+      "conclusion": "success"
+    },
+    {
+      "name": "Hosted PR checks",
+      "id": 110482889432,
+      "conclusion": "success"
+    }
+  ],
+  "runs": {
+    "pr_safety": 36895956515,
+    "integration": 36895956507,
+    "agent_law": 36895956513,
+    "mcpb": 36895956516,
+    "manual_ci": 36896075251
+  },
+  "logs": {
+    "manual:0_FFmpeg matrix (FFmpeg 6).txt": {
+      "pytest_summaries": [
+        "125 passed, 1 warning in 4.20s"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:1_Compatibility (Python 3.11).txt": {
+      "pytest_summaries": [
+        "8323 passed, 50 skipped, 8 warnings in 477.43s (0:07:57)"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:3_Compatibility (Python 3.13).txt": {
+      "pytest_summaries": [
+        "8323 passed, 50 skipped, 8 warnings in 491.07s (0:08:11)"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:4_FFmpeg matrix (FFmpeg 7).txt": {
+      "pytest_summaries": [
+        "125 passed, 1 warning in 2.87s"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:5_Compatibility (Python 3.12).txt": {
+      "pytest_summaries": [
+        "8323 passed, 50 skipped, 8 warnings in 361.75s (0:06:01)"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:6_Windows smoke.txt": {
+      "pytest_summaries": [
+        "130 passed, 1 skipped in 16.13s",
+        "5 passed in 2.07s"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:7_Test (Python 3.13).txt": {
+      "pytest_summaries": [
+        "8323 passed, 50 skipped, 8 warnings in 486.48s (0:08:06)"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:8_FFmpeg matrix (FFmpeg 8).txt": {
+      "pytest_summaries": [
+        "125 passed, 1 warning in 4.76s"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:9_Minimal install (no extras).txt": {
+      "pytest_summaries": [
+        "123 passed in 14.03s"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:10_Slow suite (real-media).txt": {
+      "pytest_summaries": [
+        "159 passed, 5 skipped, 8373 deselected in 151.29s (0:02:31)"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": false
+    },
+    "manual:11_Hyperframes integration.txt": {
+      "pytest_summaries": [
+        "2 passed, 8535 deselected in 14.64s"
+      ],
+      "hyperframes_execution_guard": true,
+      "exact_merge_checkout": false
+    },
+    "hosted_pr:0_Hosted PR checks.txt": {
+      "pytest_summaries": [
+        "8323 passed, 50 skipped, 8 warnings in 555.50s (0:09:15)"
+      ],
+      "hyperframes_execution_guard": false,
+      "exact_merge_checkout": true
+    }
+  },
+  "native_runtime": {
+    "1_Core runtime (windows).txt": {
+      "summary": "129 passed, 50 skipped in 8.54s",
+      "exact_merge_checkout": true
+    },
+    "2_Core runtime (macos).txt": {
+      "summary": "174 passed, 5 skipped in 55.74s",
+      "exact_merge_checkout": true
+    },
+    "3_Core runtime (linux).txt": {
+      "summary": "176 passed, 3 skipped in 9.61s",
+      "exact_merge_checkout": true
+    }
+  },
+  "mcpb_readiness": {
+    "artifact": {
+      "sha256": "4872f3d17f48322ab06fb932e645937d25b8b4a417bda68c847fd32413c8e55a",
+      "status": "built"
+    },
+    "artifact_kind": "mcpb_readiness_receipt",
+    "candidate_status": "ci_validated",
+    "desktop_install_review": {},
+    "hosted_runtime": {
+      "linux": {
+        "status": "passed"
+      },
+      "macos": {
+        "status": "passed"
+      },
+      "windows": {
+        "status": "passed"
+      }
+    },
+    "human_review": {
+      "status": "not_run"
+    },
+    "official_validation": {
+      "status": "passed",
+      "validator": "@anthropic-ai/mcpb@2.1.2",
+      "wheel_sha256": "d8ef9ff8fc14b7146e6a9d43dfe81830561cba14ec73929f4c72d755102b95a7"
+    },
+    "optional_dependencies": {
+      "absent": "passed",
+      "present": "passed"
+    },
+    "publication": {
+      "status": "not_attempted"
+    },
+    "signing": {
+      "rationale": "supported user-configured-local-access product",
+      "status": "unsigned"
+    },
+    "source_sha": "0d12ea01d9b5cb4db0fd48db313736dcf9dc7c0b"
+  },
+  "review_threads": {
+    "total": 2,
+    "unresolved": 0
+  },
+  "setup_step_timings_seconds": [
+    {
+      "workflow": "manual",
+      "job": "Hyperframes integration",
+      "step": "Ensure FFmpeg",
+      "seconds": 1079.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Test (Python 3.13)",
+      "step": "Ensure FFmpeg",
+      "seconds": 1533.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Slow suite (real-media)",
+      "step": "Ensure FFmpeg",
+      "seconds": 1899.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Minimal install (no extras)",
+      "step": "Ensure FFmpeg",
+      "seconds": 43.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Compatibility (Python 3.12)",
+      "step": "Ensure FFmpeg",
+      "seconds": 55.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Compatibility (Python 3.11)",
+      "step": "Ensure FFmpeg",
+      "seconds": 98.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Windows smoke",
+      "step": "Ensure FFmpeg",
+      "seconds": 23.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "manual",
+      "job": "Compatibility (Python 3.13)",
+      "step": "Ensure FFmpeg",
+      "seconds": 25.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "integration",
+      "job": "FFmpeg operation smoke",
+      "step": "Ensure FFmpeg",
+      "seconds": 1655.0,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "integration",
+      "job": "Clean-wheel onboarding journey",
+      "step": "Ensure FFmpeg with subtitle support",
+      "seconds": 22.0,
+      "conclusion": "success"
+    }
+  ],
+  "limitations": [
+    "Per-job artifact redirects403; no bypass. Completed full-run ZIP logs and logged aggregate checklist used.",
+    "Synthetic integration safe HTML and actual CLI commands; no render/provider/model execution claimed.",
+    "Provisioning timings are shared hosted observations, not a controlled optimization benchmark."
+  ],
+  "log_archives": [
+    {
+      "file": "pr589-6264b0c-manual-ci.zip",
+      "sha256": "48548f4a8d39779774344a15f4be2d8a5d0ddf6327568a0e8b6127f1f539542f"
+    },
+    {
+      "file": "pr589-6264b0c-safety.zip",
+      "sha256": "2bfe19a5571ea5d76c79ed4a9e0910aac1583fae26fb6835283a8e7059835b0f"
+    },
+    {
+      "file": "pr589-6264b0c-mcpb.zip",
+      "sha256": "e48c1fd438b27815e29e306ad7483e88e77e05d58bb956ccdb6d254e98c0aa08"
+    },
+    {
+      "file": "pr589-6264b0c-integration.zip",
+      "sha256": "ef6098360193e80e976cd7b7d7cd3034c779e81992adba08263dc28872372df0"
+    }
+  ],
+  "artifact_kind": "historical_policy_head_ci_receipt"
+}

@@ -9,19 +9,52 @@
     "--tb=short"
   ],
   "exit_code": 0,
-  "wall_seconds": 1863.1049311930037,
-  "source_identity_sha256": "604be219d8f563d9a4dec5ad7ce0ad514dd8d183ed825976f8b0707b55a80631",
+  "wall_seconds": 1690.3627635810044,
+  "source_identity_sha256": "4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd",
   "source_unchanged": true,
-  "file_count": 1216,
-  "passed": 8348,
+  "file_count": 1218,
+  "passed": 8440,
   "skipped": 189,
   "warnings": 8,
-  "pytest_seconds": 1858.59,
-  "log_sha256": "4bded8b551dc06a2c75ac8035b2bb7bba81d590267e348ace5b8e899c00917be",
+  "pytest_seconds": 1685.55,
+  "log_sha256": "94e47b6859a476f5aafa84697ac94ac0f2b6bfa6e28b24bec6e1750608bd0dc0",
   "cache_policy": "Explicit writable UV, XDG and npm cache exports; source unchanged",
-  "focused_policy_guard_and_classifier_tests": 51,
+  "focused_policy_classifier_setup_and_sound_tests": 148,
+  "independent_git_shell_controls": 96,
+  "independent_xml_controls": 8,
   "actual_hyperframes_cli": "0.8.104",
   "actual_cli_integration_passed": 2,
+  "actual_cli_scope": "Source-identical helper/policy/live fixture controls reused after whole manifest comparison; current workflows independently reviewed",
   "initial_passing_checkpoint": "initial-full-serial.json",
-  "scope": "Full serial gate after both PR589 review repairs; separate actual CLI/static HTML controls do not establish browser rendering or paid provider quality"
+  "policy_passing_checkpoint": "policy-full-serial.json",
+  "scope": "Full serial gate after NUL/no-renames/control-input ownership, lean bounded provisioning repairs and actual nested sound-path classifier coverage; no browser rendering or paid provider quality claim",
+  "superseded_final_stage_checkpoints": [
+    {
+      "exit_code": 2,
+      "wall_seconds": 106.69912625299912,
+      "source_identity_sha256": "12ac3270be5eda29b9efefa027fe80a86ab897210ce1f6d54379520cb14cefd7",
+      "source_unchanged": true,
+      "file_count": 1218,
+      "disposition": "Intentionally interrupted before source change to fix a nullable executable variable found by test-fixture type checking; full gate was started before type result inspected",
+      "log_sha256": "d1dd2a2fd88fdeffa533ee4cef22880437b5a99d60e4a6a80ad3705275ace465"
+    },
+    {
+      "exit_code": 2,
+      "wall_seconds": 444.4764598010006,
+      "source_identity_sha256": "50f0e60ac416b57751f3ae18f0d8f950488bb3a9e6122768bb014e4cc0e416f6",
+      "source_unchanged": true,
+      "file_count": 1218,
+      "disposition": "Intentionally interrupted before source change to complete workflow/CI-script input-family coverage",
+      "log_sha256": "04b353a850d8a52bd791255e34937c9b2dd4317c9a636e09bddbcd978857ae17"
+    },
+    {
+      "exit_code": 1,
+      "wall_seconds": 1261.3183214519959,
+      "source_identity_sha256": "de01c5ee7ff9fb82160f5adb1ba654838705536b508fb231985678b8cd44c154",
+      "source_unchanged": true,
+      "file_count": 1218,
+      "disposition": "Failed at obsolete sound-classifier regex assertion after 6096 passes and 161 skips. Replaced two regex parametrizations with four actual Git/Bash nested sound-path cases; all residual sound gates retained. Not a passing full gate.",
+      "log_sha256": "40633b1395ba6d01a33500fffaaa7e71e0a3e3e134cf813716eae0836d17b744"
+    }
+  ]
 }

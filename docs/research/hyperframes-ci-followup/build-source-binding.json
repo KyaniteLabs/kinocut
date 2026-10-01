@@ -1,24 +1,46 @@
 {
-  "scope": "Local Unreleased review-fix wheel and sdist; not published over existing 1.15.3; no inference/render/full-suite execution",
+  "scope": "Revalidation of existing final-control wheel and sdist against final-sound-controls source; no rebuild or new installation; no inference/render/full-suite execution",
+  "rebuilt_for_this_binding": false,
+  "fresh_install_for_this_binding": false,
   "wheel_name": "kinocut-1.15.3-py3-none-any.whl",
   "wheel_sha256": "d8ef9ff8fc14b7146e6a9d43dfe81830561cba14ec73929f4c72d755102b95a7",
+  "wheel_identical_to_review_fix_build": true,
   "sdist_name": "kinocut-1.15.3.tar.gz",
-  "sdist_sha256": "3d14869d731f42018298c9786220e13af0e9184ee03581fb7078b83857e2e040",
-  "build_tool": "existing pinned build1.6.1/hatchling environment; no isolation dependency installs",
-  "source_identity_sha256": "604be219d8f563d9a4dec5ad7ce0ad514dd8d183ed825976f8b0707b55a80631",
-  "selected_source_files": 1216,
-  "shipped_python_files": 645,
+  "sdist_sha256": "5097ef20034d16fb5fa41a71fdb1174aafb66487f3271e47db0b9f520de64d2c",
+  "build_tool": "Existing pinned build1.6.1/hatchling environment; no isolation dependency installs",
+  "source_identity_sha256": "4358148ccae9cdc91a64991ac7fd027a4dbc3119d93a066a40eff572ab3f5bbd",
+  "selected_source_files": 1218,
+  "shipped_python_files": {
+    "wheel": {
+      "runtime": 645,
+      "all_python": 645
+    },
+    "sdist": {
+      "runtime": 645,
+      "all_python": 652
+    }
+  },
   "mismatches_or_missing": [],
   "current_selected_source_mismatches": [],
   "ci_test_or_workflow_leakage": {
     "wheel": [],
     "sdist": []
   },
+  "sdist_changelog_matches_current_source": true,
   "installed_wheel_import": {
     "canonical_client_identity": true,
     "origins_within_isolated_wheel_install": true,
     "ci_report_bytes": 65536,
     "ci_minimum_executed_cases": 2
   },
-  "dependency_scope": "Fresh isolated venv installed this wheel only; existing regression-venv dependencies appended after installed site-packages; wheel import origins verified; not a fresh dependency resolution"
+  "dependency_scope": "Reused isolated wheel-only venv from DE01 build; imports rerun outside checkout with existing regression-venv dependencies appended after installed site-packages; wheel origins verified; no new install or fresh dependency resolution",
+  "changed_selected_paths_since_artifact_build": [
+    "tests/test_ci_change_classification.py",
+    "tests/test_sound_ci_coverage.py"
+  ],
+  "packaged_existing_source_files_matching_current": {
+    "wheel": 657,
+    "sdist": 674
+  },
+  "all_other_selected_source_files_identical_to_artifact_build": true
 }
