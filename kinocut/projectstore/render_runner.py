@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import logging
 from typing import Any
 from pathlib import Path
 import os
@@ -33,13 +34,15 @@ from kinocut.projectstore.render_jobs import (
     job_receipt_path,
     job_spec_path,
     mark_failed,
+    _runner_stop_observer,
     mark_succeeded,
     start_render_job,
 )
 from kinocut.projectstore.store import Project, open_project
-from kinocut.projectstore.render_control import CANCELLATION_REQUESTED, STOP_REQUEST_STAGES
-from kinocut.server_tools_workflow import video_workflow_render
-from kinocut.workflow.executor import attach_receipt_lineage
+from kinocut.projectstore.render_control import CANCELLATION_REQUESTED, STOP_REQUEST_STAGES, watch_runner_stop
+from kinocut.workflow.executor import attach_receipt_lineage, render_workflow
+
+logger = logging.getLogger(__name__)
 
 __all__ = ["run_job", "start_render_job"]
 
@@ -63,7 +66,7 @@ def run_job(project: Project, job_id: str) -> str:
     # the executor writes a valid progressive receipt after every completed stage, so a
     # killed/resumed run reads ONE authoritative resume cursor (no fixture/parallel path).
     try:
-        result = video_workflow_render(
+        result = render_workflow(
             spec_path=str(job_spec_path(project, job_id)),
             resume_receipt=resume_receipt,
             save_receipt=str(receipt_path),
@@ -72,16 +75,22 @@ def run_job(project: Project, job_id: str) -> str:
     except Exception as exc:  # defensive: never lose a terminal
         if requested := _requested_stop_label(project, job_id):
             return requested
-        mark_failed(project, job_id, "render_failed", repr(exc)[:256])
+        logger.warning("Detached workflow render failed", exc_info=True)
+        if isinstance(exc, MCPVideoError):
+            error = exc.to_dict()
+            mark_failed(project, job_id, error["code"], error["message"])
+        else:
+            mark_failed(project, job_id, "internal_error", "An internal error occurred. Check server logs for details.")
         return "failed"
     if requested := _requested_stop_label(project, job_id):
         return requested
-    if isinstance(result, dict) and result.get("success"):
+    if isinstance(result, dict):
         try:
-            # The synchronous engine returns the authoritative workflow receipt (plus
-            # ``success``); derive/persist lineage directly from it — never reread the file.
+            # The engine returns the authoritative receipt without transport metadata;
+            # derive/persist lineage directly from it — never reread the file.
             result = _attach_job_lineage(project, job_id, receipt_path, result)
         except Exception:  # lineage is required provenance: never succeed without it
+            logger.warning("Detached workflow lineage attachment failed", exc_info=True)
             if requested := _requested_stop_label(project, job_id):
                 return requested
             mark_failed(project, job_id, "lineage_failed", "workflow receipt lineage could not be attached")
@@ -93,13 +102,7 @@ def run_job(project: Project, job_id: str) -> str:
                 return requested
             raise
         return "succeeded"
-    error = result.get("error") if isinstance(result, dict) else None
-    mark_failed(
-        project,
-        job_id,
-        (error or {}).get("code") or "render_failed",
-        (error or {}).get("message") or "",
-    )
+    mark_failed(project, job_id, "render_failed", "Workflow engine returned no receipt")
     return "failed"
 
 
@@ -122,18 +125,13 @@ def _attach_job_lineage(project: Project, job_id: str, receipt_path: Path, recei
     job is failed rather than recorded as succeeded without valid lineage. Returns
     the enriched receipt.
 
-    The synchronous engine wraps the workflow receipt in a result envelope that
-    sets the MCP ``success`` key; that envelope-only key is not a receipt field, so
-    lineage attaches to — and the receipt path is rewritten from — a receipt-only
-    copy without ``success``. The persisted async receipt is therefore the engine
-    receipt plus exactly ``lineage``, never the envelope's ``success``.
+    The workflow engine returns receipt data directly; MCP transport envelopes
+    never enter this worker. A copy preserves the caller-owned receipt while
+    lineage is added and persisted.
     """
     head = get_render_job(project, job_id)
-    # Strip the envelope-only ``success`` before lineage so the persisted receipt
-    # gains exactly ``lineage`` — never MCP envelope metadata.
-    receipt_only = {key: value for key, value in receipt.items() if key != "success"}
     return attach_receipt_lineage(
-        receipt_only,
+        dict(receipt),
         edit_project_id=head.edit_project_id,
         revision_id=head.revision_id,
         job_id=head.job_id,
@@ -171,7 +169,13 @@ def main(argv: list[str]) -> int:
         lock_exclusive(lease_handle)
         try:
             _await_running_identity(project, args.job_id)
-            run_job(project, args.job_id)
+            from kinocut.process_guardian_owner import bind_worker_lease
+
+            with (
+                bind_worker_lease(lease_handle.fileno()),
+                watch_runner_stop(_runner_stop_observer(project, args.job_id, os.getpid())),
+            ):
+                run_job(project, args.job_id)
         except Exception as exc:  # defensive: record a bounded failure, never hang the job
             with contextlib.suppress(Exception):
                 if _requested_stop_label(project, args.job_id) is None:

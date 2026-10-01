@@ -1,0 +1,17 @@
+{
+  "scope": "Local Unreleased development build, not a publication of version 1.15.3",
+  "wheel_name": "kinocut-1.15.3-py3-none-any.whl",
+  "wheel_sha256": "bd10fab06caaea98f75b667800368e08123052d27fb29e763e2cc47012294f81",
+  "sdist_name": "kinocut-1.15.3.tar.gz",
+  "sdist_sha256": "e066c0b85f0dbefb35fa21d4eda67af8c72e412e5c0ada1a12b5616d3be907b1",
+  "shipped_python_files": 645,
+  "mismatches_or_missing": [],
+  "source_identity_sha256": "0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d",
+  "artifact_contents_check": {
+    "command": ".venv/bin/python .github/scripts/check-built-artifacts.py <post-stdio-build-directory>",
+    "exit_code": 0,
+    "wheel": "clean",
+    "sdist": "clean"
+  },
+  "fixture_revision_note": "Runtime bytes and artifact checksums unchanged by test readiness repair; all645 shipped files reverified against current selected source identity"
+}

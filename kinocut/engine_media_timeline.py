@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import math
+import io
+import os
 import tempfile
 from pathlib import Path
 
@@ -35,6 +37,17 @@ def _timestamp(value: object) -> float | None:
     return result if math.isfinite(result) else None
 
 
+def _produce_timeline(runner, command, **options):
+    try:
+        return runner(command, **options)
+    except MCPVideoError as error:
+        if error.code == "command_stdout_limit_exceeded":
+            raise _timeline_error(
+                "Stream timeline metadata exceeds the supported limit", "audio_mix_timeline_over_limit"
+            ) from error
+        raise
+
+
 def _packet_extent(
     path: str,
     selector: str,
@@ -46,18 +59,18 @@ def _packet_extent(
 ) -> tuple[float, float]:
     """Measure PTS extent with a producer sentinel and constant-memory parsing.
 
-    The byte check applies after FFprobe writes its file; it does not cap transient
-    disk usage. The selected-stream packet sentinel and process deadline bound the
-    producer. Source changes during the measurement fail closed.
+    The shared runner checks the byte ceiling before every metadata sink write.
+    The packet sentinel and deadline independently bound producer work. Source
+    changes during the measurement fail closed; metadata has no producer path.
     """
     identity = _source_identity(path)
     entries = "packet=pts_time,duration_time"
     decoded = []
     if audio_sample_rate is not None:
         entries, decoded = "packet=pts_time:frame=pts_time,nb_samples", ["-show_frames"]
-    with tempfile.TemporaryDirectory(prefix="kinocut_mix_timeline_") as folder, tempfile.TemporaryFile() as diagnostics:
-        metadata = Path(folder) / "packets.txt"
-        runner(
+    with tempfile.TemporaryFile() as metadata, tempfile.TemporaryFile() as diagnostics:
+        _produce_timeline(
+            runner,
             [
                 "ffprobe",
                 "-v",
@@ -72,65 +85,66 @@ def _packet_extent(
                 entries,
                 "-of",
                 "compact=p=1" if decoded else "compact=p=0",
-                "-o",
-                str(metadata),
                 path,
             ],
             timeout=FFPROBE_TIMEOUT,
             stderr_sink=diagnostics,
+            stdout_sink=metadata,
+            stdout_limit=metadata_limit,
         )
+        metadata.flush()
         if _source_identity(path) != identity:
             raise _timeline_error("Source changed while measuring its timeline", "media_source_changed")
         diagnostics.seek(0)
         if diagnostics.read(1):
             raise _timeline_error("Selected stream timeline could not be read cleanly")
-        if metadata.stat().st_size > metadata_limit:
+        if os.fstat(metadata.fileno()).st_size > metadata_limit:
             raise _timeline_error(
                 "Stream timeline metadata exceeds the supported limit", "audio_mix_timeline_over_limit"
             )
-        if audio_sample_rate is not None:
-            return _read_audio_frame_extent(metadata, packet_limit, audio_sample_rate)
-        return _read_packet_extent(metadata, packet_limit)
+        metadata.seek(0)
+        with io.TextIOWrapper(metadata, encoding="utf-8") as records:
+            if audio_sample_rate is not None:
+                return _read_audio_frame_extent(records, packet_limit, audio_sample_rate)
+            return _read_packet_extent(records, packet_limit)
 
 
-def _read_audio_frame_extent(metadata: Path, packet_limit: int, sample_rate: float) -> tuple[float, float]:
+def _read_audio_frame_extent(records, packet_limit: int, sample_rate: float) -> tuple[float, float]:
     """Count every producer packet, measuring decoded audio rather than priming metadata."""
     start, end, packets, frames = math.inf, -math.inf, 0, 0
-    with metadata.open(encoding="utf-8") as records:
-        for line in records:
-            parts = line.strip().split("|")
-            if parts[0] == "packet":
-                packets += 1
-                if packets > packet_limit:
-                    raise _timeline_error("Stream timeline packet limit reached", "audio_mix_timeline_over_limit")
-            elif parts[0] == "frame":
-                frames += 1
-                if frames > packet_limit:
-                    raise _timeline_error("Stream timeline frame limit reached", "audio_mix_timeline_over_limit")
-                fields = dict(part.split("=", 1) for part in parts[1:] if "=" in part)
-                pts, samples = _timestamp(fields.get("pts_time")), _parse_probe_duration(fields.get("nb_samples"))
-                if pts is None or samples is None or samples <= 0 or not samples.is_integer():
-                    raise _timeline_error("Selected audio has an unmeasurable frame timeline")
-                start, end = min(start, pts), max(end, pts + samples / sample_rate)
-            else:
-                raise _timeline_error("Selected audio has malformed timeline metadata")
+    for line in records:
+        parts = line.strip().split("|")
+        if parts[0] == "packet":
+            packets += 1
+            if packets > packet_limit:
+                raise _timeline_error("Stream timeline packet limit reached", "audio_mix_timeline_over_limit")
+        elif parts[0] == "frame":
+            frames += 1
+            if frames > packet_limit:
+                raise _timeline_error("Stream timeline frame limit reached", "audio_mix_timeline_over_limit")
+            fields = dict(part.split("=", 1) for part in parts[1:] if "=" in part)
+            pts, samples = _timestamp(fields.get("pts_time")), _parse_probe_duration(fields.get("nb_samples"))
+            if pts is None or samples is None or samples <= 0 or not samples.is_integer():
+                raise _timeline_error("Selected audio has an unmeasurable frame timeline")
+            start, end = min(start, pts), max(end, pts + samples / sample_rate)
+        else:
+            raise _timeline_error("Selected audio has malformed timeline metadata")
     if not math.isfinite(start) or not math.isfinite(end) or end <= start:
         raise _timeline_error("Selected audio has no measurable frame timeline")
     return start, end - start
 
 
-def _read_packet_extent(metadata: Path, packet_limit: int) -> tuple[float, float]:
+def _read_packet_extent(packets, packet_limit: int) -> tuple[float, float]:
     start, end = math.inf, -math.inf
-    with metadata.open(encoding="utf-8") as packets:
-        for count, line in enumerate(packets, 1):
-            if count > packet_limit:
-                raise _timeline_error("Stream timeline packet limit reached", "audio_mix_timeline_over_limit")
-            fields = dict(part.split("=", 1) for part in line.strip().split("|") if "=" in part)
-            pts = _timestamp(fields.get("pts_time"))
-            width = _parse_probe_duration(fields.get("duration_time"))
-            if pts is None or not math.isfinite(pts) or width is None or not math.isfinite(width) or width <= 0:
-                raise _timeline_error("Selected stream has an unmeasurable packet timeline")
-            start, end = min(start, pts), max(end, pts + width)
+    for count, line in enumerate(packets, 1):
+        if count > packet_limit:
+            raise _timeline_error("Stream timeline packet limit reached", "audio_mix_timeline_over_limit")
+        fields = dict(part.split("=", 1) for part in line.strip().split("|") if "=" in part)
+        pts = _timestamp(fields.get("pts_time"))
+        width = _parse_probe_duration(fields.get("duration_time"))
+        if pts is None or not math.isfinite(pts) or width is None or not math.isfinite(width) or width <= 0:
+            raise _timeline_error("Selected stream has an unmeasurable packet timeline")
+        start, end = min(start, pts), max(end, pts + width)
     if not math.isfinite(start) or not math.isfinite(end) or end <= start:
         raise _timeline_error("Selected stream has no measurable packet timeline")
     return start, end - start

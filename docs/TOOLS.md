@@ -78,7 +78,11 @@ results = editor.search_tools("subtitle")
 establish visual quality. With no executable VLM scorer, complete sampling returns
 `verdict="not_evaluated"` and incomplete sampling returns `"inconclusive"`.
 Setting `require_vlm=true` returns `verdict="fail"` and `blocked=true`. Installing
-a provider SDK alone does not make visual assessment available. See
+a provider SDK alone does not make visual assessment available. Explicitly setting
+`KINOCUT_VISION_MODEL` and `ANTHROPIC_API_KEY` opts into one paid Anthropic request
+for the sampled frames. The request runs in an isolated worker with an elapsed
+deadline and byte ceilings; malformed or incomplete responses fail closed. This
+does not approve the whole film or establish model accuracy. See
 [quality evidence](QUALITY_EVIDENCE.md) for waveform, objective visual measurement
 and perceptual voice limits.
 

@@ -9,6 +9,7 @@ changing this module's caller contract.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import math
 
 from kinocut_sound._canonical import BoundedCode, Sha256
 
@@ -21,7 +22,10 @@ from kinocut_sound.voice_consistency.d42_port import (
     FakeD42Port,
     IdentityCheckSpec,
     StyleCheckSpec,
+    IdentityCheckResult,
+    StyleCheckResult,
 )
+from kinocut_sound.limits import MAX_VOICE_CONSISTENCY_FLAGS
 
 
 @dataclass(frozen=True)
@@ -60,6 +64,34 @@ def _require_available(port: FakeD42Port) -> None:
         )
 
 
+def _validated_similarity(value: float) -> float:
+    if (
+        isinstance(value, bool)
+        or not isinstance(value, (int, float))
+        or not 0 <= value <= 1
+        or not math.isfinite(value)
+    ):
+        raise bounded_consistency_error("D42 similarity must be finite and within [0, 1]", CONSISTENCY_METRIC_INVALID)
+    return float(value)
+
+
+def _validated_style_result(result: StyleCheckResult, profile_id: str) -> float:
+    if (
+        not isinstance(result, StyleCheckResult)
+        or result.profile_id != profile_id
+        or not isinstance(result.drift, bool)
+        or not isinstance(result.flags, tuple)
+        or len(result.flags) > MAX_VOICE_CONSISTENCY_FLAGS
+    ):
+        raise bounded_consistency_error("D42 style result violates its bounded contract", CONSISTENCY_METRIC_INVALID)
+    try:
+        for flag in result.flags:
+            BoundedCode(flag)
+    except (TypeError, ValueError) as exc:
+        raise bounded_consistency_error("D42 style flags must be bounded codes", CONSISTENCY_METRIC_INVALID) from exc
+    return _validated_similarity(result.similarity)
+
+
 def style_check(
     *,
     port: FakeD42Port,
@@ -89,15 +121,20 @@ def style_check(
         reference_hash=reference_hash,
     )
     result = port.style.check_style(spec)
-    drift = result.similarity < threshold
+    similarity = _validated_style_result(result, profile_id)
+    drift = result.drift or similarity < threshold
     flags = list(result.flags)
-    if drift:
+    if drift and "style_drift" not in flags:
         flags.append("style_drift")
+    if len(flags) > MAX_VOICE_CONSISTENCY_FLAGS:
+        raise bounded_consistency_error(
+            "D42 result flags exceed the bounded output contract", CONSISTENCY_METRIC_INVALID
+        )
     return StyleMetrics(
         profile_id=profile_id,
         audio_hash=audio_hash,
         reference_hash=reference_hash,
-        similarity=result.similarity,
+        similarity=similarity,
         drift=drift,
         flags=tuple(flags),
         threshold=threshold,
@@ -118,4 +155,6 @@ def identity_similarity(
         audio_hash_b=audio_hash_b,
     )
     result = port.identity.compare_identity(spec)
-    return float(result.similarity)
+    if not isinstance(result, IdentityCheckResult) or not isinstance(result.same_identity, bool):
+        raise bounded_consistency_error("D42 identity result violates its bounded contract", CONSISTENCY_METRIC_INVALID)
+    return _validated_similarity(result.similarity)

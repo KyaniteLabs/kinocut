@@ -17,6 +17,18 @@ from kinocut_sound.capability import (
     AdapterLocality,
     CapabilityResult,
 )
+from kinocut_sound.limits import (
+    MAX_POST_DYNAMICS_ATTACK_MS as MAX_ATTACK_MS,
+    MAX_POST_DYNAMICS_MAKEUP_DB as MAX_MAKEUP_DB,
+    MAX_POST_DYNAMICS_RATIO as MAX_RATIO,
+    MAX_POST_DYNAMICS_RELEASE_MS as MAX_RELEASE_MS,
+    MAX_POST_DYNAMICS_THRESHOLD_DB as MAX_THRESHOLD_DB,
+    MIN_POST_DYNAMICS_ATTACK_MS as MIN_ATTACK_MS,
+    MIN_POST_DYNAMICS_MAKEUP_DB as MIN_MAKEUP_DB,
+    MIN_POST_DYNAMICS_RATIO as MIN_RATIO,
+    MIN_POST_DYNAMICS_RELEASE_MS as MIN_RELEASE_MS,
+    MIN_POST_DYNAMICS_THRESHOLD_DB as MIN_THRESHOLD_DB,
+)
 from kinocut_sound.post._errors import POST_DEPENDENCY_MISSING, PostError
 from kinocut_sound.post._subprocess import (
     DEFAULT_POST_TIMEOUT_SECONDS,
@@ -27,19 +39,6 @@ from kinocut_sound.post._subprocess import (
 )
 from kinocut_sound.post.chain import PostContext, PostStageResult
 from kinocut_sound.render_fingerprint import DeterminismClass
-
-# --- Numeric envelopes ---
-# TODO(controller): centralize alongside defaults.py/limits.py post-merge.
-MIN_THRESHOLD_DB: float = -60.0
-MAX_THRESHOLD_DB: float = 0.0
-MIN_RATIO: float = 1.0
-MAX_RATIO: float = 20.0
-MIN_ATTACK_MS: float = 0.01
-MAX_ATTACK_MS: float = 2000.0
-MIN_RELEASE_MS: float = 0.01
-MAX_RELEASE_MS: float = 9000.0
-MIN_MAKEUP_DB: float = 0.0
-MAX_MAKEUP_DB: float = 24.0
 
 
 class DynamicsAdapter:

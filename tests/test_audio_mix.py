@@ -507,11 +507,10 @@ def test_packet_producer_cap_counts_selected_video_with_dense_interleaved_audio(
 
 
 def test_packet_without_presentation_timestamp_cannot_certify_partial_extent(media, monkeypatch):
-    from pathlib import Path
     from kinocut import engine_audio_mix as module
 
     def malformed_metadata(args, **kwargs):
-        Path(args[args.index("-o") + 1]).write_text("duration_time=0.04\npts_time=0.04|duration_time=0.04\n")
+        kwargs["stdout_sink"].write(b"duration_time=0.04\npts_time=0.04|duration_time=0.04\n")
 
     monkeypatch.setattr(module, "_run_command", malformed_metadata)
     with pytest.raises(MCPVideoError) as error:

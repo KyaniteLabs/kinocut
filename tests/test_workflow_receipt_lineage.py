@@ -314,13 +314,13 @@ def test_run_job_attaches_lineage_from_persisted_identity(tmp_path, monkeypatch)
     receipt = _completed_receipt()
 
     def fake_render(**kwargs):
-        # mimic the real engine: persist the canonical receipt, return the success envelope
+        # mimic the real engine: persist and return the canonical receipt
         save = kwargs.get("save_receipt")
         if save:
             Path(save).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        return {**receipt, "success": True}
+        return dict(receipt)
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     assert render_runner.run_job(project, job.job_id) == "succeeded"
 
     persisted = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -345,11 +345,9 @@ def test_run_job_attaches_lineage_from_persisted_identity(tmp_path, monkeypatch)
 def test_run_job_persisted_receipt_is_receipt_plus_lineage_not_envelope(tmp_path, monkeypatch):
     """Regression: async persistence adds exactly ``lineage`` — never ``success``.
 
-    The synchronous engine wraps the workflow receipt in a result envelope that
-    sets ``success``; the detached runner derives/persists lineage from a
-    receipt-only copy, so the persisted async receipt equals the engine receipt
-    plus exactly ``lineage`` (never the MCP envelope's ``success``) while every
-    original workflow receipt field is preserved unchanged.
+    The detached runner consumes the engine receipt directly and derives/persists
+    lineage from a copy. Its persisted receipt equals the original engine receipt
+    plus exactly ``lineage`` while every original field stays unchanged.
     """
     project = open_project(tmp_path / "proj")
     job = _job(project)
@@ -359,13 +357,13 @@ def test_run_job_persisted_receipt_is_receipt_plus_lineage_not_envelope(tmp_path
     snapshot = copy.deepcopy(receipt)
 
     def fake_render(**kwargs):
-        # mimic the real engine: persist the canonical receipt, return the success envelope
+        # mimic the real engine: persist and return the canonical receipt
         save = kwargs.get("save_receipt")
         if save:
             Path(save).write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        return {**receipt, "success": True}
+        return dict(receipt)
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     assert render_runner.run_job(project, job.job_id) == "succeeded"
 
     persisted = json.loads(receipt_path.read_text(encoding="utf-8"))
@@ -389,12 +387,12 @@ def test_run_job_fails_when_lineage_result_not_completed(tmp_path, monkeypatch):
     project = open_project(tmp_path / "proj")
     job = _job(project)
     render_jobs.mark_running(project, job.job_id, 424242)
-    minimal = {"success": True, "steps": [{"id": "s1", "status": "completed", "output_hash": OUT_HASH}]}
+    minimal = {"steps": [{"id": "s1", "status": "completed", "output_hash": OUT_HASH}]}
 
     def fake_render(**kwargs):
         return dict(minimal)  # returned result carries no completed-receipt lineage data
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     assert render_runner.run_job(project, job.job_id) == "failed"
     head = get_render_job(project, job.job_id)
     assert head.status.value == "failed"
@@ -413,9 +411,9 @@ def test_run_job_fails_when_lineage_data_malformed(tmp_path, monkeypatch):
         save = kwargs.get("save_receipt")
         if save:
             Path(save).write_text(json.dumps(bad, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-        return {**bad, "success": True}
+        return dict(bad)
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     assert render_runner.run_job(project, job.job_id) == "failed"
     head = get_render_job(project, job.job_id)
     assert head.status.value == "failed"

@@ -25,8 +25,10 @@ from types import MappingProxyType
 from pydantic import ValidationError
 
 from kinocut_sound._canonical import Sha256
+from kinocut_sound.limits import (
+    MAX_VOICE_DICTIONARY_ENTRIES as MAX_DICTIONARY_ENTRIES,
+)
 from kinocut_sound.lines import PronunciationOverride
-
 from kinocut_sound.voice._errors import (
     PRONUNCIATION_INVALID,
     bounded_voice_error,
@@ -34,9 +36,7 @@ from kinocut_sound.voice._errors import (
 )
 
 # --- Voice-leaf private ceiling ---
-# TODO(controller): consider promoting to ``kinocut_sound/limits.py`` if S6/S10
 # need a shared pronunciation-dictionary ceiling.
-MAX_DICTIONARY_ENTRIES: int = 256
 
 
 class PronunciationDictionary:

@@ -1,5 +1,11 @@
 # Whole-repository UltraQA gauntlet
 
+This is the historical implementation/review record for the work merged in
+[PR #587](https://github.com/KyaniteLabs/kinocut/pull/587). Intermediate open-PR,
+test-pending and running-gate statements below describe their named checkpoints.
+Current follow-up work and final delivery evidence belong to the
+[debt closure ledger](DEBT_CLOSURE.md).
+
 This review starts from merged commit `e9f6cac77cb390c73c919bdcd385b775a6a3c7ef`,
 tree `44806e24c1e937040f1fe4c8471ece7aca979ad9`. The scope is **the entire
 repository**, including existing operations, optional integrations, public

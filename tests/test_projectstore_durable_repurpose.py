@@ -55,7 +55,6 @@ def test_durable_repurpose_creates_revision_job_and_n_lineage_bound_clips(tmp_pa
     render_jobs.mark_running(reopened, job.job_id, 424242)
 
     receipt = {
-        "success": True,
         "status": "completed",
         "sources": [{"id": "src0", "source_hash": result["source_digest"]}],
         "outputs": [
@@ -68,10 +67,11 @@ def test_durable_repurpose_creates_revision_job_and_n_lineage_bound_clips(tmp_pa
             {"id": "resize_out1", "status": "completed", "output_hash": "sha256:" + "b" * 64},
         ],
     }
-    monkeypatch.setattr(render_runner, "video_workflow_render", lambda **kwargs: receipt)
+    monkeypatch.setattr(render_runner, "render_workflow", lambda **kwargs: receipt)
 
     assert render_runner.run_job(reopened, job.job_id) == "succeeded"
     persisted = json.loads(render_jobs.job_receipt_path(reopened, job.job_id).read_text())
+    assert "success" not in persisted  # engine receipts contain no MCP transport envelope
     assert persisted["lineage"]["edit_project_id"] == result["edit_project_id"]
     assert persisted["lineage"]["revision_id"] == result["revision_id"]
     assert persisted["lineage"]["job_id"] == result["job_id"]

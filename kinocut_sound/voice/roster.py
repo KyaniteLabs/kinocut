@@ -22,19 +22,29 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
-from typing import Any
-
 from collections.abc import Mapping
 from dataclasses import dataclass
 from itertools import islice
 from types import MappingProxyType
+from typing import Any
 
 from pydantic import Field, field_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, canonical_digest
 from kinocut_sound._errors import contract_error
+from kinocut_sound.limits import (
+    MAX_VOICE_BASE_PITCH_SEMITONES as MAX_BASE_PITCH_SEMITONES,
+    MAX_VOICE_BASE_RATE as MAX_BASE_RATE,
+    MAX_VOICE_BASE_VOLUME_DB as MAX_BASE_VOLUME_DB,
+    MAX_VOICE_FORMANT_OFFSET as MAX_FORMANT_OFFSET,
+    MAX_VOICE_ROSTER_SLOTS as MAX_ROSTER_SLOTS,
+    MIN_VOICE_BASE_PITCH_SEMITONES as MIN_BASE_PITCH_SEMITONES,
+    MIN_VOICE_BASE_RATE as MIN_BASE_RATE,
+    MIN_VOICE_BASE_VOLUME_DB as MIN_BASE_VOLUME_DB,
+    MIN_VOICE_FORMANT_OFFSET as MIN_FORMANT_OFFSET,
+    MIN_VOICE_ROSTER_SLOTS as MIN_ROSTER_SLOTS,
+)
 from kinocut_sound.validation import CODE_RE
-
 from kinocut_sound.voice._errors import (
     ROSTER_EXCEEDS_CEILING,
     ROSTER_INVALID,
@@ -42,20 +52,6 @@ from kinocut_sound.voice._errors import (
     bounded_voice_error,
     voice_error,
 )
-
-# --- Voice-leaf private ceilings ---
-# TODO(controller): consider promoting these to ``kinocut_sound/limits.py`` if
-# S6/S10/S14 need to share the same roster ceilings.
-MAX_ROSTER_SLOTS: int = 64
-MIN_ROSTER_SLOTS: int = 15
-MIN_BASE_PITCH_SEMITONES: float = -24.0
-MAX_BASE_PITCH_SEMITONES: float = 24.0
-MIN_BASE_RATE: float = 0.5
-MAX_BASE_RATE: float = 2.0
-MIN_BASE_VOLUME_DB: float = -24.0
-MAX_BASE_VOLUME_DB: float = 12.0
-MIN_FORMANT_OFFSET: float = -12.0
-MAX_FORMANT_OFFSET: float = 12.0
 
 
 class VoiceSlotBase(FrozenModel):

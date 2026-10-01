@@ -288,20 +288,14 @@ def test_caller_interrupt_kills_and_reaps_actual_progress_process(monkeypatch):
     def spawn(*args, **kwargs):
         proc = real_popen(*args, **kwargs)
         processes.append(proc)
-        wait = proc.wait
-        first = True
-
-        def interrupt_once(*args, **kwargs):
-            nonlocal first
-            if first:
-                first = False
-                raise KeyboardInterrupt("caller cancelled")
-            return wait(*args, **kwargs)
-
-        proc.wait = interrupt_once
         return proc
 
+    from kinocut.process_tree import ProcessTree
+
     monkeypatch.setattr(subprocess, "Popen", spawn)
+    monkeypatch.setattr(
+        ProcessTree, "wait", lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt("caller cancelled"))
+    )
     with pytest.raises(KeyboardInterrupt, match="caller cancelled"):
         run_progress([sys.executable, "-c", "import time; time.sleep(60)"], 60, lambda _: None, float)
     assert len(processes) == 1 and processes[0].poll() is not None
@@ -312,7 +306,7 @@ def test_no_newline_diagnostics_have_bounded_parent_memory_and_still_report_prog
     from kinocut.ffmpeg_helpers import _parse_ffmpeg_time
 
     values = []
-    script = "import sys; sys.stderr.buffer.write(b'x'*12000000+b' time=00:00:00.50\\r'); sys.stderr.flush()"
+    script = "import sys; sys.stderr.buffer.write(b'x'*2000000+b' time=00:00:00.50\\r'); sys.stderr.flush()"
     tracemalloc.start()
     try:
         result = run_progress([sys.executable, "-c", script], 1, values.append, _parse_ffmpeg_time)
@@ -322,3 +316,24 @@ def test_no_newline_diagnostics_have_bounded_parent_memory_and_still_report_prog
     assert peak < 2_000_000
     assert len(result.stderr.encode()) == FFMPEG_PROGRESS_STDERR_BYTES
     assert 50 in values and values[-1] == 100
+
+
+def test_progress_diagnostics_hard_cap_rejects_overflow_and_reaps(monkeypatch):
+    import kinocut.ffmpeg_progress as progress
+    from kinocut.errors import MCPVideoError
+
+    processes = []
+    original = subprocess.Popen
+
+    def spawn(*args, **kwargs):
+        process = original(*args, **kwargs)
+        processes.append(process)
+        return process
+
+    monkeypatch.setattr(subprocess, "Popen", spawn)
+    monkeypatch.setattr(progress, "MAX_SUBPROCESS_STDERR_BYTES", 1024)
+    with pytest.raises(MCPVideoError) as error:
+        run_progress([sys.executable, "-c", "import os;os.write(2,b'x'*2000000)"], 1, lambda _: None, float)
+    assert error.value.code == "command_stderr_limit_exceeded"
+    assert processes[0].returncode is not None
+    assert processes[0].stderr.closed

@@ -4,6 +4,7 @@ import os
 import subprocess
 import sys
 import threading
+import time
 
 import pytest
 
@@ -11,8 +12,14 @@ from kinocut.errors import MCPVideoError, ProcessingError
 from kinocut import quality_signal_reader as reader
 
 
-@pytest.fixture
-def child(tmp_path, monkeypatch):
+@pytest.fixture(params=[False, True], ids=["platform-owned", "portable-supervisor"])
+def child(tmp_path, monkeypatch, request):
+    if request.param:
+        if os.name != "posix":
+            pytest.skip("Portable supervisor requires POSIX")
+        from kinocut import process_observation
+
+        monkeypatch.setattr(process_observation, "supports_nonreaping_wait", lambda: False)
     script = tmp_path / "probe.py"
     monkeypatch.setattr(reader, "_ffprobe", lambda: sys.executable)
 
@@ -57,23 +64,51 @@ def test_failed_child_does_not_return_its_partial_valid_measurement(child):
 
 def test_timeout_reaps_child_and_both_readers(child, tmp_path, monkeypatch):
     pid = tmp_path / "pid"
+    group = tmp_path / "group"
+    ready = tmp_path / "ready"
     before = {t.ident for t in threading.enumerate()}
     spawned = []
-    original_popen = reader.subprocess.Popen
+    from kinocut import process_tree
 
-    def capture_process(*args, **kwargs):
-        process = original_popen(*args, **kwargs)
-        spawned.append(process)
-        return process
+    original_tree = process_tree.ProcessTree
 
-    monkeypatch.setattr(reader.subprocess, "Popen", capture_process)
+    def ready_tree(*args, **kwargs):
+        tree = original_tree(*args, **kwargs)
+        spawned.append(tree.process)
+        # Initialize the real owned child before starting the reader's unchanged
+        # 0.1-second execution deadline; scheduler latency is not PID evidence.
+        startup_deadline = time.monotonic() + 5
+        while not ready.exists() and time.monotonic() < startup_deadline:
+            time.sleep(0.01)
+        if not ready.exists():
+            try:
+                tree.close()
+            finally:
+                tree.process.stdout.close()
+                tree.process.stderr.close()
+            pytest.fail("Owned timeout fixture did not initialize within five seconds")
+        return tree
+
+    monkeypatch.setattr(process_tree, "ProcessTree", ready_tree)
     monkeypatch.setattr(reader, "QUALITY_GUARDRAILS_TIMEOUT", 0.1)
     with pytest.raises(subprocess.TimeoutExpired):
-        child(f"import os,time; open({str(pid)!r}, 'w').write(str(os.getpid())); time.sleep(30)")
+        child(
+            "import os,time; "
+            f"open({str(pid)!r}, 'w').write(str(os.getpid())); "
+            f"open({str(group)!r}, 'w').write(str(os.getpgrp())) if os.name == 'posix' else None; "
+            f"open({str(ready)!r}, 'w').close(); "
+            "time.sleep(30)"
+        )
     assert len(spawned) == 1
     process = spawned[0]
-    assert process.pid == int(pid.read_text())
-    # Inspect before poll: the reader must have reaped it, not this assertion.
+    native_pid = int(pid.read_text())
+    if process._kinocut_tree.guardian is None:
+        assert process.pid == native_pid
+    else:
+        assert process.pid != native_pid
+    if os.name == "posix":
+        assert int(group.read_text()) == process.pid
+    # Inspect before poll: cleanup reaps the managed child (native or supervisor).
     assert process.returncode is not None and process.returncode != 0
     assert process.poll() == process.returncode
     assert process.stdout.closed and process.stderr.closed
@@ -107,7 +142,9 @@ def test_fallback_reduction_flushes_final_frame_and_rejects_unknown_fields():
 
 
 def test_repeated_keyboard_interrupt_still_reaps_child_and_readers(child, monkeypatch):
-    original = reader.subprocess.Popen.wait
+    from kinocut.process_tree import ProcessTree
+
+    original = ProcessTree.wait
     interruptions = 0
     before = {t.ident for t in threading.enumerate()}
 
@@ -118,7 +155,17 @@ def test_repeated_keyboard_interrupt_still_reaps_child_and_readers(child, monkey
             raise KeyboardInterrupt
         return original(process, *args, **kwargs)
 
-    monkeypatch.setattr(reader.subprocess.Popen, "wait", wait)
+    monkeypatch.setattr(ProcessTree, "wait", wait)
+    original_reap = reader.subprocess.Popen.wait
+
+    def reap(process, *args, **kwargs):
+        nonlocal interruptions
+        if interruptions < 2:
+            interruptions += 1
+            raise KeyboardInterrupt
+        return original_reap(process, *args, **kwargs)
+
+    monkeypatch.setattr(reader.subprocess.Popen, "wait", reap)
     with pytest.raises(KeyboardInterrupt):
         child("import time; time.sleep(30)")
     assert interruptions == 2

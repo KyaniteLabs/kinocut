@@ -34,12 +34,14 @@ class TestFontManager:
 
         cache_dir = tmp_path / "fonts"
         monkeypatch.setattr("mcp_video.font_manager._FONT_CACHE_DIR", str(cache_dir))
-        # Mock urlretrieve to avoid network call
+        # Cached entries do not trigger a network call.
         fake_font = cache_dir / "roboto.ttf"
         fake_font.parent.mkdir(parents=True, exist_ok=True)
-        fake_font.write_text("fake")
+        from tests.test_font_download_bounds import FONT
 
-        with patch("mcp_video.font_manager.urllib.request.urlretrieve") as mock_dl:
+        fake_font.write_bytes(FONT)
+
+        with patch("mcp_video.font_manager.run_bounded") as mock_dl:
             result = resolve_font("roboto")
             assert result == str(fake_font)
             mock_dl.assert_not_called()  # Already cached
@@ -50,16 +52,15 @@ class TestFontManager:
         cache_dir = tmp_path / "fonts"
         monkeypatch.setattr("mcp_video.font_manager._FONT_CACHE_DIR", str(cache_dir))
 
-        def fake_download(url, path):
-            Path(path).write_text("downloaded")
+        from tests.test_font_download_bounds import FONT
 
-        with patch("mcp_video.font_manager.urllib.request.urlretrieve", side_effect=fake_download):
-            result = resolve_font("roboto")
-            assert Path(result).exists()
+        from tests.test_font_download_bounds import Response, network
+
+        network(monkeypatch, Response(FONT))
+        result = resolve_font("roboto")
+        assert Path(result).exists()
 
     def test_resolve_font_download_fails(self, tmp_path, monkeypatch):
-        from urllib.error import URLError
-
         from mcp_video.errors import MCPVideoError
         from mcp_video.font_manager import resolve_font
 
@@ -67,7 +68,7 @@ class TestFontManager:
         monkeypatch.setattr("mcp_video.font_manager._FONT_CACHE_DIR", str(cache_dir))
 
         with (
-            patch("mcp_video.font_manager.urllib.request.urlretrieve", side_effect=URLError("network down")),
+            patch("mcp_video.font_manager.run_bounded", side_effect=OSError("network down")),
             pytest.raises(MCPVideoError, match="Failed to download"),
         ):
             resolve_font("roboto")

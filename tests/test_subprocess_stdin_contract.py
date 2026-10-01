@@ -34,9 +34,8 @@ _NONPROCESS_APIS = {
     "subprocess.list2cmdline",
 }
 _CRITICAL_RUNNERS = {
-    "kinocut/ffmpeg_helpers.py",
-    "kinocut/ffmpeg_progress.py",
-    "kinocut/quality_signal_reader.py",
+    "kinocut/process_tree.py",
+    "kinocut/process_guardian.py",
     "kinocut_sound/post/_subprocess.py",
     "kinocut_sound/qa/meter_process.py",
     "kinocut_sound/public/mix_process.py",

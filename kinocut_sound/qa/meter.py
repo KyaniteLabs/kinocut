@@ -24,7 +24,8 @@ from kinocut_sound.qa.meter_process import run_meter_async, run_meter_sync
 from kinocut_sound.validation import EBUR128_SUMMARY_RE, FFMPEG_METER_VERSION_RE, PCM_MIX_CHANNEL_COUNTS
 
 
-def validate_material(data, *, channel_counts=PCM_MIX_CHANNEL_COUNTS):
+def _validated_pcm(data, *, channel_counts=PCM_MIX_CHANNEL_COUNTS):
+    """Decode once and return the same PCM whose QA checks succeeded."""
     if not isinstance(data, bytes) or len(data) > MAX_MIX_INPUT_BYTES:
         raise qa_error("meter input must be bounded WAV bytes", QA_INPUT_INVALID)
     try:
@@ -40,7 +41,12 @@ def validate_material(data, *, channel_counts=PCM_MIX_CHANNEL_COUNTS):
         raise qa_error("meter input exceeds duration limit", QA_INPUT_INVALID)
     if frames / rate < MIN_LOUDNESS_MATERIAL_SECONDS or not any(samples):
         raise qa_error("meter requires non-silent material of at least three seconds", "qa_unmeasurable")
-    return rate, frames, channels
+    return samples, rate, channels
+
+
+def validate_material(data, *, channel_counts=PCM_MIX_CHANNEL_COUNTS):
+    samples, rate, channels = _validated_pcm(data, channel_counts=channel_counts)
+    return rate, len(samples) // channels, channels
 
 
 def parse_summary(output):

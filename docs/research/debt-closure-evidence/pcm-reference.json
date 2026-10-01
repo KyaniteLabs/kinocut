@@ -1,0 +1,19 @@
+{
+  "mode": "reference",
+  "wall_samples_seconds": [
+    0.018027555999651668,
+    0.0038069799993536435,
+    0.005032707998907426,
+    0.0038318490005622152,
+    0.0033253849996981444,
+    0.003379567999218125,
+    0.003961300000810297
+  ],
+  "median_seconds": 0.0038318490005622152,
+  "parent_peak_rss_mib": 61.453125,
+  "decoded_pcm_sha256": "f7bbbed29e833d4a42fcf96a81db389ea9fc7b138681cbcd01ff899bb4a68f96",
+  "input_sha256": "9a95df570c63d83df51e989ef62fde713caea2f04b0cbdf21b455d70985d3557",
+  "input_bytes": 11520044,
+  "frames": 5760000,
+  "scope": "Existing QAvalidate+parse_wav reference vs sharedsame-byte validated PCM reuse, sevenfrontend trials, no FFmpeg/weights/corpus/inference"
+}

@@ -1,14 +1,13 @@
 """Bounded frame metadata streaming with owned child cleanup."""
 
 from array import array
-import contextlib
 import logging
 import os
-import signal
 import subprocess
 import threading
 import time
 
+from .defaults import DEFAULT_RENDER_STOP_TIMEOUT
 from .engine_runtime_utils import _ffprobe, _ffmpeg
 from .errors import MCPVideoError, ProcessingError
 from .limits import (
@@ -132,7 +131,7 @@ def _consume_stdout(process, reduction, failures, stop):
             if isinstance(exc, MCPVideoError)
             else MCPVideoError("Invalid signalstats output", code="analysis_invalid_output")
         )
-        _kill(process)
+        _kill(process, failures)
 
 
 def _consume_stderr(process, diagnostic, failures, stop):
@@ -157,30 +156,27 @@ def _consume_stderr(process, diagnostic, failures, stop):
             if isinstance(exc, MCPVideoError)
             else MCPVideoError("Invalid signalstats output", code="analysis_invalid_output")
         )
-        _kill(process)
+        _kill(process, failures)
 
 
-def _kill(process):
-    if os.name == "posix":
-        # Isolated group also closes inherited pipe writers after parent exit.
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGKILL)
-    elif process.poll() is None:
-        with contextlib.suppress(ProcessLookupError):
-            process.kill()
+def _kill(process, failures=None):
+    try:
+        process._kinocut_tree.kill()
+    except MCPVideoError as exc:
+        if failures is None:
+            raise
+        failures.append(exc)
 
 
 def _run_reduction(cmd, reduction):
     """Read every frame, fail on overflow/error, and always reap the owned child."""
     failures, diagnostic = [], bytearray()
     try:
-        process = subprocess.Popen(  # noqa: S603 - fixed probe argv; wait owns deadline
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=os.name == "posix",
-        )
+        from .process_tree import ProcessTree
+
+        tree = ProcessTree(cmd)
+        process = tree.process
+        process._kinocut_tree = tree
     except OSError as exc:
         raise ProcessingError("signalstats backend", -1, "Backend unavailable") from exc
     readers, stop = [], threading.Event()
@@ -190,36 +186,44 @@ def _run_reduction(cmd, reduction):
             reader = threading.Thread(target=function, args=(process, *payload, stop))
             reader.start()
             readers.append(reader)
-        process.wait(timeout=QUALITY_GUARDRAILS_TIMEOUT)
+        try:
+            returncode = tree.wait(timeout=QUALITY_GUARDRAILS_TIMEOUT)
+        except MCPVideoError:
+            if failures:
+                raise failures[0] from None
+            raise
         for reader in readers:
             reader.join(max(0, deadline - time.monotonic()))
         if any(reader.is_alive() for reader in readers):
             raise subprocess.TimeoutExpired(cmd, QUALITY_GUARDRAILS_TIMEOUT)
         if failures:
-            raise failures[0]
-        if process.returncode:
-            raise ProcessingError("ffprobe signalstats", process.returncode, diagnostic.decode(errors="replace"))
+            raise failures[0] from None
+        if returncode:
+            raise ProcessingError("ffprobe signalstats", returncode, diagnostic.decode(errors="replace"))
         reduction.finish()
         if reduction.hdr:
             logger.warning("HDR transfer observed: SDR signalstats heuristics do not evaluate HDR delivery acceptance")
         return reduction
     finally:
         stop.set()
-        _kill(process)
-        interrupted = False
-        while True:
-            try:
-                process.wait()
-                for reader in readers:
-                    reader.join()
-                break
-            except KeyboardInterrupt:
-                interrupted = True
-                _kill(process)
-        process.stdout.close()
-        process.stderr.close()
-        if interrupted:
-            raise KeyboardInterrupt
+        try:
+            tree.close()
+        finally:
+            interrupted = False
+            join_deadline = time.monotonic() + DEFAULT_RENDER_STOP_TIMEOUT
+            while True:
+                try:
+                    for reader in readers:
+                        reader.join(max(0, join_deadline - time.monotonic()))
+                    break
+                except KeyboardInterrupt:
+                    interrupted = True
+            if any(reader.is_alive() for reader in readers):
+                raise MCPVideoError("Signalstats readers could not stop", code="process_cleanup_failed")
+            process.stdout.close()
+            process.stderr.close()
+            if interrupted:
+                raise KeyboardInterrupt
 
 
 class MetadataReduction(SignalReduction):

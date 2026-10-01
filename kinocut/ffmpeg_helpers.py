@@ -16,7 +16,14 @@ from contextvars import ContextVar
 from typing import Any, BinaryIO
 
 from .errors import InputFileError, MCPVideoError, ProcessingError, parse_ffmpeg_error
-from .limits import DEFAULT_FFMPEG_TIMEOUT, FFMPEG_STDERR_DIAGNOSTIC_BYTES, FFPROBE_TIMEOUT, MAX_FILE_SIZE_MB
+from .limits import (
+    DEFAULT_FFMPEG_TIMEOUT,
+    FFMPEG_STDERR_DIAGNOSTIC_BYTES,
+    FFPROBE_TIMEOUT,
+    MAX_FILE_SIZE_MB,
+    MAX_SUBPROCESS_STDOUT_BYTES,
+    MAX_FFMPEG_PIPE_BYTES,
+)
 
 _BLOCKED_OUTPUT_PREFIXES = (
     "/bin",
@@ -314,16 +321,21 @@ def _run_command(
     *,
     pass_fds: tuple[int, ...] = (),
     stderr_sink: BinaryIO | None = None,
+    stdout_sink: BinaryIO | None = None,
+    stdout_limit: int = MAX_SUBPROCESS_STDOUT_BYTES,
 ) -> subprocess.CompletedProcess[str]:
     """Run an arbitrary command with timeout and error handling.
 
     Bare ``ffmpeg``/``ffprobe`` names are replaced with the resolved runtime
     binaries so every code path finds FFmpeg the same way. Optional ``stderr_sink``
-    must be a seekable binary file; it keeps verbose diagnostics out of Python
-    memory. Failed commands read only a bounded prefix; successful callers inspect
-    the sink themselves (``result.stderr`` is then ``None``).
+    must be a seekable binary file. Pipes are drained with hard byte ceilings;
+    oversized payloads fail without truncated success. Optional ``stdout_sink``
+    receives at most ``stdout_limit`` bytes and returns ``result.stdout=None``.
+    Failed commands read a bounded diagnostic prefix; successful sink callers
+    inspect the sink themselves (``result.stderr`` is then ``None``).
     """
     from .engine_runtime_utils import _ffmpeg, _ffprobe
+    from .bounded_process import run_bounded
 
     if cmd and cmd[0] == "ffmpeg":
         cmd = [_ffmpeg(), *cmd[1:]]
@@ -358,22 +370,13 @@ def _run_command(
         with contextlib.ExitStack() as lease:
             if is_ffmpeg:
                 cmd, pass_fds = lease.enter_context(staged_ffmpeg_command(cmd, pass_fds))
-            # cmd is always a list built from trusted internal ffmpeg/ffprobe paths; no shell=True
-            kwargs: dict[str, Any] = {}
-            if pass_fds:
-                kwargs["pass_fds"] = pass_fds
-            if stderr_sink is None:
-                kwargs["capture_output"] = True
-            else:
-                kwargs.update(stdout=subprocess.PIPE, stderr=stderr_sink)
-            result = subprocess.run(  # noqa: S603
+            result = run_bounded(
                 cmd,
-                stdin=subprocess.DEVNULL,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
                 timeout=timeout,
-                **kwargs,
+                pass_fds=pass_fds,
+                stderr_sink=stderr_sink,
+                stdout_sink=stdout_sink,
+                stdout_limit=stdout_limit,
             )
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
@@ -406,20 +409,9 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
 
     try:
         with staged_ffmpeg_command(cmd, pass_fds) as (cmd, pass_fds):
-            # cmd is always a list-form ffmpeg invocation; no shell=True
-            kwargs: dict[str, Any] = {}
-            if pass_fds:
-                kwargs["pass_fds"] = pass_fds
-            proc = subprocess.run(  # noqa: S603
-                cmd,
-                stdin=subprocess.DEVNULL,
-                capture_output=True,
-                text=True,
-                encoding="utf-8",
-                errors="replace",
-                timeout=DEFAULT_FFMPEG_TIMEOUT,
-                **kwargs,
-            )
+            from .bounded_process import run_bounded
+
+            proc = run_bounded(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT, pass_fds=pass_fds)
     except subprocess.TimeoutExpired as e:
         raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from e
     if proc.returncode != 0:
@@ -447,12 +439,9 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
         )
     cmd = [_ffmpeg(), "-y", *args]
     try:
-        proc = subprocess.run(  # noqa: S603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-        )
+        from .bounded_process import run_bounded
+
+        proc = run_bounded(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT, text=False, stdout_limit=MAX_FFMPEG_PIPE_BYTES)
     except subprocess.TimeoutExpired as exc:
         raise ProcessingError(
             " ".join(cmd),

@@ -31,21 +31,39 @@ def resolve_layer_plan_path(save_layer_plan: str | None, output_path: str) -> st
 def publish_composite(output, plan_path, args, receipt, dry_run, render, file_hash, build_result, timed_operation):
     """Finish both staged artifacts before publishing media, then its plan.
 
-    Each replacement is atomic individually. This does not claim a filesystem
-    transaction spanning two files if publication itself fails between them.
+    Each replacement is atomic individually. A plan-publication failure after
+    media replacement is reported explicitly; it is not a two-file transaction.
     """
-    with contextlib.ExitStack() as stack:
-        staged_plan = stack.enter_context(_atomic_artifact(plan_path)) if plan_path is not None else None
-        if dry_run:
-            timing = {"elapsed_ms": None}
-            result = build_result(output, timing, receipt, plan_path, dry_run=True)
-        else:
-            staged_media = stack.enter_context(_atomic_output(output))
-            with timed_operation() as timing:
-                render([*args[:-1], staged_media])
-            receipt["output_hash"] = file_hash(staged_media)
-            result = build_result(staged_media, timing, receipt, plan_path, dry_run=False)
-        if staged_plan is not None:
-            with _open_staged_writer(staged_plan) as stream:
-                stream.write((json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+    committed = []
+    try:
+        with contextlib.ExitStack() as stack:
+            staged_plan = stack.enter_context(_atomic_artifact(plan_path)) if plan_path is not None else None
+            if dry_run:
+                timing = {"elapsed_ms": None}
+                result = build_result(output, timing, receipt, plan_path, dry_run=True)
+            else:
+                staged_media = stack.enter_context(_publish_media(output, committed))
+                with timed_operation() as timing:
+                    render([*args[:-1], staged_media])
+                receipt["output_hash"] = file_hash(staged_media)
+                result = build_result(staged_media, timing, receipt, plan_path, dry_run=False)
+            if staged_plan is not None:
+                with _open_staged_writer(staged_plan) as stream:
+                    stream.write((json.dumps(receipt, indent=2, sort_keys=True) + "\n").encode("utf-8"))
+    except MCPVideoError as error:
+        if committed:
+            raise MCPVideoError(
+                "Media was published, but its layer-plan receipt could not be published; verify the media hash before reuse",
+                error_type="processing_error",
+                code="partial_artifact_publication",
+                suggested_action={"action": "verify_output_hash", "expected_output_hash": receipt["output_hash"]},
+            ) from error
+        raise
     return result.model_copy(update={"output_path": output})
+
+
+@contextlib.contextmanager
+def _publish_media(output, committed):
+    with _atomic_output(output) as staged:
+        yield staged
+    committed.append(True)

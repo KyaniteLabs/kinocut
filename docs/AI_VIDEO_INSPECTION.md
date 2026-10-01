@@ -1,8 +1,9 @@
 # AI-video Inspection
 
-> **Lifecycle status (2026-07-12):** implemented on the incomplete draft branch and under
-> review. Findings support human decisions; they do not assert creative approval or authorize
-> release.
+> **Lifecycle status (2026-10-01):** the deterministic inspection flow is implemented.
+> Findings support human decisions; they do not assert creative approval or authorize
+> release. Current validation and remaining external prerequisites are recorded in
+> [the debt-closure ledger](research/DEBT_CLOSURE.md).
 
 Kinocut's Wave-2 inspection flow binds every report and visual artifact to immutable source
 bytes in a private project store.

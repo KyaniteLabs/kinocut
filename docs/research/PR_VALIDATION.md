@@ -1,5 +1,32 @@
 # PR validation and publication scope
 
+## Current debt-closure delivery
+
+[PR588](https://github.com/KyaniteLabs/kinocut/pull/588) carries the bounded-media,
+process ownership, publication/input validation, feature acceptance and architecture
+repairs in the [debt ledger](DEBT_CLOSURE.md). Its current selected1,213-file
+source identity `0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d` passed the
+required full serial command: **8,297 passed, 189 skipped, eight warnings**, exit
+zero, in2,163.75s. Afterward68 documentation/surface/architecture/privacy checks
+passed, configured Ruff covers1,135 files, Pyright has zero errors/warnings,
+canonical imports pass, and645 shipped Python files match the content-clean
+wheel/source archive.
+
+The exact2d903f7 checkpoint passed all13checks, including hosted8,272/50skips
+and Linux176/3skips, macOS174/5skips, Windows129/50skips. Source/tree/aggregate
+archive/wheel binding and raw-log limitations are retained in
+[hosted evidence](debt-closure-evidence/hosted-ci.json). The reported code-review
+thread is resolved; account-limited security-bot review is not claimed complete.
+See the PR for final documentation-head checks and merge metadata.
+
+Six repository implementation/scope tickets have evidence for resolution on
+delivery (#477,#481,#482,#485,#553,#583); six external-owner/evidence gates stay
+open (#476,#479,#487,#484,#483,#502). Forgejo #499/#488 are excluded. Paid model
+accuracy, representative host/media/listening, desktop acceptance, current site/registry
+readback and private operator outcomes remain untested or unprovided. These repairs
+are Unreleased; original published1.15.3/draft metadata remain separate.
+
+## Earlier deliveries
 [PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) reviewed branch
 `codex/kinocut-reliability-and-backlog` against `master`. The user authorized
 commits, branch pushes, PR creation and subsequently merging #586 after its

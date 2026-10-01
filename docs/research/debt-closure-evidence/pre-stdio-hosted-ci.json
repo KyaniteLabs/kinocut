@@ -1,0 +1,154 @@
+{
+  "head_sha": "8328a26da2976086a7904364fbf1478f385b3f58",
+  "collected_utc": "2026-10-01T12:11:42.741729+00:00",
+  "check_count": 13,
+  "checks": [
+    {
+      "id": 110361510403,
+      "name": "Aggregate exact evidence",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "id": 110357802250,
+      "name": "Core runtime (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357802245,
+      "name": "Core runtime (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357802203,
+      "name": "Core runtime (macos)",
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "id": 110357802057,
+      "name": "Optional discovery and callability",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357663044,
+      "name": "Image extra smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357663037,
+      "name": "AI module metadata smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357663021,
+      "name": "FFmpeg operation smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357662963,
+      "name": "Clean-wheel onboarding journey",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357662716,
+      "name": "Base CLI and doctor",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357662584,
+      "name": "agent-law",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357662460,
+      "name": "Build and validate staged artifact",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110357662445,
+      "name": "Hosted PR checks",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "runs": [
+    {
+      "id": 36858807044,
+      "name": "Agent Law",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36858807224,
+      "name": "Integration smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36858807047,
+      "name": "PR safety",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36858807037,
+      "name": "Staged MCPB",
+      "status": "completed",
+      "conclusion": "failure"
+    }
+  ],
+  "native_receipts": {
+    "1_Core runtime (linux).txt": {
+      "test_summary": "160 passed, 3 skipped in 8.45s",
+      "python_locations": [
+        "  pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64"
+      ],
+      "backend_lines": []
+    },
+    "2_Core runtime (macos).txt": {
+      "test_summary": "5 failed, 154 passed, 4 skipped in 532.93s (0:08:52)",
+      "python_locations": [
+        "pythonLocation: <runner-home>/hostedtoolcache/Python/3.11.9/arm64"
+      ],
+      "backend_lines": []
+    },
+    "3_Core runtime (windows).txt": {
+      "test_summary": "129 passed, 34 skipped in 6.32s",
+      "python_locations": [
+        "  pythonLocation: C:\\hostedtoolcache\\windows\\Python\\3.11.9\\x64"
+      ],
+      "backend_lines": []
+    }
+  },
+  "hosted_receipt": {
+    "passed": 8256,
+    "skipped": 50,
+    "warnings": 8,
+    "pytest_seconds": 485.28,
+    "python": "3.14.7",
+    "ffmpeg": "6.1.1-3ubuntu5",
+    "parallel_command": "-n auto --maxprocesses=2 --dist loadfile"
+  },
+  "evidence_sha256": {
+    "pr588-mcpb.zip": "12b86cc12bde3cfdc84c070b106357b0a94f05f29d717ef38fb695bda50dc450",
+    "pr588-safety.zip": "80b3c06a985f942116a9c014f72f9c8c0b0c6044ea5fcd479bce74f78aa55a21",
+    "pr588-integration.zip": "76771a060bab82d426b51cce3bf0d33b34ce21a65c974e490a40502c01e99b8d",
+    "pr588-macos-annotations.json": "6a83ad9f940b972272e98ce3907776c9deb9f24ffe717840a2df94e58886be66",
+    "pr588-macos-failure-excerpt.log": "c744823ec5d7249ac1b78cecd22816d272385220bc39f215ec373a120486a546"
+  },
+  "changes_made": false,
+  "privacy_redactions": [
+    "macOS runner home path replaced with <runner-home>; toolchain version and architecture preserved; raw log checksum unchanged"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "worker_pid": 335603,
+  "guardian_pid": 335604,
+  "native_pid": 335605,
+  "native_group": 335604,
+  "native_command": "/usr/bin/ffmpeg -y -re -f lavfi -i color=s=64x64:r=2:d=30 -f null - ",
+  "native_version": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "lease_held_before": true,
+  "lease_released_after_cleanup": true,
+  "native_state_after": "Z",
+  "guardian_state_after": "Z",
+  "abnormal_adopter_reaping_claim": false
+}

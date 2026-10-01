@@ -96,19 +96,38 @@ cancel request: confirmed completion becomes `cancelled`, not `failed`.
 Termination of an already terminal job returns its existing record. Repeated
 cancellation of a terminal job remains an illegal transition.
 
-The controller signals only a positive, non-self detached process-group leader
-whose job-specific lease is held. The current stop uses `SIGKILL`; the post-signal
-quiescence wait defaults to five seconds, polling every 20 milliseconds outside
-the project lock. An unverified identity is never signaled. Unconfirmed requests
-retain the PID with one of `runner_stop_identity_unverified`,
-`runner_stop_signal_failed` or `runner_stop_timeout`, allowing retry or
-reconciliation.
+The controller records stop intent and waits; it never signals a reusable external
+PID. The dedicated worker validates a RUNNING journal head naming its own PID,
+then consumes stop intent and signals only its own live private process group.
+A forked copy or mismatched group/session cannot acquire this authority. Polling
+caches a validated head until the journal changes. The bounded quiescence wait
+defaults to five seconds, polling every 20 milliseconds outside the project lock.
+An unwatched or unresponsive legacy worker remains unconfirmed; it is never
+force-killed from a recorded PID plus an inherited lease. Unconfirmed requests
+retain their PID and typed stop error for retry or reconciliation.
 
-Linux verification checks that no executing members remain in the process group;
+POSIX commands launched by the dedicated worker run under a guardian that holds
+the inherited job lease and staged descriptors. A parent-only liveness pipe stops
+the guardian's own private group when the worker dies, including on hard kill.
+Generic POSIX command completion retains the unreaped leader until owned-group
+cleanup. Hosts without nonreaping wait support retain a live supervisor, use a
+bounded private native-status pipe, and stop through parent-only EOF before reap.
+After native completion the live supervisor releases its own stdout/stderr so
+readers can observe EOF. Genuine descendant writers retain their own descriptors
+and remain subject to the reader deadline and owned cleanup.
+Detected external reaping rejects numeric group signals. This requires sole-reaper
+ownership: callers must not concurrently reap the owned child outside cleanup.
+Normal native commands and their guardians are reaped by their live parents.
+Abnormal shutdown can leave nonexecuting zombies for host PID1 to reap; a
+non-reaping host does not acquire a guarantee of zero retained PID slots.
+Windows native commands use kill-on-close Job Objects. Deliberate descendant
+session escapes and hostile same-user processes are outside this local boundary.
+
+Linux verification checks that no executing members remain in the worker group;
 zombie-only members cannot continue rendering. Other platforms conservatively
-require process-group disappearance, and unsupported group verification leaves
-the request pending. The PID/lease checks are local execution evidence, not a
-cryptographic identity guarantee.
+require process-group disappearance. All terminal stops also require the inherited
+lease to be free, preventing escaped media work from being mistaken for completed
+shutdown. Unsupported proof leaves the request pending.
 
 The runner observes a pre-start request before invoking the engine. Racing
 success/failure updates cannot discard stop ownership or emit a successful

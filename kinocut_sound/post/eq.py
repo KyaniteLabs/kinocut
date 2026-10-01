@@ -18,6 +18,16 @@ from kinocut_sound.capability import (
     AdapterLocality,
     CapabilityResult,
 )
+from kinocut_sound.defaults import (
+    DEFAULT_POST_EQ_BAND_FREQUENCIES as BAND_FREQUENCIES,
+    DEFAULT_POST_EQ_Q as DEFAULT_Q,
+)
+from kinocut_sound.limits import (
+    MAX_POST_EQ_GAIN_DB as MAX_GAIN_DB,
+    MAX_POST_EQ_Q as MAX_Q,
+    MIN_POST_EQ_GAIN_DB as MIN_GAIN_DB,
+    MIN_POST_EQ_Q as MIN_Q,
+)
 from kinocut_sound.post._errors import (
     POST_DEPENDENCY_MISSING,
     POST_INVALID_PARAM,
@@ -34,17 +44,6 @@ from kinocut_sound.post._subprocess import (
 )
 from kinocut_sound.post.chain import PostContext, PostStageResult
 from kinocut_sound.render_fingerprint import DeterminismClass
-
-# --- Numeric envelopes ---
-# TODO(controller): centralize alongside defaults.py/limits.py post-merge.
-MIN_GAIN_DB: float = -24.0
-MAX_GAIN_DB: float = 24.0
-MIN_Q: float = 0.1
-MAX_Q: float = 6.0
-
-# Canonical 5-band centre frequencies (Hz).
-BAND_FREQUENCIES: tuple[float, ...] = (120.0, 500.0, 2500.0, 6000.0, 12000.0)
-DEFAULT_Q: float = 1.0
 
 
 @dataclass(frozen=True)

@@ -95,6 +95,14 @@ full sampled-frame and motion-strip package, deterministic findings, and explici
 provider capabilities. Provider absence is expected and must not trigger a download or a
 network fallback.
 
+The report also retains chronological `motion_coherence` measurements, coverage,
+gaps and advisory transitions. Review every flagged interval and intended cut, then
+watch the complete assembled film. Python `Client.record_motion_acceptance(...)`
+records the separate source/report-bound viewing attestation and dispositions;
+incomplete viewing or an unresolved `needs_fix` cannot grant acceptance. See
+`docs/QUALITY_EVIDENCE.md`. The receipt records a human attestation, not a score
+that proves someone watched or approved the film.
+
 ## Governed AI-video Review and Salvage
 
 Use `video_verdict`, `video_acceptance_eval`, `video_body_swap`, and `video_salvage` (or

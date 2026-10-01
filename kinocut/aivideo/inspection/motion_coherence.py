@@ -22,17 +22,19 @@ from kinocut.defaults import (
 )
 
 
-def _chronological_windows(frames: tuple[Any, ...]) -> tuple[list[dict], list[dict], float]:
+def _chronological_windows(frames: tuple[Any, ...]) -> tuple[list[dict], list[dict], float, list[dict]]:
     """Aggregate timestamp-weighted intervals; retain isolated transitions separately."""
     durations = [right.timestamp - left.timestamp for left, right in pairwise(frames)]
     cadence = statistics.median(durations) if durations else 0.0
     buckets: dict[int, list[float]] = {}
     transitions, coverage = [], 0.0
+    gaps = []
     width = DEFAULT_MOTION_COHERENCE_WINDOW_SECONDS
     for index in range(1, len(frames)):
         left, right = frames[index - 1], frames[index]
         duration = right.timestamp - left.timestamp
         if duration > cadence * DEFAULT_TEMPORAL_LATE_FRAME_GAP_MULTIPLIER:
+            gaps.append({"start": left.timestamp, "end": right.timestamp, "reason": "timestamp_gap_excluded"})
             continue  # Missing spans must never be interpolated into measured coverage.
         difference = right.difference_from_previous
         isolated = difference >= DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE and (
@@ -74,7 +76,7 @@ def _chronological_windows(frames: tuple[Any, ...]) -> tuple[list[dict], list[di
         }
         for key, (total, duration) in sorted(buckets.items())
     ]
-    return windows, transitions, coverage
+    return windows, transitions, coverage, gaps
 
 
 def _chronological_findings(windows: list[dict]) -> list[dict]:
@@ -133,8 +135,8 @@ def _chronological_findings(windows: list[dict]) -> list[dict]:
 
 def chronological_motion_report(frames: tuple[Any, ...], expected_end: float) -> dict[str, Any]:
     """Report measured chronology; deliberate calm is valid and human watch remains required."""
-    windows, transitions, coverage = _chronological_windows(frames)
-    return {
+    windows, transitions, coverage, gaps = _chronological_windows(frames)
+    report = {
         "method": "chronological_luma_change_rate.v1",
         "scope": "decoded_image_change_proxy; semantic_and_artistic_coherence_not_assessed",
         "assessment_status": "advisory_measured" if windows else "insufficient_motion_observations",
@@ -145,6 +147,7 @@ def chronological_motion_report(frames: tuple[Any, ...], expected_end: float) ->
         "observed_last_timestamp": frames[-1].timestamp,
         "expected_media_end": expected_end,
         "difference_coverage_seconds": round(coverage, 6),
+        "unmeasured_intervals": gaps,
         "coverage_scope": "provided_observations_only; timestamp_gaps_excluded",
         "budget_truncation": False,
         "units": "mean_absolute_luma_change_per_second",
@@ -165,3 +168,6 @@ def chronological_motion_report(frames: tuple[Any, ...], expected_end: float) ->
         "human_viewing_status": "not_recorded",
         "acceptance": "not_granted",
     }
+    from .motion_acceptance import motion_review_items
+
+    return {**report, "review_items": motion_review_items(report)}

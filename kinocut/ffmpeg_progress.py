@@ -3,15 +3,17 @@
 from __future__ import annotations
 
 import re
-import contextlib
 import subprocess
 import threading
 from collections.abc import Callable
 
 from .defaults import DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT
-from .errors import ProcessingError, parse_ffmpeg_error
+from .errors import MCPVideoError, ProcessingError, parse_ffmpeg_error
+from .bounded_process import output_limit_error
+from .process_tree import ProcessTree
 from .limits import (
     DEFAULT_FFMPEG_TIMEOUT,
+    MAX_SUBPROCESS_STDERR_BYTES,
     FFMPEG_PROGRESS_LINE_BYTES,
     FFMPEG_PROGRESS_READ_BYTES,
     FFMPEG_PROGRESS_STDERR_BYTES,
@@ -20,16 +22,16 @@ from .limits import (
 _TIME_RE = re.compile(r"time=(\d+:\d+:\d+\.\d+)")
 
 
-def _stop(proc):
-    if proc.poll() is None:
-        with contextlib.suppress(ProcessLookupError):
-            proc.kill()
-    proc.wait(timeout=DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT)
-
-
 class _Diagnostics:
-    def __init__(self, proc, duration, callback, parse_time):
-        self.proc, self.duration, self.callback, self.parse_time = proc, duration, callback, parse_time
+    def __init__(self, tree, duration, callback, parse_time):
+        self.tree, self.proc, self.duration, self.callback, self.parse_time = (
+            tree,
+            tree.process,
+            duration,
+            callback,
+            parse_time,
+        )
+        self.total = 0
         self.prefix, self.pending, self.errors = bytearray(), bytearray(), []
 
     def read(self):
@@ -38,6 +40,9 @@ class _Diagnostics:
                 chunk = self.proc.stderr.read1(FFMPEG_PROGRESS_READ_BYTES)
                 if not chunk:
                     break
+                self.total += len(chunk)
+                if self.total > MAX_SUBPROCESS_STDERR_BYTES:
+                    raise output_limit_error("stderr")
                 space = FFMPEG_PROGRESS_STDERR_BYTES - len(self.prefix)
                 self.prefix.extend(chunk[: max(0, space)])
                 self.pending.extend(chunk)
@@ -47,9 +52,10 @@ class _Diagnostics:
             self._progress(bytes(self.pending))
         except BaseException as exc:
             self.errors.append(exc)
-            if self.proc.poll() is None:
-                with contextlib.suppress(ProcessLookupError):
-                    self.proc.kill()
+            try:
+                self.tree.kill()
+            except BaseException as cleanup:
+                self.errors.append(cleanup)
 
     def _lines(self):
         while True:
@@ -77,25 +83,27 @@ def run_progress(
     timeout=DEFAULT_FFMPEG_TIMEOUT,
 ):
     """Do not return from cancellation while an owned process can still write."""
-    # Controlled argv from the runtime resolver; never execute a shell.
-    kwargs = {"pass_fds": pass_fds} if pass_fds else {}
-    proc = subprocess.Popen(  # noqa: S603
-        cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.PIPE, **kwargs
-    )
-    diagnostics = _Diagnostics(proc, duration, callback, parse_time)
+    tree = ProcessTree(cmd, stdout=subprocess.DEVNULL, pass_fds=pass_fds)
+    proc = tree.process
+    diagnostics = _Diagnostics(tree, duration, callback, parse_time)
     reader = threading.Thread(target=diagnostics.read, name="kinocut-ffmpeg-progress")
     started = False
     try:
         reader.start()
         started = True
         try:
-            proc.wait(timeout=timeout)
+            returncode = tree.wait(timeout=timeout)
+        except MCPVideoError:
+            if diagnostics.errors:
+                raise diagnostics.errors[0] from None
+            raise
         except subprocess.TimeoutExpired:
             raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {timeout}s") from None
     except BaseException:
-        _stop(proc)
+        tree.close()
         raise
     finally:
+        tree.close()
         if started:
             reader.join(timeout=DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT)
         if proc.stderr is not None and not reader.is_alive():
@@ -103,9 +111,9 @@ def run_progress(
     if reader.is_alive():
         raise ProcessingError(" ".join(cmd), -1, "FFmpeg diagnostic reader did not stop")
     if diagnostics.errors:
-        raise diagnostics.errors[0]
+        raise diagnostics.errors[0] from None
     stderr = diagnostics.prefix.decode("utf-8", errors="replace")
-    if proc.returncode != 0:
+    if returncode != 0:
         raise parse_ffmpeg_error(stderr, command=cmd)
     callback(100.0)
-    return subprocess.CompletedProcess(cmd, proc.returncode, "", stderr)
+    return subprocess.CompletedProcess(cmd, returncode, "", stderr)

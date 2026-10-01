@@ -9,12 +9,24 @@ Optional dependencies:
 from __future__ import annotations
 
 import logging
+import math
 import tempfile
 from pathlib import Path
 
 from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _run_command, _run_ffprobe_json, _validate_input_path
-from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_SCENE_FRAMES, MAX_VIDEO_DURATION
+from ..defaults import (
+    DEFAULT_FFMPEG_TIMEOUT,
+    DEFAULT_AI_SCENE_FRAME_INTERVAL,
+    DEFAULT_AI_SCENE_JPEG_QUALITY,
+    DEFAULT_AI_SCENE_HASH_THRESHOLD,
+)
+from ..limits import (
+    MAX_AI_SCENE_FRAMES,
+    MAX_VIDEO_DURATION,
+    MAX_AI_SCENE_FRAME_WIDTH,
+    MAX_AI_SCENE_FRAME_HEIGHT,
+)
 from .spatial import _standard_scene_detect
 
 logger = logging.getLogger(__name__)
@@ -31,10 +43,21 @@ def _validate_scene_threshold(threshold: float) -> float:
 
 
 def _parse_duration(value: object) -> float:
-    try:
-        return float(value or 0)
-    except (TypeError, ValueError):
+    if value is None or value == "":
         return 0.0
+    try:
+        if isinstance(value, bool):
+            raise TypeError("Boolean duration")
+        duration = float(value)
+    except (TypeError, ValueError, OverflowError) as exc:
+        raise MCPVideoError(
+            "Media duration is invalid", error_type="input_error", code="invalid_media_duration"
+        ) from exc
+    if not math.isfinite(duration) or duration < 0:
+        raise MCPVideoError(
+            "Media duration must be finite and nonnegative", error_type="input_error", code="invalid_media_duration"
+        )
+    return duration
 
 
 def _extract_scene_frames(video: str, tmpdir: str, frame_interval: float) -> list[Path]:
@@ -46,13 +69,22 @@ def _extract_scene_frames(video: str, tmpdir: str, frame_interval: float) -> lis
         "-i",
         video,
         "-vf",
-        f"fps=1/{frame_interval},scale=320:-1",
+        f"fps=1/{frame_interval},scale={MAX_AI_SCENE_FRAME_WIDTH}:{MAX_AI_SCENE_FRAME_HEIGHT}:force_original_aspect_ratio=decrease",
+        "-frames:v",
+        str(MAX_AI_SCENE_FRAMES + 1),
         "-q:v",
-        "2",
+        str(DEFAULT_AI_SCENE_JPEG_QUALITY),
         str(frame_pattern),
     ]
     _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
-    return sorted(Path(tmpdir).glob("frame_*.jpg"))
+    frames = sorted(Path(tmpdir).glob("frame_*.jpg"))
+    if len(frames) > MAX_AI_SCENE_FRAMES:
+        raise MCPVideoError(
+            "Scene extraction exceeds the frame ceiling; duration metadata may be inconsistent",
+            error_type="resource_error",
+            code="scene_frame_limit_exceeded",
+        )
+    return frames
 
 
 def _compute_frame_hashes(
@@ -82,7 +114,7 @@ def _compute_frame_hashes(
 def _detect_scene_changes(hashes: list[dict]) -> list[dict]:
     """Compare perceptual hashes to find significant scene changes."""
     scenes: list[dict] = []
-    hash_threshold = 10  # Perceptual hash threshold (lower = more sensitive)
+    hash_threshold = DEFAULT_AI_SCENE_HASH_THRESHOLD  # Lower = more sensitive
 
     for i in range(1, len(hashes)):
         prev_hash = hashes[i - 1]["hash"]
@@ -144,7 +176,7 @@ def ai_scene_detect(
         )
 
     # Step 2: Extract frames at a bounded interval.
-    frame_interval = max(0.5, duration / MAX_AI_SCENE_FRAMES)
+    frame_interval = max(DEFAULT_AI_SCENE_FRAME_INTERVAL, duration / MAX_AI_SCENE_FRAMES)
 
     with tempfile.TemporaryDirectory() as tmpdir:
         try:

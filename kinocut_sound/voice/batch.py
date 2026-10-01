@@ -26,6 +26,18 @@ Design references (sonic-world design):
 
 from __future__ import annotations
 
+
+from kinocut_sound.limits import (
+    MAX_VOICE_BATCH_LINES as DEFAULT_MAX_BATCH_LINES,
+)
+
+from kinocut_sound.defaults import (
+    DEFAULT_VOICE_BATCH_OPERATION as DEFAULT_BATCH_OPERATION,
+    DEFAULT_VOICE_BATCH_TOOL as DEFAULT_BATCH_TOOL,
+    DEFAULT_VOICE_BATCH_ROLE as DEFAULT_BATCH_ROLE,
+)
+
+
 import logging
 import os
 from collections.abc import Callable, Iterable
@@ -35,7 +47,6 @@ from itertools import islice
 from kinocut_sound._canonical import Sha256, location_violation
 from kinocut_sound.lines import Line
 from kinocut_sound.receipt import (
-    LoudnessVerification,
     OrderedInput,
     SoundReceiptSection,
     Transformation,
@@ -68,19 +79,6 @@ from kinocut_sound.voice.roster import VoiceRoster, VoiceSlot
 logger = logging.getLogger(__name__)
 
 # --- Voice-leaf private batch ceilings ---
-# TODO(controller): consider promoting to ``kinocut_sound/limits.py`` if S9
-# batch assembly or S14 benchmark need to share the same ceiling.
-DEFAULT_MAX_BATCH_LINES: int = 4096
-DEFAULT_BATCH_OPERATION: str = "voice_batch_render"
-DEFAULT_BATCH_TOOL: str = "tts_local_synth"
-DEFAULT_BATCH_ROLE: str = "tts_render"
-
-# Loudness placeholder constants for the receipt section. The local synth
-# produces PCM with a peak amplitude under DEFAULT_PEAK_AMPLITUDE_LINEAR, so
-# the integrated LUFS approximation stays below the receipt's 0 LUFS ceiling.
-_LOUDNESS_INTEGRATED_LUFS: float = -16.0
-_LOUDNESS_TRUE_PEAK_DBTP: float = -1.0
-_LOUDNESS_RANGE_LU: float = 0.0
 
 SlotResolver = Callable[[Line, VoiceRoster], VoiceSlot]
 CancelCheck = Callable[[], None]
@@ -161,26 +159,6 @@ def default_slot_resolver(line: Line, roster: VoiceRoster) -> VoiceSlot:
     return roster.get(line.profile.profile_id)
 
 
-def _build_loudness(clips: tuple[RenderedClip, ...]) -> LoudnessVerification:
-    """Return a bounded loudness verification block for the receipt.
-
-    The local adapter synthesizes bounded-amplitude PCM (peak under
-    ``DEFAULT_PEAK_AMPLITUDE_LINEAR``), so the receipt reports the same
-    bounded target for every batch rather than running a true EBU R128
-    filter over the synthetic clips. A future leaf (S11) will replace this
-    with measured LUFS/TP/LRA from the analyzer contract.
-    """
-
-    del clips  # placeholder block; the local synth emits a known-bounded peak
-    return LoudnessVerification(
-        preset="stream_-14",
-        integrated_lufs=_LOUDNESS_INTEGRATED_LUFS,
-        true_peak_dbtp=_LOUDNESS_TRUE_PEAK_DBTP,
-        lra_lu=_LOUDNESS_RANGE_LU,
-        within_tolerance=True,
-    )
-
-
 def _build_section(
     *,
     plan: SoundPlan,
@@ -191,19 +169,21 @@ def _build_section(
     profile_versions = tuple((line.profile.profile_id, line.profile.version) for line in plan.lines)
     ordered_inputs = tuple(clip.to_ordered_input() for clip in clips)
     transformations = tuple(clip.to_transformation() for clip in clips)
-    loudness = _build_loudness(clips)
     return SoundReceiptSection(
         plan_hash=plan_hash,
         profile_versions=profile_versions,
         consent_grant_refs=(),
         adapter_descriptors=(DEFAULT_BATCH_TOOL,),
-        loudness=loudness,
+        # A collection of separately synthesized clips is not an assembled
+        # program. Only final-master QA can certify its integrated loudness.
+        loudness=None,
+        loudness_assessment_status="not_evaluated",
         ordered_inputs=ordered_inputs,
         transformations=transformations,
         preservation_proofs=(),
         finding_ids=(),
         review_artifact_refs=(),
-        warnings=warnings,
+        warnings=(*warnings, "loudness_not_evaluated"),
         human_review_required=True,
     )
 

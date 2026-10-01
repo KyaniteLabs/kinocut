@@ -1,0 +1,50 @@
+{
+  "cases": [
+    {
+      "operation": "cancel",
+      "before": {
+        "runner": 337132,
+        "guardian": 337139,
+        "native": 337140,
+        "native_cmd": "/usr/bin/ffmpeg -y -i /workspace/.cache/kinocut-qa/debt-process/independent-native-job/project-cancel/.kinocut/jobs/e468554a942c2edd1c6218f4c47a6b26b6d2b9743f0b019fc076d2d9a346856c/input.mp4 -c:v libvpx-vp9 -crf 23 -b:v 0 -c:a libopus -f webm /proc/self/fd/6 ",
+        "lease_held": true
+      },
+      "terminal": "cancelled",
+      "lease_released": true,
+      "after": {
+        "337132": "Z",
+        "337139": "Z",
+        "337140": "Z"
+      }
+    },
+    {
+      "operation": "terminate",
+      "before": {
+        "runner": 337144,
+        "guardian": 337151,
+        "native": 337152,
+        "native_cmd": "/usr/bin/ffmpeg -y -i /workspace/.cache/kinocut-qa/debt-process/independent-native-job/project-terminate/.kinocut/jobs/970c5b10683d860866c86cb7e3c2205d34b26a7e2d4267c1a9ac7b882965c416/input.mp4 -c:v libvpx-vp9 -crf 23 -b:v 0 -c:a libopus -f webm /proc/self/fd/6 ",
+        "lease_held": true
+      },
+      "terminal": "failed",
+      "lease_released": true,
+      "after": {
+        "337144": "Z",
+        "337151": "Z",
+        "337152": "Z"
+      }
+    }
+  ],
+  "source_sha256": {
+    "kinocut/process_guardian.py": "41985c7ee56b39dc0accd1f615620f118861e39e71fc68a48110d385668b1ca9",
+    "kinocut/process_guardian_owner.py": "0a5538e7e99f2f90eaa0a84d9390b658425e536cf512a4e3c6958611c6e9116b",
+    "kinocut/process_tree.py": "85b5678165db168d53e8eae0aadbf962380102ad41c01b11a3b255036e6ab2a7",
+    "kinocut/projectstore/render_control.py": "d1f9e6e15a6ff0cdae79595687711506b5362957e0a90548b5a218088eb00333",
+    "kinocut/projectstore/render_jobs.py": "7f51f61040700367eab092f396bcb5193006cfaaa0788cb3df29b41896a24e9b",
+    "kinocut/projectstore/render_runner.py": "a42dc259056cc9da67f4e50779f82b55788d4e1f2624c365bfbe1ab1dec8192f",
+    "kinocut/bounded_process.py": "3aacdbda4dbb355e1a2f78987011ab0d2066e864237d313293378c5b3d660a7c"
+  },
+  "native_version": "ffmpeg version 7.1.5-0+deb13u1 Copyright (c) 2000-2026 the FFmpeg developers",
+  "abnormal_adopter_reaping_claim": false,
+  "scope": "Shipped projectstore API and actual detached render_runner with real FFmpeg; not Client API (Client has no detached job methods)."
+}

@@ -1,0 +1,74 @@
+{
+  "source_identity_sha256": "0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d",
+  "checks": [
+    {
+      "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py",
+      "exit_code": 0
+    },
+    {
+      "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py",
+      "exit_code": 0,
+      "formatted_files": 1135
+    },
+    {
+      "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/pyright",
+      "exit_code": 0,
+      "errors": 0,
+      "warnings": 0,
+      "runtime_source_scope": "Whole configured source checked after the portable-supervisor EOF repair; zero errors/warnings"
+    },
+    {
+      "command": "git diff --check",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/bin/python -c 'import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client'",
+      "exit_code": 0
+    },
+    {
+      "command": ".venv/bin/kino doctor",
+      "exit_code": 0,
+      "scope": "required core readiness; optional backends may be absent"
+    }
+  ],
+  "environment": {
+    "python": "3.12.14",
+    "ffmpeg": "7.1.5-0+deb13u1",
+    "ruff": "0.15.11",
+    "pyright": "1.1.414"
+  },
+  "scope": "Maintained CI lint/type scopes; historical research scripts are excluded from lint scope. Whole Ruff check/format and canonical import repeated after current full gate; no optional model execution or live-provider accuracy claim.",
+  "pre_stdio_distribution_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_mcpb*.py tests/test_kinocut_distribution.py tests/test_architecture_guardrails.py tests/test_g004_and_mcpb_product.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 267,
+    "seconds": 16.16,
+    "source_identity_sha256": "4e06562528aec90609c8a24a3976888fb99c1da833700094541544fb1ce8a831"
+  },
+  "pre_stdio_documentation_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_public_surface.py tests/test_public_claims.py tests/test_architecture_guardrails.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 64,
+    "seconds": 16.78,
+    "scope": "Earlier passing64-case checkpoint; updated docs await final selection"
+  },
+  "logs": {
+    "post-stdio-pyright.log": "6d88a1b220adb7a3d62092b6e38431f0b3fe8babe9864fab90e5849766260332",
+    "post-stdio-ruff-check.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "post-stdio-ruff-format.log": "cbde80aaec09a9499ba38cca8e26a2c5e1bfabb6aea1ff60c1eac94afe880c77"
+  },
+  "post_documentation_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_public_surface.py tests/test_public_claims.py tests/test_architecture_guardrails.py tests/test_receipt_privacy.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 68,
+    "seconds": 17.87,
+    "log_sha256": "03d5bd5d34d1242f315ff959d72c794c9598646909f834cb46dbb1956564552b"
+  },
+  "final_documentation_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_public_surface.py tests/test_public_claims.py tests/test_architecture_guardrails.py tests/test_receipt_privacy.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 68,
+    "seconds": 20.71,
+    "log_sha256": "e0cee6cc08fe1b80628fc877cd6d916f3d8fcf4608bc076f5c15568b13188be5"
+  }
+}

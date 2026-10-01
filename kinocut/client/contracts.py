@@ -16,6 +16,7 @@ CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
     "ingest": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
     "preflight": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
     "inspect_temporal": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
+    "record_motion_acceptance": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
     "verdict": {"category": "report", "return_type": REPORT_RETURN, "aliases": {}},
     "acceptance_eval": {
         "category": "report",

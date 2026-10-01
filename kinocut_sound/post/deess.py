@@ -18,6 +18,14 @@ from kinocut_sound.capability import (
     AdapterLocality,
     CapabilityResult,
 )
+from kinocut_sound.limits import (
+    MAX_POST_DEESS_FREQ_HZ as MAX_FREQ_HZ,
+    MAX_POST_DEESS_INTENSITY as MAX_INTENSITY,
+    MAX_POST_DEESS_MAX_DEESS as MAX_MAX_DEESS,
+    MIN_POST_DEESS_FREQ_HZ as MIN_FREQ_HZ,
+    MIN_POST_DEESS_INTENSITY as MIN_INTENSITY,
+    MIN_POST_DEESS_MAX_DEESS as MIN_MAX_DEESS,
+)
 from kinocut_sound.post._errors import POST_DEPENDENCY_MISSING, PostError
 from kinocut_sound.post._subprocess import (
     DEFAULT_POST_TIMEOUT_SECONDS,
@@ -28,15 +36,6 @@ from kinocut_sound.post._subprocess import (
 )
 from kinocut_sound.post.chain import PostContext, PostStageResult
 from kinocut_sound.render_fingerprint import DeterminismClass
-
-# --- Numeric envelopes ---
-# TODO(controller): centralize alongside defaults.py/limits.py post-merge.
-MIN_INTENSITY: float = 0.0
-MAX_INTENSITY: float = 1.0
-MIN_MAX_DEESS: float = 0.0
-MAX_MAX_DEESS: float = 1.0
-MIN_FREQ_HZ: float = 2000.0
-MAX_FREQ_HZ: float = 12000.0
 
 
 class DeEssAdapter:

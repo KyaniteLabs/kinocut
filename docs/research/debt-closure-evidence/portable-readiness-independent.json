@@ -1,0 +1,17 @@
+{
+  "focused_result": "29 passed in4.44s",
+  "delayed_startup_result": "10actualcases passed (5repeats\u00d7platformowned/portable-supervisor), startupdelay0.3s vs unchanged0.1s readerdeadline",
+  "source_sha256": {
+    "tests/test_quality_signal_reader.py": "5679ee4df10212634c2c03a41c8f6c279200d76e2596f4993c1da66bdea74942",
+    "kinocut/process_tree.py": "123d84950dbf702c7aae3e67ed6a37788729b602147716ee329a6982a0b18594",
+    "kinocut/quality_signal_reader.py": "a543a418e85b9359ccaae754f72aa542f2b9a54949a3e3cb2f2def6f5b971f49",
+    "kinocut/process_guardian.py": "ab95ea37febd43bb7d5d7b97c01495320c137d0eab43ba110cdac9faa1bec6e5"
+  },
+  "artifacts_sha256": {
+    "repeats.py": "ee9546f5e7605d3debce1e5a36391d3e7b85c01d59c92c54161d7faa2eb25afb",
+    "repeats.log": "4ef8f98014c6ca9a89b0791e51e72b20abeeadd298e2426329bd77e5773637f5",
+    "receipt.json": "c06caed5efed0965445b9fd6e3f4fdb4b57b523cfa695ef603a0126b51a13fbf",
+    "focused.log": "d8459ddccc89f56b4699123e925f1862165d1ee72c462739144a92c0bc08c1f9"
+  },
+  "scope": "Fixture handshake scheduling determinism; no runtime/source/test/workflow edits by reviewer. Earlier176forcednative selector receipt remains earlier fixture checkpoint."
+}

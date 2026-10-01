@@ -1,0 +1,230 @@
+{
+  "collected_utc": "2026-10-01T13:51:04.006819+00:00",
+  "head_sha": "2d903f77ee33ce371115c4fbf937e6686227b132",
+  "base_sha": "3db9ba9f9cad590f4c018b76091ee3c27e7106fd",
+  "generated_merge_sha": "3ac617608911016a5c77415451607aa432b14d8a",
+  "tested_merge_and_head_tree": "f3065a317bdde62851f748890a3f5be8cc9e449b",
+  "merge_tree_equals_head_tree": true,
+  "pr_mergeable_state": "clean",
+  "checks": [
+    {
+      "id": 110396320522,
+      "name": "Aggregate exact evidence",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395401233,
+      "name": "Core runtime (macos)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395400245,
+      "name": "Core runtime (linux)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395400009,
+      "name": "Core runtime (windows)",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395399837,
+      "name": "Optional discovery and callability",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395265260,
+      "name": "Base CLI and doctor",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395265256,
+      "name": "Hosted PR checks",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395265135,
+      "name": "AI module metadata smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395265028,
+      "name": "FFmpeg operation smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395265001,
+      "name": "Clean-wheel onboarding journey",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395264761,
+      "name": "Image extra smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395264623,
+      "name": "agent-law",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 110395264473,
+      "name": "Build and validate staged artifact",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "runs": [
+    {
+      "id": 36870069953,
+      "name": "Integration smoke",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36870069856,
+      "name": "Staged MCPB",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36870069865,
+      "name": "Agent Law",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "id": 36870069869,
+      "name": "PR safety",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "native_receipts": {
+    "1_Core runtime (macos).txt": {
+      "test_summary": "174 passed, 5 skipped in 55.64s",
+      "python_toolcache": [
+        "pythonLocation: <runner-home>/hostedtoolcache/Python/3.11.9/arm64"
+      ],
+      "merge_checkout_matches": true,
+      "cleanup_probe_command_seen": true,
+      "cleanup_probe_step_succeeded": true,
+      "precise_ffmpeg_version": "not printed; native -version output discarded; artifact unavailable403"
+    },
+    "2_Core runtime (linux).txt": {
+      "test_summary": "176 passed, 3 skipped in 10.51s",
+      "python_toolcache": [
+        "pythonLocation: /opt/hostedtoolcache/Python/3.11.16/x64"
+      ],
+      "merge_checkout_matches": true,
+      "cleanup_probe_command_seen": true,
+      "cleanup_probe_step_succeeded": true,
+      "precise_ffmpeg_version": "not printed; native -version output discarded; artifact unavailable403"
+    },
+    "3_Core runtime (windows).txt": {
+      "test_summary": "129 passed, 50 skipped in 8.24s",
+      "python_toolcache": [
+        "pythonLocation: C:\\hostedtoolcache\\windows\\Python\\3.11.9\\x64"
+      ],
+      "merge_checkout_matches": true,
+      "cleanup_probe_command_seen": true,
+      "cleanup_probe_step_succeeded": true,
+      "precise_ffmpeg_version": "not printed; native -version output discarded; artifact unavailable403"
+    }
+  },
+  "hosted_receipt": {
+    "passed": 8272,
+    "skipped": 50,
+    "warnings": 8,
+    "pytest_seconds": 603.58,
+    "python_toolcache": "3.14.7/x64",
+    "ffmpeg_version": "6.1.1-3ubuntu5",
+    "command_verified": "pytest tests/ -q -m \"not slow\" --tb=short -n auto --maxprocesses=2 --dist loadfile",
+    "lint_passed": true,
+    "formatted_files": 1135,
+    "exact_generated_merge_checkout_verified": true
+  },
+  "mcpb_printed_checklist": {
+    "artifact": {
+      "sha256": "27e60efbcd0ccaedfb899581b5b3b5a2502f5cb5e779c7b136e975337ac2ef4a",
+      "status": "built"
+    },
+    "artifact_kind": "mcpb_readiness_receipt",
+    "candidate_status": "ci_validated",
+    "desktop_install_review": {},
+    "hosted_runtime": {
+      "linux": {
+        "status": "passed"
+      },
+      "macos": {
+        "status": "passed"
+      },
+      "windows": {
+        "status": "passed"
+      }
+    },
+    "human_review": {
+      "status": "not_run"
+    },
+    "official_validation": {
+      "status": "passed",
+      "validator": "@anthropic-ai/mcpb@2.1.2",
+      "wheel_sha256": "bd10fab06caaea98f75b667800368e08123052d27fb29e763e2cc47012294f81"
+    },
+    "optional_dependencies": {
+      "absent": "passed",
+      "present": "passed"
+    },
+    "publication": {
+      "status": "not_attempted"
+    },
+    "signing": {
+      "rationale": "supported user-configured-local-access product",
+      "status": "unsigned"
+    },
+    "source_sha": "3ac617608911016a5c77415451607aa432b14d8a"
+  },
+  "review_audit": {
+    "unresolved_threads": 0,
+    "reviews_latest_commit": "8328a26da2976086a7904364fbf1478f385b3f58",
+    "no_new_reviews_or_comments": true,
+    "security_review": "usage limit blocked; no completed security review claimed"
+  },
+  "limitations": [
+    "Direct artifact download previously returned403; no bypass attempted. Readiness and native pytest results from actual accessible Actions ZIP logs.",
+    "Detailed per-OS environment/cleanup JSON artifacts unavailable; native FFmpeg -version output discarded by workflow.",
+    "CI validated unsigned candidate; human desktop review not_run and publication not_attempted."
+  ],
+  "remote_mutations": false,
+  "evidence_sha256": {
+    "pr588-2d903f7-reviews-final.json": "46807565f3e6aa21b0cbadf3448bb6c45435877715165c219a2503dc5a3af86d",
+    "pr588-2d903f7-runs.json": "dff4ca35a06035ee2e837535296fbdb5624919e4f00040dfc48120ab0af9734b",
+    "pr588-2d903f7-readiness.json": "f80f4870440db106dcee9357913d21351b971af8955197627e42ace468847e4a",
+    "pr588-2d903f7-pr.json": "974c3464d24743648801a9fa72993505f99a6242298b8fd5b18372b48856129f",
+    "pr588-2d903f7-mcpb.zip": "2e07877a62e574e2bf0b60016364ae4dbd12bf90ffecbf25f79c556cfaeb40dc",
+    "pr588-2d903f7-reviews.json": "6504d797c5b6de8b320b5bb80e2e913c3de28c19e85cfaeb70660b1803ca5013",
+    "pr588-2d903f7-checks.json": "94c9055b16574392497babfb0e3ea5ad82e5be5d569797caf1c0a153aca96729",
+    "pr588-2d903f7-merge-commit.json": "f413c88ccdbe1fd5ccaac7385815735aae5669bd69488b1f583c8805b6b0577c",
+    "pr588-2d903f7-head-commit.json": "f25a70763709bdfbb7dcfeedf036461efacfcd8689d79f612236ebf9f1377ab6",
+    "pr588-2d903f7-safety.zip": "63e66cd388b0174d24da7d2edd4be1cc649be0d4cd3f63b8ca11a95060dea0e7",
+    "pr588-2d903f7-safety-jobs.json": "59937315287c81f67ca20288a84e616b82e80387eaad0eb49ab693cd48a9ea4d",
+    "pr588-2d903f7-native-receipts.json": "5ce35c98665a5edc8a1b5f90048a3f6aecfc6aa1a80a1f289f82997fdc5f368a",
+    "pr588-2d903f7-mcpb-jobs.json": "a0bbf328f71f9cebb481edf58722e91580754124eaa5f0137cecc0852828e761"
+  },
+  "selected_source_identity_sha256": "0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d",
+  "privacy_redactions": [
+    "macOS runner-home prefix redacted; toolcache label and architecture preserved; raw log checksum unchanged"
+  ]
+}

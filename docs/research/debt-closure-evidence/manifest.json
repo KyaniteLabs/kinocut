@@ -1,0 +1,169 @@
+{
+  "scope": "Curated source-bound measurement, local validation and operational receipts; no live-provider quality or publication claim",
+  "files": [
+    {
+      "path": "build-source-binding.json",
+      "sha256": "04ae643f3b94f9af1d449070540d169e2b5adc8a060da984121c4eaad99f9739"
+    },
+    {
+      "path": "ci-worker-comparison.json",
+      "sha256": "d75066aa0c0fa829cdfe988d38c96102656f980cca1416fe20e696b57aff2170"
+    },
+    {
+      "path": "full-serial.json",
+      "sha256": "44ab816184011eb2aa44ae30572c0a5b8b3f047990520c1568178d3754319a94"
+    },
+    {
+      "path": "guardian-live-census.json",
+      "sha256": "2ca518fe7059a2b4b5df3c2e07b3f1212b59eae34f654de0907879fd15c82796"
+    },
+    {
+      "path": "hosted-ci.json",
+      "sha256": "7723dacfc6ba4a37ea752bbf9ab04e5cb1e0860ad8c22aea736c10fa2d78ab32"
+    },
+    {
+      "path": "independent-native-render-stops.json",
+      "sha256": "66204f5206e6e7e1e69f5a83186e1ed1645a11e42fcddde258add543ac5d633e"
+    },
+    {
+      "path": "initial-parallel-preflight.json",
+      "sha256": "fe68d3c54b2d267d902e976066c076514d03809a00198614bf926ed7ae66f110"
+    },
+    {
+      "path": "interrupted-serial-attempt-1.json",
+      "sha256": "40df0400cd1d6ab89e75c621a557567524bdec60050d1430b892f0fe08137f10"
+    },
+    {
+      "path": "native-worker-kill-after.json",
+      "sha256": "96cf812bf1e73a0497868c0c6c9b2cc38febc141f3b421d26153cf9a18f45e5a"
+    },
+    {
+      "path": "native-worker-kill-before.json",
+      "sha256": "0419f307e5f80b703636340b64c1bb5feaebe008f7421d2bfe1e34fad8667e64"
+    },
+    {
+      "path": "old-preflight-fixture-cleanup.json",
+      "sha256": "a1c389d3327c0e375797137a0d320716379589b66c36d59cd12536a82747f81b"
+    },
+    {
+      "path": "pcm-reference.json",
+      "sha256": "2640aac48c38cc1eed6dcb9af26157c88e355721595c5906ad78fc94d13bb2b5"
+    },
+    {
+      "path": "pcm-reuse.json",
+      "sha256": "2805109e6f4dfdd189e7dddea220bcc91e49b30ae980f345ee6752ec64f20d78"
+    },
+    {
+      "path": "portable-pre-handshake-build-source-binding.json",
+      "sha256": "bdb3fe6ea732054623daa1015cfbdcf7eb5ae64d2d8ab72b7c46039617b6e5a2"
+    },
+    {
+      "path": "portable-readiness-independent.json",
+      "sha256": "59d354531306a1fc12138c0f38487dbbc2d9b57c0bdeccb7b2faf2465826e38f"
+    },
+    {
+      "path": "portable-stdio-doc-privacy-failed-serial.json",
+      "sha256": "0dce8f1aa55c76c6d34ac5686841b31ba825e97a3173753b78f07a3fceff5747"
+    },
+    {
+      "path": "portable-stdio-independent.json",
+      "sha256": "f11695c7a9a3771a0d123243de3a966a70a588df307285f9b4fdf8a5cf86a135"
+    },
+    {
+      "path": "portable-timeout-fixture-failed-serial.json",
+      "sha256": "8f19c227f1ab0bfd1d6f5e2e136a3451ef4cbb273144336f7e25f0014ca4b58a"
+    },
+    {
+      "path": "post-full-live-census.json",
+      "sha256": "fd7ad1c59e9822bdcea9d37de24fd0bebafa8ded3c8b454f7b05a65de3a8538b"
+    },
+    {
+      "path": "post-review-failed-serial.json",
+      "sha256": "34231aad665c9f4129b5c4b60a910d8ec9f324834fc34cb451f75775c169b46e"
+    },
+    {
+      "path": "post-review-resolver-failed-serial.json",
+      "sha256": "390f460d189772a03117e1401ac7005fd1054e85c8d69d0c957d3b18f6bf914c"
+    },
+    {
+      "path": "pre-review-build-source-binding.json",
+      "sha256": "e2601bce5a29cbd9cb72e2dfba465d286a04c6e6bd92528cb2ca827eaf5f45af"
+    },
+    {
+      "path": "pre-review-passing-serial.json",
+      "sha256": "7b7dce8de55173204c58abadb5dea9813c5b09393184aaf1a7f29e243802940d"
+    },
+    {
+      "path": "pre-stdio-build-source-binding.json",
+      "sha256": "75920067f15714b1634cf4bb9c336aee17af6533c88e6652e5f681f930f194fa"
+    },
+    {
+      "path": "pre-stdio-full-serial.json",
+      "sha256": "907059819e5ad5ecba2594a2748ca40372e77f78ecdc46c77c36fd31f1e4e85e"
+    },
+    {
+      "path": "pre-stdio-hosted-ci.json",
+      "sha256": "d67dc94e251c1d506f0b5db4dc03eb15391173631ff4ccc0310df118667d5311"
+    },
+    {
+      "path": "pre-stdio-static-checks.json",
+      "sha256": "db10388307290b85857dcf1918e07fadc1944cfbab724fbbdb0eba33af97e95a"
+    },
+    {
+      "path": "reaped-leader-before.json",
+      "sha256": "b5a143743e700039a002765fd3de2e41766e88cd81594152cf454bfad5c0ec1d"
+    },
+    {
+      "path": "receipt-serialization-review.json",
+      "sha256": "9a358f931ed071cf0cb19029d8cd1264e3c0322c2ab15eba4b60aa8d80d19700"
+    },
+    {
+      "path": "release-draft-alignment.json",
+      "sha256": "4c9957c3799a99fbfb59dfaeeae778e9896391a9ee750e067082ed753dc70c7a"
+    },
+    {
+      "path": "render-import-after.json",
+      "sha256": "42a5983575e2c38fe97b21dc6e3641e62de6a7aba9fd16e736a511b14626c954"
+    },
+    {
+      "path": "render-import-before.json",
+      "sha256": "90de85d907a43c418c37ed97a3eab52f8cd5c67d438d059e70538079e4cd08ef"
+    },
+    {
+      "path": "render-import-final.json",
+      "sha256": "ce4f187a00675269be81ad4d16ce79267af244edfb11f29203fe24864df426fc"
+    },
+    {
+      "path": "retained-leader-independent.json",
+      "sha256": "56d1e7f4629ee4fd0e598f2204806b9350036a499050e0ee72b4c6cc3d344695"
+    },
+    {
+      "path": "retained-leader-review-manifest.json",
+      "sha256": "7a25f6848a64b388fd8c03ad7d2ba27c70709a8dcc1ad8dae0e9ea1aa40405c1"
+    },
+    {
+      "path": "scene-after.json",
+      "sha256": "4f4dc93fdbe494e0a7c2f9cb14cdda68be9e91e604de0069cc790dce2eec3f20"
+    },
+    {
+      "path": "scene-before.json",
+      "sha256": "2c5afcbdf41ce98cdb15b2a57f65bcc6814cf9860c6706d2f2f5e99dbbadc91d"
+    },
+    {
+      "path": "scene-independent-pixels.json",
+      "sha256": "725a182ad7af894b357031b5cb9895ca8526e0dacba1cb199bcf746a02f0d55e"
+    },
+    {
+      "path": "static-checks.json",
+      "sha256": "70f752c62ec8ac6dc09dc7e3de1d5a4a6fda2652849b27b4e5a95436ed860c96"
+    },
+    {
+      "path": "stop-transition-after.json",
+      "sha256": "4ac2ff2d11d378300c43e13d919ce5cb1fabce492c9c940f1f5198ee478ccff5"
+    },
+    {
+      "path": "stop-transition-before.json",
+      "sha256": "4825a4da6c9e5d616fc87c1f693af505866a7fe6650a5e1b8faecf9c9322a61d"
+    }
+  ]
+}

@@ -1,0 +1,29 @@
+{
+  "command": [
+    "/workspace/kinocut/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 1137.338006181999,
+  "source_identity_sha256": "aea162427e6d61ceaacaaa7c4845a471a7920e832819a09cf96f59ef5e0e3af9",
+  "source_unchanged": true,
+  "file_count": 1213,
+  "passed": 4866,
+  "failed": 1,
+  "skipped": 152,
+  "warnings": 6,
+  "pytest_seconds": 1132.1,
+  "log_sha256": "4f606638e8d6e31cd176b87bce5e5c600a686b599e2655b35edc23d9bd461ac2",
+  "failure": "Public hosted-evidence JSON retained macOS runner home path",
+  "repair": "Redact runner-home prefix; preserve toolchain and raw-log hashes",
+  "post_repair_privacy_controls": {
+    "passed": 4,
+    "seconds": 1.71,
+    "exit_code": 0
+  }
+}

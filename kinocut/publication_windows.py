@@ -1,8 +1,9 @@
-"""Hold Windows directory ancestry against rename/reparse during publication."""
+"""Anchor Windows ancestry and reject observed reparse points during publication."""
 
 from __future__ import annotations
 
 import os
+import contextlib
 from pathlib import Path
 
 from .errors import MCPVideoError
@@ -48,6 +49,12 @@ def lock_directory_ancestry(directory: str):
     paths = [*reversed(Path(directory).parents), Path(directory)]
     try:
         for path in paths:
+            # Parent handles deny DELETE sharing. Create only the next component,
+            # then check it without following reparse points before its children.
+            # Publication still requires exclusive destination-writer ownership.
+            if not path.exists():
+                with contextlib.suppress(FileExistsError):
+                    os.mkdir(path)
             handle = create(str(path), 0x80, 0x3, None, 3, 0x02200000, None)
             if handle == ctypes.c_void_p(-1).value:
                 raise ctypes.WinError(ctypes.get_last_error())

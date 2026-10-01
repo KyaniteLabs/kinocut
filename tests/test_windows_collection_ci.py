@@ -143,6 +143,9 @@ def test_workflow_uses_bounded_supervised_collection_and_preserves_later_steps()
         run: >-
           python -m pytest
           tests/test_ffmpeg_filter_path.py::test_windows_drive_and_backslash_paths_render_with_ffmpeg
+          tests/test_integrator_fixes.py::test_default_animated_text_renders_and_decodes
+          tests/test_integrator_fixes.py::test_drawtext_family_resolves_to_concrete_file
+          tests/test_integrator_fixes.py::test_unresolvable_family_falls_back_gracefully
           -q --tb=short
 """
     )

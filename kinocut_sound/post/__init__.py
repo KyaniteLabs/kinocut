@@ -47,10 +47,10 @@ from kinocut_sound.post._subprocess import (
     MAX_POST_TIMEOUT_SECONDS,
 )
 from kinocut_sound.post.batch import (
+    MAX_BATCH_CLIPS,
     BatchClip,
     BatchPlanner,
     BatchResult,
-    MAX_BATCH_CLIPS,
 )
 from kinocut_sound.post.chain import (
     CANONICAL_STAGE_ORDER,
@@ -67,19 +67,19 @@ from kinocut_sound.post.dynamics import DynamicsAdapter
 from kinocut_sound.post.eq import (
     BAND_FREQUENCIES,
     EQ_PRESETS,
+    PRESET_NAMES as EQ_PRESET_NAMES,
     EqAdapter,
     EqBandGains,
-    PRESET_NAMES as EQ_PRESET_NAMES,
 )
 from kinocut_sound.post.loudness import (
     LOUDNESS_PRESET_NAMES,
     LoudnessAdapter,
 )
 from kinocut_sound.post.spatial import (
+    REVERB_PRESETS,
     ConvolutionReverbAdapter,
     DistanceAdapter,
     HumanizationAdapter,
-    REVERB_PRESETS,
 )
 
 __version__ = "0.1.0"

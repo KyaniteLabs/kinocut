@@ -42,6 +42,13 @@ Project preflight accepts audio-only assets and performs actual loudness/decode
 checks. Their color result has `applicable=false` and `analyzed=false`, rather than
 inventing video color evidence.
 
+Voice-batch receipts do not measure an assembled master. They return
+`loudness=null`, `loudness_assessment_status="not_evaluated"`, and a warning;
+they do not certify fixed LUFS/true-peak values. Consumers requiring measured
+loudness must meter the final assembled output. Other measured receipts retain
+their numerical evidence. Their default `"measured"` status is implicit in the
+serialized legacy shape, preserving existing canonical hashes.
+
 `normalize_audio` writes PCM16 for WAV and AAC for supported M4A/video containers,
 preserving source sample rate and channels. Its result reports the observed
 `audio_codec` and FFprobe `format`; the latter may name a container family. It
@@ -70,6 +77,15 @@ output extensions fail before rendering.
 `verdict="not_evaluated"`; incomplete extraction is `"inconclusive"`. Requiring a
 VLM with `require_vlm=true` returns `verdict="fail"` and `blocked=true` while the
 executor is unavailable. An installed provider SDK is not an executable scorer.
+
+Set `KINOCUT_VISION_MODEL` and provide `ANTHROPIC_API_KEY` through environment
+settings to explicitly enable one paid Anthropic request. No default model is
+selected. Up to twelve finite timestamps produce width-bounded frames; request
+bytes, image bytes and response bytes are capped. A separate owned process enforces
+a 60-second deadline across import and network execution. Redirects and compressed
+responses are refused; error bodies are closed without buffering. A semantic
+result covers sampled frames only. Provider availability and fixture tests do not
+establish accuracy, a whole-film viewing pass, or a calibrated quality threshold.
 
 The host can inspect the retained frames separately. Human review or an external
 model assessment must bind its decision to the actual reviewed artifact; frame
@@ -110,6 +126,13 @@ The inspection artifact records `human_viewing_status="not_recorded"` and
 `acceptance="not_granted"`. Complete human viewing and separate review evidence
 remain required; these advisory observations cannot grant acceptance.
 
+Python `Client.record_motion_acceptance(...)` records that separate review. It
+requires the exact source/report hashes, complete decoded evidence, gap-free
+watched intervals covering the film, and a disposition for every flagged motion
+interval and transition. An unresolved `needs_fix` disposition prevents acceptance.
+The receipt records a human attestation; software cannot verify that a person
+watched the film. See [the feature acceptance guide](research/debt-closure-feature-acceptance.md).
+
 ## Voice identity and style
 
 Default D42 host ports do not have a perceptual speaker-identity or vocal-style
@@ -136,6 +159,17 @@ before rendering. Times accept numeric seconds or `MM:SS`/`HH:MM:SS`; booleans,
 malformed values and strings longer than 128 characters are rejected. Publication
 is a file replacement, without an fsync crash-durability or database-bundle claim.
 These guarantees must not be assumed for every writer.
+
+Publication requires exclusive writer ownership of the destination directory.
+Owned descriptors, no-follow ancestry checks and final identity checks reject
+observed substitutions. A detected failure after replacement returns
+`partial_output_publication`; callers must inspect the output and must not assume
+the previous destination survived. Composite media and its JSON receipt publish
+separately. A receipt publication failure after media commits returns
+`partial_artifact_publication` with the committed media identity, without an unsafe
+rollback of another writer's files. Concurrent actors with equivalent filesystem
+authority can modify an output after publication; this API is not a confinement
+or multi-file crash transaction.
 
 Keep human-review decisions distinct from analyzer reports. For exact-asset approval
 and protected derivatives, follow [governed AI-video review](AI_VIDEO_REVIEW_AND_SALVAGE.md).
