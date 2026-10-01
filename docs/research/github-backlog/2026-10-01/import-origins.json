@@ -1,0 +1,9 @@
+{
+  "python": "3.12.14 (main, Aug 25 2026, 14:00:49) [Clang 22.1.3 ]",
+  "origins": {
+    "kinocut": "/workspace/.cache/kinocut-qa/latency/baseline-e9f6cac/kinocut/__init__.py",
+    "kinocut_sound": "/workspace/.cache/kinocut-qa/latency/baseline-e9f6cac/kinocut_sound/__init__.py",
+    "mcp_video": "/workspace/.cache/kinocut-qa/latency/baseline-e9f6cac/mcp_video.py",
+    "normalize_audio": "/workspace/.cache/kinocut-qa/latency/baseline-e9f6cac/kinocut/engine_audio_normalize.py"
+  }
+}

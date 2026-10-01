@@ -1,0 +1,3 @@
+huge timestamp MCPVideoError Observed transcript timing is non-finite or outside its decoded chunk
+bad segment list MCPVideoError Recognizer segments and words must be arrays
+huge confidence accepted

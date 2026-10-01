@@ -1,12 +1,33 @@
 # PR validation and publication scope
 
-[PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) reviews branch
+[PR #586](https://github.com/KyaniteLabs/kinocut/pull/586) reviewed branch
 `codex/kinocut-reliability-and-backlog` against `master`. The user authorized
 commits, branch pushes, PR creation and subsequently merging #586 after its
 corrected head passes review and checks. Draft contributor PRs were reviewed and
 adapted, not merged. See the [backlog dispositions](github-backlog/2026-09-30/REPORT.md),
 [external-report action ledger](external-ai-audits/2026-09-30/REPORT.md) and
 [Unreleased changelog](../../CHANGELOG.md).
+
+## Merged delivery checkpoint and separate UltraQA work
+
+Fresh read-only GitHub metadata confirms #586 merged on **2026-09-30 at
+21:50:42 UTC**, head `a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf`, merge commit
+`e9f6cac77cb390c73c919bdcd385b775a6a3c7ef`, tree
+`44806e24c1e937040f1fe4c8471ece7aca979ad9`. All **13 checks** completed
+successfully for that exact head, including hosted PR checks and staged runtime
+jobs. [Delivery metadata](runtime-allocation/audio-timeline-ci/merged-delivery.json)
+retains check names, exact SHA and links. Earlier failing heads below remain
+historical; their results are not inherited by the final head.
+
+The subsequently requested [whole-repository UltraQA gauntlet](ULTRAQA_GAUNTLET.md)
+starts from this merged tree. Its working-tree changes and upcoming gates are
+separate from the already successful delivery and published package.
+
+The independent four-case native-six attribution was corrected after merge;
+[the supersession record](runtime-allocation/audio-timeline-ci/corrections/supersession.json)
+binds actual binary paths and source hashes. Its corrected mixer source differs
+from the merged baseline. It does not invalidate the separately selected native
+37-case suite, native eight-case matrix or genuine hosted FFmpeg-six CI.
 
 ## Final audio-fixture CI correction gate
 
@@ -190,3 +211,7 @@ passed **7,390 tests, 185 skipped, 8 warnings** in 1,003.32 seconds.
 [log](runtime-allocation/pr-checkpoint/full-suite.log) and
 [source inventory](runtime-allocation/pr-checkpoint/allocation.json) are historical
 evidence. Focused and successive full-suite counts overlap and are not additive.
+
+## UltraQA implementation checkpoint — October 1
+
+Implementation `258cb0076f9ade77c41f6a528cf4c62d0745543a` retains the frozen 1,188-file source identity `5ae658513cdff7be42d2965572ed0c0a2da5233a5bb33c129844dbf384499966`. The [fourth sequential gate](ultraqa/2026-09-30/full-gate-attempt-4/result.json) passed **8,005 tests, 189 skipped, eight warnings** in 1,722.15 seconds, exit 0; the runner confirms source unchanged and 1,727.39 seconds wall time. Ruff check/format (1,110 files) and canonical import checks also passed. Earlier failed attempts and parallel preflight remain in the [gauntlet chronology](ULTRAQA_GAUNTLET.md); focused counts are not additive. At this pre-publication checkpoint, new exact-head hosted Windows/macOS and optional backend/model execution are separate pending evidence; hosted outcomes belong to the eventual PR exact-head checks. [Static source allocation](ultraqa/2026-09-30/final-runtime-allocation/allocation.json) is implementation-bound and does not measure runtime cost or latency.

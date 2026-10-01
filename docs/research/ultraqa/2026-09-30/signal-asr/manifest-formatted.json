@@ -1,0 +1,44 @@
+{
+  "current_sources": {
+    "kinocut/limits.py": "3ae25b4644392da0beccec02d61a984d1709bbbca5f7768cfd3d4d1698e0b721",
+    "kinocut/quality_guardrails.py": "f2ac8109903a476553d89cd87c26948376387606d950661680cf3ec4f5ea6ebc",
+    "kinocut/quality_signal_domain.py": "9b54aec18277b563246a7cd4eee3a45c3ebdd0446293fd4783df45e1b8524f42",
+    "kinocut/quality_signal_reader.py": "ba9c31735b615b4b5903e333e17bf08a7f027abffb9499069afd1d9d82dec239",
+    "kinocut/quality_signal_windows.py": "d7e14fa61093b3334d1a02045010aaf207379bef55c838d009692071db8609de",
+    "kinocut_sound/defaults.py": "ae198750178a84f7459f77314578be09966cc2467fc8e6beb9712510cfd71ef2",
+    "kinocut_sound/limits.py": "ef77d4d7b594812401531525ed0be01ec5655b4c7fc5018b04834c17f52a0472",
+    "kinocut_sound/public/asr_input.py": "9c47fcafc6d20d8d776e2be947308aa84cf025a70bf075977cc3b2c355f0ca7a",
+    "kinocut_sound/public/asr_job.py": "447176c4f18d374a2dd451b4e3289a14c7772a234a7f44d0b4a6bba9b6810309",
+    "kinocut_sound/public/asr_resample.py": "d9084df63eaca42c50a540983d826590a4be6b2a633ce4678e3130b4f83b4037",
+    "kinocut_sound/public/asr_worker.py": "cc2711e823c5047cccb64654382e0a23df0c5fbe5f9ffbfc756072a99efc3c24",
+    "kinocut_sound/public/mix_files.py": "3b77e635eabc0cb37e9ebe29839991711650e2d32fb55180428652ca2999e6ee",
+    "tests/test_asr_resampling.py": "b8f5b73a3e78a95ee0002bb942797869625f1fec16095333aed803b99dc03630",
+    "tests/test_quality_cache_lifecycle.py": "d840dc81c9cf4f27f94556b60fe7d4d8b5350faaf18389d92479df24b785c2ba",
+    "tests/test_quality_guardrails.py": "306ae4cdd29ebafcb94515316f24673eb78c3983aa4b62b53712453b467250ed",
+    "tests/test_quality_signal_reader.py": "4454174dee22c38652002af2b30cbe0cfa5579f49d223c306bca8b823e808057",
+    "tests/test_quality_signalstats_bitdepth.py": "7a3ced6c1f95e7551a94f8d9bd00696cde5608bcd150ceb4c76f27d0f206532b",
+    "tests/test_sound_asr_preprocessing.py": "20dcca560af127d763a021771f9913c4685a25c86e213e9eae0ffeab478ec365"
+  },
+  "format_only_files": [
+    "kinocut/quality_signal_domain.py",
+    "kinocut/quality_signal_reader.py",
+    "kinocut/quality_signal_windows.py",
+    "kinocut_sound/public/asr_job.py",
+    "tests/test_asr_resampling.py",
+    "tests/test_quality_signal_reader.py",
+    "tests/test_sound_asr_preprocessing.py"
+  ],
+  "measured_manifest_sha256": "badf3d647c4ba20a49a54000d95c85f211ebeb5e0c482362bc849d8a1db6af51",
+  "new_review_evidence": {
+    "independent-contract-geometry.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "independent-contract-geometry.log": "8fe99c8d22b4894c1fd1bd6398e1b55a4b0793edd7c40fffafdc8d932d73625d",
+    "independent-contract-nested.json": "ba9cfc88d7e682a0f32bf6d948f58892ad042c36714081c4da56969cf94265d1",
+    "independent-contract.json": "711ad687a436ef8b5563295d1c1ddd8bf27396908bfc24b511eecf21f7a75ff8",
+    "independent-registered-nested.json": "ba9cfc88d7e682a0f32bf6d948f58892ad042c36714081c4da56969cf94265d1",
+    "independent_contract.py": "534817d0d04a557096cb5ea2a3eef4ea35ed752f00c203a3a4080ccbb652f1b9",
+    "independent_contract_nested.py": "2c2798b00d63ca2423ded38a16e18660e7731229e42c57001fb48877a7db7ac1",
+    "independent_geometry.py": "34f6387982c9e832e98c1e3478c915fcbc871ce1f09454e9b039231442051ea1"
+  },
+  "recorded_utc": "2026-10-01T01:58:13.826869+00:00",
+  "relationship": "Formatting-only refresh of assigned sources after measured runtime source freeze; original manifest.json remains measured-source evidence and is intentionally unchanged. Subsequent read-only review artifacts do not change benchmark scope."
+}

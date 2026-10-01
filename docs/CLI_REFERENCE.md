@@ -74,9 +74,9 @@ Published surface (since 1.14.1; current 1.15.3). These commands do **not** add 
 | `subtitles` | Burn `.srt`/`.vtt`/authored `.ass` subtitles into video; `--style` sets a force_style override (omit to preserve authored ASS styles/positions; SRT/VTT render dimension-aware) |
 | `generate-subtitles` | Create SRT subtitles from text |
 | `watermark` | Add image watermark |
-| `crop` | Crop in upright display pixels, including rotation-tagged phone video |
+| `crop` | Crop in upright display pixels; explicit odd dimensions reject, percentage crops derive even dimensions and preserve pixel offsets |
 | `rotate` | Rotate and/or flip video |
-| `fade` | Add video fade in/out |
+| `fade` | Fade over the bounded primary-picture window, including delayed starts; a longer audio/container tail does not define the visible fade |
 | `export` | Export with quality settings; optional C2PA signing via `--c2pa-manifest` for final MP4s |
 | `extract-audio` | Extract audio track |
 | `edit` | Execute timeline-based edit from JSON (file path or inline) |

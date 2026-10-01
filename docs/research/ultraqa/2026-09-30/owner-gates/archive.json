@@ -1,0 +1,35 @@
+{
+  "observed_utc": "2026-10-01",
+  "provenance": "Owner/reviewer supplied durable logs and source-bound design proof; archived without modifying original content",
+  "artifact_sha256": {
+    "design-configured-media-focused.log": "b04698d57a2fe08e575b57e770dd9114da06a60132a4d3f22c6cc33f5cd80a84",
+    "design-configured-media-ruff.log": "cd7f41cf1ad5ba8b6263217889865f18d2b85df5ad631a05d6d321f51fd1b7b2",
+    "subprocess-stdin-contract-final.log": "60b8b4eace91f0548e420d2dfeec4468bd65caa954cbd16747b9069f0212f3cd",
+    "publication-complete-final.log": "b501975c6b26a2115fc1d8833909044357160ce9d02a6b250e47f52f5c7ebef2",
+    "sphere-review-repaired.log": "dfbfd8df813fe48552c1b6d28d44734b72ceabab5b51c2e56c88b79949540373",
+    "reframe-review-repro.py": "ab9c4a6d3d4c671869a10c87cd76ad23524913c3f9199ef582071f0f15cbded7",
+    "longform-review-repaired.log": "49f4e6999d47be273c78ba4d4923dde0ae13dc374d33062da08fd72c246387a8",
+    "publication-windows-selection-local.log": "271621cc214b1a7d845f983ee56e665d150b93fcb2b6050cc3d9c091aaaa4341",
+    "reliability-independent-llm-final.log": "9f11b78fd28b22e9ed69914519f7f50a5526965c28f788027f29c21686dfb5a4",
+    "design-configured-media-secondary.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "geometry-preflight-repair.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "design-configured-media-focused.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "design-configured-media-proof.json": "66b38160519b7e06fe6f9c05a5522fabb3731db8bf83b5dc52777664b177598f",
+    "reframe-review-repaired.log": "67b3c35b21c81b74ec9a242d56fa19fab08f7afebee8886a0a877cf879ea3d65",
+    "progress-deadline-repair.json": "a4602dcb6e18c539904b4d5c2a2dd96d96e8804ffc9719bec1dbc3745356c70f",
+    "publication-selector-precedence-final.log": "6c5570ac9a70179b27648db77b7ec88d2b9791fc69bc968c1536f4637b851067",
+    "reframe-review-repro.log": "62b51351b6d1ab8e269b79ef465d01306040e18ba7623d0b106ea89c2352615f",
+    "publication-independent-review.log": "bdfa979e9b2198f87687d24c5b7936ce7d4381c744f0769969b65eced7eae090",
+    "design-configured-media-secondary.log": "e85f35f16b9afd2755ee074d9d35d85ca9c50af1b3fc03018a6244e2da666b64",
+    "sphere-review-repro.log": "c0bc95e19e30a9e21b3b2cd92a75b9a5ca44710b78c135837294a7b0fc50f053",
+    "sphere-review-repro.py": "511ace372317d1731c1d33d3faa75239eab01d2bdc974a24142c6ce9c2276aac",
+    "progress-deadline-repair.log": "fd066bd51db90a38ac4e5e5aac1c5219c8624921770343dccbb4b940f97a19e2",
+    "design-configured-media-ruff.exit": "467b076e23ed8efeb4ea5f204b416ce85d27aaa1bb5420d6b05edf4cd0af6849",
+    "geometry-preflight-repair.log": "0aab1abb4bc92b2a6726f9126146150b04bac5ab153c341e63e28e0e6d3214d8",
+    "longform-review-repros.log": "343ee37511aec51a564d93521ed862574773bb26ba555c944a006cc5043c35e4"
+  },
+  "limits": [
+    "Different focused gates overlap and some are intermediate; no sum of test counts or final full-suite claim",
+    "Platform skips and actual executable scopes retained in logs/notes"
+  ]
+}

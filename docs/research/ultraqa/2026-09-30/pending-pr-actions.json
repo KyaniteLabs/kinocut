@@ -1,0 +1,19 @@
+{
+  "observed_utc": "2026-10-01",
+  "source": "GET /repos/KyaniteLabs/kinocut/actions/runs?head_sha=<exact reviewed SHA>&per_page=100",
+  "rows": [
+    {
+      "pr": 575,
+      "head_sha": "ca896570f7da9b1a3b042081eceae64d9a9593fb",
+      "total_count": 0,
+      "workflow_runs": []
+    },
+    {
+      "pr": 573,
+      "head_sha": "c64aa001b2bd9215390addf81fe2980b114a1600",
+      "total_count": 0,
+      "workflow_runs": []
+    }
+  ],
+  "interpretation": "No workflow-run records for these exact heads; absence does not establish first-time-contributor approval gate, CI failure, or approval."
+}

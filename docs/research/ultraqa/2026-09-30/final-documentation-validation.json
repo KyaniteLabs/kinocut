@@ -1,0 +1,20 @@
+{
+  "implementation_commit": "258cb0076f9ade77c41f6a528cf4c62d0745543a",
+  "public_claims": {
+    "passed": 25,
+    "seconds": 0.21,
+    "exit": 0
+  },
+  "local_targets": {
+    "checked_files": 232,
+    "broken_targets": []
+  },
+  "artifacts": {
+    "final-public-claims.log": "a336e1d3665eb59fea127ced62b384af34c139ad76b7d9825e83e6ca456c7615",
+    "final-public-claims.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "documentation-target-audit.json": "7bd7a6fc92cd123da43b09bfb5066cdd095cff2b0a4c345441b2b89ec47bf147"
+  },
+  "limits": [
+    "No new hosted/platform/provider execution established by documentation checks."
+  ]
+}

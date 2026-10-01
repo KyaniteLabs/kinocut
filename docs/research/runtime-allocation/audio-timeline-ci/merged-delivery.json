@@ -1,0 +1,107 @@
+{
+  "pull_request": {
+    "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/pull/586",
+    "merge_commit_sha": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+    "merged": true,
+    "merged_at": "2026-09-30T21:50:42Z",
+    "number": 586,
+    "state": "closed"
+  },
+  "exact_head_checks": {
+    "checks": [
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050727/job/110108474410",
+        "name": "Aggregate exact evidence",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050727/job/110107847924",
+        "name": "Core runtime (macos)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050727/job/110107847891",
+        "name": "Core runtime (linux)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050727/job/110107847865",
+        "name": "Core runtime (windows)",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050727/job/110107847732",
+        "name": "Optional discovery and callability",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050641/job/110107736001",
+        "name": "Image extra smoke",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050727/job/110107735492",
+        "name": "Build and validate staged artifact",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050641/job/110107735440",
+        "name": "Clean-wheel onboarding journey",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050641/job/110107735416",
+        "name": "Base CLI and doctor",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050641/job/110107735335",
+        "name": "AI module metadata smoke",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050641/job/110107734790",
+        "name": "FFmpeg operation smoke",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050680/job/110107734778",
+        "name": "Hosted PR checks",
+        "status": "completed"
+      },
+      {
+        "conclusion": "success",
+        "head_sha": "a6ff3ad3bb186f3f3f63900c7150da9a1ee025bf",
+        "html_url": "https://github.com/KyaniteLabs/kinocut/actions/runs/36780050648/job/110107734678",
+        "name": "agent-law",
+        "status": "completed"
+      }
+    ],
+    "total_count": 13
+  }
+}

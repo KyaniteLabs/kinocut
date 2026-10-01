@@ -1,0 +1,46 @@
+{
+  "baseline_asr_worker_sha256": "9e5a34c816fad6f497c7edc1b8a06a7ea35353e9a5f4e3a4cce330ed9233dde2",
+  "baseline_revision": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "baseline_sources": {
+    "kinocut/quality_guardrails.py": "28bcc9ba61a48a2e2846c892ffd448e60ce772ae4ca9e44e9e8493894dca78ed",
+    "kinocut/quality_signal_domain.py": "1e3ddf2f77ae1bd0c9eb7f818212a3e975c4c3f0f2ea4ab545b3c0dd51b6c618"
+  },
+  "current_worktree_dirty": true,
+  "current_worktree_revision": "e9f6cac77cb390c73c919bdcd385b775a6a3c7ef",
+  "evidence": {
+    "baseline-asr-44100.json": "30e615012410c60e2af0fec28cefd4ccf4a2328587e33158cf01e1eb8da037a6",
+    "baseline-asr-48000.json": "7a84e225cae3612e67270598309c8f88e00029d40accf45be986469bdcbec482",
+    "baseline-asr_worker.py": "9e5a34c816fad6f497c7edc1b8a06a7ea35353e9a5f4e3a4cce330ed9233dde2",
+    "baseline-signal.json": "c5ada1b4e7c13bf5ca72d41e4ca8f836d79fdd2315d1db475a97a26f226637fe",
+    "benchmark.py": "50880c09f9aa3d36326624772e6c884e1e6e897ed406afc654484b4bdac70c70",
+    "ffmpeg-version.txt": "b241942a091ee91966e5b04017a34f1f2a3bcfb1cf80a195e274db03874459d9",
+    "ffprobe-version.txt": "02412fef1eca820a65af53c5fa03b637f92ef643783005ccf9c4b4e3a31fb699",
+    "fixed-asr-44100.json": "872f60ad6afa7438854441138e4f6c2a7c243b5080bfa055677b7ea4711f1c3a",
+    "fixed-asr-48000.json": "39a4e68ef4b398dca16d4c5dc3cf32b10ba936fca80ac73d56ec87a9ca82128c",
+    "fixed-signal.json": "4fa8677d3f1b2ea24d8adc99a447f2478174dd5c1e21f10fd68b265b718ee827",
+    "fixture-probe.json": "f0b6b02c504ef2977af97de20e0d65be5499da0dc03f65c9377d389dabc6ff1a",
+    "spectrum.json": "bef2ebf5490ff34205d802d28a1c81312fda2f848cdd32bdc8fb8491cd93018e",
+    "spectrum.py": "b6caa36ad174a08f89ced4354e5f816e0d7e03d1b651a8fbc7cffac4a57ccc2c"
+  },
+  "measurement_scope": "Fresh subprocess trials; frontend only; CPU shared with other verification. Peak RSS is per-process historical maximum; child peak reported separately, not simultaneous total. No model imports/weights/downloads/corpus/WER.",
+  "sources": {
+    "kinocut/limits.py": "3ae25b4644392da0beccec02d61a984d1709bbbca5f7768cfd3d4d1698e0b721",
+    "kinocut/quality_guardrails.py": "f2ac8109903a476553d89cd87c26948376387606d950661680cf3ec4f5ea6ebc",
+    "kinocut/quality_signal_domain.py": "ff9007ed29b636445a63d46fb4d3135a497132b80249d293736804818490cf43",
+    "kinocut/quality_signal_reader.py": "e3a4baf95a679e0da92099ecbc6d2fbd9763a108295151d0c38c1feef90a2419",
+    "kinocut/quality_signal_windows.py": "16bd3c8521c9e6f354e122d86b4f35eacfd719a6cb2503a77c806d273fa4509a",
+    "kinocut_sound/defaults.py": "ae198750178a84f7459f77314578be09966cc2467fc8e6beb9712510cfd71ef2",
+    "kinocut_sound/limits.py": "ef77d4d7b594812401531525ed0be01ec5655b4c7fc5018b04834c17f52a0472",
+    "kinocut_sound/public/asr_input.py": "9c47fcafc6d20d8d776e2be947308aa84cf025a70bf075977cc3b2c355f0ca7a",
+    "kinocut_sound/public/asr_job.py": "3b77fa2b35af34c088f97e77f37afe28f24dfa348d0ed0c8c2c511773fa71282",
+    "kinocut_sound/public/asr_resample.py": "d9084df63eaca42c50a540983d826590a4be6b2a633ce4678e3130b4f83b4037",
+    "kinocut_sound/public/asr_worker.py": "cc2711e823c5047cccb64654382e0a23df0c5fbe5f9ffbfc756072a99efc3c24",
+    "kinocut_sound/public/mix_files.py": "3b77e635eabc0cb37e9ebe29839991711650e2d32fb55180428652ca2999e6ee",
+    "tests/test_asr_resampling.py": "d531b2900258e555b50653e176766f3800dd23852f932598cf4f039d32af7736",
+    "tests/test_quality_cache_lifecycle.py": "d840dc81c9cf4f27f94556b60fe7d4d8b5350faaf18389d92479df24b785c2ba",
+    "tests/test_quality_guardrails.py": "306ae4cdd29ebafcb94515316f24673eb78c3983aa4b62b53712453b467250ed",
+    "tests/test_quality_signal_reader.py": "f069b5fab33620447345c78324ef6c21de4d84b926c427043826c38f6ae2f128",
+    "tests/test_quality_signalstats_bitdepth.py": "7a3ced6c1f95e7551a94f8d9bd00696cde5608bcd150ceb4c76f27d0f206532b",
+    "tests/test_sound_asr_preprocessing.py": "d38634c45471e46a0361b854aa04750df123959da9a24e7f11af1dd09d072a21"
+  }
+}

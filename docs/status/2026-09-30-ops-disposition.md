@@ -55,3 +55,7 @@ earlier 403 responses did not prove product failures. This board retains its
 historical checks; the [new audit](../research/external-ai-audits/2026-09-30/REPORT.md)
 records the subsequent live verification and PR preparation. Forgejo remains
 unverified by this pass.
+
+## October 1 GitHub-only follow-up
+
+The [source-bound follow-up](../research/github-backlog/2026-10-01/REPORT.md) records 20 completed state-only issue closures for fixes already verified on merged master; no comments or draft-PR changes were made. Platform confirmation (#553), broader motion acceptance (#583), production-site freshness (#479) and the owner/host gates remain distinct. The fresh site request had certificate/hostname verification enabled but returned proxy HTTP 403; it proves neither successful origin certificate verification nor live readiness. Forgejo is excluded from this follow-up at the user’s request.

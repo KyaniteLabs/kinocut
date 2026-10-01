@@ -1,0 +1,310 @@
+bringing up nodes...
+bringing up nodes...
+
+........................................................................ [  0%]
+........................................................................ [  1%]
+........................................................................ [  2%]
+........................................................................ [  3%]
+........................................................................ [  4%]
+........................................................................ [  5%]
+........................................................................ [  6%]
+........................................................................ [  7%]
+........................................................................ [  7%]
+........................................................................ [  8%]
+........................................................................ [  9%]
+........................................................................ [ 10%]
+.........ss.....................................sss........s............ [ 11%]
+........................................................................ [ 12%]
+.................ss....sss.............................................. [ 13%]
+........................................................................ [ 14%]
+........................................................................ [ 14%]
+........................................................................ [ 15%]
+........................................................................ [ 16%]
+........................................................................ [ 17%]
+........................................................................ [ 18%]
+.............................................ss......................... [ 19%]
+........................................................................ [ 20%]
+........................................................................ [ 21%]
+........................................................................ [ 21%]
+........................................................................ [ 22%]
+........................................................................ [ 23%]
+...........................sssssssssssssssssssssssssssssssssssssssssssss [ 24%]
+ssssssssss.............................................................. [ 25%]
+......s................................................................. [ 26%]
+........................................................................ [ 27%]
+........................................................................ [ 28%]
+...............sssss.ssssssssssssssssssssssssssssssssssssssssssss....... [ 29%]
+........................................................................ [ 29%]
+........................................................................ [ 30%]
+........................................................................ [ 31%]
+........................................................................ [ 32%]
+........................................................................ [ 33%]
+....................................................................ss.. [ 34%]
+........................................................F............... [ 35%]
+........................................................................ [ 36%]
+........................................................................ [ 36%]
+........................................................................ [ 37%]
+........................................................................ [ 38%]
+........................................................................ [ 39%]
+........................................................................ [ 40%]
+........................................................................ [ 41%]
+........................................................................ [ 42%]
+........................................................................ [ 43%]
+........................................................................ [ 43%]
+.....................................................s.................. [ 44%]
+........................................................................ [ 45%]
+........................................................................ [ 46%]
+........................................................................ [ 47%]
+........................................................................ [ 48%]
+........................................................................ [ 49%]
+........................................................................ [ 50%]
+........................................................................ [ 51%]
+........................................................................ [ 51%]
+........................................................................ [ 52%]
+....ss.s................................................................ [ 53%]
+....................................................................s... [ 54%]
+.........................................s...s...s...................... [ 55%]
+........................................................................ [ 56%]
+........................................................................ [ 57%]
+........................................................................ [ 58%]
+........................................................................ [ 58%]
+..............................................ssssssssssssssssssssss.... [ 59%]
+........................................................................ [ 60%]
+........................................................................ [ 61%]
+........................................................................ [ 62%]
+.....................................................ssss............... [ 63%]
+........................................................................ [ 64%]
+........................................................................ [ 65%]
+........................................................................ [ 65%]
+........................................................................ [ 66%]
+.................................................................F...... [ 67%]
+...........................F.................F.......................... [ 68%]
+........................................................................ [ 69%]
+........................................................................ [ 70%]
+........F............................................................... [ 71%]
+........................................................................ [ 72%]
+........................................................................ [ 73%]
+.............................F.......................................... [ 73%]
+........................................................................ [ 74%]
+........................................................................ [ 75%]
+........................................................................ [ 76%]
+........................................................................ [ 77%]
+..................................ss........sss......................... [ 78%]
+........................................................................ [ 79%]
+........................................................................ [ 80%]
+........................................................................ [ 80%]
+.............................................................s.......... [ 81%]
+...............................................ss..s.................... [ 82%]
+...................................sssssss.sss.......................... [ 83%]
+.s...................................................................... [ 84%]
+........................................................................ [ 85%]
+........................................................................ [ 86%]
+........................................................................ [ 87%]
+...................F.FFFFF.F............................................ [ 87%]
+........................................................................ [ 88%]
+..........s............................................................. [ 89%]
+........................................................................ [ 90%]
+........................................................................ [ 91%]
+........................................................................ [ 92%]
+........................................................................ [ 93%]
+........................................................................ [ 94%]
+........................................................................ [ 95%]
+.........ss.ss.......................................................... [ 95%]
+.....................................................sss.s.............. [ 96%]
+........................................................................ [ 97%]
+........................................................................ [ 98%]
+........................................................................ [ 99%]
+.......ss......................s..ss...F.......s                         [100%]
+=================================== FAILURES ===================================
+__________________ TestBoundaryValues.test_resize_tiny_video ___________________
+[gw1] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_red_team.py:285: in test_resize_tiny_video
+    result = crop(sample_video, width=1, height=1)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_crop.py:70: in crop
+    raise MCPVideoError(
+E   kinocut.errors.MCPVideoError: Explicit crop width and height must be even for the video encoder
+_____________ test_asr_still_rejects_stereo_before_backend[normal] _____________
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_sound_stereo_mastering.py:194: in test_asr_still_rejects_stereo_before_backend
+    assert failure.value.code == "qa_input_invalid"
+E   AssertionError: assert 'asr_input_invalid' == 'qa_input_invalid'
+E     
+E     - qa_input_invalid
+E     ? -
+E     + asr_input_invalid
+E     ?  ++
+_____________ test_asr_still_rejects_stereo_before_backend[silent] _____________
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_sound_stereo_mastering.py:194: in test_asr_still_rejects_stereo_before_backend
+    assert failure.value.code == "qa_input_invalid"
+E   AssertionError: assert 'asr_input_invalid' == 'qa_input_invalid'
+E     
+E     - qa_input_invalid
+E     ? -
+E     + asr_input_invalid
+E     ?  ++
+_____________ test_asr_still_rejects_stereo_before_backend[short] ______________
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_sound_stereo_mastering.py:194: in test_asr_still_rejects_stereo_before_backend
+    assert failure.value.code == "qa_input_invalid"
+E   AssertionError: assert 'asr_input_invalid' == 'qa_input_invalid'
+E     
+E     - qa_input_invalid
+E     ? -
+E     + asr_input_invalid
+E     ?  ++
+_________________ test_split_filter_forces_even_auto_dimension _________________
+[gw0] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_tier1_regressions.py:176: in test_split_filter_forces_even_auto_dimension
+    stacked = _split_filter(640, 480, 320, 240, "stacked")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+kinocut/engine_split_screen.py:110: in _split_filter
+    raise MCPVideoError("Unknown split-screen layout", error_type="validation_error", code="invalid_layout")
+E   kinocut.errors.MCPVideoError: Unknown split-screen layout
+___________________ test_centralized_constants_are_exported ____________________
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_kinocut_sound_centralization.py:349: in test_centralized_constants_are_exported
+    assert not missing, f"centralized constants not exported in __all__: {sorted(missing)}"
+E   AssertionError: centralized constants not exported in __all__: ['DEFAULT_ASR_RESAMPLER_CUTOFF', 'DEFAULT_ASR_RESAMPLER_FILTER_SIZE', 'DEFAULT_ASR_RESAMPLER_GUARD_FRAMES', 'DEFAULT_ASR_RESAMPLER_PHASE_SHIFT', 'MAX_ASR_INPUT_BYTES', 'MAX_ASR_METADATA_BYTES']
+E   assert not {'DEFAULT_ASR_RESAMPLER_CUTOFF', 'DEFAULT_ASR_RESAMPLER_FILTER_SIZE', 'DEFAULT_ASR_RESAMPLER_GUARD_FRAMES', 'DEFAULT_ASR_RESAMPLER_PHASE_SHIFT', 'MAX_ASR_INPUT_BYTES', 'MAX_ASR_METADATA_BYTES'}
+________ test_invalid_source_metadata_is_unavailable_and_retried[None] _________
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______ test_invalid_source_metadata_is_unavailable_and_retried[invalid1] _______
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______ test_invalid_source_metadata_is_unavailable_and_retried[invalid2] _______
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______ test_invalid_source_metadata_is_unavailable_and_retried[invalid3] _______
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______ test_invalid_source_metadata_is_unavailable_and_retried[invalid4] _______
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______ test_invalid_source_metadata_is_unavailable_and_retried[invalid5] _______
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______ test_invalid_source_metadata_is_unavailable_and_retried[invalid6] _______
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_quality_source.py:43: in test_invalid_source_metadata_is_unavailable_and_retried
+    assert guardrails._get_all_signalstats(str(source)) == {"lavfi.signalstats.YAVG": 128}
+E   AssertionError: assert {} == {'lavfi.signa...ts.YAVG': 128}
+E     
+E     Right contains 1 more item:
+E     {'lavfi.signalstats.YAVG': 128}
+E     Use -v to get more diff
+------------------------------ Captured log call -------------------------------
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+WARNING  kinocut.quality_guardrails:quality_guardrails.py:180 ffprobe batch signalstats failed: ProcessingError
+______________ test_every_subprocess_call_names_stdin_explicitly _______________
+[gw3] linux -- Python 3.12.14 /workspace/kinocut/.venv/bin/python
+tests/test_subprocess_stdin_contract.py:35: in test_every_subprocess_call_names_stdin_explicitly
+    assert checked > 50, f"expected the full call surface, checked only {checked}"
+E   AssertionError: expected the full call surface, checked only 37
+E   assert 37 > 50
+=============================== warnings summary ===============================
+tests/test_engine_advanced.py::TestEditTimeline::test_timeline_passes_every_audio_clip_field_to_add_audio
+  /workspace/kinocut/kinocut/engine_audio_ops.py:321: UserWarning: [AUDIO GUARDRAIL] volume=1.4 > 1.0. If source audio is already near peak, this may cause digital clipping/distortion.
+    _emit_add_audio_guardrails(video_info, audio_path, volume, start_time)
+
+tests/test_engine.py::TestAddTexts::test_add_texts_overlay
+  /workspace/kinocut/tests/test_engine.py:244: UserWarning: [ERROR] text_overlap: Text 'Line 1...' and 'Line 2...' overlap at position (center, center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Middle...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Top...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_engine.py::TestAddTexts::test_add_texts_auto_layout
+  /workspace/kinocut/tests/test_engine.py:256: UserWarning: [ERROR] text_overlap: Text 'Middle...' and 'Bottom...' overlap at position (top-center, top-center). Use pixel positioning {'x': N, 'y': N} or different named positions to separate them.
+    result = add_texts(
+
+tests/test_tier1_regressions.py::test_merge_transition_with_mixed_audio_presence
+  /workspace/kinocut/kinocut/engine_merge.py:148: UserWarning: [MERGE GUARDRAIL] Merged clips have mixed audio/no-audio. Clips without audio may cause concat demuxer errors or silent output. Consider normalizing all clips to the same audio presence.
+    _emit_merge_guardrails(infos, transition_duration, has_transitions)
+
+tests/test_tier1_regressions.py::test_merge_rejects_unknown_transition_at_engine_layer
+  /workspace/kinocut/kinocut/engine_merge.py:148: UserWarning: [MERGE GUARDRAIL] Clips have different resolutions: [(320, 240), (640, 480)]. Merge will normalize by re-encoding all clips.
+    _emit_merge_guardrails(infos, transition_duration, has_transitions)
+
+tests/test_engine_overlay.py::test_overlay_converts_base_and_output_to_stable_pixel_formats
+  /workspace/kinocut/tests/test_engine_overlay.py:26: UserWarning: [OVERLAY GUARDRAIL] Could not validate timing: Input file error: /tmp/pytest-of-agent/pytest-58/popen-gw0/test_overlay_converts_base_and0/background.mp4 — Not a valid video file
+    result = overlay_video(str(background), str(overlay), position="center", opacity=0.5, output_path=str(output))
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED tests/test_red_team.py::TestBoundaryValues::test_resize_tiny_video - k...
+FAILED tests/test_sound_stereo_mastering.py::test_asr_still_rejects_stereo_before_backend[normal]
+FAILED tests/test_sound_stereo_mastering.py::test_asr_still_rejects_stereo_before_backend[silent]
+FAILED tests/test_sound_stereo_mastering.py::test_asr_still_rejects_stereo_before_backend[short]
+FAILED tests/test_tier1_regressions.py::test_split_filter_forces_even_auto_dimension
+FAILED tests/test_kinocut_sound_centralization.py::test_centralized_constants_are_exported
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[None]
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid1]
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid2]
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid3]
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid4]
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid5]
+FAILED tests/test_quality_source.py::test_invalid_source_metadata_is_unavailable_and_retried[invalid6]
+FAILED tests/test_subprocess_stdin_contract.py::test_every_subprocess_call_names_stdin_explicitly
+14 failed, 7981 passed, 189 skipped, 8 warnings in 792.32s (0:13:12)

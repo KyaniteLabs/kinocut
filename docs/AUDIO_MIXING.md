@@ -48,12 +48,16 @@ returned warning identifies clipping risk. Reduce gains and listen before publis
 The mixer validates a staged output, including a bounded audio decode, before replacing
 its destination. This operation does not produce the governed audio-bed receipt.
 
-When picture timing cannot be established from stream metadata, packet-timeline
-fallback limits the producer to 1,000,001 packets, including an overflow sentinel;
+Picture timing uses bounded presentation-packet measurements even when stream
+duration is populated: reordered frames can extend beyond that metadata value.
+The packet producer is limited to 1,000,001 packets, including an overflow sentinel;
 more than 1,000,000 timeline packets are rejected. Metadata is written to a private
 temporary file and rejected if it exceeds 64 MiB. This byte-size check occurs after
 writing and is not a hard guarantee on transient metadata-file size. The packet
-and execution-time limits bound the fallback; video is not decoded to obtain it.
+and execution-time limits bound extraction; video is not decoded to obtain it.
+Tracks use their selected first audio stream's actual extent. When stream duration
+is unavailable, bounded audio-frame decoding adds a separate measurement pass.
+These correctness checks add work; there is no universal latency-reduction claim.
 
 ## Duck music under existing speech
 
@@ -67,6 +71,9 @@ result = video.duck_audio("interview.mp4", "music.wav", output="ducked.mp4")
 ```
 
 This method does not normalize delivery loudness or emit a governed audio-bed receipt.
+Primary source audio must exist and be nonempty; measured silence is accepted.
+Attachment and ducking validate the staged AAC soundtrack with an error-sensitive
+full audio decode before publishing, preserving existing output on failure.
 When those guarantees are required, use the existing `audio_bed` workflow with verified
 projectstore snapshots; see [the MCP audio tools](TOOLS.md#audio-synthesis-9-tools).
 
@@ -78,3 +85,9 @@ length. `pad_audio` remains unsupported with `mix=True`; it raises
 `unsupported_duration_policy_for_mix`. Use `keep_video`, `loop_audio`, `trim_audio` or
 `shortest` according to the existing duration contract. For many independent sounds,
 prefer one `mix_audio` call.
+
+Added-audio fades include the source's native timestamp offset and requested
+placement delay. Leading gaps stay audible as silence; fades stop at the selected
+sound or picture boundary. A looped track fades at the final output window rather
+than restarting its fade on every repeat. Listen to placement and loop seams
+before acceptance.

@@ -1,0 +1,206 @@
+[
+  {
+    "number": 585,
+    "title": "Hyperframes output paths: still ignores -o, relative render falsely reports failure",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/585",
+    "updated_at": "2026-09-30T08:49:09Z"
+  },
+  {
+    "number": 584,
+    "title": "Audio normalization: WAV output uses AAC and reports success without decode validation",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/584",
+    "updated_at": "2026-09-30T06:59:36Z"
+  },
+  {
+    "number": 583,
+    "title": "Temporal QA: measure whole-film motion coherence while preserving chronology",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/583",
+    "updated_at": "2026-09-30T06:13:45Z"
+  },
+  {
+    "number": 582,
+    "title": "Audio waveform: support advertised audio-only files without requiring a video stream",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/582",
+    "updated_at": "2026-09-30T06:13:44Z"
+  },
+  {
+    "number": 581,
+    "title": "Creation: preserve camera/lens direction and annotated STYLE headings",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/581",
+    "updated_at": "2026-09-30T06:07:17Z"
+  },
+  {
+    "number": 580,
+    "title": "Sound QA: bind loudness checks to real media and enforce delivery policy",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/580",
+    "updated_at": "2026-09-30T05:54:26Z"
+  },
+  {
+    "number": 578,
+    "title": "crop() ignores display rotation: portrait phone videos are refused or cropped off-centre",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/578",
+    "updated_at": "2026-09-27T12:45:01Z"
+  },
+  {
+    "number": 576,
+    "title": "trim(accurate=True) decodes the whole file up to start for the same frames",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/576",
+    "updated_at": "2026-09-27T12:37:46Z"
+  },
+  {
+    "number": 574,
+    "title": "noise_reduction default (afftdn nf=-25) muffles voices",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/574",
+    "updated_at": "2026-09-27T08:11:29Z"
+  },
+  {
+    "number": 572,
+    "title": "Stacking add_audio(mix=True) re-encodes the soundtrack each time: hiss builds up over quiet music",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/572",
+    "updated_at": "2026-09-26T22:39:25Z"
+  },
+  {
+    "number": 566,
+    "title": "bug(composite-layers): a timed video layer is hidden until start but plays from the canvas origin",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/566",
+    "updated_at": "2026-09-25T13:19:34Z"
+  },
+  {
+    "number": 560,
+    "title": "bug(effect_glow): light areas turn magenta (screen blend applied to the chroma planes)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/560",
+    "updated_at": "2026-09-24T21:03:06Z"
+  },
+  {
+    "number": 557,
+    "title": "bug(effect_vignette): lightens the edges and shifts colours to cyan/violet instead of darkening",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/557",
+    "updated_at": "2026-09-24T21:03:04Z"
+  },
+  {
+    "number": 556,
+    "title": "Smaller API points found while building on kinocut.Client",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/556",
+    "updated_at": "2026-09-26T03:41:55Z"
+  },
+  {
+    "number": 555,
+    "title": "feature(add_audio): support duration_policy='loop_audio' with mix=True",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/555",
+    "updated_at": "2026-09-24T21:03:03Z"
+  },
+  {
+    "number": 554,
+    "title": "bug(filter): ken_burns on a video multiplies its length (2.5 s becomes 378 s)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/554",
+    "updated_at": "2026-09-24T21:03:02Z"
+  },
+  {
+    "number": 553,
+    "title": "bug(text_animated): FFmpeg crashes on Windows with the default font name",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/553",
+    "updated_at": "2026-09-24T22:03:38Z"
+  },
+  {
+    "number": 552,
+    "title": "bug(glitch_macroblocking): the encoder never opens (Invalid argument)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/552",
+    "updated_at": "2026-09-24T21:02:59Z"
+  },
+  {
+    "number": 551,
+    "title": "bug(shape_mask): FFmpeg rejects the generated filter graph (Invalid argument)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/551",
+    "updated_at": "2026-09-24T21:02:58Z"
+  },
+  {
+    "number": 550,
+    "title": "bug(layout_pip): passes a full command list to _run_ffmpeg and always raises ValueError",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/550",
+    "updated_at": "2026-09-24T22:03:37Z"
+  },
+  {
+    "number": 549,
+    "title": "audio_bed cannot run on plain files outside a project store; please expose duck_audio on Client",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/549",
+    "updated_at": "2026-09-24T21:02:55Z"
+  },
+  {
+    "number": 548,
+    "title": "bug(merge): transitions output yuv444p (High 4:4:4), which web players and phones do not play",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/548",
+    "updated_at": "2026-09-24T22:03:36Z"
+  },
+  {
+    "number": 502,
+    "title": "Kino PM handoff \u2014 charter, authorities, open loops (role split 2026-08-31: first kino PM \u2192 codesitter PM)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/502",
+    "updated_at": "2026-09-01T07:33:02Z"
+  },
+  {
+    "number": 499,
+    "title": "Dual-forge policy for contributor-active repos \u2014 GitHub canonical + one-way Forgejo mirror (proposal)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/499",
+    "updated_at": "2026-09-01T07:33:03Z"
+  },
+  {
+    "number": 488,
+    "title": "Forgejo mirror catch-up: master lags by the whole 1.15.1 batch (MIRROR_GITHUB_TOKEN gate)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/488",
+    "updated_at": "2026-09-06T03:05:43Z"
+  },
+  {
+    "number": 487,
+    "title": "Write the Phase-0 exit receipt + PHASE_CHECKPOINTS Phase-0 row (TEK gate)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/487",
+    "updated_at": "2026-09-01T07:33:08Z"
+  },
+  {
+    "number": 485,
+    "title": "MCPB gate-closure execution (validator CI, clean-machine matrix, confinement, optional-deps)",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/485",
+    "updated_at": "2026-09-01T07:33:11Z"
+  },
+  {
+    "number": 484,
+    "title": "Ops hygiene: retire the dead hourly watch, org membership, CTO relay confirmation",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/484",
+    "updated_at": "2026-09-01T07:33:12Z"
+  },
+  {
+    "number": 483,
+    "title": "Launch moments publish + four pending directory reviews \u2014 the marketing residuals",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/483",
+    "updated_at": "2026-09-01T07:33:14Z"
+  },
+  {
+    "number": 482,
+    "title": "Paid generative / TTS dubbing: dissolve the draft definitions or provision backends",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/482",
+    "updated_at": "2026-09-01T07:33:15Z"
+  },
+  {
+    "number": 481,
+    "title": "Sound S13\u2013S15: provision an Apple-Silicon benchmark host or formally re-scope the full-episode claim",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/481",
+    "updated_at": "2026-09-01T07:33:17Z"
+  },
+  {
+    "number": 479,
+    "title": "kinocut.dev 1.15.1 stamp + TLS verify \u2014 close the last Phase-0 site criterion",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/479",
+    "updated_at": "2026-09-01T07:33:20Z"
+  },
+  {
+    "number": 477,
+    "title": "MCPB: staged launcher vs per-platform native bundles \u2014 lock the product direction",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/477",
+    "updated_at": "2026-09-01T07:33:22Z"
+  },
+  {
+    "number": 476,
+    "title": "Wayfinder: gated-surfaces & pending-fixes disposition \u2014 nothing deferred by neglect",
+    "html_url": "https://github.com/KyaniteLabs/kinocut/issues/476",
+    "updated_at": "2026-09-01T07:33:23Z"
+  }
+]

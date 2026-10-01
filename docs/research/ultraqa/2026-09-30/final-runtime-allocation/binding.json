@@ -1,0 +1,9 @@
+{
+  "implementation_commit": "258cb0076f9ade77c41f6a528cf4c62d0745543a",
+  "scope": "Static source allocation from implementation HEAD with uncommitted documentation paths inventoried; not runtime cost, latency, invocation frequency or model accuracy.",
+  "artifacts": {
+    "allocation.json": "8d8c7c2a6cefb289f6c891c6b7c7203c02d3c4d46ecb542ad3972501f673a020",
+    "repository-inventory.csv": "f10f6d1e71061a4ab1e07797c8ea56103a32e042bf01cff905a9c8f14bd52f3c",
+    "runtime-allocation.csv": "bad5e2170fd6634e823a38d7636c83747c2396f1b82b0c75c5be71736c245818"
+  }
+}
