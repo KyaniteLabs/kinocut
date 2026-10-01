@@ -1,0 +1,20 @@
+255 ffmpeg 246 [aac @ 0x56190e68da80] Error decoding AAC frame header. [aist#0:1/aac @ 0x56190e68f180] [dec:aac @ 0x56190e68a340] Error
+255 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x55a31ec9d400] Error decoding AAC frame header. [aist#0:1/aac @ 0x55a31ec88ac0] Error submitting packet to decod
+0 ffmpeg 183 [aac @ 0x55f5f2d0da80] channel element 0.0 is not allocated [aist#0:1/aac @ 0x55f5f2d0f180] [dec:aac @ 0x55f5f2d0a340] E
+0 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x5563bb058400] channel element 0.0 is not allocated [aist#0:1/aac @ 0x5563bb043ac0] Error submitting packet to d
+1 ffmpeg 183 [aac @ 0x564df0200a80] Reserved bit set. [aac @ 0x564df0200a80] Number of bands (8) exceeds limit (2). [aist#0:1/aac @ 0
+1 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x55696760f400] Reserved bit set. [aac @ 0x55696760f400] Number of bands (8) exceeds limit (2). [aist#0:1/aac @ 0
+16 ffmpeg 183 [aac @ 0x55bfdd2e3a80] channel element 1.0 is not allocated [aist#0:1/aac @ 0x55bfdd2e5180] [dec:aac @ 0x55bfdd2e0340] E
+16 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x55dc95911400] channel element 1.0 is not allocated [aist#0:1/aac @ 0x55dc958fcac0] Error submitting packet to d
+32 ffmpeg 183 [aac @ 0x564a6fc4aa80] Prediction is not allowed in AAC-LC. [aist#0:1/aac @ 0x564a6fc4c180] [dec:aac @ 0x564a6fc47340] E
+32 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x563b94206400] Prediction is not allowed in AAC-LC. [aist#0:1/aac @ 0x563b941f1ac0] Error submitting packet to d
+64 ffmpeg 183 [aac @ 0x55c0701f2a80] channel element 2.0 is not allocated [aist#0:1/aac @ 0x55c0701f4180] [dec:aac @ 0x55c0701ef340] E
+64 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x55b344a88400] channel element 2.0 is not allocated [aist#0:1/aac @ 0x55b344a73ac0] Error submitting packet to d
+127 ffmpeg 183 [aac @ 0x5644f7827a80] channel element 3.15 is not allocated [aist#0:1/aac @ 0x5644f7829180] [dec:aac @ 0x5644f7824340] 
+127 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x5603e7253400] channel element 3.15 is not allocated [aist#0:1/aac @ 0x5603e723eac0] Error submitting packet to 
+128 ffmpeg 183 [aac @ 0x55b86c589a80] skip_data_stream_element: Input buffer exhausted before END element found [aist#0:1/aac @ 0x55b86
+128 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x56087e0dc400] skip_data_stream_element: Input buffer exhausted before END element found [aist#0:1/aac @ 0x56087
+170 ffmpeg 183 [aist#0:1/aac @ 0x555955273180] [dec:aac @ 0x55595526e340] Error submitting packet to decoder: Invalid data found when p
+170 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aist#0:1/aac @ 0x55f592141ac0] Error submitting packet to decoder: Invalid data found when processing input [aist#0:1/a
+85 ffmpeg 183 [aac @ 0x55a669848a80] channel element 2.10 is not allocated [aist#0:1/aac @ 0x55a66984a180] [dec:aac @ 0x55a669845340] 
+85 /workspace/.cache/kinocut-qa/native6/source/ffmpeg 0 [aac @ 0x56137349e400] channel element 2.10 is not allocated [aist#0:1/aac @ 0x561373489ac0] Error submitting packet to 

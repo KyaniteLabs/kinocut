@@ -34,6 +34,8 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Audio processing rejects severity-tagged FFmpeg decoder errors even when the process exits zero, including ANSI-colored diagnostics on FFmpeg 6. Existing analysis/render/postflight passes are reused; strict flags alone do not establish rejection. Failure diagnostics preserve the actual process exit status and retain at most 4,096 UTF-8 bytes of complete-codepoint context; public messages retain the existing 500-character bound, while existing captured stderr is collected before extraction.
+- Native Windows timeout tests verify actual child reaping, closed pipes and reader cleanup without an unsafe dead-PID signal probe. This is a test portability correction; production cancellation behavior is unchanged.
 - ASR malformed-format/nonmono header failures retain `qa_input_invalid` before PCM allocation; explicit resource-budget violations retain `asr_over_limit`. Resampler defaults and input limits are exported from the sound package. Source-quality cache regressions verify retries, warm reuse and changed-source remeasurement.
 - Design color analysis reports unavailable evidence instead of substituting neutral RGB values; available RGB estimates disclose their approximation. Auto-fixes use shared validated, staged publication, without implying a creative or perceptual acceptance pass.
 - Workflow version/capability evidence uses the selected configured executable, caches only unchanged successful probes and retries failures. D41 audio-bed readiness respects configured FFmpeg/ffprobe and required filter availability; executable stat identity is not a content digest or backend execution guarantee.
@@ -90,6 +92,7 @@ This project follows a simple release-note style:
 
 ### Docs
 
+- The repaired local sequential gate passed 8,013 tests (189 skipped, 8 warnings); pinned Ruff and canonical imports also passed. Corrected hosted results remain pending at the pre-push checkpoint and belong to PR #587 exact-head checks.
 - Record the merged PR #586 exact-head checks separately from the later whole-repository UltraQA ownership inventory, adversarial findings and focused gates. Supersede the independent four-case native-FFmpeg-six attribution with actual executable/source bindings; the separate native suites and real hosted FFmpeg-six checks remain valid historical evidence.
 - Cross-platform core-runtime CI adds publication, compositor and signal-reader regressions after generating the separate clean-runtime receipt. At this pre-publication checkpoint, native Windows/macOS execution remains pending until the eventual PR exact-head hosted checks run; local substitutes and platform skips are identified explicitly.
 - Refresh active release discovery to verified PyPI/npm 1.15.3 and compatibility shim 1.6.14; retain explicit GitHub release and MCP Registry drift. Review Google/Gemini audit claims against live site and pinned official sources, and qualify cost, privacy, performance and receipt claims.

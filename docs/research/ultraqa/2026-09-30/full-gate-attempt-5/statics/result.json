@@ -1,0 +1,44 @@
+{
+  "ruff-check": {
+    "command": [
+      "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff",
+      "check",
+      "kinocut/",
+      "kinocut_sound/",
+      "mcp_video.py",
+      "tests/",
+      "scripts/annotate-pytest-failures.py"
+    ],
+    "exit_code": 0
+  },
+  "ruff-format": {
+    "command": [
+      "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff",
+      "format",
+      "--check",
+      "kinocut/",
+      "kinocut_sound/",
+      "mcp_video.py",
+      "tests/",
+      "scripts/annotate-pytest-failures.py"
+    ],
+    "exit_code": 0
+  },
+  "canonical-import": {
+    "command": [
+      ".venv/bin/python",
+      "-c",
+      "import kinocut,mcp_video; assert kinocut.Client is mcp_video.Client"
+    ],
+    "exit_code": 0
+  },
+  "source_identity_sha256": "7f21901bb4af79fe9041d39348b0329d3b7e8e43869fc653b8c42121ac1b2fd4",
+  "artifact_sha256": {
+    "canonical-import.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "ruff-format.log": "89fdce7e3e1c7900b3320e19898334c7086b0a38c1eb9ac9ec3fc8f770106253",
+    "ruff-check.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "ruff-format.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "canonical-import.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "ruff-check.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa"
+  }
+}

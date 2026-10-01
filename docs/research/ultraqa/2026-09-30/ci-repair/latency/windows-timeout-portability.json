@@ -1,0 +1,22 @@
+{
+  "recorded_utc": "2026-10-01T03:45:20.597577+00:00",
+  "original_ci_head": "dddf3e1",
+  "current_git_head": "dddf3e1c88b9c3016b8fd9673fc589e9a5901a59",
+  "scope": "TEST-only portability repair; production timeout/cancellation/child cleanup unchanged. Original hosted Windows child cleanup succeeded before unsafe os.kill(pid,0) assertion produced WinError87.",
+  "owned_test": "tests/test_quality_signal_reader.py::test_timeout_reaps_child_and_both_readers",
+  "test_source_sha256": "a42bb7e82f78040168937d7b5545f742134eab8b2c8d4335d4de9aa2fc9dd7cc",
+  "assertions": [
+    "Exactly one actual child captured by transparent Popen wrapper",
+    "PIDfile bound to capturedprocess.pid",
+    "returncode already populatedandnonzero BEFORE poll; assertions do notwaitorkill",
+    "poll agreeswithreturncode;stdout/stderr closed",
+    "POSIX-only PIDnonexistence check, neverinvokeos.kill0onWindows",
+    "Bothreaderthreadidentities cleanedup"
+  ],
+  "local_validation": "16passed1.69s LinuxPython3.12.14; pinnedRuff0.15.11check/formatcheck/gitdiffcheck passed; actualWindows hostedrerunpending correctedhead.",
+  "evidence": {
+    "windows-timeout-portability.log": "90f3740621fecc6a321af9e6825204fb669fce4c31a18b4602e7b67aed2a3d03",
+    "windows-timeout-portability.exit": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "pr-587-native-windows-failed.log": "3e4eebe4a6b26db02a410eafcae0c4d0e186581f3cb6ae664f60bb27ce78d9b4"
+  }
+}

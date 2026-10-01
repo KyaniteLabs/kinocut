@@ -1,0 +1,56 @@
+{
+  "pr": 587,
+  "head": "dddf3e1c88b9c3016b8fd9673fc589e9a5901a59",
+  "status": "initial exact-head hosted checks failed; repairs and later gates pending",
+  "checks": "13 total:10 successful,2 failed,1 skipped (aggregate)",
+  "windows": {
+    "passed": 31,
+    "skipped": 18,
+    "failed": 1,
+    "cause": "Test-only os.kill(dead_pid,0) produces Windows WinError87 after owned subprocess cleanup; no production repair claimed."
+  },
+  "hosted_suite": {
+    "python": "3.14.7",
+    "ffmpeg": "6.1.1",
+    "failed": 4,
+    "passed": 7976,
+    "skipped": 50,
+    "deselected": 164,
+    "seconds": 1032.56,
+    "cause": "Actual native FFmpeg6.1.1 comparisons emit decoder errors yet exit0 despite -xerror, including original all-0xff and other syntax-invalid mutations. This reproduces a production decode-rejection policy defect; audio owner is repairing with -max_error_rate0, whose nonzero rejection is after processing, not an immediate-abort guarantee.",
+    "initial_hypothesis": "Initially suspected a test fixture accepted as AAC ID_END; superseded by actual native FFmpeg6.1.1 comparison."
+  },
+  "limits": [
+    "Safe failed-job text only; private redirect/SAS error logs excluded.",
+    "Local full attempt4 remains passing on its recorded source; it does not establish this hosted head green.",
+    "Corrected native Windows/native6 and sequential full attempt5 are not yet asserted."
+  ],
+  "artifact_sha256": {
+    "pr587-checks-initial-completed.json": "9d4dd16f9b85794068a1498e665a5f2ec85a04918f693f0b1af09185fbdb34af",
+    "pr587-windows-failed.log": "3197481ca9df2a2e2fdc869eabb02637c6678660ed2d4c1217f07d4b4ea52a8d",
+    "pr587-checks-first.json": "d2314d8d76bd282b100882eb718d846af86cb92f5986072cfe01cced0188298b",
+    "pr587-hosted-failed.log": "ceef9ae6e35836c1ff81ebe9bd0504251e4d71dfe41f96c1d4a4b99ecc947eef"
+  },
+  "native_boundary_selection": {
+    "cases": 50,
+    "linux": {
+      "passed": 47,
+      "skipped": 3,
+      "seconds": 2.66
+    },
+    "macOS": {
+      "passed": 46,
+      "skipped": 4,
+      "warnings": 2,
+      "seconds": 1.24
+    },
+    "windows": {
+      "passed": 31,
+      "skipped": 18,
+      "failed": 1,
+      "seconds": 1.72
+    },
+    "limits": "Exactly three-file CI selection; root local106-test selection includes56 extra workflow/other controls and is not identical."
+  },
+  "first_snapshot": "Earlier pr587-checks-first.json:10 successful,1 failed,1 skipped,1 pending hosted test; completed snapshot is pr587-checks-initial-completed.json."
+}

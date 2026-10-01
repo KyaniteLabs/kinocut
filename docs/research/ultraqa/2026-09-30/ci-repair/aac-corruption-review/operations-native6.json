@@ -1,0 +1,166 @@
+[
+  {
+    "byte": null,
+    "operation": "normalize_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": true,
+    "prior_preserved": false
+  },
+  {
+    "byte": null,
+    "operation": "mix_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": true,
+    "prior_preserved": false
+  },
+  {
+    "byte": null,
+    "operation": "add_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": true,
+    "prior_preserved": false
+  },
+  {
+    "byte": null,
+    "operation": "duck_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": true,
+    "prior_preserved": false
+  },
+  {
+    "byte": 255,
+    "operation": "normalize_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1):    \n[out#0/null @ 0x559f22359200] [info] video:0kB audio:16kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: unknown\n[info] size=N/A time=00:00:00.00 bitrate=N/A speed=   0x    \n[Parsed_loudnorm_2 @ 0x559f22374080] [info] \n{\n\t\"input_i\" : \"-inf\",\n\t\"input_tp\" : \"-16.08\",\n\t\"input_lra\" : \"0.00\",\n\t\"input_thresh\" : \"-70.00\",\n\t\"output_i\" : \"-inf\",\n\t\"output_tp\" : \"-1.50\",\n\t\"output_lra\" : \"0.00\",\n\t\"output_thresh\" : \"-70.00\",\n\t\"normalization_type\" : \"linear\",\n\t\"target_offset\" : \"inf\"\n}",
+    "prior_preserved": true
+  },
+  {
+    "byte": 255,
+    "operation": "mix_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): er: Error number -50531338 occurred\n[aist#1:1/aac @ 0x55c69378e980] [error] Decoder thread returned error: Error number -50531338 occurred\n[mp4 @ 0x55c6938ea100] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x55c6938ea000] [info] video:3kB audio:43kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 5.613056%\n[info] size=      48kB time=00:00:00.02 bitrate=16394.7kbits/s speed=0.104x    \n[aac @ 0x55c6938eb900] [info] Qavg: 61645.094",
+    "prior_preserved": true
+  },
+  {
+    "byte": 255,
+    "operation": "add_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): ecoder: Error number -50531338 occurred\n[aist#1:1/aac @ 0x55d0b13b4cc0] [error] Decoder thread returned error: Error number -50531338 occurred\n[mp4 @ 0x55d0b138f140] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x55d0b13a8700] [info] video:3kB audio:1kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 45.630810%\n[info] size=       5kB time=00:00:01.96 bitrate=  22.4kbits/s speed= 388x    \n[aac @ 0x55d0b14584c0] [info] Qavg: 110.403",
+    "prior_preserved": true
+  },
+  {
+    "byte": 255,
+    "operation": "duck_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): oder: Error number -50531338 occurred\n[aist#1:1/aac @ 0x555dc40314c0] [error] Decoder thread returned error: Error number -50531338 occurred\n[mp4 @ 0x555dc4178740] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x555dc4178640] [info] video:3kB audio:30kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 7.728580%\n[info] size=      35kB time=00:00:01.98 bitrate= 146.5kbits/s speed=  39x    \n[aac @ 0x555dc4179f40] [info] Qavg: 18550.941",
+    "prior_preserved": true
+  },
+  {
+    "byte": 16,
+    "operation": "normalize_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1):    \n[out#0/null @ 0x560a2a515200] [info] video:0kB audio:16kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: unknown\n[info] size=N/A time=00:00:00.00 bitrate=N/A speed=   0x    \n[Parsed_loudnorm_2 @ 0x560a2a530080] [info] \n{\n\t\"input_i\" : \"-inf\",\n\t\"input_tp\" : \"-16.08\",\n\t\"input_lra\" : \"0.00\",\n\t\"input_thresh\" : \"-70.00\",\n\t\"output_i\" : \"-inf\",\n\t\"output_tp\" : \"-1.50\",\n\t\"output_lra\" : \"0.00\",\n\t\"output_thresh\" : \"-70.00\",\n\t\"normalization_type\" : \"linear\",\n\t\"target_offset\" : \"inf\"\n}",
+    "prior_preserved": true
+  },
+  {
+    "byte": 16,
+    "operation": "mix_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): und when processing input\n[aist#1:1/aac @ 0x555621418980] [error] Decoder thread returned error: Invalid data found when processing input\n[mp4 @ 0x555621574100] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x555621574000] [info] video:3kB audio:43kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 5.613056%\n[info] size=      48kB time=00:00:00.02 bitrate=16394.7kbits/s speed=0.0874x    \n[aac @ 0x555621575900] [info] Qavg: 61645.094",
+    "prior_preserved": true
+  },
+  {
+    "byte": 16,
+    "operation": "add_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): ta found when processing input\n[aist#1:1/aac @ 0x55afd3ebdcc0] [error] Decoder thread returned error: Invalid data found when processing input\n[mp4 @ 0x55afd3e98140] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x55afd3eb1700] [info] video:3kB audio:1kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 45.630810%\n[info] size=       5kB time=00:00:01.96 bitrate=  22.4kbits/s speed= 287x    \n[aac @ 0x55afd3f614c0] [info] Qavg: 110.403",
+    "prior_preserved": true
+  },
+  {
+    "byte": 16,
+    "operation": "duck_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1):  found when processing input\n[aist#1:1/aac @ 0x556d042384c0] [error] Decoder thread returned error: Invalid data found when processing input\n[mp4 @ 0x556d0437f740] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x556d0437f640] [info] video:3kB audio:30kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 7.728580%\n[info] size=      35kB time=00:00:01.98 bitrate= 146.5kbits/s speed=36.6x    \n[aac @ 0x556d04380f40] [info] Qavg: 18550.941",
+    "prior_preserved": true
+  },
+  {
+    "byte": 32,
+    "operation": "normalize_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1):    \n[out#0/null @ 0x556d77cf9200] [info] video:0kB audio:16kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: unknown\n[info] size=N/A time=00:00:00.00 bitrate=N/A speed=   0x    \n[Parsed_loudnorm_2 @ 0x556d77d14080] [info] \n{\n\t\"input_i\" : \"-inf\",\n\t\"input_tp\" : \"-16.08\",\n\t\"input_lra\" : \"0.00\",\n\t\"input_thresh\" : \"-70.00\",\n\t\"output_i\" : \"-inf\",\n\t\"output_tp\" : \"-1.50\",\n\t\"output_lra\" : \"0.00\",\n\t\"output_thresh\" : \"-70.00\",\n\t\"normalization_type\" : \"linear\",\n\t\"target_offset\" : \"inf\"\n}",
+    "prior_preserved": true
+  },
+  {
+    "byte": 32,
+    "operation": "mix_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): und when processing input\n[aist#1:1/aac @ 0x55cd3b357980] [error] Decoder thread returned error: Invalid data found when processing input\n[mp4 @ 0x55cd3b4b3100] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x55cd3b4b3000] [info] video:3kB audio:43kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 5.613056%\n[info] size=      48kB time=00:00:00.02 bitrate=16394.7kbits/s speed=0.0775x    \n[aac @ 0x55cd3b4b4900] [info] Qavg: 61645.094",
+    "prior_preserved": true
+  },
+  {
+    "byte": 32,
+    "operation": "add_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1): ta found when processing input\n[aist#1:1/aac @ 0x563045a98cc0] [error] Decoder thread returned error: Invalid data found when processing input\n[mp4 @ 0x563045a73140] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x563045a8c700] [info] video:3kB audio:1kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 45.630810%\n[info] size=       5kB time=00:00:01.96 bitrate=  22.4kbits/s speed= 221x    \n[aac @ 0x563045b3c4c0] [info] Qavg: 110.403",
+    "prior_preserved": true
+  },
+  {
+    "byte": 32,
+    "operation": "duck_audio",
+    "ffmpeg": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+    "ffprobe": "/workspace/.cache/kinocut-qa/native6/source/ffprobe",
+    "success": false,
+    "error_type": "processing_error",
+    "code": "ffmpeg_exit_1",
+    "error": "FFmpeg processing failed (exit code 1):  found when processing input\n[aist#1:1/aac @ 0x55c741d9b4c0] [error] Decoder thread returned error: Invalid data found when processing input\n[mp4 @ 0x55c741ee2740] [info] Starting second pass: moving the moov atom to the beginning of the file\n[out#0/mp4 @ 0x55c741ee2640] [info] video:3kB audio:30kB subtitle:0kB other streams:0kB global headers:0kB muxing overhead: 7.728580%\n[info] size=      35kB time=00:00:01.98 bitrate= 146.5kbits/s speed=31.4x    \n[aac @ 0x55c741ee3f40] [info] Qavg: 18550.941",
+    "prior_preserved": true
+  }
+]

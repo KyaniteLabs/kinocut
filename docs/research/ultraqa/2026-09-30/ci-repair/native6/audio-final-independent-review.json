@@ -1,0 +1,51 @@
+{
+  "binary": "/workspace/.cache/kinocut-qa/native6/source/ffmpeg",
+  "binary_sha256": "6206bf77c710645d7c3e6fd50607ad2f0c9a0af17228589d6d7e903e010a6214",
+  "helper_sha256": "5e5f275bd60b287816576b9d438a7164dc1d658c5750c470e47189bc033a8d78",
+  "rows": [
+    {
+      "input": "source.mp4",
+      "color": false,
+      "accepted": true,
+      "returncode": 0
+    },
+    {
+      "input": "damaged-16.mp4",
+      "color": false,
+      "accepted": false,
+      "returncode": 0,
+      "code": "ffmpeg_exit_0"
+    },
+    {
+      "input": "source.mp4",
+      "color": true,
+      "accepted": true,
+      "returncode": 0
+    },
+    {
+      "input": "damaged-16.mp4",
+      "color": true,
+      "accepted": false,
+      "returncode": 0,
+      "code": "ffmpeg_exit_0"
+    },
+    {
+      "bare": true,
+      "color": false,
+      "rejected": true
+    },
+    {
+      "bare": true,
+      "color": true,
+      "rejected": true
+    },
+    {
+      "nonfatal_literal": "info",
+      "accepted": true
+    },
+    {
+      "nonfatal_literal": "warning",
+      "accepted": true
+    }
+  ]
+}
