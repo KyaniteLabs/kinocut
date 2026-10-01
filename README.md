@@ -19,8 +19,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-201%20tools-orange.svg" alt="201 MCP tools on development tip">
-  <img src="https://img.shields.io/badge/CLI-173%20commands-orange.svg" alt="173 CLI commands on development tip">
+  <img src="https://img.shields.io/badge/MCP-203%20tools-orange.svg" alt="203 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -119,7 +119,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | --- | --- | --- |
 | **PyPI / npm** | **[1.15.3](https://pypi.org/project/kinocut/1.15.3/)** (2026-09-25) | Latest **published** Kinocut. Install with `pip install kinocut`. |
 | **GitHub latest release / MCP Registry** | GitHub latest: **1.15.0**; registry: **unverified** | Checked 2026-09-30. The MCP Registry request returned 403; package publication does not establish provider alignment. |
-| **This repository (`master`)** | Development tip · **201 MCP / 173 CLI** | Same 201/173 public surface; local changes beyond published 1.15.3 remain Unreleased. |
+| **This repository (`master`)** | Candidate **1.16.0** · **203 MCP / 177 CLI** | Expanded operator controls; the candidate includes fixes beyond published 1.15.3 and is not yet on package registries. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
@@ -142,7 +142,7 @@ Kinocut **1.15.0** (2026-08-19) was the Windows/diagnostics release: first-class
 - **360 dual-cam assembly** — any stitched equirect MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …) → reviewable `360_assembly_plan` (desk / table / `front_back`, split / switch / PiP / single) → approve → FFmpeg `v360` render. MCP: `video_intent` `goal=` + `video_review_decide`. Python: `Client.propose_360_assembly` / `decide_360_assembly` / `render_360_assembly`. Raw `.insv` / `.360` rejected. Director is a plug (local first; cloud opt-in). Not an optimized-AI claim. Guide: [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
 - **Faster 360 and import path** — single-pass split/PiP/switch `filter_complex` (source audio kept); sampled quality-gate analyze window; SHA-256 path/mtime cache; merge can skip re-probe when `infos=` is supplied; batched 360 storyboard stills; lazy `mcp_video` / CLI / `Client.search_tools`; doctor skips `npx --yes` unless Hyperframes is already on PATH.
 - **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
-- **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; durable MCP `video_repurpose` does not apply `min_score`.
+- **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; candidate durable MCP `video_repurpose` applies `min_score` before job success.
 - **Compatibility window** — `mcp-video==1.6.14` installs `kinocut==1.15.3`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**. The prior pair was `mcp-video==1.6.12` → `kinocut==1.15.1`.
 
 Also already on the published line from 1.13.x:
@@ -161,6 +161,8 @@ Development-checkout quality and plain-file audio contracts are documented in
 for local changes beyond the published package.
 
 ## Beyond 1.15.3 (draft / gated)
+
+The prepared compatibility candidate `mcp-video==1.6.15` pins `kinocut==1.16.0`; it is not the published shim. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
 
 **1.15.3 is the latest published release.** Draft/gated work beyond it stays out of release claims until a cut lands. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
@@ -566,7 +568,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-Published **1.15.3** registers **201 MCP tools** and **173 CLI commands** (the tip has the same registered surface). The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+Published **1.15.3** registers **201 MCP tools** and **173 CLI commands** (the 1.16.0 candidate has 203 MCP tools and 177 CLI commands). The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -889,3 +891,6 @@ Kinocut improves in public, and outside contributions shape it — 1.15.0's diag
 See [LICENSE](LICENSE) in this repository (or package metadata if license is package-only).
 
 <!-- s-plus-geo:end -->
+
+
+Cross-platform architecture and current support evidence: [platform parity](docs/PLATFORM_PARITY.md). Web/mobile shared processing and native clients are not implemented in this candidate.

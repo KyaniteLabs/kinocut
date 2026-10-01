@@ -18,8 +18,8 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.15.3"
-SHIM_VERSION = "1.6.14"
+KINOCUT_VERSION = "1.16.0"
+SHIM_VERSION = "1.6.15"
 
 
 def _toml(path: Path) -> dict:
@@ -138,7 +138,9 @@ def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
     # PyPI ahead of the kinocut wheel they name.
     allowed_pins = ([f"kinocut=={published}"], [f"kinocut=={candidate}"])
     assert shim["project"]["dependencies"] in allowed_pins
-    assert shim["project"]["scripts"] == {"mcp-video": "kinocut.__main__:main"}
+    # The canonical dependency owns all aliases. A duplicate shim entry point
+    # makes uninstalling the metadata-only shim delete Kinocut's executable.
+    assert "scripts" not in shim["project"]
     assert shim["tool"]["hatch"]["build"]["targets"]["wheel"]["bypass-selection"] is True
     assert not (ROOT / "compat" / "mcp-video-shim" / "mcp_video").exists()
 

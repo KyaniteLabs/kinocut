@@ -196,6 +196,9 @@ jobs:
           .venv-upgrade/bin/pip uninstall --yes mcp-video
           .venv-upgrade/bin/pip check
           .venv-upgrade/bin/python -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
+          .venv-upgrade/bin/kino --version
+          .venv-upgrade/bin/kinocut --version
+          .venv-upgrade/bin/mcp-video --version
       - name: Verify clean-wheel timed-caption onboarding
         env:
           CANDIDATE_SHA: ${{ github.sha }}

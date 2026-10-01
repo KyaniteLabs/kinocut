@@ -15,6 +15,7 @@ from typing import Any
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
 
 from ..ffmpeg_helpers import _validate_input_path
+from ..repurpose_policy import RepurposeReleasePolicy
 from ._errors import INVALID_WORKFLOW_SPEC, workflow_error
 
 
@@ -71,6 +72,7 @@ class WorkflowSpec(BaseModel):
     steps: list[WorkflowStep] = Field(default_factory=list)
     outputs: dict[str, WorkflowOutput] = Field(default_factory=dict)
     variants: list[WorkflowVariant] = Field(default_factory=list)
+    repurpose_release_policy: RepurposeReleasePolicy | None = None
 
 
 def validate_spec_path(spec_path: str) -> Path:

@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from .ffmpeg_helpers import _validate_input_path
+from .defaults import DEFAULT_QUALITY_GATE_SCORE
 from .server_app import _result, _safe_tool, mcp
 
 
@@ -29,23 +30,20 @@ def video_repurpose(
     output_dir: str | None = None,
     platforms: list[str] | None = None,
     include_release_checkpoint: bool = True,
-    min_score: float = 0.0,
+    min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     start_job: bool = True,
     moment_selection_record_id: str | None = None,
 ) -> dict[str, Any]:
     """Submit one durable projectstore repurpose job for platform clips.
 
-    ``min_score`` is accepted for signature parity with sync ``repurpose``
-    and is **not applied**. Durable jobs do not run ``assert_quality``.
-    Use CLI/Client ``repurpose`` (default 80) for the fail-closed ship seam.
+    The worker applies the requested release checkpoint policy before success.
+    Submission acknowledges queued/running work, not quality or human acceptance.
     """
     input_path = _validate_input_path(input_path)
     from .paths import _auto_output_dir
     from .projectstore.repurpose import durable_repurpose
 
     project_dir = output_dir or _auto_output_dir(input_path, "repurpose-project")
-    # Durable path: include_release_checkpoint / min_score are unused (Wave 2 OUT).
-    _ = include_release_checkpoint, min_score
     return _result(
         durable_repurpose(
             input_path,
@@ -53,5 +51,7 @@ def video_repurpose(
             platforms=platforms,
             start=start_job,
             moment_selection_record_id=moment_selection_record_id,
+            include_release_checkpoint=include_release_checkpoint,
+            min_score=min_score,
         )
     )

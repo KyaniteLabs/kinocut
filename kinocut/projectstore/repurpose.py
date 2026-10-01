@@ -8,6 +8,8 @@ from typing import Any
 
 from kinocut.engine_repurpose import PLATFORM_PRESETS, _select_platforms
 from kinocut.ffmpeg_helpers import _validate_input_path
+from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE
+from kinocut.repurpose_policy import repurpose_release_policy
 from kinocut.projectstore import store
 from kinocut.projectstore.cas import ingest_blob
 from kinocut.projectstore.compat import (
@@ -16,7 +18,7 @@ from kinocut.projectstore.compat import (
     synthesize_workflow_spec,
 )
 from kinocut.projectstore.edit_projects import create_edit_project
-from kinocut.projectstore.render_jobs import start_render_job, submit_render_job
+from kinocut.projectstore.render_jobs import job_spec_path, start_render_job, submit_render_job
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.trusted_execution import MomentSelectionRecord, RepurposeSelectionBindingRecord
@@ -53,23 +55,13 @@ def _install_spec(project: store.Project, spec: dict[str, Any], platforms: list[
     return path
 
 
-def durable_repurpose(
-    input_path: str,
-    project_dir: str,
-    *,
-    platforms: list[str] | None = None,
-    start: bool = True,
-    moment_selection_record_id: str | None = None,
-) -> dict[str, Any]:
-    """Create one revision and async render job for N platform clips."""
-
-    source_path = _validate_input_path(input_path)
-    selected = _select_platforms(platforms)
-    project = store.open_project(project_dir)
-    source = ingest_blob(project, source_path, media_type=_media_type(source_path))
-    edit = create_edit_project(project, created_by="tool:repurpose")
-    operations = _operations(source.digest, selected)
-    revision = compile_repurpose_slice(project, edit.edit_project_id, operations)
+def _bind_selection(
+    project: store.Project,
+    edit_project_id: str,
+    revision_id: str | None,
+    moment_selection_record_id: str | None,
+) -> RepurposeSelectionBindingRecord | None:
+    """Bind only a reviewed selection owned by this project."""
     selection_binding = None
     if moment_selection_record_id is not None:
         matches = [
@@ -86,18 +78,47 @@ def durable_repurpose(
                 {
                     "project_id": project.project_id,
                     "created_by": "tool:repurpose",
-                    "edit_project_id": edit.edit_project_id,
-                    "revision_id": revision.record_id,
+                    "edit_project_id": edit_project_id,
+                    "revision_id": revision_id,
                     "moment_selection_record_id": matches[0].record_id,
                 },
             ),
         )
+    if selection_binding is not None and not isinstance(selection_binding, RepurposeSelectionBindingRecord):
+        raise contract_error("repurpose selection binding has an invalid type", INVALID_RECORD)
+    return selection_binding
+
+
+def durable_repurpose(
+    input_path: str,
+    project_dir: str,
+    *,
+    platforms: list[str] | None = None,
+    start: bool = True,
+    moment_selection_record_id: str | None = None,
+    include_release_checkpoint: bool = True,
+    min_score: float = DEFAULT_QUALITY_GATE_SCORE,
+) -> dict[str, Any]:
+    """Create one revision and async render job for N platform clips."""
+
+    policy = repurpose_release_policy(include_release_checkpoint, min_score)
+    source_path = _validate_input_path(input_path)
+    selected = _select_platforms(platforms)
+    project = store.open_project(project_dir)
+    source = ingest_blob(project, source_path, media_type=_media_type(source_path))
+    edit = create_edit_project(project, created_by="tool:repurpose")
+    operations = _operations(source.digest, selected)
+    revision = compile_repurpose_slice(project, edit.edit_project_id, operations)
+    if revision.record_id is None:
+        raise contract_error("repurpose revision is missing its durable identity", INVALID_RECORD)
+    selection_binding = _bind_selection(project, edit.edit_project_id, revision.record_id, moment_selection_record_id)
     synthesis = synthesize_workflow_spec(
         project,
         edit.edit_project_id,
         operations,
         base_revision_id=revision.record_id,
     )
+    synthesis.spec["repurpose_release_policy"] = policy.model_dump(mode="json")
     spec_path = _install_spec(project, synthesis.spec, selected)
     job = submit_render_job(
         project,
@@ -111,12 +132,14 @@ def durable_repurpose(
     clips = [
         {
             "platform": platform,
-            "output": f".kinocut/repurpose/{platform}.mp4",
+            "output": (job_spec_path(project, job.job_id).parent / synthesis.spec["outputs"][f"out{index}"]["path"])
+            .relative_to(project.root)
+            .as_posix(),
             "job_id": job.job_id,
             "revision_id": revision.record_id,
             "receipt_ref": f".kinocut/jobs/{job.job_id.removeprefix('job:')}/receipt.json",
         }
-        for platform in selected
+        for index, platform in enumerate(selected)
     ]
     return {
         "success": True,
@@ -129,6 +152,7 @@ def durable_repurpose(
         "source_digest": source.digest,
         "selection_binding_record_id": selection_binding.record_id if selection_binding is not None else None,
         "clips": clips,
+        "release_policy": policy.model_dump(mode="json"),
     }
 
 

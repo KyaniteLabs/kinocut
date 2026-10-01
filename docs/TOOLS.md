@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino's development tip exposes **201** registered MCP tools across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.3 exposes **201 MCP tools / 173 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with operation-specific diagnostics and suggestions when available.
+kino's development tip exposes **203 registered MCP tools / 177 CLI commands** across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.3 exposes **201 MCP tools / 173 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with operation-specific diagnostics and suggestions when available.
 
 ---
 
@@ -73,6 +73,14 @@ results = editor.search_tools("subtitle")
 
 ## Visual review evidence
 
+Development `video_record_motion_acceptance` and CLI `record-motion-acceptance`
+join Python `Client.record_motion_acceptance`. Supply the exact `report`,
+`input_path`, `reviewer_id`, `source_sha256`, `report_sha256`, complete
+`watched_intervals`, flagged-interval `dispositions`, and `verdict` (`accept` or
+`reject`). The result nests the content-hashed `receipt`. This is an explicit
+caller attestation: `attestation_verified_by_system=false`, not authenticated
+proof of viewing or release approval. Agents must never invent the human inputs.
+
 `video_qc_vision` prepares retained keyframes for human visual review. It reports
 `sampling_status` separately from `assessment_status`; preparing frames does not
 establish visual quality. With no executable VLM scorer, complete sampling returns
@@ -85,6 +93,14 @@ deadline and byte ceilings; malformed or incomplete responses fail closed. This
 does not approve the whole film or establish model accuracy. See
 [quality evidence](QUALITY_EVIDENCE.md) for waveform, objective visual measurement
 and perceptual voice limits.
+
+Development controls also include `video_convert(two_pass=true,
+target_bitrate=KBPS)` for MP4/MOV, `video_fade(crf=...)`, and
+`video_add_audio(mix=true, duration_policy="loop_audio")`. Mixed `pad_audio`
+remains unsupported. `video_hls_segment` now has CLI `hls-segment`; it writes
+local playlists/segments and does not host them. `video_estimate_operation`,
+CLI `estimate`, and `Client.estimate_operation` share the local heuristic:
+`estimated_cost_units` is dimensionless and `currency` is null.
 
 ---
 
@@ -158,7 +174,7 @@ download models, contact providers, or submit jobs. See
 |------|-------------|
 | `video_info` | Get metadata: duration, resolution, codec, fps, file size |
 | `video_info_detailed` | Extended metadata with scene detection and dominant colors |
-| `video_trim` | Trim by finite start time + duration or absolute end; staged output preserves the destination on render/result failure |
+| `video_trim` | Trim by finite start time + duration or absolute end; `accurate=true` selects frame-accurate seeking; staged output preserves the destination on render/result failure |
 | `video_merge` | Concatenate clips with optional per-pair transitions; warns on resolution/FPS/audio mismatches and rejects transitions longer than the shortest clip |
 | `video_add_text` | Overlay text with positioning, font, color, shadow |
 | `video_add_texts` | Overlay multiple text elements in a single FFmpeg pass; auto-detects overlaps and distributes stacked texts at the same named position |
@@ -183,10 +199,10 @@ download models, contact providers, or submit jobs. See
 | `video_edit` | Full timeline-based edit from JSON DSL, or sequence shortcut (`clips` + optional `transitions` / `transition_duration`) |
 | `video_create_from_images` | Create video from image sequence |
 | `video_export_frames` | Export video as individual image frames |
-| `video_extract_frame` | Extract a single frame at a given timestamp for visual verification |
+| `video_extract_frame` | Extract a frame; omitted `timestamp` uses smart sampling when available, otherwise 10% of duration; explicit `timestamp=0` means the first frame, matching CLI/Python |
 | `video_extract_audio` | Extract audio as mp3, wav, aac, ogg, or flac |
 | `video_export` | Render with quality and format settings; optional C2PA signing for final MP4 exports via `c2pa_manifest_path` |
-| `video_normalize_audio` | Normalize audio/video loudness; WAV uses PCM16, supported M4A/video output uses AAC, with staged codec/full-decode validation |
+| `video_normalize_audio` | Normalize audio/video loudness; `target_lufs`, `lra`, `true_peak_dbtp`, `fade_seconds` set delivery controls. WAV uses PCM16, supported M4A/video uses AAC with staged codec/full-decode validation |
 | `video_batch` | Apply the same operation to multiple video files |
 | `video_cleanup` | Remove Kinocut-managed intermediate files |
 | `video_hls_segment` | Segment video into HLS format with multi-quality variants |
@@ -332,10 +348,14 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 
 ---
 
-## Audio Synthesis (9 tools)
+<a id="audio-synthesis-9-tools"></a>
 
-For Python plain-file `Client.mix_audio` and `Client.duck_audio`, see
-[audio mixing](AUDIO_MIXING.md). These client additions do not add MCP tool names.
+## Audio Synthesis (10 tools, development tip)
+
+Plain-file `Client.mix_audio` and `Client.duck_audio` also have development CLI
+adapters `mix-audio` and `duck-audio`. The development MCP addition is
+`video_mix_audio`; `video_duck_audio` already existed. See
+[audio mixing](AUDIO_MIXING.md) for engine behavior.
 
 Generate audio from code — no external audio files needed. Pure NumPy, no extra dependencies.
 
@@ -348,6 +368,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 | `audio_effects` | Apply effects chain: lowpass, reverb, normalize, fade |
 | `video_add_generated_audio` | Generate audio and add it to a video in one call |
 | `video_audio_spatial` | 3D spatial audio positioning (azimuth + elevation) |
+| `video_mix_audio` | Mix `sounds` (track array or JSON array with `path`, `start`, `volume`, `fade_in`, `fade_out`) using one AAC encode and picture stream copy; `keep_source` and `audio_bitrate` controls. Gains sum and may clip; no automatic loudness normalization or governed audio-bed receipt |
 | `video_duck_audio` | Mix background music under a video's voice with automatic sidechain ducking; music dips while speech plays and recovers in pauses |
 | `video_audio_bed` | Governed one-shot audio-bed: duck a music bed under a voice track, normalize to EBU R128 `target_lufs`, optionally loop with crossfade, and emit a deterministic edit-receipt (`AudioBedReceipt`, `operation: "audio_bed"`, fixed `keep_video` duration policy). The receipt lands at top-level `result["receipt"]`; no authorization, duration-policy, or duration-tolerance parameter is exposed. |
 

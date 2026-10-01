@@ -103,7 +103,9 @@ from .server_tools_hyperframes import (
     hyperframes_to_mcpvideo as hyperframes_to_mcpvideo,
     hyperframes_validate as hyperframes_validate,
 )
+from .server_tools_motion_acceptance import video_record_motion_acceptance as video_record_motion_acceptance
 from .server_tools_audio import (
+    video_mix_audio as video_mix_audio,
     audio_compose as audio_compose,
     audio_effects as audio_effects,
     audio_preset as audio_preset,

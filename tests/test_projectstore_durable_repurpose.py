@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import hashlib
 from pathlib import Path
 
 from kinocut.contracts.adapter import validate_record
@@ -30,6 +31,7 @@ def test_durable_repurpose_creates_revision_job_and_n_lineage_bound_clips(tmp_pa
         str(project_dir),
         platforms=["youtube", "youtube-shorts"],
         start=False,
+        include_release_checkpoint=False,
     )
 
     assert result["status"] == "queued"
@@ -54,17 +56,25 @@ def test_durable_repurpose_creates_revision_job_and_n_lineage_bound_clips(tmp_pa
     assert resume_render_job(reopened, job.job_id).status.value == "queued"
     render_jobs.mark_running(reopened, job.job_id, 424242)
 
+    hashes = []
+    for entry in spec["outputs"].values():
+        target = render_jobs.job_spec_path(project, job.job_id).parent / entry["path"]
+        target.parent.mkdir(parents=True, exist_ok=True)
+        target.write_bytes(entry["path"].encode())
+        hashes.append("sha256:" + hashlib.sha256(target.read_bytes()).hexdigest())
     receipt = {
         "status": "completed",
-        "sources": [{"id": "src0", "source_hash": result["source_digest"]}],
+        "sources": [
+            {"id": "src0", "resolved": spec["sources"]["src0"]["path"], "source_hash": result["source_digest"]}
+        ],
         "outputs": [
-            {"id": "out0", "output_hash": "sha256:" + "a" * 64},
-            {"id": "out1", "output_hash": "sha256:" + "b" * 64},
+            {"id": "out0", "path": spec["outputs"]["out0"]["path"], "output_hash": hashes[0]},
+            {"id": "out1", "path": spec["outputs"]["out1"]["path"], "output_hash": hashes[1]},
         ],
         "versions": {"kinocut": "1.12.0", "ffmpeg": "fixture"},
         "steps": [
-            {"id": "resize_out0", "status": "completed", "output_hash": "sha256:" + "a" * 64},
-            {"id": "resize_out1", "status": "completed", "output_hash": "sha256:" + "b" * 64},
+            {"id": "resize_out0", "status": "completed", "output_hash": hashes[0]},
+            {"id": "resize_out1", "status": "completed", "output_hash": hashes[1]},
         ],
     }
     monkeypatch.setattr(render_runner, "render_workflow", lambda **kwargs: receipt)
@@ -88,12 +98,18 @@ def test_public_repurpose_submits_durable_job_without_legacy_direct_render(tmp_p
         output_dir=str(tmp_path / "project"),
         platforms=["tiktok"],
         start_job=False,
+        min_score=83,
+        include_release_checkpoint=False,
     )
 
     assert result["success"] is True
     assert result["operation"] == "repurpose"
     assert result["status"] == "queued"
     assert result["clips"][0]["platform"] == "tiktok"
+    assert result["release_policy"] == {"min_score": 83, "include_release_checkpoint": False}
+    project = open_project(tmp_path / "project")
+    spec = json.loads(render_jobs.job_spec_path(project, result["job_id"]).read_text())
+    assert spec["repurpose_release_policy"] == result["release_policy"]
 
 
 def test_durable_repurpose_binds_explicit_reviewed_moment_selection(tmp_path: Path):

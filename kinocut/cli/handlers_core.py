@@ -77,6 +77,7 @@ def _register_frame_commands(runner: CommandRunner) -> None:
             duration="duration",
             end="end",
             output_path="output",
+            accurate="accurate",
         ),
     )
     runner.register(
@@ -250,6 +251,8 @@ def _register_transform_commands(runner: CommandRunner) -> None:
             format="fmt",
             quality="quality",
             output_path="output",
+            two_pass="two_pass",  # noqa: S106 - namespace attribute mapping, not a credential
+            target_bitrate="target_bitrate",
         ),
     )
     runner.register(

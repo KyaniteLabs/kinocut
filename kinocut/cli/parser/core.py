@@ -36,6 +36,7 @@ def _add_core_edit_parsers(subparsers: argparse._SubParsersAction) -> None:
     trim_p.add_argument("-d", "--duration", help="Duration")
     trim_p.add_argument("-e", "--end", help="End time")
     trim_p.add_argument("-o", "--output", help="Output file path")
+    trim_p.add_argument("--accurate", action="store_true", help="Use frame-accurate seeking (slower)")
 
     # merge
     merge_p = subparsers.add_parser("merge", help="Merge multiple clips")

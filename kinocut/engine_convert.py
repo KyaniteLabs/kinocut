@@ -21,10 +21,12 @@ from .ffmpeg_helpers import (
     _atomic_output,
     _run_ffmpeg,
     _run_ffmpeg_with_progress,
+    _sanitize_ffmpeg_number,
 )
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .errors import MCPVideoError
 from .models import QUALITY_PRESETS, EditResult, ExportFormat, QualityLevel
+from .validation import VALID_FORMATS
 
 
 def convert(
@@ -42,11 +44,43 @@ def convert(
     delivery with quality tuning, prefer :func:`export_video`.
     """
     input_path = _validate_input_path(input_path)
+    _validate_convert_options(format, quality, two_pass, target_bitrate)
+    preset = QUALITY_PRESETS[quality]
+    ext_map = {"hevc": ".mp4", "av1": ".webm", "prores": ".mov"}
+    ext = ext_map.get(format, f".{format}") if not format.startswith(".") else format
+    output = output_path or _auto_output(input_path, format, ext=ext)
+    _validate_output_path(output)
+    input_info = probe(input_path)
 
-    valid_formats = {"mp4", "webm", "gif", "mov", "hevc", "av1", "prores"}
-    if format not in valid_formats:
+    with _atomic_output(output) as staged:
+        # Declare the staging write before postflight probing records operation inputs.
+        _validate_output_path(staged)
+        with _timed_operation() as timing:
+            if two_pass and target_bitrate is not None:
+                _convert_two_pass(input_path, staged, target_bitrate, preset["preset"])
+            elif format == "mp4":
+                _convert_mp4(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+            elif format == "webm":
+                _convert_webm(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+            elif format == "mov":
+                _convert_mov(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+            elif format == "gif":
+                _convert_gif(input_path, staged, quality, input_info.duration, on_progress)
+            elif format == "hevc":
+                _convert_hevc(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+            elif format == "av1":
+                _convert_av1(input_path, staged, preset, input_info.duration, on_progress, target_bitrate)
+            elif format == "prores":
+                _convert_prores(input_path, staged, preset, input_info.duration, on_progress)
+        result = _convert_result(staged, format, timing["elapsed_ms"])
+
+    return result.model_copy(update={"output_path": output})
+
+
+def _validate_convert_options(format: str, quality: str, two_pass: bool, target_bitrate: int | None) -> None:
+    if format not in VALID_FORMATS:
         raise MCPVideoError(
-            f"format must be one of {sorted(valid_formats)}, got {format}",
+            f"format must be one of {sorted(VALID_FORMATS)}, got {format}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -57,6 +91,22 @@ def convert(
             code="invalid_parameter",
         )
 
+    if not isinstance(two_pass, bool):
+        raise MCPVideoError("two_pass must be a boolean", error_type="validation_error", code="invalid_parameter")
+    if target_bitrate is not None:
+        _sanitize_ffmpeg_number(target_bitrate, "target_bitrate")
+        if not isinstance(target_bitrate, int) or target_bitrate <= 0:
+            raise MCPVideoError(
+                "target_bitrate must be a positive integer in kbps",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        if format in ("gif", "prores"):
+            raise MCPVideoError(
+                "target_bitrate is unsupported for GIF and ProRes",
+                error_type="validation_error",
+                code="target_bitrate_unsupported_format",
+            )
     if two_pass and format not in ("mp4", "mov"):
         raise MCPVideoError(
             f"Two-pass encoding is only supported for mp4 and mov formats, got '{format}'",
@@ -70,38 +120,11 @@ def convert(
             code="two_pass_needs_bitrate",
         )
 
-    preset = QUALITY_PRESETS[quality]
-    ext_map = {"hevc": ".mp4", "av1": ".webm", "prores": ".mov"}
-    ext = ext_map.get(format, f".{format}") if not format.startswith(".") else format
-    output = output_path or _auto_output(input_path, format, ext=ext)
-    _validate_output_path(output)
-    input_info = probe(input_path)
 
-    with _atomic_output(output) as staged:
-        # Declare the staging write before postflight probing records operation inputs.
-        _validate_output_path(staged)
-        with _timed_operation() as timing:
-            if two_pass and target_bitrate:
-                _convert_two_pass(input_path, staged, target_bitrate, preset["preset"])
-            elif format == "mp4":
-                _convert_mp4(input_path, staged, preset, input_info.duration, on_progress)
-            elif format == "webm":
-                _convert_webm(input_path, staged, preset, input_info.duration, on_progress)
-            elif format == "mov":
-                _convert_mov(input_path, staged, preset, input_info.duration, on_progress)
-            elif format == "gif":
-                _convert_gif(input_path, staged, quality, input_info.duration, on_progress)
-            elif format == "hevc":
-                _convert_hevc(input_path, staged, preset, input_info.duration, on_progress)
-            elif format == "av1":
-                _convert_av1(input_path, staged, preset, input_info.duration, on_progress)
-            elif format == "prores":
-                _convert_prores(input_path, staged, preset, input_info.duration, on_progress)
-            else:
-                raise MCPVideoError(f"Unsupported format: {format}", code="unsupported_format")
-        result = _convert_result(staged, format, timing["elapsed_ms"])
-
-    return result.model_copy(update={"output_path": output})
+def _rate_control_args(preset: dict, target_bitrate: int | None, *, webm: bool = False) -> list[str]:
+    if target_bitrate is not None:
+        return ["-b:v", f"{target_bitrate}k"]
+    return ["-crf", str(preset["crf"]), *(["-b:v", "0"] if webm else [])]
 
 
 def _convert_two_pass(input_path: str, output: str, target_bitrate: int, preset: str) -> None:
@@ -153,7 +176,12 @@ def _convert_two_pass(input_path: str, output: str, target_bitrate: int, preset:
 
 
 def _convert_mp4(
-    input_path: str, output: str, preset: dict, duration: float, on_progress: Callable[[float], None] | None
+    input_path: str,
+    output: str,
+    preset: dict,
+    duration: float,
+    on_progress: Callable[[float], None] | None,
+    target_bitrate: int | None = None,
 ) -> None:
     _run_ffmpeg_with_progress(
         [
@@ -161,8 +189,7 @@ def _convert_mp4(
             input_path,
             "-c:v",
             "libx264",
-            "-crf",
-            str(preset["crf"]),
+            *_rate_control_args(preset, target_bitrate),
             "-preset",
             preset["preset"],
             "-pix_fmt",
@@ -181,7 +208,12 @@ def _convert_mp4(
 
 
 def _convert_webm(
-    input_path: str, output: str, preset: dict, duration: float, on_progress: Callable[[float], None] | None
+    input_path: str,
+    output: str,
+    preset: dict,
+    duration: float,
+    on_progress: Callable[[float], None] | None,
+    target_bitrate: int | None = None,
 ) -> None:
     _run_ffmpeg_with_progress(
         [
@@ -189,10 +221,7 @@ def _convert_webm(
             input_path,
             "-c:v",
             "libvpx-vp9",
-            "-crf",
-            str(preset["crf"]),
-            "-b:v",
-            "0",
+            *_rate_control_args(preset, target_bitrate, webm=True),
             "-c:a",
             "libopus",
             output,
@@ -203,7 +232,12 @@ def _convert_webm(
 
 
 def _convert_mov(
-    input_path: str, output: str, preset: dict, duration: float, on_progress: Callable[[float], None] | None
+    input_path: str,
+    output: str,
+    preset: dict,
+    duration: float,
+    on_progress: Callable[[float], None] | None,
+    target_bitrate: int | None = None,
 ) -> None:
     _run_ffmpeg_with_progress(
         [
@@ -211,8 +245,7 @@ def _convert_mov(
             input_path,
             "-c:v",
             "libx264",
-            "-crf",
-            str(preset["crf"]),
+            *_rate_control_args(preset, target_bitrate),
             "-preset",
             preset["preset"],
             "-c:a",
@@ -263,7 +296,12 @@ def _convert_gif(
 
 
 def _convert_hevc(
-    input_path: str, output: str, preset: dict, duration: float, on_progress: Callable[[float], None] | None
+    input_path: str,
+    output: str,
+    preset: dict,
+    duration: float,
+    on_progress: Callable[[float], None] | None,
+    target_bitrate: int | None = None,
 ) -> None:
     _run_ffmpeg_with_progress(
         [
@@ -271,8 +309,7 @@ def _convert_hevc(
             input_path,
             "-c:v",
             "libx265",
-            "-crf",
-            str(preset["crf"]),
+            *_rate_control_args(preset, target_bitrate),
             "-preset",
             preset["preset"],
             "-c:a",
@@ -291,7 +328,12 @@ def _convert_hevc(
 
 
 def _convert_av1(
-    input_path: str, output: str, preset: dict, duration: float, on_progress: Callable[[float], None] | None
+    input_path: str,
+    output: str,
+    preset: dict,
+    duration: float,
+    on_progress: Callable[[float], None] | None,
+    target_bitrate: int | None = None,
 ) -> None:
     _run_ffmpeg_with_progress(
         [
@@ -299,8 +341,7 @@ def _convert_av1(
             input_path,
             "-c:v",
             "libsvtav1",
-            "-crf",
-            str(preset["crf"]),
+            *_rate_control_args(preset, target_bitrate),
             "-preset",
             preset["preset"],
             "-c:a",

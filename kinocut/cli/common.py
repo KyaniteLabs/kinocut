@@ -8,6 +8,9 @@ from typing import Any
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
+from ..errors import MCPVideoError
+from ..json_artifacts import parse_json_artifact
+from ..limits import MAX_CLI_JSON_ARTIFACT_BYTES
 from .formatting import console
 
 
@@ -26,41 +29,18 @@ def output_json(data: Any) -> None:
 
 def _parse_json_arg(value: str, arg_name: str = "argument", json_mode: bool = False) -> Any:
     """Parse a JSON string argument, showing a friendly error on failure."""
-    if len(value.encode("utf-8")) > 1_048_576:  # 1MB limit
-        if json_mode:
-            print(
-                json.dumps(
-                    {
-                        "success": False,
-                        "error": {
-                            "type": "input_error",
-                            "code": "invalid_json",
-                            "message": f"JSON in --{arg_name} exceeds 1MB size limit",
-                        },
-                    }
-                )
-            )
-        else:
-            console.print(f"[bold red]JSON in --{arg_name} exceeds 1MB size limit[/bold red]")
-        raise SystemExit(1) from None
     try:
-        return json.loads(value)
-    except json.JSONDecodeError as e:
+        return parse_json_artifact(value, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES, error_code="invalid_json")
+    except MCPVideoError as error:
+        message = f"Invalid JSON in --{arg_name}: {error}"
         if json_mode:
             print(
                 json.dumps(
-                    {
-                        "success": False,
-                        "error": {
-                            "type": "input_error",
-                            "code": "invalid_json",
-                            "message": f"Invalid JSON in --{arg_name}: {e}",
-                        },
-                    }
+                    {"success": False, "error": {"type": "input_error", "code": "invalid_json", "message": message}}
                 )
             )
         else:
-            console.print(f"[bold red]Invalid JSON in --{arg_name}: {e}[/bold red]")
+            console.print(f"[bold red]{message}[/bold red]")
         raise SystemExit(1) from None
 
 

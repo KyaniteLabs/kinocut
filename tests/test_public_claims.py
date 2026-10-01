@@ -212,7 +212,8 @@ def test_current_release_docs_and_compatibility_shim_match_claims(claims: dict) 
     release_notes = (ROOT / "docs" / "status" / "2026-07-14-1.8-release-notes.md").read_text(encoding="utf-8")
     assert "**Published:**" in release_notes
     assert "**Not published.**" not in release_notes
-    assert f"mcp-video=={shim_version}" in release_notes
+    # Dated release notes retain their historical pairs during candidate prep.
+    assert re.search(r"`mcp-video==\d+\.\d+\.\d+`.*?`kinocut==\d+\.\d+\.\d+`", release_notes)
 
     docs_index = (ROOT / "docs" / "README.md").read_text(encoding="utf-8")
     assert "post-campaign tip status" in docs_index
@@ -301,7 +302,7 @@ def test_current_status_binds_published_and_tip_claims(claims: dict) -> None:
             claims["published_mcp_tools"],
             claims["published_cli_commands"],
         ),
-        r"Tip \(`master`\)": (
+        r"Development candidate": (
             claims["release_candidate_version"],
             claims["development_mcp_tools"],
             claims["development_cli_commands"],

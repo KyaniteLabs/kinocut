@@ -46,6 +46,18 @@ class TestParseJsonArg:
         out = json.loads(captured.out)
         assert out["success"] is False
 
+    @pytest.mark.parametrize(
+        "raw", ["[" * 2000 + "]" * 2000, '"\ud800"', " " * 1_048_577], ids=["deep", "invalid-unicode", "oversize"]
+    )
+    def test_admission_errors_are_bounded_and_redacted(self, raw, capsys):
+        with pytest.raises(SystemExit) as error:
+            _parse_json_arg(raw, arg_name="timeline", json_mode=True)
+        assert error.value.code == 1
+        captured = capsys.readouterr()
+        payload = json.loads(captured.out)
+        assert payload["error"]["code"] == "invalid_json"
+        assert len(captured.out) < 500
+
 
 class TestWithSpinner:
     def test_calls_function(self):

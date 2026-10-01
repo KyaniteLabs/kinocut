@@ -4,10 +4,14 @@ from __future__ import annotations
 
 import os
 import tempfile
+from functools import partial
 from typing import Any
+
+import anyio
 
 from .errors import MCPVideoError
 from .defaults import (
+    DEFAULT_AUDIO_MIX_BITRATE,
     DEFAULT_AUDIO_BED_DUCK_ATTACK_MS,
     DEFAULT_AUDIO_BED_DUCK_RATIO,
     DEFAULT_AUDIO_BED_DUCK_RELEASE_MS,
@@ -31,6 +35,41 @@ from .validation import (
 )
 
 _PROCEDURAL_MUSIC_PRESETS = {"drone-low", "drone-mid", "drone-tech", "drone-ominous"}
+
+
+@mcp.tool()
+@_safe_tool
+async def video_mix_audio(
+    input_path: str,
+    sounds: list[dict[str, Any]] | str,
+    output_path: str | None = None,
+    keep_source: bool = True,
+    audio_bitrate: str = DEFAULT_AUDIO_MIX_BITRATE,
+) -> dict[str, Any]:
+    """Mix timed sounds with one AAC encode and stream-copy the primary picture.
+
+    Sounds is an array or JSON array of objects with path, start (seconds),
+    volume (linear gain), fade_in and fade_out (seconds). The picture duration
+    and relative source-audio timing are preserved. Tracks sum without loudness
+    normalization and may clip. Existing audio stays unless keep_source is false.
+    The synchronous media engine runs in a worker thread; no background
+    job or governed audio-bed receipt is created. Listen before publishing.
+    """
+    from .audio_mix_inputs import parse_mix_sounds
+    from .engine_audio_mix import mix_audio
+
+    tracks = parse_mix_sounds(sounds)
+    result = await anyio.to_thread.run_sync(
+        partial(
+            mix_audio,
+            input_path,
+            tracks,
+            output_path,
+            keep_source=keep_source,
+            audio_bitrate=audio_bitrate,
+        )
+    )
+    return _result(result)
 
 
 def _audio_preset_warnings(preset: str, duration: float | None) -> list[str]:

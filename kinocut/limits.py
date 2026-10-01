@@ -39,6 +39,7 @@ MAX_REVIDEO_JOB_JSON_BYTES = 1_048_576
 MAX_WAVE3_VERDICT_IDS = 64
 MAX_WAVE3_AUTH_DECISION_IDS = 64
 MAX_ACCEPTANCE_EVIDENCE_FILES = 64
+MAX_ESTIMATE_OPERATION_CHARS = 128
 
 # Long-form transcription chunking (per-chunk cap and overlap for the
 # reusable long-form stream-to-shorts workflow). These are independent of
@@ -142,3 +143,11 @@ MAX_AI_SCENE_FRAME_HEIGHT = 1920
 
 # CI-only Hyperframes execution evidence; not a media or provider payload cap.
 MAX_CI_HYPERFRAMES_REPORT_BYTES = 64 * 1024
+
+# Serialized track descriptions accepted by audio mixing operator adapters.
+MAX_AUDIO_MIX_JSON_BYTES = 65_536
+
+# JSON file admission limits for local operator planning and review routes.
+MAX_CLI_JSON_ARTIFACT_BYTES = 1_048_576
+MAX_POST_RESCUE_REQUEST_BYTES = 4_194_304
+MAX_JSON_ARTIFACT_DEPTH = 128

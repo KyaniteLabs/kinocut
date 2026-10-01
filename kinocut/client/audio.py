@@ -43,9 +43,16 @@ class ClientAudioMixin:
         needed. This API encodes AAC once instead of repeatedly re-encoding with
         add_audio(mix=True).
         """
+        from ..audio_mix_inputs import parse_mix_sounds
         from ..engine_audio_mix import mix_audio
 
-        return mix_audio(video, tracks, output, keep_source=keep_source, audio_bitrate=audio_bitrate)
+        return mix_audio(
+            video,
+            parse_mix_sounds(tracks, allow_json=False),
+            output,
+            keep_source=keep_source,
+            audio_bitrate=audio_bitrate,
+        )
 
     def duck_audio(
         self,

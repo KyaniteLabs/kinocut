@@ -72,6 +72,10 @@ def run_job(project: Project, job_id: str) -> str:
             save_receipt=str(receipt_path),
             keep_intermediates=True,
         )
+        if isinstance(result, dict):
+            from .repurpose_policy import enforce_repurpose_release_policy
+
+            result = enforce_repurpose_release_policy(project, job_id, result)
     except Exception as exc:  # defensive: never lose a terminal
         if requested := _requested_stop_label(project, job_id):
             return requested

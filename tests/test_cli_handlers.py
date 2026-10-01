@@ -41,12 +41,15 @@ def _make_args(**kwargs):
         "start": None,
         "end": None,
         "duration": None,
+        "accurate": False,
         "width": None,
         "height": None,
         "scale": None,
         "factor": None,
         "fmt": None,
         "quality": None,
+        "two_pass": False,
+        "target_bitrate": None,
         "timestamp": None,
         "frames": None,
         "output_dir": None,
@@ -218,6 +221,9 @@ def _make_args(**kwargs):
         "output_format": "mp4",
         "caption": None,
         "lra": None,
+        "true_peak_dbtp": None,
+        "fade_seconds": None,
+        "require_audio": True,
         "metrics": None,
         "music": None,
         "outro": None,
@@ -659,6 +665,7 @@ class TestReleaseCheckpointPassthrough:
             "output_dir": None,
             "min_score": 80.0,
             "frame_count": 6,
+            "require_audio": True,
         }
         defaults.update(overrides)
         return SimpleNamespace(**defaults)
@@ -682,7 +689,7 @@ class TestReleaseCheckpointPassthrough:
 
         assert handled is True
         assert calls["positional"] == ("clip.mp4",)
-        assert calls["keyword"] == {"output_dir": "review", "min_score": 70.0, "frame_count": 4}
+        assert calls["keyword"] == {"output_dir": "review", "min_score": 70.0, "frame_count": 4, "require_audio": True}
         payload = json.loads(capsys.readouterr().out)
         assert payload["success"] is True
         assert payload["review_required"] is True

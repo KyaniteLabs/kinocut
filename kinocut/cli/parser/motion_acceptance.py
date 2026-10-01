@@ -1,0 +1,28 @@
+"""Explicit whole-film human-attestation command, separate from inspection."""
+
+from __future__ import annotations
+
+import argparse
+
+
+def add_parsers(subparsers: argparse._SubParsersAction) -> None:
+    parser = subparsers.add_parser(
+        "record-motion-acceptance",
+        help="Record explicit human motion review against exact source/report hashes",
+        description=(
+            "Record an authorized caller's whole-film viewing attestation. This is not "
+            "system-verified viewing, model proof, or release approval. Do not invent human review."
+        ),
+    )
+    parser.add_argument("input_path", help="The unchanged film inspected and viewed by the reviewer")
+    parser.add_argument("--report-json", required=True, help="Exact chronological motion report JSON")
+    parser.add_argument("--reviewer-id", required=True, help="Explicit human reviewer ID (human:<id>)")
+    parser.add_argument("--source-sha256", required=True, help="Source hash explicitly reviewed by the caller")
+    parser.add_argument("--report-sha256", required=True, help="Canonical digest of the exact reviewed report")
+    parser.add_argument(
+        "--watched-intervals-json", required=True, help="Explicit whole-film watched intervals JSON array"
+    )
+    parser.add_argument(
+        "--dispositions-json", required=True, help="Disposition for every flagged review ID, as JSON object"
+    )
+    parser.add_argument("--verdict", required=True, choices=("accept", "reject"))

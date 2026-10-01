@@ -31,6 +31,7 @@ from .engine import video_batch as _video_batch
 from .engine_batch import VALID_BATCH_OPERATIONS
 from .engine_composite_layers import composite_layers
 from .errors import MCPVideoError
+from .defaults import DEFAULT_LRA_TARGET
 from .models import _validate_position
 from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS
 from .server_app import _result, _safe_tool, _validation_error, mcp
@@ -233,6 +234,10 @@ def video_normalize_audio(
     input_path: str,
     target_lufs: float = -16.0,
     output_path: str | None = None,
+    *,
+    lra: float = DEFAULT_LRA_TARGET,
+    true_peak_dbtp: float | None = None,
+    fade_seconds: float | None = None,
 ) -> dict[str, Any]:
     """Normalize audio loudness to a target LUFS level.
 
@@ -242,11 +247,19 @@ def video_normalize_audio(
         input_path: Absolute path to the input video.
         target_lufs: Target integrated loudness in LUFS (default -16 for YouTube).
         output_path: Where to save the output. Auto-generated if omitted.
+        lra: Target loudness range in LU.
+        true_peak_dbtp: Maximum true peak in dBTP; omitted uses the engine default.
+        fade_seconds: Boundary fade duration; omitted uses the engine default.
     """
     input_path = _validate_input_path(input_path)
     if not -70 <= target_lufs <= -5:
         return _validation_error(f"target_lufs must be between -70 and -5, got {target_lufs}")
-    return _result(normalize_audio(input_path, target_lufs=target_lufs, output_path=output_path))
+    controls = {}
+    if true_peak_dbtp is not None:
+        controls["true_peak_dbtp"] = true_peak_dbtp
+    if fade_seconds is not None:
+        controls["fade_seconds"] = fade_seconds
+    return _result(normalize_audio(input_path, target_lufs=target_lufs, lra=lra, output_path=output_path, **controls))
 
 
 @mcp.tool()

@@ -383,7 +383,7 @@ TypeScript. Dependency installation may access npm; rendering is local.
 | Method | Returns | Description |
 |--------|---------|-------------|
 | `repurpose_plan(video, output_dir?, platforms?)` | `dict` | Write a dry-run `repurpose_manifest.json` |
-| `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score=80.0?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts. Default `min_score` is `DEFAULT_QUALITY_GATE_SCORE` (80). MCP durable `video_repurpose` does not apply `min_score`. |
+| `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score=80.0?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts. Default `min_score` is `DEFAULT_QUALITY_GATE_SCORE` (80). Candidate MCP durable `video_repurpose` applies `min_score` before job success; its frozen checkpoint policy is enforced by the worker. Historical 1.15.3 did not enforce this policy. |
 | `shorts_package(..., allow_fail=False?)` | `dict` | Package approved shorts renders. Quality gate fails closed unless `allow_fail=True`. |
 
 ---
@@ -500,3 +500,8 @@ HyperframesPipelineResult(success=True, output_path, hyperframes_output, post_pr
 
 
 ```
+
+
+## Local operation estimates (1.16.0 candidate)
+
+`Client().estimate_operation("trim", duration_seconds=10, complexity=1)` returns the same dictionary as MCP `video_estimate_operation` and CLI `estimate`. Inputs must be finite, nonboolean numbers; duration is nonnegative and complexity positive. Arithmetic overflow and blank or oversized operation names are rejected. These are local heuristics with dimensionless cost units and `currency=None`, not measured latency or provider billing.

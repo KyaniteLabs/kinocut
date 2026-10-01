@@ -2,14 +2,15 @@
 
 from __future__ import annotations
 
-import json
 from collections.abc import Callable, Mapping
-from pathlib import Path
 from typing import Any
+import os
 
 from pydantic import BaseModel, ValidationError
 
 from .errors import MCPVideoError
+from .json_artifacts import load_json_artifact
+from .limits import MAX_POST_RESCUE_REQUEST_BYTES
 
 JsonObject = dict[str, Any]
 
@@ -58,17 +59,15 @@ def _dispatch(request: JsonObject, operations: Mapping[str, Callable[..., Any]],
 def load_post_rescue_request(path: str) -> JsonObject:
     """Load one bounded JSON request artifact for the CLI."""
 
-    resolved = Path(path).expanduser().resolve()
     try:
-        raw = resolved.read_bytes()
-    except OSError as exc:
-        raise _invalid("Could not read the post-rescue request artifact.") from exc
-    if len(raw) > 4 * 1024 * 1024:
-        raise _invalid("Post-rescue request exceeds the 4 MiB limit.")
-    try:
-        value = json.loads(raw.decode("utf-8"))
-    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
-        raise _invalid(f"Post-rescue request is not valid UTF-8 JSON: {exc}") from exc
+        selected = os.path.expanduser(path)
+    except (TypeError, ValueError):
+        raise _invalid("Could not read the post-rescue request artifact.") from None
+    value = load_json_artifact(
+        selected,
+        max_bytes=MAX_POST_RESCUE_REQUEST_BYTES,
+        error_code="invalid_post_rescue_request",
+    )
     if not isinstance(value, dict):
         raise _invalid("Post-rescue request must contain a JSON object.")
     return value

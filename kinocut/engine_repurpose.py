@@ -17,6 +17,7 @@ from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .paths import _auto_output_dir
 from .defaults import DEFAULT_QUALITY_GATE_SCORE
 from .quality_guardrails import assert_quality
+from .repurpose_policy import repurpose_release_policy
 
 
 PLATFORM_PRESETS: dict[str, dict[str, Any]] = {
@@ -167,6 +168,7 @@ def repurpose(
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
 ) -> dict[str, Any]:
     """Render a local content repurposing package and manifest."""
+    policy = repurpose_release_policy(include_release_checkpoint, min_score)
     input_path = _validate_input_path(input_path)
     selected = _select_platforms(platforms)
     package_dir = _prepare_output_dir(input_path, output_dir)
@@ -201,11 +203,11 @@ def repurpose(
             output_dir=os.path.join(platform_dir, "storyboard"),
             frame_count=4,
         ).model_dump()
-        if include_release_checkpoint:
+        if policy.include_release_checkpoint:
             variant["release_checkpoint"] = _release_checkpoint(
                 exported.output_path,
                 os.path.join(platform_dir, "checkpoint"),
-                min_score=min_score,
+                min_score=policy.min_score,
             )
 
     manifest["manifest_path"] = _write_manifest(manifest, package_dir)

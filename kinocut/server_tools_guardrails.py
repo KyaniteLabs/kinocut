@@ -5,7 +5,6 @@ from __future__ import annotations
 from typing import Any
 
 from .design_guardrails import (
-    extract_verification_frame,
     validate_text_layout,
     TextOverlaySpec,
 )
@@ -77,15 +76,20 @@ def video_validate_text_layout(
 @_safe_tool
 def video_extract_frame(
     input_path: str,
-    timestamp: float = 0.0,
+    timestamp: float | None = None,
     output_path: str | None = None,
 ) -> dict[str, Any]:
-    """Extract a single frame from a video for visual verification.
+    """Extract a frame using the same sampling as CLI and Python frame extraction.
+
+    Omitted timestamps use smart thumbnail selection when available, falling
+    back to 10% of the clip duration. Pass 0 explicitly to extract the first frame.
 
     Args:
         input_path: Absolute path to the video.
-        timestamp: Time in seconds to extract.
+        timestamp: Explicit time in seconds, or None for automatic sampling.
         output_path: Where to save the frame. Auto-generated if omitted.
     """
-    path = extract_verification_frame(input_path, timestamp, output_path)
-    return _result({"output_path": path})
+    from .engine_thumbnail import thumbnail
+
+    frame = thumbnail(input_path, timestamp=timestamp, output_path=output_path)
+    return _result({"output_path": frame.output_path, "timestamp": frame.timestamp})
