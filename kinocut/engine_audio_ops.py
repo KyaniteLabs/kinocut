@@ -33,7 +33,7 @@ from .audio_guardrails import validate_audio_mix
 from .errors import MCPVideoError
 from .models import EditResult
 from .validation import DURATION_POLICIES, AUDIO_DUCK_PARAMETER_RANGES
-from .engine_audio_validation import _audio_number
+from .engine_audio_validation import _audio_number, _run_audio_ffmpeg
 from .engine_audio_normalize_output import _validate_normalized_output
 from .engine_media_timeline import _packet_extent, _primary_audio_timeline, _timestamp
 from .limits import MAX_VIDEO_DURATION
@@ -264,7 +264,7 @@ def _render_audio_edit(args: list[str], output: str, operation: str) -> EditResu
     """Publish only after encoding, decoding and result construction succeed."""
     with _atomic_output(output) as staged, _timed_operation() as timing:
         _validate_output_path(staged)
-        _run_ffmpeg(["-xerror", *args[:-1], staged])
+        _run_audio_ffmpeg(["-xerror", *args[:-1], staged], runner=_run_ffmpeg)
         _validate_normalized_output(staged, "aac", audio_only=True)
         result = _build_edit_result(staged, operation, timing)
     return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})

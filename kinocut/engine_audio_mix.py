@@ -15,7 +15,7 @@ from pathlib import Path
 
 from .defaults import DEFAULT_AUDIO_MIX_BITRATE, DEFAULT_AUDIO_MIX_SAMPLE_RATE, DEFAULT_AUDIO_MIX_TRACK_VOLUME
 from .engine_media_timeline import _packet_extent, _primary_audio_timeline
-from .engine_audio_validation import _audio_number
+from .engine_audio_validation import _audio_number, _run_audio_ffmpeg
 from .engine_audio_normalize_output import _validate_normalized_output
 from .engine_runtime_utils import _build_edit_result, _get_video_stream, _has_audio, _movflags_args, _timed_operation
 from .errors import MCPVideoError
@@ -208,8 +208,9 @@ def mix_audio(
     with _atomic_output(output) as staged:
         _validate_output_path(staged)
         with _timed_operation() as timing:
-            _run_ffmpeg(
-                _build_mix_args(video_path, clean, keep, duration, staged, audio_bitrate, video_start=video_start)
+            _run_audio_ffmpeg(
+                _build_mix_args(video_path, clean, keep, duration, staged, audio_bitrate, video_start=video_start),
+                runner=_run_ffmpeg,
             )
             _validate_normalized_output(staged, "aac", audio_only=True)
         result = _build_edit_result(staged, "mix_audio", timing, format=Path(output).suffix.lstrip("."))

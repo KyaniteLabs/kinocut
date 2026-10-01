@@ -58,11 +58,28 @@ def test_failed_child_does_not_return_its_partial_valid_measurement(child):
 def test_timeout_reaps_child_and_both_readers(child, tmp_path, monkeypatch):
     pid = tmp_path / "pid"
     before = {t.ident for t in threading.enumerate()}
+    spawned = []
+    original_popen = reader.subprocess.Popen
+
+    def capture_process(*args, **kwargs):
+        process = original_popen(*args, **kwargs)
+        spawned.append(process)
+        return process
+
+    monkeypatch.setattr(reader.subprocess, "Popen", capture_process)
     monkeypatch.setattr(reader, "QUALITY_GUARDRAILS_TIMEOUT", 0.1)
     with pytest.raises(subprocess.TimeoutExpired):
         child(f"import os,time; open({str(pid)!r}, 'w').write(str(os.getpid())); time.sleep(30)")
-    with pytest.raises(ProcessLookupError):
-        os.kill(int(pid.read_text()), 0)
+    assert len(spawned) == 1
+    process = spawned[0]
+    assert process.pid == int(pid.read_text())
+    # Inspect before poll: the reader must have reaped it, not this assertion.
+    assert process.returncode is not None and process.returncode != 0
+    assert process.poll() == process.returncode
+    assert process.stdout.closed and process.stderr.closed
+    if os.name == "posix":
+        with pytest.raises(ProcessLookupError):
+            os.kill(process.pid, 0)
     assert {t.ident for t in threading.enumerate()} == before
 
 

@@ -24,6 +24,7 @@ from .ffmpeg_helpers import (
 from .errors import MCPVideoError
 from .engine_media_timeline import _primary_audio_timeline, _timestamp
 from .engine_audio_validation import _audio_number as _number
+from .engine_audio_validation import _run_audio_ffmpeg
 from .models import EditResult
 from .engine_audio_normalize_output import NormalizedAudioResult, _normalization_codec, _validate_normalized_output
 from .validation import (
@@ -233,7 +234,7 @@ def normalize_audio(
             )
         else:
             fade_filter = _compute_loudnorm_fade_filter(probe, fade)
-            analysis = _run_ffmpeg(
+            analysis = _run_audio_ffmpeg(
                 [
                     "-xerror",
                     "-i",
@@ -246,12 +247,13 @@ def normalize_audio(
                     "-f",
                     "null",
                     "-",
-                ]
+                ],
+                runner=_run_ffmpeg,
             )
             render_filter, warnings = _build_loudnorm_render_filter(
                 fade_filter, target_s, lra_s, peak_s, analysis.stderr, _resample_filter(probe)
             )
-            _run_ffmpeg(
+            _run_audio_ffmpeg(
                 _build_ffmpeg_cmd(
                     input_path,
                     output_path=staged,
@@ -260,7 +262,8 @@ def normalize_audio(
                     audio_filter=render_filter if video_container else render_filter + ",asetpts=N/SR/TB,apad",
                     audio_bitrate=DEFAULT_AUDIO_NORMALIZE_BITRATE,
                     extra=_render_extra(probe, video_container),
-                )
+                ),
+                runner=_run_ffmpeg,
             )
         result = _normalized_result(staged, output, codec if has_audio else None, timing, warnings)
     return result.model_copy(update={"output_path": output, "elapsed_ms": timing["elapsed_ms"]})

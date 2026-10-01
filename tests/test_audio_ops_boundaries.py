@@ -138,6 +138,9 @@ def test_failure_after_output_started_preserves_destination(sounds, tmp_path, mo
 
 @pytest.mark.parametrize("operation", [normalize_audio, mix_audio, add_audio, duck_audio])
 def test_corrupt_selected_aac_input_cannot_be_concealed_as_success(sounds, tmp_path, operation):
+    from kinocut.engine_audio_validation import _run_audio_ffmpeg
+    from kinocut.ffmpeg_helpers import _run_ffmpeg
+
     video, _, _ = sounds
     damaged, output = tmp_path / "damaged.mp4", tmp_path / "prior.mp4"
     damaged.write_bytes(video.read_bytes())
@@ -165,6 +168,13 @@ def test_corrupt_selected_aac_input_cannot_be_concealed_as_success(sounds, tmp_p
     with damaged.open("r+b") as handle:
         handle.seek(int(packet["pos"]))
         handle.write(b"\xff" * int(packet["size"]))
+    # Prove the fixture against the same configured backend as the operation.
+    # FFmpeg 6 can log a decoder error while returning zero, even with -xerror.
+    decode = ["-v", "error", "-xerror", "-i", str(video), "-map", "0:a:0", "-vn", "-f", "null", "-"]
+    assert _run_audio_ffmpeg(decode, runner=_run_ffmpeg).returncode == 0
+    decode[decode.index("-i") + 1] = str(damaged)
+    with pytest.raises(MCPVideoError):
+        _run_audio_ffmpeg(decode, runner=_run_ffmpeg)
     output.write_bytes(video.read_bytes())
     prior = output.read_bytes()
     with pytest.raises(MCPVideoError):
@@ -176,3 +186,53 @@ def test_corrupt_selected_aac_input_cannot_be_concealed_as_success(sounds, tmp_p
             operation(str(video), str(damaged), output_path=str(output))
     assert output.read_bytes() == prior
     assert not list(tmp_path.glob(".kinocut_tmp_*"))
+
+
+@pytest.mark.parametrize("level", ["error", "fatal", "panic"])
+@pytest.mark.parametrize("color", [False, True])
+def test_zero_exit_audio_process_still_rejects_logged_failures(level, color):
+    from types import SimpleNamespace
+
+    from kinocut.engine_audio_validation import _run_audio_ffmpeg
+
+    def runner(command):
+        assert command[:2] == ["-loglevel", "level+info"]
+        text = f"[aac @ 0x1234] [{level}] decoder failed"
+        if color:
+            text = "\x1b[0;31m" + text + "\x1b[0m"
+        return SimpleNamespace(returncode=0, stderr=text)
+
+    with pytest.raises(ProcessingError) as error:
+        _run_audio_ffmpeg(["-xerror", "-i", "fixture.mp4"], runner=runner)
+    assert error.value.returncode == 0
+    assert error.value.code == "ffmpeg_exit_0"
+
+
+def test_audio_process_keeps_measurements_and_nonfatal_warnings():
+    from types import SimpleNamespace
+
+    from kinocut.engine_audio_validation import _run_audio_ffmpeg
+
+    result = SimpleNamespace(
+        returncode=0,
+        stderr='[warning] [error] filename.mp4\n[info] [error] literal\n[info] {"input_i": -20, "name": "[error]"}\n',
+    )
+    calls = []
+    assert _run_audio_ffmpeg(["-v", "error"], runner=lambda args: calls.append(args) or result) is result
+    assert calls == [["-v", "level+error"]]
+
+
+def test_audio_process_bounds_diagnostic_without_losing_zero_exit():
+    from types import SimpleNamespace
+
+    from kinocut.engine_audio_validation import _run_audio_ffmpeg
+    from kinocut.limits import FFMPEG_STDERR_DIAGNOSTIC_BYTES
+
+    stderr = "[info] progress\n" * 100_000
+    stderr += "\r\x1b[31m[aac @ 0x123]\x1b[0m \x1b[31m[error]\x1b[0m " + "corrupt 音声" * 100_000
+    result = SimpleNamespace(returncode=0, stderr=stderr)
+    with pytest.raises(ProcessingError) as error:
+        _run_audio_ffmpeg([], runner=lambda args: result)
+    assert error.value.returncode == result.returncode
+    assert error.value.full_stderr.startswith("\x1b[31m[aac @ 0x123]")
+    assert len(error.value.full_stderr.encode("utf-8")) <= FFMPEG_STDERR_DIAGNOSTIC_BYTES
