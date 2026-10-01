@@ -18,6 +18,12 @@ from kinocut_sound.capability import (
     AdapterLocality,
     CapabilityResult,
 )
+from kinocut_sound.limits import (
+    MAX_POST_DENOISE_NOISE_FLOOR_DB as MAX_NOISE_FLOOR_DB,
+    MAX_POST_DENOISE_NR_DB as MAX_NR_DB,
+    MIN_POST_DENOISE_NOISE_FLOOR_DB as MIN_NOISE_FLOOR_DB,
+    MIN_POST_DENOISE_NR_DB as MIN_NR_DB,
+)
 from kinocut_sound.post._errors import (
     POST_DEPENDENCY_MISSING,
     POST_INVALID_PARAM,
@@ -35,11 +41,6 @@ from kinocut_sound.post.chain import PostContext, PostStageResult
 from kinocut_sound.render_fingerprint import DeterminismClass
 
 # --- Numeric envelopes (local to denoise) ---
-# TODO(controller): centralize alongside defaults.py/limits.py post-merge.
-MIN_NR_DB: float = 0.01
-MAX_NR_DB: float = 97.0
-MIN_NOISE_FLOOR_DB: float = -80.0
-MAX_NOISE_FLOOR_DB: float = -20.0
 
 
 def _descriptor(adapter_id: str, *, timeout: float) -> AdapterDescriptor:

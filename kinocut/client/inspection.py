@@ -46,3 +46,29 @@ class ClientInspectionMixin:
             asset_id=asset_id,
             declared_regions=declared_regions,
         )
+
+    def record_motion_acceptance(
+        self,
+        report: dict[str, Any],
+        *,
+        input_path: str,
+        reviewer_id: str,
+        source_sha256: str,
+        report_sha256: str,
+        watched_intervals: list[dict[str, float]],
+        dispositions: dict[str, str],
+        verdict: str,
+    ) -> dict[str, Any]:
+        """Create an explicit source-bound whole-film human-review receipt."""
+        from ..aivideo.inspection.motion_acceptance import record_motion_acceptance
+
+        return record_motion_acceptance(
+            report,
+            input_path=input_path,
+            reviewer_id=reviewer_id,
+            source_sha256=source_sha256,
+            report_sha256=report_sha256,
+            watched_intervals=watched_intervals,
+            dispositions=dispositions,
+            verdict=verdict,
+        )

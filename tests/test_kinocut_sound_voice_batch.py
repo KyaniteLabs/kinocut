@@ -185,18 +185,16 @@ def test_batch_per_line_profile_versions_match_plan_lines():
         assert section.profile_versions == expected
 
 
-def test_batch_receipt_section_has_bounded_loudness_and_human_review_required():
+def test_batch_receipt_does_not_invent_master_loudness_and_requires_human_review():
     roster = default_roster()
     adapter = LocalSynthesisAdapter()
     plan = _plan((_line(line_id="only_line"),))
     with tempfile.TemporaryDirectory() as tmp:
         planner = BatchPlanner(adapter=adapter, roster=roster, output_dir=tmp)
         result = planner.render_plan(plan)
-        loudness = result.receipt_section.loudness
-        assert loudness.integrated_lufs < 0
-        assert loudness.true_peak_dbtp < 0
-        assert 0 <= loudness.lra_lu <= 24
-        assert loudness.within_tolerance is True
+        assert result.receipt_section.loudness is None
+        assert result.receipt_section.loudness_assessment_status == "not_evaluated"
+        assert "loudness_not_evaluated" in result.receipt_section.warnings
         assert result.receipt_section.human_review_required is True
 
 

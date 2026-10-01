@@ -19,7 +19,7 @@ from __future__ import annotations
 from enum import StrEnum
 from typing import Annotated, Any, Literal
 
-from pydantic import BeforeValidator, ConfigDict, Field, field_validator, model_validator
+from pydantic import BeforeValidator, ConfigDict, Field, field_validator, model_serializer, model_validator
 
 from kinocut_sound._canonical import BoundedCode, FrozenModel, Sha256, canonical_digest, location_violation
 from kinocut_sound.limits import (
@@ -194,7 +194,8 @@ class SoundReceiptSection(FrozenModel):
     profile_versions: tuple[tuple[str, Annotated[int, BeforeValidator(_not_boolean_number)]], ...] = ()
     consent_grant_refs: tuple[str, ...] = ()
     adapter_descriptors: tuple[str, ...] = ()
-    loudness: LoudnessVerification
+    loudness: LoudnessVerification | None
+    loudness_assessment_status: Literal["measured", "not_evaluated"] = "measured"
     ordered_inputs: tuple[OrderedInput, ...] = ()
     transformations: tuple[Transformation, ...] = ()
     preservation_proofs: tuple[PreservationProof, ...] = ()
@@ -202,6 +203,21 @@ class SoundReceiptSection(FrozenModel):
     review_artifact_refs: tuple[str, ...] = ()
     warnings: tuple[str, ...] = ()
     human_review_required: bool
+
+    @model_validator(mode="after")
+    def _loudness_evidence_matches_status(self) -> SoundReceiptSection:
+        if (self.loudness is not None) != (self.loudness_assessment_status == "measured"):
+            raise ValueError("loudness evidence and assessment status must agree")
+        return self
+
+    @model_serializer(mode="wrap")
+    def _preserve_measured_receipt_shape(self, handler) -> dict[str, Any]:
+        data = handler(self)
+        if self.loudness_assessment_status == "measured":
+            # Preserve the exact v1 shape and content identity of valid historic
+            # measured receipts, including when nested in a parent receipt.
+            data.pop("loudness_assessment_status", None)
+        return data
 
     @field_validator("consent_grant_refs", "adapter_descriptors", "review_artifact_refs", "warnings")
     @classmethod

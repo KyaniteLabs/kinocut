@@ -23,7 +23,6 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import dataclass
 
-from kinocut_sound.lines import Emotion, Prosody
 from kinocut_sound.limits import (
     MAX_NORMALIZED_LEVEL,
     MAX_PROSODY_PITCH_SEMITONES,
@@ -34,7 +33,7 @@ from kinocut_sound.limits import (
     MIN_PROSODY_RATE,
     MIN_PROSODY_VOLUME_DB,
 )
-
+from kinocut_sound.lines import Emotion, Prosody
 from kinocut_sound.voice._errors import (
     EMOTION_OUT_OF_RANGE,
     PROSODY_OUT_OF_RANGE,
@@ -42,9 +41,7 @@ from kinocut_sound.voice._errors import (
 )
 from kinocut_sound.voice.roster import VoiceSlot
 
-# --- Voice-leaf private envelope (mirrors the lines.Prosody envelope) ---
-# TODO(controller): these mirror kinocut_sound/limits.py exactly so the voice
-# leaf never has to reach across modules; promote to limits.py if shared.
+# Derived bands use the canonical limits imported above.
 _PROSODY_RATE_BAND: tuple[float, float] = (MIN_PROSODY_RATE, MAX_PROSODY_RATE)
 _PITCH_BAND: tuple[float, float] = (MIN_PROSODY_PITCH_SEMITONES, MAX_PROSODY_PITCH_SEMITONES)
 _VOLUME_BAND: tuple[float, float] = (MIN_PROSODY_VOLUME_DB, MAX_PROSODY_VOLUME_DB)

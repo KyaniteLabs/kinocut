@@ -1,7 +1,5 @@
 """Failure paths must not certify incomplete or changing stream extents."""
 
-from pathlib import Path
-
 import pytest
 
 from kinocut.engine_media_timeline import _packet_extent, _primary_audio_timeline
@@ -11,7 +9,9 @@ from kinocut.errors import MCPVideoError
 def _producer(text, source=None):
     def write(args, **kwargs):
         assert kwargs["timeout"] > 0
-        Path(args[args.index("-o") + 1]).write_text(text)
+        assert "-o" not in args
+        assert kwargs["stdout_limit"] > 0
+        kwargs["stdout_sink"].write(text.encode("utf-8"))
         if source is not None:
             source.write_bytes(b"changed source bytes")
 
@@ -76,3 +76,72 @@ def test_audio_metadata_extent_uses_primary_stream_not_default_or_picture():
         ],
     }
     assert _primary_audio_timeline("unused", probe) == (1, 2)
+
+
+def test_timeline_metadata_is_anonymous_and_hostile_input_name_stays_one_argument(tmp_path):
+    source = tmp_path / "$(touch stolen); [error] source.mkv"
+    source.write_bytes(b"fixture")
+
+    def observe(command, **kwargs):
+        assert command[-1] == str(source)
+        assert "-o" not in command
+        assert isinstance(kwargs["stdout_sink"].name, int)
+        kwargs["stdout_sink"].write(b"pts_time=0|duration_time=1\n")
+
+    assert _packet_extent(str(source), "v:0", runner=observe) == (0, 1)
+    assert list(tmp_path.iterdir()) == [source]
+
+
+def test_metadata_postcondition_still_rejects_an_injected_noncompliant_runner(tmp_path):
+    source = tmp_path / "source.mkv"
+    source.write_bytes(b"fixture")
+    with pytest.raises(MCPVideoError) as error:
+        _packet_extent(str(source), "v:0", runner=_producer("pts_time=0|duration_time=1\n"), metadata_limit=2)
+    assert error.value.code == "audio_mix_timeline_over_limit"
+
+
+def test_running_metadata_producer_cannot_write_past_its_byte_ceiling(tmp_path):
+    import os
+    import sys
+
+    from kinocut.ffmpeg_helpers import _run_command
+
+    source = tmp_path / "source.mkv"
+    source.write_bytes(b"source must survive")
+    observed = []
+    limit = 128
+
+    def flooding_producer(command, **options):
+        sink = options["stdout_sink"]
+
+        class ObservedSink:
+            written = 0
+
+            def write(self, chunk):
+                self.written += len(chunk)
+                assert self.written <= limit  # Check before the actual disk write.
+                return sink.write(chunk)
+
+            def flush(self):
+                sink.flush()
+
+        options["stdout_sink"] = ObservedSink()
+        try:
+            return _run_command(
+                [
+                    sys.executable,
+                    "-c",
+                    "import os; os.write(1, b'pts_time=0|duration_time=1\\n' * 100000)",
+                    command[-1],
+                ],
+                **options,
+            )
+        finally:
+            sink.flush()
+            observed.append(os.fstat(sink.fileno()).st_size)
+
+    with pytest.raises(MCPVideoError) as error:
+        _packet_extent(str(source), "v:0", runner=flooding_producer, metadata_limit=limit)
+    assert error.value.code == "audio_mix_timeline_over_limit"
+    assert observed and max(observed) <= limit
+    assert source.read_bytes() == b"source must survive"

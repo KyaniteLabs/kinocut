@@ -14,6 +14,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 from kinocut_sound._canonical import BoundedCode
+from kinocut_sound.limits import (
+    MAX_POST_BATCH_BATCH_CLIPS as MAX_BATCH_CLIPS,
+)
 from kinocut_sound.post._errors import (
     POST_CLIP_MISSING,
     POST_INVALID_PARAM,
@@ -25,9 +28,6 @@ from kinocut_sound.post.chain import (
     PostChainResult,
     PostContext,
 )
-
-# TODO(controller): centralize alongside defaults.py/limits.py post-merge.
-MAX_BATCH_CLIPS: int = 512
 
 
 @dataclass(frozen=True)

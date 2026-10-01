@@ -37,9 +37,30 @@ from kinocut_sound.capability import (
     CapabilityResult,
     CostDisclosure,
 )
+from kinocut_sound.defaults import (
+    DEFAULT_VOICE_ATTACK_SECONDS as DEFAULT_ATTACK_SECONDS,
+    DEFAULT_VOICE_CHANNEL_COUNT as DEFAULT_CHANNEL_COUNT,
+    DEFAULT_VOICE_CLOUD_COST_USD as DEFAULT_CLOUD_COST_USD,
+    DEFAULT_VOICE_CLOUD_DATA_CLASSES as DEFAULT_CLOUD_DATA_CLASSES,
+    DEFAULT_VOICE_CLOUD_PROVIDER_ID as DEFAULT_CLOUD_PROVIDER_ID,
+    DEFAULT_VOICE_CLOUD_REGION as DEFAULT_CLOUD_REGION,
+    DEFAULT_VOICE_CLOUD_RETENTION_DAYS as DEFAULT_CLOUD_RETENTION_DAYS,
+    DEFAULT_VOICE_HARMONIC_RATIO as DEFAULT_HARMONIC_RATIO,
+    DEFAULT_VOICE_MAX_DURATION_SECONDS as DEFAULT_MAX_DURATION_SECONDS,
+    DEFAULT_VOICE_MIN_DURATION_SECONDS as DEFAULT_MIN_DURATION_SECONDS,
+    DEFAULT_VOICE_PEAK_AMPLITUDE_LINEAR as DEFAULT_PEAK_AMPLITUDE_LINEAR,
+    DEFAULT_VOICE_REFERENCE_PITCH_HZ as DEFAULT_REFERENCE_PITCH_HZ,
+    DEFAULT_VOICE_RELEASE_SECONDS as DEFAULT_RELEASE_SECONDS,
+    DEFAULT_VOICE_SAMPLE_RATE_HZ as DEFAULT_SAMPLE_RATE_HZ,
+    DEFAULT_VOICE_SECONDS_PER_CHAR as DEFAULT_SECONDS_PER_CHAR,
+)
+from kinocut_sound.limits import (
+    MAX_VOICE_BRIGHTNESS as _MAX_BRIGHTNESS,
+    MAX_VOICE_PITCH_DRIFT_CENTS as _MAX_PITCH_DRIFT_CENTS,
+    MAX_VOICE_TREMOLO_DEPTH as _MAX_TREMOLO_DEPTH,
+)
 from kinocut_sound.lines import Line
 from kinocut_sound.registry import Adapter
-
 from kinocut_sound.voice._errors import (
     ADAPTER_INPUT_INVALID,
     ADAPTER_OUTPUT_INVALID,
@@ -56,26 +77,6 @@ from kinocut_sound.voice.prosody import (
     resolve_prosody,
 )
 from kinocut_sound.voice.roster import VoiceSlot
-
-# --- Voice-leaf private defaults ---
-# TODO(controller): consider promoting these to ``kinocut_sound/defaults.py``
-# if S6/S10 share the same synthesis reference defaults.
-DEFAULT_SAMPLE_RATE_HZ: int = 22050
-DEFAULT_CHANNEL_COUNT: int = 1
-DEFAULT_REFERENCE_PITCH_HZ: float = 220.0  # A3
-DEFAULT_SECONDS_PER_CHAR: float = 0.08
-DEFAULT_MIN_DURATION_SECONDS: float = 0.25
-DEFAULT_MAX_DURATION_SECONDS: float = 60.0
-DEFAULT_PEAK_AMPLITUDE_LINEAR: float = 0.94  # leaves headroom under 0 dBFS
-DEFAULT_ATTACK_SECONDS: float = 0.012
-DEFAULT_RELEASE_SECONDS: float = 0.020
-DEFAULT_HARMONIC_RATIO: float = 0.30
-
-# Bounded synthesis envelope. The recipe is built inside these limits so an
-# out-of-range slot/prosody/emotion combination cannot overflow.
-_MAX_TREMOLO_DEPTH: float = 1.0
-_MAX_BRIGHTNESS: float = 1.0
-_MAX_PITCH_DRIFT_CENTS: float = 100.0
 
 
 @dataclass(frozen=True)
@@ -473,12 +474,6 @@ class LocalSynthesisAdapter:
 # constructs a network client, never reads a credential, and never opens a
 # socket. Its ``probe()`` is always unavailable with a bounded reason, and
 # ``render()`` raises before any I/O.
-
-DEFAULT_CLOUD_PROVIDER_ID = "elevenlabs"
-DEFAULT_CLOUD_REGION = "us-east-1"
-DEFAULT_CLOUD_DATA_CLASSES: tuple[str, ...] = ("reference_audio", "transcript_text")
-DEFAULT_CLOUD_RETENTION_DAYS: int = 30
-DEFAULT_CLOUD_COST_USD: float = 0.05
 
 
 def cloud_descriptor(

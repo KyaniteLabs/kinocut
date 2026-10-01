@@ -16,6 +16,15 @@ def _unsafe(message: str) -> MCPVideoError:
     return MCPVideoError(message, error_type="validation_error", code="unsafe_path")
 
 
+def _partial_output(message: str) -> MCPVideoError:
+    return MCPVideoError(
+        message,
+        error_type="processing_error",
+        code="partial_output_publication",
+        suggested_action={"action": "inspect_output", "prior_output_preserved": False},
+    )
+
+
 def _open_directory(directory: str) -> int:
     """Walk canonical ancestry without following a concurrently planted symlink."""
     descriptor = os.open(os.path.sep, os.O_RDONLY | os.O_DIRECTORY)
@@ -23,7 +32,13 @@ def _open_directory(directory: str) -> int:
         for component in directory.split(os.path.sep):
             if not component:
                 continue
-            child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+            try:
+                child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
+            except FileNotFoundError:
+                with contextlib.suppress(FileExistsError):
+                    os.mkdir(component, mode=0o755, dir_fd=descriptor)
+                # A concurrent creator must still pass the no-follow open.
+                child = os.open(component, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=descriptor)
             os.close(descriptor)
             descriptor = child
         return descriptor
@@ -76,12 +91,13 @@ class _Directory:
 def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
     """Publish only the original regular staging inode in the anchored directory."""
     final = os.path.realpath(validate(path))
+    validate(final)
     directory, basename = os.path.split(final)
-    os.makedirs(directory, exist_ok=True)
     anchor = None
     stage = None
     identity = None
     fd = None
+    published = False
     try:
         anchor = _Directory(directory)
         stage = f".kinocut_tmp_{secrets.token_hex(16)}{os.path.splitext(final)[1] or '.tmp'}"
@@ -108,8 +124,20 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
             os.close(fd)
             fd = None
             os.replace(temporary, final)
+        published = True
+        try:
+            anchor.check()
+        except (OSError, MCPVideoError) as exc:
+            raise _partial_output(
+                "Output directory changed after publication; inspect the output before reuse"
+            ) from exc
+        current = os.stat(anchor.name(basename), follow_symlinks=False, **anchor.options())
+        if not stat.S_ISREG(current.st_mode) or (current.st_dev, current.st_ino) != (identity.st_dev, identity.st_ino):
+            raise _partial_output("Output identity changed after publication; inspect the output before reuse")
         _note_operation_write(final)
     except OSError as exc:
+        if published:
+            raise _partial_output("Published output could not be verified; inspect the output before reuse") from exc
         raise _unsafe(f"Atomic output could not preserve directory identity: {type(exc).__name__}") from exc
     finally:
         if fd is not None:

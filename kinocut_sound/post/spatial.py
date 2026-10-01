@@ -21,6 +21,27 @@ from kinocut_sound.capability import (
     AdapterLocality,
     CapabilityResult,
 )
+from kinocut_sound.defaults import (
+    DEFAULT_SPATIAL_CROSSOVER_HZ,
+    DEFAULT_SPATIAL_DISTANCE_GAIN_DB,
+    DEFAULT_SPATIAL_DISTANCE_PCT,
+    DEFAULT_SPATIAL_DISTANCE_Q,
+    DEFAULT_SPATIAL_ROLLOFF_DB,
+)
+from kinocut_sound.limits import (
+    MAX_POST_SPATIAL_CROSSOVER_HZ as MAX_CROSSOVER_HZ,
+    MAX_POST_SPATIAL_DISTANCE_PCT as MAX_DISTANCE_PCT,
+    MAX_POST_SPATIAL_DRY as MAX_DRY,
+    MAX_POST_SPATIAL_GAIN_DB as MAX_GAIN_DB,
+    MAX_POST_SPATIAL_HUMANIZATION_PCT as MAX_HUMANIZATION_PCT,
+    MAX_POST_SPATIAL_WET as MAX_WET,
+    MIN_POST_SPATIAL_CROSSOVER_HZ as MIN_CROSSOVER_HZ,
+    MIN_POST_SPATIAL_DISTANCE_PCT as MIN_DISTANCE_PCT,
+    MIN_POST_SPATIAL_DRY as MIN_DRY,
+    MIN_POST_SPATIAL_GAIN_DB as MIN_GAIN_DB,
+    MIN_POST_SPATIAL_HUMANIZATION_PCT as MIN_HUMANIZATION_PCT,
+    MIN_POST_SPATIAL_WET as MIN_WET,
+)
 from kinocut_sound.post._errors import (
     POST_DEPENDENCY_MISSING,
     POST_PRESET_UNKNOWN,
@@ -36,28 +57,6 @@ from kinocut_sound.post._subprocess import (
 )
 from kinocut_sound.post.chain import PostContext, PostStageResult
 from kinocut_sound.render_fingerprint import DeterminismClass
-from kinocut_sound.defaults import (
-    DEFAULT_SPATIAL_DISTANCE_PCT,
-    DEFAULT_SPATIAL_CROSSOVER_HZ,
-    DEFAULT_SPATIAL_ROLLOFF_DB,
-    DEFAULT_SPATIAL_DISTANCE_GAIN_DB,
-    DEFAULT_SPATIAL_DISTANCE_Q,
-)
-
-# --- Numeric envelopes ---
-# TODO(controller): centralize alongside defaults.py/limits.py post-merge.
-MIN_WET: float = 0.0
-MAX_WET: float = 10.0
-MIN_DRY: float = 0.0
-MAX_DRY: float = 10.0
-MIN_GAIN_DB: float = -24.0
-MAX_GAIN_DB: float = 12.0
-MIN_CROSSOVER_HZ: float = 500.0
-MAX_CROSSOVER_HZ: float = 16000.0
-MIN_DISTANCE_PCT: float = 0.0
-MAX_DISTANCE_PCT: float = 100.0
-MIN_HUMANIZATION_PCT: float = 0.0
-MAX_HUMANIZATION_PCT: float = 100.0
 
 # Convolution reverb presets — bounded codes.
 REVERB_PRESETS: frozenset[str] = frozenset({"close", "small_room", "hall", "outdoor"})

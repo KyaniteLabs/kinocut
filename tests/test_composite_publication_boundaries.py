@@ -94,3 +94,31 @@ def test_postflight_failure_does_not_replace_prior_media_or_plan(tmp_path, monke
         composite_layers(str(spec), str(output), str(plan))
     assert output.read_bytes() == b"prior media" and plan.read_bytes() == b"prior plan"
     assert not list(tmp_path.glob(".kinocut_tmp_*"))
+
+
+@pytest.mark.skipif(not shutil.which("ffmpeg"), reason="Real FFmpeg needed")
+def test_receipt_publication_failure_reports_committed_media_without_unsafe_rollback(tmp_path, monkeypatch):
+    from kinocut import atomic_publication
+
+    spec = _spec(tmp_path)
+    output, plan = tmp_path / "out.png", tmp_path / "plan.json"
+    output.write_bytes(b"prior media")
+    plan.write_bytes(b"prior receipt")
+    replace = os.replace
+
+    def fail_plan(source, target, **kwargs):
+        if str(target) in {str(plan), plan.name}:
+            raise OSError("receipt publication storage failure")
+        return replace(source, target, **kwargs)
+
+    monkeypatch.setattr(atomic_publication.os, "replace", fail_plan)
+    with pytest.raises(MCPVideoError) as error:
+        composite_layers(str(spec), str(output), str(plan))
+    assert error.value.code == "partial_artifact_publication"
+    assert output.read_bytes().startswith(b"\x89PNG")
+    assert plan.read_bytes() == b"prior receipt"
+    assert (
+        error.value.suggested_action["expected_output_hash"]
+        == "sha256:" + hashlib.sha256(output.read_bytes()).hexdigest()
+    )
+    assert not list(tmp_path.glob(".kinocut_tmp_*"))

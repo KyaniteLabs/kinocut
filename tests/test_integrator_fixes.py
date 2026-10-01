@@ -153,12 +153,44 @@ def test_unresolvable_family_falls_back_gracefully():
         # fontconfig-dependent font= option.
         assert resolved is not None and os.path.isfile(resolved)
         assert "fontfile=" in _drawtext_font_option("DefinitelyNotARealFontFamily12345")
+    elif platform.system() == "Windows":
+        from kinocut.errors import MCPVideoError
+
+        assert resolved is None
+        with pytest.raises(MCPVideoError) as failure:
+            _drawtext_font_option("DefinitelyNotARealFontFamily12345")
+        assert failure.value.code == "font_unavailable"
     else:
         # macOS/Windows resolve by directory listing: an unknown family has no
         # file, so the legacy family-name option is kept.
         assert resolved is None
         option = _drawtext_font_option("DefinitelyNotARealFontFamily12345")
         assert option.startswith("font=")
+
+
+@pytest.mark.parametrize("explicit_font", [False, True])
+def test_default_animated_text_renders_and_decodes(tmp_path, explicit_font):
+    """Exercise #553 through Client and actual FFmpeg, including native CI."""
+    from kinocut import Client
+
+    source = str(tmp_path / "source.mp4")
+    _make_clip(source, seconds="1")
+    options = {}
+    if explicit_font:
+        concrete = _resolve_font_family_to_file("Arial")
+        assert concrete and os.path.isfile(concrete)
+        options["font"] = concrete
+    result = Client().text_animated(
+        source, "Hello", str(tmp_path / "animated.mp4"), animation="typewriter", duration=1.0, **options
+    )
+    assert _pix_fmt(result.output_path) == "yuv420p"
+    decoded = subprocess.run(
+        ["ffmpeg", "-v", "error", "-i", result.output_path, "-f", "null", "-"],
+        capture_output=True,
+        timeout=30,
+        check=True,
+    )
+    assert decoded.stderr == b""
 
 
 def test_pil_font_loader_has_no_glob_name_error():

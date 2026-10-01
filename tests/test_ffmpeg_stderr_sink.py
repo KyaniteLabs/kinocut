@@ -8,7 +8,7 @@ import pytest
 
 from kinocut.errors import ProcessingError
 from kinocut.ffmpeg_helpers import _run_command
-from kinocut.limits import FFMPEG_STDERR_DIAGNOSTIC_BYTES
+from kinocut.limits import FFMPEG_STDERR_DIAGNOSTIC_BYTES, MAX_SUBPROCESS_STDOUT_BYTES
 
 
 def test_large_binary_failure_diagnostics_remain_on_disk_and_error_prefix_is_bounded():
@@ -55,12 +55,14 @@ def test_default_runner_still_captures_both_streams():
 def test_redirected_runner_timeout_keeps_existing_processing_error(monkeypatch):
     def timeout(*args, **kwargs):
         assert "capture_output" not in kwargs
-        assert kwargs["stdout"] == subprocess.PIPE
-        assert kwargs["stderr"] is diagnostics
+        assert kwargs["stdout_sink"] is None
+        assert kwargs["stdout_limit"] == MAX_SUBPROCESS_STDOUT_BYTES
+        assert kwargs["stderr_sink"] is diagnostics
+        assert kwargs["pass_fds"] == ()
         raise subprocess.TimeoutExpired(args[0], kwargs["timeout"])
 
     with tempfile.TemporaryFile() as diagnostics:
-        monkeypatch.setattr(subprocess, "run", timeout)
+        monkeypatch.setattr("kinocut.bounded_process.run_bounded", timeout)
         with pytest.raises(ProcessingError, match="timed out") as failure:
             _run_command([sys.executable, "-c", "pass"], timeout=1, stderr_sink=diagnostics)
         assert failure.value.returncode == -1

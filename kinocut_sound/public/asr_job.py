@@ -26,7 +26,6 @@ from kinocut_sound.limits import (
     ASR_MEMORY_ESTIMATE_BYTES,
     MAX_ASR_INPUT_BYTES,
 )
-from kinocut_sound.mix._wav import parse_wav
 from kinocut_sound.public.asr_bundle import prepare_bundle
 from kinocut_sound.public import asr_resample
 from kinocut_sound.public.asr_input import validate_header
@@ -42,7 +41,7 @@ from kinocut_sound.public.mix_files import (
     publish,
 )
 from kinocut_sound.qa import QaError
-from kinocut_sound.qa.meter import validate_material
+from kinocut_sound.qa.meter import _validated_pcm
 from kinocut_sound.qa.meter_process import run_meter_sync, run_meter_async
 
 
@@ -70,8 +69,7 @@ def _job(payload, project_root):
         data = read_asset(
             root, request.source.path, request.source.sha256, MAX_ASR_INPUT_BYTES, validator=validate_header
         )
-        validate_material(data, channel_counts=(1,))
-        samples, rate = parse_wav(data)
+        samples, rate, _channels = _validated_pcm(data, channel_counts=(1,))
         del data
         duration = len(samples) / rate
         if duration > MAX_ASR_DURATION_SECONDS or rate > MAX_ASR_SAMPLE_RATE_HZ:

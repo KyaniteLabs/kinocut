@@ -248,6 +248,7 @@ def _resolve_font_family_to_file(family: str) -> str | None:
         bases = [
             "/Library/Fonts",
             "/System/Library/Fonts",
+            "/System/Library/Fonts/Supplemental",
             os.path.expanduser("~/Library/Fonts"),
         ]
         exts = (".ttf", ".ttc", ".otf", ".dfont")
@@ -307,6 +308,11 @@ def _drawtext_font_option(font: str | None) -> str:
     resolved = _resolve_font_family_to_file(family)
     if resolved:
         return f"fontfile={_escape_ffmpeg_filter_path(resolved)}"
+    if os.name == "nt":
+        raise MCPVideoError(
+            "No installed font file matches this family; supply an explicit font path",
+            code="font_unavailable",
+        )
     # No concrete file found: keep the legacy family-name option. This still
     # works wherever fontconfig exists and matches the historical behavior.
     return f"font={_escape_ffmpeg_filter_value(family)}"

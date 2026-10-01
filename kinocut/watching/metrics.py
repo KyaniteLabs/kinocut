@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from kinocut.limits import MAX_QUALITY_SIGNALSTATS_OUTPUT_BYTES
+
 import json
 import contextlib
 import logging
@@ -152,6 +154,7 @@ def _blackdetect_ratio(path: str, duration: float) -> float | None:
             metadata_dir = stack.enter_context(tempfile.TemporaryDirectory(prefix="kinocut_black_"))
             metadata = Path(metadata_dir) / "frames.txt"
             diagnostics = stack.enter_context(tempfile.TemporaryFile())
+            metadata_sink = stack.enter_context(metadata.open("wb"))
             movie_path, pass_fds = path, ()
             if os.name == "posix" and Path("/proc/self/fd").is_dir():
                 source = stack.enter_context(open(path, "rb"))
@@ -171,12 +174,12 @@ def _blackdetect_ratio(path: str, duration: float) -> float | None:
                     "frame_tags=lavfi.black_start,lavfi.black_end",
                     "-of",
                     "compact",
-                    "-o",
-                    str(metadata),
                 ],
                 timeout=DEFAULT_FFMPEG_TIMEOUT,
                 pass_fds=pass_fds,
                 stderr_sink=diagnostics,
+                stdout_sink=metadata_sink,
+                stdout_limit=MAX_QUALITY_SIGNALSTATS_OUTPUT_BYTES,
             )
             # Some decoders conceal damage and exit zero despite error diagnostics.
             diagnostics.seek(0)

@@ -49,9 +49,13 @@ def _job(tmp_path):
 
 
 _GROUP_SCRIPT = """
-import sys, time, subprocess
+import os, sys, time, subprocess
 from pathlib import Path
+from contextlib import nullcontext
 from kinocut.projectstore._filelock import lock_exclusive
+from kinocut.projectstore.render_control import watch_runner_stop
+from kinocut.projectstore.render_jobs import _runner_stop_observer
+from kinocut.projectstore.store import open_project
 lease = Path(sys.argv[1]).open('a+b')
 if sys.argv[4] == 'lease':
     lock_exclusive(lease)
@@ -64,7 +68,11 @@ while True:
 '''
 child = subprocess.Popen([sys.executable, '-c', child_code, sys.argv[2]], stdin=subprocess.DEVNULL)
 Path(sys.argv[3]).write_text(str(child.pid))
-while True: time.sleep(1)
+project = open_project(sys.argv[5])
+observer = _runner_stop_observer(project, sys.argv[6], os.getpid())
+context = watch_runner_stop(observer) if sys.argv[4] == 'lease' else nullcontext()
+with context:
+    while True: time.sleep(1)
 """
 
 
@@ -82,6 +90,8 @@ def _live_group(project, job, tmp_path, *, held_lease):
             str(heartbeat),
             str(ready),
             "lease" if held_lease else "no-lease",
+            str(project.root),
+            job.job_id,
         ],
         stdin=subprocess.DEVNULL,
         stdout=subprocess.DEVNULL,
@@ -173,7 +183,7 @@ def test_pending_cancel_blocks_success_and_racing_failure_and_runner_start(tmp_p
     with pytest.raises(MCPVideoError, match="stop is requested"):
         render_jobs.mark_succeeded(project, job.job_id, {})
     assert render_jobs.mark_failed(project, job.job_id, "race", "racing failure") == requested
-    monkeypatch.setattr(render_runner, "video_workflow_render", lambda **_kw: pytest.fail("render started"))
+    monkeypatch.setattr(render_runner, "render_workflow", lambda **_kw: pytest.fail("render started"))
     assert render_runner.run_job(project, job.job_id) == "cancelled"
     assert render_jobs.get_render_job(project, job.job_id) == requested
     assert not any(r.event_kind == "render.completed" for r in read_records(project, "kernel_event"))
@@ -185,9 +195,9 @@ def test_cancel_during_engine_completion_cannot_emit_success_event(tmp_path, mon
 
     def render(**_kwargs):
         render_jobs.cancel_render_job(project, job.job_id)
-        return {"success": True, "steps": []}
+        return {"steps": []}
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", render)
+    monkeypatch.setattr(render_runner, "render_workflow", render)
     assert render_runner.run_job(project, job.job_id) == "cancelled"
     assert render_jobs.get_render_job(project, job.job_id).runner_pid == os.getpid()
     assert not any(r.event_kind == "render.completed" for r in read_records(project, "kernel_event"))

@@ -9,6 +9,22 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "kinocut"
 
+
+def test_all_runtime_modules_and_functions_obey_project_size_limits() -> None:
+    """Apply maintainability policy to both packages, including new subsystems."""
+    violations = []
+    for package in (PACKAGE, ROOT / "kinocut_sound"):
+        for path in package.rglob("*.py"):
+            text = path.read_text(encoding="utf-8")
+            relative = path.relative_to(ROOT).as_posix()
+            if len(text.splitlines()) > 800:
+                violations.append(f"{relative}: module exceeds 800 lines")
+            for node in ast.walk(ast.parse(text, filename=relative)):
+                if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)) and node.end_lineno - node.lineno + 1 > 80:
+                    violations.append(f"{relative}:{node.lineno}: {node.name} exceeds 80 lines")
+    assert not violations, "\n".join(violations)
+
+
 FACADE_MODULES = {
     "engine.py": {
         "max_lines": 140,

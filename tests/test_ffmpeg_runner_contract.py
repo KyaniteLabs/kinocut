@@ -32,7 +32,7 @@ def test_run_command_resolves_bare_binary_names(monkeypatch):
         captured["cmd"] = list(cmd)
         return subprocess.CompletedProcess(cmd, 0, stdout="ok", stderr="")
 
-    monkeypatch.setattr(ffmpeg_helpers.subprocess, "run", fake_run)
+    monkeypatch.setattr("kinocut.bounded_process.run_bounded", fake_run)
     monkeypatch.setattr(engine_runtime_utils, "_ffprobe", lambda: "/resolved/bin/ffprobe")
     monkeypatch.setattr(engine_runtime_utils, "_ffmpeg", lambda: "/resolved/bin/ffmpeg")
 

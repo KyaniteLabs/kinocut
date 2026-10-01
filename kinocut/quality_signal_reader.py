@@ -1,10 +1,8 @@
 """Bounded frame metadata streaming with owned child cleanup."""
 
 from array import array
-import contextlib
 import logging
 import os
-import signal
 import subprocess
 import threading
 import time
@@ -161,26 +159,18 @@ def _consume_stderr(process, diagnostic, failures, stop):
 
 
 def _kill(process):
-    if os.name == "posix":
-        # Isolated group also closes inherited pipe writers after parent exit.
-        with contextlib.suppress(ProcessLookupError):
-            os.killpg(process.pid, signal.SIGKILL)
-    elif process.poll() is None:
-        with contextlib.suppress(ProcessLookupError):
-            process.kill()
+    process._kinocut_tree.kill()
 
 
 def _run_reduction(cmd, reduction):
     """Read every frame, fail on overflow/error, and always reap the owned child."""
     failures, diagnostic = [], bytearray()
     try:
-        process = subprocess.Popen(  # noqa: S603 - fixed probe argv; wait owns deadline
-            cmd,
-            stdin=subprocess.DEVNULL,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            start_new_session=os.name == "posix",
-        )
+        from .process_tree import ProcessTree
+
+        tree = ProcessTree(cmd)
+        process = tree.process
+        process._kinocut_tree = tree
     except OSError as exc:
         raise ProcessingError("signalstats backend", -1, "Backend unavailable") from exc
     readers, stop = [], threading.Event()
@@ -216,6 +206,7 @@ def _run_reduction(cmd, reduction):
             except KeyboardInterrupt:
                 interrupted = True
                 _kill(process)
+        tree.close()
         process.stdout.close()
         process.stderr.close()
         if interrupted:

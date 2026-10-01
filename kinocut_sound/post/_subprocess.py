@@ -20,6 +20,12 @@ import shutil
 import subprocess
 from collections.abc import Sequence
 
+from kinocut_sound.defaults import (
+    DEFAULT_POST_TIMEOUT_SECONDS as DEFAULT_POST_TIMEOUT_SECONDS,
+)
+from kinocut_sound.limits import (
+    MAX_POST_TIMEOUT_SECONDS as MAX_POST_TIMEOUT_SECONDS,
+)
 from kinocut_sound.post._errors import (
     POST_DEPENDENCY_MISSING,
     POST_INVALID_PARAM,
@@ -32,10 +38,7 @@ from kinocut_sound.post._errors import (
 
 logger = logging.getLogger(__name__)
 
-# TODO(controller): centralize these ceilings alongside defaults.py/limits.py
 # when the controller merges the post sidecar into the shared config surface.
-DEFAULT_POST_TIMEOUT_SECONDS: float = 30.0
-MAX_POST_TIMEOUT_SECONDS: float = 120.0
 
 _FFMPEG_BINARY = "ffmpeg"
 _SOX_BINARY = "sox"

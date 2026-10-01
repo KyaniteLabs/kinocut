@@ -31,7 +31,7 @@ class TestGetMeanLumaFallback:
 
     def test_returns_none_when_no_yavg_line(self, guardrails):
         """When ffmpeg stderr has no YAVG line, return None not 128."""
-        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
+        with patch("kinocut.bounded_process.run_bounded") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="frame=   10 fps=0.0 q=-1.0 N/A\nsome other output without signalstats\n",
             )
@@ -40,7 +40,7 @@ class TestGetMeanLumaFallback:
 
     def test_returns_none_when_subprocess_fails(self, guardrails):
         """When ffmpeg returns non-zero exit, return None not 128."""
-        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
+        with patch("kinocut.bounded_process.run_bounded") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="Error opening input file\n",
                 returncode=1,
@@ -54,7 +54,7 @@ class TestGetContrastFallback:
 
     def test_returns_none_when_no_ystd_line(self, guardrails):
         """When ffmpeg stderr has no YSTD line, return None not 50."""
-        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
+        with patch("kinocut.bounded_process.run_bounded") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="frame=   10 fps=0.0 q=-1.0 N/A\nsome other output without signalstats\n",
             )
@@ -63,7 +63,7 @@ class TestGetContrastFallback:
 
     def test_returns_none_when_subprocess_fails(self, guardrails):
         """When ffmpeg returns non-zero exit, return None not 50."""
-        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
+        with patch("kinocut.bounded_process.run_bounded") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stderr="Error opening input file\n",
                 returncode=1,
@@ -74,7 +74,7 @@ class TestGetContrastFallback:
 
 class TestSaturationFallback:
     def test_missing_signalstats_is_explicitly_unavailable(self, guardrails):
-        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
+        with patch("kinocut.bounded_process.run_bounded") as mock_run:
             mock_run.return_value = FakeCompletedProcess(stderr="no signalstats metadata")
             color_stats = guardrails._analyze_colors("/tmp/nonexistent.mp4")
 
@@ -121,7 +121,7 @@ class TestProbeVideoStreamSelection:
         """ffprobe should explicitly select v:0 so audio-first MP4s do not produce 0/0 FPS."""
         source = tmp_path / "audio-first.mp4"
         source.touch()
-        with patch("kinocut.ffmpeg_helpers.subprocess.run") as mock_run:
+        with patch("kinocut.bounded_process.run_bounded") as mock_run:
             mock_run.return_value = FakeCompletedProcess(
                 stdout='{"streams":[{"width":1280,"height":720,"r_frame_rate":"30000/1001","duration":"8.0"}]}',
             )

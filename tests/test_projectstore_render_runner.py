@@ -79,7 +79,7 @@ class _FakeProc:
 
 # --- Deterministic fake ffprobe/ffmpeg for the real-engine kill/reopen test ----------
 #
-# The recovery test runs the SHIPPED ``video_workflow_render`` against real subprocesses;
+# The recovery test runs the SHIPPED ``render_workflow`` against real subprocesses;
 # these tiny Python shims stand in for ffprobe/ffmpeg on PATH so stage 1 (probe) completes,
 # stage 2 (convert) blocks until SIGKILL, then completes on resume. No fake renderer.
 
@@ -166,7 +166,6 @@ def test_run_job_passes_render_contract_and_marks_succeeded(tmp_path, monkeypatc
     src_hash = "sha256:" + "a" * 64
     out_hash = "sha256:" + "b" * 64
     receipt = {
-        "success": True,
         "status": "completed",
         "sources": [{"id": "src1", "source_hash": src_hash}],
         "outputs": [{"id": "out1", "output_hash": out_hash}],
@@ -181,7 +180,7 @@ def test_run_job_passes_render_contract_and_marks_succeeded(tmp_path, monkeypatc
         captured.update(kwargs)
         return receipt
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     assert render_runner.run_job(project, job.job_id) == "succeeded"
     assert captured["keep_intermediates"] is True
     assert captured["spec_path"] == str(render_jobs.job_spec_path(project, job.job_id))
@@ -191,7 +190,7 @@ def test_run_job_passes_render_contract_and_marks_succeeded(tmp_path, monkeypatc
     assert head.status.value == "succeeded"
     assert head.completed_artifacts == ("sha256:" + "a" * 64, "sha256:" + "b" * 64)
     assert head.stage_index == 2  # progress carried forward from the receipt
-    # Lineage is derived from the authoritative returned receipt (plus ``success``)
+    # Lineage is derived from the authoritative returned engine receipt
     # and atomically persisted before SUCCEEDED/event emission, using the persisted
     # job identity — never by rereading the receipt file.
     persisted = json.loads(render_jobs.job_receipt_path(project, job.job_id).read_text(encoding="utf-8"))
@@ -213,9 +212,9 @@ def test_run_job_resumes_from_existing_receipt(tmp_path, monkeypatch):
 
     def fake_render(**kwargs):
         captured.update(kwargs)
-        return {"success": True, "steps": []}
+        return {"steps": []}
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     render_runner.run_job(project, job.job_id)
     assert captured["resume_receipt"] == str(prior)  # existing receipt handed to the engine
 
@@ -228,11 +227,12 @@ def test_run_job_exception_marks_bounded_failed(tmp_path, monkeypatch):
     def boom(**_kw):
         raise exc
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", boom)
+    monkeypatch.setattr(render_runner, "render_workflow", boom)
     assert render_runner.run_job(project, job.job_id) == "failed"
     head = get_render_job(project, job.job_id)
-    assert head.status.value == "failed" and head.error_code == "render_failed"
-    assert head.error_message == repr(exc)[:256]  # failure text bounded to the cap
+    assert head.status.value == "failed" and head.error_code == "internal_error"
+    assert head.error_message == "An internal error occurred. Check server logs for details."
+    assert "kaboom" not in head.error_message  # preserve the transport adapter's generic-error policy
     assert len(head.error_message) <= 256
 
 
@@ -241,9 +241,11 @@ def test_run_job_structured_error_marks_bounded_failed(tmp_path, monkeypatch):
     job = _job(project, running=True)
 
     def fail(**_kw):
-        return {"success": False, "error": {"code": "bad_source", "message": "missing file"}}
+        from kinocut.errors import MCPVideoError
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fail)
+        raise MCPVideoError("missing file", error_type="input_error", code="bad_source")
+
+    monkeypatch.setattr(render_runner, "render_workflow", fail)
     assert render_runner.run_job(project, job.job_id) == "failed"
     head = get_render_job(project, job.job_id)
     assert head.status.value == "failed"
@@ -258,9 +260,9 @@ def test_run_job_cooperative_pre_start_cancel_skips_render(tmp_path, monkeypatch
 
     def fake_render(**_kw):
         calls.append(1)
-        return {"success": True, "steps": []}
+        return {"steps": []}
 
-    monkeypatch.setattr(render_runner, "video_workflow_render", fake_render)
+    monkeypatch.setattr(render_runner, "render_workflow", fake_render)
     assert render_runner.run_job(project, job.job_id) == "cancelled"
     assert calls == []  # cooperative cancel short-circuits before the engine is invoked
     assert get_render_job(project, job.job_id).status.value == "cancelled"
@@ -269,7 +271,7 @@ def test_run_job_cooperative_pre_start_cancel_skips_render(tmp_path, monkeypatch
 def test_real_child_kill_reopen_resume_skips_completed_stage(tmp_path, monkeypatch):
     """kill/reopen/resume against the SHIPPED engine + its authoritative resume cursor.
 
-    A real detached child runs the actual ``video_workflow_render`` (no fake
+    A real detached child runs the actual ``render_workflow`` (no fake
     renderer, no fixture env). Deterministic fake ``ffprobe``/``ffmpeg`` on PATH make
     stage 1 (probe) complete — so the executor persists its genuine progressive
     workflow receipt — and stage 2 (convert) BLOCK inside the fake ``ffmpeg``; the
@@ -368,3 +370,38 @@ def test_real_child_kill_reopen_resume_skips_completed_stage(tmp_path, monkeypat
     assert out_hash is not None, "terminal output hash poisoned by progressive null cache"
     expected_hash = "sha256:" + hashlib.sha256((job_dir / "out.mp4").read_bytes()).hexdigest()
     assert out_hash == expected_hash
+
+
+def test_detached_worker_imports_without_mcp_transport():
+    """A real worker process must run when transport adapters are unavailable."""
+    code = """
+import importlib.abc
+import sys
+class NoTransport(importlib.abc.MetaPathFinder):
+    def find_spec(self, fullname, path=None, target=None):
+        if fullname == 'mcp' or fullname.startswith('mcp.') or fullname.startswith('kinocut.server'):
+            raise ImportError('worker imported MCP transport: ' + fullname)
+sys.meta_path.insert(0, NoTransport())
+from kinocut.projectstore.render_runner import run_job
+assert callable(run_job)
+"""
+    completed = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, timeout=30, check=False)
+    assert completed.returncode == 0, completed.stderr
+
+
+def test_real_workflow_validation_error_preserves_job_code_and_message(tmp_path):
+    from kinocut.errors import MCPVideoError
+    from kinocut.workflow.executor import render_workflow
+
+    project = open_project(tmp_path / "proj")
+    job = _job(project, running=True)
+    spec_path = str(render_jobs.job_spec_path(project, job.job_id))
+    with pytest.raises(MCPVideoError) as caught:
+        render_workflow(spec_path, keep_intermediates=True)
+    assert render_runner.run_job(project, job.job_id) == "failed"
+    head = get_render_job(project, job.job_id)
+    assert head.error_code == caught.value.code
+    assert head.error_message == caught.value.to_dict()["message"][:256]
+    receipt = json.loads(render_jobs.job_receipt_path(project, job.job_id).read_text())
+    assert receipt["status"] == "failed"
+    assert "lineage" not in receipt

@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 import pytest
 
-from kinocut import engine_runtime_utils, ffmpeg_helpers
+from kinocut import engine_runtime_utils, bounded_process
 from kinocut.design_quality.guardrails import DesignQualityGuardrails
 from kinocut.errors import FFprobeNotFoundError, InputFileError, ProcessingError
 
@@ -41,8 +41,8 @@ def test_design_analysis_uses_configured_tools_with_empty_path(configured_media,
     cmd += ["-c:v", "mpeg4", str(source)]
     subprocess.run(cmd, check=True, capture_output=True, timeout=30)
 
-    run = Mock(wraps=subprocess.run)
-    monkeypatch.setattr(ffmpeg_helpers.subprocess, "run", run)
+    run = Mock(wraps=bounded_process.run_bounded)
+    monkeypatch.setattr(bounded_process, "run_bounded", run)
     guardrails = DesignQualityGuardrails()
     report = guardrails.analyze(str(source))
 
@@ -72,8 +72,8 @@ def test_guardrail_timeout_uses_custom_processing_error(configured_media, tmp_pa
     source = tmp_path / "source.mp4"
     source.touch()
     monkeypatch.setattr(
-        ffmpeg_helpers.subprocess,
-        "run",
+        bounded_process,
+        "run_bounded",
         Mock(side_effect=subprocess.TimeoutExpired("configured media tool", 600)),
     )
     with pytest.raises(ProcessingError, match="timed out"):
@@ -84,8 +84,8 @@ def test_motion_failure_remains_explicitly_unknown(configured_media, tmp_path, m
     source = tmp_path / "source.mp4"
     source.touch()
     monkeypatch.setattr(
-        ffmpeg_helpers.subprocess,
-        "run",
+        bounded_process,
+        "run_bounded",
         Mock(return_value=subprocess.CompletedProcess([], 1, "", "invalid media")),
     )
     assert DesignQualityGuardrails()._measure_temporal_motion(str(source)) is None
@@ -95,8 +95,8 @@ def test_invalid_probe_json_raises_custom_processing_error(configured_media, tmp
     source = tmp_path / "source.mp4"
     source.touch()
     monkeypatch.setattr(
-        ffmpeg_helpers.subprocess,
-        "run",
+        bounded_process,
+        "run_bounded",
         Mock(return_value=subprocess.CompletedProcess([], 0, "invalid JSON", "")),
     )
     with pytest.raises(ProcessingError, match="Invalid JSON from ffprobe"):
@@ -108,7 +108,7 @@ def test_invalid_probe_json_raises_custom_processing_error(configured_media, tmp
 )
 def test_guardrail_media_methods_validate_input_before_launch(tmp_path, monkeypatch, method):
     run = Mock()
-    monkeypatch.setattr(ffmpeg_helpers.subprocess, "run", run)
+    monkeypatch.setattr(bounded_process, "run_bounded", run)
     with pytest.raises(InputFileError):
         getattr(DesignQualityGuardrails(), method)(str(tmp_path / "missing.mp4"))
     run.assert_not_called()

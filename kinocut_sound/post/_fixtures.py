@@ -22,17 +22,14 @@ from pathlib import Path
 # runtime adapter modules do not pay the import cost.
 import numpy as np
 
-# --- Canonical sample format for fixtures ---
-
-FIXTURE_SAMPLE_RATE_HZ: int = 44100
-FIXTURE_CHANNEL_COUNT: int = 1
-
-# --- Numeric envelopes ---
-# TODO(controller): these post-chain envelopes are local to the fixture and
-# measurement surface. When the controller centralizes post defaults, these
-# should move alongside kinocut_sound.defaults / limits.
-MIN_INTENSITY_PCT: float = 0.0
-MAX_INTENSITY_PCT: float = 100.0
+from kinocut_sound.defaults import (
+    DEFAULT_POST_FIXTURE_CHANNEL_COUNT as FIXTURE_CHANNEL_COUNT,
+    DEFAULT_POST_FIXTURE_SAMPLE_RATE_HZ as FIXTURE_SAMPLE_RATE_HZ,
+)
+from kinocut_sound.limits import (
+    MAX_POST_FIXTURES_INTENSITY_PCT as MAX_INTENSITY_PCT,
+    MIN_POST_FIXTURES_INTENSITY_PCT as MIN_INTENSITY_PCT,
+)
 
 
 def _seed_from(*parts: str) -> int:

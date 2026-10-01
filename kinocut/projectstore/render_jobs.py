@@ -5,6 +5,7 @@ from __future__ import annotations
 import hashlib
 import contextlib
 import json
+import os
 import secrets
 import subprocess
 import sys
@@ -21,6 +22,7 @@ from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import RenderJobRecord, RenderJobStatus, can_transition_job
 from kinocut.projectstore.edit_projects import _append_transaction, get_branch
 from kinocut.projectstore.events import _build_event_locked
+from kinocut.projectstore import layout
 from kinocut.projectstore.render_control import (
     CANCELLATION_REQUESTED,
     STOP_REQUEST_STAGES,
@@ -365,8 +367,38 @@ def _runner_lease_is_held(project: Project, job_id: str) -> bool:
         return False
 
 
+def _runner_stop_observer(project: Project, job_id: str, owner_pid: int) -> Callable[[], bool]:
+    """Cache the validated head until its journal identity or timestamps change.
+
+    Stable rendering polls one stat rather than reparsing the entire job history.
+    Stop authority comes only from the normal validated record reader, never a
+    private signal file or an unvalidated tail. Forked copies remain inert.
+    """
+    path = safe_target(project, layout.records_relative_path("render_job"))
+    signature: tuple[int, int, int, int] | None = None
+    requested = False
+
+    def observe() -> bool:
+        nonlocal signature, requested
+        if os.getpid() != owner_pid:
+            return False
+        current = path.stat()
+        fingerprint = (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns)
+        if fingerprint != signature:
+            head = get_render_job(project, job_id)
+            requested = (
+                head.status is RenderJobStatus.RUNNING
+                and head.runner_pid == owner_pid
+                and head.stage in STOP_REQUEST_STAGES
+            )
+            signature = fingerprint
+        return requested
+
+    return observe
+
+
 def terminate_render_job(project: Project, job_id: str) -> RenderJobRecord:
-    """Kill only a runner proven by its process group and held job lease. Keep
+    """Request a worker self-stop and wait for group/lease quiescence. Keep
     RUNNING and its PID if stop cannot be confirmed; preserve a prior cancellation
     request so verified completion records CANCELLED rather than FAILED."""
     _require_job_id(job_id)
@@ -391,7 +423,7 @@ def _prepare_stop_locked(project: Project, head: RenderJobRecord, stage: str) ->
 
 
 def _request_stop(project: Project, head: RenderJobRecord) -> RenderJobRecord:
-    """Wait without holding the project lock; keep PID if stop is unconfirmed."""
+    """Wait without the project lock or external PID signals; retain unconfirmed work."""
     outcome = stop_runner_group(head.runner_pid, lambda: _runner_lease_is_held(project, head.job_id))
     with _project_lock(project):
         current = _job_heads(project).get(head.job_id)

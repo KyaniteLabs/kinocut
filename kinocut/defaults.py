@@ -286,3 +286,17 @@ DEFAULT_MOTION_COHERENCE_TRANSITION_DIFFERENCE = 40.0
 # Duplicate recognition across overlapping chunks must refer to the same
 # observed event, not merely repeat the same token somewhere in the overlap.
 DEFAULT_LONGFORM_DUPLICATE_TIME_TOLERANCE_SECONDS = 0.25
+
+# Executed semantic vision provider defaults.
+DEFAULT_VISION_PROVIDER_TIMEOUT = 60
+DEFAULT_VISION_PROVIDER_MAX_TOKENS = 1024
+DEFAULT_VISION_MAX_FRAME_WIDTH = 1280
+
+# Google Fonts network policy: socket timeout plus total elapsed deadline.
+DEFAULT_FONT_DOWNLOAD_TIMEOUT = 20
+DEFAULT_FONT_DOWNLOAD_DEADLINE = 60
+
+# Preserve AI scene sampling and hash defaults under explicit producer bounds.
+DEFAULT_AI_SCENE_FRAME_INTERVAL = 0.5
+DEFAULT_AI_SCENE_JPEG_QUALITY = 2
+DEFAULT_AI_SCENE_HASH_THRESHOLD = 10

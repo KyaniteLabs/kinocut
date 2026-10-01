@@ -205,3 +205,27 @@ def test_native_16khz_input_requires_no_resampler(fake_asr, monkeypatch):  # noq
     monkeypatch.setattr(asr_resample, "installed_resampler", unavailable)
     result = asr_job.recognize_sync(request, str(root))
     assert result["backend"]["resampling"] == "pcm16-normalization-no-resampling-v1"
+
+
+def test_asr_uses_once_decoded_verified_pcm_without_changing_samples(fake_asr, monkeypatch):  # noqa: F811
+    from kinocut_sound.mix import _wav
+    from kinocut_sound.qa import meter
+
+    root, request, _, _ = fake_asr
+    decode = _wav.decode_pcm_wav
+    observed = []
+
+    def measured_decode(data):
+        result = decode(data)
+        observed.append((hashlib.sha256(data).hexdigest(), hashlib.sha256(result[0].tobytes()).hexdigest(), result[1:]))
+        return result
+
+    monkeypatch.setattr(meter, "decode_pcm_wav", measured_decode)
+    monkeypatch.setattr(_wav, "decode_pcm_wav", measured_decode)
+    with asr_job._job(request, str(root)) as job:
+        assert len(observed) == 1
+        assert observed[0][0] == request["source"]["sha256"].removeprefix("sha256:")
+        assert hashlib.sha256((job.root / "source.pcm").read_bytes()).hexdigest() == observed[0][1]
+        assert observed[0][2] == (16000, 1)
+        assert job.pcm_bytes == 3 * 16000 * 2
+    assert not (root / "output.zip").exists()

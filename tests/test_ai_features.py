@@ -538,10 +538,11 @@ def test_ai_scene_detect_ai_mode_rejects_invalid_threshold(sample_video, monkeyp
 def test_ai_scene_detect_caps_ai_frame_extraction_rate(tmp_path, monkeypatch):
     """Long AI scene scans should increase frame interval instead of extracting unbounded frames."""
     from mcp_video.ai_engine import ai_scene_detect
+    from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
     from mcp_video.limits import MAX_AI_SCENE_FRAMES
 
     video = tmp_path / "video.mp4"
-    video.write_bytes(b"not a real video; subprocess is mocked")
+    video.write_bytes(b"fixture input; extraction command runner is mocked")
 
     imagehash_module = types.ModuleType("imagehash")
     image_module = types.ModuleType("PIL.Image")
@@ -554,11 +555,13 @@ def test_ai_scene_detect_caps_ai_frame_extraction_rate(tmp_path, monkeypatch):
 
     seen_cmds = []
 
-    def fake_run(cmd, capture_output, text, timeout, **kwargs):
+    def fake_run(cmd, *, timeout):
+        assert timeout == DEFAULT_FFMPEG_TIMEOUT
+        assert cmd[cmd.index("-i") + 1] == str(video)
         seen_cmds.append(cmd)
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("mcp_video.ai_engine.scene._run_command", fake_run)
 
     assert ai_scene_detect(str(video), threshold=0.3, use_ai=True) == []
 
@@ -573,9 +576,10 @@ def test_ai_scene_detect_ai_mode_returns_json_safe_hash_diffs(tmp_path, monkeypa
     import numpy as np
 
     from mcp_video.ai_engine import ai_scene_detect
+    from mcp_video.defaults import DEFAULT_FFMPEG_TIMEOUT
 
     video = tmp_path / "video.mp4"
-    video.write_bytes(b"not a real video; subprocess is mocked")
+    video.write_bytes(b"fixture input; extraction command runner is mocked")
 
     class FakeHash:
         def __init__(self, value: int):
@@ -602,14 +606,16 @@ def test_ai_scene_detect_ai_mode_returns_json_safe_hash_diffs(tmp_path, monkeypa
     monkeypatch.setitem(sys.modules, "PIL.Image", image_module)
     monkeypatch.setattr("mcp_video.ai_engine.scene._run_ffprobe_json", lambda _path: {"format": {"duration": "1"}})
 
-    def fake_run(cmd, capture_output, text, timeout, **kwargs):
+    def fake_run(cmd, *, timeout):
+        assert timeout == DEFAULT_FFMPEG_TIMEOUT
+        assert cmd[cmd.index("-i") + 1] == str(video)
         frame_pattern = Path(cmd[-1])
         frame_pattern.parent.mkdir(parents=True, exist_ok=True)
         (frame_pattern.parent / "frame_0001.jpg").write_bytes(b"one")
         (frame_pattern.parent / "frame_0002.jpg").write_bytes(b"two")
         return subprocess.CompletedProcess(cmd, 0, "", "")
 
-    monkeypatch.setattr(subprocess, "run", fake_run)
+    monkeypatch.setattr("mcp_video.ai_engine.scene._run_command", fake_run)
 
     scenes = ai_scene_detect(str(video), threshold=0.3, use_ai=True)
 
