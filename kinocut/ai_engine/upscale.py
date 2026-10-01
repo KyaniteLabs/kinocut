@@ -15,8 +15,15 @@ import ssl
 import tempfile
 from pathlib import Path
 
+from ..audio_bed_validation import reject_output_alias
 from ..errors import InputFileError, MCPVideoError, ProcessingError
-from ..ffmpeg_helpers import _get_video_duration, _run_command, _validate_input_path, _validate_output_path
+from ..ffmpeg_helpers import (
+    _atomic_output,
+    _get_video_duration,
+    _run_command,
+    _validate_input_path,
+    _validate_output_path,
+)
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_UPSCALE_FRAMES
 
 logger = logging.getLogger(__name__)
@@ -205,7 +212,7 @@ def _init_realesrgan(model: str, scale: int):
 
 
 def _extract_frames(video_path: str, frames_dir: Path) -> list[Path]:
-    """Extract frames from video using FFmpeg.
+    """Extract frames with one overflow sentinel beyond the inference budget.
 
     Args:
         video_path: Input video path.
@@ -216,12 +223,28 @@ def _extract_frames(video_path: str, frames_dir: Path) -> list[Path]:
     """
     frame_pattern = frames_dir / "frame_%04d.png"
     _run_command(
-        ["ffmpeg", "-y", "-i", video_path, "-vsync", "0", str(frame_pattern)],
+        [
+            "ffmpeg",
+            "-y",
+            "-i",
+            video_path,
+            "-vsync",
+            "0",
+            "-frames:v",
+            str(MAX_AI_UPSCALE_FRAMES + 1),
+            str(frame_pattern),
+        ],
         timeout=DEFAULT_FFMPEG_TIMEOUT,
     )
     frames = sorted(frames_dir.glob("frame_*.png"))
     if not frames:
         raise ProcessingError("ffmpeg", 1, "No frames extracted from video")
+    if len(frames) > MAX_AI_UPSCALE_FRAMES:
+        raise MCPVideoError(
+            f"Video frame count exceeds AI upscaling maximum of {MAX_AI_UPSCALE_FRAMES}",
+            error_type="resource_error",
+            code="frame_count_too_large",
+        )
     return frames
 
 
@@ -272,11 +295,6 @@ def _ai_upscale_opencv(video_path: str, output_path: str, scale: int) -> str:
     Uses lightweight FSRCNN model for fast CPU inference.
     Downloads models automatically on first use.
     """
-    import cv2
-
-    model_path = _download_fsrcnn_model(scale)
-    sr = _init_opencv_sr(scale, model_path)
-
     _validate_output_path(output_path)
     output_file = Path(output_path)
 
@@ -292,12 +310,18 @@ def _ai_upscale_opencv(video_path: str, output_path: str, scale: int) -> str:
 
         frames = _extract_frames(video_path, frames_dir)
 
+        import cv2
+
+        model_path = _download_fsrcnn_model(scale)
+        sr = _init_opencv_sr(scale, model_path)
+
         for i, frame_path in enumerate(frames, 1):
             img = cv2.imread(str(frame_path))
             if img is None:
                 raise ProcessingError("cv2.imread", 1, f"Failed to load frame: {frame_path}")
             result_img = sr.upsample(img)
-            cv2.imwrite(str(upscaled_dir / f"frame_{i:04d}.png"), result_img)
+            if not cv2.imwrite(str(upscaled_dir / f"frame_{i:04d}.png"), result_img):
+                raise ProcessingError("cv2.imwrite", 1, "Failed to save upscaled frame")
 
         _reconstruct_video(
             upscaled_dir / "frame_%04d.png",
@@ -340,8 +364,9 @@ def _upscale_with_realesrgan(
         audio_source = None
         if has_audio:
             audio_path = tmpdir_path / "audio.aac"
-            if _extract_audio(str(video_path), audio_path):
-                audio_source = str(audio_path)
+            if not _extract_audio(str(video_path), audio_path):
+                raise ProcessingError("ffmpeg", 1, "Failed to preserve source audio during AI upscaling")
+            audio_source = str(audio_path)
 
         _reconstruct_video(
             upscaled_dir / "frame_%04d.png",
@@ -398,6 +423,7 @@ def ai_upscale(
 
     _validate_upscale_resource_limits(str(video_path))
     _validate_output_path(output)
+    reject_output_alias(output, (str(video_path),))
     output_path = Path(output)
 
     # Try to use Real-ESRGAN if available, otherwise use OpenCV DNN fallback
@@ -412,18 +438,20 @@ def ai_upscale(
     except ImportError:
         has_realesrgan = False
 
-    if not has_realesrgan:
-        try:
-            return _ai_upscale_opencv(str(video_path), str(output_path), scale)
-        except ImportError:
-            raise MCPVideoError(
-                "AI upscaling requires either realesrgan or opencv-contrib-python (cv2). "
-                'Install with: pip install "kinocut[upscale]" (Python 3.11/3.12)',
-                error_type="dependency_error",
-                code="missing_upscale_dep",
-            ) from None
-
-    _upscale_with_realesrgan(video_path, output_path, model, scale)
+    with _atomic_output(str(output_path)) as staged_output:
+        _validate_output_path(staged_output)
+        if not has_realesrgan:
+            try:
+                _ai_upscale_opencv(str(video_path), staged_output, scale)
+            except ImportError:
+                raise MCPVideoError(
+                    "AI upscaling requires either realesrgan or opencv-contrib-python (cv2). "
+                    'Install with: pip install "kinocut[upscale]" (Python 3.11/3.12)',
+                    error_type="dependency_error",
+                    code="missing_upscale_dep",
+                ) from None
+        else:
+            _upscale_with_realesrgan(video_path, Path(staged_output), model, scale)
 
     return str(output_path)
 

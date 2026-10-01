@@ -29,6 +29,20 @@ the explicitly configured extras:
 /path/to/environment/bin/kino doctor
 ```
 
+On Windows, use the consumer's existing environment under `Scripts` rather than
+the Unix `bin` layout. For example, in PowerShell for a local `.venv`:
+
+```powershell
+& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==1.16.0'
+& .\.venv\Scripts\python.exe -m pip check
+& .\.venv\Scripts\kino.exe --version
+& .\.venv\Scripts\kino.exe --format json doctor
+```
+
+These commands preserve the same release and diagnostics workflow. Retain the
+consumer's configured extras and verify its actual running interpreter on every
+OS; platform-specific environment paths do not establish optional-model parity.
+
 If the environment already installs the legacy distribution, upgrade its exact
 pin to `mcp-video==1.6.15` too; the old shim otherwise still requires Kinocut
 1.15.3. Preserve existing extra names when changing the canonical/shim pins.
@@ -36,7 +50,7 @@ The new metadata-only shim delegates console scripts to Kinocut. If removing an
 older installed shim, reinstall the intended canonical wheel afterward before
 relying on its legacy CLI alias; older shims share ownership of that executable.
 Update and commit dependency locks through the consumer repository's normal
-workflow. The candidate raises security floors for nine previously affected dependencies, including optional Pillow; refresh the consumer lock instead of retaining affected transitive pins. Source-installed consumers must use the verified release tag/commit.
+workflow. The candidate raises security floors for nine previously affected dependencies, including optional Pillow, and updates affected optional Torch/audio dependencies with their compatible GPU graph. BasicSR retains an unpatched advisory in an unused distributed path; legacy Real-ESRGAN import/inference and GPU driver compatibility need separate acceptance. Refresh the consumer lock instead of retaining affected transitive pins. Source-installed consumers must use the verified release tag/commit.
 
 For a `uvx` MCP configuration, pin the package explicitly:
 

@@ -33,6 +33,14 @@ Both execution paths should consume the same versioned operation specifications,
 export profiles, receipts and quality rules. Mobile interfaces control jobs and
 review artifacts; they need not run the entire processing stack on-device.
 
+Browser and mobile clients can upload footage, control jobs, review previews and
+download exports against the same worker service. Native device media APIs can
+support local preview and selected offline operations later. Shipping Python,
+FFmpeg, model weights and every optional inference backend on each phone requires
+separate packaging, resource and background-execution acceptance. Start with
+shared workers and pinned export profiles to make feature and quality acceptance
+practical across clients.
+
 Prefer a responsive browser client first. Add native mobile shells only where
 background transfer, file sharing or device integration warrants them. Backend
 choice must remain explicit: local and remote execution have different transfer,
@@ -117,3 +125,17 @@ against implementing stale recommendations.
 Completion of local operator additions satisfies neither service readiness nor
 mobile/browser parity. Those journeys require the implementation and evidence
 above before they can be advertised as supported.
+
+## Acceptance gates
+
+| Stage | Required evidence |
+| --- | --- |
+| Shared contracts | Every declared supported operation passes the same fixtures, output tolerances, source-identity checks, QC and review policies across its adapters. Unsupported combinations are disclosed before submission. |
+| Private service | Cross-project access denial, bounded workers, interrupted uploads, idempotency, cancellation and restart recovery pass. Failed jobs never promote final artifacts. |
+| Responsive client | Complete jobs execute on desktop browsers, Android Chrome and iOS Safari, including reconnect, download and playback checks on actual devices. |
+| Performance and cost | Measured cold/warm p50/p95 by workload, hardware, concurrency and network, with actual compute/storage/transfer charges and retries. Targets follow representative baselines rather than invented estimates. |
+
+Track upload, queue, processing, QC and download separately so network changes
+can be distinguished from processing regressions. Feature and output-quality
+parity remain acceptance requirements; latency and monetary targets require
+explicit execution profiles and measured operating conditions.

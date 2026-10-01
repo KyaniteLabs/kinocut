@@ -45,6 +45,8 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+# Security floors cover optional transitive packages without adding them to core.
+# BasicSR has an unpatched, unused SLURM path; see the release-candidate record.
 client = ["pillow>=12.3.0"]
 image = ["pillow>=12.3.0", "numpy>=1.26", "scikit-learn>=1.3", "webcolors>=1.13"]
 image-ai = ["pillow>=12.3.0", "numpy>=1.26", "scikit-learn>=1.3", "webcolors>=1.13", "anthropic>=0.96.0"]
@@ -55,19 +57,22 @@ audio-enhanced = ["numpy>=1.24", "scipy>=1.10", "soundfile>=0.12"]
 # integrations that pip extras cannot resolve safely — see docs/adr/0006.
 audio-ai = ["numpy>=1.24"]
 audio-midi = ["numpy>=1.24"]
-audio-analysis = ["numpy>=1.24", "librosa>=0.10", "soundfile>=0.12"]
+audio-analysis = ["numpy>=1.24", "librosa>=0.10", "soundfile>=0.12", "msgpack>=1.2.1", "urllib3>=2.8.0"]
 hyperframes = []  # External: Node.js + resolvable Hyperframes CLI
-transcribe = ["openai-whisper>=20231117"]
+transcribe = ["openai-whisper>=20231117", "torch>=2.13.0", "setuptools>=83.0.0", "urllib3>=2.8.0"]
 ai-scene = ["imagehash>=4.3", "Pillow>=12.3.0"]
-stems = ["demucs>=4.0", "torch>=2.0", "torchaudio>=2.0", "torchcodec>=0.8"]
+stems = ["demucs>=4.0", "torch>=2.13.0", "torchaudio>=2.0", "torchcodec>=0.8", "setuptools>=83.0.0"]
 object-matte = ["onnxruntime>=1.17", "numpy>=1.26", "pillow>=12.3.0"]
 upscale = [
     "realesrgan>=0.3; python_version < '3.13'",
     "basicsr>=1.4; python_version < '3.13'",
     "numpy>=2.0.0",
     "opencv-contrib-python>=4.10",
-    "torch>=2.0",
+    "torch>=2.13.0",
     "Pillow>=12.3.0",
+    "urllib3>=2.8.0",
+    "setuptools>=83.0.0",
+    "torchvision>=0.28.0; python_version < '3.13'",
 ]
 ai = [
     "openai-whisper>=20231117",
@@ -76,11 +81,14 @@ ai = [
     "basicsr>=1.4; python_version < '3.13'",
     "numpy>=2.0.0",
     "opencv-contrib-python>=4.10",
-    "torch>=2.0",
+    "torch>=2.13.0",
     "torchaudio>=2.0",
     "torchcodec>=0.8",
     "imagehash>=4.3",
     "Pillow>=12.3.0",
+    "urllib3>=2.8.0",
+    "setuptools>=83.0.0",
+    "torchvision>=0.28.0; python_version < '3.13'",
 ]
 all-ai = [
     "openai-whisper>=20231117",
@@ -89,7 +97,7 @@ all-ai = [
     "basicsr>=1.4; python_version < '3.13'",
     "numpy>=2.0.0",
     "opencv-contrib-python>=4.10",
-    "torch>=2.0",
+    "torch>=2.13.0",
     "torchaudio>=2.0",
     "torchcodec>=0.8",
     "imagehash>=4.3",
@@ -97,12 +105,18 @@ all-ai = [
     "scipy>=1.10",
     "soundfile>=0.12",
     "librosa>=0.10",
+    "msgpack>=1.2.1",
+    "urllib3>=2.8.0",
+    "setuptools>=83.0.0",
+    "torchvision>=0.28.0; python_version < '3.13'",
 ]
 audio-all = [
     "numpy>=1.24",
     "scipy>=1.10",
     "soundfile>=0.12",
     "librosa>=0.10",
+    "msgpack>=1.2.1",
+    "urllib3>=2.8.0",
 ]
 dev = [
     "pytest>=8.0",

@@ -247,6 +247,17 @@ pip install "kinocut[ai]"          # all AI extras, kept for compatibility
 pip install yt-dlp                   # only for downloading platform URLs (YouTube/Vimeo/...)
 ```
 
+AI upscaling checks both estimated and actual extracted frame counts before
+model initialization, stages final output, and rejects input/output aliases.
+Failed frame writes and source-audio extraction abort instead of publishing
+shortened or silent media.
+The default test suite verifies these admission and publication controls with
+native media and simulated inference. It does not establish model execution or
+equivalent quality between OpenCV and Real-ESRGAN. BasicSR 1.4.2 retains an
+unpatched advisory in its unused distributed initializer and a legacy import
+incompatibility with modern TorchVision; consult [fleet upgrade guidance](FLEET_UPGRADE.md)
+before enabling optional backends.
+
 ---
 
 ## Hyperframes — HTML-Native Video (18 tools)
