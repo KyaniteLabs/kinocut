@@ -77,7 +77,9 @@ def stop_runner_group(pid: int | None, lease_is_held: Callable[[], bool]) -> str
     except OSError:
         return "identity_unverified"
     if not lease_is_held():
-        return "identity_unverified"
+        # Self-stop can finish between the first group check and this lease
+        # check. Confirm that transition without signalling a reusable PID.
+        return "stopped" if group_quiescent(pid) and not lease_is_held() else "identity_unverified"
     deadline = time.monotonic() + DEFAULT_RENDER_STOP_TIMEOUT
     while time.monotonic() < deadline:
         if group_quiescent(pid) and not lease_is_held():

@@ -23,9 +23,14 @@ fcntl.flock(lease, fcntl.LOCK_EX)
 """
 
 
-def worker(tmp_path, script):
+def worker(tmp_path, script, force_fallback=False):
     path = tmp_path / "worker.py"
-    path.write_text(PRELUDE + script)
+    setup = (
+        "import kinocut.process_observation as o; o.supports_nonreaping_wait = lambda: False\n"
+        if force_fallback
+        else ""
+    )
+    path.write_text(PRELUDE + setup + script)
     # This harness owns its deadline, process session and explicit stdin.
     return subprocess.Popen(
         [sys.executable, str(path), str(tmp_path / "lease")],
@@ -47,7 +52,8 @@ def finish(process):
             process.wait(timeout=5)
 
 
-def test_native_status_payload_fd_and_thread_scope_preserved_without_normal_orphans(tmp_path):
+@pytest.mark.parametrize("force_fallback", [False, True])
+def test_native_status_payload_fd_and_thread_scope_preserved_without_normal_orphans(tmp_path, force_fallback):
     script = """
 def measure(index):
     command = [sys.executable, '-c', 'import os; print(os.getppid()); os.write(2,b"diagnostic"); raise SystemExit(23)']
@@ -63,21 +69,21 @@ with bind_worker_lease(lease.fileno()):
         data = stage.read().decode()
     try:
         run_bounded(['/definitely/missing/kinocut-command'], timeout=3)
-    except FileNotFoundError as exc:
-        missing = exc.errno
+    except Exception as exc:
+        missing = exc.code
     else:
         missing = None
     children_path = pathlib.Path(f'/proc/self/task/{os.getpid()}/children')
     children = children_path.read_text().strip() if children_path.exists() else None
 print(json.dumps(dict(rows=rows, owner=os.getpid(), signals=signals, binary=result.stdout.hex(), stdin=result.stderr.decode(), stage=data, missing=missing, children=children)))
 """
-    result = finish(worker(tmp_path, script))
+    result = finish(worker(tmp_path, script, force_fallback))
     assert all(row[0] == 23 and row[1] != result["owner"] and row[2:] == ["diagnostic", True] for row in result["rows"])
     assert result["signals"] == [-signal.SIGTERM, -signal.SIGKILL]
     assert result["binary"] == "00ff"
     assert result["stdin"] == "b''\n"
     assert result["stage"] == "stage-data"
-    assert result["missing"] == 2
+    assert result["missing"] == "ffmpeg_exit_-1"
     if result["children"] is not None:
         assert result["children"] == ""  # Native and supervisor both reaped normally.
 
@@ -92,7 +98,8 @@ def wait_for(predicate, timeout=5):
     raise AssertionError("Owned process fixture did not reach the expected state")
 
 
-def test_worker_sigkill_stops_native_and_grandchild_and_releases_lease(tmp_path):
+@pytest.mark.parametrize("force_fallback", [False, True])
+def test_worker_sigkill_stops_native_and_grandchild_and_releases_lease(tmp_path, force_fallback):
     import fcntl
 
     heartbeat, native_pid, grandchild_pid = (tmp_path / name for name in ("beat", "native", "grandchild"))
@@ -101,6 +108,7 @@ def test_worker_sigkill_stops_native_and_grandchild_and_releases_lease(tmp_path)
     process = worker(
         tmp_path,
         f"with bind_worker_lease(lease.fileno()):\n    run_bounded([sys.executable,'-c',{command!r}],timeout=40)\n",
+        force_fallback,
     )
     group = None
     try:
@@ -156,7 +164,8 @@ with bind_worker_lease(lease.fileno()):
             code = exc.code
         else:
             code = None
-print(json.dumps(dict(code=code, reset=prepare_guardian([sys.executable], ()) is None)))
+from kinocut.process_guardian_owner import _WORKER_OWNER
+print(json.dumps(dict(code=code, reset=_WORKER_OWNER is None)))
 """
     assert finish(worker(tmp_path, script)) == {"code": "process_ownership_unavailable", "reset": True}
 
@@ -165,7 +174,14 @@ def test_unleased_call_never_uses_guardian_and_invalid_worker_binding_fails():
     from kinocut.errors import MCPVideoError
     from kinocut.process_guardian_owner import bind_worker_lease, prepare_guardian
 
-    assert prepare_guardian([sys.executable], ()) is None
+    from kinocut.process_observation import supports_nonreaping_wait
+
+    guardian = prepare_guardian([sys.executable], ())
+    if supports_nonreaping_wait():
+        assert guardian is None
+    else:
+        assert guardian.retaining
+        guardian.close()
     with pytest.raises(MCPVideoError) as error, bind_worker_lease(-1):
         pytest.fail("invalid ownership entered")
     assert error.value.code == "process_ownership_unavailable"
@@ -188,6 +204,7 @@ def test_startup_protocol_malformed_or_oversized_response_fails_closed(payload):
         guardian.lease,
     }
     guardian.native_cmd = ["not-launched"]
+    guardian.status_write = -1
     try:
         os.write(guardian.error_write, payload)
         with pytest.raises(MCPVideoError) as error:

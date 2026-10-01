@@ -106,19 +106,12 @@ def test_cancellation_reaps_before_propagating_and_closes_both_pipes(monkeypatch
     def spawn(*args, **kwargs):
         process = original(*args, **kwargs)
         processes.append(process)
-        wait, first = process.wait, True
-
-        def interrupt_once(*args, **kwargs):
-            nonlocal first
-            if first:
-                first = False
-                raise KeyboardInterrupt("cancelled")
-            return wait(*args, **kwargs)
-
-        process.wait = interrupt_once
         return process
 
+    from kinocut.process_tree import ProcessTree
+
     monkeypatch.setattr(subprocess, "Popen", spawn)
+    monkeypatch.setattr(ProcessTree, "wait", lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt("cancelled")))
     with pytest.raises(KeyboardInterrupt):
         run_bounded(command("import time;time.sleep(30)"), timeout=3)
     assert processes[0].returncode is not None

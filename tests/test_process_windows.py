@@ -89,3 +89,47 @@ def test_job_errors_close_owned_handles_and_do_not_resume_unowned_child(failure)
         assert not any(call[0] == "resume" for call in kernel.calls)
     if failure == "resume":
         assert {200, 300}.issubset(kernel.closed)
+
+
+def test_unassigned_suspended_child_is_killed_by_stable_handle_before_wait(monkeypatch):
+    import io
+
+    import kinocut.process_guardian_owner as owner
+    import kinocut.process_tree as tree
+    import kinocut.process_windows as windows
+
+    calls = []
+
+    class Child:
+        pid, returncode = 123, None
+        stdout, stderr = io.BytesIO(), io.BytesIO()
+
+        def kill(self):
+            calls.append("child_handle_kill")
+            self.returncode = -9
+
+        def wait(self, timeout):
+            assert timeout is not None and self.returncode == -9
+            calls.append("child_reap")
+            return self.returncode
+
+    class UnassignedJob:
+        def attach(self, child):
+            raise MCPVideoError("Assignment refused", code="process_ownership_unavailable")
+
+        def stop(self):
+            calls.append("empty_job_stop")
+
+        def close(self):
+            pass
+
+    child = Child()
+    monkeypatch.setattr(tree, "os", SimpleNamespace(name="nt"))
+    monkeypatch.setattr(owner, "prepare_guardian", lambda *args: None)
+    monkeypatch.setattr(windows, "WindowsJob", UnassignedJob)
+    monkeypatch.setattr(tree.subprocess, "Popen", lambda *args, **kwargs: child)
+    with pytest.raises(MCPVideoError) as error:
+        tree.ProcessTree(["configured-backend"])
+    assert error.value.code == "process_ownership_unavailable"
+    assert calls == ["child_handle_kill", "empty_job_stop", "child_reap"]
+    assert child.stdout.closed and child.stderr.closed

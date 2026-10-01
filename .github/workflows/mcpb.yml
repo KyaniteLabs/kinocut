@@ -100,7 +100,9 @@ jobs:
           sudo apt-get install --yes --no-install-recommends ffmpeg
       - name: Provision FFmpeg on macOS
         if: matrix.os == 'macos'
-        run: brew install ffmpeg
+        run: |
+          brew install ffmpeg-full
+          echo "$(brew --prefix ffmpeg-full)/bin" >> "$GITHUB_PATH"
       - name: Provision FFmpeg on Windows
         if: matrix.os == 'windows'
         shell: pwsh
@@ -131,6 +133,15 @@ jobs:
                   stderr=subprocess.DEVNULL,
                   timeout=20,
               )
+          filters = subprocess.run(
+              [str(ffmpeg), "-hide_banner", "-filters"],
+              check=True,
+              capture_output=True,
+              text=True,
+              timeout=20,
+          ).stdout
+          if not any(len(row) > 1 and row[1] == "drawtext" for row in map(str.split, filters.splitlines())):
+              raise SystemExit("native ffmpeg lacks the required drawtext filter")
           env_path = os.environ.get("GITHUB_ENV")
           if not env_path:
               raise SystemExit("GITHUB_ENV is unavailable")
@@ -233,6 +244,15 @@ jobs:
                   stderr=subprocess.DEVNULL,
                   timeout=20,
               )
+          filters = subprocess.run(
+              [str(ffmpeg), "-hide_banner", "-filters"],
+              check=True,
+              capture_output=True,
+              text=True,
+              timeout=20,
+          ).stdout
+          if not any(len(row) > 1 and row[1] == "drawtext" for row in map(str.split, filters.splitlines())):
+              raise SystemExit("native ffmpeg lacks the required drawtext filter")
           env_path = os.environ.get("GITHUB_ENV")
           if not env_path:
               raise SystemExit("GITHUB_ENV is unavailable")

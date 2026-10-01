@@ -128,12 +128,22 @@ def test_layout_pip_renders_instead_of_raising(tmp_path):
     assert os.path.isfile(result)
 
 
-def test_drawtext_family_resolves_to_concrete_file():
+def test_drawtext_family_resolves_to_concrete_file(monkeypatch):
+    from kinocut.effects_engine import text as text_engine
+
+    paths = []
+    escape_path = text_engine._escape_ffmpeg_filter_path
+
+    def capture_path(path):
+        paths.append(path)
+        return escape_path(path)
+
+    monkeypatch.setattr(text_engine, "_escape_ffmpeg_filter_path", capture_path)
     option = _drawtext_font_option("Arial")
-    assert "fontfile=" in option
-    # The resolved path must exist and no longer be the fontconfig-only form.
-    path = option.split("fontfile=", 1)[1].strip("'\"")
-    assert os.path.isfile(path)
+    # Check the actual resolver input, then the unchanged filter escaping.
+    # A Windows drive colon in the filter literal is not a filesystem path.
+    assert len(paths) == 1 and os.path.isfile(paths[0])
+    assert option == f"fontfile={escape_path(paths[0])}"
 
 
 def test_drawtext_font_path_passthrough_unchanged():

@@ -7,12 +7,14 @@ import subprocess
 import threading
 import time
 
-from .defaults import DEFAULT_RENDER_STOP_TIMEOUT
-from .errors import MCPVideoError
+from .defaults import DEFAULT_RENDER_STOP_POLL_INTERVAL, DEFAULT_RENDER_STOP_TIMEOUT
+from .errors import MCPVideoError, ProcessingError
 
 
 class ProcessTree:
-    def __init__(self, cmd, *, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds=()):
+    def __init__(
+        self, cmd: list[str], *, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds: tuple[int, ...] = ()
+    ):
         from .process_windows import CREATE_SUSPENDED, WindowsJob
 
         from .process_guardian_owner import prepare_guardian
@@ -24,6 +26,8 @@ class ProcessTree:
         self.process = None
         self.lock = threading.Lock()
         self.closed = False
+        self.exitcode: int | None = None
+        self.command = cmd
         try:
             # Popen has no timeout; caller owns a deadline and waits with a timeout.
             self.process = subprocess.Popen(  # noqa: S603 - trusted argv, no shell.
@@ -39,11 +43,13 @@ class ProcessTree:
                 self.job.attach(self.process)
             if self.guardian is not None:
                 self.guardian.wait_exec()
-        except BaseException:
+        except BaseException as exc:
             try:
                 if self.process is not None:
-                    with contextlib.suppress(ProcessLookupError):
-                        self.process.kill()
+                    if os.name == "nt":
+                        self.process.kill()  # Windows handle remains stable if Job assignment failed.
+                    if self.guardian is not None and self.guardian.retaining:
+                        self.guardian.request_stop()
                     self.close()
             finally:
                 if self.guardian is not None:
@@ -54,16 +60,75 @@ class ProcessTree:
                     for pipe in (self.process.stdout, self.process.stderr):
                         if pipe is not None:
                             pipe.close()
+            if isinstance(exc, OSError):
+                raise ProcessingError("command launch", -1, "Command backend could not start") from None
             raise
+
+    def wait(self, timeout: float | None = None) -> int:
+        """Observe completion without relinquishing POSIX group authority."""
+        from .process_observation import observe_exit
+
+        process = self.process
+        if process is None:
+            raise MCPVideoError("Owned child is unavailable", code="process_ownership_unavailable")
+        if os.name != "posix":
+            return process.wait(timeout=timeout)
+        deadline = None if timeout is None else time.monotonic() + timeout
+        while True:
+            with self.lock:
+                if self.closed:
+                    result = self.exitcode if self.exitcode is not None else process.returncode
+                    if result is None:
+                        raise MCPVideoError("Owned child status is unavailable", code="process_ownership_unavailable")
+                    return result
+                if process.returncode is not None:
+                    raise MCPVideoError("Owned child was reaped outside cleanup", code="process_ownership_unavailable")
+                if self.exitcode is None:
+                    self.exitcode = (
+                        self.guardian.observe_status()
+                        if self.guardian is not None and self.guardian.retaining
+                        else observe_exit(self.process)
+                    )
+                if self.exitcode is not None:
+                    return self.exitcode
+            remaining = None if deadline is None else deadline - time.monotonic()
+            if timeout is not None and remaining is not None and remaining <= 0:
+                raise subprocess.TimeoutExpired(self.command, timeout)
+            time.sleep(
+                DEFAULT_RENDER_STOP_POLL_INTERVAL
+                if remaining is None
+                else min(DEFAULT_RENDER_STOP_POLL_INTERVAL, remaining)
+            )
 
     def _kill(self):
         if self.process is None:
             return
         if self.job is not None:
             self.job.stop()
+        elif self.guardian is not None and self.guardian.retaining:
+            if self.guardian.alive_write not in self.guardian.descriptors:
+                return
+            try:
+                pid, status = os.waitpid(self.process.pid, os.WNOHANG)
+            except ChildProcessError as exc:
+                raise MCPVideoError(
+                    "Owned supervisor was reaped outside cleanup", code="process_ownership_unavailable"
+                ) from exc
+            if pid:
+                self.process.returncode = os.waitstatus_to_exitcode(status)
+                raise MCPVideoError("Owned supervisor exited before cleanup", code="process_ownership_unavailable")
+            self.guardian.request_stop()
         else:
+            from .process_observation import observe_exit
+
+            observe_exit(self.process)
+            if self.process.returncode is not None:
+                raise MCPVideoError("Owned child was reaped outside cleanup", code="process_ownership_unavailable")
             with contextlib.suppress(ProcessLookupError):
-                os.killpg(self.process.pid, signal.SIGKILL)
+                try:
+                    os.killpg(self.process.pid, signal.SIGKILL)
+                except PermissionError as exc:
+                    raise MCPVideoError("Owned group cleanup was denied", code="process_cleanup_failed") from exc
 
     def kill(self):
         with self.lock:

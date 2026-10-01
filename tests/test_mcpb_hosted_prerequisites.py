@@ -119,7 +119,12 @@ def test_each_resolver_runs_bounded_probes_and_exports_canonical_path(
     monkeypatch.setenv("GITHUB_ENV", str(tmp_path / "github-env"))
     monkeypatch.setattr(shutil, "which", lambda name: str(ffmpeg) if name == "ffmpeg" else None)
     monkeypatch.setattr(os, "access", lambda path, mode: Path(path) in {ffmpeg, ffprobe} and mode == os.X_OK)
-    monkeypatch.setattr(subprocess, "run", lambda argv, **kwargs: calls.append((argv, kwargs)))
+
+    def run_probe(argv, **kwargs):
+        calls.append((argv, kwargs))
+        return subprocess.CompletedProcess(argv, 0, stdout=" T.C drawtext V->V text renderer\n")
+
+    monkeypatch.setattr(subprocess, "run", run_probe)
 
     sources = _resolver_sources()
     assert len(sources) == 2 and sources[0] == sources[1]
@@ -129,6 +134,7 @@ def test_each_resolver_runs_bounded_probes_and_exports_canonical_path(
     assert [call[0] for call in calls] == [
         [str(ffmpeg), "-version"],
         [str(ffprobe), "-version"],
+        [str(ffmpeg), "-hide_banner", "-filters"],
     ] * 2
     assert all(call[1]["timeout"] == 20 and call[1]["check"] is True for call in calls)
     assert (tmp_path / "github-env").read_text(encoding="utf-8") == f"MCPB_FFMPEG={ffmpeg}\n" * 2
@@ -185,3 +191,22 @@ def test_runtime_consumers_use_only_validated_ffmpeg_environment_path() -> None:
 
     assert workflow.count('--ffmpeg "$MCPB_FFMPEG"') == 2
     assert '--ffmpeg "$(command -v ffmpeg)"' not in workflow
+
+
+@pytest.mark.parametrize("source_index", [0, 1])
+def test_resolvers_reject_missing_drawtext_without_exporting_runtime_path(tmp_path, monkeypatch, source_index):
+    suffix = ".exe" if os.name == "nt" else ""
+    ffmpeg, ffprobe = (tmp_path / f"{name}{suffix}" for name in ("ffmpeg", "ffprobe"))
+    ffmpeg.write_bytes(b"ffmpeg")
+    ffprobe.write_bytes(b"ffprobe")
+    monkeypatch.setenv("GITHUB_ENV", str(tmp_path / "github-env"))
+    monkeypatch.setattr(shutil, "which", lambda _: str(ffmpeg))
+    monkeypatch.setattr(os, "access", lambda path, mode: Path(path) in {ffmpeg, ffprobe} and mode == os.X_OK)
+    monkeypatch.setattr(
+        subprocess, "run", lambda argv, **_: subprocess.CompletedProcess(argv, 0, stdout=" ... scale V->V scaler\n")
+    )
+    with pytest.raises(SystemExit, match="lacks the required drawtext"):
+        exec(  # noqa: S102 - repository-owned workflow code.
+            compile(_resolver_sources()[source_index], "mcpb-native-ffmpeg", "exec"), {}
+        )
+    assert not (tmp_path / "github-env").exists()

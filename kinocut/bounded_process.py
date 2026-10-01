@@ -41,7 +41,10 @@ class _Drain:
                 self.sink.flush()
         except BaseException as exc:
             self.errors.append(exc)
-            self.tree.kill()
+            try:
+                self.tree.kill()
+            except BaseException as cleanup:
+                self.errors.append(cleanup)
 
     def _write(self, chunk):
         remaining = memoryview(chunk)
@@ -130,7 +133,13 @@ def run_bounded(
         for drain in drains:
             drain.thread.start()
             started.append(drain)
-        returncode = process.wait(timeout=timeout)
+        try:
+            returncode = tree.wait(timeout=timeout)
+        except MCPVideoError:
+            for drain in drains:
+                if drain.errors:
+                    raise drain.errors[0] from None
+            raise
     finally:
         # Kill surviving descendants even when their leader exited successfully:
         # inherited pipes must not keep drainers alive beyond the command lifetime.
@@ -146,7 +155,7 @@ def run_bounded(
         if drain.thread.is_alive():
             raise MCPVideoError("Command pipe reader did not stop", code="process_cleanup_failed")
         if drain.errors:
-            raise drain.errors[0]
+            raise drain.errors[0] from None
     if text:
         return subprocess.CompletedProcess(cmd, returncode, drains[0].result(True), drains[1].result(True))
     return subprocess.CompletedProcess(cmd, returncode, drains[0].result(False), drains[1].result(False))

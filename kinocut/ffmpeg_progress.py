@@ -8,7 +8,7 @@ import threading
 from collections.abc import Callable
 
 from .defaults import DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT
-from .errors import ProcessingError, parse_ffmpeg_error
+from .errors import MCPVideoError, ProcessingError, parse_ffmpeg_error
 from .bounded_process import output_limit_error
 from .process_tree import ProcessTree
 from .limits import (
@@ -52,7 +52,10 @@ class _Diagnostics:
             self._progress(bytes(self.pending))
         except BaseException as exc:
             self.errors.append(exc)
-            self.tree.kill()
+            try:
+                self.tree.kill()
+            except BaseException as cleanup:
+                self.errors.append(cleanup)
 
     def _lines(self):
         while True:
@@ -89,7 +92,11 @@ def run_progress(
         reader.start()
         started = True
         try:
-            proc.wait(timeout=timeout)
+            returncode = tree.wait(timeout=timeout)
+        except MCPVideoError:
+            if diagnostics.errors:
+                raise diagnostics.errors[0] from None
+            raise
         except subprocess.TimeoutExpired:
             raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {timeout}s") from None
     except BaseException:
@@ -104,9 +111,9 @@ def run_progress(
     if reader.is_alive():
         raise ProcessingError(" ".join(cmd), -1, "FFmpeg diagnostic reader did not stop")
     if diagnostics.errors:
-        raise diagnostics.errors[0]
+        raise diagnostics.errors[0] from None
     stderr = diagnostics.prefix.decode("utf-8", errors="replace")
-    if proc.returncode != 0:
+    if returncode != 0:
         raise parse_ffmpeg_error(stderr, command=cmd)
     callback(100.0)
-    return subprocess.CompletedProcess(cmd, proc.returncode, "", stderr)
+    return subprocess.CompletedProcess(cmd, returncode, "", stderr)

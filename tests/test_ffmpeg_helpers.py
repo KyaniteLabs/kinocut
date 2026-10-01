@@ -144,6 +144,7 @@ def test_subprocess_helpers_propagate_inherited_descriptor_allowlist(monkeypatch
 def test_subprocess_helpers_never_let_ffmpeg_inherit_stdin(monkeypatch):
     """FFmpeg reads stdin for interactive keys; under an MCP stdio server stdin is the protocol channel."""
     from mcp_video import ffmpeg_helpers
+    from mcp_video.errors import ProcessingError
 
     stdins = []
 
@@ -153,13 +154,13 @@ def test_subprocess_helpers_never_let_ffmpeg_inherit_stdin(monkeypatch):
             raise OSError("stop after capturing the arguments")
 
     monkeypatch.setattr(ffmpeg_helpers.subprocess, "Popen", FakePopen)
-    with pytest.raises(OSError):
+    with pytest.raises(ProcessingError, match="Command backend could not start"):
         ffmpeg_helpers._run_command(["ffprobe", "-version"])
-    with pytest.raises(OSError):
+    with pytest.raises(ProcessingError, match="Command backend could not start"):
         ffmpeg_helpers._run_ffmpeg(["-version"])
-    with pytest.raises(OSError):
+    with pytest.raises(ProcessingError, match="Command backend could not start"):
         ffmpeg_helpers._run_ffmpeg_bytes(["-i", "in.mp4", "-f", "image2pipe", "pipe:1"])
-    with pytest.raises(OSError):
+    with pytest.raises(ProcessingError, match="Command backend could not start"):
         ffmpeg_helpers._run_ffmpeg_with_progress(["-i", "in.mp4", "out.mp4"], 1.0, lambda _: None)
 
     assert stdins == [subprocess.DEVNULL] * 4

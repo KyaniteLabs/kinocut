@@ -208,7 +208,8 @@ def test_worker_cli_rejects_caller_urls_and_paths():
         check=False,
     )
     assert result.returncode == worker.DOWNLOAD_INVALID
-    assert result.stdout == b"" and result.stderr == b"font_download_invalid\n"
+    assert result.stdout == b""
+    assert result.stderr == b"font_download_invalid" + os.linesep.encode("ascii")
 
 
 def test_actual_network_trickle_is_bounded_and_never_published(cache, monkeypatch):

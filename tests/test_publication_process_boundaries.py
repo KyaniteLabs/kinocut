@@ -288,20 +288,14 @@ def test_caller_interrupt_kills_and_reaps_actual_progress_process(monkeypatch):
     def spawn(*args, **kwargs):
         proc = real_popen(*args, **kwargs)
         processes.append(proc)
-        wait = proc.wait
-        first = True
-
-        def interrupt_once(*args, **kwargs):
-            nonlocal first
-            if first:
-                first = False
-                raise KeyboardInterrupt("caller cancelled")
-            return wait(*args, **kwargs)
-
-        proc.wait = interrupt_once
         return proc
 
+    from kinocut.process_tree import ProcessTree
+
     monkeypatch.setattr(subprocess, "Popen", spawn)
+    monkeypatch.setattr(
+        ProcessTree, "wait", lambda *a, **k: (_ for _ in ()).throw(KeyboardInterrupt("caller cancelled"))
+    )
     with pytest.raises(KeyboardInterrupt, match="caller cancelled"):
         run_progress([sys.executable, "-c", "import time; time.sleep(60)"], 60, lambda _: None, float)
     assert len(processes) == 1 and processes[0].poll() is not None

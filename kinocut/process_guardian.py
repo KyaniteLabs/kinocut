@@ -46,11 +46,12 @@ def _native_exit(returncode):
 def main():
     # All arguments are private launcher-owned protocol fields, not user options.
     owner, pipe, error, _lease = map(int, sys.argv[1:5])
-    inherited = tuple(map(int, sys.argv[5].split(",")))
-    command = sys.argv[7:]
+    inherited = tuple(map(int, sys.argv[5].split(","))) if sys.argv[5] else ()
+    status = int(sys.argv[6])
+    command = sys.argv[8:]
     group, child = os.getpid(), None
     try:
-        if sys.argv[6] != "--" or not command or os.getpgrp() != group or os.getppid() != owner or not _alive(pipe):
+        if sys.argv[7] != "--" or not command or os.getpgrp() != group or os.getppid() != owner or not _alive(pipe):
             os._exit(127)
         # Spawn before starting ANY thread; the parent's threaded code never
         # uses preexec_fn. The native child inherits controlled stdio and FDs.
@@ -61,7 +62,12 @@ def main():
         watcher.start()
         os.write(error, b"R")
         os.close(error)
-        _native_exit(child.wait())
+        returncode = child.wait()
+        if status >= 0:
+            os.write(status, b"C" + str(returncode).encode("ascii"))
+            os.close(status)
+            watcher.join()  # Parent cleanup kills this still-owned live group.
+        _native_exit(returncode)
     except OSError as exc:
         with contextlib.suppress(OSError):
             os.write(error, b"E" + str(exc.errno or errno.EIO).encode("ascii"))

@@ -107,7 +107,9 @@ def test_fallback_reduction_flushes_final_frame_and_rejects_unknown_fields():
 
 
 def test_repeated_keyboard_interrupt_still_reaps_child_and_readers(child, monkeypatch):
-    original = reader.subprocess.Popen.wait
+    from kinocut.process_tree import ProcessTree
+
+    original = ProcessTree.wait
     interruptions = 0
     before = {t.ident for t in threading.enumerate()}
 
@@ -118,7 +120,17 @@ def test_repeated_keyboard_interrupt_still_reaps_child_and_readers(child, monkey
             raise KeyboardInterrupt
         return original(process, *args, **kwargs)
 
-    monkeypatch.setattr(reader.subprocess.Popen, "wait", wait)
+    monkeypatch.setattr(ProcessTree, "wait", wait)
+    original_reap = reader.subprocess.Popen.wait
+
+    def reap(process, *args, **kwargs):
+        nonlocal interruptions
+        if interruptions < 2:
+            interruptions += 1
+            raise KeyboardInterrupt
+        return original_reap(process, *args, **kwargs)
+
+    monkeypatch.setattr(reader.subprocess.Popen, "wait", reap)
     with pytest.raises(KeyboardInterrupt):
         child("import time; time.sleep(30)")
     assert interruptions == 2

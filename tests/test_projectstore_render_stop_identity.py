@@ -33,6 +33,20 @@ def test_wait_only_controller_rejects_nonleader_identity_without_signals(monkeyp
     assert signals == []
 
 
+@pytest.mark.parametrize("final_quiescent,final_lease_held", [(True, False), (False, False), (True, True)])
+def test_worker_self_stop_between_initial_group_and_lease_checks(monkeypatch, final_quiescent, final_lease_held):
+    signals = []
+    quiescence = iter([False, final_quiescent])
+    lease = iter([False, final_lease_held])
+    monkeypatch.setattr(render_control, "group_quiescent", lambda _: next(quiescence))
+    monkeypatch.setattr(os, "getpgid", lambda pid: pid, raising=False)
+    monkeypatch.setattr(os, "killpg", lambda *args: signals.append(args), raising=False)
+    monkeypatch.setattr(os, "kill", lambda *args: signals.append(args))
+    outcome = render_control.stop_runner_group(424242, lambda: next(lease))
+    assert outcome == ("stopped" if final_quiescent and not final_lease_held else "identity_unverified")
+    assert signals == []
+
+
 def test_disappeared_worker_waits_for_inherited_guardian_lease(monkeypatch):
     signals = []
     leased = iter([True, True, True, False])
