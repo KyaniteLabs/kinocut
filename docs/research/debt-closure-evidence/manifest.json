@@ -18,6 +18,10 @@
       "sha256": "2ca518fe7059a2b4b5df3c2e07b3f1212b59eae34f654de0907879fd15c82796"
     },
     {
+      "path": "hosted-ci.json",
+      "sha256": "7723dacfc6ba4a37ea752bbf9ab04e5cb1e0860ad8c22aea736c10fa2d78ab32"
+    },
+    {
       "path": "independent-native-render-stops.json",
       "sha256": "66204f5206e6e7e1e69f5a83186e1ed1645a11e42fcddde258add543ac5d633e"
     },
@@ -151,7 +155,7 @@
     },
     {
       "path": "static-checks.json",
-      "sha256": "658ae46d20bcfdbf80e01bc9b417d0cbb285f57e31c36ebd129370cc3461324b"
+      "sha256": "70f752c62ec8ac6dc09dc7e3de1d5a4a6fda2652849b27b4e5a95436ed860c96"
     },
     {
       "path": "stop-transition-after.json",

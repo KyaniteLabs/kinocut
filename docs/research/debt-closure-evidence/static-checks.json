@@ -63,5 +63,12 @@
     "passed": 68,
     "seconds": 17.87,
     "log_sha256": "03d5bd5d34d1242f315ff959d72c794c9598646909f834cb46dbb1956564552b"
+  },
+  "final_documentation_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_public_surface.py tests/test_public_claims.py tests/test_architecture_guardrails.py tests/test_receipt_privacy.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 68,
+    "seconds": 20.71,
+    "log_sha256": "e0cee6cc08fe1b80628fc877cd6d916f3d8fcf4608bc076f5c15568b13188be5"
   }
 }

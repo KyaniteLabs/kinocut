@@ -2,11 +2,19 @@
 
 GitHub backlog review and local fixes: [September 30 report](../research/github-backlog/2026-09-30/REPORT.md).
 
-**Latest merged audit:** [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)
+**Latest audit delivery:** [PR #588](https://github.com/KyaniteLabs/kinocut/pull/588)
+fixes the18 findings in the [debt closure ledger](../research/DEBT_CLOSURE.md).
+Selected source passed8,297 tests with189skips; exact2d903f7 passed all13checks
+including native Linux/macOS/Windows and bound installed-runtime readiness.
+See that PR for final documentation-head checks and merge status.
+Paid accuracy, representative listening, human desktop review and external owner
+gates remain explicitly separate. Changes are Unreleased.
+
+**Previous merged audit:** [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)
 landed at `3db9ba9f9cad590f4c018b76091ee3c27e7106fd`. Its tested source passed
 8,013 tests with 189 skips and thirteen exact-head checks. Further resource,
 architecture and acceptance work is tracked in the
-[debt closure ledger](../research/DEBT_CLOSURE.md); pending results there are
+[debt closure ledger](../research/DEBT_CLOSURE.md); separate checkpoint results there are
 separate from the merged audit's evidence.
 
 **Published:** 1.15.3 · **201 MCP / 173 CLI** · 2026-09-25 · `docs/public_claims.json`

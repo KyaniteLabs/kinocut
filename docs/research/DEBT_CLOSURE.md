@@ -10,7 +10,7 @@ Published 1.15.3 artifacts remain distinct from these Unreleased source changes.
 | Finding | Implemented result | Acceptance |
 | --- | --- | --- |
 | Captured subprocess output | Shared bounded draining rejects oversized stdout/stderr instead of retaining arbitrary output or returning truncated JSON. Explicit sinks check their byte budget before writes. | Actual flood, exact-bound, binary, partial-sink and invalid-sink fixtures; passing serial checkpoints are recorded below. |
-| Windows process descendants | Children start suspended, enter a kill-on-close Job Object, then resume. POSIX uses owned sessions; both stop surviving descendants when the leader exits. | Actual Linux grandchild heartbeat/timeout controls plus Windows ABI controls; native hosted gate pending. |
+| Windows process descendants | Children start suspended, enter a kill-on-close Job Object, then resume. POSIX uses owned sessions; both stop surviving descendants when the leader exits. | Actual Linux grandchild heartbeat/timeout controls plus Windows ABI controls; native hosted regression gate passes below. |
 | Timeline/visual metadata disk use | FFprobe writes through an anonymous owned stdout sink with a producer byte ceiling. Packet/line/deadline limits remain. | Real flooding producer verifies disk bytes never exceed the selected budget. |
 | Publication failures and hostile paths | Missing ancestry creation is anchored and no-follow on supported POSIX systems. Directory and inode identities are checked after replacement. Observed post-publication substitutions and media/receipt split failures return explicit partial-publication errors. | Safe path, directory, inode and sidecar failure fixtures; exclusive writer ownership remains required. |
 | Render-worker layer coupling | Detached jobs invoke the existing workflow engine directly, preserving errors, cancellation, resume and lineage without importing MCP handlers. | Transport-blocked import and real missing-source error controls. |
@@ -20,7 +20,7 @@ Published 1.15.3 artifacts remain distinct from these Unreleased source changes.
 | Motion review acceptance | A separate Python Client operation records source/report-bound complete human viewing and explicit dispositions for all flagged intervals/cuts. | Calm, steady, lurch, high-rate, freeze and cut controls; partial/invalid evidence must reject. |
 | Semantic vision availability | Explicit model/key configuration enables one fixed-origin paid keyframe request in a bounded worker; absent configuration remains unavailable. | Fake HTTP and actual local child failure/deadline/cleanup controls; live provider accuracy unverified. |
 | Fabricated voice loudness | Voice batches report unmeasured loudness explicitly; callers meter the assembled master separately. Perceptual evidence rejects malformed scores and preserves provider drift. | Measured/unmeasured receipt migration and adversarial provider controls. |
-| Font download/cache correctness | Isolated allowlisted downloader has an elapsed deadline and byte caps. Parent-owned staged writes and structural SFNT/TTC validation prevent corrupt partial cache success. Windows unresolved families reject before FFmpeg. | Real truncated fonts, bounded malformed containers, hanging/flooding/trickle workers and actual Linux text renders; native hosted font gate pending. |
+| Font download/cache correctness | Isolated allowlisted downloader has an elapsed deadline and byte caps. Parent-owned staged writes and structural SFNT/TTC validation prevent corrupt partial cache success. Windows unresolved families reject before FFmpeg. | Real truncated fonts, bounded malformed containers, hanging/flooding/trickle workers and actual Linux text renders; native hosted font regression gate passes below. |
 | AI scene extraction bounds | A hard frame ceiling plus one overflow sentinel prevents inconsistent duration metadata from silently creating or accepting excess frames. Both thumbnail dimensions are bounded; malformed/nonfinite/overflowing durations reject before the producer. | Real short-clip overflow, exact-bound success, extreme-aspect and normal-aspect controls; ordinary processing fallback remains. |
 | Detached worker hard termination | A worker-scoped POSIX guardian retains the lease and kills its own native group on worker liveness-pipe EOF. The controller never signals recorded PIDs; validated live workers consume stop intent themselves. Unwatched legacy workers remain pending. | Real native FFmpeg before/after hard-kill and lease-release proofs; 80 integrated and 48 independent focused tests passed. Normal commands are reaped; abnormal zombies require host PID1 reaping. |
 | Generic POSIX process identity after completion | Nonreaping observation retains the leader until group cleanup and sole reap. Unsupported POSIX uses a live supervisor, bounded native-status pipe and self-stop on parent-only EOF. Detected external reaping refuses numeric signals; sole-reaper ownership is required. | Safe old-signal interception, native/forced-fallback status/FD/stream/descendant controls; 92 independent tests passed at the earlier integration checkpoint; final cleanup selection passed 81 with three native-Windows skips. |
@@ -121,7 +121,7 @@ retained the frozen identity above. Post-run census found no matching executing
 native media or guardian processes. Rebuilt wheel/source archive checks pass,
 with all **645 shipped Python files** matching this frozen source. Configured
 Ruff check/format covers 1,135 files; Pyright reports zero errors and warnings.
-The spawn-error review thread is resolved; current-source full/native gates remain before merge. The separate security-review
+The spawn-error review thread is resolved; subsequent current-source full/native results are recorded below. The separate security-review
 bot reports its payer's usage limit; it is not a completed security review.
 
 ## Product scope and external prerequisites
@@ -178,7 +178,7 @@ both returned five correct signalstats frames under the one-second deadline.
 These Linux forced-fallback checks supplement native macOS verification.
 That portable repair checkpoint had **1,213 selected files**:
 `aea162427e6d61ceaacaaa7c4845a471a7920e832819a09cf96f59ef5e0e3af9`.
-The current required serial gate passes below; exact-head native CI remains before merge.
+The current required serial and exact-head native gates pass below.
 
 The first serial attempt on this portable repair stopped at the public-surface
 privacy check after **4,866 passes, 152 skips and six warnings** in 1,132.10s:
@@ -213,11 +213,41 @@ The completed-run census found no matching executing native media commands or
 shipped guardians. This is the current portable/readiness repair gate; earlier
 passing and failed checkpoints remain separately identified. Current wheel and
 source archive remain content-clean, and all **645 shipped Python files** match
-the same selected source. Native exact-head CI and fresh review-thread inspection
-are the remaining repository delivery checks. External prerequisites below are
+the same selected source. Exact-head native CI passes in the following delivery checkpoint, with fresh
+review-thread inspection. External prerequisites below are
 not marked complete by this passing suite.
 
 Post-gate documentation/public-surface/architecture/privacy controls passed
 **68 tests** in17.87s. Whole configured Ruff check/format again pass for1,135
 files, and canonical import identity passes. The independent configured Pyright
 result remains zero errors/warnings on unchanged runtime source.
+
+## Exact-head hosted delivery checkpoint
+
+Head `2d903f77ee33ce371115c4fbf937e6686227b132` passed **all thirteen checks**.
+Hosted Python3.14.7/FFmpeg6.1.1-3ubuntu5 passed **8,272 tests, 50 skips and eight
+warnings** in603.58s with the unchanged bounded two-worker/file-grouped command.
+Native Linux passed **176 tests, three skips in10.51s**; macOS **174 tests, five
+skips in55.64s**; Windows **129 tests, 50 skips in8.24s**. These scoped selections
+overlap other gates and are not additive. Toolcache labels are retained; precise
+native FFmpeg patches are unverified because their version output is discarded
+and detailed artifacts are proxy-blocked.
+
+The tested generated merge `3ac617608911016a5c77415451607aa432b14d8a` and
+head share tree `f3065a317bdde62851f748890a3f5be8cc9e449b`. The inspected
+readiness receipt binds that source, archive digest
+`27e60efbcd0ccaedfb899581b5b3b5a2502f5cb5e779c7b136e975337ac2ef4a` and
+wheel digest `bd10fab06caaea98f75b667800368e08123052d27fb29e763e2cc47012294f81`,
+which also matches the locally verified645-file build. The official pinned
+validator, three clean installed runtimes, optional absent/present gates and
+validated cleanup receipts pass. This checklist came from the actual aggregate
+job log; its producer validates downloaded input receipts and prints the same
+JSON it archives. Direct artifact downloads remain unavailable. It records
+unsigned local access, human desktop review **not run** and publication **not
+attempted**. Fresh review inspection finds zero unresolved threads; the separate
+security bot's usage limit remains outside completed-review evidence.
+
+[Hosted receipt](debt-closure-evidence/hosted-ci.json) retains each check and source
+binding. The final documentation commit keeps selected source identity
+`0723d4165f26c2865b3fcf76f082a3324c9838c94b9c3bff1310c0d5f379ee0d` unchanged; its exact-head
+checks and eventual merge metadata remain observable on [PR588](https://github.com/KyaniteLabs/kinocut/pull/588).

@@ -2,7 +2,7 @@
 
 Reviewed October 1, 2026, against checkout `3db9ba9f9cad590f4c018b76091ee3c27e7106fd` on `codex/kinocut-debt-closure`. All eleven assigned GitHub issue bodies and comments were freshly read. The initial review below proposes dispositions; the later dated sections record root actions. The reviewer did not close issues, appoint owners, provision providers or authorize publication. Forgejo is excluded at the user's request.
 
-Scope is one documentation file plus isolated local verification fixtures/environments. No Git, issue, remote application or deployment changes were performed. Local evidence can be regenerated or removed without altering the product or external state. External acceptance is recorded separately from deterministic checks.
+Initial independent review scope was one documentation file plus isolated local verification fixtures/environments. That reviewer made no Git, issue, remote application or deployment changes. Subsequent root execution is recorded in the dated sections below. Local evidence can be regenerated or removed without altering the product or external state. External acceptance is recorded separately from deterministic checks.
 
 ## Independent checks performed
 
@@ -103,3 +103,9 @@ observation, public launch or desktop installation acceptance.
 ## Windows reporter confirmation (October 1)
 
 The [original issue553 reporter](https://github.com/KyaniteLabs/kinocut/issues/553#issuecomment-5930188366) re-tested published PyPI `kinocut==1.15.3` on Windows11, Python3.12 and the FFmpeg9.0.1 gyan full build using the same reproduction script. They report that default-font `text_animated` renders without the former access violation and explicitly permit closure. This is user-reported original-environment confirmation, separate from the current branch native hosted tests and from this environment's Linux measurements. The initial proposal table above predates that confirmation.
+
+## Delivery disposition — October 1
+
+PR588 verifies repository implementation and supported-scope resolution for #477, #481, #482, #485, #553 and #583. The actual aggregate readiness receipt at2d903f7 binds the official validator, archive/wheel, all three clean installed runtimes, optional absent/present behavior and verified cleanup; it was inspected through its printed job-log JSON because raw artifact downloads are proxy-blocked. Desktop human review, signing beyond unsigned local access, and publication remain distinct gates.
+
+The final delivery retains #476, #479, #487, #484, #483 and #502 for their specific external evidence/owner criteria; #499/#488 are excluded Forgejo work. The umbrella #476 still lacks current named owners for several remaining gates. A passing source gate does not invent appointments, host/media/listening evidence, site/registry observations, directory approvals or private operator readback. See PR588 and the individual issue threads for GitHub state changes and final merge metadata.

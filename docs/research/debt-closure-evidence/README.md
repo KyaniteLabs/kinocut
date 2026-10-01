@@ -70,3 +70,5 @@ its successor. Native `8328a26` failures remain explicit in the ledger. `full-se
 `portable-stdio-doc-privacy-failed-serial.json` records the rejected hosted-receipt home path and failed gate, followed by redaction and the four passing privacy controls. The raw hosted log checksum and failure counts remain unchanged.
 
 `portable-timeout-fixture-failed-serial.json` preserves the subsequent scheduler-dependent marker failure and the explicit readiness repair. Its startup allowance does not alter the0.1-second reader execution deadline or cleanup assertions.
+
+`hosted-ci.json` records thirteen successful checks at2d903f7, actual hosted/native counts and generated-merge/head tree equality. Its aggregate checklist matches the locally byte-verified wheel. Raw artifact downloads and detailed native version receipts remain unavailable; the inspected evidence comes from actual Actions ZIP logs, and human desktop review/publication remain unperformed. Runner-home paths are redacted, with original log checksums preserved. See PR588 for final documentation-head checks and merge metadata.
