@@ -1,5 +1,5 @@
 {
-  "source_identity_sha256": "fe57832a86cea67326405da24f390a8df701c9c1e24ca87776a8e4351e34697d",
+  "source_identity_sha256": "4e06562528aec90609c8a24a3976888fb99c1da833700094541544fb1ce8a831",
   "checks": [
     {
       "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py",
@@ -8,13 +8,14 @@
     {
       "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py",
       "exit_code": 0,
-      "formatted_files": 1133
+      "formatted_files": 1135
     },
     {
-      "command": "tools-venv/bin/pyright",
+      "command": "/workspace/.cache/kinocut-qa/ruff-01511/bin/pyright",
       "exit_code": 0,
       "errors": 0,
-      "warnings": 0
+      "warnings": 0,
+      "runtime_source_scope": "Runtime files unchanged since independently logged post-review Pyright zero errors/warnings; subsequent sole test expectation revision is outside Pyright configured scope"
     },
     {
       "command": "git diff --check",
@@ -37,10 +38,16 @@
     "pyright": "1.1.414"
   },
   "scope": "Maintained CI lint/type scopes; historical research scripts are not included in lint scope. No optional model execution or live-provider accuracy claim.",
+  "post_review_distribution_controls": {
+    "command": ".venv/bin/python -m pytest tests/test_mcpb*.py tests/test_kinocut_distribution.py tests/test_architecture_guardrails.py tests/test_g004_and_mcpb_product.py -q --tb=short",
+    "exit_code": 0,
+    "passed": 267,
+    "seconds": 16.16
+  },
   "post_documentation_controls": {
     "command": ".venv/bin/python -m pytest tests/test_public_surface.py tests/test_public_claims.py tests/test_architecture_guardrails.py -q --tb=short",
     "exit_code": 0,
     "passed": 64,
-    "seconds": 13.2
+    "seconds": 16.78
   }
 }

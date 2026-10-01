@@ -1,0 +1,246 @@
+{
+  "transition_outcome": "identity_unverified",
+  "group_checks_before_finalcheck": 1,
+  "actual_rows": [
+    {
+      "index": 0,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.01859378600056516,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 1,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.013832096999976784,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 2,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.042250070997397415,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 3,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.023640799001441337,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 4,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.012751444999594241,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 5,
+      "status": "running",
+      "code": "runner_stop_identity_unverified",
+      "seconds": 0.016850390002218774,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 6,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.029022571001405595,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 7,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.026048894000268774,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 8,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.01713691400073003,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 9,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.02997773400056758,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 10,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.02223427399803768,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 11,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.02487370699964231,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 12,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.04593273700083955,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 13,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.04603729100199416,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 14,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.013178350000089267,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 15,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.04349796699898434,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 16,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.02314710900100181,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 17,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.012745974996505538,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 18,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.015056548996653873,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 19,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.04573135299870046,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 20,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.01622511499954271,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 21,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.01614781399985077,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 22,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.011591738999413792,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 23,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.019385661002161214,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 24,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.05296694100252353,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 25,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.02279005500167841,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 26,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.11086932099715341,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 27,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.020837349999055732,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 28,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.019509695001033833,
+      "quiet": true,
+      "leased": false
+    },
+    {
+      "index": 29,
+      "status": "cancelled",
+      "code": null,
+      "seconds": 0.014986952002800535,
+      "quiet": true,
+      "leased": false
+    }
+  ]
+}

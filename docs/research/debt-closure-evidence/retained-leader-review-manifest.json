@@ -1,0 +1,22 @@
+{
+  "receipt": "receipt.json",
+  "reproducer": "repro.py",
+  "reproducer_exit": 0,
+  "focused_log": "focused-final.log",
+  "focused_result": "92 passed, 3 skipped in 8.58s (prior final integration; later recorded-failure exception chaining/Windows startup branch changed)",
+  "final_freeze_focused_log": "final-freeze-focused.log",
+  "final_freeze_focused_result": "81 passed, 3 skipped in 6.81s",
+  "artifact_sha256": {
+    "receipt.json": "56d1e7f4629ee4fd0e598f2204806b9350036a499050e0ee72b4c6cc3d344695",
+    "repro.py": "6b46632d0cc78181d65c39e2df904ca7d70a0ed7094148299a71805a823844af",
+    "proof.log": "cad068aea95d5c9cdadca36db0ad526eb25b8e7ad7ebb4c221948cc0f6db03cb",
+    "focused-final.log": "693ca4747e54162c58d8a30f45ecff0d70c7ffb5e332517efaaedce6cb60014f",
+    "final-freeze-focused.log": "5c523823476facc59061076c4e55f4430f423bf350a75204045ab80e331ddc69"
+  },
+  "source_hashes_verified_current": true,
+  "windows_startup_scope": "fake stable-handle control passed; real native Windows requires hosted CI",
+  "scope": "Linux native waitid and forced portable supervisor; native macOS and Windows require hosted receipts; no abnormal adopter reaping claim",
+  "independent_checkpoint_selected_source_identity": "bfca68435c881c96b8fa78d04b4b1376be58f41ea1bf71d8d95687fbba08d302",
+  "final_serial_selected_source_identity": "4e06562528aec90609c8a24a3976888fb99c1da833700094541544fb1ce8a831",
+  "process_sources_unchanged_at_final_serial_freeze": true
+}

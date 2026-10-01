@@ -3,7 +3,7 @@
   "files": [
     {
       "path": "build-source-binding.json",
-      "sha256": "e2601bce5a29cbd9cb72e2dfba465d286a04c6e6bd92528cb2ca827eaf5f45af"
+      "sha256": "75920067f15714b1634cf4bb9c336aee17af6533c88e6652e5f681f930f194fa"
     },
     {
       "path": "ci-worker-comparison.json",
@@ -11,7 +11,7 @@
     },
     {
       "path": "full-serial.json",
-      "sha256": "7b7dce8de55173204c58abadb5dea9813c5b09393184aaf1a7f29e243802940d"
+      "sha256": "907059819e5ad5ecba2594a2748ca40372e77f78ecdc46c77c36fd31f1e4e85e"
     },
     {
       "path": "guardian-live-census.json",
@@ -51,7 +51,27 @@
     },
     {
       "path": "post-full-live-census.json",
-      "sha256": "f55d19918bdd48c9a2f4172590e48ab6f6b0b2ffd5fbdcc96bd1c40f1b7483ea"
+      "sha256": "e275bd6c223ef5376cd89563fbe5f7b27285f57a245396d356fdb55441c7c05e"
+    },
+    {
+      "path": "post-review-failed-serial.json",
+      "sha256": "34231aad665c9f4129b5c4b60a910d8ec9f324834fc34cb451f75775c169b46e"
+    },
+    {
+      "path": "post-review-resolver-failed-serial.json",
+      "sha256": "390f460d189772a03117e1401ac7005fd1054e85c8d69d0c957d3b18f6bf914c"
+    },
+    {
+      "path": "pre-review-build-source-binding.json",
+      "sha256": "e2601bce5a29cbd9cb72e2dfba465d286a04c6e6bd92528cb2ca827eaf5f45af"
+    },
+    {
+      "path": "pre-review-passing-serial.json",
+      "sha256": "7b7dce8de55173204c58abadb5dea9813c5b09393184aaf1a7f29e243802940d"
+    },
+    {
+      "path": "reaped-leader-before.json",
+      "sha256": "b5a143743e700039a002765fd3de2e41766e88cd81594152cf454bfad5c0ec1d"
     },
     {
       "path": "receipt-serialization-review.json",
@@ -74,6 +94,14 @@
       "sha256": "ce4f187a00675269be81ad4d16ce79267af244edfb11f29203fe24864df426fc"
     },
     {
+      "path": "retained-leader-independent.json",
+      "sha256": "56d1e7f4629ee4fd0e598f2204806b9350036a499050e0ee72b4c6cc3d344695"
+    },
+    {
+      "path": "retained-leader-review-manifest.json",
+      "sha256": "7a25f6848a64b388fd8c03ad7d2ba27c70709a8dcc1ad8dae0e9ea1aa40405c1"
+    },
+    {
       "path": "scene-after.json",
       "sha256": "4f4dc93fdbe494e0a7c2f9cb14cdda68be9e91e604de0069cc790dce2eec3f20"
     },
@@ -87,7 +115,15 @@
     },
     {
       "path": "static-checks.json",
-      "sha256": "b44c61d4c58ac189077f29b7da13154b2e872e13a44f0349214f5d73c517d197"
+      "sha256": "db10388307290b85857dcf1918e07fadc1944cfbab724fbbdb0eba33af97e95a"
+    },
+    {
+      "path": "stop-transition-after.json",
+      "sha256": "4ac2ff2d11d378300c43e13d919ce5cb1fabce492c9c940f1f5198ee478ccff5"
+    },
+    {
+      "path": "stop-transition-before.json",
+      "sha256": "4825a4da6c9e5d616fc87c1f693af505866a7fe6650a5e1b8faecf9c9322a61d"
     }
   ]
 }

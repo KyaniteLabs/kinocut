@@ -1,0 +1,32 @@
+{
+  "cases": [
+    {
+      "fallback": false,
+      "status_stream_stdin_passfd_errno": true,
+      "early_leader_exit_descendant_quiescence": true,
+      "timeout_descendant_quiescence": true,
+      "leader_identity_retained_until_cleanup": true,
+      "normal_leader_reaped": true
+    },
+    {
+      "fallback": true,
+      "status_stream_stdin_passfd_errno": true,
+      "early_leader_exit_descendant_quiescence": true,
+      "timeout_descendant_quiescence": true,
+      "leader_identity_retained_until_cleanup": true,
+      "normal_leader_reaped": true
+    }
+  ],
+  "external_reap_no_numeric_signal": true,
+  "source_sha256": {
+    "kinocut/process_tree.py": "123d84950dbf702c7aae3e67ed6a37788729b602147716ee329a6982a0b18594",
+    "kinocut/process_observation.py": "0dd9ba9aeceae40fc4f76cad7749697c9058a296e3c12bec4657f830979dde1e",
+    "kinocut/process_guardian.py": "f9d3855095c582a20e187c700d9918df80b93955aad1370b065ded990b4eaee8",
+    "kinocut/process_guardian_owner.py": "7ce52c0ecc6a071c3d8615ad4340f2c629e7bb1c90e233cdde2c288151272a6b",
+    "kinocut/bounded_process.py": "e5125b114836cc4430ad33623e44d01d442bf25cca8479126fad94b02da4cc23",
+    "kinocut/ffmpeg_progress.py": "be30f8982363fc09d79915cc731c9a7e3c784a33fa1d925d7be5a4df54e43bf7",
+    "kinocut/quality_signal_reader.py": "a543a418e85b9359ccaae754f72aa542f2b9a54949a3e3cb2f2def6f5b971f49"
+  },
+  "scope": "actual Linux subprocesses; forced fallback executes portable supervisor protocol but does not substitute for native macOS hosted receipt",
+  "abnormal_orphan_reaping_claim": false
+}

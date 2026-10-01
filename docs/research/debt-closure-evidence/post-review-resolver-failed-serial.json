@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/workspace/kinocut/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 706.0985467690007,
+  "source_identity_sha256": "7977532a34e308be5358da7bed5facd5ed1942a2a4c983eab8f904ef5eaf0948",
+  "source_unchanged": true,
+  "file_count": 1213,
+  "passed": 3566,
+  "failed": 1,
+  "skipped": 146,
+  "warnings": 6,
+  "pytest_seconds": 701.96,
+  "log_sha256": "f2d5b328b8e4dd135608810732af3b60800d81845d591bb1a35767b748e139bb",
+  "failure": "Core toolchain resolver added drawtext requirement but optional lane still used older duplicate resolver",
+  "resolution": "Apply the same bounded drawtext probe to both lanes; preserve identical resolver contract; add missing-filter rejection on both; all 267 MCPB/distribution/architecture tests passed"
+}

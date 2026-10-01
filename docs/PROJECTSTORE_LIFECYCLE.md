@@ -109,6 +109,11 @@ retain their PID and typed stop error for retry or reconciliation.
 POSIX commands launched by the dedicated worker run under a guardian that holds
 the inherited job lease and staged descriptors. A parent-only liveness pipe stops
 the guardian's own private group when the worker dies, including on hard kill.
+Generic POSIX command completion retains the unreaped leader until owned-group
+cleanup. Hosts without nonreaping wait support retain a live supervisor, use a
+bounded private native-status pipe, and stop through parent-only EOF before reap.
+Detected external reaping rejects numeric group signals. This requires sole-reaper
+ownership: callers must not concurrently reap the owned child outside cleanup.
 Normal native commands and their guardians are reaped by their live parents.
 Abnormal shutdown can leave nonexecuting zombies for host PID1 to reap; a
 non-reaping host does not acquire a guarantee of zero retained PID slots.

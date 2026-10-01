@@ -6,6 +6,15 @@ Kinocut adds a durable **edit project** kernel without changing public tools. Ph
 
 Async jobs use persistent states `queued`, `running`, `succeeded`, `failed`, and `cancelled`. The later detached **render runner** (never “worker”) wraps `video_workflow_render` with `keep_intermediates=True` and reuses its spec-hash/per-step-hash resume cursor; synchronous workflow rendering remains unchanged. Receipt lineage adds `edit_project_id`, `revision_id`, `job_id`, `source_digests`, `output_digest`, and `toolchain_fingerprint`. Phase 1 admits only `revision.created`, `render.completed`, and `quality.gate.failed` events.
 
+## Current detached execution clarification
+
+The original transport-wrapper decision above is historical. The current
+`projectstore.render_runner` invokes `workflow.executor.render_workflow` directly
+with `keep_intermediates=True`, retaining typed failures, resume cursors and
+lineage without importing MCP handlers. The public noun remains render runner;
+“worker” in the lifecycle/security sections names its dedicated executing
+process, not a new public API or project type.
+
 ## Domain language and relationship
 
 A **creation project** belongs to `creation_engine.py`; a **Hyperframes project** belongs to `hyperframes_engine.py`; an **edit project** is the durable kernel identity, using API noun `edit_project_*` without a v1 alias. A Tool follows **Tool → (Engine | kernel-compile)**: legacy tools delegate 1:1 to an Engine; durable editing paths compile typed operations into the kernel. Existing path-in/path-out tools remain compatibility adapters unless a product path graduates them.

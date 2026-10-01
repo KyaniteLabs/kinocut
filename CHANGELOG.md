@@ -27,7 +27,7 @@ This project follows a simple release-note style:
 
 ### Changed
 
-- Detached render jobs call the workflow engine directly, preserving typed failures, cancellation, resume and lineage while removing MCP transport imports. Three-trial same-host import medians changed from 0.847s before repair to 0.452s initially and 0.401s in the final check; rendering throughput is unmeasured.
+- Detached render jobs call the workflow engine directly, preserving typed failures, cancellation, resume and lineage while removing MCP transport imports. Three-trial same-host import medians changed from 0.847s before repair to 0.452s initially and 0.401s in the pre-review guardian checkpoint; rendering throughput is unmeasured.
 - PR safety tests use bounded two-worker file grouping with unchanged selection, assertions and JUnit reporting. The same 257-case baseline measured 204.2s serial versus 112.4s with two workers; full-suite speed is not inferred.
 - ASR reuses same-job verified PCM instead of decoding identical WAV bytes twice. Sound policy constants are centralized with compatible aliases and static package exports, resolving thirteen maintenance TODOs.
 - Voice-batch receipts expose `loudness=null` and `loudness_assessment_status="not_evaluated"` instead of fabricated -16 LUFS/-1 dBTP compliance. Measured receipt paths retain their evidence; consumers needing loudness must meter the assembled master.
@@ -44,6 +44,8 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- POSIX command completion retains the unreaped leader until owned-group shutdown; platforms without nonreaping wait support keep a live supervisor and report native status through a bounded private pipe. Cleanup refuses externally reaped identities, preserves original overflow/callback errors, and bounds signal-reader joins. Spawn failures now return redacted typed processing errors instead of raw OS exceptions. Windows startup failure still stops an unassigned suspended child through its stable handle.
+- Render cancellation rechecks group quiescence and the lease when shutdown completes during initial verification, avoiding a false pending identity error. Native CI provisions a drawtext-enabled macOS FFmpeg; Windows fixtures check raw font paths and exact platform diagnostics while retaining real render/decode assertions.
 - Detached-worker media commands retain their job lease under a parent-liveness guardian, so hard worker termination stops native FFmpeg and ordinary descendants instead of leaving processing alive. Normal commands are reaped. Controllers never signal reusable recorded PIDs: current workers consume stop intent themselves; unresponsive legacy workers remain pending until shutdown is proven. Abnormal zombies still require host PID1 reaping.
 - Shared FFmpeg command runners enforce captured stdout/stderr and binary-output ceilings while draining; overflow rejects instead of returning truncated success. Sink writes reject invalid byte counts. POSIX sessions and Windows kill-on-close Jobs clean up owned descendants, including children whose leader exits successfully.
 - Timeline and black-measurement metadata use owned stdout sinks with byte checks before disk writes; existing packet, line and deadline bounds remain.

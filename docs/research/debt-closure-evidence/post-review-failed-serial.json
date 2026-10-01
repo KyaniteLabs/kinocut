@@ -1,0 +1,24 @@
+{
+  "command": [
+    "/workspace/kinocut/.venv/bin/python",
+    "-m",
+    "pytest",
+    "tests/",
+    "-x",
+    "-q",
+    "--tb=short"
+  ],
+  "exit_code": 1,
+  "wall_seconds": 609.9009141799979,
+  "source_identity_sha256": "bfca68435c881c96b8fa78d04b4b1376be58f41ea1bf71d8d95687fbba08d302",
+  "source_unchanged": true,
+  "file_count": 1213,
+  "passed": 2142,
+  "failed": 1,
+  "skipped": 143,
+  "warnings": 6,
+  "pytest_seconds": 606.55,
+  "log_sha256": "7754f12e6f5bb69c0009ae520aedfefcc915093f71418e763497bd819c42d8bc",
+  "failure": "test_subprocess_helpers_never_let_ffmpeg_inherit_stdin retained stale raw OSError expectation after reviewed typed/redacted launch repair",
+  "resolution": "Preserve all four DEVNULL stdin assertions and require ProcessingError; focused helper/process selection 54 passed"
+}

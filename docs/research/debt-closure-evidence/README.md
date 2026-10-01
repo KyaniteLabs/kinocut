@@ -46,3 +46,17 @@ working location; the accompanying JSON is retained here for inspection.
 review and merge results are added only after those actions finish.
 Paid-provider accuracy, desktop installation, representative episode listening
 and private operator state remain outside these local receipts.
+
+Post-review controls retain the safely intercepted reaped-leader signal and
+independent retained-identity/native-status proof. Stop-transition receipts record
+one actual pre-fix cancellation race and 30 confirmed post-fix repetitions.
+`pre-review-passing-serial.json` and `pre-review-build-source-binding.json` remain
+explicit earlier passing checkpoints, not evidence for subsequent repairs.
+
+`post-review-failed-serial.json` records the stale raw-spawn expectation and
+its correction without weakening stdin isolation. `retained-leader-review-manifest.json`
+records the final independent cleanup selection and source hashes; referenced
+large logs remain in the original local cache.
+
+`post-review-resolver-failed-serial.json` preserves the asymmetric CI resolver
+failure, its repair and the complete 267-test MCPB/distribution/architecture gate.

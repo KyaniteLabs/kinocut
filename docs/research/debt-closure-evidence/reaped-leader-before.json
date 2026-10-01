@@ -1,0 +1,13 @@
+{
+  "actual_completed_pid": 440230,
+  "actual_exit_status": 0,
+  "actual_kernel_child_reaped": true,
+  "close_attempted_signals": [
+    [
+      440230,
+      9
+    ]
+  ],
+  "signal_intercepted": true,
+  "actual_pid_reuse_forced": false
+}
