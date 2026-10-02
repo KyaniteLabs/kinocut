@@ -387,3 +387,24 @@ jobs:
           }
           publish_if_new server.json
           publish_if_new compat/mcp-video-shim/server.json
+      - name: Verify prospective public claims after publication
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+          import tomllib
+
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          with tempfile.TemporaryDirectory(prefix="kinocut-publication-", dir=os.environ["RUNNER_TEMP"]) as directory:
+              claims = Path(directory) / "claims.json"
+              claims.write_text(json.dumps({"published_version": version}))
+              result = subprocess.run(
+                  [sys.executable, "scripts/verify_published_claims_live.py", "--claims", str(claims)],
+                  stdin=subprocess.DEVNULL, timeout=180, check=False,
+              )
+              raise SystemExit(result.returncode)
+          PY
