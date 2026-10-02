@@ -29,7 +29,7 @@ This project follows a simple release-note style:
 - Python `Client.record_motion_acceptance` records a separate source/report-bound whole-film human-viewing attestation, complete coverage and purposeful-motion/intended-cut dispositions. Invalid or unresolved evidence cannot grant acceptance (#583).
 - Explicit `KINOCUT_VISION_MODEL` plus `ANTHROPIC_API_KEY` enables one bounded Anthropic keyframe request through an isolated standard-library worker. No default model, retry or request occurs from SDK installation alone; results cover sampled frames, with live provider accuracy separately unverified.
 - Whole-package module/function size guardrails cover both runtime packages, including newly added subsystems.
-- Optional MCPB icon packaging accepts only a referenced `icon.png` with bounded regular-file, PNG-structure and archive-inventory validation. No placeholder artwork is bundled; approved artwork and actual Desktop-host acceptance remain separate.
+- Optional MCPB icon packaging accepts only a referenced `icon.png` with bounded regular-file, PNG-structure and archive-inventory validation, using the shared resource limits. No placeholder artwork is bundled; approved artwork and actual Desktop-host acceptance remain separate.
 
 - Missing FFmpeg encoders and filters return bounded structured dependency advisories through existing processing errors. Suggested alternatives require an intentional caller decision; no codec substitution or dependency installation occurs.
 - Native Gemini CLI MCP setup examples and an on-demand extended agent guide, with host data-egress boundaries and installed-schema discovery.

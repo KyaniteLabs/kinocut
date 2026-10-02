@@ -20,13 +20,15 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from kinocut.errors import MCPVideoError  # noqa: E402
+from kinocut.limits import (  # noqa: E402
+    MAX_MCPB_ICON_BYTES as MAX_ICON_BYTES,
+    MAX_MCPB_ICON_DIMENSION as MAX_ICON_DIMENSION,
+)
 
 MCPB_DIR = ROOT / "mcpb"
 VERSION = "1.16.0"
 MEMBERS = ("README.md", "manifest.json", "server/launcher.js")
 ICON_MEMBER = "icon.png"
-MAX_ICON_BYTES = 1_048_576
-MAX_ICON_DIMENSION = 4096
 TOP_LEVEL_KEYS = {
     "$schema",
     "manifest_version",
