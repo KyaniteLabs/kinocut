@@ -149,5 +149,15 @@ MAX_AUDIO_MIX_JSON_BYTES = 65_536
 
 # JSON file admission limits for local operator planning and review routes.
 MAX_CLI_JSON_ARTIFACT_BYTES = 1_048_576
+# Motion producer: at most duration+1 one-second windows, three findings per
+# window plus copied review items, and frame-bounded transitions/gaps. These
+# conservative wire budgets cover compact and standard indent=2 JSON, including
+# finite float representations and fixed schema keys. Keep in sync with the
+# producer's window width/fields; arbitrary padding is intentionally bounded.
+MAX_MOTION_REPORT_JSON_BYTES = 65_536 + (MAX_VIDEO_DURATION + 1) * 3072 + MAX_TEMPORAL_INSPECTION_FRAMES * 1024
+# Each disposition contains a fixed SHA-256 review ID and a closed short value;
+# watched intervals contain two bounded finite numbers. Allow formatting slack.
+MAX_MOTION_DISPOSITIONS_JSON_BYTES = 4096 + 3 * MAX_TEMPORAL_INSPECTION_FRAMES * 128
+MAX_MOTION_WATCHED_INTERVALS_JSON_BYTES = 4096 + MAX_TEMPORAL_INSPECTION_FRAMES * 128
 MAX_POST_RESCUE_REQUEST_BYTES = 4_194_304
 MAX_JSON_ARTIFACT_DEPTH = 128

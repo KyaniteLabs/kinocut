@@ -17,14 +17,14 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     parser.add_argument("input_path", help="The unchanged film inspected and viewed by the reviewer")
     report = parser.add_mutually_exclusive_group(required=True)
     report.add_argument("--report-json", help="Exact chronological motion report JSON (inline)")
-    report.add_argument("--report-file", help="Exact motion report UTF-8 JSON file (maximum 1 MiB)")
+    report.add_argument("--report-file", help="Exact motion report UTF-8 JSON file (bounded for longform reports)")
     parser.add_argument("--reviewer-id", required=True, help="Explicit human reviewer ID (human:<id>)")
     parser.add_argument("--source-sha256", required=True, help="Source hash explicitly reviewed by the caller")
     parser.add_argument("--report-sha256", required=True, help="Canonical digest of the exact reviewed report")
-    parser.add_argument(
-        "--watched-intervals-json", required=True, help="Explicit whole-film watched intervals JSON array"
-    )
-    parser.add_argument(
-        "--dispositions-json", required=True, help="Disposition for every flagged review ID, as JSON object"
-    )
+    watched = parser.add_mutually_exclusive_group(required=True)
+    watched.add_argument("--watched-intervals-json", help="Explicit whole-film watched intervals JSON array")
+    watched.add_argument("--watched-intervals-file", help="Bounded UTF-8 JSON watched intervals file")
+    dispositions = parser.add_mutually_exclusive_group(required=True)
+    dispositions.add_argument("--dispositions-json", help="Disposition for every flagged review ID, as JSON object")
+    dispositions.add_argument("--dispositions-file", help="Bounded UTF-8 JSON dispositions file")
     parser.add_argument("--verdict", required=True, choices=("accept", "reject"))

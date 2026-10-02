@@ -134,7 +134,10 @@ watch the complete assembled film. Python `Client.record_motion_acceptance(...)`
 development MCP `video_record_motion_acceptance`, and CLI `record-motion-acceptance`
 record the separate source/report-bound viewing attestation and dispositions.
 CLI accepts either inline `--report-json JSON` or `--report-file PATH` (UTF-8 JSON,
-maximum 1 MiB);
+bounded for longform producer output). Watched intervals and dispositions also
+support `--watched-intervals-file` and `--dispositions-file` instead of their
+inline JSON flags. File admission uses dedicated producer/evidence-count byte
+caps; inline JSON retains its 1 MiB cap and OS argument limits;
 incomplete viewing or an unresolved `needs_fix` cannot grant acceptance. See
 `docs/QUALITY_EVIDENCE.md`. The receipt records a human attestation, not a score
 that proves someone watched or approved the film. MCP/CLI nest the hashed receipt

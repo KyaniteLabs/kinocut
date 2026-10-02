@@ -106,9 +106,16 @@ def _register_review_commands(runner: CommandRunner) -> None:
         _out(r, j, lambda res: f"review_run {res['verdict']} ({len(res['findings'])} findings)")
 
     def _review_decide(a: Any, j: bool) -> None:
+        from kinocut.errors import MCPVideoError
         from kinocut.watching import decide_review
 
         run = load_json_artifact(a.review_run_json, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
+        if not isinstance(run, dict):
+            raise MCPVideoError(
+                "Review artifact must be a JSON object.",
+                error_type="validation_error",
+                code="invalid_review_run",
+            )
         if run.get("artifact_kind") == "360_assembly_plan":
             from kinocut.te import decide_sphere_plan, render_sphere_plan
 

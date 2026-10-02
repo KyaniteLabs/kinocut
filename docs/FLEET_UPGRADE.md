@@ -106,6 +106,37 @@ restart time, doctor/smoke result and rollback outcome. Roll out in bounded
 batches only after the canary passes. Stop on failure and restore the prior
 version/configuration using that consumer's normal deployment mechanism.
 
+## Replacing an earlier build with the same version
+
+A consumer already reporting `1.16.0` may still have an earlier candidate's
+bytes. An actual pip fixture retained the old wheel after a successful
+`pip install --upgrade` of the newer same-version wheel. Version output and
+`pip check` alone therefore do not establish that it runs the final build.
+
+Prefer a fresh environment built from the verified published release and the
+consumer's reviewed dependency lock and configured extras. For an approved
+in-place repair, explicitly replace canonical package bytes, then resolve the
+approved pins and configured extras against the final metadata before restarting:
+
+```bash
+/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==1.16.0'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.0'
+/path/to/environment/bin/python -m pip check
+```
+
+Use the equivalent existing `Scripts` interpreter on Windows. Include the
+consumer's configured extras and other approved pins in dependency resolution;
+`--no-deps` only replaces package bytes and does not establish a valid dependency
+graph. Legacy consumers still need the joint shim upgrade and final canonical
+ownership repair above. Do not blindly reinstall a GPU dependency graph.
+
+Verify the installed distribution against the final artifact or source commit,
+not an earlier candidate receipt. Editable/source installations must switch to
+the verified tag or commit through their normal deployment mechanism. Check
+launcher-managed environments separately; a repaired global installation does
+not replace a cached `uvx` environment. Record the actual running interpreter,
+restart and smoke-test evidence before calling a consumer upgraded.
+
 ## Current verification boundary
 
 The prior repair work is merged, with its tests and external requirements in

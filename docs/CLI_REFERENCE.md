@@ -27,9 +27,13 @@ arbitrary source path in place of a stored asset.
 
 Development `record-motion-acceptance INPUT` records an explicit caller attestation:
 provide either inline `--report-json JSON` or `--report-file PATH` (UTF-8 JSON,
-maximum 1 MiB), plus `--reviewer-id human:ID`, `--source-sha256`,
-`--report-sha256`, `--watched-intervals-json`, `--dispositions-json`, and
-`--verdict accept|reject`. These JSON arguments contain the exact report, complete
+bounded for the producer's four-hour/18,000-frame reports), plus
+`--reviewer-id human:ID`, `--source-sha256`, `--report-sha256`, and
+`--verdict accept|reject`. Supply watched intervals with either
+`--watched-intervals-json` or `--watched-intervals-file`, and dispositions with
+either `--dispositions-json` or `--dispositions-file`. File inputs use dedicated
+producer/count-derived byte caps and depth/UTF-8/regular-file admission; inline
+JSON retains its 1 MiB cap and the OS argument limit. These inputs contain the exact report, complete
 watched intervals, and every flagged interval's disposition. The receipt is nested
 under `receipt`; `attestation_verified_by_system` remains false. Agents must not
 invent viewing or act as human reviewers. This does not grant release approval.

@@ -78,7 +78,12 @@ join Python `Client.record_motion_acceptance`. Supply the exact `report`,
 `input_path`, `reviewer_id`, `source_sha256`, `report_sha256`, complete
 `watched_intervals`, flagged-interval `dispositions`, and `verdict` (`accept` or
 `reject`). CLI requires either inline `--report-json JSON` or bounded
-`--report-file PATH` (UTF-8 JSON, maximum 1 MiB). The result nests the content-hashed `receipt`. This is an explicit
+`--report-file PATH` (UTF-8 JSON, sized for bounded longform producer output).
+Watched intervals and dispositions likewise accept mutually exclusive inline
+`--watched-intervals-json` / `--dispositions-json` or bounded
+`--watched-intervals-file` / `--dispositions-file` inputs. Use files when these
+artifacts exceed OS argument limits; file caps derive from producer/evidence
+counts while inline JSON keeps its 1 MiB cap. The result nests the content-hashed `receipt`. This is an explicit
 caller attestation: `attestation_verified_by_system=false`, not authenticated
 proof of viewing or release approval. Agents must never invent the human inputs.
 

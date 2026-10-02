@@ -8,7 +8,7 @@ import pytest
 
 from kinocut.cli.handlers_motion_acceptance import handle_motion_acceptance_commands
 from kinocut.errors import MCPVideoError
-from kinocut.limits import MAX_CLI_JSON_ARTIFACT_BYTES
+from kinocut.limits import MAX_CLI_JSON_ARTIFACT_BYTES, MAX_MOTION_REPORT_JSON_BYTES
 from tests.test_motion_acceptance_surfaces import _arguments, _cli_args, _parser
 
 
@@ -56,7 +56,7 @@ def test_bad_report_file_fails_before_review_without_echoing_private_content(tmp
     path = tmp_path / "private-report.json"
     if case == "oversize":
         with path.open("wb") as handle:
-            handle.truncate(MAX_CLI_JSON_ARTIFACT_BYTES + 1)
+            handle.truncate(MAX_MOTION_REPORT_JSON_BYTES + 1)
     elif case == "invalid":
         path.write_text('{"private-secret":', encoding="utf-8")
     elif case == "utf8":

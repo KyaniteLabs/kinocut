@@ -26,8 +26,17 @@ Build the local artifact without publishing:
 python3 scripts/build-mcpb.py
 ```
 
-The script validates Kinocut's manifest invariants, audits the exact three regular archive members,
-and writes a SHA-256-bound build receipt. The locked official validator runs separately in CI.
+The script validates Kinocut's manifest invariants, audits the exact referenced regular archive
+members, and writes a SHA-256-bound build receipt. The current manifest has three members;
+no icon is included. The locked official validator runs separately in CI.
+
+Optional approved artwork can be added as `mcpb/icon.png` with top-level manifest
+`"icon": "icon.png"`. The builder accepts only that bundle-relative name, a confined
+regular non-symlink file, at most 1 MiB, and PNG structure with dimensions from 1 to
+4096 pixels per side. Validation checks PNG headers, chunk boundaries and CRCs;
+it does not decode pixels. Source and archive checks reject missing, unreferenced
+or invalid icon entries. These checks do not establish visual approval or Desktop-host
+acceptance; the staged publication gates below still apply.
 
 ```text
 dist/kinocut-1.16.0.mcpb
