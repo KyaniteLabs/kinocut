@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import hashlib
+import logging
 from pathlib import Path, PurePosixPath
 from typing import Any
 
@@ -10,8 +11,11 @@ from kinocut.engine_repurpose import _release_checkpoint
 from kinocut.errors import MCPVideoError
 from kinocut.workflow.planner import _hash_if_exists
 from kinocut.workflow.spec import load_spec, parse_spec
+from kinocut.workflow.receipt import _sanitize_message, _write_receipt
 from . import store
-from .render_jobs import get_render_job, job_spec_path
+from .render_jobs import get_render_job, job_receipt_path, job_spec_path
+
+logger = logging.getLogger(__name__)
 
 
 def _unavailable() -> MCPVideoError:
@@ -65,8 +69,46 @@ def enforce_repurpose_release_policy(project: store.Project, job_id: str, receip
     head = get_render_job(project, job_id)
     if head.created_by != "tool:repurpose":
         return receipt
+    pending = dict(receipt, status="in_progress", repurpose_release={"status": "pending"})
+    _persist_release_receipt(project, job_id, pending)
+    try:
+        return _evaluate_release_policy(project, job_id, receipt, head.workflow_spec_digest)
+    except Exception as exc:
+        logger.warning("Repurpose release evaluation failed", exc_info=True)
+        error = (
+            exc.to_dict()
+            if isinstance(exc, MCPVideoError)
+            else {"type": "processing_error", "code": "internal_error", "message": "Release evaluation failed"}
+        )
+        error = {key: error[key] for key in ("type", "code", "message")}
+        error["message"] = _sanitize_message(error["message"], project.root)
+        pending.update(status="failed", repurpose_release={"status": "failed", "error": error})
+        _persist_release_receipt(project, job_id, pending)
+        raise
+
+
+def _persist_release_receipt(project: store.Project, job_id: str, receipt: dict[str, Any]) -> None:
+    path = job_receipt_path(project, job_id)
+    try:
+        _write_receipt(receipt, str(path), project.root)
+    except Exception as exc:
+        logger.warning("Repurpose release receipt publication failed", exc_info=True)
+        try:
+            path.unlink(missing_ok=True)
+        except OSError:
+            logger.warning("Repurpose release receipt withdrawal failed", exc_info=True)
+        raise MCPVideoError(
+            "Repurpose release receipt could not be persisted; inspect job status before using outputs",
+            error_type="processing_error",
+            code="repurpose_release_receipt_failed",
+        ) from exc
+
+
+def _evaluate_release_policy(
+    project: store.Project, job_id: str, receipt: dict[str, Any], spec_digest: str
+) -> dict[str, Any]:
     spec_path = job_spec_path(project, job_id)
-    if "sha256:" + hashlib.sha256(spec_path.read_bytes()).hexdigest() != head.workflow_spec_digest:
+    if "sha256:" + hashlib.sha256(spec_path.read_bytes()).hexdigest() != spec_digest:
         raise _unavailable()
     spec = parse_spec(load_spec(spec_path))
     policy = spec.repurpose_release_policy
@@ -92,7 +134,7 @@ def enforce_repurpose_release_policy(project: store.Project, job_id: str, receip
         evidence["outputs"].append(item)
     if any(_hash_if_exists(path, {}) != digest for _, path, digest in bound + sources):
         raise _unavailable()
-    if "sha256:" + hashlib.sha256(spec_path.read_bytes()).hexdigest() != head.workflow_spec_digest:
+    if "sha256:" + hashlib.sha256(spec_path.read_bytes()).hexdigest() != spec_digest:
         raise _unavailable()
     if policy.include_release_checkpoint:
         evidence["status"] = "passed"

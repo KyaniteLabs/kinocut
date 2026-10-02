@@ -61,6 +61,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Match the documented motion-review CLI receipt envelope and accept bounded report files beyond operating-system argument limits. Durable repurpose receipts remain pending during release evaluation and record typed failure evidence on quality/binding rejection, preserving rendered-step hashes and resume progress. Receipt inspection exposes the post-render failure; failed receipt writes withhold the advertised artifact where withdrawal is possible.
 - Return typed validation errors from staged artifact selection, and report publisher verification timeouts as a clear processing error with a nonzero exit and temporary-file cleanup.
 - Verify prospective publication claims on the existing publisher runner after registry writes. The live checker uses a temporary claims file and preserves failures without prematurely changing tracked public status or adding another hosted job.
 - Include the canonical sound package in Docker builds and execute `sound-capabilities` in the built image. A safe representative build reproduced a wheel with no sound modules and a missing-module CLI failure; the repaired context contains all 156 sound entries and returns capability metadata in a fresh environment.

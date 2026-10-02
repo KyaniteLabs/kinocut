@@ -36,7 +36,15 @@ def _job(tmp_path, monkeypatch, **options):
         "steps": [{"id": "resize_out0", "status": "completed", "output_hash": digest}],
     }
     render_jobs.mark_running(project, job.job_id, 424242)
-    monkeypatch.setattr(render_runner, "render_workflow", lambda **_: receipt)
+
+    def completed_workflow(**kwargs):
+        # The real engine persists completed rendering before the job's release policy runs.
+        from kinocut.workflow.receipt import _write_receipt
+
+        _write_receipt(receipt, kwargs["save_receipt"], project.root)
+        return receipt
+
+    monkeypatch.setattr(render_runner, "render_workflow", completed_workflow)
     return project, ack, receipt, output
 
 
@@ -63,6 +71,11 @@ def test_worker_applies_quality_before_terminal_success(tmp_path, monkeypatch, s
     assert head.status.value == outcome
     if outcome == "failed":
         assert head.error_code == "quality_gate_failed"
+        result = json.loads((project.root / ack["clips"][0]["receipt_ref"]).read_text())
+        assert result["status"] == "failed"
+        assert result["repurpose_release"]["status"] == "failed"
+        assert result["repurpose_release"]["error"]["code"] == "quality_gate_failed"
+        assert result["steps"][0]["status"] == "completed"
     else:
         result = json.loads(render_jobs.job_receipt_path(project, ack["job_id"]).read_text())
         assert result["repurpose_release"]["status"] == "passed"
@@ -120,6 +133,9 @@ def test_missing_changed_or_unbound_outputs_fail_closed(tmp_path, monkeypatch, d
         path.write_text(json.dumps(spec))
     assert render_runner.run_job(project, ack["job_id"]) == "failed"
     assert render_jobs.get_render_job(project, ack["job_id"]).error_code == "repurpose_release_evidence_invalid"
+    persisted = json.loads(render_jobs.job_receipt_path(project, ack["job_id"]).read_text())
+    assert persisted["status"] == "failed"
+    assert persisted["repurpose_release"]["error"]["code"] == "repurpose_release_evidence_invalid"
 
 
 @pytest.mark.parametrize("score", [True, False, float("nan"), float("inf"), -1, 101, 10**1000, "not a score"])
@@ -187,3 +203,57 @@ def test_artifact_changed_during_checkpoint_cannot_succeed(tmp_path, monkeypatch
     monkeypatch.setattr(gate, "_release_checkpoint", replace_during_checkpoint)
     assert render_runner.run_job(project, ack["job_id"]) == "failed"
     assert render_jobs.get_render_job(project, ack["job_id"]).error_code == "repurpose_release_evidence_invalid"
+
+
+@pytest.mark.parametrize("fail_write", [1, 2])
+def test_receipt_publication_failure_withholds_completed_claim(tmp_path, monkeypatch, fail_write):
+    project, ack, original, _ = _job(tmp_path, monkeypatch)
+    writer = gate._write_receipt
+    writes = 0
+
+    def fail_publication(receipt, path, workspace):
+        nonlocal writes
+        writes += 1
+        if writes == fail_write:
+            raise OSError("safe fixture publication failure")
+        writer(receipt, path, workspace)
+
+    def reject(*args):
+        raise MCPVideoError("below threshold", error_type="quality_error", code="quality_gate_failed")
+
+    monkeypatch.setattr(gate, "_write_receipt", fail_publication)
+    monkeypatch.setattr(gate, "_release_checkpoint", reject)
+    assert render_runner.run_job(project, ack["job_id"]) == "failed"
+    assert render_jobs.get_render_job(project, ack["job_id"]).error_code == "repurpose_release_receipt_failed"
+    assert not (project.root / ack["clips"][0]["receipt_ref"]).exists()
+    assert original["status"] == "completed"  # caller-owned receipt is unchanged
+
+
+def test_real_render_quality_rejection_persists_failed_release_receipt(sample_video, tmp_path, monkeypatch):
+    ack = durable_repurpose(sample_video, str(tmp_path / "project"), platforms=["instagram-post"], start=False)
+    project = open_project(tmp_path / "project")
+    path = project.root / ack["clips"][0]["receipt_ref"]
+    render_jobs.mark_running(project, ack["job_id"], 424242)
+
+    def reject_after_real_render(*args):
+        pending = json.loads(path.read_text())
+        assert pending["status"] == "in_progress"
+        assert pending["repurpose_release"]["status"] == "pending"
+        raise MCPVideoError("below threshold", error_type="quality_error", code="quality_gate_failed")
+
+    monkeypatch.setattr(gate, "_release_checkpoint", reject_after_real_render)
+    assert render_runner.run_job(project, ack["job_id"]) == "failed"
+    failed = json.loads(path.read_text())
+    assert failed["status"] == "failed"
+    assert failed["repurpose_release"]["error"]["code"] == "quality_gate_failed"
+    assert failed["steps"][0]["status"] == "completed"
+    assert failed["resume_cursor"]["last_completed_step"] == failed["steps"][0]["id"]
+    output = project.root / ack["clips"][0]["output"]
+    assert failed["outputs"][0]["output_hash"] == "sha256:" + hashlib.sha256(output.read_bytes()).hexdigest()
+    assert str(tmp_path) not in json.dumps(failed)
+    from kinocut.workflow import inspect_receipt
+
+    inspection = inspect_receipt(str(path))
+    assert inspection["status"]["overall"] == "failed"
+    assert inspection["status"]["error"]["code"] == "quality_gate_failed"
+    assert inspection["status"]["failed_step"] is None  # rendering passed; the post-render policy failed

@@ -77,7 +77,8 @@ Development `video_record_motion_acceptance` and CLI `record-motion-acceptance`
 join Python `Client.record_motion_acceptance`. Supply the exact `report`,
 `input_path`, `reviewer_id`, `source_sha256`, `report_sha256`, complete
 `watched_intervals`, flagged-interval `dispositions`, and `verdict` (`accept` or
-`reject`). The result nests the content-hashed `receipt`. This is an explicit
+`reject`). CLI requires either inline `--report-json JSON` or bounded
+`--report-file PATH` (UTF-8 JSON, maximum 1 MiB). The result nests the content-hashed `receipt`. This is an explicit
 caller attestation: `attestation_verified_by_system=false`, not authenticated
 proof of viewing or release approval. Agents must never invent the human inputs.
 

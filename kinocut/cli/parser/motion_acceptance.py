@@ -15,7 +15,9 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         ),
     )
     parser.add_argument("input_path", help="The unchanged film inspected and viewed by the reviewer")
-    parser.add_argument("--report-json", required=True, help="Exact chronological motion report JSON")
+    report = parser.add_mutually_exclusive_group(required=True)
+    report.add_argument("--report-json", help="Exact chronological motion report JSON (inline)")
+    report.add_argument("--report-file", help="Exact motion report UTF-8 JSON file (maximum 1 MiB)")
     parser.add_argument("--reviewer-id", required=True, help="Explicit human reviewer ID (human:<id>)")
     parser.add_argument("--source-sha256", required=True, help="Source hash explicitly reviewed by the caller")
     parser.add_argument("--report-sha256", required=True, help="Canonical digest of the exact reviewed report")

@@ -81,7 +81,9 @@ def _invoke(route, arguments, capsys):
             raise MCPVideoError(result["error"]["message"], code=result["error"]["code"])
         return result["receipt"]
     assert handle_motion_acceptance_commands(_cli_args(arguments), use_json=True)
-    return json.loads(capsys.readouterr().out)
+    envelope = json.loads(capsys.readouterr().out)
+    assert set(envelope) == {"receipt"}
+    return envelope["receipt"]
 
 
 @pytest.mark.parametrize("route", ["mcp", "cli"])
