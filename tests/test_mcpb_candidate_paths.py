@@ -5,6 +5,8 @@ from pathlib import Path
 
 import pytest
 
+from kinocut.errors import MCPVideoError
+
 ROOT = Path(__file__).resolve().parents[1]
 SPEC = importlib.util.spec_from_file_location("mcpb_candidate_paths", ROOT / ".github/scripts/mcpb-artifact-paths.py")
 assert SPEC is not None and SPEC.loader is not None
@@ -33,8 +35,9 @@ def test_selects_the_actual_project_version_instead_of_a_release_literal(tmp_pat
 def test_stale_extra_artifact_fails_closed(tmp_path: Path, suffix: str) -> None:
     project = _candidate(tmp_path)
     (tmp_path / f"kinocut-0.0.1.{suffix}").write_bytes(b"old")
-    with pytest.raises(ValueError, match="exactly one"):
+    with pytest.raises(MCPVideoError, match="exactly one") as error:
         MODULE.candidate_paths(tmp_path, project)
+    assert error.value.error_type == "validation_error"
 
 
 @pytest.mark.parametrize("suffix", ["whl", "mcpb"])
@@ -42,8 +45,9 @@ def test_old_version_as_the_only_artifact_fails_closed(tmp_path: Path, suffix: s
     project = _candidate(tmp_path)
     original = next(tmp_path.glob(f"*.{suffix}"))
     original.rename(tmp_path / f"kinocut-0.0.1.{suffix}")
-    with pytest.raises(ValueError, match="versions disagree"):
+    with pytest.raises(MCPVideoError, match="versions disagree") as error:
         MODULE.candidate_paths(tmp_path, project)
+    assert error.value.error_type == "validation_error"
 
 
 def test_workflow_passes_the_selected_pair_through_every_native_lane() -> None:
@@ -62,5 +66,6 @@ def test_filename_cannot_inject_an_additional_github_output(tmp_path: Path) -> N
         wheel.rename(tmp_path / bad_name)
     except OSError:
         pytest.skip("platform rejects newline-containing filenames")
-    with pytest.raises(ValueError, match="versions disagree"):
+    with pytest.raises(MCPVideoError, match="versions disagree") as error:
         MODULE.candidate_paths(tmp_path, project)
+    assert error.value.error_type == "validation_error"

@@ -398,13 +398,23 @@ jobs:
           import tempfile
           import tomllib
 
+          from kinocut.errors import MCPVideoError
+
           version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
           with tempfile.TemporaryDirectory(prefix="kinocut-publication-", dir=os.environ["RUNNER_TEMP"]) as directory:
               claims = Path(directory) / "claims.json"
               claims.write_text(json.dumps({"published_version": version}))
-              result = subprocess.run(
-                  [sys.executable, "scripts/verify_published_claims_live.py", "--claims", str(claims)],
-                  stdin=subprocess.DEVNULL, timeout=180, check=False,
-              )
+              try:
+                  result = subprocess.run(
+                      [sys.executable, "scripts/verify_published_claims_live.py", "--claims", str(claims)],
+                      stdin=subprocess.DEVNULL, timeout=180, check=False,
+                  )
+              except subprocess.TimeoutExpired:
+                  error = MCPVideoError(
+                      "Publication claims verification timed out after 180 seconds; verify providers before updating public claims.",
+                      error_type="processing_error", code="publication_verification_timeout",
+                  )
+                  print(json.dumps(error.to_dict()), file=sys.stderr)
+                  raise SystemExit(1) from None
               raise SystemExit(result.returncode)
           PY

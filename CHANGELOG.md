@@ -61,6 +61,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Return typed validation errors from staged artifact selection, and report publisher verification timeouts as a clear processing error with a nonzero exit and temporary-file cleanup.
 - Verify prospective publication claims on the existing publisher runner after registry writes. The live checker uses a temporary claims file and preserves failures without prematurely changing tracked public status or adding another hosted job.
 - Include the canonical sound package in Docker builds and execute `sound-capabilities` in the built image. A safe representative build reproduced a wheel with no sound modules and a missing-module CLI failure; the repaired context contains all 156 sound entries and returns capability metadata in a fresh environment.
 - Repair canonical console-script ownership after pip replaces older compatibility shims. Safe fixtures reproduced a missing `mcp-video` executable despite `pip check` success; publishing validates upgrades from both 1.6.0 and 1.6.14, reinstalls the canonical wheel without changing resolved dependencies, and verifies all three aliases before and after new-shim removal. Migration instructions include the same explicit repair.
