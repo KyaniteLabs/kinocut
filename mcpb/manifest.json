@@ -75,5 +75,6 @@
       "node": ">=18"
     }
   },
-  "tools_generated": true
+  "tools_generated": true,
+  "icon": "icon.png"
 }

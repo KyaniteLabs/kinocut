@@ -13,6 +13,8 @@ This project follows a simple release-note style:
 
 ## 1.16.0 - 2026-10-01 (release candidate; not published)
 
+- Include the approved 512px KinoCut icon in the bounded MCPB archive and source distribution; lettering, public branding cutover and Desktop import acceptance remain separate gates.
+
 - Align existing operator routes: MCP/CLI audio mixing, CLI ducking/HLS, explicit human motion receipts, 360 intent/review controls, and Python operation estimates. Candidate surface: 203 MCP tools / 177 CLI commands.
 - Persist and enforce MCP repurpose quality/checkpoint policy before durable job success; changed inputs, outputs or frozen policy invalidate evidence.
 - Share trim/frame sampling, conversion bitrate/two-pass and normalization controls across Python, CLI and MCP. Explicit zero timestamps remain supported.

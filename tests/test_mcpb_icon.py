@@ -160,7 +160,9 @@ def test_archive_icon_must_match_manifest_and_pass_bounded_admission(tmp_path, c
 
     builder = _builder()
     manifest = builder._load_manifest()
-    if case != "unreferenced":
+    if case == "unreferenced":
+        manifest.pop("icon", None)
+    else:
         manifest["icon"] = "icon.png"
     bundle = tmp_path / "icon.mcpb"
     with zipfile.ZipFile(bundle, "w", compression=zipfile.ZIP_DEFLATED) as archive:

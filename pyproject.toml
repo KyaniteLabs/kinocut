@@ -225,6 +225,9 @@ only-include = [
     "/server.json",
 ]
 
+[tool.hatch.build.targets.sdist.force-include]
+"mcpb/icon.png" = "mcpb/icon.png"
+
 [tool.pytest.ini_options]
 markers = [
     "slow: marks tests as slow (real-media integration tests)",

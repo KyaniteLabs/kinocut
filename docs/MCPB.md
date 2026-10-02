@@ -27,8 +27,9 @@ python3 scripts/build-mcpb.py
 ```
 
 The script validates Kinocut's manifest invariants, audits the exact referenced regular archive
-members, and writes a SHA-256-bound build receipt. The current manifest has three members;
-no icon is included. The locked official validator runs separately in CI.
+members, and writes a SHA-256-bound build receipt. The current manifest has four members, including the approved 512px RGBA
+`icon.png`. The icon SHA-256 is
+`541b4e617c6fecb74a1e3ef065785b17952b500fa45fe9b1c5b3467293e37863`. The locked official validator runs separately in CI.
 
 Optional approved artwork can be added as `mcpb/icon.png` with top-level manifest
 `"icon": "icon.png"`. The builder accepts only that bundle-relative name, a confined

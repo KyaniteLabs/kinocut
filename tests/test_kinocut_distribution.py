@@ -221,6 +221,7 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     # MCPB operator docs stay in-repo (docs/MCPB.md) but are not shipped under /docs/
     # in the sdist — publish artifact checks forbid that path.
     assert {"/mcpb", "/scripts/build-mcpb.py"} <= sdist_includes
+    assert project["tool"]["hatch"]["build"]["targets"]["sdist"]["force-include"] == {"mcpb/icon.png": "mcpb/icon.png"}
     assert "/docs/MCPB.md" not in sdist_includes
     assert "/kinocut_sound" in sdist_includes
     assert '["-m", "kinocut", "--mcp"]' in launcher
@@ -249,7 +250,8 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
     bundle = out_dir / f"kinocut-{KINOCUT_VERSION}.mcpb"
     assert bundle.is_file()
     with zipfile.ZipFile(bundle) as archive:
-        assert sorted(archive.namelist()) == ["README.md", "manifest.json", "server/launcher.js"]
+        assert sorted(archive.namelist()) == ["README.md", "icon.png", "manifest.json", "server/launcher.js"]
+        assert archive.read("icon.png") == (ROOT / "mcpb/icon.png").read_bytes()
         packed_manifest = json.loads(archive.read("manifest.json"))
     assert packed_manifest == manifest
 
