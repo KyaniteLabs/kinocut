@@ -10,7 +10,7 @@ MCP (Model Context Protocol) is a standard protocol that lets AI agents like Cla
 
 ## Is Kinocut on the MCP Registry?
 
-Kinocut's canonical identifier is `io.github.KyaniteLabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry latest endpoint](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) returned HTTP 403 during the September 30, 2026 verification, so its current listing version is unverified. PyPI, npm and the product site report published 1.15.3 (September 25, 2026); GitHub's latest release entry still reports 1.15.0. These publication surfaces can differ.
+Kinocut's canonical identifier is `io.github.KyaniteLabs/kinocut`, with release metadata in `server.json`. The official canonical MCP Registry, PyPI, npm and GitHub latest release report 1.16.0 (verified 2026-10-02); shim 1.6.15 pins kinocut1.16.0. Site metadata last verified 1.15.3 on 2026-10-01; site owner update/rendered acceptance and fleet rollout remain pending. Historical September30 verification found MCP Registry403 and GitHub latest1.15.0. Publication surfaces can differ; Forgejo issue tracking is excluded; canonical website source remains Forgejo.
 
 ## Which AI agents work with Kinocut?
 
@@ -76,7 +76,7 @@ Kinocut covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered me
 
 ## Can it edit Insta360 X4 360 video?
 
-Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.15.3`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.16.0`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## What are the cinematic creation tools?
 
@@ -88,7 +88,7 @@ Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection
 
 ## Can I cut a product out of a turntable or tabletop video?
 
-Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.15.3** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.16.0** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 
 ## Is it free?
 

@@ -16,7 +16,7 @@ On **2026-07-10**, the project’s public identity became **Kinocut**.
 
 ## Compatibility (current on the 1.14.x+ line)
 
-- `pip install mcp-video` still works via a shim that installs Kinocut.
+- `pip install mcp-video` still works via the published `mcp-video==1.6.15` shim that installs `kinocut==1.16.0`; the rename date and prior release pairs remain historical.
 - `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported during the window.
 - New integrations should use `kinocut`, `from kinocut import Client`, and `kino`.
 

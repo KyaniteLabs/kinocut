@@ -1,9 +1,8 @@
 # Platform parity: current support and proposed service architecture
 
-This development checkout improves operator parity across local MCP, CLI, and
+Published 1.16.0 improves operator parity across local MCP, CLI, and
 Python interfaces. It does not implement mobile apps or a hosted processing
-service. Published 1.15.3 has **201 MCP tools / 173 CLI commands**; development
-has **203 / 177**. Public counts do not establish backend availability or quality.
+service. Published 1.16.0 and the matching development checkout have **203 MCP tools / 177 CLI commands**. Public counts do not establish backend availability or quality.
 
 ## Current support and evidence
 
@@ -11,13 +10,13 @@ has **203 / 177**. Public counts do not establish backend availability or qualit
 | --- | --- | --- |
 | Windows, macOS, Linux | Local Python package, CLI and stdio MCP; cross-platform MCPB validation matrix | FFmpeg and optional engines must be installed. [Packaging matrix](../.github/workflows/mcpb.yml), [dependencies](../pyproject.toml), [diagnostics](../kinocut/doctor.py). Matrix configuration is not proof every optional engine works on every host. |
 | MCP agent | Local tool execution and structured results | [`kino --mcp`](../kinocut/__main__.py) calls `mcp.run()` with its default stdio transport. [App construction](../kinocut/server_app.py) does not configure a service authentication boundary. |
-| CLI operator | Local editing, planning, QC and review adapters | [Parser](../kinocut/cli/parser/__init__.py), [handlers](../kinocut/cli/handlers_intent.py). Development adds `mix-audio`, `duck-audio`, `record-motion-acceptance`, `hls-segment`, and controls on existing commands. |
+| CLI operator | Local editing, planning, QC and review adapters | [Parser](../kinocut/cli/parser/__init__.py), [handlers](../kinocut/cli/handlers_intent.py). Published 1.16.0 adds `mix-audio`, `duck-audio`, `record-motion-acceptance`, `hls-segment`, and controls on existing commands. |
 | Python pipeline | Direct in-process engine adapters | [Client](../kinocut/client/__init__.py), [base](../kinocut/client/base.py). This is not a remote-service SDK. |
 | Browser | Static video/timeline review HTML | [Review surface](../kinocut/multipliers/review_ui.py). No complete upload/edit/render application or authenticated processing service is implemented here. |
 | Android and iOS | No native client implementation identified in repository inspection | Python/FFmpeg/Node/optional AI requirements do not establish arbitrary native execution on a phone. |
 | Remote processing | Immutable egress, retention, approval, selection and receipt contracts | [Remote API](../kinocut/remote/api.py) and [adapters](../kinocut/remote/adapters.py) explicitly implement fake-only mapping. Real upload, provider execution and shared worker/client journeys remain unimplemented. |
 
-Development also exposes `video_mix_audio` and `video_record_motion_acceptance`.
+Published 1.16.0 also exposes `video_mix_audio` and `video_record_motion_acceptance`.
 Frame extraction uses the same omitted-timestamp policy across interfaces;
 CLI goal/source compilation and explicit 360 review use existing shared engines.
 The estimator in [Client](../kinocut/client/estimates.py), MCP

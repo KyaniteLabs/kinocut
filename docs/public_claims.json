@@ -6,11 +6,11 @@
     "kinocut",
     "mcp-video"
   ],
-  "published_version": "1.15.3",
-  "published_date": "2026-09-25",
+  "published_version": "1.16.0",
+  "published_date": "2026-10-02",
   "release_candidate_version": "1.16.0",
-  "published_mcp_tools": 201,
-  "published_cli_commands": 173,
+  "published_mcp_tools": 203,
+  "published_cli_commands": 177,
   "development_mcp_tools": 203,
   "development_cli_commands": 177,
   "registry_id": "io.github.KyaniteLabs/kinocut",
@@ -25,6 +25,7 @@
     "release_candidate_version tracks the package version on master (equals published after cutover).",
     "development_* counts describe the current repository tip (master).",
     "Never present development counts as a published PyPI version when they diverge.",
-    "Release providers checked 2026-09-30: PyPI and npm report 1.15.3; live kinocut.dev JSON-LD and llms.txt report 1.15.3. GitHub releases/latest reports 1.15.0; MCP Registry could not be verified because its request returned 403. Package publication does not imply every release provider is aligned."
+    "Release providers checked 2026-09-30: PyPI and npm report 1.15.3; live kinocut.dev JSON-LD and llms.txt report 1.15.3. GitHub releases/latest reports 1.15.0; MCP Registry could not be verified because its request returned 403. Package publication does not imply every release provider is aligned.",
+    "Release verification 2026-10-02: PyPI kinocut, npm kinocut, GitHub latest release and canonical MCP Registry report 1.16.0; PyPI mcp-video 1.6.15 metadata pins kinocut==1.16.0 and forwards canonical extras. Site metadata last verified 1.15.3 on 2026-10-01; 1.16.0 site update and rendered acceptance remain pending owner action. Forgejo issue tracking excluded; canonical website source remains Forgejo. Package publication does not establish fleet, model or human-review acceptance."
   ]
 }

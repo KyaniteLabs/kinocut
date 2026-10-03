@@ -13,15 +13,16 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.15.3 (2026-09-25)
-- **Last-updated:** 2026-09-30
-- **Published surface (1.15.3):** 201 MCP tools / 173 CLI commands
-- **Development checkout:** 203 MCP tools / 177 CLI commands; unreleased behavior differs from the published package. Read CHANGELOG.md before assuming a new behavior is available in pip.
+- **Latest published release:** 1.16.0 (2026-10-02)
+- **Last-updated:** 2026-10-02
+- **Published surface (1.16.0):** 203 MCP tools / 177 CLI commands
+- **Development checkout:** 203 MCP tools / 177 CLI commands; matches published 1.16.0 at release. Future Unreleased work stays separate.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
 - **Product site:** https://kinocut.dev/
-- **Live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
+- **Historical live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
+- **Release identity check (2026-10-02):** PyPI/npm/GitHub release/canonical MCP Registry report 1.16.0; shim 1.6.15 metadata pins kinocut1.16.0. Site last verified 1.15.3; site owner update/rendered acceptance and fleet work remain pending. Forgejo issue tracking excluded; canonical website source remains Forgejo.
 - **Not:** hosted cloud editor, credit-metered SaaS, untyped FFmpeg shell wrapper
 
 ## Install
@@ -52,12 +53,13 @@ Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
 Compatibility:
 
 ```bash
-pip install --upgrade mcp-video   # published 1.6.14 shim → kinocut 1.15.3
+pip install --upgrade 'mcp-video==1.6.15'   # published 1.6.15 shim → kinocut 1.16.0
+pip install --force-reinstall --no-deps 'kinocut==1.16.0'
 ```
 
-Candidate: 1.6.15 shim → kinocut 1.16.0 (not published). Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
+Published: 1.6.15 shim → kinocut 1.16.0. Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
 
-The published compatibility shim is 1.6.14. Compatibility names are preserved;
+The published compatibility shim is 1.6.15. Compatibility names are preserved;
 new integrations should use kinocut, kino and `from kinocut import Client`.
 
 Published identity is maintained in `docs/public_claims.json`.

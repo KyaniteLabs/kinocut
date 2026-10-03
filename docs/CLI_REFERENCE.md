@@ -1,7 +1,6 @@
 # CLI Reference
 
-Development checkout: **203 MCP tools / 177 CLI commands**. Published 1.15.3:
-**201 MCP tools / 173 CLI commands**. The additions below require this checkout.
+Published 1.16.0 and its matching development checkout: **203 MCP tools / 177 CLI commands**. Future development additions remain separately marked.
 
 ```
 kino [command] [options]
@@ -25,7 +24,7 @@ Use `--format json` before the command for the same JSON-compatible envelope ret
 MCP and Python. Preflight and inspection never create a missing project and never accept an
 arbitrary source path in place of a stored asset.
 
-Development `record-motion-acceptance INPUT` records an explicit caller attestation:
+Published 1.16.0 `record-motion-acceptance INPUT` records an explicit caller attestation:
 provide either inline `--report-json JSON` or `--report-file PATH` (UTF-8 JSON,
 bounded for the producer's four-hour/18,000-frame reports), plus
 `--reviewer-id human:ID`, `--source-sha256`, `--report-sha256`, and
@@ -56,9 +55,8 @@ inspection, decision, protection, derivative, and re-review sequence.
 
 ## Intent, review, and cutfiles
 
-Published surface (since 1.14.1; current 1.15.3). The existing intent/review commands
-gain goal compilation and 360 handling in the
-development checkout; there is no separate `kino 360` command.
+Published surface (since 1.14.1; current 1.16.0). The existing intent/review commands
+gain goal compilation and 360 handling in published 1.16.0; there is no separate `kino 360` command.
 
 | Command | Description |
 |---------|-------------|
@@ -125,7 +123,7 @@ obtain the human decision before invoking acceptance. Rendering rechecks source 
 | `templates` | List available video templates |
 | `template` | Apply a video template (tiktok, youtube-shorts, etc.) |
 | `repurpose-plan` | Create a dry-run platform package manifest |
-| `repurpose` | Render local platform-ready variants and review artifacts. Default `--min-score` is 80. Pass `--min-score 0` or `--skip-release-checkpoint` to skip the hard gate. Candidate MCP `video_repurpose` is a durable job and applies `min_score` before job success; its frozen checkpoint policy is enforced by the worker. Historical 1.15.3 did not enforce this policy. |
+| `repurpose` | Render local platform-ready variants and review artifacts. Default `--min-score` is 80. Pass `--min-score 0` or `--skip-release-checkpoint` to skip the hard gate. Published 1.16.0 MCP `video_repurpose` is a durable job and applies `min_score` before job success; its frozen checkpoint policy is enforced by the worker. Historical 1.15.3 did not enforce this policy. |
 | `shorts-plan-show` | Show proposals from a saved shorts plan (source-free) |
 | `shorts-review` | Append a human review decision to a saved shorts plan |
 | `shorts-render` | Render approved platform drafts from a saved shorts plan |
@@ -380,7 +378,7 @@ snapshot. Missing still artifacts are errors.
 
 Hyperframes project paths may be relative or absolute. Relative paths are resolved once against the caller's working directory before the command is executed.
 
-## Revideo commands (development tip)
+## Revideo commands
 
 ```bash
 kino revideo-materialize DEST --job-json JSON [--scene-source PATH]

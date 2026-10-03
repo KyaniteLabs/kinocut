@@ -1,9 +1,6 @@
 # Fleet upgrade to Kinocut 1.16.0
 
-1.16.0 is a release candidate. PyPI and npm last verified published version is
-1.15.3; the candidate compatibility installer is `mcp-video==1.6.15`. Do not run
-the package upgrade commands below until the new versions are verified on their
-registries. A merge, successful build, or saved cloud setup draft does not update
+1.16.0 is published (verified 2026-10-02 on PyPI/npm/GitHub release/canonical MCP Registry); the matching published compatibility installer is `mcp-video==1.6.15`. This verifies package publication, not fleet rollout. Use the owned consumer environment, configured extras and reviewed upgrade/restart plan below. A merge, successful build, or saved cloud setup draft does not update
 an installed package or a running MCP process.
 
 ## Inventory and rollout
@@ -75,7 +72,7 @@ the shim is replaced. The new metadata-only shim owns no console scripts;
 after repair, removing it preserves all three aliases. If removing an older
 shim directly, perform the same canonical reinstall before relying on any alias.
 Update and commit dependency locks through the consumer repository's normal
-workflow. The candidate raises security floors for nine previously affected dependencies, including optional Pillow, and updates affected optional Torch/audio dependencies with their compatible GPU graph. BasicSR retains an unpatched advisory in an unused distributed path; legacy Real-ESRGAN import/inference and GPU driver compatibility need separate acceptance. Refresh the consumer lock instead of retaining affected transitive pins. Source-installed consumers must use the verified release tag/commit.
+workflow. The release raises security floors for nine previously affected dependencies, including optional Pillow, and updates affected optional Torch/audio dependencies with their compatible GPU graph. BasicSR retains an unpatched advisory in an unused distributed path; legacy Real-ESRGAN import/inference and GPU driver compatibility need separate acceptance. Refresh the consumer lock instead of retaining affected transitive pins. Source-installed consumers must use the verified release tag/commit.
 
 For a `uvx` MCP configuration, pin the package explicitly:
 
@@ -86,7 +83,7 @@ For a `uvx` MCP configuration, pin the package explicitly:
 The npm launcher also pins a separate `uvx` Python environment. Updating a global
 Python package alone does not update it. Upgrade its configured npm package to
 `kinocut@1.16.0`, then verify the launched CLI version. A version-matched MCPB
-requires its own candidate artifact, readiness receipt and host installation;
+requires its own matching artifact, readiness receipt and host installation;
 do not reuse a 1.15.3 bundle or imply Desktop acceptance from CI checks.
 
 After the controlled restart, verify the exact interpreter used by the service:

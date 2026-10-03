@@ -8,7 +8,7 @@ Selected source passed8,297 tests with189skips; exact2d903f7 passed all13checks
 including native Linux/macOS/Windows and bound installed-runtime readiness.
 See that PR for final documentation-head checks and merge status.
 Paid accuracy, representative listening, human desktop review and external owner
-gates remain explicitly separate. Changes are Unreleased.
+gates remain explicitly separate. 1.16.0 is published; future changes remain Unreleased.
 
 **Previous merged audit:** [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)
 landed at `3db9ba9f9cad590f4c018b76091ee3c27e7106fd`. Its tested source passed
@@ -17,22 +17,24 @@ architecture and acceptance work is tracked in the
 [debt closure ledger](../research/DEBT_CLOSURE.md); separate checkpoint results there are
 separate from the merged audit's evidence.
 
-**Published:** 1.15.3 · **201 MCP / 173 CLI** · 2026-09-25 · `docs/public_claims.json`
+**Published:** 1.16.0 · **203 MCP / 177 CLI** · 2026-10-02 · `docs/public_claims.json`
 
-**Development candidate:** 1.16.0 · **203 MCP / 177 CLI** (candidate changes are not published). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Development candidate:** 1.16.0 · **203 MCP / 177 CLI** (matches the published release at cutover). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;
 full-episode and listening acceptance require separate evidence. See the
 [supported-scope amendment](../research/debt-closure-operations.md).
 
+**Release provider verification (2026-10-02):** PyPI/npm/GitHub latest release/canonical MCP Registry report 1.16.0; shim 1.6.15 forwards canonical extras and pins 1.16.0. Site last verified 1.15.3; site update/rendered acceptance and fleet rollout remain separate owner work. Forgejo issue tracking excluded; canonical website source remains Forgejo.
+
 **Default agent path:** doctor/info → `video_intent` (`goal=` compiles a cutfile; a 360/desk/table goal also proposes a `360_assembly_plan`) → review → render → QC → human review. Operator guide: [360_ASSEMBLY.md](../360_ASSEMBLY.md).
 
 **Human residuals:** directories #88 and launch #90. GitHub Dependabot is canonical; the old Forgejo Renovate-token gate is superseded and those tokens must not be provisioned for Kinocut ([HUMAN_GATES](../HUMAN_GATES.md)). First-10 **closed**. MCPB unsigned is the selected `user-configured-local-access` path; its exact-digest hosted and desktop-install gates remain distinct. Real X4 dogfood is optional; synthetic 2:1 fixtures cover the compiler.
 
-**Provider verification (2026-09-30):** PyPI and npm report **1.15.3**; live kinocut.dev JSON-LD and llms.txt also report **1.15.3**. GitHub `releases/latest` reports **1.15.0**. The MCP Registry request returned **403**, so its current version is unverified. These checks do not prove every provider is aligned or every site page is visually correct.
+**Historical provider verification (2026-09-30):** PyPI and npm report **1.15.3**; live kinocut.dev JSON-LD and llms.txt also report **1.15.3**. GitHub `releases/latest` reports **1.15.0**. The MCP Registry request returned **403**, so its current version is unverified. These checks do not prove every provider is aligned or every site page is visually correct.
 
-**Fresh site verification (2026-10-01, 22:58 UTC):** certificate-verified homepage
+**Historical site verification (2026-10-01, 22:58 UTC):** certificate-verified homepage
 and llms requests returned 200 for the disclosed verification client and confirmed
 the published 1.15.3 stamp. [Response digests and client limits](../proofs/2026-10-01-published-site-verification.md)
 supersede the earlier blocked observations for issue #479. Candidate 1.16.0,
