@@ -13,6 +13,8 @@ This project follows a simple release-note style:
 
 ## 1.16.0 - 2026-10-01 (release candidate; not published)
 
+- Accept the approved optional icon in MCPB readiness aggregation while requiring every runtime/optional receipt to match the exact allowlisted build inventory.
+
 - Apply the approved colored logo and Chakra Petch Bold700 identity to the README hero, GitHub preview source and licensed vector wordmark; canonical website and GitHub settings cutovers require live verification.
 - Include the approved 512px KinoCut icon in the bounded MCPB archive and source distribution; lettering, public branding cutover and Desktop import acceptance remain separate gates.
 
