@@ -13,6 +13,7 @@ This project follows a simple release-note style:
 
 ## 1.16.0 - 2026-10-01 (release candidate; not published)
 
+- Apply the approved colored logo and Chakra Petch Bold700 identity to the README hero, GitHub preview source and licensed vector wordmark; canonical website and GitHub settings cutovers require live verification.
 - Include the approved 512px KinoCut icon in the bounded MCPB archive and source distribution; lettering, public branding cutover and Desktop import acceptance remain separate gates.
 
 - Align existing operator routes: MCP/CLI audio mixing, CLI ducking/HLS, explicit human motion receipts, 360 intent/review controls, and Python operation estimates. Candidate surface: 203 MCP tools / 177 CLI commands.
