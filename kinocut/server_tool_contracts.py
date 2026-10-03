@@ -58,8 +58,19 @@ class _ContractFastMCP(FastMCP):
         if tool is None:
             return await super().call_tool(name, arguments)
         try:
+            boolean_policy = {
+                "video_mix_audio": ("keep_source",),
+                "video_repurpose": ("include_release_checkpoint", "start_job"),
+            }
+            for field in boolean_policy.get(name, ()):
+                if field in arguments and type(arguments[field]) is not bool:
+                    raise MCPVideoError("Policy parameters require explicit booleans", code="invalid_parameter")
+            if name == "video_mix_audio" and "sounds" in arguments:
+                from .audio_mix_inputs import parse_mix_sounds
+
+                parse_mix_sounds(arguments["sounds"])
             tool.fn_metadata.arg_model.model_validate(tool.fn_metadata.pre_parse_json(arguments))
-        except (ValueError, RecursionError):
+        except (ValueError, RecursionError, MCPVideoError):
             error = MCPVideoError(
                 "Invalid MCP tool parameters. Use tools/list to inspect the accepted parameters.",
                 error_type="validation_error",

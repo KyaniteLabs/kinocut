@@ -19,7 +19,7 @@ separate from the merged audit's evidence.
 
 **Published:** 1.15.3 · **201 MCP / 173 CLI** · 2026-09-25 · `docs/public_claims.json`
 
-**Tip (`master`):** 1.15.3 · **201 MCP / 173 CLI** (same registered surface as published 1.15.3; merged source changes remain Unreleased). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Development candidate:** 1.16.0 · **203 MCP / 177 CLI** (candidate changes are not published). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;
@@ -31,6 +31,13 @@ full-episode and listening acceptance require separate evidence. See the
 **Human residuals:** directories #88 and launch #90. GitHub Dependabot is canonical; the old Forgejo Renovate-token gate is superseded and those tokens must not be provisioned for Kinocut ([HUMAN_GATES](../HUMAN_GATES.md)). First-10 **closed**. MCPB unsigned is the selected `user-configured-local-access` path; its exact-digest hosted and desktop-install gates remain distinct. Real X4 dogfood is optional; synthetic 2:1 fixtures cover the compiler.
 
 **Provider verification (2026-09-30):** PyPI and npm report **1.15.3**; live kinocut.dev JSON-LD and llms.txt also report **1.15.3**. GitHub `releases/latest` reports **1.15.0**. The MCP Registry request returned **403**, so its current version is unverified. These checks do not prove every provider is aligned or every site page is visually correct.
+
+**Fresh site verification (2026-10-01, 22:58 UTC):** certificate-verified homepage
+and llms requests returned 200 for the disclosed verification client and confirmed
+the published 1.15.3 stamp. [Response digests and client limits](../proofs/2026-10-01-published-site-verification.md)
+supersede the earlier blocked observations for issue #479. Candidate 1.16.0,
+other pages/providers, visual acceptance and the Phase-0 exit are not accepted
+by this check.
 
 **Desk residual:** Colima is the operator M4 Mac, not Mini. Do not restart `forgejo-runner` mid-job (exact 80s fail). Perf-committee reports are inspect receipts only ([README](perf-committee/README.md)). Receipt: [2026-08-19-ops-closeout.md](2026-08-19-ops-closeout.md).
 

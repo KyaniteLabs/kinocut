@@ -8,6 +8,7 @@ MEDIA_RETURN = "EditResult"
 REPORT_RETURN = "report"
 
 CLIENT_METHOD_CONTRACTS: dict[str, dict[str, Any]] = {
+    "estimate_operation": {"category": "report", "return_type": "dict", "aliases": {}},
     # Core lifecycle / reports
     "info": {"category": "report", "return_type": "VideoInfo", "aliases": {}},
     "inspect": {"category": "report", "return_type": "dict", "aliases": {}},

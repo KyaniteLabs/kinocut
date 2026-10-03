@@ -11,14 +11,24 @@ import stat
 import subprocess
 import sys
 import zipfile
+import zlib
 from pathlib import Path, PurePosixPath
 from typing import Any
 
 
 ROOT = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(ROOT))
+
+from kinocut.errors import MCPVideoError  # noqa: E402
+from kinocut.limits import (  # noqa: E402
+    MAX_MCPB_ICON_BYTES as MAX_ICON_BYTES,
+    MAX_MCPB_ICON_DIMENSION as MAX_ICON_DIMENSION,
+)
+
 MCPB_DIR = ROOT / "mcpb"
-VERSION = "1.15.3"
+VERSION = "1.16.0"
 MEMBERS = ("README.md", "manifest.json", "server/launcher.js")
+ICON_MEMBER = "icon.png"
 TOP_LEVEL_KEYS = {
     "$schema",
     "manifest_version",
@@ -38,6 +48,7 @@ TOP_LEVEL_KEYS = {
     "user_config",
     "compatibility",
     "tools_generated",
+    "icon",
 }
 CONFIG_TYPES = {"string", "number", "boolean", "directory", "file"}
 
@@ -46,7 +57,86 @@ def _load_manifest(path: Path | None = None) -> dict[str, Any]:
     return json.loads((path or MCPB_DIR / "manifest.json").read_text(encoding="utf-8"))
 
 
+def _invalid_icon() -> MCPVideoError:
+    return MCPVideoError(
+        "MCPB icon must be a bounded, bundle-relative regular PNG with valid dimensions",
+        error_type="validation_error",
+        code="invalid_mcpb_icon",
+    )
+
+
+def _bundle_members(manifest: dict[str, Any]) -> tuple[str, ...]:
+    if "icon" not in manifest:
+        return MEMBERS
+    if manifest["icon"] != ICON_MEMBER:
+        raise _invalid_icon()
+    return (*MEMBERS, ICON_MEMBER)
+
+
+def _validate_icon(data: bytes) -> None:
+    """Validate bounded PNG structure without decoding or allocating pixels."""
+    if len(data) > MAX_ICON_BYTES or data[:8] != b"\x89PNG\r\n\x1a\n":
+        raise _invalid_icon()
+    offset = 8
+    seen_data = False
+    while offset + 12 <= len(data):
+        size = int.from_bytes(data[offset : offset + 4], "big")
+        kind = data[offset + 4 : offset + 8]
+        end = offset + 12 + size
+        if end > len(data):
+            raise _invalid_icon()
+        body = data[offset + 8 : end - 4]
+        checksum = int.from_bytes(data[end - 4 : end], "big")
+        if zlib.crc32(kind + body) != checksum:
+            raise _invalid_icon()
+        if offset == 8:
+            if kind != b"IHDR" or size != 13:
+                raise _invalid_icon()
+            width, height = int.from_bytes(body[:4], "big"), int.from_bytes(body[4:8], "big")
+            depths = {0: {1, 2, 4, 8, 16}, 2: {8, 16}, 3: {1, 2, 4, 8}, 4: {8, 16}, 6: {8, 16}}
+            if (
+                not 1 <= width <= MAX_ICON_DIMENSION
+                or not 1 <= height <= MAX_ICON_DIMENSION
+                or body[8] not in depths.get(body[9], set())
+                or body[10:12] != b"\0\0"
+                or body[12] not in {0, 1}
+            ):
+                raise _invalid_icon()
+        elif kind == b"IHDR":
+            raise _invalid_icon()
+        if kind == b"IDAT":
+            seen_data = True
+        if kind == b"IEND":
+            if size != 0 or end != len(data) or not seen_data:
+                raise _invalid_icon()
+            return
+        offset = end
+    raise _invalid_icon()
+
+
+def _read_icon_source() -> bytes:
+    descriptor = None
+    try:
+        source = _checked_source(ICON_MEMBER)
+        descriptor = os.open(source, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0) | getattr(os, "O_NOFOLLOW", 0))
+        handle = os.fdopen(descriptor, "rb")
+        descriptor = None
+        with handle:
+            info = os.fstat(handle.fileno())
+            if not stat.S_ISREG(info.st_mode) or info.st_size > MAX_ICON_BYTES:
+                raise _invalid_icon()
+            data = handle.read(MAX_ICON_BYTES + 1)
+        _validate_icon(data)
+        return data
+    except (OSError, ValueError):
+        raise _invalid_icon() from None
+    finally:
+        if descriptor is not None:
+            os.close(descriptor)
+
+
 def validate_manifest(manifest: dict[str, Any], *, check_sources: bool = True) -> list[str]:
+    members = _bundle_members(manifest)
     errors: list[str] = []
     unknown = sorted(set(manifest) - TOP_LEVEL_KEYS)
     if unknown:
@@ -86,9 +176,11 @@ def validate_manifest(manifest: dict[str, Any], *, check_sources: bool = True) -
     if manifest.get("compatibility", {}).get("runtimes") != {"node": ">=18"}:
         errors.append("compatibility.runtimes must truthfully require node >=18")
     if check_sources:
-        for name in MEMBERS:
+        for name in members:
             if not (MCPB_DIR / name).is_file():
                 errors.append(f"{name} is missing")
+        if ICON_MEMBER in members:
+            _read_icon_source()
     return errors
 
 
@@ -107,10 +199,12 @@ def _checked_source(name: str) -> Path:
 def _safe_member(info: zipfile.ZipInfo) -> None:
     name = info.filename
     path = PurePosixPath(name)
-    if path.is_absolute() or ".." in path.parts or "\\" in name or name not in MEMBERS:
+    if path.is_absolute() or ".." in path.parts or "\\" in name or name not in (*MEMBERS, ICON_MEMBER):
         raise ValueError(f"unsafe or unlisted MCPB archive member: {name}")
     mode = (info.external_attr >> 16) & 0o170000
     if mode not in {0, stat.S_IFREG} or info.is_dir():
+        if name == ICON_MEMBER:
+            raise _invalid_icon()
         raise ValueError(f"MCPB archive member is not a regular file: {name}")
 
 
@@ -146,12 +240,23 @@ def audit_bundle(bundle: Path, *, source_sha: str | None = None, source_manifest
             raise ValueError("MCPB archive contains a duplicate member")
         for info in infos:
             _safe_member(info)
-        if sorted(names) != sorted(MEMBERS):
-            raise ValueError("MCPB archive inventory does not match the staged three-file product")
         try:
             packed_manifest = json.loads(archive.read("manifest.json"))
         except (KeyError, json.JSONDecodeError, UnicodeDecodeError) as exc:
             raise ValueError("MCPB archive manifest is invalid JSON") from exc
+        members = _bundle_members(packed_manifest)
+        if sorted(names) != sorted(members):
+            if ICON_MEMBER in names or ICON_MEMBER in members:
+                raise _invalid_icon()
+            raise ValueError("MCPB archive inventory does not match the staged three-file product")
+        if ICON_MEMBER in members:
+            if archive.getinfo(ICON_MEMBER).file_size > MAX_ICON_BYTES:
+                raise _invalid_icon()
+            try:
+                with archive.open(ICON_MEMBER) as handle:
+                    _validate_icon(handle.read(MAX_ICON_BYTES + 1))
+            except (OSError, RuntimeError, zipfile.BadZipFile):
+                raise _invalid_icon() from None
     errors = validate_manifest(packed_manifest, check_sources=False)
     if errors:
         raise ValueError("MCPB archive manifest failed Kinocut invariants: " + "; ".join(errors))
@@ -172,11 +277,14 @@ def build_bundle(output_dir: Path) -> Path:
     if errors:
         raise ValueError("MCPB source manifest failed Kinocut invariants: " + "; ".join(errors))
     sources = [(name, _checked_source(name)) for name in MEMBERS]
+    icon = _read_icon_source() if ICON_MEMBER in _bundle_members(manifest) else None
     output_dir.mkdir(parents=True, exist_ok=True)
     bundle = output_dir / f"kinocut-{manifest['version']}.mcpb"
     with zipfile.ZipFile(bundle, "w", compression=zipfile.ZIP_DEFLATED) as archive:
         for name, source in sources:
             archive.write(source, name)
+        if icon is not None:
+            archive.writestr(ICON_MEMBER, icon)
     receipt = audit_bundle(bundle, source_manifest_valid=True)
     (output_dir / "mcpb-build-receipt.json").write_text(json.dumps(receipt, indent=2) + "\n", encoding="utf-8")
     return bundle
@@ -188,7 +296,7 @@ def main() -> int:
     args = parser.parse_args()
     try:
         bundle = build_bundle(args.output_dir)
-    except (OSError, ValueError, zipfile.BadZipFile) as exc:
+    except (OSError, ValueError, MCPVideoError, zipfile.BadZipFile) as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1
     print(bundle)

@@ -140,6 +140,8 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
     from .cli.handlers_advanced import handle_advanced_commands
     from .cli.handlers_ai import handle_ai_commands
     from .cli.handlers_aivideo import handle_aivideo_commands
+    from .cli.handlers_audio_mix import handle_audio_mix_commands
+    from .cli.handlers_motion_acceptance import handle_motion_acceptance_commands
     from .cli.handlers_audio import handle_audio_commands
     from .cli.handlers_composition import handle_composition_command
     from .cli.handlers_core import handle_initial_command
@@ -175,6 +177,8 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
         or handle_media_commands(args, use_json=use_json)
         or handle_hyperframes_commands(args, use_json=use_json)
         or handle_ai_commands(args, use_json=use_json)
+        or handle_audio_mix_commands(args, use_json=use_json)
+        or handle_motion_acceptance_commands(args, use_json=use_json)
         or handle_audio_commands(args, use_json=use_json)
         or handle_advanced_commands(args, use_json=use_json)
         or handle_image_commands(args, use_json=use_json)

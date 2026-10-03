@@ -74,9 +74,9 @@ def video_info(input_path: str) -> dict[str, Any]:
 @_safe_tool
 def video_trim(
     input_path: str,
-    start: str = "0",
-    duration: str | None = None,
-    end: str | None = None,
+    start: str | Annotated[float, Field(strict=True)] = "0",
+    duration: str | Annotated[float, Field(strict=True)] | None = None,
+    end: str | Annotated[float, Field(strict=True)] | None = None,
     output_path: str | None = None,
     accurate: bool = False,
 ) -> dict[str, Any]:
@@ -84,13 +84,15 @@ def video_trim(
 
     Args:
         input_path: Absolute path to the input video.
-        start: Start timestamp (e.g. '00:02:15' or seconds as string like '10.5').
+        start: Start timestamp (e.g. '00:02:15') or numeric seconds (e.g. 10.5).
         duration: Duration to keep (e.g. '00:00:30' or '30'). Exclusive with end.
         end: End timestamp. Exclusive with duration.
         output_path: Where to save the trimmed video. Auto-generated if omitted.
         accurate: Frame-accurate seeking (slower).  Default False uses fast
             input seeking which may land on the nearest keyframe.
     """
+    if any(isinstance(value, bool) for value in (start, duration, end)):
+        return _validation_error("Trim times must be timestamps or numeric seconds, not booleans")
     input_path = _validate_input_path(input_path)
     return _result(
         trim(input_path, start=start, duration=duration, end=end, output_path=output_path, accurate=accurate)
@@ -457,6 +459,8 @@ async def video_convert(
     ] = "high",
     output_path: OptionalOutputVideoPath = None,
     ctx: Context | None = None,
+    two_pass: bool = False,
+    target_bitrate: int | None = None,
 ) -> dict[str, Any]:
     """Convert a video to a different format or codec.
 
@@ -473,6 +477,8 @@ async def video_convert(
             low, medium, high, and ultra.
         output_path: Destination video path. Auto-generated if omitted; may be overwritten
             if an existing path is supplied.
+        two_pass: Encode in two passes (mp4 or mov); requires target_bitrate.
+        target_bitrate: Target video bitrate in kbps for two-pass encoding.
     """
     if format not in VALID_FORMATS:
         return _validation_error(f"Invalid format: {format}. Must be one of {sorted(VALID_FORMATS)}")
@@ -486,6 +492,8 @@ async def video_convert(
         quality=quality,
         output_path=output_path,
         on_progress=_mcp_progress_reporter(ctx),
+        two_pass=two_pass,
+        target_bitrate=target_bitrate,
     )
     return _result(await anyio.to_thread.run_sync(run_convert))
 

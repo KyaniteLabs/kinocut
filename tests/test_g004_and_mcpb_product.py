@@ -155,6 +155,77 @@ def test_mcpb_receipt_is_ci_validated_only_for_complete_exact_evidence(tmp_path:
     assert checklist["publication"]["status"] == "not_attempted"
 
 
+def _icon_build_receipts(tmp_path: Path) -> tuple[str, str, list[Path]]:
+    """Use the real approved-icon producer; other observations stay synthetic."""
+    _, _, receipts = _base_receipts(tmp_path)
+    built = tmp_path / "built"
+    proc = subprocess.run(
+        [sys.executable, "-I", "scripts/build-mcpb.py", "--output-dir", str(built)],
+        capture_output=True,
+        text=True,
+        timeout=60,
+    )
+    assert proc.returncode == 0, proc.stderr
+    build = json.loads((built / "mcpb-build-receipt.json").read_text(encoding="utf-8"))
+    _write(receipts[0], build)
+    for path in receipts[1:]:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        payload["source_sha"] = build["source_sha"]
+        payload["archive_sha256"] = build["archive_sha256"]
+        if "archive_inventory" in payload:
+            payload["archive_inventory"] = build["archive_inventory"]
+        _write(path, payload)
+    return build["source_sha"], build["archive_sha256"], receipts
+
+
+def test_readiness_accepts_real_approved_icon_builder_receipt(tmp_path: Path) -> None:
+    source, digest, receipts = _icon_build_receipts(tmp_path)
+
+    proc = _run_pack(tmp_path, receipts, "--require-ready", "ci_validated", source_sha=source)
+
+    assert proc.returncode == 0, proc.stdout + proc.stderr
+    checklist = json.loads((tmp_path / "out" / "production-checklist.json").read_text(encoding="utf-8"))
+    assert checklist["artifact"] == {"status": "built", "sha256": digest}
+    assert checklist["candidate_status"] == "ci_validated"
+    assert checklist["desktop_install_review"] == {}
+    assert checklist["publication"]["status"] == "not_attempted"
+
+
+@pytest.mark.parametrize("receipt_index", [2, 5])
+def test_readiness_rejects_icon_inventory_disagreement(tmp_path: Path, receipt_index: int) -> None:
+    source, _, receipts = _icon_build_receipts(tmp_path)
+    payload = json.loads(receipts[receipt_index].read_text(encoding="utf-8"))
+    payload["archive_inventory"].remove("icon.png")
+    _write(receipts[receipt_index], payload)
+
+    proc = _run_pack(tmp_path, receipts, "--require-ready", "ci_validated", source_sha=source)
+
+    assert proc.returncode != 0
+
+
+@pytest.mark.parametrize("mutation", ["extra", "duplicate", "missing", "traversal"])
+def test_readiness_rejects_non_allowlisted_icon_archive_inventory(tmp_path: Path, mutation: str) -> None:
+    source, _, receipts = _icon_build_receipts(tmp_path)
+    inventory = json.loads(receipts[0].read_text(encoding="utf-8"))["archive_inventory"]
+    if mutation == "extra":
+        inventory.append("unexpected.js")
+    elif mutation == "duplicate":
+        inventory.append("icon.png")
+    elif mutation == "missing":
+        inventory.remove("README.md")
+    else:
+        inventory[inventory.index("icon.png")] = "../icon.png"
+    for path in receipts:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+        if "archive_inventory" in payload:
+            payload["archive_inventory"] = sorted(inventory)
+            _write(path, payload)
+
+    proc = _run_pack(tmp_path, receipts, "--require-ready", "ci_validated", source_sha=source)
+
+    assert proc.returncode != 0
+
+
 def test_mcpb_receipt_blocks_missing_or_mismatched_evidence(tmp_path: Path) -> None:
     _, _, receipts = _base_receipts(tmp_path)
     payload = json.loads(receipts[4].read_text(encoding="utf-8"))

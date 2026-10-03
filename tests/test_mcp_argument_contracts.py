@@ -20,7 +20,7 @@ def test_all_registered_argument_models_and_schemas_reject_extras():
 
     async def check():
         tools = await mcp.list_tools()
-        assert len(tools) == 201
+        assert len(tools) == 203
         for tool in tools:
             model = mcp._tool_manager.get_tool(tool.name).fn_metadata.arg_model
             assert model.model_config["extra"] == "forbid", tool.name

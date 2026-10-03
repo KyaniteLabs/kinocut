@@ -33,6 +33,10 @@ REQUIRED_DESKTOP_GATES = {
     "local_access_label_reviewed",
 }
 REVIEWED_AT_PATTERN = re.compile(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z")
+SUPPORTED_ARCHIVE_INVENTORIES = (
+    ("README.md", "manifest.json", "server/launcher.js"),
+    ("README.md", "icon.png", "manifest.json", "server/launcher.js"),
+)
 
 
 def _canonical_hex(value: Any, length: int) -> bool:
@@ -79,8 +83,11 @@ def _bound(receipt: dict[str, Any] | None, source: str, digest: str | None, kind
     )
 
 
+def _valid_inventory(value: Any) -> bool:
+    return isinstance(value, list) and tuple(value) in SUPPORTED_ARCHIVE_INVENTORIES
+
+
 def _artifact(build: dict[str, Any] | None, source: str) -> tuple[dict[str, Any], str | None]:
-    inventory = ["README.md", "manifest.json", "server/launcher.js"]
     digest = build.get("archive_sha256") if build else None
     valid = bool(
         build
@@ -88,7 +95,7 @@ def _artifact(build: dict[str, Any] | None, source: str) -> tuple[dict[str, Any]
         and build.get("artifact_kind") == "mcpb_build_receipt"
         and build.get("source_sha") == source
         and _canonical_hex(digest, 64)
-        and build.get("archive_inventory") == inventory
+        and _valid_inventory(build.get("archive_inventory"))
     )
     return {"status": "built" if valid else "not_run", "sha256": digest if valid else None}, digest if valid else None
 
@@ -109,7 +116,11 @@ def _official(receipt: dict[str, Any] | None, source: str, digest: str | None) -
 
 
 def _hosted(
-    receipts: list[dict[str, Any] | None], source: str, digest: str | None, wheel_digest: str | None
+    receipts: list[dict[str, Any] | None],
+    source: str,
+    digest: str | None,
+    wheel_digest: str | None,
+    inventory: list[str] | None,
 ) -> dict[str, Any]:
     states: dict[str, Any] = {}
     duplicates: set[str] = set()
@@ -129,7 +140,8 @@ def _hosted(
             and receipt.get("wheel_sha256") == wheel_digest
             and isinstance(receipt.get("architecture"), str)
             and bool(receipt["architecture"].strip())
-            and receipt.get("archive_inventory") == ["README.md", "manifest.json", "server/launcher.js"]
+            and _valid_inventory(inventory)
+            and receipt.get("archive_inventory") == inventory
             and isinstance(gates, dict)
             and {name for name, state in gates.items() if state == "passed"} >= REQUIRED_RUNTIME_GATES
         )
@@ -142,7 +154,11 @@ def _hosted(
 
 
 def _optional(
-    receipts: list[dict[str, Any] | None], source: str, digest: str | None, wheel_digest: str | None
+    receipts: list[dict[str, Any] | None],
+    source: str,
+    digest: str | None,
+    wheel_digest: str | None,
+    inventory: list[str] | None,
 ) -> dict[str, str]:
     receipt = receipts[0] if len(receipts) == 1 else None
     gates = receipt.get("gates", {}) if receipt else {}
@@ -156,7 +172,8 @@ def _optional(
         and receipt.get("cleanup") == "passed"
         and _canonical_hex(wheel_digest, 64)
         and receipt.get("wheel_sha256") == wheel_digest
-        and receipt.get("archive_inventory") == ["README.md", "manifest.json", "server/launcher.js"]
+        and _valid_inventory(inventory)
+        and receipt.get("archive_inventory") == inventory
         and isinstance(gates, dict)
         and {name for name, state in gates.items() if state == "passed"} >= REQUIRED_OPTIONAL_GATES
     )
@@ -220,13 +237,18 @@ def main() -> int:
     args = _parse_args()
     build = _read_receipt(args.build_receipt)
     artifact, digest = _artifact(build, args.source_sha)
+    inventory = build.get("archive_inventory") if build and digest else None
     official = _official(_read_receipt(args.official_validation_receipt), args.source_sha, digest)
     wheel_digest = official["wheel_sha256"]
     hosted = _hosted(
-        [_read_receipt(path) for path in args.hosted_runtime_receipt], args.source_sha, digest, wheel_digest
+        [_read_receipt(path) for path in args.hosted_runtime_receipt], args.source_sha, digest, wheel_digest, inventory
     )
     optional = _optional(
-        [_read_receipt(path) for path in args.optional_dependencies_receipt], args.source_sha, digest, wheel_digest
+        [_read_receipt(path) for path in args.optional_dependencies_receipt],
+        args.source_sha,
+        digest,
+        wheel_digest,
+        inventory,
     )
     desktop, human_review = _desktop(
         [_read_receipt(path) for path in args.desktop_install_receipt], args.source_sha, digest, wheel_digest

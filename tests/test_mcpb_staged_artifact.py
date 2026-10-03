@@ -1,4 +1,4 @@
-"""Fail-closed contracts for the three-file staged MCPB artifact."""
+"""Fail-closed contracts for the approved-icon staged MCPB artifact."""
 
 from __future__ import annotations
 
@@ -46,7 +46,7 @@ def test_built_archive_has_exact_inventory_digest_and_valid_extracted_manifest(t
     receipt = json.loads((tmp_path / "mcpb-build-receipt.json").read_text(encoding="utf-8"))
     independent_receipt = builder.audit_bundle(bundle)
 
-    assert receipt["archive_inventory"] == ["README.md", "manifest.json", "server/launcher.js"]
+    assert receipt["archive_inventory"] == ["README.md", "icon.png", "manifest.json", "server/launcher.js"]
     assert len(receipt["archive_sha256"]) == 64
     assert receipt["source_manifest_valid"] is True
     assert receipt["extracted_manifest_valid"] is True
@@ -677,7 +677,7 @@ def test_ci_extraction_reuses_audit_and_refuses_existing_destination(tmp_path: P
 
     inventory = helper._extract(bundle, destination)
 
-    assert inventory == ["README.md", "manifest.json", "server/launcher.js"]
+    assert inventory == ["README.md", "icon.png", "manifest.json", "server/launcher.js"]
     assert (
         sorted(path.relative_to(destination).as_posix() for path in destination.rglob("*") if path.is_file())
         == inventory
@@ -692,7 +692,9 @@ def test_builder_rejects_symlinked_or_escaping_source(tmp_path: Path, monkeypatc
     (source_root / "server").mkdir(parents=True)
     outside = tmp_path / "outside.js"
     outside.write_text("outside", encoding="utf-8")
-    (source_root / "manifest.json").write_text(json.dumps(builder._load_manifest()), encoding="utf-8")
+    manifest = builder._load_manifest()
+    manifest.pop("icon", None)
+    (source_root / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
     (source_root / "README.md").write_text("readme", encoding="utf-8")
     (source_root / "server" / "launcher.js").symlink_to(outside)
     monkeypatch.setattr(builder, "MCPB_DIR", source_root)

@@ -2,11 +2,14 @@
 
 from __future__ import annotations
 
-import json
-from pathlib import Path
+import logging
 from typing import Any
 
 from .runner import CommandRunner, _out
+from ..json_artifacts import load_json_artifact, parse_json_artifact
+from ..limits import MAX_CLI_JSON_ARTIFACT_BYTES
+
+logger = logging.getLogger(__name__)
 
 
 def handle_intent_commands(args: Any, *, use_json: bool) -> bool:
@@ -31,15 +34,30 @@ def _register_intent_commands(runner: CommandRunner) -> None:
             return
         params: dict[str, Any] = {}
         if a.params_json:
-            params = json.loads(a.params_json)
+            params = parse_json_artifact(a.params_json, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
         plan = route_intent(a.verb, params)
         r = {"artifact_kind": "intent_plan", **plan.to_dict()}
+        goal, source = getattr(a, "goal", None), getattr(a, "source", None)
+        if goal:
+            from kinocut.te import compile_goal_to_cutfile, is_sphere_goal, propose_360_assembly
+
+            r["cutfile"] = compile_goal_to_cutfile(goal, source=source or "media/hero.mp4")
+            r["next_action"] = "review_then_cutfile_render"
+            if is_sphere_goal(goal) and source:
+                try:
+                    r["sphere_plan"] = propose_360_assembly(source, goal=goal)
+                    r["next_action"] = "review_then_sphere_render"
+                except Exception as exc:
+                    from kinocut.errors import MCPVideoError
+
+                    logger.warning("360 assembly plan not attached: %s", exc)
+                    r["sphere_plan_error"] = exc.to_dict() if isinstance(exc, MCPVideoError) else {"message": str(exc)}
         _out(r, j, lambda res: f"{res['verb']} → {res['next_action']} via {res['compat_tools']}")
 
     def _broll(a: Any, j: bool) -> None:
         from kinocut.intent import propose_broll
 
-        segments = json.loads(Path(a.segments_json).read_text(encoding="utf-8"))
+        segments = load_json_artifact(a.segments_json, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
         proposals = propose_broll(segments, max_proposals=a.max_proposals)
         r = {
             "artifact_kind": "broll_proposals",
@@ -88,9 +106,25 @@ def _register_review_commands(runner: CommandRunner) -> None:
         _out(r, j, lambda res: f"review_run {res['verdict']} ({len(res['findings'])} findings)")
 
     def _review_decide(a: Any, j: bool) -> None:
+        from kinocut.errors import MCPVideoError
         from kinocut.watching import decide_review
 
-        run = json.loads(Path(a.review_run_json).read_text(encoding="utf-8"))
+        run = load_json_artifact(a.review_run_json, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
+        if not isinstance(run, dict):
+            raise MCPVideoError(
+                "Review artifact must be a JSON object.",
+                error_type="validation_error",
+                code="invalid_review_run",
+            )
+        if run.get("artifact_kind") == "360_assembly_plan":
+            from kinocut.te import decide_sphere_plan, render_sphere_plan
+
+            r = decide_sphere_plan(run, a.decision)
+            output = getattr(a, "output", None)
+            if r.get("status") == "approved" and output:
+                r["sphere_render"] = render_sphere_plan(r, output)
+            _out(r, j, lambda res: f"360 assembly status={res['status']}")
+            return
         r = decide_review(run, a.decision, a.reason).to_dict()
         _out(r, j, lambda res: f"decision={res['decision']}")
 
@@ -183,7 +217,7 @@ def _register_te_review_commands(runner: CommandRunner) -> None:
     def _mutations(a: Any, j: bool) -> None:
         from kinocut.watching import propose_mutations_from_findings
 
-        findings = json.loads(Path(a.findings_json).read_text(encoding="utf-8"))
+        findings = load_json_artifact(a.findings_json, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
         props = propose_mutations_from_findings(findings)
         r = {
             "artifact_kind": "proposed_mutations",
@@ -233,7 +267,7 @@ def _register_multiplier_commands(runner: CommandRunner) -> None:
     def _otio_export(a: Any, j: bool) -> None:
         from kinocut.multipliers import export_otio_json
 
-        timeline = json.loads(Path(a.timeline_json).read_text(encoding="utf-8"))
+        timeline = load_json_artifact(a.timeline_json, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
         r = export_otio_json(timeline, a.output)
         _out(r, j, lambda res: f"otio → {res['path']}")
 

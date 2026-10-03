@@ -106,6 +106,8 @@ def _register_audio_commands(runner: CommandRunner) -> None:
                 target_lufs=a.lufs,
                 output_path=a.output,
                 **({"lra": a.lra} if a.lra is not None else {}),
+                **({"true_peak_dbtp": a.true_peak_dbtp} if a.true_peak_dbtp is not None else {}),
+                **({"fade_seconds": a.fade_seconds} if a.fade_seconds is not None else {}),
             ),
             j,
             _format_edit_text,
@@ -364,6 +366,24 @@ def _register_template_commands(runner: CommandRunner) -> None:
     runner.register("repurpose", _repurpose)
 
 
+def _register_hls_commands(runner: CommandRunner) -> None:
+    def _hls(a, j):
+        from ..engine import hls_segment
+
+        controls = {
+            name: value
+            for name in ("segment_duration", "playlist_name", "qualities")
+            if (value := getattr(a, name)) is not None
+        }
+        _out(
+            _with_spinner("Creating HLS package...", hls_segment, a.input, output_dir=a.output_dir, **controls),
+            j,
+            _format_edit_text,
+        )
+
+    runner.register("hls-segment", _hls)
+
+
 def handle_media_commands(args: Any, *, use_json: bool) -> bool:
     runner = CommandRunner(args, use_json)
     _register_filter_commands(runner)
@@ -372,4 +392,5 @@ def handle_media_commands(args: Any, *, use_json: bool) -> bool:
     _register_batch_commands(runner)
     _register_metadata_commands(runner)
     _register_template_commands(runner)
+    _register_hls_commands(runner)
     return runner.dispatch()

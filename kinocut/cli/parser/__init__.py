@@ -7,6 +7,8 @@ import argparse
 from . import advanced
 from . import ai
 from . import audio
+from . import audio_mix
+from . import motion_acceptance
 from . import core
 from . import effects
 from . import image
@@ -72,6 +74,8 @@ def build_parser() -> argparse.ArgumentParser:
     effects.add_parsers(subparsers)
     advanced.add_parsers(subparsers)
     audio.add_parsers(subparsers)
+    audio_mix.add_parsers(subparsers)
+    motion_acceptance.add_parsers(subparsers)
     ai.add_parsers(subparsers)
     hyperframes.add_parsers(subparsers)
     layout.add_parsers(subparsers)

@@ -70,4 +70,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         help=f"Minimum quality score 0-100 (default: {DEFAULT_QUALITY_GATE_SCORE})",
     )
     rcheck_p.add_argument("--frame-count", type=int, default=6, help="Storyboard frame count (default: 6)")
+    rcheck_p.add_argument(
+        "--require-audio", action=argparse.BooleanOptionalAction, default=True, help="Require an audio stream"
+    )
     _add_command_output_format(rcheck_p)

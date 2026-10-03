@@ -11,6 +11,8 @@ def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None
     intent_p.add_argument("verb", nargs="?", default=None, help="Intent verb (omit with --list)")
     intent_p.add_argument("--list", action="store_true", help="List known intent verbs")
     intent_p.add_argument("--params-json", default=None, help="Optional JSON object of verb params")
+    intent_p.add_argument("--goal", default=None, help="Compile a reviewable goal; does not render")
+    intent_p.add_argument("--source", default=None, help="Source media for goal compilation and 360 planning")
 
     broll_p = subparsers.add_parser(
         "propose-broll",
@@ -34,6 +36,7 @@ def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None
     dec_p.add_argument("review_run_json", help="Path to review_run JSON artifact")
     dec_p.add_argument("decision", choices=["accept", "reject", "revise"])
     dec_p.add_argument("--reason", default="")
+    dec_p.add_argument("-o", "--output", default=None, help="Render an accepted 360 assembly plan to this path")
 
     init_p = subparsers.add_parser("init", help="Scaffold a local Kinocut project directory")
     init_p.add_argument("path", help="Project directory path")

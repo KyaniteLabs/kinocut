@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .estimates import ClientEstimatesMixin
 from .base import ClientBase
 from .media import ClientMediaMixin
 from .effects import ClientEffectsMixin
@@ -25,6 +26,7 @@ from .revideo import ClientRevideoMixin
 
 class Client(
     ClientBase,
+    ClientEstimatesMixin,
     ClientMediaMixin,
     ClientEffectsMixin,
     ClientAudioMixin,

@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-import json
 from typing import Any
 
+from ..json_artifacts import load_json_artifact, parse_json_artifact
+from ..limits import MAX_CLI_JSON_ARTIFACT_BYTES
 from .runner import CommandRunner, _out
 
 
@@ -21,12 +22,8 @@ def _load_plan_json(raw: str | None) -> dict[str, Any] | None:
     if not text:
         return None
     if text.startswith("{"):
-        return json.loads(text)
-    # Path to a JSON plan file
-    from pathlib import Path
-
-    path = Path(text)
-    return json.loads(path.read_text(encoding="utf-8"))
+        return parse_json_artifact(raw, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
+    return load_json_artifact(text, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
 
 
 def _loudness(a, j):

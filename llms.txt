@@ -16,7 +16,7 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **Latest published release:** 1.15.3 (2026-09-25)
 - **Last-updated:** 2026-09-30
 - **Published surface (1.15.3):** 201 MCP tools / 173 CLI commands
-- **Development checkout:** 201 MCP tools / 173 CLI commands; unreleased behavior differs from the published package. Read CHANGELOG.md before assuming a new behavior is available in pip.
+- **Development checkout:** 203 MCP tools / 177 CLI commands; unreleased behavior differs from the published package. Read CHANGELOG.md before assuming a new behavior is available in pip.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
@@ -54,6 +54,8 @@ Compatibility:
 ```bash
 pip install --upgrade mcp-video   # published 1.6.14 shim → kinocut 1.15.3
 ```
+
+Candidate: 1.6.15 shim → kinocut 1.16.0 (not published). Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
 
 The published compatibility shim is 1.6.14. Compatibility names are preserved;
 new integrations should use kinocut, kino and `from kinocut import Client`.

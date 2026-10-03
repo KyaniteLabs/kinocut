@@ -75,12 +75,18 @@ def test_unknown_attribute_raises() -> None:
     assert _run(code).strip() == "AttributeError"
 
 
-def test_ship_seam_docs_name_durable_min_score_as_unused() -> None:
-    handler = (ROOT / "kinocut" / "server_tools_repurpose.py").read_text(encoding="utf-8")
+def test_ship_seam_docs_describe_enforced_durable_quality_policy() -> None:
+    import inspect
+
+    from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE
+    from kinocut.server_tools_repurpose import video_repurpose
+
     cli_ref = (ROOT / "docs" / "CLI_REFERENCE.md").read_text(encoding="utf-8")
     client_doc = (ROOT / "docs" / "PYTHON_CLIENT.md").read_text(encoding="utf-8")
-    assert "not applied" in handler
+    assert inspect.signature(video_repurpose).parameters["min_score"].default == DEFAULT_QUALITY_GATE_SCORE
     assert "--min-score" in cli_ref
     assert "--allow-fail" in cli_ref
-    assert "does not apply `min_score`" in cli_ref or "does **not** apply `min_score`" in cli_ref
+    for reference in (cli_ref, client_doc):
+        assert "applies `min_score` before job success" in reference
+        assert "Historical 1.15.3 did not enforce this policy" in reference
     assert "allow_fail" in client_doc

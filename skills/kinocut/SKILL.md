@@ -7,6 +7,12 @@ description: Use Kinocut for guarded video editing, source-backed planning, FFmp
 
 Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. It exposes MCP tools, a Python client, and a CLI for editing, analysis, subtitles, audio, Hyperframes, layered compositing, and local repurposing workflows.
 
+Published 1.15.3 has 201 MCP tools / 173 CLI commands. The development checkout
+has 203 / 177; inspect the installed schemas before using development additions.
+Desktop-local execution is available; native Android/iOS clients and a complete
+browser processing application remain unimplemented. Recommended service/client
+work is described in `docs/PLATFORM_PARITY.md`.
+
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
@@ -51,7 +57,34 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
 4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
 
-There is no `video_360_*` MCP tool and no `kino 360` command. CLI `intent` and `review-decide` do not run this compiler. Director hooks accept an injected JSON proposer; a configured model name alone does not execute a model. Cloud proposals require `allow_cloud`; directors never write pixels.
+There is no `video_360_*` MCP tool and no `kino 360` command. In the development
+checkout, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
+also proposes a nested `sphere_plan`. Save that plan as its own JSON artifact;
+after actual human review, `kino review-decide PLAN.json accept --output OUTPUT`
+approves and renders it. `reject` never renders; changed source identity blocks
+rendering. Director hooks accept an injected JSON proposer; a configured model
+name alone does not execute a model. Cloud proposals require `allow_cloud`;
+directors never write pixels.
+
+## Development operator parity
+
+- Timed audio: `video_mix_audio`, CLI `mix-audio --sounds JSON`, and
+  `Client.mix_audio` use one AAC encode and copy the picture. Gains can clip;
+  listen before delivery. CLI `duck-audio` joins existing `video_duck_audio` and
+  `Client.duck_audio`; neither provides governed audio-bed receipts or automatic
+  delivery loudness normalization.
+- Encoding: `trim --accurate`; `convert --two-pass --target-bitrate KBPS`
+  (MP4/MOV); `fade --crf`; and `add-audio --mix --duration-policy loop_audio`
+  map to shared controls. Mixed `pad_audio` remains unsupported.
+  `normalize-audio --lufs --lra --true-peak-dbtp --fade-seconds` exposes loudness
+  and boundary-fade controls; verify the resulting soundtrack and delivery spec.
+- Frame extraction: omitted timestamps use smart sampling when available,
+  otherwise 10% of duration. Pass explicit zero for the first frame.
+- HLS: CLI `hls-segment` joins `video_hls_segment`/`Client.hls_segment` for local
+  packaging; it does not publish or host a stream.
+- Estimates: `video_estimate_operation`, CLI `estimate`, and
+  `Client.estimate_operation` return local heuristics, dimensionless cost units,
+  and no billing currency. Do not present them as measured cloud latency/cost.
 
 ## Product / object matte (published in 1.15.1; current in 1.15.3)
 
@@ -97,11 +130,19 @@ network fallback.
 
 The report also retains chronological `motion_coherence` measurements, coverage,
 gaps and advisory transitions. Review every flagged interval and intended cut, then
-watch the complete assembled film. Python `Client.record_motion_acceptance(...)`
-records the separate source/report-bound viewing attestation and dispositions;
+watch the complete assembled film. Python `Client.record_motion_acceptance(...)`,
+development MCP `video_record_motion_acceptance`, and CLI `record-motion-acceptance`
+record the separate source/report-bound viewing attestation and dispositions.
+CLI accepts either inline `--report-json JSON` or `--report-file PATH` (UTF-8 JSON,
+bounded for longform producer output). Watched intervals and dispositions also
+support `--watched-intervals-file` and `--dispositions-file` instead of their
+inline JSON flags. File admission uses dedicated producer/evidence-count byte
+caps; inline JSON retains its 1 MiB cap and OS argument limits;
 incomplete viewing or an unresolved `needs_fix` cannot grant acceptance. See
 `docs/QUALITY_EVIDENCE.md`. The receipt records a human attestation, not a score
-that proves someone watched or approved the film.
+that proves someone watched or approved the film. MCP/CLI nest the hashed receipt
+under `receipt`; `attestation_verified_by_system` remains false. Require explicit
+human inputs; never invent viewing, reviewer identities, dispositions, or approval.
 
 ## Governed AI-video Review and Salvage
 

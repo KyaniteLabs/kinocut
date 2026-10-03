@@ -66,6 +66,7 @@ def _register_analysis_command_handlers(runner: CommandRunner) -> None:
             output_dir=a.output_dir,
             min_score=a.min_score,
             frame_count=a.frame_count,
+            require_audio=a.require_audio,
         )
         _out(r, j, _format_release_checkpoint_text)
         if not r.get("success", False):

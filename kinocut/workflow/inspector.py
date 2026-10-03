@@ -136,6 +136,9 @@ def _inspect_workflow(
         steps.append(entry)
 
     overall = "planned" if planned else receipt.get("status")
+    release = receipt.get("repurpose_release")
+    if not planned and error is None and isinstance(release, dict) and release.get("status") == "failed":
+        error = release.get("error")
     status = {"overall": overall, "steps": steps, "failed_step": failed_step, "error": error}
 
     cleaned_paths = _cleaned_intermediates(receipt)  # intentionally-removed @work files are not "missing"

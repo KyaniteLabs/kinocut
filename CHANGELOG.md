@@ -11,11 +11,30 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.16.0 - 2026-10-01 (release candidate; not published)
+
+- Accept the approved optional icon in MCPB readiness aggregation while requiring every runtime/optional receipt to match the exact allowlisted build inventory.
+
+- Apply the approved colored logo and Chakra Petch Bold700 identity to the README hero, GitHub preview source and licensed vector wordmark; canonical website and GitHub settings cutovers require live verification.
+- Include the approved 512px KinoCut icon in the bounded MCPB archive and source distribution; lettering, public branding cutover and Desktop import acceptance remain separate gates.
+
+- Align existing operator routes: MCP/CLI audio mixing, CLI ducking/HLS, explicit human motion receipts, 360 intent/review controls, and Python operation estimates. Candidate surface: 203 MCP tools / 177 CLI commands.
+- Persist and enforce MCP repurpose quality/checkpoint policy before durable job success; changed inputs, outputs or frozen policy invalidate evidence.
+- Share trim/frame sampling, conversion bitrate/two-pass and normalization controls across Python, CLI and MCP. Explicit zero timestamps remain supported.
+- Keep MCP audio mixing responsive by running the synchronous engine in a worker thread; add a bounded concurrency regression.
+- Reject invalid, nonfinite and overflowing local operation estimates and bound operation names. Estimates remain dimensionless heuristics, not billing or measured latency.
+- Require explicit JSON booleans for MCP audio preservation and repurpose checkpoint/start policies before SDK coercion.
+- Reject oversized or duplicate-key audio descriptions before MCP SDK JSON preprocessing; share bounded validation with Python and CLI.
+- Resolve native CI bundle/wheel paths from candidate metadata rather than stale release filenames.
+- Admit CLI planning/review JSON files through bounded nonblocking regular-file reads before parsing: 1 MiB for intent/sound plans, retaining the post-rescue 4 MiB ceiling. JSON nesting is capped at 128. Oversized, malformed, deeply nested and nonregular artifacts return redacted typed errors before engine dispatch.
+
+
 ### Added
 
 - Python `Client.record_motion_acceptance` records a separate source/report-bound whole-film human-viewing attestation, complete coverage and purposeful-motion/intended-cut dispositions. Invalid or unresolved evidence cannot grant acceptance (#583).
 - Explicit `KINOCUT_VISION_MODEL` plus `ANTHROPIC_API_KEY` enables one bounded Anthropic keyframe request through an isolated standard-library worker. No default model, retry or request occurs from SDK installation alone; results cover sampled frames, with live provider accuracy separately unverified.
 - Whole-package module/function size guardrails cover both runtime packages, including newly added subsystems.
+- Optional MCPB icon packaging accepts only a referenced `icon.png` with bounded regular-file, PNG-structure and archive-inventory validation, using the shared resource limits. No placeholder artwork is bundled; approved artwork and actual Desktop-host acceptance remain separate.
 
 - Missing FFmpeg encoders and filters return bounded structured dependency advisories through existing processing errors. Suggested alternatives require an intentional caller decision; no codec substitution or dependency installation occurs.
 - Native Gemini CLI MCP setup examples and an on-demand extended agent guide, with host data-egress boundaries and installed-schema discovery.
@@ -25,13 +44,17 @@ This project follows a simple release-note style:
 - Deterministic task-phrase aliases for tool discovery, including filler cleanup, resumable renders and subject framing. Exact tool-name matches retain priority; discovery neither invokes models nor establishes optional-backend availability.
 - Reproducible runtime-source allocation inventories, output-equivalence microbenchmarks, architecture review, and current ASR/typed-decision research under `docs/research/runtime-allocation/`. Source share is not execution cost; no new ASR, VLM or Jev backend is installed or integrated by this work.
 
+### Security
+
+- Raise security minimums and refresh the lock for MCP, AnyIO, Click, cryptography, PyJWT, pydantic-settings, python-multipart, Starlette and optional Pillow. Optional extras also raise msgpack, setuptools, urllib3 and Torch security floors; TorchVision and required CUDA/Triton packages are resolved compatibly without adding these backends to the base install. A complete 159-distribution lock audit retains only BasicSR’s unpatched SLURM advisory, whose distributed initializer is not called by KinoCut. The legacy BasicSR/TorchVision import incompatibility and actual optional inference remain unverified; an OpenCV fallback does not establish equivalent quality. The prior development environment matched 45 distinct advisory IDs across these packages; these matches do not establish exploitability. Pillow user-image decoding is a plausible exposure. No exploit fixtures were executed. Dependency and artifact audits remain separate from native binaries, model weights and fleet verification.
+
 ### Changed
 
 - Detached render jobs call the workflow engine directly, preserving typed failures, cancellation, resume and lineage while removing MCP transport imports. Three-trial same-host import medians changed from 0.847s before repair to 0.452s initially and 0.401s in the pre-review guardian checkpoint; rendering throughput is unmeasured.
 - PR safety tests use bounded two-worker file grouping with unchanged selection, assertions and JUnit reporting. The same 257-case baseline measured 204.2s serial versus 112.4s with two workers; full-suite speed is not inferred.
 - ASR reuses same-job verified PCM instead of decoding identical WAV bytes twice. Sound policy constants are centralized with compatible aliases and static package exports, resolving thirteen maintenance TODOs.
 - Voice-batch receipts expose `loudness=null` and `loudness_assessment_status="not_evaluated"` instead of fabricated -16 LUFS/-1 dBTP compliance. Measured receipt paths retain their evidence; consumers needing loudness must meter the assembled master.
-- Current support claims select staged local-access MCPB, retain paid generation as an unavailable draft and separate deterministic sound processing from full-episode/listening acceptance. The existing 1.15.3 release draft and tag are bound to its verified original source and notes; new source changes remain Unreleased.
+- Current support claims select staged local-access MCPB, retain paid generation as an unavailable draft and separate deterministic sound processing from full-episode/listening acceptance. The existing 1.15.3 release draft and tag are bound to its verified original source and notes; these changes are included in the 1.16.0 candidate and are not yet published.
 
 - Split Client mask operations and CLI quality renderables into focused modules while preserving public methods, aliases and formatter behavior. Design checks share source-aware, bounded, defensive-copy measurements rather than maintaining divergent analysis paths.
 - Signalstats reads compact bounded frame output and computes running means instead of retaining full FFprobe frame dictionaries. ASR frontend resampling uses the installed FFmpeg band-limited converter with disclosed version/policy, bounded PCM input and exact-length checks; native 16 kHz audio bypasses conversion. Source-bound resource and synthetic anti-aliasing trials do not establish model latency, recognition accuracy or speech quality.
@@ -44,6 +67,15 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Match the documented motion-review CLI receipt envelope and accept bounded report files beyond operating-system argument limits. Durable repurpose receipts remain pending during release evaluation and record typed failure evidence on quality/binding rejection, preserving rendered-step hashes and resume progress. Receipt inspection exposes the post-render failure; failed receipt writes withhold the advertised artifact where withdrawal is possible.
+- Admit valid longform producer motion reports with a dedicated byte budget, and accept bounded dispositions/watched-interval files so the complete review journey avoids OS argument limits. Preserve inline inputs, source/report hashes and unverified human-attestation semantics. Reject non-object review artifacts with a typed, redacted validation error before routing ordinary or 360 review decisions.
+- Return typed validation errors from staged artifact selection, and report publisher verification timeouts as a clear processing error with a nonzero exit and temporary-file cleanup.
+- Verify prospective publication claims on the existing publisher runner after registry writes. The live checker uses a temporary claims file and preserves failures without prematurely changing tracked public status or adding another hosted job.
+- Include the canonical sound package in Docker builds and execute `sound-capabilities` in the built image. A safe representative build reproduced a wheel with no sound modules and a missing-module CLI failure; the repaired context contains all 156 sound entries and returns capability metadata in a fresh environment.
+- Repair canonical console-script ownership after pip replaces older compatibility shims. Safe fixtures reproduced a missing `mcp-video` executable despite `pip check` success; publishing validates upgrades from both 1.6.0 and 1.6.14, reinstalls the canonical wheel without changing resolved dependencies, and verifies all three aliases before and after new-shim removal. Migration instructions include the same explicit repair.
+- AI upscaling caps actual frame extraction with an overflow sentinel before model initialization; underestimated metadata cannot bypass the frame budget. Both existing backends stage final media atomically and reject source aliases, preserving prior output on reconstruction failure. Failed OpenCV frame writes and failed source-audio extraction abort instead of publishing shortened or silent media. Native extraction and controlled publication fixtures cover these repairs; model inference and perceptual quality remain separately unverified.
+- The metadata-only `mcp-video` compatibility installer delegates console-script ownership to its canonical Kinocut dependency. Removing the shim no longer deletes the canonical `mcp-video` executable; release upgrade checks exercise all three CLI aliases after shim removal.
+- Release preparation synchronizes the 1.16.0 Python/npm/registry/staged-launcher candidate with the 1.6.15 compatibility shim. The editable-root lock identity and missing optional matte dependencies are repaired; nine advisory-affected packages are updated, with one required typing-extensions update. Public dependency floors exclude the audited affected versions, including Pillow in optional extras. Published claims stay on 1.15.3 until publication is verified. Fleet instructions require per-consumer package, interpreter, restart and smoke-test evidence rather than inferring rollout from a merge.
 - The GitHub Hyperframes integration job explicitly opts into its real-CLI tests and rejects missing, empty or skipped-only JUnit results. Checker-only and CI-workflow changes trigger hosted PR guard tests as well as master code checks; large changed-file lists cannot become false negatives through an early-closing grep pipe. The result guard imports its byte ceiling from shared resource limits and its execution minimum from shared validation policy. Its CLI is pinned to the observed 0.8.104 version, package lifecycle scripts are disabled, and job/install/test deadlines are explicit. The live project fixture rejects lint warnings as well as issues; these checks cover CLI discovery and HTML-project validation, not browser rendering or paid providers.
 - Master and hosted PR change detection preserve literal Git pathnames through NUL-separated records. Unicode, tabs, newlines, backslashes and quotes cannot hide runtime changes; rename detection is disabled so removed runtime paths still trigger validation when moved into docs. Failed Git comparisons cannot publish a successful skip. Owned temporary path lists are removed on success and failure, logging escapes filenames, and classification has a one-minute deadline. Real isolated Git fixtures cover root mappings, unusual names, deletion, both rename directions, large lists and failed-reference cleanup.
 - Seven Linux FFmpeg setup phases check for both `ffmpeg` and `ffprobe`, use `--no-install-recommends`, and have a 45-minute phase ceiling. Existing Hyperframes' 30-minute job ceiling remains the tighter bound for that lane. Version/filter assertions and explicit FFmpeg-version matrix installs are preserved. The main CI runtime and skip message identify Python 3.14; its legacy status-context name remains stable. These changes reduce installation footprint and bound provisioning stalls without claiming a measured speedup.

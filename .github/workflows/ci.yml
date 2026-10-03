@@ -411,6 +411,9 @@ jobs:
       - name: Build Docker image
         if: needs.changes.outputs.docker == 'true'
         run: docker build -t kinocut:test .
+      - name: Verify packaged sound CLI
+        if: needs.changes.outputs.docker == 'true'
+        run: docker run --rm kinocut:test --format json sound-capabilities
 
   windows-smoke:
     name: Windows smoke

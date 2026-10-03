@@ -12,8 +12,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
-from .errors import MCPVideoError
-
 # ---------------------------------------------------------------------------
 # Safe area constants (title-safe and action-safe per SMPTE standards)
 # ---------------------------------------------------------------------------
@@ -506,66 +504,3 @@ def calculate_stacked_positions(
         current_y += int(size * line_spacing)
 
     return positions
-
-
-# ---------------------------------------------------------------------------
-# Preview helper: extract a verification frame
-# ---------------------------------------------------------------------------
-
-
-def extract_verification_frame(
-    video_path: str,
-    timestamp: float = 0.0,
-    output_path: str | None = None,
-) -> str:
-    """Extract a single frame from a video for visual verification.
-
-    Args:
-        video_path: Path to the video.
-        timestamp: Time in seconds to extract.
-        output_path: Where to save the frame. Auto-generated if omitted.
-
-    Returns:
-        Path to the extracted frame.
-    """
-    import os
-    import subprocess
-
-    from .ffmpeg_helpers import _validate_input_path, DEFAULT_FFMPEG_TIMEOUT
-
-    video_path = _validate_input_path(video_path)
-    if output_path is None:
-        base, _ = os.path.splitext(video_path)
-        output_path = f"{base}_frame_{int(timestamp)}s.png"
-
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-ss",
-        str(timestamp),
-        "-i",
-        video_path,
-        "-vframes",
-        "1",
-        "-q:v",
-        "2",
-        output_path,
-    ]
-
-    try:
-        subprocess.run(  # noqa: S603
-            cmd,
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-            check=True,
-        )
-    except subprocess.CalledProcessError as exc:
-        raise MCPVideoError(
-            f"Failed to extract verification frame: {exc.stderr[-200:]}",
-            error_type="processing_error",
-            code="frame_extraction_failed",
-        ) from exc
-
-    return output_path

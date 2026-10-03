@@ -7,7 +7,7 @@ MCPB does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, or AI model wei
 ## Runtime Requirements
 
 - Node.js 18 or newer, used only by the MCPB launcher.
-- Python 3.11 or newer with `kinocut==1.15.3` installed.
+- Python 3.11 or newer with `kinocut==1.16.0` installed for this candidate; the published 1.15.3 bundle requires `kinocut==1.15.3`.
 - FFmpeg and ffprobe available on `PATH`, or an executable named `ffmpeg` configured through the installer field with an adjacent `ffprobe`.
 - Optional AI features require the matching Kinocut extras and local model dependencies.
 - Hyperframes tools require a resolvable Hyperframes command; leave the field blank if you do not use those tools.
@@ -26,12 +26,24 @@ Build the local artifact without publishing:
 python3 scripts/build-mcpb.py
 ```
 
-The script validates Kinocut's manifest invariants, audits the exact three regular archive members,
-and writes a SHA-256-bound build receipt. The locked official validator runs separately in CI.
+The script validates Kinocut's manifest invariants, audits the exact referenced regular archive
+members, and writes a SHA-256-bound build receipt. The current manifest has four members, including the approved 512px RGBA
+`icon.png`. The icon SHA-256 is
+`541b4e617c6fecb74a1e3ef065785b17952b500fa45fe9b1c5b3467293e37863`. The locked official validator runs separately in CI.
+
+Optional approved artwork can be added as `mcpb/icon.png` with top-level manifest
+`"icon": "icon.png"`. The builder accepts only that bundle-relative name, a confined
+regular non-symlink file, at most 1 MiB, and PNG structure with dimensions from 1 to
+4096 pixels per side. Validation checks PNG headers, chunk boundaries and CRCs;
+it does not decode pixels. Source and archive checks reject missing, unreferenced
+or invalid icon entries. These checks do not establish visual approval or Desktop-host
+acceptance; the staged publication gates below still apply.
 
 ```text
-dist/kinocut-1.15.3.mcpb
+dist/kinocut-1.16.0.mcpb
 ```
+
+This is an unpublished candidate. The published-version reference remains `dist/kinocut-1.15.3.mcpb`; never pair that archive with a different installed runtime.
 
 Focused validation:
 

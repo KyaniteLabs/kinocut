@@ -23,6 +23,8 @@ def _add_audio_generation_parsers(subparsers: argparse._SubParsersAction) -> Non
     norm_p.add_argument("input", help="Input video file")
     norm_p.add_argument("-l", "--lufs", type=float, default=-16.0, help="Target LUFS (default: -16 for YouTube)")
     norm_p.add_argument("--lra", type=float, help="Loudness Range target for broadcast compliance")
+    norm_p.add_argument("--true-peak-dbtp", type=float, help="Maximum true peak in dBTP")
+    norm_p.add_argument("--fade-seconds", type=float, help="Boundary fade duration in seconds; zero disables fades")
     norm_p.add_argument("-o", "--output", help="Output file path")
 
     # audio-synthesize

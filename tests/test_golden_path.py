@@ -9,6 +9,7 @@ from types import SimpleNamespace
 
 import pytest
 
+from kinocut import __version__
 from kinocut.errors import MCPVideoError
 from kinocut.source_identity import stream_source_identity
 from scripts import generate_golden_pack, golden_path, verify_onboarding_release as verify
@@ -53,7 +54,7 @@ def _valid_artifacts(output: Path, run_id: str = "fresh-run") -> None:
     }
     receipt = {
         "run_id": run_id,
-        "candidate": {"package": "kinocut", "version": "1.15.3", "commit": COMMIT},
+        "candidate": {"package": "kinocut", "version": __version__, "commit": COMMIT},
         "source_media": {
             "path": str(source),
             "sha256": source_identity.asset_id,

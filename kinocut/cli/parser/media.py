@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import argparse
 
+from ...validation import VALID_FORMATS
+
 
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add media subcommands to the CLI parser."""
     _add_basic_media_parsers(subparsers)
     _add_extra_media_parsers(subparsers)
+    _add_hls_parser(subparsers)
 
 
 def _add_basic_media_parsers(subparsers: argparse._SubParsersAction) -> None:
@@ -39,11 +42,13 @@ def _add_basic_media_parsers(subparsers: argparse._SubParsersAction) -> None:
         "--fmt",
         dest="fmt",
         default="mp4",
-        choices=["mp4", "webm", "gif", "mov"],
+        choices=sorted(VALID_FORMATS),
         help="Output format",
     )
     convert_p.add_argument("-q", "--quality", default="high", choices=["low", "medium", "high", "ultra"])
     convert_p.add_argument("-o", "--output", help="Output file path")
+    convert_p.add_argument("--two-pass", action="store_true", help="Encode mp4/mov in two passes; requires bitrate")
+    convert_p.add_argument("--target-bitrate", type=int, help="Target video bitrate in kbps for two-pass encoding")
 
     # thumbnail
     thumb_p = subparsers.add_parser("thumbnail", help="Extract a single frame")
@@ -133,3 +138,13 @@ def _add_extra_media_parsers(subparsers: argparse._SubParsersAction) -> None:
         "-f", "--format", "--fmt", dest="audio_format", default="mp3", choices=["mp3", "aac", "wav", "ogg", "flac"]
     )
     extract_p.add_argument("-o", "--output", help="Output audio file path")
+
+
+def _add_hls_parser(subparsers: argparse._SubParsersAction) -> None:
+    """Register HLS packaging using the existing media engine."""
+    parser = subparsers.add_parser("hls-segment", help="Create local HLS playlists and video segments")
+    parser.add_argument("input", help="Input video file")
+    parser.add_argument("-o", "--output-dir", help="Playlist and segment directory")
+    parser.add_argument("--segment-duration", type=int, help="Target segment duration in seconds")
+    parser.add_argument("--playlist-name", help="Master playlist filename")
+    parser.add_argument("--qualities", nargs="+", help="Quality variants: low, medium, high, ultra")

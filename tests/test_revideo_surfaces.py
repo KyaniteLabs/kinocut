@@ -261,14 +261,16 @@ def test_distribution_sources_include_complete_template() -> None:
 
 def test_revideo_names_and_count_split_are_documented() -> None:
     claims = json.loads((ROOT / "docs" / "public_claims.json").read_text(encoding="utf-8"))
-    # After the 1.15.2 cutover the Revideo and stereo-mastering trains are
-    # published, so the published and development counts are equal at the cut
-    # (RELEASE_RITUAL §1 tag-time rule); the 196/167-vs-201/173 split this
-    # test was written against collapsed with the release.
-    assert claims["published_mcp_tools"] == 201
-    assert claims["published_cli_commands"] == 173
-    assert claims["development_mcp_tools"] == claims["published_mcp_tools"]
-    assert claims["development_cli_commands"] == claims["published_cli_commands"]
+    from kinocut.cli.parser import build_parser
+    from kinocut.server import mcp
+
+    # Candidate additions must be bound to the registered source surface;
+    # published counts stay at their verified release until live cutover.
+    assert claims["development_mcp_tools"] == len(asyncio.run(mcp.list_tools()))
+    assert claims["development_cli_commands"] == len(build_parser()._subparsers._group_actions[0].choices)
+    if claims["release_candidate_version"] == claims["published_version"]:
+        assert claims["development_mcp_tools"] == claims["published_mcp_tools"]
+        assert claims["development_cli_commands"] == claims["published_cli_commands"]
     surfaces = [
         ROOT / "docs" / "TOOLS.md",
         ROOT / "docs" / "CLI_REFERENCE.md",

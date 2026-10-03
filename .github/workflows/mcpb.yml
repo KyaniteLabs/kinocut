@@ -21,6 +21,8 @@ jobs:
     timeout-minutes: 20
     outputs:
       archive_sha: ${{ steps.archive.outputs.sha }}
+      bundle_file: ${{ steps.candidate.outputs.bundle_file }}
+      wheel_file: ${{ steps.candidate.outputs.wheel_file }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -38,21 +40,24 @@ jobs:
           python -m pip install build
           python -m build --wheel --outdir dist
           python scripts/build-mcpb.py --output-dir dist
+      - id: candidate
+        name: Select version-matched candidate artifacts
+        run: python .github/scripts/mcpb-artifact-paths.py --directory dist
       - name: Install locked official validator
         working-directory: tools/mcpb-validator
         run: npm ci --ignore-scripts
       - name: Validate source and extracted manifests
         run: |
           python .github/scripts/mcpb-ci.py official \
-            --bundle dist/kinocut-1.15.3.mcpb \
-            --wheel dist/kinocut-1.15.3-py3-none-any.whl \
+            --bundle "dist/${{ steps.candidate.outputs.bundle_file }}" \
+            --wheel "dist/${{ steps.candidate.outputs.wheel_file }}" \
             --validator tools/mcpb-validator/node_modules/.bin/mcpb \
             --source-sha "$GITHUB_SHA" \
             --receipt dist/mcpb-official-validation.json
       - id: archive
         name: Record archive digest
         run: |
-          sha="$(python -c 'import hashlib; print(hashlib.sha256(open("dist/kinocut-1.15.3.mcpb", "rb").read()).hexdigest())')"
+          sha="$(python -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "dist/${{ steps.candidate.outputs.bundle_file }}")"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
@@ -152,7 +157,7 @@ jobs:
         shell: bash
         run: |
           python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-venv"
-          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.3.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
+          python .github/scripts/mcpb-ci.py extract --bundle "mcpb-artifacts/${{ needs.build-validate.outputs.bundle_file }}" --destination "$RUNNER_TEMP/staged-mcpb"
       - name: Prove bounded process-tree cleanup
         shell: bash
         run: |
@@ -169,8 +174,8 @@ jobs:
           python .github/scripts/mcpb-ci.py runtime \
             --mode core \
             --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
-            --bundle mcpb-artifacts/kinocut-1.15.3.mcpb \
-            --wheel mcpb-artifacts/kinocut-1.15.3-py3-none-any.whl \
+            --bundle "mcpb-artifacts/${{ needs.build-validate.outputs.bundle_file }}" \
+            --wheel "mcpb-artifacts/${{ needs.build-validate.outputs.wheel_file }}" \
             --venv "$RUNNER_TEMP/mcpb-venv" \
             --node "$(command -v node)" \
             --ffmpeg "$MCPB_FFMPEG" \
@@ -263,14 +268,14 @@ jobs:
         run: |
           python .github/scripts/mcpb-ci.py prepare --wheel-glob 'mcpb-artifacts/*.whl' --venv "$RUNNER_TEMP/mcpb-ai-venv" --extra ai-scene
           npm install --ignore-scripts --prefix "$RUNNER_TEMP/hyperframes" hyperframes@0.8.30
-          python .github/scripts/mcpb-ci.py extract --bundle mcpb-artifacts/kinocut-1.15.3.mcpb --destination "$RUNNER_TEMP/staged-mcpb"
+          python .github/scripts/mcpb-ci.py extract --bundle "mcpb-artifacts/${{ needs.build-validate.outputs.bundle_file }}" --destination "$RUNNER_TEMP/staged-mcpb"
       - name: Prove discovery and public-tool callability
         run: |
           python .github/scripts/mcpb-ci.py runtime \
             --mode optional \
             --launcher "$RUNNER_TEMP/staged-mcpb/server/launcher.js" \
-            --bundle mcpb-artifacts/kinocut-1.15.3.mcpb \
-            --wheel mcpb-artifacts/kinocut-1.15.3-py3-none-any.whl \
+            --bundle "mcpb-artifacts/${{ needs.build-validate.outputs.bundle_file }}" \
+            --wheel "mcpb-artifacts/${{ needs.build-validate.outputs.wheel_file }}" \
             --venv "$RUNNER_TEMP/mcpb-ai-venv" \
             --node "$(command -v node)" \
             --ffmpeg "$MCPB_FFMPEG" \

@@ -185,17 +185,26 @@ jobs:
           .venv-clean-install/bin/kinocut --version
           .venv-clean-install/bin/mcp-video --version
 
-          python -m venv .venv-upgrade
-          .venv-upgrade/bin/pip install "mcp-video==1.6.0"
-          .venv-upgrade/bin/pip install --upgrade release-dist/kinocut-*.whl release-dist/mcp_video-*.whl
-          .venv-upgrade/bin/pip check
-          .venv-upgrade/bin/python -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
-          .venv-upgrade/bin/kino --version
-          .venv-upgrade/bin/kinocut --version
-          .venv-upgrade/bin/mcp-video --version
-          .venv-upgrade/bin/pip uninstall --yes mcp-video
-          .venv-upgrade/bin/pip check
-          .venv-upgrade/bin/python -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
+          for shim_version in 1.6.0 1.6.14; do
+            upgrade_bin=".venv-upgrade-${shim_version}/bin"
+            python -m venv ".venv-upgrade-${shim_version}"
+            "$upgrade_bin/pip" install "mcp-video==$shim_version"
+            "$upgrade_bin/pip" install --upgrade release-dist/kinocut-*.whl release-dist/mcp_video-*.whl
+            # Older shims own the same executable and can remove it after the
+            # dependency upgrade. Repair canonical ownership before restarting.
+            "$upgrade_bin/pip" install --force-reinstall --no-deps release-dist/kinocut-*.whl
+            "$upgrade_bin/pip" check
+            "$upgrade_bin/python" -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
+            "$upgrade_bin/kino" --version
+            "$upgrade_bin/kinocut" --version
+            "$upgrade_bin/mcp-video" --version
+            "$upgrade_bin/pip" uninstall --yes mcp-video
+            "$upgrade_bin/pip" check
+            "$upgrade_bin/python" -c "import importlib.metadata, kinocut, mcp_video; assert kinocut.Client is mcp_video.Client; importlib.metadata.version('kinocut')"
+            "$upgrade_bin/kino" --version
+            "$upgrade_bin/kinocut" --version
+            "$upgrade_bin/mcp-video" --version
+          done
       - name: Verify clean-wheel timed-caption onboarding
         env:
           CANDIDATE_SHA: ${{ github.sha }}
@@ -378,3 +387,34 @@ jobs:
           }
           publish_if_new server.json
           publish_if_new compat/mcp-video-shim/server.json
+      - name: Verify prospective public claims after publication
+        run: |
+          python3 - <<'PY'
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import sys
+          import tempfile
+          import tomllib
+
+          from kinocut.errors import MCPVideoError
+
+          version = tomllib.loads(Path("pyproject.toml").read_text())["project"]["version"]
+          with tempfile.TemporaryDirectory(prefix="kinocut-publication-", dir=os.environ["RUNNER_TEMP"]) as directory:
+              claims = Path(directory) / "claims.json"
+              claims.write_text(json.dumps({"published_version": version}))
+              try:
+                  result = subprocess.run(
+                      [sys.executable, "scripts/verify_published_claims_live.py", "--claims", str(claims)],
+                      stdin=subprocess.DEVNULL, timeout=180, check=False,
+                  )
+              except subprocess.TimeoutExpired:
+                  error = MCPVideoError(
+                      "Publication claims verification timed out after 180 seconds; verify providers before updating public claims.",
+                      error_type="processing_error", code="publication_verification_timeout",
+                  )
+                  print(json.dumps(error.to_dict()), file=sys.stderr)
+                  raise SystemExit(1) from None
+              raise SystemExit(result.returncode)
+          PY

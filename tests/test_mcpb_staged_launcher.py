@@ -14,6 +14,8 @@ from pathlib import Path
 
 import pytest
 
+from kinocut import __version__ as KINOCUT_VERSION
+
 
 ROOT = Path(__file__).parents[1]
 LAUNCHER = ROOT / "mcpb" / "server" / "launcher.js"
@@ -137,7 +139,7 @@ def test_run_owned_maps_owner_creation_failure_to_bounded_receipt(monkeypatch: p
     assert caught.value.cleanup == "failed"
 
 
-def _probe(candidate: str, version: str = "1.15.3", **options: int) -> subprocess.CompletedProcess[str]:
+def _probe(candidate: str, version: str = KINOCUT_VERSION, **options: int) -> subprocess.CompletedProcess[str]:
     source = """
 const launcher = require(process.argv[1]);
 const opts = JSON.parse(process.argv[4]);
@@ -370,16 +372,18 @@ def test_launcher_main_reports_missing_configured_python_on_stderr_only(tmp_path
 def test_launcher_hands_off_to_exact_configured_python_as_one_executable(tmp_path: Path) -> None:
     candidate = tmp_path / "configured python with spaces"
     candidate.write_text(
-        "#!/bin/sh\n"
-        'if [ "$1" = "-c" ]; then\n'
-        '  printf \'%s\\n\' \'{"python":[3,11,0],"kinocut":"1.15.3"}\'\n'
-        "  exit 0\n"
-        "fi\n"
-        'if [ "$1" = "-m" ] && [ "$2" = "kinocut" ] && [ "$3" = "--mcp" ]; then\n'
-        "  printf '%s\\n' 'exact-handoff'\n"
-        "  exit 0\n"
-        "fi\n"
-        "exit 9\n",
+        (
+            "#!/bin/sh\n"
+            'if [ "$1" = "-c" ]; then\n'
+            '  printf \'%s\\n\' \'{"python":[3,11,0],"kinocut":"{KINOCUT_VERSION}"}\'\n'
+            "  exit 0\n"
+            "fi\n"
+            'if [ "$1" = "-m" ] && [ "$2" = "kinocut" ] && [ "$3" = "--mcp" ]; then\n'
+            "  printf '%s\\n' 'exact-handoff'\n"
+            "  exit 0\n"
+            "fi\n"
+            "exit 9\n"
+        ).replace("{KINOCUT_VERSION}", KINOCUT_VERSION),
         encoding="utf-8",
     )
     candidate.chmod(0o755)
@@ -433,10 +437,10 @@ def test_supervised_launcher_keeps_child_in_owner_group_and_records_redirector_i
         """
         import json, os, sys, time
         if sys.argv[1] == '-c':
-            print(json.dumps({'python': [3, 11, 0], 'kinocut': '1.15.3'}))
+            print(json.dumps({'python': [3, 11, 0], 'kinocut': '{KINOCUT_VERSION}'}))
         else:
             time.sleep(60)
-        """,
+        """.replace("{KINOCUT_VERSION}", KINOCUT_VERSION),
     )
     observed = tmp_path / "server.json"
     token = "a" * 64

@@ -48,6 +48,7 @@ from ..defaults import (
     DEFAULT_AUDIO_BED_LOOP_CROSSFADE,
     DEFAULT_AUDIO_BED_MUSIC_VOLUME,
     DEFAULT_AUDIO_BED_TARGET_LUFS,
+    DEFAULT_LRA_TARGET,
     DEFAULT_QUALITY_GATE_SCORE,
 )
 from ..engine_audio_bed import audio_bed as _audio_bed
@@ -556,11 +557,17 @@ class ClientMediaMixin(ClientMasksMixin):
         target_lufs: float = -16.0,
         output: str | None = None,
         true_peak_dbtp: float | None = None,
+        *,
+        lra: float = DEFAULT_LRA_TARGET,
+        fade_seconds: float | None = None,
     ) -> EditResult:
-        """Normalize audio loudness to a target LUFS level, true peak under ``true_peak_dbtp``."""
-        if true_peak_dbtp is None:
-            return _normalize_audio(video, target_lufs=target_lufs, output_path=output)
-        return _normalize_audio(video, target_lufs=target_lufs, output_path=output, true_peak_dbtp=true_peak_dbtp)
+        """Normalize LUFS, loudness range, true peak and optional boundary fades."""
+        controls = {}
+        if true_peak_dbtp is not None:
+            controls["true_peak_dbtp"] = true_peak_dbtp
+        if fade_seconds is not None:
+            controls["fade_seconds"] = fade_seconds
+        return _normalize_audio(video, target_lufs=target_lufs, lra=lra, output_path=output, **controls)
 
     def overlay_video(
         self,

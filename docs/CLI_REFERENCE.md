@@ -1,5 +1,8 @@
 # CLI Reference
 
+Development checkout: **203 MCP tools / 177 CLI commands**. Published 1.15.3:
+**201 MCP tools / 173 CLI commands**. The additions below require this checkout.
+
 ```
 kino [command] [options]
 ```
@@ -22,6 +25,19 @@ Use `--format json` before the command for the same JSON-compatible envelope ret
 MCP and Python. Preflight and inspection never create a missing project and never accept an
 arbitrary source path in place of a stored asset.
 
+Development `record-motion-acceptance INPUT` records an explicit caller attestation:
+provide either inline `--report-json JSON` or `--report-file PATH` (UTF-8 JSON,
+bounded for the producer's four-hour/18,000-frame reports), plus
+`--reviewer-id human:ID`, `--source-sha256`, `--report-sha256`, and
+`--verdict accept|reject`. Supply watched intervals with either
+`--watched-intervals-json` or `--watched-intervals-file`, and dispositions with
+either `--dispositions-json` or `--dispositions-file`. File inputs use dedicated
+producer/count-derived byte caps and depth/UTF-8/regular-file admission; inline
+JSON retains its 1 MiB cap and the OS argument limit. These inputs contain the exact report, complete
+watched intervals, and every flagged interval's disposition. The receipt is nested
+under `receipt`; `attestation_verified_by_system` remains false. Agents must not
+invent viewing or act as human reviewers. This does not grant release approval.
+
 ## Governed AI-video Review and Salvage
 
 | Command | Description |
@@ -40,35 +56,40 @@ inspection, decision, protection, derivative, and re-review sequence.
 
 ## Intent, review, and cutfiles
 
-Published surface (since 1.14.1; current 1.15.3). These commands do **not** add a 360 CLI verb.
+Published surface (since 1.14.1; current 1.15.3). The existing intent/review commands
+gain goal compilation and 360 handling in the
+development checkout; there is no separate `kino 360` command.
 
 | Command | Description |
 |---------|-------------|
-| `intent VERB` | Route a semantic intent verb to a dry-run plan. `--list` prints the catalog. `--params-json` optional. Does **not** compile a 360 assembly plan (use MCP `video_intent` `goal=` + `source=`, or `Client.propose_360_assembly`). |
+| `intent VERB` | Route a semantic intent verb to a dry-run plan. `--list` prints the catalog; `--params-json` supplies parameters. `--goal` compiles a reviewable cutfile; a 360 goal plus `--source` also proposes a source-bound `sphere_plan`. Neither renders. |
 | `review-run INPUT` | Offline watching metric floor. |
-| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. Does **not** approve a `360_assembly_plan` (use MCP `video_review_decide` or `Client.decide_360_assembly`). |
+| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. For a `360_assembly_plan` JSON artifact, explicit `accept` approves and optional `--output` renders through the shared engine; `reject` never renders, and `revise` is unsupported for sphere plans. |
 | `cutfile-validate PATH` | Validate a cutfile JSON/YAML. |
 | `cutfile-render PATH` | Render a cutfile via the workflow engine (`-o`, `--receipt`, `--keep-intermediates`). |
 | `metric-qc INPUT` | Offline metric floor (duration / black / loudness). |
 | `propose-broll SEGMENTS.json` | Transcript-keyed b-roll proposals (never silent insert). |
 | `init PATH` | Scaffold a local project (`--name`, `--no-cutfile`). |
+| `estimate OPERATION --duration SECONDS` | Dry-run local wall-time and dimensionless cost-unit heuristic; optional `--complexity`. Same engine as MCP `video_estimate_operation` and Python `Client.estimate_operation`; not billed dollars or a service latency guarantee. |
 
-360 operator guide (Client + MCP only): [360_ASSEMBLY.md](360_ASSEMBLY.md).
+360 operator guide: [360_ASSEMBLY.md](360_ASSEMBLY.md). Save the nested `sphere_plan`
+as its own JSON artifact before passing it to `review-decide`; inspect the plan and
+obtain the human decision before invoking acceptance. Rendering rechecks source identity.
 
 ## Core Editing
 
 | Command | Description |
 |---------|-------------|
 | `info` | Get video metadata |
-| `trim` | Trim a video with finite times and staged output publication |
+| `trim` | Trim a video with finite times and staged output publication; `--accurate` selects slower frame-accurate seeking |
 | `merge` | Merge multiple clips |
 | `add-text` | Overlay text on a video |
-| `add-audio` | Add or replace audio track |
+| `add-audio` | Add/replace audio; `--mix --duration-policy loop_audio` loops the inserted track while preserving picture length; mixed `pad_audio` is unsupported |
 | `resize` | Resize or change aspect ratio |
-| `convert` | Convert video format (with two-pass encoding) |
+| `convert` | Convert video format; `--two-pass --target-bitrate KBPS` selects bitrate-based two-pass encoding for MP4/MOV |
 | `speed` | Change playback speed with staged output publication |
 | `thumbnail` | Extract a single frame |
-| `extract-frame` | Extract a single frame (with --time flag) |
+| `extract-frame` | Extract a frame; omitted `--time` uses smart sampling when available, otherwise 10% of duration; explicit `--time 0` means the first frame |
 | `preview` | Generate fast low-res preview |
 | `storyboard` | Extract key frames as storyboard |
 | `subtitles` | Burn `.srt`/`.vtt`/authored `.ass` subtitles into video; `--style` sets a force_style override (omit to preserve authored ASS styles/positions; SRT/VTT render dimension-aware) |
@@ -76,14 +97,17 @@ Published surface (since 1.14.1; current 1.15.3). These commands do **not** add 
 | `watermark` | Add image watermark |
 | `crop` | Crop in upright display pixels; explicit odd dimensions reject, percentage crops derive even dimensions and preserve pixel offsets |
 | `rotate` | Rotate and/or flip video |
-| `fade` | Fade over the bounded primary-picture window, including delayed starts; a longer audio/container tail does not define the visible fade |
+| `fade` | Fade over the bounded primary-picture window, including delayed starts; a longer audio/container tail does not define the visible fade. Optional `--crf` controls encoding quality |
 | `export` | Export with quality settings; optional C2PA signing via `--c2pa-manifest` for final MP4s |
 | `extract-audio` | Extract audio track |
+| `mix-audio INPUT --sounds JSON` | Mix timed tracks (`path`, `start`, `volume`, `fade_in`, `fade_out`); `--tracks` aliases `--sounds`, `--no-keep-source` omits original audio, `--audio-bitrate` sets AAC bitrate, `-o` sets output. One AAC encode and picture stream copy; gains can clip |
+| `duck-audio INPUT MUSIC` | Sidechain duck music under existing audio; `--music-volume`, `--threshold`, `--ratio`, `--attack`, `--release`, `-o`. Attack/release are milliseconds; no loudness normalization or governed audio-bed receipt |
+| `hls-segment INPUT` | Create local HLS assets; `--output-dir`, `--segment-duration`, `--playlist-name`, `--qualities low medium high ultra`. Packaging does not host or publish the files |
 | `edit` | Execute timeline-based edit from JSON (file path or inline) |
 | `filter` | Apply visual/audio filters; Ken Burns defaults to one frame per input, noise reduction defaults to -50 dB with `noise_level` override |
 | `blur` | Blur video |
 | `color-grade` | Apply color preset (warm, cool, vintage, etc.) |
-| `normalize-audio` | Normalize audio-only or video input to a LUFS target; WAV uses PCM16, supported M4A/video output uses AAC, with staged full-decode validation |
+| `normalize-audio` | Normalize audio-only or video input; `--lufs`, `--lra`, `--true-peak-dbtp`, `--fade-seconds` control loudness and boundary fades. WAV uses PCM16; supported M4A/video uses AAC with staged full-decode validation |
 | `audio-waveform` | Measure first-stream RMS dBFS bins and silence; inspect `synthetic` in JSON output. [Evidence contract](QUALITY_EVIDENCE.md#audio-waveform) |
 | `reverse` | Reverse video playback |
 | `chroma-key` | Remove solid color background (green screen) |
@@ -101,7 +125,7 @@ Published surface (since 1.14.1; current 1.15.3). These commands do **not** add 
 | `templates` | List available video templates |
 | `template` | Apply a video template (tiktok, youtube-shorts, etc.) |
 | `repurpose-plan` | Create a dry-run platform package manifest |
-| `repurpose` | Render local platform-ready variants and review artifacts. Default `--min-score` is 80. Pass `--min-score 0` or `--skip-release-checkpoint` to skip the hard gate. MCP `video_repurpose` is a durable job and does **not** apply `min_score`. |
+| `repurpose` | Render local platform-ready variants and review artifacts. Default `--min-score` is 80. Pass `--min-score 0` or `--skip-release-checkpoint` to skip the hard gate. Candidate MCP `video_repurpose` is a durable job and applies `min_score` before job success; its frozen checkpoint policy is enforced by the worker. Historical 1.15.3 did not enforce this policy. |
 | `shorts-plan-show` | Show proposals from a saved shorts plan (source-free) |
 | `shorts-review` | Append a human review decision to a saved shorts plan |
 | `shorts-render` | Render approved platform drafts from a saved shorts plan |
@@ -388,3 +412,5 @@ TypeScript and require quality and human review before release.
 | `--mcp` | Run as MCP server (default when no command given) |
 | `-v`, `--verbose` | Debug logs to stderr |
 | `--log-file PATH` | Write structured DEBUG logs to PATH |
+
+Planning/review JSON files and sound plans have a 1 MiB UTF-8 byte ceiling; post-rescue request files retain a 4 MiB ceiling. File admission requires a regular file and checks size before a bounded read. Inline JSON uses the same 1 MiB ceiling; malformed encoding or nesting deeper than 128 rejects with a redacted error before dispatch.

@@ -39,6 +39,7 @@ MAX_REVIDEO_JOB_JSON_BYTES = 1_048_576
 MAX_WAVE3_VERDICT_IDS = 64
 MAX_WAVE3_AUTH_DECISION_IDS = 64
 MAX_ACCEPTANCE_EVIDENCE_FILES = 64
+MAX_ESTIMATE_OPERATION_CHARS = 128
 
 # Long-form transcription chunking (per-chunk cap and overlap for the
 # reusable long-form stream-to-shorts workflow). These are independent of
@@ -142,3 +143,25 @@ MAX_AI_SCENE_FRAME_HEIGHT = 1920
 
 # CI-only Hyperframes execution evidence; not a media or provider payload cap.
 MAX_CI_HYPERFRAMES_REPORT_BYTES = 64 * 1024
+
+# Serialized track descriptions accepted by audio mixing operator adapters.
+MAX_AUDIO_MIX_JSON_BYTES = 65_536
+
+# JSON file admission limits for local operator planning and review routes.
+MAX_CLI_JSON_ARTIFACT_BYTES = 1_048_576
+# Motion producer: at most duration+1 one-second windows, three findings per
+# window plus copied review items, and frame-bounded transitions/gaps. These
+# conservative wire budgets cover compact and standard indent=2 JSON, including
+# finite float representations and fixed schema keys. Keep in sync with the
+# producer's window width/fields; arbitrary padding is intentionally bounded.
+MAX_MOTION_REPORT_JSON_BYTES = 65_536 + (MAX_VIDEO_DURATION + 1) * 3072 + MAX_TEMPORAL_INSPECTION_FRAMES * 1024
+# Each disposition contains a fixed SHA-256 review ID and a closed short value;
+# watched intervals contain two bounded finite numbers. Allow formatting slack.
+MAX_MOTION_DISPOSITIONS_JSON_BYTES = 4096 + 3 * MAX_TEMPORAL_INSPECTION_FRAMES * 128
+MAX_MOTION_WATCHED_INTERVALS_JSON_BYTES = 4096 + MAX_TEMPORAL_INSPECTION_FRAMES * 128
+MAX_POST_RESCUE_REQUEST_BYTES = 4_194_304
+MAX_JSON_ARTIFACT_DEPTH = 128
+
+# Staged MCPB icon admission; validation does not decode image pixels.
+MAX_MCPB_ICON_BYTES = 1_048_576
+MAX_MCPB_ICON_DIMENSION = 4096
