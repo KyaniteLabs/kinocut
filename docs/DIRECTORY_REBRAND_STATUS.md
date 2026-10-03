@@ -17,9 +17,9 @@ about third-party pages; verify an external page before acting on its listed sta
 - Description: Guardrailed video editing for AI agents with FFmpeg, captions,
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
-- Published surface: 201 MCP tools / 173 CLI commands (1.15.3)
-- Development tip: 201 MCP tools / 173 CLI commands (same registered surface; local changes remain Unreleased)
-- Current release: 1.15.3 (published 2026-09-25)
+- Published surface: 203 MCP tools / 177 CLI commands (1.16.0)
+- Development tip: 203 MCP tools / 177 CLI commands (matches the published release at cutover; future local changes remain Unreleased)
+- Current release: 1.16.0 (published 2026-10-02)
 - Provider check (2026-09-30): PyPI/npm and live site report 1.15.3; GitHub latest release reports 1.15.0; MCP Registry verification returned 403.
 - Submission ops: `docs/status/DIRECTORY_SUBMISSION_OPS.md`
 

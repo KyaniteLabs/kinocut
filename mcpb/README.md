@@ -4,6 +4,8 @@ This unsigned bundle launches Kinocut as a local stdio MCP server through the pa
 
 It expects Node 18+, Python 3.11+, exactly `kinocut==1.16.0`, and FFmpeg/ffprobe to already be installed on the user's machine. Optional AI, shader, and Hyperframes tools remain capability-gated until their dependencies are installed and configured. Native MCPB bundles are separate future work.
 
+Package publication does not establish public bundle distribution or Desktop install acceptance; those exact-digest gates remain pending.
+
 See `docs/MCPB.md` in the Kinocut repository for install, validation, and release-gate details.
 
 The bundle includes the approved 512px KinoCut icon. This logo approval does not

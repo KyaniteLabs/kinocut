@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino's development tip exposes **203 registered MCP tools / 177 CLI commands** across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.15.3 exposes **201 MCP tools / 173 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with operation-specific diagnostics and suggestions when available.
+kino's development tip exposes **203 registered MCP tools / 177 CLI commands** across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.16.0 exposes **203 MCP tools / 177 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with operation-specific diagnostics and suggestions when available.
 
 ---
 
@@ -73,7 +73,7 @@ results = editor.search_tools("subtitle")
 
 ## Visual review evidence
 
-Development `video_record_motion_acceptance` and CLI `record-motion-acceptance`
+Published 1.16.0 `video_record_motion_acceptance` and CLI `record-motion-acceptance`
 join Python `Client.record_motion_acceptance`. Supply the exact `report`,
 `input_path`, `reviewer_id`, `source_sha256`, `report_sha256`, complete
 `watched_intervals`, flagged-interval `dispositions`, and `verdict` (`accept` or
@@ -100,7 +100,7 @@ does not approve the whole film or establish model accuracy. See
 [quality evidence](QUALITY_EVIDENCE.md) for waveform, objective visual measurement
 and perceptual voice limits.
 
-Development controls also include `video_convert(two_pass=true,
+Published controls also include `video_convert(two_pass=true,
 target_bitrate=KBPS)` for MP4/MOV, `video_fade(crf=...)`, and
 `video_add_audio(mix=true, duration_policy="loop_audio")`. Mixed `pad_audio`
 remains unsupported. `video_hls_segment` now has CLI `hls-segment`; it writes
@@ -300,7 +300,7 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 
 ---
 
-## Revideo — guarded local code video (4 tools, development tip)
+## Revideo — guarded local code video (4 tools)
 
 | Tool | Purpose |
 | --- | --- |
@@ -367,10 +367,10 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 
 <a id="audio-synthesis-9-tools"></a>
 
-## Audio Synthesis (10 tools, development tip)
+## Audio Synthesis (10 tools)
 
-Plain-file `Client.mix_audio` and `Client.duck_audio` also have development CLI
-adapters `mix-audio` and `duck-audio`. The development MCP addition is
+Plain-file `Client.mix_audio` and `Client.duck_audio` also have published CLI
+adapters `mix-audio` and `duck-audio`. The published 1.16.0 MCP addition is
 `video_mix_audio`; `video_duck_audio` already existed. See
 [audio mixing](AUDIO_MIXING.md) for engine behavior.
 

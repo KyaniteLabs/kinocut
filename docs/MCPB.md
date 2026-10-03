@@ -7,7 +7,7 @@ MCPB does not bundle Python, Kinocut, FFmpeg, Node, Hyperframes, or AI model wei
 ## Runtime Requirements
 
 - Node.js 18 or newer, used only by the MCPB launcher.
-- Python 3.11 or newer with `kinocut==1.16.0` installed for this candidate; the published 1.15.3 bundle requires `kinocut==1.15.3`.
+- Python 3.11 or newer with published `kinocut==1.16.0` installed for this matching unsigned bundle; the historical 1.15.3 bundle requires `kinocut==1.15.3`.
 - FFmpeg and ffprobe available on `PATH`, or an executable named `ffmpeg` configured through the installer field with an adjacent `ffprobe`.
 - Optional AI features require the matching Kinocut extras and local model dependencies.
 - Hyperframes tools require a resolvable Hyperframes command; leave the field blank if you do not use those tools.
@@ -43,7 +43,7 @@ acceptance; the staged publication gates below still apply.
 dist/kinocut-1.16.0.mcpb
 ```
 
-This is an unpublished candidate. The published-version reference remains `dist/kinocut-1.15.3.mcpb`; never pair that archive with a different installed runtime.
+The matching package-version reference is `dist/kinocut-1.16.0.mcpb`. The bundle remains unsigned and gated: package publication is not public distribution or Desktop install acceptance. Preserve the historical `dist/kinocut-1.15.3.mcpb` with its matching runtime; never pair an archive with a different installed runtime.
 
 Focused validation:
 

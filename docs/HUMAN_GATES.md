@@ -22,7 +22,7 @@ where noted. Residual portfolio authority:
 | PyPI downloads (last day) | **608** | pypistats / pypi.org API |
 | PyPI downloads (last week) | **6,715** | same |
 | PyPI downloads (last month) | **23,034** | same |
-| Published package | **1.15.3** | PyPI (published 2026-09-25; verified 2026-09-30) |
+| Published package | **1.16.0** | PyPI (published/verified 2026-10-02); historical download/star observations above remain dated |
 
 Downloads are not a unique-user census, but stars + forks + multi‑k weekly installs
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
@@ -80,7 +80,9 @@ capacity-2 / virtiofs starvation. Do not merge #405 red. See
 
 ## Product site
 
-Live `kinocut.dev` JSON-LD and `llms.txt` report **1.15.3** (verified 2026-09-30).
+Official package/release providers report 1.16.0 (verified 2026-10-02). Site metadata last verified 1.15.3 on 2026-10-01; site owner update and rendered acceptance remain pending. Forgejo issue tracking excluded; canonical website source remains Forgejo; publication does not establish fleet or human/model acceptance.
+
+Historical verification: Live `kinocut.dev` JSON-LD and `llms.txt` report **1.15.3** (verified 2026-09-30).
 This verifies live release metadata; it does not establish rendered verification
 of every page. PyPI and npm also report 1.15.3, while GitHub latest release reports
 1.15.0. MCP Registry verification returned 403, so its current version is unknown.

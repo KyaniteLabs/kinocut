@@ -1,6 +1,6 @@
 # Plain-file audio mixing
 
-These APIs are unpublished 1.16.0 candidate additions; see
+These APIs are published 1.16.0 additions; see
 [the changelog](../CHANGELOG.md). Python `mix_audio` and `duck_audio` share their engines with MCP `video_mix_audio` / `video_duck_audio` and CLI `mix-audio` / `duck-audio`. Track descriptions are bounded to 65,536 UTF-8 bytes and 64 tracks.
 Both methods accept `input_path` and `output_path` aliases for `video` and
 `output`; ducking also accepts `music_path` for `music`. Conflicting canonical and
