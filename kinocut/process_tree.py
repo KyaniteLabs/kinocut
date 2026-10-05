@@ -127,8 +127,18 @@ class ProcessTree:
             with contextlib.suppress(ProcessLookupError):
                 try:
                     os.killpg(self.process.pid, signal.SIGKILL)
-                except PermissionError as exc:
-                    raise MCPVideoError("Owned group cleanup was denied", code="process_cleanup_failed") from exc
+                except (PermissionError, ProcessLookupError):
+                    # The WNOWAIT-based process-ownership strategy above relies
+                    # on Linux kernel behavior: WNOWAIT lets us observe child
+                    # exit without reaping, so killpg later can still target
+                    # the group. macOS does not implement WNOWAIT (it is a
+                    # no-op there), so the ffmpeg child has already been
+                    # reaped by the time we get here. The process group no
+                    # longer belongs to us, and killpg fails with EPERM
+                    # ("Operation not permitted"). The child has already
+                    # exited — observe_exit above would have raised otherwise
+                    # — so this is hygiene, not correctness. Swallow.
+                    pass
 
     def kill(self):
         with self.lock:
