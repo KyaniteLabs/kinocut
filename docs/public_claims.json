@@ -6,8 +6,8 @@
     "kinocut",
     "mcp-video"
   ],
-  "published_version": "1.16.0",
-  "published_date": "2026-10-02",
+  "published_version": "1.16.1",
+  "published_date": "2026-10-05",
   "release_candidate_version": "1.16.1",
   "published_mcp_tools": 203,
   "published_cli_commands": 177,
@@ -21,6 +21,7 @@
   "license": "Apache-2.0",
   "formerly": "mcp-video",
   "notes": [
+    "Release verification 2026-10-05: PyPI kinocut and npm kinocut publicly report 1.16.1; PyPI mcp-video 1.6.16 pins kinocut==1.16.1. GitHub v1.16.1 targets merged commit 9727d465d698950f4054f868806a32a78876af8f. The initial publication job read canonical MCP Registry 1.16.1; subsequent local registry reads timed out. The initial npm visibility delay caused the final publication gate to fail before npm became public. Website 1.16.1 source is prepared but not deployed; the last verified live site remains 1.16.0. Forgejo product synchronization is explicitly disabled. These publication facts do not establish optional model, desktop, fleet or final owner acceptance.",
     "published_* counts describe the last published package (pip install kinocut).",
     "release_candidate_version tracks the package version on master (equals published after cutover).",
     "development_* counts describe the current repository tip (master).",

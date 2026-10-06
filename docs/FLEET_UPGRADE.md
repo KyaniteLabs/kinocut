@@ -1,6 +1,6 @@
-# Fleet upgrade to Kinocut 1.16.0
+# Fleet upgrade to Kinocut 1.16.1
 
-1.16.0 is published (verified 2026-10-02 on PyPI/npm/GitHub release/canonical MCP Registry); the matching published compatibility installer is `mcp-video==1.6.15`. This verifies package publication, not fleet rollout. Use the owned consumer environment, configured extras and reviewed upgrade/restart plan below. A merge, successful build, or saved cloud setup draft does not update
+1.16.1 is published (verified 2026-10-05 on PyPI/npm/GitHub release/canonical MCP Registry); the matching published compatibility installer is `mcp-video==1.6.16`. This verifies package publication, not fleet rollout. Use the owned consumer environment, configured extras and reviewed upgrade/restart plan below. A merge, successful build, or saved cloud setup draft does not update
 an installed package or a running MCP process.
 
 ## Inventory and rollout
@@ -21,7 +21,7 @@ environment's interpreter and retain its explicitly configured extras. Consumers
 with `mcp-video` must use the joint upgrade and ownership repair below:
 
 ```bash
-/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.0'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.1'
 /path/to/environment/bin/python -m pip check
 /path/to/environment/bin/kino --version
 /path/to/environment/bin/kino doctor
@@ -31,7 +31,7 @@ On Windows, use the consumer's existing environment under `Scripts` rather than
 the Unix `bin` layout. For example, in PowerShell for a local `.venv`:
 
 ```powershell
-& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==1.16.0'
+& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==1.16.1'
 & .\.venv\Scripts\python.exe -m pip check
 & .\.venv\Scripts\kino.exe --version
 & .\.venv\Scripts\kino.exe --format json doctor
@@ -47,8 +47,8 @@ ownership afterward. Safe pip fixtures reproduced the old shim deleting
 The reinstall uses `--no-deps` to preserve the just-resolved dependency graph:
 
 ```bash
-/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.0' 'mcp-video==1.6.15'
-/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==1.16.0'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.1' 'mcp-video==1.6.16'
+/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==1.16.1'
 /path/to/environment/bin/python -m pip check
 /path/to/environment/bin/kino --version
 /path/to/environment/bin/kinocut --version
@@ -58,8 +58,8 @@ The reinstall uses `--no-deps` to preserve the just-resolved dependency graph:
 The equivalent PowerShell sequence uses that environment's `Scripts` executables:
 
 ```powershell
-& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==1.16.0' 'mcp-video==1.6.15'
-& .\.venv\Scripts\python.exe -m pip install --force-reinstall --no-deps 'kinocut==1.16.0'
+& .\.venv\Scripts\python.exe -m pip install --upgrade 'kinocut==1.16.1' 'mcp-video==1.6.16'
+& .\.venv\Scripts\python.exe -m pip install --force-reinstall --no-deps 'kinocut==1.16.1'
 & .\.venv\Scripts\python.exe -m pip check
 & .\.venv\Scripts\kino.exe --version
 & .\.venv\Scripts\kinocut.exe --version
@@ -77,19 +77,19 @@ workflow. The release raises security floors for nine previously affected depend
 For a `uvx` MCP configuration, pin the package explicitly:
 
 ```json
-{"command":"uvx","args":["--from","kinocut==1.16.0","kino","--mcp"]}
+{"command":"uvx","args":["--from","kinocut==1.16.1","kino","--mcp"]}
 ```
 
 The npm launcher also pins a separate `uvx` Python environment. Updating a global
 Python package alone does not update it. Upgrade its configured npm package to
-`kinocut@1.16.0`, then verify the launched CLI version. A version-matched MCPB
+`kinocut@1.16.1`, then verify the launched CLI version. A version-matched MCPB
 requires its own matching artifact, readiness receipt and host installation;
 do not reuse a 1.15.3 bundle or imply Desktop acceptance from CI checks.
 
 After the controlled restart, verify the exact interpreter used by the service:
 
 ```bash
-/path/to/environment/bin/python -c 'import importlib.metadata as m, kinocut, mcp_video; assert m.version("kinocut") == kinocut.__version__ == "1.16.0"; assert kinocut.Client is mcp_video.Client; print(kinocut.__version__, kinocut.__file__)'
+/path/to/environment/bin/python -c 'import importlib.metadata as m, kinocut, mcp_video; assert m.version("kinocut") == kinocut.__version__ == "1.16.1"; assert kinocut.Client is mcp_video.Client; print(kinocut.__version__, kinocut.__file__)'
 ```
 
 Confirm that the MCP process was replaced, starts successfully, discovers the
@@ -105,7 +105,7 @@ version/configuration using that consumer's normal deployment mechanism.
 
 ## Replacing an earlier build with the same version
 
-A consumer already reporting `1.16.0` may still have an earlier candidate's
+A consumer already reporting `1.16.1` may still have an earlier candidate's
 bytes. An actual pip fixture retained the old wheel after a successful
 `pip install --upgrade` of the newer same-version wheel. Version output and
 `pip check` alone therefore do not establish that it runs the final build.
@@ -116,8 +116,8 @@ in-place repair, explicitly replace canonical package bytes, then resolve the
 approved pins and configured extras against the final metadata before restarting:
 
 ```bash
-/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==1.16.0'
-/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.0'
+/path/to/environment/bin/python -m pip install --force-reinstall --no-deps 'kinocut==1.16.1'
+/path/to/environment/bin/python -m pip install --upgrade 'kinocut==1.16.1'
 /path/to/environment/bin/python -m pip check
 ```
 

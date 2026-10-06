@@ -1,6 +1,6 @@
 # CLI Reference
 
-Published 1.16.0 and its matching development checkout: **203 MCP tools / 177 CLI commands**. Future development additions remain separately marked.
+Published 1.16.1 and its matching development checkout: **203 MCP tools / 177 CLI commands**. Future development additions remain separately marked.
 
 ```
 kino [command] [options]
@@ -55,7 +55,7 @@ inspection, decision, protection, derivative, and re-review sequence.
 
 ## Intent, review, and cutfiles
 
-Published surface (since 1.14.1; current 1.16.0). The existing intent/review commands
+Published surface (since 1.14.1; current 1.16.1). The existing intent/review commands
 gain goal compilation and 360 handling in published 1.16.0; there is no separate `kino 360` command.
 
 | Command | Description |
