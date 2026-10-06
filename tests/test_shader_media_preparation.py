@@ -39,8 +39,9 @@ def test_dependencies_precede_media_work(monkeypatch, sample_video, tmp_path):
 def test_missing_source_audio_is_not_silently_dropped(tmp_path):
     frames = tmp_path / "frames"
     frames.mkdir()
-    _run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
-          "color=s=16x16:r=10:d=0.1", str(frames / "frame_%06d.png")])
+    _run(
+        ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=s=16x16:r=10:d=0.1", str(frames / "frame_%06d.png")]
+    )
     with pytest.raises(MCPVideoError):
         shader._assemble_video(str(frames), str(tmp_path / "missing.mp4"), str(tmp_path / "out.mp4"), "10/1")
 
@@ -100,8 +101,9 @@ def _run(args):
 def test_frame_extraction_stops_at_overflow_sentinel(monkeypatch, tmp_path):
     source, frames = tmp_path / "source.mp4", tmp_path / "frames"
     frames.mkdir()
-    _run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
-          "color=s=16x16:r=10:d=0.5", "-c:v", "libx264", str(source)])
+    _run(
+        ["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=s=16x16:r=10:d=0.5", "-c:v", "libx264", str(source)]
+    )
     monkeypatch.setattr(shader, "MAX_SHADER_FRAMES", 2)
     assert shader._extract_frames(str(source), str(frames))["frame_count"] == 3
     with pytest.raises(MCPVideoError) as caught:
@@ -131,9 +133,7 @@ def test_node_failures_are_typed(monkeypatch, operation, failure):
 
 
 def test_renderer_failure_keeps_code_and_bounds_stderr(monkeypatch):
-    monkeypatch.setattr(
-        shader.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=1, stderr="x" * 2000)
-    )
+    monkeypatch.setattr(shader.subprocess, "run", lambda *a, **k: SimpleNamespace(returncode=1, stderr="x" * 2000))
     with pytest.raises(MCPVideoError) as caught:
         shader._run_node_render("node", {})
     assert caught.value.code == "shader_render_failed"
@@ -170,10 +170,23 @@ def test_native_pipeline_preserves_audio(monkeypatch, codec, engine, tmp_path):
         upscale._upscale_with_realesrgan(source, output, "realesrgan", 2)
 
     def packets(path):
-        data = _run(["ffprobe", "-v", "error", "-select_streams", "a:0", "-show_packets",
-                     "-show_data_hash", "sha256", "-show_entries",
-                     "packet=pts_time,dts_time,duration_time,data_hash,side_data_list",
-                     "-of", "json", str(path)])
+        data = _run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-select_streams",
+                "a:0",
+                "-show_packets",
+                "-show_data_hash",
+                "sha256",
+                "-show_entries",
+                "packet=pts_time,dts_time,duration_time,data_hash,side_data_list",
+                "-of",
+                "json",
+                str(path),
+            ]
+        )
         return json.loads(data).get("packets", [])
 
     assert packets(source) == packets(output)

@@ -152,9 +152,7 @@ def test_success_publishes_valid_native_media_and_returns_requested_path(clip_fa
 
 
 @pytest.mark.parametrize("mux_fails", [False, True], ids=["audio-preserved", "audio-mux-fails"])
-def test_realesrgan_audio_mux_failure_cannot_publish_silent_success(
-    clip_factory, tmp_path, monkeypatch, mux_fails
-):
+def test_realesrgan_audio_mux_failure_cannot_publish_silent_success(clip_factory, tmp_path, monkeypatch, mux_fails):
     pytest.importorskip("numpy")
     pytest.importorskip("PIL")
     clip = clip_factory(2, audio=True)
@@ -167,6 +165,7 @@ def test_realesrgan_audio_mux_failure_cannot_publish_silent_success(
         upscale, "_init_realesrgan", lambda *a: SimpleNamespace(enhance=lambda image, **kw: (image, None))
     )
     if mux_fails:
+
         def fail_mux(*args, **kwargs):
             assert kwargs["audio_source"] == str(clip)
             raise ProcessingError("ffmpeg", 1, "audio mux failed")
