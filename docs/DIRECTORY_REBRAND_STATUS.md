@@ -17,10 +17,10 @@ about third-party pages; verify an external page before acting on its listed sta
 - Description: Guardrailed video editing for AI agents with FFmpeg, captions,
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
-- Published surface: 203 MCP tools / 177 CLI commands (1.16.0)
+- Published surface: 203 MCP tools / 177 CLI commands (1.16.1)
 - Development tip: 203 MCP tools / 177 CLI commands (matches the published release at cutover; future local changes remain Unreleased)
-- Current release: 1.16.0 (published 2026-10-02)
-- Provider check (2026-10-05): PyPI/npm, GitHub release and the official MCP Registry report 1.16.0; the live site also shows 1.16.0, 203 MCP tools and 177 CLI commands. PyPI's published long description still contains stale pre-publication copy, which requires an authorized metadata refresh.
+- Current release: 1.16.1 (published 2026-10-05)
+- Provider check (2026-10-05): PyPI/npm and GitHub release publicly report 1.16.1; the initial publication gate read official MCP Registry 1.16.1, but later reads timed out. Shim 1.6.16 pins 1.16.1. The last verified live site remains 1.16.0; 1.16.1 website source is prepared but not deployed. Immutable PyPI descriptions retain dated earlier checkpoints; current source guidance is updated without claiming vendor acceptance.
 - Submission ops: `docs/status/DIRECTORY_SUBMISSION_OPS.md`
 
 ## Reconciliation Snapshot (2026-07-10)

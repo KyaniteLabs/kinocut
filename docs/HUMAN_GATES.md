@@ -22,7 +22,7 @@ where noted. Residual portfolio authority:
 | PyPI downloads (last day) | **608** | pypistats / pypi.org API |
 | PyPI downloads (last week) | **6,715** | same |
 | PyPI downloads (last month) | **23,034** | same |
-| Published package | **1.16.0** | PyPI (published/verified 2026-10-02); historical download/star observations above remain dated |
+| Published package | **1.16.1** | PyPI (published/verified 2026-10-05); historical download/star observations above remain dated |
 
 Downloads are not a unique-user census, but stars + forks + multi‑k weekly installs
 make “recruit first 10 users” an obsolete product gate. Do **not** re-open #92 as
@@ -81,6 +81,8 @@ capacity-2 / virtiofs starvation. Do not merge #405 red. See
 [CI_RUNNER_TOPOLOGY.md](CI_RUNNER_TOPOLOGY.md).
 
 ## Product site
+
+Current maintenance publication (2026-10-05): PyPI/npm and GitHub release report **1.16.1**; compatibility shim **1.6.16** pins it. The initial publication gate read MCP Registry 1.16.1; later reads timed out. Website 1.16.1 source is prepared, not deployed. The dated checkpoint below remains historical.
 
 Official package/release providers report 1.16.0 (verified 2026-10-02). On 2026-10-05, the live [product site](https://kinocut.dev/) showed 1.16.0, 203 MCP tools and 177 CLI commands; installation and benchmark pages responded successfully and the showcase download was available. Website and product-repository social images matched the approved exports. The earlier DNS and social-upload blockers are superseded. Final owner acceptance, fleet rollout and human/model acceptance remain separate. Forgejo issue tracking is excluded; the website repository retains its separately recorded Forgejo source authority.
 

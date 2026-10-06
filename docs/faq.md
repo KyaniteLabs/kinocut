@@ -10,6 +10,8 @@ MCP (Model Context Protocol) is a standard protocol that lets AI agents like Cla
 
 ## Is Kinocut on the MCP Registry?
 
+Current maintenance publication (2026-10-05): PyPI/npm and GitHub release report **1.16.1**; compatibility shim **1.6.16** pins it. The initial publication gate read MCP Registry 1.16.1; later reads timed out. Website 1.16.1 source is prepared, not deployed. The dated checkpoint below remains historical.
+
 Kinocut's canonical identifier is `io.github.KyaniteLabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest), PyPI, npm and GitHub release report 1.16.0 (verified 2026-10-02); compatibility package `mcp-video==1.6.15` pins `kinocut==1.16.0`. The [live website](https://kinocut.dev/) also showed 1.16.0, 203 MCP tools and 177 CLI commands on 2026-10-05. Final owner acceptance and fleet rollout remain separately unverified. GitHub is the canonical product repository; the website has its own Forgejo source authority.
 
 ## Which AI agents work with Kinocut?
@@ -76,7 +78,7 @@ Kinocut covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered me
 
 ## Can it edit Insta360 X4 360 video?
 
-Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.16.0`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.16.1`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## What are the cinematic creation tools?
 
@@ -88,7 +90,7 @@ Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection
 
 ## Can I cut a product out of a turntable or tabletop video?
 
-Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.16.0** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.16.1** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 
 ## Is it free?
 

@@ -502,6 +502,6 @@ HyperframesPipelineResult(success=True, output_path, hyperframes_output, post_pr
 ```
 
 
-## Local operation estimates (1.16.0 candidate)
+## Local operation estimates (since 1.16.0)
 
 `Client().estimate_operation("trim", duration_seconds=10, complexity=1)` returns the same dictionary as MCP `video_estimate_operation` and CLI `estimate`. Inputs must be finite, nonboolean numbers; duration is nonnegative and complexity positive. Arithmetic overflow and blank or oversized operation names are rejected. These are local heuristics with dimensionless cost units and `currency=None`, not measured latency or provider billing.
