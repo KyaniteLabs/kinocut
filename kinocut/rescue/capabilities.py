@@ -55,7 +55,7 @@ def _probe_ffmpeg_filters(executable: str, identity: tuple) -> frozenset[str]:
     filters: set[str] = set()
     for line in result.stdout.splitlines():
         columns = line.split()
-        if len(columns) >= 3 and re.fullmatch(r"[.T][.S][.C]", columns[0]) and "->" in columns[2]:
+        if len(columns) >= 3 and re.fullmatch(r"[.T][.S](?:[.C])?", columns[0]) and "->" in columns[2]:
             filters.add(columns[1])
     return frozenset(filters)
 

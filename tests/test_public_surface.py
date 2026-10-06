@@ -326,7 +326,9 @@ def test_forgejo_is_a_ci_gated_fast_forward_downstream():
     for guidance in (topology, human_gates):
         normalized_guidance = " ".join(guidance.split())
         assert "KINOCUT_FORGEJO_SYNC_ACTIVE" in guidance
-        assert "staged and inactive" in guidance
+        assert "staged activation guard" in guidance
+        assert "unverified" in guidance
+        assert "HTTP 401" in guidance
         assert "case-insensitive string equality" in guidance
         assert "`true`, `True`, and `TRUE`" in normalized_guidance
         assert "canonical lowercase" in guidance

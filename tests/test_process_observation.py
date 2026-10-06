@@ -14,6 +14,13 @@ from kinocut.process_tree import ProcessTree
 pytestmark = pytest.mark.skipif(os.name != "posix", reason="POSIX identity retention; Windows uses Job handles")
 
 
+def test_darwin_uses_live_supervisor_even_when_waitid_is_available(monkeypatch):
+    import kinocut.process_observation as observation
+
+    monkeypatch.setattr(observation.sys, "platform", "darwin")
+    assert not observation.supports_nonreaping_wait()
+
+
 @pytest.fixture(params=[False, True], ids=["native-observation", "live-supervisor"])
 def fallback(request, monkeypatch):
     import kinocut.process_observation as observation

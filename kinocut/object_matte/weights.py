@@ -9,6 +9,8 @@ from pathlib import Path
 
 from ..defaults import DEFAULT_OBJECT_MATTE_TIMEOUT
 from ..errors import MCPVideoError
+from ..model_cache import model_download_stage
+from ..staged_writers import open_staged_writer
 from ..validation import (
     OBJECT_MATTE_MAX_DOWNLOAD_BYTES,
     OBJECT_MATTE_WEIGHTS_BYTES,
@@ -31,22 +33,23 @@ def _digest_file(path: Path) -> tuple[str, str]:
     return sha.hexdigest(), md5.hexdigest()
 
 
-def _verify_weights(path: Path) -> None:
+def _verify_weights(path: Path, *, delete_invalid: bool = True) -> None:
     size = path.stat().st_size
     if size != OBJECT_MATTE_WEIGHTS_BYTES:
-        path.unlink(missing_ok=True)
+        if delete_invalid:
+            path.unlink(missing_ok=True)
         raise MCPVideoError(
-            f"Object-matte weights size mismatch for {path.name}: "
-            f"expected {OBJECT_MATTE_WEIGHTS_BYTES}, got {size}. File deleted.",
+            f"Object-matte weights size mismatch for {path.name}: expected {OBJECT_MATTE_WEIGHTS_BYTES}, got {size}.",
             error_type="integrity_error",
             code="model_size_mismatch",
             docs_url=_DOCS,
         )
     sha, md5 = _digest_file(path)
     if sha != OBJECT_MATTE_WEIGHTS_SHA256 or md5 != OBJECT_MATTE_WEIGHTS_MD5:
-        path.unlink(missing_ok=True)
+        if delete_invalid:
+            path.unlink(missing_ok=True)
         raise MCPVideoError(
-            f"Object-matte weights integrity check failed for {path.name}. File deleted.",
+            f"Object-matte weights integrity check failed for {path.name}.",
             error_type="integrity_error",
             code="model_hash_mismatch",
             docs_url=_DOCS,
@@ -55,24 +58,19 @@ def _verify_weights(path: Path) -> None:
 
 def _download_weights(dest: Path) -> None:
     dest.parent.mkdir(parents=True, exist_ok=True)
-    tmp_path = dest.with_suffix(".tmp")
-    tmp_path.unlink(missing_ok=True)
     req = urllib.request.Request(OBJECT_MATTE_WEIGHTS_URL)  # noqa: S310
     context = ssl.create_default_context()
     context.check_hostname = True
     context.verify_mode = ssl.CERT_REQUIRED
-    try:
+    with model_download_stage(dest) as tmp_path:
         with (
             urllib.request.urlopen(  # noqa: S310
                 req, timeout=DEFAULT_OBJECT_MATTE_TIMEOUT, context=context
             ) as resp,
-            tmp_path.open("wb") as handle,
+            open_staged_writer(str(tmp_path)) as handle,
         ):
             _copy_capped(resp, handle)
-        tmp_path.replace(dest)
-    except Exception:
-        tmp_path.unlink(missing_ok=True)
-        raise
+        _verify_weights(tmp_path, delete_invalid=False)
 
 
 def _copy_capped(resp: object, handle: object) -> None:

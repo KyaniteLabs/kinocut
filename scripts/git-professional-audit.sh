@@ -39,7 +39,7 @@ else
   pass "Current branch is '$current_branch'."
 fi
 
-if git diff --quiet && git diff --cached --quiet; then
+if [[ -z "$(git status --porcelain)" ]]; then
   pass "Working tree is clean."
 else
   warn "Working tree has uncommitted changes."
@@ -69,7 +69,7 @@ fi
 
 worktree_count="$(git worktree list --porcelain | awk '$1=="worktree"{count++} END{print count+0}')"
 if [[ "$worktree_count" -ge 1 ]]; then
-  pass "Detected $worktree_count active worktree(s)."
+  pass "Detected $worktree_count registered worktree(s); registration does not establish an active writer."
 else
   fail "No active worktree detected (unexpected repository state)."
 fi
@@ -84,7 +84,7 @@ stale_count="$(git branch -vv | awk '/: gone]/{count++} END{print count+0}')"
 if [[ "$stale_count" -eq 0 ]]; then
   pass "No local branches tracking deleted remotes."
 else
-  warn "$stale_count branch(es) track deleted remotes. Run: git remote prune origin"
+  warn "$stale_count branch(es) track deleted remotes. Inspect current refs and ownership before any authorized cleanup."
 fi
 
 if git config --get init.defaultBranch >/dev/null 2>&1; then

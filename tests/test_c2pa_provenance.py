@@ -139,18 +139,70 @@ def test_c2pa_provider_signs_then_verifies_with_fake_executable(monkeypatch, tmp
     assert str(manifest) not in json.dumps(result)
     assert "/opt/kinocut/signer" not in json.dumps(result)
     calls = [json.loads(line) for line in tool.with_suffix(".log").read_text(encoding="utf-8").splitlines()]
+    signed_tmp = Path(calls[0][4])
+    assert signed_tmp.parent == asset.parent
+    assert signed_tmp.name.startswith(".kinocut_tmp_")
+    assert signed_tmp.suffix == asset.suffix
+    assert not signed_tmp.exists()
     assert calls[0] == [
         str(asset),
         "--manifest",
         str(manifest),
         "--output",
-        str(asset.with_name("final.c2pa-signing.mp4")),
+        str(signed_tmp),
         "--force",
         "--signer-path",
         "/opt/kinocut/signer",
     ]
-    assert calls[1] == [str(asset.with_name("final.c2pa-signing.mp4"))]
+    assert calls[1] == [str(signed_tmp)]
     assert asset.read_bytes() == b"mp4 bytes\nC2PA-SIGNED"
+
+
+@pytest.mark.parametrize("verify_failure", [False, True])
+def test_c2pa_signing_preserves_foreign_temporary_file(monkeypatch, tmp_path, verify_failure):
+    from mcp_video.c2pa import sign_export_with_c2pa
+
+    _use_fake_c2patool(monkeypatch, _fake_c2patool(tmp_path, verify_failure=verify_failure))
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"original")
+    foreign = tmp_path / "final.c2pa-signing.mp4"
+    foreign.write_bytes(b"foreign-owned")
+    manifest = _manifest(tmp_path)
+    if verify_failure:
+        with pytest.raises(MCPVideoError):
+            sign_export_with_c2pa(str(asset), manifest_path=str(manifest))
+        assert asset.read_bytes() == b"original"
+    else:
+        sign_export_with_c2pa(str(asset), manifest_path=str(manifest))
+        assert asset.read_bytes() == b"original\nC2PA-SIGNED"
+    assert foreign.read_bytes() == b"foreign-owned"
+    assert not list(tmp_path.glob(".kinocut_tmp_*"))
+
+
+def test_c2pa_signing_rejects_an_empty_successful_output(monkeypatch, tmp_path):
+    import kinocut.c2pa as provider
+
+    _use_fake_c2patool(monkeypatch, _fake_c2patool(tmp_path))
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"original")
+    monkeypatch.setattr(provider, "_run_c2patool", lambda *args, **kwargs: None)
+    with pytest.raises(MCPVideoError, match="without producing"):
+        provider.sign_export_with_c2pa(str(asset), manifest_path=str(_manifest(tmp_path)))
+    assert asset.read_bytes() == b"original"
+    assert not list(tmp_path.glob(".kinocut_tmp_*"))
+
+
+def test_c2pa_signing_does_not_relax_an_existing_input_alias(monkeypatch, tmp_path):
+    from mcp_video.c2pa import sign_export_with_c2pa
+    from mcp_video.ffmpeg_helpers import _validate_input_path
+
+    _use_fake_c2patool(monkeypatch, _fake_c2patool(tmp_path))
+    asset = tmp_path / "final.mp4"
+    asset.write_bytes(b"original")
+    _validate_input_path(str(asset))
+    with pytest.raises(MCPVideoError, match="aliases an input"):
+        sign_export_with_c2pa(str(asset), manifest_path=str(_manifest(tmp_path)))
+    assert asset.read_bytes() == b"original"
 
 
 def test_c2pa_provider_reports_untrusted_signing_credential_as_warning(monkeypatch, tmp_path):
@@ -209,7 +261,8 @@ def test_c2pa_provider_fails_closed_when_verification_reports_errors(monkeypatch
     assert asset.read_bytes() == original_bytes
     assert not asset.with_name("final.c2pa-signing.mp4").exists()
     calls = [json.loads(line) for line in tool.with_suffix(".log").read_text(encoding="utf-8").splitlines()]
-    assert calls[1] == [str(asset.with_name("final.c2pa-signing.mp4"))]
+    assert calls[1] == [calls[0][4]]
+    assert not Path(calls[0][4]).exists()
 
 
 def test_c2pa_provider_fails_when_untrusted_status_has_invalid_validation_state(monkeypatch, tmp_path):

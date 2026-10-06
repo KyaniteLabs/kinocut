@@ -165,3 +165,10 @@ MAX_JSON_ARTIFACT_DEPTH = 128
 # Staged MCPB icon admission; validation does not decode image pixels.
 MAX_MCPB_ICON_BYTES = 1_048_576
 MAX_MCPB_ICON_DIMENSION = 4096
+
+# Descriptor-only MOV/MP4 index relocation uses bounded metadata and media reads.
+MAX_FASTSTART_MOOV_BYTES = 64 * 1024 * 1024
+FASTSTART_COPY_CHUNK_BYTES = 1024 * 1024
+
+# Stop GPU shader frame extraction after one overflow sentinel frame.
+MAX_SHADER_FRAMES = 7200

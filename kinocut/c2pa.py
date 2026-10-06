@@ -6,12 +6,11 @@ import json
 import os
 import shutil
 import subprocess
-from pathlib import Path
 from typing import Any
 
 from .defaults import DEFAULT_C2PA_TIMEOUT
 from .errors import C2PASigningError, C2PAToolNotFoundError, C2PAVerificationError, MCPVideoError
-from .ffmpeg_helpers import _validate_artifact_path, _validate_input_path, _validate_output_path
+from .ffmpeg_helpers import _atomic_output, _validate_artifact_path, _validate_input_path
 
 
 _UNTRUSTED_SIGNING_CREDENTIAL_STATUS = "signingCredential.untrusted"
@@ -32,32 +31,20 @@ def sign_export_with_c2pa(
     injection via the public tool surface. ``signer_path`` is an internal,
     operator-configured option and must not originate from untrusted input.
     """
-    asset = _validate_input_path(asset_path)
+    # Signing deliberately replaces this final export after verification. Do
+    # not register a new read-only input; existing input aliases stay guarded.
+    asset = _validate_input_path(asset_path, record_operation=False)
     manifest = _validate_manifest_path(manifest_path)
     tool = _resolve_c2patool()
 
-    suffix = Path(asset).suffix
-    signed_tmp = str(Path(asset).with_name(f"{Path(asset).stem}.c2pa-signing{suffix}"))
-    _validate_output_path(signed_tmp)
-    if os.path.exists(signed_tmp):
-        os.remove(signed_tmp)
-
-    cmd = [tool, asset, "--manifest", manifest, "--output", signed_tmp, "--force"]
-    if signer_path:
-        cmd.extend(["--signer-path", signer_path])
-
-    _run_c2patool(cmd, "sign")
-    if not os.path.isfile(signed_tmp):
-        raise C2PASigningError("c2patool completed without producing the signed output")
-
-    try:
+    with _atomic_output(asset) as signed_tmp:
+        cmd = [tool, asset, "--manifest", manifest, "--output", signed_tmp, "--force"]
+        if signer_path:
+            cmd.extend(["--signer-path", signer_path])
+        _run_c2patool(cmd, "sign")
+        if not os.path.isfile(signed_tmp) or os.path.getsize(signed_tmp) == 0:
+            raise C2PASigningError("c2patool completed without producing the signed output")
         verification = _verify_signed_asset(tool, signed_tmp)
-    except Exception:
-        if os.path.exists(signed_tmp):
-            os.remove(signed_tmp)
-        raise
-
-    os.replace(signed_tmp, asset)
     return {
         "status": "signed",
         "verified": True,

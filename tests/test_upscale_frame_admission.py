@@ -151,9 +151,9 @@ def test_success_publishes_valid_native_media_and_returns_requested_path(clip_fa
     assert calls[0][2] == ((4,) if backend == "opencv" else ("bsrgan", 4))
 
 
-@pytest.mark.parametrize("extraction_fails", [False, True], ids=["audio-preserved", "audio-extraction-fails"])
-def test_realesrgan_audio_extraction_failure_cannot_publish_silent_success(
-    clip_factory, tmp_path, monkeypatch, extraction_fails
+@pytest.mark.parametrize("mux_fails", [False, True], ids=["audio-preserved", "audio-mux-fails"])
+def test_realesrgan_audio_mux_failure_cannot_publish_silent_success(
+    clip_factory, tmp_path, monkeypatch, mux_fails
 ):
     pytest.importorskip("numpy")
     pytest.importorskip("PIL")
@@ -166,10 +166,13 @@ def test_realesrgan_audio_extraction_failure_cannot_publish_silent_success(
     monkeypatch.setattr(
         upscale, "_init_realesrgan", lambda *a: SimpleNamespace(enhance=lambda image, **kw: (image, None))
     )
-    if extraction_fails:
-        monkeypatch.setattr(upscale, "_extract_audio", lambda *a: False)
-        monkeypatch.setattr(upscale, "_reconstruct_video", lambda *a, **kw: pytest.fail("lost audio reconstructed"))
-        with pytest.raises(ProcessingError, match="Failed to preserve source audio"):
+    if mux_fails:
+        def fail_mux(*args, **kwargs):
+            assert kwargs["audio_source"] == str(clip)
+            raise ProcessingError("ffmpeg", 1, "audio mux failed")
+
+        monkeypatch.setattr(upscale, "_reconstruct_video", fail_mux)
+        with pytest.raises(ProcessingError, match="audio mux failed"):
             upscale.ai_upscale(str(clip), str(output))
         assert output.read_bytes() == b"prior output"
     else:

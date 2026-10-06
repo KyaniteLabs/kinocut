@@ -26,7 +26,7 @@ from .ffmpeg_helpers import (
     _validate_input_path,
     _validate_output_path,
 )
-from .limits import FFPROBE_TIMEOUT
+from .limits import FFPROBE_TIMEOUT, MAX_SHADER_FRAMES
 
 # Path to the CRUSH.js module bundled with Kinocut
 _CRUSH_JS_DIR = Path(__file__).resolve().parent / "_crush_shader"
@@ -71,14 +71,17 @@ def _crush_canvas_available() -> bool:
     node = shutil.which("node")
     if not node:
         return False
-    probe = subprocess.run(  # noqa: S603
-        [node, "-e", "require.resolve('canvas')"],
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        text=True,
-        timeout=30,
-        cwd=str(_CRUSH_JS_DIR),
-    )
+    try:
+        probe = subprocess.run(  # noqa: S603
+            [node, "-e", "require.resolve('canvas')"],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=30,
+            cwd=str(_CRUSH_JS_DIR),
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise ProcessingError("Node canvas dependency probe", -1, "Dependency probe failed or timed out") from None
     return probe.returncode == 0
 
 
@@ -113,6 +116,8 @@ def _extract_frames(input_path: str, frames_dir: str) -> dict[str, Any]:
         "-y",
         "-i",
         input_path,
+        "-frames:v",
+        str(MAX_SHADER_FRAMES + 1),
         os.path.join(frames_dir, "frame_%06d.png"),
     ]
     _run_command(cmd)
@@ -136,31 +141,12 @@ def _assemble_video(
     cmd += ["-i", input_frame]
 
     # Audio from original if available
-    if audio_path and os.path.exists(audio_path):
-        cmd += ["-i", audio_path, "-map", "0:v", "-map", "1:a"]
+    if audio_path is not None:
+        cmd += ["-i", audio_path, "-map", "0:v", "-map", "1:a:0"]
 
     cmd += [*_VIDEO_ENCODE_FLAGS, output]
     _run_command(cmd)
     return {"output": output}
-
-
-def _extract_audio(input_path: str, audio_path: str) -> bool:
-    """Extract audio track from input. Returns True if audio exists."""
-    cmd = [
-        "ffmpeg",
-        "-y",
-        "-i",
-        input_path,
-        "-vn",
-        "-acodec",
-        "copy",
-        audio_path,
-    ]
-    try:
-        _run_command(cmd)
-        return os.path.exists(audio_path) and os.path.getsize(audio_path) > 0
-    except Exception:
-        return False
 
 
 def _get_fps(input_path: str) -> str:
@@ -214,24 +200,27 @@ def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
     env = os.environ.copy()
     env["MCP_VIDEO_CRUSH_PATH"] = _resolve_crush_path()
     render_cmd = [node, str(_RENDER_SCRIPT), json.dumps(render_params)]
-    render_result = subprocess.run(  # noqa: S603
-        render_cmd,
-        stdin=subprocess.DEVNULL,
-        capture_output=True,
-        text=True,
-        timeout=300,  # 5 minute max
-        env=env,
-    )
+    try:
+        render_result = subprocess.run(  # noqa: S603
+            render_cmd,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=300,  # 5 minute max
+            env=env,
+        )
+    except (OSError, subprocess.TimeoutExpired):
+        raise ProcessingError("CRUSH shader render", -1, "Shader renderer failed to start or timed out") from None
 
     if render_result.returncode != 0:
         raise MCPVideoError(
-            f"CRUSH shader render failed (exit {render_result.returncode}): {render_result.stderr[:500]}",
+            str(ProcessingError("CRUSH shader render", render_result.returncode, render_result.stderr)),
             error_type="processing_error",
             code="shader_render_failed",
         )
 
 
-def _validate_shader_frame_count(frame_count: int, input_path: str, max_frames: int = 7200) -> None:
+def _validate_shader_frame_count(frame_count: int, input_path: str, max_frames: int = MAX_SHADER_FRAMES) -> None:
     """Raise typed errors for zero or excessive frame counts."""
     if frame_count == 0:
         raise MCPVideoError(
@@ -266,24 +255,26 @@ def _run_shader_effect(
 
     node = _check_node()
 
-    if not _RENDER_SCRIPT.exists():
-        raise FileNotFoundError(
-            f"CRUSH shader render script not found at {_RENDER_SCRIPT}. "
-            "Run the CRUSH.js setup to install GPU shader support."
+    if not _RENDER_SCRIPT.is_file():
+        raise MCPVideoError(
+            "CRUSH shader render script is missing. Reinstall KinoCut GPU shader support.",
+            error_type="dependency_error",
+            code="missing_shader_renderer",
         )
+    _check_shader_dependencies()
+    from .engine_probe import probe
+
+    # Copy audio from the original container to retain codec priming and timing.
+    audio_path = input_path if probe(input_path).audio_codec is not None else None
 
     with tempfile.TemporaryDirectory(prefix="crush_shader_") as tmp:
         frames_dir = os.path.join(tmp, "frames")
         rendered_dir = os.path.join(tmp, "rendered")
-        audio_path = os.path.join(tmp, "audio.aac")
         os.makedirs(frames_dir)
         os.makedirs(rendered_dir)
 
         # Get FPS before extraction
         fps = _get_fps(input_path)
-
-        # Extract audio (best-effort)
-        has_audio = _extract_audio(input_path, audio_path)
 
         # Extract frames
         info = _extract_frames(input_path, frames_dir)
@@ -302,7 +293,6 @@ def _run_shader_effect(
         }
 
         # Run Node.js render
-        _check_shader_dependencies()
         _run_node_render(node, render_params)
 
         # Check rendered frames
@@ -315,7 +305,7 @@ def _run_shader_effect(
             )
 
         # Assemble video
-        _assemble_video(rendered_dir, audio_path if has_audio else None, output, fps)
+        _assemble_video(rendered_dir, audio_path, output, fps)
 
     return {"output": output, "effect": effect_name, "frames_processed": frame_count}
 

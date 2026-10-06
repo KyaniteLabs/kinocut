@@ -8,7 +8,7 @@
   ],
   "published_version": "1.16.0",
   "published_date": "2026-10-02",
-  "release_candidate_version": "1.16.0",
+  "release_candidate_version": "1.16.1",
   "published_mcp_tools": 203,
   "published_cli_commands": 177,
   "development_mcp_tools": 203,
@@ -26,6 +26,6 @@
     "development_* counts describe the current repository tip (master).",
     "Never present development counts as a published PyPI version when they diverge.",
     "Release providers checked 2026-09-30: PyPI and npm report 1.15.3; live kinocut.dev JSON-LD and llms.txt report 1.15.3. GitHub releases/latest reports 1.15.0; MCP Registry could not be verified because its request returned 403. Package publication does not imply every release provider is aligned.",
-    "Release verification 2026-10-02: PyPI kinocut, npm kinocut, GitHub latest release and canonical MCP Registry report 1.16.0; PyPI mcp-video 1.6.15 metadata pins kinocut==1.16.0 and forwards canonical extras. Site metadata last verified 1.15.3 on 2026-10-01; 1.16.0 site update and rendered acceptance remain pending owner action. Forgejo issue tracking excluded; canonical website source remains Forgejo. Package publication does not establish fleet, model or human-review acceptance."
+    "Release verification 2026-10-02: PyPI kinocut, npm kinocut, GitHub latest release and canonical MCP Registry report 1.16.0; PyPI mcp-video 1.6.15 metadata pins kinocut==1.16.0 and forwards canonical extras. Live verification 2026-10-05: kinocut.dev reports 1.16.0, 203 MCP tools and 177 CLI commands; installation, benchmark and showcase links resolve, and its social image matches the approved export. The older site-update and DNS blockers are superseded; final cross-surface owner acceptance remains unverified. Canonical code is GitHub; the Forgejo code mirror is behind, while canonical website source remains Forgejo. Package publication does not establish fleet, model, desktop or human-review acceptance."
   ]
 }

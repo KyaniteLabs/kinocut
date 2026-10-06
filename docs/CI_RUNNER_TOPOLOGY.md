@@ -13,7 +13,9 @@ and transition context. Forgejo is
 a downstream mirror: only the GitHub-to-Forgejo sync automation may update its
 `master`, and normal changes must not be independently merged there. The
 [downstream sync implementation](../.github/workflows/sync-forgejo.yml) is present.
-The automation is staged and inactive: both jobs compare the repository variable
+The automation contains a staged activation guard. Current activation is
+**unverified**: the repository variable read returned HTTP 401 on 2026-10-05.
+Source configuration does not prove that the workflow is inactive. Both jobs compare the repository variable
 `KINOCUT_FORGEJO_SYNC_ACTIVE` with `true` using GitHub Actions'
 case-insensitive string equality. Values such as `true`, `True`, and `TRUE`
 therefore activate the jobs; other values do not. Before this policy can merge,

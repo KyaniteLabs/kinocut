@@ -1,4 +1,4 @@
-# Human / ops residual (updated 2026-09-06)
+# Human / ops residual (updated 2026-10-05)
 
 Agent-closable prep is on tip. Live outcomes below still need a human operator
 where noted. Residual portfolio authority:
@@ -9,7 +9,7 @@ where noted. Residual portfolio authority:
 | Former issue | Agent deliverable | Status |
 | --- | --- | --- |
 | #3 Renovate dashboard | `.github/dependabot.yml` + superseded Forgejo setup in [`docs/ops/RENOVATE_HOST_TOKEN.md`](ops/RENOVATE_HOST_TOKEN.md) | GitHub Dependabot is canonical; do not provision the old Forgejo Renovate tokens for Kinocut |
-| #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | Awesome MCP Servers PR **merged** (2026-08-08). MCP.so, Docker MCP, Agent-CoreX, Protodex still pending external review |
+| #88 Directory submissions | `docs/DIRECTORY_REBRAND_STATUS.md` + `docs/status/DIRECTORY_SUBMISSION_OPS.md` | Older Awesome MCP Servers PR #9817 **merged** (2026-08-08); later [PR #15050](https://github.com/punkpeye/awesome-mcp-servers/pull/15050) remains open. MCP.so, Docker MCP, Agent-CoreX and Protodex submissions remain open (verified 2026-10-05); submission is not directory acceptance. |
 | #90 Launch moments | `docs/status/LAUNCH_MOMENTS.md` drafts + checklists | Approve & publish posts/clips (marketing ops, not product maturity) |
 | #92 First-10 users | `docs/status/USER_PROGRAM_RUNBOOK.md` | **CLOSED as obsolete (2026-08-12)** — adoption already past a “first 10” gate (see live signals below) |
 
@@ -30,7 +30,9 @@ incomplete pipeline work.
 
 ## Downstream policy activation
 
-The GitHub-to-Forgejo workflow is staged and inactive. Both jobs require the
+The GitHub-to-Forgejo workflow contains a staged activation guard. Current activation
+is **unverified**: the repository variable read returned HTTP 401 on 2026-10-05.
+Source configuration alone does not prove that the workflow is inactive. Both jobs require the
 repository variable `KINOCUT_FORGEJO_SYNC_ACTIVE` to compare equal to `true`
 under GitHub Actions' case-insensitive string equality. Values such as `true`,
 `True`, and `TRUE` activate both jobs; other values do not. Before the policy
@@ -80,12 +82,9 @@ capacity-2 / virtiofs starvation. Do not merge #405 red. See
 
 ## Product site
 
-Official package/release providers report 1.16.0 (verified 2026-10-02). Site metadata last verified 1.15.3 on 2026-10-01; site owner update and rendered acceptance remain pending. Forgejo issue tracking excluded; canonical website source remains Forgejo; publication does not establish fleet or human/model acceptance.
+Official package/release providers report 1.16.0 (verified 2026-10-02). On 2026-10-05, the live [product site](https://kinocut.dev/) showed 1.16.0, 203 MCP tools and 177 CLI commands; installation and benchmark pages responded successfully and the showcase download was available. Website and product-repository social images matched the approved exports. The earlier DNS and social-upload blockers are superseded. Final owner acceptance, fleet rollout and human/model acceptance remain separate. Forgejo issue tracking is excluded; the website repository retains its separately recorded Forgejo source authority.
 
-Historical verification: Live `kinocut.dev` JSON-LD and `llms.txt` report **1.15.3** (verified 2026-09-30).
-This verifies live release metadata; it does not establish rendered verification
-of every page. PyPI and npm also report 1.15.3, while GitHub latest release reports
-1.15.0. MCP Registry verification returned 403, so its current version is unknown.
+Historical verification (superseded): on 2026-09-30, live `kinocut.dev` JSON-LD and `llms.txt` reported **1.15.3**, as did PyPI and npm; GitHub latest release reported 1.15.0, and MCP Registry verification returned 403. These observations describe that date, not the current release.
 
 ## Adversarial audit residuals
 
@@ -118,8 +117,8 @@ agent coding. Owner approved closing/deferring the GH hygiene rows:
 | Renovate host tokens | Superseded Forgejo-primary setup | Do not provision for Kinocut; GitHub Dependabot is canonical |
 | Directories #88 | Third-party directory review / submission | External; do not invent approvals |
 | Launch #90 | Marketing publish of drafts | Owner publish gate |
-| GH #443 optional X4 dogfood | Physical capture hardware | Optional; synthetic fixtures cover compiler |
-| GH #466 upstream | Blocked on upstream/external | Defer until upstream moves |
+| GH #443 optional X4 dogfood | Physical capture hardware | [Closed as not planned](https://github.com/KyaniteLabs/kinocut/issues/443) on 2026-08-20; not an active release blocker or proof of physical capture acceptance. |
+| GH #466 upstream | Previously deferred upstream retirement | [Closed as not planned](https://github.com/KyaniteLabs/kinocut/issues/466) on 2026-08-20; do not retain an active upstream blocker or infer implementation completed. |
 | GH #461 parent hygiene | Tracker close after child lands | **Closed** after #414 land |
 | skills-agent 0b / DNS | DNS spend / Free-zone skill | Owner only |
 | PW dirty push | Owner-owned dirty tree | Do not touch |

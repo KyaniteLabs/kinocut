@@ -9,6 +9,7 @@ import pytest
 
 from kinocut import engine_runtime_utils
 from kinocut.rescue.capabilities import snapshot_capabilities
+from kinocut.rescue import capabilities
 from kinocut.workflow import _versions
 
 
@@ -44,6 +45,34 @@ def test_explicit_discovery_resolver_keeps_version_and_filters_bound_to_selected
     )
     assert result["ffmpeg"]["version"] == _versions.ffmpeg_version(ffmpeg)
     assert all(result["filters"].values())
+
+
+@pytest.mark.parametrize("flags", ["...", "TSC", "..", "TS"])
+def test_filter_probe_accepts_legacy_and_current_flag_columns(monkeypatch, flags):
+    identity = ("fixture", flags)
+    monkeypatch.setattr(capabilities, "_binary_identity", lambda _: identity)
+    monkeypatch.setattr(
+        capabilities.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess([], 0, f" {flags} loudnorm A->A Normalize\n", ""),
+    )
+    capabilities._probe_ffmpeg_filters.cache_clear()
+    assert capabilities._probe_ffmpeg_filters("fixture", identity) == frozenset({"loudnorm"})
+    capabilities._probe_ffmpeg_filters.cache_clear()
+
+
+@pytest.mark.parametrize("line", ["T loudnorm A->A", "XXXX loudnorm A->A", "TS loudnorm invalid"])
+def test_filter_probe_rejects_malformed_rows(monkeypatch, line):
+    identity = ("fixture", line)
+    monkeypatch.setattr(capabilities, "_binary_identity", lambda _: identity)
+    monkeypatch.setattr(
+        capabilities.subprocess,
+        "run",
+        lambda *args, **kwargs: subprocess.CompletedProcess([], 0, line, ""),
+    )
+    capabilities._probe_ffmpeg_filters.cache_clear()
+    assert capabilities._probe_ffmpeg_filters("fixture", identity) == frozenset()
+    capabilities._probe_ffmpeg_filters.cache_clear()
 
 
 def test_replacing_binary_with_preserved_mtime_invalidates_version_cache(native_binaries, tmp_path, monkeypatch):

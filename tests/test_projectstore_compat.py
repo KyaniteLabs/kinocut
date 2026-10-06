@@ -226,7 +226,7 @@ sys.stdout.write(
 
 _FAKE_FFMPEG = """\
 #!/usr/bin/env python3
-import os, sys, time
+import os, struct, sys, time
 a = sys.argv[1:]
 if "-version" in a:
     sys.stdout.write("ffmpeg version kinocut-fake-1.0.0 (test shim)\\n")
@@ -251,7 +251,10 @@ if out and not out.startswith("-"):
     if d:
         os.makedirs(d, exist_ok=True)
     with open(out, "wb") as h:
-        h.write(b"kinocut-fake-ffmpeg-output")
+        # Structurally valid early-index boxes also exercise Darwin's staged muxer guard.
+        # Media decoding is supplied by the independent ffprobe stub in this lineage test.
+        for kind, payload in ((b"ftyp", b"isom0000"), (b"moov", b""), (b"mdat", b"kinocut-fake-ffmpeg-output")):
+            h.write(struct.pack(">I4s", len(payload) + 8, kind) + payload)
 sys.exit(0)
 """
 

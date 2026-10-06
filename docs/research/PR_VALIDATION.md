@@ -1,6 +1,11 @@
 # PR validation and publication scope
 
-## Current debt-closure delivery
+This ledger retains historical source and test receipts. References below to
+1.15.3, draft releases, unavailable registry verification and Unreleased changes
+describe their original checkpoints. For current 1.16.0 release and site status,
+use [public claims](../public_claims.json) and [human gates](../HUMAN_GATES.md).
+
+## Recorded debt-closure delivery
 
 [PR588](https://github.com/KyaniteLabs/kinocut/pull/588) carries the bounded-media,
 process ownership, publication/input validation, feature acceptance and architecture

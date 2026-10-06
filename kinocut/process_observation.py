@@ -1,12 +1,17 @@
 """Observe POSIX completion while retaining the child's kernel identity."""
 
 import os
+import sys
 
 from .errors import MCPVideoError
 
 
 def supports_nonreaping_wait():
-    return all(hasattr(os, name) for name in ("waitid", "P_PID", "WEXITED", "WNOHANG", "WNOWAIT"))
+    # Darwin exposes WNOWAIT but denies killpg when only the retained zombie
+    # remains. Keep a live supervisor there so group cleanup retains authority.
+    return sys.platform != "darwin" and all(
+        hasattr(os, name) for name in ("waitid", "P_PID", "WEXITED", "WNOHANG", "WNOWAIT")
+    )
 
 
 def observe_exit(process) -> int | None:
