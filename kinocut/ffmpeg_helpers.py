@@ -163,8 +163,12 @@ def _reject_self_overwrite(path: str) -> None:
             continue
 
 
-def _validate_input_path(path: str) -> str:
-    """Validate and resolve a file path. Rejects null bytes, symlinks, and oversize files."""
+def _validate_input_path(path: str, *, record_operation: bool = True) -> str:
+    """Resolve an existing input and reject null bytes or oversized files.
+
+    Explicit in-place finalization may omit new input registration; previously
+    registered inputs still remain protected by the write-path guard.
+    """
     if "\x00" in path:
         raise InputFileError(path, "Path contains null bytes")
     resolved = os.path.realpath(path)
@@ -179,7 +183,8 @@ def _validate_input_path(path: str) -> str:
             resolved,
             f"File size ({size_mb:.1f} MB) exceeds maximum of {MAX_FILE_SIZE_MB} MB",
         )
-    _record_operation_input(resolved)
+    if record_operation:
+        _record_operation_input(resolved)
     return resolved
 
 
@@ -378,14 +383,14 @@ def _run_command(
                 stdout_sink=stdout_sink,
                 stdout_limit=stdout_limit,
             )
+            if result.returncode != 0:
+                if stderr_sink is not None:
+                    stderr_sink.seek(0)
+                    result.stderr = stderr_sink.read(FFMPEG_STDERR_DIAGNOSTIC_BYTES).decode("utf-8", errors="replace")
+                    stderr_sink.seek(0)
+                raise ProcessingError(cmd_str, result.returncode, result.stderr)
     except subprocess.TimeoutExpired:
         raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
-    if result.returncode != 0:
-        if stderr_sink is not None:
-            stderr_sink.seek(0)
-            result.stderr = stderr_sink.read(FFMPEG_STDERR_DIAGNOSTIC_BYTES).decode("utf-8", errors="replace")
-            stderr_sink.seek(0)
-        raise ProcessingError(cmd_str, result.returncode, result.stderr)
     if is_ffmpeg and os.path.isfile(output):
         _note_operation_write(output)
     return result
@@ -412,10 +417,10 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
             from .bounded_process import run_bounded
 
             proc = run_bounded(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT, pass_fds=pass_fds)
+            if proc.returncode != 0:
+                raise parse_ffmpeg_error(proc.stderr, command=cmd)
     except subprocess.TimeoutExpired as e:
         raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from e
-    if proc.returncode != 0:
-        raise parse_ffmpeg_error(proc.stderr, command=cmd)
     if args and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])
     return proc

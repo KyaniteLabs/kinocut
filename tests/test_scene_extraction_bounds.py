@@ -29,6 +29,9 @@ def _clip(tmp_path, size="64x64", seconds="3"):
             f"color=c=black:s={size}:r=2:d={seconds}",
             "-c:v",
             "ffv1",
+            # Automatic slice selection can choose zero slices for a 2-pixel width.
+            "-slices",
+            "1",
             str(path),
         ],
         capture_output=True,

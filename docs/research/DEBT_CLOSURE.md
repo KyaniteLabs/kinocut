@@ -1,5 +1,10 @@
 # KinoCut debt closure and delivery evidence
 
+This is a historical implementation and validation ledger. Its package/provider
+snapshots describe the checkpoints below; current release and website identity
+are maintained in [public claims](../public_claims.json) and the
+[human gates](../HUMAN_GATES.md). The published release is now 1.16.0.
+
 This follow-up starts from merged master `3db9ba9f9cad590f4c018b76091ee3c27e7106fd`
 on branch `codex/kinocut-debt-closure`. It covers the resource, architecture,
 latency, acceptance and operational findings in the current status review.

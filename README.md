@@ -71,7 +71,7 @@
 | | |
 | --- | --- |
 | **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | **[1.16.0](https://pypi.org/project/kinocut/1.16.0/)** (2026-10-02) |
+| **Latest published release** | [Official PyPI version](https://pypi.org/project/kinocut/) · [GitHub release](https://github.com/KyaniteLabs/kinocut/releases/latest) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
@@ -117,16 +117,20 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm** | **[1.16.0](https://pypi.org/project/kinocut/1.16.0/)** (2026-10-02) | Latest **published** Kinocut. Install with `pip install kinocut`. |
-| **GitHub latest release / MCP Registry** | **1.16.0** | Verified 2026-10-02, along with PyPI/npm. Site metadata last verified 1.15.3; site update/rendered acceptance and fleet rollout remain separate. |
-| **This repository (`master`)** | **1.16.0** · **203 MCP / 177 CLI** | Matches the published package at release; future tip work remains separately documented. |
+| **PyPI / npm checkpoint** | **[1.16.0](https://pypi.org/project/kinocut/1.16.0/)** (2026-10-02) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
+| **GitHub latest release / MCP Registry** | **1.16.0** | Package and registry publication verified 2026-10-02. On 2026-10-05, the live website also showed 1.16.0, 203 MCP tools, and 177 CLI commands, with working installation and showcase download links. Final owner acceptance and fleet rollout remain separate. |
+| **This source version** | **1.16.1** · **203 MCP / 177 CLI** | Maintenance fixes described below; publication is tracked separately in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
 
+## What's in 1.16.1
+
+Version **1.16.1** repairs macOS render cleanup and faststart publication, C2PA and model-cache staging, FFmpeg 8.1 filter discovery, and audio preservation in shader/upscale reconstruction. It retains **203 MCP tools / 177 CLI commands** and pairs with `mcp-video==1.6.16`. See [maintenance release notes](docs/status/2026-10-05-1.16.1-release-notes.md) for verification and remaining platform/model acceptance limits.
+
 ## What's in 1.16.0
 
-Published 2026-10-02: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.15` installs `kinocut==1.16.0`. Operator parity, bounded quality/resource controls and canonical ownership repair are described in [release notes](docs/status/2026-10-02-1.16.0-release-notes.md). Shared mobile/web processing, fleet rollout, MCPB Desktop acceptance and site update remain separate work.
+Published 2026-10-02: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.15` installs `kinocut==1.16.0`. Operator parity, bounded quality/resource controls and canonical ownership repair are described in [release notes](docs/status/2026-10-02-1.16.0-release-notes.md). The live site shows 1.16.0 (verified 2026-10-05). Shared mobile/web processing, fleet rollout, MCPB Desktop acceptance and final cross-surface owner acceptance remain separate gates.
 
 ## What's in 1.15.2
 
@@ -168,7 +172,7 @@ for future local changes beyond the published package.
 
 The published compatibility installer `mcp-video==1.6.15` pins `kinocut==1.16.0`. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
 
-**1.16.0 is the latest published release.** Draft/gated work beyond it stays out of release claims until a cut lands. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+The 2026-10-02 publication checkpoint is **1.16.0**. Draft/gated work stays out of release claims until publication is verified. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 

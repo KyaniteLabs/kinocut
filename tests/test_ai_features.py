@@ -1403,10 +1403,12 @@ class TestUpscaleHelpers:
         assert "/fake/audio.aac" in cmd
         assert "-c:a" in cmd
         assert "copy" in cmd
-        assert "-shortest" in cmd
+        assert "-shortest" not in cmd
+        assert "0:v:0" in cmd
+        assert "1:a:0" in cmd
 
-    def test_extract_audio_success(self, monkeypatch, tmp_path):
-        from mcp_video.ai_engine.upscale import _extract_audio
+    def test_reconstruction_copies_original_audio(self, monkeypatch, tmp_path):
+        from mcp_video.ai_engine.upscale import _reconstruct_video
 
         calls = []
 
@@ -1415,26 +1417,21 @@ class TestUpscaleHelpers:
             return type("Result", (), {"returncode": 0, "stderr": ""})()
 
         monkeypatch.setattr("mcp_video.ai_engine.upscale._run_command", fake_run_ffmpeg)
-        audio_path = tmp_path / "audio.aac"
-        result = _extract_audio("/fake/video.mp4", audio_path)
-
-        assert result is True
-        assert "-vn" in calls[0]
+        _reconstruct_video(tmp_path / "frame_%04d.png", tmp_path / "out.mp4", 30, "/fake/video.mp4")
+        assert "/fake/video.mp4" in calls[0]
         assert "-c:a" in calls[0]
         assert "copy" in calls[0]
 
-    def test_extract_audio_failure_returns_false(self, monkeypatch, tmp_path):
-        from mcp_video.ai_engine.upscale import _extract_audio
+    def test_reconstruction_audio_failure_propagates(self, monkeypatch, tmp_path):
+        from mcp_video.ai_engine.upscale import _reconstruct_video
         from mcp_video.errors import ProcessingError
 
         def fake_run_ffmpeg(cmd, timeout=None):
             raise ProcessingError("ffmpeg", 1, "audio extract failed")
 
         monkeypatch.setattr("mcp_video.ai_engine.upscale._run_command", fake_run_ffmpeg)
-        audio_path = tmp_path / "audio.aac"
-        result = _extract_audio("/fake/video.mp4", audio_path)
-
-        assert result is False
+        with pytest.raises(ProcessingError, match="audio extract failed"):
+            _reconstruct_video(tmp_path / "frame_%04d.png", tmp_path / "out.mp4", 30, "/fake/video.mp4")
 
     def test_download_fsrcnn_model_uses_cache(self, monkeypatch, tmp_path):
         from mcp_video.ai_engine.upscale import _download_fsrcnn_model

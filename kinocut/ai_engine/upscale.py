@@ -25,6 +25,8 @@ from ..ffmpeg_helpers import (
     _validate_output_path,
 )
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_UPSCALE_FRAMES
+from ..model_cache import model_download_stage
+from ..staged_writers import open_staged_writer
 
 logger = logging.getLogger(__name__)
 
@@ -57,7 +59,7 @@ def _validate_upscale_resource_limits(video_path: str) -> None:
         )
 
 
-def _verify_model_hash(path: Path, expected_hash: str) -> None:
+def _verify_model_hash(path: Path, expected_hash: str, *, delete_invalid: bool = True) -> None:
     """Verify SHA256 hash of a downloaded model file.
 
     Args:
@@ -70,11 +72,12 @@ def _verify_model_hash(path: Path, expected_hash: str) -> None:
     with path.open("rb") as handle:
         sha256 = hashlib.file_digest(handle, "sha256").hexdigest()
     if sha256 != expected_hash:
-        path.unlink(missing_ok=True)
+        if delete_invalid:
+            path.unlink(missing_ok=True)
         raise MCPVideoError(
             f"SHA256 integrity check failed for {path.name}: "
             f"expected {expected_hash}, got {sha256}. "
-            "The downloaded file has been removed. Try again to re-download.",
+            "Try again to re-download.",
             error_type="integrity_error",
             code="model_hash_mismatch",
         )
@@ -119,28 +122,30 @@ def _download_fsrcnn_model(scale: int) -> Path:
     if not model_path.exists():
         url = model_urls[scale]
         print(f"Downloading FSRCNN x{scale} model...")
-        tmp_model = model_path.with_suffix(".tmp")
         max_model_bytes = 500 * (1 << 20)  # 500 MiB limit
         req = urllib.request.Request(url)  # noqa: S310
         ssl_context = ssl.create_default_context()
         ssl_context.check_hostname = True
         ssl_context.verify_mode = ssl.CERT_REQUIRED
-        with urllib.request.urlopen(req, timeout=120, context=ssl_context) as resp, open(tmp_model, "wb") as fh:  # noqa: S310
-            total = 0
-            while True:
-                chunk = resp.read(1 << 20)  # 1 MiB
-                if not chunk:
-                    break
-                total += len(chunk)
-                if total > max_model_bytes:
-                    tmp_model.unlink(missing_ok=True)
-                    raise MCPVideoError(
-                        f"Model download exceeded {max_model_bytes >> 20} MiB size limit",
-                        error_type="resource_error",
-                        code="download_size_limit",
-                    )
-                fh.write(chunk)
-        tmp_model.rename(model_path)
+        with model_download_stage(model_path) as tmp_model:
+            with (
+                urllib.request.urlopen(req, timeout=120, context=ssl_context) as resp,  # noqa: S310
+                open_staged_writer(str(tmp_model)) as fh,
+            ):
+                total = 0
+                while True:
+                    chunk = resp.read(1 << 20)  # 1 MiB
+                    if not chunk:
+                        break
+                    total += len(chunk)
+                    if total > max_model_bytes:
+                        raise MCPVideoError(
+                            f"Model download exceeded {max_model_bytes >> 20} MiB size limit",
+                            error_type="resource_error",
+                            code="download_size_limit",
+                        )
+                    fh.write(chunk)
+            _verify_model_hash(tmp_model, expected_hash, delete_invalid=False)
         print(f"Model saved to {model_path}")
 
     _verify_model_hash(model_path, expected_hash)
@@ -248,26 +253,6 @@ def _extract_frames(video_path: str, frames_dir: Path) -> list[Path]:
     return frames
 
 
-def _extract_audio(video_path: str, audio_path: Path) -> bool:
-    """Extract audio stream from video to a separate file.
-
-    Args:
-        video_path: Input video path.
-        audio_path: Output audio file path.
-
-    Returns:
-        True if audio was extracted successfully, False otherwise.
-    """
-    try:
-        _run_command(
-            ["ffmpeg", "-y", "-i", video_path, "-vn", "-c:a", "copy", str(audio_path)],
-            timeout=DEFAULT_FFMPEG_TIMEOUT,
-        )
-        return True
-    except ProcessingError:
-        return False
-
-
 def _reconstruct_video(
     frame_pattern: Path,
     output_path: Path,
@@ -280,11 +265,11 @@ def _reconstruct_video(
         frame_pattern: Frame sequence pattern (e.g., frames/frame_%04d.png).
         output_path: Output video path.
         fps: Frame rate for the output video.
-        audio_source: Optional audio source path to include.
+        audio_source: Original input container whose first audio stream is copied.
     """
     cmd = ["ffmpeg", "-y", "-framerate", str(fps), "-i", str(frame_pattern)]
     if audio_source:
-        cmd.extend(["-i", audio_source, "-c:a", "copy", "-shortest"])
+        cmd.extend(["-i", audio_source, "-map", "0:v:0", "-map", "1:a:0", "-c:a", "copy"])
     cmd.extend(["-c:v", "libx264", "-pix_fmt", "yuv420p", str(output_path)])
     _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
 
@@ -361,18 +346,11 @@ def _upscale_with_realesrgan(
             output_img, _ = upsampler.enhance(np.array(img), outscale=scale)
             Image.fromarray(output_img).save(upscaled_dir / f"frame_{i:04d}.png")
 
-        audio_source = None
-        if has_audio:
-            audio_path = tmpdir_path / "audio.aac"
-            if not _extract_audio(str(video_path), audio_path):
-                raise ProcessingError("ffmpeg", 1, "Failed to preserve source audio during AI upscaling")
-            audio_source = str(audio_path)
-
         _reconstruct_video(
             upscaled_dir / "frame_%04d.png",
             output_path,
             fps if fps is not None else 30.0,
-            audio_source=audio_source,
+            audio_source=str(video_path) if has_audio else None,
         )
 
 
@@ -394,8 +372,9 @@ def ai_upscale(
         Path to output video
 
     Raises:
-        RuntimeError: If Real-ESRGAN is not installed or processing fails
-        FileNotFoundError: If input video doesn't exist
+        MCPVideoError: If a dependency or parameter is invalid.
+        ProcessingError: If media processing fails.
+        InputFileError: If the input video does not exist.
     """
     _validate_input_path(video)
 
@@ -470,23 +449,18 @@ def _get_video_fps(video_path: str) -> float | None:
         "default=noprint_wrappers=1:nokey=1",
         video_path,
     ]
-    try:
-        result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
-    except ProcessingError:
-        return None
+    result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
 
     fps_str = result.stdout.strip()
-    if "/" in fps_str:
-        num, den = fps_str.split("/")
-        try:
-            return float(num) / float(den)
-        except (ValueError, ZeroDivisionError):
-            return None
-    else:
-        try:
-            return float(fps_str)
-        except ValueError:
-            return None
+    try:
+        if "/" in fps_str:
+            num, den = fps_str.split("/", 1)
+            fps = float(num) / float(den)
+        else:
+            fps = float(fps_str)
+    except (ValueError, ZeroDivisionError):
+        return None
+    return fps if math.isfinite(fps) and fps > 0 else None
 
 
 def _has_audio_stream(video_path: str) -> bool:
@@ -503,8 +477,8 @@ def _has_audio_stream(video_path: str) -> bool:
         "default=noprint_wrappers=1:nokey=1",
         video_path,
     ]
-    try:
-        result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
-    except ProcessingError:
-        return False
-    return result.returncode == 0 and "audio" in result.stdout.lower()
+    result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
+    stream_types = result.stdout.strip().splitlines()
+    if any(stream.strip() != "audio" for stream in stream_types):
+        raise ProcessingError("ffprobe audio stream detection", 0, "Unexpected audio stream probe output")
+    return bool(stream_types)

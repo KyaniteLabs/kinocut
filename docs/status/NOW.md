@@ -8,7 +8,9 @@ Selected source passed8,297 tests with189skips; exact2d903f7 passed all13checks
 including native Linux/macOS/Windows and bound installed-runtime readiness.
 See that PR for final documentation-head checks and merge status.
 Paid accuracy, representative listening, human desktop review and external owner
-gates remain explicitly separate. 1.16.0 is published; future changes remain Unreleased.
+gates remain explicitly separate. 1.16.0 is the last recorded publication checkpoint;
+1.16.1 is the maintenance candidate. The completed implementation QA passed
+8,973 tests with 193 skips; publication and exact-head remote CI remain separate gates.
 
 **Previous merged audit:** [PR #587](https://github.com/KyaniteLabs/kinocut/pull/587)
 landed at `3db9ba9f9cad590f4c018b76091ee3c27e7106fd`. Its tested source passed
@@ -19,7 +21,7 @@ separate from the merged audit's evidence.
 
 **Published:** 1.16.0 · **203 MCP / 177 CLI** · 2026-10-02 · `docs/public_claims.json`
 
-**Development candidate:** 1.16.0 · **203 MCP / 177 CLI** (matches the published release at cutover). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Development candidate:** 1.16.1 · **203 MCP / 177 CLI** (maintenance fixes; publication pending verification). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;

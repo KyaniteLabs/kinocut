@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import contextlib
 import os
+import re
+import sys
 import threading
 from contextvars import ContextVar
 
@@ -112,9 +114,33 @@ def staged_ffmpeg_command(cmd: list[str], pass_fds: tuple[int, ...] = ()):
         return
     descriptor = stage.duplicate()
     try:
-        yield _rewrite_command(cmd, pass_fds, descriptor)
+        prepared, faststart = _darwin_faststart_command(cmd)
+        yield _rewrite_command(prepared, pass_fds, descriptor)
+        if faststart:
+            from .mp4_faststart import relocate_index
+
+            relocate_index(descriptor)
     finally:
         stage.release(descriptor)
+
+
+def _darwin_faststart_command(cmd: list[str]) -> tuple[list[str], bool]:
+    if sys.platform != "darwin":
+        return cmd, False
+    output_start = max((i + 2 for i, value in enumerate(cmd[:-1]) if value == "-i"), default=1)
+    enabled = False
+    for index in range(output_start, len(cmd) - 2):
+        if cmd[index] == "-movflags":
+            value = cmd[index + 1]
+            if not value.startswith(("+", "-")):
+                enabled = False  # An unsigned flags value replaces earlier settings.
+            for token in re.finditer(r"(?:^|[+-])faststart(?=$|[+-])", value):
+                enabled = not token.group().startswith("-")
+    if not enabled:
+        return cmd, False
+    # /dev/fd reopens share an offset on Darwin; FFmpeg's shifting pass needs
+    # independent reader/writer offsets. Relocate through pread/pwrite instead.
+    return [*cmd[:-1], "-movflags", "-faststart", cmd[-1]], True
 
 
 def _rewrite_command(cmd, pass_fds, descriptor):

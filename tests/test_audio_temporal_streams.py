@@ -1,6 +1,7 @@
 """Real temporal and stream-selection controls for normalization and mixing."""
 
 import re
+import json
 import shutil
 import subprocess
 
@@ -60,6 +61,34 @@ def _picture_pts(path):
         timeout=30,
     )
     return [float(line.split(",")[0]) for line in process.stdout.splitlines() if line.strip()]
+
+
+def _picture_presentation_end(path):
+    """Independent fixture oracle: muxer versions can change the final packet width."""
+    process = subprocess.run(
+        [
+            "ffprobe",
+            "-v",
+            "error",
+            "-select_streams",
+            "v:0",
+            "-show_packets",
+            "-show_entries",
+            "packet=pts_time,duration_time",
+            "-of",
+            "json",
+            str(path),
+        ],
+        stdin=subprocess.DEVNULL,
+        capture_output=True,
+        text=True,
+        check=True,
+        timeout=30,
+    )
+    packets = json.loads(process.stdout)["packets"]
+    assert len(packets) == 4
+    assert all(float(packet["duration_time"]) > 0 for packet in packets)
+    return max(float(packet["pts_time"]) + float(packet["duration_time"]) for packet in packets)
 
 
 @pytest.mark.parametrize("suffix", ["mp4", "wav"])
@@ -174,10 +203,15 @@ def test_vfr_picture_presentation_extent_controls_audio_not_stream_duration(tmp_
     )
     _ffmpeg("-f", "lavfi", "-i", "sine=frequency=880:sample_rate=48000:d=3", added)
     assert _picture_pts(source) == pytest.approx([0, 0.2, 1, 2], abs=0.001)
+    picture_end = _picture_presentation_end(source)
+    # The final encoded packet is 40ms with some muxers and 800ms with others.
+    # Preserve the actual presentation interval, not the nominal lavfi input
+    # length or stream.duration (which is unreliable with reordered VFR packets).
     result = mix_audio(str(source), [{"path": str(added)}], str(output), keep_source=False)
-    assert result.duration == pytest.approx(2.04, abs=0.04)
-    assert float(_audio(output)["duration"]) == pytest.approx(2.04, abs=0.04)
+    assert result.duration == pytest.approx(picture_end, abs=0.04)
+    assert float(_audio(output)["duration"]) == pytest.approx(picture_end, abs=0.04)
     assert _rms(output, 1.7) > -30
+    assert _rms(output, picture_end - 0.15, duration=0.1) > -30
     assert _picture_pts(output) == _picture_pts(source)
 
 

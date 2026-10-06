@@ -13,16 +13,16 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.16.0 (2026-10-02)
+- **Last verified publication checkpoint:** 1.16.0 (2026-10-02); consult the official registries for the latest version.
 - **Last-updated:** 2026-10-02
 - **Published surface (1.16.0):** 203 MCP tools / 177 CLI commands
-- **Development checkout:** 203 MCP tools / 177 CLI commands; matches published 1.16.0 at release. Future Unreleased work stays separate.
+- **Development checkout:** 1.16.1 maintenance candidate, 203 MCP tools / 177 CLI commands. Publication verification remains separate.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `io.github.KyaniteLabs/kinocut`
 - **Product site:** https://kinocut.dev/
 - **Historical live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
-- **Release identity check (2026-10-02):** PyPI/npm/GitHub release/canonical MCP Registry report 1.16.0; shim 1.6.15 metadata pins kinocut1.16.0. Site last verified 1.15.3; site owner update/rendered acceptance and fleet work remain pending. Forgejo issue tracking excluded; canonical website source remains Forgejo.
+- **Release identity checkpoint (2026-10-02):** PyPI/npm/GitHub release/canonical MCP Registry report 1.16.0; shim 1.6.15 metadata pins kinocut1.16.0. The live site was verified at 1.16.0 on 2026-10-05. Fleet work and final owner acceptance remain separate. Canonical website source remains Forgejo.
 - **Not:** hosted cloud editor, credit-metered SaaS, untyped FFmpeg shell wrapper
 
 ## Install
@@ -57,7 +57,7 @@ pip install --upgrade 'mcp-video==1.6.15'   # published 1.6.15 shim → kinocut 
 pip install --force-reinstall --no-deps 'kinocut==1.16.0'
 ```
 
-Published: 1.6.15 shim → kinocut 1.16.0. Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
+Publication checkpoint: 1.6.15 shim → kinocut 1.16.0. Candidate: 1.6.16 shim → kinocut 1.16.1. Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
 
 The published compatibility shim is 1.6.15. Compatibility names are preserved;
 new integrations should use kinocut, kino and `from kinocut import Client`.

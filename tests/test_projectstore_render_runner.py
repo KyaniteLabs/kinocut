@@ -97,6 +97,7 @@ sys.stdout.write(
 _FAKE_FFMPEG = """\
 #!/usr/bin/env python3
 import os
+import struct
 import sys
 import time
 
@@ -114,7 +115,9 @@ if out and out != "-":
     if parent:
         os.makedirs(parent, exist_ok=True)
     with open(out, "wb") as handle:
-        handle.write(b"kinocut-fake-ffmpeg-output")
+        # Valid early-index box structure; the independent probe stub supplies media metadata.
+        for kind, payload in ((b"ftyp", b"isom0000"), (b"moov", b""), (b"mdat", b"kinocut-fake-ffmpeg-output")):
+            handle.write(struct.pack(">I4s", len(payload) + 8, kind) + payload)
 sys.exit(0)
 """
 

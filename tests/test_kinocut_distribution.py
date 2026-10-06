@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import platform
 import re
 import shutil
 import subprocess
@@ -18,8 +19,8 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.16.0"
-SHIM_VERSION = "1.6.15"
+KINOCUT_VERSION = "1.16.1"
+SHIM_VERSION = "1.6.16"
 
 
 def _toml(path: Path) -> dict:
@@ -259,23 +260,33 @@ def test_mcpb_distribution_is_truthful_and_buildable(tmp_path) -> None:
 def test_mcpb_launcher_is_compatible_with_the_declared_node_floor() -> None:
     npx = shutil.which("npx")
     if npx is None:
-        result = subprocess.run(
-            ["node", "--check", str(ROOT / "mcpb" / "server" / "launcher.js")],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-        )
+        node = shutil.which("node")
+        if node is None:
+            pytest.skip("Node 18 and npx are unavailable")
+        command = [node]
     else:
-        result = subprocess.run(
-            [npx, "--yes", "node@18", "--check", str(ROOT / "mcpb" / "server" / "launcher.js")],
-            cwd=ROOT,
-            capture_output=True,
-            text=True,
-            check=False,
-            timeout=60,
-        )
-
+        systems = {"darwin": "darwin", "linux": "linux", "win32": "win"}
+        architectures = {"arm64": "arm64", "aarch64": "arm64", "x86_64": "x64", "amd64": "x64"}
+        system = systems.get(sys.platform)
+        architecture = architectures.get(platform.machine().lower())
+        if system is None or architecture is None or (system == "win" and architecture == "arm64"):
+            pytest.skip("No Node 18 binary package for this platform")
+        # Direct binary packages have no lifecycle installer. The node@18
+        # wrapper's nested npm install is incompatible with npm 11's script policy.
+        prefix = "node-bin" if (system, architecture) == ("darwin", "arm64") else "node"
+        package = f"{prefix}-{system}-{architecture}@18.20.8"
+        command = [npx, "--yes", f"--package={package}", "--", "node"]
+    version = subprocess.run([*command, "--version"], capture_output=True, text=True, check=False, timeout=60)
+    assert version.returncode == 0, version.stderr
+    assert version.stdout.strip().startswith("v18."), "The Node 18 floor must be checked with Node 18"
+    result = subprocess.run(
+        [*command, "--check", str(ROOT / "mcpb" / "server" / "launcher.js")],
+        cwd=ROOT,
+        capture_output=True,
+        text=True,
+        check=False,
+        timeout=60,
+    )
     assert result.returncode == 0, result.stderr
 
 

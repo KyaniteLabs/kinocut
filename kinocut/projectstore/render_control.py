@@ -6,6 +6,8 @@ import contextlib
 import logging
 import os
 import signal
+import subprocess
+import sys
 import time
 import threading
 from pathlib import Path
@@ -20,7 +22,7 @@ logger = logging.getLogger(__name__)
 
 
 def group_quiescent(pid: int | None) -> bool:
-    """Prove no executing group members; zombie processes cannot produce output."""
+    """Observe no executing group members; callers also verify the runner lease is released."""
     if not isinstance(pid, int) or pid <= 1 or pid == os.getpid() or not hasattr(os, "getpgid"):
         return False
     try:
@@ -32,6 +34,8 @@ def group_quiescent(pid: int | None) -> bool:
         return False
     if Path("/proc/self/stat").is_file():
         return _linux_group_quiescent(pid)
+    if sys.platform == "darwin":
+        return _darwin_group_quiescent(pid)
     try:
         os.killpg(pid, 0)
     except ProcessLookupError:
@@ -39,6 +43,30 @@ def group_quiescent(pid: int | None) -> bool:
     except OSError:
         return False
     return False
+
+
+def _darwin_group_quiescent(pgid: int) -> bool:
+    """Observe all group members; Darwin killpg(0) cannot exclude zombies."""
+    try:
+        result = subprocess.run(
+            ["/bin/ps", "-axo", "pid=,pgid=,stat="],
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=DEFAULT_RENDER_STOP_TIMEOUT,
+            check=False,
+        )
+        if result.returncode != 0 or not result.stdout.strip():
+            return False
+        for line in result.stdout.splitlines():
+            process, group, state = line.split()
+            if int(process) <= 0 or int(group) < 0 or not state:
+                return False
+            if int(group) == pgid and state[0] not in {"Z", "X"}:
+                return False
+    except (OSError, subprocess.TimeoutExpired, ValueError):
+        return False
+    return True
 
 
 def _linux_group_quiescent(pgid: int) -> bool:

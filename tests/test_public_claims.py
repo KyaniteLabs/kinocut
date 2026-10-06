@@ -343,12 +343,14 @@ def test_readme_current_release_references_name_published_version(claims: dict) 
 def test_site_status_separates_package_publication_from_deployment() -> None:
     section = _markdown_section("docs/HUMAN_GATES.md", "## Product site")
     assert "Pip/npm/MCP/site agree" not in section
-    assert "Live `kinocut.dev` JSON-LD and `llms.txt`" in section
-    assert "verified 2026-09-30" in section
-    assert "does not establish rendered verification" in section
-    assert "GitHub latest release reports\n1.15.0" in section
+    assert "2026-10-05" in section
+    assert "1.16.0, 203 MCP tools and 177 CLI commands" in section
+    assert "Final owner acceptance, fleet rollout and human/model acceptance remain separate" in section
+    assert "Historical verification (superseded)" in section
+    assert "2026-09-30" in section
     assert "MCP Registry verification returned 403" in section
-    assert "current version is unknown" in section
+    assert "not the current release" in section
+    assert "current version is unknown" not in section
 
 
 def test_readme_status_does_not_present_object_matte_as_tip_only(claims: dict) -> None:

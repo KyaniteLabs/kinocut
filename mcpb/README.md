@@ -2,7 +2,7 @@
 
 This unsigned bundle launches Kinocut as a local stdio MCP server through the package's Node launcher. Its product label is **user-configured-local-access**: the host-selected Python, FFmpeg, and file paths remain local machine authority. It is not a sandbox.
 
-It expects Node 18+, Python 3.11+, exactly `kinocut==1.16.0`, and FFmpeg/ffprobe to already be installed on the user's machine. Optional AI, shader, and Hyperframes tools remain capability-gated until their dependencies are installed and configured. Native MCPB bundles are separate future work.
+It expects Node 18+, Python 3.11+, exactly `kinocut==1.16.1`, and FFmpeg/ffprobe to already be installed on the user's machine. Optional AI, shader, and Hyperframes tools remain capability-gated until their dependencies are installed and configured. Native MCPB bundles are separate future work.
 
 Package publication does not establish public bundle distribution or Desktop install acceptance; those exact-digest gates remain pending.
 

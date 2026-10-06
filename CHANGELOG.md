@@ -11,6 +11,25 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.16.1 - 2026-10-05
+
+### Fixed
+
+- Copy source audio directly from its original container in GPU shader and Real-ESRGAN media reconstruction, preserving AAC/MP3 packets, timestamps and codec priming; propagate mux failures and reject missing shader dependencies before extracting media.
+- Bound shader frame extraction to its existing 7,200-frame limit plus one overflow sentinel, and retain final encoded audio packets during AI upscaling instead of truncating them with `-shortest`.
+- Return typed processing errors when shader dependency probes or render subprocesses fail to start or time out, retaining bounded renderer diagnostics.
+- Propagate upscale frame-rate and audio-probe failures instead of treating failed inspection as a default frame rate or absent audio.
+- Verify detached render group quiescence on macOS from bounded process-state observations, so retained zombies do not prevent cancellation and resume after descendants stop.
+- Use a live process supervisor on macOS, where signaling a group containing only a retained zombie fails despite available nonreaping wait APIs. Cleanup retains process ownership and original exit status.
+- Preserve MOV/MP4 faststart and encoded packets for descriptor-anchored macOS outputs by relocating the index through bounded positional I/O instead of reopening shared-offset `/dev/fd` aliases.
+- Sign C2PA exports through unique owned staging files and publish only after verification; preserve foreign temporary files and the original export when signing fails.
+- Verify object-matte and FSRCNN model downloads in owned staging before publishing the cache, preserving unrelated temporary files and prior cached bytes on download failure.
+- Discover FFmpeg 8.1 filters from its two-character capability flags while retaining older three-character flags and exact selected-binary identity checks.
+
+### Changed
+
+- Refresh current website and directory status after verifying the 1.16.0 site and approved social images; retain final owner acceptance, vendor identity resolution and distribution project gates separately.
+
 ## 1.16.0 - 2026-10-02
 
 - Accept the approved optional icon in MCPB readiness aggregation while requiring every runtime/optional receipt to match the exact allowlisted build inventory.
@@ -18,7 +37,7 @@ This project follows a simple release-note style:
 - Apply the approved colored logo and Chakra Petch Bold700 identity to the README hero, GitHub preview source and licensed vector wordmark; canonical website and GitHub settings cutovers require live verification.
 - Include the approved 512px KinoCut icon in the bounded MCPB archive and source distribution; the approved lettering is integrated, while public branding cutover and Desktop import acceptance remain separate gates.
 
-- Align existing operator routes: MCP/CLI audio mixing, CLI ducking/HLS, explicit human motion receipts, 360 intent/review controls, and Python operation estimates. Candidate surface: 203 MCP tools / 177 CLI commands.
+- Align existing operator routes: MCP/CLI audio mixing, CLI ducking/HLS, explicit human motion receipts, 360 intent/review controls, and Python operation estimates. Published surface: 203 MCP tools / 177 CLI commands.
 - Persist and enforce MCP repurpose quality/checkpoint policy before durable job success; changed inputs, outputs or frozen policy invalidate evidence.
 - Share trim/frame sampling, conversion bitrate/two-pass and normalization controls across Python, CLI and MCP. Explicit zero timestamps remain supported.
 - Keep MCP audio mixing responsive by running the synchronous engine in a worker thread; add a bounded concurrency regression.
@@ -54,7 +73,7 @@ This project follows a simple release-note style:
 - PR safety tests use bounded two-worker file grouping with unchanged selection, assertions and JUnit reporting. The same 257-case baseline measured 204.2s serial versus 112.4s with two workers; full-suite speed is not inferred.
 - ASR reuses same-job verified PCM instead of decoding identical WAV bytes twice. Sound policy constants are centralized with compatible aliases and static package exports, resolving thirteen maintenance TODOs.
 - Voice-batch receipts expose `loudness=null` and `loudness_assessment_status="not_evaluated"` instead of fabricated -16 LUFS/-1 dBTP compliance. Measured receipt paths retain their evidence; consumers needing loudness must meter the assembled master.
-- Current support claims select staged local-access MCPB, retain paid generation as an unavailable draft and separate deterministic sound processing from full-episode/listening acceptance. The existing 1.15.3 release draft and tag are bound to its verified original source and notes; these changes are included in the 1.16.0 candidate and are not yet published.
+- Support claims select staged local-access MCPB, retain paid generation as an unavailable draft and separate deterministic sound processing from full-episode/listening acceptance. The 1.15.3 release draft and tag remain bound to their original source and notes; these changes shipped in 1.16.0.
 
 - Split Client mask operations and CLI quality renderables into focused modules while preserving public methods, aliases and formatter behavior. Design checks share source-aware, bounded, defensive-copy measurements rather than maintaining divergent analysis paths.
 - Signalstats reads compact bounded frame output and computes running means instead of retaining full FFprobe frame dictionaries. ASR frontend resampling uses the installed FFmpeg band-limited converter with disclosed version/policy, bounded PCM input and exact-length checks; native 16 kHz audio bypasses conversion. Source-bound resource and synthetic anti-aliasing trials do not establish model latency, recognition accuracy or speech quality.

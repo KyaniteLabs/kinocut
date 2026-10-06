@@ -20,10 +20,14 @@ about third-party pages; verify an external page before acting on its listed sta
 - Published surface: 203 MCP tools / 177 CLI commands (1.16.0)
 - Development tip: 203 MCP tools / 177 CLI commands (matches the published release at cutover; future local changes remain Unreleased)
 - Current release: 1.16.0 (published 2026-10-02)
-- Provider check (2026-09-30): PyPI/npm and live site report 1.15.3; GitHub latest release reports 1.15.0; MCP Registry verification returned 403.
+- Provider check (2026-10-05): PyPI/npm, GitHub release and the official MCP Registry report 1.16.0; the live site also shows 1.16.0, 203 MCP tools and 177 CLI commands. PyPI's published long description still contains stale pre-publication copy, which requires an authorized metadata refresh.
 - Submission ops: `docs/status/DIRECTORY_SUBMISSION_OPS.md`
 
 ## Reconciliation Snapshot (2026-07-10)
+
+Current follow-up (2026-10-05): [Glama](https://glama.ai/mcp/servers/KyaniteLabs/kinocut) still displays the legacy `pastorsimon1798/mcp-video` identity. [Awesome MCP Servers PR #15050](https://github.com/punkpeye/awesome-mcp-servers/pull/15050) remains open and conflicted, with stale 201-tool / 1.15.2 copy. Its maintainer bot requests passing Glama introspection and a Glama badge. Branch/count corrections can proceed while Glama resolves the identity; external listing acceptance still depends on the vendor checks and maintainer review. The older merged PR below is not evidence that this later update merged.
+
+Fresh submission metadata on 2026-10-05 confirms [MCP.so #3098](https://github.com/chatmcp/mcpso/issues/3098), [Agent-CoreX #2](https://github.com/ankitpro/agent-corex/issues/2), [Protodex #26](https://github.com/LuciferForge/mcp-directory/issues/26) and [Docker catalog PR #4387](https://github.com/docker/mcp-registry/pull/4387) remain open. The first three retain historical 135-tool submissions (Agent-CoreX and Protodex also name 1.7.0). Docker's current head `ebb0b0966303a58b9b57916175220f6ebf778e38` pins v1.15.1 source `b2498333acc8c0e29cba7e6ceca19603cc8bedaf`; its local verification report is not 1.16.0 catalog acceptance. That head has no posted check runs or commit statuses; an empty pending rollup is not evidence of an executing job. External maintainer acceptance and the resulting public listing remain separate from submission preparation. Confirm the accepted pin with the existing owner before changing the Docker submission.
 
 | Surface | State at 2026-07-10 | Required action |
 | --- | --- | --- |
