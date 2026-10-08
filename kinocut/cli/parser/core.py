@@ -20,6 +20,11 @@ def _add_core_edit_parsers(subparsers: argparse._SubParsersAction) -> None:
     # info
     info_p = subparsers.add_parser("info", help="Get video metadata")
     info_p.add_argument("input", help="Input video file")
+    info_p.add_argument(
+        "--exact",
+        action="store_true",
+        help="Also report the decoded frame count and raw r_frame_rate/avg_frame_rate (decodes the whole stream; slower)",
+    )
 
     # extract-frame
     eframe_p = subparsers.add_parser("extract-frame", help="Extract a single frame from a video")
