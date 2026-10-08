@@ -177,6 +177,10 @@ def _format_info_text(info: Any) -> None:
     table.add_row("Video Codec", getattr(info, "codec", "N/A"))
     table.add_row("Audio Codec", getattr(info, "audio_codec", "N/A"))
     table.add_row("Size", f"{getattr(info, 'size_mb', 0):.2f} MB")
+    if hasattr(info, "frame_count"):
+        table.add_row("Frame count", str(getattr(info, "frame_count", None)))
+        table.add_row("r_frame_rate", str(getattr(info, "r_frame_rate", None)))
+        table.add_row("avg_frame_rate", str(getattr(info, "avg_frame_rate", None)))
     table.add_row("Format", getattr(info, "format", "N/A"))
     console.print(table)
 

@@ -10,6 +10,7 @@ from typing import Any, Self
 from ..errors import MCPVideoError
 from ..engine import (
     probe as _probe,
+    probe_exact as _probe_exact,
 )
 from ..models import (
     EditResult,
@@ -63,9 +64,14 @@ class ClientBase:
     def __exit__(self, *args: Any) -> None:
         pass
 
-    def info(self, input_path: str) -> VideoInfo:
-        """Get metadata about a video file."""
-        return _probe(input_path)
+    def info(self, input_path: str, exact: bool = False) -> VideoInfo:
+        """Get metadata about a video file.
+
+        With ``exact=True`` the returned ``ExactVideoInfo`` also carries the decoded
+        ``frame_count`` and the raw ``r_frame_rate``/``avg_frame_rate`` strings; this decodes
+        the whole video stream, so it is slower than the default.
+        """
+        return _probe_exact(input_path) if exact else _probe(input_path)
 
     def _to_edit_result(self, result: Any, operation: str | None = None) -> EditResult:
         """Normalize media-producing client returns to EditResult."""

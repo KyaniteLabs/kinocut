@@ -12,7 +12,7 @@ import functools
 import anyio
 from mcp.server.fastmcp import Context
 
-from .engine import add_audio, add_text, add_texts, convert, merge, probe, resize, speed, trim
+from .engine import add_audio, add_text, add_texts, convert, merge, probe, probe_exact, resize, speed, trim
 from .contracts.receipt_ai_video import AiVideoReceiptSection
 from .receipts_ai_video import attach_ai_video_section
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
@@ -54,14 +54,15 @@ OptionalOutputVideoPath = Annotated[
 
 @mcp.tool()
 @_safe_tool
-def video_info(input_path: str) -> dict[str, Any]:
-    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. Pass input_path as the absolute path to the existing video.
+def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
+    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. Pass input_path as the absolute path to the existing video. Set exact=true to also get the decoded frame_count and the raw r_frame_rate/avg_frame_rate strings (slower: the whole video stream is decoded).
 
     Args:
         input_path: Absolute path to the video file.
+        exact: Also report frame_count (decoded), frame_count_source, r_frame_rate and avg_frame_rate (raw ffprobe strings, null when not measurable).
     """
     input_path = _validate_input_path(input_path)
-    info = probe(input_path)
+    info = probe_exact(input_path) if exact else probe(input_path)
     data = info.model_dump()
     data["display_width"] = info.display_width
     data["display_height"] = info.display_height

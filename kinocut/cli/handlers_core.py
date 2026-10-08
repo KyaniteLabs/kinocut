@@ -36,18 +36,29 @@ def _register_diagnostics_commands(runner: CommandRunner) -> None:
         _out(run_diagnostics(), j or a.json, _format_doctor_text)
 
     runner.register("doctor", _doctor)
-    runner.register(
-        "info",
-        plain_cmd(
-            "mcp_video.engine:probe",
-            "input",
-            formatter=_format_info_text,
-            json_transform=lambda r: {
-                "success": True,
-                "data": r.model_dump() if hasattr(r, "model_dump") else r,
-            },
-        ),
+    _info_default = plain_cmd(
+        "mcp_video.engine:probe",
+        "input",
+        formatter=_format_info_text,
+        json_transform=lambda r: {
+            "success": True,
+            "data": r.model_dump() if hasattr(r, "model_dump") else r,
+        },
     )
+    _info_exact = plain_cmd(
+        "mcp_video.engine:probe_exact",
+        "input",
+        formatter=_format_info_text,
+        json_transform=lambda r: {
+            "success": True,
+            "data": r.model_dump() if hasattr(r, "model_dump") else r,
+        },
+    )
+
+    def _info(a, j):
+        (_info_exact if getattr(a, "exact", False) else _info_default)(a, j)
+
+    runner.register("info", _info)
 
 
 def _register_frame_commands(runner: CommandRunner) -> None:
