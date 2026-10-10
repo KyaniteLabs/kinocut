@@ -131,3 +131,24 @@ def test_fallback_overflow_preserves_original_failure_after_safe_cleanup(fallbac
             **{f"{stream}_limit": 1024},
         )
     assert error.value.code == f"command_{stream}_limit_exceeded"
+
+
+def test_killpg_permission_error_is_swallowed_not_raised(monkeypatch, tmp_path):
+    """Regression test for issue #594: on macOS the ffmpeg child has already
+    been reaped by the time ProcessTree._kill() calls os.killpg, so the
+    process group no longer belongs to us and killpg fails with EPERM.
+    The child has already exited (observe_exit would have raised otherwise),
+    so the kill is hygiene, not correctness — swallow instead of raising.
+    """
+    script = "import time; time.sleep(0.05); raise SystemExit(0)"
+    tree = ProcessTree([sys.executable, "-c", script])
+    tree.wait(timeout=3)
+    # Simulate the macOS / WNOWAIT-unavailable situation: killpg fails
+    # with EPERM because the process group was already reaped.
+    def fake_killpg(pgid, sig):
+        raise PermissionError(1, "Operation not permitted")
+    monkeypatch.setattr(os, "killpg", fake_killpg)
+    # Must not raise. The close() call goes through _kill() which calls
+    # killpg; under macOS conditions that call returns PermissionError,
+    # which the fix in process_tree.py:131 swallows.
+    tree.close()
