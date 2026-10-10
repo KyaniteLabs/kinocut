@@ -59,7 +59,7 @@ jobs:
         run: |
           sha="$(python -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest())' "dist/${{ steps.candidate.outputs.bundle_file }}")"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: staged-mcpb-build
           if-no-files-found: error
@@ -191,7 +191,7 @@ jobs:
         run: |
           python -m pip install pytest pytest-asyncio mcpb-artifacts/*.whl
           python -m pytest tests/test_publication_process_boundaries.py tests/test_composite_publication_boundaries.py tests/test_quality_signal_reader.py tests/test_bounded_process.py tests/test_process_windows.py tests/test_process_guardian.py tests/test_projectstore_render_stop_identity.py tests/test_atomic_publication_residuals.py tests/test_font_download_bounds.py tests/test_font_validation.py tests/test_integrator_fixes.py::test_default_animated_text_renders_and_decodes tests/test_integrator_fixes.py::test_drawtext_family_resolves_to_concrete_file tests/test_integrator_fixes.py::test_unresolvable_family_falls_back_gracefully -q --tb=short
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: staged-mcpb-runtime-${{ matrix.os }}
@@ -285,7 +285,7 @@ jobs:
             --os linux \
             --architecture "$RUNNER_ARCH" \
             --receipt mcpb-optional-linux.json
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         if: always()
         with:
           name: staged-mcpb-optional-linux
@@ -321,7 +321,7 @@ jobs:
             --hosted-runtime-receipt receipts/mcpb-runtime-windows.json \
             --optional-dependencies-receipt receipts/mcpb-optional-linux.json \
             --require-ready ci_validated
-      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: staged-mcpb-aggregate-receipt
           if-no-files-found: error
