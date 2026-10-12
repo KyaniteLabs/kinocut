@@ -1,6 +1,6 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
-  "name": "io.github.KyaniteLabs/kinocut",
+  "name": "tech.kyanitelabs.kinocut",
   "title": "Kinocut",
   "description": "Guardrailed video editing for AI agents: FFmpeg, captions, effects, Hyperframes, and receipts.",
   "version": "1.16.1",
