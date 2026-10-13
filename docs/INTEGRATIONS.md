@@ -35,7 +35,7 @@ Args: `--from kinocut kino --mcp`
 
 Transport: stdio
 
-Registry id: `io.github.KyaniteLabs/kinocut`.
+Registry id: `tech.kyanitelabs/kinocut`.
 
 ## Gemini CLI
 

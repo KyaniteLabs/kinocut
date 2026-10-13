@@ -124,7 +124,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 
 High-leverage listing targets:
 
-- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) - registry endpoint for `io.github.KyaniteLabs/kinocut`; live verification returned 403 on 2026-09-30, so its current published version is unverified.
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - registry endpoint for `tech.kyanitelabs/kinocut`; live verification returned 403 on 2026-09-30, so its current published version is unverified.
 - [Directory rebrand status](DIRECTORY_REBRAND_STATUS.md) - live reconciliation ledger for stale former-name listings and downstream mirrors.
 - [Glama MCP Registry](https://glama.ai/mcp/servers) — Submit via GitHub repo URL.
 - [Smithery](https://smithery.ai) — Submit via GitHub repo URL once the official registry and Glama listings are fresh.
@@ -142,4 +142,4 @@ Track:
 - Issues opened by real users.
 - Discussion posts and show-and-tell examples.
 - Mentions in MCP directories and AI answer results.
-- MCP Registry publication status for `io.github.KyaniteLabs/kinocut`.
+- MCP Registry publication status for `tech.kyanitelabs/kinocut`.

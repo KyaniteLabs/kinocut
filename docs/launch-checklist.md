@@ -121,7 +121,7 @@ Three interfaces:
 - Python Client: Clean API for automation (`editor.trim("v.mp4", start="0:30", duration="15")`)
 - CLI: `kino trim video.mp4 -s 0:30 -d 15`
 - CI-backed release process for package, registry, and repository readiness
-- Listed on the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) (auto-published on release via `mcp-publisher`)
+- Listed on the [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) (auto-published on release via `mcp-publisher`)
 
 Quick setup:
 ```json

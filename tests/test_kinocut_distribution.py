@@ -171,7 +171,7 @@ def test_npm_package_is_a_thin_uvx_bootstrap_not_a_second_runtime() -> None:
 def test_registry_metadata_uses_the_new_immutable_identity() -> None:
     server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
 
-    assert server["name"] == "io.github.KyaniteLabs/kinocut"
+    assert server["name"] == "tech.kyanitelabs/kinocut"
     assert server["title"] == "Kinocut"
     assert server["version"] == KINOCUT_VERSION
     assert len(server["description"]) <= 100

@@ -12,7 +12,7 @@ MCP (Model Context Protocol) is a standard protocol that lets AI agents like Cla
 
 Current maintenance publication (2026-10-05): PyPI/npm and GitHub release report **1.16.1**; compatibility shim **1.6.16** pins it. The initial publication gate read MCP Registry 1.16.1; later reads timed out. Website 1.16.1 source is prepared, not deployed. The dated checkpoint below remains historical.
 
-Kinocut's canonical identifier is `io.github.KyaniteLabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest), PyPI, npm and GitHub release report 1.16.0 (verified 2026-10-02); compatibility package `mcp-video==1.6.15` pins `kinocut==1.16.0`. The [live website](https://kinocut.dev/) also showed 1.16.0, 203 MCP tools and 177 CLI commands on 2026-10-05. Final owner acceptance and fleet rollout remain separately unverified. GitHub is the canonical product repository; the website has its own Forgejo source authority.
+Kinocut's canonical identifier is `tech.kyanitelabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest), PyPI, npm and GitHub release report 1.16.0 (verified 2026-10-02); compatibility package `mcp-video==1.6.15` pins `kinocut==1.16.0`. The [live website](https://kinocut.dev/) also showed 1.16.0, 203 MCP tools and 177 CLI commands on 2026-10-05. Final owner acceptance and fleet rollout remain separately unverified. GitHub is the canonical product repository; the website has its own Forgejo source authority.
 
 ## Which AI agents work with Kinocut?
 

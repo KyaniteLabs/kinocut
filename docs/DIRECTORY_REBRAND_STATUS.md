@@ -10,7 +10,7 @@ about third-party pages; verify an external page before acting on its listed sta
 - Name: **Kinocut**
 - Repository: `https://github.com/KyaniteLabs/kinocut`
 - Website: `https://kinocut.dev/`
-- MCP Registry ID: `io.github.KyaniteLabs/kinocut`
+- MCP Registry ID: `tech.kyanitelabs/kinocut`
 - Python package: `kinocut`
 - CLI: `kino`
 - Compatibility names: `mcp-video` package/CLI and `mcp_video` import

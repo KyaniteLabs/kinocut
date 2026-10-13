@@ -57,7 +57,7 @@ def main() -> int:
     mcp_video_recent = _http_json("https://pypistats.org/api/packages/mcp-video/recent")
     registry = _http_json(
         "https://registry.modelcontextprotocol.io/v0/servers/"
-        "io.github.KyaniteLabs%2Fkinocut/versions/latest"
+        "tech.kyanitelabs%2Fkinocut/versions/latest"
     )
 
     # External human PRs (heuristic: not bots, not simongonzalezdc)

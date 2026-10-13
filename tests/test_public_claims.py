@@ -47,7 +47,7 @@ def test_public_claims_file_is_complete(claims: dict) -> None:
     assert claims["published_mcp_tools"] <= claims["development_mcp_tools"]
     assert claims["published_cli_commands"] <= claims["development_cli_commands"]
     assert claims["website"].startswith("https://")
-    assert claims["registry_id"] == "io.github.KyaniteLabs/kinocut"
+    assert claims["registry_id"] == "tech.kyanitelabs/kinocut"
 
 
 def test_pyproject_version_matches_release_candidate_claim(claims: dict) -> None:

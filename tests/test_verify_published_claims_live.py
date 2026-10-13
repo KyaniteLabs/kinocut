@@ -40,7 +40,7 @@ def test_provider_schema_is_fail_closed(monkeypatch) -> None:
         (
             live.mcp_registry_latest,
             {"server": {"version": "1.15.1"}},
-            "servers/io.github.KyaniteLabs%2Fkinocut/versions/latest",
+            "servers/tech.kyanitelabs%2Fkinocut/versions/latest",
         ),
     ],
 )

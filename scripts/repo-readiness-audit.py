@@ -149,7 +149,7 @@ def main() -> int:
         )
 
     check(
-        "mcp-name: io.github.KyaniteLabs/kinocut" in readme,
+        "mcp-name: tech.kyanitelabs/kinocut" in readme,
         "README contains MCP Registry verification marker",
         "README missing MCP Registry verification marker",
         failures=failures,

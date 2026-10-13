@@ -74,7 +74,7 @@
 | **Latest published release** | [Official PyPI version](https://pypi.org/project/kinocut/) · [GitHub release](https://github.com/KyaniteLabs/kinocut/releases/latest) |
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
-| **MCP Registry** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) |
+| **MCP Registry** | [`tech.kyanitelabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) |
 | **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (**canonical code, issues, PRs, CI, and releases**) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (private, maintainers only; downstream mirror, automated sync cutover pending verification) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
@@ -334,7 +334,7 @@ Kinocut is built to be **findable and citable** by both search engines and AI an
 
 - Canonical product URL: **https://kinocut.dev/**
 - GitHub README + [`llms.txt`](llms.txt) with entity facts, install commands, and safety rules
-- Official MCP Registry record under `io.github.KyaniteLabs/kinocut`
+- Official MCP Registry record under `tech.kyanitelabs/kinocut`
 - FAQ answers in this README and [docs/faq.md](docs/faq.md) (answer-first, versioned claims)
 
 ### Kinocut vs raw FFmpeg (and vs cloud editors)

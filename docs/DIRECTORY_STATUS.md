@@ -11,7 +11,7 @@ Canonical facts: [`public_claims.json`](public_claims.json).
 | --- | --- | --- | --- |
 | Product site | Marketing + GEO | Live | https://kinocut.dev/ |
 | PyPI | Package | Live `kinocut` | https://pypi.org/project/kinocut/ |
-| MCP Registry | Official MCP listing | Live id `io.github.KyaniteLabs/kinocut` | https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest |
+| MCP Registry | Official MCP listing | Live id `tech.kyanitelabs/kinocut` | https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest |
 | GitHub | Canonical source, contribution, CI, and releases | Live | https://github.com/KyaniteLabs/kinocut |
 | Forgejo | Downstream mirror; automated sync cutover pending verification | Live but may lag until the cutover gate passes | https://git.kyanitelabs.tech/KyaniteLabs/kinocut |
 | Glama | Directory / score | Recrawl / stale metadata risk | Track in rebrand ledger |

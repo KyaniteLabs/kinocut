@@ -70,7 +70,7 @@ def github_latest_release(repo: str = "KyaniteLabs/kinocut") -> tuple[str | None
     return _version(f"https://api.github.com/repos/{repo}/releases/latest", lambda body: body["tag_name"])
 
 
-def mcp_registry_latest(server: str = "io.github.KyaniteLabs/kinocut") -> tuple[str | None, str]:
+def mcp_registry_latest(server: str = "tech.kyanitelabs/kinocut") -> tuple[str | None, str]:
     identifier = urllib.parse.quote(server, safe="")
     return _version(
         f"https://registry.modelcontextprotocol.io/v0/servers/{identifier}/versions/latest",

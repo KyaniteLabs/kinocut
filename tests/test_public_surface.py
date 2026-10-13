@@ -250,7 +250,7 @@ def test_server_json_and_readme_match_registry_identity():
     server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
 
-    assert server["name"] == "io.github.KyaniteLabs/kinocut"
+    assert server["name"] == "tech.kyanitelabs/kinocut"
     assert server["websiteUrl"] == "https://kinocut.dev/"
     # GitHub is the canonical source and public registry/collaboration repository.
     assert server["repository"]["url"] == "https://github.com/KyaniteLabs/kinocut"
@@ -407,7 +407,7 @@ def test_current_documentation_uses_canonical_kinocut_identity():
 
 
 def test_current_docs_link_to_the_live_mcp_registry_version():
-    registry_url = "https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest"
+    registry_url = "https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest"
     checked_paths = (
         ROOT / "docs" / "AI_AGENT_DISCOVERY.md",
         ROOT / "docs" / "faq.md",

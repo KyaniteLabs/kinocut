@@ -40,7 +40,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
 | --- | --- |
 | Package | `kinocut` |
 | CLI | `kino` |
-| Registry | `io.github.KyaniteLabs/kinocut` |
+| Registry | `tech.kyanitelabs/kinocut` |
 | Site | https://kinocut.dev/ |
 | Formerly | mcp-video |
 

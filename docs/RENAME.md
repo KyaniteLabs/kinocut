@@ -30,7 +30,7 @@ Please list:
 
 - **Name:** Kinocut (formerly mcp-video)  
 - **Install:** `pip install kinocut`  
-- **MCP:** `uvx --from kinocut kino` / registry `io.github.KyaniteLabs/kinocut`  
+- **MCP:** `uvx --from kinocut kino` / registry `tech.kyanitelabs/kinocut`  
 - **Site:** https://kinocut.dev/  
 - **Repo:** https://github.com/KyaniteLabs/kinocut  
 
