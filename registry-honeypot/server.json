@@ -1,0 +1,6 @@
+{
+  "name": "io.github.KyaniteLabs/kinocut",
+  "version": "9.9.9",
+  "title": "Honeypot: legacy namespace reversion",
+  "packages": [{"registryType": "pypi", "identifier": "kinocut", "version": "9.9.9"}]
+}
