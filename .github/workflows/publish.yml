@@ -348,6 +348,17 @@ jobs:
         with:
           persist-credentials: false
           ref: ${{ github.event.release.tag_name || github.ref }}
+      - name: Enforce namespace denylist (HR-NOV-1)
+        # Security ruling t_9f514ee8 (R4). Closes Path A (mcp-publisher login +
+        # new version under legacy name) and Path B (OIDC publish if server.json
+        # name reverted) for kinocut and the mcp-video compat shim. Fails the
+        # job BEFORE mcp-publisher is invoked. The denylist is namespace-scoped:
+        # it matches io.github.KyaniteLabs/* but NOT tech.kyanitelabs/*. The
+        # compat shim at compat/mcp-video-shim/server.json still has the
+        # legacy name; per the Nov 1.17.0 deprecation cycle it must migrate to
+        # tech.kyanitelabs/mcp-video (CEO publish gate, separate work) before
+        # this job will pass for a release that touches the shim.
+        run: python3 .github/scripts/check-server-namespace.py --root . --required
       - name: Install mcp-publisher
         env:
           MCP_PUBLISHER_VERSION: v1.7.9

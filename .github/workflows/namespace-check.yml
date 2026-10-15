@@ -1,0 +1,45 @@
+name: Namespace Check (HR-NOV-2)
+
+# Hardens the legacy io.github.KyaniteLabs/* namespace against out-of-cycle
+# publishes per Security ruling t_9f514ee8 (R4, hardening requirement
+# HR-NOV-2). Runs on every PR that touches any server.json in the repo and
+# fails the build if any of them declare a legacy `name` in the
+# io.github.KyaniteLabs/* namespace.
+#
+# This is a REQUIRED status check. Adding it to branch protection without
+# the required-status flag defeats the hardening — the bypass would let a
+# PR merge the legacy name in via the github.ui merge button.
+#
+# Scope (per Security addendum to t_eccfa7a5, 2026-10-14 19:27):
+#   DENY  : io.github.KyaniteLabs/(kinocut|dialectos|mcp-video|Epoch)
+#   ALLOW : tech.kyanitelabs/(kinocut|dialectos|mcp-video|Epoch)
+# Implementation: .github/scripts/check-server-namespace.py (shared,
+# runs the same denylist on every repo that adopts this workflow).
+
+on:
+  pull_request:
+    paths:
+      - "**/server.json"
+      - ".github/scripts/check-server-namespace.py"
+      - ".github/workflows/namespace-check.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: namespace-check-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  deny-legacy-namespace:
+    name: namespace-check
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Run namespace denylist
+        run: python3 .github/scripts/check-server-namespace.py --root . --required
