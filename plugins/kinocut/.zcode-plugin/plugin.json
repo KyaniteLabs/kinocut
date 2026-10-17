@@ -1,0 +1,12 @@
+{
+  "name": "kinocut",
+  "version": "1.16.1",
+  "displayName": "Kinocut",
+  "description": "Use when an agent must edit local video safely via the kinocut MCP server. Guarded FFmpeg, receipts, and Shorts repurposing.",
+  "author": "Kyanite Labs",
+  "category": "Media",
+  "skills": [
+    "skills/kinocut/SKILL.md",
+    "skills/kinocut-repurpose/SKILL.md"
+  ]
+}

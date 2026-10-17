@@ -1,0 +1,302 @@
+---
+name: kinocut
+description: Use when an agent must edit local video safely. Kinocut guards planning, FFmpeg operations, subtitles, audio, analysis, quality gates, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.
+---
+
+# Kinocut
+
+Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. It exposes MCP tools, a Python client, and a CLI for editing, analysis, subtitles, audio, Hyperframes, layered compositing, and local repurposing workflows.
+
+Published 1.16.1 and the matching development checkout have 203 MCP tools / 177 CLI commands; inspect the installed schemas before using development additions.
+Desktop-local execution is available; native Android/iOS clients and a complete
+browser processing application remain unimplemented. Recommended service/client
+work is described in `docs/PLATFORM_PARITY.md`.
+
+## Default path (do this first)
+
+1. `kino doctor` then `kino --format json info <file>`.
+2. For an unfamiliar task, call `search_tools` with the user's task (for example, "remove filler words" or "keep face in frame"), then inspect the returned tool's required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
+3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
+4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
+5. Human visual/audio review. Never treat a receipt as published.
+
+Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
+
+Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
+
+## Revideo local code-video flow (published 1.16.1)
+
+Use `revideo_materialize`, `revideo_install`, and `revideo_render` when the
+caller needs an inspectable staged project. Use `revideo_render_job` for the
+same guarded steps in one call. A supplied scene is trusted executable
+TypeScript: inspect it before use and never run untrusted scene code. Dependency
+installation may access npm; rendering runs locally against Kinocut's pinned
+template. The render receipt binds observed media and output bytes to the exact
+bounded on-disk job-file digest. `.mp4`, `.webm`, and `.mov` select pinned MP4,
+WebM, and ProRes 4444 exporter modes and are verified before publication. Verify the receipt against the output bytes, run `video_quality_check`
+and `video_release_checkpoint`, then require human visual review.
+
+## Start Here
+
+- Read `../../README.md` for install and the safety contract.
+- Run `kino doctor` before FFmpeg / Hyperframes / AI extras.
+
+## Choose A Surface
+
+- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Configure `uvx --from kinocut kino`.
+- CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
+- Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
+
+## 360 dual-cam assembly (published 1.14.0)
+
+Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …) and the ask is two virtual cameras as split / switch / PiP / single.
+
+1. `video_intent(verb="reformat_vertical", goal="desk 360 split 9:16", source=ABS_PATH)` or `Client.propose_360_assembly(...)`.
+2. Show cameras, layout, and storyboard stills. Do not invent yaw/pitch.
+3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
+4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
+
+There is no `video_360_*` MCP tool and no `kino 360` command. In published 1.16.1, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
+also proposes a nested `sphere_plan`. Save that plan as its own JSON artifact;
+after actual human review, `kino review-decide PLAN.json accept --output OUTPUT`
+approves and renders it. `reject` never renders; changed source identity blocks
+rendering. Director hooks accept an injected JSON proposer; a configured model
+name alone does not execute a model. Cloud proposals require `allow_cloud`;
+directors never write pixels.
+
+## Published 1.16.1 operator parity
+
+- Timed audio: `video_mix_audio`, CLI `mix-audio --sounds JSON`, and
+  `Client.mix_audio` use one AAC encode and copy the picture. Gains can clip;
+  listen before delivery. CLI `duck-audio` joins existing `video_duck_audio` and
+  `Client.duck_audio`; neither provides governed audio-bed receipts or automatic
+  delivery loudness normalization.
+- Encoding: `trim --accurate`; `convert --two-pass --target-bitrate KBPS`
+  (MP4/MOV); `fade --crf`; and `add-audio --mix --duration-policy loop_audio`
+  map to shared controls. Mixed `pad_audio` remains unsupported.
+  `normalize-audio --lufs --lra --true-peak-dbtp --fade-seconds` exposes loudness
+  and boundary-fade controls; verify the resulting soundtrack and delivery spec.
+- Frame extraction: omitted timestamps use smart sampling when available,
+  otherwise 10% of duration. Pass explicit zero for the first frame.
+- HLS: CLI `hls-segment` joins `video_hls_segment`/`Client.hls_segment` for local
+  packaging; it does not publish or host a stream.
+- Estimates: `video_estimate_operation`, CLI `estimate`, and
+  `Client.estimate_operation` return local heuristics, dimensionless cost units,
+  and no billing currency. Do not present them as measured cloud latency/cost.
+
+## Product / object matte (published in 1.15.1; current in 1.16.1)
+
+The optional object-matte extra is available in published 1.16.1. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+
+1. `hyperframes_remove_background(info=true)` — lists models, no download.
+2. `pip install "kinocut[object-matte]"` then `model="birefnet-general"`.
+3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
+4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
+
+Do **not** invent `video_product_matte`; this is not a new MCP tool. Do **not** fall back to the people model when the object extra is missing. Guide: `docs/PRODUCT_MATTE.md`. Example: `examples/product-matte/`.
+
+## Dedicated Video Rescue
+
+Use `video_rescue_*`, `rescue-*`, or `Client.rescue_*` when the request is to fix one local
+clip while preserving its source, story, and timeline.
+
+Required sequence:
+
+1. Call plan and save the plan artifact.
+2. Present `safe_repairs`, `recommendations`, `unavailable_repairs`, `blocked_repairs`,
+   previews, package intents, capabilities, and estimate to the user.
+3. Inspect the plan before render. Obtain or infer explicit approval only for IDs in
+   `safe_repairs`; omitting the ID list means all safe IDs in the reviewed plan.
+4. Call render with exactly those approved safe IDs.
+5. Inspect the render receipt, then report package paths, unavailable sidecars, integrity,
+   gating verification, privacy, resume, and cleanup state.
+
+Never render directly from an unreviewed plan. Never add recommendation IDs, unavailable
+IDs, or blocked IDs to approval. Never use cloud tools, burn rescue captions, rewrite the
+source, or treat `unavailable` as automatic failure. A cancellation or verification failure
+must remain unpromoted or quarantined.
+
+## Deterministic AI-video Inspection
+
+Use `video_ingest`, `video_preflight`, and `video_inspect_temporal` (or their flat CLI and
+Python equivalents) when generated footage needs evidence before an edit decision. Ingest
+first, then address the asset by its returned hash. Never replace that asset id with a host
+path or construct an `AssetRecord` at the public boundary. Temporal inspection returns the
+full sampled-frame and motion-strip package, deterministic findings, and explicit unavailable
+provider capabilities. Provider absence is expected and must not trigger a download or a
+network fallback.
+
+The report also retains chronological `motion_coherence` measurements, coverage,
+gaps and advisory transitions. Review every flagged interval and intended cut, then
+watch the complete assembled film. Python `Client.record_motion_acceptance(...)`,
+published MCP `video_record_motion_acceptance`, and CLI `record-motion-acceptance`
+record the separate source/report-bound viewing attestation and dispositions.
+CLI accepts either inline `--report-json JSON` or `--report-file PATH` (UTF-8 JSON,
+bounded for longform producer output). Watched intervals and dispositions also
+support `--watched-intervals-file` and `--dispositions-file` instead of their
+inline JSON flags. File admission uses dedicated producer/evidence-count byte
+caps; inline JSON retains its 1 MiB cap and OS argument limits;
+incomplete viewing or an unresolved `needs_fix` cannot grant acceptance. See
+`docs/QUALITY_EVIDENCE.md`. The receipt records a human attestation, not a score
+that proves someone watched or approved the film. MCP/CLI nest the hashed receipt
+under `receipt`; `attestation_verified_by_system` remains false. Require explicit
+human inputs; never invent viewing, reviewer identities, dispositions, or approval.
+
+## Governed AI-video Review and Salvage
+
+Use `video_verdict`, `video_acceptance_eval`, `video_body_swap`, and `video_salvage` (or
+their flat CLI and Python equivalents) for exact-asset editorial decisions and derivative
+recovery. A non-approved verdict may capture agent analysis, but an approved disposition
+must bind an active, exact human decision with explicit requirement, role, and artifact
+evidence. Acceptance evaluation is derived rather than an approval action, and every
+salvage output starts in a fresh non-approved review slot.
+
+Never invent a decision id, pass an unstored approval, or look for a force/override route.
+Body swap rejects duration mismatch unless the caller chooses an explicit policy. Salvage
+requires an existing private project, a stored source asset, a bounded recipe policy, and
+an exact acceptance-spec id.
+
+Acceptance evaluation takes active stored `acceptance_spec_id` and `verdict_ids`, never
+caller-built evidence objects. Public body swap always takes `project_dir` first and both
+source paths must resolve to active assets in that exact project.
+
+Read `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` before operating this workflow. Treat every
+derivative as new non-approved work and keep the explicit human visual/audio gate before
+publication.
+
+## Post-Rescue Planning
+
+Use the matching `video_*` MCP tool, flat CLI command, or `Client` method when the request
+needs semantic retrieval, ordinary cleanup edits, subject-aware transforms, restoration,
+composition, creative coordination, or remote egress. Pass JSON-compatible evidence and
+intent; present the returned plan and diff before any separate render step.
+
+Never invent source descriptions, hide uncertainty, infer approval from a plan, or treat a
+missing local executor as permission to use a cloud provider. Remote work requires a separate
+egress manifest and approval. A planner that lacks evidence or capability must abstain.
+
+## Layered Compositing
+
+For `video_crop`, use upright display-pixel coordinates. Explicit width and height
+must be even; percentage crops derive even encoded dimensions while preserving
+pixel offsets. `video_fade` measures the bounded primary-picture window, including
+delayed starts; a longer audio tail does not define the visible fade window.
+
+Use `composite-layers` / `video_composite_layers` when the edit is an ordered stack of image, video, or solid layers, especially lower thirds, picture-in-picture variants, blurback plates, masks/mattes, or platform-specific layout variants.
+
+Prefer this path over raw FFmpeg filtergraphs when an agent needs transforms, opacity, start/duration windows, mask/matte alpha sources, or a receipt that can be reviewed before publishing.
+
+Plan-first flow:
+
+1. Write a JSON spec with `canvas`, ordered `layers`, and explicit output.
+2. Run `kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json`.
+3. Inspect the layer plan for source hashes, filtergraph hash, transforms, rotation/pivot, blend modes, timing windows, and masks.
+4. Render only after the plan looks right.
+5. Run `video-quality-check`, `storyboard` or `thumbnail`, and `video_release_checkpoint`.
+
+The compositor supports allowlisted full-canvas and positioned blend modes (`multiply`, `screen`, `overlay`, `darken`, `lighten`) with opacity and timing windows; receipts remain `layer_plan` v2. Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video layers and video masks begin playback at their declared start. Keep all sources and masks inside the spec directory. Output is video-only; `anchor` is a position alias distinct from `pivot`. Rotation + mask, audio compositing and full NLE adapters remain deferred. Inspect the receipt before human review; do not treat this as a full NLE replacement.
+
+## Agent Workflow Engine
+
+When the edit is a multi-step job (not a single tool call), use the workflow engine to plan, validate, render, recover, and prove it from one JSON job-spec — through `video_workflow_*` (MCP), `workflow-*` (CLI), or `Client.workflow_*` (Python). Ops are a small allowlist (`probe | trim | resize | convert | crop | add_text | merge | composite_layers | burn_in`) bound to vetted engines; media references are symbolic (`@sources.*`, `@work/*`, `@outputs.*`) and workspace-confined; everything fails closed. See `../../docs/WORKFLOWS.md`.
+
+Plan → validate → render → inspect → resume:
+
+1. `workflow-validate --spec job.json` — cheap structural gate; renders nothing.
+2. `workflow-plan --spec job.json --save-plan plan.json` — dry-run op graph + source probes/hashes; renders zero media.
+3. `workflow-render --spec job.json --save-receipt receipt.json` — execute sequentially; emit a provenance receipt (per-step hashes, cleanup manifest, determinism caveat). Add `--all-variants` for batch variants.
+4. `workflow-inspect --receipt receipt.json` — read-only integrity re-check + human-review pointers before trusting a receipt.
+5. `workflow-render --spec job.json --resume receipt.json` — resume a job that failed with intermediates kept (fail-closed on a changed spec).
+
+Receipts store workspace-relative paths only — keep specs and example receipts free of home paths, usernames, and tokens.
+
+## Workflow
+
+1. Inspect the input first: `kino info <file>` or the MCP/Python equivalent.
+2. Make a low-risk plan: trim, resize, normalize audio, subtitles, overlays, effects, or Hyperframes render.
+3. Prefer previews or dry-run manifests before expensive or destructive exports:
+   - `preview` for quick visual review.
+   - `repurpose-plan` before `repurpose`.
+   - Hyperframes `inspect`, `snapshot`, or `still` before full render.
+   - For saved shorts plans: `shorts-plan-show` → `shorts-review` → `shorts-render` → `shorts-package`.
+   - For thin sound: `sound-capabilities` then `sound-plan-validate` / `sound-voice-batch` / `sound-mix-render` / `sound-qa-loudness` / `sound-qa-asr` (or `kino sound <action>`).
+   - Supply numeric values for sound durations, gains, loudness and profile versions; booleans are rejected before coercion. Explicit invalid plans cannot select the example plan. Typed plans are revalidated; see `docs/SOUND_INPUT_VALIDATION.md` for field-specific compatibility rules.
+   - Real ASR uses a hashed audio/reference request and explicit root; retain its transcript ZIP and report mismatches honestly. Cached local Whisper only; no automatic downloads. Legacy hash-only calls are simulations. See `docs/SOUND_ASR_REQUESTS.md`.
+   - For real mono/stereo PCM16 loudness QA, supply `SoundLoudnessRequest` plus project root and inspect `within_tolerance`; successful measurement can be noncompliant. FFmpeg is required, and the no-input fixture is labelled as a demo. See `docs/SOUND_LOUDNESS_REQUESTS.md`.
+   - For retained mono/stereo mastering, supply `SoundMasterRequest` and explicit root to `sound-master-render`; see `docs/SOUND_MASTER_REQUESTS.md`. Inspect the verified ZIP, actual normalization mode and measured final policy compliance, then listen before release. Input channels are preserved; existing output is never replaced.
+   - For actual local EN/ES caption speech, supply a hashed `SoundDubRequest` and explicit project root to `sound-voice-batch`; see `docs/SOUND_DUB_REQUESTS.md`. V2 adds explicit `close_mic_dry` or `off_screen_distance` profiles (`docs/SOUND_SPEECH_SPATIAL.md`); inspect processed cue hashes and use the retained mix manifest. This optional eSpeak NG path does not translate, clone voices or apply mastering; legacy plan mode remains a labelled synthetic demo.
+   - For supplied-media mixing, pass a persisted request plus explicit project root to `sound_mix_render`, or use `sound-mix-render --request-json request.json --project-root .`. Verify the ZIP receipt and decoded media; assembly is not loudness mastering or human listening acceptance. See `docs/SOUND_MIX_REQUESTS.md` for format, filesystem, cancellation and resource limits.
+   - For track/bus gain, pan and mute/solo, use version2 with explicit cue-track bindings; see `docs/SOUND_ROUTING_REQUESTS.md`. V2/V3 support envelopes, sends and final bus sidechains (`docs/SOUND_AUTOMATION_REQUESTS.md`, `docs/SOUND_SEND_REQUESTS.md`, `docs/SOUND_SIDECHAIN_REQUESTS.md`). Inspect graph hashes, independent source-window evidence and the separate measured sidechain summaries. Send cycles and unsupported parameters/effects are rejected.
+   - For supplied ambient layers, use version3 with ordered layer/source bindings and explicit pad or crossfaded loop fill; see `docs/SOUND_LAYER_REQUESTS.md`. Layer ducking uses a pre-send/fader detector; final bus sidechains use fixed post-send/fader detectors. Inspect both completed releases and truncated recovery, with each effect's hash and measured summary. Bed ducking affects only the separate bed. Scene schedules remain unsupported. Listen to seams and gain recovery before acceptance.
+   - For mixed source rates, use version4 with required `source_resampling.profile: soxr_vhq_pcm16_guarded_v1`; see `docs/SOUND_RATE_CONVERSION.md`. It normalizes clips, bed and layers before trimming/routing and preserves original source identities. Same-rate copies need no backend; rate changes require FFmpeg/libsoxr with no fallback. Verify conversion hashes and all source-window evidence. Channel conversion, other sample formats and dither remain unsupported.
+   - Cue in/out points select source samples before placement and crossfades; post-roll must remain inside that selection. Verify `source_windows` in the receipt. A ducked bed adds to existing ambience clips.
+4. Produce release artifacts before publishing:
+   - `video-quality-check`
+   - `storyboard` or `thumbnail`
+   - `video_release_checkpoint` through MCP or `Client.release_checkpoint()` through Python
+5. Ask for human visual/audio review before treating generated media as final.
+   Stream-shorts packages still require a separate listening gate (G004); automation does not close it.
+   Do not claim full-episode sound completion from the thin S12 public join alone.
+
+## CLI Examples
+
+```bash
+kino doctor
+kino --format json info interview.mp4
+kino trim interview.mp4 -s 00:02:15 -d 45
+kino video-ai-transcribe clip.mp4 --output captions.srt
+kino subtitles clip.mp4 captions.srt
+# subtitles accept .srt, .vtt, or authored .ass; SRT/VTT render dimension-aware.
+# Add --style "FontSize=24,PrimaryColour=&H00FFFFFF&" to override force_style;
+# omit --style to preserve an authored .ass file's PlayRes, styles, and positions.
+kino resize clip.mp4 --aspect-ratio 9:16
+kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
+kino composite-layers --spec layers.json -o composite.mp4 --save-layer-plan layer-plan.json
+kino video-quality-check clip.mp4
+kino repurpose-plan clip.mp4 --platforms youtube-shorts instagram-reel tiktok
+kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
+# Saved-plan stream shorts (after a plan exists under PLAN_DIR):
+kino shorts-plan-show PLAN_DIR --format json
+kino shorts-review PLAN_DIR --candidate-id candidate_01 --decision approve
+kino shorts-render PLAN_DIR --candidate-id candidate_01
+kino shorts-package PLAN_DIR --candidate-id candidate_01
+# Thin sound public join (local-first; not full-episode completion):
+kino --format json sound-capabilities
+kino --format json sound plan-validate
+kino --format json sound-voice-batch
+kino --format json sound-qa-loudness
+```
+
+## Python Example
+
+```python
+from kinocut import Client
+
+video = Client()
+plan = video.composite_layers(
+    "layers.json",
+    output="composite.mp4",
+    save_layer_plan="layer-plan.json",
+    dry_run=True,
+)
+```
+
+## MCP Setup
+
+```json
+{
+  "mcpServers": {
+    "kinocut": {
+      "command": "uvx",
+      "args": ["--from", "kinocut", "kino"]
+    }
+  }
+}
+```
+
+## Guardrails
+
+- Do not publish or hand off media without a quality check and human review.
+- Prefer structured Kinocut tools over raw FFmpeg shell commands; use `composite-layers`/`video_composite_layers` for ordered layer stacks instead of hand-written filtergraphs.
+- Keep output paths explicit so generated media is easy to inspect.
+- For Hyperframes, verify project structure and rendered snapshots before full video export.

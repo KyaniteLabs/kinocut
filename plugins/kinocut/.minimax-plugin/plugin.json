@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "name": "kyanite-kinocut",
+  "displayName": "Kinocut",
+  "version": "1.16.1",
+  "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, and Hyperframes.",
+  "author": "Kyanite Labs",
+  "icon": "icon.png",
+  "category": "Media & Design",
+  "exampleQueries": [
+    "Trim this clip from 00:00:05 to 00:00:15 and add a 500ms fade-in",
+    "Re-encode this video for vertical Shorts with a 9:16 crop"
+  ],
+  "apps": [],
+  "mcpServers": [
+    "kinocut.mcp.json"
+  ],
+  "skills": [
+    "skills/kinocut/SKILL.md",
+    "skills/kinocut-repurpose/SKILL.md"
+  ]
+}

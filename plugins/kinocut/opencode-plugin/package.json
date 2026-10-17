@@ -1,0 +1,9 @@
+{
+  "name": "@kyanitelabs/opencode-kinocut",
+  "version": "1.16.1",
+  "private": true,
+  "description": "Staged OpenCode plugin wrapper for Kinocut. Not published.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "main": "index.js"
+}
