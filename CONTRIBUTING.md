@@ -168,6 +168,13 @@ To monitor CI and review comments on pull requests, run:
 4. Run `pytest tests/ -v -m "not slow"` — all must pass
 5. Open a PR with a clear description of what changed and why
 
+## Contributor Attribution
+
+- Give specific public credit for useful bug reports, investigation, proposed patches and tests, reviews, documentation, and incorporated code, even when a submitted patch is not merged. Link the contributor's public profile and the relevant issue or PR, and describe what they contributed without implying incorporation or resolution that has not been verified.
+- Preserve the authorship of code actually incorporated. Use a `Co-authored-by` trailer only for genuine shared authorship, with an appropriate email address supplied by that contributor; use acknowledgments for general thanks.
+- Before publishing release notes, manually check relevant issues and PRs for non-code and unmerged contributions. Include a brief linked credit in the changelog and link to the fuller release notes.
+- Respect any expressed attribution or privacy preference, including a request to omit public credit.
+
 ## Reporting Issues
 
 When reporting a bug, include:

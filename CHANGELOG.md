@@ -30,6 +30,10 @@ This project follows a simple release-note style:
 
 - Refresh current website and directory status after verifying the 1.16.0 site and approved social images; retain final owner acceptance, vendor identity resolution and distribution project gates separately.
 
+### Acknowledgments
+
+Thanks to [@Mimatovitch](https://github.com/Mimatovitch) for reporting [#594](https://github.com/KyaniteLabs/kinocut/issues/594), and [@Zoroassistant23](https://github.com/Zoroassistant23) for investigating it and proposing a patch and test in [#595](https://github.com/KyaniteLabs/kinocut/pull/595). That PR was not merged; a separate cleanup change shipped in [#596](https://github.com/KyaniteLabs/kinocut/pull/596). See the [1.16.1 release notes](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.1) for fuller context.
+
 ## 1.16.0 - 2026-10-02
 
 - Accept the approved optional icon in MCPB readiness aggregation while requiring every runtime/optional receipt to match the exact allowlisted build inventory.
