@@ -692,6 +692,7 @@ def _run_ffprobe_json(
     *,
     pass_fds: tuple[int, ...] = (),
     count_frames: bool = False,
+    timeout: int | None = None,
 ) -> dict[str, Any]:
     """Run ffprobe returning full JSON (format + streams)."""
     import json as _json
@@ -708,10 +709,11 @@ def _run_ffprobe_json(
     if count_frames:
         cmd.append("-count_frames")
     cmd.append(path)
+    effective_timeout = FFPROBE_TIMEOUT if timeout is None else timeout
     result = (
-        _run_command(cmd, timeout=FFPROBE_TIMEOUT, pass_fds=pass_fds)
+        _run_command(cmd, timeout=effective_timeout, pass_fds=pass_fds)
         if pass_fds
-        else _run_command(cmd, timeout=FFPROBE_TIMEOUT)
+        else _run_command(cmd, timeout=effective_timeout)
     )
     try:
         return _json.loads(result.stdout)
