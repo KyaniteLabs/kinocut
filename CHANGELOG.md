@@ -26,6 +26,10 @@ This project follows a simple release-note style:
 - Make `create-from-images` frame-exact: N inputs now encode exactly N frames at the requested rate, with no duplicated trailing entry and no float-duration surplus. Even-dimension PNG inputs skip the per-image normalization pass: each is hard-linked into a private directory and its dimensions are read through that link, so a path renamed over or replaced by a symlink after validation cannot reach FFmpeg unchecked. Inputs that are symlinks at link time, are not even-dimension PNGs, or cannot be hard-linked fall back to the normalizer; inputs are never copied.
 - `create-from-images` works when the temporary directory path contains `%`.
 
+### Acknowledgments
+
+- Thanks to [@a672780966](https://github.com/a672780966) for contributing the frame-exact `create-from-images` rewrite, rational frame-rate and `--list` / `list_file` support, input bounds, and regression tests in [#616](https://github.com/KyaniteLabs/kinocut/pull/616), and for working through two review rounds (starting in [#615](https://github.com/KyaniteLabs/kinocut/pull/615)).
+
 ## 1.16.1 - 2026-10-05
 
 ### Fixed
