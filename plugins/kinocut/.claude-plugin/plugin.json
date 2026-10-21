@@ -9,5 +9,10 @@
   },
   "homepage": "https://kinocut.dev/",
   "repository": "https://github.com/KyaniteLabs/kinocut",
-  "license": "Apache-2.0"
+  "license": "Apache-2.0",
+  "icon": "./icon.png",
+  "documentationUrl": "https://kinocut.dev/",
+  "supportUrl": "https://github.com/KyaniteLabs/kinocut/discussions",
+  "privacyPolicyUrl": "https://kinocut.dev/privacy.html",
+  "termsOfServiceUrl": "https://kinocut.dev/terms.html"
 }
