@@ -450,6 +450,9 @@ def test_vendor_plugin_manifests_track_the_package_version() -> None:
         server = json.loads((plugin / rel).read_text(encoding="utf-8"))["mcpServers"]["kinocut"]
         assert server["command"] == "uvx" and server["args"] == [f"kinocut=={version}"], rel
     assert f'"kinocut=={version}"' in (plugin / "opencode-plugin" / "README.md").read_text(encoding="utf-8")
+    gemini = json.loads((ROOT / "gemini-extension.json").read_text(encoding="utf-8"))
+    assert gemini["version"] == version
+    assert gemini["mcpServers"]["kinocut"] == {"command": "uvx", "args": [f"kinocut=={version}"]}
 
 
 def test_registry_metadata_is_local_package_only() -> None:
