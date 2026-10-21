@@ -28,7 +28,7 @@ This project follows a simple release-note style:
 
 ### Acknowledgments
 
-- Thanks to [@a672780966](https://github.com/a672780966) for contributing the frame-exact `create-from-images` rewrite, rational frame-rate and `--list` / `list_file` support, input bounds, and regression tests in [#616](https://github.com/KyaniteLabs/kinocut/pull/616), and for working through two review rounds (starting in [#615](https://github.com/KyaniteLabs/kinocut/pull/615)).
+- Thanks to [@Beritwu](https://github.com/Beritwu) for contributing the frame-exact `create-from-images` rewrite, rational frame-rate and `--list` / `list_file` support, input bounds, and regression tests in [#616](https://github.com/KyaniteLabs/kinocut/pull/616), and for working through two review rounds (starting in [#615](https://github.com/KyaniteLabs/kinocut/pull/615)).
 
 ## 1.16.1 - 2026-10-05
 
