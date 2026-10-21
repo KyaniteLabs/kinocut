@@ -1,0 +1,30 @@
+{
+  "name": "kinocut",
+  "version": "1.16.2",
+  "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.",
+  "keywords": [
+    "video",
+    "ffmpeg",
+    "video-editing",
+    "captions",
+    "shorts"
+  ],
+  "author": {
+    "name": "Kyanite Labs",
+    "url": "https://github.com/KyaniteLabs"
+  },
+  "homepage": "https://kinocut.dev/",
+  "license": "Apache-2.0",
+  "skills": [
+    "./skills/kinocut",
+    "./skills/kinocut-repurpose"
+  ],
+  "mcpServers": {
+    "kinocut": {
+      "command": "uvx",
+      "args": [
+        "kinocut==1.16.2"
+      ]
+    }
+  }
+}

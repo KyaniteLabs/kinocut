@@ -19,12 +19,12 @@ Check your setup with `uvx kinocut==1.16.2 doctor`.
 | --- | --- |
 | Claude Code | `.claude-plugin/plugin.json`, `.mcp.json`, `skills/` |
 | Hermes Agent and other Agent Plugins v1 hosts | `plugin.json`, `mcp.json`, `skills/` |
-| OpenClaw | Reads the Claude Code layout above |
-| ZCode | `.zcode-plugin/plugin.json`, `skills/` |
+| OpenClaw / ClawHub | Claude Code layout above, `assets/icon.png` |
+| Grok Build | Claude Code layout above |
+| ZCode | Installs from the Claude Code marketplace |
 | MiniMax | `.minimax-plugin/plugin.json`, `kinocut.mcp.json`, `icon.png` |
-| Grok | `.grok-plugin/entry.json` |
-| OpenCode | `opencode-plugin/` |
-| Kimi Code | `kimi-plugin/README.md` |
+| Kimi Code | `kimi.plugin.json`, `skills/` |
+| OpenCode | Configuration in `opencode-plugin/README.md` |
 
 ## Manual setup for any MCP client
 

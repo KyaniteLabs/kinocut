@@ -442,16 +442,14 @@ def test_vendor_plugin_manifests_track_the_package_version() -> None:
     for rel in (
         "plugin.json",
         ".claude-plugin/plugin.json",
-        ".zcode-plugin/plugin.json",
         ".minimax-plugin/plugin.json",
-        ".grok-plugin/entry.json",
-        "opencode-plugin/package.json",
+        "kimi.plugin.json",
     ):
         assert json.loads((plugin / rel).read_text(encoding="utf-8"))["version"] == version, rel
-    for rel in ("mcp.json", ".mcp.json", "kinocut.mcp.json"):
+    for rel in ("mcp.json", ".mcp.json", "kinocut.mcp.json", "kimi.plugin.json"):
         server = json.loads((plugin / rel).read_text(encoding="utf-8"))["mcpServers"]["kinocut"]
         assert server["command"] == "uvx" and server["args"] == [f"kinocut=={version}"], rel
-    assert f"'kinocut=={version}'" in (plugin / "opencode-plugin" / "index.js").read_text(encoding="utf-8")
+    assert f'"kinocut=={version}"' in (plugin / "opencode-plugin" / "README.md").read_text(encoding="utf-8")
 
 
 def test_registry_metadata_is_local_package_only() -> None:
