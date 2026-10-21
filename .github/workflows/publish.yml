@@ -403,7 +403,10 @@ jobs:
           }
           # tech.kyanitelabs/* is a domain namespace; io.github.KyaniteLabs/* uses GitHub OIDC.
           # Domain proof is served at https://kyanitelabs.tech/.well-known/mcp-registry-auth (Cloudflare Worker route).
-          ./mcp-publisher login http --domain kyanitelabs.tech --private-key "$MCP_REGISTRY_DNS_PRIVATE_KEY"
+          # The secret holds a 32-byte Ed25519 seed as hex; drop anything else an openssl text dump may have added.
+          registry_key="$(printf '%s' "$MCP_REGISTRY_DNS_PRIVATE_KEY" | tr -cd '0-9a-fA-F' | head -c 64)"
+          if [ "${#registry_key}" -ne 64 ]; then echo "::error::MCP_REGISTRY_DNS_PRIVATE_KEY is not a 64-hex Ed25519 seed"; exit 1; fi
+          ./mcp-publisher login http --domain kyanitelabs.tech --private-key "$registry_key"
           publish_if_new server.json
           ./mcp-publisher login github-oidc
           publish_if_new compat/mcp-video-shim/server.json
