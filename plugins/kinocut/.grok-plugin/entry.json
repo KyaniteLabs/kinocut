@@ -1,8 +1,6 @@
 {
-  "status": "UNSUBMITTED",
-  "note": "Payload for a future PR to xai-org/plugin-marketplace. Do not submit without CEO gate. SHA must be re-pinned to the merged commit.",
   "name": "kinocut",
-  "version": "1.16.1",
+  "version": "1.16.2",
   "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, and Hyperframes.",
   "keywords": [
     "kinocut",

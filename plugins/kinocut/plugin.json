@@ -1,0 +1,21 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "kinocut",
+  "version": "1.16.2",
+  "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.",
+  "author": {
+    "name": "Kyanite Labs",
+    "url": "https://github.com/KyaniteLabs"
+  },
+  "homepage": "https://kinocut.dev/",
+  "repository": "https://github.com/KyaniteLabs/kinocut/tree/master/plugins/kinocut",
+  "license": "Apache-2.0",
+  "keywords": [
+    "video",
+    "ffmpeg",
+    "video-editing",
+    "captions",
+    "shorts",
+    "mcp"
+  ]
+}

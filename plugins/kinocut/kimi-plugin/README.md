@@ -1,10 +1,9 @@
-# Kinocut — Kimi Code plugin (STAGED, unsubmitted)
+# Kinocut for Kimi Code
 
-STAGED PACKAGING ONLY. Not submitted, not listed, not published.
-Wave 3 vendor-surface packaging for in-repo review. CEO-gated per surface.
-Voice assets are DO-NOT-COMMIT. Copy pack remains ungated draft.
+Add the Kinocut MCP server and skills to Kimi Code.
 
-Install from GitHub after CEO gate, not from this working tree.
+- MCP server: `uvx kinocut==1.16.2` (stdio)
+- Skills: `../skills/kinocut/SKILL.md`, `../skills/kinocut-repurpose/SKILL.md`
 
-Skills: `skills/kinocut/SKILL.md`, `skills/kinocut-repurpose/SKILL.md`.
-MCP: `uvx kinocut`.
+Requirements: [uv](https://docs.astral.sh/uv/) and FFmpeg on `PATH`.
+See the [plugin README](../README.md) for the manual MCP configuration.

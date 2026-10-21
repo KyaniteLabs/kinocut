@@ -1,38 +1,43 @@
-# Kinocut — Wave 3 vendor-surface package (STAGED, unsubmitted)
+# Kinocut plugin
 
-STAGED PACKAGING ONLY. Not submitted, not listed, not published.
-Wave 3 vendor-surface packaging for in-repo review. CEO-gated per surface.
-Voice assets are DO-NOT-COMMIT. Copy pack remains ungated draft.
+Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
+server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
+Kinocut runs on your own machine. Your video never leaves it.
 
-Version: `1.16.1`
+## Requirements
 
-## Surfaces in this tree
+- [uv](https://docs.astral.sh/uv/) (the server starts with `uvx kinocut==1.16.2`)
+- FFmpeg and ffprobe on `PATH`
+- Python 3.11 or newer (uv installs it if needed)
 
-- Claude Code: `.claude-plugin/plugin.json` + `.mcp.json`
-- ZCode: `.zcode-plugin/plugin.json` (flat skills)
-- MiniMax community format: `.minimax-plugin/plugin.json` + `kinocut.mcp.json` + `icon.png`
-- Grok catalog payload: `.grok-plugin/entry.json` (UNSUBMITTED, SHA unpinned)
-- OpenCode npm source: `opencode-plugin/` (`private: true`)
-- Kimi: `kimi-plugin/README.md`
-- DSH: blocked, see `dsh/README.md`
+Check your setup with `uvx kinocut==1.16.2 doctor`.
 
-## MCP launch (stdio, if applicable)
+## What's in this folder
 
+| Agent | Files |
+| --- | --- |
+| Claude Code | `.claude-plugin/plugin.json`, `.mcp.json`, `skills/` |
+| Hermes Agent and other Agent Plugins v1 hosts | `plugin.json`, `mcp.json`, `skills/` |
+| OpenClaw | Reads the Claude Code layout above |
+| ZCode | `.zcode-plugin/plugin.json`, `skills/` |
+| MiniMax | `.minimax-plugin/plugin.json`, `kinocut.mcp.json`, `icon.png` |
+| Grok | `.grok-plugin/entry.json` |
+| OpenCode | `opencode-plugin/` |
+| Kimi Code | `kimi-plugin/README.md` |
+
+## Manual setup for any MCP client
+
+```json
+{
+  "mcpServers": {
+    "kinocut": { "command": "uvx", "args": ["kinocut==1.16.2"] }
+  }
+}
 ```
-uvx kinocut
-```
 
-## Explicit non-actions
+## Links
 
-- No marketplace upload, directory submit, npm publish, or MCP registry publish.
-- No GPU window. No CS candidate verdict.
-- Publishing/listing remains CEO-gated per surface.
-
-## Gaps still blocked
-
-- Claude / ZCode / Grok / Kimi / OpenCode / MiniMax / DSH listing = CEO-gated; nothing submitted.
-- Grok SHA pin requires the merged commit; placeholder PIN-AFTER-MERGE.
-- DSH bundle schema unverified.
-- Voice/copy gate still BLOCKED (ungated copy pack not used here).
-- Icon eye-gate still pending (plugin reuses mcpb/icon.png; not a Wave 3 icon-family accept).
+- Website: https://kinocut.dev/
+- Source and issues: https://github.com/KyaniteLabs/kinocut
+- License: Apache-2.0

@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "name": "kyanite-kinocut",
   "displayName": "Kinocut",
-  "version": "1.16.1",
+  "version": "1.16.2",
   "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, and Hyperframes.",
   "author": "Kyanite Labs",
   "icon": "icon.png",

@@ -1,11 +1,19 @@
-# @kyanitelabs/opencode-kinocut (STAGED, private, unpublished)
+# Kinocut for OpenCode
 
-STAGED PACKAGING ONLY. Not submitted, not listed, not published.
-Wave 3 vendor-surface packaging for in-repo review. CEO-gated per surface.
-Voice assets are DO-NOT-COMMIT. Copy pack remains ungated draft.
+Add the Kinocut MCP server to `opencode.json`:
 
-Install command after a CEO-gated npm publish would be:
+```json
+{
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "kinocut": {
+      "type": "local",
+      "command": ["uvx", "kinocut==1.16.2"],
+      "enabled": true
+    }
+  }
+}
+```
 
-`opencode plugin add @kyanitelabs/opencode-kinocut`
-
-This package is `private: true`. Do not npm publish from this tree.
+Requirements: [uv](https://docs.astral.sh/uv/) and FFmpeg on `PATH`.
+Skills live in `../skills/`.

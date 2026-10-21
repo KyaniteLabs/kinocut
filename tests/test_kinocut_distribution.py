@@ -433,3 +433,22 @@ def test_integration_smoke_adds_nonpublishing_exact_head_onboarding_job() -> Non
         smoke = _workflow_job(workflow, existing)
         assert "runs-on: ubuntu-24.04" in smoke
         assert "python -m venv .venv" in smoke
+
+
+def test_vendor_plugin_manifests_track_the_package_version() -> None:
+    """Every vendor plugin manifest launches the same pinned kinocut release."""
+    version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+    plugin = ROOT / "plugins" / "kinocut"
+    for rel in (
+        "plugin.json",
+        ".claude-plugin/plugin.json",
+        ".zcode-plugin/plugin.json",
+        ".minimax-plugin/plugin.json",
+        ".grok-plugin/entry.json",
+        "opencode-plugin/package.json",
+    ):
+        assert json.loads((plugin / rel).read_text(encoding="utf-8"))["version"] == version, rel
+    for rel in ("mcp.json", ".mcp.json", "kinocut.mcp.json"):
+        server = json.loads((plugin / rel).read_text(encoding="utf-8"))["mcpServers"]["kinocut"]
+        assert server["command"] == "uvx" and server["args"] == [f"kinocut=={version}"], rel
+    assert f"'kinocut=={version}'" in (plugin / "opencode-plugin" / "index.js").read_text(encoding="utf-8")
