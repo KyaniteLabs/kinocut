@@ -402,7 +402,8 @@ jobs:
             fi
           }
           # tech.kyanitelabs/* is a domain namespace; io.github.KyaniteLabs/* uses GitHub OIDC.
-          ./mcp-publisher login dns --domain kyanitelabs.tech --private-key "$MCP_REGISTRY_DNS_PRIVATE_KEY"
+          # Domain proof is served at https://kyanitelabs.tech/.well-known/mcp-registry-auth (Cloudflare Worker route).
+          ./mcp-publisher login http --domain kyanitelabs.tech --private-key "$MCP_REGISTRY_DNS_PRIVATE_KEY"
           publish_if_new server.json
           ./mcp-publisher login github-oidc
           publish_if_new compat/mcp-video-shim/server.json
