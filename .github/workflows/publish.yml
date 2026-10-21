@@ -29,6 +29,14 @@ jobs:
           python-version: '3.14'
       - name: Check forbidden tracked artifacts
         run: python .github/scripts/check-forbidden-artifacts.py
+      - name: Require the registry domain key before publishing anything
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
+        run: |
+          if [ -z "$MCP_REGISTRY_DNS_PRIVATE_KEY" ]; then
+            echo "::error::MCP_REGISTRY_DNS_PRIVATE_KEY is not set; tech.kyanitelabs/kinocut cannot be published."
+            exit 1
+          fi
 
   build:
     name: Build release artifacts
@@ -357,9 +365,17 @@ jobs:
           echo "${MCP_PUBLISHER_SHA256}  mcp-publisher.tar.gz" | sha256sum -c -
           tar xzf mcp-publisher.tar.gz mcp-publisher
           ./mcp-publisher --help
-      - name: Authenticate to MCP Registry
-        run: ./mcp-publisher login github-oidc
+      - name: Require the registry domain key
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
+        run: |
+          if [ -z "$MCP_REGISTRY_DNS_PRIVATE_KEY" ]; then
+            echo "::error::MCP_REGISTRY_DNS_PRIVATE_KEY is not set; tech.kyanitelabs/kinocut cannot be published."
+            exit 1
+          fi
       - name: Publish server metadata
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
         # Recovery-safe: the registry rejects duplicate versions with a hard 400
         # ("cannot publish duplicate version"), so check the published-version
         # list first and skip entries this release already shipped.
@@ -385,7 +401,10 @@ jobs:
               fi
             fi
           }
+          # tech.kyanitelabs/* is a domain namespace; io.github.KyaniteLabs/* uses GitHub OIDC.
+          ./mcp-publisher login dns --domain kyanitelabs.tech --private-key "$MCP_REGISTRY_DNS_PRIVATE_KEY"
           publish_if_new server.json
+          ./mcp-publisher login github-oidc
           publish_if_new compat/mcp-video-shim/server.json
       - name: Verify prospective public claims after publication
         run: |

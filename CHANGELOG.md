@@ -11,6 +11,8 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.16.2 - 2026-10-21
+
 ### Added
 
 - Accept rational frame rates such as `30000/1001` for `create-from-images` in Python, CLI (`--fps`) and MCP, and add `--list FILE` / `list_file` input with one image path per line so long frame sequences no longer pass through argv.
@@ -25,6 +27,9 @@ This project follows a simple release-note style:
 
 - Make `create-from-images` frame-exact: N inputs now encode exactly N frames at the requested rate, with no duplicated trailing entry and no float-duration surplus. Even-dimension PNG inputs skip the per-image normalization pass: each is hard-linked into a private directory and its dimensions are read through that link, so a path renamed over or replaced by a symlink after validation cannot reach FFmpeg unchecked. Inputs that are symlinks at link time, are not even-dimension PNGs, or cannot be hard-linked fall back to the normalizer; inputs are never copied.
 - `create-from-images` works when the temporary directory path contains `%`.
+- MCP Registry: republish `tech.kyanitelabs/kinocut` as the local `uvx kinocut` stdio package. The 1.16.1 registry entry listed only a hosted URL and no installable package. A test now fails if `server.json` advertises a hosted remote or drops the package, and the release workflow signs in with the `kyanitelabs.tech` domain key for this namespace.
+- Compatibility shim `mcp-video` 1.6.17 installs `kinocut` 1.16.2.
+- Stop `test_inherited_writer_process_group_is_terminated` from failing intermittently when the process exits between its status checks.
 
 ### Acknowledgments
 

@@ -19,8 +19,8 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.16.1"
-SHIM_VERSION = "1.6.16"
+KINOCUT_VERSION = "1.16.2"
+SHIM_VERSION = "1.6.17"
 
 
 def _toml(path: Path) -> dict:
@@ -433,3 +433,13 @@ def test_integration_smoke_adds_nonpublishing_exact_head_onboarding_job() -> Non
         smoke = _workflow_job(workflow, existing)
         assert "runs-on: ubuntu-24.04" in smoke
         assert "python -m venv .venv" in smoke
+
+
+def test_registry_metadata_is_local_package_only() -> None:
+    """KinoCut is distributed as a local stdio package, never as a hosted service."""
+    server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
+    assert "remotes" not in server, "server.json must not advertise a hosted remote"
+    packages = server.get("packages") or []
+    assert [(p.get("registryType"), p.get("identifier"), p.get("transport", {}).get("type")) for p in packages] == [
+        ("pypi", "kinocut", "stdio")
+    ]
