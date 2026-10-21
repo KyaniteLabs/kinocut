@@ -19,7 +19,7 @@ evidence.
 | --- | --- | --- |
 | Clean installed `kino` CLI | Fresh Python 3.13 virtual environment, `pip install kinocut==1.16.1`: `kino --version` prints `Kinocut 1.16.1`; `kino info` on a generated 1 s H.264 clip returns its metadata, exit 0. | Pass |
 | Renamed source repository | GitHub API `repos/KyaniteLabs/kinocut` returns `full_name` `KyaniteLabs/kinocut`, default branch `master`. | Pass |
-| Registry listing | MCP Registry `v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest` returns `tech.kyanitelabs/kinocut` 1.16.1, status `active`, `isLatest: true`, published 2026-10-13. Matches `server.json`. | Pass |
+| Registry listing | MCP Registry `v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest` returns `tech.kyanitelabs/kinocut` 1.16.1, status `active`, `isLatest: true`, published 2026-10-13. The entry does **not** match `server.json`: it has no `packages` section and lists only a hosted `remotes` URL (`https://mcp.kyanitelabs.tech/mcp`). KinoCut is not offered as a hosted service, so this entry must be republished from `server.json`. | Pass (identity); listing content incorrect, correction pending |
 | Site/docs identity | https://kinocut.dev/ and `llms.txt` load over HTTPS and identify the product as Kinocut with 203 MCP tools / 177 CLI commands. They still show version 1.16.0; the 1.16.1 site update is tracked in #479. | Pass (identity); version lag tracked |
 | Compatibility shim resolves | Fresh virtual environment, `pip install mcp-video`: installs `mcp-video` 1.6.16, which requires and installs `kinocut` 1.16.1; `kino --version` prints `Kinocut 1.16.1`. | Pass |
 
@@ -27,3 +27,4 @@ evidence.
 
 - Site version stamp 1.16.0 → 1.16.1: #479.
 - Forgejo mirror activation: #488 / #499.
+- MCP Registry entry republished from `server.json` (stdio package, no hosted remote). This needs a new version, because the registry rejects a second 1.16.1.
