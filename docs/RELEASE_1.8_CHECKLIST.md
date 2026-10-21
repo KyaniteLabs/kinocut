@@ -164,6 +164,7 @@ PR + merge **GitHub** (Pages) and **Forgejo**. Run primary-surface gate after de
 - Walk [DIRECTORY_STATUS.md](DIRECTORY_STATUS.md) / [DIRECTORY_REBRAND_STATUS.md](DIRECTORY_REBRAND_STATUS.md)  
 - Link golden path / dated proof under `docs/proofs/` if re-run  
 - Optional: refresh usage metrics snapshot  
+- One version everywhere: the package, every `plugins/kinocut` manifest, `plugins/kinocut/pyproject.toml` and `uv.lock` (run `uv lock` there), `gemini-extension.json` and all `uvx kinocut==X` pins carry the same number; `test_vendor_plugin_bundle_versions_and_pinned_runtime_are_consistent` enforces it. A plugin-only change needs a package release, not a separate plugin version.  
 - Plugin catalogs: after the release commit is on `master`, run `bash scripts/repin_marketplaces.sh` with the owner's `gh` login. It re-pins the Hermes Agent catalog entry (a reviewed PR) and updates any still-open Grok submission; once listed, xAI's daily bot advances the Grok pin when `plugins/kinocut/plugin.json` changes version.  
 
 ---

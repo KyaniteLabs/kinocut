@@ -329,7 +329,7 @@ wheels = [
 
 [[package]]
 name = "kinocut-claude-plugin"
-version = "1.16.5"
+version = "1.16.2"
 source = { virtual = "." }
 dependencies = [
     { name = "kinocut" },

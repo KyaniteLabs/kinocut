@@ -436,11 +436,10 @@ def test_integration_smoke_adds_nonpublishing_exact_head_onboarding_job() -> Non
 
 
 def test_vendor_plugin_bundle_versions_and_pinned_runtime_are_consistent() -> None:
-    """The plugin bundle can advance without republishing its pinned runtime."""
+    """One version everywhere: every plugin manifest, the Gemini extension and the pinned runtime equal the package version."""
     version = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
     plugin = ROOT / "plugins" / "kinocut"
-    plugin_version = json.loads((plugin / "plugin.json").read_text(encoding="utf-8"))["version"]
-    assert re.fullmatch(r"\d+\.\d+\.\d+", plugin_version)
+    plugin_version = version
     for rel in (
         "plugin.json",
         ".claude-plugin/plugin.json",
