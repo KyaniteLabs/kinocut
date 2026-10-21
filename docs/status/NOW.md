@@ -23,9 +23,9 @@ architecture and acceptance work is tracked in the
 [debt closure ledger](../research/DEBT_CLOSURE.md); separate checkpoint results there are
 separate from the merged audit's evidence.
 
-**Published:** 1.16.1 · **203 MCP / 177 CLI** · 2026-10-05 · `docs/public_claims.json`
+**Published:** 1.16.2 · **203 MCP / 177 CLI** · 2026-10-21 · `docs/public_claims.json`. PyPI/npm, GitHub release `v1.16.2` and the official MCP Registry (local `uvx kinocut` stdio package) report 1.16.2; shim 1.6.17 pins it.
 
-**Development candidate:** 1.16.2 · **203 MCP / 177 CLI** (republishes the MCP Registry entry as the local `uvx kinocut` package; no tool-surface change). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Development candidate:** 1.16.2 · **203 MCP / 177 CLI** (matches the published package). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;

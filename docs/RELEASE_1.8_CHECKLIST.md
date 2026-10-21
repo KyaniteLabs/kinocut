@@ -10,7 +10,7 @@ publish steps for this completed release.
 [`.github/workflows/publish.yml`](../.github/workflows/publish.yml)
 
 **Tip surface at freeze:** 155 MCP tools · 134 CLI commands  
-**Published result:** 1.16.1 · 203 MCP / 177 CLI (current package; historical 1.8.0 cutover below)
+**Published result:** 1.16.2 · 203 MCP / 177 CLI (current package; historical 1.8.0 cutover below)
 
 (1.8.0 cutover was 142/121; later tags: 1.9.0 150/129 · 1.10.0 155/134 · 1.11.1 161/140 ·
 1.12.0 169/145 · 1.13.0 194/165 · 1.13.1 194/165 · 1.13.2 194/165 · 1.13.4 194/165. This page remains the cutover procedure audit record.)
@@ -164,6 +164,7 @@ PR + merge **GitHub** (Pages) and **Forgejo**. Run primary-surface gate after de
 - Walk [DIRECTORY_STATUS.md](DIRECTORY_STATUS.md) / [DIRECTORY_REBRAND_STATUS.md](DIRECTORY_REBRAND_STATUS.md)  
 - Link golden path / dated proof under `docs/proofs/` if re-run  
 - Optional: refresh usage metrics snapshot  
+- Plugin catalogs: after the release commit is on `master`, run `bash scripts/repin_marketplaces.sh` with the owner's `gh` login. It re-pins the Hermes Agent catalog entry (a reviewed PR) and updates any still-open Grok submission; once listed, xAI's daily bot advances the Grok pin when `plugins/kinocut/plugin.json` changes version.  
 
 ---
 

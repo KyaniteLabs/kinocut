@@ -1,8 +1,8 @@
 # Improvement Roadmap
 
-Kinocut 1.16.1 is published with 203 MCP tools and 177 CLI commands (`mcp-video` 1.6.16 shim).
+Kinocut 1.16.2 is published with 203 MCP tools and 177 CLI commands (`mcp-video` 1.6.17 shim).
 
-**Published product:** Kinocut **1.16.1** (2026-10-05) · **203 MCP / 177 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
+**Published product:** Kinocut **1.16.2** (2026-10-21) · **203 MCP / 177 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
 **Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
 **Residual portfolio (living truth):** [`docs/status/2026-08-12-residual-maturity-matrix.md`](docs/status/2026-08-12-residual-maturity-matrix.md) · [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md) · [fixture freeze](docs/status/2026-08-12-sound-fixture-freeze.md) · [L1 truth pass](docs/status/2026-08-12-l1-truth-pass.md) · [phase checkpoints](docs/status/PHASE_CHECKPOINTS.md)  
@@ -26,7 +26,7 @@ Release ritual still documents *how* to freeze claims at cut time; this freeze *
 
 ---
 
-## Current (published 1.16.1)
+## Current (published 1.16.2)
 
 - **First-class Windows support** — portable projectstore file locking (`fcntl`/`msvcrt`), contention-only lock contract, UTF-8 stdio, `windows-latest` smoke job. `kino --mcp` is importable on Windows.
 - **Honest MCP diagnostics** — `kino --mcp` prints the real server-tree import cause; `kino doctor` required `mcp-server-import` check.
