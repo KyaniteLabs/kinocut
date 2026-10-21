@@ -225,6 +225,59 @@ class TestFilesystemSafety:
         assert not intermediate.exists()
 
 
+class TestImageSequenceInputBounds:
+    """create_from_images bounds its inputs at the MCP boundary and in the engine."""
+
+    @staticmethod
+    def _forbid_engine(monkeypatch) -> None:
+        from mcp_video import server_tools_advanced
+
+        def engine_called(*args, **kwargs):
+            raise AssertionError("the MCP boundary must reject this before the engine runs")
+
+        monkeypatch.setattr(server_tools_advanced, "create_from_images", engine_called)
+
+    def test_list_file_with_null_byte_is_rejected_at_the_boundary(self, tmp_path, monkeypatch) -> None:
+        from mcp_video.server_tools_advanced import video_create_from_images
+
+        self._forbid_engine(monkeypatch)
+
+        result = video_create_from_images(list_file=str(tmp_path / "frames\x00.txt"))
+
+        assert result["success"] is False
+        assert result["error"]["type"] == "input_error"
+
+    def test_list_file_cannot_smuggle_more_images_than_the_limit(self, tmp_path, monkeypatch) -> None:
+        from mcp_video import engine_images
+        from mcp_video.server_tools_advanced import video_create_from_images
+
+        monkeypatch.setattr(engine_images, "MAX_IMAGE_SEQUENCE_FRAMES", 2)
+        list_file = tmp_path / "frames.txt"
+        list_file.write_text("a.png\nb.png\nc.png\n", encoding="utf-8")
+
+        result = video_create_from_images(list_file=str(list_file))
+
+        assert result["success"] is False
+        assert result["error"]["code"] == "too_many_images"
+
+    @pytest.mark.parametrize(
+        "fps",
+        [61, "61/1", "1e309", "nan", True, "1" + "0" * 5000 + "/1"],
+        ids=["61", "61/1", "1e309", "nan", "True", "numerator-5001-digits"],
+    )
+    def test_out_of_range_or_non_finite_fps_is_rejected_at_the_boundary(self, tmp_path, monkeypatch, fps) -> None:
+        from mcp_video.server_tools_advanced import video_create_from_images
+
+        self._forbid_engine(monkeypatch)
+        list_file = tmp_path / "frames.txt"
+        list_file.write_text("a.png\n", encoding="utf-8")
+
+        result = video_create_from_images(list_file=str(list_file), fps=fps)
+
+        assert result["success"] is False
+        assert result["error"]["type"] == "validation_error"
+
+
 class TestTimeoutProtection:
     """All FFmpeg calls have timeouts."""
 

@@ -19,8 +19,8 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.16.1"
-SHIM_VERSION = "1.6.16"
+KINOCUT_VERSION = "1.16.2"
+SHIM_VERSION = "1.6.17"
 
 
 def _toml(path: Path) -> dict:
@@ -452,3 +452,13 @@ def test_vendor_plugin_manifests_track_the_package_version() -> None:
         server = json.loads((plugin / rel).read_text(encoding="utf-8"))["mcpServers"]["kinocut"]
         assert server["command"] == "uvx" and server["args"] == [f"kinocut=={version}"], rel
     assert f"'kinocut=={version}'" in (plugin / "opencode-plugin" / "index.js").read_text(encoding="utf-8")
+
+
+def test_registry_metadata_is_local_package_only() -> None:
+    """KinoCut is distributed as a local stdio package, never as a hosted service."""
+    server = json.loads((ROOT / "server.json").read_text(encoding="utf-8"))
+    assert "remotes" not in server, "server.json must not advertise a hosted remote"
+    packages = server.get("packages") or []
+    assert [(p.get("registryType"), p.get("identifier"), p.get("transport", {}).get("type")) for p in packages] == [
+        ("pypi", "kinocut", "stdio")
+    ]

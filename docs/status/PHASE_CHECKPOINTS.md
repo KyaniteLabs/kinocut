@@ -8,6 +8,7 @@ sound processing does not establish full-episode or listening acceptance. See
 the [current disposition and scope record](../research/debt-closure-operations.md)
 for the remaining host, provider, desktop and operator criteria. This amendment
 does not grant Phase 0 GO or invent a missing external verification receipt.
+Phase 0 GO was later recorded on 2026-10-20 (see Phase 0 below).
 
 **Status:** living · **Date:** 2026-08-12 (L1.2 truth pass)  
 **Issue:** Forgejo #94  
@@ -20,13 +21,19 @@ classifies the family as deepen/re-run.
 
 ## Phase 0 — Rename distribution verification
 
-**Status (2026-09-30): pending retrospective verification.** The original plan
-requires clean installed CLI, renamed repository, registry, current site/docs,
-and compatibility-shim evidence. Later implementation phases have their own exit
-records below; they do not replace the missing Phase 0 receipt. See the
-[criterion-by-criterion evidence board](2026-09-30-ops-disposition.md#phase-0-verification-record-still-needed)
-and GitHub #487. Production site verification and the dated exit decision remain
-external evidence requirements; this row records neither a GO nor a label change.
+| Gate | Go | No-go |
+| --- | --- | --- |
+| Installed CLI | clean `pip install kinocut` runs `kino` | install or entry point fails |
+| Repository | canonical `KyaniteLabs/kinocut` | old name still canonical |
+| Registry | registry lists the current release under the new identity | stale or missing listing |
+| Site/docs | site and `llms.txt` use the Kinocut identity | old identity on public surfaces |
+| Compatibility shim | `pip install mcp-video` resolves to kinocut | shim fails to resolve |
+
+**Exit (2026-10-20):** GO by owner decision, on a new verification against
+published 1.16.1 ([receipt](2026-10-20-phase-0-exit-receipt.md), GitHub #487).
+The site version stamp lags at 1.16.0 and is tracked in #479. The earlier
+[evidence board](2026-09-30-ops-disposition.md#phase-0-verification-record-still-needed)
+is retained as history.
 
 ## Phase 1 — Kernel corners (projectstore)
 

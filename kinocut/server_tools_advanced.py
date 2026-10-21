@@ -5,6 +5,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from pydantic import StrictFloat, StrictInt, StrictStr
+
 from .engine import (
     _validate_chroma_color,
     apply_filter,
@@ -30,10 +32,11 @@ from .engine import (
 from .engine import video_batch as _video_batch
 from .engine_batch import VALID_BATCH_OPERATIONS
 from .engine_composite_layers import composite_layers
+from .engine_images import _parse_fps
 from .errors import MCPVideoError
 from .defaults import DEFAULT_LRA_TARGET
 from .models import _validate_position
-from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS
+from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS, MAX_IMAGE_SEQUENCE_FRAMES
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_LAYOUTS, VALID_PRESETS
 
@@ -374,22 +377,39 @@ def video_detect_scenes(
 @mcp.tool()
 @_safe_tool
 def video_create_from_images(
-    images: list[str],
+    images: list[str] | None = None,
     output_path: str | None = None,
-    fps: float = 30.0,
+    # Strict members keep JSON true/false from being coerced to 1.0/0.0 before validation.
+    fps: StrictInt | StrictFloat | StrictStr = 30.0,
+    list_file: str | None = None,
 ) -> dict[str, Any]:
-    """Create a video from a sequence of images.
+    """Create a frame-exact video from a sequence of images.
 
     Args:
-        images: List of absolute paths to image files (in order).
+        images: List of absolute paths to image files (in order), at most
+            18,000.
         output_path: Where to save the output video. Auto-generated if omitted.
-        fps: Frames per second for the output video (default 30.0).
+        fps: Frames per second (default 30.0), greater than 0 and at most 60.
+             Accepts a positive integer, a decimal, or a rational string such
+             as "30000/1001".
+        list_file: UTF-8 file with one image path per line (absolute paths
+            recommended; relative paths resolve against the server's working
+            directory), at most 18,000 entries and 18,432,000 bytes. Mutually
+            exclusive with ``images``.
     """
-    for _p in images:
+    if images and len(images) > MAX_IMAGE_SEQUENCE_FRAMES:
+        return _validation_error(
+            f"images accepts at most {MAX_IMAGE_SEQUENCE_FRAMES} paths, got {len(images)}",
+            code="too_many_images",
+        )
+    for _p in images or []:
         _validate_input_path(_p)
-    if fps <= 0 or fps > MAX_EXPORT_FRAMES_FPS:
-        return _validation_error(f"fps must be between 1 and {MAX_EXPORT_FRAMES_FPS}, got {fps}")
-    return _result(create_from_images(images, output_path=output_path, fps=fps))
+    if list_file is not None:
+        _validate_input_path(list_file)
+    fps_value, _ = _parse_fps(fps)
+    if fps_value > MAX_EXPORT_FRAMES_FPS:
+        return _validation_error(f"fps must be greater than 0 and at most {MAX_EXPORT_FRAMES_FPS}, got {fps}")
+    return _result(create_from_images(images, output_path=output_path, fps=fps, list_file=list_file))
 
 
 @mcp.tool()

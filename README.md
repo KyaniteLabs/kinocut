@@ -119,7 +119,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | --- | --- | --- |
 | **PyPI / npm checkpoint** | **[1.16.1](https://pypi.org/project/kinocut/1.16.1/)** (2026-10-05) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
 | **GitHub latest release / MCP Registry** | **1.16.1** | GitHub release and the initial publication job's canonical registry read confirm 1.16.1; subsequent local registry reads timed out. The live website was last verified at 1.16.0; its 1.16.1 update is prepared, not deployed. Final owner acceptance and fleet rollout remain separate. |
-| **This source version** | **1.16.1** · **203 MCP / 177 CLI** | Maintenance fixes described below; publication is tracked separately in `docs/public_claims.json`. |
+| **This source version** | **1.16.2** · **203 MCP / 177 CLI** | Corrects the MCP Registry entry to the local `uvx kinocut` package; publication is tracked separately in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
@@ -170,7 +170,7 @@ for future local changes beyond the published package.
 
 ## Beyond 1.16.1 (draft / gated)
 
-The published compatibility installer `mcp-video==1.6.16` pins `kinocut==1.16.1`. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
+The published compatibility installer `mcp-video==1.6.16` pins `kinocut==1.16.1`; the 1.16.2 release ships `mcp-video==1.6.17`. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
 
 The 2026-10-05 publication checkpoint is **1.16.1**. Draft/gated work stays out of release claims until publication is verified. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 

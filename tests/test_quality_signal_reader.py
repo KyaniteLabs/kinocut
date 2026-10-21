@@ -234,7 +234,8 @@ def test_inherited_writer_process_group_is_terminated(child, tmp_path, monkeypat
     while status.exists():
         try:
             state = status.read_text()
-        except FileNotFoundError:
+        except (FileNotFoundError, ProcessLookupError):
+            # /proc/<pid>/status reads fail with ESRCH once the process is reaped.
             break
         if "State:\tZ" in state:
             break

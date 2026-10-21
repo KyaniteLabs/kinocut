@@ -11,6 +11,30 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+## 1.16.2 - 2026-10-21
+
+### Added
+
+- Accept rational frame rates such as `30000/1001` for `create-from-images` in Python, CLI (`--fps`) and MCP, and add `--list FILE` / `list_file` input with one image path per line so long frame sequences no longer pass through argv.
+
+### Changed
+
+- `create-from-images` now rejects frame rates above 60 (`MAX_EXPORT_FRAMES_FPS`) with `validation_error` for Python and CLI callers too; previously only the MCP tool enforced the bound.
+- `create-from-images` accepts at most 18,000 images (`MAX_IMAGE_SEQUENCE_FRAMES`, 10 minutes at 30 fps) from positional paths, MCP `images` or a list file, and reads at most `MAX_IMAGE_SEQUENCE_LIST_BYTES` (18,432,000) bytes of a list file. Over-limit input fails with `validation_error` (`too_many_images` / `list_file_too_large`) before any image is checked.
+- The MCP `video_create_from_images` tool checks the image count, validates `list_file` with `_validate_input_path`, and enforces the frame-rate range before calling the engine. Rational rates take at most 18 ASCII digits per term.
+
+### Fixed
+
+- Make `create-from-images` frame-exact: N inputs now encode exactly N frames at the requested rate, with no duplicated trailing entry and no float-duration surplus. Even-dimension PNG inputs skip the per-image normalization pass: each is hard-linked into a private directory and its dimensions are read through that link, so a path renamed over or replaced by a symlink after validation cannot reach FFmpeg unchecked. Inputs that are symlinks at link time, are not even-dimension PNGs, or cannot be hard-linked fall back to the normalizer; inputs are never copied.
+- `create-from-images` works when the temporary directory path contains `%`.
+- MCP Registry: republish `tech.kyanitelabs/kinocut` as the local `uvx kinocut` stdio package. The 1.16.1 registry entry listed only a hosted URL and no installable package. A test now fails if `server.json` advertises a hosted remote or drops the package, and the release workflow signs in with the `kyanitelabs.tech` domain key for this namespace.
+- Compatibility shim `mcp-video` 1.6.17 installs `kinocut` 1.16.2.
+- Stop `test_inherited_writer_process_group_is_terminated` from failing intermittently when the process exits between its status checks.
+
+### Acknowledgments
+
+- Thanks to [@Beritwu](https://github.com/Beritwu) for contributing the frame-exact `create-from-images` rewrite, rational frame-rate and `--list` / `list_file` support, input bounds, and regression tests in [#616](https://github.com/KyaniteLabs/kinocut/pull/616), and for working through two review rounds (starting in [#615](https://github.com/KyaniteLabs/kinocut/pull/615)).
+
 ## 1.16.1 - 2026-10-05
 
 ### Fixed
@@ -29,6 +53,10 @@ This project follows a simple release-note style:
 ### Changed
 
 - Refresh current website and directory status after verifying the 1.16.0 site and approved social images; retain final owner acceptance, vendor identity resolution and distribution project gates separately.
+
+### Acknowledgments
+
+Thanks to [@Mimatovitch](https://github.com/Mimatovitch) for reporting [#594](https://github.com/KyaniteLabs/kinocut/issues/594), and [@Zoroassistant23](https://github.com/Zoroassistant23) for investigating it and proposing a patch and test in [#595](https://github.com/KyaniteLabs/kinocut/pull/595). That PR was not merged; a separate cleanup change shipped in [#596](https://github.com/KyaniteLabs/kinocut/pull/596). See the [1.16.1 release notes](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.1) for fuller context.
 
 ## 1.16.0 - 2026-10-02
 

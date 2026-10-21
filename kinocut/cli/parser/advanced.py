@@ -48,8 +48,19 @@ def _add_batch_parsers(subparsers: argparse._SubParsersAction) -> None:
 
     # create-from-images
     imgseq_p = subparsers.add_parser("create-from-images", help="Create video from image sequence")
-    imgseq_p.add_argument("inputs", nargs="+", help="Input image files")
-    imgseq_p.add_argument("-f", "--fps", type=float, default=30.0, help="Frames per second (default: 30)")
+    imgseq_p.add_argument("inputs", nargs="*", help="Input image files (alternative to --list)")
+    imgseq_p.add_argument(
+        "-f",
+        "--fps",
+        default="30",
+        help="Frames per second: positive integer, decimal, or rational num/den (default: 30)",
+    )
+    imgseq_p.add_argument(
+        "--list",
+        dest="list_file",
+        metavar="FILE",
+        help="UTF-8 file with one image path per line, at most 18000 (alternative to inputs)",
+    )
     imgseq_p.add_argument("-o", "--output", help="Output video file path")
 
     # export-frames

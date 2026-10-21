@@ -112,7 +112,7 @@ obtain the human decision before invoking acceptance. Rendering rechecks source 
 | `stabilize` | Stabilize shaky footage |
 | `apply-mask` | Apply image mask with feathering |
 | `detect-scenes` | Detect scene changes |
-| `create-from-images` | Create video from image sequence |
+| `create-from-images` | Create a frame-exact video from an image sequence. `--list FILE` reads one image path per line (blank lines ignored; relative paths resolve against the current directory); `--fps` accepts an integer, decimal, or rational rate such as `30000/1001`, greater than 0 and at most 60. At most 18,000 images; a list file may be at most 18,432,000 bytes. |
 | `export-frames` | Export video as image frames (--image-format for format) |
 | `compare-quality` | Compare PSNR/SSIM quality metrics |
 | `read-metadata` | Read video metadata tags |

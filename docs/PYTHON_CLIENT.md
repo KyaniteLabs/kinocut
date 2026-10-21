@@ -226,7 +226,7 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 | `overlay_video(background, overlay, position?, width?, opacity?, start_time?, duration?, output?)` | `EditResult` | Picture-in-picture overlay |
 | `split_screen(left, right, layout?, output?)` | `EditResult` | Side-by-side or top/bottom layout |
 | `edit(timeline, output?)` | `EditResult` | Execute full timeline edit from JSON |
-| `create_from_images(images, fps?, output?)` | `EditResult` | Create video from images |
+| `create_from_images(images?, fps?, output?, list_file?)` | `EditResult` | Create a frame-exact video from images or a list file (at most 18,000 images, fps at most 60) |
 | `export_frames(video, fps?, output_dir?)` | `ImageSequenceResult` | Export video as frames |
 | `extract_audio(video, output?, format?)` | `EditResult` | Extract audio as file path |
 | `subtitles(video, subtitle_file, output?)` | `EditResult` | Burn subtitles into video |

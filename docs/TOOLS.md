@@ -203,7 +203,7 @@ download models, contact providers, or submit jobs. See
 | `video_composite_layers` | Spec-driven ordered image/video layer compositing with explicit straight/premultiplied input alpha, transforms, timing windows, masks/mattes, full-canvas and allowlisted positioned blend modes, rotation/pivot, named layer/mask/mask-edge `effect-noise` routes, dry-run plans, and deterministic `layer_plan` v2 receipts (video-only output) |
 | `video_split_screen` | Side-by-side or top/bottom layout with duration/FPS/audio mismatch warnings |
 | `video_edit` | Full timeline-based edit from JSON DSL, or sequence shortcut (`clips` + optional `transitions` / `transition_duration`) |
-| `video_create_from_images` | Create video from image sequence |
+| `video_create_from_images` | Create a frame-exact video from an image sequence: one output frame per input, numeric or rational `fps` (greater than 0, at most 60), and optional `list_file` input (one path per line). At most 18,000 images; a list file may be at most 18,432,000 bytes |
 | `video_export_frames` | Export video as individual image frames |
 | `video_extract_frame` | Extract a frame; omitted `timestamp` uses smart sampling when available, otherwise 10% of duration; explicit `timestamp=0` means the first frame, matching CLI/Python |
 | `video_extract_audio` | Extract audio as mp3, wav, aac, ogg, or flac |

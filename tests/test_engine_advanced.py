@@ -1,5 +1,6 @@
 """Advanced engine tests for uncovered operations and edge cases — needs FFmpeg."""
 
+import contextlib
 import os
 import subprocess
 
@@ -1166,12 +1167,9 @@ class TestImageSequences:
         calls = []
 
         monkeypatch.setattr(engine_images, "_normalize_images", lambda images, tmpdir: images)
-        monkeypatch.setattr(
-            engine_images,
-            "_write_concat_file",
-            lambda normalized, tmpdir, fps: str(tmp_path / "concat.txt"),
-        )
         monkeypatch.setattr(engine_images, "_run_ffmpeg", lambda cmd: calls.append(cmd))
+        monkeypatch.setattr(engine_images, "_verify_output_frame_count", lambda path, expected: None)
+        monkeypatch.setattr(engine_images, "_atomic_output", lambda path: contextlib.nullcontext(path))
         monkeypatch.setattr(
             engine_images,
             "_build_edit_result",
@@ -1184,8 +1182,9 @@ class TestImageSequences:
         result = engine_images.create_from_images([str(frame)], output_path=output, fps=29.97002997)
 
         final_cmd = calls[-1]
-        fps_idx = final_cmd.index("-r")
+        fps_idx = final_cmd.index("-framerate")
         assert final_cmd[fps_idx + 1] == "29.97002997"
+        assert "-r" not in final_cmd
         assert result.operation == "create_from_images"
 
     def test_create_from_images_empty_raises(self):
