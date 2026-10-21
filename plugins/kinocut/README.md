@@ -34,6 +34,5 @@ uvx kinocut
 - Claude / ZCode / Grok / Kimi / OpenCode / MiniMax / DSH listing = CEO-gated; nothing submitted.
 - Grok SHA pin requires the merged commit; placeholder PIN-AFTER-MERGE.
 - DSH bundle schema unverified.
-- Hosted remote `https://mcp.kyanitelabs.tech/mcp` is recorded on repo `server.json` remotes; tools/call remains CEO-held bearer-closed.
 - Voice/copy gate still BLOCKED (ungated copy pack not used here).
 - Icon eye-gate still pending (plugin reuses mcpb/icon.png; not a Wave 3 icon-family accept).
