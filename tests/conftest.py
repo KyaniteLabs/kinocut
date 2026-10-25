@@ -467,3 +467,66 @@ def sample_hyperframes_project(tmp_path):
     (project_dir / "package.json").write_text('{"name": "test-hyperframes-project", "version": "1.0.0"}')
 
     return str(project_dir)
+
+
+# Files whose tests assert sub-second process deadlines, cancellation phases or
+# wall-clock windows around child start-up (including spawned stdio MCP servers). They are correct on an idle host but flake when sharing
+# CPU with parallel media work, so `scripts/run_full_suite.py` runs them serially
+# after the parallel phase instead of loosening their deadlines.
+PROCESS_TIMING_FILES = frozenset(
+    {
+        "test_aivideo_preflight.py",
+        "test_basic_writer_transactions.py",
+        "test_bounded_process.py",
+        "test_conversion_transaction.py",
+        "test_hyperframes_ci.py",
+        "test_mcp_argument_contracts.py",
+        "test_mcpb_staged_artifact.py",
+        "test_process_guardian.py",
+        "test_process_observation.py",
+        "test_process_windows.py",
+        "test_projectstore_cas_lifecycle.py",
+        "test_projectstore_render_cancel.py",
+        "test_projectstore_render_stop_identity.py",
+        "test_public_surface.py",
+        "test_publication_process_boundaries.py",
+        "test_quality_signal_reader.py",
+        "test_server.py",
+        "test_sound_asr_cancellation.py",
+        "test_sound_asr_preprocessing.py",
+        "test_sound_asr_transports.py",
+        "test_sound_automation_transports.py",
+        "test_sound_bus_sidechains_public.py",
+        "test_sound_dub_render.py",
+        "test_sound_layer_ducking_transports.py",
+        "test_sound_layer_transports.py",
+        "test_sound_loudness_public.py",
+        "test_sound_master_cancellation.py",
+        "test_sound_master_transports.py",
+        "test_sound_meter_process.py",
+        "test_sound_numeric_public.py",
+        "test_sound_process_sink.py",
+        "test_sound_public_mix.py",
+        "test_sound_rate_conversion_cancellation.py",
+        "test_sound_routing_transports.py",
+        "test_sound_send_transports.py",
+        "test_sound_source_windows_public.py",
+        "test_sound_speech_spatial_failures.py",
+        "test_sound_speech_spatial_transports.py",
+        "test_sound_stereo_master_transports.py",
+        "test_sound_stereo_transports.py",
+        "test_sound_worker_cancel_phases.py",
+        "test_sound_worker_cancellation.py",
+        "test_sound_worker_pipes.py",
+        "test_still_plates.py",
+        "test_subprocess_stdin_contract.py",
+        "test_tier4_features.py",
+        "test_vision_provider_contract.py",
+    }
+)
+
+
+def pytest_collection_modifyitems(config, items):
+    for item in items:
+        if item.path.name in PROCESS_TIMING_FILES:
+            item.add_marker(pytest.mark.process_timing)

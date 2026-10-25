@@ -9,9 +9,17 @@ Kinocut uses focused tests for public MCP tools, the Python client, CLI behavior
 Every implementation change must pass the complete suite on the exact integrated commit:
 
 ```bash
-python3 -m pytest tests/ -x -q --tb=short
+python3 scripts/run_full_suite.py
 python3 -c "import kinocut, mcp_video; assert kinocut.Client is mcp_video.Client"
 ```
+
+`scripts/run_full_suite.py` selects exactly the tests `python3 -m pytest tests/ -x -q --tb=short`
+selects, in two phases: everything except `process_timing` tests across xdist workers
+(`--dist loadfile`), then the `process_timing` tests serially, because their sub-second
+deadlines only hold on an uncontended host. The serial file list is `PROCESS_TIMING_FILES`
+in `tests/conftest.py`; add a file there when its tests assert process start-up, cancellation
+or deadline windows. Set `--workers N` (or `KINOCUT_TEST_WORKERS`) to share the host with
+other work. The single serial command remains a valid, slower equivalent.
 
 A focused pass is development evidence only. A full-suite result from an older commit is not
 current completion proof.
