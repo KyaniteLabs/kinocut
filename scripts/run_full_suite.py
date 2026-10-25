@@ -36,7 +36,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--workers", default=os.environ.get("KINOCUT_TEST_WORKERS", DEFAULT_WORKERS))
     parser.add_argument("extra", nargs="*", help="arguments passed to both pytest phases (after --)")
     args = parser.parse_args(argv)
+    if any(arg == "-m" or (arg.startswith("-m") and not arg.startswith("--")) for arg in args.extra):
+        parser.error("-m is owned by the phase split; filter with -k or paths instead")
     total = time.monotonic()
+    collected = False
     for name, cmd in _phases(args.workers, args.extra):
         started = time.monotonic()
         print(f"== {name}: {' '.join(cmd[1:])}", flush=True)
@@ -44,6 +47,10 @@ def main(argv: list[str] | None = None) -> int:
         print(f"== {name}: exit {rc} in {time.monotonic() - started:.0f}s", flush=True)
         if rc not in (0, 5):  # 5 = nothing collected, e.g. an extra -k filter matched one phase only
             return rc
+        collected = collected or rc == 0
+    if not collected:
+        print("== no tests collected in any phase", flush=True)
+        return 5
     print(f"== full suite passed in {time.monotonic() - total:.0f}s", flush=True)
     return 0
 

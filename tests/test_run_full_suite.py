@@ -5,6 +5,8 @@ from __future__ import annotations
 import importlib.util
 from pathlib import Path
 
+import pytest
+
 from tests.conftest import PROCESS_TIMING_FILES
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -35,3 +37,18 @@ def test_phases_partition_the_suite_on_the_marker():
     for cmd in (parallel, serial):
         assert cmd[cmd.index("pytest") + 1] == "tests/"
         assert {"-x", "-k"} <= set(cmd)
+
+
+def test_user_marker_expression_is_rejected():
+    with pytest.raises(SystemExit) as exc:
+        _runner().main(["--", "-m", "slow"])
+    assert exc.value.code == 2
+
+
+def test_empty_selection_in_every_phase_fails(monkeypatch):
+    runner = _runner()
+    monkeypatch.setattr(runner.subprocess, "call", lambda cmd: 5)
+    assert runner.main([]) == 5
+    calls = iter([5, 0])
+    monkeypatch.setattr(runner.subprocess, "call", lambda cmd: next(calls))
+    assert runner.main([]) == 0
