@@ -441,6 +441,7 @@ async def _runtime_session(args: argparse.Namespace, media: Path, progress: dict
     env["KINOCUT_MCPB_FFMPEG"] = str(args.ffmpeg.resolve())
     env["KINOCUT_MCPB_SUPERVISED_PROCESS_TREE"] = "1"
     env["MCP_VIDEO_HYPERFRAMES_COMMAND"] = args.hyperframes
+    env["KINOCUT_TOOLS"] = "all"  # full-catalog validation; default diet gated separately below
     params = StdioServerParameters(
         command=str(args.node.resolve()), args=[str(args.launcher.resolve())], env=env, cwd=media.parent
     )
@@ -494,6 +495,33 @@ async def _runtime_session(args: argparse.Namespace, media: Path, progress: dict
                 progress["session_closed"] = True
             if primary_phase is not None:
                 progress["phase"] = primary_phase
+    # Default tool-diet gate: curated default surface + hidden-tool discovery.
+    progress["phase"] = "mcp_default_diet"
+    diet_env = dict(os.environ)
+    diet_env.pop("PYTHONPATH", None)
+    diet_env.pop("KINOCUT_TOOLS", None)
+    diet_env["PYTHONNOUSERSITE"] = "1"
+    diet_env["KINOCUT_MCPB_PYTHON"] = str(python)
+    diet_env["KINOCUT_MCPB_FFMPEG"] = str(args.ffmpeg.resolve())
+    diet_env["KINOCUT_MCPB_SUPERVISED_PROCESS_TREE"] = "1"
+    diet_params = StdioServerParameters(
+        command=str(args.node.resolve()), args=[str(args.launcher.resolve())], env=diet_env, cwd=media.parent
+    )
+    async with stdio_client(diet_params) as (diet_read, diet_write):
+        async with ClientSession(diet_read, diet_write) as diet_session:
+            await _deadline(diet_session.initialize())
+            diet_tools = await _deadline(diet_session.list_tools())
+            diet_names = {t.name for t in diet_tools.tools}
+            diet_required = {"video_info", "video_trim", "video_merge", "search_tools", "video_doctor", "video_shorts"}
+            if not diet_required <= diet_names:
+                raise RuntimeError("default_diet_core_missing")
+            if "video_ai_scene_detect" in diet_names:
+                raise RuntimeError("default_diet_not_curated")
+            found = await _call(diet_session, progress, "mcp_diet_search_hidden", "search_tools", {"query": "scene"})
+            if "video_ai_scene_detect" not in json.dumps(found):
+                raise RuntimeError("hidden_discovery_failed")
+            gates["default_diet"] = "passed"
+            gates["hidden_discovery"] = "passed"
     return gates
 
 
