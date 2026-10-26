@@ -5,6 +5,10 @@ import asyncio
 from mcp_video.cli.parser import build_parser
 from mcp_video.client import Client
 
+import pytest
+
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 EXPECTED_TOOLS = {
     "video_semantic_timeline",

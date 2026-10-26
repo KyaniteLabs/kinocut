@@ -16,6 +16,8 @@ from kinocut.server_tool_contracts import _ContractFastMCP
 from kinocut.server_tools_motion_acceptance import video_record_motion_acceptance
 from tests.test_motion_acceptance import _measured
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def _arguments(tmp_path):
     source, report = _measured(tmp_path, [5, 200, 5, 200])

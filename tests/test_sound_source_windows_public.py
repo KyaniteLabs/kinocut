@@ -12,6 +12,10 @@ from kinocut import Client
 from kinocut_sound.mix._wav import parse_wav, pcm_to_wav
 from tests.test_sound_public_mix import mix_project  # noqa: F401 - shared real fixture
 
+import pytest
+
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def _inspect(root, result):
     path = root / result["output_path"]

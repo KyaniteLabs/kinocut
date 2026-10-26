@@ -24,6 +24,8 @@ from receipt_writer import (  # noqa: E402
     validate_receipt,
 )
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 STEP_COUNT = 6
 
 

@@ -96,7 +96,16 @@ def test_mcp_serializes_advisory_and_client_preserves_same_error(monkeypatch):
         Client().convert("input.mp4", output="output.mp4")
     assert failure.value is error
     result = _safe_tool(fail)()
-    assert result == {"success": False, "error": error.to_dict()}
+    expected = error.to_dict()
+    assert result["success"] is False
+    assert result["error"]["code"] == expected["code"]
+    assert result["error"]["type"] == expected["type"]
+    # The MCP boundary appends the retry invocation naming the wrapped tool;
+    # the serialized payload itself (to_dict) stays deterministic.
+    assert result["error"]["message"].startswith(expected["message"])
+    assert result["error"]["message"].endswith(
+        "retry with call fail with corrected parameters (MCP) / run kino fail with corrected flags (CLI)"
+    )
     assert result["error"]["suggested_action"]["auto_fix"] is False
 
 

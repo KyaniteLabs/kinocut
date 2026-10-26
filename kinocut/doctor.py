@@ -504,9 +504,7 @@ def _check_runtime_policy() -> dict[str, Any]:
         "overwrite_default": DEFAULT_OVERWRITE,
         "network_egress_default": False,
         "vision_mode": os.environ.get("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
-        "hyperframes_telemetry": os.environ.get(
-            "KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)
-        ),
+        "hyperframes_telemetry": os.environ.get("KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)),
         "revideo_telemetry": os.environ.get("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
         "mcp_tools": active_mode(),
     }

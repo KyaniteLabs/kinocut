@@ -448,3 +448,43 @@ def sample_hyperframes_project(tmp_path):
     (project_dir / "package.json").write_text('{"name": "test-hyperframes-project", "version": "1.0.0"}')
 
     return str(project_dir)
+
+
+@pytest.fixture
+def full_tool_surface():
+    """Expand the MCP tool surface to the full catalog for the marked tests.
+
+    Tests marked with this fixture exercise hidden (non-core) tools through
+    the MCP layer: parity, argument-contract, and count tests written against
+    the full development catalog. Both the in-process registration and the
+    ``KINOCUT_TOOLS`` environment (inherited by stdio subprocess servers) are
+    switched to ``all``, then restored exactly on teardown.
+    """
+    from kinocut import tool_registry
+
+    previous_raw = os.environ.get("KINOCUT_TOOLS")
+    os.environ["KINOCUT_TOOLS"] = "all"
+    tool_registry.configure_tool_surface("all")
+    try:
+        yield
+    finally:
+        if previous_raw is None:
+            os.environ.pop("KINOCUT_TOOLS", None)
+        else:
+            os.environ["KINOCUT_TOOLS"] = previous_raw
+        tool_registry.configure_tool_surface(previous_raw)
+
+
+@pytest.fixture
+def default_tool_surface():
+    """Re-assert the curated default surface before diet-count tests.
+
+    Importing a ``server_tools_*`` module directly registers its tools on the
+    shared FastMCP instance (module-level ``@mcp.tool()`` decorators). Without
+    re-applying the active surface, later tests in the same process observe
+    that pollution and the curated-default invariants drift.
+    """
+    from kinocut import tool_registry
+
+    tool_registry.apply_tool_surface()
+    yield

@@ -14,13 +14,15 @@ from pydantic import BaseModel, ConfigDict
 
 from kinocut.server_tool_contracts import _ContractFastMCP
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def test_all_registered_argument_models_and_schemas_reject_extras():
     from kinocut.server import mcp
 
     async def check():
         tools = await mcp.list_tools()
-        assert len(tools) == 203
+        assert len(tools) == 205
         for tool in tools:
             model = mcp._tool_manager.get_tool(tool.name).fn_metadata.arg_model
             assert model.model_config["extra"] == "forbid", tool.name

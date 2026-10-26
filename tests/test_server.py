@@ -114,9 +114,12 @@ class TestServerInitialization:
         assert info.version == _product_version()
         assert info.version != _metadata.version("mcp")
 
+    @pytest.mark.usefixtures("default_tool_surface")
     def test_tools_registered(self):
         # The default surface is curated; hidden tools remain callable from
-        # Python and discoverable through search_tools.
+        # Python and discoverable through search_tools. The fixture re-applies
+        # the surface so direct server_tools_* imports in other modules cannot
+        # pollute this count.
         tool_names = {t.name for t in mcp._tool_manager.list_tools()}
         assert len(tool_names) <= 25
         assert {

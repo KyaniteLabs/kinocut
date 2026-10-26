@@ -21,6 +21,8 @@ from tests.test_sound_static_routing import routed_project, make_stereo  # noqa:
 from tests.test_sound_layers_public import layered_project  # noqa: F401
 from tests.test_sound_routing_transports import _mcp
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def inspect(root, result, stereo):
     with zipfile.ZipFile(root / result["output_path"]) as archive:

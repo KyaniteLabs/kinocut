@@ -143,7 +143,12 @@ def video_shorts(
             {"stage": "trim", "status": "completed", "segment_count": len(trimmed_paths)},
             merge_step,
             caption_step,
-            {"stage": "vertical_template", "status": "completed", "aspect_ratio": "9:16", "output_path": vertical.output_path},
+            {
+                "stage": "vertical_template",
+                "status": "completed",
+                "aspect_ratio": "9:16",
+                "output_path": vertical.output_path,
+            },
             {"stage": "export", "status": "completed", "output_path": vertical.output_path},
         ]
         return {
@@ -157,4 +162,3 @@ def video_shorts(
                 "steps": steps,
             },
         }
-

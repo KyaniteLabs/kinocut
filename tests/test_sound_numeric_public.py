@@ -13,6 +13,8 @@ from kinocut_sound.public.master_request import load_master_request
 from tests.test_sound_public_mix import mix_project  # noqa: F401
 from tests.sound_numeric_cases import SHA
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 @pytest.mark.parametrize("value", [True, False])
 def test_public_plan_rejects_boolean_duration(value):

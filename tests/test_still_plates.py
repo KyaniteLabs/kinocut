@@ -12,6 +12,8 @@ from kinocut.errors import MCPVideoError
 from kinocut.still_plates import image_edit, still_gate, still_grade, still_match, still_package
 from kinocut.still_plates.stats import apply_rgb_gains, mean_rgb, shadow_green_cyan_fraction
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def _write_rgb(path: Path, rgb: tuple[float, float, float], size: int = 64) -> Path:
     arr = np.zeros((size, size, 3), dtype=np.uint8)

@@ -16,6 +16,8 @@ from kinocut.defaults import DEFAULT_AUDIO_MIX_BITRATE, DEFAULT_DUCK_MUSIC_VOLUM
 from kinocut.errors import MCPVideoError
 from kinocut.models import EditResult
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def _parse(*argv):
     from kinocut.cli.parser.audio_mix import add_parsers

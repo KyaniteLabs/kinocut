@@ -9,6 +9,8 @@ import json
 import tomllib
 from pathlib import Path
 
+import pytest
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS  # noqa: F401
@@ -159,6 +161,7 @@ def test_agent_cookbook_dry_run():
     assert "video_release_checkpoint" in result.stdout
 
 
+@pytest.mark.usefixtures("default_tool_surface")
 def test_server_tool_registry_keeps_public_tool_names():
     from mcp_video.server import mcp
 
@@ -176,6 +179,14 @@ def test_hyperframes_tts_schema_can_list_voices_without_text():
     assert "hyperframes_tts" in TOOL_REGISTRY
 
 
+def test_full_catalog_registry_count_matches_claims():
+    """Pin the development-tip full-catalog count to docs/public_claims.json."""
+    from kinocut.tool_registry import TOOL_REGISTRY
+
+    assert len(TOOL_REGISTRY) == 205
+
+
+@pytest.mark.usefixtures("default_tool_surface")
 def test_stdio_server_launches_and_lists_tools_like_registry_clients():
     """Exercise the package the way registries launch it: stdio subprocess + MCP handshake."""
 
