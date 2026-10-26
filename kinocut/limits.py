@@ -22,6 +22,7 @@ MAX_PROCESS_GUARDIAN_ERROR_BYTES = 256
 DEFAULT_AI_TIMEOUT = 3600  # 1 hour for AI operations (demucs, whisper, etc.)
 DOCTOR_COMMAND_TIMEOUT = 10  # Short version/probe commands should not hang
 FFPROBE_TIMEOUT = 30  # Metadata probes should fail quickly
+FFPROBE_EXACT_TIMEOUT = 600  # Opt-in exact probe decodes the whole stream to count frames
 QUALITY_GUARDRAILS_TIMEOUT = 120  # Quality check commands
 MAX_BATCH_SIZE = 50
 MAX_EXPORT_FRAMES_FPS = 60

@@ -95,6 +95,21 @@ class VideoInfo(BaseModel):
         return None
 
 
+class ExactVideoInfo(VideoInfo):
+    """``VideoInfo`` plus exact stream facts, returned only by the opt-in exact probe.
+
+    ``frame_count`` is the number of frames ffprobe actually decoded (``-count_frames``),
+    not ``duration * fps``. ``r_frame_rate`` and ``avg_frame_rate`` are the raw rational
+    strings ffprobe reports (for example ``"24000/1001"``). Any value that could not be
+    measured is ``None``; no default is substituted.
+    """
+
+    frame_count: int | None = None
+    frame_count_source: str | None = None
+    r_frame_rate: str | None = None
+    avg_frame_rate: str | None = None
+
+
 # --- Operation results ---
 
 

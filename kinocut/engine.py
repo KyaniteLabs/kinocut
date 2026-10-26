@@ -38,6 +38,7 @@ from .engine_repurpose import repurpose_plan as repurpose_plan
 # Compatibility re-export: callers still import get_duration from mcp_video.engine.
 from .engine_probe import get_duration as get_duration
 from .engine_probe import probe as probe
+from .engine_probe import probe_exact as probe_exact
 from .engine_probe import probe_audio_input as probe_audio_input
 from .engine_resize import resize as resize
 from .engine_rotate import rotate as rotate

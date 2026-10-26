@@ -11,9 +11,9 @@ from typing import Any, NamedTuple
 from .errors import InputFileError, MCPVideoError, ProcessingError
 from .defaults import DEFAULT_FPS
 from .ffmpeg_helpers import _run_ffprobe_json, _validate_input_path
-from .models import VideoInfo
+from .models import ExactVideoInfo, VideoInfo
 from .engine_runtime_utils import _get_audio_stream, _get_video_stream
-from .limits import MAX_FILE_SIZE_MB, MAX_VIDEO_DURATION
+from .limits import FFPROBE_EXACT_TIMEOUT, MAX_FILE_SIZE_MB, MAX_VIDEO_DURATION
 
 # ---------------------------------------------------------------------------
 # Probe cache — source identity includes replacements and nanosecond changes.
@@ -170,6 +170,57 @@ def probe(path: str) -> VideoInfo:
 
     _cache_info(path, key, info, has_video=True)
     return info
+
+
+def _raw_rational_rate(value: object) -> str | None:
+    """Return ffprobe's rate string unchanged when it is a usable positive rate, else ``None``."""
+    if not isinstance(value, str):
+        return None
+    try:
+        if "/" in value:
+            num_text, den_text = value.split("/", 1)
+            num, den = float(num_text), float(den_text)
+            usable = den != 0 and num > 0
+        else:
+            usable = float(value) > 0
+    except (ValueError, OverflowError):
+        return None
+    return value if usable else None
+
+
+def _exact_stream_fields(video_stream: dict) -> dict[str, object]:
+    """Exact facts taken from ffprobe's video stream entry; unmeasured values stay ``None``."""
+    frame_count: int | None = None
+    raw_count = video_stream.get("nb_read_frames")
+    if raw_count is not None:
+        try:
+            parsed = int(raw_count)
+        except (ValueError, TypeError):
+            parsed = -1
+        if parsed >= 0:
+            frame_count = parsed
+    return {
+        "frame_count": frame_count,
+        "frame_count_source": "decoded" if frame_count is not None else None,
+        "r_frame_rate": _raw_rational_rate(video_stream.get("r_frame_rate")),
+        "avg_frame_rate": _raw_rational_rate(video_stream.get("avg_frame_rate")),
+    }
+
+
+def probe_exact(path: str) -> ExactVideoInfo:
+    """Probe a video and also report the decoded frame count and raw rational frame rates.
+
+    Opt-in and uncached: ffprobe decodes the whole video stream (``-count_frames``), so this
+    is slower than :func:`probe`. Values that cannot be measured are ``None``, never defaults.
+    """
+    path = _validate_input_path(path)
+    try:
+        data = _run_ffprobe_json(path, count_frames=True, timeout=FFPROBE_EXACT_TIMEOUT)
+    except ProcessingError as exc:
+        raise InputFileError(path, "Not a valid video file, or decoding it for an exact probe failed") from exc
+    info = _build_video_info(path, data)
+    video_stream = _get_video_stream(data) or {}
+    return ExactVideoInfo(**info.model_dump(), **_exact_stream_fields(video_stream))
 
 
 def probe_audio_input(path: str) -> VideoInfo:
