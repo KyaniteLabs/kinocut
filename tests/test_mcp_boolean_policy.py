@@ -5,8 +5,10 @@ import json
 from unittest.mock import Mock
 
 import pytest
-
 from kinocut.models import EditResult
+
+
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
 
 
 @pytest.fixture(

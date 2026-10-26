@@ -30,6 +30,34 @@ def overwrite_consent():
         yield
 
 
+@pytest.fixture
+def full_mcp_surface(monkeypatch):
+    """Expose the complete MCP catalog for tests that call hidden tools."""
+    previous = os.environ.get("KINOCUT_TOOLS")
+    monkeypatch.setenv("KINOCUT_TOOLS", "all")
+    from kinocut.tool_registry import configure_tool_surface
+    from mcp.client import stdio
+
+    real_environment = stdio.get_default_environment
+
+    def full_surface_environment():
+        environment = real_environment()
+        environment["KINOCUT_TOOLS"] = "all"
+        return environment
+
+    monkeypatch.setattr(stdio, "get_default_environment", full_surface_environment)
+
+    configure_tool_surface("all")
+    try:
+        yield
+    finally:
+        if previous is None:
+            monkeypatch.delenv("KINOCUT_TOOLS", raising=False)
+        else:
+            monkeypatch.setenv("KINOCUT_TOOLS", previous)
+        configure_tool_surface(previous or "")
+
+
 def has_ffprobe() -> bool:
     return shutil.which("ffprobe") is not None
 

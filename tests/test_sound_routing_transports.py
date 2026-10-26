@@ -16,6 +16,9 @@ from tests.test_sound_public_mix import mix_project  # noqa: F401
 from tests.test_sound_static_routing import routed_project, make_stereo  # noqa: F401
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 def inspect_routed(root, result, stereo):
     with zipfile.ZipFile(root / result["output_path"]) as archive:
         receipt = json.loads(archive.read("receipt.json"))

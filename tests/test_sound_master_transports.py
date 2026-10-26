@@ -5,8 +5,13 @@ import json
 import subprocess
 import sys
 
+import pytest
+
 from kinocut import Client
 from tests.test_sound_master_public import master_project, inspect_master  # noqa: F401 - shared fixture
+
+
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
 
 
 def test_actual_master_transport_parity(master_project):  # noqa: F811

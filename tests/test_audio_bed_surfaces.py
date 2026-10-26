@@ -6,6 +6,11 @@ import argparse
 import asyncio
 import inspect
 
+import pytest
+
+
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
 APPROVED = (
     "loop",
     "loop_crossfade",

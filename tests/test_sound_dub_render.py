@@ -20,6 +20,9 @@ from kinocut_sound.public.dub_job import render_dub_request, render_dub_request_
 from kinocut_sound.public.mix_files import require_safe_filesystem
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 @pytest.fixture
 def dub_project(tmp_path):
     try:

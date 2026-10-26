@@ -8,9 +8,14 @@ import subprocess
 import sys
 import zipfile
 
+import pytest
+
 from kinocut import Client
 from kinocut_sound.mix._wav import parse_wav, pcm_to_wav
 from tests.test_sound_public_mix import mix_project  # noqa: F401 - shared real fixture
+
+
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
 
 
 def _inspect(root, result):

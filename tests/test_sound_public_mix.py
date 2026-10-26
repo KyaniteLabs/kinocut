@@ -21,6 +21,9 @@ from kinocut_sound.public.mix_request import load_mix_request
 from kinocut_sound.timeline import Cue, CueKind, Timeline
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 @pytest.fixture
 def mix_project(tmp_path):
     try:

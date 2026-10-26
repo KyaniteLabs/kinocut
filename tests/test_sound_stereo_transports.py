@@ -5,9 +5,14 @@ import json
 import subprocess
 import sys
 
+import pytest
+
 from kinocut import Client
 from tests.test_sound_public_mix import mix_project  # noqa: F401 - stereo fixture dependency
 from tests.test_sound_stereo_mix import stereo_project, inspect_stereo  # noqa: F401 - shared fixture
+
+
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
 
 
 def test_actual_stereo_transport_parity(stereo_project):  # noqa: F811

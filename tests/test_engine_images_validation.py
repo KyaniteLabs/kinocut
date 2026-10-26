@@ -19,6 +19,9 @@ from tests.image_sequence_fixtures import (
 )
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 # ---------------------------------------------------------------------------
 # PR #615 review: boundary validation, list bounds and fast-path link safety
 # ---------------------------------------------------------------------------

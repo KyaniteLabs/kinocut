@@ -261,8 +261,8 @@ MODULE_PROFILE_TAGS: Mapping[str, tuple[str, ...]] = {
     "server_tools_creation": ("editor", "creation"),
     "server_tools_doctor": ("inspection",),
     "server_tools_effects": ("editor", "effects"),
-    "server_tools_glitch": ("editor", "effects"),
-    "server_tools_glitch_shader": ("editor", "effects"),
+    "server_tools_glitch": ("hidden",),
+    "server_tools_glitch_shader": ("hidden",),
     "server_tools_guardrails": ("editor", "guardrails"),
     "server_tools_hyperframes": ("hyperframes",),
     "server_tools_image": ("image",),
@@ -307,9 +307,7 @@ CORE_TOOLS = frozenset(
     }
 )
 
-TOOL_MODULE_BY_NAME = {
-    name: module for module, names in TOOL_NAMES_BY_MODULE.items() for name in names
-}
+TOOL_MODULE_BY_NAME = {name: module for module, names in TOOL_NAMES_BY_MODULE.items() for name in names}
 
 # Public, inspectable table: tool name -> profile tags.  ``core`` is additive;
 # ``all`` is an explicit mode and therefore does not need to be repeated on
@@ -336,14 +334,14 @@ def parse_tool_mode(raw: str | None = None) -> tuple[str, frozenset[str]]:
         return "default", frozenset({"core"})
     if value == "all":
         return "all", frozenset()
-    profiles = frozenset(
-        part.removeprefix("profile:").strip()
-        for part in value.split(",")
-        if part.strip()
-    )
+    profiles = frozenset(part.removeprefix("profile:").strip() for part in value.split(",") if part.strip())
     known = {tag for tags in TOOL_REGISTRY.values() for tag in tags} - {"core"}
     unknown = profiles - known
-    if unknown or not profiles or any("profile:" not in part and part.strip() not in known for part in value.split(",")):
+    if (
+        unknown
+        or not profiles
+        or any("profile:" not in part and part.strip() not in known for part in value.split(","))
+    ):
         allowed = ", ".join(sorted(known))
         raise ValueError(f"KINOCUT_TOOLS must be all, core, or profile:<name> (available: {allowed})")
     return f"profile:{','.join(sorted(profiles))}", profiles | {"core"}
@@ -355,8 +353,9 @@ def _tool_manager() -> Any:
     return mcp._tool_manager
 
 
-def _capture_catalog() -> None:
-    for name, tool in _tool_manager()._tools.items():
+def _capture_catalog(tool_manager: Any | None = None) -> None:
+    tools = (tool_manager or _tool_manager())._tools
+    for name, tool in tools.items():
         _TOOL_CATALOG[name] = {
             "name": name,
             "description": tool.description or "",
@@ -371,11 +370,13 @@ def _allowed_names(mode: str, profiles: Iterable[str]) -> frozenset[str]:
     return frozenset(name for name, tags in TOOL_REGISTRY.items() if selected.intersection(tags))
 
 
-def apply_tool_surface() -> None:
+def apply_tool_surface(tool_manager: Any | None = None) -> None:
     """Remove non-selected registrations without changing any tool behavior."""
 
     allowed = _allowed_names(_ACTIVE_MODE, _ACTIVE_PROFILES)
-    tools = _tool_manager()._tools
+    manager = tool_manager or _tool_manager()
+    _capture_catalog(manager)
+    tools = manager._tools
     for name in tuple(tools):
         if name not in allowed:
             del tools[name]
@@ -388,13 +389,21 @@ def configure_tool_surface(raw: str | None = None) -> None:
     mode, profiles = parse_tool_mode(raw)
     _ACTIVE_MODE = mode
     _ACTIVE_PROFILES = profiles
-    modules = TOOL_NAMES_BY_MODULE if mode == "all" or mode.startswith("profile:") else {
-        module: names
-        for module, names in TOOL_NAMES_BY_MODULE.items()
-        if any(name in CORE_TOOLS for name in names)
-    }
-    for module in modules:
-        importlib.import_module(f".{module}", __package__)
+    modules = (
+        TOOL_NAMES_BY_MODULE
+        if mode == "all" or mode.startswith("profile:")
+        else {
+            module: names for module, names in TOOL_NAMES_BY_MODULE.items() if any(name in CORE_TOOLS for name in names)
+        }
+    )
+    for module, names in modules.items():
+        imported = importlib.import_module(f".{module}", __package__)
+        if mode == "all" or mode.startswith("profile:"):
+            tools = _tool_manager()._tools
+            if any(name not in tools for name in names):
+                for name in names:
+                    tools.pop(name, None)
+                importlib.reload(imported)
     _capture_catalog()
     apply_tool_surface()
 
@@ -416,8 +425,13 @@ def discovery_catalog() -> list[dict[str, Any]]:
 
     global _ACTIVE_MODE
     active_mode = _ACTIVE_MODE
-    for module in TOOL_NAMES_BY_MODULE:
-        importlib.import_module(f".{module}", __package__)
+    for module, names in TOOL_NAMES_BY_MODULE.items():
+        imported = importlib.import_module(f".{module}", __package__)
+        tools = _tool_manager()._tools
+        if any(name not in tools for name in names):
+            for name in names:
+                tools.pop(name, None)
+            importlib.reload(imported)
     _capture_catalog()
     _ACTIVE_MODE = active_mode
     apply_tool_surface()
@@ -426,4 +440,3 @@ def discovery_catalog() -> list[dict[str, Any]]:
 
 def active_mode() -> str:
     return _ACTIVE_MODE
-

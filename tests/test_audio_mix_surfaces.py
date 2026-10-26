@@ -17,6 +17,9 @@ from kinocut.errors import MCPVideoError
 from kinocut.models import EditResult
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 def _parse(*argv):
     from kinocut.cli.parser.audio_mix import add_parsers
 

@@ -757,4 +757,6 @@ def _format_error(e: Exception) -> None:
             lines.append(f"\n[yellow]Suggested fix:[/yellow] {action['description']}")
         err_console.print(Panel("\n".join(lines), border_style="red", title="Error"))
     else:
-        err_console.print(Panel(f"[bold red]{retry_message(str(e), 'unknown')}[/bold red]", border_style="red", title="Error"))
+        err_console.print(
+            Panel(f"[bold red]{retry_message(str(e), 'unknown')}[/bold red]", border_style="red", title="Error")
+        )

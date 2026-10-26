@@ -14,6 +14,9 @@ from tests.test_sound_dub_render import dub_project, _require_engine, _inspect  
 from tests.test_sound_speech_spatial_public import spatial_project  # noqa: F401
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 def _evidence(root, result):
     with zipfile.ZipFile(root / result["output_path"]) as archive:
         return json.loads(archive.read("receipt.json"))["spatial"]

@@ -17,6 +17,9 @@ from kinocut_sound.public.mix_files import require_safe_filesystem
 from tests.test_sound_measured_loudness import calibration_wave  # noqa: F401 - pytest fixture
 
 
+pytestmark = pytest.mark.usefixtures("full_mcp_surface")
+
+
 @pytest.fixture
 def meter_project(tmp_path, calibration_wave):  # noqa: F811 - pytest fixture injection
     try:

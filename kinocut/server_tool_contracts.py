@@ -55,6 +55,12 @@ class _ContractFastMCP(FastMCP):
         )
         tool.fn_metadata.arg_model = model
         tool.parameters = model.model_json_schema(by_alias=True)
+        from .server_app import mcp as server_mcp
+
+        if self is server_mcp:
+            from .tool_registry import apply_tool_surface
+
+            apply_tool_surface(self._tool_manager)
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         tool = self._tool_manager.get_tool(name)
