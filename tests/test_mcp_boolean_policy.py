@@ -8,6 +8,8 @@ import pytest
 
 from kinocut.models import EditResult
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 @pytest.fixture(
     params=[

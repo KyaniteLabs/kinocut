@@ -19,6 +19,8 @@ from kinocut_sound.public import invoke_sound_operation
 from kinocut_sound.public.dub_job import render_dub_request, render_dub_request_async
 from kinocut_sound.public.mix_files import require_safe_filesystem
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 @pytest.fixture
 def dub_project(tmp_path):

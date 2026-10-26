@@ -44,4 +44,3 @@ def test_runtime_surface_modes_and_hidden_discovery():
     result = search_tools("blur")
     assert result["success"] is True
     assert "video_filter" in {tool["name"] for tool in result["tools"]}
-

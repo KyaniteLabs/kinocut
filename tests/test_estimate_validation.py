@@ -16,6 +16,8 @@ from kinocut.server_tool_contracts import _ContractFastMCP
 from kinocut.server_tools_intent import video_estimate_operation
 from kinocut.te.cost_oracle import estimate_operation
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def _invoke(route, arguments, capsys):
     if route == "engine":

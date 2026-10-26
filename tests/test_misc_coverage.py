@@ -156,7 +156,13 @@ class TestServerToolsHyperframesValidation:
         result = hyperframes_tts()
 
         assert result.get("success") is False
-        assert result.get("error", {}).get("message") == "text_or_file is required unless list_voices is true"
+        # The MCP wire boundary appends the eyes-free retry invocation
+        # (server_app._error_result); the raw payload stays deterministic.
+        assert (
+            result.get("error", {}).get("message") == "text_or_file is required unless list_voices is true"
+            "; retry with call hyperframes_tts with corrected parameters (MCP)"
+            " / run kino tts with corrected flags (CLI)"
+        )
 
 
 class TestAudioEngineInit:

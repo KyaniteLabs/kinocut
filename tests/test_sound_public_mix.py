@@ -20,6 +20,8 @@ from kinocut_sound.public.mix_files import require_safe_filesystem
 from kinocut_sound.public.mix_request import load_mix_request
 from kinocut_sound.timeline import Cue, CueKind, Timeline
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 @pytest.fixture
 def mix_project(tmp_path):

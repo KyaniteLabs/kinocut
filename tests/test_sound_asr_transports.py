@@ -8,6 +8,10 @@ import sys
 from kinocut import Client
 from tests.test_sound_asr_public import asr_project  # noqa: F401
 
+import pytest
+
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def test_actual_asr_transport_parity(asr_project):  # noqa: F811
     root, prepare = asr_project

@@ -9,6 +9,10 @@ from kinocut import Client
 from tests.test_sound_master_public import master_project, inspect_master  # noqa: F401
 from tests.test_sound_stereo_mastering import stereo_master_project  # noqa: F401
 
+import pytest
+
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def test_actual_stereo_master_transport_parity(stereo_master_project):  # noqa: F811
     root, request = stereo_master_project

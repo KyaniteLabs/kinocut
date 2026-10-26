@@ -38,6 +38,8 @@ from mcp_video.workflow import (
 )
 from mcp_video.workflow import ops as ops_mod
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 # --- Specs + workspace -------------------------------------------------------
 
@@ -620,7 +622,7 @@ def test_variants_do_not_change_public_surface_counts():
     from mcp_video.server import mcp
 
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-    assert len(tool_names) == 203  # Current development-tip public surface.
+    assert len(tool_names) == 205  # Current development-tip full-catalog surface.
     assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
 
 

@@ -15,6 +15,8 @@ from kinocut.sound_joins.loudness import inspect_loudness_async
 from kinocut_sound._errors import SoundContractError
 from tests.test_sound_loudness_public import _mcp
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def _source(root, suffix, *, amplitude=0.1):
     path = root / f"source.{suffix}"

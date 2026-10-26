@@ -87,9 +87,12 @@ def test_readme_states_published_version_and_tip_counts(claims: dict) -> None:
     assert "github.com/KyaniteLabs/mcp-video" not in readme
 
     # Tip badges / explicit tip language must match development surface.
-    tip_badge = re.search(r"MCP-(\d+)%20tools", readme)
-    assert tip_badge is not None
-    assert int(tip_badge.group(1)) == claims["development_mcp_tools"]
+    default_badge = re.search(r"MCP-(\d+)%20default%20tools", readme)
+    assert default_badge is not None
+    assert int(default_badge.group(1)) == claims["development_default_mcp_tools"]
+    discoverable_badge = re.search(r"(\d+) discoverable", readme)
+    assert discoverable_badge is not None
+    assert int(discoverable_badge.group(1)) == claims["development_mcp_tools"]
 
     cli_badge = re.search(r"CLI-(\d+)%20commands", readme)
     assert cli_badge is not None

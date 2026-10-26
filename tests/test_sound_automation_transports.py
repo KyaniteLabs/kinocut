@@ -18,6 +18,8 @@ from tests.test_sound_layer_ducking_public import ducked_project  # noqa: F401
 from tests.test_sound_automation_public import automated_project  # noqa: F401
 from tests.test_sound_routing_transports import _mcp
 
+pytestmark = pytest.mark.usefixtures("full_tool_surface")
+
 
 def inspect(root, result, stereo):
     with zipfile.ZipFile(root / result["output_path"]) as archive:
