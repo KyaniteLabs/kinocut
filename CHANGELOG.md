@@ -15,6 +15,10 @@ This project follows a simple release-note style:
 
 - Add an opt-in exact probe: `kino info <file> --exact`, `Client.info(path, exact=True)` and MCP `video_info(input_path, exact=true)` additionally report `frame_count` (decoded with ffprobe `-count_frames`), `frame_count_source: "decoded"`, and the raw `r_frame_rate` / `avg_frame_rate` strings exactly as ffprobe reports them. Values that cannot be measured (for example a `0/1` rate) are `null`, never a default. The default `info` output and cost are unchanged; the exact mode decodes the whole video stream and uses a longer probe timeout.
 
+### Acknowledgments
+
+- Thanks to [@Beritwu](https://github.com/Beritwu) for the opt-in exact probe in [#599](https://github.com/KyaniteLabs/kinocut/pull/599) — decoded frame counts and raw rational frame rates surfaced consistently across the CLI, client, and MCP surfaces — committed with a `Co-authored-by` trailer in the squash.
+
 ## 1.16.4 - 2026-10-23
 
 ### Security
