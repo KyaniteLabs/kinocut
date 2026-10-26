@@ -738,15 +738,16 @@ def _format_analyze_product(result: Any) -> None:
 
 def _format_error(e: Exception) -> None:
     """Display error in a styled panel."""
-    from ..errors import MCPVideoError
+    from ..errors import MCPVideoError, retry_context, retry_message
 
     if isinstance(e, MCPVideoError):
         try:
-            data = e.to_dict()
+            with retry_context("kino", {}):
+                data = e.to_dict()
         except Exception as exc:
             logger.debug("MCPVideoError.to_dict() failed in CLI formatting: %s", exc)
-            data = {}
-        msg = data.get("message", str(e))
+            data = {"message": retry_message(str(e), getattr(e, "code", "unknown"))}
+        msg = data.get("message", retry_message(str(e), getattr(e, "code", "unknown")))
         code = data.get("code", "")
         action = data.get("suggested_action", {})
         lines = [f"[bold red]{msg}[/bold red]"]
@@ -756,4 +757,4 @@ def _format_error(e: Exception) -> None:
             lines.append(f"\n[yellow]Suggested fix:[/yellow] {action['description']}")
         err_console.print(Panel("\n".join(lines), border_style="red", title="Error"))
     else:
-        err_console.print(Panel(f"[bold red]{e}[/bold red]", border_style="red", title="Error"))
+        err_console.print(Panel(f"[bold red]{retry_message(str(e), 'unknown')}[/bold red]", border_style="red", title="Error"))

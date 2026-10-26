@@ -14,6 +14,11 @@ This project follows a simple release-note style:
 ### Added
 
 - Add an opt-in exact probe: `kino info <file> --exact`, `Client.info(path, exact=True)` and MCP `video_info(input_path, exact=true)` additionally report `frame_count` (decoded with ffprobe `-count_frames`), `frame_count_source: "decoded"`, and the raw `r_frame_rate` / `avg_frame_rate` strings exactly as ffprobe reports them. Values that cannot be measured (for example a `0/1` rate) are `null`, never a default. The default `info` output and cost are unchanged; the exact mode decodes the whole video stream and uses a longer probe timeout.
+- Add a curated 20-tool default MCP registration, `KINOCUT_TOOLS=all` and profile expansion, hidden-tool discovery, the one-call `video_shorts` flow, the read-only `video_doctor` preflight, eyes-free retry invocations, deferred core imports, and MCP progress bridge coverage. Telemetry, network, and overwrite defaults remain unchanged.
+
+### Acknowledgments
+
+- Exact probe contribution: [@Beritwu](https://github.com/Beritwu), [#599](https://github.com/KyaniteLabs/kinocut/pull/599) (the squash already carries the co-author credit).
 
 ## 1.16.4 - 2026-10-23
 
@@ -92,6 +97,7 @@ This project follows a simple release-note style:
 
 ### Acknowledgments
 
+- Reported-by: [@Mimatovitch](https://github.com/Mimatovitch), [#594](https://github.com/KyaniteLabs/kinocut/issues/594).
 Thanks to [@Mimatovitch](https://github.com/Mimatovitch) for reporting [#594](https://github.com/KyaniteLabs/kinocut/issues/594), and [@Zoroassistant23](https://github.com/Zoroassistant23) for investigating it and proposing a patch and test in [#595](https://github.com/KyaniteLabs/kinocut/pull/595). That PR was not merged; a separate cleanup change shipped in [#596](https://github.com/KyaniteLabs/kinocut/pull/596). See the [1.16.1 release notes](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.1) for fuller context.
 
 ## 1.16.0 - 2026-10-02

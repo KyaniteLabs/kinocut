@@ -14,7 +14,7 @@ from typing import Any
 import mcp.server.fastmcp.server as _fastmcp_server
 from mcp.server.fastmcp import Context
 
-from .errors import MCPVideoError
+from .errors import MCPVideoError, retry_context, retry_message
 from .server_tool_contracts import _ContractFastMCP
 
 # MCP 1.29 leaves Settings.lifespan as a forward reference. Rebuild it after the
@@ -96,23 +96,25 @@ def _safe_tool(fn: Any) -> Any:
 
         @functools.wraps(fn, assigned=(*functools.WRAPPER_ASSIGNMENTS, "__annotations__"))
         async def async_wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
-            try:
-                return await fn(*args, **kwargs)
-            except MCPVideoError as e:
-                return _error_result(e)
-            except Exception as e:
-                return _error_result(e)
+            with retry_context(fn.__name__, kwargs):
+                try:
+                    return await fn(*args, **kwargs)
+                except MCPVideoError as e:
+                    return _error_result(e)
+                except Exception as e:
+                    return _error_result(e)
 
         return async_wrapper
 
     @functools.wraps(fn, assigned=(*functools.WRAPPER_ASSIGNMENTS, "__annotations__"))
     def wrapper(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        try:
-            return fn(*args, **kwargs)
-        except MCPVideoError as e:
-            return _error_result(e)
-        except Exception as e:
-            return _error_result(e)
+        with retry_context(fn.__name__, kwargs):
+            try:
+                return fn(*args, **kwargs)
+            except MCPVideoError as e:
+                return _error_result(e)
+            except Exception as e:
+                return _error_result(e)
 
     return wrapper
 
@@ -147,7 +149,10 @@ def _error_result(err: MCPVideoError | Exception) -> dict[str, Any]:
         "error": {
             "type": "internal_error",
             "code": "internal_error",
-            "message": "An internal error occurred. Check server logs for details.",
+            "message": retry_message(
+                "An internal error occurred. Check server logs for details.",
+                "internal_error",
+            ),
         },
     }
 

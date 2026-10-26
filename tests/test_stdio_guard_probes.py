@@ -107,7 +107,7 @@ def test_null_params_is_tolerated_as_empty_params() -> None:
 
         response = server.request({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": None})
         tools = response["result"]["tools"]
-        assert isinstance(tools, list) and len(tools) > 100
+        assert isinstance(tools, list) and len(tools) == 20
 
         ping = server.ping("ping-1")
         assert "result" in ping

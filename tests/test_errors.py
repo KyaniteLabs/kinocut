@@ -21,7 +21,9 @@ class TestMCPVideoError:
         d = err.to_dict()
         assert d["type"] == "unknown_error"
         assert d["code"] == "unknown"
-        assert d["message"] == "something went wrong"
+        assert d["message"].startswith("something went wrong; retry with ")
+        assert "(MCP)" in d["message"]
+        assert "(CLI)" in d["message"]
         assert "suggested_action" not in d
         assert "documentation_url" not in d
 
@@ -118,6 +120,17 @@ class TestInputFileError:
         d = err.to_dict()
         assert len(d["message"]) <= 2000
         assert "chars truncated" in d["message"]
+
+    @pytest.mark.parametrize(
+        "code,token",
+        [
+            ("output_exists", "overwrite=true (MCP) / --overwrite (CLI)"),
+            ("unsafe_path", "a new output_path (MCP) / --output <new-media-path> (CLI)"),
+        ],
+    )
+    def test_guardrail_errors_end_with_exact_retry_tokens(self, code, token):
+        message = MCPVideoError("blocked", code=code).to_dict()["message"]
+        assert message.endswith(token)
 
 
 class TestCodecError:

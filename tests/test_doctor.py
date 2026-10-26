@@ -213,6 +213,19 @@ def test_run_diagnostics_marks_required_tools_missing():
     assert "Install FFmpeg" in checks["ffmpeg"]["install_hint"]
 
 
+def test_doctor_reports_workspace_and_effective_guardrail_policy():
+    from mcp_video.doctor import run_diagnostics
+
+    report = run_diagnostics(which=lambda name: None, version_runner=lambda command: None, find_spec=lambda name: None)
+    checks = {check["name"]: check for check in report["checks"]}
+
+    assert {"workspace", "runtime_policy"} <= checks.keys()
+    assert set(checks["workspace"]["permissions"]) == {"read", "write"}
+    flags = checks["runtime_policy"]["flags"]
+    assert flags["overwrite_default"] is False
+    assert flags["network_egress_default"] is False
+
+
 def test_doctor_reports_rescue_readiness_from_existing_checks():
     from mcp_video.doctor import run_diagnostics
 

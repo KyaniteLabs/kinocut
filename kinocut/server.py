@@ -1,180 +1,58 @@
-"""Kinocut MCP server - exposes video editing tools for AI agents."""
+"""Kinocut MCP server facade with profile-driven lazy tool registration."""
 
 from __future__ import annotations
+
+from typing import Any
+
 from .server_app import _error_result as _error_result
 from .server_app import _result as _result
 from .server_app import mcp as mcp
-from .server_resources import (
-    templates_resource as templates_resource,
-    video_audio_resource as video_audio_resource,
-    video_info_resource as video_info_resource,
-    video_preview_resource as video_preview_resource,
+from .tool_registry import (
+    CORE_TOOLS,
+    TOOL_REGISTRY,
+    TOOL_MODULE_BY_NAME,
+    configure_tool_surface,
+    ensure_tool_loaded,
 )
-from .server_tools_basic import (
-    VALID_XFADE_TRANSITIONS as VALID_XFADE_TRANSITIONS,
-    search_tools as search_tools,
-    video_add_audio as video_add_audio,
-    video_add_text as video_add_text,
-    video_convert as video_convert,
-    video_info as video_info,
-    video_merge as video_merge,
-    video_resize as video_resize,
-    video_speed as video_speed,
-    video_trim as video_trim,
-)
-from .server_tools_inspection import (
-    video_ingest as video_ingest,
-    video_inspect_temporal as video_inspect_temporal,
-    video_preflight as video_preflight,
-)
-from .server_tools_aivideo import (
-    video_acceptance_eval as video_acceptance_eval,
-    video_body_swap as video_body_swap,
-    video_salvage as video_salvage,
-    video_verdict as video_verdict,
-)
-from .server_tools_media import (
-    video_crop as video_crop,
-    video_edit as video_edit,
-    video_export as video_export,
-    video_extract_audio as video_extract_audio,
-    video_fade as video_fade,
-    video_preview as video_preview,
-    video_rotate as video_rotate,
-    video_storyboard as video_storyboard,
-    video_subtitles as video_subtitles,
-    video_template_preview as video_template_preview,
-    video_thumbnail as video_thumbnail,
-    video_watermark as video_watermark,
-)
-from .server_tools_advanced import (
-    video_apply_mask as video_apply_mask,
-    video_audio_waveform as video_audio_waveform,
-    video_batch as video_batch,
-    video_chroma_key as video_chroma_key,
-    video_cleanup as video_cleanup,
-    video_compare_quality as video_compare_quality,
-    video_composite_layers as video_composite_layers,
-    video_create_from_images as video_create_from_images,
-    video_detect_scenes as video_detect_scenes,
-    video_export_frames as video_export_frames,
-    video_filter as video_filter,
-    video_generate_subtitles as video_generate_subtitles,
-    video_hls_segment as video_hls_segment,
-    video_luma_key as video_luma_key,
-    video_normalize_audio as video_normalize_audio,
-    video_overlay as video_overlay,
-    video_read_metadata as video_read_metadata,
-    video_reverse as video_reverse,
-    video_shape_mask as video_shape_mask,
-    video_split_screen as video_split_screen,
-    video_stabilize as video_stabilize,
-    video_write_metadata as video_write_metadata,
-)
-from .server_tools_image import (
-    image_analyze_product as image_analyze_product,
-    image_extract_colors as image_extract_colors,
-    image_generate_palette as image_generate_palette,
-)
-from .server_tools_image import image_edit, still_gate, still_grade, still_match, still_package  # noqa: F401
-from .server_tools_creation import (
-    shot_prompt_render as shot_prompt_render,
-    storyboard_read as storyboard_read,
-    style_pack_read as style_pack_read,
-    video_project_create as video_project_create,
-)
-from .server_tools_hyperframes import (
-    hyperframes_add_block as hyperframes_add_block,
-    hyperframes_benchmark as hyperframes_benchmark,
-    hyperframes_capture as hyperframes_capture,
-    hyperframes_catalog as hyperframes_catalog,
-    hyperframes_compositions as hyperframes_compositions,
-    hyperframes_doctor as hyperframes_doctor,
-    hyperframes_init as hyperframes_init,
-    hyperframes_info as hyperframes_info,
-    hyperframes_inspect as hyperframes_inspect,
-    hyperframes_preview as hyperframes_preview,
-    hyperframes_render as hyperframes_render,
-    hyperframes_remove_background as hyperframes_remove_background,
-    hyperframes_snapshot as hyperframes_snapshot,
-    hyperframes_still as hyperframes_still,
-    hyperframes_transcribe as hyperframes_transcribe,
-    hyperframes_tts as hyperframes_tts,
-    hyperframes_to_mcpvideo as hyperframes_to_mcpvideo,
-    hyperframes_validate as hyperframes_validate,
-)
-from .server_tools_motion_acceptance import video_record_motion_acceptance as video_record_motion_acceptance
-from .server_tools_audio import (
-    video_mix_audio as video_mix_audio,
-    audio_compose as audio_compose,
-    audio_effects as audio_effects,
-    audio_preset as audio_preset,
-    audio_sequence as audio_sequence,
-    audio_synthesize as audio_synthesize,
-    video_audio_bed as video_audio_bed,
-    video_add_generated_audio as video_add_generated_audio,
-    video_audio_spatial as video_audio_spatial,
-)
-from .server_tools_effects import (
-    effect_chromatic_aberration as effect_chromatic_aberration,
-    effect_glow as effect_glow,
-    effect_noise as effect_noise,
-    effect_scanlines as effect_scanlines,
-    effect_vignette as effect_vignette,
-    transition_glitch as transition_glitch,
-    transition_morph as transition_morph,
-    transition_pixelate as transition_pixelate,
-    video_auto_chapters as video_auto_chapters,
-    video_info_detailed as video_info_detailed,
-    video_layout_grid as video_layout_grid,
-    video_layout_pip as video_layout_pip,
-    video_mograph_count as video_mograph_count,
-    video_mograph_progress as video_mograph_progress,
-    video_text_animated as video_text_animated,
-    video_subtitles_styled as video_subtitles_styled,
-)
-from .server_tools_glitch import (
-    glitch_cmyk_split as glitch_cmyk_split,
-    glitch_datamoshing as glitch_datamoshing,
-    glitch_macroblocking as glitch_macroblocking,
-    glitch_rgb_shift as glitch_rgb_shift,
-    glitch_scanline_jitter as glitch_scanline_jitter,
-    glitch_screen_tearing as glitch_screen_tearing,
-    glitch_turbulent_displacement as glitch_turbulent_displacement,
-    glitch_vhs_tracking as glitch_vhs_tracking,
-)
-from .server_tools_glitch_shader import (
-    glitch_depth_splatting as glitch_depth_splatting,
-    glitch_digital_feedback as glitch_digital_feedback,
-    glitch_point_cloud as glitch_point_cloud,
-    glitch_slit_scan as glitch_slit_scan,
-)
-from .server_tools_ai import (
-    video_ai_color_grade as video_ai_color_grade,
-    video_ai_remove_silence as video_ai_remove_silence,
-    video_ai_scene_detect as video_ai_scene_detect,
-    video_ai_stem_separation as video_ai_stem_separation,
-    video_ai_transcribe as video_ai_transcribe,
-    video_ai_upscale as video_ai_upscale,
-    video_analyze as video_analyze,
-    video_design_quality_check as video_design_quality_check,
-    video_fix_design_issues as video_fix_design_issues,
-    video_quality_check as video_quality_check,
-    video_release_checkpoint as video_release_checkpoint,
-)
-from . import server_tools_intent, server_tools_shorts, server_tools_sound  # noqa: F401
-from .server_tools_repurpose import (
-    video_repurpose as video_repurpose,
-    video_repurpose_plan as video_repurpose_plan,
-)
-from .server_tools_guardrails import (
-    video_validate_text_layout as video_validate_text_layout,
-    video_extract_frame as video_extract_frame,
-)
-from .server_tools_workflow import (
-    video_workflow_inspect as video_workflow_inspect,
-    video_workflow_plan as video_workflow_plan,
-    video_workflow_render as video_workflow_render,
-    video_workflow_validate as video_workflow_validate,
-)
-from .server_facade_exports import *  # noqa: F403
+from .server_tools_basic import VALID_XFADE_TRANSITIONS as VALID_XFADE_TRANSITIONS
+
+
+_RESOURCE_EXPORTS = {
+    "templates_resource": "templates_resource",
+    "video_audio_resource": "video_audio_resource",
+    "video_info_resource": "video_info_resource",
+    "video_preview_resource": "video_preview_resource",
+}
+
+
+# Load only the selected MCP surface at import time. Compatibility imports of
+# hidden Python functions still work through ``__getattr__`` without making
+# those functions visible to MCP clients.
+configure_tool_surface()
+
+
+def __getattr__(name: str) -> Any:
+    if name in TOOL_MODULE_BY_NAME:
+        return ensure_tool_loaded(name)
+    if name == "VALID_XFADE_TRANSITIONS":
+        from .server_tools_basic import VALID_XFADE_TRANSITIONS
+
+        return VALID_XFADE_TRANSITIONS
+    resource_name = _RESOURCE_EXPORTS.get(name)
+    if resource_name is not None:
+        from . import server_resources
+
+        return getattr(server_resources, resource_name)
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+
+__all__ = [
+    "mcp",
+    "_error_result",
+    "_result",
+    "CORE_TOOLS",
+    "TOOL_REGISTRY",
+    "VALID_XFADE_TRANSITIONS",
+    *_RESOURCE_EXPORTS,
+    *sorted(TOOL_REGISTRY),
+]

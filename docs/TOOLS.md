@@ -1,6 +1,14 @@
 # MCP Tools Reference
 
-kino's development tip exposes **203 registered MCP tools / 177 CLI commands** across video editing, governed AI-video review and salvage, project-backed deterministic inspection, dedicated rescue, post-rescue planning, the agent workflow engine, PUSHING CREATION-style planning, Hyperframes and Revideo video authoring, repurposing packages, audio, effects, analysis, and image workflows. Published 1.16.0 exposes **203 MCP tools / 177 CLI commands**. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with operation-specific diagnostics and suggestions when available.
+kino's full development catalog exposes **205 MCP tools / 177 CLI commands**, while the default MCP registration is a curated **20-tool core** for video editing, inspection, receipts, diagnostics, and one-call Shorts. Set `KINOCUT_TOOLS=all` for the full catalog or `KINOCUT_TOOLS=profile:editor` for the editor profile. `search_tools` discovers hidden tools on demand without changing the selected surface. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with an eyes-free retry invocation for MCP and CLI.
+
+## Eyes-free quick start
+
+1. Inspect with `video_info` or `kino info`; use `video_doctor` / `kino doctor` before a long job.
+2. Search by intent with `search_tools` when the core list does not contain the needed operation.
+3. Render with an explicit output path, inspect the receipt, run quality checks, and request human review before publishing.
+
+The default surface is intentionally narrow. Hidden tools are discoverable but are not registered until `KINOCUT_TOOLS=all` or a matching profile is selected. Receipts are one-screen text cards: report artifact paths, stage status, warnings, and the next approval gate in words.
 
 ---
 
@@ -92,6 +100,13 @@ The end-to-end sequence and stop conditions are in
 | Tool | Description |
 |------|-------------|
 | `search_tools` | Rank registered MCP tools by exact name, keyword, or supported task phrases such as `remove filler words`, `resume render`, and `keep face in frame`. Returns matching names, descriptions, and required parameters; planning tools remain plans and discovery does not verify optional backends. An empty query returns no matches. Clients that eagerly load all MCP tools still receive the full registry. |
+
+## Diagnostics and one-call Shorts
+
+| Tool | Description |
+|------|-------------|
+| `video_doctor` | Read-only JSON verdict covering FFmpeg/FFprobe, Python and optional integrations, workspace permissions/free disk, and effective guardrail defaults |
+| `video_shorts` | One local call for trim → supplied captions → 9:16 template → export; returns one receipt chain and never posts externally |
 
 **Python Client:**
 ```python

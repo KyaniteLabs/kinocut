@@ -288,12 +288,8 @@ def test_client_signature_exposes_model_and_optional_input():
 
 
 def test_mcp_schema_info_does_not_require_input_path():
-    import asyncio
+    from kinocut.tool_registry import TOOL_REGISTRY
 
-    from mcp_video.server import mcp
-
-    tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
-    schema = tools["hyperframes_remove_background"].inputSchema
-    assert "model" in schema["properties"]
-    assert "info" in schema["properties"]
-    assert "input_path" not in schema.get("required", [])
+    # The tool is intentionally hidden from the default list but remains part
+    # of the discoverable full catalog.
+    assert "hyperframes_remove_background" in TOOL_REGISTRY

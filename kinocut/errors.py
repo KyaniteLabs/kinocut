@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import re
+import contextlib
+from contextvars import ContextVar
 from typing import Any
 
 # Caller-supplied values echoed into error messages are capped so a hostile
@@ -10,6 +12,59 @@ from typing import Any
 # that dumps doubled garbage into the caller's agent context window.
 _MAX_ECHO_CHARS = 200
 _MAX_MESSAGE_CHARS = 2000
+
+_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar(
+    "kinocut_retry_context", default=None
+)
+
+
+@contextlib.contextmanager
+def retry_context(tool_name: str, arguments: dict[str, Any] | None = None):
+    """Bind a user-facing error to the operation that can be retried."""
+
+    token = _RETRY_CONTEXT.set((tool_name, dict(arguments or {})))
+    try:
+        yield
+    finally:
+        _RETRY_CONTEXT.reset(token)
+
+
+def _cli_tool_name(tool_name: str) -> str:
+    for prefix in ("video_", "hyperframes_", "revideo_", "shorts_", "sound_"):
+        if tool_name.startswith(prefix):
+            return tool_name.removeprefix(prefix).replace("_", "-")
+    return tool_name.replace("_", "-")
+
+
+def retry_message(message: str, code: str) -> str:
+    """Append an eyes-free MCP and CLI retry invocation to an error message."""
+
+    context = _RETRY_CONTEXT.get()
+    tool_name = context[0] if context else "the same tool"
+    cli_name = _cli_tool_name(tool_name) if context else "the same kino command"
+    if code in {"output_exists", "overwrite_refused"}:
+        invocation = "overwrite=true (MCP) / --overwrite (CLI)"
+    elif code in {"unsafe_path", "invalid_output_path"}:
+        invocation = "a new output_path (MCP) / --output <new-media-path> (CLI)"
+    elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
+        invocation = (
+            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / "
+            "KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
+        )
+    elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
+        invocation = (
+            "install FFmpeg, then call "
+            + tool_name
+            + " (MCP) / install FFmpeg, then run kino "
+            + cli_name
+            + " (CLI)"
+        )
+    else:
+        invocation = (
+            f"call {tool_name} with corrected parameters (MCP) / "
+            f"run kino {cli_name} with corrected flags (CLI)"
+        )
+    return f"{message}; retry with {invocation}"
 
 
 def truncate_echo(value: str, limit: int = _MAX_ECHO_CHARS) -> str:
@@ -48,7 +103,7 @@ class MCPVideoError(Exception):
             "code": self.code,
             # Backstop against echo amplification on any error lane; normal
             # bilingual messages stay far below the cap.
-            "message": truncate_echo(str(self), limit=_MAX_MESSAGE_CHARS),
+            "message": truncate_echo(retry_message(str(self), self.code), limit=_MAX_MESSAGE_CHARS),
         }
         if self.suggested_action:
             result["suggested_action"] = self.suggested_action
