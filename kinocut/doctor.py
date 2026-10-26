@@ -19,7 +19,15 @@ from typing import Any
 from concurrent.futures import ThreadPoolExecutor
 
 from .errors import HyperframesNotFoundError
-from .defaults import MIN_FFMPEG_VERSION, MIN_FFMPEG_VERSION_HARD, MIN_PYTHON_VERSION
+from .defaults import (
+    DEFAULT_HYPERFRAMES_TELEMETRY,
+    DEFAULT_OVERWRITE,
+    DEFAULT_REVIDEO_TELEMETRY,
+    DEFAULT_VISION_MODE,
+    MIN_FFMPEG_VERSION,
+    MIN_FFMPEG_VERSION_HARD,
+    MIN_PYTHON_VERSION,
+)
 from .limits import DOCTOR_COMMAND_TIMEOUT
 
 logger = logging.getLogger(__name__)
@@ -462,6 +470,58 @@ def _check_legacy_env_paths() -> dict[str, Any]:
     }
 
 
+def _check_workspace() -> dict[str, Any]:
+    """Report read/write access and free space without writing a probe file."""
+
+    workspace = Path.cwd()
+    try:
+        usage = shutil.disk_usage(workspace)
+        readable = os.access(workspace, os.R_OK)
+        writable = os.access(workspace, os.W_OK)
+        free_bytes = usage.free
+    except OSError:
+        readable = writable = False
+        free_bytes = None
+    return {
+        "name": "workspace",
+        "category": "core",
+        "required": True,
+        "ok": readable and writable and free_bytes is not None,
+        "path": str(workspace),
+        "version": None,
+        "permissions": {"read": readable, "write": writable},
+        "disk_free_bytes": free_bytes,
+        "install_hint": None if readable and writable else "Choose a readable and writable local workspace.",
+    }
+
+
+def _check_runtime_policy() -> dict[str, Any]:
+    """Expose effective guardrail defaults without changing any policy."""
+
+    from .tool_registry import active_mode
+
+    flags = {
+        "overwrite_default": DEFAULT_OVERWRITE,
+        "network_egress_default": False,
+        "vision_mode": os.environ.get("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
+        "hyperframes_telemetry": os.environ.get(
+            "KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)
+        ),
+        "revideo_telemetry": os.environ.get("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
+        "mcp_tools": active_mode(),
+    }
+    return {
+        "name": "runtime_policy",
+        "category": "core",
+        "required": False,
+        "ok": True,
+        "path": None,
+        "version": None,
+        "flags": flags,
+        "install_hint": None,
+    }
+
+
 def _summary(checks: list[dict[str, Any]]) -> dict[str, Any]:
     required = [check for check in checks if check["required"]]
     optional = [check for check in checks if not check["required"]]
@@ -558,6 +618,7 @@ def run_diagnostics(
     checks.append(_check_still_plates(find_spec, package_version))
     checks.append(_check_object_matte(find_spec))
     checks.append(_check_sphere_director())
+    checks.extend([_check_workspace(), _check_runtime_policy()])
     return {
         "success": True,
         "platform": {

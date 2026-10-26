@@ -11,10 +11,33 @@ from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS
+from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS  # noqa: F401
 
 
 ROOT = Path(__file__).resolve().parents[1]
+
+DEFAULT_SERVER_TOOLS = {
+    "video_info",
+    "video_trim",
+    "video_merge",
+    "video_add_text",
+    "video_add_texts",
+    "video_add_audio",
+    "video_resize",
+    "video_convert",
+    "video_speed",
+    "search_tools",
+    "video_extract_frame",
+    "video_validate_text_layout",
+    "video_quality_check",
+    "video_review_package",
+    "video_workflow_inspect",
+    "video_rescue_inspect",
+    "hyperframes_doctor",
+    "video_doctor",
+    "video_shorts",
+    "video_project_create",
+}
 
 
 PUBLIC_SURFACE_STATIC_PATHS = (
@@ -141,18 +164,16 @@ def test_server_tool_registry_keeps_public_tool_names():
 
     tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
 
-    assert tool_names >= EXPECTED_SERVER_TOOLS
-    assert len(tool_names) == 203
+    assert tool_names == DEFAULT_SERVER_TOOLS
+    assert len(tool_names) <= 25
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
-    from mcp_video.server import mcp
+    from kinocut.tool_registry import TOOL_REGISTRY
 
-    tools = {tool.name: tool for tool in asyncio.run(mcp.list_tools())}
-    schema = tools["hyperframes_tts"].inputSchema
-
-    assert "list_voices" in schema["properties"]
-    assert "text_or_file" not in schema.get("required", [])
+    # Hidden tools remain discoverable even though they are not in the default
+    # registration surface. The all-profile smoke test exercises its schema.
+    assert "hyperframes_tts" in TOOL_REGISTRY
 
 
 def test_stdio_server_launches_and_lists_tools_like_registry_clients():
@@ -166,8 +187,8 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
 
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
-        assert tool_names >= EXPECTED_SERVER_TOOLS
-        assert len(tool_names) == 203
+        assert tool_names == DEFAULT_SERVER_TOOLS
+        assert len(tool_names) <= 25
 
     asyncio.run(check_server())
 

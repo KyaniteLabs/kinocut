@@ -237,18 +237,29 @@ def main() -> None:
 
     except Exception as e:
         if use_json:
-            from .errors import MCPVideoError
+            from .errors import MCPVideoError, retry_context, retry_message
 
             if isinstance(e, MCPVideoError):
                 try:
-                    err_data = e.to_dict()
+                    with retry_context(getattr(args, "command", "kino"), vars(args)):
+                        err_data = e.to_dict()
                 except Exception as exc:
                     logger.warning("MCPVideoError.to_dict() failed: %s", exc)
-                    err_data = {"type": "internal_error", "code": "to_dict_failed", "message": str(e)}
+                    err_data = {
+                        "type": "internal_error",
+                        "code": "to_dict_failed",
+                        "message": retry_message(str(e), "to_dict_failed"),
+                    }
                 print(json.dumps({"success": False, "error": err_data}, indent=2), file=sys.stderr)
             else:
                 print(
-                    json.dumps({"success": False, "error": {"type": "unknown", "message": str(e)}}, indent=2),
+                    json.dumps(
+                        {
+                            "success": False,
+                            "error": {"type": "unknown", "message": retry_message(str(e), "unknown")},
+                        },
+                        indent=2,
+                    ),
                     file=sys.stderr,
                 )
         else:

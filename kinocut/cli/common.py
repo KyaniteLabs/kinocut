@@ -8,7 +8,7 @@ from typing import Any
 
 from rich.progress import Progress, SpinnerColumn, TextColumn, TimeElapsedColumn
 
-from ..errors import MCPVideoError
+from ..errors import MCPVideoError, retry_message
 from ..json_artifacts import parse_json_artifact
 from ..limits import MAX_CLI_JSON_ARTIFACT_BYTES
 from .formatting import console
@@ -32,7 +32,7 @@ def _parse_json_arg(value: str, arg_name: str = "argument", json_mode: bool = Fa
     try:
         return parse_json_artifact(value, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES, error_code="invalid_json")
     except MCPVideoError as error:
-        message = f"Invalid JSON in --{arg_name}: {error}"
+        message = retry_message(f"Invalid JSON in --{arg_name}: {error}", "invalid_json")
         if json_mode:
             print(
                 json.dumps(

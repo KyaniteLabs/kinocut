@@ -19,7 +19,7 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-203%20tools-orange.svg" alt="203 MCP tools on development tip">
+  <img src="https://img.shields.io/badge/MCP-20%20default%20tools-orange.svg" alt="20 default MCP tools; 205 discoverable">
   <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands on development tip">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
@@ -84,6 +84,14 @@
 
 Machine-readable brief for agents and crawlers: [`llms.txt`](llms.txt) · [extended agent guide](docs/llms-full.txt) · site: [kinocut.dev/llms.txt](https://kinocut.dev/llms.txt).
 
+## Producer Stack
+
+Kinocut is a producer stack: inspect the source, choose a typed operation, render locally, receive a compact provenance receipt, run quality checks, and request human release approval. The default MCP surface keeps that path small; `search_tools` and profiles expand it when needed.
+
+### Eyes-free design law
+
+Every flow must be describable, reportable, and approvable in words. Receipts stay one-screen text cards with artifact paths, stage status, warnings, and the next gate. Errors end with the exact MCP and CLI retry invocation; no visual-only affordance is required.
+
 ## See It Work
 
 Tell the agent what you want in plain language:
@@ -119,7 +127,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | --- | --- | --- |
 | **PyPI / npm checkpoint** | **[1.16.4](https://pypi.org/project/kinocut/1.16.4/)** (2026-10-24) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
 | **GitHub latest release / MCP Registry** | **1.16.4** | GitHub release `v1.16.4` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.4 (verified 2026-10-24). Final owner acceptance and fleet rollout remain separate. |
-| **This source version** | **1.16.4 published** · **203 MCP / 177 CLI** | Defaults optional model calls and renderer telemetry off. Published `mcp-video==1.6.19` pins this runtime; verification is recorded in `docs/public_claims.json`. |
+| **This source version** | **Unreleased QoL pass** · **20 default MCP / 205 full / 177 CLI** | The default MCP list is curated; `KINOCUT_TOOLS=all` restores the full catalog. Telemetry, network, and overwrite defaults remain unchanged. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
@@ -598,7 +606,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-Published **1.16.4** registers **203 MCP tools** and **177 CLI commands** (the matching development checkout has the same surface at release). The table summarizes core categories — `search_tools` discovers the exact operation without loading every description.
+The current checkout registers a curated **20-tool MCP core** and exposes a **205-tool full catalog** through `KINOCUT_TOOLS=all`; it retains **177 CLI commands**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -631,6 +639,8 @@ print(matches["tools"])
 ```
 
 Full reference: [docs/TOOLS.md](docs/TOOLS.md)
+
+One-call Shorts recipe: `video_shorts(input_path, segments, style?)` trims selected ranges, captions supplied segment text, applies a 9:16 template, exports one artifact, and returns one receipt chain. It never posts externally.
 
 ## Agent-Safe Workflow
 
@@ -667,6 +677,15 @@ Safety contract:
 - For governed AI-video derivatives, require stored identities, active human decision evidence, and a fresh review slot after every salvage or body-swap — never raw FFmpeg workarounds labeled as governed.
 
 ## Changelog
+
+### Unreleased QoL pass
+
+- Added a 20-tool default MCP registration with `KINOCUT_TOOLS=all`, profile selection, hidden-tool discovery, `video_shorts`, `video_doctor`, eyes-free retry messages, deferred startup imports, and MCP progress coverage. Existing telemetry, network, and overwrite defaults remain unchanged.
+
+### Acknowledgments
+
+- [@Beritwu](https://github.com/Beritwu) — exact probe contribution in [#599](https://github.com/KyaniteLabs/kinocut/pull/599).
+- [@Mimatovitch](https://github.com/Mimatovitch) — macOS cleanup bug report in [#594](https://github.com/KyaniteLabs/kinocut/issues/594).
 
 **1.16.4** (2026-10-24):
 
@@ -777,9 +796,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published **1.16.4** provides **203 MCP tools / 177 CLI commands**. This branch has
-the same registered surface at release. Query the installed server's tool schemas for exact
-parameters. 360 assembly still reuses `video_intent` and `video_review_decide`.
+The current checkout registers **20 MCP tools by default**, with **205 full-catalog tools** available through `KINOCUT_TOOLS=all`; the CLI has 177 commands. Query the installed server's tool schemas for exact parameters. `search_tools` discovers hidden operations. Published 1.16.4 had 203 MCP tools; that historical count is not the current default surface.
 
 ### Can Kinocut edit Insta360 X4 360 video?
 

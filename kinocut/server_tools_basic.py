@@ -12,7 +12,6 @@ import functools
 import anyio
 from mcp.server.fastmcp import Context
 
-from .engine import add_audio, add_text, add_texts, convert, merge, probe, probe_exact, resize, speed, trim
 from .contracts.receipt_ai_video import AiVideoReceiptSection
 from .receipts_ai_video import attach_ai_video_section
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
@@ -20,6 +19,66 @@ from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation
 from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
+
+
+def probe(*args: Any, **kwargs: Any) -> Any:
+    from .engine_probe import probe as run_probe
+
+    return run_probe(*args, **kwargs)
+
+
+def probe_exact(*args: Any, **kwargs: Any) -> Any:
+    from .engine_probe import probe_exact as run_probe_exact
+
+    return run_probe_exact(*args, **kwargs)
+
+
+def trim(*args: Any, **kwargs: Any) -> Any:
+    from .engine_edit import trim as run_trim
+
+    return run_trim(*args, **kwargs)
+
+
+def merge(*args: Any, **kwargs: Any) -> Any:
+    from .engine_merge import merge as run_merge
+
+    return run_merge(*args, **kwargs)
+
+
+def add_text(*args: Any, **kwargs: Any) -> Any:
+    from .engine_text import add_text as run_add_text
+
+    return run_add_text(*args, **kwargs)
+
+
+def add_texts(*args: Any, **kwargs: Any) -> Any:
+    from .engine_text import add_texts as run_add_texts
+
+    return run_add_texts(*args, **kwargs)
+
+
+def add_audio(*args: Any, **kwargs: Any) -> Any:
+    from .engine_audio_ops import add_audio as run_add_audio
+
+    return run_add_audio(*args, **kwargs)
+
+
+def resize(*args: Any, **kwargs: Any) -> Any:
+    from .engine_resize import resize as run_resize
+
+    return run_resize(*args, **kwargs)
+
+
+def convert(*args: Any, **kwargs: Any) -> Any:
+    from .engine_convert import convert as run_convert
+
+    return run_convert(*args, **kwargs)
+
+
+def speed(*args: Any, **kwargs: Any) -> Any:
+    from .engine_speed import speed as run_speed
+
+    return run_speed(*args, **kwargs)
 
 
 def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> dict[str, Any]:
@@ -554,33 +613,10 @@ def search_tools(query: str) -> dict[str, Any]:
     Args:
         query: Search term — e.g. "blur", "resize", "subtitle", "audio", "trim".
     """
-    # Ensure all tool modules are loaded so the registry is complete.
-    # We import sibling modules (not the facade) to populate the registry.
-    from . import (  # noqa: F401
-        server_tools_advanced,
-        server_tools_aivideo,
-        server_tools_ai,
-        server_tools_audio,
-        server_tools_creation,
-        server_tools_effects,
-        server_tools_hyperframes,
-        server_tools_image,
-        server_tools_media,
-        server_tools_shorts,
-        server_tools_sound,
-        server_tools_intent,
-        server_tools_postrescue,
-        server_tools_release,
-        server_tools_workflow,
-    )
     from .tool_discovery import discover_tools
+    from .tool_registry import discovery_catalog
 
-    catalog = [
-        {
-            "name": name,
-            "description": tool.description,
-            "required_params": (tool.parameters or {}).get("required", []),
-        }
-        for name, tool in mcp._tool_manager._tools.items()
-    ]
-    return discover_tools(query, catalog)
+    # Discovery is deliberately the opt-in expansion path.  It may import
+    # hidden tool families to read their existing schemas, then restores the
+    # active MCP surface before returning the result.
+    return discover_tools(query, discovery_catalog())

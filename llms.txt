@@ -15,8 +15,8 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **License:** Apache-2.0
 - **Last verified publication checkpoint:** 1.16.4 (2026-10-24); consult the official registries for the latest version.
 - **Last-updated:** 2026-10-21
-- **Published surface (1.16.4):** 203 MCP tools / 177 CLI commands
-- **Development checkout:** 1.16.4 candidate, 203 MCP tools / 177 CLI commands; publication remains pending.
+- **Default MCP surface:** 20 curated tools; hidden tools remain discoverable through `search_tools`.
+- **Full development catalog:** 205 MCP tools / 177 CLI commands; `KINOCUT_TOOLS=all` restores it and `KINOCUT_TOOLS=profile:editor` selects the editor profile.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `tech.kyanitelabs/kinocut`
@@ -51,6 +51,10 @@ python scripts/golden_path.py
 Pass: doctor required OK + final_clip.mp4 + video_receipt.json (tool_calls, human_review pending).
 Docs: https://github.com/KyaniteLabs/kinocut/blob/master/docs/GOLDEN_PATH.md
 Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
+
+## Eyes-free agent quick start
+
+Use `video_info` / `kino info`, then `video_doctor` / `kino doctor`, then `search_tools` for an unfamiliar intent. Render with an explicit output path, inspect the one-screen receipt, run quality checks, and ask for human visual/audio review before publishing. Errors end with the MCP and CLI retry invocation.
 
 Compatibility:
 

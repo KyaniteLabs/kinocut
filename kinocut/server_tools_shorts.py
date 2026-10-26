@@ -9,6 +9,20 @@ from .server_app import _result, _safe_tool, mcp
 
 @mcp.tool()
 @_safe_tool
+def video_shorts(
+    input_path: str,
+    segments: list[dict[str, Any] | list[Any] | tuple[Any, ...]],
+    style: str | dict[str, Any] | None = None,
+    output_path: str | None = None,
+) -> dict[str, Any]:
+    """Trim, caption, make vertical, and export selected segments in one call."""
+    from .product.shorts_flow import video_shorts as run_video_shorts
+
+    return run_video_shorts(input_path, segments, style=style, output_path=output_path)
+
+
+@mcp.tool()
+@_safe_tool
 def shorts_plan_show(plan_path_or_dir: str) -> dict[str, Any]:
     """Load a saved shorts plan and return source-free proposals for review."""
     from .product.shorts_plan import load_shorts_plan

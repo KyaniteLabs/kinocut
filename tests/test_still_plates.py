@@ -385,20 +385,26 @@ def test_cli_still_match_and_gate(still_fixture_dir: Path) -> None:
     assert (gate_out / "still_gate_receipt.json").is_file()
 
 
-def test_mcp_stdio_still_match_round_trip(still_fixture_dir: Path) -> None:
+def test_mcp_stdio_still_match_round_trip(still_fixture_dir: Path, monkeypatch) -> None:
     import asyncio
     import json
+    import os
     import sys
 
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
+    monkeypatch.setenv("KINOCUT_TOOLS", "all")
     hero = _write_rgb(still_fixture_dir / "h.png", (0.5, 0.5, 0.5))
     a = _write_rgb(still_fixture_dir / "a.png", (0.55, 0.45, 0.4))
     out = still_fixture_dir / "mcp_out"
 
     async def run():
-        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"])
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "mcp_video"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
         async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
             await session.initialize()
             return await session.call_tool(

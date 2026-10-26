@@ -115,38 +115,22 @@ class TestServerInitialization:
         assert info.version != _metadata.version("mcp")
 
     def test_tools_registered(self):
-        # Check that the server has tools registered
-        tool_names = [t.name for t in mcp._tool_manager.list_tools()]
-        assert "video_info" in tool_names
-        assert "video_trim" in tool_names
-        assert "video_merge" in tool_names
-        assert "video_add_text" in tool_names
-        assert "video_add_audio" in tool_names
-        assert "video_resize" in tool_names
-        assert "video_convert" in tool_names
-        assert "video_speed" in tool_names
-        assert "video_thumbnail" in tool_names
-        assert "video_preview" in tool_names
-        assert "video_storyboard" in tool_names
-        assert "video_export" in tool_names
-        assert "video_edit" in tool_names
-        assert "video_extract_audio" in tool_names
-        assert "video_crop" in tool_names
-        assert "video_rotate" in tool_names
-        assert "video_fade" in tool_names
-        assert "video_filter" in tool_names
-        assert "video_normalize_audio" in tool_names
-        assert "video_overlay" in tool_names
-        assert "video_split_screen" in tool_names
-        assert "video_batch" in tool_names
-        assert "video_detect_scenes" in tool_names
-        assert "video_create_from_images" in tool_names
-        assert "video_export_frames" in tool_names
-        assert "video_compare_quality" in tool_names
-        assert "video_read_metadata" in tool_names
-        assert "video_write_metadata" in tool_names
-        assert "video_stabilize" in tool_names
-        assert "video_apply_mask" in tool_names
+        # The default surface is curated; hidden tools remain callable from
+        # Python and discoverable through search_tools.
+        tool_names = {t.name for t in mcp._tool_manager.list_tools()}
+        assert len(tool_names) <= 25
+        assert {
+            "video_info",
+            "video_trim",
+            "video_merge",
+            "video_add_text",
+            "video_add_texts",
+            "video_add_audio",
+            "video_resize",
+            "video_convert",
+            "video_speed",
+            "search_tools",
+        } <= tool_names
 
     def test_resources_registered(self):
         # Verify templates resource is defined (can't call async list_resources in sync test)

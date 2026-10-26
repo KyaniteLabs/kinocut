@@ -11,7 +11,8 @@
   "release_candidate_version": "1.16.4",
   "published_mcp_tools": 203,
   "published_cli_commands": 177,
-  "development_mcp_tools": 203,
+  "development_mcp_tools": 205,
+  "development_default_mcp_tools": 20,
   "development_cli_commands": 177,
   "registry_id": "tech.kyanitelabs/kinocut",
   "website": "https://kinocut.dev/",
@@ -27,7 +28,7 @@
     "Release verification 2026-10-05: PyPI kinocut and npm kinocut publicly report 1.16.1; PyPI mcp-video 1.6.16 pins kinocut==1.16.1. GitHub v1.16.1 targets merged commit 9727d465d698950f4054f868806a32a78876af8f. The initial publication job read canonical MCP Registry 1.16.1; subsequent local registry reads timed out. The initial npm visibility delay caused the final publication gate to fail before npm became public. Website 1.16.1 source is prepared but not deployed; the last verified live site remains 1.16.0. Forgejo product synchronization is explicitly disabled. These publication facts do not establish optional model, desktop, fleet or final owner acceptance.",
     "published_* counts describe the last published package (pip install kinocut).",
     "release_candidate_version tracks the package version on master (equals published after cutover).",
-    "development_* counts describe the current repository tip (master).",
+    "development_mcp_tools describes the full current repository catalog; development_default_mcp_tools describes the curated default registration.",
     "Never present development counts as a published PyPI version when they diverge.",
     "Release providers checked 2026-09-30: PyPI and npm report 1.15.3; live kinocut.dev JSON-LD and llms.txt report 1.15.3. GitHub releases/latest reports 1.15.0; MCP Registry could not be verified because its request returned 403. Package publication does not imply every release provider is aligned.",
     "Release verification 2026-10-02: PyPI kinocut, npm kinocut, GitHub latest release and canonical MCP Registry report 1.16.0; PyPI mcp-video 1.6.15 metadata pins kinocut==1.16.0 and forwards canonical extras. Live verification 2026-10-05: kinocut.dev reports 1.16.0, 203 MCP tools and 177 CLI commands; installation, benchmark and showcase links resolve, and its social image matches the approved export. The older site-update and DNS blockers are superseded; final cross-surface owner acceptance remains unverified. Canonical code is GitHub; the Forgejo code mirror is behind, while canonical website source remains Forgejo. Package publication does not establish fleet, model, desktop or human-review acceptance."
