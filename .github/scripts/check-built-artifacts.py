@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
-"""Fail if built release artifacts contain forbidden repo surface paths."""
+"""Fail if built release artifacts contain forbidden repo surface paths
+or omit the license text Apache-2.0 §4(a) requires to accompany a distribution."""
 
 from __future__ import annotations
 
@@ -62,6 +63,22 @@ def find_offenders(artifact: Path) -> list[str]:
     return offenders
 
 
+def ships_license_text(artifact: Path) -> bool:
+    """Apache-2.0 §4(a): wheels carry the license in <pkg>.dist-info/licenses/,
+    sdists at the top level of the archive root."""
+    if artifact.suffix == ".whl":
+        with zipfile.ZipFile(artifact) as zf:
+            names = zf.namelist()
+    elif artifact.suffixes[-2:] == [".tar", ".gz"]:
+        with tarfile.open(artifact, "r:gz") as tf:
+            names = [m.name for m in tf.getmembers() if m.isfile()]
+    else:
+        raise ValueError(f"Unsupported artifact type: {artifact}")
+    if any(name.endswith(".dist-info/licenses/LICENSE") for name in names):
+        return True
+    return bool(names) and f"{names[0].split('/', 1)[0]}/LICENSE" in names
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("artifact_dir", nargs="?", default="dist")
@@ -75,11 +92,18 @@ def main() -> int:
     failed = False
     for artifact in artifacts:
         offenders = find_offenders(artifact)
-        if offenders:
+        unlicensed = not ships_license_text(artifact)
+        if offenders or unlicensed:
             failed = True
-            print(f"{artifact.name}: forbidden contents detected")
+            print(
+                f"{artifact.name}: forbidden contents detected"
+                if offenders
+                else f"{artifact.name}: license text missing"
+            )
             for offender in offenders:
                 print(f"- {offender}")
+            if unlicensed:
+                print("- LICENSE (Apache-2.0 §4(a) requires the license copy to accompany the distribution)")
         else:
             print(f"{artifact.name}: clean")
 
