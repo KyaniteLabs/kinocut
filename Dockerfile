@@ -6,7 +6,7 @@ RUN apt-get update \
 
 WORKDIR /app
 
-COPY pyproject.toml README.md LICENSE ./
+COPY pyproject.toml README.md README-PYPI.md LICENSE ./
 COPY kinocut/ kinocut/
 COPY kinocut_sound/ kinocut_sound/
 COPY mcp_video.py ./
