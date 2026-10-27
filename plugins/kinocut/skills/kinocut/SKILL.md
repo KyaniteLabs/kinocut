@@ -11,12 +11,20 @@ Published 1.16.5 serves 205 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all
 
 **Tool surface.** This plugin's own launch (`mcp.json`) registers the curated
 20-tool core, and the `kino` CLI exposes its 177 commands independently. Any
-tool named below that is not in that core is a profile tool: start the server
-with an explicit selection — `KINOCUT_TOOLS=profile:editor` (108 tools) or
-`KINOCUT_TOOLS=all` (205 tools) — and restart it before calling it. Use
-`search_tools` to discover names, but it does not register them. If the tool
-you need is not registered, stop and report that it is unavailable instead of
-retrying.
+tool named below that is not in that core belongs to a named profile: start the
+server with an explicit selection — `KINOCUT_TOOLS=profile:<name>` (comma
+separated for several) or `KINOCUT_TOOLS=all` (205 tools) — and restart it
+before calling it. The profiles that carry the tools named below are
+`profile:intent` (`video_intent`, `video_review_decide`, `video_cutfile_render`,
+`video_qc_vision`, `video_estimate_operation`), `profile:editor`
+(`video_crop`, `video_edit`, `video_fade`, `video_thumbnail`,
+`video_composite_layers`, `video_hls_segment`, `video_ingest`,
+`video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`,
+`video_duck_audio`, `video_mix_audio`), `profile:ai` (`video_acceptance_eval`,
+`video_body_swap`, `video_verdict`) and `profile:hyperframes`
+(`hyperframes_remove_background`). Use `search_tools` to discover names, but it
+does not register them. If the tool you need is not registered, stop and report
+that it is unavailable instead of retrying.
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
 work is described in `docs/PLATFORM_PARITY.md`.

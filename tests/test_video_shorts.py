@@ -129,6 +129,8 @@ def test_video_shorts_receipt_carries_caption_warnings(sample_video, tmp_path):
     )
     steps = {step["stage"]: step for step in result["receipt"]["steps"]}
     assert "warnings" in steps["captions"]
+    assert isinstance(steps["captions"]["warnings"], list)
+    assert steps["captions"]["entry_count"] == len(steps["captions"]["entries"])
 
 
 def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
@@ -214,7 +216,11 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
 
     def fake_generate(entries, input_path, output_path, burn=False):
         Path(output_path).write_text("captions", encoding="utf-8")
-        return SimpleNamespace(srt_path=output_path, entry_count=len(entries), warnings=[])
+        return SimpleNamespace(
+            srt_path=output_path,
+            entry_count=len(entries) + 97,
+            warnings=["synthetic generator warning"],
+        )
 
     def fake_subtitles(input_path, subtitle_path, output_path, style=None):
         Path(output_path).write_bytes(b"captioned")
@@ -244,3 +250,8 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     entries = steps["captions"]["entries"]
     assert [(entry["start"], entry["end"]) for entry in entries] == [(0.0, 2.0), (2.0, 5.0)]
     assert steps["captions"]["entry_count"] == 2
+    # A generator that disagrees about the entry count must not be swallowed:
+    # the receipt carries both counts and says so out loud.
+    assert steps["captions"]["rendered_entry_count"] == 99
+    assert steps["captions"]["warnings"][0] == "synthetic generator warning"
+    assert any("reported 99 entries" in warning for warning in steps["captions"]["warnings"])

@@ -3,20 +3,25 @@
 The plugin's own launch (``mcp.json``) registers the curated 20-tool core — the
 environment-unset default — while the ``kino`` CLI exposes its 177 commands
 independently. A skill that names an MCP tool outside that core must therefore
-say how to reach it: an explicit ``KINOCUT_TOOLS=profile:...`` selection and a
-server restart, plus the instruction to stop and report when the tool is not
-registered.
+say how to reach it: an explicit ``KINOCUT_TOOLS=profile:<name>`` selection that
+the registry actually assigns that tool to, a server restart, and the
+instruction to stop and report when the tool is not registered.
 
 A skill that names a profile tool without that prerequisite sends the agent
-after a tool the host never registered (Gate 2 F10): the agent searches,
-finds the name, calls it, and gets a failure it cannot resolve. This test
-makes that drift fail CI instead of shipping.
+after a tool the host never registered (Gate 2 F10, Gate 3 N1/N2): the agent
+searches, finds the name, calls it, and gets a failure it cannot resolve. This
+test binds the claim to the registry, so a tool that moves to another profile
+fails CI until the skill is updated to name the right one.
 """
 
+import json
+import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+
+from kinocut.tool_registry import TOOL_REGISTRY
 
 ROOT = Path(__file__).resolve().parents[1]
 SKILLS = ROOT / "plugins" / "kinocut" / "skills"
@@ -26,44 +31,65 @@ TOOL_NAME = re.compile(r"\b((?:video|hyperframes)_[a-z0-9_]+)\b")
 def _default_core() -> set[str]:
     """The 20-tool default surface, read from a fresh process.
 
-    The diet is applied when ``kinocut.server`` is imported, and the surface is
-    process-global: importing it inside the test session would inherit whatever
-    an earlier test left behind.
+    The diet is applied when ``kinocut.server`` is imported and the surface is
+    process-global, so the probe runs in its own interpreter. ``KINOCUT_TOOLS``
+    is stripped from the environment: an ambient value would change the subject
+    of the "default" claim.
     """
     script = (
         "import asyncio\n"
         "from kinocut.server import mcp\n"
         "print('\\n'.join(sorted(tool.name for tool in asyncio.run(mcp.list_tools()))))\n"
     )
+    env = {key: value for key, value in os.environ.items() if key != "KINOCUT_TOOLS"}
     result = subprocess.run(
         [sys.executable, "-c", script],
         capture_output=True,
         text=True,
         timeout=120,
         cwd=str(ROOT),
+        env=env,
     )
     assert result.returncode == 0, result.stderr
     return {line.strip() for line in result.stdout.splitlines() if line.strip()}
+
+
+def _named_tools(text: str) -> set[str]:
+    """Registered MCP tools the skill names.
+
+    Prose fragments and wildcards (``video_360_*``) are not registered names,
+    and a skill may deliberately name a tool it tells the agent not to invent.
+    """
+    return {token for token in TOOL_NAME.findall(text) if token in TOOL_REGISTRY}
 
 
 def test_default_surface_is_the_curated_twenty():
     assert len(_default_core()) == 20
 
 
-def test_shipped_skills_document_how_to_reach_tools_outside_the_default_core():
+def test_shipped_skills_document_the_profile_that_carries_each_tool():
     core = _default_core()
     for skill in sorted(SKILLS.glob("*/SKILL.md")):
         text = skill.read_text(encoding="utf-8")
-        named = set(TOOL_NAME.findall(text))
-        unreachable = named - core
-        if not unreachable:
+        name = skill.parent.name
+        for tool in sorted(_named_tools(text) - core):
+            tags = [tag for tag in TOOL_REGISTRY[tool] if tag != "core"]
+            assert tags, f"{name} names {tool}, which the registry assigns to no profile"
+            carried = [tag for tag in tags if f"profile:{tag}" in text]
+            assert carried or "KINOCUT_TOOLS=all" in text, (
+                f"skill {name} names {tool} but never names a profile that carries it (its profiles: {', '.join(tags)})"
+            )
+
+
+def test_shipped_skills_say_how_to_apply_the_selection():
+    core = _default_core()
+    for skill in sorted(SKILLS.glob("*/SKILL.md")):
+        text = skill.read_text(encoding="utf-8")
+        if not _named_tools(text) - core:
             continue
         name = skill.parent.name
-        assert "KINOCUT_TOOLS" in text, (
-            f"skill {name} names tools outside the default core "
-            f"({sorted(unreachable)}) without saying how to enable them"
-        )
-        assert "profile" in text, f"skill {name} must name the profile to select"
+        assert "KINOCUT_TOOLS" in text, f"skill {name} must name the environment variable"
+        assert "restart" in text.lower(), f"skill {name} must say the server has to be restarted"
         assert "stop" in text.lower(), (
             f"skill {name} must tell the agent to stop and report when the tool is unavailable"
         )
@@ -78,8 +104,6 @@ def test_plugin_readme_documents_the_explicit_profile_launch():
 
 def test_plugin_launch_stays_on_the_curated_default():
     """The plugin's own launch must not silently widen the default surface."""
-    import json
-
     server = json.loads((ROOT / "plugins" / "kinocut" / ".mcp.json").read_text(encoding="utf-8"))
     kinocut = server["mcpServers"]["kinocut"]
     assert kinocut["args"] == ["kinocut==1.16.5"]

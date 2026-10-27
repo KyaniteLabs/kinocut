@@ -146,12 +146,18 @@ def _apply_captions(
         output_path=captioned_path,
         style=caption_style,
     )
+    warnings = list(getattr(generated, "warnings", []) or [])
+    generated_count = getattr(generated, "entry_count", None)
+    if isinstance(generated_count, int) and generated_count != len(caption_entries):
+        warnings.append(
+            f"subtitle generator reported {generated_count} entries; {len(caption_entries)} captions were burned"
+        )
     caption_step = {
         "stage": "captions",
         "status": "completed",
         "entry_count": len(caption_entries),
         "entries": caption_entries,
-        "warnings": list(getattr(generated, "warnings", []) or []),
+        "warnings": warnings,
     }
     if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
         caption_step["rendered_entry_count"] = generated.entry_count

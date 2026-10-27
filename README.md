@@ -102,6 +102,7 @@ Kinocut turns that into typed, guardrailed tool calls - no FFmpeg flags to guess
 
 ```python
 from kinocut import Client
+
 video = Client()
 
 clip = video.trim("interview.mp4", start="00:02:15", duration="00:00:45")
@@ -323,7 +324,7 @@ Agents: `video_intent` with a 360/desk/table goal and `source=`, then `video_rev
 
 ## Still / Image Editing
 
-Kinocut treats multi-still packages as first-class media — plan → receipt → fail-closed gate, same safety posture as video rescue. Requires `pip install "kinocut[image]"`; run `kino doctor` to verify the image stack.
+Kinocut treats multi-still packages as first-class media — plan → receipt → fail-closed gate, same safety posture as video rescue. Requires `pip install "kinocut[image]==1.16.5"`; run `kino doctor` to verify the image stack.
 
 **Workflow:** establish a hero plate → edit beats toward it → match shared WB/exposure → grade (optional signal LUT) → cohesion gate.
 
@@ -439,14 +440,14 @@ The core install covers all FFmpeg editing tools. Optional features ship as extr
 
 | You want | Install | Approx. extra size |
 |---|---|---|
-| Speech-to-text subtitles (Whisper) | `pip install "kinocut[transcribe]"` | ~1 GB (torch) |
-| Image analysis (colors, layout, contrast) | `pip install "kinocut[image]"` | ~50 MB |
-| Vocal/instrument stem separation | `pip install "kinocut[stems]"` | ~2 GB (torch + demucs) |
-| AI upscaling | `pip install "kinocut[upscale]"` | ~2 GB (Python ≤3.12) |
-| Procedural audio/music tools | `pip install "kinocut[audio]"` | ~30 MB (numpy) |
-| Everything AI | `pip install "kinocut[ai]"` | several GB |
+| Speech-to-text subtitles (Whisper) | `pip install "kinocut[transcribe]==1.16.5"` | ~1 GB (torch) |
+| Image analysis (colors, layout, contrast) | `pip install "kinocut[image]==1.16.5"` | ~50 MB |
+| Vocal/instrument stem separation | `pip install "kinocut[stems]==1.16.5"` | ~2 GB (torch + demucs) |
+| AI upscaling | `pip install "kinocut[upscale]==1.16.5"` | ~2 GB (Python ≤3.12) |
+| Procedural audio/music tools | `pip install "kinocut[audio]==1.16.5"` | ~30 MB (numpy) |
+| Everything AI | `pip install "kinocut[ai]==1.16.5"` | several GB |
 
-Mix freely, e.g. `pip install "kinocut[transcribe,image]"`. Run `kino doctor` afterward — it reports exactly which features are available and what is missing.
+Mix freely, e.g. `pip install "kinocut[transcribe,image]==1.16.5"`. Run `kino doctor` afterward — it reports exactly which features are available and what is missing.
 
 ### Upgrading from mcp-video
 
@@ -511,8 +512,8 @@ Shareable pack (receipt + quality + media): `python scripts/generate_golden_pack
 From a clone of this repo, run the smallest confidence workflow before wiring an agent host:
 
 ```bash
-uv run --no-project --with kinocut python workflows/05-confidence-baseline/workflow.py
-uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut==1.16.5 python workflows/05-confidence-baseline/workflow.py
+uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The workflow generates a tiny source clip, creates a checked vertical video, runs quality/release checkpoint steps, and writes `workflows/05-confidence-baseline/output/video_receipt.json`.

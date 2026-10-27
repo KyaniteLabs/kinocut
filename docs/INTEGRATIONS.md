@@ -19,7 +19,7 @@ Add MCP server config:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -48,7 +48,7 @@ the appropriate settings file (project `.gemini/settings.json` or user
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"],
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"],
       "trust": false
     }
   }
@@ -58,7 +58,7 @@ the appropriate settings file (project `.gemini/settings.json` or user
 Alternatively, use the current Gemini CLI's project-scoped configuration command:
 
 ```bash
-gemini mcp add --scope project kinocut uvx -- --from kinocut kino --mcp
+gemini mcp add --scope project kinocut uvx -- --from kinocut==1.16.5 kino --mcp
 gemini mcp list
 ```
 
@@ -92,7 +92,7 @@ configuration is sufficient for the direct stdio integrations above.
 ## Python automation / CI
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 python -c "from kinocut import Client; print(Client().info('clip.mp4'))"
 ```
 
