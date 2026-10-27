@@ -188,7 +188,7 @@ def _raw_rational_rate(value: object) -> str | None:
     return value if usable else None
 
 
-def _exact_stream_fields(video_stream: dict) -> dict[str, object]:
+def _exact_stream_fields(video_stream: dict) -> dict[str, Any]:
     """Exact facts taken from ffprobe's video stream entry; unmeasured values stay ``None``."""
     frame_count: int | None = None
     raw_count = video_stream.get("nb_read_frames")

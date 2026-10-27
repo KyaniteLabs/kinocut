@@ -29,11 +29,11 @@ def test_stale_ml_manifest_raises_structured_validation_error(audit, tmp_path, m
     monkeypatch.setattr(audit, "ML_FUNCTIONS", {"module.py": {"removed_function"}})
     with pytest.raises(MCPVideoError) as failure:
         audit.python_units("module.py", set(), set())
-    assert failure.value.to_dict() == {
-        "type": "validation_error",
-        "code": "stale_audit_manifest",
-        "message": "Audit manifest stale for module.py: ['removed_function']",
-    }
+    payload = failure.value.to_dict()
+    assert payload["type"] == "validation_error"
+    assert payload["code"] == "stale_audit_manifest"
+    # Serialized errors always teach the retry path (QoL item 2).
+    assert payload["message"].startswith("Audit manifest stale for module.py: ['removed_function']; retry with ")
 
 
 @pytest.mark.parametrize("baseline", [False, True])

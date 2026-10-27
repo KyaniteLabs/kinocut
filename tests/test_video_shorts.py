@@ -68,4 +68,3 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 def test_video_shorts_rejects_bad_segment_range():
     with pytest.raises(MCPVideoError, match="end must be greater than start"):
         shorts_flow.video_shorts("source.mp4", [{"start": 2, "end": 1}])
-

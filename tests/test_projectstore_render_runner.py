@@ -257,7 +257,10 @@ def test_run_job_structured_error_marks_bounded_failed(tmp_path, monkeypatch):
     assert render_runner.run_job(project, job.job_id) == "failed"
     head = get_render_job(project, job.job_id)
     assert head.status.value == "failed"
-    assert head.error_code == "bad_source" and head.error_message == "missing file"
+    # Job records serialize through MCPVideoError.to_dict, so they carry the
+    # retry teaching suffix (QoL item 2); the raw diagnostic stays the prefix.
+    assert head.error_code == "bad_source"
+    assert head.error_message.startswith("missing file; retry with ")
 
 
 def test_run_job_cooperative_pre_start_cancel_skips_render(tmp_path, monkeypatch):
