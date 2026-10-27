@@ -17,7 +17,7 @@ the upgrade. Older installer records can remove the shared executable even when
 
 ```bash
 python -m pip install --upgrade 'mcp-video==1.6.20'
-python -m pip install --force-reinstall --no-deps 'kinocut==1.16.4'
+python -m pip install --force-reinstall --no-deps 'kinocut==1.16.5'
 python -m pip check
 kino --version
 kinocut --version

@@ -1,7 +1,7 @@
 {
   "name": "kinocut",
   "displayName": "Kinocut",
-  "version": "1.16.7",
+  "version": "1.16.8",
   "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.",
   "author": {
     "name": "Kyanite Labs",

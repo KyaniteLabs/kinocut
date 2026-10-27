@@ -5,7 +5,7 @@ This document is the short, explicit discovery map for agents, answer engines, a
 ## Canonical Positioning
 
 `Kinocut` is an open-source MCP server, Python library, and CLI for video editing
-and video creation workflows. Published 1.16.4 provides **203 MCP tools / 177 CLI commands**. Development-tip: **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all` (default registration is 20). It
+and video creation workflows. Published 1.16.5 provides **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is a curated 20-tool core. It
 wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
 inspection, durable edit projects, a resumable workflow engine, reviewed semantic
 selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
@@ -124,7 +124,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 
 High-leverage listing targets:
 
-- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - `tech.kyanitelabs/kinocut` reports published 1.16.4 as a local stdio package (verified 2026-10-24).
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - `tech.kyanitelabs/kinocut` reports published 1.16.5 as a local stdio package (verified 2026-10-27).
 - [Directory rebrand status](DIRECTORY_REBRAND_STATUS.md) - live reconciliation ledger for stale former-name listings and downstream mirrors.
 - [Glama MCP Registry](https://glama.ai/mcp/servers) — Submit via GitHub repo URL.
 - [Smithery](https://smithery.ai) — Submit via GitHub repo URL once the official registry and Glama listings are fresh.

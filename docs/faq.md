@@ -10,9 +10,9 @@ MCP (Model Context Protocol) is a standard protocol that lets AI agents like Cla
 
 ## Is Kinocut on the MCP Registry?
 
-Current maintenance publication (2026-10-24): PyPI/npm, GitHub release and the official MCP Registry report **1.16.4**; compatibility shim **1.6.19** pins it. Previous checkpoint (2026-10-05): PyPI/npm and GitHub release report **1.16.1**; compatibility shim **1.6.16** pins it. The initial publication gate read MCP Registry 1.16.1; later reads timed out. Website 1.16.1 source is prepared, not deployed. The dated checkpoint below remains historical.
+Current maintenance publication (2026-10-27): PyPI/npm, GitHub release and the official MCP Registry report **1.16.5**; compatibility shim **1.6.20** pins it. Previous checkpoint (2026-10-05): PyPI/npm and GitHub release report **1.16.1**; compatibility shim **1.6.16** pins it. The initial publication gate read MCP Registry 1.16.1; later reads timed out. Website 1.16.1 source is prepared, not deployed. The dated checkpoint below remains historical.
 
-Kinocut's current identifier is `tech.kyanitelabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest), PyPI, npm and GitHub release report 1.16.4 (verified 2026-10-24); compatibility package `mcp-video==1.6.19` pins `kinocut==1.16.4`. The [live website](https://kinocut.dev/) showed 1.16.0, 203 MCP tools and 177 CLI commands on 2026-10-05; that historical site check does not establish current deployment. Final owner acceptance and fleet rollout remain separately unverified. Forgejo is the canonical source; GitHub carries public collaboration and releases.
+Kinocut's current identifier is `tech.kyanitelabs/kinocut`, with release metadata in `server.json`. The [official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest), PyPI, npm and GitHub release report 1.16.5 (verified 2026-10-27); compatibility package `mcp-video==1.6.20` pins `kinocut==1.16.5`. The [live website](https://kinocut.dev/) showed 1.16.0, 203 MCP tools and 177 CLI commands on 2026-10-05; that historical site check does not establish current deployment. Final owner acceptance and fleet rollout remain separately unverified. Forgejo is the canonical source; GitHub carries public collaboration and releases.
 
 ## Which AI agents work with Kinocut?
 
@@ -78,7 +78,7 @@ Kinocut covers Meta / Discovery, Cinematic Creation, Core Editing, AI-Powered me
 
 ## Can it edit Insta360 X4 360 video?
 
-Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.16.4`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+Yes — from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360/desk/table goal (or `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve, then render split / switch / PiP / single. There is no extra MCP tool name. This is available in the published `kinocut==1.16.5`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## What are the cinematic creation tools?
 
@@ -90,7 +90,7 @@ Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection
 
 ## Can I cut a product out of a turntable or tabletop video?
 
-Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.16.4** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.16.5** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 
 ## Is it free?
 

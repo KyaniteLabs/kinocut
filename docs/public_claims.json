@@ -6,10 +6,10 @@
     "kinocut",
     "mcp-video"
   ],
-  "published_version": "1.16.4",
-  "published_date": "2026-10-24",
+  "published_version": "1.16.5",
+  "published_date": "2026-10-27",
   "release_candidate_version": "1.16.5",
-  "published_mcp_tools": 203,
+  "published_mcp_tools": 205,
   "published_cli_commands": 177,
   "development_mcp_tools": 205,
   "development_default_mcp_tools": 20,
@@ -22,6 +22,7 @@
   "license": "Apache-2.0",
   "formerly": "mcp-video",
   "notes": [
+    "Release verification 2026-10-27: PyPI kinocut 1.16.5, npm kinocut 1.16.5, GitHub release v1.16.5 and the official MCP Registry tech.kyanitelabs/kinocut 1.16.5 are verified. PyPI mcp-video 1.6.20 pins kinocut==1.16.5; fresh `uvx kinocut==1.16.5 --version` and `uvx --from mcp-video==1.6.20 kinocut --version` both report Kinocut 1.16.5. Package publication does not establish site deployment, optional model, desktop, fleet, directory listing or final owner acceptance.",
     "Release verification 2026-10-24: PyPI kinocut 1.16.4, npm kinocut 1.16.4, GitHub release v1.16.4 and the official MCP Registry tech.kyanitelabs/kinocut 1.16.4 are verified. PyPI mcp-video 1.6.19 and its MCP Registry entry pin kinocut==1.16.4. All 672 published runtime payload files match the reviewed build; a fresh Python 3.14 install passed rendering, explicit overwrite consent, protected paths, MCP context, default-off vision and Hyperframes child privacy checks. Package publication does not establish site deployment, optional model, desktop, fleet, directory listing or final owner acceptance.",
     "Release verification 2026-10-23: PyPI kinocut, npm kinocut, GitHub release v1.16.3 and the official MCP Registry tech.kyanitelabs/kinocut report 1.16.3. PyPI mcp-video 1.6.18 pins kinocut==1.16.3. The published wheel matches the reviewed runtime payload, and a fresh Python 3.14 install passed rendering, explicit overwrite consent, protected-path and MCP-context checks. Package publication does not establish site deployment, optional model, desktop, fleet, directory listing or final owner acceptance.",
     "Release verification 2026-10-21: PyPI kinocut and npm kinocut publicly report 1.16.2; PyPI mcp-video 1.6.17 pins kinocut==1.16.2. GitHub release v1.16.2 targets master. The official MCP Registry reports tech.kyanitelabs/kinocut 1.16.2 as the local pypi kinocut stdio package with no hosted remote. These publication facts do not establish optional model, desktop, fleet or final owner acceptance.",

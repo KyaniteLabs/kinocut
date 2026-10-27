@@ -1,6 +1,6 @@
 # Kinocut now
 
-**Safety release (2026-10-24):** Runtime 1.16.4 is published and verified across PyPI, npm, GitHub releases and the official MCP Registry. This plugin bundle update is version 1.16.7 and pins runtime 1.16.4. Hermes catalog review, site deployment, fleet rollout and final owner acceptance remain separate.
+**November release (2026-10-27):** Runtime 1.16.5 is published and verified across PyPI, npm, GitHub releases and the official MCP Registry. This plugin bundle update is version 1.16.8 and pins runtime 1.16.5. Hermes catalog review, site deployment, fleet rollout and final owner acceptance remain separate.
 
 GitHub backlog review and local fixes: [September 30 report](../research/github-backlog/2026-09-30/REPORT.md).
 
@@ -25,9 +25,9 @@ architecture and acceptance work is tracked in the
 [debt closure ledger](../research/DEBT_CLOSURE.md); separate checkpoint results there are
 separate from the merged audit's evidence.
 
-**Published:** 1.16.4 · **203 MCP / 177 CLI** · 2026-10-24 · `docs/public_claims.json`. PyPI/npm, GitHub release `v1.16.4` and the official MCP Registry (local `uvx kinocut` stdio package) report 1.16.4; shim 1.6.19 pins it.
+**Published:** 1.16.5 · **20 default / 205 full MCP / 177 CLI** · 2026-10-27 · `docs/public_claims.json`. PyPI/npm, GitHub release `v1.16.5` and the official MCP Registry (local `uvx kinocut` stdio package) report 1.16.5; shim 1.6.20 pins it.
 
-**Development candidate:** 1.16.5 · **205 MCP / 177 CLI** (development-tip: `KINOCUT_TOOLS=all` served 205; default MCP registration is 20; published 1.16.4 still serves 203). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Development candidate:** 1.16.5 · **20 default / 205 full MCP / 177 CLI** (published and development checkout match at the 2026-10-27 cutover). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;

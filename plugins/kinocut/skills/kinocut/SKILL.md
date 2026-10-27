@@ -7,7 +7,7 @@ description: Use when an agent must edit local video safely. Kinocut guards plan
 
 Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. It exposes MCP tools, a Python client, and a CLI for editing, analysis, subtitles, audio, Hyperframes, layered compositing, and local repurposing workflows.
 
-Published 1.16.4 and the matching development checkout have 203 MCP tools / 177 CLI commands; inspect the installed schemas before using development additions.
+Published 1.16.5 serves 205 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`; the default registration is a curated 20-tool core. Inspect the installed schemas before using additions.
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
 work is described in `docs/PLATFORM_PARITY.md`.
@@ -24,7 +24,7 @@ Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`
 
 Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
 
-## Vision review and network permission (1.16.4)
+## Vision review and network permission (1.16.5)
 
 Keep `KINOCUT_VISION_MODE=off` (the default). Prepare images with `video_thumbnail`
 or `video_qc_vision`, then use the host's configured vision model to inspect them.
@@ -37,7 +37,7 @@ The optional legacy product adapter requires explicit operator `local` or
 `remote` mode and speaks the Anthropic-compatible Messages protocol. Local mode
 requires a loopback endpoint and never enables the separate fixed cloud QC
 worker. Credentials and tool arguments cannot override `off`. See
-[the vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v1.16.4/docs/VISION_PRIVACY.md) before enabling either adapter.
+[the vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v1.16.5/docs/VISION_PRIVACY.md) before enabling either adapter.
 
 Hyperframes telemetry and passive update checks default off. Kinocut removes known
 provider credentials from its child environment and disables implicit capture/snapshot
@@ -46,7 +46,7 @@ Docker rendering and other preview versions require explicit operator telemetry 
 do not enable consent on the operator's behalf. These controls do not sandbox project
 assets or requested network access. See the vision/network policy for the limits.
 
-## Revideo local code-video flow (published 1.16.4)
+## Revideo local code-video flow (published 1.16.5)
 
 Use `revideo_materialize`, `revideo_install`, and `revideo_render` when the
 caller needs an inspectable staged project. Use `revideo_render_job` for the
@@ -79,7 +79,7 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
 4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
 
-There is no `video_360_*` MCP tool and no `kino 360` command. In published 1.16.4, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
+There is no `video_360_*` MCP tool and no `kino 360` command. In published 1.16.5, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
 also proposes a nested `sphere_plan`. Save that plan as its own JSON artifact;
 after actual human review, `kino review-decide PLAN.json accept --output OUTPUT`
 approves and renders it. `reject` never renders; changed source identity blocks
@@ -87,7 +87,7 @@ rendering. Director hooks accept an injected JSON proposer; a configured model
 name alone does not execute a model. Cloud proposals require `allow_cloud`;
 directors never write pixels.
 
-## Published 1.16.4 operator parity
+## Published 1.16.5 operator parity
 
 - Timed audio: `video_mix_audio`, CLI `mix-audio --sounds JSON`, and
   `Client.mix_audio` use one AAC encode and copy the picture. Gains can clip;
@@ -107,12 +107,12 @@ directors never write pixels.
   `Client.estimate_operation` return local heuristics, dimensionless cost units,
   and no billing currency. Do not present them as measured cloud latency/cost.
 
-## Product / object matte (published in 1.15.1; current in 1.16.4)
+## Product / object matte (published in 1.15.1; current in 1.16.5)
 
-The optional object-matte extra is available in published 1.16.4. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+The optional object-matte extra is available in published 1.16.5. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
-2. The optional extra belongs in the server's uvx arguments, pinned to the same version as `mcp.json`: replace its `kinocut==1.16.4` argument with `kinocut[object-matte]==1.16.4`. Installing the extra in a separate Python environment does not affect the uvx server. Have the operator configure this extra before using `model="birefnet-general"`.
+2. The optional extra belongs in the server's uvx arguments, pinned to the same version as `mcp.json`: replace its `kinocut==1.16.5` argument with `kinocut[object-matte]==1.16.5`. Installing the extra in a separate Python environment does not affect the uvx server. Have the operator configure this extra before using `model="birefnet-general"`.
 3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
 4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
 

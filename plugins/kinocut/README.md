@@ -6,7 +6,7 @@ Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
 server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
 Plugin bundle **1.16.7** pins the separately versioned Kinocut runtime
-**1.16.4**. The legacy `mcp-video` compatibility package **1.6.19** installs
+**1.16.5**. The legacy `mcp-video` compatibility package **1.6.20** installs
 that same runtime. Catalog entries use the bundle version; launchers use the
 runtime version.
 
@@ -46,7 +46,7 @@ the Anthropic-compatible Messages protocol. Local mode requires a loopback endpo
 has no cloud fallback and cannot activate the separate Anthropic QC worker.
 Missing model support must be reported as unavailable; host observations do not
 turn an unevaluated Kinocut assessment into a scored pass. See the
-[vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v1.16.4/docs/VISION_PRIVACY.md) for configuration and limits.
+[vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v1.16.5/docs/VISION_PRIVACY.md) for configuration and limits.
 
 Prefer new output paths. Never target credentials, session files or agent
 configuration directories.
@@ -57,11 +57,11 @@ configuration directories.
 - FFmpeg and ffprobe on `PATH`
 - Python 3.11 or newer (uv installs it if needed)
 
-Check your setup with `uvx kinocut==1.16.4 doctor`.
+Check your setup with `uvx kinocut==1.16.5 doctor`.
 
 ## Claude installation
 
-Claude Code and Cowork run the pinned `uvx kinocut==1.16.4` launcher.
+Claude Code and Cowork run the pinned `uvx kinocut==1.16.5` launcher.
 The Python project and `uv.lock` in the repository's `packaging/claude-plugin/`
 directory record exact core dependency versions, public PyPI sources and artifact
 hashes for directory review. They live outside this folder, so hosts that read a
@@ -76,7 +76,7 @@ snapshot. uv caches the environment outside the installed plugin files.
 The first launch downloads the dependencies from PyPI. Later launches
 reuse that environment. This does not bundle FFmpeg or optional AI packages.
 Cursor, MiniMax, Kimi and Agent Plugins hosts retain the pinned
-`uvx kinocut==1.16.4` launcher below.
+`uvx kinocut==1.16.5` launcher below.
 
 Claude's directory still requires manual review for registry package launchers,
 including locked ones. The lock documents a dependency snapshot; it does not guarantee
@@ -104,7 +104,7 @@ Clients can also use the pinned configuration directly:
 ```json
 {
   "mcpServers": {
-    "kinocut": { "command": "uvx", "args": ["kinocut==1.16.4"] }
+    "kinocut": { "command": "uvx", "args": ["kinocut==1.16.5"] }
   }
 }
 ```
@@ -119,7 +119,7 @@ goes in `mcp_servers` in your Hermes `config.yaml`:
 mcp_servers:
   kinocut:
     command: uvx
-    args: ["kinocut==1.16.4"]
+    args: ["kinocut==1.16.5"]
     tools:
       include: [search_tools, video_info, video_trim, video_thumbnail]
       resources: false

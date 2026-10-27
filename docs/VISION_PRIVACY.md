@@ -1,6 +1,6 @@
 # Vision and network controls
 
-Kinocut 1.16.4 disables its optional model calls by default. An inherited API key,
+Kinocut 1.16.5 disables its optional model calls by default. An inherited API key,
 `use_ai=true`, a model name, or `require_vlm=true` does not grant permission to
 send frames. Local FFmpeg color grading does not call a model.
 

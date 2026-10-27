@@ -13,16 +13,16 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Last verified publication checkpoint:** 1.16.4 (2026-10-24); consult the official registries for the latest version.
+- **Last verified publication checkpoint:** 1.16.5 (2026-10-27); consult the official registries for the latest version.
 - **Last-updated:** 2026-10-27
-- **Published surface (1.16.4 served):** 203 MCP tools / 177 CLI commands
+- **Published surface (1.16.5):** 205 MCP tools / 177 CLI commands
 - **Development-tip:** 20 default MCP tools; `KINOCUT_TOOLS=all` serves 205 MCP tools / 177 CLI commands; `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `tech.kyanitelabs/kinocut`
 - **Product site:** https://kinocut.dev/
 - **Historical live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
-- **Maintenance publication (2026-10-24):** PyPI/npm, GitHub release `v1.16.4` and the official MCP Registry report 1.16.4; shim 1.6.19 pins it. The registry entry is the local `uvx kinocut` stdio package (no hosted remote).
+- **Maintenance publication (2026-10-27):** PyPI/npm, GitHub release `v1.16.5` and the official MCP Registry report 1.16.5; shim 1.6.20 pins it. The registry entry is the local `uvx kinocut` stdio package (no hosted remote).
 - **Maintenance publication (2026-10-05):** PyPI/npm and GitHub release report 1.16.1; shim 1.6.16 pins it. The initial publication gate read canonical MCP Registry 1.16.1; later reads timed out. Live site last verified at 1.16.0; prepared 1.16.1 source is not deployed.
 - **Release identity checkpoint (2026-10-02):** PyPI/npm/GitHub release/canonical MCP Registry report 1.16.0; shim 1.6.15 metadata pins kinocut1.16.0. The live site was verified at 1.16.0 on 2026-10-05. Fleet work and final owner acceptance remain separate. Product source of truth is GitHub.
 - **Not:** hosted cloud editor, credit-metered SaaS, untyped FFmpeg shell wrapper
@@ -59,13 +59,13 @@ Use `video_info` / `kino info`, then `video_doctor` / `kino doctor`, then `searc
 Compatibility:
 
 ```bash
-pip install --upgrade 'mcp-video==1.6.19'   # published 1.6.19 shim → kinocut 1.16.4
-pip install --force-reinstall --no-deps 'kinocut==1.16.4'
+pip install --upgrade 'mcp-video==1.6.20'   # published 1.6.20 shim → kinocut 1.16.5
+pip install --force-reinstall --no-deps 'kinocut==1.16.5'
 ```
 
-Publication checkpoint: 1.6.19 shim → kinocut 1.16.4. Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
+Publication checkpoint: 1.6.20 shim → kinocut 1.16.5. Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
 
-The published compatibility shim is 1.6.19. Compatibility names are preserved;
+The published compatibility shim is 1.6.20. Compatibility names are preserved;
 new integrations should use kinocut, kino and `from kinocut import Client`.
 
 Published identity is maintained in `docs/public_claims.json`.
@@ -166,4 +166,4 @@ video editing MCP server, guardrailed video editing MCP server, AI agent video e
 - Enterprise: docs/ENTERPRISE.md
 - Rename: docs/RENAME.md
 
-Prepared development candidate: 1.6.20 shim → kinocut 1.16.5 (not yet published).
+Publication checkpoint 2026-10-27: 1.6.20 shim → kinocut 1.16.5 (published and verified).

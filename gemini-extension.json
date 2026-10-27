@@ -1,12 +1,12 @@
 {
   "name": "kinocut",
-  "version": "1.16.4",
+  "version": "1.16.5",
   "description": "Guardrailed local video editing: trim, caption, reformat for Shorts and check quality with FFmpeg on your own machine.",
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
       "args": [
-        "kinocut==1.16.4"
+        "kinocut==1.16.5"
       ]
     }
   }

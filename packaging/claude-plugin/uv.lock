@@ -308,7 +308,7 @@ wheels = [
 
 [[package]]
 name = "kinocut"
-version = "1.16.4"
+version = "1.16.5"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "anyio" },
@@ -322,9 +322,9 @@ dependencies = [
     { name = "rich" },
     { name = "starlette" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/a5/92/8964e923d78dc1d0cdc5dbb338aba509c3a2ce9ad66564d30d6029510d8a/kinocut-1.16.4.tar.gz", hash = "sha256:f2424a9a148f5f0046ed29d9db98f10961b97fda102aac0d85c36812fe14777a", size = 1520470, upload-time = "2026-10-24T02:09:50.569Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/d2/4e/54d3e5383cc9276dc9a8b53b226f84e74ea8a0778f0db7a2f18c3d39086d/kinocut-1.16.5.tar.gz", hash = "sha256:0fb4a6c9f71520d765f17a97a32920cf51ea615ddc30fea61d4ae9407fe3b03a", size = 1529488, upload-time = "2026-10-27T18:02:30.335Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/10/9b/9f3b3e0c7a9c776dcbb178a5b8b72c3cce725d07e5f81536ba61a96a3903/kinocut-1.16.4-py3-none-any.whl", hash = "sha256:93674b38d1e616a1d69714fbb99f10b2d339f69df7ba796f54690afd83d2c189", size = 1446449, upload-time = "2026-10-24T02:09:47.382Z" },
+    { url = "https://files.pythonhosted.org/packages/87/70/5f4cd390e9b2740d429b2ae2b9e2970723dafe1932029f31a27f1e7fe0be/kinocut-1.16.5-py3-none-any.whl", hash = "sha256:6178deaaa9a1af941b3cf0d1f4370ab5da9758e38f09feec6e07a0296eb72909", size = 1455929, upload-time = "2026-10-27T18:02:26.548Z" },
 ]
 
 [[package]]
@@ -336,7 +336,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "kinocut", specifier = "==1.16.4" }]
+requires-dist = [{ name = "kinocut", specifier = "==1.16.5" }]
 
 [[package]]
 name = "markdown-it-py"

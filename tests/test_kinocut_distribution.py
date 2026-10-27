@@ -22,7 +22,7 @@ ROOT = Path(__file__).resolve().parents[1]
 KINOCUT_VERSION = "1.16.5"
 # Marketplace bundles consume the published registry release independently of
 # this checkout's product version; reconciliation must preserve canonical code.
-PLUGIN_RUNTIME_VERSION = "1.16.4"
+PLUGIN_RUNTIME_VERSION = "1.16.5"
 SHIM_VERSION = "1.6.20"
 
 

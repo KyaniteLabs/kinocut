@@ -1,8 +1,8 @@
 # Improvement Roadmap
 
-Kinocut 1.16.4 is published with 203 MCP tools and 177 CLI commands (`mcp-video` 1.6.19 shim).
+Kinocut 1.16.5 is published with 205 MCP tools (20-tool curated default; `KINOCUT_TOOLS=all`) and 177 CLI commands (`mcp-video` 1.6.20 shim).
 
-**Published product:** Kinocut **1.16.4** (2026-10-24) · **203 MCP / 177 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
+**Published product:** Kinocut **1.16.5** (2026-10-27) · **20 default / 205 full MCP / 177 CLI** · living snapshot [`docs/status/NOW.md`](docs/status/NOW.md)
 **Canonical claims:** [`docs/public_claims.json`](docs/public_claims.json)  
 **Human-only residuals:** [`docs/HUMAN_GATES.md`](docs/HUMAN_GATES.md)  
 **Residual portfolio (living truth):** [`docs/status/2026-08-12-residual-maturity-matrix.md`](docs/status/2026-08-12-residual-maturity-matrix.md) · [sound residual DAG](docs/status/2026-08-12-sound-residual-stage-dag.md) · [fixture freeze](docs/status/2026-08-12-sound-fixture-freeze.md) · [L1 truth pass](docs/status/2026-08-12-l1-truth-pass.md) · [phase checkpoints](docs/status/PHASE_CHECKPOINTS.md)  

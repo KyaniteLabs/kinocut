@@ -40,10 +40,10 @@ or invalid icon entries. These checks do not establish visual approval or Deskto
 acceptance; the staged publication gates below still apply.
 
 ```text
-dist/kinocut-1.16.4.mcpb
+dist/kinocut-1.16.5.mcpb
 ```
 
-The matching package-version reference is `dist/kinocut-1.16.4.mcpb`. The bundle remains unsigned and gated: package publication is not public distribution or Desktop install acceptance. Preserve the historical `dist/kinocut-1.15.3.mcpb` with its matching runtime; never pair an archive with a different installed runtime.
+The matching package-version reference is `dist/kinocut-1.16.5.mcpb`. The bundle remains unsigned and gated: package publication is not public distribution or Desktop install acceptance. Preserve the historical `dist/kinocut-1.15.3.mcpb` with its matching runtime; never pair an archive with a different installed runtime.
 
 Focused validation:
 

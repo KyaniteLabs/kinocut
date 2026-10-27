@@ -1,6 +1,6 @@
 {
   "name": "kinocut",
-  "version": "1.16.7",
+  "version": "1.16.8",
   "description": "Guarded local video editing with FFmpeg, an MCP server, and two workflow skills.",
   "author": {
     "name": "Kyanite Labs"

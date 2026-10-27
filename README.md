@@ -19,8 +19,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-203%20tools-orange.svg" alt="203 MCP tools served in published 1.16.4">
-  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands in published 1.16.4">
+  <img src="https://img.shields.io/badge/MCP-205%20tools-orange.svg" alt="205 MCP tools served in published 1.16.5">
+  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands in published 1.16.5">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -28,9 +28,9 @@
 <p align="center">
   <a href="#see-it-work">Demo</a> &bull;
   <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1164">1.16.4</a> &bull; <a href="#whats-in-1163">1.16.3</a> &bull; <a href="#whats-in-1162">1.16.2</a> &bull; <a href="#whats-in-1161">1.16.1</a> &bull;
+  <a href="#whats-in-1165">1.16.5</a> &bull; <a href="#whats-in-1164">1.16.4</a> &bull; <a href="#whats-in-1163">1.16.3</a> &bull; <a href="#whats-in-1162">1.16.2</a> &bull; <a href="#whats-in-1161">1.16.1</a> &bull;
   <a href="#changelog">Changelog</a> &bull;
-  <a href="#beyond-1164-draft--gated">Beyond</a> &bull;
+  <a href="#beyond-1165-draft--gated">Beyond</a> &bull;
   <a href="#installation">Install</a> &bull;
   <a href="#quick-start">Quick Start</a> &bull;
   <a href="#mcp-tools">Tools</a> &bull;
@@ -125,12 +125,16 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm checkpoint** | **[1.16.4](https://pypi.org/project/kinocut/1.16.4/)** (2026-10-24) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
-| **GitHub latest release / MCP Registry** | **1.16.4** | GitHub release `v1.16.4` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.4 (verified 2026-10-24). Final owner acceptance and fleet rollout remain separate. |
-| **This source version** | **1.16.5 candidate** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Candidate `mcp-video==1.6.20` pins this runtime; publication is tracked separately in `docs/public_claims.json`. |
+| **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
+| **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
+| **This source version** | **1.16.5 published** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Published `mcp-video==1.6.20` pins this runtime; verification is recorded in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
+
+## What's in 1.16.5
+
+Published 2026-10-27: a curated **20-tool default MCP registration** with `KINOCUT_TOOLS=all` restoring the full **205 MCP tools / 177 CLI commands**; retry-aware eyes-free error payloads, the one-call `video_shorts` flow, the read-only `video_doctor` preflight and lazy startup. Opt-in exact probe reports decoded frame counts and raw rational frame rates. `mcp-video==1.6.20` installs `kinocut==1.16.5`. Apache-2.0 §4(a): the license text now ships in the npm tarball and the `mcp-video` compatibility package. See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.5).
 
 ## What's in 1.16.4
 
@@ -185,18 +189,18 @@ Also already on the published line from 1.13.x:
 - Agent **workflow engine**, dedicated **video rescue**, **layered compositing**, Hyperframes, Shorts/Reels repurposing
 - **Counts at the 1.15.0 release** — **196 MCP tools** and **167 CLI commands**
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [1.16.4 on PyPI](https://pypi.org/project/kinocut/1.16.4/)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [1.16.5 on PyPI](https://pypi.org/project/kinocut/1.16.5/)
 
 Published quality and plain-file audio contracts are documented in
 [quality evidence](docs/QUALITY_EVIDENCE.md), [audio mixing](docs/AUDIO_MIXING.md) and
 [projectstore lifecycle](docs/PROJECTSTORE_LIFECYCLE.md). See [Unreleased](CHANGELOG.md)
 for future local changes beyond the published package.
 
-## Beyond 1.16.4 (draft / gated)
+## Beyond 1.16.5 (draft / gated)
 
-The published compatibility installer `mcp-video==1.6.19` pins `kinocut==1.16.4`. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
+The published compatibility installer `mcp-video==1.6.20` pins `kinocut==1.16.5`. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
 
-The 2026-10-24 publication checkpoint is **1.16.4**. Draft/gated work stays out of release claims until publication is verified. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
+The 2026-10-27 publication checkpoint is **1.16.5**. Draft/gated work stays out of release claims until publication is verified. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
 
 ### Staged and Gated Surfaces
 
@@ -206,7 +210,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
 - **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Generative Plans and Local Caption Speech:** Generative spend-cap and legacy TTS candidate records remain non-executable plans. An installed eSpeak NG engine can render real EN/ES stock caption speech through a hashed `sound_voice_batch` request and retain audio for mixing. [Caption speech](docs/SOUND_DUB_REQUESTS.md) does not translate text or promise neural voice quality. No generation adapter exists; credentials or discovery alone do not establish execution.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Available in published **1.16.4**, first shipped in 1.15.1 (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Available in published **1.16.5**, first shipped in 1.15.1 (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 
@@ -449,8 +453,8 @@ Mix freely, e.g. `pip install "kinocut[transcribe,image]"`. Run `kino doctor` af
 Kinocut preserves the original surface during the rename window. Existing installs can upgrade without changing code:
 
 ```bash
-pip install --upgrade 'mcp-video==1.6.19'
-pip install --force-reinstall --no-deps 'kinocut==1.16.4'
+pip install --upgrade 'mcp-video==1.6.20'
+pip install --force-reinstall --no-deps 'kinocut==1.16.5'
 mcp-video doctor
 ```
 
@@ -459,11 +463,11 @@ even when dependency checks pass. The canonical reinstall restores ownership;
 use the intended release pin and preserve configured extras in locked deployments.
 See [fleet migration instructions](docs/FLEET_UPGRADE.md) for the pinned sequence.
 
-Published `mcp-video==1.6.19` is a metadata-only compatibility installer for `kinocut==1.16.4`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
+Published `mcp-video==1.6.20` is a metadata-only compatibility installer for `kinocut==1.16.5`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.4** (`pip install kinocut`, **203 herramientas MCP / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.5** (`pip install kinocut`, **205 herramientas MCP con `KINOCUT_TOOLS=all`; 20 por defecto / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -606,7 +610,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-Published 1.16.4 serves **203 MCP tools / 177 CLI commands**. Development-tip (this unreleased QoL checkout): a curated **20-tool MCP core** and a **205-tool** catalog through `KINOCUT_TOOLS=all`; the CLI remains **177**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
+Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the editor profile. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -686,6 +690,9 @@ Safety contract:
 
 - [@Beritwu](https://github.com/Beritwu) — exact probe contribution in [#599](https://github.com/KyaniteLabs/kinocut/pull/599).
 - [@Mimatovitch](https://github.com/Mimatovitch) — macOS cleanup bug report in [#594](https://github.com/KyaniteLabs/kinocut/issues/594).
+
+**1.16.5** (2026-10-27):
+- Curated 20-tool default MCP registration; `KINOCUT_TOOLS=all` serves the full catalog — **205 MCP / 177 CLI**. Compatibility package `mcp-video==1.6.20` installs `kinocut==1.16.5`. Retry-aware errors, one-call shorts, `video_doctor` preflight, lazy startup, opt-in exact probe; Apache-2.0 license text shipped in all distributions.
 
 **1.16.4** (2026-10-24):
 
@@ -796,7 +803,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-Published 1.16.4 serves **203 MCP tools / 177 CLI commands** (`kino --mcp` tools/list). Development-tip (this unreleased QoL checkout): **20 MCP tools** by default, **205** with `KINOCUT_TOOLS=all`; the CLI has 177 commands. Query the installed server's tool schemas for exact parameters. `search_tools` discovers hidden operations.
+Published 1.16.5 serves **205 MCP tools / 177 CLI commands** (`kino --mcp` tools/list with `KINOCUT_TOOLS=all`); the default registration is a curated **20-tool core**. Query the installed server's tool schemas for exact parameters. `search_tools` discovers hidden operations.
 
 ### Can Kinocut edit Insta360 X4 360 video?
 
@@ -804,11 +811,11 @@ Yes — from a **stitched 360 MP4**, not `.insv`. Propose a `360_assembly_plan`,
 
 ### Was it called mcp-video?
 
-Yes. The current published `mcp-video==1.6.19` installs `kinocut==1.16.4`; the historical `mcp-video==1.6.11` installed `kinocut==1.15.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x+ line.
+Yes. The current published `mcp-video==1.6.20` installs `kinocut==1.16.5`; the previous `mcp-video==1.6.19` installed `kinocut==1.16.4`; the historical `mcp-video==1.6.11` installed `kinocut==1.15.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x+ line.
 
 ### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
 
-Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.16.4.
+Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.16.5.
 
 ### How is Kinocut different?
 
