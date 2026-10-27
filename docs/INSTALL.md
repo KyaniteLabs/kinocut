@@ -70,13 +70,13 @@ Native self-contained bundles are **not** published yet. See [MCPB.md](MCPB.md).
 
 | You want | Install | Notes |
 | --- | --- | --- |
-| Whisper transcription | `pip install "kinocut[transcribe]"` | Large (torch) |
-| Image analysis | `pip install "kinocut[image]"` | ~50 MB |
-| Stem separation | `pip install "kinocut[stems]"` | Large |
-| AI upscale | `pip install "kinocut[upscale]"` | Large; Python ≤3.12 often |
-| Product/object cutouts | `pip install "kinocut[object-matte]"` | ONNX Runtime; ~1 GB pinned weights on first use |
-| Procedural audio | `pip install "kinocut[audio]"` | numpy |
-| Everything AI | `pip install "kinocut[ai]"` | Several GB |
+| Whisper transcription | `pip install "kinocut[transcribe]==1.16.5"` | Large (torch) |
+| Image analysis | `pip install "kinocut[image]==1.16.5"` | ~50 MB |
+| Stem separation | `pip install "kinocut[stems]==1.16.5"` | Large |
+| AI upscale | `pip install "kinocut[upscale]==1.16.5"` | Large; Python ≤3.12 often |
+| Product/object cutouts | `pip install "kinocut[object-matte]==1.16.5"` | ONNX Runtime; ~1 GB pinned weights on first use |
+| Procedural audio | `pip install "kinocut[audio]==1.16.5"` | numpy |
+| Everything AI | `pip install "kinocut[ai]==1.16.5"` | Several GB |
 
 Core golden path **does not** require extras.
 

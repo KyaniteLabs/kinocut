@@ -17,22 +17,23 @@ def _message(**arguments) -> str:
 def test_retry_invocation_names_the_tool_and_the_submitted_arguments():
     message = _message(input_path="/tmp/a.mp4", start=0, end=2)
     assert "video_trim" in message
-    assert "input_path=/tmp/a.mp4" in message
-    assert "start=0" in message
-    assert "end=2" in message
+    assert "input_path" in message
+    assert "start" in message
+    assert "end" in message
 
 
-def test_retry_invocation_redacts_secret_looking_arguments():
+def test_retry_invocation_never_echoes_submitted_values():
+    """A validation error must not echo the value it just rejected."""
     message = _message(api_key="s3cret-value", target="youtube")
     assert "s3cret-value" not in message
-    assert "api_key=<redacted>" in message
-    assert "target=youtube" in message
+    assert "youtube" not in message
+    assert "api_key" in message
+    assert "target" in message
 
 
-def test_retry_invocation_truncates_long_values():
+def test_retry_invocation_does_not_echo_long_values():
     message = _message(prompt="x" * 500)
     assert "x" * 500 not in message
-    assert "..." in message
 
 
 def test_retry_invocation_stays_silent_without_a_context():

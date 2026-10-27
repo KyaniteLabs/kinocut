@@ -36,6 +36,11 @@ kino doctor
 Use these shipped surfaces only:
 
 - MCP: `video_repurpose_plan`, then `video_repurpose`.
+  **Prerequisite:** both are profile tools, not part of the default 20-tool
+  core. Start the server with `KINOCUT_TOOLS=profile:editor` (or `all`) and
+  restart it after changing the variable; `search_tools` finds their names but
+  does not register them. On the default surface, stop and report that the
+  repurpose tools are unavailable instead of retrying.
 - CLI: `repurpose-plan`, then `repurpose`.
 - Optional support tools when needed: `info`, `video-ai-transcribe`, `generate-subtitles`,
   `subtitles`, `resize`, `normalize-audio`, `thumbnail`, `storyboard`,

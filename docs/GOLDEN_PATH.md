@@ -23,7 +23,7 @@ python scripts/golden_path.py
 Or with uv / no editable install:
 
 ```bash
-uv run --no-project --with kinocut python scripts/golden_path.py
+uv run --no-project --with kinocut==1.16.5 python scripts/golden_path.py
 ```
 
 ## What you get

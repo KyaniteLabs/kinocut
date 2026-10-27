@@ -73,7 +73,7 @@ Kinocut's lockfile-pinned template; a custom scene is trusted executable TypeScr
 Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 Claude Desktop:

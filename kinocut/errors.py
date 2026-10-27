@@ -59,85 +59,70 @@ def _cli_tool_name(tool_name: str) -> str | None:
     return tool_name.replace("_", "-")
 
 
-# Argument names whose values must never be echoed back into an error message.
-_SECRET_ARGUMENT_MARKERS = (
-    "api_key",
-    "apikey",
-    "auth",
-    "bearer",
-    "cookie",
-    "credential",
-    "key",
-    "passwd",
-    "password",
-    "secret",
-    "session",
-    "token",
-)
-
-
-def _argument_hint(arguments: dict[str, Any]) -> str:
-    """Summarize the submitted arguments so a refusal names what was attempted.
+def _argument_names(arguments: dict[str, Any]) -> str:
+    """Name the arguments a failed call carried, without echoing their values.
 
     The retry context exists to make a refusal addressable — which tool, with
-    which inputs — and the stored arguments are what make it so. Secret-looking
-    values are redacted and every value is truncated: the hint identifies the
-    attempt, it does not echo the payload.
+    which inputs — and the stored arguments are what make it so: the operator
+    learns exactly which parameters the call carried, and therefore which one
+    to correct. The values are the caller's own input and can be hostile (a
+    validation error must not echo the value it just rejected), so only the
+    names are named.
     """
     if not arguments:
         return ""
-    parts: list[str] = []
-    for name in sorted(arguments):
-        lowered = name.lower()
-        if any(marker in lowered for marker in _SECRET_ARGUMENT_MARKERS):
-            rendered = "<redacted>"
-        else:
-            rendered = str(arguments[name])
-            if len(rendered) > 40:
-                rendered = rendered[:37] + "..."
-        parts.append(f"{name}={rendered}")
-    return " (submitted: " + ", ".join(parts) + ")"
+    return " (arguments: " + ", ".join(sorted(arguments)) + ")"
 
 
 def retry_message(message: str, code: str) -> str:
-    """Append an eyes-free MCP and CLI retry invocation to an error message."""
+    """Append an eyes-free MCP and CLI retry invocation to an error message.
+
+    Every refusal carries the same shape: the MCP call to make, the CLI
+    command to run, and the action that fixes it. When the retry context binds
+    a tool and its arguments, both halves name them — the tool, the CLI
+    command, and which arguments the call carried — so the refusal is
+    actionable rather than advisory. Without a context the generic tokens
+    stand on their own.
+    """
 
     context = _RETRY_CONTEXT.get()
     tool_name = context[0] if context else "the same tool"
-    cli_name = _cli_tool_name(tool_name) if context else "the same kino command"
-    submitted = _argument_hint(context[1]) if context else ""
+    cli_name = _cli_tool_name(tool_name) if context else None
+    submitted = _argument_names(context[1]) if context else ""
     if code in {"output_exists", "overwrite_refused"}:
-        invocation = "overwrite=true (MCP) / --overwrite (CLI)"
+        mcp_action, cli_action = "overwrite=true", "--overwrite"
     elif code in {"unsafe_path", "invalid_output_path"}:
-        invocation = "a new output_path (MCP) / --output <new-media-path> (CLI)"
+        mcp_action, cli_action = "a new output_path", "--output <new-media-path>"
     elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
         # NOTE (t_e3775201 F-INFO): no shipped code path raises
         # ``network_consent_required`` yet. Before any network-consent feature
         # lands, re-bind its hint to the actual consent env var of that feature;
         # ``KINOCUT_HYPERFRAMES_TELEMETRY`` only gates Hyperframes telemetry.
-        invocation = (
-            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino "
-            + (cli_name or "the matching command")
-            + " (CLI)"
-        )
+        mcp_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true"
+        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + (cli_name or "the matching command")
     elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
-        invocation = (
-            "install FFmpeg, then call "
-            + tool_name
-            + " (MCP) / install FFmpeg, then run kino "
-            + (cli_name or "the matching command")
-            + " (CLI)"
-        )
+        mcp_action = "install FFmpeg, then call " + tool_name
+        cli_action = "install FFmpeg, then run kino " + (cli_name or "the matching command")
+    else:
+        mcp_action, cli_action = f"corrected parameters{submitted}", "corrected flags"
+
+    if code in {
+        "hyperframes_telemetry_consent_required",
+        "network_consent_required",
+        "ffmpeg_not_found",
+        "ffprobe_not_found",
+    }:
+        invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
+    elif context is None:
+        # No tool bound: the tokens have to carry the refusal by themselves.
+        invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
     elif cli_name is None:
         invocation = (
-            f"call {tool_name} with corrected parameters{submitted} (MCP) / no single-command CLI equivalent "
+            f"call {tool_name} with {mcp_action} (MCP) / no single-command CLI equivalent "
             "(run kino --help to browse related commands) (CLI)"
         )
     else:
-        invocation = (
-            f"call {tool_name} with corrected parameters{submitted} (MCP) / "
-            f"run kino {cli_name} with the same arguments (CLI)"
-        )
+        invocation = f"call {tool_name} with {mcp_action} (MCP) / run kino {cli_name} with {cli_action} (CLI)"
     return f"{message}; retry with {invocation}"
 
 

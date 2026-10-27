@@ -90,33 +90,41 @@ def _assemble_segments(
     return trimmed_paths, merged.output_path, {"stage": "merge", "status": "completed"}
 
 
-def _measured_segment_durations(paths: list[str]) -> list[float | None]:
+def _measured_segment_durations(paths: list[str]) -> list[float]:
     """Measure each rendered trim so caption timing matches the shipped media.
 
     The requested ``end - start`` is what the caller asked for; what actually
-    renders can be shorter. A segment whose measurement is unavailable falls
-    back to the requested span, and the receipt reports the entries either
-    way (t_e3775201 F7).
+    renders can be shorter, and a caption timed from the request can sit past
+    the media. A trim that cannot be measured is not guessed at: the flow
+    refuses, because a silent fallback is exactly how the caption timeline
+    drifts out of the picture (t_e3775201 F7, Gate 4 NEW-6).
     """
     from ..engine_probe import probe as _probe_source
 
-    measured: list[float | None] = []
-    for path in paths:
+    measured: list[float] = []
+    for index, path in enumerate(paths):
         try:
             value = float(_probe_source(path).duration or 0.0)
-        except (OSError, ValueError, MCPVideoError):
-            value = 0.0
-        measured.append(value or None)
+        except (OSError, ValueError, MCPVideoError) as exc:
+            raise _flow_error(f"could not measure the rendered trim for segment {index}: {exc}") from exc
+        if value <= 0:
+            raise _flow_error(f"could not measure the rendered trim for segment {index}")
+        measured.append(value)
     return measured
+
+
+_CAPTION_TEXT_LIMIT = 240
+_RECEIPT_ENTRY_LIMIT = 50
 
 
 def _apply_captions(
     parsed: list[tuple[float, float, str | None]],
-    measured: list[float | None],
+    measured: list[float],
     assembled_path: str,
     caption_style: str | None,
     final_output: str,
     workdir: str,
+    truncated_captions: int = 0,
 ) -> tuple[str, dict[str, Any]]:
     """Burn segment captions onto the assembled master, offset per segment."""
 
@@ -126,8 +134,7 @@ def _apply_captions(
         # The caption timeline follows the media that actually rendered, not
         # the requested range: a trim can be shorter than asked for, and a
         # caption timed from the request would sit past the media (F7).
-        measured_span = measured[index] if index < len(measured) else None
-        span = measured_span if measured_span else (end - start)
+        span = measured[index] if index < len(measured) else (end - start)
         if text:
             caption_entries.append({"start": offset, "end": offset + span, "text": text})
         offset += span
@@ -148,15 +155,22 @@ def _apply_captions(
     )
     warnings = list(getattr(generated, "warnings", []) or [])
     generated_count = getattr(generated, "entry_count", None)
+    if truncated_captions:
+        warnings.append(f"{truncated_captions} caption(s) were truncated to {_CAPTION_TEXT_LIMIT} characters")
     if isinstance(generated_count, int) and generated_count != len(caption_entries):
         warnings.append(
             f"subtitle generator reported {generated_count} entries; {len(caption_entries)} captions were burned"
         )
+    requested_count = len(caption_entries)
+    rendered_count = generated_count if isinstance(generated_count, int) else requested_count
+    carried = caption_entries[:_RECEIPT_ENTRY_LIMIT]
     caption_step = {
         "stage": "captions",
         "status": "completed",
-        "entry_count": len(caption_entries),
-        "entries": caption_entries,
+        "entry_count": rendered_count,
+        "requested_entry_count": requested_count,
+        "entries": carried,
+        "entries_truncated": max(0, requested_count - len(carried)),
         "warnings": warnings,
     }
     if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
@@ -180,7 +194,16 @@ def video_shorts(
 
     if not isinstance(segments, Sequence) or isinstance(segments, (str, bytes)) or not segments:
         raise _flow_error("segments must be a non-empty list")
-    parsed = [_segment_parts(segment, index) for index, segment in enumerate(segments)]
+    parsed: list[tuple[float, float, str | None]] = []
+    truncated_captions = 0
+    for index, segment in enumerate(segments):
+        start, end, text = _segment_parts(segment, index)
+        if text is not None and len(text) > _CAPTION_TEXT_LIMIT:
+            # A caption is burned into the picture and echoed in the receipt;
+            # an unbounded string would be duplicated across both.
+            text = text[:_CAPTION_TEXT_LIMIT]
+            truncated_captions += 1
+        parsed.append((start, end, text))
 
     from ..output_policy import output_operation
 
@@ -194,21 +217,36 @@ def video_shorts(
         caption_style, quality = _style_options(style)
         final_output = output_path or _default_output(source)
 
-        from ..engine_probe import probe as _probe_source
-
-        duration = float(_probe_source(source).duration or 0.0)
-        for index, (_start, end, _text) in enumerate(parsed):
-            if duration and end > duration + 0.05:
-                raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
-
         # Fail fast on an occupied destination (same guard the final resize
         # applies) so a refusal arrives before minutes of rendering.
         _validate_output_path(final_output)
+
+        from ..engine_probe import probe as _probe_source
+
+        # An unmeasured source cannot be checked against the requested
+        # segments, so the flow refuses rather than rendering blind.
+        try:
+            duration = float(_probe_source(source).duration or 0.0)
+        except (OSError, ValueError, MCPVideoError) as exc:
+            raise _flow_error(f"could not measure the source duration: {exc}") from exc
+        if duration <= 0:
+            raise _flow_error(
+                "could not measure the source duration; refusing to render segments that cannot be verified"
+            )
+        for index, (_start, end, _text) in enumerate(parsed):
+            if end > duration + 0.05:
+                raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
             segment_durations = _measured_segment_durations(trimmed_paths)
             captioned_path, caption_step = _apply_captions(
-                parsed, segment_durations, assembled_path, caption_style, final_output, workdir
+                parsed,
+                segment_durations,
+                assembled_path,
+                caption_style,
+                final_output,
+                workdir,
+                truncated_captions,
             )
 
             vertical = resize(

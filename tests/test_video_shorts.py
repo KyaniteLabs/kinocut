@@ -249,7 +249,11 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     steps = {step["stage"]: step for step in result["receipt"]["steps"]}
     entries = steps["captions"]["entries"]
     assert [(entry["start"], entry["end"]) for entry in entries] == [(0.0, 2.0), (2.0, 5.0)]
-    assert steps["captions"]["entry_count"] == 2
+    # The generator's count is canonical (it clamps to the media EOF); the
+    # requested count is reported alongside it.
+    assert steps["captions"]["entry_count"] == 99
+    assert steps["captions"]["requested_entry_count"] == 2
+    assert steps["captions"]["entries_truncated"] == 0
     # A generator that disagrees about the entry count must not be swallowed:
     # the receipt carries both counts and says so out loud.
     assert steps["captions"]["rendered_entry_count"] == 99

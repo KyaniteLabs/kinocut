@@ -43,7 +43,7 @@ pip install kinocut==1.16.5
 For AI features like transcription and upscaling, install the extras:
 
 ```bash
-pip install "kinocut[ai]"
+pip install "kinocut[ai]==1.16.5"
 ```
 
 ## How do I connect Kinocut to Claude Code?

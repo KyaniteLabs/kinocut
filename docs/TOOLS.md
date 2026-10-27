@@ -304,11 +304,11 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 Install only the AI dependencies you need:
 
 ```bash
-pip install "kinocut[transcribe]"  # Whisper transcription
-pip install "kinocut[ai-scene]"    # perceptual scene hashing
-pip install "kinocut[stems]"       # Demucs stem separation
-pip install "kinocut[upscale]"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
-pip install "kinocut[ai]"          # all AI extras, kept for compatibility
+pip install "kinocut[transcribe]==1.16.5"  # Whisper transcription
+pip install "kinocut[ai-scene]==1.16.5"    # perceptual scene hashing
+pip install "kinocut[stems]==1.16.5"       # Demucs stem separation
+pip install "kinocut[upscale]==1.16.5"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
+pip install "kinocut[ai]==1.16.5"          # all AI extras, kept for compatibility
 pip install yt-dlp                   # only for downloading platform URLs (YouTube/Vimeo/...)
 ```
 

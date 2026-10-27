@@ -24,8 +24,14 @@ from pathlib import Path
 from kinocut.tool_registry import TOOL_REGISTRY
 
 ROOT = Path(__file__).resolve().parents[1]
-SKILLS = ROOT / "plugins" / "kinocut" / "skills"
-TOOL_NAME = re.compile(r"\b((?:video|hyperframes)_[a-z0-9_]+)\b")
+SKILL_FILES = (
+    ROOT / "skills" / "kinocut" / "SKILL.md",
+    ROOT / "skills" / "kinocut-repurpose" / "SKILL.md",
+    ROOT / "skills" / "mcp-video" / "SKILL.md",
+    ROOT / "plugins" / "kinocut" / "skills" / "kinocut" / "SKILL.md",
+    ROOT / "plugins" / "kinocut" / "skills" / "kinocut-repurpose" / "SKILL.md",
+)
+TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def _default_core() -> set[str]:
@@ -57,21 +63,33 @@ def _default_core() -> set[str]:
 def _named_tools(text: str) -> set[str]:
     """Registered MCP tools the skill names.
 
-    Prose fragments and wildcards (``video_360_*``) are not registered names,
-    and a skill may deliberately name a tool it tells the agent not to invent.
+    The registry is the source of truth for what a tool is called, so the scan
+    is a token sweep rather than a prefix guess: ``revideo_*``, ``sound_*`` and
+    every other family count. Prose fragments and wildcards
+    (``video_360_*``) are not registered names, and a skill may deliberately
+    name a tool it tells the agent not to invent.
     """
-    return {token for token in TOOL_NAME.findall(text) if token in TOOL_REGISTRY}
+    return {token for token in TOKEN.findall(text) if token in TOOL_REGISTRY}
+
+
+def _skill_label(skill: Path) -> str:
+    return skill.parent.parent.name if skill.parent.name == "skills" else skill.parent.name
 
 
 def test_default_surface_is_the_curated_twenty():
     assert len(_default_core()) == 20
 
 
+def test_every_shipped_skill_is_covered():
+    for skill in SKILL_FILES:
+        assert skill.exists(), f"{skill} is missing; the contract test would skip it"
+
+
 def test_shipped_skills_document_the_profile_that_carries_each_tool():
     core = _default_core()
-    for skill in sorted(SKILLS.glob("*/SKILL.md")):
+    for skill in SKILL_FILES:
         text = skill.read_text(encoding="utf-8")
-        name = skill.parent.name
+        name = _skill_label(skill)
         for tool in sorted(_named_tools(text) - core):
             tags = [tag for tag in TOOL_REGISTRY[tool] if tag != "core"]
             assert tags, f"{name} names {tool}, which the registry assigns to no profile"
@@ -83,11 +101,11 @@ def test_shipped_skills_document_the_profile_that_carries_each_tool():
 
 def test_shipped_skills_say_how_to_apply_the_selection():
     core = _default_core()
-    for skill in sorted(SKILLS.glob("*/SKILL.md")):
+    for skill in SKILL_FILES:
         text = skill.read_text(encoding="utf-8")
         if not _named_tools(text) - core:
             continue
-        name = skill.parent.name
+        name = _skill_label(skill)
         assert "KINOCUT_TOOLS" in text, f"skill {name} must name the environment variable"
         assert "restart" in text.lower(), f"skill {name} must say the server has to be restarted"
         assert "stop" in text.lower(), (
