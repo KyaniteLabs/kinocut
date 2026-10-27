@@ -76,6 +76,26 @@ def _skill_label(skill: Path) -> str:
     return skill.parent.parent.name if skill.parent.name == "skills" else skill.parent.name
 
 
+def _profile_map(text: str) -> dict[str, set[str]]:
+    """Tool -> profiles, parsed from the ``profile:<tag> carries ...`` lines.
+
+    A skill that states an explicit mapping is held to it: the tool must be
+    listed, and it must be listed under a profile the registry assigns it to.
+    A skill that states no mapping is held to the weaker rule — it must name
+    some profile that carries the tool.
+    """
+    mapping: dict[str, set[str]] = {}
+    for line in text.splitlines():
+        match = re.match(r"\s*`profile:([a-z0-9_-]+)`\s+carries\s+(.*)", line)
+        if not match:
+            continue
+        tag = match.group(1)
+        for tool in TOKEN.findall(match.group(2)):
+            if tool in TOOL_REGISTRY:
+                mapping.setdefault(tool, set()).add(tag)
+    return mapping
+
+
 def test_default_surface_is_the_curated_twenty():
     assert len(_default_core()) == 20
 
@@ -90,13 +110,21 @@ def test_shipped_skills_document_the_profile_that_carries_each_tool():
     for skill in SKILL_FILES:
         text = skill.read_text(encoding="utf-8")
         name = _skill_label(skill)
+        mapping = _profile_map(text)
         for tool in sorted(_named_tools(text) - core):
             tags = [tag for tag in TOOL_REGISTRY[tool] if tag != "core"]
             assert tags, f"{name} names {tool}, which the registry assigns to no profile"
-            carried = [tag for tag in tags if f"profile:{tag}" in text]
-            assert carried or "KINOCUT_TOOLS=all" in text, (
-                f"skill {name} names {tool} but never names a profile that carries it (its profiles: {', '.join(tags)})"
-            )
+            if mapping:
+                assert tool in mapping, f"skill {name} maps tools to profiles but never lists {tool}"
+                assert mapping[tool] & set(tags), (
+                    f"skill {name} lists {tool} under profile(s) {sorted(mapping[tool])}, "
+                    f"which do not carry it (its profiles: {', '.join(tags)})"
+                )
+            else:
+                carried = [tag for tag in tags if f"profile:{tag}" in text]
+                assert carried or "KINOCUT_TOOLS=all" in text, (
+                    f"skill {name} names {tool} but never names a profile that carries it (its profiles: {', '.join(tags)})"
+                )
 
 
 def test_shipped_skills_say_how_to_apply_the_selection():

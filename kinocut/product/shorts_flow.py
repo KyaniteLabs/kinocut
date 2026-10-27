@@ -155,27 +155,71 @@ def _apply_captions(
     )
     warnings = list(getattr(generated, "warnings", []) or [])
     generated_count = getattr(generated, "entry_count", None)
+    requested_count = len(caption_entries)
     if truncated_captions:
         warnings.append(f"{truncated_captions} caption(s) were truncated to {_CAPTION_TEXT_LIMIT} characters")
-    if isinstance(generated_count, int) and generated_count != len(caption_entries):
+    if isinstance(generated_count, int) and generated_count != requested_count:
+        noun = "entry" if generated_count == 1 else "entries"
         warnings.append(
-            f"subtitle generator reported {generated_count} entries; {len(caption_entries)} captions were burned"
+            f"subtitle generator reported {generated_count} {noun} for {requested_count} requested captions"
         )
-    requested_count = len(caption_entries)
-    rendered_count = generated_count if isinstance(generated_count, int) else requested_count
-    carried = caption_entries[:_RECEIPT_ENTRY_LIMIT]
+    # The receipt describes what was burned, not what was asked for: the
+    # generator clamps cues to the media end, so the burned list can be
+    # shorter than the request. The entries list must be the burned ones.
+    burned_count = generated_count if isinstance(generated_count, int) else requested_count
+    burned_entries = list(getattr(generated, "entries", None) or []) or caption_entries
+    carried = burned_entries[:_RECEIPT_ENTRY_LIMIT]
     caption_step = {
         "stage": "captions",
         "status": "completed",
-        "entry_count": rendered_count,
+        "entry_count": burned_count,
         "requested_entry_count": requested_count,
+        "burned_entry_count": burned_count,
         "entries": carried,
-        "entries_truncated": max(0, requested_count - len(carried)),
+        "entries_truncated": max(0, burned_count - len(carried)),
         "warnings": warnings,
     }
     if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
         caption_step["rendered_entry_count"] = generated.entry_count
     return captioned_path, caption_step
+
+
+def _parse_segments(
+    segments: Sequence[Mapping[str, Any] | Sequence[Any]],
+) -> tuple[list[tuple[float, float, str | None]], int]:
+    """Validate the requested segments and bound their caption text."""
+    if not isinstance(segments, Sequence) or isinstance(segments, (str, bytes)) or not segments:
+        raise _flow_error("segments must be a non-empty list")
+    parsed: list[tuple[float, float, str | None]] = []
+    truncated_captions = 0
+    for index, segment in enumerate(segments):
+        start, end, text = _segment_parts(segment, index)
+        if text is not None and len(text) > _CAPTION_TEXT_LIMIT:
+            # A caption is burned into the picture and echoed in the receipt;
+            # an unbounded string would be duplicated across both.
+            text = text[:_CAPTION_TEXT_LIMIT]
+            truncated_captions += 1
+        parsed.append((start, end, text))
+    return parsed, truncated_captions
+
+
+def _validate_source_duration(source: str, parsed: list[tuple[float, float, str | None]]) -> None:
+    """Refuse segments the source cannot support.
+
+    An unmeasured source cannot be checked against the requested segments, so
+    the flow refuses rather than rendering blind.
+    """
+    from ..engine_probe import probe as _probe_source
+
+    try:
+        duration = float(_probe_source(source).duration or 0.0)
+    except (OSError, ValueError, MCPVideoError) as exc:
+        raise _flow_error(f"could not measure the source duration: {exc}") from exc
+    if duration <= 0:
+        raise _flow_error("could not measure the source duration; refusing to render segments that cannot be verified")
+    for index, (_start, end, _text) in enumerate(parsed):
+        if end > duration + 0.05:
+            raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
 
 
 def video_shorts(
@@ -192,18 +236,7 @@ def video_shorts(
     uses the existing trim, merge, subtitle, and resize engines.
     """
 
-    if not isinstance(segments, Sequence) or isinstance(segments, (str, bytes)) or not segments:
-        raise _flow_error("segments must be a non-empty list")
-    parsed: list[tuple[float, float, str | None]] = []
-    truncated_captions = 0
-    for index, segment in enumerate(segments):
-        start, end, text = _segment_parts(segment, index)
-        if text is not None and len(text) > _CAPTION_TEXT_LIMIT:
-            # A caption is burned into the picture and echoed in the receipt;
-            # an unbounded string would be duplicated across both.
-            text = text[:_CAPTION_TEXT_LIMIT]
-            truncated_captions += 1
-        parsed.append((start, end, text))
+    parsed, truncated_captions = _parse_segments(segments)
 
     from ..output_policy import output_operation
 
@@ -221,21 +254,7 @@ def video_shorts(
         # applies) so a refusal arrives before minutes of rendering.
         _validate_output_path(final_output)
 
-        from ..engine_probe import probe as _probe_source
-
-        # An unmeasured source cannot be checked against the requested
-        # segments, so the flow refuses rather than rendering blind.
-        try:
-            duration = float(_probe_source(source).duration or 0.0)
-        except (OSError, ValueError, MCPVideoError) as exc:
-            raise _flow_error(f"could not measure the source duration: {exc}") from exc
-        if duration <= 0:
-            raise _flow_error(
-                "could not measure the source duration; refusing to render segments that cannot be verified"
-            )
-        for index, (_start, end, _text) in enumerate(parsed):
-            if end > duration + 0.05:
-                raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
+        _validate_source_duration(source, parsed)
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
             segment_durations = _measured_segment_durations(trimmed_paths)

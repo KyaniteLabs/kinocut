@@ -253,9 +253,77 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     # requested count is reported alongside it.
     assert steps["captions"]["entry_count"] == 99
     assert steps["captions"]["requested_entry_count"] == 2
-    assert steps["captions"]["entries_truncated"] == 0
+    assert steps["captions"]["burned_entry_count"] == 99
+    # The generator reported 99 burned entries but supplied no list, so the
+    # receipt says plainly that its list is short rather than implying it
+    # carries all 99.
+    assert steps["captions"]["entries_truncated"] == 97
     # A generator that disagrees about the entry count must not be swallowed:
     # the receipt carries both counts and says so out loud.
     assert steps["captions"]["rendered_entry_count"] == 99
     assert steps["captions"]["warnings"][0] == "synthetic generator warning"
     assert any("reported 99 entries" in warning for warning in steps["captions"]["warnings"])
+
+
+def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones(tmp_path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+
+    monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
+
+    def fake_probe(path):
+        name = str(path)
+        if "segment-000" in name:
+            return SimpleNamespace(duration=2.0)
+        if "segment-001" in name:
+            return SimpleNamespace(duration=3.0)
+        return SimpleNamespace(duration=60.0)
+
+    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+        Path(output_path).write_bytes(b"trim")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_merge(clips, output_path, **_kwargs):
+        Path(output_path).write_bytes(b"merge")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_generate(entries, input_path, output_path, burn=False):
+        Path(output_path).write_text("captions", encoding="utf-8")
+        # The generator dropped one cue: it clamps to the media end.
+        burned = list(entries)[:1]
+        return SimpleNamespace(srt_path=output_path, entry_count=len(burned), entries=burned, warnings=[])
+
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+        Path(output_path).write_bytes(b"captioned")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+        Path(output_path).write_bytes(b"vertical")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(shorts_flow, "trim", fake_trim)
+    monkeypatch.setattr(shorts_flow, "merge", fake_merge)
+    monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
+    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
+
+    result = shorts_flow.video_shorts(
+        str(source),
+        [
+            {"start": 0, "end": 2, "text": "one"},
+            {"start": 0, "end": 5, "text": "two"},
+        ],
+        output_path=str(tmp_path / "final.mp4"),
+    )
+
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    captions = steps["captions"]
+    # Two captions were requested; the generator burned one. The receipt
+    # describes what was burned, and says that one of the two was dropped.
+    assert captions["requested_entry_count"] == 2
+    assert captions["burned_entry_count"] == 1
+    assert captions["entry_count"] == 1
+    assert len(captions["entries"]) == 1
+    assert captions["entries_truncated"] == 0
+    assert any("reported 1 entry for 2 requested captions" in warning for warning in captions["warnings"])

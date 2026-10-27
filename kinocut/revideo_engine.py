@@ -133,10 +133,21 @@ def _validate_job(job: Any) -> dict[str, Any]:
     if not isinstance(job, dict):
         raise ValidationError("job", "must be an object")
 
+    def _describe(value: Any) -> str:
+        """Describe a rejected value without echoing it.
+
+        A rejected value can be anything the caller sent — including a secret
+        inside a nested job spec — and it reaches the error text verbatim.
+        Numbers are safe to repeat; anything else is named by type only.
+        """
+        if isinstance(value, bool) or not isinstance(value, (int, float)):
+            return type(value).__name__
+        return repr(value)
+
     def _int_field(name: str, lo: int, hi: int, default: int) -> int:
         raw = job.get(name, default)
         if not isinstance(raw, int) or isinstance(raw, bool) or not lo <= raw <= hi:
-            raise ValidationError(f"job.{name}", f"must be an int in [{lo}, {hi}] (got {raw!r})")
+            raise ValidationError(f"job.{name}", f"must be an int in [{lo}, {hi}] (got {_describe(raw)})")
         return raw
 
     def _float_field(name: str, lo: float, hi: float, default: float) -> float:
@@ -146,7 +157,7 @@ def _validate_job(job: Any) -> dict[str, Any]:
         except ValueError:
             number = math.nan
         if not lo <= number <= hi:
-            raise ValidationError(f"job.{name}", f"must be a number in [{lo}, {hi}] (got {raw!r})")
+            raise ValidationError(f"job.{name}", f"must be a number in [{lo}, {hi}] (got {_describe(raw)})")
         return number
 
     normalized: dict[str, Any] = {

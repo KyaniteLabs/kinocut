@@ -74,6 +74,23 @@ def _argument_names(arguments: dict[str, Any]) -> str:
     return " (arguments: " + ", ".join(sorted(arguments)) + ")"
 
 
+def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
+    """Bound a suggested action before it leaves the process.
+
+    The action is written by shipped code, but it is still free text that
+    reaches the MCP and CLI payloads; it is bounded here rather than trusted.
+    """
+    clean: dict[str, Any] = {}
+    for key, value in action.items():
+        if isinstance(value, str):
+            clean[key] = truncate_echo(value, limit=_MAX_ECHO_CHARS)
+        elif value is None or isinstance(value, (int, float, bool)):
+            clean[key] = value
+        else:
+            clean[key] = type(value).__name__
+    return clean
+
+
 def retry_message(message: str, code: str) -> str:
     """Append an eyes-free MCP and CLI retry invocation to an error message.
 
@@ -165,7 +182,7 @@ class MCPVideoError(Exception):
             "message": truncate_echo(retry_message(str(self), self.code), limit=_MAX_MESSAGE_CHARS),
         }
         if self.suggested_action:
-            result["suggested_action"] = self.suggested_action
+            result["suggested_action"] = _sanitize_action(self.suggested_action)
         if self.docs_url:
             result["documentation_url"] = self.docs_url
         return result

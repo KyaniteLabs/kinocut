@@ -130,21 +130,21 @@ PACKAGE_CHECKS = (
         "scipy",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]"',
+        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==1.16.5"',
     ),
     (
         "soundfile",
         "soundfile",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]"',
+        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==1.16.5"',
     ),
     (
         "librosa",
         "librosa",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]"',
+        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==1.16.5"',
     ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
     (
@@ -177,10 +177,34 @@ def _parse_python_version(version_line: str | None) -> tuple[int, int] | None:
     return None
 
 
+def _doctor_probe_environment() -> dict[str, str]:
+    """The environment a version probe runs in: sanitized and update-disabled.
+
+    A PATH-only shim can carry its own installer or updater, and the caller's
+    environment can carry provider credentials. A version probe needs neither,
+    so both are removed.
+    """
+    from .hyperframes_engine import _hyperframes_environment
+
+    return _hyperframes_environment()
+
+
 def _command_version(command: list[str]) -> str | None:
+    """Run a version probe offline.
+
+    The probe inherits the caller's environment, which can carry provider
+    credentials and can point a shim at an updater that reaches the network.
+    Doctor's own comment says it must stay offline, so the probe runs with the
+    same sanitized, update-disabled environment the Hyperframes engine uses.
+    """
     try:
         result = subprocess.run(  # noqa: S603
-            command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DOCTOR_COMMAND_TIMEOUT
+            command,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=DOCTOR_COMMAND_TIMEOUT,
+            env=_doctor_probe_environment(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -699,7 +723,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     hint = None
     if not ok:
         hint = (
-            'Product/object cutouts need pip install "kinocut[object-matte]" '
+            'Product/object cutouts need pip install "kinocut[object-matte]==1.16.5" '
             "and the pinned BiRefNet-general weights. "
             "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
         )
@@ -738,7 +762,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
     if not ok:
         hint = (
             "Still/plate tools need the image stack (Pillow + NumPy). "
-            'Install: pip install "kinocut[image]". '
+            'Install: pip install "kinocut[image]==1.16.5". '
             "Free establish-locked edit uses local match; no paid still-generation adapter exists."
         )
     return {

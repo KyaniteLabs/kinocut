@@ -20,6 +20,7 @@ This project follows a simple release-note style:
 
 - Restore master CI after the #641/#642 QoL-pass merges: mechanical ruff-format on the 10 drifted files, GitHub-canonical topology test aligned with #645, hidden MCP tools stashed (not deleted) so `KINOCUT_TOOLS=all` can restore them, `video_shorts` decomposed under the 80-line function cap, and hosted FFmpeg apt install given a longer bound plus retries. Do not touch npm/ or the mcp-video shim packaging.
 - Pin repo-level skill install recipes to `kinocut==1.16.4` and drop `claude mcp add` / unpinned `uvx --from kinocut` host-mutation instructions. Plugin skills were already pinned; the cloneable `skills/` tree now matches.
+- The recipes now track the released runtime: every current install/launch surface pins `kinocut==1.16.5`.
 - Ship the Apache-2.0 `LICENSE` file in the npm `kinocut` tarball (`files` now lists `bin/` and `LICENSE`). The published 1.16.4 tarball declared `license=Apache-2.0` without the license text, which Apache-2.0 §4(a) requires to accompany the distribution; the fix surfaces from the next npm release onward.
 - Ship the Apache-2.0 license text in the `mcp-video` compatibility package on PyPI: `LICENSE` in the sdist and `<pkg>.dist-info/licenses/LICENSE` in the wheel, plus a License section in the shipped README. The publish gate (`check-built-artifacts.py`) now rejects any wheel or sdist that omits its license text. The published 1.6.19 artifacts declared Apache-2.0 without the text; the fix surfaces from the next mcp-video release onward.
 

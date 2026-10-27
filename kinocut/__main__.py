@@ -273,7 +273,7 @@ def main() -> None:
                     file=sys.stderr,
                 )
         else:
-            _format_error(e, command=getattr(args, "command", None))
+            _format_error(e, command=getattr(args, "command", None), arguments=vars(args))
         sys.exit(1)
 
 

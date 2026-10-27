@@ -736,13 +736,13 @@ def _format_analyze_product(result: Any) -> None:
     _format_success_panel(lines, title="Product Analysis")
 
 
-def _format_error(e: Exception, command: str | None = None) -> None:
+def _format_error(e: Exception, command: str | None = None, arguments: dict[str, Any] | None = None) -> None:
     """Display error in a styled panel."""
     from ..errors import MCPVideoError, retry_context, retry_message
 
     if isinstance(e, MCPVideoError):
         try:
-            with retry_context(command or "kino", {}):
+            with retry_context(command or "kino", arguments or {}):
                 data = e.to_dict()
         except Exception as exc:
             logger.debug("MCPVideoError.to_dict() failed in CLI formatting: %s", exc)

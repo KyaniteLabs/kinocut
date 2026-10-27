@@ -163,6 +163,10 @@ class SubtitleResult(EditResult):
     srt_path: str | None = Field(default=None, description="Path to generated SRT file")
     video_path: str | None = Field(default=None, description="Path to burned-in video (if burn=True)")
     entry_count: int
+    entries: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Cue entries actually written to the SRT and burned (clamped to the media end)",
+    )
 
     def model_post_init(self, __context: Any) -> None:
         if not self.output_path:
