@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import builtins
+import io
 import logging
 import runpy
 import tarfile
@@ -151,6 +152,43 @@ def test_built_artifact_checker_normalizes_wheel_root_paths(tmp_path):
 
     assert ".github/workflows/publish.yml" in offenders
     assert "dogfood_artifacts/showcase.mp4" in offenders
+
+
+def test_built_artifact_checker_requires_shipped_license_text(tmp_path):
+    checker = runpy.run_path(".github/scripts/check-built-artifacts.py")
+
+    bare_wheel = tmp_path / "mcp_video-9.9.9-py3-none-any.whl"
+    with zipfile.ZipFile(bare_wheel, "w") as zf:
+        zf.writestr("mcp_video/__init__.py", "")
+        zf.writestr("mcp_video-9.9.9.dist-info/METADATA", "Name: mcp-video\n")
+    assert not checker["ships_license_text"](bare_wheel)
+
+    licensed_wheel = tmp_path / "licensed-9.9.9-py3-none-any.whl"
+    with zipfile.ZipFile(licensed_wheel, "w") as zf:
+        zf.writestr("mcp_video/__init__.py", "")
+        zf.writestr("licensed-9.9.9.dist-info/licenses/LICENSE", "Apache License 2.0\n")
+    assert checker["ships_license_text"](licensed_wheel)
+
+    root = tmp_path / "sdist-root"
+    root.mkdir()
+    bare_sdist = root / "mcp_video-9.9.9.tar.gz"
+    with tarfile.open(bare_sdist, "w:gz") as tf:
+        member = tarfile.TarInfo("mcp_video-9.9.9/pyproject.toml")
+        data = b"[project]\n"
+        member.size = len(data)
+        tf.addfile(member, io.BytesIO(data))
+    assert not checker["ships_license_text"](bare_sdist)
+
+    licensed_sdist = root / "mcp_video-9.9.10.tar.gz"
+    with tarfile.open(licensed_sdist, "w:gz") as tf:
+        for name, body in {
+            "mcp_video-9.9.10/pyproject.toml": b"[project]\n",
+            "mcp_video-9.9.10/LICENSE": b"Apache License 2.0\n",
+        }.items():
+            member = tarfile.TarInfo(name)
+            member.size = len(body)
+            tf.addfile(member, io.BytesIO(body))
+    assert checker["ships_license_text"](licensed_sdist)
 
 
 def test_text_measurement_quietly_uses_fallback_without_pillow(monkeypatch, caplog):

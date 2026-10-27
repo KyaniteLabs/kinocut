@@ -30,3 +30,10 @@ scripts; after this repair, removing it preserves all three canonical aliases.
 Compatibility identifiers remain supported on the published Kinocut 1.16.x line
 and the prior 1.15.x line. Project home:
 [kinocut.dev](https://kinocut.dev/).
+
+## License
+
+Apache License 2.0 — the same license as Kinocut itself. The full text ships
+as `LICENSE` alongside this README in the source distribution and inside the
+wheel (`mcp_video-<version>.dist-info/licenses/LICENSE`), and lives at the
+[repository root](https://github.com/KyaniteLabs/kinocut/blob/master/LICENSE).

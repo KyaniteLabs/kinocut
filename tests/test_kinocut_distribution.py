@@ -133,6 +133,12 @@ def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
 
     assert shim["project"]["name"] == "mcp-video"
     assert shim["project"]["version"] == SHIM_VERSION
+    # Apache-2.0 §4(a): the shim declares Apache-2.0, so the license text must
+    # ship with it — vendored next to the pyproject and byte-identical to the
+    # repository license, with a licence section in the shipped README.
+    assert shim["project"]["license"] == "Apache-2.0"
+    assert (ROOT / "compat" / "mcp-video-shim" / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()
+    assert "## License" in (ROOT / "compat" / "mcp-video-shim" / "README.md").read_text(encoding="utf-8")
     # Mid-cutover: the published shim must pin the live PyPI kinocut, not an
     # arbitrary version, or `pip install mcp-video` asks for an unpublished wheel.
     # During a staged release window (release-prep landed, tag not yet cut) the
@@ -156,6 +162,39 @@ def test_mcp_video_shim_is_metadata_only_and_forwards_every_extra() -> None:
             [f"kinocut[{extra}]=={published}"],
             [f"kinocut[{extra}]=={candidate}"],
         )
+
+
+def test_shim_sdist_and_wheel_ship_the_apache_license_text(tmp_path) -> None:
+    """Apache-2.0 §4(a): the license copy must accompany the distribution."""
+    shim_dir = ROOT / "compat" / "mcp-video-shim"
+    out_dir = tmp_path / "dist"
+    if importlib.util.find_spec("build") is not None:
+        command = [sys.executable, "-m", "build", "--wheel", "--sdist", "--outdir", str(out_dir), str(shim_dir)]
+    elif uv := shutil.which("uv"):
+        command = [uv, "build", "--wheel", "--sdist", "--out-dir", str(out_dir), str(shim_dir)]
+    else:
+        pytest.skip("Python build frontend is unavailable")
+    result = subprocess.run(command, cwd=ROOT, capture_output=True, text=True, timeout=180, check=False)
+    assert result.returncode == 0, result.stderr
+
+    license_bytes = (ROOT / "LICENSE").read_bytes()
+
+    sdist = next(out_dir.glob("mcp_video-*.tar.gz"))
+    with tarfile.open(sdist, "r:gz") as archive:
+        member = f"mcp_video-{SHIM_VERSION}/LICENSE"
+        names = archive.getnames()
+        assert member in names, names
+        assert archive.extractfile(member).read() == license_bytes
+
+    wheel = next(out_dir.glob("mcp_video-*.whl"))
+    with zipfile.ZipFile(wheel) as archive:
+        names = archive.namelist()
+        shipped = [name for name in names if name.endswith(".dist-info/licenses/LICENSE")]
+        assert shipped, names
+        assert archive.read(shipped[0]) == license_bytes
+        dist_info = shipped[0].rsplit("/licenses/LICENSE", 1)[0]
+        metadata = archive.read(f"{dist_info}/METADATA").decode("utf-8")
+    assert "License-File: LICENSE" in metadata
 
 
 def test_npm_package_is_a_thin_uvx_bootstrap_not_a_second_runtime() -> None:
