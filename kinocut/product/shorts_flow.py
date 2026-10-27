@@ -148,20 +148,26 @@ def video_shorts(
     if not isinstance(segments, Sequence) or isinstance(segments, (str, bytes)) or not segments:
         raise _flow_error("segments must be a non-empty list")
     parsed = [_segment_parts(segment, index) for index, segment in enumerate(segments)]
-    source = _validate_input_path(input_path)
-    caption_style, quality = _style_options(style)
-    final_output = output_path or _default_output(source)
-
-    from ..engine_probe import probe as _probe_source
-
-    duration = float(_probe_source(source).duration or 0.0)
-    for index, (_start, end, _text) in enumerate(parsed):
-        if duration and end > duration + 0.05:
-            raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
 
     from ..output_policy import output_operation
 
     with output_operation(overwrite):
+        # The source must be validated INSIDE the operation scope. A fresh
+        # `output_operation` resets the recorded-input set, so validating the
+        # source first would let a later publish target this operation's own
+        # input (Gate 2 P2-1: `video_shorts` could overwrite its source when
+        # `overwrite=True` and `output_path == input_path`).
+        source = _validate_input_path(input_path)
+        caption_style, quality = _style_options(style)
+        final_output = output_path or _default_output(source)
+
+        from ..engine_probe import probe as _probe_source
+
+        duration = float(_probe_source(source).duration or 0.0)
+        for index, (_start, end, _text) in enumerate(parsed):
+            if duration and end > duration + 0.05:
+                raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
+
         # Fail fast on an occupied destination (same guard the final resize
         # applies) so a refusal arrives before minutes of rendering.
         _validate_output_path(final_output)

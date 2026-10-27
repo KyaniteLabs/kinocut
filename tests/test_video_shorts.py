@@ -129,3 +129,57 @@ def test_video_shorts_receipt_carries_caption_warnings(sample_video, tmp_path):
     )
     steps = {step["stage"]: step for step in result["receipt"]["steps"]}
     assert "warnings" in steps["captions"]
+
+
+def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
+    """Gate 2 P2-1: the direct product-function path must never publish over
+    the operation's own input, even with explicit overwrite consent.
+
+    A fresh ``output_operation`` scope resets the recorded-input set, so
+    validating the source before opening the scope let the source be
+    forgotten and the publish target it. The engines are stubbed so that a
+    regression is caught by the bytes, not by a missing FFmpeg binary.
+    """
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original bytes")
+
+    def fake_probe(_path):
+        return SimpleNamespace(duration=10.0)
+
+    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+        Path(output_path).write_bytes(b"trim")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_merge(clips, output_path=None, **_kwargs):
+        Path(output_path).write_bytes(b"merge")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_generate(entries, input_path, output_path, burn=False):
+        Path(output_path).write_text("captions", encoding="utf-8")
+        return SimpleNamespace(srt_path=output_path)
+
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+        Path(output_path).write_bytes(b"captioned")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+        Path(output_path).write_bytes(b"vertical")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(shorts_flow, "trim", fake_trim)
+    monkeypatch.setattr(shorts_flow, "merge", fake_merge)
+    monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
+    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
+
+    with pytest.raises(MCPVideoError) as refusal:
+        shorts_flow.video_shorts(
+            str(source),
+            [{"start": 0.0, "end": 2.0, "text": "hello"}],
+            output_path=str(source),
+            overwrite=True,
+        )
+
+    assert refusal.value.code == "invalid_output_path"
+    assert source.read_bytes() == b"original bytes"
