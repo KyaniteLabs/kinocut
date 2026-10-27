@@ -130,12 +130,8 @@ jobs:
         run: python -m venv .venv
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
-        timeout-minutes: 45
-        run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
           ffmpeg -version
           ffprobe -version
       - name: Install dependencies
@@ -170,12 +166,8 @@ jobs:
         run: python -m venv .venv
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
-        timeout-minutes: 45
-        run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
           ffmpeg -version
           ffprobe -version
       - name: Install dependencies
@@ -206,12 +198,8 @@ jobs:
         run: python -m venv .venv
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
-        timeout-minutes: 45
-        run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
       - name: Install package without extras
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e . pytest pytest-asyncio
@@ -245,12 +233,8 @@ jobs:
         run: python -m venv .venv
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
-        timeout-minutes: 45
-        run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e ".[dev]"
@@ -284,12 +268,8 @@ jobs:
         run: python -m venv .venv
       - name: Ensure FFmpeg
         if: needs.changes.outputs.code == 'true'
-        timeout-minutes: 45
-        run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
       - name: Install Hyperframes CLI
         if: needs.changes.outputs.code == 'true'
         timeout-minutes: 5
