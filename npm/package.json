@@ -15,7 +15,8 @@
     "kinocut": "bin/kinocut.js"
   },
   "files": [
-    "bin/kinocut.js"
+    "bin/",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=18"
