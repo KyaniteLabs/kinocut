@@ -156,7 +156,11 @@ class TestServerToolsHyperframesValidation:
         result = hyperframes_tts()
 
         assert result.get("success") is False
-        assert result.get("error", {}).get("message") == "text_or_file is required unless list_voices is true"
+        assert (
+            result.get("error", {})
+            .get("message", "")
+            .startswith("text_or_file is required unless list_voices is true; retry with call hyperframes_tts")
+        )
 
 
 class TestAudioEngineInit:

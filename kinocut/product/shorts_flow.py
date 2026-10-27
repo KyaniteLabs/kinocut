@@ -70,6 +70,62 @@ def _default_output(input_path: str) -> str:
     return str(path.with_name(f"{path.stem}_shorts{path.suffix or '.mp4'}"))
 
 
+def _assemble_segments(
+    source: str,
+    parsed: list[tuple[float, float, str | None]],
+    workdir: str,
+) -> tuple[list[str], str, dict[str, Any]]:
+    """Trim every segment, then merge the trims into one assembled master."""
+
+    trimmed_paths: list[str] = []
+    for index, (start, end, _text) in enumerate(parsed):
+        trimmed = os.path.join(workdir, f"segment-{index:03d}.mp4")
+        result = trim(source, start=start, end=end, output_path=trimmed, accurate=True)
+        trimmed_paths.append(result.output_path)
+
+    if len(trimmed_paths) == 1:
+        return trimmed_paths, trimmed_paths[0], {"stage": "merge", "status": "skipped", "reason": "one segment"}
+    assembled_path = os.path.join(workdir, "assembled.mp4")
+    merged = merge(trimmed_paths, output_path=assembled_path)
+    return trimmed_paths, merged.output_path, {"stage": "merge", "status": "completed"}
+
+
+def _apply_captions(
+    parsed: list[tuple[float, float, str | None]],
+    assembled_path: str,
+    caption_style: str | None,
+    final_output: str,
+    workdir: str,
+) -> tuple[str, dict[str, Any]]:
+    """Burn segment captions onto the assembled master, offset per segment."""
+
+    caption_entries: list[dict[str, Any]] = []
+    offset = 0.0
+    for start, end, text in parsed:
+        if text:
+            caption_entries.append({"start": offset, "end": offset + (end - start), "text": text})
+        offset += end - start
+
+    if not caption_entries:
+        return assembled_path, {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
+    subtitle_path = str(Path(final_output).with_suffix(".srt"))
+    generated = generate_subtitles(caption_entries, assembled_path, output_path=subtitle_path, burn=False)
+    captioned_path = os.path.join(workdir, "captioned.mp4")
+    subtitles(
+        assembled_path,
+        generated.srt_path,
+        output_path=captioned_path,
+        style=caption_style,
+    )
+    caption_step = {
+        "stage": "captions",
+        "status": "completed",
+        "subtitle_path": generated.srt_path,
+        "entry_count": len(caption_entries),
+    }
+    return captioned_path, caption_step
+
+
 def video_shorts(
     input_path: str,
     segments: Sequence[Mapping[str, Any] | Sequence[Any]],
@@ -91,47 +147,8 @@ def video_shorts(
     final_output = output_path or _default_output(source)
 
     with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
-        trimmed_paths: list[str] = []
-        for index, (start, end, _text) in enumerate(parsed):
-            trimmed = os.path.join(workdir, f"segment-{index:03d}.mp4")
-            result = trim(source, start=start, end=end, output_path=trimmed, accurate=True)
-            trimmed_paths.append(result.output_path)
-
-        if len(trimmed_paths) == 1:
-            assembled_path = trimmed_paths[0]
-            merge_step: dict[str, Any] = {"stage": "merge", "status": "skipped", "reason": "one segment"}
-        else:
-            assembled_path = os.path.join(workdir, "assembled.mp4")
-            merged = merge(trimmed_paths, output_path=assembled_path)
-            assembled_path = merged.output_path
-            merge_step = {"stage": "merge", "status": "completed"}
-
-        caption_entries: list[dict[str, Any]] = []
-        offset = 0.0
-        for start, end, text in parsed:
-            if text:
-                caption_entries.append({"start": offset, "end": offset + (end - start), "text": text})
-            offset += end - start
-
-        captioned_path = assembled_path
-        if caption_entries:
-            subtitle_path = str(Path(final_output).with_suffix(".srt"))
-            generated = generate_subtitles(caption_entries, assembled_path, output_path=subtitle_path, burn=False)
-            captioned_path = os.path.join(workdir, "captioned.mp4")
-            subtitles(
-                assembled_path,
-                generated.srt_path,
-                output_path=captioned_path,
-                style=caption_style,
-            )
-            caption_step = {
-                "stage": "captions",
-                "status": "completed",
-                "subtitle_path": generated.srt_path,
-                "entry_count": len(caption_entries),
-            }
-        else:
-            caption_step = {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
+        trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
+        captioned_path, caption_step = _apply_captions(parsed, assembled_path, caption_style, final_output, workdir)
 
         vertical = resize(
             captioned_path,
@@ -143,7 +160,12 @@ def video_shorts(
             {"stage": "trim", "status": "completed", "segment_count": len(trimmed_paths)},
             merge_step,
             caption_step,
-            {"stage": "vertical_template", "status": "completed", "aspect_ratio": "9:16", "output_path": vertical.output_path},
+            {
+                "stage": "vertical_template",
+                "status": "completed",
+                "aspect_ratio": "9:16",
+                "output_path": vertical.output_path,
+            },
             {"stage": "export", "status": "completed", "output_path": vertical.output_path},
         ]
         return {
@@ -157,4 +179,3 @@ def video_shorts(
                 "steps": steps,
             },
         }
-

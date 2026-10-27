@@ -15,4 +15,3 @@ def video_doctor() -> dict[str, Any]:
     from .doctor import run_diagnostics
 
     return _result(run_diagnostics())
-

@@ -159,15 +159,6 @@ def test_agent_cookbook_dry_run():
     assert "video_release_checkpoint" in result.stdout
 
 
-def test_server_tool_registry_keeps_public_tool_names():
-    from mcp_video.server import mcp
-
-    tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-
-    assert tool_names == DEFAULT_SERVER_TOOLS
-    assert len(tool_names) <= 25
-
-
 def test_hyperframes_tts_schema_can_list_voices_without_text():
     from kinocut.tool_registry import TOOL_REGISTRY
 
@@ -189,6 +180,26 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
         assert init_result.serverInfo.name == "kinocut"
         assert tool_names == DEFAULT_SERVER_TOOLS
         assert len(tool_names) <= 25
+
+    asyncio.run(check_server())
+
+
+def test_stdio_server_all_mode_registers_the_full_catalog():
+    """``KINOCUT_TOOLS=all`` restores the full 205-tool development surface."""
+
+    async def check_server() -> None:
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "mcp_video"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+
+        tool_names = {tool.name for tool in tools_result.tools}
+        assert len(tool_names) == 205
+        assert tool_names >= DEFAULT_SERVER_TOOLS
 
     asyncio.run(check_server())
 
@@ -283,20 +294,20 @@ def test_server_json_and_readme_match_registry_identity():
 
 
 def test_readme_declares_repository_topology():
-    """Canonical source and public collaboration retain distinct host roles."""
+    """GitHub stays canonical source; Forgejo stays its downstream mirror."""
     readme = (ROOT / "README.md").read_text(encoding="utf-8")
     source_row = next(line for line in readme.splitlines() if line.startswith("| **Source** |"))
-    primary, public = source_row.split(" · ", 1)
-    assert "https://git.kyanitelabs.tech/KyaniteLabs/kinocut" in primary
+    primary, downstream = source_row.split(" · ", 1)
+    assert "https://github.com/KyaniteLabs/kinocut" in primary
     assert "canonical" in primary.lower()
-    assert "https://github.com/KyaniteLabs/kinocut" in public
-    assert "public mirror" in public.lower()
+    assert "https://git.kyanitelabs.tech/KyaniteLabs/kinocut" in downstream
+    assert "downstream mirror" in downstream.lower()
 
 
 def test_external_routing_surfaces_route_exclusively_to_github():
     """External bug/support/security/contribution routes remain GitHub-exclusive.
 
-    Forgejo may appear as canonical source attribution, but every surface an
+    Forgejo may appear as downstream mirror attribution, but every surface an
     external contributor follows to file a bug, report a vulnerability, ask a
     question, or open a pull request must keep routing to GitHub. Contributors
     never need Forgejo access.

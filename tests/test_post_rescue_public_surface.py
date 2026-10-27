@@ -41,9 +41,24 @@ EXPECTED_CLIENT_METHODS = {
 
 
 def test_post_rescue_capabilities_have_mcp_cli_and_python_parity() -> None:
-    from mcp_video.server import mcp
+    import os
+    import sys
 
-    tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    async def list_full_catalog() -> set[str]:
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "kinocut"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+        return {t.name for t in tools_result.tools}
+
+    tool_names = asyncio.run(list_full_catalog())
     parser = build_parser()
     command_action = next(action for action in parser._actions if action.dest == "command")
     command_names = set(command_action.choices)

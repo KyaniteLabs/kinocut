@@ -13,9 +13,12 @@ done
 
 # Socket timeouts do not bound a slow but progressing download. Bound each
 # entire command as well, leaving time for the real validation jobs to run.
-apt_options=(-o Acquire::Retries=1 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
-sudo timeout --kill-after=15s 180s apt-get "${apt_options[@]}" update
-sudo timeout --kill-after=15s 360s apt-get "${apt_options[@]}" install \
+# 2026-10-27: archive.ubuntu.com stalls ran the install into its 360s bound
+# twice in one day (Staged MCPB exit 124); raise the bounds and retry count
+# so a slow mirror node recovers instead of killing the job.
+apt_options=(-o Acquire::Retries=3 -o Acquire::http::Timeout=15 -o Acquire::https::Timeout=15)
+sudo timeout --kill-after=15s 240s apt-get "${apt_options[@]}" update
+sudo timeout --kill-after=15s 540s apt-get "${apt_options[@]}" install \
   --yes --no-install-recommends ffmpeg
 ffmpeg -version
 ffprobe -version

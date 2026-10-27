@@ -30,6 +30,25 @@ def overwrite_consent():
         yield
 
 
+@pytest.fixture(autouse=True, scope="session")
+def _full_mcp_surface():
+    """Register the full MCP catalog for this worker's in-process tests.
+
+    The default 20-tool diet is still exercised by subprocess spawn tests
+    (``KINOCUT_TOOLS`` unset). In-process tests that call ``mcp.call_tool``
+    or ``mcp.list_tools`` on the imported server need the full catalog so
+    hidden tools (sound, mix, inspection, ...) remain callable. Hidden
+    tools are stashed, not deleted, so this session-scoped configure is
+    reversible if a later test reconfigures.
+    """
+    import kinocut.server  # noqa: F401 — import-time default configure first
+
+    from kinocut.tool_registry import configure_tool_surface
+
+    configure_tool_surface("all")
+    yield
+
+
 def has_ffprobe() -> bool:
     return shutil.which("ffprobe") is not None
 

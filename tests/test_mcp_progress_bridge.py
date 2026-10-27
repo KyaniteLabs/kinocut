@@ -24,4 +24,3 @@ def test_mcp_progress_reporter_forwards_thread_updates_to_context():
 
     asyncio.run(run())
     assert received == [(42.5, 100.0)]
-

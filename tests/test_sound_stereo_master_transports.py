@@ -1,5 +1,6 @@
 """Stereo masters and actual source measurement across public transports."""
 
+import os
 import asyncio
 import json
 import subprocess
@@ -57,7 +58,9 @@ async def _mcp(root, request, tool="sound_master_render"):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+    params = StdioServerParameters(
+        command=sys.executable, args=["-m", "kinocut"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+    )
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         response = await session.call_tool(tool, {"request": request, "project_root": str(root)})

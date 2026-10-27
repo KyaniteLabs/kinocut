@@ -72,8 +72,14 @@ def test_server_registers_exact_revideo_tools_and_defaults() -> None:
     from kinocut.tool_registry import TOOL_REGISTRY
 
     assert TOOL_REGISTRY.keys() >= _NAMES
-    assert inspect.signature(server_tools_revideo.revideo_install).parameters["timeout"].default == DEFAULT_REVIDEO_INSTALL_TIMEOUT
-    assert inspect.signature(server_tools_revideo.revideo_render).parameters["timeout"].default == DEFAULT_REVIDEO_RENDER_TIMEOUT
+    assert (
+        inspect.signature(server_tools_revideo.revideo_install).parameters["timeout"].default
+        == DEFAULT_REVIDEO_INSTALL_TIMEOUT
+    )
+    assert (
+        inspect.signature(server_tools_revideo.revideo_render).parameters["timeout"].default
+        == DEFAULT_REVIDEO_RENDER_TIMEOUT
+    )
 
 
 def test_server_facade_exports_preserve_callable_identity_and_signatures() -> None:
@@ -262,15 +268,31 @@ def test_distribution_sources_include_complete_template() -> None:
 def test_revideo_names_and_count_split_are_documented() -> None:
     claims = json.loads((ROOT / "docs" / "public_claims.json").read_text(encoding="utf-8"))
     from kinocut.cli.parser import build_parser
-    from kinocut.server import mcp
     from kinocut.tool_registry import TOOL_REGISTRY
 
     # Candidate additions must be bound to the registered source surface;
     # published counts stay at their verified release until live cutover.
-    assert claims["development_default_mcp_tools"] == len(asyncio.run(mcp.list_tools()))
+    # The default diet is counted over a spawned server so in-process test
+    # surface state in this worker cannot skew the number.
+    import sys
+
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    async def default_surface_count() -> int:
+        params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+        return len(tools_result.tools)
+
+    assert claims["development_default_mcp_tools"] == asyncio.run(default_surface_count())
     assert claims["development_mcp_tools"] == len(TOOL_REGISTRY)
     assert claims["development_cli_commands"] == len(build_parser()._subparsers._group_actions[0].choices)
-    if claims["release_candidate_version"] == claims["published_version"] and claims["development_mcp_tools"] == claims["published_mcp_tools"]:
+    if (
+        claims["release_candidate_version"] == claims["published_version"]
+        and claims["development_mcp_tools"] == claims["published_mcp_tools"]
+    ):
         assert claims["development_cli_commands"] == claims["published_cli_commands"]
     surfaces = [
         ROOT / "docs" / "TOOLS.md",

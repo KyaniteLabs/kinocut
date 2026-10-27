@@ -106,9 +106,12 @@ def test_writer_rejects_invalid_receipt(tmp_path: Path) -> None:
     assert not (tmp_path / "steps.jsonl").exists(), "rejected receipts must not touch the ledger"
 
 
-def test_mcp_client_handshake_and_manifest() -> None:
+def test_mcp_client_handshake_and_manifest(monkeypatch) -> None:
     from mcp_client import MCPStdioClient
 
+    # The compat matrix exercises the full catalog; the subprocess inherits
+    # this environment (MCPStdioClient does not override env).
+    monkeypatch.setenv("KINOCUT_TOOLS", "all")
     with MCPStdioClient([sys.executable, "-m", "kinocut", "--mcp"], cwd=str(REPO_ROOT), timeout=90.0) as client:
         info = client.handshake()
     assert info.tools_count >= 100, "kinocut's MCP surface is ~196 tools"

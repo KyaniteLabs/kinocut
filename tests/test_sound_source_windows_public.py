@@ -1,6 +1,7 @@
 """Source windows and combined ambience through actual public transports."""
 
 from array import array
+import os
 import asyncio
 import hashlib
 import json
@@ -85,7 +86,9 @@ async def _mcp(root, request):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+    params = StdioServerParameters(
+        command=sys.executable, args=["-m", "kinocut"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+    )
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         response = await session.call_tool("sound_mix_render", {"request": request, "project_root": str(root)})

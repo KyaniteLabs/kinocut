@@ -617,11 +617,26 @@ def test_cli_plan_variant_text(tmp_path, sample_video):
 
 
 def test_variants_do_not_change_public_surface_counts():
-    from mcp_video.server import mcp
+    import os
+    import sys
 
-    tool_names = {tool.name for tool in asyncio.run(mcp.list_tools())}
-    assert len(tool_names) == 203  # Current development-tip public surface.
-    assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
+    async def check_server() -> None:
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "kinocut"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+        tool_names = {t.name for t in tools_result.tools}
+        assert len(tool_names) == 205  # Full-catalog development surface.
+        assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
+
+    asyncio.run(check_server())
 
 
 def test_variant_flags_do_not_add_cli_commands():

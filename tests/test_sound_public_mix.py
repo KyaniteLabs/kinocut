@@ -125,7 +125,9 @@ def test_actual_cli_and_mcp_match_python_audio(mix_project):
     request["output_path"] = "mcp.zip"
 
     async def call():
-        params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+        params = StdioServerParameters(
+            command=sys.executable, args=["-m", "kinocut"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+        )
         async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
             await session.initialize()
             return await session.call_tool("sound_mix_render", {"request": request, "project_root": str(root)})
