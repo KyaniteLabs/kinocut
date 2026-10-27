@@ -5,7 +5,7 @@
 Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
 server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
-Plugin bundle **1.16.7** pins the separately versioned Kinocut runtime
+Plugin bundle **1.16.8** pins the separately versioned Kinocut runtime
 **1.16.5**. The legacy `mcp-video` compatibility package **1.6.20** installs
 that same runtime. Catalog entries use the bundle version; launchers use the
 runtime version.
@@ -121,6 +121,11 @@ mcp_servers:
   kinocut:
     command: uvx
     args: ["kinocut==1.16.5"]
+    # video_thumbnail (below) is a profile tool, not part of the default
+    # 20-tool core: select the editor profile explicitly. The plugin's own
+    # .mcp.json launch deliberately stays on the environment-unset default.
+    env:
+      KINOCUT_TOOLS: profile:editor
     tools:
       include: [search_tools, video_info, video_trim, video_thumbnail]
       resources: false

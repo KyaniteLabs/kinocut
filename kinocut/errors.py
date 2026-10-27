@@ -27,10 +27,35 @@ def retry_context(tool_name: str, arguments: dict[str, Any] | None = None):
         _RETRY_CONTEXT.reset(token)
 
 
-def _cli_tool_name(tool_name: str) -> str:
-    for prefix in ("video_", "hyperframes_", "revideo_", "shorts_", "sound_"):
-        if tool_name.startswith(prefix):
-            return tool_name.removeprefix(prefix).replace("_", "-")
+# Explicit MCP→CLI command-name map for tools whose flat CLI command is not the
+# mechanical ``video_``-stripped form. Every value is verified against the
+# ``kino --help`` parser choices; extend only with a name that parses.
+_CLI_TOOL_OVERRIDES: dict[str, str] = {
+    "video_quality_check": "video-quality-check",
+    "video_review_package": "video-review-package",
+}
+
+# Tools with no single-command CLI equivalent. The retry message must say so
+# instead of inventing a ``kino <name>`` command that does not exist.
+_NO_CLI_EQUIVALENT: frozenset[str] = frozenset(
+    {
+        "search_tools",
+        "video_add_texts",
+        "video_project_create",
+        "video_shorts",
+        "video_validate_text_layout",
+    }
+)
+
+
+def _cli_tool_name(tool_name: str) -> str | None:
+    """Map an MCP tool name to its flat CLI command, or None when none exists."""
+    if tool_name in _NO_CLI_EQUIVALENT:
+        return None
+    if tool_name in _CLI_TOOL_OVERRIDES:
+        return _CLI_TOOL_OVERRIDES[tool_name]
+    if tool_name.startswith("video_"):
+        return tool_name.removeprefix("video_").replace("_", "-")
     return tool_name.replace("_", "-")
 
 
@@ -45,12 +70,27 @@ def retry_message(message: str, code: str) -> str:
     elif code in {"unsafe_path", "invalid_output_path"}:
         invocation = "a new output_path (MCP) / --output <new-media-path> (CLI)"
     elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
+        # NOTE (t_e3775201 F-INFO): no shipped code path raises
+        # ``network_consent_required`` yet. Before any network-consent feature
+        # lands, re-bind its hint to the actual consent env var of that feature;
+        # ``KINOCUT_HYPERFRAMES_TELEMETRY`` only gates Hyperframes telemetry.
         invocation = (
-            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
+            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino "
+            + (cli_name or "the matching command")
+            + " (CLI)"
         )
     elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
         invocation = (
-            "install FFmpeg, then call " + tool_name + " (MCP) / install FFmpeg, then run kino " + cli_name + " (CLI)"
+            "install FFmpeg, then call "
+            + tool_name
+            + " (MCP) / install FFmpeg, then run kino "
+            + (cli_name or "the matching command")
+            + " (CLI)"
+        )
+    elif cli_name is None:
+        invocation = (
+            f"call {tool_name} with corrected parameters (MCP) / no single-command CLI equivalent "
+            "(run kino --help to browse related commands) (CLI)"
         )
     else:
         invocation = (

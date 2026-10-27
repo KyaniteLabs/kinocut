@@ -125,7 +125,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
+| **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut==1.16.5`. |
 | **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
 | **This source version** | **1.16.5 published** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Published `mcp-video==1.6.20` pins this runtime; verification is recorded in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
@@ -406,7 +406,7 @@ sudo apt install ffmpeg
 Run without a global install:
 
 ```bash
-uvx --from kinocut kino doctor
+uvx --from kinocut==1.16.5 kino doctor
 ```
 
 Or install with pip:
@@ -486,7 +486,7 @@ kino doctor
 Para Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 `kino doctor` informa qué funciones están disponibles y qué falta instalar. La documentación completa está en inglés; los mensajes de error principales son bilingües.
@@ -522,7 +522,7 @@ Proof notes live in [`docs/proofs/`](docs/proofs/). Public marketing claims (ver
 ### Claude Code
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ### Claude Desktop
@@ -532,7 +532,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -545,7 +545,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -610,7 +610,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the editor profile. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
+Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -786,7 +786,7 @@ Kinocut is a free, open-source MCP server, Python library, and `kino` CLI for AI
 brew install ffmpeg   # or apt install ffmpeg
 pip install kinocut
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ### Is it free and local-first?

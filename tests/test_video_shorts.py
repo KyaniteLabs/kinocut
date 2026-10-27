@@ -68,3 +68,54 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 def test_video_shorts_rejects_bad_segment_range():
     with pytest.raises(MCPVideoError, match="end must be greater than start"):
         shorts_flow.video_shorts("source.mp4", [{"start": 2, "end": 1}])
+
+
+def test_video_shorts_rerun_with_overwrite_replaces_prior_output(sample_video, tmp_path):
+    """Real guards (t_e3775201 F6): a captioned re-run must be possible with
+    overwrite consent — no stale companion sidecar may block the flow."""
+    import os
+    from pathlib import Path
+
+    output = str(tmp_path / "short.mp4")
+    segments = [{"start": 0.0, "end": 1.5, "text": "one"}]
+
+    first = shorts_flow.video_shorts(sample_video, segments, output_path=output)
+    assert first["success"] is True
+    assert os.path.isfile(output)
+    # The burn-in SRT is a transient build input in the flow-owned workdir,
+    # never a durable companion next to the requested output.
+    assert not os.path.exists(str(Path(output).with_suffix(".srt")))
+
+    with pytest.raises(MCPVideoError, match="retry with overwrite=true"):
+        shorts_flow.video_shorts(sample_video, segments, output_path=output)
+
+    second = shorts_flow.video_shorts(sample_video, segments, output_path=output, overwrite=True)
+    assert second["success"] is True
+    assert os.path.isfile(output)
+
+
+def test_video_shorts_refuses_segment_past_source_eof_before_rendering(sample_video, tmp_path):
+    """Source-bounded ranges (t_e3775201 F7): a segment beyond EOF is refused
+    up front, so caption timing can never silently disagree with the media."""
+    import os
+
+    output = str(tmp_path / "short.mp4")
+    with pytest.raises(MCPVideoError, match="exceeds the source duration"):
+        shorts_flow.video_shorts(
+            sample_video,
+            [{"start": 0.0, "end": 999.0, "text": "x"}],
+            output_path=output,
+        )
+    assert not os.path.exists(output), "refusal must arrive before any rendering"
+
+
+def test_video_shorts_receipt_carries_caption_warnings(sample_video, tmp_path):
+    """Receipt honesty (t_e3775201 F7): caption-stage warnings and any rendered
+    entry-count divergence propagate into the receipt."""
+    result = shorts_flow.video_shorts(
+        sample_video,
+        [{"start": 0.0, "end": 1.5, "text": "hello"}],
+        output_path=str(tmp_path / "short.mp4"),
+    )
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    assert "warnings" in steps["captions"]

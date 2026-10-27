@@ -1,5 +1,5 @@
 # Smithery configuration file: https://smithery.ai/docs/config#smitheryyaml
-# kinocut — guardrailed video editing MCP server (PyPI: kinocut 1.16.1)
+# kinocut — guardrailed video editing MCP server (PyPI: kinocut 1.16.5)
 startCommand:
   type: stdio
   configSchema:
@@ -9,4 +9,4 @@ startCommand:
   commandFunction:
     # A JS function that produces the CLI command to start the MCP.
     |-
-    (config) => ({ "command": "uvx", "args": ["kinocut"] })
+    (config) => ({ "command": "uvx", "args": ["kinocut==1.16.5"] })

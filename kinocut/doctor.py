@@ -221,8 +221,12 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
     # Hyperframes version check — routed through the injectable version_runner
     # so tests can exercise both outcomes (a raw subprocess call here would be
     # untestable, the same defect class as the @hyperframes/core probe).
-    if definition["name"] == "node" and ok and which("hyperframes"):
-        hf_version = version_runner(["npx", "--yes", "hyperframes", "--version"])
+    hyperframes_path = which("hyperframes")
+    if definition["name"] == "node" and ok and hyperframes_path:
+        # Invoke the already-resolved executable directly. `npx --yes` may
+        # consult the npm registry when PATH resolution and npm's local bins
+        # disagree (a shim outside npm's bin dirs); doctor must stay offline.
+        hf_version = version_runner([hyperframes_path, "--version"])
         if hf_version:
             extra["hyperframes_version"] = hf_version
 

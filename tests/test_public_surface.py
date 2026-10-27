@@ -9,6 +9,8 @@ import json
 import tomllib
 from pathlib import Path
 
+import pytest
+
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS  # noqa: F401
@@ -160,11 +162,126 @@ def test_agent_cookbook_dry_run():
 
 
 def test_hyperframes_tts_schema_can_list_voices_without_text():
+    """Schema contract (restored, t_e3775201 F11): voices list with no text.
+
+    Membership in TOOL_REGISTRY alone does not prove the advertised
+    no-text call shape; assert the real input schema served by an explicit
+    full-surface server, launched as a fresh stdio process.
+    """
+
+    async def fetch_schema() -> dict:
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "mcp_video"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+        schemas = {tool.name: (getattr(tool, "inputSchema", None) or tool.input_schema) for tool in tools_result.tools}
+        return schemas["hyperframes_tts"]
+
     from kinocut.tool_registry import TOOL_REGISTRY
 
     # Hidden tools remain discoverable even though they are not in the default
-    # registration surface. The all-profile smoke test exercises its schema.
+    # registration surface.
     assert "hyperframes_tts" in TOOL_REGISTRY
+
+    schema = asyncio.run(fetch_schema())
+    assert "list_voices" in schema["properties"]
+    assert "text_or_file" in schema["properties"]
+    assert "text_or_file" not in schema.get("required", [])
+    assert "text" not in schema.get("required", [])
+
+
+def test_failed_discovery_never_widens_the_default_surface(monkeypatch):
+    """Fault injection (t_e3775201 F4): a failing hidden-module import during
+    discovery must restore the selected diet, never leave enlarged surfaces."""
+    import asyncio
+
+    import kinocut.tool_registry as tr
+    from kinocut.server_app import mcp
+
+    def visible_names() -> set[str]:
+        tools = asyncio.run(mcp.list_tools())
+        return {tool.name for tool in tools.tools}
+
+    before = visible_names()
+    assert before == DEFAULT_SERVER_TOOLS
+
+    real_import_module = tr.importlib.import_module
+    last_module = sorted(tr.TOOL_NAMES_BY_MODULE)[-1]
+
+    class _FailingImportlib:
+        """Delegates to real importlib except for one injected module failure."""
+
+        def import_module(self, name, package=None):
+            if name.endswith(f".{last_module}"):
+                raise ImportError(f"injected discovery failure for {name}")
+            return real_import_module(name, package)
+
+    monkeypatch.setattr(tr, "importlib", _FailingImportlib())
+    with pytest.raises(ImportError, match="injected discovery failure"):
+        tr.discovery_catalog()
+    monkeypatch.undo()
+
+    assert visible_names() == before, "failed discovery must not widen the default surface"
+
+
+def test_cli_retry_names_resolve_to_real_parser_commands():
+    """Retry honesty (t_e3775201 F5): every advertised ``kino <name>`` retry
+    command must exist in the parser, and tools without a CLI equivalent must
+    say so instead of inventing one."""
+    from kinocut.errors import _cli_tool_name, retry_context, retry_message
+
+    help_result = subprocess.run(
+        [sys.executable, "-m", "kinocut", "--help"],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "KINOCUT_TOOLS": ""},
+        timeout=60,
+    )
+    groups = re.findall(r"\{([^}]+)\}", help_result.stdout)
+    choices = set(next(g for g in groups if ",trim," in f",{g},").split(","))
+
+    for tool_name in DEFAULT_SERVER_TOOLS:
+        cli_name = _cli_tool_name(tool_name)
+        if cli_name is None:
+            continue
+        assert cli_name in choices, f"retry advertises `kino {cli_name}` for {tool_name}, but it is not a command"
+
+    # Named-override families keep their real flat command names.
+    assert _cli_tool_name("video_quality_check") == "video-quality-check"
+    assert _cli_tool_name("hyperframes_doctor") == "hyperframes-doctor"
+
+    # Tools without a single-command equivalent say so honestly.
+    with retry_context("video_shorts", {}):
+        no_cli = retry_message("bad segment", "invalid_parameter")
+    assert "no single-command CLI equivalent" in no_cli
+    assert "kino shorts" not in no_cli
+
+    # The dispatched CLI command binds correctly (no "kino kino" doubling).
+    with retry_context("trim", {}):
+        bound = retry_message("bad timecode", "invalid_parameter")
+    assert "run kino trim with corrected flags" in bound
+
+
+def test_invalid_kinocut_tools_env_exits_with_teaching_line():
+    """Startup honesty (t_e3775201): an invalid KINOCUT_TOOLS value must fail
+    with a teachable two-line error and exit code 2, not a raw traceback."""
+    result = subprocess.run(
+        [sys.executable, "-m", "kinocut", "--mcp"],
+        capture_output=True,
+        text=True,
+        env={**os.environ, "KINOCUT_TOOLS": "profile:bogus"},
+        timeout=60,
+        input="",
+    )
+    combined = result.stdout + result.stderr
+    assert result.returncode == 2, combined
+    assert "invalid tool-surface configuration" in combined
+    assert "KINOCUT_TOOLS" in combined
+    assert "Traceback" not in combined
 
 
 def test_stdio_server_launches_and_lists_tools_like_registry_clients():

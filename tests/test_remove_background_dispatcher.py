@@ -288,8 +288,35 @@ def test_client_signature_exposes_model_and_optional_input():
 
 
 def test_mcp_schema_info_does_not_require_input_path():
+    """Schema contract (restored, t_e3775201 F11): assert the real advertised
+    input schema of an explicit full-surface server, not registry membership."""
+    import asyncio
+    import os
+    import sys
+
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
+
     from kinocut.tool_registry import TOOL_REGISTRY
 
     # The tool is intentionally hidden from the default list but remains part
     # of the discoverable full catalog.
     assert "hyperframes_remove_background" in TOOL_REGISTRY
+
+    async def fetch_schema() -> dict:
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "mcp_video"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+        schemas = {tool.name: (getattr(tool, "inputSchema", None) or tool.input_schema) for tool in tools_result.tools}
+        return schemas["hyperframes_remove_background"]
+
+    schema = asyncio.run(fetch_schema())
+    assert "model" in schema["properties"]
+    assert "info" in schema["properties"]
+    assert "input_path" in schema["properties"]
+    assert "input_path" not in schema.get("required", [])

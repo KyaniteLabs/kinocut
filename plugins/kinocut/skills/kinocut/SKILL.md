@@ -1,6 +1,6 @@
 ---
 name: kinocut
-description: Use when an agent must edit local video safely. Kinocut guards planning, FFmpeg operations, subtitles, audio, analysis, quality gates, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.
+description: Use when agents edit local video safely with Kinocut. MCP, Python, and CLI flows use profiles, receipts, and eyes-free guardrails.
 ---
 
 # Kinocut

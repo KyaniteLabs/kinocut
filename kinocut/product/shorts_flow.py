@@ -15,7 +15,7 @@ from ..engine_merge import merge
 from ..engine_resize import resize
 from ..engine_subtitle_generate import generate_subtitles
 from ..engine_subtitles import subtitles
-from ..ffmpeg_helpers import _validate_input_path
+from ..ffmpeg_helpers import _validate_input_path, _validate_output_path
 
 __all__ = ["video_shorts"]
 
@@ -108,7 +108,10 @@ def _apply_captions(
 
     if not caption_entries:
         return assembled_path, {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
-    subtitle_path = str(Path(final_output).with_suffix(".srt"))
+    # The SRT is a transient build input, not a durable sidecar: it lives in the
+    # flow-owned workdir so a re-run with overwrite consent is never blocked by
+    # a stale companion file next to the requested output.
+    subtitle_path = os.path.join(workdir, "captions.srt")
     generated = generate_subtitles(caption_entries, assembled_path, output_path=subtitle_path, burn=False)
     captioned_path = os.path.join(workdir, "captioned.mp4")
     subtitles(
@@ -120,9 +123,11 @@ def _apply_captions(
     caption_step = {
         "stage": "captions",
         "status": "completed",
-        "subtitle_path": generated.srt_path,
         "entry_count": len(caption_entries),
+        "warnings": list(getattr(generated, "warnings", []) or []),
     }
+    if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
+        caption_step["rendered_entry_count"] = generated.entry_count
     return captioned_path, caption_step
 
 
@@ -131,6 +136,7 @@ def video_shorts(
     segments: Sequence[Mapping[str, Any] | Sequence[Any]],
     style: str | Mapping[str, Any] | None = None,
     output_path: str | None = None,
+    overwrite: bool = False,
 ) -> dict[str, Any]:
     """Trim, caption, make vertical, and export selected segments in one call.
 
@@ -146,36 +152,51 @@ def video_shorts(
     caption_style, quality = _style_options(style)
     final_output = output_path or _default_output(source)
 
-    with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
-        trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
-        captioned_path, caption_step = _apply_captions(parsed, assembled_path, caption_style, final_output, workdir)
+    from ..engine_probe import probe as _probe_source
 
-        vertical = resize(
-            captioned_path,
-            aspect_ratio="9:16",
-            quality=quality,
-            output_path=final_output,
-        )
-        steps = [
-            {"stage": "trim", "status": "completed", "segment_count": len(trimmed_paths)},
-            merge_step,
-            caption_step,
-            {
-                "stage": "vertical_template",
-                "status": "completed",
-                "aspect_ratio": "9:16",
+    duration = float(_probe_source(source).duration or 0.0)
+    for index, (start, end, _text) in enumerate(parsed):
+        if duration and end > duration + 0.05:
+            raise _flow_error(
+                f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)"
+            )
+
+    from ..output_policy import output_operation
+
+    with output_operation(overwrite):
+        # Fail fast on an occupied destination (same guard the final resize
+        # applies) so a refusal arrives before minutes of rendering.
+        _validate_output_path(final_output)
+        with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
+            trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
+            captioned_path, caption_step = _apply_captions(parsed, assembled_path, caption_style, final_output, workdir)
+
+            vertical = resize(
+                captioned_path,
+                aspect_ratio="9:16",
+                quality=quality,
+                output_path=final_output,
+            )
+            steps = [
+                {"stage": "trim", "status": "completed", "segment_count": len(trimmed_paths)},
+                merge_step,
+                caption_step,
+                {
+                    "stage": "vertical_template",
+                    "status": "completed",
+                    "aspect_ratio": "9:16",
+                    "output_path": vertical.output_path,
+                },
+                {"stage": "export", "status": "completed", "output_path": vertical.output_path},
+            ]
+            return {
+                "success": True,
+                "operation": "video_shorts",
                 "output_path": vertical.output_path,
-            },
-            {"stage": "export", "status": "completed", "output_path": vertical.output_path},
-        ]
-        return {
-            "success": True,
-            "operation": "video_shorts",
-            "output_path": vertical.output_path,
-            "external_posting": False,
-            "receipt": {
-                "schema_version": 1,
-                "receipt_kind": "video_shorts",
-                "steps": steps,
-            },
-        }
+                "external_posting": False,
+                "receipt": {
+                    "schema_version": 1,
+                    "receipt_kind": "video_shorts",
+                    "steps": steps,
+                },
+            }
