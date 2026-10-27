@@ -35,7 +35,7 @@ def test_shared_installer_skips_apt_when_ffmpeg_is_on_path(tmp_path):
     tools.mkdir()
     calls = tmp_path / "calls"
     fake = tools / "ffmpeg"
-    fake.write_text("#!/bin/bash\necho \"tool:$0:$*\" >> \"$CALLS\"\n")
+    fake.write_text('#!/bin/bash\necho "tool:$0:$*" >> "$CALLS"\n')
     fake.chmod(0o755)
     (tools / "ffprobe").write_text(fake.read_text())
     (tools / "ffprobe").chmod(0o755)
