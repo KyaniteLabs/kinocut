@@ -111,8 +111,9 @@ Clients can also use the pinned configuration directly:
 
 ## Narrowing the tool list
 
-Kinocut exposes about 200 MCP tools. A host tool allowlist reduces the schemas
-sent with each model request. For Hermes, this small inspection-and-trim set
+Kinocut registers 205 MCP tools; the default registration is a curated 20-tool
+core, and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
+allowlist reduces the schemas sent with each model request. For Hermes, this small inspection-and-trim set
 goes in `mcp_servers` in your Hermes `config.yaml`:
 
 ```yaml
