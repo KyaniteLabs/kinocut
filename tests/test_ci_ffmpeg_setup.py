@@ -49,7 +49,7 @@ def test_shared_installer_skips_apt_when_ffmpeg_is_on_path(tmp_path):
         check=False,
     )
     assert result.returncode == 0, result.stderr
-    assert "skipping apt install" in result.stdout
+    assert "skipping install" in result.stdout
     recorded = calls.read_text().splitlines() if calls.exists() else []
     assert any("version" in line for line in recorded)
     assert not any("sudo" in line for line in recorded)
