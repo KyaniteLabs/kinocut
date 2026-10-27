@@ -1,0 +1,46 @@
+"""A refusal must carry an invocation the operator can actually re-run.
+
+The retry context binds the tool and the arguments that were submitted. The
+invocation has to name them: "with corrected parameters" on its own does not
+say which tool was called or with what, and the stored arguments existed for
+exactly that (t_e3775201 F5).
+"""
+
+from kinocut.errors import MCPVideoError, retry_context
+
+
+def _message(**arguments) -> str:
+    with retry_context("video_trim", arguments):
+        return MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]
+
+
+def test_retry_invocation_names_the_tool_and_the_submitted_arguments():
+    message = _message(input_path="/tmp/a.mp4", start=0, end=2)
+    assert "video_trim" in message
+    assert "input_path=/tmp/a.mp4" in message
+    assert "start=0" in message
+    assert "end=2" in message
+
+
+def test_retry_invocation_redacts_secret_looking_arguments():
+    message = _message(api_key="s3cret-value", target="youtube")
+    assert "s3cret-value" not in message
+    assert "api_key=<redacted>" in message
+    assert "target=youtube" in message
+
+
+def test_retry_invocation_truncates_long_values():
+    message = _message(prompt="x" * 500)
+    assert "x" * 500 not in message
+    assert "..." in message
+
+
+def test_retry_invocation_stays_silent_without_a_context():
+    message = MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]
+    assert "submitted:" not in message
+
+
+def test_retry_invocation_names_the_cli_command_for_mapped_tools():
+    with retry_context("video_quality_check", {"input_path": "/tmp/a.mp4"}):
+        message = MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]
+    assert "video-quality-check" in message

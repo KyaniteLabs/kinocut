@@ -59,12 +59,53 @@ def _cli_tool_name(tool_name: str) -> str | None:
     return tool_name.replace("_", "-")
 
 
+# Argument names whose values must never be echoed back into an error message.
+_SECRET_ARGUMENT_MARKERS = (
+    "api_key",
+    "apikey",
+    "auth",
+    "bearer",
+    "cookie",
+    "credential",
+    "key",
+    "passwd",
+    "password",
+    "secret",
+    "session",
+    "token",
+)
+
+
+def _argument_hint(arguments: dict[str, Any]) -> str:
+    """Summarize the submitted arguments so a refusal names what was attempted.
+
+    The retry context exists to make a refusal addressable — which tool, with
+    which inputs — and the stored arguments are what make it so. Secret-looking
+    values are redacted and every value is truncated: the hint identifies the
+    attempt, it does not echo the payload.
+    """
+    if not arguments:
+        return ""
+    parts: list[str] = []
+    for name in sorted(arguments):
+        lowered = name.lower()
+        if any(marker in lowered for marker in _SECRET_ARGUMENT_MARKERS):
+            rendered = "<redacted>"
+        else:
+            rendered = str(arguments[name])
+            if len(rendered) > 40:
+                rendered = rendered[:37] + "..."
+        parts.append(f"{name}={rendered}")
+    return " (submitted: " + ", ".join(parts) + ")"
+
+
 def retry_message(message: str, code: str) -> str:
     """Append an eyes-free MCP and CLI retry invocation to an error message."""
 
     context = _RETRY_CONTEXT.get()
     tool_name = context[0] if context else "the same tool"
     cli_name = _cli_tool_name(tool_name) if context else "the same kino command"
+    submitted = _argument_hint(context[1]) if context else ""
     if code in {"output_exists", "overwrite_refused"}:
         invocation = "overwrite=true (MCP) / --overwrite (CLI)"
     elif code in {"unsafe_path", "invalid_output_path"}:
@@ -89,12 +130,13 @@ def retry_message(message: str, code: str) -> str:
         )
     elif cli_name is None:
         invocation = (
-            f"call {tool_name} with corrected parameters (MCP) / no single-command CLI equivalent "
+            f"call {tool_name} with corrected parameters{submitted} (MCP) / no single-command CLI equivalent "
             "(run kino --help to browse related commands) (CLI)"
         )
     else:
         invocation = (
-            f"call {tool_name} with corrected parameters (MCP) / run kino {cli_name} with corrected flags (CLI)"
+            f"call {tool_name} with corrected parameters{submitted} (MCP) / "
+            f"run kino {cli_name} with the same arguments (CLI)"
         )
     return f"{message}; retry with {invocation}"
 

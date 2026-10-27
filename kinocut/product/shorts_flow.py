@@ -90,8 +90,29 @@ def _assemble_segments(
     return trimmed_paths, merged.output_path, {"stage": "merge", "status": "completed"}
 
 
+def _measured_segment_durations(paths: list[str]) -> list[float | None]:
+    """Measure each rendered trim so caption timing matches the shipped media.
+
+    The requested ``end - start`` is what the caller asked for; what actually
+    renders can be shorter. A segment whose measurement is unavailable falls
+    back to the requested span, and the receipt reports the entries either
+    way (t_e3775201 F7).
+    """
+    from ..engine_probe import probe as _probe_source
+
+    measured: list[float | None] = []
+    for path in paths:
+        try:
+            value = float(_probe_source(path).duration or 0.0)
+        except (OSError, ValueError, MCPVideoError):
+            value = 0.0
+        measured.append(value or None)
+    return measured
+
+
 def _apply_captions(
     parsed: list[tuple[float, float, str | None]],
+    measured: list[float | None],
     assembled_path: str,
     caption_style: str | None,
     final_output: str,
@@ -101,10 +122,15 @@ def _apply_captions(
 
     caption_entries: list[dict[str, Any]] = []
     offset = 0.0
-    for start, end, text in parsed:
+    for index, (start, end, text) in enumerate(parsed):
+        # The caption timeline follows the media that actually rendered, not
+        # the requested range: a trim can be shorter than asked for, and a
+        # caption timed from the request would sit past the media (F7).
+        measured_span = measured[index] if index < len(measured) else None
+        span = measured_span if measured_span else (end - start)
         if text:
-            caption_entries.append({"start": offset, "end": offset + (end - start), "text": text})
-        offset += end - start
+            caption_entries.append({"start": offset, "end": offset + span, "text": text})
+        offset += span
 
     if not caption_entries:
         return assembled_path, {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
@@ -124,6 +150,7 @@ def _apply_captions(
         "stage": "captions",
         "status": "completed",
         "entry_count": len(caption_entries),
+        "entries": caption_entries,
         "warnings": list(getattr(generated, "warnings", []) or []),
     }
     if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
@@ -173,7 +200,10 @@ def video_shorts(
         _validate_output_path(final_output)
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
-            captioned_path, caption_step = _apply_captions(parsed, assembled_path, caption_style, final_output, workdir)
+            segment_durations = _measured_segment_durations(trimmed_paths)
+            captioned_path, caption_step = _apply_captions(
+                parsed, segment_durations, assembled_path, caption_style, final_output, workdir
+            )
 
             vertical = resize(
                 captioned_path,

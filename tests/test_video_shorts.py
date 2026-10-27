@@ -183,3 +183,64 @@ def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
 
     assert refusal.value.code == "invalid_output_path"
     assert source.read_bytes() == b"original bytes"
+
+
+def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
+    """F7: caption timing follows the media that rendered, not the request.
+    The request asked for 2s and 5s; the trims render 2s and 3s. A caption
+    timed from the request would start at 5s in a 5s-tall video — past the
+    end of the second caption's media.
+    """
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+
+    monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
+
+    def fake_probe(path):
+        name = str(path)
+        if "segment-000" in name:
+            return SimpleNamespace(duration=2.0)
+        if "segment-001" in name:
+            return SimpleNamespace(duration=3.0)
+        return SimpleNamespace(duration=60.0)
+
+    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+        Path(output_path).write_bytes(b"trim")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_merge(clips, output_path, **_kwargs):
+        Path(output_path).write_bytes(b"merge")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_generate(entries, input_path, output_path, burn=False):
+        Path(output_path).write_text("captions", encoding="utf-8")
+        return SimpleNamespace(srt_path=output_path, entry_count=len(entries), warnings=[])
+
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+        Path(output_path).write_bytes(b"captioned")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+        Path(output_path).write_bytes(b"vertical")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(shorts_flow, "trim", fake_trim)
+    monkeypatch.setattr(shorts_flow, "merge", fake_merge)
+    monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
+    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
+
+    result = shorts_flow.video_shorts(
+        str(source),
+        [
+            {"start": 0, "end": 2, "text": "one"},
+            {"start": 0, "end": 5, "text": "two"},
+        ],
+        output_path=str(tmp_path / "final.mp4"),
+    )
+
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    entries = steps["captions"]["entries"]
+    assert [(entry["start"], entry["end"]) for entry in entries] == [(0.0, 2.0), (2.0, 5.0)]
+    assert steps["captions"]["entry_count"] == 2
