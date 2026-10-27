@@ -1,6 +1,6 @@
 # MCP Tools Reference
 
-kino's full development catalog exposes **205 MCP tools / 177 CLI commands**, while the default MCP registration is a curated **20-tool core** for video editing, inspection, receipts, diagnostics, and one-call Shorts. Set `KINOCUT_TOOLS=all` for the full catalog or `KINOCUT_TOOLS=profile:editor` for the editor profile. `search_tools` discovers hidden tools on demand without changing the selected surface. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with an eyes-free retry invocation for MCP and CLI.
+Published 1.16.4 serves **203 MCP tools / 177 CLI commands**. Development-tip (this unreleased QoL checkout): the full catalog serves **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`, while the default MCP registration is a curated **20-tool core** for video editing, inspection, receipts, diagnostics, and one-call Shorts. Set `KINOCUT_TOOLS=all` for the full catalog or `KINOCUT_TOOLS=profile:editor` for the editor profile. `search_tools` discovers hidden tools on demand without changing the selected surface. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with an eyes-free retry invocation for MCP and CLI.
 
 ## Eyes-free quick start
 

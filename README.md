@@ -19,8 +19,8 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-20%20default%20tools-orange.svg" alt="20 default MCP tools; 205 discoverable">
-  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands on development tip">
+  <img src="https://img.shields.io/badge/MCP-203%20tools-orange.svg" alt="203 MCP tools served in published 1.16.4">
+  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands in published 1.16.4">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -75,7 +75,7 @@
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`tech.kyanitelabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) |
-| **Source** | [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (canonical source) · [GitHub](https://github.com/KyaniteLabs/kinocut) (public mirror, collaboration, CI and releases) |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (canonical) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
 | **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
@@ -606,7 +606,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-The current checkout registers a curated **20-tool MCP core** and exposes a **205-tool full catalog** through `KINOCUT_TOOLS=all`; it retains **177 CLI commands**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
+Published 1.16.4 serves **203 MCP tools / 177 CLI commands**. Development-tip (this unreleased QoL checkout): a curated **20-tool MCP core** and a **205-tool** catalog through `KINOCUT_TOOLS=all`; the CLI remains **177**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -796,7 +796,7 @@ Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor
 
 ### How many tools are there?
 
-The current checkout registers **20 MCP tools by default**, with **205 full-catalog tools** available through `KINOCUT_TOOLS=all`; the CLI has 177 commands. Query the installed server's tool schemas for exact parameters. `search_tools` discovers hidden operations. Published 1.16.4 had 203 MCP tools; that historical count is not the current default surface.
+Published 1.16.4 serves **203 MCP tools / 177 CLI commands** (`kino --mcp` tools/list). Development-tip (this unreleased QoL checkout): **20 MCP tools** by default, **205** with `KINOCUT_TOOLS=all`; the CLI has 177 commands. Query the installed server's tool schemas for exact parameters. `search_tools` discovers hidden operations.
 
 ### Can Kinocut edit Insta360 X4 360 video?
 
