@@ -84,19 +84,24 @@ def test_large_stderr_and_long_component_names_do_not_amplify_advisory():
 
 def test_mcp_serializes_advisory_and_client_preserves_same_error(monkeypatch):
     from kinocut import Client
+    from kinocut.errors import retry_context
     from kinocut.server_app import _safe_tool
 
     error = parse_ffmpeg_error("Unknown encoder 'libx265'")
 
-    def fail(*args, **kwargs):
+    def convert(*args, **kwargs):
         raise error
 
-    monkeypatch.setattr("kinocut.client.media._convert", fail)
+    monkeypatch.setattr("kinocut.client.media._convert", convert)
     with pytest.raises(ProcessingError) as failure:
         Client().convert("input.mp4", output="output.mp4")
     assert failure.value is error
-    result = _safe_tool(fail)()
-    assert result == {"success": False, "error": error.to_dict()}
+    result = _safe_tool(convert)()
+    # _safe_tool binds the tool name into the retry context; compute the
+    # expected serialization under the same binding.
+    with retry_context("convert", {}):
+        expected = error.to_dict()
+    assert result == {"success": False, "error": expected}
     assert result["error"]["suggested_action"]["auto_fix"] is False
 
 

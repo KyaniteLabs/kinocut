@@ -116,8 +116,22 @@ class TestServerInitialization:
 
     def test_tools_registered(self):
         # The default surface is curated; hidden tools remain callable from
-        # Python and discoverable through search_tools.
-        tool_names = {t.name for t in mcp._tool_manager.list_tools()}
+        # Python and discoverable through search_tools. Counted over a real
+        # stdio launch so directly-imported tool modules in other tests of
+        # this worker process cannot inflate the registered surface.
+        import sys
+
+        from mcp import ClientSession, StdioServerParameters
+        from mcp.client.stdio import stdio_client
+
+        async def run():
+            params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"])
+            async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+                await session.initialize()
+                tools = await session.list_tools()
+            return {t.name for t in tools.tools}
+
+        tool_names = asyncio.run(run())
         assert len(tool_names) <= 25
         assert {
             "video_info",

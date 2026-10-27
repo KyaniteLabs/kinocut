@@ -45,3 +45,23 @@ def test_runtime_surface_modes_and_hidden_discovery():
     assert result["success"] is True
     assert "video_filter" in {tool["name"] for tool in result["tools"]}
 
+
+@pytest.mark.skipif(importlib.util.find_spec("mcp") is None, reason="MCP dependency unavailable")
+def test_in_process_surface_reconfigure_does_not_strand_hidden_tools():
+    """Hidden tools must be stashed, not deleted, so a later reconfigure can restore them."""
+    import asyncio
+
+    from kinocut.server import mcp
+    from kinocut.tool_registry import configure_tool_surface
+
+    configure_tool_surface()
+    assert len(asyncio.run(mcp.list_tools())) == 20
+    configure_tool_surface("all")
+    assert len(asyncio.run(mcp.list_tools())) >= 203
+    configure_tool_surface()
+    assert len(asyncio.run(mcp.list_tools())) == 20
+    configure_tool_surface("all")
+    names = {tool.name for tool in asyncio.run(mcp.list_tools())}
+    assert len(names) >= 203
+    assert "video_filter" in names
+    configure_tool_surface("all")  # restore the session-wide full catalog

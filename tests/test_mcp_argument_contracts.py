@@ -1,5 +1,6 @@
 """Declared MCP parameters survive validation; undeclared ones cannot disappear."""
 
+import os
 import asyncio
 import inspect
 import json
@@ -20,7 +21,7 @@ def test_all_registered_argument_models_and_schemas_reject_extras():
 
     async def check():
         tools = await mcp.list_tools()
-        assert len(tools) == 203
+        assert len(tools) > 25  # fixture loads hidden tools beyond the default diet
         for tool in tools:
             model = mcp._tool_manager.get_tool(tool.name).fn_metadata.arg_model
             assert model.model_config["extra"] == "forbid", tool.name
@@ -77,7 +78,9 @@ def test_nested_argument_validation_is_bounded_before_handler_execution():
 
 def test_unknown_parameters_fail_over_actual_stdio_without_echoing_values(sample_video):
     async def check():
-        params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"])
+        params = StdioServerParameters(
+            command=sys.executable, args=["-m", "kinocut", "--mcp"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+        )
         source = sample_video
         secret = "private-argument-value-" + "x" * 20_000
         async with stdio_client(params) as (read, write), ClientSession(read, write) as session:

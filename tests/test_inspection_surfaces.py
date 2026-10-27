@@ -468,13 +468,28 @@ def test_declared_regions_are_bounded_and_privacy_safe(tmp_path, sample_video, r
 
 
 def test_public_counts_and_client_contracts():
+    import os
+    import sys
+
     from kinocut.cli.parser import build_parser
     from kinocut.client import Client
-    from kinocut.server import mcp
+    from mcp import ClientSession, StdioServerParameters
+    from mcp.client.stdio import stdio_client
 
-    tools = {tool.name for tool in asyncio.run(mcp.list_tools())}
+    async def list_full_catalog() -> set[str]:
+        params = StdioServerParameters(
+            command=sys.executable,
+            args=["-m", "kinocut"],
+            env={**os.environ, "KINOCUT_TOOLS": "all"},
+        )
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            tools_result = await session.list_tools()
+        return {t.name for t in tools_result.tools}
+
+    tools = asyncio.run(list_full_catalog())
     assert {"video_ingest", "video_preflight", "video_inspect_temporal"} <= tools
-    assert len(tools) == 203
+    assert len(tools) == 205  # Full-catalog development surface.
 
     commands = build_parser()._subparsers._group_actions[0].choices
     assert {"video-ingest", "video-preflight", "video-inspect-temporal"} <= set(commands)

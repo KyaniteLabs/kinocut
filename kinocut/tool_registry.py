@@ -307,9 +307,7 @@ CORE_TOOLS = frozenset(
     }
 )
 
-TOOL_MODULE_BY_NAME = {
-    name: module for module, names in TOOL_NAMES_BY_MODULE.items() for name in names
-}
+TOOL_MODULE_BY_NAME = {name: module for module, names in TOOL_NAMES_BY_MODULE.items() for name in names}
 
 # Public, inspectable table: tool name -> profile tags.  ``core`` is additive;
 # ``all`` is an explicit mode and therefore does not need to be repeated on
@@ -324,6 +322,7 @@ if CORE_TOOLS - TOOL_MODULE_BY_NAME.keys():
     raise RuntimeError("MCP core tool table names an unregistered tool")
 
 _TOOL_CATALOG: dict[str, dict[str, Any]] = {}
+_HIDDEN_TOOLS: dict[str, Any] = {}
 _ACTIVE_MODE = "default"
 _ACTIVE_PROFILES = frozenset({"core"})
 
@@ -336,14 +335,14 @@ def parse_tool_mode(raw: str | None = None) -> tuple[str, frozenset[str]]:
         return "default", frozenset({"core"})
     if value == "all":
         return "all", frozenset()
-    profiles = frozenset(
-        part.removeprefix("profile:").strip()
-        for part in value.split(",")
-        if part.strip()
-    )
+    profiles = frozenset(part.removeprefix("profile:").strip() for part in value.split(",") if part.strip())
     known = {tag for tags in TOOL_REGISTRY.values() for tag in tags} - {"core"}
     unknown = profiles - known
-    if unknown or not profiles or any("profile:" not in part and part.strip() not in known for part in value.split(",")):
+    if (
+        unknown
+        or not profiles
+        or any("profile:" not in part and part.strip() not in known for part in value.split(","))
+    ):
         allowed = ", ".join(sorted(known))
         raise ValueError(f"KINOCUT_TOOLS must be all, core, or profile:<name> (available: {allowed})")
     return f"profile:{','.join(sorted(profiles))}", profiles | {"core"}
@@ -372,13 +371,22 @@ def _allowed_names(mode: str, profiles: Iterable[str]) -> frozenset[str]:
 
 
 def apply_tool_surface() -> None:
-    """Remove non-selected registrations without changing any tool behavior."""
+    """Hide non-selected registrations without dropping their FastMCP objects.
+
+    Importing a ``server_tools_*`` module registers every tool in it via
+    ``@mcp.tool()``.  ``importlib.import_module`` is a no-op for already-imported
+    modules, so deleting those objects would permanently strand them.  Stashing
+    the hidden tools in ``_HIDDEN_TOOLS`` lets a later reconfigure restore them.
+    """
 
     allowed = _allowed_names(_ACTIVE_MODE, _ACTIVE_PROFILES)
     tools = _tool_manager()._tools
     for name in tuple(tools):
         if name not in allowed:
-            del tools[name]
+            _HIDDEN_TOOLS[name] = tools.pop(name)
+    for name in tuple(_HIDDEN_TOOLS):
+        if name in allowed:
+            tools[name] = _HIDDEN_TOOLS.pop(name)
 
 
 def configure_tool_surface(raw: str | None = None) -> None:
@@ -388,11 +396,13 @@ def configure_tool_surface(raw: str | None = None) -> None:
     mode, profiles = parse_tool_mode(raw)
     _ACTIVE_MODE = mode
     _ACTIVE_PROFILES = profiles
-    modules = TOOL_NAMES_BY_MODULE if mode == "all" or mode.startswith("profile:") else {
-        module: names
-        for module, names in TOOL_NAMES_BY_MODULE.items()
-        if any(name in CORE_TOOLS for name in names)
-    }
+    modules = (
+        TOOL_NAMES_BY_MODULE
+        if mode == "all" or mode.startswith("profile:")
+        else {
+            module: names for module, names in TOOL_NAMES_BY_MODULE.items() if any(name in CORE_TOOLS for name in names)
+        }
+    )
     for module in modules:
         importlib.import_module(f".{module}", __package__)
     _capture_catalog()
@@ -426,4 +436,3 @@ def discovery_catalog() -> list[dict[str, Any]]:
 
 def active_mode() -> str:
     return _ACTIVE_MODE
-

@@ -29,7 +29,9 @@ def _setup_blocks():
             if "apt-get" in script:
                 assert "timeout-minutes: 45" in "\n".join(lines[index:start])
                 blocks.append((f"{filename}:{index + 1}", script))
-    assert len(blocks) == 7
+    # ci.yml still inlines apt-get (5 jobs). integration-smoke.yml now
+    # delegates to install-ffmpeg-ubuntu.sh, so those two blocks dropped.
+    assert len(blocks) == 5
     return blocks
 
 

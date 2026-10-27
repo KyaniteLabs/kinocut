@@ -1,6 +1,7 @@
 """Public numeric validation must not bypass a supplied invalid plan."""
 
 from copy import deepcopy
+import os
 import warnings
 
 import pytest
@@ -132,7 +133,9 @@ async def _mcp_plans(valid, invalid):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+    params = StdioServerParameters(
+        command=sys.executable, args=["-m", "kinocut"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+    )
     async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         good = await session.call_tool("sound_plan_validate", {"plan": valid})

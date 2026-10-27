@@ -821,7 +821,7 @@ def test_staged_mcpb_workflow_has_exact_evidence_boundaries() -> None:
     assert "pull_request:" in workflow and "push:" in workflow and "workflow_dispatch:" in workflow
     assert "permissions:\n  contents: read" in workflow
     assert sum(line.startswith("    timeout-minutes:") for line in workflow.splitlines()) == 4
-    assert workflow.count("        timeout-minutes: 10") == 2
+    assert workflow.count("        timeout-minutes: 20") == 2
     assert "ubuntu-24.04" in workflow and "macos-latest" in workflow and "windows-latest" in workflow
     assert "npm ci --ignore-scripts" in workflow
     assert "@anthropic-ai/mcpb" not in workflow

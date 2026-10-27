@@ -13,9 +13,7 @@ from typing import Any
 _MAX_ECHO_CHARS = 200
 _MAX_MESSAGE_CHARS = 2000
 
-_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar(
-    "kinocut_retry_context", default=None
-)
+_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar("kinocut_retry_context", default=None)
 
 
 @contextlib.contextmanager
@@ -48,21 +46,15 @@ def retry_message(message: str, code: str) -> str:
         invocation = "a new output_path (MCP) / --output <new-media-path> (CLI)"
     elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
         invocation = (
-            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / "
-            "KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
+            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
         )
     elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
         invocation = (
-            "install FFmpeg, then call "
-            + tool_name
-            + " (MCP) / install FFmpeg, then run kino "
-            + cli_name
-            + " (CLI)"
+            "install FFmpeg, then call " + tool_name + " (MCP) / install FFmpeg, then run kino " + cli_name + " (CLI)"
         )
     else:
         invocation = (
-            f"call {tool_name} with corrected parameters (MCP) / "
-            f"run kino {cli_name} with corrected flags (CLI)"
+            f"call {tool_name} with corrected parameters (MCP) / run kino {cli_name} with corrected flags (CLI)"
         )
     return f"{message}; retry with {invocation}"
 

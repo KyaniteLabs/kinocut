@@ -1,5 +1,6 @@
 """Real spatial speech is equivalent through Python, CLI and MCP, then mixing."""
 
+import os
 import asyncio
 import hashlib
 import json
@@ -23,7 +24,9 @@ async def _mcp(root, request):
     from mcp import ClientSession, StdioServerParameters
     from mcp.client.stdio import stdio_client
 
-    parameters = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+    parameters = StdioServerParameters(
+        command=sys.executable, args=["-m", "kinocut"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+    )
     async with stdio_client(parameters) as (read, write), ClientSession(read, write) as session:
         await session.initialize()
         response = await session.call_tool("sound_voice_batch", {"request": request, "project_root": str(root)})

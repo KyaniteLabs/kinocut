@@ -112,7 +112,9 @@ def test_real_python_cli_mcp_speech_and_public_mix_handoff(dub_project, language
     request["output_path"] = "mcp.zip"
 
     async def call():
-        parameters = StdioServerParameters(command=sys.executable, args=["-m", "kinocut"])
+        parameters = StdioServerParameters(
+            command=sys.executable, args=["-m", "kinocut"], env={**os.environ, "KINOCUT_TOOLS": "all"}
+        )
         async with stdio_client(parameters) as (read, write), ClientSession(read, write) as session:
             await session.initialize()
             return await session.call_tool("sound_voice_batch", {"request": request, "project_root": str(root)})

@@ -74,14 +74,8 @@ jobs:
       - name: Create venv
         run: python -m venv .venv
       - name: Ensure FFmpeg
-        timeout-minutes: 45
-        run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
-          ffmpeg -version
-          ffprobe -version
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
       - name: Install package
         run: .venv/bin/pip install -e .
       - name: Create sample video
@@ -187,12 +181,9 @@ jobs:
         with:
           python-version: '3.14'
       - name: Ensure FFmpeg with subtitle support
-        timeout-minutes: 45
+        timeout-minutes: 20
         run: |
-          if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
-            sudo apt-get update
-            sudo apt-get install -y --no-install-recommends ffmpeg
-          fi
+          bash .github/scripts/install-ffmpeg-ubuntu.sh
           ffmpeg -hide_banner -filters | awk '$2 == "subtitles" && $3 == "V->V" { found=1 } END { exit !found }'
       - name: Build exact-head wheel
         run: |
