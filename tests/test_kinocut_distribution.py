@@ -165,6 +165,12 @@ def test_npm_package_is_a_thin_uvx_bootstrap_not_a_second_runtime() -> None:
     assert package["name"] == "kinocut"
     assert package["version"] == KINOCUT_VERSION
     assert package["bin"] == {"kino": "bin/kinocut.js", "kinocut": "bin/kinocut.js"}
+    # Apache-2.0 §4(a): the declared license text must accompany the tarball.
+    # `files` whitelists exactly what `npm pack` ships, so LICENSE must be
+    # both listed here and present in npm/ byte-identical to the repo license.
+    assert package["license"] == "Apache-2.0"
+    assert "LICENSE" in package["files"]
+    assert (ROOT / "npm" / "LICENSE").read_bytes() == (ROOT / "LICENSE").read_bytes()
     assert f"kinocut=={KINOCUT_VERSION}" in launcher
     assert "uvx" in launcher
     assert "process.argv.slice(2)" in launcher

@@ -16,6 +16,10 @@ This project follows a simple release-note style:
 - Add an opt-in exact probe: `kino info <file> --exact`, `Client.info(path, exact=True)` and MCP `video_info(input_path, exact=true)` additionally report `frame_count` (decoded with ffprobe `-count_frames`), `frame_count_source: "decoded"`, and the raw `r_frame_rate` / `avg_frame_rate` strings exactly as ffprobe reports them. Values that cannot be measured (for example a `0/1` rate) are `null`, never a default. The default `info` output and cost are unchanged; the exact mode decodes the whole video stream and uses a longer probe timeout.
 - Add a curated 20-tool default MCP registration, `KINOCUT_TOOLS=all` and profile expansion, hidden-tool discovery, the one-call `video_shorts` flow, the read-only `video_doctor` preflight, eyes-free retry invocations, deferred core imports, and MCP progress bridge coverage. Telemetry, network, and overwrite defaults remain unchanged.
 
+### Fixed
+
+- Ship the Apache-2.0 `LICENSE` file in the npm `kinocut` tarball (`files` now lists `bin/` and `LICENSE`). The published 1.16.4 tarball declared `license=Apache-2.0` without the license text, which Apache-2.0 §4(a) requires to accompany the distribution; the fix surfaces from the next npm release onward.
+
 ### Acknowledgments
 
 - Exact probe contribution: [@Beritwu](https://github.com/Beritwu), [#599](https://github.com/KyaniteLabs/kinocut/pull/599) (the squash already carries the co-author credit).
