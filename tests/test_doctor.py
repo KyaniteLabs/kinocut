@@ -108,7 +108,7 @@ def test_node_check_reports_hyperframes_version_via_injectable_runner():
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
-        if command[:2] == ["npx", "--yes"]:
+        if any("hyperframes" in part for part in command):
             return "0.6.93"
         return "v22.0.0"
 
@@ -123,7 +123,7 @@ def test_node_check_omits_hyperframes_version_when_probe_fails():
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
-        if command[:2] == ["npx", "--yes"]:
+        if any("hyperframes" in part for part in command):
             return None
         return "v22.0.0"
 

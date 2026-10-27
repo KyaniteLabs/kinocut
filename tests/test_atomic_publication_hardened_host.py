@@ -28,6 +28,20 @@ def fresh_paths():
     _reset_operation_inputs()
 
 
+def _is_root_read_open(path, flags) -> bool:
+    """True for a read-open of the filesystem root (not an ``O_PATH`` anchor).
+
+    ``os.O_RDONLY`` is 0, so the access mode has to be read off ``O_ACCMODE``;
+    testing ``flags & os.O_RDONLY`` is constantly false, so the denial below
+    would never fire and the hardened path would go untested.
+    """
+    if str(path) != os.path.sep:
+        return False
+    if flags & os.O_PATH:
+        return False
+    return flags & os.O_ACCMODE == os.O_RDONLY
+
+
 def _deny_root_read_open(monkeypatch):
     """Simulate a host that refuses a read-open of the filesystem root.
 
@@ -35,30 +49,38 @@ def _deny_root_read_open(monkeypatch):
     ``os.supports_dir_fd`` capability set is extended with the replacement:
     ``kinocut.atomic_publication`` selects the descriptor-anchored
     implementation by testing ``os.open in os.supports_dir_fd``.
+
+    Returns the ``(path, flags)`` pairs the replacement observed.
     """
     from kinocut import atomic_publication
 
     real_open = os.open
+    observed = []
 
     def guarded(path, flags, *args, **kwargs):
-        if str(path) == os.path.sep and flags & os.O_RDONLY and not flags & os.O_PATH:
+        observed.append((str(path), flags))
+        if _is_root_read_open(path, flags):
             raise PermissionError(errno.EACCES, "Permission denied", str(path))
         return real_open(path, flags, *args, **kwargs)
 
     monkeypatch.setattr(os, "open", guarded)
     monkeypatch.setattr(os, "supports_dir_fd", set(os.supports_dir_fd) | {guarded})
     assert atomic_publication.os is os
+    return observed
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX descriptor-anchored creation")
 @pytest.mark.skipif(not hasattr(os, "O_PATH"), reason="O_PATH required")
 def test_publication_succeeds_when_root_read_open_is_denied(tmp_path, monkeypatch):
-    _deny_root_read_open(monkeypatch)
+    observed = _deny_root_read_open(monkeypatch)
     output = tmp_path / "nested" / "delivery.mp4"
     with _atomic_output(str(output)) as staged, _open_staged_writer(staged) as stream:
         stream.write(b"complete delivery on a hardened host")
     assert output.read_bytes() == b"complete delivery on a hardened host"
     assert not list(tmp_path.rglob(".kinocut_tmp_*"))
+    # The simulated denial must actually have fired: otherwise this test
+    # proves nothing about the hardened path on an unhardened host.
+    assert any(_is_root_read_open(path, flags) for path, flags in observed), observed
 
 
 @pytest.mark.skipif(os.name != "posix", reason="POSIX descriptor-anchored creation")
@@ -66,19 +88,12 @@ def test_publication_succeeds_when_root_read_open_is_denied(tmp_path, monkeypatc
 def test_root_anchor_fallback_uses_path_mode(tmp_path, monkeypatch):
     from kinocut import atomic_publication
 
-    seen = {}
-    real_open = os.open
-
-    def recording(path, flags, *args, **kwargs):
-        if str(path) == os.path.sep:
-            seen["flags"] = flags
-        return real_open(path, flags, *args, **kwargs)
-
-    _deny_root_read_open(monkeypatch)
-    monkeypatch.setattr(atomic_publication.os, "open", recording)
+    observed = _deny_root_read_open(monkeypatch)
     descriptor = atomic_publication._open_root_descriptor()
     try:
-        assert seen["flags"] & os.O_PATH
+        root_opens = [flags for path, flags in observed if str(path) == os.path.sep]
+        assert root_opens, observed
+        assert any(flags & os.O_PATH for flags in root_opens), root_opens
         assert os.fstat(descriptor).st_mode
     finally:
         os.close(descriptor)
