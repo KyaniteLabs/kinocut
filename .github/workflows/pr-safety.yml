@@ -37,7 +37,7 @@ jobs:
         if: steps.classify.outputs.code != 'true'
         run: echo "Code inputs unchanged; marking hosted PR checks successful."
       - name: Ensure FFmpeg
-        timeout-minutes: 15
+        timeout-minutes: 20
         if: steps.classify.outputs.code == 'true'
         run: |
           if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
