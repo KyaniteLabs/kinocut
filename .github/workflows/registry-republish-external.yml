@@ -1,0 +1,101 @@
+name: Registry republish — external tech.kyanitelabs payloads
+
+# Dispatch-only helper. This repo holds MCP_REGISTRY_DNS_PRIVATE_KEY (the only
+# place it exists), which authorizes publishes to the DNS-proven
+# tech.kyanitelabs/* namespace. Sibling repos' server.json records need the same
+# publish path their own CI cannot run (no secret there). This workflow checks
+# out a WHITELISTED sibling repo at a pinned ref and publishes its server.json
+# with the same duplicate-tolerant + read-back pattern as publish.yml.
+# Added for CEO-gated act ③ (t_0d11c90c, word 2026-10-27).
+
+on:
+  workflow_dispatch:
+    inputs:
+      server_repo:
+        description: 'Repo owning the server.json (whitelisted)'
+        required: true
+      server_ref:
+        description: 'Git ref to publish from'
+        required: true
+        default: 'main'
+
+permissions:
+  contents: read
+
+jobs:
+  publish-external:
+    name: Publish ${{ inputs.server_repo }}@${{ inputs.server_ref }} server.json
+    runs-on: ubuntu-latest
+    steps:
+      - name: Whitelist guard
+        run: |
+          case "${{ inputs.server_repo }}" in
+            KyaniteLabs/Epoch|KyaniteLabs/DialectOS) echo "allowed: ${{ inputs.server_repo }}";;
+            *) echo "::error::repo not whitelisted: ${{ inputs.server_repo }}"; exit 1;;
+          esac
+      - name: Checkout payload repo
+        uses: actions/checkout@v5
+        with:
+          repository: ${{ inputs.server_repo }}
+          ref: ${{ inputs.server_ref }}
+          persist-credentials: false
+      - name: Install mcp-publisher
+        env:
+          MCP_PUBLISHER_VERSION: "1.8.1"
+        run: |
+          curl -fsSL -o mcp-publisher.tar.gz \
+            "https://github.com/modelcontextprotocol/registry/releases/download/v${MCP_PUBLISHER_VERSION}/mcp-publisher_linux_amd64.tar.gz"
+          tar xzf mcp-publisher.tar.gz mcp-publisher
+          ./mcp-publisher --help
+      - name: Require the registry domain key
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
+        run: |
+          if [ -z "$MCP_REGISTRY_DNS_PRIVATE_KEY" ]; then
+            echo "::error::MCP_REGISTRY_DNS_PRIVATE_KEY is not set; tech.kyanitelabs/* cannot be published."
+            exit 1
+          fi
+      - name: Validate + publish (duplicate-tolerant)
+        env:
+          MCP_REGISTRY_DNS_PRIVATE_KEY: ${{ secrets.MCP_REGISTRY_DNS_PRIVATE_KEY }}
+        run: |
+          set -euo pipefail
+          registry_key="$(printf '%s' "$MCP_REGISTRY_DNS_PRIVATE_KEY" | tr -cd '0-9a-fA-F' | head -c 64)"
+          if [ "${#registry_key}" -ne 64 ]; then
+            echo "::error::key is not a 64-hex Ed25519 seed"; exit 1
+          fi
+          ./mcp-publisher validate server.json
+          ./mcp-publisher login http --domain kyanitelabs.tech --private-key "$registry_key"
+          name="$(python3 -c "import json;print(json.load(open('server.json'))['name'])")"
+          version="$(python3 -c "import json;print(json.load(open('server.json'))['version'])")"
+          encoded="$(python3 -c "import urllib.parse;print(urllib.parse.quote('${name}',safe=''))")"
+          published="$(curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers/${encoded}/versions" \
+            | python3 -c "import json,sys;print('\n'.join(e['server']['version'] for e in json.load(sys.stdin).get('servers',[])))" || true)"
+          if printf '%s\n' "$published" | grep -qx "$version"; then
+            echo "$name $version already published; nothing to do."
+          else
+            if ! out="$(./mcp-publisher publish server.json 2>&1)"; then
+              if printf '%s' "$out" | grep -q "duplicate version"; then
+                echo "$name $version already published (duplicate accepted); nothing to do."
+              else
+                printf '%s\n' "$out" >&2; exit 1
+              fi
+            else
+              printf '%s\n' "$out"
+            fi
+          fi
+      - name: Post-publish verify (live registry read-back)
+        run: |
+          set -euo pipefail
+          name="$(python3 -c "import json;print(json.load(open('server.json'))['name'])")"
+          version="$(python3 -c "import json;print(json.load(open('server.json'))['version'])")"
+          encoded="$(python3 -c "import urllib.parse;print(urllib.parse.quote('${name}',safe=''))")"
+          curl -fsSL "https://registry.modelcontextprotocol.io/v0/servers/${encoded}/versions" \
+            | python3 -c "
+          import json,sys
+          rows=json.load(sys.stdin).get('servers',[])
+          hit=[r for r in rows if r['server']['version']=='$version']
+          assert hit, 'published version not found in registry read-back'
+          pkgs=hit[0]['server'].get('packages') or []
+          print('VERIFIED', '$name', '$version', 'packages:', [p['identifier'] for p in pkgs])
+          "
