@@ -25,9 +25,28 @@ def _partial_output(message: str) -> MCPVideoError:
     )
 
 
+def _open_root_descriptor() -> int:
+    """Open the filesystem root as an anchor descriptor.
+
+    ``O_PATH`` is requested because hardened hosts (seccomp/LSM policies, some
+    container runtimes) deny opening ``/`` with read permission. A read-open
+    of the root is not needed to walk the ancestry: every component below it
+    is opened with ``O_NOFOLLOW`` relative to the parent descriptor, and
+    ``O_PATH`` descriptors are valid ``dir_fd`` arguments. Without this
+    fallback the whole atomic-publication path fails on such hosts with
+    "Atomic output could not preserve directory identity: PermissionError".
+    """
+    try:
+        return os.open(os.path.sep, os.O_RDONLY | os.O_DIRECTORY)
+    except PermissionError:
+        if not hasattr(os, "O_PATH"):
+            raise
+        return os.open(os.path.sep, os.O_PATH | os.O_DIRECTORY)
+
+
 def _open_directory(directory: str) -> int:
     """Walk canonical ancestry without following a concurrently planted symlink."""
-    descriptor = os.open(os.path.sep, os.O_RDONLY | os.O_DIRECTORY)
+    descriptor = _open_root_descriptor()
     try:
         for component in directory.split(os.path.sep):
             if not component:
