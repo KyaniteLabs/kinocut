@@ -1,6 +1,6 @@
 [project]
 name = "kinocut-claude-plugin"
-version = "1.16.7"
+version = "1.16.8"
 description = "Locked local runtime for the Kinocut Claude plugin"
 requires-python = ">=3.11"
 dependencies = ["kinocut==1.16.5"]
