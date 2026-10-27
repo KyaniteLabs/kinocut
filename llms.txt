@@ -166,4 +166,4 @@ video editing MCP server, guardrailed video editing MCP server, AI agent video e
 - Enterprise: docs/ENTERPRISE.md
 - Rename: docs/RENAME.md
 
-Prepared development candidate: 1.6.19 shim → kinocut 1.16.4 (not yet published).
+Prepared development candidate: 1.6.20 shim → kinocut 1.16.5 (not yet published).

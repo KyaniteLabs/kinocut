@@ -4,32 +4,32 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-video"
-version = "1.6.19"
+version = "1.6.20"
 description = "Compatibility installer for Kinocut, formerly mcp-video."
 readme = "README.md"
 license = "Apache-2.0"
 requires-python = ">=3.11"
-dependencies = ["kinocut==1.16.4"]
+dependencies = ["kinocut==1.16.5"]
 
 [project.optional-dependencies]
-client = ["kinocut[client]==1.16.4"]
-image = ["kinocut[image]==1.16.4"]
-image-ai = ["kinocut[image-ai]==1.16.4"]
-audio = ["kinocut[audio]==1.16.4"]
-audio-enhanced = ["kinocut[audio-enhanced]==1.16.4"]
-audio-ai = ["kinocut[audio-ai]==1.16.4"]
-audio-midi = ["kinocut[audio-midi]==1.16.4"]
-audio-analysis = ["kinocut[audio-analysis]==1.16.4"]
-hyperframes = ["kinocut[hyperframes]==1.16.4"]
-transcribe = ["kinocut[transcribe]==1.16.4"]
-ai-scene = ["kinocut[ai-scene]==1.16.4"]
-stems = ["kinocut[stems]==1.16.4"]
-object-matte = ["kinocut[object-matte]==1.16.4"]
-upscale = ["kinocut[upscale]==1.16.4"]
-ai = ["kinocut[ai]==1.16.4"]
-all-ai = ["kinocut[all-ai]==1.16.4"]
-audio-all = ["kinocut[audio-all]==1.16.4"]
-dev = ["kinocut[dev]==1.16.4"]
+client = ["kinocut[client]==1.16.5"]
+image = ["kinocut[image]==1.16.5"]
+image-ai = ["kinocut[image-ai]==1.16.5"]
+audio = ["kinocut[audio]==1.16.5"]
+audio-enhanced = ["kinocut[audio-enhanced]==1.16.5"]
+audio-ai = ["kinocut[audio-ai]==1.16.5"]
+audio-midi = ["kinocut[audio-midi]==1.16.5"]
+audio-analysis = ["kinocut[audio-analysis]==1.16.5"]
+hyperframes = ["kinocut[hyperframes]==1.16.5"]
+transcribe = ["kinocut[transcribe]==1.16.5"]
+ai-scene = ["kinocut[ai-scene]==1.16.5"]
+stems = ["kinocut[stems]==1.16.5"]
+object-matte = ["kinocut[object-matte]==1.16.5"]
+upscale = ["kinocut[upscale]==1.16.5"]
+ai = ["kinocut[ai]==1.16.5"]
+all-ai = ["kinocut[all-ai]==1.16.5"]
+audio-all = ["kinocut[audio-all]==1.16.5"]
+dev = ["kinocut[dev]==1.16.5"]
 
 [project.urls]
 Homepage = "https://kinocut.dev/"

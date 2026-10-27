@@ -9,7 +9,7 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 1.16.5 - 2026-10-27
 
 ### Added
 
