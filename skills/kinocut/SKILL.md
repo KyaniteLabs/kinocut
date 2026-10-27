@@ -66,7 +66,7 @@ and `video_release_checkpoint`, then require human visual review.
 
 ## Choose A Surface
 
-- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==1.16.4`. Do not edit another host's configuration from this skill.
+- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==1.16.5`. Do not edit another host's configuration from this skill.
 - CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
 - Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
 
@@ -309,7 +309,7 @@ plan = video.composite_layers(
 Run the pinned server. Do not edit another host's configuration from this skill.
 
 ```bash
-uvx kinocut==1.16.4
+uvx kinocut==1.16.5
 ```
 
 ## Guardrails

@@ -127,7 +127,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | --- | --- | --- |
 | **PyPI / npm checkpoint** | **[1.16.4](https://pypi.org/project/kinocut/1.16.4/)** (2026-10-24) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
 | **GitHub latest release / MCP Registry** | **1.16.4** | GitHub release `v1.16.4` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.4 (verified 2026-10-24). Final owner acceptance and fleet rollout remain separate. |
-| **This source version** | **Unreleased QoL pass** · **20 default MCP / 205 full / 177 CLI** | The default MCP list is curated; `KINOCUT_TOOLS=all` restores the full catalog. Telemetry, network, and overwrite defaults remain unchanged. |
+| **This source version** | **1.16.5 candidate** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Candidate `mcp-video==1.6.20` pins this runtime; publication is tracked separately in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
 Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.

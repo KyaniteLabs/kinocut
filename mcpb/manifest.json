@@ -45,7 +45,7 @@
     "pythonExecutable": {
       "type": "string",
       "title": "Python executable",
-      "description": "Optional Python command or absolute executable path for an environment with kinocut==1.16.4 installed. Leave blank to try python3 then python.",
+      "description": "Optional Python command or absolute executable path for an environment with kinocut==1.16.5 installed. Leave blank to try python3 then python.",
       "default": "",
       "required": false
     },
