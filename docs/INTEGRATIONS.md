@@ -3,8 +3,8 @@
 ## Claude Code
 
 ```bash
-pip install kinocut
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+pip install kinocut==1.16.5
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 kino doctor
 ```
 

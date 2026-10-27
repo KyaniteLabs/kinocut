@@ -83,7 +83,7 @@ Claude Desktop:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -96,7 +96,7 @@ Cursor:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }

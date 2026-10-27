@@ -122,8 +122,9 @@ mcp_servers:
     command: uvx
     args: ["kinocut==1.16.5"]
     # video_thumbnail (below) is a profile tool, not part of the default
-    # 20-tool core: select the editor profile explicitly. The plugin's own
-    # .mcp.json launch deliberately stays on the environment-unset default.
+    # 20-tool core: select the editor profile explicitly (108 tools).
+    # The plugin's own .mcp.json launch deliberately stays on the
+    # environment-unset 20-tool default.
     env:
       KINOCUT_TOOLS: profile:editor
     tools:
@@ -138,6 +139,13 @@ updating. Run `/reload-mcp` after changing the configuration. Use server-native
 tool names in `include`, and add the edit and quality-check tools your workflow
 needs. `search_tools` helps discover names; it does not enable excluded tools or
 hide schemas by itself. See the [Hermes MCP configuration reference](https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference/).
+
+Plugin hosts that start the server from this plugin's `mcp.json` get the
+20-tool core. The skills that need a profile tool (`video_repurpose_plan`,
+`video_repurpose`, and other editor-profile tools) say so and require
+`KINOCUT_TOOLS=profile:editor` plus a server restart; under the default
+launch those tools are not registered, and the skill stops and reports that
+instead of retrying.
 
 For other hosts, use their tool-filtering controls if available.
 

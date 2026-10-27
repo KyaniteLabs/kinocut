@@ -8,6 +8,15 @@ description: Use when agents edit local video safely with Kinocut. MCP, Python, 
 Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. It exposes MCP tools, a Python client, and a CLI for editing, analysis, subtitles, audio, Hyperframes, layered compositing, and local repurposing workflows.
 
 Published 1.16.5 serves 205 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`; the default registration is a curated 20-tool core. Inspect the installed schemas before using additions.
+
+**Tool surface.** This plugin's own launch (`mcp.json`) registers the curated
+20-tool core, and the `kino` CLI exposes its 177 commands independently. Any
+tool named below that is not in that core is a profile tool: start the server
+with an explicit selection — `KINOCUT_TOOLS=profile:editor` (108 tools) or
+`KINOCUT_TOOLS=all` (205 tools) — and restart it before calling it. Use
+`search_tools` to discover names, but it does not register them. If the tool
+you need is not registered, stop and report that it is unavailable instead of
+retrying.
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
 work is described in `docs/PLATFORM_PARITY.md`.

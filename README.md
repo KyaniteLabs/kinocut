@@ -412,7 +412,7 @@ uvx --from kinocut==1.16.5 kino doctor
 Or install with pip:
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 ```
 
@@ -467,7 +467,7 @@ Published `mcp-video==1.6.20` is a metadata-only compatibility installer for `ki
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.5** (`pip install kinocut`, **205 herramientas MCP con `KINOCUT_TOOLS=all`; 20 por defecto / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.5** (`pip install kinocut==1.16.5`, **205 herramientas MCP con `KINOCUT_TOOLS=all`; 20 por defecto / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -479,7 +479,7 @@ brew install ffmpeg
 sudo apt install ffmpeg
 
 # Instalación y diagnóstico
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 ```
 
@@ -498,7 +498,7 @@ claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 Prove the install works before wiring an agent host:
 
 ```bash
-pip install -e .          # or: pip install kinocut
+pip install -e .          # or: pip install kinocut==1.16.5
 kino doctor               # required checks must pass
 python scripts/golden_path.py
 ```
@@ -784,7 +784,7 @@ Kinocut is a free, open-source MCP server, Python library, and `kino` CLI for AI
 
 ```bash
 brew install ffmpeg   # or apt install ffmpeg
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```

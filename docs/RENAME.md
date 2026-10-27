@@ -29,8 +29,8 @@ The product is a **guardrailed local execution layer for agentic video**, not â€
 Please list:
 
 - **Name:** Kinocut (formerly mcp-video)  
-- **Install:** `pip install kinocut`  
-- **MCP:** `uvx --from kinocut kino` / registry `tech.kyanitelabs/kinocut`  
+- **Install:** `pip install kinocut==1.16.5`  
+- **MCP:** `uvx --from kinocut==1.16.5 kino` / registry `tech.kyanitelabs/kinocut`  
 - **Site:** https://kinocut.dev/  
 - **Repo:** https://github.com/KyaniteLabs/kinocut  
 

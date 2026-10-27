@@ -31,9 +31,9 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 
 ```bash
 brew install ffmpeg   # or: sudo apt install ffmpeg
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 Core FFmpeg edits process local media. An AI host or explicitly configured external

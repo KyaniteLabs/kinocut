@@ -37,7 +37,7 @@ Yes. Kinocut has three interfaces: MCP server (for agents), Python client (for s
 ## How do I install it?
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 ```
 
 For AI features like transcription and upscaling, install the extras:
@@ -51,7 +51,7 @@ pip install "kinocut[ai]"
 Install FFmpeg and [uv](https://docs.astral.sh/uv/getting-started/installation/), then register the local stdio server:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 Run `kino doctor` in an installed Kinocut environment to inspect dependencies. The explicit `--mcp` selects server mode; invoking `kino` without a command also selects MCP today. See [installation](INSTALL.md) and [integrations](INTEGRATIONS.md) for other hosts.

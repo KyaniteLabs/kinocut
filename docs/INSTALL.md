@@ -15,11 +15,11 @@
 
 | Goal | Command |
 | --- | --- |
-| Stable publish | `pip install kinocut` |
-| Upgrade | `pip install -U kinocut` |
+| Stable publish | `pip install kinocut==1.16.5` |
+| Upgrade | `pip install -U kinocut==1.16.5` |
 | From former name | `pip install -U mcp-video` (shim → current Kinocut) |
 | Editable clone | `pip install -e .` from repo root |
-| No global install | `uvx --from kinocut kino doctor` |
+| No global install | `uvx --from kinocut==1.16.5 kino doctor` |
 
 ## Verify (doctor-first)
 
@@ -43,7 +43,7 @@ python scripts/golden_path.py   # from a clone
 ### Claude Code
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ### Cursor / generic stdio JSON
@@ -53,7 +53,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }

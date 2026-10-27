@@ -117,7 +117,7 @@ If all_passed is false, list recommendations and stop before any publish languag
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -126,7 +126,7 @@ If all_passed is false, list recommendations and stop before any publish languag
 Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ## Skills
