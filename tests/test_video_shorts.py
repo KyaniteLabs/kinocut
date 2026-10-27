@@ -16,6 +16,12 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 
     monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
 
+    def fake_probe(_path):
+        # The flow bounds segment ranges by the measured source duration
+        # (t_e3775201 F7); this fixture is a placeholder file, so the probe
+        # is stubbed rather than run against a non-media file.
+        return SimpleNamespace(duration=10.0)
+
     def fake_trim(input_path, *, start, end, output_path, accurate=True):
         calls.append(("trim", input_path, start, end))
         Path(output_path).write_bytes(b"trim")
@@ -46,6 +52,7 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
     monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
     monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
     monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
 
     result = shorts_flow.video_shorts(
         str(source),
@@ -86,8 +93,11 @@ def test_video_shorts_rerun_with_overwrite_replaces_prior_output(sample_video, t
     # never a durable companion next to the requested output.
     assert not os.path.exists(str(Path(output).with_suffix(".srt")))
 
-    with pytest.raises(MCPVideoError, match="retry with overwrite=true"):
+    with pytest.raises(MCPVideoError) as refusal:
         shorts_flow.video_shorts(sample_video, segments, output_path=output)
+    # The retry invocation is part of the serialized error payload, not the
+    # raised message; the refusal must still name the overwrite consent.
+    assert "overwrite=true" in refusal.value.to_dict()["message"]
 
     second = shorts_flow.video_shorts(sample_video, segments, output_path=output, overwrite=True)
     assert second["success"] is True

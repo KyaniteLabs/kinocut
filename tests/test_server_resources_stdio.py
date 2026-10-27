@@ -54,7 +54,7 @@ async def _launch(env_extra: dict[str, str]):
 def test_resources_registered_on_fresh_stdio_launch_default_mode():
     templates, resources, contents = asyncio.run(_launch({}))
 
-    assert EXPECTED_TEMPLATE_URIS <= _template_uris(templates)
+    assert _template_uris(templates) >= EXPECTED_TEMPLATE_URIS
     assert STATIC_RESOURCE_URI in _resource_uris(resources)
 
     text = next((getattr(c, "text", None) for c in contents.contents if getattr(c, "text", None)), "")
@@ -67,5 +67,5 @@ def test_resources_registered_on_fresh_stdio_launch_default_mode():
 def test_resources_registered_on_fresh_stdio_launch_all_mode():
     templates, resources, _contents = asyncio.run(_launch({"KINOCUT_TOOLS": "all"}))
 
-    assert EXPECTED_TEMPLATE_URIS <= _template_uris(templates)
+    assert _template_uris(templates) >= EXPECTED_TEMPLATE_URIS
     assert STATIC_RESOURCE_URI in _resource_uris(resources)

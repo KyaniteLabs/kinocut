@@ -9,8 +9,6 @@ import json
 import tomllib
 from pathlib import Path
 
-import pytest
-
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS  # noqa: F401
@@ -194,38 +192,57 @@ def test_hyperframes_tts_schema_can_list_voices_without_text():
     assert "text" not in schema.get("required", [])
 
 
-def test_failed_discovery_never_widens_the_default_surface(monkeypatch):
+def test_failed_discovery_never_widens_the_default_surface():
     """Fault injection (t_e3775201 F4): a failing hidden-module import during
-    discovery must restore the selected diet, never leave enlarged surfaces."""
-    import asyncio
+    discovery must restore the selected diet, never leave enlarged surfaces.
 
-    import kinocut.tool_registry as tr
-    from kinocut.server_app import mcp
+    Runs in a fresh process because the diet is applied by
+    ``kinocut.server`` at import time, and the in-process surface is
+    process-global: importing it inside the test session would inherit
+    whatever surface an earlier test left behind.
+    """
+    script = """
+import asyncio, importlib
+import kinocut.tool_registry as tr
+from kinocut.server import mcp
 
-    def visible_names() -> set[str]:
-        tools = asyncio.run(mcp.list_tools())
-        return {tool.name for tool in tools.tools}
+def visible():
+    return {tool.name for tool in asyncio.run(mcp.list_tools())}
 
-    before = visible_names()
-    assert before == DEFAULT_SERVER_TOOLS
+before = visible()
+assert len(before) == 20, f"default surface is {len(before)}, expected 20"
 
-    real_import_module = tr.importlib.import_module
-    last_module = sorted(tr.TOOL_NAMES_BY_MODULE)[-1]
+real_import_module = importlib.import_module
+last_module = sorted(tr.TOOL_NAMES_BY_MODULE)[-1]
 
-    class _FailingImportlib:
-        """Delegates to real importlib except for one injected module failure."""
+class FailingImportlib:
+    def import_module(self, name, package=None):
+        if name.endswith("." + last_module):
+            raise ImportError("injected discovery failure for " + name)
+        return real_import_module(name, package)
 
-        def import_module(self, name, package=None):
-            if name.endswith(f".{last_module}"):
-                raise ImportError(f"injected discovery failure for {name}")
-            return real_import_module(name, package)
+tr.importlib = FailingImportlib()
+try:
+    tr.discovery_catalog()
+except ImportError:
+    pass
+else:
+    raise AssertionError("injected discovery failure did not surface")
 
-    monkeypatch.setattr(tr, "importlib", _FailingImportlib())
-    with pytest.raises(ImportError, match="injected discovery failure"):
-        tr.discovery_catalog()
-    monkeypatch.undo()
+after = visible()
+assert after == before, f"failed discovery widened the surface: {sorted(after - before)}"
+print("SURFACE_OK", len(before))
+"""
+    result = subprocess.run(
+        [sys.executable, "-c", script],
+        capture_output=True,
+        text=True,
+        timeout=120,
+        cwd=str(ROOT),
+    )
 
-    assert visible_names() == before, "failed discovery must not widen the default surface"
+    assert result.returncode == 0, result.stderr
+    assert "SURFACE_OK 20" in result.stdout
 
 
 def test_cli_retry_names_resolve_to_real_parser_commands():

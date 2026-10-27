@@ -155,11 +155,9 @@ def video_shorts(
     from ..engine_probe import probe as _probe_source
 
     duration = float(_probe_source(source).duration or 0.0)
-    for index, (start, end, _text) in enumerate(parsed):
+    for index, (_start, end, _text) in enumerate(parsed):
         if duration and end > duration + 0.05:
-            raise _flow_error(
-                f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)"
-            )
+            raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
 
     from ..output_policy import output_operation
 
