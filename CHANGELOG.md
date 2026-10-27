@@ -18,6 +18,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- Pin repo-level skill install recipes to `kinocut==1.16.4` and drop `claude mcp add` / unpinned `uvx --from kinocut` host-mutation instructions. Plugin skills were already pinned; the cloneable `skills/` tree now matches.
 - Ship the Apache-2.0 `LICENSE` file in the npm `kinocut` tarball (`files` now lists `bin/` and `LICENSE`). The published 1.16.4 tarball declared `license=Apache-2.0` without the license text, which Apache-2.0 §4(a) requires to accompany the distribution; the fix surfaces from the next npm release onward.
 - Ship the Apache-2.0 license text in the `mcp-video` compatibility package on PyPI: `LICENSE` in the sdist and `<pkg>.dist-info/licenses/LICENSE` in the wheel, plus a License section in the shipped README. The publish gate (`check-built-artifacts.py`) now rejects any wheel or sdist that omits its license text. The published 1.6.19 artifacts declared Apache-2.0 without the text; the fix surfaces from the next mcp-video release onward.
 

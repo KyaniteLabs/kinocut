@@ -66,7 +66,7 @@ and `video_release_checkpoint`, then require human visual review.
 
 ## Choose A Surface
 
-- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Configure `uvx --from kinocut kino`.
+- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==1.16.4`. Do not edit another host's configuration from this skill.
 - CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
 - Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
 
@@ -112,7 +112,7 @@ directors never write pixels.
 The optional object-matte extra is available in published 1.16.4. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
-2. `pip install "kinocut[object-matte]"` then `model="birefnet-general"`.
+2. `pip install "kinocut[object-matte]==1.16.4"` then `model="birefnet-general"`.
 3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
 4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
 
@@ -306,15 +306,10 @@ plan = video.composite_layers(
 
 ## MCP Setup
 
-```json
-{
-  "mcpServers": {
-    "kinocut": {
-      "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
-    }
-  }
-}
+Run the pinned server. Do not edit another host's configuration from this skill.
+
+```bash
+uvx kinocut==1.16.4
 ```
 
 ## Guardrails

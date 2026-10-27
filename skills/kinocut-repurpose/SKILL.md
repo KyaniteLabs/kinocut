@@ -18,16 +18,16 @@ host that discovers local path skills:
 mkdir -p .claude/skills && cp -R skills/kinocut-repurpose .claude/skills/kinocut-repurpose
 ```
 
-Configure the Kinocut MCP server separately when MCP tools are available:
+Run the pinned Kinocut MCP server when MCP tools are available. Do not edit another host's configuration from this skill:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino
+uvx kinocut==1.16.4
 ```
 
 For CLI-only hosts, install and verify Kinocut:
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.4
 kino doctor
 ```
 
