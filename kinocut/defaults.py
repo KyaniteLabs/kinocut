@@ -251,9 +251,10 @@ DEFAULT_RENDER_STOP_TIMEOUT = 5.0
 DEFAULT_FFMPEG_PROGRESS_READER_JOIN_TIMEOUT = 5.0
 DEFAULT_RENDER_STOP_POLL_INTERVAL = 0.02
 # Extra wall time the POSIX orphan watchdog may add to an ordinary command
-# spawn (one extra interpreter for process_guardian.py). Measured median on
-# Linux is ~33ms; keep the bound above that so CI stays honest.
-DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS = 80.0
+# spawn (one extra interpreter for process_guardian.py). Measured median extra
+# cost is ~33ms on Linux and ~89ms on macOS GitHub runners; keep the bound
+# above both so CI stays honest without hiding a stuck guardian.
+DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS = 150.0
 # macOS may refuse to exec puppeteer's downloaded chrome-headless-shell
 # (protected com.apple.provenance xattr -> spawn ECANCELED); the engine
 # forwards this env var so the bridge can use a system Chrome instead.
