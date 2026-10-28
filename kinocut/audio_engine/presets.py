@@ -283,7 +283,9 @@ def get_preset_config(name: str) -> dict:
     """Return a deep copy of the configuration dict for the given preset.
 
     Raises:
-        KeyError: If the preset name is not recognized.
+        MCPVideoError: If the preset name is not recognized. The message
+            names the available presets — shipped guidance — and never
+            repeats the name that was refused.
     """
     if name not in _PRESETS:
         raise MCPVideoError(
