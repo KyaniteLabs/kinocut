@@ -17,7 +17,7 @@
 | --- | --- |
 | Stable publish | `pip install kinocut==1.16.5` |
 | Upgrade | `pip install -U kinocut==1.16.5` |
-| From former name | `pip install -U mcp-video` (shim → current Kinocut) |
+| From former name | `pip install -U "mcp-video==1.6.20"` (shim → current Kinocut) |
 | Editable clone | `pip install -e .` from repo root |
 | No global install | `uvx --from kinocut==1.16.5 kino doctor` |
 

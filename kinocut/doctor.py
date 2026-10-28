@@ -77,6 +77,9 @@ COMMAND_CHECKS = (
         "category": "hyperframes",
         "required": False,
         "command": ["npx", "--version"],
+        # A package manager is never executed: `npx --version` can consult
+        # the registry. Its presence is read from PATH instead.
+        "probe": "never",
         "install_hint": "Install npx/npm only if your chosen Hyperframes package layout uses it.",
     },
     {
@@ -84,6 +87,7 @@ COMMAND_CHECKS = (
         "category": "hyperframes",
         "required": False,
         "command": ["npm", "--version"],
+        "probe": "never",
         "install_hint": "Install npm for Hyperframes package diagnostics.",
     },
     {
@@ -220,6 +224,22 @@ def _package_version(distribution_name: str) -> str | None:
 
 
 def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
+    if definition.get("probe") == "never":
+        # The doctor does not run a package manager. It reports whether one is
+        # on PATH and leaves it there.
+        path = which(definition["command"][0])
+        return {
+            "name": definition["name"],
+            "category": definition["category"],
+            "required": definition["required"],
+            "ok": path is not None,
+            "path": path,
+            "version": None,
+            "command": definition["command"],
+            "install_hint": None,
+            "probed": False,
+            "reason": "the doctor does not run a package manager; its presence is read from PATH, not executed",
+        }
     path = which(definition["command"][0])
     version = version_runner(definition["command"]) if path else None
     ok = path is not None and version is not None

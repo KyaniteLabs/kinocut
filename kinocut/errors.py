@@ -21,6 +21,19 @@ _MAX_ACTION_CHARS = 1000
 _RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar("kinocut_retry_context", default=None)
 
 
+def _without_value(text: str, value: str) -> str:
+    """The text with the caller's submitted value removed.
+
+    An error names the argument and the failure; it never repeats what the
+    caller passed. That string can be a path, a codec name, or a
+    credential-shaped token, and it must not travel back out to the caller.
+    """
+    if not value:
+        return text
+    cleaned = text.replace(value, "").strip()
+    return cleaned or "the submitted value was rejected"
+
+
 @contextlib.contextmanager
 def retry_context(tool_name: str, arguments: dict[str, Any] | None = None):
     """Bind a user-facing error to the operation that can be retried."""
@@ -317,7 +330,7 @@ class InputFileError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "File not found (archivo no encontrado)") -> None:
         super().__init__(
-            f"Input file error: {truncate_echo(path)} — {reason}",
+            f"Input file error — {_without_value(reason, path)}",
             error_type="input_error",
             code="invalid_input",
             suggested_action={
@@ -331,13 +344,16 @@ class CodecError(MCPVideoError):
     """Unsupported or incompatible codec."""
 
     def __init__(self, codec: str, detail: str = "") -> None:
+        message = "Codec error"
+        if detail:
+            message += f" — {_without_value(detail, codec)}"
         super().__init__(
-            f"Codec error: {codec}" + (f" — {detail}" if detail else ""),
+            message,
             error_type="encoding_error",
             code="unsupported_codec",
             suggested_action={
                 "auto_fix": True,
-                "description": f"Auto-convert input from {codec} to H.264/AAC before editing",
+                "description": "Auto-convert the input to H.264/AAC before editing",
             },
             docs_url="https://git.kyanitelabs.tech/KyaniteLabs/kinocut#codec-compatibility",
         )
@@ -369,7 +385,7 @@ class HyperframesProjectError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "Invalid project") -> None:
         super().__init__(
-            f"Hyperframes project error: {path} — {reason}",
+            f"Hyperframes project error — {_without_value(reason, path)}",
             error_type="project_error",
             code="invalid_hyperframes_project",
             suggested_action={

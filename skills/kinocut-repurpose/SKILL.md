@@ -41,6 +41,8 @@ Use these shipped surfaces only:
   restart it after changing the variable; `search_tools` finds their names but
   does not register them. On the default surface, stop and report that the
   repurpose tools are unavailable instead of retrying.
+  The mapping is explicit:
+  `profile:editor` carries `video_repurpose_plan`, `video_repurpose`;
 - CLI: `repurpose-plan`, then `repurpose`.
 - Optional support tools when needed: `info`, `video-ai-transcribe`, `generate-subtitles`,
   `subtitles`, `resize`, `normalize-audio`, `thumbnail`, `storyboard`,

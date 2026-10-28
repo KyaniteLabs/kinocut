@@ -20,26 +20,23 @@ PACKAGE_MANAGER_PREFIXES = ("npx", "npm", "pnpm", "yarn", "bunx", "bun")
 # Windows resolves the same tools as `npx.cmd`, `npm.cmd` and so on, so the
 # executable suffix is stripped before the name is compared.
 WINDOWS_EXECUTABLE_SUFFIXES = (".cmd", ".exe", ".bat", ".ps1")
-# Shells and interpreters that can run anything — including a package
-# manager — so a command that opens with one is never executed offline.
-WRAPPER_PREFIXES = (
-    "env",
-    "sh",
-    "bash",
-    "zsh",
-    "dash",
-    "ksh",
-    "cmd",
-    "powershell",
-    "pwsh",
-    "python",
-    "python3",
-    "node",
-    "sudo",
-    "nohup",
-    "time",
-    "xargs",
+# Only the Hyperframes executable itself is probed. A shell, an interpreter
+# or a package manager can run anything, and an allowlist of their names
+# would always be incomplete, so the rule is inverted instead.
+DIRECT_EXECUTABLE_NAME = "hyperframes"
+# A shim whose only action is to call a package manager takes the doctor
+# online. The patterns match an invocation, not the word in a comment.
+PACKAGE_MANAGER_INVOCATIONS = (
+    r"\b(?:exec|sudo|command|nohup)\s+(?:-\S+\s+)*(?:npx|npm|pnpm|yarn|bunx|bun|uvx|uv|pipx)\b",
+    r"\bnpx\s+",
+    r"\bnpm\s+(?:exec|install|i|add|ci|run)\b",
+    r"\b(?:pnpm|yarn|bun)\s+(?:dlx|exec|add|install|create)\b",
+    r"\bbunx\s+",
+    r"\buvx\s+",
+    r"\bpipx\s+run\b",
 )
+# A file larger than this cannot be read whole, so it cannot be cleared.
+MAX_INSPECTABLE_BYTES = 2 * 1024 * 1024
 
 
 def _basename(token: str) -> str:
@@ -63,31 +60,44 @@ def is_package_manager_prefix(prefix: list[str]) -> bool:
     return any(_basename(token) in PACKAGE_MANAGER_PREFIXES for token in prefix)
 
 
-def is_wrapper_prefix(prefix: list[str]) -> bool:
-    """Whether the command opens with a shell or an interpreter."""
+def is_direct_executable_command(prefix: list[str]) -> bool:
+    """Whether the command names the Hyperframes executable itself.
+
+    Only the direct executable is probed. Everything else — a shell, an
+    interpreter, a package manager, a wrapper of any kind — is refused,
+    because the doctor cannot know what such a command will run.
+    """
     if not prefix:
         return False
-    return _basename(prefix[0]) in WRAPPER_PREFIXES
+    return _basename(prefix[0]) == DIRECT_EXECUTABLE_NAME
 
 
-def script_invokes_package_manager(path: str) -> bool:
-    """Whether a resolved script would run a package manager.
+def executable_probe_refusal(path: str) -> str | None:
+    """Why a resolved executable may not be run, or None when it may.
 
-    A PATH entry can be a shim whose only action is to call ``npx``; running
-    it would take the doctor online, so the shim is read instead of executed.
+    The doctor cannot prove that a binary stays offline, so it refuses what
+    it cannot read and clear: a path that is not a regular file, a file too
+    large to inspect, a binary, a script with no interpreter line, and any
+    file that invokes a package manager anywhere in it.
     """
     try:
         target = Path(path).resolve()
         if not target.is_file():
-            return False
-        with target.open("rb") as handle:
-            head = handle.read(8192)
+            return "the resolved hyperframes path is not a regular file"
+        if target.stat().st_size > MAX_INSPECTABLE_BYTES:
+            return "the resolved hyperframes file is too large to inspect"
+        data = target.read_bytes()
     except OSError:
-        return False
-    if not head.startswith(b"#!"):
-        return False
-    text = head.decode("utf-8", errors="replace").lower()
-    return any(re.search(rf"(?<![\w-]){re.escape(name)}(?![\w-])", text) for name in PACKAGE_MANAGER_PREFIXES)
+        return "the resolved hyperframes file could not be read"
+    if b"\0" in data[:8192]:
+        return "the resolved hyperframes file is a binary; the doctor does not run it"
+    if not data.startswith(b"#!"):
+        return "the resolved hyperframes file has no interpreter line; the doctor does not run it"
+    text = data.decode("utf-8", errors="replace").lower()
+    for pattern in PACKAGE_MANAGER_INVOCATIONS:
+        if re.search(pattern, text):
+            return "the resolved hyperframes file invokes a package manager; the doctor does not run it"
+    return None
 
 
 def package_manager_probe_refusal(command: list[str], env_name: str) -> dict[str, Any]:
@@ -109,12 +119,12 @@ def package_manager_probe_refusal(command: list[str], env_name: str) -> dict[str
 
 
 def wrapper_probe_refusal(command: list[str], env_name: str) -> dict[str, Any]:
-    """The finding for a configured probe that opens with a shell."""
+    """The finding for a configured probe that is not the executable itself."""
     finding = package_manager_probe_refusal(command, env_name)
     finding["install_hint"] = (
-        "The configured Hyperframes command opens with a shell or interpreter, which can run "
-        f"anything including a package manager. The doctor does not run it. Point {env_name} "
-        "at the resolved binary, or install Hyperframes on PATH."
+        "The configured Hyperframes command does not name the Hyperframes executable itself. "
+        "A shell, an interpreter or a package manager can run anything, and the doctor does not "
+        f"run it. Point {env_name} at the resolved binary, or install Hyperframes on PATH."
     )
     return finding
 
@@ -123,7 +133,7 @@ def offline_probe_refusal(prefix: list[str], command: list[str], env_name: str) 
     """The refusal for a configured command the offline doctor will not run."""
     if is_package_manager_prefix(prefix):
         return package_manager_probe_refusal(command, env_name)
-    if is_wrapper_prefix(prefix):
+    if not is_direct_executable_command(prefix):
         return wrapper_probe_refusal(command, env_name)
     return None
 
@@ -152,13 +162,13 @@ def offline_probe_environment() -> dict[str, str]:
 def probe_resolved_hyperframes(path: str, version_runner: Callable[[list[str]], str | None]) -> dict[str, Any]:
     """Probe a resolved Hyperframes executable, or say why it was not run.
 
-    A PATH shim whose only action is to call a package manager would take the
-    probe online, so the shim is read rather than executed.
+    Nothing is executed that the doctor cannot read and clear: an unreadable
+    file, a binary, a script with no interpreter line, and a file that
+    invokes a package manager anywhere in it are reported, not run.
     """
-    if script_invokes_package_manager(path):
-        return {
-            "hyperframes_probe_skipped": "the resolved hyperframes shim invokes a package manager; doctor stays offline"
-        }
+    refusal = executable_probe_refusal(path)
+    if refusal is not None:
+        return {"hyperframes_probe_skipped": refusal}
     version = version_runner([path, "--version"])
     return {"hyperframes_version": version} if version else {}
 

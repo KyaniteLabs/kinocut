@@ -84,3 +84,27 @@ def test_a_rejected_trim_time_is_never_echoed():
     assert submitted_value not in str(error)
     assert submitted_value not in error.to_dict()["message"]
     assert "start" in error.to_dict()["message"]
+
+
+def test_the_generic_error_constructors_never_echo_a_submitted_value():
+    # A path, a codec and a project path are all caller-controlled strings.
+    from kinocut.errors import CodecError, HyperframesProjectError, InputFileError
+
+    submitted_value = "«redacted:sk-…»"
+    errors = [
+        InputFileError(submitted_value, reason=f"no such file: {submitted_value}"),
+        CodecError(submitted_value, detail=f"the codec {submitted_value} is not supported"),
+        HyperframesProjectError(submitted_value, reason=f"invalid project: {submitted_value}"),
+    ]
+    for error in errors:
+        assert submitted_value not in str(error), type(error).__name__
+        assert submitted_value not in error.to_dict()["message"], type(error).__name__
+        assert submitted_value not in str(error.to_dict()["suggested_action"]), type(error).__name__
+
+
+def test_a_rejected_codec_still_says_what_to_do():
+    from kinocut.errors import CodecError
+
+    error = CodecError("hevc", detail="the codec hevc is not supported")
+    assert "hevc" not in str(error)
+    assert "H.264" in str(error.to_dict()["suggested_action"])

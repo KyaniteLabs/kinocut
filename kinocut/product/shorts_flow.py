@@ -174,6 +174,12 @@ def _caption_receipt(
         warnings.append(f"{dropped} requested {noun} not burned")
     carried = burned_entries[:_RECEIPT_ENTRY_LIMIT]
     carried_requested = requested_entries[:_RECEIPT_ENTRY_LIMIT]
+    requested_truncated = max(0, len(requested_entries) - len(carried_requested))
+    if requested_truncated:
+        warnings.append(
+            f"{requested_truncated} requested caption entries are not listed in this receipt; "
+            "the count above is the whole request"
+        )
     caption_step = {
         "stage": "captions",
         "status": "completed",
@@ -185,6 +191,7 @@ def _caption_receipt(
         "entries": carried,
         "requested_entries": carried_requested,
         "entries_truncated": max(0, (burned_count or 0) - len(carried)),
+        "requested_entries_truncated": requested_truncated,
         # The SRT is a transient build input inside the flow-owned workdir, so
         # there is no durable path to report. The key stays for readers that
         # expect it; the value is honestly empty.
@@ -206,6 +213,12 @@ def _apply_captions(
     truncated_captions: int = 0,
 ) -> tuple[str, dict[str, Any]]:
     """Burn segment captions onto the assembled master, offset per segment."""
+
+    if not any(text for (_start, _end, text) in parsed):
+        # No caption needs a timeline, so the render needs no measured
+        # durations: a segment that cannot be timed does not block a flow
+        # that never reads a timing.
+        return assembled_path, {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
 
     if len(measured) != len(parsed):
         # The caption timeline is timed from the media that actually rendered.
@@ -319,7 +332,11 @@ def video_shorts(
         _validate_source_duration(source, parsed)
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
-            segment_durations = _measured_segment_durations(trimmed_paths)
+            # Only a captioned flow needs a timeline. A render with no caption
+            # text never reads a timing, so it is not blocked by a segment it
+            # cannot measure.
+            has_captions = any(text for (_start, _end, text) in parsed)
+            segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
             captioned_path, caption_step = _apply_captions(
                 parsed,
                 segment_durations,

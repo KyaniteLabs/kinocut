@@ -79,10 +79,10 @@ def _skill_label(skill: Path) -> str:
 def _profile_map(text: str) -> dict[str, set[str]]:
     """Tool -> profiles, parsed from the ``profile:<tag> carries ...`` lines.
 
-    A skill that states an explicit mapping is held to it: the tool must be
-    listed, and it must be listed under a profile the registry assigns it to.
-    A skill that states no mapping is held to the weaker rule — it must name
-    some profile that carries the tool.
+    The mapping is the machine-checkable form of the claim. A skill that
+    states one is held to it: the tool must be listed, and it must be listed
+    under a profile the registry assigns it to. A skill that states no
+    mapping names no way to reach the tool, and fails the contract.
     """
     mapping: dict[str, set[str]] = {}
     for line in text.splitlines():
@@ -94,6 +94,34 @@ def _profile_map(text: str) -> dict[str, set[str]]:
             if tool in TOOL_REGISTRY:
                 mapping.setdefault(tool, set()).add(tag)
     return mapping
+
+
+def _contract_offenders(text: str, core: set[str], name: str = "skill") -> list[str]:
+    """The ways a skill's text breaks the profile contract.
+
+    The contract is a mapping, not a substring. A sentence that merely
+    mentions ``profile:editor`` while the tool sits under another profile
+    satisfies nothing, so the check reads the mapping lines and nothing else.
+    """
+    mapping = _profile_map(text)
+    offenders: list[str] = []
+    for tool in sorted(_named_tools(text) - core):
+        tags = [tag for tag in TOOL_REGISTRY[tool] if tag != "core"]
+        if not tags:
+            offenders.append(f"{name} names {tool}, which the registry assigns to no profile")
+            continue
+        if not mapping:
+            offenders.append(f"{name} names {tool} but states no profile mapping for it")
+            continue
+        if tool not in mapping:
+            offenders.append(f"{name} maps tools to profiles but never lists {tool}")
+            continue
+        if not mapping[tool] & set(tags):
+            offenders.append(
+                f"{name} lists {tool} under profile(s) {sorted(mapping[tool])}, "
+                f"which do not carry it (its profiles: {', '.join(tags)})"
+            )
+    return offenders
 
 
 def test_default_surface_is_the_curated_twenty():
@@ -110,21 +138,22 @@ def test_shipped_skills_document_the_profile_that_carries_each_tool():
     for skill in SKILL_FILES:
         text = skill.read_text(encoding="utf-8")
         name = _skill_label(skill)
-        mapping = _profile_map(text)
-        for tool in sorted(_named_tools(text) - core):
-            tags = [tag for tag in TOOL_REGISTRY[tool] if tag != "core"]
-            assert tags, f"{name} names {tool}, which the registry assigns to no profile"
-            if mapping:
-                assert tool in mapping, f"skill {name} maps tools to profiles but never lists {tool}"
-                assert mapping[tool] & set(tags), (
-                    f"skill {name} lists {tool} under profile(s) {sorted(mapping[tool])}, "
-                    f"which do not carry it (its profiles: {', '.join(tags)})"
-                )
-            else:
-                carried = [tag for tag in tags if f"profile:{tag}" in text]
-                assert carried or "KINOCUT_TOOLS=all" in text, (
-                    f"skill {name} names {tool} but never names a profile that carries it (its profiles: {', '.join(tags)})"
-                )
+        offenders = _contract_offenders(text, core, name)
+        assert not offenders, "\n".join(offenders)
+
+
+def test_a_tool_removed_from_the_mapping_breaks_the_contract():
+    # The mapping is the claim. Drop the tool from it and the skill fails.
+    text = "Use `video_repurpose_plan` and `video_repurpose`.\n`profile:editor` carries `video_repurpose`;\n"
+    core = _default_core()
+    assert _contract_offenders(text, core, "mutated")
+
+
+def test_an_unrelated_profile_mention_does_not_satisfy_the_contract():
+    # The old rule accepted any occurrence of `profile:<tag>` anywhere.
+    text = "Use `video_repurpose_plan` and `video_repurpose`.\nThe `profile:editor` diet is mentioned in passing.\n"
+    core = _default_core()
+    assert _contract_offenders(text, core, "prose")
 
 
 def test_shipped_skills_say_how_to_apply_the_selection():

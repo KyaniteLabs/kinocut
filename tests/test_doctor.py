@@ -52,6 +52,10 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
     assert checks["node"]["ok"] is True
     assert checks["npm"]["ok"] is True
     assert checks["npx"]["ok"] is True
+    # A package manager is read from PATH, never executed.
+    assert checks["npm"]["probed"] is False
+    assert checks["npx"]["probed"] is False
+    assert checks["npm"]["version"] is None
     assert checks["hyperframes"]["ok"] is True
     assert checks["hyperframes"]["command"] == ["/usr/bin/hyperframes", "--version"]
     assert checks["@hyperframes/core"]["ok"] is True
@@ -102,7 +106,14 @@ def _node_and_hyperframes_which(name: str) -> str | None:
     return f"/usr/bin/{name}" if name in {"node", "npm", "npx", "hyperframes"} else None
 
 
-def test_node_check_reports_hyperframes_version_via_injectable_runner():
+def _hyperframes_script(tmp_path) -> str:
+    """A real, readable script: the doctor runs only what it can read."""
+    path = tmp_path / "hyperframes"
+    path.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
+    return str(path)
+
+
+def test_node_check_reports_hyperframes_version_via_injectable_runner(tmp_path):
     """The npx hyperframes probe must go through version_runner — a raw
     subprocess call here is untestable (the @hyperframes/core probe defect class)."""
     from mcp_video.doctor import run_diagnostics
@@ -112,14 +123,17 @@ def test_node_check_reports_hyperframes_version_via_injectable_runner():
             return "0.6.93"
         return "v22.0.0"
 
+    hyperframes = _hyperframes_script(tmp_path)
     report = run_diagnostics(
-        which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None
+        which=lambda name: hyperframes if name == "hyperframes" else _node_and_hyperframes_which(name),
+        version_runner=fake_version,
+        find_spec=lambda name: None,
     )
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["node"]["hyperframes_version"] == "0.6.93"
 
 
-def test_node_check_omits_hyperframes_version_when_probe_fails():
+def test_node_check_omits_hyperframes_version_when_probe_fails(tmp_path):
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
@@ -127,8 +141,11 @@ def test_node_check_omits_hyperframes_version_when_probe_fails():
             return None
         return "v22.0.0"
 
+    hyperframes = _hyperframes_script(tmp_path)
     report = run_diagnostics(
-        which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None
+        which=lambda name: hyperframes if name == "hyperframes" else _node_and_hyperframes_which(name),
+        version_runner=fake_version,
+        find_spec=lambda name: None,
     )
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
@@ -147,6 +164,8 @@ def test_node_check_skips_npx_yes_without_hyperframes_cli():
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
     assert not any(command[:2] == ["npx", "--yes"] for command in seen)
+    # The doctor does not run a package manager at all, not even for a version.
+    assert not [command for command in seen if command[0] in {"npx", "npm"}]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="requires Node.js")
