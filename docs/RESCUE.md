@@ -154,7 +154,7 @@ Whisper remains optional and is never downloaded by rescue. Install it manually 
 caption sidecars are wanted:
 
 ```bash
-pip install "kinocut[transcribe]"
+pip install "kinocut[transcribe]==1.16.5"
 ```
 
 The configured local model must already exist and match the planned digest. Run

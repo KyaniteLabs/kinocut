@@ -89,7 +89,7 @@ Also works as a CLI: `kino trim video.mp4 -s 0:30 -d 15`
 
 **Tweet 6 (CTA):**
 
-pip install kinocut
+pip install kinocut==1.16.5
 
 Source: https://github.com/KyaniteLabs/kinocut
 Apache 2.0. Contributions welcome.
@@ -135,7 +135,7 @@ Quick setup:
 }
 ```
 
-pip install kinocut
+pip install kinocut==1.16.5
 
 Source: https://github.com/KyaniteLabs/kinocut
 
@@ -216,7 +216,7 @@ Then: *"Take this interview clip, trim to 30 seconds, add 'EPISODE 1' as a title
 
 Everything runs locally. No cloud, no API keys, no per-minute billing. Your video never leaves your machine.
 
-pip install kinocut
+pip install kinocut==1.16.5
 
 https://github.com/KyaniteLabs/kinocut
 
@@ -242,7 +242,7 @@ What's different:
 - Repurposing tools for platform-ready local packages
 - Python client and CLI
 
-Apache 2.0. pip install kinocut.
+Apache 2.0. pip install kinocut==1.16.5.
 
 https://github.com/KyaniteLabs/kinocut
 

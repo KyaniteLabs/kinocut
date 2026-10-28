@@ -117,6 +117,62 @@ _CAPTION_TEXT_LIMIT = 240
 _RECEIPT_ENTRY_LIMIT = 50
 
 
+def _caption_receipt(
+    caption_entries: list[dict[str, Any]],
+    generated: Any,
+    truncated_captions: int,
+) -> dict[str, Any]:
+    """The caption stage receipt: what was burned, and what can be evidenced.
+
+    A count the generator reported but returned no list for cannot be verified,
+    so it is never presented as the burned count.
+    """
+    warnings = list(getattr(generated, "warnings", []) or [])
+    generated_count = getattr(generated, "entry_count", None)
+    generated_entries = list(getattr(generated, "entries", None) or [])
+    requested_count = len(caption_entries)
+    if truncated_captions:
+        warnings.append(f"{truncated_captions} caption(s) were truncated to {_CAPTION_TEXT_LIMIT} characters")
+    count_unverified = False
+    if generated_entries:
+        burned_entries = generated_entries
+        burned_count = len(burned_entries)
+        if isinstance(generated_count, int) and generated_count != burned_count:
+            count_unverified = True
+            warnings.append(
+                f"subtitle generator reported {generated_count} entries but returned {burned_count}; "
+                "the returned list is used and the count is unverified"
+            )
+    else:
+        burned_entries = caption_entries
+        burned_count = len(burned_entries)
+        if isinstance(generated_count, int) and generated_count != burned_count:
+            count_unverified = True
+            warnings.append(
+                f"subtitle generator reported {generated_count} entries and returned no list; "
+                "the burned count is unverified and the requested captions are listed"
+            )
+    if not count_unverified and burned_count != requested_count:
+        dropped = requested_count - burned_count
+        noun = "caption was" if dropped == 1 else "captions were"
+        warnings.append(f"{dropped} requested {noun} not burned")
+    carried = burned_entries[:_RECEIPT_ENTRY_LIMIT]
+    caption_step = {
+        "stage": "captions",
+        "status": "completed",
+        "entry_count": burned_count,
+        "requested_entry_count": requested_count,
+        "burned_entry_count": burned_count,
+        "count_unverified": count_unverified,
+        "entries": carried,
+        "entries_truncated": max(0, burned_count - len(carried)),
+        "warnings": warnings,
+    }
+    if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
+        caption_step["rendered_entry_count"] = generated.entry_count
+    return caption_step
+
+
 def _apply_captions(
     parsed: list[tuple[float, float, str | None]],
     measured: list[float],
@@ -128,13 +184,21 @@ def _apply_captions(
 ) -> tuple[str, dict[str, Any]]:
     """Burn segment captions onto the assembled master, offset per segment."""
 
+    if len(measured) != len(parsed):
+        # The caption timeline is timed from the media that actually rendered.
+        # A short measurement list cannot time the captions, and falling back
+        # to the requested span is exactly the drift this flow refuses.
+        raise _flow_error(
+            "the measured segment durations do not match the requested segments; refusing to time the captions"
+        )
+
     caption_entries: list[dict[str, Any]] = []
     offset = 0.0
-    for index, (start, end, text) in enumerate(parsed):
+    for index, (_start, _end, text) in enumerate(parsed):
         # The caption timeline follows the media that actually rendered, not
         # the requested range: a trim can be shorter than asked for, and a
         # caption timed from the request would sit past the media (F7).
-        span = measured[index] if index < len(measured) else (end - start)
+        span = measured[index]
         if text:
             caption_entries.append({"start": offset, "end": offset + span, "text": text})
         offset += span
@@ -153,35 +217,7 @@ def _apply_captions(
         output_path=captioned_path,
         style=caption_style,
     )
-    warnings = list(getattr(generated, "warnings", []) or [])
-    generated_count = getattr(generated, "entry_count", None)
-    requested_count = len(caption_entries)
-    if truncated_captions:
-        warnings.append(f"{truncated_captions} caption(s) were truncated to {_CAPTION_TEXT_LIMIT} characters")
-    if isinstance(generated_count, int) and generated_count != requested_count:
-        noun = "entry" if generated_count == 1 else "entries"
-        warnings.append(
-            f"subtitle generator reported {generated_count} {noun} for {requested_count} requested captions"
-        )
-    # The receipt describes what was burned, not what was asked for: the
-    # generator clamps cues to the media end, so the burned list can be
-    # shorter than the request. The entries list must be the burned ones.
-    burned_count = generated_count if isinstance(generated_count, int) else requested_count
-    burned_entries = list(getattr(generated, "entries", None) or []) or caption_entries
-    carried = burned_entries[:_RECEIPT_ENTRY_LIMIT]
-    caption_step = {
-        "stage": "captions",
-        "status": "completed",
-        "entry_count": burned_count,
-        "requested_entry_count": requested_count,
-        "burned_entry_count": burned_count,
-        "entries": carried,
-        "entries_truncated": max(0, burned_count - len(carried)),
-        "warnings": warnings,
-    }
-    if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
-        caption_step["rendered_entry_count"] = generated.entry_count
-    return captioned_path, caption_step
+    return captioned_path, _caption_receipt(caption_entries, generated, truncated_captions)
 
 
 def _parse_segments(

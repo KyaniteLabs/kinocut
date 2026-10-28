@@ -71,7 +71,7 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
         missing = getattr(exc, "name", None)
         if isinstance(exc, ModuleNotFoundError) and (missing == "mcp" or str(missing).startswith("mcp.")):
             err_console.print(
-                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut[/bold]",
+                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut==1.16.5[/bold]",
             )
         else:
             err_console.print(f"[red]MCP mode failed to start:[/red] {_render_import_failure(exc)}")

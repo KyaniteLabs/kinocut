@@ -249,20 +249,21 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     steps = {step["stage"]: step for step in result["receipt"]["steps"]}
     entries = steps["captions"]["entries"]
     assert [(entry["start"], entry["end"]) for entry in entries] == [(0.0, 2.0), (2.0, 5.0)]
-    # The generator's count is canonical (it clamps to the media EOF); the
-    # requested count is reported alongside it.
-    assert steps["captions"]["entry_count"] == 99
+    # The generator reported 99 entries and returned no list, so the burned
+    # count cannot be verified: the receipt states the evidence it has (the
+    # two requested captions) and says the count is unverified. It never
+    # presents 99 as burned.
+    assert steps["captions"]["entry_count"] == 2
     assert steps["captions"]["requested_entry_count"] == 2
-    assert steps["captions"]["burned_entry_count"] == 99
-    # The generator reported 99 burned entries but supplied no list, so the
-    # receipt says plainly that its list is short rather than implying it
-    # carries all 99.
-    assert steps["captions"]["entries_truncated"] == 97
+    assert steps["captions"]["burned_entry_count"] == 2
+    assert steps["captions"]["count_unverified"] is True
+    assert steps["captions"]["entries_truncated"] == 0
     # A generator that disagrees about the entry count must not be swallowed:
     # the receipt carries both counts and says so out loud.
     assert steps["captions"]["rendered_entry_count"] == 99
     assert steps["captions"]["warnings"][0] == "synthetic generator warning"
     assert any("reported 99 entries" in warning for warning in steps["captions"]["warnings"])
+    assert any("unverified" in warning for warning in steps["captions"]["warnings"])
 
 
 def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones(tmp_path, monkeypatch):
@@ -324,6 +325,17 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
     assert captions["requested_entry_count"] == 2
     assert captions["burned_entry_count"] == 1
     assert captions["entry_count"] == 1
+    assert captions["count_unverified"] is False
     assert len(captions["entries"]) == 1
     assert captions["entries_truncated"] == 0
-    assert any("reported 1 entry for 2 requested captions" in warning for warning in captions["warnings"])
+    assert any("1 requested caption was not burned" in warning for warning in captions["warnings"])
+
+
+def test_captions_refuse_a_measurement_list_that_does_not_match_the_segments():
+    # A short measurement list cannot time the captions, and falling back to
+    # the requested span is the drift this flow refuses.
+    from kinocut.product.shorts_flow import _apply_captions
+
+    with pytest.raises(Exception) as excinfo:
+        _apply_captions([(0.0, 1.0, "one")], [], "assembled.mp4", None, "final.mp4", "/tmp")
+    assert "measured segment durations" in str(excinfo.value)

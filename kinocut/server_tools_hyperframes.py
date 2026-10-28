@@ -361,7 +361,7 @@ def hyperframes_remove_background(
     Default model ``u2net_human_seg`` is people-only (talking heads).
     For products, packaging, jewelry, bottles, ceramics, or any non-person
     object, pass ``model="birefnet-general"`` (requires
-    ``pip install "kinocut[object-matte]"``). Never falls through to the
+    ``pip install "kinocut[object-matte]==1.16.5"``). Never falls through to the
     people model. Call ``info=True`` with no input to list models and cache
     without downloading. Guide: docs/PRODUCT_MATTE.md.
     """

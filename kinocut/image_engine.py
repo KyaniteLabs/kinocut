@@ -1,7 +1,7 @@
 """Image analysis engine — color extraction, palette generation, product analysis.
 
 Pure Python (no FFmpeg). Requires optional deps: Pillow, scikit-learn, webcolors.
-Install with: pip install kinocut[image]
+Install with: pip install kinocut[image]==1.16.5
 """
 
 from __future__ import annotations
@@ -117,12 +117,12 @@ def _require_image_deps() -> None:
         import PIL.Image  # noqa: F401
     except ImportError:
         raise MCPVideoError(
-            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]",
+            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==1.16.5",
             error_type="dependency_error",
             code="missing_optional_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image]",
+                "description": "Run: pip install kinocut[image]==1.16.5",
             },
         ) from None
 
@@ -409,12 +409,12 @@ def _describe_product_with_vision(
         import anthropic
     except ImportError:
         raise MCPVideoError(
-            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]",
+            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]==1.16.5",
             error_type="dependency_error",
             code="missing_ai_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image-ai]",
+                "description": "Run: pip install kinocut[image-ai]==1.16.5",
             },
         ) from None
 

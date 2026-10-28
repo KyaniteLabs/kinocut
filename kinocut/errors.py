@@ -107,21 +107,21 @@ def retry_message(message: str, code: str) -> str:
     cli_name = _cli_tool_name(tool_name) if context else None
     submitted = _argument_names(context[1]) if context else ""
     if code in {"output_exists", "overwrite_refused"}:
-        mcp_action, cli_action = "overwrite=true", "--overwrite"
+        mcp_action, cli_action = f"overwrite=true{submitted}", f"--overwrite{submitted}"
     elif code in {"unsafe_path", "invalid_output_path"}:
-        mcp_action, cli_action = "a new output_path", "--output <new-media-path>"
+        mcp_action, cli_action = f"a new output_path{submitted}", f"--output <new-media-path>{submitted}"
     elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
         # NOTE (t_e3775201 F-INFO): no shipped code path raises
         # ``network_consent_required`` yet. Before any network-consent feature
         # lands, re-bind its hint to the actual consent env var of that feature;
         # ``KINOCUT_HYPERFRAMES_TELEMETRY`` only gates Hyperframes telemetry.
-        mcp_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true"
-        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + (cli_name or "the matching command")
+        mcp_action = f"KINOCUT_HYPERFRAMES_TELEMETRY=true{submitted}"
+        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + (cli_name or "the matching command") + submitted
     elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
-        mcp_action = "install FFmpeg, then call " + tool_name
-        cli_action = "install FFmpeg, then run kino " + (cli_name or "the matching command")
+        mcp_action = "install FFmpeg, then call " + tool_name + submitted
+        cli_action = "install FFmpeg, then run kino " + (cli_name or "the matching command") + submitted
     else:
-        mcp_action, cli_action = f"corrected parameters{submitted}", "corrected flags"
+        mcp_action, cli_action = f"corrected parameters{submitted}", f"corrected flags{submitted}"
 
     if code in {
         "hyperframes_telemetry_consent_required",

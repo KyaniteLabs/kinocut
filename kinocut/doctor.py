@@ -391,12 +391,18 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
 
 def _check_hyperframes_cli(which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
     from .hyperframes_engine import HYPERFRAMES_COMMAND_ENV, _hyperframes_command_prefix
+    from .doctor_offline import is_package_manager_prefix, package_manager_probe_refusal
 
     try:
         prefix = _hyperframes_command_prefix(which=which)
     except HyperframesNotFoundError:
         prefix = ["hyperframes"]
     command = [*prefix, "--version"]
+    if is_package_manager_prefix(prefix):
+        # A package manager resolves its package over the network, so the
+        # offline doctor does not run one. It reports the configured command
+        # instead of probing it.
+        return package_manager_probe_refusal(command, HYPERFRAMES_COMMAND_ENV)
     path = prefix[0] if prefix != ["hyperframes"] else which("hyperframes")
     version = version_runner(command) if path else None
     ok = path is not None and version is not None

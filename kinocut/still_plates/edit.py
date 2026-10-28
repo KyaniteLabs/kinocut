@@ -62,7 +62,7 @@ def _require_edit_backend() -> None:
             code="edit_backend_unavailable",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Install free still edit path: pip install "kinocut[image]"',
+                "description": 'Install free still edit path: pip install "kinocut[image]==1.16.5"',
             },
         ) from exc
 

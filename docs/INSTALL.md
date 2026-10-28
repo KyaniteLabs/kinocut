@@ -106,7 +106,7 @@ Client().info("clip.mp4")
 | Symptom | Fix |
 | --- | --- |
 | `ffmpeg: command not found` | Install FFmpeg; restart shell |
-| `kino: command not found` | `pip install kinocut` or use `python -m kinocut` |
+| `kino: command not found` | `pip install kinocut==1.16.5` or use `python -m kinocut` |
 | Import errors / old Python | Use Python 3.11+ |
 | Doctor missing optional AI | Expected unless you installed extras |
 | Hyperframes hang/init | See Hyperframes doctor; skip for core path |

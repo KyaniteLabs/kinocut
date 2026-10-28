@@ -154,7 +154,7 @@ ffmpeg -filters | grep vidstab
 ### Python Packages
 ```bash
 # Install the optional AI stack
-pip install "kinocut[ai]"
+pip install "kinocut[ai]==1.16.5"
 
 # Or install individual packages if you only need a subset
 pip install demucs torch torchaudio torchcodec openai-whisper imagehash numpy opencv-contrib-python

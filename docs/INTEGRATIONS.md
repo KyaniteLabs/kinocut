@@ -31,7 +31,7 @@ Restart Cursor; confirm tools appear; run `search_tools` for `trim` / `receipt` 
 
 Command: `uvx`
 
-Args: `--from kinocut kino --mcp`
+Args: `--from kinocut==1.16.5 kino --mcp`
 
 Transport: stdio
 

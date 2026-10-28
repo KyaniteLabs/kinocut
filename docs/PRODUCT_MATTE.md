@@ -30,7 +30,7 @@ It is **not** a portrait / talking-head feature. For people, omit `--model`.
 1. A still (PNG/JPEG) or a video of **one subject** on a reasonably even
    background. Motorized turntables, lightbox sweeps, and tabletop shots are
    the intended inputs.
-2. `pip install "kinocut[object-matte]"` for ONNX Runtime. The extra is
+2. `pip install "kinocut[object-matte]==1.16.5"` for ONNX Runtime. The extra is
    available in published pip **1.16.5**. The ~1 GB pinned birefnet-general
    ONNX is fetched into `~/.cache/mcp-video/models/` on first object-model
    use, never by `kino doctor`.

@@ -26,12 +26,12 @@ def require_still_deps() -> None:
         missing.append("numpy")
     if missing:
         raise MCPVideoError(
-            'Still/plate tools require image extras (pillow, numpy). Install with: pip install "kinocut[image]"',
+            'Still/plate tools require image extras (pillow, numpy). Install with: pip install "kinocut[image]==1.16.5"',
             error_type="dependency_error",
             code="missing_still_plate_deps",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[image]"',
+                "description": 'Run: pip install "kinocut[image]==1.16.5"',
             },
         )
 

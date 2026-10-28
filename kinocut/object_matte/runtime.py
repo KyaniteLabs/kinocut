@@ -7,7 +7,7 @@ from typing import Any
 
 from ..errors import BackendUnavailableError, MCPVideoError
 
-_INSTALL = 'pip install "kinocut[object-matte]"'
+_INSTALL = 'pip install "kinocut[object-matte]==1.16.5"'
 _DOCS = "docs/PRODUCT_MATTE.md"
 
 
