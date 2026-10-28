@@ -1,9 +1,11 @@
-"""Standalone POSIX supervisor for commands inside a detached leased worker.
+"""Standalone POSIX supervisor for every owned command.
 
-A thread watches the worker-owned liveness pipe after the native command is
-spawned/reaped through stdlib Popen. Normal commands leave no orphan watchdog.
-The supervisor and native command retain the inherited flock lease until their
-cleanup. Groups are lifecycle ownership, not a sandbox against setsid escapes.
+A thread watches the owner-liveness pipe after the native command is
+spawned/reaped through stdlib Popen. Owner death (including SIGKILL) closes
+the pipe; the supervisor then SIGKILLs its own group so native FFmpeg and
+grandchildren cannot outlive the CLI. Detached leased workers also pass the
+inherited flock; ordinary commands pass lease=-1. Groups are lifecycle
+ownership, not a sandbox against setsid escapes.
 """
 
 import contextlib

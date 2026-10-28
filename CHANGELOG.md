@@ -15,6 +15,10 @@ This project follows a simple release-note style:
 
 - Add typed operation families to the default and profile MCP surfaces: eight dispatch tools (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) plus `list_operations` discovery and `describe_operation` on-demand contracts. The default surface becomes 30 tools / 24,281 input-schema bytes (within the ≤ 40 tools / ≤ 25%-of-full-catalog budget) and reaches all 204 registry operations; `KINOCUT_TOOLS=all` stays byte-identical to the legacy 205-tool / 126,776-byte surface. Family dispatch runs the exact registered tool after the shared wire-path validation — identical success payloads and handler error cores — and reports verbs and only *declared* per-operation side-effect annotations via `list_operations`. `describe_operation` returns a hidden operation's complete inputSchema (byte-for-byte the direct tool's) with the family tool that dispatches it and its verified CLI route. Family tools carry audited per-family `openWorldHint` values (open: `video_ai_ops`, `image_ops`, `video_plan_ops`, `video_qc_ops`, `platform_ops`), family-level `overwrite` consent is forwarded explicitly unless `params` overrides it, and retry hints under family dispatch name the family tool + selected operation with only `kino` routes that actually exist. See `docs/MCP_TOOL_FAMILIES.md`.
 
+### Fixed
+
+- A SIGKILLed CLI no longer leaves a detached FFmpeg: every POSIX `ProcessTree` command now runs under the existing orphan watchdog (`process_guardian`). Cost is one extra interpreter per command (measured median ~33ms; budget `DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS` = 80ms). Ctrl-C / SIGTERM cleanup is unchanged. Windows still uses Job Objects.
+
 ## 1.16.5 - 2026-10-27
 
 ### Added
