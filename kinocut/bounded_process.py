@@ -12,9 +12,13 @@ from .limits import MAX_SUBPROCESS_STDERR_BYTES, MAX_SUBPROCESS_STDOUT_BYTES, SU
 from .process_tree import ProcessTree
 
 
+#: The stream's own name. The label is ours, so the message can name it.
+_STREAM_LABELS = {"stdout": "standard output", "stderr": "standard error"}
+
+
 def output_limit_error(stream: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Command {stream} exceeded its byte limit",
+        f"Command {_STREAM_LABELS.get(stream, 'output')} exceeded its byte limit",
         error_type="processing_error",
         code=f"command_{stream}_limit_exceeded",
     )

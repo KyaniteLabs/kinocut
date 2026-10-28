@@ -41,6 +41,19 @@ def test_no_caller_controlled_string_reaches_a_public_error_message() -> None:
     )
 
 
+def test_no_exemption_is_stale() -> None:
+    """An exemption that matches nothing is a claim about code that has changed.
+
+    The exemption list says a specific message is not caller data. If that
+    message moves or changes, the exemption stops matching and the finding
+    comes back, so a leftover entry is a false statement.
+    """
+    from tests.error_value_analysis import raw_leaks, unused_exemptions
+
+    stale = unused_exemptions(raw_leaks())
+    assert not stale, f"exemptions that no longer match anything: {stale}"
+
+
 def test_the_guard_itself_detects_a_leak() -> None:
     """The guard is only worth shipping if it can fail."""
     from tests.error_value_analysis import Function, _is_tainted_expr

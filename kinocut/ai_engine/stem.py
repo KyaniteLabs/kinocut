@@ -88,7 +88,7 @@ def _run_demucs_separation(
         )
     except subprocess.TimeoutExpired:
         raise ProcessingError(
-            " ".join(demucs_cmd), -1, f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
+            " ".join(demucs_cmd), -1, "", reason=f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
         ) from None
     if result.returncode != 0:
         raise ProcessingError(" ".join(demucs_cmd), result.returncode, result.stderr)

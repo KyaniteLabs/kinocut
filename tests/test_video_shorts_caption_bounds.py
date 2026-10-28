@@ -57,6 +57,28 @@ def test_a_captionless_render_does_not_need_a_measured_timeline(tmp_path, monkey
     assert steps["captions"]["reason"] == "segments have no text"
 
 
+def test_a_captionless_render_does_not_need_the_source_measured(tmp_path, monkeypatch):
+    # A flow with no caption text never reads a timing, so it has no reason
+    # to measure the source either. An unmeasurable source must not fail it.
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+    monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
+    _stub_engines(monkeypatch, tmp_path)
+
+    def no_probe(path):
+        raise AssertionError("a captionless flow must not measure the source")
+
+    monkeypatch.setattr("kinocut.engine_probe.probe", no_probe)
+
+    result = shorts_flow.video_shorts(
+        str(source),
+        [{"start": 0, "end": 2, "text": None}],
+        output_path=str(tmp_path / "final.mp4"),
+    )
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    assert steps["captions"]["status"] == "skipped"
+
+
 def test_a_bounded_request_list_says_it_was_truncated():
     # The receipt lists at most 50 requested entries. When it leaves some
     # out, it says how many — a partial list presented as complete is a lie.

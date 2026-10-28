@@ -244,7 +244,7 @@ def _extract_frames(video_path: str, frames_dir: Path) -> list[Path]:
     )
     frames = sorted(frames_dir.glob("frame_*.png"))
     if not frames:
-        raise ProcessingError("ffmpeg", 1, "No frames extracted from video")
+        raise ProcessingError("ffmpeg", 1, "", reason="No frames extracted from video")
     if len(frames) > MAX_AI_UPSCALE_FRAMES:
         raise MCPVideoError(
             f"Video frame count exceeds AI upscaling maximum of {MAX_AI_UPSCALE_FRAMES}",
@@ -304,10 +304,10 @@ def _ai_upscale_opencv(video_path: str, output_path: str, scale: int) -> str:
         for i, frame_path in enumerate(frames, 1):
             img = cv2.imread(str(frame_path))
             if img is None:
-                raise ProcessingError("cv2.imread", 1, f"Failed to load frame: {frame_path}")
+                raise ProcessingError("cv2.imread", 1, "", reason="the frame could not be loaded")
             result_img = sr.upsample(img)
             if not cv2.imwrite(str(upscaled_dir / f"frame_{i:04d}.png"), result_img):
-                raise ProcessingError("cv2.imwrite", 1, "Failed to save upscaled frame")
+                raise ProcessingError("cv2.imwrite", 1, "", reason="Failed to save upscaled frame")
 
         _reconstruct_video(
             upscaled_dir / "frame_%04d.png",
@@ -481,5 +481,5 @@ def _has_audio_stream(video_path: str) -> bool:
     result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
     stream_types = result.stdout.strip().splitlines()
     if any(stream.strip() != "audio" for stream in stream_types):
-        raise ProcessingError("ffprobe audio stream detection", 0, "Unexpected audio stream probe output")
+        raise ProcessingError("ffprobe audio stream detection", 0, "", reason="Unexpected audio stream probe output")
     return bool(stream_types)

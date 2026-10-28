@@ -64,7 +64,8 @@ def fix_design_issues(video: str, output: str | None = None) -> str:
             raise ProcessingError(
                 f"copy {src} -> {output}",
                 1,
-                f"Failed to copy fixed video to output path: {exception_kind(e)}",
+                "",
+                reason=f"Failed to copy fixed video to output path: {exception_kind(e)}",
             ) from e
         return output
 

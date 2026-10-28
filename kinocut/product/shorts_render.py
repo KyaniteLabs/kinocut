@@ -254,7 +254,7 @@ def _safe_render_base(plan: ShortsPlan, candidate_id: str, output_path: str | No
     if os.path.commonpath((output_root, base)) != output_root:
         raise MCPVideoError(
             f"Problem: Render output path escapes plan.output_dir. "
-            f"Likely cause: {rejected_value(requested)!r} is outside {plan.output_dir!r}. "
+            f"Likely cause: {rejected_value(requested)!r} is outside the plan output directory. "
             f"Recovery: Pass a path under the plan output directory.",
             error_type="validation_error",
             code="unsafe_path",

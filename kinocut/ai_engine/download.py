@@ -415,7 +415,7 @@ def _download_with_urllib(video: str) -> tuple[str, str]:
     except Exception as exc:
         shutil.rmtree(tmp, ignore_errors=True)
         raise ProcessingError(
-            str(video), 1, f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+            str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
         ) from exc
     return local, tmp
 
@@ -453,7 +453,7 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
         except Exception as exc:
             shutil.rmtree(tmp, ignore_errors=True)
             raise ProcessingError(
-                str(video), 1, f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+                str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
             ) from exc
     else:
         # Try yt-dlp first (handles edge cases like redirect-to-stream),
@@ -486,11 +486,12 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
                     raise ProcessingError(
                         str(video),
                         1,
-                        f"Download failed (yt-dlp: {exception_kind(exc)}; urllib: {exception_kind(dl_exc)})",
+                        "",
+                        reason=f"Download failed (yt-dlp: {exception_kind(exc)}; urllib: {exception_kind(dl_exc)})",
                     ) from dl_exc
             else:
                 raise ProcessingError(
-                    str(video), 1, f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+                    str(video), 1, "", reason=f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
                 ) from exc
 
     return local, tmp, source_url

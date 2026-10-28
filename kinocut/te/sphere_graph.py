@@ -38,7 +38,7 @@ def render_window_single_pass(
         graph = _switch_graph(plan, cam_ids, duration, width, height)
     else:
         raise MCPVideoError(
-            f"Unknown layout {layout!r}.",
+            "Unknown layout: expected one of split, pip, switch.",
             error_type="validation_error",
             code="invalid_sphere_layout",
         )

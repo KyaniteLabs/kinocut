@@ -120,13 +120,13 @@ environment. Keep quality inspection and human visual review pending.
 ### 4. AI Stem Separation (`test_43_ai_stem_separation`)
 - Uses Facebook Demucs
 - Separates vocals, drums, bass, other
-- Provided by the `kinocut[ai]` extra (`demucs`, `torch`, `torchaudio`, `torchcodec`)
+- Provided by the `kinocut[ai]==1.16.5` extra (`demucs`, `torch`, `torchaudio`, `torchcodec`)
 
 ### 5. AI Upscale (`test_44_ai_upscale`)
 - OpenCV DNN with FSRCNN model (57KB, fast)
 - Real-ESRGAN path only where BasicSR can build; Python 3.13 uses the OpenCV fallback
 - 2x and 4x upscaling
-- Provided by the `kinocut[ai]` extra (`opencv-contrib-python`, `numpy`)
+- Provided by the `kinocut[ai]==1.16.5` extra (`opencv-contrib-python`, `numpy`)
 
 ### 6. AI Color Grade (`test_45_ai_color_grade`)
 - Auto color grading

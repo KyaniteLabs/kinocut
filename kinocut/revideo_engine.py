@@ -337,11 +337,13 @@ def _run_npm(
             env=child_env,
         )
     except subprocess.TimeoutExpired:
-        raise RevideoRenderError(" ".join(cmd), -1, "npm step timed out") from None
+        raise RevideoRenderError(" ".join(cmd), -1, "", reason="npm step timed out") from None
     except FileNotFoundError:
         raise RevideoNotFoundError("npm command not found") from None
     except OSError as exc:
-        raise RevideoRenderError(" ".join(cmd), -1, f"npm command could not start ({type(exc).__name__})") from exc
+        raise RevideoRenderError(
+            " ".join(cmd), -1, "", reason=f"npm command could not start ({type(exc).__name__})"
+        ) from exc
 
 
 def install_deps(project_dir: str | Path, timeout: int = DEFAULT_REVIDEO_INSTALL_TIMEOUT) -> None:
@@ -380,11 +382,11 @@ def _private_output_leaf(out_dir: Path, suffix: str, purpose: str) -> Path:
     for _attempt in range(_PRIVATE_NAME_ATTEMPTS):
         name = f".kinocut-{purpose}-{secrets.token_hex(12)}{suffix}"
         if Path(name).name != name or not name.endswith(REVIDEO_OUT_FILE_SUFFIXES):
-            raise RevideoRenderError("prepare Revideo output", -1, "generated output name was invalid")
+            raise RevideoRenderError("prepare Revideo output", -1, "", reason="generated output name was invalid")
         path = out_dir / name
         if not _checked_path(path, f"private {purpose} leaf", directory=False, allow_absent=True):
             return path
-    raise RevideoRenderError("prepare Revideo output", -1, f"could not allocate a private {purpose} name")
+    raise RevideoRenderError("prepare Revideo output", -1, "", reason=f"could not allocate a private {purpose} name")
 
 
 def _prepare_output_paths(project: Path, job: dict[str, Any]) -> tuple[Path, Path]:
@@ -406,11 +408,11 @@ def _fresh_candidate(path: Path, returncode: int) -> Path:
     try:
         _checked_path(path, "fresh render output", directory=False, allow_absent=False)
         if os.lstat(path).st_size <= 0:
-            raise RevideoRenderError("npm run render", returncode, "render reported no fresh output")
+            raise RevideoRenderError("npm run render", returncode, "", reason="render reported no fresh output")
     except RevideoRenderError:
         raise
     except (OSError, RevideoProjectError) as exc:
-        raise RevideoRenderError("npm run render", returncode, "render reported no fresh output") from exc
+        raise RevideoRenderError("npm run render", returncode, "", reason="render reported no fresh output") from exc
     return path
 
 
@@ -445,24 +447,38 @@ def _validate_render_identity(job: dict[str, Any], probe: Mapping[str, Any], str
     expected = REVIDEO_MEDIA_IDENTITIES[suffix]
     format_data = probe.get("format")
     if not isinstance(format_data, Mapping):
-        raise RevideoRenderError("verify Revideo output", 0, "render output format metadata is missing")
+        raise RevideoRenderError("verify Revideo output", 0, "", reason="render output format metadata is missing")
     format_name = format_data.get("format_name")
     if not isinstance(format_name, str) or expected["format_token"] not in {
         token.lower() for token in format_name.split(",")
     }:
-        raise RevideoRenderError("verify Revideo output", 0, f"render output format does not match {suffix}")
+        raise RevideoRenderError(
+            "verify Revideo output", 0, "", reason="render output format does not match the requested media identity"
+        )
     codec_name = stream.get("codec_name")
     if not isinstance(codec_name, str) or codec_name not in expected["video_codecs"]:
-        raise RevideoRenderError("verify Revideo output", 0, f"render output codec does not match {suffix}")
+        raise RevideoRenderError(
+            "verify Revideo output", 0, "", reason="render output codec does not match the requested media identity"
+        )
     if "major_brand" in expected:
         tags = format_data.get("tags")
         brand = tags.get("major_brand") if isinstance(tags, Mapping) else None
         if not isinstance(brand, str) or brand != expected["major_brand"]:
-            raise RevideoRenderError("verify Revideo output", 0, f"render output major brand does not match {suffix}")
+            raise RevideoRenderError(
+                "verify Revideo output",
+                0,
+                "",
+                reason="render output major brand does not match the requested media identity",
+            )
     if "profile" in expected:
         profile = stream.get("profile")
         if not isinstance(profile, str) or profile != expected["profile"]:
-            raise RevideoRenderError("verify Revideo output", 0, f"render output profile does not match {suffix}")
+            raise RevideoRenderError(
+                "verify Revideo output",
+                0,
+                "",
+                reason="render output profile does not match the requested media identity",
+            )
 
 
 def _inspect_render(
@@ -472,7 +488,7 @@ def _inspect_render(
         probe = _run_ffprobe_json(str(candidate), count_frames=True)
         streams = [item for item in probe.get("streams", []) if item.get("codec_type") == "video"]
         if not streams:
-            raise RevideoRenderError("verify Revideo output", 0, "render output has no video stream")
+            raise RevideoRenderError("verify Revideo output", 0, "", reason="render output has no video stream")
         stream = streams[0]
         _validate_render_identity(job, probe, stream)
         width = _positive_integer(stream.get("width"), "width", REVIDEO_WIDTH_MAX)
@@ -492,7 +508,7 @@ def _inspect_render(
         raise
     except (AttributeError, MCPVideoError, OSError, OverflowError, TypeError, ValueError, ZeroDivisionError) as exc:
         raise RevideoRenderError(
-            "verify Revideo output", 0, f"render output validation failed ({type(exc).__name__})"
+            "verify Revideo output", 0, "", reason=f"render output validation failed ({type(exc).__name__})"
         ) from exc
     return RevideoRenderResult(
         project_dir=str(project),
@@ -512,17 +528,21 @@ def _validate_observed_media(
     job: dict[str, Any], width: int, height: int, fps: float, frames: int, duration: float
 ) -> None:
     if width != job["width"]:
-        raise RevideoRenderError("verify Revideo output", 0, "render output width does not match the job")
+        raise RevideoRenderError("verify Revideo output", 0, "", reason="render output width does not match the job")
     if height != job["height"]:
-        raise RevideoRenderError("verify Revideo output", 0, "render output height does not match the job")
+        raise RevideoRenderError("verify Revideo output", 0, "", reason="render output height does not match the job")
     if abs(fps - job["fps"]) > REVIDEO_FPS_TOLERANCE:
-        raise RevideoRenderError("verify Revideo output", 0, "render output frame rate does not match the job")
+        raise RevideoRenderError(
+            "verify Revideo output", 0, "", reason="render output frame rate does not match the job"
+        )
     if frames != job["frames"]:
-        raise RevideoRenderError("verify Revideo output", 0, "render output frame count does not match the job")
+        raise RevideoRenderError(
+            "verify Revideo output", 0, "", reason="render output frame count does not match the job"
+        )
     expected_duration = job["frames"] / job["fps"]
     tolerance = REVIDEO_DURATION_TOLERANCE_FRAMES / job["fps"]
     if abs(duration - expected_duration) > tolerance:
-        raise RevideoRenderError("verify Revideo output", 0, "render output duration does not match the job")
+        raise RevideoRenderError("verify Revideo output", 0, "", reason="render output duration does not match the job")
 
 
 def _sha256_file(path: Path) -> str:
@@ -536,12 +556,12 @@ def _sha256_file(path: Path) -> str:
 def _require_digest(path: Path, expected_sha256: str, label: str) -> None:
     try:
         if _sha256_file(path) != expected_sha256:
-            raise RevideoRenderError(label, -1, "copied render bytes failed SHA-256 verification")
+            raise RevideoRenderError(label, -1, "", reason="copied render bytes failed SHA-256 verification")
     except RevideoRenderError:
         raise
     except OSError as exc:
         raise RevideoRenderError(
-            label, -1, f"copied render bytes could not be verified ({type(exc).__name__})"
+            label, -1, "", reason=f"copied render bytes could not be verified ({type(exc).__name__})"
         ) from exc
 
 
@@ -572,7 +592,7 @@ def _restore_canonical(canonical: Path, backup: Path | None, existed: bool) -> N
             os.replace(backup, canonical)
     except OSError as exc:
         raise RevideoRenderError(
-            "restore Revideo output", -1, f"canonical output restoration failed ({type(exc).__name__})"
+            "restore Revideo output", -1, "", reason=f"canonical output restoration failed ({type(exc).__name__})"
         ) from exc
 
 
@@ -599,7 +619,7 @@ def _install_canonical(candidate: Path, canonical: Path, existed: bool, expected
         if moved_old:
             _restore_canonical(canonical, backup, True)
         raise RevideoRenderError(
-            "publish Revideo project output", -1, f"project output publication failed ({type(exc).__name__})"
+            "publish Revideo project output", -1, "", reason=f"project output publication failed ({type(exc).__name__})"
         ) from exc
     return backup
 
@@ -612,7 +632,7 @@ def _publish_external(canonical: Path, output_path: str, expected_sha256: str) -
             _require_digest(stage, expected_sha256, "verify Revideo final output")
     except OSError as exc:
         raise RevideoRenderError(
-            "publish Revideo output", -1, f"output publication failed ({type(exc).__name__})"
+            "publish Revideo output", -1, "", reason=f"output publication failed ({type(exc).__name__})"
         ) from exc
 
 

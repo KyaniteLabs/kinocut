@@ -437,7 +437,7 @@ def _validate_position(position: Position) -> None:
     if not isinstance(position, dict):
         if position not in VALID_NAMED_POSITIONS:
             raise _MCPVideoError(
-                f"position must be one of {sorted(VALID_NAMED_POSITIONS)}, got {position}",
+                f"position must be one of {sorted(VALID_NAMED_POSITIONS)}, got {type(position).__name__}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )
@@ -448,7 +448,7 @@ def _validate_position(position: Position) -> None:
             if not isinstance(val, (int, float)) or isinstance(val, bool):
                 raise _MCPVideoError(
                     (
-                        f"Invalid position: {position}. "
+                        f"Invalid position ({type(position).__name__}). "
                         "Must be a named position (top-left, top-center, etc.) "
                         "or a dict with 'x'/'y' keys"
                     ),
@@ -458,7 +458,7 @@ def _validate_position(position: Position) -> None:
             if not (0.0 <= float(val) <= 1.0):
                 raise _MCPVideoError(
                     (
-                        f"Invalid position: {position}. "
+                        f"Invalid position ({type(position).__name__}). "
                         "Must be a named position (top-left, top-center, etc.) "
                         "or a dict with 'x'/'y' keys"
                     ),
@@ -471,7 +471,7 @@ def _validate_position(position: Position) -> None:
             if not isinstance(val, (int, float)) or isinstance(val, bool):
                 raise _MCPVideoError(
                     (
-                        f"Invalid position: {position}. "
+                        f"Invalid position ({type(position).__name__}). "
                         "Must be a named position (top-left, top-center, etc.) "
                         "or a dict with 'x'/'y' keys"
                     ),

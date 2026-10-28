@@ -185,10 +185,13 @@ class TestProcessingError:
         assert err.full_stderr == long_stderr
         assert len(err.full_stderr) == 1000
 
-    def test_short_stderr_unchanged(self):
+    def test_the_child_diagnostic_is_not_published(self):
+        # FFmpeg echoes the path the caller submitted, so the diagnostic
+        # stays on the error object and out of the payload.
         stderr = "short error"
         err = ProcessingError("cmd", 1, stderr)
-        assert stderr in str(err)
+        assert stderr not in str(err)
+        assert err.full_stderr == stderr
 
     def test_error_type(self):
         err = ProcessingError("cmd", 1, "err")

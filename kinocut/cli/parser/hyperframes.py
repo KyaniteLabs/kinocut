@@ -136,7 +136,9 @@ def _add_media_tools_parsers(subparsers: argparse._SubParsersAction) -> None:
     remove_bg_p.add_argument(
         "--model",
         default=None,
-        help=("u2net_human_seg (people, default) or birefnet-general (products/objects; needs kinocut[object-matte])"),
+        help=(
+            "u2net_human_seg (people, default) or birefnet-general (products/objects; needs kinocut[object-matte]==1.16.5)"
+        ),
     )
     remove_bg_p.add_argument(
         "--mask-interval",

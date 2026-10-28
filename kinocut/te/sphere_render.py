@@ -88,7 +88,7 @@ def _render_window(plan: dict[str, Any], window: dict[str, Any], root: Path, ind
             plan, cam_ids, layout=layout, start=start, end=end, dest=dest, width=width, height=height
         )
     raise MCPVideoError(
-        f"Unknown layout {layout!r}.",
+        "Unknown layout: expected one of split, pip, switch.",
         error_type="validation_error",
         code="invalid_sphere_layout",
     )

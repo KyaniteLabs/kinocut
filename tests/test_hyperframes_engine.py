@@ -1155,16 +1155,22 @@ class TestHyperframes05Tools:
         assert benchmark_cmd[benchmark_cmd.index("--runs") + 1] == "5"
 
     def test_raises_on_failure(self, sample_hyperframes_project):
-        """still() should raise HyperframesRenderError on non-zero exit."""
+        """still() should raise HyperframesRenderError on non-zero exit.
+
+        The child's own words are the child's: they stay on the error for the
+        operator to read locally and are not published back to the caller.
+        """
         project = str(sample_hyperframes_project)
         fake_cp = _make_completed_process(returncode=1, stderr="still failed")
 
         with (
             _mock_deps_ok(),
             patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
-            pytest.raises(HyperframesRenderError, match="still failed"),
+            pytest.raises(HyperframesRenderError) as caught,
         ):
             still(project, output_path="/tmp/out.png")
+        assert "still failed" not in str(caught.value)
+        assert "exit code 1" in str(caught.value)
 
 
 # ---------------------------------------------------------------------------

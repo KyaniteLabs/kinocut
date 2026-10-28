@@ -26,7 +26,7 @@ def resolve_layer_source(layer: Any, spec_dir: Path) -> tuple[str | None, str | 
         return None, None
     if layer.src is None:
         raise MCPVideoError(
-            f"layer {layer.id!r} requires src",
+            "a layer requires src",
             error_type="validation_error",
             code="missing_layer_src",
         )
@@ -35,7 +35,7 @@ def resolve_layer_source(layer: Any, spec_dir: Path) -> tuple[str | None, str | 
         validated = Path(_validate_input_path(str(candidate))).resolve()
         if not _is_relative_to(validated, spec_dir):
             raise MCPVideoError(
-                f"layer {layer.id!r} source escapes the spec directory",
+                "a layer source escapes the spec directory",
                 error_type="validation_error",
                 code="unsafe_layer_source",
             )
@@ -44,14 +44,14 @@ def resolve_layer_source(layer: Any, spec_dir: Path) -> tuple[str | None, str | 
             resolved_candidate = (spec_dir / candidate).resolve()
             if not _is_relative_to(resolved_candidate, spec_dir):
                 raise MCPVideoError(
-                    f"layer {layer.id!r} source escapes the spec directory",
+                    "a layer source escapes the spec directory",
                     error_type="validation_error",
                     code="unsafe_layer_source",
                 )
         validated = Path(_validate_input_path(str(spec_dir / candidate))).resolve()
         if not _is_relative_to(validated, spec_dir):
             raise MCPVideoError(
-                f"layer {layer.id!r} source escapes the spec directory",
+                "a layer source escapes the spec directory",
                 error_type="validation_error",
                 code="unsafe_layer_source",
             )
@@ -67,7 +67,7 @@ def resolve_mask_source(layer: Any, spec_dir: Path) -> tuple[str | None, str | N
         validated = Path(_validate_input_path(str(candidate))).resolve()
         if not _is_relative_to(validated, spec_dir):
             raise MCPVideoError(
-                f"layer {layer.id!r} mask escapes the spec directory",
+                "a layer mask escapes the spec directory",
                 error_type="validation_error",
                 code="unsafe_layer_source",
             )
@@ -75,7 +75,7 @@ def resolve_mask_source(layer: Any, spec_dir: Path) -> tuple[str | None, str | N
         validated = Path(_validate_input_path(str(spec_dir / candidate))).resolve()
         if not _is_relative_to(validated, spec_dir):
             raise MCPVideoError(
-                f"layer {layer.id!r} mask escapes the spec directory",
+                "a layer mask escapes the spec directory",
                 error_type="validation_error",
                 code="unsafe_layer_source",
             )

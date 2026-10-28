@@ -61,7 +61,7 @@ class ProcessTree:
                         if pipe is not None:
                             pipe.close()
             if isinstance(exc, OSError):
-                raise ProcessingError("command launch", -1, "Command backend could not start") from None
+                raise ProcessingError("command launch", -1, "", reason="Command backend could not start") from None
             raise
 
     def wait(self, timeout: float | None = None) -> int:

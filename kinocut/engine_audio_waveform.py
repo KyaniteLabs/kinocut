@@ -122,7 +122,8 @@ def _analyze_waveform(cmd: list[str], bins: int) -> tuple[str, str, int]:
             raise ProcessingError(
                 " ".join(cmd),
                 -1,
-                f"Audio waveform extraction timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
+                "",
+                reason=f"Audio waveform extraction timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
             ) from exc
         metadata_file.seek(0)
         metadata = metadata_file.read(bins * 256 + 1024).decode("utf-8", errors="replace")

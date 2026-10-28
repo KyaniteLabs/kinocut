@@ -9,6 +9,11 @@ at one of them can still escape through another:
 * the **CLI panel** the operator sees;
 * the **retry** message that tells the operator what to fix.
 
+A child process is the other door. FFmpeg, c2patool and Hyperframes all
+echo the path the caller submitted, so a diagnostic is caller data too:
+it stays on the error object, where the operator who holds it can read
+it, and out of the payload.
+
 The verdict named four refusals that still repeated the caller's value:
 ``video_merge.transition``, ``video_resize.aspect_ratio``,
 ``video_thumbnail.timestamp``, and the Shorts probe exception. Each is
@@ -47,6 +52,54 @@ def _assert_clean_result(result: object, where: str) -> None:
     """An MCP tool returns a dict, not an exception."""
     assert isinstance(result, dict), f"{where} did not return a result dict"
     _assert_no_secret(json.dumps(result, default=str), f"returned payload ({where})")
+
+
+# --------------------------------------------------------------------------
+# the child's diagnostic
+# --------------------------------------------------------------------------
+
+
+def test_a_child_diagnostic_never_reaches_the_payload():
+    """A child's output repeats the caller's path, so it is not published."""
+    from kinocut.errors import HyperframesRenderError, ProcessingError, RevideoRenderError
+
+    diagnostic = f"No such file or directory: '{SECRET}'"
+    for error in (
+        ProcessingError("ffmpeg -i input.mp4 output.mp4", 1, diagnostic),
+        HyperframesRenderError("hyperframes render", 1, diagnostic),
+        RevideoRenderError("node render.js", 1, diagnostic),
+    ):
+        where = type(error).__name__
+        _assert_clean(error, where)
+        # The operator who holds the object still has the diagnostic.
+        assert error.full_stderr == diagnostic
+
+
+def test_a_preset_refusal_names_the_accepted_values_not_the_submitted_one():
+    from kinocut.server_tools_media import video_watermark
+
+    result = video_watermark(input_path="/tmp/a.mp4", image_path="/tmp/b.png", preset=SECRET)
+    _assert_clean_result(result, "watermark preset")
+    # The refusal still says what is accepted.
+    assert "ultrafast" in json.dumps(result)
+
+
+def test_a_timeline_refusal_never_repeats_the_submitted_value():
+    from kinocut.server_tools_media import video_edit
+
+    result = video_edit(timeline=SECRET)
+    _assert_clean_result(result, "edit timeline")
+    assert "timeline" in json.dumps(result).lower()
+
+
+def test_a_refused_identifier_is_named_by_its_type_not_repeated():
+    """A caller-chosen id is named by its type; the index still says which."""
+    from kinocut.models import _validate_position
+
+    with pytest.raises(Exception) as raised:
+        _validate_position(SECRET)
+    _assert_no_secret(str(raised.value), "position refusal")
+    assert "str" in str(raised.value)
 
 
 # --------------------------------------------------------------------------

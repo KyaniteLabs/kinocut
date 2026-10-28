@@ -152,21 +152,17 @@ def offline_probe_environment() -> dict[str, str]:
     """The environment a version probe runs in, with a malformed setting handled.
     A malformed optional setting must not abort the whole report: telemetry off
     is the conservative reading of an invalid value.
+
+    The process environment is never changed. The doctor's probes run in
+    parallel, and a temporary write to ``os.environ`` could be observed by
+    another probe halfway through.
     """
     from .hyperframes_engine import _hyperframes_environment
 
     try:
         return _hyperframes_environment()
     except MCPVideoError:
-        previous = os.environ.get("KINOCUT_HYPERFRAMES_TELEMETRY")
-        os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] = "false"
-        try:
-            return _hyperframes_environment()
-        finally:
-            if previous is None:
-                os.environ.pop("KINOCUT_HYPERFRAMES_TELEMETRY", None)
-            else:
-                os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] = previous
+        return _hyperframes_environment(telemetry_allowed=False)
 
 
 def report_resolved_hyperframes(path: str) -> dict[str, Any]:
@@ -205,7 +201,11 @@ def check_hyperframes_cli(
     refusal = offline_probe_refusal(prefix, command, HYPERFRAMES_COMMAND_ENV)
     if refusal is not None:
         return refusal
-    path = resolve_executable(prefix[0] if prefix != ["hyperframes"] else which("hyperframes"))
+    # The executable is the first element of the prefix. A bare name is
+    # looked up on PATH, the way a shell would; a path is resolved as one.
+    executable = prefix[0]
+    located = executable if ("/" in executable or os.sep in executable) else which(executable)
+    path = resolve_executable(located)
     extra = report_resolved_hyperframes(path) if path else {}
     version = extra.get("hyperframes_version")
     ok = path is not None

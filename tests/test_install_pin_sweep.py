@@ -80,6 +80,14 @@ INSTALL_GRAMMARS = (
     ("kinocut", _grammar(r"npm\s+install\s+(?:-\S+\s+)*[\"']?kinocut")),
 )
 
+#: A bare extra reference names the package too. In prose — a README's
+#: mention of the extra, a CLI's own help text — the reader copies it, so
+#: it has to name a release. Which release it names is not this rule's
+#: business: a current file may record a dated fact ("first shipped as
+#: ``kinocut[object-matte]==1.15.1``"), and rewriting that to the current
+#: release would make the record false.
+BARE_EXTRA_GRAMMARS = (("kinocut", _grammar(r"(?<![A-Za-z0-9_.-])kinocut\[[a-z0-9,-]+\]")),)
+
 
 def _captured_version(token: str) -> str:
     """The version a capture names, with the installer prefix removed."""
@@ -128,8 +136,31 @@ def _offenders(path: Path, relative: Path) -> list[str]:
             for match in grammar.finditer(line):
                 captured = _captured_version(match.group(1) or "")
                 if captured != EXPECTED_PINS[distribution]:
-                    offenders.append(f"{relative}:{number}: {line.strip()}")
+                    offender = f"{relative}:{number}: {line.strip()}"
+                    if offender not in offenders:
+                        offenders.append(offender)
+        for _distribution, grammar in BARE_EXTRA_GRAMMARS:
+            for match in grammar.finditer(line):
+                if match.group(1):
+                    continue
+                offender = f"{relative}:{number}: {line.strip()}"
+                if offender not in offenders:
+                    offenders.append(offender)
     return offenders
+
+
+def test_a_bare_extra_reference_is_an_offender(tmp_path):
+    # A reader copies a bare extra reference out of prose and installs
+    # whatever PyPI serves that day, so it has to name a release.
+    path = tmp_path / "README.md"
+    path.write_text("Install the `kinocut[object-matte]` extra.\n", encoding="utf-8")
+    assert _offenders(path, Path("README.md"))
+
+
+def test_a_pinned_extra_reference_is_not_an_offender(tmp_path):
+    path = tmp_path / "README.md"
+    path.write_text("Install the `kinocut[object-matte]==1.16.5` extra.\n", encoding="utf-8")
+    assert not _offenders(path, Path("README.md"))
 
 
 @pytest.mark.parametrize("path", _current_files(), ids=lambda p: str(p.relative_to(ROOT)))

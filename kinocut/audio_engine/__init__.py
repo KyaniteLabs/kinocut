@@ -117,7 +117,7 @@ def add_generated_audio(
             )
         except subprocess.TimeoutExpired:
             raise ProcessingError(
-                " ".join(cmd), -1, f"Audio processing command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
+                " ".join(cmd), -1, "", reason=f"Audio processing command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
             ) from None
         if result.returncode != 0:
             raise ProcessingError(" ".join(cmd), result.returncode, result.stderr)

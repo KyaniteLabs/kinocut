@@ -210,7 +210,7 @@ def _normalize_operation(descriptor: Any, order: int) -> NormalizedOperation:
         )
         params = {}  # identified by its video + subtitle inputs; rendering is out of scope
     else:
-        source = _require_digest(_field(descriptor, "source"), f"{kind} source")
+        source = _require_digest(_field(descriptor, "source"), "source")
         sources = (source,)
         if kind == "trim":
             start = _number(_field(descriptor, "start"), "trim start")
@@ -434,10 +434,10 @@ def _declared_source_path(source_id: str, spec_entry: Any, job_dir: Path, resolv
     path synthesis declared and a tampered spec cannot escape the sources directory.
     """
     if not isinstance(spec_entry, Mapping) or not isinstance(spec_entry.get("path"), str):
-        raise contract_error(f"source {source_id} has no declared path in the workflow spec", INVALID_RECORD)
+        raise contract_error("source has no declared path in the workflow spec", INVALID_RECORD)
     raw_path = spec_entry["path"]
     if not raw_path:
-        raise contract_error(f"source {source_id} declares an empty path", INVALID_RECORD)
+        raise contract_error("source declares an empty path", INVALID_RECORD)
     declared = job_dir / raw_path  # workspace-relative path bound to the job dir
     # The basename must be exactly <source_id>.<ext>; the path must stay strictly under sources/.
     if declared.stem != source_id or not declared.suffix:

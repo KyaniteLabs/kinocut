@@ -26,6 +26,7 @@ process repeats until nothing new is tainted.
 from __future__ import annotations
 
 import ast
+import re
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -56,12 +57,32 @@ ERROR_CALLS = frozenset(
         "SoundContractError",
         "VoiceError",
         "MixError",
+        "_cutfile_error",
+        "ir_error",
         "contract_error",
         "voice_error",
         "bounded_voice_error",
         "mix_error",
+        # Every public subclass of MCPVideoError. A subclass that builds
+        # its own message is inspected through its ``__init__``.
+        "FFmpegNotFoundError",
+        "FFprobeNotFoundError",
+        "C2PAToolNotFoundError",
+        "C2PASigningError",
+        "C2PAVerificationError",
+        "HyperframesNotFoundError",
+        "HyperframesRenderError",
+        "BackendUnavailableError",
+        "ResourceError",
+        "RevideoNotFoundError",
+        "RevideoProjectError",
+        "RevideoRenderError",
     }
 )
+
+#: The base classes. Their message is the finished text by definition, so
+#: their own ``__init__`` is not a construction site.
+ERROR_BASES = frozenset({"MCPVideoError", "Exception", "ValueError", "BackendUnavailableError"})
 
 #: Exceptions whose message is written by the shipped package rather than
 #: copied from a caller. Their text is guidance — "sample rate must be
@@ -81,9 +102,15 @@ MESSAGE_POSITIONS: dict[str, frozenset[int]] = {
     "MCPVideoError": frozenset({0}),
     "ValidationError": frozenset({0, 1}),
     "InputFileError": frozenset({1}),
+    # These classes build their own message from their own arguments, so
+    # the call site publishes no message text at all. The class's
+    # ``__init__`` is the construction site, and it is checked there.
+    "ProcessingError": frozenset(),
+    "HyperframesRenderError": frozenset(),
+    "RevideoRenderError": frozenset(),
     "CodecError": frozenset({1}),
     "HyperframesProjectError": frozenset({1}),
-    "ProcessingError": frozenset({1, 2}),
+    "RevideoProjectError": frozenset({1}),
     "_validation_error": frozenset({0}),
     "_MCPVideoError": frozenset({0}),
     "_flow_error": frozenset({0}),
@@ -119,17 +146,47 @@ ERROR_BUILDERS = frozenset(
         "_fail",
         "_creation_error",
         "_clamp_error",
+        "_route_error",
     }
 )
 
 #: The helpers that make a value safe to name. A call to one of them is the
 #: trust boundary: they name a value by its type and never copy it.
-SANITIZERS = frozenset({"rejected_value", "exception_kind", "invalid_parameter"})
+SANITIZERS = frozenset(
+    {
+        "rejected_value",
+        "exception_kind",
+        "invalid_parameter",
+        # The text with the caller's submitted value removed.
+        "_without_value",
+        # The reason of one of our own errors. A foreign exception's text
+        # is never republished; its kind is.
+        "reason",
+        # The event kind, validated against the shipped set of kinds.
+        "_validate_event_kind",
+        # The house rule for naming a rejected value: by type only.
+        "_describe",
+        # Why a stored location is unsafe. The reason never contains the
+        # location, so it is ours to publish.
+        "location_violation",
+        # A bounded, privacy-safe summary of our own validation error.
+        "_summary",
+    }
+)
 
-#: A declared type that cannot hold a string.
-NUMERIC_TYPES = frozenset({"int", "float", "bool", "None"})
 #: A declared type that can hold a string.
 STRING_TYPES = frozenset({"str", "Path", "Any", "object", "bytes"})
+#: A declared type that cannot hold a string. Everything else is treated
+#: as string-capable, so a type this analyzer cannot resolve fails closed.
+NUMERIC_TYPES = frozenset({"int", "float", "bool", "None", "NoneType", "complex"})
+#: A word that marks a string as a type expression rather than a value.
+TYPE_WORDS = re.compile(
+    r"\b(str|int|float|bool|bytes|complex|Path|Any|None|Optional|Union|Annotated"
+    r"|Sequence|Mapping|Iterable|list|dict|tuple|set|Literal)\b"
+)
+#: A child process's own output. It is never guidance we wrote, and it
+#: repeats the path the caller submitted.
+DIAGNOSTIC_ATTRIBUTES = frozenset({"stderr", "stdout"})
 #: A numeric format spec proves the value is a number: formatting a string
 #: with ``:.0f`` raises.
 NUMERIC_SPECS = frozenset("fFeEgGdiuXobn%")
@@ -144,6 +201,10 @@ NUMERIC_ATTRIBUTES = frozenset(
     {
         "width",
         "height",
+        "display_width",
+        "display_height",
+        "timeline_duration_seconds",
+        "error_count",
         "size",
         "count",
         "fps",
@@ -235,11 +296,49 @@ def base_annotation(node: ast.AST | None) -> str:
         return "?"
 
 
-def holds_string(text: str) -> bool:
+def type_aliases() -> dict[str, list[str]]:
+    """Module-level type aliases, and the type each one really is.
+
+    A parameter annotated ``ExistingVideoPath`` is a string. The alias
+    hides the ``str`` from a reader — and from an analyzer that only
+    looks at the annotation's text — so an alias is resolved before the
+    type is judged.
+    """
+    aliases: dict[str, list[str]] = {}
+    for package in PACKAGES:
+        for path in sorted(package.rglob("*.py")):
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except (OSError, SyntaxError):  # pragma: no cover - defensive
+                continue
+            for node in tree.body:
+                if not isinstance(node, ast.Assign) or len(node.targets) != 1:
+                    continue
+                target = node.targets[0]
+                if not isinstance(target, ast.Name):
+                    continue
+                base = base_annotation(node.value)
+                if base == "?" or base == "None":
+                    continue
+                if not TYPE_WORDS.search(base) and not base.isidentifier():
+                    continue
+                bases = aliases.setdefault(target.id, [])
+                if base not in bases:
+                    bases.append(base)
+    return aliases
+
+
+def holds_string(text: str, aliases: dict[str, list[str]] | None = None, depth: int = 0) -> bool:
     """True when the declared type can carry a caller-controlled string.
 
     ``int | None`` cannot. ``int | str`` can — the string arm is the leak.
     An unannotated parameter can, so it is treated as string-capable.
+
+    A type alias is resolved first: ``ExistingVideoPath`` is ``str``, and
+    a reader — or an analyzer — that only sees the alias's name would
+    wrongly conclude the parameter is safe. A type that cannot be
+    resolved at all is treated as string-capable, so the guard fails
+    closed rather than open.
 
     A container counts: a ``dict[str, str]`` carries caller-chosen keys
     and values, and a message that repeats one repeats the caller's
@@ -247,10 +346,17 @@ def holds_string(text: str) -> bool:
     """
     if text == "?":
         return True
-    parts = [part.strip() for part in text.split("|")]
-    if all(part in NUMERIC_TYPES for part in parts):
-        return False
-    return any(part in STRING_TYPES or part == "?" for part in parts)
+    for part in (piece.strip() for piece in text.split("|")):
+        if part in NUMERIC_TYPES:
+            continue
+        if aliases and part in aliases and depth < 5:
+            if any(holds_string(base, aliases, depth + 1) for base in aliases[part]):
+                return True
+            continue
+        # Not a number, and not a type this analyzer can read. It may
+        # still hold a string, so it is treated as string-capable.
+        return True
+    return False
 
 
 def holds_container(text: str) -> bool:
@@ -433,6 +539,15 @@ def _numeric_names(node: ast.AST) -> set[str]:
             target = child.args[0]
             if isinstance(target, ast.Name):
                 names.add(target.id)
+        elif (
+            isinstance(child, ast.Call)
+            and callee_name(child) in {"int", "float"}
+            and child.args
+            and isinstance(child.args[0], ast.Name)
+        ):
+            # A value the code hands to a numeric constructor is a number at
+            # that point, whether or not it was annotated.
+            names.add(child.args[0].id)
     return names
 
 
@@ -507,45 +622,138 @@ def package_functions() -> tuple[dict[str, list[Function]], list[Function]]:
     return by_name, all_functions
 
 
-def label_parameters() -> set[tuple[str, str]]:
-    """Parameters every call site fills with a literal.
+def _label_candidates(candidates: list[Function], caller: Function, call: ast.Call) -> list[Function]:
+    """The helpers a call site can be talking to.
+
+    Three modules each define a ``_require_digest`` with different
+    parameters. A call in one of them is a call to *that* one, so the
+    helper in the caller's own module wins; otherwise the signature has to
+    fit.
+    """
+    local = [candidate for candidate in candidates if candidate.path.name == caller.path.name]
+    if local:
+        return local
+    fitting = []
+    for candidate in candidates:
+        names = list(candidate.params)
+        if len(call.args) > len(names):
+            continue
+        if any(keyword.arg is not None and keyword.arg not in names for keyword in call.keywords):
+            continue
+        fitting.append(candidate)
+    return fitting or candidates
+
+
+def label_parameters() -> set[tuple[str, str, str]]:
+    """Parameters every call site fills with a literal, or with a label.
 
     Those are internal labels — ``name="width"``, ``label="destination"`` —
     chosen by the shipped code, not by the caller. A parameter with no call
     site in the package is not a label: the caller may still supply it.
+
+    A label often arrives through another label: a helper's ``name`` comes
+    from a caller that was handed a literal two frames up. The rule follows
+    the name down, or every downstream frame would see a label as caller
+    data.
+
+    The key names the *file* as well as the function: three modules each
+    define a ``_require_digest`` with different parameters, and they are
+    different helpers.
     """
-    by_name, _ = package_functions()
-    labels: set[tuple[str, str]] = set()
-    seen: set[tuple[str, str]] = set()
-    for package in PACKAGES:
-        for path in sorted(package.rglob("*.py")):
-            try:
-                tree = ast.parse(path.read_text(encoding="utf-8"))
-            except (OSError, SyntaxError):  # pragma: no cover - defensive
+    by_name, all_functions = package_functions()
+    # (callee file, callee name, parameter) -> every way a call site filled it.
+    filled: dict[tuple[str, str, str], list[ast.expr]] = {}
+    callers: dict[tuple[str, str, str], list[tuple[Function, ast.expr]]] = {}
+    for function in all_functions:
+        for call in calls_in(function.node):
+            name = callee_name(call)
+            if name is None or name not in by_name:
                 continue
-            for call in ast.walk(tree):
-                if not isinstance(call, ast.Call):
+            for candidate in _label_candidates(by_name[name], function, call):
+                names = list(candidate.params)
+                for position, argument in enumerate(call.args):
+                    if position >= len(names):
+                        break
+                    key = (candidate.path.name, name, names[position])
+                    filled.setdefault(key, []).append(argument)
+                    callers.setdefault(key, []).append((function, argument))
+                for keyword in call.keywords:
+                    if keyword.arg is None or keyword.arg not in names:
+                        continue
+                    key = (candidate.path.name, name, keyword.arg)
+                    filled.setdefault(key, []).append(keyword.value)
+                    callers.setdefault(key, []).append((function, keyword.value))
+    labels: set[tuple[str, str, str]] = set()
+    changed = True
+    while changed:
+        changed = False
+        for key, _arguments in filled.items():
+            if key in labels:
+                continue
+            for function, argument in callers[key]:
+                if isinstance(argument, ast.Constant):
                     continue
-                name = callee_name(call)
-                if name is None:
+                # A label passed on from the caller is still a label.
+                if isinstance(argument, ast.Name) and (function.path.name, function.name, argument.id) in labels:
                     continue
-                for candidate in by_name.get(name, ()):
-                    names = list(candidate.params)
-                    for position, argument in enumerate(call.args):
-                        if position >= len(names):
-                            break
-                        key = (name, names[position])
-                        seen.add(key)
-                        if not isinstance(argument, ast.Constant):
-                            labels.discard(key)
-                    for keyword in call.keywords:
-                        if keyword.arg is None or keyword.arg not in names:
-                            continue
-                        key = (name, keyword.arg)
-                        seen.add(key)
-                        if not isinstance(keyword.value, ast.Constant):
-                            labels.discard(key)
+                break
+            else:
+                labels.add(key)
+                changed = True
     return labels
+
+
+_NUMERIC_RETURNS: set[str] | None = None
+
+
+_TUPLE_ELEMENTS: dict[str, list[str]] | None = None
+
+
+def _tuple_elements() -> dict[str, list[str]]:
+    """The element types of a function's declared tuple return.
+
+    ``tuple[int, int, float, bool, str]`` says which unpacked name is a
+    number and which is not.
+    """
+    global _TUPLE_ELEMENTS
+    if _TUPLE_ELEMENTS is None:
+        elements: dict[str, list[str]] = {}
+        _by_name, all_functions = package_functions()
+        for candidate in all_functions:
+            if candidate.node.returns is None:
+                continue
+            returned = base_annotation(candidate.node.returns)
+            if not (returned.startswith("tuple[") and returned.endswith("]")):
+                continue
+            inner = returned[len("tuple[") : -1]
+            elements[candidate.name] = [part.strip() for part in inner.split(",")]
+        _TUPLE_ELEMENTS = elements
+    return _TUPLE_ELEMENTS
+
+
+def _numeric_returns() -> set[str]:
+    """Functions whose declared return type is a number.
+
+    A call to one of them returns a number, whatever it was handed, and a
+    number may be repeated in a message.
+    """
+    global _NUMERIC_RETURNS
+    if _NUMERIC_RETURNS is None:
+        names: set[str] = set()
+        _by_name, all_functions = package_functions()
+        for candidate in all_functions:
+            if candidate.node.returns is None:
+                continue
+            returned = base_annotation(candidate.node.returns)
+            if returned and all(part.strip() in NUMERIC_TYPES for part in returned.split("|")):
+                names.add(candidate.name)
+            elif returned.startswith("tuple[") and returned.endswith("]"):
+                inner = returned[len("tuple[") : -1]
+                parts = [part.strip() for part in inner.split(",")]
+                if parts and all(part in NUMERIC_TYPES for part in parts):
+                    names.add(candidate.name)
+        _NUMERIC_RETURNS = names
+    return _NUMERIC_RETURNS
 
 
 def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
@@ -567,13 +775,26 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
             return False
         if name in NUMERIC_CALLS:
             return False
+        if name in _numeric_returns():
+            # The function declares that it returns a number, so the number
+            # is what comes back, not the value it was handed.
+            return False
         if name in CARRYING_CALLS:
             return any(_is_tainted_expr(argument, function) for argument in node.args)
         # A value pulled out of a caller-supplied container is caller data:
         # ``op.get("op")`` returns the string the caller submitted.
         if isinstance(node.func, ast.Attribute) and node.func.attr in {"get", "pop"}:
             return _is_tainted_expr(node.func.value, function)
-        return False
+        if isinstance(node.func, ast.Attribute):
+            # A method on a caller-controlled value can carry it: ``x.strip()``,
+            # ``x.lower()``, ``x.replace(...)``.
+            return _is_tainted_expr(node.func.value, function)
+        # A call that is handed caller data can return caller data: a helper
+        # that takes a path and returns paths derived from it carries the
+        # caller's path. The sanitizers and the numeric calls above are the
+        # known exceptions; everything else is assumed to carry what it was
+        # given, so the guard fails closed.
+        return any(_is_tainted_expr(argument, function) for argument in node.args)
     if isinstance(node, ast.Name):
         if node.id in function.numeric:
             # The code has established this is a number, and a number may
@@ -585,6 +806,10 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
             return False
         if node.attr in NUMERIC_ATTRIBUTES:
             return False
+        if node.attr in DIAGNOSTIC_ATTRIBUTES and not (isinstance(node.value, ast.Name) and node.value.id == "sys"):
+            # A child process's output is a diagnostic, not guidance we
+            # wrote: it repeats the path the caller submitted.
+            return True
         return _is_tainted_expr(node.value, function)
     if isinstance(node, ast.BinOp):
         return _is_tainted_expr(node.left, function) or _is_tainted_expr(node.right, function)
@@ -627,8 +852,14 @@ def _local_taint(function: Function) -> bool:
                 targets.append(target)
             elif isinstance(target, ast.Tuple | ast.List):
                 targets.extend(element for element in target.elts if isinstance(element, ast.Name))
-        for target in targets:
+        element_types = None
+        if isinstance(child.value, ast.Call):
+            element_types = _tuple_elements().get(callee_name(child.value) or "")
+        for position, target in enumerate(targets):
             assert isinstance(target, ast.Name)
+            if element_types is not None and position < len(element_types) and element_types[position] in NUMERIC_TYPES:
+                # The declared tuple says what each unpacked name is.
+                continue
             if target.id not in function.tainted:
                 function.tainted.add(target.id)
                 changed = True
@@ -688,7 +919,7 @@ def _loop_key_taint(function: Function) -> bool:
     return changed
 
 
-def _propagate(function: Function, by_name: dict[str, list[Function]]) -> bool:
+def _propagate(function: Function, by_name: dict[str, list[Function]], labels: set[tuple[str, str]]) -> bool:
     """Pass taint from this function's arguments into the ones it calls."""
     changed = False
     for call in calls_in(function.node):
@@ -704,8 +935,14 @@ def _propagate(function: Function, by_name: dict[str, list[Function]]) -> bool:
                 parameter = candidate.params[position]
                 if parameter in candidate.tainted:
                     continue
+                if (candidate.path.name, candidate.name, parameter) in labels:
+                    # A label every call site fills with shipped text.
+                    continue
                 declared = candidate.annotations.get(parameter, "?")
                 if not holds_string(declared) and not holds_container(declared):
+                    continue
+                if parameter in candidate.numeric or parameter in NUMERIC_ATTRIBUTES:
+                    # The callee only ever uses it as a number.
                     continue
                 candidate.tainted.add(parameter)
                 changed = True
@@ -716,8 +953,12 @@ def _propagate(function: Function, by_name: dict[str, list[Function]]) -> bool:
                     continue
                 if keyword.arg in candidate.tainted:
                     continue
+                if (candidate.path.name, candidate.name, keyword.arg) in labels:
+                    continue
                 declared = candidate.annotations.get(keyword.arg, "?")
                 if not holds_string(declared) and not holds_container(declared):
+                    continue
+                if keyword.arg in candidate.numeric or keyword.arg in NUMERIC_ATTRIBUTES:
                     continue
                 candidate.tainted.add(keyword.arg)
                 changed = True
@@ -727,12 +968,16 @@ def _propagate(function: Function, by_name: dict[str, list[Function]]) -> bool:
 def tainted_functions(labels: set[tuple[str, str]]) -> list[Function]:
     """Every function that holds caller-controlled data."""
     by_name, all_functions = package_functions()
+    aliases = type_aliases()
     for function in all_functions:
         function.tainted.update(function.aliases)
         if not function.handler:
             continue
         for parameter, declared in function.annotations.items():
-            if not holds_string(declared) and not holds_container(declared):
+            if all(part.strip() in NUMERIC_TYPES for part in declared.split("|")):
+                # A number may be repeated in a message.
+                continue
+            if not holds_string(declared, aliases) and not holds_container(declared):
                 continue
             if (function.name, parameter) in labels:
                 continue
@@ -745,7 +990,7 @@ def tainted_functions(labels: set[tuple[str, str]]) -> list[Function]:
                 changed = True
             if _loop_key_taint(function):
                 changed = True
-            if _propagate(function, by_name):
+            if _propagate(function, by_name, labels):
                 changed = True
     return all_functions
 
@@ -798,11 +1043,41 @@ def _is_contract_exception(target: ast.AST, function: Function) -> bool:
     return _caught_type(function, alias) in CONTRACT_EXCEPTIONS
 
 
-def find_leaks() -> list[Finding]:
-    """Every interpolation of a caller-controlled string into an error."""
+#: Findings that are not caller data, each with the reason it is safe.
+#:
+#: The key is the file and the exact message, so a change to either line
+#: brings the finding back: the exemption stops matching and the analyzer
+#: reports it again. Nothing here is a threshold or a count.
+#:
+#: One entry remains. The rest of what the analyzer has raised turned out
+#: to be a real leak or a precision gap in the analyzer, and both were
+#: fixed at the source rather than exempted here.
+EXEMPT: dict[tuple[str, str], str] = {
+    (
+        "kinocut/quality_guardrails.py",
+        "f'Quality gate failed: {'; '.join(failures)}. {recommendations}'",
+    ): (
+        "The failures are the package's own sentences about the measured media and its "
+        "recommendations are the messages of the package's own failed quality checks "
+        "(quality_guardrails builds them as literals at the check). They travel through "
+        "the report dictionary, so the analyzer cannot see that they are ours; it sees a "
+        "tainted container. No value the caller submitted is in either."
+    ),
+}
+
+
+def _collect_leaks() -> list[Finding]:
+    """Every finding, including the ones an exemption covers."""
     labels = label_parameters()
     findings: list[Finding] = []
-    for function in tainted_functions(labels):
+    functions = tainted_functions(labels)
+    findings.extend(_constructor_leaks(functions))
+    for function in functions:
+        if function.name in ERROR_BUILDERS:
+            # A builder's message parameter is the finished text. The call
+            # site that built that text is where a leak would be, and it
+            # is checked there.
+            continue
         for call in calls_in(function.node):
             name = callee_name(call)
             if name not in ERROR_CALLS:
@@ -820,6 +1095,145 @@ def find_leaks() -> list[Finding]:
                     continue
                 findings.extend(_argument_leaks(keyword.value, call, function))
     return findings
+
+
+def raw_leaks() -> list[Finding]:
+    """Every finding, including the ones an exemption covers."""
+    return _collect_leaks()
+
+
+def find_leaks() -> list[Finding]:
+    """Every interpolation of a caller-controlled string into an error."""
+    return [finding for finding in _collect_leaks() if _exemption_for(finding) is None]
+
+
+def _exemption_for(finding: Finding) -> str | None:
+    """The reason a finding is not caller data, when it is exempt."""
+    try:
+        relative = str(finding.path.relative_to(ROOT))
+    except ValueError:
+        return None
+    return EXEMPT.get((relative, finding.source))
+
+
+def unused_exemptions(findings: list[Finding]) -> list[tuple[str, str]]:
+    """Exemptions that no longer match anything.
+
+    An exemption that matches nothing is a stale statement about code that
+    has since changed, so the guard asks for this to be empty.
+    """
+    matched = {(str(finding.path.relative_to(ROOT)), finding.source) for finding in findings}
+    return [key for key in EXEMPT if key not in matched]
+
+
+def _error_classes() -> dict[str, tuple[Path, ast.ClassDef, ast.FunctionDef | ast.AsyncFunctionDef]]:
+    """Every shipped error class, with the ``__init__`` that builds its message."""
+    classes: dict[str, tuple[Path, ast.ClassDef, ast.FunctionDef | ast.AsyncFunctionDef]] = {}
+    for package in PACKAGES:
+        for path in sorted(package.rglob("*.py")):
+            try:
+                tree = ast.parse(path.read_text(encoding="utf-8"))
+            except (OSError, SyntaxError):  # pragma: no cover - defensive
+                continue
+            for node in ast.walk(tree):
+                if not isinstance(node, ast.ClassDef) or node.name not in ERROR_CALLS:
+                    continue
+                initialiser = next(
+                    (
+                        member
+                        for member in node.body
+                        if isinstance(member, ast.FunctionDef | ast.AsyncFunctionDef) and member.name == "__init__"
+                    ),
+                    None,
+                )
+                if initialiser is None:
+                    continue
+                classes.setdefault(node.name, (path, node, initialiser))
+    return classes
+
+
+def _constructor_leaks(functions: list[Function]) -> list[Finding]:
+    """Leaks in an error class that builds its own message.
+
+    ``HyperframesRenderError(command, returncode, stderr)`` does not take
+    a message: it makes one from its own arguments, and those arguments
+    come from the caller and from a subprocess. A class that interpolates
+    them into the message repeats the caller's data, so the class's
+    ``__init__`` is a construction site.
+
+    Only the parameters a caller actually passes caller data into count.
+    A class whose every caller passes shipped text — ``ValidationError`` —
+    is free to repeat it.
+    """
+    classes = _error_classes()
+    findings: list[Finding] = []
+
+    # Which parameters does each class receive caller data in?
+    tainted_parameters: dict[str, set[str]] = {}
+    for function in functions:
+        if function.name in ERROR_BUILDERS:
+            continue
+        for call in calls_in(function.node):
+            name = callee_name(call)
+            if name not in classes:
+                continue
+            parameters = _parameter_names(classes[name][2])
+            for position, argument in enumerate(call.args):
+                if not _is_tainted_expr(argument, function):
+                    continue
+                if position < len(parameters):
+                    tainted_parameters.setdefault(name, set()).add(parameters[position])
+            for keyword in call.keywords:
+                if keyword.arg is None or not _is_tainted_expr(keyword.value, function):
+                    continue
+                tainted_parameters.setdefault(name, set()).add(keyword.arg)
+
+    for name, (path, _node, initialiser) in classes.items():
+        if name in ERROR_BASES:
+            continue
+        received = tainted_parameters.get(name, set())
+        if not received:
+            continue
+        function = Function(path, initialiser)
+        # A parameter the class annotates as a number holds a number, and a
+        # number may be repeated. The annotation decides, not the name.
+        for parameter, declared in function.annotations.items():
+            parts = {part.strip() for part in declared.split("|")}
+            if parts and parts <= NUMERIC_TYPES:
+                received.discard(parameter)
+        function.tainted.update(received)
+        # The class's message is often built by assignment rather than
+        # written at the call to ``super().__init__``, so the locals it
+        # derives from a tainted parameter are tainted too.
+        for _round in range(3):
+            if not _local_taint(function):
+                break
+        for call in calls_in(initialiser):
+            if not isinstance(call.func, ast.Attribute) or call.func.attr != "__init__":
+                continue
+            for position, argument in enumerate(call.args):
+                if position != 0:
+                    continue
+                findings.extend(_argument_leaks(argument, call, function))
+            for keyword in call.keywords:
+                if keyword.arg in NON_MESSAGE_KEYWORDS:
+                    continue
+                if keyword.arg == "suggested_action":
+                    findings.extend(_action_leaks(keyword.value, function))
+                    continue
+                findings.extend(_argument_leaks(keyword.value, call, function))
+    return findings
+
+
+def _parameter_names(initialiser: ast.FunctionDef | ast.AsyncFunctionDef) -> list[str]:
+    """The constructor's own parameter names, in order."""
+    args = initialiser.args
+    names: list[str] = []
+    for group in (args.posonlyargs, args.args, args.kwonlyargs):
+        for argument in group:
+            if argument.arg != "self":
+                names.append(argument.arg)
+    return names
 
 
 def _argument_leaks(argument: ast.expr, call: ast.Call, function: Function) -> list[Finding]:

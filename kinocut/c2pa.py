@@ -101,10 +101,9 @@ def _run_c2patool(
     if result.returncode != 0:
         if verification:
             raise C2PAVerificationError("c2patool verification command failed")
-        stderr = result.stderr[-500:] if result.stderr else ""
-        stdout = result.stdout[-500:] if result.stdout else ""
-        detail = stderr or stdout or f"c2patool exited with {result.returncode}"
-        raise C2PASigningError(detail)
+        # The child's output is not published: c2patool echoes the asset
+        # path the caller submitted.
+        raise C2PASigningError(f"c2patool exited with {result.returncode}")
     return result
 
 
@@ -113,7 +112,7 @@ def _verify_signed_asset(tool: str, asset: str) -> dict[str, Any]:
     try:
         payload = json.loads(result.stdout) if result.stdout.strip() else {}
     except json.JSONDecodeError as exc:
-        raise C2PAVerificationError(f"c2patool returned non-JSON verification output: {exc}") from exc
+        raise C2PAVerificationError(f"c2patool returned non-JSON verification output ({type(exc).__name__})") from exc
     if not isinstance(payload, dict):
         raise C2PAVerificationError("c2patool verification output was not a JSON object")
 

@@ -248,7 +248,7 @@ def video_quality_check(
     if fail_on_warning and not report.get("all_passed", False):
         return _error_result(
             MCPVideoError(
-                f"Quality gate failed: score {report.get('overall_score')} below release threshold",
+                f"Quality gate failed: score {float(report.get('overall_score') or 0.0)} below release threshold",
                 error_type="quality_error",
                 code="quality_gate_failed",
                 suggested_action={

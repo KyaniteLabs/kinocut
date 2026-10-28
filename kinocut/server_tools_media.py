@@ -206,7 +206,7 @@ def video_watermark(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset. Available: {sorted(VALID_PRESETS)}")
     input_path = _validate_input_path(input_path)
     image_path = _validate_input_path(image_path)
     return _result(
@@ -448,7 +448,7 @@ def video_fade(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset. Available: {sorted(VALID_PRESETS)}")
     input_path = _validate_input_path(input_path)
     if fade_in < 0:
         return _validation_error(f"fade_in must be non-negative, got {fade_in}")
@@ -510,13 +510,9 @@ def video_edit(
                     with open(timeline_str, encoding="utf-8") as f:
                         parsed_timeline = _json.load(f)
                 except (_json.JSONDecodeError, OSError) as exc:
-                    return _validation_error(
-                        f"Invalid timeline JSON file: {timeline_str} — {exception_kind(exc)}", code="invalid_json"
-                    )
+                    return _validation_error(f"Invalid timeline JSON file ({exception_kind(exc)})", code="invalid_json")
             else:
-                return _validation_error(
-                    f"timeline must be a dict, valid JSON string, or path to a .json file. Got: {timeline_str[:100]}"
-                )
+                return _validation_error("timeline must be a dict, valid JSON string, or path to a .json file")
     if not isinstance(parsed_timeline, dict):
         return _validation_error(f"timeline must be a dict or JSON object. Got: {type(parsed_timeline).__name__}")
     return _result(edit_timeline(parsed_timeline, output_path=output_path))
@@ -603,7 +599,7 @@ def video_extract_audio(
     if not os.path.isfile(result):
         return _error_result(
             MCPVideoError(
-                f"Audio extraction completed but output file not found: {result}",
+                "Audio extraction completed but the output file was not found",
                 error_type="processing_error",
                 code="missing_output",
             )

@@ -226,7 +226,7 @@ def _render_keep_segments(video: str, segments: list[tuple[float, float]], outpu
 
 def _processing_failure(reason: str, returncode: int = 0) -> ProcessingError:
     """Create a stable path-free output-validation error."""
-    return ProcessingError("silence output validation", returncode, reason)
+    return ProcessingError("silence output validation", returncode, "", reason=reason)
 
 
 def _validate_silence_output(output: str, expected_duration: float) -> None:

@@ -12,6 +12,8 @@ that is provably offline, so the rule is that the doctor runs none.
 
 from __future__ import annotations
 
+import os
+
 from kinocut import doctor
 from kinocut.doctor_offline import (
     hyperframes_version_from_metadata,
@@ -115,5 +117,35 @@ def test_a_malformed_telemetry_setting_does_not_crash_the_doctor(monkeypatch):
     monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "maybe")
     environment = doctor._doctor_probe_environment()
     # The conservative reading of an invalid value is telemetry off.
-    assert environment["KINOCUT_HYPERFRAMES_TELEMETRY"] == "false"
+    assert environment["HYPERFRAMES_NO_TELEMETRY"] == "1"
     assert environment["HYPERFRAMES_NO_UPDATE_CHECK"] == "1"
+
+
+def test_a_bare_configured_command_with_arguments_is_found_on_path(tmp_path, monkeypatch):
+    # The executable is the first element of the prefix. A bare name is
+    # looked up on PATH, the way a shell would; a path is resolved as one.
+    from kinocut.doctor_offline import check_hyperframes_cli
+
+    launcher = tmp_path / "bin" / "hyperframes"
+    launcher.parent.mkdir(parents=True)
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
+    launcher.chmod(0o755)
+    monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, "hyperframes --skip-skills")
+
+    report = check_hyperframes_cli(lambda name: str(launcher) if name == "hyperframes" else None)
+    assert report["ok"] is True
+    assert report["path"] == str(launcher.resolve())
+
+
+def test_the_probe_environment_never_changes_the_process_environment(monkeypatch):
+    # The doctor's probes run in parallel. A temporary write to
+    # os.environ could be observed by another probe halfway through.
+    monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "maybe")
+    doctor._doctor_probe_environment()
+    assert os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] == "maybe"
+
+
+def test_the_probe_environment_leaves_a_valid_setting_alone(monkeypatch):
+    monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "true")
+    doctor._doctor_probe_environment()
+    assert os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] == "true"

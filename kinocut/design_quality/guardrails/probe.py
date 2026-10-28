@@ -42,7 +42,7 @@ class ProbeMixin:
             data = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
             raise ProcessingError(
-                " ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {exception_kind(exc)}"
+                " ".join(cmd), result.returncode, "", reason=f"Invalid JSON from ffprobe: {exception_kind(exc)}"
             ) from None
 
         if data.get("streams"):

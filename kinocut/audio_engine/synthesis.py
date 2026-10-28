@@ -267,6 +267,11 @@ def _validate_synth_params(
         )
 
 
+#: The waveforms this engine generates. The caller picks one; the
+#: rejected name is never echoed back.
+_WAVEFORMS = frozenset({"sine", "square", "sawtooth", "triangle", "noise", "pulse", "supersaw", "pluck", "fm"})
+
+
 def audio_synthesize(
     output: str,
     waveform: Literal["sine", "square", "sawtooth", "triangle", "noise", "pulse", "supersaw", "pluck", "fm"] = "sine",
@@ -316,7 +321,11 @@ def audio_synthesize(
     elif waveform == "fm":
         pcm_data = generate_fm(frequency, duration, sample_rate, volume)
     else:
-        raise MCPVideoError(f"Unknown waveform: {waveform}", error_type="validation_error", code="invalid_parameter")
+        raise MCPVideoError(
+            f"Unknown waveform ({type(waveform).__name__}). Available: {sorted(_WAVEFORMS)}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
 
     # Convert to float for processing
     samples = _pcm_to_float(pcm_data)
@@ -372,7 +381,7 @@ def audio_preset(
 
     if pitch not in _PITCH_MULT:
         raise MCPVideoError(
-            f"pitch must be one of {sorted(_PITCH_MULT)}, got {pitch!r}",
+            f"pitch must be one of {sorted(_PITCH_MULT)}, got {type(pitch).__name__}",
             error_type="validation_error",
             code="invalid_parameter",
         )

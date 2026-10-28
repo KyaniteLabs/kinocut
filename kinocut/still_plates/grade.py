@@ -67,7 +67,7 @@ def _export_graded(
             lut = Path(lut_path).expanduser()
             if not lut.is_file():
                 raise MCPVideoError(
-                    f"LUT file not found: {lut}",
+                    "LUT file not found",
                     error_type="input_error",
                     code="lut_not_found",
                 )
@@ -141,9 +141,9 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
     except ProcessingError:
         raise
     except Exception as exc:
-        raise ProcessingError("ffmpeg-lut3d", 1, exception_kind(exc)) from exc
+        raise ProcessingError("ffmpeg-lut3d", 1, "", reason=exception_kind(exc)) from exc
     if not dest.is_file():
-        raise ProcessingError("ffmpeg-lut3d", 1, f"LUT output missing: {dest}")
+        raise ProcessingError("ffmpeg-lut3d", 1, "", reason="the LUT pass produced no output")
 
 
 def _near_extrema_preservation(before, after) -> dict[str, float | bool | None]:

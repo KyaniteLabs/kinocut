@@ -369,7 +369,7 @@ def _revalidate_at_boundary(record: RecordBase, line: str) -> type[RecordBase]:
 
     model = _RECORD_REGISTRY.get(record.record_kind)
     if model is None:
-        raise contract_error(f"unknown record kind: {record.record_kind!r}", INVALID_RECORD)
+        raise contract_error("unknown record kind: not a registered kind", INVALID_RECORD)
     if type(record) is not model:
         # A subclass "lookalike" (same record_kind, extra behaviour) is refused —
         # only the exact registered concrete type may persist.

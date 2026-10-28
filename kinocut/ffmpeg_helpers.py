@@ -445,7 +445,7 @@ def _run_command(
                     stderr_sink.seek(0)
                 raise ProcessingError(cmd_str, result.returncode, result.stderr)
     except subprocess.TimeoutExpired:
-        raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
+        raise ProcessingError(cmd_str, -1, "", reason=f"FFmpeg command timed out after {timeout}s") from None
     if is_ffmpeg and os.path.isfile(output):
         _note_operation_write(output)
     return result
@@ -475,7 +475,9 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
             if proc.returncode != 0:
                 raise parse_ffmpeg_error(proc.stderr, command=cmd)
     except subprocess.TimeoutExpired as e:
-        raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from e
+        raise ProcessingError(
+            " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
+        ) from e
     if args and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])
     return proc
@@ -506,7 +508,8 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
         raise ProcessingError(
             " ".join(cmd),
             -1,
-            f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
+            "",
+            reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
         ) from exc
     stderr = proc.stderr.decode("utf-8", errors="replace")
     if proc.returncode != 0:
@@ -738,7 +741,10 @@ def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> f
         return float(stdout)
     except ValueError:
         raise ProcessingError(
-            " ".join(cmd), result.returncode, f"Non-numeric duration from ffprobe: {stdout!r}"
+            " ".join(cmd),
+            result.returncode,
+            stdout,
+            reason="the duration probe did not return a number",
         ) from None
 
 
@@ -774,7 +780,7 @@ def _run_ffprobe_json(
         return _json.loads(result.stdout)
     except _json.JSONDecodeError as e:
         raise ProcessingError(
-            " ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {exception_kind(e)}"
+            " ".join(cmd), result.returncode, "", reason=f"Invalid JSON from ffprobe: {exception_kind(e)}"
         ) from None
 
 

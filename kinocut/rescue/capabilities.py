@@ -51,7 +51,9 @@ def _probe_ffmpeg_filters(executable: str, identity: tuple) -> frozenset[str]:
         timeout=10,
     )
     if result.returncode != 0 or _binary_identity(executable) != identity:
-        raise ProcessingError("FFmpeg filter discovery", result.returncode, "Filter probe failed or executable changed")
+        raise ProcessingError(
+            "FFmpeg filter discovery", result.returncode, "", reason="Filter probe failed or executable changed"
+        )
     filters: set[str] = set()
     for line in result.stdout.splitlines():
         columns = line.split()

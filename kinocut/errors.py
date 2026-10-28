@@ -412,12 +412,24 @@ class HyperframesProjectError(MCPVideoError):
 class HyperframesRenderError(MCPVideoError):
     """Hyperframes render failure."""
 
-    def __init__(self, command: str, returncode: int, stderr: str) -> None:
-        stderr_short = stderr[-500:] if len(stderr) > 500 else stderr
+    def __init__(self, command: str, returncode: int, stderr: str, *, reason: str | None = None) -> None:
+        # The renderer's diagnostic stays on the error object. It is not
+        # published: it repeats the project path the caller submitted. A
+        # package-authored reason is published — it is our own text.
+        message = f"Hyperframes render failed (exit code {returncode})"
+        if reason:
+            message = f"{message}: {reason}"
         super().__init__(
-            f"Hyperframes render failed (exit code {returncode}): {stderr_short}",
+            message,
             error_type="render_error",
             code=f"hyperframes_exit_{returncode}",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    "Check the project's index.html and its composition root, then "
+                    "render again to read Hyperframes' own diagnostic."
+                ),
+            },
         )
         self.command = command
         self.returncode = returncode
@@ -481,12 +493,16 @@ def _strip_ffmpeg_banner(stderr: str) -> str:
 class ProcessingError(MCPVideoError):
     """FFmpeg processing failed."""
 
-    def __init__(self, command: str, returncode: int, stderr: str) -> None:
-        cleaned = _strip_ffmpeg_banner(stderr)
-        # Truncate stderr to last 500 chars for readability
-        stderr_short = cleaned[-500:] if len(cleaned) > 500 else cleaned
+    def __init__(self, command: str, returncode: int, stderr: str, *, reason: str | None = None) -> None:
+        # The child's diagnostic is kept on the error object for local
+        # debugging, but it is not published: FFmpeg echoes the path the
+        # caller submitted, and a diagnostic can carry anything at all. A
+        # package-authored reason is published — it is our own text.
+        message = f"FFmpeg processing failed (exit code {returncode})"
+        if reason:
+            message = f"{message}: {reason}"
         super().__init__(
-            f"FFmpeg processing failed (exit code {returncode}): {stderr_short}",
+            message,
             error_type="processing_error",
             code=f"ffmpeg_exit_{returncode}",
         )
@@ -663,12 +679,24 @@ class RevideoProjectError(MCPVideoError):
 class RevideoRenderError(MCPVideoError):
     """Revideo bridge render failure (non-zero exit or timeout)."""
 
-    def __init__(self, command: str, returncode: int, stderr: str) -> None:
-        stderr_short = stderr[-500:] if len(stderr) > 500 else stderr
+    def __init__(self, command: str, returncode: int, stderr: str, *, reason: str | None = None) -> None:
+        # The bridge's diagnostic stays on the error object. It is not
+        # published: it repeats the scene path the caller submitted. A
+        # package-authored reason is published — it is our own text.
+        message = f"Revideo render failed (exit code {returncode})"
+        if reason:
+            message = f"{message}: {reason}"
         super().__init__(
-            f"Revideo render failed (exit code {returncode}): {stderr_short}",
+            message,
             error_type="render_error",
             code=f"revideo_exit_{returncode}",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    "Check the bridge project's scene sources and the render output "
+                    "location, then render again to read the bridge's own diagnostic."
+                ),
+            },
         )
         self.command = command
         self.returncode = returncode

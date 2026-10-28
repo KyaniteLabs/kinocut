@@ -412,7 +412,7 @@ def video_create_from_images(
         _validate_input_path(list_file)
     fps_value, _ = _parse_fps(fps)
     if fps_value > MAX_EXPORT_FRAMES_FPS:
-        return _validation_error(f"fps must be greater than 0 and at most {MAX_EXPORT_FRAMES_FPS}, got {fps}")
+        return _validation_error(f"fps must be greater than 0 and at most {MAX_EXPORT_FRAMES_FPS}, got {fps_value}")
     return _result(create_from_images(images, output_path=output_path, fps=fps, list_file=list_file))
 
 

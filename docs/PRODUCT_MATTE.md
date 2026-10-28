@@ -8,7 +8,7 @@ Default `hyperframes-remove-background` is **people**
 (`u2net_human_seg`). A bottle, shoe, ring, mug, phone, or boxed SKU is not a
 person. Pass `--model birefnet-general` for objects.
 
-**Object matte is available in published 1.16.5** (first shipped in 1.15.1). The optional `kinocut[object-matte]` extra ships with a known
+**Object matte is available in published 1.16.5** (first shipped in 1.15.1). The optional `kinocut[object-matte]==1.16.5` extra ships with a known
 frame-count gate, streaming rawvideo decode, scratch-byte caps, stalled-decode
 timeouts, and an optional studio-equipment intersection gate. Until the extra
 is installed, the object model fails closed. It never falls through to the
@@ -60,7 +60,7 @@ existing remove-background command with the object model.
 | Model | Subject | Backend | Extra |
 | --- | --- | --- | --- |
 | `u2net_human_seg` (default) | People, talking heads | Hyperframes | none |
-| `birefnet-general` | Products and other objects | Kinocut ONNX | `kinocut[object-matte]` |
+| `birefnet-general` | Products and other objects | Kinocut ONNX | `kinocut[object-matte]==1.16.5` |
 
 `--info` JSON names both models, their subjects, backends, cache flags, and
 this guide. It never downloads weights and never shells Hyperframes.

@@ -297,6 +297,20 @@ def _validate_source_duration(source: str, parsed: list[tuple[float, float, str 
             )
 
 
+def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]]) -> bool:
+    """Whether this flow burns in captions, and whether it may be measured.
+
+    Only a captioned flow needs a timeline. A render with no caption text
+    never reads a timing, so it is not blocked by a segment it cannot
+    measure — and it has no reason to measure the source either, so an
+    unmeasurable source does not fail it.
+    """
+    if not any(text for (_start, _end, text) in parsed):
+        return False
+    _validate_source_duration(source, parsed)
+    return True
+
+
 def video_shorts(
     input_path: str,
     segments: Sequence[Mapping[str, Any] | Sequence[Any]],
@@ -329,13 +343,9 @@ def video_shorts(
         # applies) so a refusal arrives before minutes of rendering.
         _validate_output_path(final_output)
 
-        _validate_source_duration(source, parsed)
+        has_captions = _caption_timings(source, parsed)
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
-            # Only a captioned flow needs a timeline. A render with no caption
-            # text never reads a timing, so it is not blocked by a segment it
-            # cannot measure.
-            has_captions = any(text for (_start, _end, text) in parsed)
             segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
             captioned_path, caption_step = _apply_captions(
                 parsed,

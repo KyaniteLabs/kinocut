@@ -80,13 +80,13 @@ def convert(
 def _validate_convert_options(format: str, quality: str, two_pass: bool, target_bitrate: int | None) -> None:
     if format not in VALID_FORMATS:
         raise MCPVideoError(
-            f"format must be one of {sorted(VALID_FORMATS)}, got {format}",
+            f"format must be one of {sorted(VALID_FORMATS)}, got {type(format).__name__}",
             error_type="validation_error",
             code="invalid_parameter",
         )
     if quality not in QUALITY_PRESETS:
         raise MCPVideoError(
-            f"quality must be one of {sorted(QUALITY_PRESETS)}, got {quality}",
+            f"quality must be one of {sorted(QUALITY_PRESETS)}, got {type(quality).__name__}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -109,7 +109,7 @@ def _validate_convert_options(format: str, quality: str, two_pass: bool, target_
             )
     if two_pass and format not in ("mp4", "mov"):
         raise MCPVideoError(
-            f"Two-pass encoding is only supported for mp4 and mov formats, got '{format}'",
+            f"Two-pass encoding is only supported for mp4 and mov formats, got {type(format).__name__}",
             error_type="validation_error",
             code="two_pass_unsupported_format",
         )

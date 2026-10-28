@@ -79,7 +79,7 @@ def _reject_raw_container(path: str) -> None:
             },
         )
     raise MCPVideoError(
-        f"Raw 360 container {suffix} is not a stitched equirect. Export MP4 "
+        "Raw 360 container is not a stitched equirect. Export MP4 "
         "from the camera app (GoPro Player, Insta360, Ricoh, DJI) first.",
         error_type="validation_error",
         code="not_raw_360",

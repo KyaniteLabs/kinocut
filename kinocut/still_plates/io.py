@@ -47,7 +47,7 @@ def validate_still_path(path: str | Path, *, must_exist: bool = True) -> Path:
         )
     if p.suffix.lower() not in STILL_EXTENSIONS:
         raise MCPVideoError(
-            f"Unsupported still format: {p.suffix}. Supported: {', '.join(sorted(STILL_EXTENSIONS))}",
+            f"Unsupported still format. Supported: {', '.join(sorted(STILL_EXTENSIONS))}",
             error_type="validation_error",
             code="unsupported_still_format",
         )

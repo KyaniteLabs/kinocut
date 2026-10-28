@@ -50,7 +50,7 @@ def providers_for_device(device: str) -> list[str]:
         )
     if wanted not in available:
         raise BackendUnavailableError(
-            f"device={device} needs ONNX Runtime {wanted}. Available: {available}. Guide: {_DOCS}.",
+            f"device ({rejected_value(device)}) needs ONNX Runtime {wanted}. Available: {available}. Guide: {_DOCS}.",
             docs_url=_DOCS,
         )
     return [wanted]

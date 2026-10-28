@@ -287,7 +287,7 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path, canvas: _Canvas) ->
         layer = _parse_layer(raw, canvas)
         if layer.id in seen:
             raise MCPVideoError(
-                f"duplicate layer id: {layer.id}",
+                "duplicate layer id: two layers share one id",
                 error_type="validation_error",
                 code="duplicate_layer_id",
             )
@@ -327,7 +327,7 @@ def _reject_unknown_layer_fields(raw: dict[str, Any], offset: int) -> None:
     unsupported = sorted(set(raw) - _SUPPORTED_LAYER_FIELDS)
     if unsupported:
         raise MCPVideoError(
-            f"layer {raw.get('id', offset)!r} uses unsupported field(s): {unsupported}",
+            f"layer at offset {offset} uses {len(unsupported)} unsupported field(s)",
             error_type="validation_error",
             code="unsupported_compositor_feature",
         )
@@ -370,13 +370,13 @@ def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
         )
     if layer.type == "solid" and layer.alpha_mode != DEFAULT_COMPOSITOR_ALPHA_MODE:
         raise MCPVideoError(
-            f"solid layer {layer.id!r} cannot declare premultiplied input alpha",
+            "a solid layer cannot declare premultiplied input alpha",
             error_type="validation_error",
             code="invalid_alpha_mode",
         )
-    _validate_opacity(layer.opacity, layer.id)
-    _non_negative_number(layer.position["x"], f"{layer.id}.position.x")
-    _non_negative_number(layer.position["y"], f"{layer.id}.position.y")
+    _validate_opacity(layer.opacity)
+    _non_negative_number(layer.position["x"], "position.x")
+    _non_negative_number(layer.position["y"], "position.y")
     _validate_layer_transform(layer)
     _validate_layer_timing(layer)
     layer.rotation = validate_rotation(layer)
@@ -435,18 +435,18 @@ def _validate_layer_transform(layer: _Layer) -> None:
             code="invalid_transform",
         )
     if layer.width is not None:
-        _positive_int(layer.width, f"{layer.id}.width")
+        _positive_int(layer.width, "width")
     if layer.height is not None:
-        _positive_int(layer.height, f"{layer.id}.height")
+        _positive_int(layer.height, "height")
     if layer.scale is not None:
-        _positive_number(layer.scale, f"{layer.id}.scale")
+        _positive_number(layer.scale, "scale")
 
 
 def _validate_layer_timing(layer: _Layer) -> None:
     if layer.start is not None:
-        _non_negative_number(layer.start, f"{layer.id}.start")
+        _non_negative_number(layer.start, "start")
     if layer.duration is not None:
-        _positive_number(layer.duration, f"{layer.id}.duration")
+        _positive_number(layer.duration, "duration")
     if layer.duration is not None and layer.start is None:
         raise MCPVideoError(
             f"layer {layer.id!r} duration requires start",
@@ -577,7 +577,7 @@ def _layer_filter_chain(layer: _ResolvedLayer) -> str:
     parts.extend(effect_filters(layer, "layer"))
     # Non-normal opacity interpolates the blended color against the running base;
     # applying it to alpha here would change the strength a second time.
-    opacity_value = _validate_opacity(layer.opacity, layer.id) if layer.blend == "normal" else 1.0
+    opacity_value = _validate_opacity(layer.opacity) if layer.blend == "normal" else 1.0
     opacity = _escape_ffmpeg_filter_value(f"{opacity_value:.2f}")
     parts.append(f"colorchannelmixer=aa={opacity}")
     return ",".join(parts)
@@ -743,11 +743,11 @@ def _ffmpeg_color(value: str) -> str:
     return "0x" + value.lstrip("#")
 
 
-def _validate_opacity(value: float, layer_id: str) -> float:
-    opacity = _sanitize_ffmpeg_number(value, f"{layer_id}.opacity")
+def _validate_opacity(value: float) -> float:
+    opacity = _sanitize_ffmpeg_number(value, "opacity")
     if not 0.0 <= opacity <= 1.0:
         raise MCPVideoError(
-            f"{layer_id}.opacity must be between 0 and 1",
+            "opacity must be between 0 and 1",
             error_type="validation_error",
             code="invalid_opacity",
         )

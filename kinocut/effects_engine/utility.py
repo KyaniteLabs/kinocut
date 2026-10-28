@@ -52,12 +52,12 @@ def _extract_representative_colors(video: str, duration: float, max_colors: int 
             result = subprocess.run(cmd, stdin=subprocess.DEVNULL, capture_output=True, timeout=DEFAULT_FFMPEG_TIMEOUT)  # noqa: S603
         except subprocess.TimeoutExpired as exc:
             raise ProcessingError(
-                " ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
+                " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
             ) from exc
         if result.returncode != 0:
             raise ProcessingError(" ".join(cmd), result.returncode, result.stderr.decode(errors="replace"))
         if len(result.stdout) < 3:
-            raise ProcessingError(" ".join(cmd), result.returncode, "FFmpeg returned no RGB frame data")
+            raise ProcessingError(" ".join(cmd), result.returncode, "", reason="FFmpeg returned no RGB frame data")
 
         color = _rgb_to_hex(result.stdout[:3])
         if color not in colors:

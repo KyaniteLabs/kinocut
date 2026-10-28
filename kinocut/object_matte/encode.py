@@ -16,7 +16,7 @@ def assert_alpha_output(path: str) -> str:
     suffix = Path(path).suffix.lower()
     if suffix not in OBJECT_MATTE_ALPHA_SUFFIXES:
         raise MCPVideoError(
-            f"Object-matte output must be .webm (VP9+alpha), .mov (ProRes yuva), or .png, got {suffix!r}.",
+            "Object-matte output must be .webm (VP9+alpha), .mov (ProRes yuva), or .png.",
             error_type="validation_error",
             code="invalid_parameter",
             docs_url="docs/PRODUCT_MATTE.md",
