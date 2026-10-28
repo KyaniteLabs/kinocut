@@ -5,6 +5,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+from ..validation_errors import reason
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
@@ -57,7 +58,7 @@ def _require_edit_backend() -> None:
         require_still_deps()
     except MCPVideoError as exc:
         raise MCPVideoError(
-            str(exc),
+            reason(exc),
             error_type="dependency_error",
             code="edit_backend_unavailable",
             suggested_action={

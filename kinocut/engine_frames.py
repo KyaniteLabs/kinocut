@@ -10,6 +10,7 @@ from .paths import _auto_output_dir
 from .ffmpeg_helpers import _run_ffmpeg, _sanitize_ffmpeg_number
 from .errors import MCPVideoError
 from .models import ImageSequenceResult
+from .validation_errors import rejected_value
 
 
 def export_frames(
@@ -39,7 +40,7 @@ def export_frames(
         format = "jpg"
     if format not in ("jpg", "png"):
         raise MCPVideoError(
-            f"Invalid format '{format}': must be 'jpg', 'mjpeg' or 'png'",
+            f"Invalid format '{rejected_value(format)}': must be 'jpg', 'mjpeg' or 'png'",
             error_type="validation_error",
             code="invalid_format",
         )

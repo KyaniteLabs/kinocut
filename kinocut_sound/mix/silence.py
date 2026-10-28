@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from kinocut_sound._validation_errors import rejected_value
 from kinocut_sound.mix._errors import MIX_INPUT_INVALID, mix_error
 from kinocut_sound.mix._wav import DEFAULT_SAMPLE_RATE_HZ, silence_wav, synthesize_tone
 from kinocut_sound.script_parser import SilenceQuality
@@ -28,4 +29,7 @@ def render_silence(
             amplitude=0.01,
             seed=7,
         )
-    raise mix_error(f"unknown silence quality {q}", MIX_INPUT_INVALID)
+    raise mix_error(
+        f"unknown silence quality: expected a supported quality, got {rejected_value(quality)}",
+        MIX_INPUT_INVALID,
+    )

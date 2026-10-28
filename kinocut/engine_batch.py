@@ -20,6 +20,7 @@ from .engine_watermark import watermark
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .models import EditResult
+from .validation_errors import rejected_value
 
 VALID_BATCH_OPERATIONS = {
     "trim",
@@ -38,7 +39,7 @@ VALID_BATCH_OPERATIONS = {
 def _validate_batch_operation(operation: str) -> None:
     if operation not in VALID_BATCH_OPERATIONS:
         raise MCPVideoError(
-            f"Unknown operation '{operation}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
+            f"Unknown operation '{rejected_value(operation)}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
             error_type="validation_error",
             code="invalid_operation",
         )

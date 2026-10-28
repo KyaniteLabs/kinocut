@@ -19,6 +19,7 @@ from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _validate_input_path, _validate_output_path
 from ..limits import DEFAULT_AI_TIMEOUT, DEFAULT_FFMPEG_TIMEOUT, MAX_AUDIO_DURATION
 from ..validation import VALID_DEMUCS_MODELS
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 def _validate_demucs_model(model: str) -> None:
     if model not in VALID_DEMUCS_MODELS:
         raise MCPVideoError(
-            f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got {model!r}",
+            f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got {rejected_value(model)!r}",
             error_type="validation_error",
             code="invalid_parameter",
         )

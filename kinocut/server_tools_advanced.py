@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .validation_errors import reason
 import os
 from typing import Any
 
@@ -41,6 +42,7 @@ from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_LAYOUTS, VALID_PRESETS
 
 from .ffmpeg_helpers import _validate_input_path
+from .validation_errors import rejected_value
 
 VALID_HLS_QUALITIES = {"low", "medium", "high", "ultra"}
 VALID_QUALITY_METRICS = {"psnr", "ssim"}
@@ -98,7 +100,7 @@ def video_filter(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset: {rejected_value(preset)}")
     input_path = _validate_input_path(input_path)
     return _result(
         apply_filter(
@@ -299,7 +301,7 @@ def video_overlay(
     try:
         _validate_position(position)
     except MCPVideoError as exc:
-        return _validation_error(str(exc))
+        return _validation_error(reason(exc))
     if width is not None and width <= 0:
         return _validation_error(f"width must be positive, got {width}")
     if height is not None and height <= 0:
@@ -307,7 +309,7 @@ def video_overlay(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset: {rejected_value(preset)}")
     background_path = _validate_input_path(background_path)
     overlay_path = _validate_input_path(overlay_path)
     if not 0 <= opacity <= 1:
@@ -346,7 +348,9 @@ def video_split_screen(
         output_path: Where to save the output. Auto-generated if omitted.
     """
     if layout not in VALID_LAYOUTS:
-        return _validation_error(f"Invalid layout: must be one of {sorted(VALID_LAYOUTS)}, got '{layout}'")
+        return _validation_error(
+            f"Invalid layout: must be one of {sorted(VALID_LAYOUTS)}, got '{rejected_value(layout)}'"
+        )
     left_path = _validate_input_path(left_path)
     right_path = _validate_input_path(right_path)
     return _result(split_screen(left_path, right_path=right_path, layout=layout, output_path=output_path))
@@ -455,7 +459,7 @@ def video_generate_subtitles(
 
         _validate_entries(entries)
     except MCPVideoError as exc:
-        return _validation_error(str(exc))
+        return _validation_error(reason(exc))
     input_path = _validate_input_path(input_path)
     return _result(generate_subtitles(entries, input_path, burn=burn))
 
@@ -600,7 +604,7 @@ def video_batch(
     """
     if operation not in VALID_BATCH_OPERATIONS:
         return _validation_error(
-            f"Unknown operation '{operation}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
+            f"Unknown operation '{rejected_value(operation)}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
             code="invalid_operation",
         )
     if len(inputs) > MAX_BATCH_SIZE:

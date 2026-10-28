@@ -17,6 +17,7 @@ from ..models import (
     VideoInfo,
 )
 from .contracts import CLIENT_METHOD_CONTRACTS, MEDIA_RETURN
+from ..validation_errors import rejected_value
 
 DESTRUCTIVE_POLISH_OPS = {"effect_glow", "effect_noise", "effect_vignette", "effect_scanlines"}
 QUALITY_GATE_OPS = {"assert_quality", "release_checkpoint", "quality_check"}
@@ -97,15 +98,19 @@ class ClientBase:
         match = re.search(r"unexpected keyword argument '([^']+)'", message)
         if match:
             bad = match.group(1)
+            # ``inspect`` raises for a method the client does not have, so
+            # the name it reports is one of the client's own, not a name
+            # the caller chose.
+            signature = self.inspect(method_name)
+            method = signature["name"]
             contract = CLIENT_METHOD_CONTRACTS.get(method_name, {})
             aliases = contract.get("aliases", {})
             preferred = aliases.get(bad)
             if preferred:
-                hint = f"Use '{preferred}=' not '{bad}=' — see Client.{method_name}() signature."
+                hint = f"Use '{preferred}=' not the rejected name — see Client.{method}() signature."
             else:
-                signature = self.inspect(method_name)
                 hint = (
-                    f"Client.{method_name}() does not take '{bad}'. "
+                    f"Client.{method}() does not take the rejected name. "
                     f"Valid parameters: {', '.join(signature['parameters'])}."
                 )
             raise MCPVideoError(hint, error_type="validation_error", code="unexpected_parameter") from exc
@@ -126,7 +131,7 @@ class ClientBase:
         """Return method signature metadata for agents before calling."""
         method = getattr(self, method_name, None)
         if method is None or not callable(method):
-            raise MCPVideoError(f"Unknown client method: {method_name}", error_type="validation_error")
+            raise MCPVideoError(f"Unknown client method: {rejected_value(method_name)}", error_type="validation_error")
         signature = inspect.signature(method)
         return_type = signature.return_annotation
         contract = CLIENT_METHOD_CONTRACTS.get(method_name, {})
@@ -249,7 +254,7 @@ class ClientBase:
     def _validate_choice(name: str, value: str, valid_values: set[str]) -> None:
         if value not in valid_values:
             raise MCPVideoError(
-                f"{name} must be one of {sorted(valid_values)}, got {value}",
+                f"{name} must be one of {sorted(valid_values)}, got {rejected_value(value)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )

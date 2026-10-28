@@ -16,13 +16,14 @@ from .package import package_approved_clip
 from .package_models import PackageConfig, PackageLineage, ThumbnailSpec
 from .shorts_plan import RenderRecord, ShortsPlan, load_shorts_plan, save_shorts_plan
 from .shorts_review import resolve_approved_candidate
+from ..validation_errors import rejected_value
 
 __all__ = ["package_approved_candidate"]
 
 
 def _package_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {cause} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {rejected_value(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},

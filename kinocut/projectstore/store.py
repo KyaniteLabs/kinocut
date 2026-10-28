@@ -73,6 +73,7 @@ from kinocut.contracts.trusted_execution import (
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import layout
 from kinocut.projectstore._migrations import migrate_raw
+from ..validation_errors import rejected_value
 
 # Streaming chunk for copying prior record files during an atomic append.
 _COPY_CHUNK = 1 << 20
@@ -536,7 +537,7 @@ def read_records(project: Project, record_kind: str) -> list[RecordBase]:
     _validate_project_identity(project)
     model = _RECORD_REGISTRY.get(record_kind)
     if model is None:
-        raise contract_error(f"unknown record kind: {record_kind!r}", INVALID_RECORD)
+        raise contract_error(f"unknown record kind: {rejected_value(record_kind)!r}", INVALID_RECORD)
     path = safe_target(project, layout.records_relative_path(record_kind))
     if not path.exists():
         return []

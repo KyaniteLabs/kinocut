@@ -25,6 +25,10 @@ WINDOWS_EXECUTABLE_SUFFIXES = (".cmd", ".exe", ".bat", ".ps1")
 # or a package manager can run anything, and an allowlist of their names
 # would always be incomplete, so the rule is inverted instead.
 DIRECT_EXECUTABLE_NAME = "hyperframes"
+# The manifest that owns the Hyperframes executable. A manifest with any
+# other name is somebody else's package, and its version is not evidence
+# about Hyperframes.
+HYPERFRAMES_PACKAGE_NAMES = frozenset({"hyperframes", "@hyperframes/cli"})
 
 
 def _basename(token: str) -> str:
@@ -78,10 +82,32 @@ def hyperframes_version_from_metadata(path: str) -> str | None:
             data = json.loads(manifest.read_text(encoding="utf-8", errors="replace"))
         except (OSError, ValueError):
             return None
+        if not isinstance(data, dict):
+            return None
+        name = data.get("name")
+        if not isinstance(name, str) or name not in HYPERFRAMES_PACKAGE_NAMES:
+            return None
         version = data.get("version")
         if isinstance(version, str) and version:
             return version
     return None
+
+
+def resolve_executable(path: str | None) -> str | None:
+    """The path only when it is a regular, executable file.
+
+    A configured command can name a file that is not there. Reporting that
+    as present would tell the operator a tool is installed when it is not.
+    """
+    if not path:
+        return None
+    try:
+        candidate = Path(path).resolve()
+    except OSError:
+        return None
+    if not candidate.is_file() or not os.access(candidate, os.X_OK):
+        return None
+    return str(candidate)
 
 
 def package_manager_probe_refusal(command: list[str], env_name: str) -> dict[str, Any]:
@@ -179,7 +205,7 @@ def check_hyperframes_cli(
     refusal = offline_probe_refusal(prefix, command, HYPERFRAMES_COMMAND_ENV)
     if refusal is not None:
         return refusal
-    path = prefix[0] if prefix != ["hyperframes"] else which("hyperframes")
+    path = resolve_executable(prefix[0] if prefix != ["hyperframes"] else which("hyperframes"))
     extra = report_resolved_hyperframes(path) if path else {}
     version = extra.get("hyperframes_version")
     ok = path is not None

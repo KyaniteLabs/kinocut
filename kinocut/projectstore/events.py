@@ -16,6 +16,7 @@ from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
 from kinocut.contracts.trusted_execution import EventCursorRecord, KernelEventRecord
 from kinocut.projectstore.store import Project, _project_lock, append_record_locked, read_records
+from ..validation_errors import rejected_value
 
 __all__ = [
     "ack_events",
@@ -75,7 +76,7 @@ def sanitize_event_summary(summary: str | None) -> str | None:
 
 def _validate_event_kind(event_kind: Any) -> str:
     if event_kind not in ALLOWED_EVENT_KINDS:
-        raise contract_error(f"unsupported event_kind: {event_kind!r}", INVALID_RECORD)
+        raise contract_error(f"unsupported event_kind: {rejected_value(event_kind)!r}", INVALID_RECORD)
     return event_kind
 
 

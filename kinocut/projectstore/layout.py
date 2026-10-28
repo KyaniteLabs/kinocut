@@ -19,6 +19,7 @@ import re
 from pathlib import Path, PurePosixPath
 
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
+from ..validation_errors import rejected_value
 
 #: Root of the private store, relative to a project directory.
 KINOCUT_DIR = ".kinocut"
@@ -101,7 +102,7 @@ def records_relative_path(kind: str) -> PurePosixPath:
     """Project-relative JSONL path for a record ``kind``."""
 
     if _KIND_RE.match(kind) is None:
-        raise contract_error(f"unsafe record kind: {kind!r}", INVALID_RECORD)
+        raise contract_error(f"unsafe record kind: {rejected_value(kind)!r}", INVALID_RECORD)
     return PurePosixPath(KINOCUT_DIR, _RECORDS, f"{kind}.jsonl")
 
 

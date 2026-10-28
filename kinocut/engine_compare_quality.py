@@ -12,6 +12,7 @@ from .engine_runtime_utils import _ffmpeg
 from .errors import ProcessingError
 from .limits import DEFAULT_FFMPEG_TIMEOUT
 from .models import QualityMetricsResult
+from .validation_errors import exception_kind
 
 SUPPORTED_QUALITY_METRICS = {"psnr", "ssim"}
 
@@ -61,7 +62,7 @@ def compare_quality(
             raise ProcessingError(
                 _metric_command_label(original_path, distorted_path, metric_lower),
                 1,
-                str(e)[:500],
+                exception_kind(e),
             ) from e
 
     return QualityMetricsResult(

@@ -11,6 +11,7 @@ from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_MOGRAPH_STYLES
 from .ffmpeg_helpers import _validate_input_path
 from .limits import MAX_MOGRAPH_FRAMES
+from .validation_errors import rejected_value
 
 VALID_TEXT_ANIMATIONS = {"fade", "glitch", "slide-up", "typewriter"}
 VALID_GRID_LAYOUTS = {"2x2", "3x1", "1x3", "2x3"}
@@ -182,7 +183,7 @@ def effect_noise(
         )
     if mode not in ("film", "digital", "color"):
         raise MCPVideoError(
-            f"mode must be film, digital, or color, got {mode}",
+            f"mode must be film, digital, or color, got {rejected_value(mode)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -265,7 +266,7 @@ def video_layout_grid(
     """
     if layout not in VALID_GRID_LAYOUTS:
         raise MCPVideoError(
-            f"layout must be one of {sorted(VALID_GRID_LAYOUTS)}, got {layout}",
+            f"layout must be one of {sorted(VALID_GRID_LAYOUTS)}, got {rejected_value(layout)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -323,7 +324,7 @@ def video_layout_pip(
     """
     if position not in VALID_PIP_POSITIONS:
         raise MCPVideoError(
-            f"position must be one of {sorted(VALID_PIP_POSITIONS)}, got {position}",
+            f"position must be one of {sorted(VALID_PIP_POSITIONS)}, got {rejected_value(position)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -397,13 +398,13 @@ def video_text_animated(
         raise MCPVideoError("Text cannot be empty", error_type="validation_error", code="invalid_parameter")
     if animation not in VALID_TEXT_ANIMATIONS:
         raise MCPVideoError(
-            f"animation must be one of {sorted(VALID_TEXT_ANIMATIONS)}, got {animation}",
+            f"animation must be one of {sorted(VALID_TEXT_ANIMATIONS)}, got {rejected_value(animation)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
     if position not in VALID_TEXT_POSITIONS:
         raise MCPVideoError(
-            f"position must be one of {sorted(VALID_TEXT_POSITIONS)}, got {position}",
+            f"position must be one of {sorted(VALID_TEXT_POSITIONS)}, got {rejected_value(position)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -456,7 +457,7 @@ def video_subtitles_styled(
         Dict with success status and output_path.
     """
     if not os.path.isfile(subtitles_path):
-        return _validation_error(f"Subtitles file not found: {subtitles_path}", code="file_not_found")
+        return _validation_error(f"Subtitles file not found: {rejected_value(subtitles_path)}", code="file_not_found")
     input_path = _validate_input_path(input_path)
     subtitles_path = _validate_input_path(subtitles_path)
     from .effects_engine import text_subtitles as _subs
@@ -539,7 +540,9 @@ def video_mograph_progress(
         Dict with success status and output_path.
     """
     if style not in VALID_MOGRAPH_STYLES:
-        return _validation_error(f"Invalid style: must be one of {sorted(VALID_MOGRAPH_STYLES)}, got '{style}'")
+        return _validation_error(
+            f"Invalid style: must be one of {sorted(VALID_MOGRAPH_STYLES)}, got '{rejected_value(style)}'"
+        )
     if not (1 <= fps <= 120):
         raise MCPVideoError(
             f"fps must be between 1 and 120, got {fps}",

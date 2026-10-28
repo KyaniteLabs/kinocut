@@ -18,6 +18,7 @@ from .io import (
     write_receipt,
 )
 from .stats import apply_rgb_gains, mean_rgb, shared_gains_to_hero
+from ..validation_errors import exception_kind
 
 
 def _package_mean_rgb(arrs: list) -> tuple[float, float, float]:
@@ -140,7 +141,7 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
     except ProcessingError:
         raise
     except Exception as exc:
-        raise ProcessingError("ffmpeg-lut3d", 1, str(exc)[:500]) from exc
+        raise ProcessingError("ffmpeg-lut3d", 1, exception_kind(exc)) from exc
     if not dest.is_file():
         raise ProcessingError("ffmpeg-lut3d", 1, f"LUT output missing: {dest}")
 

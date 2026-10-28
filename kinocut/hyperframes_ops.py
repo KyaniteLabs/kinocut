@@ -25,6 +25,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from .validation_errors import rejected_value
+
 from .defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
 from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from .errors import HyperframesRenderError, MCPVideoError
@@ -708,7 +710,7 @@ def render_and_post(
 
         if op_type not in op_map:
             raise MCPVideoError(
-                f"Unknown post-processing operation: '{op_type}'. Valid operations: {', '.join(op_map)}",
+                f"Unknown post-processing operation: {rejected_value(op_type)}. Valid operations: {', '.join(op_map)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )

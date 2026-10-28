@@ -5,6 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from kinocut.errors import MCPVideoError
+from ..validation_errors import rejected_value
 
 # Spec floors — not a claim of live upload APIs.
 PLATFORM_SPECS: dict[str, dict[str, Any]] = {
@@ -47,7 +48,7 @@ def validate_publish_spec(
     if key not in PLATFORM_SPECS:
         known = ", ".join(sorted(PLATFORM_SPECS))
         raise MCPVideoError(
-            f"unknown platform {platform!r}; known: {known}",
+            f"unknown platform {rejected_value(platform)!r}; known: {known}",
             error_type="validation_error",
             code="unknown_platform",
         )

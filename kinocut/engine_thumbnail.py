@@ -48,7 +48,7 @@ def thumbnail(
             requested_timestamp = _time_to_seconds(timestamp)
         except ValueError as exc:
             raise MCPVideoError(
-                f"Invalid timestamp: '{timestamp}'. Expected seconds or HH:MM:SS format.",
+                "Invalid timestamp. Expected seconds or HH:MM:SS format.",
                 error_type="validation_error",
                 code="invalid_parameter",
             ) from exc

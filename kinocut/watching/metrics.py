@@ -25,6 +25,7 @@ from kinocut.ffmpeg_helpers import (
     _run_command,
     _validate_input_path,
 )
+from ..validation_errors import exception_kind
 
 logger = logging.getLogger(__name__)
 
@@ -82,7 +83,7 @@ def run_metric_qc(
     try:
         duration = float(_get_video_duration(path))
     except Exception as exc:
-        raise InputFileError(path, f"cannot probe duration: {exc}") from exc
+        raise InputFileError(path, f"cannot probe duration: {exception_kind(exc)}") from exc
 
     if duration < min_duration_seconds:
         findings.append(

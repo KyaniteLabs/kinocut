@@ -19,6 +19,7 @@ import urllib.request
 from pathlib import Path
 
 from ..errors import MCPVideoError, ProcessingError
+from ..validation_errors import exception_kind, rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -289,7 +290,9 @@ def _url_host(url: str) -> str:
 def _download_direct_url(url: str, dest_dir: str) -> str:
     """Download a direct video URL to *dest_dir* using urllib. Returns local path."""
     if not _is_safe_url(url):
-        raise MCPVideoError(f"URL blocked (SSRF protection): {url}", error_type="validation_error", code="ssrf_blocked")
+        raise MCPVideoError(
+            f"URL blocked (SSRF protection): {rejected_value(url)}", error_type="validation_error", code="ssrf_blocked"
+        )
 
     import urllib.request
     import urllib.parse
@@ -394,6 +397,29 @@ def _download_with_ytdlp(url: str, dest_dir: str) -> str:
         return filename
 
 
+def _direct_download_extension(video: str) -> str:
+    """The file extension of a direct video URL, query string stripped."""
+    url_path = video.split("?")[0]  # strip query string for ext detection
+    return Path(url_path).suffix.lower()
+
+
+def _download_with_urllib(video: str) -> tuple[str, str]:
+    """Download a direct URL with urllib, returning (local_path, temp_dir).
+
+    The temporary directory is returned so the caller can remove it when
+    the download fails.
+    """
+    tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
+    try:
+        local = _download_direct_url(video, tmp)
+    except Exception as exc:
+        shutil.rmtree(tmp, ignore_errors=True)
+        raise ProcessingError(
+            str(video), 1, f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+        ) from exc
+    return local, tmp
+
+
 def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
     """Resolve *video* to a local file path, downloading if necessary.
 
@@ -406,7 +432,9 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
 
     if not _is_safe_url(video):
         raise MCPVideoError(
-            f"URL blocked (SSRF protection): {video}", error_type="validation_error", code="ssrf_blocked"
+            f"URL blocked (SSRF protection): {rejected_value(video)}",
+            error_type="validation_error",
+            code="ssrf_blocked",
         )
 
     source_url = video
@@ -424,7 +452,9 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
             raise  # re-raise "yt-dlp not installed" cleanly
         except Exception as exc:
             shutil.rmtree(tmp, ignore_errors=True)
-            raise ProcessingError(str(video), 1, f"Failed to download {video}: {exc}") from exc
+            raise ProcessingError(
+                str(video), 1, f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+            ) from exc
     else:
         # Try yt-dlp first (handles edge cases like redirect-to-stream),
         # fall back to direct urllib download.
@@ -434,26 +464,19 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
         except MCPVideoError:
             # yt-dlp not installed — fall back to urllib for direct URLs
             shutil.rmtree(tmp, ignore_errors=True)
-            url_path = video.split("?")[0]  # strip query string for ext detection
-            ext = Path(url_path).suffix.lower()
+            ext = _direct_download_extension(video)
             if ext not in _DIRECT_VIDEO_EXTENSIONS:
                 raise MCPVideoError(
-                    f"Cannot download '{video}': not a recognised direct video URL and "
+                    f"Cannot download '{rejected_value(video)}': not a recognised direct video URL and "
                     "yt-dlp is not installed. Install yt-dlp with: pip install yt-dlp",
                     error_type="dependency_error",
                     code="missing_ytdlp",
                 ) from None
-            tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
-            try:
-                local = _download_direct_url(video, tmp)
-            except Exception as exc:
-                shutil.rmtree(tmp, ignore_errors=True)
-                raise ProcessingError(str(video), 1, f"Failed to download {video}: {exc}") from exc
+            local, tmp = _download_with_urllib(video)
         except Exception as exc:
             # yt-dlp is installed but failed — try urllib as last resort
             shutil.rmtree(tmp, ignore_errors=True)
-            url_path = video.split("?")[0]
-            ext = Path(url_path).suffix.lower()
+            ext = _direct_download_extension(video)
             if ext in _DIRECT_VIDEO_EXTENSIONS:
                 tmp = tempfile.mkdtemp(prefix="mcp_video_url_")
                 try:
@@ -461,9 +484,13 @@ def _resolve_video_source(video: str) -> tuple[str, str | None, str | None]:
                 except Exception as dl_exc:
                     shutil.rmtree(tmp, ignore_errors=True)
                     raise ProcessingError(
-                        str(video), 1, f"Download failed (yt-dlp: {exc}; urllib: {dl_exc})"
+                        str(video),
+                        1,
+                        f"Download failed (yt-dlp: {exception_kind(exc)}; urllib: {exception_kind(dl_exc)})",
                     ) from dl_exc
             else:
-                raise ProcessingError(str(video), 1, f"Failed to download {video}: {exc}") from exc
+                raise ProcessingError(
+                    str(video), 1, f"Failed to download {rejected_value(video)}: {exception_kind(exc)}"
+                ) from exc
 
     return local, tmp, source_url

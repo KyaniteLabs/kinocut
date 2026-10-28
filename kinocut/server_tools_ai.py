@@ -15,6 +15,7 @@ from .validation import (
     VALID_UPSCALE_MODELS,
     VALID_WHISPER_MODELS,
 )
+from .validation_errors import rejected_value
 
 # ---------------------------------------------------------------------------
 # AI Feature Tools
@@ -53,7 +54,9 @@ def video_ai_transcribe(
 ) -> dict[str, Any]:
     """Transcribe speech to text using Whisper."""
     if model not in VALID_WHISPER_MODELS:
-        return _validation_error(f"Invalid model: must be one of {sorted(VALID_WHISPER_MODELS)}, got '{model}'")
+        return _validation_error(
+            f"Invalid model: must be one of {sorted(VALID_WHISPER_MODELS)}, got '{rejected_value(model)}'"
+        )
     input_path = _validate_input_path(input_path)
     from .ai_engine import ai_transcribe
 
@@ -103,7 +106,9 @@ def video_analyze(
         output_json: Optional path to write full JSON transcript data.
     """
     if whisper_model not in VALID_WHISPER_MODELS:
-        return _validation_error(f"Invalid model: must be one of {sorted(VALID_WHISPER_MODELS)}, got '{whisper_model}'")
+        return _validation_error(
+            f"Invalid model: must be one of {sorted(VALID_WHISPER_MODELS)}, got '{rejected_value(whisper_model)}'"
+        )
     if not 0.0 <= scene_threshold <= 1.0:
         return _validation_error(f"scene_threshold must be between 0.0 and 1.0, got {scene_threshold}")
     from .ai_engine.download import _is_url
@@ -156,7 +161,9 @@ def video_ai_stem_separation(
 ) -> dict[str, Any]:
     """Separate audio into stems using Demucs."""
     if model not in VALID_DEMUCS_MODELS:
-        return _validation_error(f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got '{model}'")
+        return _validation_error(
+            f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got '{rejected_value(model)}'"
+        )
     if stems is not None and not isinstance(stems, list):
         return _validation_error(f"stems must be a list, got {type(stems).__name__}")
     input_path = _validate_input_path(input_path)
@@ -177,7 +184,9 @@ def video_ai_upscale(
     if scale not in {2, 4}:
         return _validation_error(f"scale must be 2 or 4, got {scale}")
     if model not in VALID_UPSCALE_MODELS:
-        return _validation_error(f"Invalid model: must be one of {sorted(VALID_UPSCALE_MODELS)}, got '{model}'")
+        return _validation_error(
+            f"Invalid model: must be one of {sorted(VALID_UPSCALE_MODELS)}, got '{rejected_value(model)}'"
+        )
     input_path = _validate_input_path(input_path)
     from .ai_engine import ai_upscale
 
@@ -206,7 +215,9 @@ def video_ai_color_grade(
             overrides both reference and style for professional grading looks.
     """
     if style not in VALID_COLOR_GRADE_STYLES:
-        return _validation_error(f"Invalid style: must be one of {sorted(VALID_COLOR_GRADE_STYLES)}, got '{style}'")
+        return _validation_error(
+            f"Invalid style: must be one of {sorted(VALID_COLOR_GRADE_STYLES)}, got '{rejected_value(style)}'"
+        )
     input_path = _validate_input_path(input_path)
     if reference_path is not None:
         reference_path = _validate_input_path(reference_path)

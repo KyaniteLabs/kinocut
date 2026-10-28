@@ -6,6 +6,7 @@ import json
 import logging
 from ...errors import ProcessingError
 from ...ffmpeg_helpers import _run_command, _validate_input_path
+from ...validation_errors import exception_kind
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,9 @@ class ProbeMixin:
         try:
             data = json.loads(result.stdout)
         except json.JSONDecodeError as exc:
-            raise ProcessingError(" ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {exc}") from None
+            raise ProcessingError(
+                " ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {exception_kind(exc)}"
+            ) from None
 
         if data.get("streams"):
             return data["streams"][0]

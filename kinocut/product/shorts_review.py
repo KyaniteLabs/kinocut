@@ -12,6 +12,7 @@ from typing import Any
 from ..errors import MCPVideoError
 from .models import CandidateMoment, canonical_dedup_key
 from .shorts_plan import ReviewDecision, ShortsPlan, load_shorts_plan, save_shorts_plan
+from ..validation_errors import rejected_value
 
 
 __all__ = [
@@ -22,7 +23,7 @@ __all__ = [
 
 def _review_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {cause} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {rejected_value(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},

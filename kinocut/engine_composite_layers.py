@@ -53,6 +53,7 @@ from .ffmpeg_helpers import (
 from .limits import MAX_RESOLUTION, MAX_VIDEO_DURATION
 from .models import EditResult
 from .validation import COMPOSITOR_ALPHA_MODES
+from .validation_errors import exception_kind
 
 _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
@@ -215,7 +216,7 @@ def _load_spec(spec_path: Path) -> tuple[dict[str, Any], bytes]:
         data = json.loads(raw.decode("utf-8"))
     except json.JSONDecodeError as exc:
         raise MCPVideoError(
-            f"invalid composite-layers JSON: {exc.msg}",
+            f"invalid composite-layers JSON: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_spec_json",
         ) from None
@@ -239,7 +240,7 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
         canvas = _Canvas(**data)
     except Exception as exc:
         raise MCPVideoError(
-            f"invalid canvas: {exc}",
+            f"invalid canvas: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_canvas",
         ) from None
@@ -339,7 +340,7 @@ def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
         layer = _Layer(**data)
     except Exception as exc:
         raise MCPVideoError(
-            f"invalid layer: {exc}",
+            f"invalid layer: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_layer",
         ) from None
@@ -420,7 +421,7 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
         return {"x": float(raw.get("x", 0)), "y": float(raw.get("y", 0))}
     except (TypeError, ValueError) as exc:
         raise MCPVideoError(
-            f"position x/y values must be numeric: {exc}",
+            f"position x/y values must be numeric: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_position",
         ) from None

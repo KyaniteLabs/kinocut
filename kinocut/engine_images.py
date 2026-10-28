@@ -17,6 +17,7 @@ from .errors import InputFileError, MCPVideoError
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .limits import MAX_EXPORT_FRAMES_FPS, MAX_IMAGE_SEQUENCE_FRAMES, MAX_IMAGE_SEQUENCE_LIST_BYTES
 from .models import EditResult
+from .validation_errors import exception_kind
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 # ASCII digits only, bounded so int() never meets Python's digit-count limit.
@@ -148,7 +149,7 @@ def _read_list_file(list_file: str) -> list[str]:
     try:
         size = os.path.getsize(resolved)
     except OSError as exc:
-        raise InputFileError(resolved, f"Cannot read list file: {exc}") from None
+        raise InputFileError(resolved, f"Cannot read list file: {exception_kind(exc)}") from None
     if size > MAX_IMAGE_SEQUENCE_LIST_BYTES:
         raise _list_file_too_large()
     try:
@@ -156,7 +157,7 @@ def _read_list_file(list_file: str) -> list[str]:
             # Bounded read: a file that grows after the size check still cannot exceed the limit.
             data = handle.read(MAX_IMAGE_SEQUENCE_LIST_BYTES + 1)
     except OSError as exc:
-        raise InputFileError(resolved, f"Cannot read list file: {exc}") from None
+        raise InputFileError(resolved, f"Cannot read list file: {exception_kind(exc)}") from None
     if len(data) > MAX_IMAGE_SEQUENCE_LIST_BYTES:
         raise _list_file_too_large()
     try:

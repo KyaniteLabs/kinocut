@@ -24,6 +24,7 @@ from ..engine import add_text, convert, merge, probe, resize, trim
 from ..engine_composite_layers import composite_layers
 from ..engine_crop import crop
 from ..engine_subtitles import subtitles
+from ..validation_errors import rejected_value
 from ._errors import INVALID_WORKFLOW_PARAMS, workflow_error
 
 
@@ -80,7 +81,8 @@ class OpAdapter:
             if not _value_matches(value, kinds):
                 expected = " | ".join(sorted(kinds))
                 raise workflow_error(
-                    f"step {step_id!r} ({self.name}) param {name!r} must be {expected}, got {type(value).__name__}",
+                    f"step {rejected_value(step_id)!r} ({self.name}) param {rejected_value(name)!r} must be {expected}, "
+                    f"got {type(value).__name__}",
                     INVALID_WORKFLOW_PARAMS,
                 )
 
@@ -104,7 +106,7 @@ class CompositeOpAdapter(OpAdapter):
         canvas = params.get("canvas")
         if canvas is not None and not isinstance(canvas, dict):
             raise workflow_error(
-                f"step {step_id!r} (composite_layers) param 'canvas' must be an object",
+                f"step {rejected_value(step_id)!r} (composite_layers) param 'canvas' must be an object",
                 INVALID_WORKFLOW_PARAMS,
             )
 
@@ -136,7 +138,7 @@ class BurnInOpAdapter(OpAdapter):
         style = params.get("style")
         if style is not None and not isinstance(style, str):
             raise workflow_error(
-                f"step {step_id!r} (burn_in) param 'style' must be a string",
+                f"step {rejected_value(step_id)!r} (burn_in) param 'style' must be a string",
                 INVALID_WORKFLOW_PARAMS,
             )
 

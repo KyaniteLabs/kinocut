@@ -26,6 +26,7 @@ from .validation import (
     REMOVE_BACKGROUND_OBJECT_MODEL,
     object_matte_cache_path,
 )
+from .validation_errors import rejected_value
 
 # ---------------------------------------------------------------------------
 # Output helpers
@@ -139,7 +140,7 @@ def _resolve_remove_background_model(model: str | None) -> str:
     if model not in REMOVE_BACKGROUND_ALLOWED_MODELS:
         allowed = ", ".join(sorted(REMOVE_BACKGROUND_ALLOWED_MODELS))
         raise MCPVideoError(
-            f"Unknown remove-background model {model!r}. "
+            f"Unknown remove-background model {rejected_value(model)!r}. "
             f"Allowlisted: {allowed} "
             f"({REMOVE_BACKGROUND_HUMAN_MODEL}=people, "
             f"{REMOVE_BACKGROUND_OBJECT_MODEL}=products-and-objects). "
@@ -284,7 +285,7 @@ def _resolve_render_resolution(width: int | None, height: int | None, resolution
 
     if resolution is not None and _canonical_resolution(resolution) != dimension_resolution:
         raise MCPVideoError(
-            f"width/height {width}x{height} conflicts with resolution '{resolution}'",
+            f"width/height {width}x{height} conflicts with resolution '{rejected_value(resolution)}'",
             error_type="validation_error",
             code="invalid_parameter",
         )

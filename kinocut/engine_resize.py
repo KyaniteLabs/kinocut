@@ -11,6 +11,7 @@ from .ffmpeg_helpers import _run_ffmpeg
 from .errors import MCPVideoError
 from .models import ASPECT_RATIOS, QUALITY_PRESETS, EditResult, QualityLevel
 from .validation import _validate_pixel_integer
+from .validation_errors import rejected_value
 
 
 def _even_dimension(value: float) -> int:
@@ -29,7 +30,7 @@ def _resize_dimensions(info, width: int | None, height: int | None, aspect_ratio
     if aspect_ratio:
         if not isinstance(aspect_ratio, str) or aspect_ratio not in ASPECT_RATIOS:
             raise MCPVideoError(
-                f"Unknown aspect ratio: {aspect_ratio}. Available: {', '.join(ASPECT_RATIOS)}",
+                f"Unknown aspect ratio: {rejected_value(aspect_ratio)}. Available: {', '.join(ASPECT_RATIOS)}",
                 error_type="input_error",
                 code="invalid_aspect_ratio",
             )

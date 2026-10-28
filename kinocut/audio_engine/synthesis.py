@@ -383,14 +383,7 @@ def audio_preset(
             code="invalid_parameter",
         )
 
-    try:
-        config = get_preset_config(preset)
-    except KeyError as exc:
-        raise MCPVideoError(
-            str(exc),
-            error_type="validation_error",
-            code="invalid_parameter",
-        ) from None
+    config = get_preset_config(preset)
 
     mult = _PITCH_MULT[pitch]
     config["frequency"] = config["frequency"] * mult

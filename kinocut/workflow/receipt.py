@@ -14,6 +14,7 @@ existing import sites.
 
 from __future__ import annotations
 
+from ..validation_errors import reason
 import hashlib
 import contextlib
 import json
@@ -345,7 +346,7 @@ def _derive_receipt_lineage(
             toolchain_fingerprint=_lineage_toolchain_fingerprint(receipt),
         )
     except ValidationError as exc:
-        raise workflow_error(f"invalid receipt lineage: {exc}", INVALID_WORKFLOW_RECEIPT) from exc
+        raise workflow_error(f"invalid receipt lineage: {reason(exc)}", INVALID_WORKFLOW_RECEIPT) from exc
     data = lineage.model_dump()
     data["source_digests"] = list(data["source_digests"])
     return data

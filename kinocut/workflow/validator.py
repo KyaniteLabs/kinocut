@@ -32,6 +32,7 @@ from .composite import validate_composite_inputs
 from .ops import OP_ADAPTERS, CompositeOpAdapter, OpAdapter
 from .spec import WorkflowSpec, load_spec, parse_spec, validate_spec_path
 from .variants import apply_variant_overrides
+from ..validation_errors import rejected_value
 
 _SOURCE_PREFIX = "@sources."
 _WORK_PREFIX = "@work/"
@@ -130,20 +131,22 @@ def _resolve_declared_paths(declared: dict[str, Any], workspace_root: Path, labe
 def _resolve_workspace_path(raw: str, workspace_root: Path, label: str) -> str:
     """Return a workspace-relative posix path, or fail closed on any escape."""
     if not isinstance(raw, str) or not raw:
-        raise workflow_error(f"{label} must be a non-empty string", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(f"{rejected_value(label)} must be a non-empty string", INVALID_WORKFLOW_SPEC)
     if "\x00" in raw:
-        raise workflow_error(f"{label} contains null bytes", UNSAFE_WORKFLOW_SOURCE)
+        raise workflow_error(f"{rejected_value(label)} contains null bytes", UNSAFE_WORKFLOW_SOURCE)
     candidate = Path(raw)
     if candidate.is_absolute():
         raise workflow_error(
-            f"{label} must be a relative path inside the workspace, got absolute path {raw!r}",
+            f"{rejected_value(label)} must be a relative path inside the workspace, got absolute path {rejected_value(raw)!r}",
             UNSAFE_WORKFLOW_SOURCE,
         )
     resolved = Path(os.path.realpath(workspace_root / candidate))
     try:
         relative = resolved.relative_to(workspace_root)
     except ValueError:
-        raise workflow_error(f"{label} escapes the workspace root: {raw!r}", UNSAFE_WORKFLOW_SOURCE) from None
+        raise workflow_error(
+            f"{rejected_value(label)} escapes the workspace root: {rejected_value(raw)!r}", UNSAFE_WORKFLOW_SOURCE
+        ) from None
     return relative.as_posix()
 
 
@@ -177,14 +180,17 @@ def _validate_step_id(step_id: str, seen: set[str]) -> None:
     if not step_id:
         raise workflow_error("each step requires a non-empty string id", INVALID_WORKFLOW_SPEC)
     if step_id in seen:
-        raise workflow_error(f"duplicate step id: {step_id!r}", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(f"duplicate step id: {rejected_value(step_id)!r}", INVALID_WORKFLOW_SPEC)
     seen.add(step_id)
 
 
 def _resolve_op(op: str, step_id: str) -> OpAdapter:
     adapter = OP_ADAPTERS.get(op)
     if adapter is None:
-        raise workflow_error(f"step {step_id!r} uses unsupported workflow op: {op!r}", UNSUPPORTED_WORKFLOW_OP)
+        raise workflow_error(
+            f"step {rejected_value(step_id)!r} uses unsupported workflow op: {rejected_value(op)!r}",
+            UNSUPPORTED_WORKFLOW_OP,
+        )
     return adapter
 
 
@@ -198,30 +204,32 @@ def _validate_inputs(
     inputs = step.inputs
     if not isinstance(inputs, dict) or not inputs:
         raise workflow_error(
-            f"step {step.id!r} requires an 'inputs' object with key {adapter.input_key!r}", INVALID_WORKFLOW_SPEC
+            f"step {rejected_value(step.id)!r} requires an 'inputs' object with key {adapter.input_key!r}",
+            INVALID_WORKFLOW_SPEC,
         )
     extra = sorted(set(inputs) - {adapter.input_key})
     if extra:
         raise workflow_error(
-            f"step {step.id!r} ({step.op}) has unexpected input key(s) {extra}; expected only {adapter.input_key!r}",
+            f"step {rejected_value(step.id)!r} ({rejected_value(step.op)}) has unexpected input key(s) {extra}; expected only {adapter.input_key!r}",
             INVALID_WORKFLOW_SPEC,
         )
     if adapter.input_key not in inputs:
         raise workflow_error(
-            f"step {step.id!r} ({step.op}) requires input key {adapter.input_key!r}", INVALID_WORKFLOW_SPEC
+            f"step {rejected_value(step.id)!r} ({rejected_value(step.op)}) requires input key {adapter.input_key!r}",
+            INVALID_WORKFLOW_SPEC,
         )
     value = inputs[adapter.input_key]
     if adapter.multi_input:
         if not isinstance(value, list) or not value:
             raise workflow_error(
-                f"step {step.id!r} ({step.op}) input {adapter.input_key!r} must be a non-empty list of refs",
+                f"step {rejected_value(step.id)!r} ({rejected_value(step.op)}) input {adapter.input_key!r} must be a non-empty list of refs",
                 INVALID_WORKFLOW_SPEC,
             )
         resolved: Any = [_resolve_ref(step.id, ref, workspace_root, source_ids, work_produced) for ref in value]
     else:
         if isinstance(value, list):
             raise workflow_error(
-                f"step {step.id!r} ({step.op}) input {adapter.input_key!r} must be a single ref, not a list",
+                f"step {rejected_value(step.id)!r} ({rejected_value(step.op)}) input {adapter.input_key!r} must be a single ref, not a list",
                 INVALID_WORKFLOW_SPEC,
             )
         resolved = _resolve_ref(step.id, value, workspace_root, source_ids, work_produced)
@@ -230,27 +238,34 @@ def _validate_inputs(
 
 def _resolve_ref(step_id: str, ref: Any, workspace_root: Path, source_ids: set[str], work_produced: set[str]) -> str:
     if not isinstance(ref, str) or not ref:
-        raise workflow_error(f"step {step_id!r} has a non-string or empty input reference", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(
+            f"step {rejected_value(step_id)!r} has a non-string or empty input reference", INVALID_WORKFLOW_SPEC
+        )
     if ref.startswith(_SOURCE_PREFIX):
         source_id = ref[len(_SOURCE_PREFIX) :]
         if source_id not in source_ids:
-            raise workflow_error(f"step {step_id!r} references undeclared source {ref!r}", UNKNOWN_WORKFLOW_REF)
+            raise workflow_error(
+                f"step {rejected_value(step_id)!r} references undeclared source {rejected_value(ref)!r}",
+                UNKNOWN_WORKFLOW_REF,
+            )
         return ref
     if ref.startswith(_WORK_PREFIX):
         name = ref[len(_WORK_PREFIX) :]
         if name not in work_produced:
             raise workflow_error(
-                f"step {step_id!r} references {ref!r} which is not produced by a strictly-earlier step",
+                f"step {rejected_value(step_id)!r} references {rejected_value(ref)!r} which is not produced by a strictly-earlier step",
                 UNKNOWN_WORKFLOW_REF,
             )
         return ref
     if ref.startswith(_OUTPUT_PREFIX):
         raise workflow_error(
-            f"step {step_id!r} references {ref!r}; @outputs.<id> is an output target, not a step input",
+            f"step {rejected_value(step_id)!r} references {rejected_value(ref)!r}; @outputs.<id> is an output target, not a step input",
             UNKNOWN_WORKFLOW_REF,
         )
     if ref.startswith("@"):
-        raise workflow_error(f"step {step_id!r} uses unknown ref namespace {ref!r}", UNKNOWN_WORKFLOW_REF)
+        raise workflow_error(
+            f"step {rejected_value(step_id)!r} uses unknown ref namespace {rejected_value(ref)!r}", UNKNOWN_WORKFLOW_REF
+        )
     # Raw path: allowed only if it stays inside the workspace root.
     _resolve_workspace_path(ref, workspace_root, f"step {step_id} input {ref!r}")
     return ref
@@ -258,12 +273,13 @@ def _resolve_ref(step_id: str, ref: Any, workspace_root: Path, source_ids: set[s
 
 def _validate_params(step: Any, adapter: OpAdapter) -> None:
     if not isinstance(step.params, dict):
-        raise workflow_error(f"step {step.id!r} params must be an object", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(f"step {rejected_value(step.id)!r} params must be an object", INVALID_WORKFLOW_SPEC)
     accepted = adapter.accepted_params()
     unknown = sorted(set(step.params) - accepted)
     if unknown:
         raise workflow_error(
-            f"step {step.id!r} ({step.op}) has params the engine does not accept: {unknown}; "
+            f"step {rejected_value(step.id)!r} ({rejected_value(step.op)}) has params the engine does not accept: "
+            f"{rejected_value(unknown)}; "
             f"accepted: {sorted(accepted)}",
             INVALID_WORKFLOW_PARAMS,
         )
@@ -274,30 +290,41 @@ def _validate_output(step: Any, adapter: OpAdapter, output_ids: set[str], work_p
     if not adapter.has_output:
         if step.output is not None:
             raise workflow_error(
-                f"step {step.id!r} op {step.op!r} is an inspection op and produces no output; remove 'output'",
+                f"step {rejected_value(step.id)!r} op {rejected_value(step.op)!r} is an inspection op and produces "
+                f"no output; remove 'output'",
                 INVALID_WORKFLOW_SPEC,
             )
         return
     if step.output is None:
         raise workflow_error(
-            f"step {step.id!r} op {step.op!r} requires an 'output' target (@work/<name> or @outputs.<id>)",
+            f"step {rejected_value(step.id)!r} op {rejected_value(step.op)!r} requires an 'output' target "
+            f"(@work/<name> or @outputs.<id>)",
             INVALID_WORKFLOW_SPEC,
         )
     if not isinstance(step.output, str):
-        raise workflow_error(f"step {step.id!r} output must be a string", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(f"step {rejected_value(step.id)!r} output must be a string", INVALID_WORKFLOW_SPEC)
     if step.output.startswith(_WORK_PREFIX):
         name = step.output[len(_WORK_PREFIX) :]
         if not name:
-            raise workflow_error(f"step {step.id!r} has an empty @work/ output name", INVALID_WORKFLOW_SPEC)
+            raise workflow_error(
+                f"step {rejected_value(step.id)!r} has an empty @work/ output name", INVALID_WORKFLOW_SPEC
+            )
         if name in work_produced:
-            raise workflow_error(f"step {step.id!r} reuses the @work output name {name!r}", INVALID_WORKFLOW_SPEC)
+            raise workflow_error(
+                f"step {rejected_value(step.id)!r} reuses the @work output name {rejected_value(name)!r}",
+                INVALID_WORKFLOW_SPEC,
+            )
     elif step.output.startswith(_OUTPUT_PREFIX):
         output_id = step.output[len(_OUTPUT_PREFIX) :]
         if output_id not in output_ids:
-            raise workflow_error(f"step {step.id!r} writes to undeclared output {step.output!r}", UNKNOWN_WORKFLOW_REF)
+            raise workflow_error(
+                f"step {rejected_value(step.id)!r} writes to undeclared output {rejected_value(step.output)!r}",
+                UNKNOWN_WORKFLOW_REF,
+            )
     else:
         raise workflow_error(
-            f"step {step.id!r} output must be @work/<name> or @outputs.<id>, got {step.output!r}",
+            f"step {rejected_value(step.id)!r} output must be @work/<name> or @outputs.<id>, "
+            f"got {rejected_value(step.output)!r}",
             INVALID_WORKFLOW_SPEC,
         )
 
@@ -313,7 +340,9 @@ def _validate_variants(spec: WorkflowSpec) -> None:
         if not variant.id:
             raise workflow_error("each variant requires a non-empty id", INVALID_WORKFLOW_SPEC)
         if variant.id in seen:
-            raise workflow_error(f"duplicate variant id: {variant.id!r}", INVALID_WORKFLOW_SPEC)
+            raise workflow_error(f"duplicate variant id: {rejected_value(variant.id)!r}", INVALID_WORKFLOW_SPEC)
         seen.add(variant.id)
         if not isinstance(variant.overrides, dict):
-            raise workflow_error(f"variant {variant.id!r} overrides must be an object", INVALID_WORKFLOW_SPEC)
+            raise workflow_error(
+                f"variant {rejected_value(variant.id)!r} overrides must be an object", INVALID_WORKFLOW_SPEC
+            )

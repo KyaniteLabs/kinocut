@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DATED_PARTS = ("research", "plans", "status", "archive", "retired", "adr", "release-notes")
+DATED_PARTS = ("research", "plans", "status", "archive", "retired", "adr", "release-notes", "proofs")
 DATED_FILES = ("CHANGELOG.md", "public_claims.json", "DIRECTORY_REBRAND_STATUS.md")
 # The current status file is a current surface, not a dated record.
 CURRENT_FILES = ("docs/status/NOW.md",)
@@ -41,61 +41,43 @@ EXPECTED_PINS = {"kinocut": "1.16.5", "mcp-video": "1.6.20"}
 # swallow the punctuation around it — a backtick, a comma, a closing paren —
 # and call a correct pin wrong.
 VERSION_PATTERN = r"(?:==|@)?[0-9][0-9A-Za-z]*(?:\.[0-9A-Za-z]+)*"
+
+
+def _grammar(prefix: str) -> re.Pattern[str]:
+    """Compile a grammar that captures the version token after the package name."""
+    return re.compile(prefix + rf"(?P<version>{VERSION_PATTERN})?")
+
+
+def _package_grammars(distribution: str) -> tuple[re.Pattern[str], ...]:
+    """Every launch grammar that can name this distribution.
+
+    The shim ships as ``mcp-video`` on PyPI and is launched through the same
+    forms as the package itself: pip, pipx, uvx, and the ``--from`` and
+    ``--with`` launch flags in both their whitespace and JSON-array spellings.
+    A grammar that only knows pip leaves the other forms unchecked.
+    """
+    name = re.escape(distribution)
+    extras = r"(?:\[[a-z0-9,-]+\])?"
+    return (
+        _grammar(rf"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?{name}{extras}[\"']?"),
+        _grammar(rf"pipx\s+run(?:\s+--?[\w-]+)*\s+[\"']?{name}{extras}[\"']?"),
+        _grammar(rf"--from(?:[\"']\s*,\s*[\"']|\s+){name}{extras}[\"']?"),
+        _grammar(rf"--with(?:[\"']\s*,\s*[\"']|\s+){name}{extras}[\"']?"),
+        # A bare `uvx <package>` counts as a launch only when it opens a
+        # command. In prose it describes the registry entry's stdio package,
+        # and dated records keep the version that was true at the time.
+        _grammar(rf"^\s*(?:\$ )?uvx\s+[\"']?{name}{extras}[\"']?"),
+    )
+
+
 INSTALL_GRAMMARS = (
-    (
-        "kinocut",
-        re.compile(
-            r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
+    *(
+        (distribution, pattern)
+        for distribution in ("kinocut", "mcp-video")
+        for pattern in _package_grammars(distribution)
     ),
-    (
-        "mcp-video",
-        re.compile(
-            r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?mcp-video(?:\[[a-z0-9,-]+\])?[\"']?"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
-    ),
-    (
-        "kinocut",
-        re.compile(
-            r"pipx\s+run(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
-    ),
-    # The flag and the package can be separated by whitespace or by a JSON
-    # array boundary: `"--from", "kinocut"`.
-    (
-        "kinocut",
-        re.compile(
-            r"--from(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
-    ),
-    (
-        "kinocut",
-        re.compile(
-            r"--with(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
-    ),
-    # A bare `uvx kinocut` counts as a launch only when it opens a command.
-    # In prose it describes the registry entry's stdio package, and dated
-    # records keep the version that was true at the time.
-    (
-        "kinocut",
-        re.compile(
-            r"^\s*(?:\$ )?uvx\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
-    ),
-    (
-        "kinocut",
-        re.compile(
-            r"npm\s+install\s+(?:-\S+\s+)*[\"']?kinocut"
-            rf"(?P<version>{VERSION_PATTERN})?"
-        ),
-    ),
+    # The npm distribution is the package itself; the shim is PyPI-only.
+    ("kinocut", _grammar(r"npm\s+install\s+(?:-\S+\s+)*[\"']?kinocut")),
 )
 
 
@@ -159,8 +141,14 @@ def test_current_install_instructions_pin_the_released_version(path):
 def test_the_sweep_covers_the_launch_grammars_it_claims_to_cover():
     # A guard that only knows about pip is not the guard this file promises.
     text = " ".join(grammar.pattern for _distribution, grammar in INSTALL_GRAMMARS)
-    for grammar in ("pip", "pipx", "uvx", "--from", "--with", "npm", "mcp-video"):
+    for grammar in ("pip", "pipx", "uvx", "--from", "--with", "npm"):
         assert grammar in text
+    # The shim is launched through the same grammars, so it needs its own
+    # set of patterns — not only an entry in the pin table.
+    assert "mcp-video" in {distribution for distribution, _grammar in INSTALL_GRAMMARS}
+    shim = " ".join(pattern.pattern for distribution, pattern in INSTALL_GRAMMARS if distribution == "mcp-video")
+    for grammar in ("pip", "pipx", "uvx", "--from", "--with"):
+        assert grammar in shim
 
 
 def test_a_dated_record_keeps_its_own_history(tmp_path):
@@ -182,12 +170,22 @@ def test_a_dated_record_keeps_its_own_history(tmp_path):
         '"args": ["--from", "kinocut==1.15.2", "kino"]',
         "npm install kinocut@1.15.2",
         "pip install -U mcp-video==1.6.17",
+        # The shim is launched through the same grammars as the package, and
+        # every one of them must catch a wrong or missing release.
+        "pipx run mcp-video",
+        "pipx run mcp-video==1.6.17",
+        "uvx mcp-video",
+        "uvx mcp-video==1.6.17",
+        "uvx --from mcp-video mcp-video doctor --json",
+        "uv run --no-project --with mcp-video python workflow.py",
+        '"args": ["--from", "mcp-video==1.6.17", "mcp-video"]',
+        '"args": ["--with", "mcp-video==1.6.17"]',
     ],
 )
 def test_a_wrong_or_missing_release_is_an_offender(tmp_path, line):
     # Pinned is not the same as correct: the sweep compares with the release.
     current = tmp_path / "docs" / "NEW.md"
-    current.parent.mkdir(parents=True)
+    current.parent.mkdir(parents=True, exist_ok=True)
     current.write_text(line + "\n", encoding="utf-8")
     assert _offenders(current, Path("docs/NEW.md"))
 
@@ -202,10 +200,25 @@ def test_a_wrong_or_missing_release_is_an_offender(tmp_path, line):
         '"args": ["--from", "kinocut==1.16.5", "kino"]',
         "npm install kinocut@1.16.5",
         "pip install -U mcp-video==1.6.20",
+        # The shim's launch forms, pinned to the release it ships.
+        "pipx run mcp-video==1.6.20",
+        "uvx mcp-video==1.6.20",
+        "uvx --from mcp-video==1.6.20 mcp-video doctor --json",
+        "uv run --no-project --with mcp-video==1.6.20 python workflow.py",
+        '"args": ["--from", "mcp-video==1.6.20", "mcp-video"]',
+        '"args": ["--with", "mcp-video==1.6.20"]',
     ],
 )
 def test_the_current_release_is_not_an_offender(tmp_path, line):
     current = tmp_path / "docs" / "NEW.md"
-    current.parent.mkdir(parents=True)
+    current.parent.mkdir(parents=True, exist_ok=True)
     current.write_text(line + "\n", encoding="utf-8")
     assert not _offenders(current, Path("docs/NEW.md"))
+
+
+def test_a_proof_record_is_historical_not_a_current_surface():
+    # A dated proof is history: it keeps the version that was true then.
+    # Leaving it in the current scan with an invisible grammar is what the
+    # reviewer found, so the classification is asserted rather than assumed.
+    assert _is_dated(Path("docs/proofs/2026-06-03-fresh-install-confidence-baseline.md")) is True
+    assert Path("docs/proofs/2026-06-03-fresh-install-confidence-baseline.md") not in _current_files()

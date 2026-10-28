@@ -27,6 +27,7 @@ from ..ffmpeg_helpers import (
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_UPSCALE_FRAMES
 from ..model_cache import model_download_stage
 from ..staged_writers import open_staged_writer
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -395,7 +396,7 @@ def ai_upscale(
     }
     if model not in model_configs:
         raise MCPVideoError(
-            f"Unknown model: {model}. Choose from: {list(model_configs.keys())}",
+            f"Unknown model: {rejected_value(model)}. Choose from: {list(model_configs.keys())}",
             error_type="validation_error",
             code="invalid_parameter",
         )

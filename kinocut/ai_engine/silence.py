@@ -8,6 +8,7 @@ Optional dependencies:
 
 from __future__ import annotations
 
+from ..validation_errors import reason
 import logging
 import re
 from pathlib import Path
@@ -233,7 +234,7 @@ def _validate_silence_output(output: str, expected_duration: float) -> None:
     try:
         info = _run_ffprobe_json(output)
     except ProcessingError as exc:
-        raise _processing_failure("staged output could not be probed", exc.returncode) from None
+        raise _processing_failure("staged output could not be probed", reason(exc)) from None
 
     format_info = info.get("format")
     streams = info.get("streams")
@@ -267,7 +268,7 @@ def _validate_silence_output(output: str, expected_duration: float) -> None:
             timeout=DEFAULT_FFMPEG_TIMEOUT,
         )
     except ProcessingError as exc:
-        raise _processing_failure("staged output failed full media decode", exc.returncode) from None
+        raise _processing_failure("staged output failed full media decode", reason(exc)) from None
 
 
 def ai_remove_silence(

@@ -119,7 +119,21 @@ def _argument_names(arguments: dict[str, Any]) -> str:
     """
     if not arguments:
         return ""
-    return " (arguments: " + ", ".join(sorted(arguments)) + ")"
+    return " (arguments: " + ", ".join(sorted(_argument_name(key) for key in arguments)) + ")"
+
+
+def _argument_name(key: Any) -> str:
+    """A printable, bounded name for one argument of a refused call.
+
+    The names come from the caller's own argument mapping. JSON and
+    ``vars()`` give string keys, but the formatter is a process-wide error
+    path, so it must not assume that: a non-string key is rendered as text,
+    and control characters are replaced rather than copied into human-facing
+    text.
+    """
+    text = key if isinstance(key, str) else str(key)
+    text = "".join(char if char.isprintable() else "_" for char in text)
+    return text[:64] or "argument"
 
 
 def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
@@ -154,38 +168,38 @@ def retry_message(message: str, code: str) -> str:
     tool_name = context[0] if context else "the same tool"
     cli_name = _cli_tool_name(tool_name) if context else None
     submitted = _argument_names(context[1]) if context else ""
+    consent = code in {"hyperframes_telemetry_consent_required", "network_consent_required"}
+    missing_tool = code in {"ffmpeg_not_found", "ffprobe_not_found"}
     if code in {"output_exists", "overwrite_refused"}:
         mcp_action, cli_action = f"overwrite=true{submitted}", f"--overwrite{submitted}"
     elif code in {"unsafe_path", "invalid_output_path"}:
         mcp_action, cli_action = f"a new output_path{submitted}", f"--output <new-media-path>{submitted}"
-    elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
+    elif consent:
         # NOTE (t_e3775201 F-INFO): no shipped code path raises
         # ``network_consent_required`` yet. Before any network-consent feature
         # lands, re-bind its hint to the actual consent env var of that feature;
         # ``KINOCUT_HYPERFRAMES_TELEMETRY`` only gates Hyperframes telemetry.
         mcp_action = f"KINOCUT_HYPERFRAMES_TELEMETRY=true{submitted}"
-        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + (cli_name or "the matching command") + submitted
-    elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
+        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino"
+    elif missing_tool:
         mcp_action = "install FFmpeg, then call " + tool_name + submitted
-        cli_action = "install FFmpeg, then run kino " + (cli_name or "the matching command") + submitted
+        cli_action = "install FFmpeg, then run kino"
     else:
         mcp_action, cli_action = f"corrected parameters{submitted}", f"corrected flags{submitted}"
 
-    if code in {
-        "hyperframes_telemetry_consent_required",
-        "network_consent_required",
-        "ffmpeg_not_found",
-        "ffprobe_not_found",
-    }:
-        invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
-    elif context is None:
+    if context is None:
         # No tool bound: the tokens have to carry the refusal by themselves.
         invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
     elif cli_name is None:
+        # The tool has no single-command CLI equivalent. The special-code
+        # actions are already tool-shaped, so they are not prefixed again.
         invocation = (
-            f"call {tool_name} with {mcp_action} (MCP) / no single-command CLI equivalent "
+            f"{'' if consent or missing_tool else 'call ' + tool_name + ' with '}{mcp_action} (MCP) / "
+            "no single-command CLI equivalent "
             "(run kino --help to browse related commands) (CLI)"
         )
+    elif consent or missing_tool:
+        invocation = f"{mcp_action} (MCP) / {cli_action} {cli_name}{submitted} (CLI)"
     else:
         invocation = f"call {tool_name} with {mcp_action} (MCP) / run kino {cli_name} with {cli_action} (CLI)"
     return f"{message}; retry with {invocation}"

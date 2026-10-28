@@ -106,7 +106,7 @@ def _measured_segment_durations(paths: list[str]) -> list[float]:
         try:
             value = float(_probe_source(path).duration or 0.0)
         except (OSError, ValueError, MCPVideoError) as exc:
-            raise _flow_error(f"could not measure the rendered trim for segment {index}: {exc}") from exc
+            raise _flow_error(f"could not measure the rendered trim for segment {index}") from exc
         if value <= 0:
             raise _flow_error(f"could not measure the rendered trim for segment {index}")
         measured.append(value)
@@ -286,7 +286,7 @@ def _validate_source_duration(source: str, parsed: list[tuple[float, float, str 
     try:
         duration = float(_probe_source(source).duration or 0.0)
     except (OSError, ValueError, MCPVideoError) as exc:
-        raise _flow_error(f"could not measure the source duration: {exc}") from exc
+        raise _flow_error("could not measure the source duration") from exc
     if duration <= 0:
         raise _flow_error("could not measure the source duration; refusing to render segments that cannot be verified")
     for index, (_start, end, _text) in enumerate(parsed):

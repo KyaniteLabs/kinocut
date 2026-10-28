@@ -24,6 +24,7 @@ from ..ffmpeg_helpers import (
 )
 from ..limits import DEFAULT_FFMPEG_TIMEOUT
 from ..engine_runtime_utils import _get_audio_stream
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -106,7 +107,9 @@ def audio_spatial(
     # Validate method
     valid_methods = ("hrtf", "vbap", "simple")
     if method not in valid_methods:
-        raise MCPVideoError(f"Method must be one of {valid_methods}, got {method}", error_type="validation_error")
+        raise MCPVideoError(
+            f"Method must be one of {valid_methods}, got {rejected_value(method)}", error_type="validation_error"
+        )
 
     _validate_output_path(output)
     output_path = Path(output)

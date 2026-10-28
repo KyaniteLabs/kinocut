@@ -24,6 +24,7 @@ from .limits import (
     MAX_SUBPROCESS_STDOUT_BYTES,
     MAX_FFMPEG_PIPE_BYTES,
 )
+from .validation_errors import exception_kind
 
 _BLOCKED_OUTPUT_PREFIXES = (
     "/bin",
@@ -207,7 +208,7 @@ def _validate_input_path(path: str, *, record_operation: bool = True) -> str:
     try:
         size_mb = os.path.getsize(resolved) / (1024 * 1024)
     except OSError as e:
-        raise InputFileError(resolved, f"Cannot read file size: {e}") from None
+        raise InputFileError(resolved, f"Cannot read file size: {exception_kind(e)}") from None
     if size_mb > MAX_FILE_SIZE_MB:
         raise InputFileError(
             resolved,
@@ -772,7 +773,9 @@ def _run_ffprobe_json(
     try:
         return _json.loads(result.stdout)
     except _json.JSONDecodeError as e:
-        raise ProcessingError(" ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {e}") from None
+        raise ProcessingError(
+            " ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {exception_kind(e)}"
+        ) from None
 
 
 def _seconds_to_srt_time(seconds: float) -> str:

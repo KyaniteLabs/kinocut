@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from kinocut_sound._validation_errors import rejected_value
 from kinocut_sound.defaults import DEFAULT_GAP_TOLERANCE_SECONDS
 from kinocut_sound.mix._errors import MIX_PLACEMENT_INVALID, mix_error
 from kinocut_sound.timeline import Cue, CueKind, Timeline
@@ -62,7 +63,7 @@ def place_clips(
             continue
         if cue.cue_id not in clip_durations:
             raise mix_error(
-                f"missing rendered duration for cue {cue.cue_id}",
+                f"missing rendered duration for cue: expected a rendered clip, got {rejected_value(cue.cue_id)}",
                 MIX_PLACEMENT_INVALID,
             )
         clip_dur = float(clip_durations[cue.cue_id])

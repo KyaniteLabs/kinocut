@@ -1544,7 +1544,7 @@ class TestRenderAndPost:
             patch("mcp_video.hyperframes_engine.subprocess.run", return_value=fake_cp),
             patch("os.path.isfile", return_value=True),
             patch("os.path.getsize", return_value=1024),
-            pytest.raises(MCPVideoError, match=r"Unknown post-processing operation.*nonexistent_op"),
+            pytest.raises(MCPVideoError, match=r"Unknown post-processing operation.*str"),
         ):
             render_and_post(
                 project,

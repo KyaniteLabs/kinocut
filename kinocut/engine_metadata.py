@@ -11,6 +11,7 @@ from .ffmpeg_helpers import _run_ffmpeg
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _run_ffprobe_json
 from .models import EditResult, MetadataResult
+from .validation_errors import rejected_value
 
 
 def read_metadata(input_path: str) -> MetadataResult:
@@ -67,13 +68,13 @@ def write_metadata(
     for key, value in metadata.items():
         if "=" in key or "\n" in key or "\0" in key:
             raise MCPVideoError(
-                f"Invalid metadata key '{key}': keys cannot contain '=', newline, or null bytes",
+                f"Invalid metadata key: keys cannot contain '=', newline, or null bytes (got {rejected_value(key)})",
                 error_type="validation_error",
                 code="invalid_metadata_key",
             )
         if "\n" in str(value) or "\0" in str(value):
             raise MCPVideoError(
-                f"Invalid metadata value for '{key}': values cannot contain newline or null bytes",
+                f"Invalid metadata value: values cannot contain newline or null bytes (key {rejected_value(key)})",
                 error_type="validation_error",
                 code="invalid_metadata_value",
             )

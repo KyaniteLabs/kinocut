@@ -27,6 +27,7 @@ from .ffmpeg_helpers import (
     _validate_output_path,
 )
 from .limits import FFPROBE_TIMEOUT, MAX_SHADER_FRAMES
+from .validation_errors import exception_kind
 
 # Path to the CRUSH.js module bundled with Kinocut
 _CRUSH_JS_DIR = Path(__file__).resolve().parent / "_crush_shader"
@@ -167,7 +168,7 @@ def _get_fps(input_path: str) -> str:
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
-        raise ProcessingError(" ".join(cmd), 0, f"Invalid JSON from ffprobe: {exc}") from None
+        raise ProcessingError(" ".join(cmd), 0, f"Invalid JSON from ffprobe: {exception_kind(exc)}") from None
     streams = data.get("streams", [])
     if streams:
         return streams[0].get("r_frame_rate", "30/1")

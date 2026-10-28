@@ -12,6 +12,7 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _run_command, _escape_ffmpeg_filter_value
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -212,7 +213,7 @@ def mograph_progress(
     _validate_timing(duration, fps)
     if style not in VALID_MOGRAPH_STYLES:
         raise MCPVideoError(
-            f"style must be one of {sorted(VALID_MOGRAPH_STYLES)}, got {style}",
+            f"style must be one of {sorted(VALID_MOGRAPH_STYLES)}, got {rejected_value(style)}",
             error_type="validation_error",
             code="invalid_parameter",
         )

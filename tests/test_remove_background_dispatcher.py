@@ -136,7 +136,10 @@ def test_unknown_model_is_validation_error_with_no_inference():
     mock_run.assert_not_called()
     err = excinfo.value
     assert err.error_type == "validation_error"
-    assert "nope" in str(err)
+    # The rejected model name is caller data and must not be echoed; the
+    # refusal names the type and the allowlist that was expected.
+    assert "nope" not in str(err)
+    assert "str" in str(err)
     assert "u2net_human_seg" in str(err)
     assert "birefnet-general" in str(err)
     assert "products-and-objects" in str(err)

@@ -20,6 +20,7 @@ from ..ffmpeg_helpers import (
 from ..output_policy import with_output_policy
 from ..projectstore.receipt_ownership import durable_receipt_ownership, witness_receipt_stage
 from .models import CandidateMoment, TranscriptSegment, TranscriptWord
+from ..validation_errors import rejected_value
 
 
 __all__ = [
@@ -164,7 +165,7 @@ class ShortsPlan(_StrictModel):
 
 def _plan_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {cause} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {rejected_value(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},

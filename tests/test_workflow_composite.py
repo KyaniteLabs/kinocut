@@ -179,7 +179,7 @@ def test_synth_spec_symlink_escape_fails_closed(tmp_path):
     from types import SimpleNamespace
 
     from mcp_video.workflow.composite import render_composite_step
-    from mcp_video.workflow.executor import _resolve_confined_input
+    from mcp_video.workflow.paths import resolve_confined_input
 
     ws = tmp_path / "ws"
     ws.mkdir()
@@ -209,7 +209,7 @@ def test_synth_spec_symlink_escape_fails_closed(tmp_path):
             {},
             run_dir,
             ws / "out.mp4",
-            _resolve_confined_input,
+            resolve_confined_input,
             set(),
             set(),
         )

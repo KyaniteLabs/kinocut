@@ -10,11 +10,26 @@ from pathlib import Path
 import pytest
 
 
-def test_run_diagnostics_marks_required_tools_ok_when_present():
+def _installed_hyperframes(tmp_path) -> str:
+    """An installed package: a launcher beside its manifest."""
+    package = tmp_path / "node_modules" / "hyperframes"
+    package.mkdir(parents=True)
+    launcher = package / "hyperframes"
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.31');\n", encoding="utf-8")
+    launcher.chmod(0o755)
+    (package / "package.json").write_text('{"name": "hyperframes", "version": "0.6.31"}', encoding="utf-8")
+    return str(launcher)
+
+
+def test_run_diagnostics_marks_required_tools_ok_when_present(tmp_path):
     from mcp_video.doctor import run_diagnostics
 
+    hyperframes = _installed_hyperframes(tmp_path)
+
     def fake_which(name: str) -> str | None:
-        return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe", "node", "npm", "npx", "hyperframes"} else None
+        if name == "hyperframes":
+            return hyperframes
+        return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe", "node", "npm", "npx"} else None
 
     def fake_version(command: list[str]) -> str | None:
         if command[:1] == ["/usr/bin/hyperframes"]:
@@ -56,8 +71,12 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
     assert checks["npm"]["probed"] is False
     assert checks["npx"]["probed"] is False
     assert checks["npm"]["version"] is None
+    # The doctor never executes a resolved Hyperframes script: it resolves
+    # the path on disk and reads the version from the package metadata.
     assert checks["hyperframes"]["ok"] is True
-    assert checks["hyperframes"]["command"] == ["/usr/bin/hyperframes", "--version"]
+    assert checks["hyperframes"]["path"] == hyperframes
+    assert checks["hyperframes"]["version"] == "0.6.31"
+    assert checks["hyperframes"]["hyperframes_version_source"] == "package metadata, read from disk"
     assert checks["@hyperframes/core"]["ok"] is True
 
 
