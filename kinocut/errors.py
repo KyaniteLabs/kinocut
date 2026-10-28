@@ -297,9 +297,9 @@ class ValidationError(MCPVideoError, ValueError):
 class C2PAToolNotFoundError(MCPVideoError):
     """c2patool is required for requested C2PA signing but is unavailable."""
 
-    def __init__(self, tool: str) -> None:
+    def __init__(self) -> None:
         super().__init__(
-            f"C2PA signing requested, but c2patool is not executable: {tool}",
+            "C2PA signing requested, but the c2patool configured in the environment is not an executable file",
             error_type="dependency_error",
             code="c2patool_not_found",
             suggested_action={

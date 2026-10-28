@@ -8,8 +8,10 @@ not the reader's.
 
 from typing import Any
 
-#: The report fields that name a path on this machine.
-PATH_FIELDS = ("path", "origin", "executable")
+#: The report fields that name something of this machine: a path, or the
+#: command a probe would run — which for Hyperframes is the operator's
+#: own configuration, not ours to publish.
+MACHINE_FIELDS = ("path", "origin", "executable", "command")
 
 
 def without_machine_paths(report: dict[str, Any]) -> dict[str, Any]:
@@ -17,7 +19,7 @@ def without_machine_paths(report: dict[str, Any]) -> dict[str, Any]:
     for check in report.get("checks", []):
         if not isinstance(check, dict):
             continue
-        for field in PATH_FIELDS:
+        for field in MACHINE_FIELDS:
             value = check.get(field)
             if not value:
                 continue

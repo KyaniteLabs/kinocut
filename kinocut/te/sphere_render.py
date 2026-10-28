@@ -100,7 +100,11 @@ def _maybe_quality(output_path: str, *, allow_fail: bool, min_score: float | Non
         report = assert_quality(output_path, min_score=score, max_analyze_seconds=DEFAULT_SPHERE_QC_SECONDS)
         return {"passed": True, "report": report}
     except Exception as exc:
+        from ..validation_errors import reason
+
         logger.warning("360 assembly quality gate failed: %s", exc)
         if allow_fail:
-            return {"passed": False, "quality_gate_failed": True, "detail": str(exc)[:200]}
+            # The gate's own reason is ours to publish; a foreign
+            # exception is named by its kind alone.
+            return {"passed": False, "quality_gate_failed": True, "detail": reason(exc)}
         raise

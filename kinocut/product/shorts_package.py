@@ -70,8 +70,12 @@ def _gate_package_media(path: str, *, allow_fail: bool) -> dict[str, Any] | None
     try:
         return assert_quality(path, min_score=DEFAULT_QUALITY_GATE_SCORE)
     except Exception as exc:
+        from ..validation_errors import reason
+
         if allow_fail:
-            return {"quality_gate_failed": True, "error": type(exc).__name__, "message": str(exc)[:200]}
+            # The gate's own reason is ours to publish; a foreign
+            # exception is named by its kind alone.
+            return {"quality_gate_failed": True, "error": reason(exc)}
         raise
 
 

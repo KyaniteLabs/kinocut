@@ -177,7 +177,8 @@ def video_hls_segment(
     invalid_qualities = [quality for quality in qualities or [] if quality not in VALID_HLS_QUALITIES]
     if invalid_qualities:
         return _validation_error(
-            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}, got invalid values: {invalid_qualities}"
+            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}; "
+            f"{len(invalid_qualities)} submitted value(s) were not accepted"
         )
     input_path = _validate_input_path(input_path)
     return _result(
@@ -482,7 +483,8 @@ def video_compare_quality(
     invalid_metrics = [metric for metric in metrics or [] if metric.lower() not in VALID_QUALITY_METRICS]
     if invalid_metrics:
         return _validation_error(
-            f"metrics must be one of {sorted(VALID_QUALITY_METRICS)}, got invalid values: {invalid_metrics}"
+            f"metrics must be one of {sorted(VALID_QUALITY_METRICS)}; "
+            f"{len(invalid_metrics)} submitted value(s) were not accepted"
         )
     original_path = _validate_input_path(original_path)
     distorted_path = _validate_input_path(distorted_path)

@@ -108,7 +108,7 @@ def _is_dated(relative: Path) -> bool:
 
 #: A release section names the version it describes. What is under such a
 #: heading is a record of that release, not a current instruction.
-_RELEASE_HEADING = re.compile(r"^(?:#{1,6}\s.*\d+\.\d+\.\d+|\*\*\d+\.\d+\.\d+\*\*)")
+_RELEASE_HEADING = re.compile(r"^(?:#{1,6}\s.*?\b|\*\*)(\d+\.\d+\.\d+)")
 #: A line that opens with a publication date is a record of what shipped.
 _PUBLISHED_LINE = re.compile(r"^Published\s+\d{4}-\d{2}-\d{2}\b")
 
@@ -161,10 +161,12 @@ def _offenders(path: Path, relative: Path) -> list[str]:
     dated_section = False
     for number, line in enumerate(text.splitlines(), 1):
         stripped = line.strip()
-        if stripped.startswith("#") or _RELEASE_HEADING.match(stripped):
-            # A heading opens a section; a heading that names a version
-            # opens a record of that release.
-            dated_section = bool(_RELEASE_HEADING.match(stripped))
+        heading = _RELEASE_HEADING.match(stripped)
+        if stripped.startswith("#") or heading:
+            # A heading opens a section. A section that names the release
+            # we are shipping is not a record of an older one: what is
+            # under it is current, and it has to pin the current release.
+            dated_section = bool(heading) and heading.group(1) not in EXPECTED_PINS.values()
         dated = _is_dated_line(line, dated_section)
         for distribution, grammar in INSTALL_GRAMMARS:
             for match in grammar.finditer(line):

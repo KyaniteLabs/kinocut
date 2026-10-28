@@ -49,9 +49,12 @@ def _register_intent_commands(runner: CommandRunner) -> None:
                     r["next_action"] = "review_then_sphere_render"
                 except Exception as exc:
                     from kinocut.errors import MCPVideoError
+                    from kinocut.validation_errors import reason
 
                     logger.warning("360 assembly plan not attached: %s", exc)
-                    r["sphere_plan_error"] = exc.to_dict() if isinstance(exc, MCPVideoError) else {"message": str(exc)}
+                    r["sphere_plan_error"] = (
+                        exc.to_dict() if isinstance(exc, MCPVideoError) else {"message": reason(exc)}
+                    )
         _out(r, j, lambda res: f"{res['verb']} → {res['next_action']} via {res['compat_tools']}")
 
     def _broll(a: Any, j: bool) -> None:

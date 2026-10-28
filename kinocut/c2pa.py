@@ -74,7 +74,7 @@ def _resolve_c2patool() -> str:
     candidate = os.environ.get("KINOCUT_C2PATOOL") or os.environ.get("MCP_VIDEO_C2PATOOL") or "c2patool"
     resolved = shutil.which(candidate) if os.path.basename(candidate) == candidate else candidate
     if resolved is None or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
-        raise C2PAToolNotFoundError(candidate)
+        raise C2PAToolNotFoundError()
     return os.path.realpath(resolved)
 
 
