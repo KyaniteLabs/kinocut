@@ -134,7 +134,7 @@ def _validate_image(path: str) -> None:
     """Check file exists and is a supported image or video format."""
     if not os.path.isfile(path):
         raise MCPVideoError(
-            f"File not found: {path}",
+            "File not found",
             error_type="input_error",
             code="file_not_found",
         )

@@ -98,7 +98,7 @@ def _reject_leaf_symlink(path: Path, label: str) -> None:
     except OSError as exc:
         _fail(f"could not inspect {label}: {exc}")
     if stat.S_ISLNK(mode):
-        _fail(f"{label} must not be a symlink: {path}")
+        _fail(f"{label} must not be a symlink")
 
 
 def _canonical_leaf(path: Path, label: str) -> Path:
@@ -239,7 +239,7 @@ def _prepare_artifacts(artifacts: list[dict[str, Any]]) -> list[_PreparedArtifac
             _fail(f"artifacts[{index}].payload_source must have a safe filename")
         collision_key = name.casefold()
         if collision_key in used_names:
-            _fail(f"duplicate payload filename: {name}")
+            _fail("duplicate payload filename")
         used_names.add(collision_key)
         digest, size = _regular_file_identity(source, f"artifacts[{index}].payload_source")
         entry = _entry_from_spec(spec, f"payload/{name}", digest, size)

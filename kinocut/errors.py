@@ -633,7 +633,7 @@ class RevideoProjectError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "Invalid bridge project") -> None:
         super().__init__(
-            f"Revideo bridge project error: {path} — {reason}",
+            f"Revideo bridge project error — {_without_value(reason, path)}",
             error_type="project_error",
             code="invalid_revideo_project",
             suggested_action={

@@ -173,7 +173,7 @@ def _reject_self_overwrite(path: str) -> None:
     for input_path in recorded:
         if resolved_output == os.path.realpath(input_path):
             raise MCPVideoError(
-                f"output path aliases an input of this operation: {path!r}",
+                "output path aliases an input of this operation",
                 error_type="validation_error",
                 code="invalid_output_path",
             )
@@ -183,7 +183,7 @@ def _reject_self_overwrite(path: str) -> None:
         try:
             if os.path.samefile(path, input_path):
                 raise MCPVideoError(
-                    f"output path aliases an input of this operation (same file): {path!r}",
+                    "output path aliases an input of this operation (same file)",
                     error_type="validation_error",
                     code="invalid_output_path",
                 )
@@ -232,20 +232,20 @@ def _validate_artifact_location(path: str, label: str) -> str:
     """Reject unsafe locations for outputs and structured artifact inputs."""
     if "\x00" in path:
         raise MCPVideoError(
-            f"{label} contains null bytes: {path!r}",
+            f"{label} contains null bytes",
             error_type="validation_error",
             code="invalid_output_path",
         )
     raw_parts = re.split(r"[\\/]+", path)
     if ".." in raw_parts:
         raise MCPVideoError(
-            f"{label} contains directory traversal: {path!r}",
+            f"{label} contains directory traversal",
             error_type="validation_error",
             code="invalid_output_path",
         )
     if os.path.islink(path):
         raise MCPVideoError(
-            f"{label} resolves through a symlink: {path!r}",
+            f"{label} resolves through a symlink",
             error_type="validation_error",
             code="unsafe_path",
         )
@@ -253,7 +253,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
     resolved = os.path.realpath(path)
     if any(resolved == prefix or resolved.startswith(prefix + os.sep) for prefix in _BLOCKED_OUTPUT_PREFIXES):
         raise MCPVideoError(
-            f"{label} escapes safe directory: {path}",
+            f"{label} escapes safe directory",
             error_type="validation_error",
             code="unsafe_path",
         )
@@ -264,7 +264,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
             config_home = os.path.realpath(os.path.expanduser(configured))
             if resolved == config_home or resolved.startswith(config_home + os.sep):
                 raise MCPVideoError(
-                    f"{label} targets a configured agent or application home: {path}",
+                    f"{label} targets a configured agent or application home",
                     error_type="validation_error",
                     code="unsafe_path",
                 )
@@ -274,7 +274,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
         rel_parts = set(os.path.relpath(resolved, home).split(os.sep))
         if rel_parts & _SENSITIVE_HOME_PARTS:
             raise MCPVideoError(
-                f"{label} targets a sensitive home directory: {path}",
+                f"{label} targets a sensitive home directory",
                 error_type="validation_error",
                 code="unsafe_path",
             )
@@ -305,13 +305,13 @@ def _validate_write_path(
         permitted_media = suffix in allowed_existing_suffixes and suffix in _SAFE_EXISTING_OUTPUT_SUFFIXES
         if not permitted_media and not _owns_operation_output(resolved):
             raise MCPVideoError(
-                f"Refusing to overwrite existing file at {label.lower()}: {path}",
+                f"Refusing to overwrite an existing file at {label.lower()}",
                 error_type="validation_error",
                 code="unsafe_path",
             )
         if _OVERWRITE.get() is not True:
             raise MCPVideoError(
-                f"{label} already exists; pass overwrite=true to replace permitted outputs: {path}",
+                f"{label} already exists; pass overwrite=true to replace permitted outputs",
                 error_type="validation_error",
                 code="output_exists",
             )

@@ -63,7 +63,7 @@ def _validate_manifest_path(path: str) -> str:
     _validate_artifact_input_path(path)
     if not os.path.isfile(path):
         raise MCPVideoError(
-            f"C2PA manifest file not found: {path}",
+            "C2PA manifest file not found",
             error_type="input_error",
             code="invalid_c2pa_manifest",
         )

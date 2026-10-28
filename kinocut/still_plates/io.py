@@ -41,7 +41,7 @@ def validate_still_path(path: str | Path, *, must_exist: bool = True) -> Path:
     p = Path(path).expanduser()
     if must_exist and not p.is_file():
         raise MCPVideoError(
-            f"Still not found: {path}",
+            "Still not found",
             error_type="input_error",
             code="file_not_found",
         )

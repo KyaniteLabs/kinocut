@@ -43,7 +43,7 @@ def _caption_from_srt(path: str) -> CaptionArtifact:
         raise _package_error(
             "Editable captions from the render stage are empty.",
             code="shorts_package_caption_empty",
-            cause=f"file {path!r} has no caption text.",
+            cause="file has no caption text.",
             recovery="Re-run render_approved_candidate so captions.srt is regenerated.",
         )
     if not body.endswith("\n"):

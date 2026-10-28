@@ -284,5 +284,5 @@ def get_preset_config(name: str) -> dict:
         KeyError: If the preset name is not recognized.
     """
     if name not in _PRESETS:
-        raise KeyError(f"Unknown preset: {name}. Available: {list_presets()}")
+        raise KeyError(f"Unknown preset. Available: {list_presets()}")
     return copy.deepcopy(_PRESETS[name])

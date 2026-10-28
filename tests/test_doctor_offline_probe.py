@@ -1,100 +1,47 @@
-"""The doctor never runs a package-manager probe.
+"""The doctor executes nothing that can reach the network.
 
-A package manager resolves its package over the network, so a configured
-`npx --yes hyperframes` prefix would take the doctor online — which its own
-comment forbids. The doctor reports the configured command instead.
+A package manager resolves its package over the network, and a resolved
+script can reach it whatever its source says — reading a script does not
+prove that it is offline. So the doctor runs no Hyperframes script at all,
+however it was configured: it reports the path and reads the version from
+the installed package's manifest on disk.
 
-The rule is inverted rather than an allowlist: only the Hyperframes
-executable itself is probed, and only when the doctor can read it and clear
-it. A shell, an interpreter, a package manager, a binary, and a file that
-invokes a package manager anywhere inside it are all reported, not run.
+The rule is not an allowlist of safe commands. There is no list of commands
+that is provably offline, so the rule is that the doctor runs none.
 """
 
 from __future__ import annotations
 
 from kinocut import doctor
-from kinocut.doctor_offline import executable_probe_refusal, is_package_manager_prefix
+from kinocut.doctor_offline import (
+    hyperframes_version_from_metadata,
+    is_package_manager_prefix,
+    report_resolved_hyperframes,
+)
 from kinocut.hyperframes_engine import HYPERFRAMES_COMMAND_ENV
 
 
-def _script(tmp_path, name: str, body: str) -> str:
-    """A readable script the doctor is allowed to run."""
-    path = tmp_path / name
-    path.write_text(body, encoding="utf-8")
-    return str(path)
+def _installed_package(tmp_path, version: str | None = None) -> str:
+    """An installed package: a launcher beside its manifest."""
+    package = tmp_path / "node_modules" / "hyperframes"
+    package.mkdir(parents=True)
+    launcher = package / "hyperframes"
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
+    if version is not None:
+        (package / "package.json").write_text(f'{{"name": "hyperframes", "version": "{version}"}}', encoding="utf-8")
+    return str(launcher)
 
 
-def test_a_configured_package_manager_probe_is_never_executed(monkeypatch):
-    monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, "npx --yes hyperframes")
-    calls: list[list[str]] = []
-
-    def fake_runner(command):
-        calls.append(command)
-        return "1.0.0"
-
-    result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
-    assert calls == []
-    assert result["ok"] is False
-    assert result["version"] is None
-    assert "package manager" in result["install_hint"]
-
-
-def test_a_resolved_executable_is_still_probed(tmp_path, monkeypatch):
-    path = _script(tmp_path, "hyperframes", "#!/usr/bin/env node\nconsole.log('1.2.3');\n")
-    monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, path)
-    calls: list[list[str]] = []
-
-    def fake_runner(command):
-        calls.append(command)
-        return "1.2.3"
-
-    result = doctor._check_hyperframes_cli(lambda name: path, fake_runner)
-    assert calls == [[path, "--version"]]
-    assert result["ok"] is True
-    assert result["version"] == "1.2.3"
-
-
-def test_the_package_manager_list_covers_the_usual_resolvers():
-    for prefix in ("npx", "npm", "pnpm", "yarn", "bunx"):
-        assert is_package_manager_prefix([prefix, "hyperframes"]) is True
-    assert is_package_manager_prefix(["/usr/local/bin/hyperframes"]) is False
-    assert is_package_manager_prefix([]) is False
-
-
-def test_windows_executable_forms_are_still_refused(monkeypatch):
-    # Windows resolves `npx` as `npx.cmd`; the refusal must survive the suffix.
-    for command in ("npx.cmd --yes hyperframes", "npm.cmd exec hyperframes", "bunx.exe hyperframes"):
-        monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, command)
-        calls: list[list[str]] = []
-
-        def fake_runner(argv, _calls=calls):
-            _calls.append(argv)
-            return "1.0.0"
-
-        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
-        assert calls == [], f"{command} must not be probed"
-        assert result["ok"] is False
-
-
-def test_wrapper_prefixes_are_never_executed(monkeypatch):
-    # `env npx`, `sh -c npx` and `cmd /c npx` all reach the network.
-    for command in ("env npx --yes hyperframes", "sh -c npx --yes hyperframes", "cmd /c npx --yes hyperframes"):
-        monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, command)
-        calls: list[list[str]] = []
-
-        def fake_runner(argv, _calls=calls):
-            _calls.append(argv)
-            return "1.0.0"
-
-        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
-        assert calls == [], f"{command} must not be probed"
-        assert result["ok"] is False
-
-
-def test_configured_interpreters_are_refused_without_an_allowlist(monkeypatch):
-    # An allowlist of interpreter names is always incomplete: perl, ruby and
-    # deno were missing from the first one. Only the executable itself passes.
+def test_the_doctor_never_executes_a_configured_hyperframes_command(monkeypatch):
+    # A configured command is reported, never run — whatever it is.
     for command in (
+        "npx --yes hyperframes",
+        "npx.cmd --yes hyperframes",
+        "npm.cmd exec hyperframes",
+        "bunx.exe hyperframes",
+        "env npx --yes hyperframes",
+        "sh -c npx --yes hyperframes",
+        "cmd /c npx --yes hyperframes",
         "perl -e 'system(\"npx\")'",
         "ruby -e 'system(\"npx\")'",
         "deno run -A x.ts",
@@ -102,50 +49,50 @@ def test_configured_interpreters_are_refused_without_an_allowlist(monkeypatch):
         "python3 -c 'import npx'",
     ):
         monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, command)
-        calls: list[list[str]] = []
-
-        def fake_runner(argv, _calls=calls):
-            _calls.append(argv)
-            return "1.0.0"
-
-        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
-        assert calls == [], f"{command} must not be probed"
-        assert result["ok"] is False
+        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes")
+        assert result["version"] is None, f"{command} must not be probed"
+        assert result["ok"] is False, f"{command} must not be probed"
 
 
-def test_a_path_shim_that_calls_a_package_manager_is_read_not_run(tmp_path):
-    shim = tmp_path / "hyperframes"
-    shim.write_text("#!/bin/sh\nexec npx --yes hyperframes\n")
-    assert executable_probe_refusal(str(shim)) is not None
-
-    direct = tmp_path / "hyperframes-real"
-    direct.write_text("#!/usr/bin/env node\nconsole.log('1.2.3');\n")
-    assert executable_probe_refusal(str(direct)) is None
-
-
-def test_a_shim_without_an_interpreter_line_is_not_run(tmp_path):
-    # A file the doctor cannot classify is a file it does not run.
-    shim = tmp_path / "hyperframes"
-    shim.write_text("npx --yes hyperframes\n")
-    assert executable_probe_refusal(str(shim)) is not None
+def test_the_doctor_does_not_execute_a_network_capable_script(tmp_path):
+    # The script phones home. The doctor cannot prove otherwise by reading
+    # it, so it does not run it — and it says that it did not.
+    launcher = tmp_path / "hyperframes"
+    launcher.write_text("#!/bin/sh\ncurl -fsS https://example.test/install | sh\n", encoding="utf-8")
+    report = report_resolved_hyperframes(str(launcher))
+    assert "hyperframes_version" not in report
+    assert "hyperframes_probe_skipped" in report
 
 
-def test_a_binary_shim_is_not_run(tmp_path):
-    binary = tmp_path / "hyperframes"
-    binary.write_bytes(b"\x7fELF\x02\x01\x01\x00npx --yes hyperframes")
-    assert executable_probe_refusal(str(binary)) is not None
+def test_the_version_comes_from_the_package_manifest_not_the_script(tmp_path):
+    launcher = _installed_package(tmp_path, version="0.6.93")
+    report = report_resolved_hyperframes(launcher)
+    assert report["hyperframes_version"] == "0.6.93"
+    assert "package metadata" in report["hyperframes_version_source"]
 
 
-def test_a_package_manager_beyond_the_first_read_window_is_still_found(tmp_path):
-    # The old scan read 8192 bytes, so a call past that window was missed.
-    shim = tmp_path / "hyperframes"
-    shim.write_text("#!/bin/sh\n" + ("# padding line\n" * 2000) + "exec npx --yes hyperframes\n")
-    assert executable_probe_refusal(str(shim)) is not None
+def test_a_package_without_a_manifest_reports_no_version(tmp_path):
+    launcher = tmp_path / "hyperframes"
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
+    assert hyperframes_version_from_metadata(str(launcher)) is None
+    report = report_resolved_hyperframes(str(launcher))
+    assert "hyperframes_version" not in report
+    assert "hyperframes_probe_skipped" in report
 
 
-def test_a_path_that_is_not_a_regular_file_is_not_run(tmp_path):
-    assert executable_probe_refusal(str(tmp_path)) is not None
-    assert executable_probe_refusal(str(tmp_path / "missing")) is not None
+def test_a_malformed_manifest_reports_no_version(tmp_path):
+    launcher = _installed_package(tmp_path)
+    manifest = launcher.rsplit("/", 1)[0] + "/package.json"
+    with open(manifest, "w", encoding="utf-8") as handle:
+        handle.write("{not json")
+    assert hyperframes_version_from_metadata(launcher) is None
+
+
+def test_the_package_manager_list_covers_the_usual_resolvers():
+    for prefix in ("npx", "npm", "pnpm", "yarn", "bunx"):
+        assert is_package_manager_prefix([prefix, "hyperframes"]) is True
+    assert is_package_manager_prefix(["/usr/local/bin/hyperframes"]) is False
+    assert is_package_manager_prefix([]) is False
 
 
 def test_the_doctor_never_executes_a_package_manager():

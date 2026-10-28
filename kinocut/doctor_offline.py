@@ -1,15 +1,16 @@
 """The doctor's offline rules for version probes.
 
-A package manager resolves its package over the network, so the doctor never
-runs one: a configured ``npx --yes hyperframes`` prefix is reported, not
-executed. The rules live here so the doctor module stays inside its size
-budget and so the rule is testable on its own.
+The doctor executes nothing that can reach the network. A package manager
+resolves its package over the network, and a resolved script can reach it
+whatever its source says — reading a script does not prove that it is
+offline. So the doctor reports what it finds and reads versions from the
+installed package's metadata on disk.
 """
 
 from __future__ import annotations
 
-import re
 import os
+import json
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -24,19 +25,6 @@ WINDOWS_EXECUTABLE_SUFFIXES = (".cmd", ".exe", ".bat", ".ps1")
 # or a package manager can run anything, and an allowlist of their names
 # would always be incomplete, so the rule is inverted instead.
 DIRECT_EXECUTABLE_NAME = "hyperframes"
-# A shim whose only action is to call a package manager takes the doctor
-# online. The patterns match an invocation, not the word in a comment.
-PACKAGE_MANAGER_INVOCATIONS = (
-    r"\b(?:exec|sudo|command|nohup)\s+(?:-\S+\s+)*(?:npx|npm|pnpm|yarn|bunx|bun|uvx|uv|pipx)\b",
-    r"\bnpx\s+",
-    r"\bnpm\s+(?:exec|install|i|add|ci|run)\b",
-    r"\b(?:pnpm|yarn|bun)\s+(?:dlx|exec|add|install|create)\b",
-    r"\bbunx\s+",
-    r"\buvx\s+",
-    r"\bpipx\s+run\b",
-)
-# A file larger than this cannot be read whole, so it cannot be cleared.
-MAX_INSPECTABLE_BYTES = 2 * 1024 * 1024
 
 
 def _basename(token: str) -> str:
@@ -72,31 +60,27 @@ def is_direct_executable_command(prefix: list[str]) -> bool:
     return _basename(prefix[0]) == DIRECT_EXECUTABLE_NAME
 
 
-def executable_probe_refusal(path: str) -> str | None:
-    """Why a resolved executable may not be run, or None when it may.
+def hyperframes_version_from_metadata(path: str) -> str | None:
+    """The installed package's version, read from disk without running it.
 
-    The doctor cannot prove that a binary stays offline, so it refuses what
-    it cannot read and clear: a path that is not a regular file, a file too
-    large to inspect, a binary, a script with no interpreter line, and any
-    file that invokes a package manager anywhere in it.
+    The version comes from the nearest ``package.json`` above the resolved
+    path. Reading a file is not executing anything, so it cannot phone home.
     """
     try:
         target = Path(path).resolve()
-        if not target.is_file():
-            return "the resolved hyperframes path is not a regular file"
-        if target.stat().st_size > MAX_INSPECTABLE_BYTES:
-            return "the resolved hyperframes file is too large to inspect"
-        data = target.read_bytes()
     except OSError:
-        return "the resolved hyperframes file could not be read"
-    if b"\0" in data[:8192]:
-        return "the resolved hyperframes file is a binary; the doctor does not run it"
-    if not data.startswith(b"#!"):
-        return "the resolved hyperframes file has no interpreter line; the doctor does not run it"
-    text = data.decode("utf-8", errors="replace").lower()
-    for pattern in PACKAGE_MANAGER_INVOCATIONS:
-        if re.search(pattern, text):
-            return "the resolved hyperframes file invokes a package manager; the doctor does not run it"
+        return None
+    for parent in list(target.parents)[:6]:
+        manifest = parent / "package.json"
+        if not manifest.is_file():
+            continue
+        try:
+            data = json.loads(manifest.read_text(encoding="utf-8", errors="replace"))
+        except (OSError, ValueError):
+            return None
+        version = data.get("version")
+        if isinstance(version, str) and version:
+            return version
     return None
 
 
@@ -159,23 +143,29 @@ def offline_probe_environment() -> dict[str, str]:
                 os.environ["KINOCUT_HYPERFRAMES_TELEMETRY"] = previous
 
 
-def probe_resolved_hyperframes(path: str, version_runner: Callable[[list[str]], str | None]) -> dict[str, Any]:
-    """Probe a resolved Hyperframes executable, or say why it was not run.
+def report_resolved_hyperframes(path: str) -> dict[str, Any]:
+    """Report the resolved Hyperframes executable without running it.
 
-    Nothing is executed that the doctor cannot read and clear: an unreadable
-    file, a binary, a script with no interpreter line, and a file that
-    invokes a package manager anywhere in it are reported, not run.
+    A resolved script can reach the network whatever its source says, and
+    the doctor cannot prove otherwise, so it does not run one. The version
+    comes from the installed package's metadata, read from disk.
     """
-    refusal = executable_probe_refusal(path)
-    if refusal is not None:
-        return {"hyperframes_probe_skipped": refusal}
-    version = version_runner([path, "--version"])
-    return {"hyperframes_version": version} if version else {}
+    version = hyperframes_version_from_metadata(path)
+    if version:
+        return {
+            "hyperframes_version": version,
+            "hyperframes_version_source": "package metadata, read from disk",
+        }
+    return {
+        "hyperframes_probe_skipped": (
+            "the doctor does not execute a resolved hyperframes script; "
+            "its version is not read from the script's output"
+        )
+    }
 
 
 def check_hyperframes_cli(
     which: Callable[[str], str | None],
-    version_runner: Callable[[list[str]], str | None],
 ) -> dict[str, Any]:
     """Report the Hyperframes CLI without running anything that can phone home."""
     from .errors import HyperframesNotFoundError
@@ -190,8 +180,9 @@ def check_hyperframes_cli(
     if refusal is not None:
         return refusal
     path = prefix[0] if prefix != ["hyperframes"] else which("hyperframes")
-    version = version_runner(command) if path else None
-    ok = path is not None and version is not None
+    extra = report_resolved_hyperframes(path) if path else {}
+    version = extra.get("hyperframes_version")
+    ok = path is not None
     return {
         "name": "hyperframes",
         "category": "hyperframes",
@@ -203,4 +194,5 @@ def check_hyperframes_cli(
         "install_hint": None
         if ok
         else (f"Install a pinned Hyperframes package, add hyperframes to PATH, or set {HYPERFRAMES_COMMAND_ENV}."),
+        **extra,
     }

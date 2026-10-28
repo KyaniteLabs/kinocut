@@ -107,20 +107,22 @@ def _node_and_hyperframes_which(name: str) -> str | None:
 
 
 def _hyperframes_script(tmp_path) -> str:
-    """A real, readable script: the doctor runs only what it can read."""
-    path = tmp_path / "hyperframes"
+    """An installed package: a launcher beside its manifest.
+    The doctor reads the manifest; it does not run the launcher.
+    """
+    package = tmp_path / "node_modules" / "hyperframes"
+    package.mkdir(parents=True)
+    path = package / "hyperframes"
     path.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
+    (package / "package.json").write_text('{"name": "hyperframes", "version": "0.6.93"}', encoding="utf-8")
     return str(path)
 
 
-def test_node_check_reports_hyperframes_version_via_injectable_runner(tmp_path):
-    """The npx hyperframes probe must go through version_runner — a raw
-    subprocess call here is untestable (the @hyperframes/core probe defect class)."""
+def test_node_check_reports_hyperframes_version_from_package_metadata(tmp_path):
+    """The version comes from the manifest on disk, not from running the script."""
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
-        if any("hyperframes" in part for part in command):
-            return "0.6.93"
         return "v22.0.0"
 
     hyperframes = _hyperframes_script(tmp_path)
@@ -133,22 +135,22 @@ def test_node_check_reports_hyperframes_version_via_injectable_runner(tmp_path):
     assert checks["node"]["hyperframes_version"] == "0.6.93"
 
 
-def test_node_check_omits_hyperframes_version_when_probe_fails(tmp_path):
+def test_node_check_reports_no_hyperframes_version_without_a_manifest(tmp_path):
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
-        if any("hyperframes" in part for part in command):
-            return None
         return "v22.0.0"
 
-    hyperframes = _hyperframes_script(tmp_path)
+    launcher = tmp_path / "hyperframes"
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
     report = run_diagnostics(
-        which=lambda name: hyperframes if name == "hyperframes" else _node_and_hyperframes_which(name),
+        which=lambda name: str(launcher) if name == "hyperframes" else _node_and_hyperframes_which(name),
         version_runner=fake_version,
         find_spec=lambda name: None,
     )
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
+    assert "hyperframes_probe_skipped" in checks["node"]
 
 
 def test_node_check_skips_npx_yes_without_hyperframes_cli():

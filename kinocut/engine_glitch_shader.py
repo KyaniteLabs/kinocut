@@ -224,7 +224,7 @@ def _validate_shader_frame_count(frame_count: int, input_path: str, max_frames: 
     """Raise typed errors for zero or excessive frame counts."""
     if frame_count == 0:
         raise MCPVideoError(
-            f"No frames extracted from {input_path}",
+            "No frames extracted from the input",
             error_type="processing_error",
             code="no_frames_extracted",
         )

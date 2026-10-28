@@ -44,7 +44,7 @@ def read_audio(
 
     path_obj = Path(path)
     if not path_obj.exists():
-        raise MCPVideoError(f"Audio file not found: {path}", error_type="input_error", code="invalid_input")
+        raise MCPVideoError("Audio file not found", error_type="input_error", code="invalid_input")
 
     data, sample_rate = sf.read(path, dtype=dtype, always_2d=always_2d)
 

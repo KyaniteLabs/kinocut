@@ -10,6 +10,10 @@ the distribution differently, and an unpinned `uvx` launch would sail past a
 pip-only check. The former name ships as a shim, so ``mcp-video`` is a grammar
 of its own. A current status file is a current surface: it is scanned, and
 the history it records is pinned to the version that was true at the time.
+
+Pinning is not enough on its own: the sweep compares the captured version
+with the release it must name. ``pip install kinocut==1.15.2`` is pinned and
+still wrong.
 """
 
 from __future__ import annotations
@@ -27,22 +31,81 @@ CURRENT_FILES = ("docs/status/NOW.md",)
 SCANNED_SUFFIXES = (".md", ".txt", ".py", ".json", ".yaml", ".yml", ".toml")
 ROOT_MANIFESTS = ("server.json", "smithery.yaml", "gemini-extension.json", "mcpb/manifest.json", "package.json")
 
-# Every grammar that names the distribution. Each capture is the version
-# token that follows the package name; it must carry the version pin.
+# The release every current surface must name.
+EXPECTED_PINS = {"kinocut": "1.16.5", "mcp-video": "1.6.20"}
+
+# Every grammar that names the distribution, with the distribution it names.
+# Each capture is the version token that follows the package name; it must be
+# the release in EXPECTED_PINS for that distribution. The token is
+# version-shaped on purpose: a capture that ran to the end of the word would
+# swallow the punctuation around it — a backtick, a comma, a closing paren —
+# and call a correct pin wrong.
+VERSION_PATTERN = r"(?:==|@)?[0-9][0-9A-Za-z]*(?:\.[0-9A-Za-z]+)*"
 INSTALL_GRAMMARS = (
-    re.compile(r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?mcp-video(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"pipx\s+run(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
+    (
+        "kinocut",
+        re.compile(
+            r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
+    (
+        "mcp-video",
+        re.compile(
+            r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?mcp-video(?:\[[a-z0-9,-]+\])?[\"']?"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
+    (
+        "kinocut",
+        re.compile(
+            r"pipx\s+run(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
     # The flag and the package can be separated by whitespace or by a JSON
     # array boundary: `"--from", "kinocut"`.
-    re.compile(r"--from(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"--with(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
+    (
+        "kinocut",
+        re.compile(
+            r"--from(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
+    (
+        "kinocut",
+        re.compile(
+            r"--with(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
     # A bare `uvx kinocut` counts as a launch only when it opens a command.
     # In prose it describes the registry entry's stdio package, and dated
     # records keep the version that was true at the time.
-    re.compile(r"^\s*(?:\$ )?uvx\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"npm\s+install\s+(?:-\S+\s+)*[\"']?kinocut(@[^\s\"']*)?"),
+    (
+        "kinocut",
+        re.compile(
+            r"^\s*(?:\$ )?uvx\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
+    (
+        "kinocut",
+        re.compile(
+            r"npm\s+install\s+(?:-\S+\s+)*[\"']?kinocut"
+            rf"(?P<version>{VERSION_PATTERN})?"
+        ),
+    ),
 )
+
+
+def _captured_version(token: str) -> str:
+    """The version a capture names, with the installer prefix removed."""
+    captured = (token or "").strip()
+    for prefix in ("==", "@"):
+        if captured.startswith(prefix):
+            return captured[len(prefix) :]
+    return captured
 
 
 def _is_dated(relative: Path) -> bool:
@@ -75,15 +138,14 @@ def _current_files() -> list[Path]:
 
 
 def _offenders(path: Path, relative: Path) -> list[str]:
-    """The unpinned install instructions in one file."""
+    """The install instructions in one file that do not name the release."""
     offenders: list[str] = []
     text = path.read_text(encoding="utf-8", errors="replace")
     for number, line in enumerate(text.splitlines(), 1):
-        for grammar in INSTALL_GRAMMARS:
+        for distribution, grammar in INSTALL_GRAMMARS:
             for match in grammar.finditer(line):
-                version = match.group(1) or ""
-                pinned = version.startswith("==") or version.startswith("@1.")
-                if not pinned:
+                captured = _captured_version(match.group(1) or "")
+                if captured != EXPECTED_PINS[distribution]:
                     offenders.append(f"{relative}:{number}: {line.strip()}")
     return offenders
 
@@ -96,7 +158,7 @@ def test_current_install_instructions_pin_the_released_version(path):
 
 def test_the_sweep_covers_the_launch_grammars_it_claims_to_cover():
     # A guard that only knows about pip is not the guard this file promises.
-    text = " ".join(grammar.pattern for grammar in INSTALL_GRAMMARS)
+    text = " ".join(grammar.pattern for _distribution, grammar in INSTALL_GRAMMARS)
     for grammar in ("pip", "pipx", "uvx", "--from", "--with", "npm", "mcp-video"):
         assert grammar in text
 
@@ -109,10 +171,41 @@ def test_a_dated_record_keeps_its_own_history(tmp_path):
     assert _is_dated(Path("docs/status/OLD.md")) is True
 
 
-def test_a_current_file_with_an_unpinned_install_is_an_offender(tmp_path):
+@pytest.mark.parametrize(
+    "line",
+    [
+        "pip install kinocut",
+        "pip install kinocut==1.15.2",
+        'pip install "kinocut[image]==1.15.2"',
+        "uvx kinocut==1.15.2",
+        "uvx --from kinocut==1.15.2 kino",
+        '"args": ["--from", "kinocut==1.15.2", "kino"]',
+        "npm install kinocut@1.15.2",
+        "pip install -U mcp-video==1.6.17",
+    ],
+)
+def test_a_wrong_or_missing_release_is_an_offender(tmp_path, line):
+    # Pinned is not the same as correct: the sweep compares with the release.
     current = tmp_path / "docs" / "NEW.md"
     current.parent.mkdir(parents=True)
-    current.write_text("pip install -U kinocut\n", encoding="utf-8")
-    assert _is_dated(Path("docs/NEW.md")) is False
+    current.write_text(line + "\n", encoding="utf-8")
     assert _offenders(current, Path("docs/NEW.md"))
-    assert _offenders(current, Path("docs/NEW.md")) != []
+
+
+@pytest.mark.parametrize(
+    "line",
+    [
+        "pip install kinocut==1.16.5",
+        'pip install "kinocut[image]==1.16.5"',
+        "uvx kinocut==1.16.5",
+        "uvx --from kinocut==1.16.5 kino",
+        '"args": ["--from", "kinocut==1.16.5", "kino"]',
+        "npm install kinocut@1.16.5",
+        "pip install -U mcp-video==1.6.20",
+    ],
+)
+def test_the_current_release_is_not_an_offender(tmp_path, line):
+    current = tmp_path / "docs" / "NEW.md"
+    current.parent.mkdir(parents=True)
+    current.write_text(line + "\n", encoding="utf-8")
+    assert not _offenders(current, Path("docs/NEW.md"))

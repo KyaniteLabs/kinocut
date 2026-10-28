@@ -7,6 +7,8 @@ credential — so they are named by type, never repeated.
 
 from __future__ import annotations
 
+import json
+
 import pytest
 
 from kinocut.errors import MCPVideoError, ValidationError
@@ -108,3 +110,95 @@ def test_a_rejected_codec_still_says_what_to_do():
     error = CodecError("hevc", detail="the codec hevc is not supported")
     assert "hevc" not in str(error)
     assert "H.264" in str(error.to_dict()["suggested_action"])
+
+
+# The output-path guards are the same class: a path in an error message is a
+# path in a log, a transcript and a screenshot. The condition is enough to
+# act on; the value adds exposure and nothing else.
+
+CALLER_FILE_NAME = "secret-media-9f3a7c.mp4"
+
+
+@pytest.fixture
+def isolated_operation():
+    from kinocut.ffmpeg_helpers import _reset_operation_inputs
+
+    _reset_operation_inputs()
+    yield
+    _reset_operation_inputs()
+
+
+def _serialized(exc: MCPVideoError) -> str:
+    """The payload the MCP server and the CLI hand to the caller."""
+    return json.dumps(exc.to_dict(), default=str)
+
+
+def _assert_absent(exc: MCPVideoError, secret: str) -> None:
+    """A submitted value is absent from every layer the caller can see."""
+    assert secret not in str(exc)
+    assert secret not in _serialized(exc)
+
+
+def test_the_alias_guard_does_not_repeat_the_path(tmp_path, isolated_operation):
+    from kinocut.ffmpeg_helpers import _reject_self_overwrite, _validate_input_path
+
+    source = tmp_path / CALLER_FILE_NAME
+    source.write_bytes(b"input")
+    _validate_input_path(str(source))
+    with pytest.raises(MCPVideoError) as raised:
+        _reject_self_overwrite(str(source))
+    _assert_absent(raised.value, str(source))
+    assert "aliases an input" in str(raised.value)
+
+
+def test_the_existing_output_guard_does_not_repeat_the_path(tmp_path, isolated_operation):
+    from kinocut.ffmpeg_helpers import _validate_write_path
+
+    existing = tmp_path / CALLER_FILE_NAME
+    existing.write_bytes(b"prior")
+    with pytest.raises(MCPVideoError) as raised:
+        _validate_write_path(
+            str(existing),
+            allowed_existing_suffixes=frozenset({".mp4"}),
+            label="Output path",
+        )
+    _assert_absent(raised.value, str(existing))
+    assert "already exists" in str(raised.value)
+
+
+def test_the_unsafe_path_guard_does_not_repeat_the_path(tmp_path, isolated_operation):
+    from kinocut.ffmpeg_helpers import _validate_artifact_location
+
+    unsafe = f"{tmp_path}/{CALLER_FILE_NAME}/../{CALLER_FILE_NAME}"
+    with pytest.raises(MCPVideoError) as raised:
+        _validate_artifact_location(unsafe, "Output path")
+    _assert_absent(raised.value, unsafe)
+    assert CALLER_FILE_NAME not in str(raised.value)
+    assert "directory traversal" in str(raised.value)
+
+
+def test_the_cli_panel_does_not_repeat_the_path(tmp_path, capfd, monkeypatch, isolated_operation):
+    from kinocut.cli.formatting import _format_error
+    from kinocut.ffmpeg_helpers import _validate_artifact_location
+
+    monkeypatch.setenv("COLUMNS", "240")
+    unsafe = f"{tmp_path}/{CALLER_FILE_NAME}/../{CALLER_FILE_NAME}"
+    with pytest.raises(MCPVideoError) as raised:
+        _validate_artifact_location(unsafe, "Output path")
+    _format_error(raised.value)
+    captured = capfd.readouterr()
+    output = captured.out + captured.err
+    assert CALLER_FILE_NAME not in output
+    # The message was rendered, so the absence above is not a blank panel.
+    assert "directory traversal" in output
+
+
+def test_the_retry_message_does_not_repeat_the_path(tmp_path, isolated_operation):
+    from kinocut.errors import retry_message
+    from kinocut.ffmpeg_helpers import _validate_artifact_location
+
+    unsafe = f"{tmp_path}/{CALLER_FILE_NAME}/../{CALLER_FILE_NAME}"
+    with pytest.raises(MCPVideoError) as raised:
+        _validate_artifact_location(unsafe, "Output path")
+    retry = retry_message(str(raised.value), getattr(raised.value, "code", "unknown"))
+    assert CALLER_FILE_NAME not in retry

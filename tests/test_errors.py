@@ -84,9 +84,12 @@ class TestFFprobeNotFoundError:
 
 
 class TestInputFileError:
-    def test_message_includes_path(self):
+    def test_message_does_not_include_the_path(self):
+        # An error names the argument and the failure; it never repeats what
+        # the caller submitted.
         err = InputFileError("/tmp/video.mp4")
-        assert "/tmp/video.mp4" in str(err)
+        assert "/tmp/video.mp4" not in str(err)
+        assert "Input file error" in str(err)
 
     def test_message_includes_reason(self):
         err = InputFileError("/tmp/video.mp4", "Permission denied")
@@ -103,15 +106,16 @@ class TestInputFileError:
         assert "suggested_action" in d
         assert d["suggested_action"]["auto_fix"] is False
 
-    def test_huge_path_is_truncated_not_echoed(self):
+    def test_a_huge_path_is_never_echoed(self):
         # F4 regression: a 100 KB invalid path must not amplify into a
-        # ~200 KB error reply echoing the caller's own garbage back.
+        # ~200 KB error reply echoing the caller's own garbage back. The path
+        # is not echoed at all, so there is nothing left to truncate.
         huge = "/tmp/" + "x" * 100_000 + ".mp4"
         err = InputFileError(huge)
         message = str(err)
         assert len(message) < 400
-        assert "chars truncated" in message
-        assert message.endswith(".mp4 — File not found (archivo no encontrado)")
+        assert huge not in message
+        assert message.endswith("File not found (archivo no encontrado)")
 
     def test_to_dict_caps_oversized_messages(self):
         from mcp_video.errors import MCPVideoError
@@ -134,13 +138,15 @@ class TestInputFileError:
 
 
 class TestCodecError:
-    def test_message_includes_codec(self):
+    def test_message_does_not_include_the_codec(self):
         err = CodecError("vp9")
-        assert "vp9" in str(err)
+        assert "vp9" not in str(err)
+        assert "Codec error" in str(err)
 
     def test_message_with_detail(self):
         err = CodecError("vp9", "not supported by encoder")
-        assert "vp9" in str(err)
+        # The detail is the diagnosis and stays; the submitted codec does not.
+        assert "vp9" not in str(err)
         assert "not supported by encoder" in str(err)
 
     def test_error_type(self):
@@ -152,7 +158,9 @@ class TestCodecError:
         err = CodecError("h265")
         d = err.to_dict()
         assert d["suggested_action"]["auto_fix"] is True
-        assert "h265" in d["suggested_action"]["description"]
+        # The guidance says what to do without repeating the submitted codec.
+        assert "h265" not in d["suggested_action"]["description"]
+        assert "H.264" in d["suggested_action"]["description"]
 
     def test_has_docs_url(self):
         err = CodecError("h265")

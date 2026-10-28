@@ -18,7 +18,7 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
-from .doctor_offline import offline_probe_environment, probe_resolved_hyperframes
+from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
     DEFAULT_OVERWRITE,
@@ -274,7 +274,7 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
         # Invoke the already-resolved executable directly. `npx --yes` may
         # consult the npm registry when PATH resolution and npm's local bins
         # disagree (a shim outside npm's bin dirs); doctor must stay offline.
-        extra.update(probe_resolved_hyperframes(hyperframes_path, version_runner))
+        extra.update(report_resolved_hyperframes(hyperframes_path))
 
     return {
         "name": definition["name"],
@@ -405,10 +405,10 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
     }
 
 
-def _check_hyperframes_cli(which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
+def _check_hyperframes_cli(which: WhichFn) -> dict[str, Any]:
     from .doctor_offline import check_hyperframes_cli
 
-    return check_hyperframes_cli(which, version_runner)
+    return check_hyperframes_cli(which)
 
 
 # Probe for @hyperframes/core in the active Node package layout. The package is
@@ -634,7 +634,7 @@ def run_diagnostics(
         checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
     checks.extend(
         [
-            _check_hyperframes_cli(which, version_runner),
+            _check_hyperframes_cli(which),
             _check_hyperframes_core(which, version_runner),
         ]
     )
