@@ -115,6 +115,10 @@ def _measured_segment_durations(paths: list[str]) -> list[float]:
 
 _CAPTION_TEXT_LIMIT = 240
 _RECEIPT_ENTRY_LIMIT = 50
+# The source probe rounds to the centisecond, so a segment may end a hair past
+# the measured EOF without really exceeding it. This tolerance is the accepted
+# boundary; anything beyond it is refused.
+_SOURCE_EOF_TOLERANCE = 0.05
 
 
 def _caption_receipt(
@@ -134,6 +138,7 @@ def _caption_receipt(
     if truncated_captions:
         warnings.append(f"{truncated_captions} caption(s) were truncated to {_CAPTION_TEXT_LIMIT} characters")
     count_unverified = False
+    evidenced = bool(generated_entries)
     if generated_entries:
         burned_entries = generated_entries
         burned_count = len(burned_entries)
@@ -146,11 +151,18 @@ def _caption_receipt(
     else:
         burned_entries = caption_entries
         burned_count = len(burned_entries)
-        if isinstance(generated_count, int) and generated_count != burned_count:
-            count_unverified = True
+        # No list means no evidence of the burn. A count that happens to match
+        # the request is still a count nobody can evidence, so it stays
+        # unverified.
+        count_unverified = True
+        warnings.append(
+            "the subtitle generator returned no entry list; the burned count is unverified "
+            "and the requested captions are listed"
+        )
+        if isinstance(generated_count, int):
             warnings.append(
                 f"subtitle generator reported {generated_count} entries and returned no list; "
-                "the burned count is unverified and the requested captions are listed"
+                "the count is reported as rendered but cannot be evidenced"
             )
     if not count_unverified and burned_count != requested_count:
         dropped = requested_count - burned_count
@@ -164,12 +176,17 @@ def _caption_receipt(
         "requested_entry_count": requested_count,
         "burned_entry_count": burned_count,
         "count_unverified": count_unverified,
+        "burned_evidence": "generator_list" if evidenced else "requested_only",
         "entries": carried,
         "entries_truncated": max(0, burned_count - len(carried)),
+        # The SRT is a transient build input inside the flow-owned workdir, so
+        # there is no durable path to report. The key stays for readers that
+        # expect it; the value is honestly empty.
+        "subtitle_path": None,
         "warnings": warnings,
     }
-    if getattr(generated, "entry_count", None) is not None and generated.entry_count != len(caption_entries):
-        caption_step["rendered_entry_count"] = generated.entry_count
+    if isinstance(generated_count, int):
+        caption_step["rendered_entry_count"] = generated_count
     return caption_step
 
 
@@ -254,8 +271,11 @@ def _validate_source_duration(source: str, parsed: list[tuple[float, float, str 
     if duration <= 0:
         raise _flow_error("could not measure the source duration; refusing to render segments that cannot be verified")
     for index, (_start, end, _text) in enumerate(parsed):
-        if end > duration + 0.05:
-            raise _flow_error(f"segment {index} end ({end}s) exceeds the source duration ({duration:.2f}s)")
+        if end > duration + _SOURCE_EOF_TOLERANCE:
+            raise _flow_error(
+                f"segment {index} end ({end}s) exceeds the source duration "
+                f"({duration:.2f}s, tolerance {_SOURCE_EOF_TOLERANCE}s)"
+            )
 
 
 def video_shorts(
@@ -328,7 +348,7 @@ def video_shorts(
                 "output_path": vertical.output_path,
                 "external_posting": False,
                 "receipt": {
-                    "schema_version": 1,
+                    "schema_version": 2,
                     "receipt_kind": "video_shorts",
                     "steps": steps,
                 },

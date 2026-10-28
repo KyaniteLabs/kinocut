@@ -11,6 +11,9 @@ from __future__ import annotations
 from typing import Any
 
 PACKAGE_MANAGER_PREFIXES = ("npx", "npm", "pnpm", "yarn", "bunx", "bun")
+# Windows resolves the same tools as `npx.cmd`, `npm.cmd` and so on, so the
+# executable suffix is stripped before the name is compared.
+WINDOWS_EXECUTABLE_SUFFIXES = (".cmd", ".exe", ".bat", ".ps1")
 
 
 def is_package_manager_prefix(prefix: list[str]) -> bool:
@@ -22,6 +25,10 @@ def is_package_manager_prefix(prefix: list[str]) -> bool:
     if not prefix:
         return False
     head = prefix[0].replace("\\", "/").rsplit("/", 1)[-1].lower()
+    for suffix in WINDOWS_EXECUTABLE_SUFFIXES:
+        if head.endswith(suffix):
+            head = head[: -len(suffix)]
+            break
     return head in PACKAGE_MANAGER_PREFIXES
 
 

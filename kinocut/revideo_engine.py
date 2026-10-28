@@ -178,7 +178,7 @@ def _validate_job(job: Any) -> dict[str, Any]:
     ):
         raise ValidationError(
             "job.out_file",
-            f"must be a bare filename ending with one of {REVIDEO_OUT_FILE_SUFFIXES} (got {out_file!r})",
+            f"must be a bare filename ending with one of {REVIDEO_OUT_FILE_SUFFIXES} (got {_describe(out_file)})",
         )
     normalized["out_file"] = out_file
     return normalized

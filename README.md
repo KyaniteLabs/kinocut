@@ -127,7 +127,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
 | **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut==1.16.5`. |
-| **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
+| **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut==1.16.5` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
 | **This source version** | **1.16.5 published** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Published `mcp-video==1.6.20` pins this runtime; verification is recorded in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 

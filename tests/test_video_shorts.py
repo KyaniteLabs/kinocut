@@ -249,6 +249,10 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     steps = {step["stage"]: step for step in result["receipt"]["steps"]}
     entries = steps["captions"]["entries"]
     assert [(entry["start"], entry["end"]) for entry in entries] == [(0.0, 2.0), (2.0, 5.0)]
+    # The receipt moved to schema v2 and keeps the v1 subtitle_path key, with
+    # an honest null: the SRT is a transient build input, not a durable path.
+    assert result["receipt"]["schema_version"] == 2
+    assert steps["captions"]["subtitle_path"] is None
     # The generator reported 99 entries and returned no list, so the burned
     # count cannot be verified: the receipt states the evidence it has (the
     # two requested captions) and says the count is unverified. It never
@@ -339,3 +343,41 @@ def test_captions_refuse_a_measurement_list_that_does_not_match_the_segments():
     with pytest.raises(Exception) as excinfo:
         _apply_captions([(0.0, 1.0, "one")], [], "assembled.mp4", None, "final.mp4", "/tmp")
     assert "measured segment durations" in str(excinfo.value)
+
+
+def test_a_matching_count_with_no_entry_list_stays_unverified():
+    # A count that happens to match the request is still a count nobody can
+    # evidence, so it must not be presented as a verified burn.
+    from kinocut.product.shorts_flow import _caption_receipt
+
+    class _Generated:
+        entry_count = 2
+        entries = ()
+        warnings = ()
+
+    receipt = _caption_receipt(
+        [
+            {"start": 0.0, "end": 1.0, "text": "one"},
+            {"start": 1.0, "end": 2.0, "text": "two"},
+        ],
+        _Generated(),
+        0,
+    )
+    assert receipt["count_unverified"] is True
+    assert receipt["burned_evidence"] == "requested_only"
+    assert receipt["rendered_entry_count"] == 2
+
+
+def test_the_source_eof_tolerance_is_the_accepted_boundary(monkeypatch):
+    from kinocut.product import shorts_flow
+
+    class _Probe:
+        duration = 10.0
+
+    monkeypatch.setattr("kinocut.engine_probe.probe", lambda source: _Probe())
+    # Inside the tolerance the segment is accepted: the probe rounds.
+    shorts_flow._validate_source_duration("source.mp4", [(0.0, 10.04, "one")])
+    # Beyond it, the request is refused.
+    with pytest.raises(Exception) as excinfo:
+        shorts_flow._validate_source_duration("source.mp4", [(0.0, 10.06, "one")])
+    assert "exceeds the source duration" in str(excinfo.value)

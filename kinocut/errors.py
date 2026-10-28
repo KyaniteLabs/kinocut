@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 import contextlib
+import functools
 from contextvars import ContextVar
 from typing import Any
 
@@ -52,15 +53,45 @@ _NO_CLI_EQUIVALENT: frozenset[str] = frozenset(
 )
 
 
+@functools.lru_cache(maxsize=1)
+def _cli_command_names() -> frozenset[str]:
+    """The flat CLI command names the parser actually registers.
+
+    The CLI names do not follow one mechanical pattern — ``video_trim`` is
+    ``kino trim`` while ``video_ai_transcribe`` is ``kino video-ai-transcribe``
+    — so a retry message checks the parser instead of inventing a command.
+    """
+    try:
+        from kinocut.cli.parser import build_parser
+
+        parser = build_parser()
+    except Exception:
+        # A parser that cannot be built means no command can be verified.
+        # Saying there is no equivalent is honest; naming one is not.
+        return frozenset()
+    names: set[str] = set()
+    for action in parser._actions:
+        choices = getattr(action, "choices", None)
+        if isinstance(choices, dict):
+            names.update(str(name) for name in choices)
+    return frozenset(names)
+
+
 def _cli_tool_name(tool_name: str) -> str | None:
     """Map an MCP tool name to its flat CLI command, or None when none exists."""
     if tool_name in _NO_CLI_EQUIVALENT:
         return None
     if tool_name in _CLI_TOOL_OVERRIDES:
         return _CLI_TOOL_OVERRIDES[tool_name]
+    commands = _cli_command_names()
+    candidates: list[str] = []
     if tool_name.startswith("video_"):
-        return tool_name.removeprefix("video_").replace("_", "-")
-    return tool_name.replace("_", "-")
+        candidates.append(tool_name.removeprefix("video_").replace("_", "-"))
+    candidates.append(tool_name.replace("_", "-"))
+    for candidate in candidates:
+        if candidate in commands:
+            return candidate
+    return None
 
 
 def _argument_names(arguments: dict[str, Any]) -> str:

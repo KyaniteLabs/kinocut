@@ -61,3 +61,13 @@ def test_a_shipped_advisory_survives_the_action_sanitiser_intact():
     assert "exact component name" in cleaned
     assert "truncated" not in cleaned
     assert cleaned == description
+
+
+def test_a_rejected_out_file_is_never_echoed():
+    # The output filename is the caller's data too.
+    submitted_value = "«redacted:sk-…»"
+    with pytest.raises(ValidationError) as excinfo:
+        _validate_job({"out_file": submitted_value})
+    error = excinfo.value
+    assert submitted_value not in str(error)
+    assert submitted_value not in error.to_dict()["message"]

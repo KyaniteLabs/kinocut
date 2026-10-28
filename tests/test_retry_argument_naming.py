@@ -46,3 +46,25 @@ def test_a_refusal_without_a_context_still_carries_its_tokens():
     message = MCPVideoError("refused", error_type="validation_error", code="output_exists").to_dict()["message"]
     assert "overwrite=true" in message
     assert "--overwrite" in message
+
+
+def test_no_retry_message_advertises_a_command_that_does_not_exist():
+    from kinocut.cli.parser import build_parser
+    from kinocut.errors import _cli_tool_name
+    from kinocut.tool_registry import TOOL_REGISTRY
+
+    parser = build_parser()
+    commands: set[str] = set()
+    for action in parser._actions:
+        choices = getattr(action, "choices", None)
+        if isinstance(choices, dict):
+            commands.update(str(name) for name in choices)
+
+    registry = TOOL_REGISTRY
+    names = sorted(registry.keys() if hasattr(registry, "keys") else registry)
+    offenders = [
+        f"{tool_name} -> kino {command}"
+        for tool_name in names
+        if (command := _cli_tool_name(tool_name)) is not None and command not in commands
+    ]
+    assert not offenders, "a retry message must not name a command that does not exist:\n" + "\n".join(offenders)

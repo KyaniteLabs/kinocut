@@ -46,3 +46,18 @@ def test_the_package_manager_list_covers_the_usual_resolvers():
         assert is_package_manager_prefix([prefix, "hyperframes"]) is True
     assert is_package_manager_prefix(["/usr/local/bin/hyperframes"]) is False
     assert is_package_manager_prefix([]) is False
+
+
+def test_windows_executable_forms_are_still_refused(monkeypatch):
+    # Windows resolves `npx` as `npx.cmd`; the refusal must survive the suffix.
+    for command in ("npx.cmd --yes hyperframes", "npm.cmd exec hyperframes", "bunx.exe hyperframes"):
+        monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, command)
+        calls: list[list[str]] = []
+
+        def fake_runner(argv, _calls=calls):
+            _calls.append(argv)
+            return "1.0.0"
+
+        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
+        assert calls == [], f"{command} must not be probed"
+        assert result["ok"] is False
