@@ -12,6 +12,10 @@ from typing import Any
 # that dumps doubled garbage into the caller's agent context window.
 _MAX_ECHO_CHARS = 200
 _MAX_MESSAGE_CHARS = 2000
+# A suggested action is shipped guidance, not caller text. It still gets a
+# bound, but a generous one: truncating it would drop the words that tell the
+# operator what to change.
+_MAX_ACTION_CHARS = 1000
 
 _RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar("kinocut_retry_context", default=None)
 
@@ -83,7 +87,7 @@ def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
     clean: dict[str, Any] = {}
     for key, value in action.items():
         if isinstance(value, str):
-            clean[key] = truncate_echo(value, limit=_MAX_ECHO_CHARS)
+            clean[key] = truncate_echo(value, limit=_MAX_ACTION_CHARS)
         elif value is None or isinstance(value, (int, float, bool)):
             clean[key] = value
         else:

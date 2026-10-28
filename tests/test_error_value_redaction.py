@@ -41,3 +41,23 @@ def test_the_suggested_action_is_bounded_before_it_leaves_the_process():
     action = error.to_dict()["suggested_action"]
     assert len(action["description"]) < 5000
     assert action["tool"] == "video_trim"
+
+
+def test_a_shipped_advisory_survives_the_action_sanitiser_intact():
+    # The action budget must not eat the words that say what to change.
+    description = (
+        "FFmpeg did not recognize the requested encoder 'LIBX265'. "
+        "Check the exact component name and selected build's support, "
+        "or explicitly choose a compatible operation. "
+        "Kinocut has not changed the requested codec or filters."
+    )
+    error = MCPVideoError(
+        "FFmpeg did not recognize the requested encoder 'LIBX265'.",
+        error_type="dependency_error",
+        code="unknown_encoder",
+        suggested_action={"auto_fix": False, "description": description},
+    )
+    cleaned = error.to_dict()["suggested_action"]["description"]
+    assert "exact component name" in cleaned
+    assert "truncated" not in cleaned
+    assert cleaned == description
