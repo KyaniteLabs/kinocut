@@ -18,7 +18,7 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
-from .errors import HyperframesNotFoundError
+from .doctor_offline import offline_probe_environment, probe_resolved_hyperframes
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
     DEFAULT_OVERWRITE,
@@ -184,9 +184,7 @@ def _doctor_probe_environment() -> dict[str, str]:
     environment can carry provider credentials. A version probe needs neither,
     so both are removed.
     """
-    from .hyperframes_engine import _hyperframes_environment
-
-    return _hyperframes_environment()
+    return offline_probe_environment()
 
 
 def _command_version(command: list[str]) -> str | None:
@@ -256,9 +254,7 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
         # Invoke the already-resolved executable directly. `npx --yes` may
         # consult the npm registry when PATH resolution and npm's local bins
         # disagree (a shim outside npm's bin dirs); doctor must stay offline.
-        hf_version = version_runner([hyperframes_path, "--version"])
-        if hf_version:
-            extra["hyperframes_version"] = hf_version
+        extra.update(probe_resolved_hyperframes(hyperframes_path, version_runner))
 
     return {
         "name": definition["name"],
@@ -390,34 +386,9 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
 
 
 def _check_hyperframes_cli(which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
-    from .hyperframes_engine import HYPERFRAMES_COMMAND_ENV, _hyperframes_command_prefix
-    from .doctor_offline import is_package_manager_prefix, package_manager_probe_refusal
+    from .doctor_offline import check_hyperframes_cli
 
-    try:
-        prefix = _hyperframes_command_prefix(which=which)
-    except HyperframesNotFoundError:
-        prefix = ["hyperframes"]
-    command = [*prefix, "--version"]
-    if is_package_manager_prefix(prefix):
-        # A package manager resolves its package over the network, so the
-        # offline doctor does not run one. It reports the configured command
-        # instead of probing it.
-        return package_manager_probe_refusal(command, HYPERFRAMES_COMMAND_ENV)
-    path = prefix[0] if prefix != ["hyperframes"] else which("hyperframes")
-    version = version_runner(command) if path else None
-    ok = path is not None and version is not None
-    return {
-        "name": "hyperframes",
-        "category": "hyperframes",
-        "required": False,
-        "ok": ok,
-        "path": path,
-        "version": version,
-        "command": command,
-        "install_hint": None
-        if ok
-        else (f"Install a pinned Hyperframes package, add hyperframes to PATH, or set {HYPERFRAMES_COMMAND_ENV}."),
-    }
+    return check_hyperframes_cli(which, version_runner)
 
 
 # Probe for @hyperframes/core in the active Node package layout. The package is

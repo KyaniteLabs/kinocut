@@ -21,14 +21,17 @@ ROOT = Path(__file__).resolve().parents[1]
 DATED_PARTS = ("research", "plans", "status", "archive", "retired", "adr", "release-notes")
 DATED_FILES = ("CHANGELOG.md", "public_claims.json", "DIRECTORY_REBRAND_STATUS.md")
 SCANNED_SUFFIXES = (".md", ".txt", ".py", ".json", ".yaml", ".yml", ".toml")
+ROOT_MANIFESTS = ("server.json", "smithery.yaml", "gemini-extension.json", "mcpb/manifest.json", "package.json")
 
 # Every grammar that names the distribution. Each capture is the version
 # token that follows the package name; it must carry the version pin.
 INSTALL_GRAMMARS = (
-    re.compile(r"pip\s+install\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"pipx\s+run\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"--from\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
-    re.compile(r"--with\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
+    re.compile(r"pip\s+install(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
+    re.compile(r"pipx\s+run(?:\s+--?[\w-]+)*\s+[\"']?kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
+    # The flag and the package can be separated by whitespace or by a JSON
+    # array boundary: `"--from", "kinocut"`.
+    re.compile(r"--from(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
+    re.compile(r"--with(?:[\"']\s*,\s*[\"']|\s+)kinocut(?:\[[a-z0-9,-]+\])?[\"']?([^\s\"']*)"),
     # A bare `uvx kinocut` counts as a launch only when it opens a command.
     # In prose it describes the registry entry's stdio package, and dated
     # records keep the version that was true at the time.
@@ -40,6 +43,7 @@ INSTALL_GRAMMARS = (
 def _current_files() -> list[Path]:
     roots = ("docs", "kinocut", "examples", "plugins", "skills", "compat", "workflows")
     files = [ROOT / "README.md", ROOT / "README-PYPI.md", ROOT / "llms.txt"]
+    files.extend(path for path in (ROOT / name for name in ROOT_MANIFESTS) if path.exists())
     for name in roots:
         base = ROOT / name
         if not base.exists():

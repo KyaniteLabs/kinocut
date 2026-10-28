@@ -135,6 +135,7 @@ def _caption_receipt(
     generated_count = getattr(generated, "entry_count", None)
     generated_entries = list(getattr(generated, "entries", None) or [])
     requested_count = len(caption_entries)
+    requested_entries = caption_entries
     if truncated_captions:
         warnings.append(f"{truncated_captions} caption(s) were truncated to {_CAPTION_TEXT_LIMIT} characters")
     count_unverified = False
@@ -149,8 +150,11 @@ def _caption_receipt(
                 "the returned list is used and the count is unverified"
             )
     else:
-        burned_entries = caption_entries
-        burned_count = len(burned_entries)
+        # No list means no evidence of the burn, so there is no burned count
+        # to report. The receipt carries the request and says the burn is
+        # unevidenced, rather than presenting the request as what was burned.
+        burned_entries = []
+        burned_count = None
         # No list means no evidence of the burn. A count that happens to match
         # the request is still a count nobody can evidence, so it stays
         # unverified.
@@ -164,11 +168,12 @@ def _caption_receipt(
                 f"subtitle generator reported {generated_count} entries and returned no list; "
                 "the count is reported as rendered but cannot be evidenced"
             )
-    if not count_unverified and burned_count != requested_count:
+    if evidenced and burned_count is not None and burned_count != requested_count:
         dropped = requested_count - burned_count
         noun = "caption was" if dropped == 1 else "captions were"
         warnings.append(f"{dropped} requested {noun} not burned")
     carried = burned_entries[:_RECEIPT_ENTRY_LIMIT]
+    carried_requested = requested_entries[:_RECEIPT_ENTRY_LIMIT]
     caption_step = {
         "stage": "captions",
         "status": "completed",
@@ -178,7 +183,8 @@ def _caption_receipt(
         "count_unverified": count_unverified,
         "burned_evidence": "generator_list" if evidenced else "requested_only",
         "entries": carried,
-        "entries_truncated": max(0, burned_count - len(carried)),
+        "requested_entries": carried_requested,
+        "entries_truncated": max(0, (burned_count or 0) - len(carried)),
         # The SRT is a transient build input inside the flow-owned workdir, so
         # there is no durable path to report. The key stays for readers that
         # expect it; the value is honestly empty.

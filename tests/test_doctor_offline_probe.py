@@ -61,3 +61,38 @@ def test_windows_executable_forms_are_still_refused(monkeypatch):
         result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
         assert calls == [], f"{command} must not be probed"
         assert result["ok"] is False
+
+
+def test_wrapper_prefixes_are_never_executed(monkeypatch):
+    # `env npx`, `sh -c npx` and `cmd /c npx` all reach the network.
+    for command in ("env npx --yes hyperframes", "sh -c npx --yes hyperframes", "cmd /c npx --yes hyperframes"):
+        monkeypatch.setenv(HYPERFRAMES_COMMAND_ENV, command)
+        calls: list[list[str]] = []
+
+        def fake_runner(argv, _calls=calls):
+            _calls.append(argv)
+            return "1.0.0"
+
+        result = doctor._check_hyperframes_cli(lambda name: "/usr/bin/hyperframes", fake_runner)
+        assert calls == [], f"{command} must not be probed"
+        assert result["ok"] is False
+
+
+def test_a_path_shim_that_calls_a_package_manager_is_read_not_run(tmp_path):
+    from kinocut.doctor_offline import script_invokes_package_manager
+
+    shim = tmp_path / "hyperframes"
+    shim.write_text("#!/bin/sh\nexec npx --yes hyperframes\n")
+    assert script_invokes_package_manager(str(shim)) is True
+
+    direct = tmp_path / "hyperframes-real"
+    direct.write_text("#!/usr/bin/env node\nconsole.log('1.2.3');\n")
+    assert script_invokes_package_manager(str(direct)) is False
+
+
+def test_a_malformed_telemetry_setting_does_not_crash_the_doctor(monkeypatch):
+    monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "maybe")
+    environment = doctor._doctor_probe_environment()
+    # The conservative reading of an invalid value is telemetry off.
+    assert environment["KINOCUT_HYPERFRAMES_TELEMETRY"] == "false"
+    assert environment["HYPERFRAMES_NO_UPDATE_CHECK"] == "1"

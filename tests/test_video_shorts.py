@@ -247,8 +247,10 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     )
 
     steps = {step["stage"]: step for step in result["receipt"]["steps"]}
-    entries = steps["captions"]["entries"]
-    assert [(entry["start"], entry["end"]) for entry in entries] == [(0.0, 2.0), (2.0, 5.0)]
+    # No generator list means no burned entries: the request is carried apart.
+    assert steps["captions"]["entries"] == []
+    requested = steps["captions"]["requested_entries"]
+    assert [(entry["start"], entry["end"]) for entry in requested] == [(0.0, 2.0), (2.0, 5.0)]
     # The receipt moved to schema v2 and keeps the v1 subtitle_path key, with
     # an honest null: the SRT is a transient build input, not a durable path.
     assert result["receipt"]["schema_version"] == 2
@@ -257,11 +259,14 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
     # count cannot be verified: the receipt states the evidence it has (the
     # two requested captions) and says the count is unverified. It never
     # presents 99 as burned.
-    assert steps["captions"]["entry_count"] == 2
+    assert steps["captions"]["entry_count"] is None
     assert steps["captions"]["requested_entry_count"] == 2
-    assert steps["captions"]["burned_entry_count"] == 2
+    assert steps["captions"]["burned_entry_count"] is None
     assert steps["captions"]["count_unverified"] is True
     assert steps["captions"]["entries_truncated"] == 0
+    # No list means no burned entries either: the request is carried apart.
+    assert steps["captions"]["entries"] == []
+    assert len(steps["captions"]["requested_entries"]) == 2
     # A generator that disagrees about the entry count must not be swallowed:
     # the receipt carries both counts and says so out loud.
     assert steps["captions"]["rendered_entry_count"] == 99
@@ -365,6 +370,9 @@ def test_a_matching_count_with_no_entry_list_stays_unverified():
     )
     assert receipt["count_unverified"] is True
     assert receipt["burned_evidence"] == "requested_only"
+    assert receipt["burned_entry_count"] is None
+    assert receipt["entry_count"] is None
+    assert receipt["entries"] == []
     assert receipt["rendered_entry_count"] == 2
 
 

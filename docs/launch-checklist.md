@@ -129,7 +129,7 @@ Quick setup:
   "mcpServers": {
     "Kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
+      "args": ["--from", "kinocut==1.16.5", "kino"]
     }
   }
 }
@@ -169,7 +169,7 @@ Quick setup:
   "mcpServers": {
     "Kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino"]
+      "args": ["--from", "kinocut==1.16.5", "kino"]
     }
   }
 }
@@ -207,7 +207,7 @@ Setup:
 ```json
 {
   "mcpServers": {
-    "Kinocut": { "command": "uvx", "args": ["--from", "kinocut", "kino"] }
+    "Kinocut": { "command": "uvx", "args": ["--from", "kinocut==1.16.5", "kino"] }
   }
 }
 ```

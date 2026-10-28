@@ -71,3 +71,16 @@ def test_a_rejected_out_file_is_never_echoed():
     error = excinfo.value
     assert submitted_value not in str(error)
     assert submitted_value not in error.to_dict()["message"]
+
+
+def test_a_rejected_trim_time_is_never_echoed():
+    # The trim validator used to quote the rejected value back.
+    from kinocut.engine_edit import _validate_trim_times
+
+    submitted_value = "«redacted:sk-…»"
+    with pytest.raises(MCPVideoError) as excinfo:
+        _validate_trim_times(submitted_value, None, None)
+    error = excinfo.value
+    assert submitted_value not in str(error)
+    assert submitted_value not in error.to_dict()["message"]
+    assert "start" in error.to_dict()["message"]
