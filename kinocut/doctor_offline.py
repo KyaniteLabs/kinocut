@@ -15,7 +15,6 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from .errors import MCPVideoError
 
 PACKAGE_MANAGER_PREFIXES = ("npx", "npm", "pnpm", "yarn", "bunx", "bun")
 # Windows resolves the same tools as `npx.cmd`, `npm.cmd` and so on, so the
@@ -157,12 +156,36 @@ def offline_probe_environment() -> dict[str, str]:
     parallel, and a temporary write to ``os.environ`` could be observed by
     another probe halfway through.
     """
-    from .hyperframes_engine import _hyperframes_environment
-
-    try:
-        return _hyperframes_environment()
-    except MCPVideoError:
-        return _hyperframes_environment(telemetry_allowed=False)
+    # The only variables a version probe may see. It reads a version and
+    # exits: it needs to find the program and a locale, and nothing else.
+    # Everything the operator has — a token, a proxy, NODE_OPTIONS pointing
+    # at a hook — is theirs, and a probe that inherits it is neither
+    # credential-free nor offline.
+    allowed = (
+        "PATH",
+        "HOME",
+        "LANG",
+        "LC_ALL",
+        "LC_CTYPE",
+        "TMPDIR",
+        "TEMP",
+        "TMP",
+        "SYSTEMROOT",
+        "WINDIR",
+        "PATHEXT",
+        "COMSPEC",
+    )
+    environment = {key: os.environ[key] for key in allowed if key in os.environ}
+    environment.update(
+        {
+            "HYPERFRAMES_SKIP_SKILLS": "1",
+            "HYPERFRAMES_NO_UPDATE_CHECK": "1",
+            "HYPERFRAMES_NO_TELEMETRY": "1",
+            "VITE_HYPERFRAMES_NO_TELEMETRY": "1",
+            "DO_NOT_TRACK": "1",
+        }
+    )
+    return environment
 
 
 def report_resolved_hyperframes(path: str) -> dict[str, Any]:

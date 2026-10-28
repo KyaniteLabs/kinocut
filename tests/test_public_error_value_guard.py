@@ -20,6 +20,7 @@ and the repair that fixed the leaks it reports agree on what a leak is.
 from __future__ import annotations
 
 import ast
+from pathlib import Path
 
 import pytest
 
@@ -52,6 +53,34 @@ def test_no_exemption_is_stale() -> None:
 
     stale = unused_exemptions(raw_leaks())
     assert not stale, f"exemptions that no longer match anything: {stale}"
+
+
+def test_a_leak_forwarded_through_kwargs_is_detected() -> None:
+    """A caller value handed on through ``**kwargs`` is still caller data.
+
+    Two frames: the handler passes the caller's dictionary to a helper, and
+    the helper is the one that would interpolate it. A guard that only looks
+    at a call's positional arguments sees nothing here.
+    """
+    from tests.error_value_analysis import Function, _propagate
+
+    source = """
+def outer(mapping):
+    return inner(**mapping)
+
+
+def inner(**kwargs):
+    return f"refused: {kwargs['path']}"
+"""
+    tree = ast.parse(source)
+    functions = {node.name: node for node in ast.walk(tree) if isinstance(node, ast.FunctionDef)}
+    outer = Function(Path("probe.py"), functions["outer"])
+    inner = Function(Path("probe.py"), functions["inner"])
+    outer.tainted.add("mapping")
+
+    _propagate(outer, {"inner": [inner]}, set())
+    # The callee's keyword parameter now holds the caller's data.
+    assert "kwargs" in inner.tainted
 
 
 def test_the_guard_itself_detects_a_leak() -> None:

@@ -106,10 +106,11 @@ def _is_dated(relative: Path) -> bool:
     return any(part in DATED_PARTS for part in relative.parts)
 
 
-#: A release heading names the version and the day it shipped.
-_RELEASE_HEADING = re.compile(r"^[*#\s]*\d+\.\d+\.\d+.*\(\d{4}-\d{2}-\d{2}\).*:?$")
-#: A line that carries a date and a version records what was true then.
-_DATED_LINE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b.*\d+\.\d+\.\d+")
+#: A release section names the version it describes. What is under such a
+#: heading is a record of that release, not a current instruction.
+_RELEASE_HEADING = re.compile(r"^(?:#{1,6}\s.*\d+\.\d+\.\d+|\*\*\d+\.\d+\.\d+\*\*)")
+#: A line that opens with a publication date is a record of what shipped.
+_PUBLISHED_LINE = re.compile(r"^Published\s+\d{4}-\d{2}-\d{2}\b")
 
 
 def _is_dated_line(line: str, dated_section: bool) -> bool:
@@ -120,10 +121,15 @@ def _is_dated_line(line: str, dated_section: bool) -> bool:
     records keep the version that was true at the time; rewriting them
     would make the record false. Everything else is an instruction a reader
     may copy, so it has to name the release.
+
+    The classification is structural: a section that names a version, or a
+    line that opens with a publication date. A line that merely *contains* a
+    date and a version somewhere is not history — otherwise an instruction
+    could exempt itself by mentioning a day.
     """
     if dated_section:
         return True
-    return bool(_DATED_LINE.search(line))
+    return bool(_PUBLISHED_LINE.match(line.strip()))
 
 
 def _current_files() -> list[Path]:
@@ -156,17 +162,25 @@ def _offenders(path: Path, relative: Path) -> list[str]:
     for number, line in enumerate(text.splitlines(), 1):
         stripped = line.strip()
         if stripped.startswith("#") or _RELEASE_HEADING.match(stripped):
-            # A heading opens a section; a release heading opens a dated one.
+            # A heading opens a section; a heading that names a version
+            # opens a record of that release.
             dated_section = bool(_RELEASE_HEADING.match(stripped))
-        if _is_dated_line(line, dated_section):
-            continue
+        dated = _is_dated_line(line, dated_section)
         for distribution, grammar in INSTALL_GRAMMARS:
             for match in grammar.finditer(line):
                 captured = _captured_version(match.group(1) or "")
+                if dated and captured:
+                    # A record keeps the version that was true then. A launch
+                    # that names no version at all is not a record: it is an
+                    # instruction, and it has to name a release.
+                    continue
                 if captured != EXPECTED_PINS[distribution]:
                     offender = f"{relative}:{number}: {line.strip()}"
                     if offender not in offenders:
                         offenders.append(offender)
+        if dated:
+            # A record may name the extra as it was.
+            continue
         for _distribution, grammar in BARE_EXTRA_GRAMMARS:
             for match in grammar.finditer(line):
                 if match.group(1):
@@ -199,16 +213,40 @@ def test_a_prose_command_without_a_pin_is_an_offender(tmp_path):
     assert _offenders(path, Path("README.md"))
 
 
+def test_a_dated_looking_instruction_with_an_unpinned_launch_is_an_offender(tmp_path):
+    # A line that mentions a day and a version is not a record: the launch
+    # on it is an instruction a reader can copy, so it has to name a
+    # release.
+    path = tmp_path / "README.md"
+    path.write_text(
+        "Run on 2026-10-28: uvx kinocut doctor; validated against 1.16.5\n",
+        encoding="utf-8",
+    )
+    assert _offenders(path, Path("README.md"))
+
+
 def test_a_dated_release_record_keeps_its_own_uvx_mention(tmp_path):
     # The changelog records what the release said at the time. Rewriting it
-    # to the current release would make the record false.
+    # to the current release would make the record false, and a record that
+    # names the registry entry does not give the reader a command to copy.
     path = tmp_path / "README.md"
     path.write_text(
         "**1.16.2** (2026-10-21):\n\n"
-        "- Official MCP Registry entry republished as the local `uvx kinocut` stdio package.\n",
+        "- Official MCP Registry entry republished as the local `uvx` stdio package `kinocut`.\n",
         encoding="utf-8",
     )
     assert not _offenders(path, Path("README.md"))
+
+
+def test_a_dated_record_with_an_unpinned_launch_is_an_offender(tmp_path):
+    # A record may keep a version, but a launch inside it still has to name
+    # one: the record is not an exemption for the instruction beside it.
+    path = tmp_path / "README.md"
+    path.write_text(
+        "**1.16.2** (2026-10-21):\n\n- Run `uvx kinocut doctor` to check the install.\n",
+        encoding="utf-8",
+    )
+    assert _offenders(path, Path("README.md"))
 
 
 def test_a_dated_line_keeps_its_own_version(tmp_path):

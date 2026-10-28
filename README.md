@@ -151,7 +151,7 @@ Project creation checks completed destinations and symlink redirects. Python 3.1
 
 ## What's in 1.16.2
 
-Published 2026-10-21: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.17` installs `kinocut==1.16.2`. `create-from-images` is now frame-exact, accepts rational frame rates such as `30000/1001` and a `--list` / `list_file` input, and enforces frame-rate and image-count bounds on every entry point. The official MCP Registry entry is republished as the local `uvx kinocut` stdio package. Thanks to [@Beritwu](https://github.com/Beritwu) for [#616](https://github.com/KyaniteLabs/kinocut/pull/616). See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.2).
+Published 2026-10-21: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.17` installs `kinocut==1.16.2`. `create-from-images` is now frame-exact, accepts rational frame rates such as `30000/1001` and a `--list` / `list_file` input, and enforces frame-rate and image-count bounds on every entry point. The official MCP Registry entry is republished as the local `uvx` stdio package `kinocut`. Thanks to [@Beritwu](https://github.com/Beritwu) for [#616](https://github.com/KyaniteLabs/kinocut/pull/616). See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.2).
 
 ## What's in 1.16.1
 
@@ -710,7 +710,7 @@ Safety contract:
 **1.16.2** (2026-10-21):
 
 - Frame-exact `create-from-images` with rational frame rates (`30000/1001`) and `--list` / `list_file` input; frame-rate and image-count bounds on Python, CLI and MCP (thanks [@Beritwu](https://github.com/Beritwu), #616).
-- Official MCP Registry entry republished as the local `uvx kinocut` stdio package.
+- Official MCP Registry entry republished as the local `uvx` stdio package `kinocut`.
 - Surface stays **203 MCP / 177 CLI**; `mcp-video==1.6.17` installs `kinocut==1.16.2`.
 
 **1.16.1** (2026-10-05):

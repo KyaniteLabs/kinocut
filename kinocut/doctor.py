@@ -625,6 +625,33 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
     }
 
 
+#: The report fields that name a path on this machine.
+_PATH_FIELDS = ("path", "origin", "executable")
+
+
+def _without_machine_paths(report: dict[str, Any]) -> dict[str, Any]:
+    """Say that a path exists, not where it is.
+
+    The report travels over MCP to whoever asked for it, and a machine's
+    directory layout is the operator's, not the reader's. An operator who
+    wants the paths asks for them.
+    """
+    for check in report.get("checks", []):
+        if not isinstance(check, dict):
+            continue
+        for field in _PATH_FIELDS:
+            value = check.get(field)
+            if not value:
+                continue
+            check.pop(field, None)
+            check[f"{field}_present"] = True
+    platform = report.get("platform")
+    if isinstance(platform, dict) and platform.get("executable"):
+        platform.pop("executable", None)
+        platform["executable_present"] = True
+    return report
+
+
 def run_diagnostics(
     *,
     which: WhichFn = shutil.which,
@@ -632,8 +659,14 @@ def run_diagnostics(
     find_spec: FindSpecFn = importlib.util.find_spec,
     package_version: PackageVersionFn = _package_version,
     import_module: ImportModuleFn = importlib.import_module,
+    include_paths: bool = True,
 ) -> dict[str, Any]:
-    """Return a structured report for core and optional integration dependencies."""
+    """Return a structured report for core and optional integration dependencies.
+
+    The report names the machine's own paths, which is what an operator
+    running this locally needs. A caller that hands the report onward — the
+    MCP tool — asks for the paths to be left out.
+    """
     checks = [_check_mcp_video(find_spec, package_version), _check_mcp_server_import(import_module)]
     with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
         checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
@@ -653,7 +686,7 @@ def run_diagnostics(
     checks.append(_check_object_matte(find_spec))
     checks.append(_check_sphere_director())
     checks.extend([_check_workspace(), _check_runtime_policy()])
-    return {
+    report = {
         "success": True,
         "platform": {
             "python": sys.version.split()[0],
@@ -665,6 +698,7 @@ def run_diagnostics(
         "rescue": _rescue_summary(checks),
         "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
     }
+    return report if include_paths else _without_machine_paths(report)
 
 
 def _check_sphere_director() -> dict[str, Any]:

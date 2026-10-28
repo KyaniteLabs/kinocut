@@ -526,3 +526,13 @@ def test_server_import_check_ok_path():
     check = _check_mcp_server_import(lambda name: object())
     assert check["ok"] is True
     assert check["required"] is True
+
+
+def test_the_public_doctor_report_does_not_carry_machine_paths():
+    """The MCP report says a path exists; it does not say where."""
+    from kinocut.server_tools_doctor import video_doctor
+
+    report = video_doctor()
+    text = json.dumps(report, default=str)
+    assert "/usr/" not in text
+    assert "site-packages" not in text

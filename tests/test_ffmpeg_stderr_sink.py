@@ -21,7 +21,8 @@ def test_large_binary_failure_diagnostics_remain_on_disk_and_error_prefix_is_bou
         with pytest.raises(ProcessingError) as failure:
             _run_command(command, timeout=10, stderr_sink=diagnostics)
         assert failure.value.returncode == 9
-        assert "decode failure" in str(failure.value)
+        # The child's words stay on the error object; the message names the exit code.
+        assert "decode failure" not in str(failure.value)
         assert "\ufffd" in failure.value.full_stderr
         assert len(failure.value.full_stderr) <= FFMPEG_STDERR_DIAGNOSTIC_BYTES
         assert diagnostics.tell() == 0

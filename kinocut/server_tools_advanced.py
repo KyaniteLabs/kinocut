@@ -35,6 +35,7 @@ from .engine_batch import VALID_BATCH_OPERATIONS
 from .engine_composite_layers import composite_layers
 from .engine_images import _parse_fps
 from .errors import MCPVideoError
+from .validation_errors import exception_kind
 from .defaults import DEFAULT_LRA_TARGET
 from .models import _validate_position
 from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS, MAX_IMAGE_SEQUENCE_FRAMES
@@ -650,10 +651,14 @@ def video_cleanup(
             results.append({"path": p, "status": "removed"})
             removed += 1
         except MCPVideoError as e:
-            results.append({"path": path, "status": "failed", "error": str(e)})
+            # The error's own serialization is the guarded one: a refusal
+            # that names the rule, not the path that was submitted.
+            results.append({"path": path, "status": "failed", "error": e.to_dict()})
             failed += 1
         except OSError as e:
-            results.append({"path": path, "status": "failed", "error": str(e)})
+            # An OSError's text carries the path it failed on. The kind is
+            # what the caller needs; the path is the caller's own anyway.
+            results.append({"path": path, "status": "failed", "error": exception_kind(e)})
             failed += 1
     return {
         "success": failed == 0,

@@ -14,4 +14,6 @@ def video_doctor() -> dict[str, Any]:
 
     from .doctor import run_diagnostics
 
-    return _result(run_diagnostics())
+    # The report travels to whoever asked for it. A machine's directory
+    # layout is the operator's, not the reader's.
+    return _result(run_diagnostics(include_paths=False))

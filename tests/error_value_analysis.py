@@ -951,7 +951,19 @@ def _propagate(function: Function, by_name: dict[str, list[Function]], labels: s
                 candidate.tainted.add(parameter)
                 changed = True
             for keyword in call.keywords:
-                if keyword.arg is None or keyword.arg not in candidate.params:
+                if keyword.arg is None:
+                    # A **mapping argument fills the callee's keyword
+                    # parameter: helper(**mapping) hands the whole thing on,
+                    # so the callee now holds caller data.
+                    if not _is_tainted_expr(keyword.value, function):
+                        continue
+                    kwarg = candidate.node.args.kwarg
+                    if kwarg is None or kwarg.arg in candidate.tainted:
+                        continue
+                    candidate.tainted.add(kwarg.arg)
+                    changed = True
+                    continue
+                if keyword.arg not in candidate.params:
                     continue
                 if not _is_tainted_expr(keyword.value, function):
                     continue
@@ -1059,7 +1071,7 @@ def _is_contract_exception(target: ast.AST, function: Function) -> bool:
 EXEMPT: dict[tuple[str, str], str] = {
     (
         "kinocut/quality_guardrails.py",
-        "f'Quality gate failed: {'; '.join(failures)}. {recommendations}'",
+        "fQuality gate failed: {; .join(failures)}. {recommendations}",
     ): (
         "The failures are the package's own sentences about the measured media and its "
         "recommendations are the messages of the package's own failed quality checks "
@@ -1111,13 +1123,24 @@ def find_leaks() -> list[Finding]:
     return [finding for finding in _collect_leaks() if _exemption_for(finding) is None]
 
 
+def _message_key(source: str) -> str:
+    """The message without its quoting.
+
+    ``ast.unparse`` picks its quote style by interpreter version — 3.12 and
+    3.14 disagree — so a key built from the raw source stops matching on
+    the other one, and an exemption that silently stops applying is worse
+    than no exemption at all. The quoting is not part of the message.
+    """
+    return source.replace('"', "").replace("'", "")
+
+
 def _exemption_for(finding: Finding) -> str | None:
     """The reason a finding is not caller data, when it is exempt."""
     try:
         relative = str(finding.path.relative_to(ROOT))
     except ValueError:
         return None
-    return EXEMPT.get((relative, finding.source))
+    return EXEMPT.get((relative, _message_key(finding.source)))
 
 
 def unused_exemptions(findings: list[Finding]) -> list[tuple[str, str]]:
@@ -1126,7 +1149,7 @@ def unused_exemptions(findings: list[Finding]) -> list[tuple[str, str]]:
     An exemption that matches nothing is a stale statement about code that
     has since changed, so the guard asks for this to be empty.
     """
-    matched = {(str(finding.path.relative_to(ROOT)), finding.source) for finding in findings}
+    matched = {(str(finding.path.relative_to(ROOT)), _message_key(finding.source)) for finding in findings}
     return [key for key in EXEMPT if key not in matched]
 
 

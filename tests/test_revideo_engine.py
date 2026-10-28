@@ -275,7 +275,7 @@ class TestRender:
                 "run",
                 lambda *a, **k: _completed(stderr="boom", returncode=2),
             )
-            with pytest.raises(RevideoRenderError, match="boom"):
+            with pytest.raises(RevideoRenderError, match="Revideo render failed"):
                 render(project, str(tmp_path / "out.mp4"))
 
     def test_render_success_publishes_output_and_hashes(self, tmp_path):
