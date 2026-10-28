@@ -22,6 +22,10 @@ def _descendants(pid: int) -> list[int]:
     competes with it.
     """
     children: dict[int, list[int]] = {}
+    if not os.path.isdir("/proc"):
+        # No process tree to read: this platform is not the one the CLI
+        # harness runs on, and a timeout here is already a failure.
+        return []
     for entry in os.listdir("/proc"):
         if not entry.isdigit():
             continue
