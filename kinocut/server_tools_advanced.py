@@ -652,8 +652,9 @@ def video_cleanup(
             removed += 1
         except MCPVideoError as e:
             # The error's own serialization is the guarded one: a refusal
-            # that names the rule, not the path that was submitted.
-            results.append({"path": path, "status": "failed", "error": e.to_dict()})
+            # that names the rule, not the path that was submitted. The
+            # message is a string, like every other result in this list.
+            results.append({"path": path, "status": "failed", "error": e.to_dict()["message"]})
             failed += 1
         except OSError as e:
             # An OSError's text carries the path it failed on. The kind is

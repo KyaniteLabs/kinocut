@@ -18,6 +18,7 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
+from .doctor_report import without_machine_paths
 from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
@@ -625,33 +626,6 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
     }
 
 
-#: The report fields that name a path on this machine.
-_PATH_FIELDS = ("path", "origin", "executable")
-
-
-def _without_machine_paths(report: dict[str, Any]) -> dict[str, Any]:
-    """Say that a path exists, not where it is.
-
-    The report travels over MCP to whoever asked for it, and a machine's
-    directory layout is the operator's, not the reader's. An operator who
-    wants the paths asks for them.
-    """
-    for check in report.get("checks", []):
-        if not isinstance(check, dict):
-            continue
-        for field in _PATH_FIELDS:
-            value = check.get(field)
-            if not value:
-                continue
-            check.pop(field, None)
-            check[f"{field}_present"] = True
-    platform = report.get("platform")
-    if isinstance(platform, dict) and platform.get("executable"):
-        platform.pop("executable", None)
-        platform["executable_present"] = True
-    return report
-
-
 def run_diagnostics(
     *,
     which: WhichFn = shutil.which,
@@ -698,7 +672,7 @@ def run_diagnostics(
         "rescue": _rescue_summary(checks),
         "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
     }
-    return report if include_paths else _without_machine_paths(report)
+    return report if include_paths else without_machine_paths(report)
 
 
 def _check_sphere_director() -> dict[str, Any]:
