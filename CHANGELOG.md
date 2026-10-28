@@ -9,6 +9,12 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Fixed
+
+- A SIGKILLed CLI no longer leaves a detached FFmpeg: every POSIX `ProcessTree` command now runs under the existing orphan watchdog (`process_guardian`). Cost is one extra interpreter per command (measured median ~33ms; budget `DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS` = 80ms). Ctrl-C / SIGTERM cleanup is unchanged. Windows still uses Job Objects.
+
 ## 1.16.5 - 2026-10-27
 
 ### Added

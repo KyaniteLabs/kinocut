@@ -1,4 +1,10 @@
-"""Owned subprocess sessions or Windows Jobs, including descendant cleanup."""
+"""Owned subprocess sessions or Windows Jobs, including descendant cleanup.
+
+POSIX commands always run under process_guardian so a SIGKILLed owner cannot
+leave a detached encoder. The guardian watches the owner-liveness pipe and
+kills its own session on EOF. Windows still uses kill-on-close Job Objects.
+Clean SIGTERM/SIGHUP paths keep ProcessTree.close() / killpg as before.
+"""
 
 import contextlib
 import os
