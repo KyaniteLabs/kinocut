@@ -234,3 +234,71 @@ def test_the_retry_message_never_repeats_a_rejected_value():
     _assert_clean(error, "retry")
     retried = retry_message(str(error), "invalid_transition")
     _assert_no_secret(retried, "retry message")
+
+
+# --------------------------------------------------------------------------
+# the composite layer
+# --------------------------------------------------------------------------
+
+
+#: A credential-shaped layer id that the layer-id rule rejects: the refusal
+#: has to fire for the test to mean anything.
+COMPOSITE_PROBE = "sk-live-a.b/c"
+
+
+def _composite_result(tmp_path, layers):
+    from kinocut.server_tools_advanced import video_composite_layers
+
+    spec_path = tmp_path / "spec.json"
+    spec_path.write_text(
+        json.dumps({"canvas": {"width": 640, "height": 480}, "layers": layers}),
+        encoding="utf-8",
+    )
+    return video_composite_layers(str(spec_path))
+
+
+def test_a_composite_layer_refusal_never_repeats_the_submitted_layer(tmp_path):
+    """The layer's id, type and blend are the caller's own."""
+    for layers in (
+        [{"id": COMPOSITE_PROBE, "type": "solid"}],
+        [{"id": "layer-1", "type": COMPOSITE_PROBE}],
+        [{"id": "layer-1", "type": "solid", "blend": COMPOSITE_PROBE}],
+    ):
+        result = _composite_result(tmp_path, layers)
+        text = json.dumps(result, default=str)
+        assert COMPOSITE_PROBE not in text, f"the rejected layer value reached the payload: {text!r}"
+
+
+def test_a_composite_layer_refusal_still_names_the_rule(tmp_path):
+    """Value-free is not empty: the refusal still says what is expected."""
+    result = _composite_result(tmp_path, [{"id": COMPOSITE_PROBE, "type": "solid"}])
+    text = json.dumps(result, default=str)
+    assert "layer id must match" in text
+
+
+# --------------------------------------------------------------------------
+# the doctor
+# --------------------------------------------------------------------------
+
+
+def test_the_doctor_report_names_the_exception_kind_not_its_text():
+    """A caught exception's text can carry a path; the report names the kind."""
+    from kinocut.doctor import _check_mcp_server_import
+
+    def _boom(_name):
+        raise OSError(f"cannot read {SECRET}")
+
+    report = _check_mcp_server_import(_boom)
+    _assert_no_secret(json.dumps(report, default=str), "doctor exception detail")
+    assert report["detail"] == "OSError"
+
+
+def test_the_doctor_report_does_not_echo_the_environment(monkeypatch):
+    """The operator's own environment is not published back to the caller."""
+    from kinocut.doctor import _check_legacy_env_paths
+
+    monkeypatch.setenv("MCP_VIDEO_CRUSH_PATH", f"/tmp/{SECRET}")
+    report = _check_legacy_env_paths()
+    _assert_no_secret(json.dumps(report, default=str), "doctor environment detail")
+    # The report still says what is stale.
+    assert "MCP_VIDEO_CRUSH_PATH is set" in report["detail"]

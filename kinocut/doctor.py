@@ -483,9 +483,12 @@ def _check_legacy_env_paths() -> dict[str, Any]:
     legacy_dir = Path.home() / ".mcp-video"
     findings: list[str] = []
     if stale_env:
-        findings.append(f"env MCP_VIDEO_CRUSH_PATH={stale_env}")
+        # The value is the operator's own environment: the report says the
+        # variable is set, not what it says.
+        findings.append("MCP_VIDEO_CRUSH_PATH is set")
     if legacy_dir.exists():
-        findings.append(f"legacy path {legacy_dir}")
+        # The name of the directory is ours; the path it sits in is not.
+        findings.append("the legacy directory ~/.mcp-video exists")
     ok = not findings
     return {
         "name": "legacy_env_paths",
@@ -605,7 +608,9 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
             "category": "core",
             "required": True,
             "ok": False,
-            "detail": f"{type(exc).__name__}: {exc}",
+            # The exception's own text can carry a path; the report names
+            # the kind, and the log above keeps the detail for the operator.
+            "detail": type(exc).__name__,
             "install_hint": (
                 "Run 'kino --mcp' to see the full error; usually a broken install "
                 "(pip install --force-reinstall kinocut==1.16.5) or a platform-specific dependency issue."

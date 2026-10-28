@@ -14,18 +14,36 @@ from mcp_video import __version__
 
 
 def _descendants(pid: int) -> list[int]:
-    """Every live descendant of a process, read from /proc.
+    """Every live descendant of a process.
 
     The CLI runs each command in its own session, so a timed-out command's
     encoder is in neither the test's group nor the CLI's. Without this the
     killed CLI leaves the encoder running at full speed, and the next run
     competes with it.
     """
+    children = _process_children()
+    found: list[int] = []
+    queue = [pid]
+    while queue:
+        for child in children.get(queue.pop(), ()):
+            found.append(child)
+            queue.append(child)
+    return found
+
+
+def _process_children() -> dict[int, list[int]]:
+    """The parent of every live process, read from the platform."""
+    if os.path.isdir("/proc"):
+        return _children_from_proc()
+    if os.name == "posix":
+        # macOS and the BSDs have no /proc; ps knows the tree.
+        return _children_from_ps()
+    # Windows terminates the tree with taskkill instead.
+    return {}
+
+
+def _children_from_proc() -> dict[int, list[int]]:
     children: dict[int, list[int]] = {}
-    if not os.path.isdir("/proc"):
-        # No process tree to read: this platform is not the one the CLI
-        # harness runs on, and a timeout here is already a failure.
-        return []
     for entry in os.listdir("/proc"):
         if not entry.isdigit():
             continue
@@ -38,13 +56,51 @@ def _descendants(pid: int) -> list[int]:
         except (OSError, IndexError, ValueError):
             continue
         children.setdefault(parent, []).append(int(entry))
-    found: list[int] = []
-    queue = [pid]
-    while queue:
-        for child in children.get(queue.pop(), ()):
-            found.append(child)
-            queue.append(child)
-    return found
+    return children
+
+
+def _children_from_ps() -> dict[int, list[int]]:
+    """The parent of every live process, read from ps."""
+    children: dict[int, list[int]] = {}
+    listing = subprocess.run(
+        ["ps", "-A", "-o", "pid=,ppid="],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        try:
+            child, parent = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        children.setdefault(parent, []).append(child)
+    return children
+
+
+def _kill_tree(process: subprocess.Popen) -> None:
+    """Kill a timed-out command and everything it started.
+
+    The command runs in its own session, so its encoder can be in yet
+    another one: the tree is walked by parentage and the group is killed
+    as well.
+    """
+    if os.name == "posix":
+        for descendant in _descendants(process.pid):
+            with contextlib.suppress(OSError):
+                os.kill(descendant, signal.SIGKILL)
+        with contextlib.suppress(OSError):
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+    elif os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+            capture_output=True,
+            check=False,
+        )
+    with contextlib.suppress(subprocess.TimeoutExpired, OSError):
+        process.kill()
 
 
 def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProcess:
@@ -60,15 +116,14 @@ def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProces
         # the subprocess reader thread and silently leaves stdout as None.
         encoding="utf-8",
         errors="replace",
+        # Its own session, so a timeout can kill the whole group without
+        # touching the test runner.
+        start_new_session=(os.name == "posix"),
     )
     try:
         stdout, stderr = process.communicate(timeout=30)
     except subprocess.TimeoutExpired:
-        for descendant in _descendants(process.pid):
-            with contextlib.suppress(OSError):
-                os.kill(descendant, signal.SIGKILL)
-        with contextlib.suppress(subprocess.TimeoutExpired, OSError):
-            process.kill()
+        _kill_tree(process)
         stdout, stderr = process.communicate()
         raise subprocess.TimeoutExpired(cmd, 30, output=stdout, stderr=stderr) from None
     result = subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)

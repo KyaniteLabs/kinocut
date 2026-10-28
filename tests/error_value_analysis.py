@@ -793,7 +793,11 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
         # that takes a path and returns paths derived from it carries the
         # caller's path. The sanitizers and the numeric calls above are the
         # known exceptions; everything else is assumed to carry what it was
-        # given, so the guard fails closed.
+        # given, so the guard fails closed. A keyword argument carries it
+        # too, and a **mapping carries all of it: a model built from a
+        # caller's dictionary is made of that dictionary's values.
+        if any(_is_tainted_expr(keyword.value, function) for keyword in node.keywords):
+            return True
         return any(_is_tainted_expr(argument, function) for argument in node.args)
     if isinstance(node, ast.Name):
         if node.id in function.numeric:

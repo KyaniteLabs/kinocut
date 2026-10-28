@@ -63,10 +63,11 @@ def _package_grammars(distribution: str) -> tuple[re.Pattern[str], ...]:
         _grammar(rf"pipx\s+run(?:\s+--?[\w-]+)*\s+[\"']?{name}{extras}[\"']?"),
         _grammar(rf"--from(?:[\"']\s*,\s*[\"']|\s+){name}{extras}[\"']?"),
         _grammar(rf"--with(?:[\"']\s*,\s*[\"']|\s+){name}{extras}[\"']?"),
-        # A bare `uvx <package>` counts as a launch only when it opens a
-        # command. In prose it describes the registry entry's stdio package,
-        # and dated records keep the version that was true at the time.
-        _grammar(rf"^\s*(?:\$ )?uvx\s+[\"']?{name}{extras}[\"']?"),
+        # A bare `uvx <package>` is a launch wherever it appears: in a code
+        # block, in a sentence that tells the reader to run it, or in prose
+        # that names the registry entry's stdio package. Only a dated record
+        # may keep the version that was true at the time.
+        _grammar(rf"(?<![A-Za-z0-9_.-])(?:\$ )?uvx\s+[\"']?{name}{extras}[\"']?"),
     )
 
 
@@ -105,6 +106,26 @@ def _is_dated(relative: Path) -> bool:
     return any(part in DATED_PARTS for part in relative.parts)
 
 
+#: A release heading names the version and the day it shipped.
+_RELEASE_HEADING = re.compile(r"^[*#\s]*\d+\.\d+\.\d+.*\(\d{4}-\d{2}-\d{2}\).*:?$")
+#: A line that carries a date and a version records what was true then.
+_DATED_LINE = re.compile(r"\b20\d{2}-\d{2}-\d{2}\b.*\d+\.\d+\.\d+")
+
+
+def _is_dated_line(line: str, dated_section: bool) -> bool:
+    """Whether a line records a dated fact rather than giving an instruction.
+
+    A current file may hold history — a README names the release it
+    published, and its changelog names every release before that. Those
+    records keep the version that was true at the time; rewriting them
+    would make the record false. Everything else is an instruction a reader
+    may copy, so it has to name the release.
+    """
+    if dated_section:
+        return True
+    return bool(_DATED_LINE.search(line))
+
+
 def _current_files() -> list[Path]:
     roots = ("docs", "kinocut", "examples", "plugins", "skills", "compat", "workflows", ".github")
     files = [ROOT / "README.md", ROOT / "README-PYPI.md", ROOT / "llms.txt"]
@@ -131,7 +152,14 @@ def _offenders(path: Path, relative: Path) -> list[str]:
     """The install instructions in one file that do not name the release."""
     offenders: list[str] = []
     text = path.read_text(encoding="utf-8", errors="replace")
+    dated_section = False
     for number, line in enumerate(text.splitlines(), 1):
+        stripped = line.strip()
+        if stripped.startswith("#") or _RELEASE_HEADING.match(stripped):
+            # A heading opens a section; a release heading opens a dated one.
+            dated_section = bool(_RELEASE_HEADING.match(stripped))
+        if _is_dated_line(line, dated_section):
+            continue
         for distribution, grammar in INSTALL_GRAMMARS:
             for match in grammar.finditer(line):
                 captured = _captured_version(match.group(1) or "")
@@ -160,6 +188,36 @@ def test_a_bare_extra_reference_is_an_offender(tmp_path):
 def test_a_pinned_extra_reference_is_not_an_offender(tmp_path):
     path = tmp_path / "README.md"
     path.write_text("Install the `kinocut[object-matte]==1.16.5` extra.\n", encoding="utf-8")
+    assert not _offenders(path, Path("README.md"))
+
+
+def test_a_prose_command_without_a_pin_is_an_offender(tmp_path):
+    # A sentence that tells the reader to run it is a launch, wherever the
+    # sentence is and however it is punctuated.
+    path = tmp_path / "README.md"
+    path.write_text("Run `uvx kinocut doctor` to check the install.\n", encoding="utf-8")
+    assert _offenders(path, Path("README.md"))
+
+
+def test_a_dated_release_record_keeps_its_own_uvx_mention(tmp_path):
+    # The changelog records what the release said at the time. Rewriting it
+    # to the current release would make the record false.
+    path = tmp_path / "README.md"
+    path.write_text(
+        "**1.16.2** (2026-10-21):\n\n"
+        "- Official MCP Registry entry republished as the local `uvx kinocut` stdio package.\n",
+        encoding="utf-8",
+    )
+    assert not _offenders(path, Path("README.md"))
+
+
+def test_a_dated_line_keeps_its_own_version(tmp_path):
+    # A current file may record what was true on a day it names.
+    path = tmp_path / "README.md"
+    path.write_text(
+        "Published 2026-10-21: 203 MCP tools; `mcp-video==1.6.17` installs `kinocut==1.16.2`.\n",
+        encoding="utf-8",
+    )
     assert not _offenders(path, Path("README.md"))
 
 

@@ -346,25 +346,25 @@ def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
         ) from None
     if not _LAYER_ID_RE.fullmatch(layer.id):
         raise MCPVideoError(
-            f"layer id must match {_LAYER_ID_RE.pattern}: {layer.id!r}",
+            f"layer id must match {_LAYER_ID_RE.pattern}",
             error_type="validation_error",
             code="invalid_layer_id",
         )
     if layer.type not in _SUPPORTED_LAYER_TYPES:
         raise MCPVideoError(
-            f"unsupported layer type: {layer.type}",
+            f"unsupported layer type; use one of {sorted(_SUPPORTED_LAYER_TYPES)}",
             error_type="validation_error",
             code="invalid_layer_type",
         )
     if layer.blend != "normal" and layer.blend not in BLEND_ALL_MODES:
         raise MCPVideoError(
-            f"blend mode {layer.blend!r} is not supported; use one of {sorted(SUPPORTED_BLEND_MODES)}",
+            f"blend mode is not supported; use one of {sorted(SUPPORTED_BLEND_MODES)}",
             error_type="validation_error",
             code="unsupported_blend_mode",
         )
     if layer.alpha_mode not in COMPOSITOR_ALPHA_MODES:
         raise MCPVideoError(
-            f"layer {layer.id!r} alpha_mode must be one of {sorted(COMPOSITOR_ALPHA_MODES)}",
+            f"layer alpha_mode must be one of {sorted(COMPOSITOR_ALPHA_MODES)}",
             error_type="validation_error",
             code="invalid_alpha_mode",
         )
@@ -383,10 +383,10 @@ def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
     if layer.blend != "normal":
         validate_blend_geometry(layer, canvas)
     if layer.type == "solid":
-        layer.color = _validate_color(layer.color or "#000000", f"{layer.id}.color")
+        layer.color = _validate_color(layer.color or "#000000", "layer.color")
     elif not layer.src:
         raise MCPVideoError(
-            f"layer {layer.id!r} requires src",
+            "layer requires src",
             error_type="validation_error",
             code="missing_layer_src",
         )
@@ -430,7 +430,7 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
 def _validate_layer_transform(layer: _Layer) -> None:
     if layer.scale is not None and (layer.width is not None or layer.height is not None):
         raise MCPVideoError(
-            f"layer {layer.id!r} cannot combine scale with width/height",
+            "layer cannot combine scale with width/height",
             error_type="validation_error",
             code="invalid_transform",
         )
@@ -449,7 +449,7 @@ def _validate_layer_timing(layer: _Layer) -> None:
         _positive_number(layer.duration, "duration")
     if layer.duration is not None and layer.start is None:
         raise MCPVideoError(
-            f"layer {layer.id!r} duration requires start",
+            "layer duration requires start",
             error_type="validation_error",
             code="invalid_layer_timing",
         )

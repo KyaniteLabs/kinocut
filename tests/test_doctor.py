@@ -498,7 +498,10 @@ def test_server_import_failure_breaks_required_summary():
 
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["mcp-server-import"]["ok"] is False
-    assert "fcntl" in checks["mcp-server-import"]["detail"]
+    # The report names the kind of failure. The exception's own text can
+    # carry a path, so it stays in the log and not in the report.
+    assert checks["mcp-server-import"]["detail"] == "ModuleNotFoundError"
+    assert "fcntl" not in checks["mcp-server-import"]["detail"]
     assert checks["mcp-server-import"]["install_hint"]
     assert report["summary"]["required_ok"] is False
     assert "mcp-server-import" in report["summary"]["missing_required"]
