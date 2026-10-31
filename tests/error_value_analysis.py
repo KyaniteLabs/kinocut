@@ -164,6 +164,8 @@ SANITIZERS = frozenset(
         "reason",
         # The event kind, validated against the shipped set of kinds.
         "_validate_event_kind",
+        # The operation kind, validated against the shipped kind sets.
+        "_validate_operation_kind",
         # The house rule for naming a rejected value: by type only.
         "_describe",
         # Why a stored location is unsafe. The reason never contains the
@@ -191,7 +193,11 @@ DIAGNOSTIC_ATTRIBUTES = frozenset({"stderr", "stdout"})
 #: with ``:.0f`` raises.
 NUMERIC_SPECS = frozenset("fFeEgGdiuXobn%")
 #: Constructors whose result is a number whatever they were given.
-NUMERIC_CALLS = frozenset({"float", "int", "bool", "round", "abs", "len", "sum", "min", "max", "sorted"})
+#: ``sorted``, ``min`` and ``max`` are deliberately absent: they return
+#: their argument's elements, and the caller's elements can be strings.
+#: Treating them as numeric laundered a caller's string into a message —
+#: the guard failed open on a live class rather than on a theoretical one.
+NUMERIC_CALLS = frozenset({"float", "int", "bool", "round", "abs", "len", "sum"})
 #: Calls whose result carries a tainted argument into the result.
 CARRYING_CALLS = frozenset({"str", "repr", "format", "join", "Path", "PurePath"})
 
@@ -703,6 +709,111 @@ def label_parameters() -> set[tuple[str, str, str]]:
     return labels
 
 
+def _string_collection_literal(node: ast.AST) -> bool:
+    """True when the expression is a literal collection of string constants.
+
+    ``{"2x2", "3x1"}`` is a vocabulary the package owns: nobody chose its
+    elements at a call site.
+    """
+    if not isinstance(node, ast.Set | ast.List | ast.Tuple):
+        return False
+    return all(isinstance(element, ast.Constant) and isinstance(element.value, str) for element in node.elts)
+
+
+def _collect_vocabulary_name(statement: ast.stmt, names: set[str]) -> None:
+    """Record a name the module or a class binds to a literal string set."""
+    if isinstance(statement, ast.Assign) and len(statement.targets) == 1 and isinstance(statement.targets[0], ast.Name):
+        if _string_collection_literal(statement.value):
+            names.add(statement.targets[0].id)
+    elif (
+        isinstance(statement, ast.AnnAssign)
+        and statement.value is not None
+        and isinstance(statement.target, ast.Name)
+        and _string_collection_literal(statement.value)
+    ):
+        names.add(statement.target.id)
+
+
+_VOCABULARIES: dict[str, set[str]] | None = None
+
+
+def _module_vocabularies() -> dict[str, set[str]]:
+    """The shipped vocabularies, by the module that binds them.
+
+    A name bound at module level or as a class attribute to a literal
+    collection of string constants names a vocabulary the package owns.
+    Function-local bindings are not vocabularies: a local can be rebound
+    from caller data, and a module-level or class-level literal cannot.
+    """
+    global _VOCABULARIES
+    if _VOCABULARIES is None:
+        vocabularies: dict[str, set[str]] = {}
+        for package in PACKAGES:
+            for path in sorted(package.rglob("*.py")):
+                try:
+                    tree = ast.parse(path.read_text(encoding="utf-8"))
+                except (OSError, SyntaxError):  # pragma: no cover - defensive
+                    continue
+                names = vocabularies.setdefault(path.name, set())
+                for statement in tree.body:
+                    _collect_vocabulary_name(statement, names)
+                    if not isinstance(statement, ast.ClassDef):
+                        continue
+                    for member in statement.body:
+                        _collect_vocabulary_name(member, names)
+        _VOCABULARIES = vocabularies
+    return _VOCABULARIES
+
+
+def _is_vocabulary(argument: ast.AST, caller: Function, vocabularies: dict[str, set[str]]) -> bool:
+    """True when the argument is one of the caller module's own vocabularies."""
+    if _string_collection_literal(argument):
+        return True
+    if isinstance(argument, ast.Name):
+        return argument.id in vocabularies.get(caller.path.name, set())
+    if isinstance(argument, ast.Attribute) and isinstance(argument.value, ast.Name):
+        return argument.attr in vocabularies.get(caller.path.name, set())
+    return False
+
+
+def vocabulary_parameters() -> set[tuple[str, str, str]]:
+    """Parameters every call site fills with a shipped vocabulary.
+
+    ``_validate_choice(name, value, valid_values)`` is handed a set of the
+    package's own accepted values at every call site — a module constant or
+    a ``ClassVar`` literal set — so publishing it publishes shipped
+    guidance, not the caller's input. This is the vocabulary twin of
+    ``label_parameters``: a parameter with no call site in the package is
+    not a vocabulary, because the caller may still supply it.
+
+    The key names the *file* as well as the function, for the same reason
+    the label rule does.
+    """
+    by_name, all_functions = package_functions()
+    vocabularies = _module_vocabularies()
+    filled: dict[tuple[str, str, str], list[tuple[Function, ast.expr]]] = {}
+    for function in all_functions:
+        for call in calls_in(function.node):
+            name = callee_name(call)
+            if name is None or name not in by_name:
+                continue
+            for candidate in _label_candidates(by_name[name], function, call):
+                names = list(candidate.params)
+                for position, argument in enumerate(call.args):
+                    if position >= len(names):
+                        break
+                    filled.setdefault((candidate.path.name, name, names[position]), []).append((function, argument))
+                for keyword in call.keywords:
+                    if keyword.arg is None or keyword.arg not in names:
+                        continue
+                    filled.setdefault((candidate.path.name, name, keyword.arg), []).append((function, keyword.value))
+    return {
+        key
+        for key, fills in filled.items()
+        if all(_is_vocabulary(argument, function, vocabularies) for function, argument in fills)
+    }
+
+
 _NUMERIC_RETURNS: set[str] | None = None
 
 
@@ -754,6 +865,36 @@ def _numeric_returns() -> set[str]:
                     names.add(candidate.name)
         _NUMERIC_RETURNS = names
     return _NUMERIC_RETURNS
+
+
+def _provably_numeric(node: ast.AST, function: Function) -> bool:
+    """True when the expression is a number by code, not by guesswork.
+
+    A number may be repeated in a message, so a container of numbers is
+    safe to publish. Deciding that from the code — a numeric literal, a
+    numeric attribute, a numeric constructor, arithmetic over those —
+    is what keeps the guard from laundering a caller's string through a
+    call like ``sorted``.
+    """
+    if isinstance(node, ast.Constant):
+        return isinstance(node.value, int | float | complex) and not isinstance(node.value, bool)
+    if isinstance(node, ast.Attribute):
+        return node.attr in NUMERIC_ATTRIBUTES
+    if isinstance(node, ast.Name):
+        return node.id in function.numeric
+    if isinstance(node, ast.Call):
+        return callee_name(node) in NUMERIC_CALLS
+    if isinstance(node, ast.BinOp):
+        return _provably_numeric(node.left, function) and _provably_numeric(node.right, function)
+    if isinstance(node, ast.UnaryOp):
+        return _provably_numeric(node.operand, function)
+    if isinstance(node, ast.Compare):
+        return all(_provably_numeric(part, function) for part in [node.left, *node.comparators])
+    if isinstance(node, ast.Tuple | ast.List | ast.Set):
+        return bool(node.elts) and all(_provably_numeric(element, function) for element in node.elts)
+    if isinstance(node, ast.IfExp):
+        return _provably_numeric(node.body, function) and _provably_numeric(node.orelse, function)
+    return False
 
 
 def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
@@ -835,6 +976,28 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
         return _is_tainted_expr(node.value, function)
     if isinstance(node, ast.List | ast.Tuple | ast.Set):
         return any(_is_tainted_expr(element, function) for element in node.elts)
+    if isinstance(node, ast.ListComp | ast.SetComp | ast.GeneratorExp):
+        # A comprehension over caller data is a projection of caller data,
+        # whatever its element expression is: a filter over the caller's
+        # values keeps their names. The exception is a projection that is
+        # a number by code — the operator may repeat a number.
+        if _provably_numeric(node.elt, function):
+            return False
+        return _is_tainted_expr(node.elt, function) or any(
+            _is_tainted_expr(generator.iter, function) or _is_tainted_expr(generator.target, function)
+            for generator in node.generators
+        )
+    if isinstance(node, ast.DictComp):
+        if _provably_numeric(node.key, function) and _provably_numeric(node.value, function):
+            return False
+        return (
+            _is_tainted_expr(node.key, function)
+            or _is_tainted_expr(node.value, function)
+            or any(
+                _is_tainted_expr(generator.iter, function) or _is_tainted_expr(generator.target, function)
+                for generator in node.generators
+            )
+        )
     if isinstance(node, ast.Dict):
         return any(_is_tainted_expr(key, function) for key in node.keys if key is not None) or any(
             _is_tainted_expr(value, function) for value in node.values
@@ -842,16 +1005,35 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
     return False
 
 
+def _target_names(target: ast.expr) -> list[str]:
+    """The names a binding target introduces."""
+    if isinstance(target, ast.Name):
+        return [target.id]
+    if isinstance(target, ast.Tuple | ast.List):
+        return [element.id for element in target.elts if isinstance(element, ast.Name)]
+    return []
+
+
 def _local_taint(function: Function) -> bool:
     """Taint the locals of one function from what it already knows."""
     changed = False
     for child in ast.walk(function.node):
-        if not isinstance(child, ast.Assign):
+        if isinstance(child, ast.comprehension):
+            # The loop variable of a comprehension over caller data is the
+            # caller's data: it is one of their values.
+            if not _is_tainted_expr(child.iter, function):
+                continue
+            for name in _target_names(child.target):
+                if name not in function.tainted:
+                    function.tainted.add(name)
+                    changed = True
+            continue
+        if not isinstance(child, ast.Assign | ast.AnnAssign):
             continue
         if not _is_tainted_expr(child.value, function):
             continue
         targets: list[ast.expr] = []
-        for target in child.targets:
+        for target in child.targets if isinstance(child, ast.Assign) else [child.target]:
             if isinstance(target, ast.Name):
                 targets.append(target)
             elif isinstance(target, ast.Tuple | ast.List):
@@ -923,7 +1105,12 @@ def _loop_key_taint(function: Function) -> bool:
     return changed
 
 
-def _propagate(function: Function, by_name: dict[str, list[Function]], labels: set[tuple[str, str]]) -> bool:
+def _propagate(
+    function: Function,
+    by_name: dict[str, list[Function]],
+    labels: set[tuple[str, str, str]],
+    vocabularies: frozenset[tuple[str, str, str]] | set[tuple[str, str, str]] = frozenset(),
+) -> bool:
     """Pass taint from this function's arguments into the ones it calls."""
     changed = False
     for call in calls_in(function.node):
@@ -941,6 +1128,9 @@ def _propagate(function: Function, by_name: dict[str, list[Function]], labels: s
                     continue
                 if (candidate.path.name, candidate.name, parameter) in labels:
                     # A label every call site fills with shipped text.
+                    continue
+                if (candidate.path.name, candidate.name, parameter) in vocabularies:
+                    # A vocabulary every call site fills from shipped constants.
                     continue
                 declared = candidate.annotations.get(parameter, "?")
                 if not holds_string(declared) and not holds_container(declared):
@@ -971,6 +1161,8 @@ def _propagate(function: Function, by_name: dict[str, list[Function]], labels: s
                     continue
                 if (candidate.path.name, candidate.name, keyword.arg) in labels:
                     continue
+                if (candidate.path.name, candidate.name, keyword.arg) in vocabularies:
+                    continue
                 declared = candidate.annotations.get(keyword.arg, "?")
                 if not holds_string(declared) and not holds_container(declared):
                     continue
@@ -981,7 +1173,10 @@ def _propagate(function: Function, by_name: dict[str, list[Function]], labels: s
     return changed
 
 
-def tainted_functions(labels: set[tuple[str, str]]) -> list[Function]:
+def tainted_functions(
+    labels: set[tuple[str, str, str]],
+    vocabularies: frozenset[tuple[str, str, str]] | set[tuple[str, str, str]] = frozenset(),
+) -> list[Function]:
     """Every function that holds caller-controlled data."""
     by_name, all_functions = package_functions()
     aliases = type_aliases()
@@ -1006,7 +1201,7 @@ def tainted_functions(labels: set[tuple[str, str]]) -> list[Function]:
                 changed = True
             if _loop_key_taint(function):
                 changed = True
-            if _propagate(function, by_name, labels):
+            if _propagate(function, by_name, labels, vocabularies):
                 changed = True
     return all_functions
 
@@ -1085,8 +1280,9 @@ EXEMPT: dict[tuple[str, str], str] = {
 def _collect_leaks() -> list[Finding]:
     """Every finding, including the ones an exemption covers."""
     labels = label_parameters()
+    vocabularies = vocabulary_parameters()
     findings: list[Finding] = []
-    functions = tainted_functions(labels)
+    functions = tainted_functions(labels, vocabularies)
     findings.extend(_constructor_leaks(functions))
     for function in functions:
         if function.name in ERROR_BUILDERS:

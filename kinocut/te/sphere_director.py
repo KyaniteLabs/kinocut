@@ -184,3 +184,45 @@ def _assert_cloud_allowed(detected: dict[str, Any], allow_cloud: bool) -> None:
         error_type="validation_error",
         code="cloud_execution_denied",
     )
+
+
+def doctor_check() -> dict[str, Any]:
+    """The doctor's verdict about the configured director (probe only).
+
+    The doctor reports, it never raises: a hostile or malformed
+    configuration is a finding, not a crash. And the verdict is about the
+    configuration, not a copy of it — whether a director is set and which
+    kind it resolves to. The id, the model, and the base URL are the
+    operator's own values, so the report carries the shipped vocabulary
+    instead.
+    """
+    try:
+        detected = detect_sphere_director()
+    except Exception:
+        # The probe validates the configured endpoint and refuses hostile
+        # URLs; the condition is reported without echoing the value.
+        return {
+            "name": "sphere_director",
+            "category": "optional",
+            "required": False,
+            "ok": False,
+            "path": None,
+            "version": None,
+            "install_hint": None,
+            "details": {"available": True, "kind": "unresolved"},
+        }
+    return {
+        "name": "sphere_director",
+        "category": "optional",
+        "required": False,
+        "ok": True,
+        "path": None,
+        "version": None,
+        "install_hint": None,
+        "details": {
+            "available": detected["available"],
+            "kind": detected["kind"],
+            "local_ids": detected["local_ids"],
+            "cloud_ids": detected["cloud_ids"],
+        },
+    }

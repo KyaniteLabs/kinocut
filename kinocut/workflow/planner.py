@@ -25,7 +25,6 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_artifact_path
-from ..validation_errors import rejected_value
 from ._errors import INVALID_WORKFLOW_SPEC, UNSAFE_WORKFLOW_SOURCE, workflow_error
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
 from .composite import iter_composite_refs
@@ -241,7 +240,7 @@ def _confine_artifact_path(path: str, workspace_root: Path, label: str) -> None:
         real.relative_to(workspace_root)
     except ValueError:
         raise workflow_error(
-            f"{rejected_value(label)} resolves outside the workspace root; "
+            f"{label} resolves outside the workspace root; "
             "write workflow artifacts inside the spec's workspace directory",
             UNSAFE_WORKFLOW_SOURCE,
         ) from None

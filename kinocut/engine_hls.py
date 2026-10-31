@@ -27,7 +27,8 @@ def _validate_hls_options(segment_duration: int, qualities: list[str] | None) ->
     invalid = [quality for quality in resolved if quality not in VALID_HLS_QUALITIES]
     if invalid:
         raise MCPVideoError(
-            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}, got invalid values: {invalid}",
+            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}; "
+            f"{len(invalid)} submitted value(s) were not accepted",
             error_type="validation_error",
             code="invalid_parameter",
         )

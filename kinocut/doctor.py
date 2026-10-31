@@ -530,6 +530,19 @@ def _check_workspace() -> dict[str, Any]:
     }
 
 
+def _policy_setting(name: str, default: Any) -> dict[str, Any]:
+    """A setting's name, its shipped default, and whether it is overridden.
+
+    The value the operator chose is their configuration: the report says
+    which setting is theirs and what the default is, not what they set.
+    """
+    return {
+        "setting": name,
+        "default": default,
+        "state": "default" if name not in os.environ else "custom",
+    }
+
+
 def _check_runtime_policy() -> dict[str, Any]:
     """Expose effective guardrail defaults without changing any policy."""
 
@@ -538,9 +551,9 @@ def _check_runtime_policy() -> dict[str, Any]:
     flags = {
         "overwrite_default": DEFAULT_OVERWRITE,
         "network_egress_default": False,
-        "vision_mode": os.environ.get("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
-        "hyperframes_telemetry": os.environ.get("KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)),
-        "revideo_telemetry": os.environ.get("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
+        "vision_mode": _policy_setting("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
+        "hyperframes_telemetry": _policy_setting("KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)),
+        "revideo_telemetry": _policy_setting("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
         "mcp_tools": active_mode(),
     }
     return {
@@ -658,7 +671,9 @@ def run_diagnostics(
     checks.append(_check_audio_engine())
     checks.append(_check_still_plates(find_spec, package_version))
     checks.append(_check_object_matte(find_spec))
-    checks.append(_check_sphere_director())
+    from .te.sphere_director import doctor_check
+
+    checks.append(doctor_check())
     checks.extend([_check_workspace(), _check_runtime_policy()])
     report = {
         "success": True,
@@ -673,23 +688,6 @@ def run_diagnostics(
         "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
     }
     return report if include_paths else without_machine_paths(report)
-
-
-def _check_sphere_director() -> dict[str, Any]:
-    """Report configured 360 director backends (probe only, no network)."""
-    from kinocut.te.sphere_director import detect_sphere_director
-
-    detected = detect_sphere_director()
-    return {
-        "name": "sphere_director",
-        "category": "optional",
-        "required": False,
-        "ok": True,
-        "path": None,
-        "version": detected.get("id"),
-        "install_hint": None,
-        "details": detected,
-    }
 
 
 def _object_matte_cache_path() -> Path:

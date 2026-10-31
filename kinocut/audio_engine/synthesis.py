@@ -70,7 +70,8 @@ def _validate_synth_effects(effects: dict[str, Any] | None) -> None:
     unknown = sorted(set(effects) - VALID_AUDIO_SYNTH_EFFECT_KEYS)
     if unknown:
         raise MCPVideoError(
-            f"effects keys must be one of {sorted(VALID_AUDIO_SYNTH_EFFECT_KEYS)}, got unsupported keys {unknown}",
+            f"effects keys must be one of {sorted(VALID_AUDIO_SYNTH_EFFECT_KEYS)}; "
+            f"{len(unknown)} submitted key(s) were not accepted",
             error_type="validation_error",
             code="invalid_parameter",
         )

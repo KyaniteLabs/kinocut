@@ -25,7 +25,7 @@ from .ffmpeg_helpers import (
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
 from .filter_guardrails import clamp_filter_params, validate_filter_params
-from .models import ColorPreset, EditResult, FilterType
+from .models import ColorPreset, EditResult, FilterType, VALID_FILTER_TYPES
 
 
 def _get_color_preset_filter(preset: ColorPreset) -> str:
@@ -101,7 +101,7 @@ def apply_filter(
 
     filter_map = _filter_map(params, info.width, info.height, info.fps)
     if filter_type not in filter_map:
-        valid = ", ".join(sorted(filter_map))
+        valid = ", ".join(sorted(VALID_FILTER_TYPES))
         raise MCPVideoError(
             f"Unknown filter type ({type(filter_type).__name__}). Valid types: {valid}",
             error_type="validation_error",

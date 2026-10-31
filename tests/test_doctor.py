@@ -266,6 +266,37 @@ def test_doctor_reports_workspace_and_effective_guardrail_policy():
     assert flags["network_egress_default"] is False
 
 
+def test_public_doctor_report_carries_no_operator_configuration(monkeypatch):
+    """The public report is a projection, not a copy of the operator's setup.
+
+    Every environment family the doctor reads is set to a credential-shaped
+    value; the returned payload — the shape video_doctor hands the caller —
+    carries none of them, and says only that the setting is custom.
+    """
+    import json
+
+    from kinocut.doctor import run_diagnostics
+
+    monkeypatch.setenv("KINOCUT_VISION_MODE", "sk-credential-9f3a7c")
+    monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "token-9f3a7c")
+    monkeypatch.setenv("KINOCUT_REVIDEO_TELEMETRY", "token-9f3a7c")
+    monkeypatch.setenv("KINOCUT_360_DIRECTOR", "director-9f3a7c")
+    monkeypatch.setenv("KINOCUT_360_DIRECTOR_MODEL", "model-9f3a7c")
+    monkeypatch.setenv("KINOCUT_360_DIRECTOR_BASE_URL", "https://user:token-9f3a7c@secret.invalid/endpoint")
+
+    report = run_diagnostics(
+        include_paths=False, which=lambda name: None, version_runner=lambda command: None, find_spec=lambda name: None
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    policy = checks["runtime_policy"]["flags"]
+    assert policy["vision_mode"]["state"] == "custom"
+    assert "setting" in policy["vision_mode"]
+    director = checks["sphere_director"]["details"]
+    assert director["kind"] in {"local", "cloud", "none", "unresolved"}
+    assert "9f3a7c" not in json.dumps(report)
+
+
 def test_doctor_reports_rescue_readiness_from_existing_checks():
     from mcp_video.doctor import run_diagnostics
 

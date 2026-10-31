@@ -59,6 +59,7 @@ _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
 _SUPPORTED_LAYER_TYPES = {"video", "image", "solid"}
 _UNSUPPORTED_TOP_LEVEL: set[str] = set()
+_SUPPORTED_TRANSFORM_FIELDS = frozenset({"x", "y", "width", "height", "scale"})
 _SUPPORTED_LAYER_FIELDS = {
     "alpha_mode",
     "anchor",
@@ -267,7 +268,7 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
 
 
 def _parse_layers(spec_data: dict[str, Any], spec_dir: Path, canvas: _Canvas) -> list[_ResolvedLayer]:
-    unsupported = sorted(_UNSUPPORTED_TOP_LEVEL & set(spec_data))
+    unsupported = sorted(shipped for shipped in _UNSUPPORTED_TOP_LEVEL if shipped in spec_data)
     if unsupported:
         raise MCPVideoError(
             f"unsupported composite-layers field(s): {unsupported}",
@@ -401,10 +402,11 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
     if transform is not None and not isinstance(transform, dict):
         raise MCPVideoError("transform must be an object", error_type="validation_error", code="invalid_transform")
     if isinstance(transform, dict):
-        unsupported = {k for k in transform if k not in {"x", "y", "width", "height", "scale"}}
+        unsupported = {key for key in transform if key not in _SUPPORTED_TRANSFORM_FIELDS}
         if unsupported:
             raise MCPVideoError(
-                f"transform field(s) {sorted(unsupported)} are deferred beyond P2",
+                f"transform has {len(unsupported)} unsupported field(s); "
+                f"supported transform fields are {sorted(_SUPPORTED_TRANSFORM_FIELDS)}",
                 error_type="validation_error",
                 code="unsupported_compositor_feature",
             )

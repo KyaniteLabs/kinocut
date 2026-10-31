@@ -24,7 +24,7 @@ from pathlib import Path
 import pytest
 
 ROOT = Path(__file__).resolve().parents[1]
-DATED_PARTS = ("research", "plans", "status", "archive", "retired", "adr", "release-notes", "proofs")
+DATED_PARTS = ("research", "plans", "archive", "retired", "adr", "release-notes", "proofs")
 DATED_FILES = ("CHANGELOG.md", "public_claims.json", "DIRECTORY_REBRAND_STATUS.md")
 # The current status file is a current surface, not a dated record.
 CURRENT_FILES = ("docs/status/NOW.md",)
@@ -101,6 +101,9 @@ def _captured_version(token: str) -> str:
 
 def _is_dated(relative: Path) -> bool:
     """Whether a path is a dated record rather than a current surface."""
+    if _DATED_NAME.match(relative.name):
+        # A file named for a day is a record of that day.
+        return True
     if relative.name in DATED_FILES:
         return True
     return any(part in DATED_PARTS for part in relative.parts)
@@ -111,6 +114,9 @@ def _is_dated(relative: Path) -> bool:
 _RELEASE_HEADING = re.compile(r"^(?:#{1,6}\s.*?\b|\*\*)(\d+\.\d+\.\d+)")
 #: A line that opens with a publication date is a record of what shipped.
 _PUBLISHED_LINE = re.compile(r"^Published\s+\d{4}-\d{2}-\d{2}\b")
+#: A file named for a day is a record of that day. The directory it sits in
+#: says nothing: a runbook and a release note live in the same place.
+_DATED_NAME = re.compile(r"^\d{4}-\d{2}-\d{2}")
 
 
 def _is_dated_line(line: str, dated_section: bool) -> bool:
@@ -150,6 +156,8 @@ def _current_files() -> list[Path]:
             continue
         if _is_dated(relative):
             continue
+        if _DATED_NAME.match(path.name):
+            continue
         keep.append(path)
     return keep
 
@@ -158,29 +166,38 @@ def _offenders(path: Path, relative: Path) -> list[str]:
     """The install instructions in one file that do not name the release."""
     offenders: list[str] = []
     text = path.read_text(encoding="utf-8", errors="replace")
-    dated_section = False
+    section_version: str | None = None
     for number, line in enumerate(text.splitlines(), 1):
         stripped = line.strip()
         heading = _RELEASE_HEADING.match(stripped)
         if stripped.startswith("#") or heading:
-            # A heading opens a section. A section that names the release
-            # we are shipping is not a record of an older one: what is
-            # under it is current, and it has to pin the current release.
-            dated_section = bool(heading) and heading.group(1) not in EXPECTED_PINS.values()
-        dated = _is_dated_line(line, dated_section)
+            # A heading opens a section. A section that names a release is
+            # about that release, and its commands are that release's.
+            section_version = heading.group(1) if heading else None
+        published = bool(_PUBLISHED_LINE.match(stripped))
         for distribution, grammar in INSTALL_GRAMMARS:
             for match in grammar.finditer(line):
                 captured = _captured_version(match.group(1) or "")
-                if dated and captured:
-                    # A record keeps the version that was true then. A launch
-                    # that names no version at all is not a record: it is an
-                    # instruction, and it has to name a release.
-                    continue
-                if captured != EXPECTED_PINS[distribution]:
-                    offender = f"{relative}:{number}: {line.strip()}"
-                    if offender not in offenders:
-                        offenders.append(offender)
-        if dated:
+                if captured:
+                    if captured == EXPECTED_PINS[distribution]:
+                        # Correctly pinned to the shipped release, wherever
+                        # the line sits.
+                        continue
+                    if section_version is not None and captured == section_version:
+                        # A release section's commands are that release's
+                        # commands: the record keeps its own version.
+                        continue
+                    if published:
+                        # A record keeps the version that was true then.
+                        continue
+                    # A launch that names some other version is a stale
+                    # instruction, not a record.
+                # No version at all is an instruction, whatever it sits in:
+                # a reader can copy it and get something unpinned.
+                offender = f"{relative}:{number}: {line.strip()}"
+                if offender not in offenders:
+                    offenders.append(offender)
+        if section_version is not None or published:
             # A record may name the extra as it was.
             continue
         for _distribution, grammar in BARE_EXTRA_GRAMMARS:
@@ -280,12 +297,40 @@ def test_the_sweep_covers_the_launch_grammars_it_claims_to_cover():
         assert grammar in shim
 
 
-def test_a_dated_record_keeps_its_own_history(tmp_path):
-    # A dated file is exempt: the version it names is the version that was true.
-    dated = tmp_path / "status" / "OLD.md"
-    dated.parent.mkdir(parents=True)
-    dated.write_text("pip install kinocut==1.15.2\n", encoding="utf-8")
-    assert _is_dated(Path("docs/status/OLD.md")) is True
+def test_a_dated_record_keeps_its_own_history():
+    # A file named for a day is a record of that day; a directory named
+    # ``status`` says nothing — a runbook and a release note live in the
+    # same place, so the classifier reads the name, not the folder.
+    assert _is_dated(Path("docs/notes/2024-01-01-notes.md")) is True
+    assert _is_dated(Path("docs/status/OLD.md")) is False
+
+
+def test_an_obsolete_release_record_keeps_its_own_version(tmp_path):
+    # A release section's commands are that release's commands: the record
+    # keeps the version that was true then.
+    path = tmp_path / "README.md"
+    path.write_text("**1.15.2** (2026-09-01):\n\npip install kinocut==1.15.2\n", encoding="utf-8")
+    assert not _offenders(path, Path("README.md"))
+
+
+def test_a_current_runbook_is_not_a_record(tmp_path):
+    # A runbook under docs/status is a current surface: an unpinned launch
+    # in it is an instruction a reader can copy. The directory name does
+    # not make it a record.
+    runbook = tmp_path / "RUNBOOK.md"
+    runbook.write_text("pip install kinocut\n", encoding="utf-8")
+    offenders = _offenders(runbook, Path("docs/status/RUNBOOK.md"))
+    assert offenders and "RUNBOOK.md:1" in offenders[0]
+    assert _is_dated(Path("docs/status/RUNBOOK.md")) is False
+
+
+def test_a_current_command_under_an_old_heading_is_an_offender(tmp_path):
+    # An old release heading does not shelter a current launch: a command
+    # that names no version under it is still an instruction.
+    page = tmp_path / "PAGE.md"
+    page.write_text("## 1.15.2\n\npip install kinocut\n", encoding="utf-8")
+    offenders = _offenders(page, Path("docs/PAGE.md"))
+    assert offenders and "PAGE.md:3" in offenders[0]
 
 
 @pytest.mark.parametrize(

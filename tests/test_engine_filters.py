@@ -15,6 +15,19 @@ from mcp_video.engine_probe import probe
 from mcp_video.errors import InputFileError, MCPVideoError
 
 
+def test_the_published_filter_vocabulary_matches_the_accepted_vocabulary() -> None:
+    """The unknown-filter refusal publishes what apply_filter accepts — one set."""
+    from typing import get_args
+
+    import mcp_video.models as models
+
+    from mcp_video.engine_filters import _filter_map
+
+    accepted = _filter_map({}, 1920, 1080, 30.0)
+    assert sorted(models.VALID_FILTER_TYPES) == sorted(accepted)
+    assert sorted(models.VALID_FILTER_TYPES) == sorted(get_args(models.FilterType))
+
+
 # ---------------------------------------------------------------------------
 # _get_color_preset_filter (pure logic, no FFmpeg)
 # ---------------------------------------------------------------------------

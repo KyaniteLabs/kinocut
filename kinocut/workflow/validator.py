@@ -123,7 +123,9 @@ def _require_steps(spec: WorkflowSpec) -> None:
 def _resolve_declared_paths(declared: dict[str, Any], workspace_root: Path, label: str) -> dict[str, str]:
     """Resolve declared source/output paths, enforcing workspace confinement."""
     return {
-        key: _resolve_workspace_path(entry.path, workspace_root, f"{label}.{key}.path")
+        # The prefix is ours; the key is the caller's, so it is named by
+        # its shape rather than by its value.
+        key: _resolve_workspace_path(entry.path, workspace_root, f"{label}.<key>.path")
         for key, entry in declared.items()
     }
 
@@ -131,22 +133,20 @@ def _resolve_declared_paths(declared: dict[str, Any], workspace_root: Path, labe
 def _resolve_workspace_path(raw: str, workspace_root: Path, label: str) -> str:
     """Return a workspace-relative posix path, or fail closed on any escape."""
     if not isinstance(raw, str) or not raw:
-        raise workflow_error(f"{rejected_value(label)} must be a non-empty string", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(f"{label} must be a non-empty string", INVALID_WORKFLOW_SPEC)
     if "\x00" in raw:
-        raise workflow_error(f"{rejected_value(label)} contains null bytes", UNSAFE_WORKFLOW_SOURCE)
+        raise workflow_error(f"{label} contains null bytes", UNSAFE_WORKFLOW_SOURCE)
     candidate = Path(raw)
     if candidate.is_absolute():
         raise workflow_error(
-            f"{rejected_value(label)} must be a relative path inside the workspace, got absolute path {rejected_value(raw)!r}",
+            f"{label} must be a relative path inside the workspace, got an absolute path",
             UNSAFE_WORKFLOW_SOURCE,
         )
     resolved = Path(os.path.realpath(workspace_root / candidate))
     try:
         relative = resolved.relative_to(workspace_root)
     except ValueError:
-        raise workflow_error(
-            f"{rejected_value(label)} escapes the workspace root: {rejected_value(raw)!r}", UNSAFE_WORKFLOW_SOURCE
-        ) from None
+        raise workflow_error(f"{label} escapes the workspace root", UNSAFE_WORKFLOW_SOURCE) from None
     return relative.as_posix()
 
 
@@ -266,8 +266,10 @@ def _resolve_ref(step_id: str, ref: Any, workspace_root: Path, source_ids: set[s
         raise workflow_error(
             f"step {rejected_value(step_id)!r} uses unknown ref namespace {rejected_value(ref)!r}", UNKNOWN_WORKFLOW_REF
         )
-    # Raw path: allowed only if it stays inside the workspace root.
-    _resolve_workspace_path(ref, workspace_root, f"step {step_id} input {ref!r}")
+    # Raw path: allowed only if it stays inside the workspace root. The
+    # label is ours: a fixed name with bounded placeholders, because the
+    # step id and the ref are the caller's.
+    _resolve_workspace_path(ref, workspace_root, "step <step_id> input <ref>")
     return ref
 
 

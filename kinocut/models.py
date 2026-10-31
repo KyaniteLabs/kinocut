@@ -325,6 +325,10 @@ FilterType = Literal[
     "noise_reduction",
 ]
 
+#: The shipped filter-type vocabulary, derived from the FilterType union so
+#: a refusal can publish it without echoing a caller's submitted value.
+VALID_FILTER_TYPES = set(get_args(FilterType))
+
 ColorPreset = Literal["warm", "cool", "vintage", "cinematic", "noir"]
 
 # --- Split layout ---

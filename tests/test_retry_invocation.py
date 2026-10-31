@@ -41,6 +41,14 @@ def test_retry_invocation_stays_silent_without_a_context():
     assert "submitted:" not in message
 
 
+def test_retry_invocation_carries_typed_placeholders():
+    """F5: the retry is a replayable invocation — names AND types, no values."""
+    message = _message(api_key="s3cret-value", count=3)
+    assert "api_key=<str>" in message
+    assert "count=<int>" in message
+    assert "s3cret-value" not in message
+
+
 def test_retry_invocation_names_the_cli_command_for_mapped_tools():
     with retry_context("video_quality_check", {"input_path": "/tmp/a.mp4"}):
         message = MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]

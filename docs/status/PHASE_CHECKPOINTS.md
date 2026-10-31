@@ -23,11 +23,11 @@ classifies the family as deepen/re-run.
 
 | Gate | Go | No-go |
 | --- | --- | --- |
-| Installed CLI | clean `pip install kinocut` runs `kino` | install or entry point fails |
+| Installed CLI | clean `pip install kinocut==1.16.5` runs `kino` | install or entry point fails |
 | Repository | canonical `KyaniteLabs/kinocut` | old name still canonical |
 | Registry | registry lists the current release under the new identity | stale or missing listing |
 | Site/docs | site and `llms.txt` use the Kinocut identity | old identity on public surfaces |
-| Compatibility shim | `pip install mcp-video` resolves to kinocut | shim fails to resolve |
+| Compatibility shim | `pip install mcp-video==1.6.20` resolves to kinocut | shim fails to resolve |
 
 **Exit (2026-10-20):** GO by owner decision, on a new verification against
 published 1.16.1 ([receipt](2026-10-20-phase-0-exit-receipt.md), GitHub #487).

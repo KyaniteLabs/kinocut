@@ -303,7 +303,9 @@ def _reject_supersession_cycle(record_id: str, supersedes: str | None, existing:
     node: str | None = record_id
     while node is not None:
         if node in seen:
-            raise contract_error(f"supersession chain forms a cycle at {node}", RECORD_SUPERSESSION_CYCLE)
+            raise contract_error(
+                f"supersession chain forms a cycle after {len(seen)} record(s)", RECORD_SUPERSESSION_CYCLE
+            )
         seen.add(node)
         node = supersedes_of.get(node)
 

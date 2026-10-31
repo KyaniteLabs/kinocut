@@ -149,7 +149,7 @@ def _assert_safe_output(output_paths: tuple[str, ...], cfg: PackageConfig) -> No
     conflicts = tuple(path for path in output_paths if os.path.lexists(path))
     if conflicts and not cfg.overwrite_package:
         raise MCPVideoError(
-            f"package assets already exist: {conflicts!r}",
+            f"package assets already exist: {len(conflicts)} of {len(output_paths)} output path(s) are present",
             error_type="validation_error",
             code="package_write_conflict",
         )

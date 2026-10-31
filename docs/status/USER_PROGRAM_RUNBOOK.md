@@ -19,7 +19,7 @@ content, **not** as an open residual that blocks product timeline or release.
 
 ## Optional guided first-run script (support, not a gate)
 
-1. `pip install -U kinocut` (or `mcp-video` compat)  
+1. `pip install -U kinocut==1.16.5` (or `mcp-video` compat)  
 2. `kino doctor`  
 3. Point at **their** local media (not only fixtures)  
 4. Intent / cutfile / repurpose path they choose  

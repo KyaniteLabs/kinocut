@@ -113,13 +113,21 @@ def _argument_names(arguments: dict[str, Any]) -> str:
     The retry context exists to make a refusal addressable — which tool, with
     which inputs — and the stored arguments are what make it so: the operator
     learns exactly which parameters the call carried, and therefore which one
-    to correct. The values are the caller's own input and can be hostile (a
+    to correct. Each name carries its value's type as a replayable
+    placeholder, so the invocation can be re-issued by substituting a value
+    for the type. The values are the caller's own input and can be hostile (a
     validation error must not echo the value it just rejected), so only the
-    names are named.
+    names and types are named.
     """
     if not arguments:
         return ""
-    return " (arguments: " + ", ".join(sorted(_argument_name(key) for key in arguments)) + ")"
+    parts = [f"{_argument_name(key)}={_argument_type(value)}" for key, value in arguments.items()]
+    return " (arguments: " + ", ".join(sorted(parts)) + ")"
+
+
+def _argument_type(value: Any) -> str:
+    """A replayable placeholder for one argument: its type, never its value."""
+    return f"<{type(value).__name__}>"
 
 
 def _argument_name(key: Any) -> str:

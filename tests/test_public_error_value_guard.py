@@ -83,6 +83,54 @@ def inner(**kwargs):
     assert "kwargs" in inner.tainted
 
 
+def test_a_tainted_comprehension_element_is_detected() -> None:
+    """The traversal looks inside comprehensions: a collection is not a sanitizer.
+
+    A message can be assembled from a comprehension over caller data. A list
+    comprehension sits inline in an f-string; a set or dict comprehension
+    cannot (its brace would escape the field), so it reaches a message
+    through the name it is assigned to. The traversal is pinned for both
+    shapes.
+    """
+    from tests.error_value_analysis import Function, _is_tainted_expr
+
+    probe = ast.parse("def handler(values):\n    pass\n").body[0]
+    assert isinstance(probe, ast.FunctionDef)
+    function = Function(ROOT / "probe.py", probe)
+    function.tainted.add("values")
+
+    inline = ast.parse("message = f'bad: {[value for value in values]}'").body[0]
+    assert isinstance(inline, ast.Assign)
+    joined = inline.value
+    assert isinstance(joined, ast.JoinedStr)
+    fields = [part for part in joined.values if isinstance(part, ast.FormattedValue)]
+    assert len(fields) == 1
+    assert _is_tainted_expr(fields[0].value, function)
+
+    for expression in ("{value for value in values}", "{name: value for name, value in values}"):
+        node = ast.parse(f"result = {expression}").body[0]
+        assert isinstance(node, ast.Assign)
+        assert _is_tainted_expr(node.value, function), expression
+
+
+def test_a_message_built_in_an_annotated_assignment_is_scanned() -> None:
+    """An annotated assignment is a message root like any other assignment."""
+    from tests.error_value_analysis import Function, _is_tainted_expr
+
+    probe = ast.parse("def handler(value):\n    pass\n").body[0]
+    assert isinstance(probe, ast.FunctionDef)
+    function = Function(ROOT / "probe.py", probe)
+    function.tainted.add("value")
+
+    node = ast.parse("summary: str = f'refused: {value}'").body[0]
+    assert isinstance(node, ast.AnnAssign)
+    joined = node.value
+    assert isinstance(joined, ast.JoinedStr)
+    fields = [part for part in joined.values if isinstance(part, ast.FormattedValue)]
+    assert len(fields) == 1
+    assert _is_tainted_expr(fields[0].value, function)
+
+
 def test_the_guard_itself_detects_a_leak() -> None:
     """The guard is only worth shipping if it can fail."""
     from tests.error_value_analysis import Function, _is_tainted_expr
