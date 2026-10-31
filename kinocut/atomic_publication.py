@@ -9,6 +9,7 @@ import stat
 from collections.abc import Callable, Iterator
 
 from .errors import MCPVideoError
+from .type_names import exception_kind
 from .staged_writers import owned_stage
 
 
@@ -171,7 +172,7 @@ def anchored_output(path: str, validate: Callable[[str], str]) -> Iterator[str]:
     except OSError as exc:
         if published:
             raise _partial_output("Published output could not be verified; inspect the output before reuse") from exc
-        raise _unsafe(f"Atomic output could not preserve directory identity: {type(exc).__name__}") from exc
+        raise _unsafe(f"Atomic output could not preserve directory identity: {exception_kind(exc)}") from exc
     finally:
         if fd is not None:
             os.close(fd)

@@ -374,8 +374,12 @@ def _revalidate_at_boundary(record: RecordBase, line: str) -> type[RecordBase]:
         raise contract_error("unknown record kind: not a registered kind", INVALID_RECORD)
     if type(record) is not model:
         # A subclass "lookalike" (same record_kind, extra behaviour) is refused —
-        # only the exact registered concrete type may persist.
-        raise contract_error(f"record type is not the registered {model.__name__}", INVALID_RECORD)
+        # only the exact registered concrete type may persist. The registered
+        # class's own name is a shipped name, but the refusal stays value-free
+        # by construction: the operator's actionable fact is that the exact
+        # registered type is required, and the kind they sent is already
+        # membership-proven against the registry by the lookup above.
+        raise contract_error("record type is not the registered concrete type for its record kind", INVALID_RECORD)
     parse_record_json(model, line)  # raises a stable MCPVideoError on any mismatch
     return model
 

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .validation_errors import reason
+from .validation_errors import reason, rejected_value
 import contextlib
 import os
 from typing import Annotated, Any
@@ -29,7 +29,7 @@ from .server_app import _error_result, _result, _safe_tool, _validation_error, m
 from .templates import TEMPLATES, preview_template
 from .validation import VALID_AUDIO_FORMATS, VALID_FORMATS, VALID_PRESETS
 from .ffmpeg_helpers import _get_video_duration, _validate_input_path
-from .validation_errors import exception_kind, rejected_value
+from .validation_errors import exception_kind
 
 ExistingVideoPath = Annotated[
     str,
@@ -514,7 +514,7 @@ def video_edit(
             else:
                 return _validation_error("timeline must be a dict, valid JSON string, or path to a .json file")
     if not isinstance(parsed_timeline, dict):
-        return _validation_error(f"timeline must be a dict or JSON object. Got: {type(parsed_timeline).__name__}")
+        return _validation_error(f"timeline must be a dict or JSON object. Got: {rejected_value(parsed_timeline)}")
     return _result(edit_timeline(parsed_timeline, output_path=output_path))
 
 

@@ -8,6 +8,8 @@ import functools
 from contextvars import ContextVar
 from typing import Any
 
+from .type_names import builtin_type_name, register_exception_kinds, type_label
+
 # Caller-supplied values echoed into error messages are capped so a hostile
 # or accidental 100 KB parameter cannot amplify into a ~200 KB error reply
 # that dumps doubled garbage into the caller's agent context window.
@@ -128,18 +130,18 @@ def _argument_names(arguments: dict[str, Any]) -> str:
 #: The type names a retry placeholder may publish. A class's ``__name__``
 #: is mutable, caller-controlled data, so only shipped builtin categories
 #: are named; anything else gets the fixed ``<object>`` placeholder.
-_ARGUMENT_TYPE_NAMES = {"str", "int", "float", "bool", "bytes", "NoneType", "list", "dict", "tuple", "set"}
 
 
 def _argument_type(value: Any) -> str:
     """A replayable placeholder for one argument: its type, never its value.
 
-    The type is named only when it is one of the shipped builtin categories
-    (:data:`_ARGUMENT_TYPE_NAMES`); every other class gets the fixed
-    ``<object>`` placeholder, because a class's own name is the caller's.
+    The category is read off the type object by identity against the
+    shipped map (:func:`builtin_type_name`) — a caller's subclass that
+    renames itself to a shipped category is still a subclass, so it gets
+    the fixed ``<object>`` placeholder.
     """
-    name = type(value).__name__
-    return f"<{name}>" if name in _ARGUMENT_TYPE_NAMES else "<object>"
+    name = builtin_type_name(value)
+    return f"<{name}>" if name is not None else "<object>"
 
 
 def _argument_name(key: Any) -> str:
@@ -170,7 +172,7 @@ def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
         elif value is None or isinstance(value, (int, float, bool)):
             clean[key] = value
         else:
-            clean[key] = type(value).__name__
+            clean[key] = type_label(value)
     return clean
 
 
@@ -722,3 +724,13 @@ class RevideoRenderError(MCPVideoError):
         self.command = command
         self.returncode = returncode
         self.full_stderr = stderr
+
+
+#: Register every error class this module defines by identity, so
+#: ``exception_kind`` may publish its name. A subclass defined elsewhere —
+#: a plugin's, a caller's — is a different type object and stays
+#: ``<foreign-exception>``: identity, not inheritance, is the rule,
+#: because a subclass's name is its author's string.
+register_exception_kinds(
+    [obj for obj in list(vars().values()) if isinstance(obj, type) and issubclass(obj, MCPVideoError)]
+)

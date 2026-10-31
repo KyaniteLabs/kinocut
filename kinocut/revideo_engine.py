@@ -39,6 +39,7 @@ from .errors import (
     RevideoRenderError,
     ValidationError,
 )
+from .type_names import exception_kind, number_text, type_label
 from .ffmpeg_helpers import _atomic_output, _run_command, _run_ffprobe_json, _validate_write_path
 from .limits import (
     DOCTOR_COMMAND_TIMEOUT,
@@ -93,7 +94,7 @@ def _require_revideo_deps() -> None:
             check=False,
         )
     except (OSError, subprocess.TimeoutExpired) as exc:
-        raise RevideoNotFoundError(f"node --version failed to run ({type(exc).__name__})") from exc
+        raise RevideoNotFoundError(f"node --version failed to run ({exception_kind(exc)})") from exc
     if probe.returncode != 0:
         raise RevideoNotFoundError("node --version returned a non-zero exit")
     match = re.match(r"v(\d+)", (probe.stdout or "").strip())
@@ -138,11 +139,15 @@ def _validate_job(job: Any) -> dict[str, Any]:
 
         A rejected value can be anything the caller sent — including a secret
         inside a nested job spec — and it reaches the error text verbatim.
-        Numbers are safe to repeat; anything else is named by type only.
+        Numbers are safe to repeat; anything else is named by its shipped
+        type category, read off the type object by identity, because a
+        class's ``__name__`` is mutable caller data and a numeric subclass
+        can override ``__repr__``.
         """
-        if isinstance(value, bool) or not isinstance(value, (int, float)):
-            return type(value).__name__
-        return repr(value)
+        number = number_text(value)
+        if number is not None:
+            return number
+        return type_label(value)
 
     def _int_field(name: str, lo: int, hi: int, default: int) -> int:
         raw = job.get(name, default)
@@ -196,7 +201,7 @@ def _read_scene_source(scene_source: str | Path | None) -> bytes | None:
     except RevideoProjectError:
         raise
     except (OSError, UnicodeError) as exc:
-        raise RevideoProjectError(str(source), f"scene source could not be read ({type(exc).__name__})") from exc
+        raise RevideoProjectError(str(source), f"scene source could not be read ({exception_kind(exc)})") from exc
     if not scene_bytes:
         raise RevideoProjectError(str(source), "scene source is missing or empty")
     if _BARE_MAKESCENE_RE.search(scene_text) and not _SCENE_NAME_RE.search(scene_text):
@@ -221,7 +226,7 @@ def _validate_materialize_destination(dest: Path) -> None:
     except RevideoProjectError:
         raise
     except OSError as exc:
-        raise RevideoProjectError(str(dest), f"destination could not be inspected ({type(exc).__name__})") from exc
+        raise RevideoProjectError(str(dest), f"destination could not be inspected ({exception_kind(exc)})") from exc
     _validate_artifact_location(str(dest), "Revideo project directory")
 
 
@@ -260,7 +265,7 @@ def materialize_project(dest: str | Path, job: dict[str, Any], scene_source: str
         if replace_empty and not dest_path.exists():
             with contextlib.suppress(OSError):
                 dest_path.mkdir(exist_ok=True)
-        raise RevideoProjectError(str(dest_path), f"project could not be materialized ({type(exc).__name__})") from exc
+        raise RevideoProjectError(str(dest_path), f"project could not be materialized ({exception_kind(exc)})") from exc
     finally:
         if stage is not None:
             shutil.rmtree(stage, ignore_errors=True)
@@ -288,7 +293,7 @@ def _read_materialized_job(project: Path) -> tuple[dict[str, Any], str]:
         raw = json.loads(job_bytes.decode("utf-8"))
         return _validate_job(raw), hashlib.sha256(job_bytes).hexdigest()
     except (OSError, UnicodeError, json.JSONDecodeError, ValidationError) as exc:
-        raise RevideoProjectError(str(path), f"job file is invalid ({type(exc).__name__})") from exc
+        raise RevideoProjectError(str(path), f"job file is invalid ({exception_kind(exc)})") from exc
 
 
 def _validate_materialized_project(project_dir: str | Path) -> tuple[Path, dict[str, Any], str]:
@@ -310,7 +315,7 @@ def _validate_materialized_project(project_dir: str | Path) -> tuple[Path, dict[
     except RevideoProjectError:
         raise
     except OSError as exc:
-        raise RevideoProjectError(str(requested), f"project could not be validated ({type(exc).__name__})") from exc
+        raise RevideoProjectError(str(requested), f"project could not be validated ({exception_kind(exc)})") from exc
 
 
 def _run_npm(
@@ -342,7 +347,7 @@ def _run_npm(
         raise RevideoNotFoundError("npm command not found") from None
     except OSError as exc:
         raise RevideoRenderError(
-            " ".join(cmd), -1, "", reason=f"npm command could not start ({type(exc).__name__})"
+            " ".join(cmd), -1, "", reason=f"npm command could not start ({exception_kind(exc)})"
         ) from exc
 
 
@@ -368,7 +373,7 @@ def _checked_path(path: Path, label: str, *, directory: bool, allow_absent: bool
             return False
         raise RevideoProjectError(str(path), f"{label} is missing") from None
     except OSError as exc:
-        raise RevideoProjectError(str(path), f"{label} could not be inspected ({type(exc).__name__})") from exc
+        raise RevideoProjectError(str(path), f"{label} could not be inspected ({exception_kind(exc)})") from exc
     expected = stat.S_ISDIR(info.st_mode) if directory else stat.S_ISREG(info.st_mode)
     if stat.S_ISLNK(info.st_mode):
         raise RevideoProjectError(str(path), f"{label} must not be a symlink")
@@ -396,7 +401,7 @@ def _prepare_output_paths(project: Path, job: dict[str, Any]) -> tuple[Path, Pat
             out_dir.mkdir()
         except OSError as exc:
             raise RevideoProjectError(
-                str(out_dir), f"output directory could not be created ({type(exc).__name__})"
+                str(out_dir), f"output directory could not be created ({exception_kind(exc)})"
             ) from exc
         _checked_path(out_dir, "project output path", directory=True, allow_absent=False)
     canonical = out_dir / job["out_file"]
@@ -508,7 +513,7 @@ def _inspect_render(
         raise
     except (AttributeError, MCPVideoError, OSError, OverflowError, TypeError, ValueError, ZeroDivisionError) as exc:
         raise RevideoRenderError(
-            "verify Revideo output", 0, "", reason=f"render output validation failed ({type(exc).__name__})"
+            "verify Revideo output", 0, "", reason=f"render output validation failed ({exception_kind(exc)})"
         ) from exc
     return RevideoRenderResult(
         project_dir=str(project),
@@ -561,7 +566,7 @@ def _require_digest(path: Path, expected_sha256: str, label: str) -> None:
         raise
     except OSError as exc:
         raise RevideoRenderError(
-            label, -1, "", reason=f"copied render bytes could not be verified ({type(exc).__name__})"
+            label, -1, "", reason=f"copied render bytes could not be verified ({exception_kind(exc)})"
         ) from exc
 
 
@@ -571,7 +576,7 @@ def _cleanup_owned_path(path: Path, label: str) -> None:
     except FileNotFoundError:
         return
     except OSError as exc:
-        logger.warning("Could not inspect %s during Revideo cleanup: %s", label, type(exc).__name__)
+        logger.warning("Could not inspect %s during Revideo cleanup: %s", label, exception_kind(exc))
         return
     try:
         if stat.S_ISDIR(info.st_mode) and not stat.S_ISLNK(info.st_mode):
@@ -579,7 +584,7 @@ def _cleanup_owned_path(path: Path, label: str) -> None:
         else:
             path.unlink()
     except OSError as exc:
-        logger.warning("Could not remove %s during Revideo cleanup: %s", label, type(exc).__name__)
+        logger.warning("Could not remove %s during Revideo cleanup: %s", label, exception_kind(exc))
 
 
 def _restore_canonical(canonical: Path, backup: Path | None, existed: bool) -> None:
@@ -592,7 +597,7 @@ def _restore_canonical(canonical: Path, backup: Path | None, existed: bool) -> N
             os.replace(backup, canonical)
     except OSError as exc:
         raise RevideoRenderError(
-            "restore Revideo output", -1, "", reason=f"canonical output restoration failed ({type(exc).__name__})"
+            "restore Revideo output", -1, "", reason=f"canonical output restoration failed ({exception_kind(exc)})"
         ) from exc
 
 
@@ -619,7 +624,10 @@ def _install_canonical(candidate: Path, canonical: Path, existed: bool, expected
         if moved_old:
             _restore_canonical(canonical, backup, True)
         raise RevideoRenderError(
-            "publish Revideo project output", -1, "", reason=f"project output publication failed ({type(exc).__name__})"
+            "publish Revideo project output",
+            -1,
+            "",
+            reason=f"project output publication failed ({exception_kind(exc)})",
         ) from exc
     return backup
 
@@ -632,7 +640,7 @@ def _publish_external(canonical: Path, output_path: str, expected_sha256: str) -
             _require_digest(stage, expected_sha256, "verify Revideo final output")
     except OSError as exc:
         raise RevideoRenderError(
-            "publish Revideo output", -1, "", reason=f"output publication failed ({type(exc).__name__})"
+            "publish Revideo output", -1, "", reason=f"output publication failed ({exception_kind(exc)})"
         ) from exc
 
 

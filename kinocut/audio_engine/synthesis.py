@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from ..errors import MCPVideoError
+from ..validation_errors import rejected_value
 
 from .core import (
     _float_to_pcm,
@@ -323,7 +324,7 @@ def audio_synthesize(
         pcm_data = generate_fm(frequency, duration, sample_rate, volume)
     else:
         raise MCPVideoError(
-            f"Unknown waveform ({type(waveform).__name__}). Available: {sorted(_WAVEFORMS)}",
+            f"Unknown waveform ({rejected_value(waveform)}). Available: {sorted(_WAVEFORMS)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -382,7 +383,7 @@ def audio_preset(
 
     if pitch not in _PITCH_MULT:
         raise MCPVideoError(
-            f"pitch must be one of {sorted(_PITCH_MULT)}, got {type(pitch).__name__}",
+            f"pitch must be one of {sorted(_PITCH_MULT)}, got {rejected_value(pitch)}",
             error_type="validation_error",
             code="invalid_parameter",
         )

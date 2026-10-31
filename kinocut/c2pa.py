@@ -10,6 +10,7 @@ from typing import Any
 
 from .defaults import DEFAULT_C2PA_TIMEOUT
 from .errors import C2PASigningError, C2PAToolNotFoundError, C2PAVerificationError, MCPVideoError
+from .validation_errors import exception_kind
 from .ffmpeg_helpers import _atomic_output, _validate_artifact_input_path, _validate_input_path
 
 
@@ -112,7 +113,7 @@ def _verify_signed_asset(tool: str, asset: str) -> dict[str, Any]:
     try:
         payload = json.loads(result.stdout) if result.stdout.strip() else {}
     except json.JSONDecodeError as exc:
-        raise C2PAVerificationError(f"c2patool returned non-JSON verification output ({type(exc).__name__})") from exc
+        raise C2PAVerificationError(f"c2patool returned non-JSON verification output ({exception_kind(exc)})") from exc
     if not isinstance(payload, dict):
         raise C2PAVerificationError("c2patool verification output was not a JSON object")
 

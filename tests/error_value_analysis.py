@@ -157,16 +157,21 @@ SANITIZERS = frozenset(
         "rejected_value",
         "exception_kind",
         "invalid_parameter",
+        # The shipped type-category helpers: identity, not names. A class's
+        # ``__name__`` is mutable caller data; these read the type object
+        # itself, so what they return is a shipped vocabulary.
+        "builtin_type_name",
+        "type_label",
+        "number_text",
         # The text with the caller's submitted value removed.
         "_without_value",
         # The reason of one of our own errors. A foreign exception's text
         # is never republished; its kind is.
         "reason",
-        # The marked cause of a plan/review/package refusal: own_reason
-        # wraps only text this package wrote at a fixed construction site,
-        # and likely_cause republishes exactly those, naming everything
-        # else by type.
-        "own_reason",
+        # The rendered cause of a plan/review/package refusal: it
+        # republishes exactly the causes own_reason marked and names
+        # everything else by type, so it is safe on any input. The mark
+        # itself (own_reason) is conditional — see below.
         "likely_cause",
         # The event kind, validated against the shipped set of kinds.
         "_validate_event_kind",
@@ -179,6 +184,18 @@ SANITIZERS = frozenset(
         "location_violation",
         # A bounded, privacy-safe summary of our own validation error.
         "_summary",
+    }
+)
+
+#: Sanitizers that are safe only when their argument is. The provenance
+#: mark claims its argument was written by this package — a claim about
+#: the argument, checked against it, not assumed: wrapping caller data in
+#: ``own_reason`` stays a finding. ``likely_cause`` is NOT here: it is the
+#: renderer for a cause of *unknown* provenance and collapses everything
+#: unmarked by type, so it is safe on any input.
+CONDITIONAL_SANITIZERS = frozenset(
+    {
+        "own_reason",
     }
 )
 
@@ -908,16 +925,26 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
 
     The walk is recursive rather than flat so that a numeric attribute
     stops the descent: ``img.width`` is a number even when ``img`` came
-    from a caller-controlled path, and ``type(x).__name__`` is the name of
-    a class rather than a value.
+    from a caller-controlled path. ``x.__name__`` is NOT such a stop: a
+    class's name is mutable, caller-controlled data, so a message that
+    interpolates it is a publication of caller data — the shipped helpers
+    in :mod:`kinocut.type_names` are the only way to name a type.
 
     A call to one of the sanitizers is the trust boundary: those helpers
     name a value by its type and never copy it, so what they return is
-    safe by construction.
+    safe by construction. The conditional sanitizers are safe only when
+    what they were handed is safe: wrapping caller data in ``own_reason``
+    must stay a finding.
     """
     tainted = function.tainted
     if isinstance(node, ast.Call):
         name = callee_name(node)
+        if name in CONDITIONAL_SANITIZERS:
+            # The provenance mark is a claim about its argument: the call
+            # is safe exactly when the argument is, and never otherwise.
+            arguments = [argument for argument in node.args]
+            arguments.extend(keyword.value for keyword in node.keywords)
+            return any(_is_tainted_expr(argument, function) for argument in arguments)
         if name in SANITIZERS:
             return False
         if name in NUMERIC_CALLS:
@@ -954,7 +981,14 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
         return node.id in tainted
     if isinstance(node, ast.Attribute):
         if node.attr == "__name__":
-            return False
+            # A class's or module's ``__name__`` is mutable, caller-
+            # controlled data, and there is no branch of a message where
+            # publishing it is sound — the shipped helpers in
+            # ``kinocut.type_names`` are the only way to name a type. This
+            # is total on purpose: even a name the code elsewhere believes
+            # is numeric may be named here precisely because it is NOT one
+            # (``type(evt_at).__name__`` under a failed isinstance check).
+            return True
         if node.attr in NUMERIC_ATTRIBUTES:
             return False
         if node.attr in DIAGNOSTIC_ATTRIBUTES and not (isinstance(node.value, ast.Name) and node.value.id == "sys"):

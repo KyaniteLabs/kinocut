@@ -165,7 +165,7 @@ def video_ai_stem_separation(
             f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got '{rejected_value(model)}'"
         )
     if stems is not None and not isinstance(stems, list):
-        return _validation_error(f"stems must be a list, got {type(stems).__name__}")
+        return _validation_error(f"stems must be a list, got {rejected_value(stems)}")
     input_path = _validate_input_path(input_path)
     from .ai_engine import ai_stem_separation
 

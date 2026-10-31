@@ -247,7 +247,7 @@ def audio_sequence(
             )
         evt_at = event.get("at")
         if not isinstance(evt_at, (int, float)):
-            return _validation_error(f"Invalid sequence[{i}].at: must be numeric, got {type(evt_at).__name__}")
+            return _validation_error(f"Invalid sequence[{i}].at: must be numeric, got {rejected_value(evt_at)}")
         evt_dur = event.get("duration")
         if evt_dur is not None and evt_dur <= 0:
             return _validation_error(f"Invalid sequence[{i}].duration: must be > 0, got {evt_dur}")

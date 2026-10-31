@@ -25,6 +25,7 @@ from __future__ import annotations
 from typing import Any
 
 from .errors import MCPVideoError
+from .type_names import exception_kind, number_text, type_label
 
 __all__ = [
     "REPUBLISHABLE",
@@ -42,29 +43,28 @@ def rejected_value(value: Any) -> str:
 
     A number is safe to repeat: it is not a secret, and the operator needs
     it to correct the call. Everything else is the caller's own data and is
-    named by its type only, so a path or a token never reaches the payload.
+    named by its shipped type category — never by the class's ``__name__``,
+    which is mutable caller data, and never through the value's own
+    ``__repr__``/``__str__``, which a subclass can override. A numeric
+    subclass is coerced to the builtin first, so only digits can come back.
 
     >>> rejected_value(30)
     '30'
     >>> rejected_value("sk-secret")
     'str'
     """
-    if isinstance(value, bool) or not isinstance(value, (int, float)):
-        return type(value).__name__
-    return repr(value)
+    number = number_text(value)
+    if number is not None:
+        return number
+    return type_label(value)
 
 
-def exception_kind(exc: BaseException) -> str:
-    """The kind of a caught failure, without its text.
-
-    The text of an exception routinely embeds the path or the value that
-    failed, so it is caller data. The class name is the part that tells the
-    operator what happened.
-
-    >>> exception_kind(OSError(2, "no such file: /secret/9f3a7c.mp4"))
-    'OSError'
-    """
-    return type(exc).__name__
+#: ``exception_kind`` is re-exported from :mod:`kinocut.type_names` (it
+#: is also called by :func:`reason` below): a caught failure is named by a
+#: registered identity — the interpreter's builtins, the stdlib classes
+#: this package catches, this package's own errors — and every other
+#: exception is the fixed ``<foreign-exception>`` label. A foreign
+#: exception's class name is its author's string, so it is never published.
 
 
 def invalid_parameter(name: str, expectation: str, value: Any = None) -> str:

@@ -88,7 +88,7 @@ class ClientBase:
         if isinstance(result, dict) and result.get("output_path"):
             return EditResult(output_path=str(result["output_path"]), operation=operation)
         raise MCPVideoError(
-            f"Expected media operation to return output_path, got {type(result).__name__}",
+            f"Expected media operation to return output_path, got {rejected_value(result)}",
             error_type="contract_error",
             code="missing_output_path",
         )

@@ -24,7 +24,7 @@ from .limits import (
     MAX_SUBPROCESS_STDOUT_BYTES,
     MAX_FFMPEG_PIPE_BYTES,
 )
-from .validation_errors import exception_kind
+from .validation_errors import exception_kind, rejected_value
 
 _BLOCKED_OUTPUT_PREFIXES = (
     "/bin",
@@ -638,7 +638,7 @@ def _sanitize_ffmpeg_number(value: Any, name: str) -> float:
         result = float(value)
     except (TypeError, ValueError, OverflowError):
         raise MCPVideoError(
-            f"Invalid {name}: expected number, got {type(value).__name__}",
+            f"Invalid {name}: expected number, got {rejected_value(value)}",
             error_type="validation_error",
             code="invalid_parameter",
         ) from None
