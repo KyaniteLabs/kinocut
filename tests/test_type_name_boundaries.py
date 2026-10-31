@@ -24,7 +24,7 @@ import pytest
 
 from kinocut.errors import MCPVideoError, ValidationError, _argument_type, retry_context, retry_message
 from kinocut.type_names import builtin_type_name, exception_kind, number_text, type_label
-from kinocut.validation_errors import likely_cause, own_reason, rejected_value
+from kinocut.validation_errors import likely_cause, own_reason, reason, rejected_value
 from kinocut_sound._validation_errors import rejected_value as sound_rejected_value
 from kinocut_sound._validation_errors import exception_kind as sound_exception_kind
 
@@ -289,3 +289,89 @@ def test_the_analyzer_accepts_a_literal_wrapped_in_the_provenance_mark() -> None
 def test_the_analyzer_treats_the_cause_renderer_as_safe_on_any_input() -> None:
     source = 'def refuse(value):\n    return f"cause: {likely_cause(value)}"\n'
     assert _taint_of(source, {"value"}) is False
+
+
+# --- Gate 19: the boundary closes its remaining edges ---------------------
+
+
+def test_reason_rejects_a_hostile_mcpvideoerror_subclass() -> None:
+    """reason() republishes by exact identity: a caller's subclass is foreign.
+
+    A subclass of our own error class inherits nothing publishable — its
+    name and text are its author's strings — so it is published only as
+    the fixed foreign label, at the raised and the serialized layer.
+    """
+
+    class Sneaky(MCPVideoError):
+        pass
+
+    Sneaky.__name__ = "«redacted:sk-error»"
+    hostile = Sneaky("«redacted:sk-text»")
+    assert reason(hostile) == "<foreign-exception>"
+    assert "«redacted:sk-error»" not in reason(hostile)
+    assert "«redacted:sk-text»" not in json.dumps({"r": reason(hostile)})
+    # The exact classes this package ships still republish.
+    assert reason(MCPVideoError("Unknown preset.")) == "Unknown preset."
+
+
+def test_likely_cause_rejects_a_provenance_marker_subclass() -> None:
+    """Provenance is exact type plus private token, never isinstance."""
+    from kinocut.validation_errors import PackageReason
+
+    class Forged(PackageReason):
+        def __str__(self) -> str:
+            return "«redacted:sk-cause»"
+
+    forged = Forged("«redacted:sk-cause»")
+    assert likely_cause(forged) == "<object>"
+    assert "«redacted:sk-cause»" not in likely_cause(forged)
+    # A genuine mark still republishes verbatim.
+    assert likely_cause(own_reason("the value is not a ShortsPlan instance.")) == (
+        "the value is not a ShortsPlan instance."
+    )
+
+
+def test_a_numeric_subclass_whose_coercion_raises_stays_value_free() -> None:
+    """Any coercion failure publishes <number> — including RuntimeError."""
+
+    class Boom(int):
+        def __int__(self) -> int:
+            raise RuntimeError("«redacted:sk-int»")
+
+    assert number_text(Boom(5)) == "<number>"
+    from kinocut_sound._validation_errors import _number_text as sound_number_text
+
+    assert sound_number_text(Boom(5)) == "<number>"
+
+
+def test_the_exception_registry_has_no_public_mutator() -> None:
+    """The registry is a closed anchor: no public name re-keys it."""
+    import kinocut.type_names as type_names_module
+
+    assert "register_exception_kinds" not in type_names_module.__all__
+
+    class Foreign(Exception):
+        pass
+
+    Foreign.__name__ = "«redacted:sk-kind»"
+    assert exception_kind(Foreign("x")) == "<foreign-exception>"
+    assert "«redacted:sk-kind»" not in exception_kind(Foreign("x"))
+
+
+def test_the_doctor_payload_names_a_renamed_foreign_exception_only_by_kind() -> None:
+    """The MCP-server-import check publishes exception_kind, never __name__."""
+    from kinocut.doctor import _check_mcp_server_import
+
+    class Renamed(Exception):
+        pass
+
+    Renamed.__name__ = "«redacted:sk-import»"
+
+    def exploding(name: str):
+        raise Renamed("«redacted:sk-path»")
+
+    check = _check_mcp_server_import(exploding)
+    assert check["ok"] is False
+    assert check["detail"] == "<foreign-exception>"
+    assert "«redacted:sk-import»" not in str(check)
+    assert "«redacted:sk-path»" not in str(check)

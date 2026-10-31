@@ -82,7 +82,7 @@ class OpAdapter:
                 expected = " | ".join(sorted(kinds))
                 raise workflow_error(
                     f"step {rejected_value(step_id)!r} ({self.name}) param {name!r} must be {expected}, "
-                    f"got {type(value).__name__}",
+                    f"got {rejected_value(value)}",
                     INVALID_WORKFLOW_PARAMS,
                 )
 

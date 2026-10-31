@@ -29,7 +29,6 @@ __all__ = [
     "builtin_type_name",
     "exception_kind",
     "number_text",
-    "register_exception_kinds",
     "type_label",
 ]
 
@@ -98,13 +97,18 @@ def number_text(value: Any) -> str | None:
     try:
         coerced = int(value) if isinstance(value, int) else float(value)
         text = repr(coerced)
-    except (ArithmeticError, TypeError, ValueError):
+    except Exception:  # the coercion is caller-reachable; any failure is still not our text
         return "<number>"
     return text if len(text) <= _MAX_NUMBER_CHARS else "<number>"
 
 
-def register_exception_kinds(classes: list[type] | tuple[type, ...]) -> None:
+def _register_exception_kinds(classes: list[type] | tuple[type, ...]) -> None:
     """Register exception classes by identity, with snapshotted labels.
+
+    Private on purpose: the registry is a closed anchor of interpreter,
+    stdlib, and this-package identities. A public mutator would let a
+    caller register their own class and publish a caller-chosen label
+    through :func:`exception_kind`.
 
     Only classes registered here have their names published by
     :func:`exception_kind`; a subclass of a registered class is NOT
@@ -134,7 +138,7 @@ def exception_kind(exc: BaseException) -> str:
 
 def _register_stdlib_kinds() -> None:
     """Snapshot the interpreter's own exception kinds by identity."""
-    register_exception_kinds(
+    _register_exception_kinds(
         [obj for obj in vars(_builtins).values() if isinstance(obj, type) and issubclass(obj, BaseException)]
     )
     # Stdlib exception classes this package catches and names on purpose.
@@ -145,7 +149,7 @@ def _register_stdlib_kinds() -> None:
     import json as _json
     import subprocess as _subprocess
 
-    register_exception_kinds(
+    _register_exception_kinds(
         [
             _json.JSONDecodeError,
             _subprocess.TimeoutExpired,
@@ -155,7 +159,7 @@ def _register_stdlib_kinds() -> None:
     try:  # optional dependency; absent in a core install
         from pydantic import ValidationError as _ValidationError
 
-        register_exception_kinds([_ValidationError])
+        _register_exception_kinds([_ValidationError])
     except ImportError:  # pragma: no cover - dependency absent
         pass
 

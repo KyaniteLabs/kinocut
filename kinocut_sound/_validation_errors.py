@@ -74,7 +74,7 @@ def _number_text(value: Any) -> str | None:
     try:
         coerced = int(value) if isinstance(value, int) else float(value)
         text = repr(coerced)
-    except (ArithmeticError, TypeError, ValueError):
+    except Exception:  # the coercion is caller-reachable; any failure is still not our text
         return "<number>"
     return text if len(text) <= _MAX_NUMBER_CHARS else "<number>"
 

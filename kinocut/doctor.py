@@ -20,6 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 
 from .doctor_report import without_machine_paths
 from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
+from .type_names import exception_kind
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
     DEFAULT_OVERWRITE,
@@ -624,7 +625,7 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
             "ok": False,
             # The exception's own text can carry a path; the report names
             # the kind, and the log above keeps the detail for the operator.
-            "detail": type(exc).__name__,
+            "detail": exception_kind(exc),
             "install_hint": (
                 "Run 'kino --mcp' to see the full error; usually a broken install "
                 "(pip install --force-reinstall kinocut==1.16.5) or a platform-specific dependency issue."

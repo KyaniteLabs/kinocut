@@ -8,7 +8,7 @@ import functools
 from contextvars import ContextVar
 from typing import Any
 
-from .type_names import builtin_type_name, register_exception_kinds, type_label
+from .type_names import _register_exception_kinds, builtin_type_name, type_label
 
 # Caller-supplied values echoed into error messages are capped so a hostile
 # or accidental 100 KB parameter cannot amplify into a ~200 KB error reply
@@ -731,6 +731,6 @@ class RevideoRenderError(MCPVideoError):
 #: a plugin's, a caller's — is a different type object and stays
 #: ``<foreign-exception>``: identity, not inheritance, is the rule,
 #: because a subclass's name is its author's string.
-register_exception_kinds(
+_register_exception_kinds(
     [obj for obj in list(vars().values()) if isinstance(obj, type) and issubclass(obj, MCPVideoError)]
 )

@@ -27,6 +27,8 @@ from typing import Any
 from .errors import MCPVideoError
 from .type_names import exception_kind, number_text, type_label
 
+import kinocut.errors as _package_errors
+
 __all__ = [
     "REPUBLISHABLE",
     "exception_kind",
@@ -90,6 +92,22 @@ def invalid_parameter(name: str, expectation: str, value: Any = None) -> str:
 #: kind is published.
 REPUBLISHABLE = (MCPVideoError,)
 
+#: The identity set behind :func:`reason`. Membership is by exact type
+#: object, not inheritance: every error class this package defines in
+#: ``kinocut.errors`` at import time is in the set, and a caller's or
+#: plugin's subclass of any of them is NOT — its name and text are its
+#: author's strings, so it is published only as its kind.
+_PACKAGE_ERROR_IDENTITIES = frozenset(
+    obj for obj in vars(_package_errors).values() if isinstance(obj, type) and issubclass(obj, Exception)
+)
+
+
+#: Private provenance token: bound to instances only by this module's own
+#: construction path, and checked by exact type plus token. A caller's
+#: subclass of :class:`PackageReason` — however it names or renders
+#: itself — fails both checks, so its text is never republished.
+_PROVENANCE_TOKEN = object()
+
 
 class PackageReason(str):
     """A cause string this package authored at a fixed construction site.
@@ -99,9 +117,18 @@ class PackageReason(str):
     value — so a diagnostic channel can republish it verbatim. Text this
     package did not write must never be wrapped: the wrapper is the claim
     that makes republication safe.
+
+    The token is private on purpose. Provenance is a claim only this
+    module can mint, checked by exact type and token — never by
+    :func:`isinstance`, which any caller's subclass satisfies.
     """
 
-    __slots__ = ()
+    __slots__ = ("_token",)
+
+    def __new__(cls, text: str) -> PackageReason:
+        self = super().__new__(cls, text)
+        self._token = _PROVENANCE_TOKEN
+        return self
 
 
 def own_reason(text: str) -> str:
@@ -120,8 +147,13 @@ def likely_cause(cause: str) -> str:
     diagnostic the operator needs, so it survives verbatim. Anything else
     is caller data — a path, an id, a foreign exception's text — and is
     named only by its type, exactly like every other public message.
+
+    The check is exact type plus private token: a caller's subclass of the
+    marker (or any other string) is treated as caller data.
     """
-    return cause if isinstance(cause, PackageReason) else rejected_value(cause)
+    if type(cause) is PackageReason and cause._token is _PROVENANCE_TOKEN:
+        return cause
+    return rejected_value(cause)
 
 
 def reason(exc: BaseException) -> str:
@@ -137,6 +169,6 @@ def reason(exc: BaseException) -> str:
     >>> reason(OSError(2, "no such file: /secret/9f3a7c.mp4"))
     'OSError'
     """
-    if isinstance(exc, REPUBLISHABLE):
+    if type(exc) in _PACKAGE_ERROR_IDENTITIES:
         return str(exc)
     return exception_kind(exc)
