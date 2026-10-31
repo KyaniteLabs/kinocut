@@ -93,14 +93,17 @@ def _register_known_kinds() -> None:
     _register_exception_kinds(
         [obj for obj in vars(_builtins).values() if isinstance(obj, type) and issubclass(obj, BaseException)]
     )
-    for cls in (
-        getattr(_json, "JSONDecodeError", None),
-        getattr(_subprocess, "TimeoutExpired", None),
-        getattr(_subprocess, "CalledProcessError", None),
-        SoundContractError,
-    ):
-        if isinstance(cls, type):
-            _register_exception_kinds([cls])
+    # Direct attribute references (never getattr on the module) keep the
+    # subprocess-stdin contract statically satisfiable; these stdlib classes
+    # always exist.
+    _register_exception_kinds(
+        [
+            _json.JSONDecodeError,
+            _subprocess.TimeoutExpired,
+            _subprocess.CalledProcessError,
+            SoundContractError,
+        ]
+    )
 
 
 _register_known_kinds()

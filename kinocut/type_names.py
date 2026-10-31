@@ -139,17 +139,19 @@ def _register_stdlib_kinds() -> None:
     )
     # Stdlib exception classes this package catches and names on purpose.
     # Registered by identity: a caller's class that shadows the name is a
-    # different type object and never matches.
+    # different type object and never matches. Direct attribute references
+    # (never getattr on the module) keep the subprocess-stdin contract
+    # statically satisfiable.
     import json as _json
     import subprocess as _subprocess
 
-    for cls in (
-        getattr(_json, "JSONDecodeError", None),
-        getattr(_subprocess, "TimeoutExpired", None),
-        getattr(_subprocess, "CalledProcessError", None),
-    ):
-        if isinstance(cls, type):
-            register_exception_kinds([cls])
+    register_exception_kinds(
+        [
+            _json.JSONDecodeError,
+            _subprocess.TimeoutExpired,
+            _subprocess.CalledProcessError,
+        ]
+    )
     try:  # optional dependency; absent in a core install
         from pydantic import ValidationError as _ValidationError
 
