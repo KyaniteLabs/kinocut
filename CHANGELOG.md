@@ -27,6 +27,10 @@ This project follows a simple release-note style:
 
 - Exact probe contribution: [@Beritwu](https://github.com/Beritwu), [#599](https://github.com/KyaniteLabs/kinocut/pull/599) (the squash already carries the co-author credit).
 
+### Acknowledgments
+
+- Thanks to [@Beritwu](https://github.com/Beritwu) for the opt-in exact probe in [#599](https://github.com/KyaniteLabs/kinocut/pull/599) — decoded frame counts and raw rational frame rates surfaced consistently across the CLI, client, and MCP surfaces — committed with a `Co-authored-by` trailer in the squash.
+
 ## 1.16.4 - 2026-10-23
 
 ### Security
