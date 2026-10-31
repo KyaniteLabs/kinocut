@@ -44,8 +44,9 @@ fi
 ffmpeg_tag="autobuild-2026-06-30-13-34"
 ffmpeg_asset="ffmpeg-n8.1.2-21-gce3c09c101-linux64-gpl-8.1.tar.xz"
 url="https://github.com/BtbN/FFmpeg-Builds/releases/download/${ffmpeg_tag}/${ffmpeg_asset}"
-dest="${RUNNER_TEMP:-/tmp}/ffmpeg-static"
-mkdir -p "$dest"
+# Fresh private directory: never extract over reusable or attacker-influenced
+# paths. mktemp -d under the runner temp root is owned by this job only.
+dest="$(mktemp -d "${RUNNER_TEMP:-/tmp}/ffmpeg-static.XXXXXX")"
 echo "Downloading static FFmpeg from $url"
 curl -fsSL --retry 3 --retry-delay 5 "$url" -o "${dest}/ffmpeg.tar.xz"
 python3 -c "import tarfile,sys; tarfile.open(sys.argv[1]).extractall(sys.argv[2], filter='data')" \

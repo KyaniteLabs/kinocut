@@ -43,7 +43,7 @@ def analyze_audio(
 
     path_obj = Path(path)
     if not path_obj.exists():
-        raise MCPVideoError(f"Audio file not found: {path}", error_type="input_error", code="invalid_input")
+        raise MCPVideoError("Audio file not found", error_type="input_error", code="invalid_input")
 
     y, sr = librosa.load(path, sr=sample_rate)
 
@@ -97,7 +97,7 @@ def extract_beats(
 
     path_obj = Path(path)
     if not path_obj.exists():
-        raise MCPVideoError(f"Audio file not found: {path}", error_type="input_error", code="invalid_input")
+        raise MCPVideoError("Audio file not found", error_type="input_error", code="invalid_input")
 
     y, sr = librosa.load(path, sr=sample_rate)
     tempo, beat_frames = librosa.beat.beat_track(y=y, sr=sr)
@@ -131,7 +131,7 @@ def extract_mfcc(
 
     path_obj = Path(path)
     if not path_obj.exists():
-        raise MCPVideoError(f"Audio file not found: {path}", error_type="input_error", code="invalid_input")
+        raise MCPVideoError("Audio file not found", error_type="input_error", code="invalid_input")
 
     y, sr = librosa.load(path, sr=sample_rate)
     mfcc = librosa.feature.mfcc(y=y, sr=sr, n_mfcc=n_mfcc)

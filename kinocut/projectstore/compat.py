@@ -184,19 +184,31 @@ def _source_extension(project: Project, digest: str, *, subtitle_role: bool) -> 
     return _DEFAULT_SUBTITLE_EXT if subtitle_role else _DEFAULT_VIDEO_EXT
 
 
-def _normalize_operation(descriptor: Any, order: int) -> NormalizedOperation:
-    if not isinstance(descriptor, Mapping):
-        raise contract_error("operation descriptor must be a mapping", INVALID_RECORD)
-    kind = descriptor.get("kind")
+def _validate_operation_kind(kind: Any) -> str:
+    """The operation kind, validated against the shipped kind sets.
+
+    A kind that names a shipped kind comes back as the validated value, so
+    the caller publishes our vocabulary rather than a caller string. A
+    CAS-producer kind is refused by its shipped producer name; an unknown
+    kind is refused with the shipped compilable kinds. Neither refusal
+    repeats what the caller submitted.
+    """
     if not isinstance(kind, str):
         raise contract_error("operation 'kind' must be a string", INVALID_RECORD)
     if kind in CAS_PRODUCER_KINDS:
         raise contract_error(f"operation kind {kind!r} is a CAS producer and cannot be compiled", INVALID_RECORD)
     if kind not in _ALLOWED_KEYS:
-        raise contract_error(f"unknown operation kind: {kind!r}", INVALID_RECORD)
+        raise contract_error(f"unknown operation kind: expected one of {sorted(_ALLOWED_KEYS)}", INVALID_RECORD)
+    return kind
+
+
+def _normalize_operation(descriptor: Any, order: int) -> NormalizedOperation:
+    if not isinstance(descriptor, Mapping):
+        raise contract_error("operation descriptor must be a mapping", INVALID_RECORD)
+    kind = _validate_operation_kind(descriptor.get("kind"))
     extra = sorted(set(descriptor) - _ALLOWED_KEYS[kind])
     if extra:
-        raise contract_error(f"{kind} descriptor has unknown key(s): {extra}", INVALID_RECORD)
+        raise contract_error(f"{kind} descriptor has {len(extra)} unknown key(s)", INVALID_RECORD)
     if kind == "merge":
         raw = _field(descriptor, "sources")
         if not isinstance(raw, (list, tuple)) or len(raw) < 2:
@@ -210,7 +222,7 @@ def _normalize_operation(descriptor: Any, order: int) -> NormalizedOperation:
         )
         params = {}  # identified by its video + subtitle inputs; rendering is out of scope
     else:
-        source = _require_digest(_field(descriptor, "source"), f"{kind} source")
+        source = _require_digest(_field(descriptor, "source"), "source")
         sources = (source,)
         if kind == "trim":
             start = _number(_field(descriptor, "start"), "trim start")
@@ -434,10 +446,10 @@ def _declared_source_path(source_id: str, spec_entry: Any, job_dir: Path, resolv
     path synthesis declared and a tampered spec cannot escape the sources directory.
     """
     if not isinstance(spec_entry, Mapping) or not isinstance(spec_entry.get("path"), str):
-        raise contract_error(f"source {source_id} has no declared path in the workflow spec", INVALID_RECORD)
+        raise contract_error("source has no declared path in the workflow spec", INVALID_RECORD)
     raw_path = spec_entry["path"]
     if not raw_path:
-        raise contract_error(f"source {source_id} declares an empty path", INVALID_RECORD)
+        raise contract_error("source declares an empty path", INVALID_RECORD)
     declared = job_dir / raw_path  # workspace-relative path bound to the job dir
     # The basename must be exactly <source_id>.<ext>; the path must stay strictly under sources/.
     if declared.stem != source_id or not declared.suffix:

@@ -8,6 +8,7 @@ from typing import Any
 
 from kinocut.errors import InputFileError, MCPVideoError
 from kinocut.ffmpeg_helpers import _validate_input_path
+from ..validation_errors import exception_kind
 
 
 def diff_receipts(left: str | dict[str, Any], right: str | dict[str, Any]) -> dict[str, Any]:
@@ -45,7 +46,9 @@ def _load(value: str | dict[str, Any]) -> dict[str, Any]:
     try:
         data = json.loads(path.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise MCPVideoError(f"invalid receipt json: {exc}", error_type="validation_error", code="bad_receipt") from exc
+        raise MCPVideoError(
+            f"invalid receipt json: {exception_kind(exc)}", error_type="validation_error", code="bad_receipt"
+        ) from exc
     if not isinstance(data, dict):
         raise MCPVideoError("receipt root must be an object", error_type="validation_error", code="bad_receipt")
     return data

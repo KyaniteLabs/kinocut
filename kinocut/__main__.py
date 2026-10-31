@@ -57,11 +57,21 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
             err_console.print("[red]MCP mode failed to start:[/red] supervised process observation failed.")
             sys.exit(1)
         mcp.run()
+    except ValueError as exc:
+        # Invalid KINOCUT_TOOLS configuration: surface selection raises
+        # ValueError listing the allowed modes/profiles. Report it as a
+        # teachable configuration error, never a raw traceback (#t_e3775201).
+        err_console.print(f"[red]MCP mode failed to start:[/red] invalid tool-surface configuration: {exc}")
+        err_console.print(
+            "Retry with KINOCUT_TOOLS unset (curated default), 'core', 'all', or 'profile:<name>' "
+            "(see kino doctor / the README tool-surface section).",
+        )
+        sys.exit(2)
     except ImportError as exc:
         missing = getattr(exc, "name", None)
         if isinstance(exc, ModuleNotFoundError) and (missing == "mcp" or str(missing).startswith("mcp.")):
             err_console.print(
-                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut[/bold]",
+                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut==1.16.5[/bold]",
             )
         else:
             err_console.print(f"[red]MCP mode failed to start:[/red] {_render_import_failure(exc)}")
@@ -263,7 +273,7 @@ def main() -> None:
                     file=sys.stderr,
                 )
         else:
-            _format_error(e)
+            _format_error(e, command=getattr(args, "command", None), arguments=vars(args))
         sys.exit(1)
 
 

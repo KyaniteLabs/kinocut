@@ -24,6 +24,7 @@ from .limits import (
     MAX_SUBPROCESS_STDOUT_BYTES,
     MAX_FFMPEG_PIPE_BYTES,
 )
+from .validation_errors import exception_kind, rejected_value
 
 _BLOCKED_OUTPUT_PREFIXES = (
     "/bin",
@@ -173,7 +174,7 @@ def _reject_self_overwrite(path: str) -> None:
     for input_path in recorded:
         if resolved_output == os.path.realpath(input_path):
             raise MCPVideoError(
-                f"output path aliases an input of this operation: {path!r}",
+                "output path aliases an input of this operation",
                 error_type="validation_error",
                 code="invalid_output_path",
             )
@@ -183,7 +184,7 @@ def _reject_self_overwrite(path: str) -> None:
         try:
             if os.path.samefile(path, input_path):
                 raise MCPVideoError(
-                    f"output path aliases an input of this operation (same file): {path!r}",
+                    "output path aliases an input of this operation (same file)",
                     error_type="validation_error",
                     code="invalid_output_path",
                 )
@@ -207,7 +208,7 @@ def _validate_input_path(path: str, *, record_operation: bool = True) -> str:
     try:
         size_mb = os.path.getsize(resolved) / (1024 * 1024)
     except OSError as e:
-        raise InputFileError(resolved, f"Cannot read file size: {e}") from None
+        raise InputFileError(resolved, f"Cannot read file size: {exception_kind(e)}") from None
     if size_mb > MAX_FILE_SIZE_MB:
         raise InputFileError(
             resolved,
@@ -232,20 +233,20 @@ def _validate_artifact_location(path: str, label: str) -> str:
     """Reject unsafe locations for outputs and structured artifact inputs."""
     if "\x00" in path:
         raise MCPVideoError(
-            f"{label} contains null bytes: {path!r}",
+            f"{label} contains null bytes",
             error_type="validation_error",
             code="invalid_output_path",
         )
     raw_parts = re.split(r"[\\/]+", path)
     if ".." in raw_parts:
         raise MCPVideoError(
-            f"{label} contains directory traversal: {path!r}",
+            f"{label} contains directory traversal",
             error_type="validation_error",
             code="invalid_output_path",
         )
     if os.path.islink(path):
         raise MCPVideoError(
-            f"{label} resolves through a symlink: {path!r}",
+            f"{label} resolves through a symlink",
             error_type="validation_error",
             code="unsafe_path",
         )
@@ -253,7 +254,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
     resolved = os.path.realpath(path)
     if any(resolved == prefix or resolved.startswith(prefix + os.sep) for prefix in _BLOCKED_OUTPUT_PREFIXES):
         raise MCPVideoError(
-            f"{label} escapes safe directory: {path}",
+            f"{label} escapes safe directory",
             error_type="validation_error",
             code="unsafe_path",
         )
@@ -264,7 +265,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
             config_home = os.path.realpath(os.path.expanduser(configured))
             if resolved == config_home or resolved.startswith(config_home + os.sep):
                 raise MCPVideoError(
-                    f"{label} targets a configured agent or application home: {path}",
+                    f"{label} targets a configured agent or application home",
                     error_type="validation_error",
                     code="unsafe_path",
                 )
@@ -274,7 +275,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
         rel_parts = set(os.path.relpath(resolved, home).split(os.sep))
         if rel_parts & _SENSITIVE_HOME_PARTS:
             raise MCPVideoError(
-                f"{label} targets a sensitive home directory: {path}",
+                f"{label} targets a sensitive home directory",
                 error_type="validation_error",
                 code="unsafe_path",
             )
@@ -305,13 +306,13 @@ def _validate_write_path(
         permitted_media = suffix in allowed_existing_suffixes and suffix in _SAFE_EXISTING_OUTPUT_SUFFIXES
         if not permitted_media and not _owns_operation_output(resolved):
             raise MCPVideoError(
-                f"Refusing to overwrite existing file at {label.lower()}: {path}",
+                f"Refusing to overwrite an existing file at {label.lower()}",
                 error_type="validation_error",
                 code="unsafe_path",
             )
         if _OVERWRITE.get() is not True:
             raise MCPVideoError(
-                f"{label} already exists; pass overwrite=true to replace permitted outputs: {path}",
+                f"{label} already exists; pass overwrite=true to replace permitted outputs",
                 error_type="validation_error",
                 code="output_exists",
             )
@@ -444,7 +445,7 @@ def _run_command(
                     stderr_sink.seek(0)
                 raise ProcessingError(cmd_str, result.returncode, result.stderr)
     except subprocess.TimeoutExpired:
-        raise ProcessingError(cmd_str, -1, f"FFmpeg command timed out after {timeout}s") from None
+        raise ProcessingError(cmd_str, -1, "", reason=f"FFmpeg command timed out after {timeout}s") from None
     if is_ffmpeg and os.path.isfile(output):
         _note_operation_write(output)
     return result
@@ -474,7 +475,9 @@ def _run_ffmpeg(args: list[str], *, pass_fds: tuple[int, ...] = ()) -> subproces
             if proc.returncode != 0:
                 raise parse_ffmpeg_error(proc.stderr, command=cmd)
     except subprocess.TimeoutExpired as e:
-        raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s") from e
+        raise ProcessingError(
+            " ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s"
+        ) from e
     if args and os.path.isfile(args[-1]):
         _note_operation_write(args[-1])
     return proc
@@ -505,7 +508,8 @@ def _run_ffmpeg_bytes(args: list[str]) -> bytes:
         raise ProcessingError(
             " ".join(cmd),
             -1,
-            f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
+            "",
+            reason=f"FFmpeg command timed out after {DEFAULT_FFMPEG_TIMEOUT}s",
         ) from exc
     stderr = proc.stderr.decode("utf-8", errors="replace")
     if proc.returncode != 0:
@@ -634,7 +638,7 @@ def _sanitize_ffmpeg_number(value: Any, name: str) -> float:
         result = float(value)
     except (TypeError, ValueError, OverflowError):
         raise MCPVideoError(
-            f"Invalid {name}: expected number, got {type(value).__name__}",
+            f"Invalid {name}: expected number, got {rejected_value(value)}",
             error_type="validation_error",
             code="invalid_parameter",
         ) from None
@@ -737,7 +741,10 @@ def _get_video_duration(video_path: str, *, pass_fds: tuple[int, ...] = ()) -> f
         return float(stdout)
     except ValueError:
         raise ProcessingError(
-            " ".join(cmd), result.returncode, f"Non-numeric duration from ffprobe: {stdout!r}"
+            " ".join(cmd),
+            result.returncode,
+            stdout,
+            reason="the duration probe did not return a number",
         ) from None
 
 
@@ -772,7 +779,9 @@ def _run_ffprobe_json(
     try:
         return _json.loads(result.stdout)
     except _json.JSONDecodeError as e:
-        raise ProcessingError(" ".join(cmd), result.returncode, f"Invalid JSON from ffprobe: {e}") from None
+        raise ProcessingError(
+            " ".join(cmd), result.returncode, "", reason=f"Invalid JSON from ffprobe: {exception_kind(e)}"
+        ) from None
 
 
 def _seconds_to_srt_time(seconds: float) -> str:

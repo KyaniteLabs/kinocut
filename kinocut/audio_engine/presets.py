@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import copy
 
+from ..errors import MCPVideoError
+
 _PITCH_MULT = {"low": 0.7, "mid": 1.0, "high": 1.5}
 
 _PRESETS: dict[str, dict] = {
@@ -281,8 +283,14 @@ def get_preset_config(name: str) -> dict:
     """Return a deep copy of the configuration dict for the given preset.
 
     Raises:
-        KeyError: If the preset name is not recognized.
+        MCPVideoError: If the preset name is not recognized. The message
+            names the available presets — shipped guidance — and never
+            repeats the name that was refused.
     """
     if name not in _PRESETS:
-        raise KeyError(f"Unknown preset: {name}. Available: {list_presets()}")
+        raise MCPVideoError(
+            f"Unknown preset. Available: {list_presets()}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
     return copy.deepcopy(_PRESETS[name])

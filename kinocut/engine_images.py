@@ -17,6 +17,8 @@ from .errors import InputFileError, MCPVideoError
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .limits import MAX_EXPORT_FRAMES_FPS, MAX_IMAGE_SEQUENCE_FRAMES, MAX_IMAGE_SEQUENCE_LIST_BYTES
 from .models import EditResult
+from .validation_errors import exception_kind
+from kinocut.validation_errors import rejected_value
 
 _PNG_SIGNATURE = b"\x89PNG\r\n\x1a\n"
 # ASCII digits only, bounded so int() never meets Python's digit-count limit.
@@ -148,7 +150,7 @@ def _read_list_file(list_file: str) -> list[str]:
     try:
         size = os.path.getsize(resolved)
     except OSError as exc:
-        raise InputFileError(resolved, f"Cannot read list file: {exc}") from None
+        raise InputFileError(resolved, f"Cannot read list file: {exception_kind(exc)}") from None
     if size > MAX_IMAGE_SEQUENCE_LIST_BYTES:
         raise _list_file_too_large()
     try:
@@ -156,7 +158,7 @@ def _read_list_file(list_file: str) -> list[str]:
             # Bounded read: a file that grows after the size check still cannot exceed the limit.
             data = handle.read(MAX_IMAGE_SEQUENCE_LIST_BYTES + 1)
     except OSError as exc:
-        raise InputFileError(resolved, f"Cannot read list file: {exc}") from None
+        raise InputFileError(resolved, f"Cannot read list file: {exception_kind(exc)}") from None
     if len(data) > MAX_IMAGE_SEQUENCE_LIST_BYTES:
         raise _list_file_too_large()
     try:
@@ -192,7 +194,7 @@ def _coerce_fps(fps: float | int | str) -> tuple[float, str]:
     value, rate = _parse_fps(fps)
     if value > MAX_EXPORT_FRAMES_FPS:
         raise MCPVideoError(
-            f"fps must not exceed {MAX_EXPORT_FRAMES_FPS}, got {fps}",
+            f"fps must not exceed {MAX_EXPORT_FRAMES_FPS}, got {value}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -236,7 +238,7 @@ def _to_float(fps: float | int | str) -> float:
 
 def _invalid_fps(fps: float | int | str) -> MCPVideoError:
     return MCPVideoError(
-        f"fps must be a positive finite number, got {fps}",
+        f"fps must be a positive finite number, got {rejected_value(fps)}",
         error_type="validation_error",
         code="invalid_parameter",
     )

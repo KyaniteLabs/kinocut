@@ -19,6 +19,7 @@ from ..errors import InputFileError, MCPVideoError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _seconds_to_srt_time, _validate_output_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_TRANSCRIBE_DURATION
 from ..validation import VALID_WHISPER_MODELS
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 def _validate_whisper_model(model: str) -> None:
     if model not in VALID_WHISPER_MODELS:
         raise MCPVideoError(
-            f"Invalid model: must be one of {sorted(VALID_WHISPER_MODELS)}, got {model!r}",
+            f"Invalid model: must be one of {sorted(VALID_WHISPER_MODELS)}, got {rejected_value(model)!r}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -173,12 +174,12 @@ def ai_transcribe(
         import whisper
     except ImportError:
         raise MCPVideoError(
-            'Whisper not installed. Install with: pip install "kinocut[transcribe]"',
+            'Whisper not installed. Install with: pip install "kinocut[transcribe]==1.16.5"',
             error_type="dependency_error",
             code="missing_whisper",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[transcribe]" to enable transcription',
+                "description": 'Run: pip install "kinocut[transcribe]==1.16.5" to enable transcription',
             },
         ) from None
 

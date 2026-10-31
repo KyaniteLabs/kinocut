@@ -140,12 +140,15 @@ def test_utf8_multibyte_split_across_writes_is_reassembled() -> None:
         server.send_bytes(frame[split_at:] + b"\n")
 
         response = server.read_response(2)
-        # The file does not exist, so this must be a clean structured error —
-        # and the echoed path must carry the multibyte name intact, proving
-        # the split bytes were reassembled and decoded as written.
+        # The file does not exist, so this must be a clean structured error.
+        # An error never repeats the submitted path, so the proof that the
+        # split bytes were reassembled is that the server reached the tool
+        # and answered the call: a mangled frame is a JSON parse error, not
+        # a tool error.
         text = json.dumps(response, ensure_ascii=False)
-        assert path in text
+        assert "Input file error" in text
         assert "�" not in text
+        assert path not in text
 
         ping = server.ping("ping-2")
         assert "result" in ping

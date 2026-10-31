@@ -66,7 +66,7 @@ The workflow writes `output/video_receipt.json` so the final video, quality repo
 Run the benchmark after the baseline when you need a machine-checkable pass/fail summary:
 
 ```bash
-uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The benchmark verifies the final video, quality report, release checkpoint, thumbnail, storyboard frames, Video Receipt, and pending human-review status.
@@ -74,5 +74,5 @@ The benchmark verifies the final video, quality report, release checkpoint, thum
 For adversarial readiness checks:
 
 ```bash
-uv run --no-project --with kinocut python workflows/benchmarks/run_adversarial_certification.py
+uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_adversarial_certification.py
 ```

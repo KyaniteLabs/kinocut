@@ -54,7 +54,7 @@ def measure_golden_render_ssim(
     result = _run_ffmpeg(["-i", str(candidate), "-i", str(golden), "-lavfi", "ssim", "-f", "null", "-"])
     matches = _SSIM_ALL.findall(result.stderr)
     if not matches:
-        raise ProcessingError("ffmpeg ssim", result.returncode, "SSIM summary was not produced")
+        raise ProcessingError("ffmpeg ssim", result.returncode, "", reason="SSIM summary was not produced")
     score = float(matches[-1])
     candidate_digest = _sha256(candidate)
     golden_digest = _sha256(golden)

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import NamedTuple
 
 from .errors import MCPVideoError
+from .validation_errors import rejected_value
 from .limits import MAX_RESOLUTION
 from .limits import *  # noqa: F403 — re-export all limit constants
 
@@ -518,7 +519,7 @@ def _validate_normalized_float(
         f = float(value)
     except (TypeError, ValueError, OverflowError) as e:
         raise MCPVideoError(
-            f"{name} must be a number, got {type(value).__name__}",
+            f"{name} must be a number, got {rejected_value(value)}",
             error_type="validation_error",
             code="invalid_parameter",
         ) from e

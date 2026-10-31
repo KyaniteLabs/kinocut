@@ -16,6 +16,12 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 
     monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
 
+    def fake_probe(_path):
+        # The flow bounds segment ranges by the measured source duration
+        # (t_e3775201 F7); this fixture is a placeholder file, so the probe
+        # is stubbed rather than run against a non-media file.
+        return SimpleNamespace(duration=10.0)
+
     def fake_trim(input_path, *, start, end, output_path, accurate=True):
         calls.append(("trim", input_path, start, end))
         Path(output_path).write_bytes(b"trim")
@@ -46,6 +52,7 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
     monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
     monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
     monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
 
     result = shorts_flow.video_shorts(
         str(source),
@@ -68,3 +75,317 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 def test_video_shorts_rejects_bad_segment_range():
     with pytest.raises(MCPVideoError, match="end must be greater than start"):
         shorts_flow.video_shorts("source.mp4", [{"start": 2, "end": 1}])
+
+
+def test_video_shorts_rerun_with_overwrite_replaces_prior_output(sample_video, tmp_path):
+    """Real guards (t_e3775201 F6): a captioned re-run must be possible with
+    overwrite consent — no stale companion sidecar may block the flow."""
+    import os
+    from pathlib import Path
+
+    output = str(tmp_path / "short.mp4")
+    segments = [{"start": 0.0, "end": 1.5, "text": "one"}]
+
+    first = shorts_flow.video_shorts(sample_video, segments, output_path=output)
+    assert first["success"] is True
+    assert os.path.isfile(output)
+    # The burn-in SRT is a transient build input in the flow-owned workdir,
+    # never a durable companion next to the requested output.
+    assert not os.path.exists(str(Path(output).with_suffix(".srt")))
+
+    with pytest.raises(MCPVideoError) as refusal:
+        shorts_flow.video_shorts(sample_video, segments, output_path=output)
+    # The retry invocation is part of the serialized error payload, not the
+    # raised message; the refusal must still name the overwrite consent.
+    assert "overwrite=true" in refusal.value.to_dict()["message"]
+
+    second = shorts_flow.video_shorts(sample_video, segments, output_path=output, overwrite=True)
+    assert second["success"] is True
+    assert os.path.isfile(output)
+
+
+def test_video_shorts_refuses_segment_past_source_eof_before_rendering(sample_video, tmp_path):
+    """Source-bounded ranges (t_e3775201 F7): a segment beyond EOF is refused
+    up front, so caption timing can never silently disagree with the media."""
+    import os
+
+    output = str(tmp_path / "short.mp4")
+    with pytest.raises(MCPVideoError, match="exceeds the source duration"):
+        shorts_flow.video_shorts(
+            sample_video,
+            [{"start": 0.0, "end": 999.0, "text": "x"}],
+            output_path=output,
+        )
+    assert not os.path.exists(output), "refusal must arrive before any rendering"
+
+
+def test_video_shorts_receipt_carries_caption_warnings(sample_video, tmp_path):
+    """Receipt honesty (t_e3775201 F7): caption-stage warnings and any rendered
+    entry-count divergence propagate into the receipt."""
+    result = shorts_flow.video_shorts(
+        sample_video,
+        [{"start": 0.0, "end": 1.5, "text": "hello"}],
+        output_path=str(tmp_path / "short.mp4"),
+    )
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    assert "warnings" in steps["captions"]
+    assert isinstance(steps["captions"]["warnings"], list)
+    assert steps["captions"]["entry_count"] == len(steps["captions"]["entries"])
+
+
+def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
+    """Gate 2 P2-1: the direct product-function path must never publish over
+    the operation's own input, even with explicit overwrite consent.
+
+    A fresh ``output_operation`` scope resets the recorded-input set, so
+    validating the source before opening the scope let the source be
+    forgotten and the publish target it. The engines are stubbed so that a
+    regression is caught by the bytes, not by a missing FFmpeg binary.
+    """
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"original bytes")
+
+    def fake_probe(_path):
+        return SimpleNamespace(duration=10.0)
+
+    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+        Path(output_path).write_bytes(b"trim")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_merge(clips, output_path=None, **_kwargs):
+        Path(output_path).write_bytes(b"merge")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_generate(entries, input_path, output_path, burn=False):
+        Path(output_path).write_text("captions", encoding="utf-8")
+        return SimpleNamespace(srt_path=output_path)
+
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+        Path(output_path).write_bytes(b"captioned")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+        Path(output_path).write_bytes(b"vertical")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(shorts_flow, "trim", fake_trim)
+    monkeypatch.setattr(shorts_flow, "merge", fake_merge)
+    monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
+    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
+
+    with pytest.raises(MCPVideoError) as refusal:
+        shorts_flow.video_shorts(
+            str(source),
+            [{"start": 0.0, "end": 2.0, "text": "hello"}],
+            output_path=str(source),
+            overwrite=True,
+        )
+
+    assert refusal.value.code == "invalid_output_path"
+    assert source.read_bytes() == b"original bytes"
+
+
+def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
+    """F7: caption timing follows the media that rendered, not the request.
+    The request asked for 2s and 5s; the trims render 2s and 3s. A caption
+    timed from the request would start at 5s in a 5s-tall video — past the
+    end of the second caption's media.
+    """
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+
+    monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
+
+    def fake_probe(path):
+        name = str(path)
+        if "segment-000" in name:
+            return SimpleNamespace(duration=2.0)
+        if "segment-001" in name:
+            return SimpleNamespace(duration=3.0)
+        return SimpleNamespace(duration=60.0)
+
+    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+        Path(output_path).write_bytes(b"trim")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_merge(clips, output_path, **_kwargs):
+        Path(output_path).write_bytes(b"merge")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_generate(entries, input_path, output_path, burn=False):
+        Path(output_path).write_text("captions", encoding="utf-8")
+        return SimpleNamespace(
+            srt_path=output_path,
+            entry_count=len(entries) + 97,
+            warnings=["synthetic generator warning"],
+        )
+
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+        Path(output_path).write_bytes(b"captioned")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+        Path(output_path).write_bytes(b"vertical")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(shorts_flow, "trim", fake_trim)
+    monkeypatch.setattr(shorts_flow, "merge", fake_merge)
+    monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
+    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
+
+    result = shorts_flow.video_shorts(
+        str(source),
+        [
+            {"start": 0, "end": 2, "text": "one"},
+            {"start": 0, "end": 5, "text": "two"},
+        ],
+        output_path=str(tmp_path / "final.mp4"),
+    )
+
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    # No generator list means no burned entries: the request is carried apart.
+    assert steps["captions"]["entries"] == []
+    requested = steps["captions"]["requested_entries"]
+    assert [(entry["start"], entry["end"]) for entry in requested] == [(0.0, 2.0), (2.0, 5.0)]
+    # The receipt moved to schema v2 and keeps the v1 subtitle_path key, with
+    # an honest null: the SRT is a transient build input, not a durable path.
+    assert result["receipt"]["schema_version"] == 2
+    assert steps["captions"]["subtitle_path"] is None
+    # The generator reported 99 entries and returned no list, so the burned
+    # count cannot be verified: the receipt states the evidence it has (the
+    # two requested captions) and says the count is unverified. It never
+    # presents 99 as burned.
+    assert steps["captions"]["entry_count"] is None
+    assert steps["captions"]["requested_entry_count"] == 2
+    assert steps["captions"]["burned_entry_count"] is None
+    assert steps["captions"]["count_unverified"] is True
+    assert steps["captions"]["entries_truncated"] == 0
+    # No list means no burned entries either: the request is carried apart.
+    assert steps["captions"]["entries"] == []
+    assert len(steps["captions"]["requested_entries"]) == 2
+    # A generator that disagrees about the entry count must not be swallowed:
+    # the receipt carries both counts and says so out loud.
+    assert steps["captions"]["rendered_entry_count"] == 99
+    assert steps["captions"]["warnings"][0] == "synthetic generator warning"
+    assert any("reported 99 entries" in warning for warning in steps["captions"]["warnings"])
+    assert any("unverified" in warning for warning in steps["captions"]["warnings"])
+
+
+def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones(tmp_path, monkeypatch):
+    source = tmp_path / "source.mp4"
+    source.write_bytes(b"source")
+
+    monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
+
+    def fake_probe(path):
+        name = str(path)
+        if "segment-000" in name:
+            return SimpleNamespace(duration=2.0)
+        if "segment-001" in name:
+            return SimpleNamespace(duration=3.0)
+        return SimpleNamespace(duration=60.0)
+
+    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+        Path(output_path).write_bytes(b"trim")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_merge(clips, output_path, **_kwargs):
+        Path(output_path).write_bytes(b"merge")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_generate(entries, input_path, output_path, burn=False):
+        Path(output_path).write_text("captions", encoding="utf-8")
+        # The generator dropped one cue: it clamps to the media end.
+        burned = list(entries)[:1]
+        return SimpleNamespace(srt_path=output_path, entry_count=len(burned), entries=burned, warnings=[])
+
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+        Path(output_path).write_bytes(b"captioned")
+        return SimpleNamespace(output_path=output_path)
+
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+        Path(output_path).write_bytes(b"vertical")
+        return SimpleNamespace(output_path=output_path)
+
+    monkeypatch.setattr(shorts_flow, "trim", fake_trim)
+    monkeypatch.setattr(shorts_flow, "merge", fake_merge)
+    monkeypatch.setattr(shorts_flow, "generate_subtitles", fake_generate)
+    monkeypatch.setattr(shorts_flow, "subtitles", fake_subtitles)
+    monkeypatch.setattr(shorts_flow, "resize", fake_resize)
+    monkeypatch.setattr("kinocut.engine_probe.probe", fake_probe)
+
+    result = shorts_flow.video_shorts(
+        str(source),
+        [
+            {"start": 0, "end": 2, "text": "one"},
+            {"start": 0, "end": 5, "text": "two"},
+        ],
+        output_path=str(tmp_path / "final.mp4"),
+    )
+
+    steps = {step["stage"]: step for step in result["receipt"]["steps"]}
+    captions = steps["captions"]
+    # Two captions were requested; the generator burned one. The receipt
+    # describes what was burned, and says that one of the two was dropped.
+    assert captions["requested_entry_count"] == 2
+    assert captions["burned_entry_count"] == 1
+    assert captions["entry_count"] == 1
+    assert captions["count_unverified"] is False
+    assert len(captions["entries"]) == 1
+    assert captions["entries_truncated"] == 0
+    assert any("1 requested caption was not burned" in warning for warning in captions["warnings"])
+
+
+def test_captions_refuse_a_measurement_list_that_does_not_match_the_segments():
+    # A short measurement list cannot time the captions, and falling back to
+    # the requested span is the drift this flow refuses.
+    from kinocut.product.shorts_flow import _apply_captions
+
+    with pytest.raises(Exception) as excinfo:
+        _apply_captions([(0.0, 1.0, "one")], [], "assembled.mp4", None, "final.mp4", "/tmp")
+    assert "measured segment durations" in str(excinfo.value)
+
+
+def test_a_matching_count_with_no_entry_list_stays_unverified():
+    # A count that happens to match the request is still a count nobody can
+    # evidence, so it must not be presented as a verified burn.
+    from kinocut.product.shorts_flow import _caption_receipt
+
+    class _Generated:
+        entry_count = 2
+        entries = ()
+        warnings = ()
+
+    receipt = _caption_receipt(
+        [
+            {"start": 0.0, "end": 1.0, "text": "one"},
+            {"start": 1.0, "end": 2.0, "text": "two"},
+        ],
+        _Generated(),
+        0,
+    )
+    assert receipt["count_unverified"] is True
+    assert receipt["burned_evidence"] == "requested_only"
+    assert receipt["burned_entry_count"] is None
+    assert receipt["entry_count"] is None
+    assert receipt["entries"] == []
+    assert receipt["rendered_entry_count"] == 2
+
+
+def test_the_source_eof_tolerance_is_the_accepted_boundary(monkeypatch):
+    from kinocut.product import shorts_flow
+
+    class _Probe:
+        duration = 10.0
+
+    monkeypatch.setattr("kinocut.engine_probe.probe", lambda source: _Probe())
+    # Inside the tolerance the segment is accepted: the probe rounds.
+    shorts_flow._validate_source_duration("source.mp4", [(0.0, 10.04, "one")])
+    # Beyond it, the request is refused.
+    with pytest.raises(Exception) as excinfo:
+        shorts_flow._validate_source_duration("source.mp4", [(0.0, 10.06, "one")])
+    assert "exceeds the source duration" in str(excinfo.value)

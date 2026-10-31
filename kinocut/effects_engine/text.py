@@ -26,6 +26,7 @@ from ..ffmpeg_helpers import (
 )
 from ..validation import _validate_color, _validate_timing_against_duration
 import warnings as _warnings
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +36,7 @@ VALID_TEXT_POSITIONS = {"center", "top", "bottom", "top-left", "top-right", "bot
 def _validate_text_position(position: str) -> None:
     if position not in VALID_TEXT_POSITIONS:
         raise MCPVideoError(
-            f"position must be one of {sorted(VALID_TEXT_POSITIONS)}, got {position}",
+            f"position must be one of {sorted(VALID_TEXT_POSITIONS)}, got {rejected_value(position)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -629,7 +630,7 @@ def text_animated(
     strategy = _ANIMATION_STRATEGIES.get(animation)
     if strategy is None:
         raise MCPVideoError(
-            f"animation must be one of {sorted(_ANIMATION_STRATEGIES)}, got {animation}",
+            f"animation must be one of {sorted(_ANIMATION_STRATEGIES)}, got {rejected_value(animation)}",
             error_type="validation_error",
             code="invalid_parameter",
         )

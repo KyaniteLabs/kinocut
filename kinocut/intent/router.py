@@ -8,6 +8,7 @@ from typing import Any
 from kinocut.errors import MCPVideoError
 
 from .verbs import INTENT_VERBS
+from ..validation_errors import rejected_value
 
 
 @dataclass(frozen=True)
@@ -50,7 +51,7 @@ def route_intent(verb: str, params: dict[str, Any] | None = None) -> IntentPlan:
     if name not in INTENT_VERBS:
         known = ", ".join(sorted(INTENT_VERBS))
         raise MCPVideoError(
-            f"unknown intent verb {verb!r}; known: {known}",
+            f"unknown intent verb {rejected_value(verb)!r}; known: {known}",
             error_type="validation_error",
             code="unknown_intent_verb",
         )

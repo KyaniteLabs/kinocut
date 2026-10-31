@@ -18,7 +18,8 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
-from .errors import HyperframesNotFoundError
+from .doctor_report import without_machine_paths
+from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
     DEFAULT_OVERWRITE,
@@ -41,7 +42,7 @@ ImportModuleFn = Callable[[str], Any]
 
 PYTHON_313_UPSCALE_BACKEND_HINT = (
     "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
-    'The OpenCV fallback is still installed by: pip install "kinocut[upscale]". '
+    'The OpenCV fallback is still installed by: pip install "kinocut[upscale]==1.16.5". '
     "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
 )
 
@@ -77,6 +78,9 @@ COMMAND_CHECKS = (
         "category": "hyperframes",
         "required": False,
         "command": ["npx", "--version"],
+        # A package manager is never executed: `npx --version` can consult
+        # the registry. Its presence is read from PATH instead.
+        "probe": "never",
         "install_hint": "Install npx/npm only if your chosen Hyperframes package layout uses it.",
     },
     {
@@ -84,6 +88,7 @@ COMMAND_CHECKS = (
         "category": "hyperframes",
         "required": False,
         "command": ["npm", "--version"],
+        "probe": "never",
         "install_hint": "Install npm for Hyperframes package diagnostics.",
     },
     {
@@ -96,49 +101,55 @@ COMMAND_CHECKS = (
 )
 
 PACKAGE_CHECKS = (
-    ("mcp", "mcp", "core", True, "Install the base package: pip install kinocut"),
-    ("pydantic", "pydantic", "core", True, "Install the base package: pip install kinocut"),
-    ("rich", "rich", "core", True, "Install the base package: pip install kinocut"),
-    ("pillow", "PIL", "image", False, 'Install image extras: pip install "kinocut[image]"'),
-    ("scikit-learn", "sklearn", "image", False, 'Install image extras: pip install "kinocut[image]"'),
-    ("webcolors", "webcolors", "image", False, 'Install image extras: pip install "kinocut[image]"'),
-    ("anthropic", "anthropic", "image-ai", False, 'Install image AI extras: pip install "kinocut[image-ai]"'),
-    ("openai-whisper", "whisper", "ai", False, 'Install transcription extras: pip install "kinocut[transcribe]"'),
-    ("demucs", "demucs", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]"'),
-    ("realesrgan", "realesrgan", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]"'),
-    ("basicsr", "basicsr", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]"'),
-    ("numpy", "numpy", "audio", False, 'Install audio extras: pip install "kinocut[audio]"'),
-    ("opencv-contrib-python", "cv2", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]"'),
+    ("mcp", "mcp", "core", True, "Install the base package: pip install kinocut==1.16.5"),
+    ("pydantic", "pydantic", "core", True, "Install the base package: pip install kinocut==1.16.5"),
+    ("rich", "rich", "core", True, "Install the base package: pip install kinocut==1.16.5"),
+    ("pillow", "PIL", "image", False, 'Install image extras: pip install "kinocut[image]==1.16.5"'),
+    ("scikit-learn", "sklearn", "image", False, 'Install image extras: pip install "kinocut[image]==1.16.5"'),
+    ("webcolors", "webcolors", "image", False, 'Install image extras: pip install "kinocut[image]==1.16.5"'),
+    ("anthropic", "anthropic", "image-ai", False, 'Install image AI extras: pip install "kinocut[image-ai]==1.16.5"'),
+    (
+        "openai-whisper",
+        "whisper",
+        "ai",
+        False,
+        'Install transcription extras: pip install "kinocut[transcribe]==1.16.5"',
+    ),
+    ("demucs", "demucs", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==1.16.5"'),
+    ("realesrgan", "realesrgan", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==1.16.5"'),
+    ("basicsr", "basicsr", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==1.16.5"'),
+    ("numpy", "numpy", "audio", False, 'Install audio extras: pip install "kinocut[audio]==1.16.5"'),
+    ("opencv-contrib-python", "cv2", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==1.16.5"'),
     (
         "torch",
         "torch",
         "ai",
         False,
-        'Install stem/upscale extras: pip install "kinocut[stems]" or "kinocut[upscale]"',
+        'Install stem/upscale extras: pip install "kinocut[stems]==1.16.5" or "kinocut[upscale]==1.16.5"',
     ),
-    ("torchaudio", "torchaudio", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]"'),
-    ("torchcodec", "torchcodec", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]"'),
-    ("imagehash", "imagehash", "ai", False, 'Install AI scene extras: pip install "kinocut[ai-scene]"'),
+    ("torchaudio", "torchaudio", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==1.16.5"'),
+    ("torchcodec", "torchcodec", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==1.16.5"'),
+    ("imagehash", "imagehash", "ai", False, 'Install AI scene extras: pip install "kinocut[ai-scene]==1.16.5"'),
     (
         "scipy",
         "scipy",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]"',
+        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==1.16.5"',
     ),
     (
         "soundfile",
         "soundfile",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]"',
+        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==1.16.5"',
     ),
     (
         "librosa",
         "librosa",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]"',
+        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==1.16.5"',
     ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
     (
@@ -171,10 +182,32 @@ def _parse_python_version(version_line: str | None) -> tuple[int, int] | None:
     return None
 
 
+def _doctor_probe_environment() -> dict[str, str]:
+    """The environment a version probe runs in: sanitized and update-disabled.
+
+    A PATH-only shim can carry its own installer or updater, and the caller's
+    environment can carry provider credentials. A version probe needs neither,
+    so both are removed.
+    """
+    return offline_probe_environment()
+
+
 def _command_version(command: list[str]) -> str | None:
+    """Run a version probe offline.
+
+    The probe inherits the caller's environment, which can carry provider
+    credentials and can point a shim at an updater that reaches the network.
+    Doctor's own comment says it must stay offline, so the probe runs with the
+    same sanitized, update-disabled environment the Hyperframes engine uses.
+    """
     try:
         result = subprocess.run(  # noqa: S603
-            command, stdin=subprocess.DEVNULL, capture_output=True, text=True, timeout=DOCTOR_COMMAND_TIMEOUT
+            command,
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=DOCTOR_COMMAND_TIMEOUT,
+            env=_doctor_probe_environment(),
         )
     except (OSError, subprocess.TimeoutExpired):
         return None
@@ -192,6 +225,22 @@ def _package_version(distribution_name: str) -> str | None:
 
 
 def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
+    if definition.get("probe") == "never":
+        # The doctor does not run a package manager. It reports whether one is
+        # on PATH and leaves it there.
+        path = which(definition["command"][0])
+        return {
+            "name": definition["name"],
+            "category": definition["category"],
+            "required": definition["required"],
+            "ok": path is not None,
+            "path": path,
+            "version": None,
+            "command": definition["command"],
+            "install_hint": None,
+            "probed": False,
+            "reason": "the doctor does not run a package manager; its presence is read from PATH, not executed",
+        }
     path = which(definition["command"][0])
     version = version_runner(definition["command"]) if path else None
     ok = path is not None and version is not None
@@ -221,10 +270,12 @@ def _check_command(definition: dict[str, Any], which: WhichFn, version_runner: V
     # Hyperframes version check — routed through the injectable version_runner
     # so tests can exercise both outcomes (a raw subprocess call here would be
     # untestable, the same defect class as the @hyperframes/core probe).
-    if definition["name"] == "node" and ok and which("hyperframes"):
-        hf_version = version_runner(["npx", "--yes", "hyperframes", "--version"])
-        if hf_version:
-            extra["hyperframes_version"] = hf_version
+    hyperframes_path = which("hyperframes")
+    if definition["name"] == "node" and ok and hyperframes_path:
+        # Invoke the already-resolved executable directly. `npx --yes` may
+        # consult the npm registry when PATH resolution and npm's local bins
+        # disagree (a shim outside npm's bin dirs); doctor must stay offline.
+        extra.update(report_resolved_hyperframes(hyperframes_path))
 
     return {
         "name": definition["name"],
@@ -327,7 +378,7 @@ def _check_audio_engine() -> dict[str, Any]:
         "ok": has_numpy,
         "path": None,
         "version": status,
-        "install_hint": None if has_numpy else 'pip install "kinocut[audio]" for professional audio synthesis',
+        "install_hint": None if has_numpy else 'pip install "kinocut[audio]==1.16.5" for professional audio synthesis',
         "details": {
             "numpy": has_numpy,
             "scipy": has_scipy,
@@ -351,33 +402,14 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
         "ok": found,
         "path": path,
         "version": package_version("kinocut") if found else None,
-        "install_hint": None if found else "Install the local package: pip install kinocut",
+        "install_hint": None if found else "Install the local package: pip install kinocut==1.16.5",
     }
 
 
-def _check_hyperframes_cli(which: WhichFn, version_runner: VersionRunner) -> dict[str, Any]:
-    from .hyperframes_engine import HYPERFRAMES_COMMAND_ENV, _hyperframes_command_prefix
+def _check_hyperframes_cli(which: WhichFn) -> dict[str, Any]:
+    from .doctor_offline import check_hyperframes_cli
 
-    try:
-        prefix = _hyperframes_command_prefix(which=which)
-    except HyperframesNotFoundError:
-        prefix = ["hyperframes"]
-    command = [*prefix, "--version"]
-    path = prefix[0] if prefix != ["hyperframes"] else which("hyperframes")
-    version = version_runner(command) if path else None
-    ok = path is not None and version is not None
-    return {
-        "name": "hyperframes",
-        "category": "hyperframes",
-        "required": False,
-        "ok": ok,
-        "path": path,
-        "version": version,
-        "command": command,
-        "install_hint": None
-        if ok
-        else (f"Install a pinned Hyperframes package, add hyperframes to PATH, or set {HYPERFRAMES_COMMAND_ENV}."),
-    }
+    return check_hyperframes_cli(which)
 
 
 # Probe for @hyperframes/core in the active Node package layout. The package is
@@ -431,7 +463,7 @@ def _check_alias_identity() -> dict[str, Any]:
             "category": "migration",
             "ok": False,
             "detail": "unable to import kinocut/mcp_video",
-            "remediation": "Reinstall the package: pip install --force-reinstall kinocut",
+            "remediation": "Reinstall the package: pip install --force-reinstall kinocut==1.16.5",
         }
     ok = getattr(kinocut, "Client", None) is getattr(mcp_video, "Client", None)
     return {
@@ -452,9 +484,12 @@ def _check_legacy_env_paths() -> dict[str, Any]:
     legacy_dir = Path.home() / ".mcp-video"
     findings: list[str] = []
     if stale_env:
-        findings.append(f"env MCP_VIDEO_CRUSH_PATH={stale_env}")
+        # The value is the operator's own environment: the report says the
+        # variable is set, not what it says.
+        findings.append("MCP_VIDEO_CRUSH_PATH is set")
     if legacy_dir.exists():
-        findings.append(f"legacy path {legacy_dir}")
+        # The name of the directory is ours; the path it sits in is not.
+        findings.append("the legacy directory ~/.mcp-video exists")
     ok = not findings
     return {
         "name": "legacy_env_paths",
@@ -495,6 +530,19 @@ def _check_workspace() -> dict[str, Any]:
     }
 
 
+def _policy_setting(name: str, default: Any) -> dict[str, Any]:
+    """A setting's name, its shipped default, and whether it is overridden.
+
+    The value the operator chose is their configuration: the report says
+    which setting is theirs and what the default is, not what they set.
+    """
+    return {
+        "setting": name,
+        "default": default,
+        "state": "default" if name not in os.environ else "custom",
+    }
+
+
 def _check_runtime_policy() -> dict[str, Any]:
     """Expose effective guardrail defaults without changing any policy."""
 
@@ -503,9 +551,9 @@ def _check_runtime_policy() -> dict[str, Any]:
     flags = {
         "overwrite_default": DEFAULT_OVERWRITE,
         "network_egress_default": False,
-        "vision_mode": os.environ.get("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
-        "hyperframes_telemetry": os.environ.get("KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)),
-        "revideo_telemetry": os.environ.get("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
+        "vision_mode": _policy_setting("KINOCUT_VISION_MODE", DEFAULT_VISION_MODE),
+        "hyperframes_telemetry": _policy_setting("KINOCUT_HYPERFRAMES_TELEMETRY", str(DEFAULT_HYPERFRAMES_TELEMETRY)),
+        "revideo_telemetry": _policy_setting("KINOCUT_REVIDEO_TELEMETRY", str(DEFAULT_REVIDEO_TELEMETRY)),
         "mcp_tools": active_mode(),
     }
     return {
@@ -574,10 +622,12 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
             "category": "core",
             "required": True,
             "ok": False,
-            "detail": f"{type(exc).__name__}: {exc}",
+            # The exception's own text can carry a path; the report names
+            # the kind, and the log above keeps the detail for the operator.
+            "detail": type(exc).__name__,
             "install_hint": (
                 "Run 'kino --mcp' to see the full error; usually a broken install "
-                "(pip install --force-reinstall kinocut) or a platform-specific dependency issue."
+                "(pip install --force-reinstall kinocut==1.16.5) or a platform-specific dependency issue."
             ),
         }
     return {
@@ -596,14 +646,20 @@ def run_diagnostics(
     find_spec: FindSpecFn = importlib.util.find_spec,
     package_version: PackageVersionFn = _package_version,
     import_module: ImportModuleFn = importlib.import_module,
+    include_paths: bool = True,
 ) -> dict[str, Any]:
-    """Return a structured report for core and optional integration dependencies."""
+    """Return a structured report for core and optional integration dependencies.
+
+    The report names the machine's own paths, which is what an operator
+    running this locally needs. A caller that hands the report onward — the
+    MCP tool — asks for the paths to be left out.
+    """
     checks = [_check_mcp_video(find_spec, package_version), _check_mcp_server_import(import_module)]
     with ThreadPoolExecutor(max_workers=min(8, len(COMMAND_CHECKS))) as pool:
         checks.extend(pool.map(lambda definition: _check_command(definition, which, version_runner), COMMAND_CHECKS))
     checks.extend(
         [
-            _check_hyperframes_cli(which, version_runner),
+            _check_hyperframes_cli(which),
             _check_hyperframes_core(which, version_runner),
         ]
     )
@@ -615,9 +671,11 @@ def run_diagnostics(
     checks.append(_check_audio_engine())
     checks.append(_check_still_plates(find_spec, package_version))
     checks.append(_check_object_matte(find_spec))
-    checks.append(_check_sphere_director())
+    from .te.sphere_director import doctor_check
+
+    checks.append(doctor_check())
     checks.extend([_check_workspace(), _check_runtime_policy()])
-    return {
+    report = {
         "success": True,
         "platform": {
             "python": sys.version.split()[0],
@@ -629,23 +687,7 @@ def run_diagnostics(
         "rescue": _rescue_summary(checks),
         "migrations": [_check_alias_identity(), _check_legacy_env_paths()],
     }
-
-
-def _check_sphere_director() -> dict[str, Any]:
-    """Report configured 360 director backends (probe only, no network)."""
-    from kinocut.te.sphere_director import detect_sphere_director
-
-    detected = detect_sphere_director()
-    return {
-        "name": "sphere_director",
-        "category": "optional",
-        "required": False,
-        "ok": True,
-        "path": None,
-        "version": detected.get("id"),
-        "install_hint": None,
-        "details": detected,
-    }
+    return report if include_paths else without_machine_paths(report)
 
 
 def _object_matte_cache_path() -> Path:
@@ -689,7 +731,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     hint = None
     if not ok:
         hint = (
-            'Product/object cutouts need pip install "kinocut[object-matte]" '
+            'Product/object cutouts need pip install "kinocut[object-matte]==1.16.5" '
             "and the pinned BiRefNet-general weights. "
             "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
         )
@@ -728,7 +770,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
     if not ok:
         hint = (
             "Still/plate tools need the image stack (Pillow + NumPy). "
-            'Install: pip install "kinocut[image]". '
+            'Install: pip install "kinocut[image]==1.16.5". '
             "Free establish-locked edit uses local match; no paid still-generation adapter exists."
         )
     return {

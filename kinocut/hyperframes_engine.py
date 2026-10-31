@@ -250,9 +250,15 @@ def _hyperframes_telemetry_allowed() -> bool:
     return value.strip().lower() == "true"
 
 
-def _hyperframes_environment() -> dict[str, str]:
-    """Apply telemetry consent and suppress installers and update checks."""
-    telemetry_allowed = _hyperframes_telemetry_allowed()
+def _hyperframes_environment(*, telemetry_allowed: bool | None = None) -> dict[str, str]:
+    """Apply telemetry consent and suppress installers and update checks.
+
+    ``telemetry_allowed`` overrides the setting for this one call. The
+    doctor uses it to read a malformed setting conservatively without
+    changing the process environment, which its parallel probes share.
+    """
+    if telemetry_allowed is None:
+        telemetry_allowed = _hyperframes_telemetry_allowed()
     environment = {
         **{key: value for key, value in os.environ.items() if key not in _HYPERFRAMES_PROVIDER_CREDENTIALS},
         "HYPERFRAMES_SKIP_SKILLS": "1",
@@ -311,9 +317,9 @@ def _run_hyperframes(
             env=_hyperframes_environment(),
         )
     except subprocess.TimeoutExpired:
-        raise HyperframesRenderError(" ".join(cmd), -1, "Render timed out") from None
+        raise HyperframesRenderError(" ".join(cmd), -1, "", reason="Render timed out") from None
     except FileNotFoundError:
-        raise HyperframesNotFoundError(f"{cmd[0]} command not found") from None
+        raise HyperframesNotFoundError("hyperframes command not found") from None
 
 
 # ---------------------------------------------------------------------------

@@ -10,11 +10,26 @@ from pathlib import Path
 import pytest
 
 
-def test_run_diagnostics_marks_required_tools_ok_when_present():
+def _installed_hyperframes(tmp_path) -> str:
+    """An installed package: a launcher beside its manifest."""
+    package = tmp_path / "node_modules" / "hyperframes"
+    package.mkdir(parents=True)
+    launcher = package / "hyperframes"
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.31');\n", encoding="utf-8")
+    launcher.chmod(0o755)
+    (package / "package.json").write_text('{"name": "hyperframes", "version": "0.6.31"}', encoding="utf-8")
+    return str(launcher)
+
+
+def test_run_diagnostics_marks_required_tools_ok_when_present(tmp_path):
     from mcp_video.doctor import run_diagnostics
 
+    hyperframes = _installed_hyperframes(tmp_path)
+
     def fake_which(name: str) -> str | None:
-        return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe", "node", "npm", "npx", "hyperframes"} else None
+        if name == "hyperframes":
+            return hyperframes
+        return f"/usr/bin/{name}" if name in {"ffmpeg", "ffprobe", "node", "npm", "npx"} else None
 
     def fake_version(command: list[str]) -> str | None:
         if command[:1] == ["/usr/bin/hyperframes"]:
@@ -52,8 +67,16 @@ def test_run_diagnostics_marks_required_tools_ok_when_present():
     assert checks["node"]["ok"] is True
     assert checks["npm"]["ok"] is True
     assert checks["npx"]["ok"] is True
+    # A package manager is read from PATH, never executed.
+    assert checks["npm"]["probed"] is False
+    assert checks["npx"]["probed"] is False
+    assert checks["npm"]["version"] is None
+    # The doctor never executes a resolved Hyperframes script: it resolves
+    # the path on disk and reads the version from the package metadata.
     assert checks["hyperframes"]["ok"] is True
-    assert checks["hyperframes"]["command"] == ["/usr/bin/hyperframes", "--version"]
+    assert checks["hyperframes"]["path"] == hyperframes
+    assert checks["hyperframes"]["version"] == "0.6.31"
+    assert checks["hyperframes"]["hyperframes_version_source"] == "package metadata, read from disk"
     assert checks["@hyperframes/core"]["ok"] is True
 
 
@@ -102,36 +125,51 @@ def _node_and_hyperframes_which(name: str) -> str | None:
     return f"/usr/bin/{name}" if name in {"node", "npm", "npx", "hyperframes"} else None
 
 
-def test_node_check_reports_hyperframes_version_via_injectable_runner():
-    """The npx hyperframes probe must go through version_runner — a raw
-    subprocess call here is untestable (the @hyperframes/core probe defect class)."""
+def _hyperframes_script(tmp_path) -> str:
+    """An installed package: a launcher beside its manifest.
+    The doctor reads the manifest; it does not run the launcher.
+    """
+    package = tmp_path / "node_modules" / "hyperframes"
+    package.mkdir(parents=True)
+    path = package / "hyperframes"
+    path.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
+    (package / "package.json").write_text('{"name": "hyperframes", "version": "0.6.93"}', encoding="utf-8")
+    return str(path)
+
+
+def test_node_check_reports_hyperframes_version_from_package_metadata(tmp_path):
+    """The version comes from the manifest on disk, not from running the script."""
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
-        if command[:2] == ["npx", "--yes"]:
-            return "0.6.93"
         return "v22.0.0"
 
+    hyperframes = _hyperframes_script(tmp_path)
     report = run_diagnostics(
-        which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None
+        which=lambda name: hyperframes if name == "hyperframes" else _node_and_hyperframes_which(name),
+        version_runner=fake_version,
+        find_spec=lambda name: None,
     )
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["node"]["hyperframes_version"] == "0.6.93"
 
 
-def test_node_check_omits_hyperframes_version_when_probe_fails():
+def test_node_check_reports_no_hyperframes_version_without_a_manifest(tmp_path):
     from mcp_video.doctor import run_diagnostics
 
     def fake_version(command: list[str]) -> str | None:
-        if command[:2] == ["npx", "--yes"]:
-            return None
         return "v22.0.0"
 
+    launcher = tmp_path / "hyperframes"
+    launcher.write_text("#!/usr/bin/env node\nconsole.log('0.6.93');\n", encoding="utf-8")
     report = run_diagnostics(
-        which=_node_and_hyperframes_which, version_runner=fake_version, find_spec=lambda name: None
+        which=lambda name: str(launcher) if name == "hyperframes" else _node_and_hyperframes_which(name),
+        version_runner=fake_version,
+        find_spec=lambda name: None,
     )
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
+    assert "hyperframes_probe_skipped" in checks["node"]
 
 
 def test_node_check_skips_npx_yes_without_hyperframes_cli():
@@ -147,6 +185,8 @@ def test_node_check_skips_npx_yes_without_hyperframes_cli():
     checks = {check["name"]: check for check in report["checks"]}
     assert "hyperframes_version" not in checks["node"]
     assert not any(command[:2] == ["npx", "--yes"] for command in seen)
+    # The doctor does not run a package manager at all, not even for a version.
+    assert not [command for command in seen if command[0] in {"npx", "npm"}]
 
 
 @pytest.mark.skipif(shutil.which("node") is None, reason="requires Node.js")
@@ -224,6 +264,37 @@ def test_doctor_reports_workspace_and_effective_guardrail_policy():
     flags = checks["runtime_policy"]["flags"]
     assert flags["overwrite_default"] is False
     assert flags["network_egress_default"] is False
+
+
+def test_public_doctor_report_carries_no_operator_configuration(monkeypatch):
+    """The public report is a projection, not a copy of the operator's setup.
+
+    Every environment family the doctor reads is set to a credential-shaped
+    value; the returned payload — the shape video_doctor hands the caller —
+    carries none of them, and says only that the setting is custom.
+    """
+    import json
+
+    from kinocut.doctor import run_diagnostics
+
+    monkeypatch.setenv("KINOCUT_VISION_MODE", "sk-credential-9f3a7c")
+    monkeypatch.setenv("KINOCUT_HYPERFRAMES_TELEMETRY", "token-9f3a7c")
+    monkeypatch.setenv("KINOCUT_REVIDEO_TELEMETRY", "token-9f3a7c")
+    monkeypatch.setenv("KINOCUT_360_DIRECTOR", "director-9f3a7c")
+    monkeypatch.setenv("KINOCUT_360_DIRECTOR_MODEL", "model-9f3a7c")
+    monkeypatch.setenv("KINOCUT_360_DIRECTOR_BASE_URL", "https://user:token-9f3a7c@secret.invalid/endpoint")
+
+    report = run_diagnostics(
+        include_paths=False, which=lambda name: None, version_runner=lambda command: None, find_spec=lambda name: None
+    )
+
+    checks = {check["name"]: check for check in report["checks"]}
+    policy = checks["runtime_policy"]["flags"]
+    assert policy["vision_mode"]["state"] == "custom"
+    assert "setting" in policy["vision_mode"]
+    director = checks["sphere_director"]["details"]
+    assert director["kind"] in {"local", "cloud", "none", "unresolved"}
+    assert "9f3a7c" not in json.dumps(report)
 
 
 def test_doctor_reports_rescue_readiness_from_existing_checks():
@@ -458,7 +529,10 @@ def test_server_import_failure_breaks_required_summary():
 
     checks = {check["name"]: check for check in report["checks"]}
     assert checks["mcp-server-import"]["ok"] is False
-    assert "fcntl" in checks["mcp-server-import"]["detail"]
+    # The report names the kind of failure. The exception's own text can
+    # carry a path, so it stays in the log and not in the report.
+    assert checks["mcp-server-import"]["detail"] == "ModuleNotFoundError"
+    assert "fcntl" not in checks["mcp-server-import"]["detail"]
     assert checks["mcp-server-import"]["install_hint"]
     assert report["summary"]["required_ok"] is False
     assert "mcp-server-import" in report["summary"]["missing_required"]
@@ -483,3 +557,13 @@ def test_server_import_check_ok_path():
     check = _check_mcp_server_import(lambda name: object())
     assert check["ok"] is True
     assert check["required"] is True
+
+
+def test_the_public_doctor_report_does_not_carry_machine_paths():
+    """The MCP report says a path exists; it does not say where."""
+    from kinocut.server_tools_doctor import video_doctor
+
+    report = video_doctor()
+    text = json.dumps(report, default=str)
+    assert "/usr/" not in text
+    assert "site-packages" not in text

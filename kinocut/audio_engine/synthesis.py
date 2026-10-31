@@ -8,6 +8,7 @@ from __future__ import annotations
 from typing import Any, Literal
 
 from ..errors import MCPVideoError
+from ..validation_errors import rejected_value
 
 from .core import (
     _float_to_pcm,
@@ -70,7 +71,8 @@ def _validate_synth_effects(effects: dict[str, Any] | None) -> None:
     unknown = sorted(set(effects) - VALID_AUDIO_SYNTH_EFFECT_KEYS)
     if unknown:
         raise MCPVideoError(
-            f"effects keys must be one of {sorted(VALID_AUDIO_SYNTH_EFFECT_KEYS)}, got unsupported keys {unknown}",
+            f"effects keys must be one of {sorted(VALID_AUDIO_SYNTH_EFFECT_KEYS)}; "
+            f"{len(unknown)} submitted key(s) were not accepted",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -267,6 +269,11 @@ def _validate_synth_params(
         )
 
 
+#: The waveforms this engine generates. The caller picks one; the
+#: rejected name is never echoed back.
+_WAVEFORMS = frozenset({"sine", "square", "sawtooth", "triangle", "noise", "pulse", "supersaw", "pluck", "fm"})
+
+
 def audio_synthesize(
     output: str,
     waveform: Literal["sine", "square", "sawtooth", "triangle", "noise", "pulse", "supersaw", "pluck", "fm"] = "sine",
@@ -316,7 +323,11 @@ def audio_synthesize(
     elif waveform == "fm":
         pcm_data = generate_fm(frequency, duration, sample_rate, volume)
     else:
-        raise MCPVideoError(f"Unknown waveform: {waveform}", error_type="validation_error", code="invalid_parameter")
+        raise MCPVideoError(
+            f"Unknown waveform ({rejected_value(waveform)}). Available: {sorted(_WAVEFORMS)}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
 
     # Convert to float for processing
     samples = _pcm_to_float(pcm_data)
@@ -372,7 +383,7 @@ def audio_preset(
 
     if pitch not in _PITCH_MULT:
         raise MCPVideoError(
-            f"pitch must be one of {sorted(_PITCH_MULT)}, got {pitch!r}",
+            f"pitch must be one of {sorted(_PITCH_MULT)}, got {rejected_value(pitch)}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -383,14 +394,7 @@ def audio_preset(
             code="invalid_parameter",
         )
 
-    try:
-        config = get_preset_config(preset)
-    except KeyError as exc:
-        raise MCPVideoError(
-            str(exc),
-            error_type="validation_error",
-            code="invalid_parameter",
-        ) from None
+    config = get_preset_config(preset)
 
     mult = _PITCH_MULT[pitch]
     config["frequency"] = config["frequency"] * mult

@@ -50,7 +50,7 @@ def detect_pitch(
 
     input_path_obj = Path(input_path)
     if not input_path_obj.exists():
-        raise MCPVideoError(f"Audio file not found: {input_path}", error_type="input_error", code="invalid_input")
+        raise MCPVideoError("Audio file not found", error_type="input_error", code="invalid_input")
 
     if output_directory is None:
         output_directory = str(input_path_obj.parent)
@@ -92,7 +92,7 @@ def audio_to_midi(
 
     input_path_obj = Path(input_path)
     if not input_path_obj.exists():
-        raise MCPVideoError(f"Audio file not found: {input_path}", error_type="input_error", code="invalid_input")
+        raise MCPVideoError("Audio file not found", error_type="input_error", code="invalid_input")
 
     _, midi_data, _ = predict(input_path)
 

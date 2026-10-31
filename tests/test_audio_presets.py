@@ -23,8 +23,15 @@ class TestPresetConfig:
         assert get_preset_config("ui-blip")["volume"] != 999
 
     def test_get_preset_config_unknown_raises(self):
-        with pytest.raises(KeyError):
+        # The refusal is the package's own error type, it carries the
+        # shipped guidance, and it does not repeat the refused name.
+        with pytest.raises(MCPVideoError) as exc:
             get_preset_config("not-a-real-preset")
+        assert exc.value.error_type == "validation_error"
+        assert exc.value.code == "invalid_parameter"
+        assert "Unknown preset" in str(exc.value)
+        assert "ui-blip" in str(exc.value)
+        assert "not-a-real-preset" not in str(exc.value)
 
 
 class TestAudioPresetOrchestration:

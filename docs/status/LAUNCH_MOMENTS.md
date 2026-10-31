@@ -10,7 +10,7 @@ Agent deliverable for issue #90. Does **not** claim posts or clips were publishe
 **Draft (X / LinkedIn short):**
 
 > mcp-video is now **Kinocut**.  
-> Same local-first video MCP for agents — `pip install kinocut`, CLI `kino`, skill `$kinocut`.  
+> Same local-first video MCP for agents — `pip install kinocut==1.16.5`, CLI `kino`, skill `$kinocut`.  
 > Compat: `mcp-video` still installs the matching Kinocut.  
 > https://kinocut.dev · https://github.com/KyaniteLabs/kinocut
 
@@ -22,7 +22,7 @@ Agent deliverable for issue #90. Does **not** claim posts or clips were publishe
 
 1. Cold open: finished Short/Reel cut (no narration for 2s).  
 2. On-screen: “made with Kinocut — local agents + FFmpeg”.  
-3. End card: `pip install kinocut` · `kino doctor`.  
+3. End card: `pip install kinocut==1.16.5` · `kino doctor`.  
 4. Receipt mention: workflow receipt / review_run JSON (optional overlay).
 
 **Produce:** human or agent with media approval; attach receipt path when available.

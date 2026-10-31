@@ -178,7 +178,7 @@ def _run_reduction(cmd, reduction):
         process = tree.process
         process._kinocut_tree = tree
     except OSError as exc:
-        raise ProcessingError("signalstats backend", -1, "Backend unavailable") from exc
+        raise ProcessingError("signalstats backend", -1, "", reason="Backend unavailable") from exc
     readers, stop = [], threading.Event()
     deadline = time.monotonic() + QUALITY_GUARDRAILS_TIMEOUT
     try:

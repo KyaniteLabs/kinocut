@@ -10,6 +10,7 @@ from urllib.parse import unquote, urlparse
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_input_path
 from kinocut.timeline_ir import compile_ir_to_dag, parse_timeline_ir
+from ..validation_errors import exception_kind
 
 
 def export_otio_json(timeline: dict[str, Any], output_path: str) -> dict[str, Any]:
@@ -226,7 +227,9 @@ def import_otio_json(path: str) -> dict[str, Any]:
     try:
         doc = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
-        raise MCPVideoError(f"invalid otio json: {exc}", error_type="validation_error", code="invalid_otio") from exc
+        raise MCPVideoError(
+            f"invalid otio json: {exception_kind(exc)}", error_type="validation_error", code="invalid_otio"
+        ) from exc
     if not isinstance(doc, dict):
         raise MCPVideoError("otio root must be an object", error_type="validation_error", code="invalid_otio")
     meta = doc.get("metadata") or {}

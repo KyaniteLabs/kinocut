@@ -4,16 +4,36 @@ from __future__ import annotations
 
 import re
 import contextlib
+import functools
 from contextvars import ContextVar
 from typing import Any
+
+from .type_names import builtin_type_name, register_exception_kinds, type_label
 
 # Caller-supplied values echoed into error messages are capped so a hostile
 # or accidental 100 KB parameter cannot amplify into a ~200 KB error reply
 # that dumps doubled garbage into the caller's agent context window.
 _MAX_ECHO_CHARS = 200
 _MAX_MESSAGE_CHARS = 2000
+# A suggested action is shipped guidance, not caller text. It still gets a
+# bound, but a generous one: truncating it would drop the words that tell the
+# operator what to change.
+_MAX_ACTION_CHARS = 1000
 
 _RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar("kinocut_retry_context", default=None)
+
+
+def _without_value(text: str, value: str) -> str:
+    """The text with the caller's submitted value removed.
+
+    An error names the argument and the failure; it never repeats what the
+    caller passed. That string can be a path, a codec name, or a
+    credential-shaped token, and it must not travel back out to the caller.
+    """
+    if not value:
+        return text
+    cleaned = text.replace(value, "").strip()
+    return cleaned or "the submitted value was rejected"
 
 
 @contextlib.contextmanager
@@ -27,35 +47,184 @@ def retry_context(tool_name: str, arguments: dict[str, Any] | None = None):
         _RETRY_CONTEXT.reset(token)
 
 
-def _cli_tool_name(tool_name: str) -> str:
-    for prefix in ("video_", "hyperframes_", "revideo_", "shorts_", "sound_"):
-        if tool_name.startswith(prefix):
-            return tool_name.removeprefix(prefix).replace("_", "-")
-    return tool_name.replace("_", "-")
+# Explicit MCP→CLI command-name map for tools whose flat CLI command is not the
+# mechanical ``video_``-stripped form. Every value is verified against the
+# ``kino --help`` parser choices; extend only with a name that parses.
+_CLI_TOOL_OVERRIDES: dict[str, str] = {
+    "video_quality_check": "video-quality-check",
+    "video_review_package": "video-review-package",
+}
+
+# Tools with no single-command CLI equivalent. The retry message must say so
+# instead of inventing a ``kino <name>`` command that does not exist.
+_NO_CLI_EQUIVALENT: frozenset[str] = frozenset(
+    {
+        "search_tools",
+        "video_add_texts",
+        "video_project_create",
+        "video_shorts",
+        "video_validate_text_layout",
+    }
+)
+
+
+@functools.lru_cache(maxsize=1)
+def _cli_command_names() -> frozenset[str]:
+    """The flat CLI command names the parser actually registers.
+
+    The CLI names do not follow one mechanical pattern — ``video_trim`` is
+    ``kino trim`` while ``video_ai_transcribe`` is ``kino video-ai-transcribe``
+    — so a retry message checks the parser instead of inventing a command.
+    """
+    try:
+        from kinocut.cli.parser import build_parser
+
+        parser = build_parser()
+    except Exception:
+        # A parser that cannot be built means no command can be verified.
+        # Saying there is no equivalent is honest; naming one is not.
+        return frozenset()
+    names: set[str] = set()
+    for action in parser._actions:
+        choices = getattr(action, "choices", None)
+        if isinstance(choices, dict):
+            names.update(str(name) for name in choices)
+    return frozenset(names)
+
+
+def _cli_tool_name(tool_name: str) -> str | None:
+    """Map an MCP tool name to its flat CLI command, or None when none exists."""
+    if tool_name in _NO_CLI_EQUIVALENT:
+        return None
+    if tool_name in _CLI_TOOL_OVERRIDES:
+        return _CLI_TOOL_OVERRIDES[tool_name]
+    commands = _cli_command_names()
+    candidates: list[str] = []
+    if tool_name.startswith("video_"):
+        candidates.append(tool_name.removeprefix("video_").replace("_", "-"))
+    candidates.append(tool_name.replace("_", "-"))
+    for candidate in candidates:
+        if candidate in commands:
+            return candidate
+    return None
+
+
+def _argument_names(arguments: dict[str, Any]) -> str:
+    """Name the arguments a failed call carried, without echoing their values.
+
+    The retry context exists to make a refusal addressable — which tool, with
+    which inputs — and the stored arguments are what make it so: the operator
+    learns exactly which parameters the call carried, and therefore which one
+    to correct. Each name carries its value's type as a replayable
+    placeholder, so the invocation can be re-issued by substituting a value
+    for the type. The values are the caller's own input and can be hostile (a
+    validation error must not echo the value it just rejected), so only the
+    names and types are named.
+    """
+    if not arguments:
+        return ""
+    parts = [f"{_argument_name(key)}={_argument_type(value)}" for key, value in arguments.items()]
+    return " (arguments: " + ", ".join(sorted(parts)) + ")"
+
+
+#: The type names a retry placeholder may publish. A class's ``__name__``
+#: is mutable, caller-controlled data, so only shipped builtin categories
+#: are named; anything else gets the fixed ``<object>`` placeholder.
+
+
+def _argument_type(value: Any) -> str:
+    """A replayable placeholder for one argument: its type, never its value.
+
+    The category is read off the type object by identity against the
+    shipped map (:func:`builtin_type_name`) — a caller's subclass that
+    renames itself to a shipped category is still a subclass, so it gets
+    the fixed ``<object>`` placeholder.
+    """
+    name = builtin_type_name(value)
+    return f"<{name}>" if name is not None else "<object>"
+
+
+def _argument_name(key: Any) -> str:
+    """A bounded, package-authored name for one argument of a refused call.
+
+    JSON and ``vars()`` give string keys; a string key is echoed (bounded,
+    printable) because the operator must know which parameter to correct.
+    A non-string key's text is not ours to publish — its ``str()`` is
+    caller data, however the key's class renders itself — so it is named
+    by a fixed placeholder instead.
+    """
+    if not isinstance(key, str):
+        return "<non-string-key>"
+    text = "".join(char if char.isprintable() else "_" for char in key)
+    return text[:64] or "argument"
+
+
+def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
+    """Bound a suggested action before it leaves the process.
+
+    The action is written by shipped code, but it is still free text that
+    reaches the MCP and CLI payloads; it is bounded here rather than trusted.
+    """
+    clean: dict[str, Any] = {}
+    for key, value in action.items():
+        if isinstance(value, str):
+            clean[key] = truncate_echo(value, limit=_MAX_ACTION_CHARS)
+        elif value is None or isinstance(value, (int, float, bool)):
+            clean[key] = value
+        else:
+            clean[key] = type_label(value)
+    return clean
 
 
 def retry_message(message: str, code: str) -> str:
-    """Append an eyes-free MCP and CLI retry invocation to an error message."""
+    """Append an eyes-free MCP and CLI retry invocation to an error message.
+
+    Every refusal carries the same shape: the MCP call to make, the CLI
+    command to run, and the action that fixes it. When the retry context binds
+    a tool and its arguments, both halves name them — the tool, the CLI
+    command, and which arguments the call carried — so the refusal is
+    actionable rather than advisory. Without a context the generic tokens
+    stand on their own.
+    """
 
     context = _RETRY_CONTEXT.get()
     tool_name = context[0] if context else "the same tool"
-    cli_name = _cli_tool_name(tool_name) if context else "the same kino command"
+    cli_name = _cli_tool_name(tool_name) if context else None
+    submitted = _argument_names(context[1]) if context else ""
+    consent = code in {"hyperframes_telemetry_consent_required", "network_consent_required"}
+    missing_tool = code in {"ffmpeg_not_found", "ffprobe_not_found"}
     if code in {"output_exists", "overwrite_refused"}:
-        invocation = "overwrite=true (MCP) / --overwrite (CLI)"
+        mcp_action, cli_action = f"overwrite=true{submitted}", f"--overwrite{submitted}"
     elif code in {"unsafe_path", "invalid_output_path"}:
-        invocation = "a new output_path (MCP) / --output <new-media-path> (CLI)"
-    elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
-        invocation = (
-            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
-        )
-    elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
-        invocation = (
-            "install FFmpeg, then call " + tool_name + " (MCP) / install FFmpeg, then run kino " + cli_name + " (CLI)"
-        )
+        mcp_action, cli_action = f"a new output_path{submitted}", f"--output <new-media-path>{submitted}"
+    elif consent:
+        # NOTE (t_e3775201 F-INFO): no shipped code path raises
+        # ``network_consent_required`` yet. Before any network-consent feature
+        # lands, re-bind its hint to the actual consent env var of that feature;
+        # ``KINOCUT_HYPERFRAMES_TELEMETRY`` only gates Hyperframes telemetry.
+        mcp_action = f"KINOCUT_HYPERFRAMES_TELEMETRY=true{submitted}"
+        cli_action = "KINOCUT_HYPERFRAMES_TELEMETRY=true kino"
+    elif missing_tool:
+        mcp_action = "install FFmpeg, then call " + tool_name + submitted
+        cli_action = "install FFmpeg, then run kino"
     else:
+        mcp_action, cli_action = f"corrected parameters{submitted}", f"corrected flags{submitted}"
+
+    if context is None:
+        # No tool bound: the tokens have to carry the refusal by themselves.
+        invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
+    elif cli_name is None:
+        # The tool has no single-command CLI equivalent. The special-code
+        # actions are already tool-shaped, so they are not prefixed again.
         invocation = (
-            f"call {tool_name} with corrected parameters (MCP) / run kino {cli_name} with corrected flags (CLI)"
+            f"{'' if consent or missing_tool else 'call ' + tool_name + ' with '}{mcp_action} (MCP) / "
+            "no single-command CLI equivalent "
+            "(run kino --help to browse related commands) (CLI)"
         )
+    elif consent or missing_tool:
+        invocation = f"{mcp_action} (MCP) / {cli_action} {cli_name}{submitted} (CLI)"
+    else:
+        invocation = f"call {tool_name} with {mcp_action} (MCP) / run kino {cli_name} with {cli_action} (CLI)"
     return f"{message}; retry with {invocation}"
 
 
@@ -98,7 +267,7 @@ class MCPVideoError(Exception):
             "message": truncate_echo(retry_message(str(self), self.code), limit=_MAX_MESSAGE_CHARS),
         }
         if self.suggested_action:
-            result["suggested_action"] = self.suggested_action
+            result["suggested_action"] = _sanitize_action(self.suggested_action)
         if self.docs_url:
             result["documentation_url"] = self.docs_url
         return result
@@ -151,9 +320,9 @@ class ValidationError(MCPVideoError, ValueError):
 class C2PAToolNotFoundError(MCPVideoError):
     """c2patool is required for requested C2PA signing but is unavailable."""
 
-    def __init__(self, tool: str) -> None:
+    def __init__(self) -> None:
         super().__init__(
-            f"C2PA signing requested, but c2patool is not executable: {tool}",
+            "C2PA signing requested, but the c2patool configured in the environment is not an executable file",
             error_type="dependency_error",
             code="c2patool_not_found",
             suggested_action={
@@ -198,7 +367,7 @@ class InputFileError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "File not found (archivo no encontrado)") -> None:
         super().__init__(
-            f"Input file error: {truncate_echo(path)} — {reason}",
+            f"Input file error — {_without_value(reason, path)}",
             error_type="input_error",
             code="invalid_input",
             suggested_action={
@@ -212,13 +381,16 @@ class CodecError(MCPVideoError):
     """Unsupported or incompatible codec."""
 
     def __init__(self, codec: str, detail: str = "") -> None:
+        message = "Codec error"
+        if detail:
+            message += f" — {_without_value(detail, codec)}"
         super().__init__(
-            f"Codec error: {codec}" + (f" — {detail}" if detail else ""),
+            message,
             error_type="encoding_error",
             code="unsupported_codec",
             suggested_action={
                 "auto_fix": True,
-                "description": f"Auto-convert input from {codec} to H.264/AAC before editing",
+                "description": "Auto-convert the input to H.264/AAC before editing",
             },
             docs_url="https://git.kyanitelabs.tech/KyaniteLabs/kinocut#codec-compatibility",
         )
@@ -250,7 +422,7 @@ class HyperframesProjectError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "Invalid project") -> None:
         super().__init__(
-            f"Hyperframes project error: {path} — {reason}",
+            f"Hyperframes project error — {_without_value(reason, path)}",
             error_type="project_error",
             code="invalid_hyperframes_project",
             suggested_action={
@@ -263,12 +435,24 @@ class HyperframesProjectError(MCPVideoError):
 class HyperframesRenderError(MCPVideoError):
     """Hyperframes render failure."""
 
-    def __init__(self, command: str, returncode: int, stderr: str) -> None:
-        stderr_short = stderr[-500:] if len(stderr) > 500 else stderr
+    def __init__(self, command: str, returncode: int, stderr: str, *, reason: str | None = None) -> None:
+        # The renderer's diagnostic stays on the error object. It is not
+        # published: it repeats the project path the caller submitted. A
+        # package-authored reason is published — it is our own text.
+        message = f"Hyperframes render failed (exit code {returncode})"
+        if reason:
+            message = f"{message}: {reason}"
         super().__init__(
-            f"Hyperframes render failed (exit code {returncode}): {stderr_short}",
+            message,
             error_type="render_error",
             code=f"hyperframes_exit_{returncode}",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    "Check the project's index.html and its composition root, then "
+                    "render again to read Hyperframes' own diagnostic."
+                ),
+            },
         )
         self.command = command
         self.returncode = returncode
@@ -332,12 +516,16 @@ def _strip_ffmpeg_banner(stderr: str) -> str:
 class ProcessingError(MCPVideoError):
     """FFmpeg processing failed."""
 
-    def __init__(self, command: str, returncode: int, stderr: str) -> None:
-        cleaned = _strip_ffmpeg_banner(stderr)
-        # Truncate stderr to last 500 chars for readability
-        stderr_short = cleaned[-500:] if len(cleaned) > 500 else cleaned
+    def __init__(self, command: str, returncode: int, stderr: str, *, reason: str | None = None) -> None:
+        # The child's diagnostic is kept on the error object for local
+        # debugging, but it is not published: FFmpeg echoes the path the
+        # caller submitted, and a diagnostic can carry anything at all. A
+        # package-authored reason is published — it is our own text.
+        message = f"FFmpeg processing failed (exit code {returncode})"
+        if reason:
+            message = f"{message}: {reason}"
         super().__init__(
-            f"FFmpeg processing failed (exit code {returncode}): {stderr_short}",
+            message,
             error_type="processing_error",
             code=f"ffmpeg_exit_{returncode}",
         )
@@ -498,7 +686,7 @@ class RevideoProjectError(MCPVideoError):
 
     def __init__(self, path: str, reason: str = "Invalid bridge project") -> None:
         super().__init__(
-            f"Revideo bridge project error: {path} — {reason}",
+            f"Revideo bridge project error — {_without_value(reason, path)}",
             error_type="project_error",
             code="invalid_revideo_project",
             suggested_action={
@@ -514,13 +702,35 @@ class RevideoProjectError(MCPVideoError):
 class RevideoRenderError(MCPVideoError):
     """Revideo bridge render failure (non-zero exit or timeout)."""
 
-    def __init__(self, command: str, returncode: int, stderr: str) -> None:
-        stderr_short = stderr[-500:] if len(stderr) > 500 else stderr
+    def __init__(self, command: str, returncode: int, stderr: str, *, reason: str | None = None) -> None:
+        # The bridge's diagnostic stays on the error object. It is not
+        # published: it repeats the scene path the caller submitted. A
+        # package-authored reason is published — it is our own text.
+        message = f"Revideo render failed (exit code {returncode})"
+        if reason:
+            message = f"{message}: {reason}"
         super().__init__(
-            f"Revideo render failed (exit code {returncode}): {stderr_short}",
+            message,
             error_type="render_error",
             code=f"revideo_exit_{returncode}",
+            suggested_action={
+                "auto_fix": False,
+                "description": (
+                    "Check the bridge project's scene sources and the render output "
+                    "location, then render again to read the bridge's own diagnostic."
+                ),
+            },
         )
         self.command = command
         self.returncode = returncode
         self.full_stderr = stderr
+
+
+#: Register every error class this module defines by identity, so
+#: ``exception_kind`` may publish its name. A subclass defined elsewhere —
+#: a plugin's, a caller's — is a different type object and stays
+#: ``<foreign-exception>``: identity, not inheritance, is the rule,
+#: because a subclass's name is its author's string.
+register_exception_kinds(
+    [obj for obj in list(vars().values()) if isinstance(obj, type) and issubclass(obj, MCPVideoError)]
+)

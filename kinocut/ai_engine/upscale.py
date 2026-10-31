@@ -27,6 +27,7 @@ from ..ffmpeg_helpers import (
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_UPSCALE_FRAMES
 from ..model_cache import model_download_stage
 from ..staged_writers import open_staged_writer
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -243,7 +244,7 @@ def _extract_frames(video_path: str, frames_dir: Path) -> list[Path]:
     )
     frames = sorted(frames_dir.glob("frame_*.png"))
     if not frames:
-        raise ProcessingError("ffmpeg", 1, "No frames extracted from video")
+        raise ProcessingError("ffmpeg", 1, "", reason="No frames extracted from video")
     if len(frames) > MAX_AI_UPSCALE_FRAMES:
         raise MCPVideoError(
             f"Video frame count exceeds AI upscaling maximum of {MAX_AI_UPSCALE_FRAMES}",
@@ -303,10 +304,10 @@ def _ai_upscale_opencv(video_path: str, output_path: str, scale: int) -> str:
         for i, frame_path in enumerate(frames, 1):
             img = cv2.imread(str(frame_path))
             if img is None:
-                raise ProcessingError("cv2.imread", 1, f"Failed to load frame: {frame_path}")
+                raise ProcessingError("cv2.imread", 1, "", reason="the frame could not be loaded")
             result_img = sr.upsample(img)
             if not cv2.imwrite(str(upscaled_dir / f"frame_{i:04d}.png"), result_img):
-                raise ProcessingError("cv2.imwrite", 1, "Failed to save upscaled frame")
+                raise ProcessingError("cv2.imwrite", 1, "", reason="Failed to save upscaled frame")
 
         _reconstruct_video(
             upscaled_dir / "frame_%04d.png",
@@ -395,7 +396,7 @@ def ai_upscale(
     }
     if model not in model_configs:
         raise MCPVideoError(
-            f"Unknown model: {model}. Choose from: {list(model_configs.keys())}",
+            f"Unknown model: {rejected_value(model)}. Choose from: {list(model_configs.keys())}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -425,7 +426,7 @@ def ai_upscale(
             except ImportError:
                 raise MCPVideoError(
                     "AI upscaling requires either realesrgan or opencv-contrib-python (cv2). "
-                    'Install with: pip install "kinocut[upscale]" (Python 3.11/3.12)',
+                    'Install with: pip install "kinocut[upscale]==1.16.5" (Python 3.11/3.12)',
                     error_type="dependency_error",
                     code="missing_upscale_dep",
                 ) from None
@@ -480,5 +481,5 @@ def _has_audio_stream(video_path: str) -> bool:
     result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
     stream_types = result.stdout.strip().splitlines()
     if any(stream.strip() != "audio" for stream in stream_types):
-        raise ProcessingError("ffprobe audio stream detection", 0, "Unexpected audio stream probe output")
+        raise ProcessingError("ffprobe audio stream detection", 0, "", reason="Unexpected audio stream probe output")
     return bool(stream_types)

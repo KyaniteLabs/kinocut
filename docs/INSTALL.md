@@ -15,11 +15,11 @@
 
 | Goal | Command |
 | --- | --- |
-| Stable publish | `pip install kinocut` |
-| Upgrade | `pip install -U kinocut` |
-| From former name | `pip install -U mcp-video` (shim → current Kinocut) |
+| Stable publish | `pip install kinocut==1.16.5` |
+| Upgrade | `pip install -U kinocut==1.16.5` |
+| From former name | `pip install -U "mcp-video==1.6.20"` (shim → current Kinocut) |
 | Editable clone | `pip install -e .` from repo root |
-| No global install | `uvx --from kinocut kino doctor` |
+| No global install | `uvx --from kinocut==1.16.5 kino doctor` |
 
 ## Verify (doctor-first)
 
@@ -43,7 +43,7 @@ python scripts/golden_path.py   # from a clone
 ### Claude Code
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ### Cursor / generic stdio JSON
@@ -53,7 +53,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -70,13 +70,13 @@ Native self-contained bundles are **not** published yet. See [MCPB.md](MCPB.md).
 
 | You want | Install | Notes |
 | --- | --- | --- |
-| Whisper transcription | `pip install "kinocut[transcribe]"` | Large (torch) |
-| Image analysis | `pip install "kinocut[image]"` | ~50 MB |
-| Stem separation | `pip install "kinocut[stems]"` | Large |
-| AI upscale | `pip install "kinocut[upscale]"` | Large; Python ≤3.12 often |
-| Product/object cutouts | `pip install "kinocut[object-matte]"` | ONNX Runtime; ~1 GB pinned weights on first use |
-| Procedural audio | `pip install "kinocut[audio]"` | numpy |
-| Everything AI | `pip install "kinocut[ai]"` | Several GB |
+| Whisper transcription | `pip install "kinocut[transcribe]==1.16.5"` | Large (torch) |
+| Image analysis | `pip install "kinocut[image]==1.16.5"` | ~50 MB |
+| Stem separation | `pip install "kinocut[stems]==1.16.5"` | Large |
+| AI upscale | `pip install "kinocut[upscale]==1.16.5"` | Large; Python ≤3.12 often |
+| Product/object cutouts | `pip install "kinocut[object-matte]==1.16.5"` | ONNX Runtime; ~1 GB pinned weights on first use |
+| Procedural audio | `pip install "kinocut[audio]==1.16.5"` | numpy |
+| Everything AI | `pip install "kinocut[ai]==1.16.5"` | Several GB |
 
 Core golden path **does not** require extras.
 
@@ -106,7 +106,7 @@ Client().info("clip.mp4")
 | Symptom | Fix |
 | --- | --- |
 | `ffmpeg: command not found` | Install FFmpeg; restart shell |
-| `kino: command not found` | `pip install kinocut` or use `python -m kinocut` |
+| `kino: command not found` | `pip install kinocut==1.16.5` or use `python -m kinocut` |
 | Import errors / old Python | Use Python 3.11+ |
 | Doctor missing optional AI | Expected unless you installed extras |
 | Hyperframes hang/init | See Hyperframes doctor; skip for core path |

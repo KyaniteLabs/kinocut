@@ -23,6 +23,7 @@ Cache semantics are fail-closed and read-only:
 
 from __future__ import annotations
 
+from ..validation_errors import reason
 import hashlib
 import json
 from collections import deque
@@ -40,6 +41,8 @@ from kinocut.render_dag.validation import (
     validate_dag,
 )
 from kinocut.workflow.spec import parse_spec
+from ..validation_errors import exception_kind
+from ..validation_errors import rejected_value
 
 
 @dataclass(frozen=True)
@@ -192,7 +195,7 @@ def compile_dag_to_spec(dag: RenderDAG) -> CompiledSpec:
         parse_spec(spec)
     except ValidationError as exc:
         raise dag_error(
-            f"compiled DAG spec failed workflow validation: {exc}",
+            f"compiled DAG spec failed workflow validation: {reason(exc)}",
             INVALID_DAG_SPEC,
         ) from exc
     _assert_valid_linear_spec(spec, order, node_by_id)
@@ -270,14 +273,14 @@ def verify_spec_cache(
     current_identity = dag_identity(dag)
     if claimed_dag_identity != current_identity:
         raise dag_error(
-            f"stale cache: dag identity {claimed_dag_identity!r} does not match "
+            f"stale cache: dag identity {rejected_value(claimed_dag_identity)!r} does not match "
             f"current {current_identity!r}; the plan changed — recompile",
             "stale_dag_cache",
         )
     recomputed = "sha256:" + hashlib.sha256(spec_bytes).hexdigest()
     if claimed_spec_hash != recomputed:
         raise dag_error(
-            f"corrupt cache: claimed spec_hash {claimed_spec_hash!r} does not match "
+            f"corrupt cache: claimed spec_hash {rejected_value(claimed_spec_hash)!r} does not match "
             f"recomputed {recomputed!r}; the cached spec bytes were tampered or truncated",
             "corrupt_dag_cache",
         )
@@ -285,14 +288,14 @@ def verify_spec_cache(
         decoded = json.loads(spec_bytes.decode("utf-8"))
     except (UnicodeError, ValueError) as exc:
         raise dag_error(
-            f"corrupt cache: spec bytes are not valid UTF-8 JSON ({exc})",
+            f"corrupt cache: spec bytes are not valid UTF-8 JSON ({exception_kind(exc)})",
             "corrupt_dag_cache",
         ) from exc
     try:
         parse_spec(decoded)
     except (ValidationError, MCPVideoError) as exc:
         raise dag_error(
-            f"corrupt cache: spec bytes do not parse as a schema_version:1 spec ({exc})",
+            f"corrupt cache: spec bytes do not parse as a schema_version:1 spec ({exception_kind(exc)})",
             "corrupt_dag_cache",
         ) from exc
     return VerifiedCache(

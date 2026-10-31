@@ -18,6 +18,7 @@ from .io import (
     write_receipt,
 )
 from .stats import apply_rgb_gains, mean_rgb, shared_gains_to_hero
+from ..validation_errors import exception_kind
 
 
 def _package_mean_rgb(arrs: list) -> tuple[float, float, float]:
@@ -66,7 +67,7 @@ def _export_graded(
             lut = Path(lut_path).expanduser()
             if not lut.is_file():
                 raise MCPVideoError(
-                    f"LUT file not found: {lut}",
+                    "LUT file not found",
                     error_type="input_error",
                     code="lut_not_found",
                 )
@@ -140,9 +141,9 @@ def _apply_lut3d(src: Path, dest: Path, lut: Path) -> None:
     except ProcessingError:
         raise
     except Exception as exc:
-        raise ProcessingError("ffmpeg-lut3d", 1, str(exc)[:500]) from exc
+        raise ProcessingError("ffmpeg-lut3d", 1, "", reason=exception_kind(exc)) from exc
     if not dest.is_file():
-        raise ProcessingError("ffmpeg-lut3d", 1, f"LUT output missing: {dest}")
+        raise ProcessingError("ffmpeg-lut3d", 1, "", reason="the LUT pass produced no output")
 
 
 def _near_extrema_preservation(before, after) -> dict[str, float | bool | None]:

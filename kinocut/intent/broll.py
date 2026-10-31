@@ -83,7 +83,7 @@ def propose_broll(
                     proposal_id=f"broll-{len(proposals) + 1:03d}",
                     time_range=(start, end),
                     keyword=key,
-                    reason=f"Transcript mentions {key!r} in [{start:.2f},{end:.2f}]",
+                    reason=f"Transcript mentions a keyword in [{start:.2f},{end:.2f}]",
                     suggested_asset_query=key,
                     confidence=min(0.95, 0.55 + 0.05 * len(key)),
                 )

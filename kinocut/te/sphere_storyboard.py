@@ -51,12 +51,12 @@ def _extract_stills_batch(source: str, cameras: list[dict[str, Any]], timestamp:
         parts.append(f"[0:v]{filt}[{label}]")
         maps.extend(["-map", f"[{label}]", "-frames:v", "1", str(dests[index])])
     _run_ffmpeg(["-ss", f"{timestamp:.3f}", "-i", source, "-filter_complex", ";".join(parts), *maps])
-    for dest in dests:
+    for index, dest in enumerate(dests, start=1):
         if not dest.is_file() or dest.stat().st_size <= 0:
             from kinocut.errors import MCPVideoError
 
             raise MCPVideoError(
-                f"360 still was not written: {dest}",
+                f"360 still {index} of {len(dests)} was not written",
                 error_type="processing_error",
                 code="sphere_still_failed",
             )
@@ -70,7 +70,7 @@ def _extract_still(source: str, camera: dict[str, Any], timestamp: float, dest: 
         from kinocut.errors import MCPVideoError
 
         raise MCPVideoError(
-            f"360 still was not written: {dest}",
+            "360 still was not written",
             error_type="processing_error",
             code="sphere_still_failed",
         )

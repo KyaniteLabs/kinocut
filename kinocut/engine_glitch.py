@@ -153,7 +153,9 @@ def glitch_scanline_jitter(
     width = int(stream.get("width") or stream.get("coded_width") or 0)
     height = int(stream.get("height") or stream.get("coded_height") or 0)
     if width <= 0 or height <= 0:
-        raise ProcessingError(f"ffprobe {input_path}", 1, "could not determine video dimensions for scanline jitter")
+        raise ProcessingError(
+            f"ffprobe {input_path}", 1, "", reason="could not determine video dimensions for scanline jitter"
+        )
     bands = max(1, (height + row_height - 1) // row_height)
 
     # x-map luma per band-row (X is always 0 on the 1-px-wide map; Y = band index):
@@ -314,7 +316,9 @@ def glitch_vhs_tracking(
     width = int(stream.get("width") or stream.get("coded_width") or 0)
     height = int(stream.get("height") or stream.get("coded_height") or 0)
     if width <= 0 or height <= 0:
-        raise ProcessingError(f"ffprobe {input_path}", 1, "could not determine video dimensions for vhs tracking")
+        raise ProcessingError(
+            f"ffprobe {input_path}", 1, "", reason="could not determine video dimensions for vhs tracking"
+        )
 
     # 1. Rolling horizontal band: sin-based X offset varying with Y and time
     # Uses ternary (if(x,1,0)) to create discrete band steps instead of step()

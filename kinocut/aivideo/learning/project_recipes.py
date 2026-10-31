@@ -14,6 +14,7 @@ from kinocut.contracts.trusted_execution import EditRevisionRecord
 from kinocut.projectstore import Project, compile_operations, compile_repurpose_slice, read_records
 
 from .recipes import record_workflow_recipe
+from ...validation_errors import rejected_value
 
 _DIGEST_RE = re.compile(r"^sha256:[0-9a-f]{64}$")
 _SOURCE_FIELDS = frozenset({"source", "sources", "subtitle"})
@@ -114,7 +115,7 @@ def _replay_operations(template: dict[str, Any], bindings: Mapping[str, str]) ->
             name = value[2:-1]
             digest = bindings.get(name)
             if digest is None or _DIGEST_RE.fullmatch(digest) is None:
-                raise contract_error(f"recipe binding {name!r} must be a CAS digest", INVALID_RECORD)
+                raise contract_error(f"recipe binding {rejected_value(name)!r} must be a CAS digest", INVALID_RECORD)
             return digest
         if isinstance(value, list):
             return [replace(item) for item in value]

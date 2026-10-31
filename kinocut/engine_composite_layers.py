@@ -53,11 +53,13 @@ from .ffmpeg_helpers import (
 from .limits import MAX_RESOLUTION, MAX_VIDEO_DURATION
 from .models import EditResult
 from .validation import COMPOSITOR_ALPHA_MODES
+from .validation_errors import exception_kind
 
 _LAYER_ID_RE = re.compile(r"^[A-Za-z0-9_-]+$")
 _HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}([0-9A-Fa-f]{2})?$")
 _SUPPORTED_LAYER_TYPES = {"video", "image", "solid"}
 _UNSUPPORTED_TOP_LEVEL: set[str] = set()
+_SUPPORTED_TRANSFORM_FIELDS = frozenset({"x", "y", "width", "height", "scale"})
 _SUPPORTED_LAYER_FIELDS = {
     "alpha_mode",
     "anchor",
@@ -215,7 +217,7 @@ def _load_spec(spec_path: Path) -> tuple[dict[str, Any], bytes]:
         data = json.loads(raw.decode("utf-8"))
     except json.JSONDecodeError as exc:
         raise MCPVideoError(
-            f"invalid composite-layers JSON: {exc.msg}",
+            f"invalid composite-layers JSON: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_spec_json",
         ) from None
@@ -239,7 +241,7 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
         canvas = _Canvas(**data)
     except Exception as exc:
         raise MCPVideoError(
-            f"invalid canvas: {exc}",
+            f"invalid canvas: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_canvas",
         ) from None
@@ -266,7 +268,7 @@ def _parse_canvas(raw_canvas: Any) -> _Canvas:
 
 
 def _parse_layers(spec_data: dict[str, Any], spec_dir: Path, canvas: _Canvas) -> list[_ResolvedLayer]:
-    unsupported = sorted(_UNSUPPORTED_TOP_LEVEL & set(spec_data))
+    unsupported = sorted(shipped for shipped in _UNSUPPORTED_TOP_LEVEL if shipped in spec_data)
     if unsupported:
         raise MCPVideoError(
             f"unsupported composite-layers field(s): {unsupported}",
@@ -286,7 +288,7 @@ def _parse_layers(spec_data: dict[str, Any], spec_dir: Path, canvas: _Canvas) ->
         layer = _parse_layer(raw, canvas)
         if layer.id in seen:
             raise MCPVideoError(
-                f"duplicate layer id: {layer.id}",
+                "duplicate layer id: two layers share one id",
                 error_type="validation_error",
                 code="duplicate_layer_id",
             )
@@ -326,7 +328,7 @@ def _reject_unknown_layer_fields(raw: dict[str, Any], offset: int) -> None:
     unsupported = sorted(set(raw) - _SUPPORTED_LAYER_FIELDS)
     if unsupported:
         raise MCPVideoError(
-            f"layer {raw.get('id', offset)!r} uses unsupported field(s): {unsupported}",
+            f"layer at offset {offset} uses {len(unsupported)} unsupported field(s)",
             error_type="validation_error",
             code="unsupported_compositor_feature",
         )
@@ -339,53 +341,53 @@ def _parse_layer(raw: dict[str, Any], canvas: _Canvas) -> _Layer:
         layer = _Layer(**data)
     except Exception as exc:
         raise MCPVideoError(
-            f"invalid layer: {exc}",
+            f"invalid layer: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_layer",
         ) from None
     if not _LAYER_ID_RE.fullmatch(layer.id):
         raise MCPVideoError(
-            f"layer id must match {_LAYER_ID_RE.pattern}: {layer.id!r}",
+            f"layer id must match {_LAYER_ID_RE.pattern}",
             error_type="validation_error",
             code="invalid_layer_id",
         )
     if layer.type not in _SUPPORTED_LAYER_TYPES:
         raise MCPVideoError(
-            f"unsupported layer type: {layer.type}",
+            f"unsupported layer type; use one of {sorted(_SUPPORTED_LAYER_TYPES)}",
             error_type="validation_error",
             code="invalid_layer_type",
         )
     if layer.blend != "normal" and layer.blend not in BLEND_ALL_MODES:
         raise MCPVideoError(
-            f"blend mode {layer.blend!r} is not supported; use one of {sorted(SUPPORTED_BLEND_MODES)}",
+            f"blend mode is not supported; use one of {sorted(SUPPORTED_BLEND_MODES)}",
             error_type="validation_error",
             code="unsupported_blend_mode",
         )
     if layer.alpha_mode not in COMPOSITOR_ALPHA_MODES:
         raise MCPVideoError(
-            f"layer {layer.id!r} alpha_mode must be one of {sorted(COMPOSITOR_ALPHA_MODES)}",
+            f"layer alpha_mode must be one of {sorted(COMPOSITOR_ALPHA_MODES)}",
             error_type="validation_error",
             code="invalid_alpha_mode",
         )
     if layer.type == "solid" and layer.alpha_mode != DEFAULT_COMPOSITOR_ALPHA_MODE:
         raise MCPVideoError(
-            f"solid layer {layer.id!r} cannot declare premultiplied input alpha",
+            "a solid layer cannot declare premultiplied input alpha",
             error_type="validation_error",
             code="invalid_alpha_mode",
         )
-    _validate_opacity(layer.opacity, layer.id)
-    _non_negative_number(layer.position["x"], f"{layer.id}.position.x")
-    _non_negative_number(layer.position["y"], f"{layer.id}.position.y")
+    _validate_opacity(layer.opacity)
+    _non_negative_number(layer.position["x"], "position.x")
+    _non_negative_number(layer.position["y"], "position.y")
     _validate_layer_transform(layer)
     _validate_layer_timing(layer)
     layer.rotation = validate_rotation(layer)
     if layer.blend != "normal":
         validate_blend_geometry(layer, canvas)
     if layer.type == "solid":
-        layer.color = _validate_color(layer.color or "#000000", f"{layer.id}.color")
+        layer.color = _validate_color(layer.color or "#000000", "layer.color")
     elif not layer.src:
         raise MCPVideoError(
-            f"layer {layer.id!r} requires src",
+            "layer requires src",
             error_type="validation_error",
             code="missing_layer_src",
         )
@@ -400,10 +402,11 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
     if transform is not None and not isinstance(transform, dict):
         raise MCPVideoError("transform must be an object", error_type="validation_error", code="invalid_transform")
     if isinstance(transform, dict):
-        unsupported = {k for k in transform if k not in {"x", "y", "width", "height", "scale"}}
+        unsupported = {key for key in transform if key not in _SUPPORTED_TRANSFORM_FIELDS}
         if unsupported:
             raise MCPVideoError(
-                f"transform field(s) {sorted(unsupported)} are deferred beyond P2",
+                f"transform has {len(unsupported)} unsupported field(s); "
+                f"supported transform fields are {sorted(_SUPPORTED_TRANSFORM_FIELDS)}",
                 error_type="validation_error",
                 code="unsupported_compositor_feature",
             )
@@ -420,7 +423,7 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
         return {"x": float(raw.get("x", 0)), "y": float(raw.get("y", 0))}
     except (TypeError, ValueError) as exc:
         raise MCPVideoError(
-            f"position x/y values must be numeric: {exc}",
+            f"position x/y values must be numeric: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_position",
         ) from None
@@ -429,26 +432,26 @@ def _extract_position(data: dict[str, Any]) -> dict[str, float]:
 def _validate_layer_transform(layer: _Layer) -> None:
     if layer.scale is not None and (layer.width is not None or layer.height is not None):
         raise MCPVideoError(
-            f"layer {layer.id!r} cannot combine scale with width/height",
+            "layer cannot combine scale with width/height",
             error_type="validation_error",
             code="invalid_transform",
         )
     if layer.width is not None:
-        _positive_int(layer.width, f"{layer.id}.width")
+        _positive_int(layer.width, "width")
     if layer.height is not None:
-        _positive_int(layer.height, f"{layer.id}.height")
+        _positive_int(layer.height, "height")
     if layer.scale is not None:
-        _positive_number(layer.scale, f"{layer.id}.scale")
+        _positive_number(layer.scale, "scale")
 
 
 def _validate_layer_timing(layer: _Layer) -> None:
     if layer.start is not None:
-        _non_negative_number(layer.start, f"{layer.id}.start")
+        _non_negative_number(layer.start, "start")
     if layer.duration is not None:
-        _positive_number(layer.duration, f"{layer.id}.duration")
+        _positive_number(layer.duration, "duration")
     if layer.duration is not None and layer.start is None:
         raise MCPVideoError(
-            f"layer {layer.id!r} duration requires start",
+            "layer duration requires start",
             error_type="validation_error",
             code="invalid_layer_timing",
         )
@@ -576,7 +579,7 @@ def _layer_filter_chain(layer: _ResolvedLayer) -> str:
     parts.extend(effect_filters(layer, "layer"))
     # Non-normal opacity interpolates the blended color against the running base;
     # applying it to alpha here would change the strength a second time.
-    opacity_value = _validate_opacity(layer.opacity, layer.id) if layer.blend == "normal" else 1.0
+    opacity_value = _validate_opacity(layer.opacity) if layer.blend == "normal" else 1.0
     opacity = _escape_ffmpeg_filter_value(f"{opacity_value:.2f}")
     parts.append(f"colorchannelmixer=aa={opacity}")
     return ",".join(parts)
@@ -742,11 +745,11 @@ def _ffmpeg_color(value: str) -> str:
     return "0x" + value.lstrip("#")
 
 
-def _validate_opacity(value: float, layer_id: str) -> float:
-    opacity = _sanitize_ffmpeg_number(value, f"{layer_id}.opacity")
+def _validate_opacity(value: float) -> float:
+    opacity = _sanitize_ffmpeg_number(value, "opacity")
     if not 0.0 <= opacity <= 1.0:
         raise MCPVideoError(
-            f"{layer_id}.opacity must be between 0 and 1",
+            "opacity must be between 0 and 1",
             error_type="validation_error",
             code="invalid_opacity",
         )

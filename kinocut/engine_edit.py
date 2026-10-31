@@ -56,7 +56,7 @@ def _validate_trim_times(
         start_sec = _time_to_seconds(start)
     except ValueError:
         raise MCPVideoError(
-            f"Invalid start time: '{start}'. Expected seconds or HH:MM:SS format.",
+            "start is not a valid time. Expected seconds or HH:MM:SS format.",
             error_type="validation_error",
             code="invalid_parameter",
         ) from None
@@ -72,7 +72,7 @@ def _validate_trim_times(
             dur_sec = _time_to_seconds(duration)
         except ValueError:
             raise MCPVideoError(
-                f"Invalid duration: '{duration}'. Expected seconds or HH:MM:SS format.",
+                "duration is not a valid time. Expected seconds or HH:MM:SS format.",
                 error_type="validation_error",
                 code="invalid_parameter",
             ) from None
@@ -88,7 +88,7 @@ def _validate_trim_times(
             end_sec = _time_to_seconds(end)
         except ValueError:
             raise MCPVideoError(
-                f"Invalid end time: '{end}'. Expected seconds or HH:MM:SS format.",
+                "end is not a valid time. Expected seconds or HH:MM:SS format.",
                 error_type="validation_error",
                 code="invalid_parameter",
             ) from None

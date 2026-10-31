@@ -112,9 +112,9 @@ def _audio_streams_with_counts(path: str, *, pass_fds: tuple[int, ...] = ()) -> 
     try:
         streams = json.loads(result.stdout).get("streams", [])
     except json.JSONDecodeError as exc:
-        raise ProcessingError("ffprobe audio stream counts", 0, "invalid stream JSON") from exc
+        raise ProcessingError("ffprobe audio stream counts", 0, "", reason="invalid stream JSON") from exc
     if not streams or any(stream.get("nb_read_packets") is None for stream in streams):
-        raise ProcessingError("ffprobe audio stream counts", 0, "missing exact packet count")
+        raise ProcessingError("ffprobe audio stream counts", 0, "", reason="missing exact packet count")
     return streams
 
 
@@ -154,7 +154,7 @@ def _whole_audio_hashes(path: str, expected_streams: int, *, pass_fds: tuple[int
     )
     hashes = _parse_stream_hashes(result.stdout)
     if len(hashes) != expected_streams:
-        raise ProcessingError("ffmpeg whole audio stream hash", 0, "incomplete stream hashes")
+        raise ProcessingError("ffmpeg whole audio stream hash", 0, "", reason="incomplete stream hashes")
     return hashes
 
 
@@ -198,7 +198,7 @@ def _bounded_audio_pcm_hashes(
     )
     hashes = _parse_stream_hashes(result.stdout)
     if len(hashes) != expected_streams:
-        raise ProcessingError("ffmpeg bounded audio PCM hash", 0, "incomplete stream hashes")
+        raise ProcessingError("ffmpeg bounded audio PCM hash", 0, "", reason="incomplete stream hashes")
     return hashes
 
 
@@ -237,7 +237,7 @@ def _audio_evidence(path: str, *, pass_fds: tuple[int, ...] = ()) -> dict[str, A
     verifier_packets = _packets(path, pass_fds=pass_fds)
     stream_count = _stream_counts(raw).get("audio", 0)
     if stream_count != len(streams):
-        raise ProcessingError("ffprobe audio stream counts", 0, "inconsistent stream counts")
+        raise ProcessingError("ffprobe audio stream counts", 0, "", reason="inconsistent stream counts")
     return {
         "identity": {
             "streams": [{field: stream.get(field) for field in _AUDIO_STREAM_FIELDS} for stream in streams],
@@ -558,7 +558,7 @@ def _guarded_render(
                 with open(rendered, "rb") as source, _open_staged_writer(staging) as writer:
                     shutil.copyfileobj(source, writer)
         except OSError:
-            raise ProcessingError("body-swap guarded transaction", 0, "private transaction failed") from None
+            raise ProcessingError("body-swap guarded transaction", 0, "", reason="private transaction failed") from None
     return proof
 
 

@@ -12,6 +12,7 @@ import os
 import re
 from dataclasses import dataclass
 
+from kinocut_sound._validation_errors import rejected_value
 from kinocut_sound.authorization import (
     AuthorizationBoundary,
     AuthorizationContext,
@@ -159,7 +160,7 @@ class BlendRenderer:
         for source in profile.sources:
             if source.eq_preset not in _KNOWN_EQ_PRESETS:
                 raise voice_error(
-                    f"unknown blend eq preset: {source.eq_preset}",
+                    f"unknown blend eq preset: expected a supported preset, got {rejected_value(source.eq_preset)}",
                     "eq_preset_unknown",
                 )
 

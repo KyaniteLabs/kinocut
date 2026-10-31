@@ -1,7 +1,7 @@
 """Image analysis engine — color extraction, palette generation, product analysis.
 
 Pure Python (no FFmpeg). Requires optional deps: Pillow, scikit-learn, webcolors.
-Install with: pip install kinocut[image]
+Install with: pip install kinocut[image]==1.16.5
 """
 
 from __future__ import annotations
@@ -25,6 +25,7 @@ from .image_models import (
     PaletteResult,
     ProductAnalysisResult,
 )
+from .validation_errors import rejected_value
 
 SUPPORTED_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".bmp", ".gif", ".tiff", ".tif", ".webp"})
 MAX_IMAGE_PIXELS = 50_000_000  # ~50 MP (e.g. 7168x7168); guards against decompression bombs (H5)
@@ -117,12 +118,12 @@ def _require_image_deps() -> None:
         import PIL.Image  # noqa: F401
     except ImportError:
         raise MCPVideoError(
-            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]",
+            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==1.16.5",
             error_type="dependency_error",
             code="missing_optional_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image]",
+                "description": "Run: pip install kinocut[image]==1.16.5",
             },
         ) from None
 
@@ -134,7 +135,7 @@ def _validate_image(path: str) -> None:
     """Check file exists and is a supported image or video format."""
     if not os.path.isfile(path):
         raise MCPVideoError(
-            f"File not found: {path}",
+            "File not found",
             error_type="input_error",
             code="file_not_found",
         )
@@ -181,7 +182,7 @@ def _open_image_safe(path: str) -> Any:
         img = Image.open(path)
     except Image.DecompressionBombError as exc:
         raise MCPVideoError(
-            f"Image {path} exceeds the {MAX_IMAGE_PIXELS:,}-pixel decompression-bomb ceiling.",
+            f"Image {rejected_value(path)} exceeds the {MAX_IMAGE_PIXELS:,}-pixel decompression-bomb ceiling.",
             error_type="validation_error",
             code="image_too_large",
         ) from exc
@@ -189,7 +190,7 @@ def _open_image_safe(path: str) -> Any:
     pixels = img.width * img.height
     if pixels > MAX_IMAGE_PIXELS:
         raise MCPVideoError(
-            f"Image {path} is {img.width}x{img.height} ({pixels:,} pixels), exceeding the "
+            f"Image {rejected_value(path)} is {img.width}x{img.height} ({pixels:,} pixels), exceeding the "
             f"{MAX_IMAGE_PIXELS:,}-pixel ceiling. Use a smaller image.",
             error_type="validation_error",
             code="image_too_large",
@@ -329,7 +330,7 @@ def generate_palette(
     valid_harmonies = {"complementary", "analogous", "triadic", "split_complementary"}
     if harmony not in valid_harmonies:
         raise MCPVideoError(
-            f"Invalid harmony '{harmony}'. Valid options: {', '.join(sorted(valid_harmonies))}",
+            f"Invalid harmony '{rejected_value(harmony)}'. Valid options: {', '.join(sorted(valid_harmonies))}",
             error_type="validation_error",
             code="invalid_harmony",
         )
@@ -409,12 +410,12 @@ def _describe_product_with_vision(
         import anthropic
     except ImportError:
         raise MCPVideoError(
-            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]",
+            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]==1.16.5",
             error_type="dependency_error",
             code="missing_ai_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image-ai]",
+                "description": "Run: pip install kinocut[image-ai]==1.16.5",
             },
         ) from None
 

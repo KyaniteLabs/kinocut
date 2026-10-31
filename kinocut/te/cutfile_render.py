@@ -40,11 +40,11 @@ def _normalize_sources(sources: list[dict[str, Any]]) -> dict[str, dict[str, str
         if not sid or not isinstance(sid, str):
             raise _cutfile_error(f"sources[{i}].id is required", "cutfile_source_id")
         if not _ID_RE.match(sid):
-            raise _cutfile_error(f"sources[{i}].id is invalid: {sid!r}", "cutfile_source_id")
+            raise _cutfile_error(f"sources[{i}].id is invalid", "cutfile_source_id")
         if not path or not isinstance(path, str):
             raise _cutfile_error(f"sources[{i}].path is required", "cutfile_source_path")
         if sid in out:
-            raise _cutfile_error(f"duplicate source id {sid!r}", "cutfile_source_duplicate")
+            raise _cutfile_error("duplicate source id", "cutfile_source_duplicate")
         out[sid] = {"path": path}
     return out
 
@@ -68,7 +68,7 @@ def _resolve_token(
         return f"@sources.{token}"
     if token in step_outputs:
         return step_outputs[token]
-    raise _cutfile_error(f"unknown cutfile ref {token!r}", "cutfile_unknown_ref")
+    raise _cutfile_error("unknown cutfile ref", "cutfile_unknown_ref")
 
 
 def _default_src(
@@ -92,7 +92,7 @@ def _step_id(op: dict[str, Any], index: int, used: set[str]) -> str:
     else:
         raise _cutfile_error(f"ops[{index}].id is invalid", "invalid_cutfile_op")
     if candidate in used:
-        raise _cutfile_error(f"duplicate op id {candidate!r}", "cutfile_op_duplicate")
+        raise _cutfile_error("duplicate op id", "cutfile_op_duplicate")
     used.add(candidate)
     return candidate
 
@@ -122,7 +122,7 @@ def _bind_inputs(
         raw_srcs = op.get("srcs")
         if not isinstance(raw_srcs, list) or not raw_srcs:
             raise _cutfile_error(
-                f"ops[{index}] ({op_name}) requires non-empty srcs list",
+                f"ops[{index}] requires non-empty srcs list",
                 "cutfile_srcs_required",
             )
         return {"srcs": [_resolve_token(str(t), source_ids=source_id_set, step_outputs=step_outputs) for t in raw_srcs]}
@@ -153,14 +153,13 @@ def _compile_ops(
         op_name = op.get("op")
         if not isinstance(op_name, str) or op_name not in OP_ADAPTERS:
             raise _cutfile_error(
-                f"ops[{i}] unsupported op {op_name!r}; allowlist={sorted(OP_ADAPTERS)}",
+                f"ops[{i}] unsupported op; allowlist={sorted(OP_ADAPTERS)}",
                 "cutfile_unsupported_op",
             )
         # Cutfile v1 only binds src / srcs — multi-layer adapters need a different shape.
         if op_name in {"composite_layers"}:
             raise _cutfile_error(
-                f"ops[{i}] op {op_name!r} is not supported in cutfile v1 "
-                "(requires layers binding; use workflow job-spec directly)",
+                f"ops[{i}] op is not supported in cutfile v1 (requires layers binding; use workflow job-spec directly)",
                 "cutfile_op_shape",
             )
         sid = _step_id(op, i, used_ids)

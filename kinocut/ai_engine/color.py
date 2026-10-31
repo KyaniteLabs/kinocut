@@ -15,6 +15,7 @@ from pathlib import Path
 from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _run_command, _validate_input_path, _validate_output_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -66,7 +67,7 @@ def ai_color_grade(
         suffix = Path(lut_path).suffix.lower()
         if suffix not in {".cube", ".3dl"}:
             raise MCPVideoError(
-                f"LUT file must be a .cube or .3dl file, got '{suffix or lut_path}'",
+                f"LUT file must be a .cube or .3dl file, got '{rejected_value(suffix or lut_path)}'",
                 error_type="validation_error",
                 code="invalid_lut",
             )
@@ -77,7 +78,7 @@ def ai_color_grade(
         params = STYLE_PRESETS[style]
     except KeyError:
         raise MCPVideoError(
-            f"Unknown color grade style '{style}'. Valid styles: {', '.join(sorted(STYLE_PRESETS))}",
+            f"Unknown color grade style '{rejected_value(style)}'. Valid styles: {', '.join(sorted(STYLE_PRESETS))}",
             error_type="validation_error",
             code="invalid_style",
         ) from None

@@ -358,7 +358,7 @@ def _verify_output_duration(
         raise ProcessingError(
             "audio_bed duration verification",
             0,
-            f"output duration {actual:.3f}s deviates from keep_video policy "
+            "", reason=f"output duration {actual:.3f}s deviates from keep_video policy "
             f"target {target_duration:.3f}s beyond tolerance {tolerance:.3f}s",
         )
     return actual

@@ -9,6 +9,7 @@ from typing import Any
 
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_output_path
+from .validation_errors import rejected_value
 
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9_-]{0,79}$")
 _BLOCK_RE = re.compile(r"^##\s+((?:STYLE|NEG)_[A-Z0-9_]+)(?:\s+\(([^()]+)\))?\s*$")
@@ -188,7 +189,7 @@ def _find_shot(storyboard: dict[str, Any], shot: str | int) -> dict[str, Any]:
     for row in shots:
         if row["shot"] == str(shot):
             return row
-    raise _creation_error(f"Shot not found: {shot}", code="not_found")
+    raise _creation_error(f"Shot not found: {rejected_value(shot)}", code="not_found")
 
 
 def render_shot_prompt(project_path: str, shot: str | int) -> dict[str, Any]:

@@ -19,6 +19,7 @@ import re
 from pathlib import Path, PurePosixPath
 
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
+from ..validation_errors import rejected_value
 
 #: Root of the private store, relative to a project directory.
 KINOCUT_DIR = ".kinocut"
@@ -68,7 +69,7 @@ def asset_relative_path(asset_id: str, name: str) -> PurePosixPath:
 
     match = _ASSET_ID_RE.match(asset_id)
     if match is None:
-        raise contract_error(f"malformed asset_id: {asset_id!r}", INVALID_RECORD)
+        raise contract_error("malformed asset_id: expected sha256:<64 hex characters>", INVALID_RECORD)
     digest = match.group(1)
     return PurePosixPath(KINOCUT_DIR, _ASSETS, "sha256", digest, sanitize_name(name))
 
@@ -78,7 +79,7 @@ def artifact_relative_path(artifact_id: str, name: str) -> PurePosixPath:
 
     match = _ASSET_ID_RE.match(artifact_id)
     if match is None:
-        raise contract_error(f"malformed artifact_id: {artifact_id!r}", INVALID_RECORD)
+        raise contract_error("malformed artifact_id: expected sha256:<64 hex characters>", INVALID_RECORD)
     return PurePosixPath(
         KINOCUT_DIR,
         _ARTIFACTS,
@@ -93,7 +94,7 @@ def blob_relative_path(digest: str) -> PurePosixPath:
 
     match = _ASSET_ID_RE.match(digest)
     if match is None:
-        raise contract_error(f"malformed digest: {digest!r}", INVALID_RECORD)
+        raise contract_error("malformed digest: expected sha256:<64 hex characters>", INVALID_RECORD)
     return PurePosixPath(KINOCUT_DIR, _BLOBS, "sha256", match.group(1))
 
 
@@ -101,7 +102,7 @@ def records_relative_path(kind: str) -> PurePosixPath:
     """Project-relative JSONL path for a record ``kind``."""
 
     if _KIND_RE.match(kind) is None:
-        raise contract_error(f"unsafe record kind: {kind!r}", INVALID_RECORD)
+        raise contract_error(f"unsafe record kind: {rejected_value(kind)!r}", INVALID_RECORD)
     return PurePosixPath(KINOCUT_DIR, _RECORDS, f"{kind}.jsonl")
 
 

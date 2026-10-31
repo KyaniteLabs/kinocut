@@ -15,6 +15,63 @@ from kinocut.product.shorts_plan import IntakeReport, ReviewDecision, ShortsPlan
 pytestmark = pytest.mark.usefixtures("overwrite_consent")
 
 
+def test_public_plan_refusals_keep_the_package_reason_and_drop_caller_paths(tmp_path):
+    """The cause is published when we wrote it, named by type when we did not.
+
+    NEW-2: a blanket ``rejected_value`` around the cause collapsed our own
+    bounded diagnostics to ``Likely cause: str``. The rule is provenance:
+    a cause this package authored at a fixed construction site survives
+    verbatim; a cause carrying a caller-selected path or a foreign
+    exception's text never does.
+    """
+    plan_dir = tmp_path / "«redacted:sk-dir»"
+    plan_dir.mkdir()
+
+    # A missing plan: the caller-selected path is named by type only,
+    # never echoed (the no-echo half of the rule).
+    with pytest.raises(MCPVideoError) as missing:
+        load_shorts_plan(str(plan_dir / "missing.json"))
+    assert missing.value.code == "shorts_plan_not_found"
+    assert "Likely cause: str" in str(missing.value)
+    assert "«redacted:sk-dir»" not in str(missing.value)
+
+    # A malformed plan names the foreign parser by kind too.
+    bad = plan_dir / "bad.json"
+    bad.write_text("{not json", encoding="utf-8")
+    with pytest.raises(MCPVideoError) as malformed:
+        load_shorts_plan(str(bad))
+    assert malformed.value.code == "shorts_plan_malformed"
+    assert "JSONDecodeError" in str(malformed.value)
+    assert "not json" not in str(malformed.value)
+
+    # A structurally-empty plan names the foreign validator by kind.
+    empty = plan_dir / "empty.json"
+    empty.write_text("{}", encoding="utf-8")
+    with pytest.raises(MCPVideoError) as invalid_shape:
+        load_shorts_plan(str(empty))
+    assert invalid_shape.value.code == "shorts_plan_malformed"
+    assert "ValidationError" in str(invalid_shape.value)
+
+    # A value that is not a plan names OUR phrase verbatim — and never the
+    # caller's class name, because a class's ``__name__`` is caller data
+    # (the same rule the retry placeholders follow).
+    class Sneaky:
+        pass
+
+    Sneaky.__name__ = "«redacted:sk-type»"
+    with pytest.raises(MCPVideoError) as wrong_type:
+        save_shorts_plan(Sneaky())
+    assert wrong_type.value.code == "invalid_plan"
+    assert "Likely cause: the value is not a ShortsPlan instance." in str(wrong_type.value)
+    assert "«redacted:sk-type»" not in str(wrong_type.value)
+
+    # The serialized layer carries the same shape, because the dict is
+    # what crosses the tool boundary.
+    assert "«redacted:sk-dir»" not in json.dumps(missing.value.to_dict())
+    assert "JSONDecodeError" in json.dumps(malformed.value.to_dict())
+    assert "«redacted:sk-dir»" not in json.dumps(wrong_type.value.to_dict())
+
+
 def _candidate() -> CandidateMoment:
     excerpt = "A complete candidate thought."
     return CandidateMoment(
