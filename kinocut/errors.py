@@ -125,22 +125,35 @@ def _argument_names(arguments: dict[str, Any]) -> str:
     return " (arguments: " + ", ".join(sorted(parts)) + ")"
 
 
+#: The type names a retry placeholder may publish. A class's ``__name__``
+#: is mutable, caller-controlled data, so only shipped builtin categories
+#: are named; anything else gets the fixed ``<object>`` placeholder.
+_ARGUMENT_TYPE_NAMES = {"str", "int", "float", "bool", "bytes", "NoneType", "list", "dict", "tuple", "set"}
+
+
 def _argument_type(value: Any) -> str:
-    """A replayable placeholder for one argument: its type, never its value."""
-    return f"<{type(value).__name__}>"
+    """A replayable placeholder for one argument: its type, never its value.
+
+    The type is named only when it is one of the shipped builtin categories
+    (:data:`_ARGUMENT_TYPE_NAMES`); every other class gets the fixed
+    ``<object>`` placeholder, because a class's own name is the caller's.
+    """
+    name = type(value).__name__
+    return f"<{name}>" if name in _ARGUMENT_TYPE_NAMES else "<object>"
 
 
 def _argument_name(key: Any) -> str:
-    """A printable, bounded name for one argument of a refused call.
+    """A bounded, package-authored name for one argument of a refused call.
 
-    The names come from the caller's own argument mapping. JSON and
-    ``vars()`` give string keys, but the formatter is a process-wide error
-    path, so it must not assume that: a non-string key is rendered as text,
-    and control characters are replaced rather than copied into human-facing
-    text.
+    JSON and ``vars()`` give string keys; a string key is echoed (bounded,
+    printable) because the operator must know which parameter to correct.
+    A non-string key's text is not ours to publish — its ``str()`` is
+    caller data, however the key's class renders itself — so it is named
+    by a fixed placeholder instead.
     """
-    text = key if isinstance(key, str) else str(key)
-    text = "".join(char if char.isprintable() else "_" for char in text)
+    if not isinstance(key, str):
+        return "<non-string-key>"
+    text = "".join(char if char.isprintable() else "_" for char in key)
     return text[:64] or "argument"
 
 

@@ -162,6 +162,12 @@ SANITIZERS = frozenset(
         # The reason of one of our own errors. A foreign exception's text
         # is never republished; its kind is.
         "reason",
+        # The marked cause of a plan/review/package refusal: own_reason
+        # wraps only text this package wrote at a fixed construction site,
+        # and likely_cause republishes exactly those, naming everything
+        # else by type.
+        "own_reason",
+        "likely_cause",
         # The event kind, validated against the shipped set of kinds.
         "_validate_event_kind",
         # The operation kind, validated against the shipped kind sets.

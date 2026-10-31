@@ -12,7 +12,7 @@ from typing import Any
 from ..errors import MCPVideoError
 from .models import CandidateMoment, canonical_dedup_key
 from .shorts_plan import ReviewDecision, ShortsPlan, load_shorts_plan, save_shorts_plan
-from ..validation_errors import rejected_value
+from ..validation_errors import exception_kind, likely_cause, own_reason
 
 
 __all__ = [
@@ -23,7 +23,7 @@ __all__ = [
 
 def _review_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {rejected_value(cause)} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {likely_cause(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},
@@ -58,7 +58,7 @@ def _coerce_decision(
         raise _review_error(
             "The review decision payload is not valid.",
             code="shorts_review_invalid",
-            cause=f"got {type(decision).__name__!r}.",
+            cause=own_reason("the payload is none of ReviewDecision, action string, or mapping."),
             recovery="Pass a ReviewDecision, action string, or decision mapping.",
         )
 
@@ -66,7 +66,7 @@ def _coerce_decision(
         raise _review_error(
             "The review decision targets the wrong candidate.",
             code="shorts_review_invalid",
-            cause=(f"decision.candidate_id={payload['candidate_id']!r} does not match candidate_id={candidate_id!r}."),
+            cause=own_reason("the decision's candidate_id does not match the candidate under review."),
             recovery="Pass a decision whose candidate_id matches the candidate under review.",
         )
     payload["candidate_id"] = candidate_id
@@ -79,7 +79,7 @@ def _coerce_decision(
         raise _review_error(
             "The review decision failed strict validation.",
             code="shorts_review_invalid",
-            cause=str(exc).splitlines()[0] if str(exc) else "validation failure",
+            cause=own_reason(exception_kind(exc)),
             recovery=(
                 "Use preview, approve, reject, trim, title_hook_edit, or "
                 "sensitive_unsuitable with fields matching the action shape."
@@ -104,7 +104,7 @@ def review_shorts_plan(
         raise _review_error(
             "A candidate id is required.",
             code="shorts_candidate_not_found",
-            cause="candidate_id was empty.",
+            cause=own_reason("candidate_id was empty."),
             recovery="Pass a candidate_id from the saved plan proposals.",
         )
 
@@ -148,7 +148,7 @@ def _apply_review_decisions(
                 raise _review_error(
                     "A trim decision is missing bounds.",
                     code="shorts_review_invalid",
-                    cause="trim requires start and end.",
+                    cause=own_reason("trim requires start and end."),
                     recovery="Record trim with 0 <= start < end.",
                 )
             updates["start"] = decision.start
@@ -183,7 +183,7 @@ def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> Candidate
         raise _review_error(
             "resolve_approved_candidate requires a strict ShortsPlan.",
             code="invalid_plan",
-            cause=f"got {type(plan).__name__!r}.",
+            cause=own_reason("the value is not a ShortsPlan instance."),
             recovery="Load the plan with load_shorts_plan(...) first.",
         )
 
@@ -217,14 +217,14 @@ def resolve_approved_candidate(plan: ShortsPlan, candidate_id: str) -> Candidate
         raise _review_error(
             "The candidate is not approved for rendering.",
             code="shorts_review_required",
-            cause="No current human approval exists.",
+            cause=own_reason("No current human approval exists."),
             recovery="Record an approve decision after reviewing the candidate.",
         )
     if effective.unsuitable:
         raise _review_error(
             "The candidate is marked unsuitable.",
             code="shorts_candidate_unsuitable",
-            cause="Human review flagged sensitive material.",
+            cause=own_reason("Human review flagged sensitive material."),
             recovery="Choose another candidate or record a deliberate revised review decision.",
         )
     return effective

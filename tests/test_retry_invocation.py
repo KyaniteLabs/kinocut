@@ -14,6 +14,16 @@ def _message(**arguments) -> str:
         return MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]
 
 
+def _raw_message_with(arguments: dict) -> str:
+    """A retry message whose argument mapping is supplied as-is.
+
+    ``**``-unpacking would force the keys to strings; the formatter is a
+    process-wide error path and must survive mappings that are not.
+    """
+    with retry_context("video_trim", arguments):
+        return MCPVideoError("boom", code="invalid_parameter").to_dict()["message"]
+
+
 def test_retry_invocation_names_the_tool_and_the_submitted_arguments():
     message = _message(input_path="/tmp/a.mp4", start=0, end=2)
     assert "video_trim" in message
@@ -47,6 +57,34 @@ def test_retry_invocation_carries_typed_placeholders():
     assert "api_key=<str>" in message
     assert "count=<int>" in message
     assert "s3cret-value" not in message
+
+
+def test_retry_invocation_never_echoes_adversarial_key_or_type_names():
+    """A non-string key's text and a class's name are caller data too.
+
+    The retry template publishes argument names and SHIPPED type
+    categories. A key whose ``str()`` is hostile, and a class renamed to
+    hostile text, must surface only as the fixed placeholders — the
+    renderer must never call ``str()`` on a key it does not own.
+    """
+
+    class Hostile:
+        pass
+
+    Hostile.__name__ = "«redacted:sk-type»"
+
+    class HostileKey:
+        def __str__(self) -> str:
+            return "«redacted:sk-key»"
+
+    message = _raw_message_with({HostileKey(): Hostile()})
+    assert "<non-string-key>" in message
+    assert "<object>" in message
+    assert "«redacted:sk-key»" not in message
+    assert "«redacted:sk-type»" not in message
+    # The ordinary shape still names the parameter with its shipped type.
+    ordinary = _message(api_key="s3cret-value")
+    assert "api_key=<str>" in ordinary
 
 
 def test_retry_invocation_names_the_cli_command_for_mapped_tools():

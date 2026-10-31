@@ -16,14 +16,14 @@ from .package import package_approved_clip
 from .package_models import PackageConfig, PackageLineage, ThumbnailSpec
 from .shorts_plan import RenderRecord, ShortsPlan, load_shorts_plan, save_shorts_plan
 from .shorts_review import resolve_approved_candidate
-from ..validation_errors import rejected_value
+from ..validation_errors import exception_kind, likely_cause, own_reason
 
 __all__ = ["package_approved_candidate"]
 
 
 def _package_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {rejected_value(cause)} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {likely_cause(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},
@@ -37,14 +37,14 @@ def _caption_from_srt(path: str) -> CaptionArtifact:
         raise _package_error(
             "Editable captions from the render stage could not be read.",
             code="shorts_package_caption_missing",
-            cause=str(exc),
+            cause=own_reason(exception_kind(exc)),
             recovery="Re-run render_approved_candidate for this candidate, then package again.",
         ) from exc
     if not body.strip():
         raise _package_error(
             "Editable captions from the render stage are empty.",
             code="shorts_package_caption_empty",
-            cause="file has no caption text.",
+            cause=own_reason("file has no caption text."),
             recovery="Re-run render_approved_candidate so captions.srt is regenerated.",
         )
     if not body.endswith("\n"):

@@ -30,6 +30,8 @@ __all__ = [
     "REPUBLISHABLE",
     "exception_kind",
     "invalid_parameter",
+    "likely_cause",
+    "own_reason",
     "reason",
     "rejected_value",
 ]
@@ -87,6 +89,39 @@ def invalid_parameter(name: str, expectation: str, value: Any = None) -> str:
 #: exception's text routinely embeds the path that failed, so only its
 #: kind is published.
 REPUBLISHABLE = (MCPVideoError,)
+
+
+class PackageReason(str):
+    """A cause string this package authored at a fixed construction site.
+
+    Text written by this package is bounded by the same rule as every other
+    public message — it names the condition and never repeats a caller's
+    value — so a diagnostic channel can republish it verbatim. Text this
+    package did not write must never be wrapped: the wrapper is the claim
+    that makes republication safe.
+    """
+
+    __slots__ = ()
+
+
+def own_reason(text: str) -> str:
+    """Mark a package-authored cause so diagnostics keep the reason.
+
+    The return value is still an ordinary string; the wrapper type only
+    records who wrote it.
+    """
+    return PackageReason(text)
+
+
+def likely_cause(cause: str) -> str:
+    """The ``likely cause`` text of a plan/review/package refusal.
+
+    A cause this package authored (:func:`own_reason`) carries the bounded
+    diagnostic the operator needs, so it survives verbatim. Anything else
+    is caller data — a path, an id, a foreign exception's text — and is
+    named only by its type, exactly like every other public message.
+    """
+    return cause if isinstance(cause, PackageReason) else rejected_value(cause)
 
 
 def reason(exc: BaseException) -> str:
