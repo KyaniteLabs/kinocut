@@ -117,12 +117,15 @@ DISCOVERY_TOOL_NAME = "list_operations"
 # inputSchema its direct tool would advertise), with explicit callability.
 DESCRIBE_TOOL_NAME = "describe_operation"
 
-# R1 audit (Security rounds 1+2): a family tool is annotated open-world iff any
-# supported member or configuration can interact outside a closed domain.  The
-# audit walks every member's engine reachability *including env-gated provider
-# configurations*, not just whether one probed sibling rejects URL inputs.
-# Evidence per family — closed claims must cite why no member/configuration
-# reaches out:
+# R1 audit (Security rounds 1+2+3): a family tool is annotated open-world iff
+# any supported member or configuration can interact outside a closed domain.
+# The audit walks every member's engine reachability *including env-gated
+# provider configurations* and *including package-launcher argv*: an
+# npx/npm/pip-style launcher can fetch and execute a missing package from its
+# registry, so invoking one is an open-world capability even when framed as a
+# "local version query" — the verdicts below never rest on one probed sibling
+# rejecting URL inputs.  Evidence per family — closed claims must cite why no
+# member/configuration reaches out:
 #
 # * video_edit_ops (basic, advanced, media) — CLOSED. Every input path is
 #   validated as a local file; fonts resolve to local files only. The one
@@ -149,11 +152,20 @@ DESCRIBE_TOOL_NAME = "describe_operation"
 #   configured Anthropic-compatible vision endpoint over httpx
 #   (image_engine._describe_product_with_vision), a supported configuration.
 # * video_qc_ops (inspection, doctor, guardrails, motion_acceptance, release)
-#   — CLOSED. doctor's only subprocess probes are local version queries
-#     (`npm --version`); whisper and friends are importlib presence checks
-#   that are reported, never executed (doctor.py PACKAGE_CHECKS);
-#   capability_report/release are find_spec-based reports; the rest are local
-#   FFmpeg/JSON checks.
+#   — OPEN (Security round 3 correction). doctor's node check executes
+#     `npx --yes hyperframes --version` once the node version probe succeeds
+#     and a hyperframes CLI is on PATH (doctor.py _check_command), and
+#     _check_hyperframes_cli executes the supported
+#     MCP_VIDEO_HYPERFRAMES_COMMAND prefix, including that same npx launcher.
+#     npx may fetch and install a *missing* `hyperframes` package from the
+#     npm registry before executing it — `--yes` suppresses the installation
+#     prompt and `--version` is passed through to the package — so these are
+#     package-launcher invocations, not local version queries. The family's
+#     other members are local FFmpeg/JSON checks and find_spec presence
+#     reports that only report packages, never execute them; with no
+#     hyperframes on PATH and no configured command doctor performs zero
+#     launcher calls (asserted at the final subprocess boundary in
+#     tests/test_tool_families.py).
 # * video_plan_ops (intent, creation, postrescue, repurpose, rescue, workflow)
 #   — OPEN (Security round 2 correction). server_tools_intent.video_qc_vision
 #   → watching.vision_qc.run_vision_qc → vision_provider.assess_keyframes →
@@ -176,7 +188,7 @@ FAMILY_OPEN_WORLD: Mapping[str, bool] = {
     "audio_ops": False,
     "video_ai_ops": True,
     "image_ops": True,
-    "video_qc_ops": False,
+    "video_qc_ops": True,
     "video_plan_ops": True,
     "platform_ops": True,
 }

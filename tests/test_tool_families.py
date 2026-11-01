@@ -16,7 +16,11 @@ Protects the compact-surface contract end to end:
   reachable through the open families — including the configuration-gated
   remote vision provider reached via ``video_plan_ops`` (off makes zero
   attempts, explicit remote config makes exactly one, intercepted at the
-  provider boundary) — and URL inputs are rejected by the closed ones;
+  provider boundary) and the diagnostic package launcher reached via
+  ``video_qc_ops`` (no hyperframes on PATH and no configured command makes
+  zero launcher calls; either supported configuration makes exactly one
+  ``npx --yes hyperframes --version``, intercepted at the final subprocess
+  boundary) — and URL inputs are rejected by the closed ones;
 * discovery — ``list_operations`` is on-demand, deterministic, reports verbs
   and only *declared* side-effect annotations, and never leaks operations
   onto the registered surface; ``describe_operation`` returns the hidden
@@ -582,7 +586,6 @@ def test_network_capable_members_are_reachable_through_open_families(monkeypatch
         ("video_edit_ops", "video_add_text"),
         ("video_effects_ops", "effect_chromatic_aberration"),
         ("audio_ops", "audio_effects"),
-        ("video_qc_ops", "video_extract_frame"),
     ],
 )
 def test_closed_families_reject_url_inputs_before_any_network(family, operation):
@@ -591,9 +594,10 @@ def test_closed_families_reject_url_inputs_before_any_network(family, operation)
     URL-accepting input path, so nothing can be fetched through them.
 
     The remaining closed verdicts also hold under *configuration* audits:
-    no env-gated provider route exists in their members (see the per-family
-    evidence in ``kinocut/tool_families.py`` and the provider-boundary test
-    below for the family that does carry one)."""
+    no env-gated provider route or package-launcher argv exists in their
+    members (see the per-family evidence in ``kinocut/tool_families.py``,
+    the provider-boundary test below, and the doctor launcher-boundary
+    test for the family that does carry one)."""
 
     configure_tool_surface()
     assert _surface()[family].annotations.openWorldHint is False
@@ -667,6 +671,80 @@ def test_vision_provider_boundary_off_vs_remote_through_video_plan_ops(monkeypat
     assert all(Path(sample["path"]).is_file() for sample in samples)
     assert payload["assessment_status"] == "evaluated_sampled_frames"
     assert payload["auto_scored"] is True
+
+
+def test_doctor_package_launcher_boundary_through_video_qc_ops(monkeypatch):
+    """Security round 3 R1: ``video_qc_ops`` is open-world because its member
+    ``video_doctor`` can invoke a package launcher.
+
+    ``npx --yes hyperframes --version`` is not a local version query: npx may
+    fetch and install a *missing* ``hyperframes`` package from the npm
+    registry before executing it (``--yes`` suppresses the installation
+    prompt; ``--version`` is passed through to the package). Doctor reaches
+    that launcher through two supported configurations — a hyperframes CLI on
+    PATH (``doctor._check_command``'s node branch) and an explicit
+    ``MCP_VIDEO_HYPERFRAMES_COMMAND`` prefix (``doctor._check_hyperframes_cli``).
+    The real diagnostics flow runs end to end here while every final
+    ``subprocess.run`` is intercepted, so no launcher actually executes and
+    nothing leaves the process; with no hyperframes anywhere, doctor performs
+    zero launcher calls.
+    """
+
+    import kinocut.doctor as doctor
+
+    configure_tool_surface()
+    surface = _surface()
+    assert surface["video_qc_ops"].annotations.openWorldHint is True
+
+    original_diagnostics = doctor.run_diagnostics
+    seen: list[list[str]] = []
+
+    def guard(command, **kwargs):
+        seen.append(list(command))
+        versions = {
+            "node": "v22.0.0",
+            "ffmpeg": "ffmpeg version 7.1",
+            "ffprobe": "ffprobe version 7.1",
+            "python3": "Python 3.12.3",
+        }
+        version = versions.get(command[0], "0.8.140")
+        return subprocess.CompletedProcess(command, 0, stdout=version + "\n", stderr="")
+
+    def dispatch(has_hyperframes: bool, configured_command: str) -> list[list[str]]:
+        """Family-dispatch video_doctor; return every npx hyperframes call."""
+
+        def which(name: str) -> str | None:
+            if name == "hyperframes" and not has_hyperframes:
+                return None
+            return f"/launcher-probe/bin/{name}"
+
+        def diagnostics(**_kwargs):
+            return original_diagnostics(which=which)
+
+        seen.clear()
+        monkeypatch.delenv("MCP_VIDEO_HYPERFRAMES_COMMAND", raising=False)
+        if configured_command:
+            monkeypatch.setenv("MCP_VIDEO_HYPERFRAMES_COMMAND", configured_command)
+        monkeypatch.setattr(doctor, "run_diagnostics", diagnostics)
+        monkeypatch.setattr(subprocess, "run", guard)
+        result = asyncio.run(_call("video_qc_ops", {"operation": "video_doctor"}))
+        payload = _payload(result)
+        assert payload["success"] is True, payload
+        return [cmd for cmd in seen if cmd[:3] == ["npx", "--yes", "hyperframes"]]
+
+    # 1) No hyperframes on PATH and no configured command: the shipped-absent
+    #    control — zero package-launcher invocations reach the OS boundary.
+    assert dispatch(has_hyperframes=False, configured_command="") == []
+
+    # 2) hyperframes CLI on PATH: exactly one launcher call, because
+    #    _check_command's node branch runs npx once node's own probe succeeds.
+    assert dispatch(has_hyperframes=True, configured_command="") == [["npx", "--yes", "hyperframes", "--version"]]
+
+    # 3) No PATH binary, but the supported explicit command prefix: the same
+    #    single launcher invocation, this time via _check_hyperframes_cli.
+    assert dispatch(has_hyperframes=False, configured_command="npx --yes hyperframes") == [
+        ["npx", "--yes", "hyperframes", "--version"]
+    ]
 
 
 def test_list_operations_reports_only_declared_annotations():
