@@ -14,18 +14,18 @@ stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 29 | 23,588 |
+| default / `core` (unset) | 30 | 24,281 |
 | `all` | 205 | 126,776 |
-| `profile:editor` | 117 | 81,054 |
+| `profile:editor` | 118 | 81,747 |
 
-The default surface is the 20-tool core diet plus the nine compact-surface
-tools (eight typed operation families + `list_operations`, see
-`docs/MCP_TOOL_FAMILIES.md`). It was captured at 2cf76e98 (published 1.16.5)
-as 20 tools / 13,947 bytes and regenerated after the compact surface landed;
-the **`all` mode rows are byte-identical** across that regeneration (205
-tools, 126,776 bytes, unchanged per-tool digests) — the legacy full-catalog
-compatibility proof. `profile:editor` moved 108 / 71,413 → 117 / 81,054 with
-the same nine additions.
+The default surface is the 20-tool core diet plus the ten compact-surface
+tools (eight typed operation families + `list_operations` +
+`describe_operation`, see `docs/MCP_TOOL_FAMILIES.md`). It was captured at
+2cf76e98 (published 1.16.5) as 20 tools / 13,947 bytes and regenerated after
+the compact surface landed; the **`all` mode rows are byte-identical** across
+that regeneration (205 tools, 126,776 bytes, unchanged per-tool digests) —
+the legacy full-catalog compatibility proof. `profile:editor` moved
+108 / 71,413 → 118 / 81,747 with the same ten additions.
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required

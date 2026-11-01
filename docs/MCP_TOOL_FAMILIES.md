@@ -11,7 +11,7 @@ The 1.16.5 tool diet pinned the default surface at 20 direct tools / 13,947
 input-schema bytes, and the full catalog is 205 tools / 126,776 bytes — too
 large to advertise to a model, and the diet left 185 operations unreachable
 over the wire in default mode. The family layer closes that gap: the default
-surface is now **29 tools / 23,588 bytes** (≤ 40 tools and ≤ 25% of the
+surface is now **30 tools / 24,281 bytes** (≤ 40 tools and ≤ 25% of the
 full-catalog bytes, the accepted design budget) while reaching all 204
 operations plus `search_tools`.
 
@@ -30,12 +30,13 @@ Default mode registers the unchanged 20-tool core diet **plus**:
 | `video_plan_ops` | 51 | intent, creation, postrescue, repurpose, rescue, workflow |
 | `platform_ops` | 27 | hyperframes, revideo, shorts |
 | `list_operations` | — | on-demand discovery (families, verbs, required params, annotations) |
+| `describe_operation` | — | on-demand full inputSchema + callability for one operation |
 
 Every family tool takes `operation` (a closed enum of its member operation
 names — typos and cross-family mistakes fail validation), `params` (the
 operation's exact arguments), and the standard strict-boolean `overwrite`
 consent every Kinocut handler exposes. Profiles are additive on the compact
-surface: `profile:editor` is 117 tools / 81,054 bytes.
+surface: `profile:editor` is 118 tools / 81,747 bytes.
 
 `KINOCUT_TOOLS=all` is the **legacy full-catalog surface** and stays exactly
 the 205-name registry, byte-identical to the pre-family baseline (all
@@ -50,24 +51,41 @@ operation, after the same wire-path argument validation
 runs. Therefore:
 
 * **Success payloads are identical** to the direct call, byte for byte.
-* **Handler errors are identical** (same `success/error` dicts, same codes).
-* **Argument rejections produce the same structured payload** — `Invalid MCP
-  tool parameters. Use tools/list to inspect the accepted parameters.`
-* The strict `overwrite` consent flows from the family call into the
-  dispatched operation through the existing output-policy ContextVar; an
-  `overwrite` inside `params` takes precedence for that operation.
+* **Handler error cores are identical** (same `success/error` shapes, same
+  codes, same message text); the retry *hint* at the end of a message is
+  retargeted to the family surface (below).
+* **Argument rejections produce the same structured rejection** with
+  family-specific guidance: `Invalid MCP tool parameters for operation
+  '<operation>'. Use describe_operation to inspect its accepted parameters.`
+* The strict `overwrite` consent is **forwarded explicitly**: a family-level
+  `overwrite=true` reaches the operation whenever `params` does not carry its
+  own `overwrite` (the inner SDK argument model materializes a default that
+  would otherwise silently reset it). An explicit `overwrite` inside `params`
+  takes precedence for that operation; non-media files stay protected either
+  way.
 * Policy booleans (`video_mix_audio.keep_source`,
   `video_repurpose.include_release_checkpoint` / `start_job`) are enforced
   identically.
 
-Two transport-level differences are inherent to dispatching through a
-wrapper tool and are asserted in `tests/test_tool_families.py` rather than
-hidden: a rejected *family-level* argument (unknown `operation`, non-object
-`params`) sets `isError=true` exactly like the direct wire path, while a
-rejected *inner* argument reports the identical structured payload without
-the `isError` flag; and retry hints name the family tool that was called
-(e.g. `retry with call video_edit_ops ...`), which keeps eyes-free retries
-working.
+Transport-level differences inherent to dispatching through a wrapper tool
+are asserted in `tests/test_tool_families.py` rather than hidden: a rejected
+*family-level* argument (unknown `operation`, non-object `params`) sets
+`isError=true` exactly like the direct wire path, while a rejected *inner*
+argument reports the identical structured payload without the `isError` flag.
+
+### Retry hints name what you can actually call
+
+Errors raised under family dispatch append a retry invocation that names the
+family tool with the selected operation, e.g. `retry with call
+video_ai_ops(operation="video_ai_remove_silence", params={...}) with
+corrected parameters (MCP) / run kino video-ai-remove-silence with corrected
+flags (CLI)`. CLI routes are **derived from the selected operation and
+verified against the real `kino` parser** — a family tool never invents a
+`kino` subcommand, and an operation without a CLI route gets an MCP-only
+hint. Tool-independent guidance (`overwrite=true (MCP) / --overwrite (CLI)`,
+`a new output_path`) is valid under the family surface and passes through
+unchanged. The discovery tools (`list_operations`, `describe_operation`) are
+MCP-only, so their hints never mention a CLI route.
 
 ## Discovery and verbs
 
@@ -87,15 +105,33 @@ row reports:
 * `intent_verbs` / `intent_mutates_media` — links to the canonical
   `video_intent` verb table where one routes to the operation.
 
+`describe_operation(operation="<name>")` then returns that operation's
+**complete `inputSchema`** — every optional argument with its type, default
+and nested definitions, byte-for-byte the schema its direct tool advertises
+in `all` mode — plus `required_params`, declared annotations, the `call`
+block naming the family tool that dispatches it, and the verified CLI route
+when one exists. A hidden operation's full contract is therefore always one
+discovery call away, while the advertised surface stays compact.
+
 Family tools themselves carry conservative **worst-case** MCP annotations
-(`readOnlyHint=false`, `destructiveHint=true`, `idempotentHint=false`,
-`openWorldHint=false`) because every family contains operations that write
-rendered artifacts; `list_operations` is annotated read-only/idempotent.
+(`readOnlyHint=false`, `destructiveHint=true`, `idempotentHint=false`)
+because every family contains operations that write rendered artifacts.
+`openWorldHint` follows the audited `FAMILY_OPEN_WORLD` table
+(`kinocut/tool_families.py`): `video_ai_ops`, `image_ops` and `platform_ops`
+are open-world — `video_analyze` downloads HTTP(S)/yt-dlp sources,
+`video_ai_upscale` and `hyperframes_remove_background` fetch model weights,
+`image_analyze_product(use_ai=true)` calls a configured vision endpoint, and
+the revideo paths run `npm ci` — while the remaining five families are
+closed with evidence (local-only engines; `kinocut_sound`'s voice adapter
+never opens a socket; `video_doctor` never downloads weights; postrescue
+plans egress without network I/O). `list_operations` and
+`describe_operation` are annotated read-only/idempotent/closed.
 
 ## Guardrails
 
 * The family partition is declared over registry modules and fails closed at
-  import time if it ever stops covering the registry exactly once
+  import time if it ever stops covering the registry exactly once, and every
+  family must carry an audited open-world verdict
   (`kinocut/tool_families.py`).
 * Hidden direct names stay fail-closed on the wire in default mode —
   `video_filter` remains an import error over MCP while

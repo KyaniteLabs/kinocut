@@ -213,7 +213,7 @@ def test_legacy_import_in_a_cold_default_mode_process():
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
-    assert payload == {"imported": "video_filter", "count": 29, "is_default_surface": True}
+    assert payload == {"imported": "video_filter", "count": 30, "is_default_surface": True}
 
 
 def test_ensure_tool_loaded_rejects_unknown_names():
@@ -278,7 +278,7 @@ def test_no_argument_calls_honor_the_controlled_environment(monkeypatch):
 def test_cold_server_modes_are_isolated():
     default = _subprocess_surface(None)
     assert default["mode"] == "default"
-    assert default["count"] == 29  # 20 core tools + 8 family dispatchers + list_operations
+    assert default["count"] == 30  # 20 core tools + 8 family dispatchers + list_operations + describe_operation
     assert set(default["names"]) == _default_surface()
 
     core_alias = _subprocess_surface("core")
@@ -297,7 +297,7 @@ def test_cold_server_modes_are_isolated():
     assert set(editor["names"]) == expected
     assert set(CORE_TOOLS) <= set(editor["names"])
     assert set(FAMILY_SURFACE_TOOLS) <= set(editor["names"])
-    assert editor["count"] == 117  # 108 direct + the compact family surface
+    assert editor["count"] == 118  # 108 direct + the compact family surface
 
 
 def test_unknown_profile_aborts_startup_instead_of_silently_degrading():

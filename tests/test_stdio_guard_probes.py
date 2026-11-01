@@ -108,8 +108,8 @@ def test_null_params_is_tolerated_as_empty_params() -> None:
         response = server.request({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": None})
         tools = response["result"]["tools"]
         # Default surface: 20-tool core diet + the compact family layer
-        # (8 dispatch tools + list_operations).
-        assert isinstance(tools, list) and len(tools) == 29
+        # (8 dispatch tools + list_operations + describe_operation).
+        assert isinstance(tools, list) and len(tools) == 30
 
         ping = server.ping("ping-1")
         assert "result" in ping

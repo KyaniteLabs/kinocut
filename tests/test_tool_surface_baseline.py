@@ -121,14 +121,15 @@ def test_baseline_fixture_is_wellformed():
 def test_headline_baseline_numbers_are_pinned():
     """The one-screen numbers every doc and design decision quotes.
 
-    default 29 tools / 23,588 B (20-tool core diet + the 9 compact-surface
-    tools added by the typed operation families); all 205 tools / 126,776 B
-    — the legacy full-catalog surface, byte-identical since 2cf76e98;
-    profile:editor 117 tools / 81,054 B. Regenerated after the compact
+    default 30 tools / 24,281 B (20-tool core diet + the 10 compact-surface
+    tools added by the typed operation families: 8 dispatchers,
+    list_operations, describe_operation); all 205 tools / 126,776 B — the
+    legacy full-catalog surface, byte-identical since 2cf76e98;
+    profile:editor 118 tools / 81,747 B. Regenerated after the compact
     surface landed; the all-mode rows are unchanged down to per-tool digests.
     """
     assert BASELINE["captured"]["git_commit"] == "303b5e14124b38e62bb188391f351f389e7f9294"
-    for mode, count, total in (("default", 29, 23_588), ("all", 205, 126_776), ("profile:editor", 117, 81_054)):
+    for mode, count, total in (("default", 30, 24_281), ("all", 205, 126_776), ("profile:editor", 118, 81_747)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -198,7 +199,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 29, 23_588), ("all", 205, 126_776)])
+@pytest.mark.parametrize("mode,count,total", [("default", 30, 24_281), ("all", 205, 126_776)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

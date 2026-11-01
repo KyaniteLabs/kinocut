@@ -113,6 +113,50 @@ FAMILY_SUMMARIES: Mapping[str, str] = {
 # per-operation annotations. Lives beside the families on the compact surface.
 DISCOVERY_TOOL_NAME = "list_operations"
 
+# On-demand retrieval of one operation's complete input contract (the exact
+# inputSchema its direct tool would advertise), with explicit callability.
+DESCRIBE_TOOL_NAME = "describe_operation"
+
+# R1 audit (Security round 1): a family tool is annotated open-world iff any
+# supported member or configuration can interact outside a closed domain.
+# Evidence per family — closed claims must cite why no member reaches out:
+#
+# * video_edit_ops (basic, advanced, media) — CLOSED. Every input path is
+#   validated as a local file; fonts resolve to local files only.
+# * video_effects_ops (effects, glitch, glitch_shader) — CLOSED. Local FFmpeg
+#   filter/shader rendering; font-family resolution searches local font dirs.
+# * audio_ops (audio, sound) — CLOSED. kinocut_sound's voice adapter is local
+#   by construction ("never opens a socket", no cloud provider, no model
+#   download: kinocut_sound/voice/local_adapter.py).
+# * video_ai_ops (ai, aivideo) — OPEN. video_analyze downloads HTTP(S)/yt-dlp
+#   sources (server_tools_ai.py, ai_engine/download.py); video_ai_upscale
+#   downloads FSRCNN models from github (ai_engine/upscale.py); whisper
+#   transcription fetches models on first use.
+# * image_ops (image) — OPEN. image_analyze_product(use_ai=true) calls a
+#   configured Anthropic-compatible vision endpoint over httpx
+#   (image_engine._describe_product_with_vision), a supported configuration.
+# * video_qc_ops (inspection, doctor, guardrails, motion_acceptance, release)
+#   — CLOSED. doctor reports matte readiness and "never downloads weights"
+#   (doctor.py); the rest are local FFmpeg/JSON checks.
+# * video_plan_ops (intent, creation, postrescue, repurpose, rescue, workflow)
+#   — CLOSED. Planning over local files; postrescue plans egress "without
+#   network I/O" (server_tools_postrescue.py).
+# * platform_ops (hyperframes, revideo, shorts) — OPEN. revideo_install and
+#   the revideo render path run `npm ci` (revideo_engine.py);
+#   hyperframes_capture downloads a website and its assets;
+#   hyperframes_remove_background downloads matte weights
+#   (object_matte/weights.py).
+FAMILY_OPEN_WORLD: Mapping[str, bool] = {
+    "video_edit_ops": False,
+    "video_effects_ops": False,
+    "audio_ops": False,
+    "video_ai_ops": True,
+    "image_ops": True,
+    "video_qc_ops": False,
+    "video_plan_ops": False,
+    "platform_ops": True,
+}
+
 # Domain prefixes stripped when deriving an operation's verb token. The verb is
 # the action the operation name itself carries — deterministic, never curated
 # by hand, and stable across catalog growth.
@@ -175,6 +219,9 @@ def operation_side_effects(operation: str) -> dict[str, Any]:
 def _build() -> tuple[dict[str, tuple[str, ...]], dict[str, str], frozenset[str]]:
     from .tool_registry import TOOL_NAMES_BY_MODULE
 
+    if set(FAMILY_OPEN_WORLD) != set(FAMILY_MODULES):
+        raise RuntimeError("every family must carry an audited open-world verdict")
+
     operations: dict[str, tuple[str, ...]] = {}
     owner: dict[str, str] = {}
     for family, modules in FAMILY_MODULES.items():
@@ -191,7 +238,7 @@ def _build() -> tuple[dict[str, tuple[str, ...]], dict[str, str], frozenset[str]
     missing = set(owner) ^ {name for names in TOOL_NAMES_BY_MODULE.values() for name in names if name != "search_tools"}
     if missing:
         raise RuntimeError(f"family partition does not cover the registry exactly: {sorted(missing)}")
-    return operations, owner, frozenset((*FAMILY_MODULES, DISCOVERY_TOOL_NAME))
+    return operations, owner, frozenset((*FAMILY_MODULES, DISCOVERY_TOOL_NAME, DESCRIBE_TOOL_NAME))
 
 
 # Family tool name -> sorted member operation names.
