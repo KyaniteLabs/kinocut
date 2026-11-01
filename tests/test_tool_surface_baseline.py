@@ -121,12 +121,14 @@ def test_baseline_fixture_is_wellformed():
 def test_headline_baseline_numbers_are_pinned():
     """The one-screen numbers every doc and design decision quotes.
 
-    default 20 tools / 13,947 B; all 205 tools / 126,776 B; profile:editor
-    108 tools / 71,413 B — captured at 2cf76e98 (published 1.16.5) and
-    reproduced independently by Product from the registration tables.
+    default 29 tools / 23,588 B (20-tool core diet + the 9 compact-surface
+    tools added by the typed operation families); all 205 tools / 126,776 B
+    — the legacy full-catalog surface, byte-identical since 2cf76e98;
+    profile:editor 117 tools / 81,054 B. Regenerated after the compact
+    surface landed; the all-mode rows are unchanged down to per-tool digests.
     """
-    assert BASELINE["captured"]["git_commit"] == "2cf76e98e82a6f026ef4679fba93933c809e4535"
-    for mode, count, total in (("default", 20, 13_947), ("all", 205, 126_776), ("profile:editor", 108, 71_413)):
+    assert BASELINE["captured"]["git_commit"] == "303b5e14124b38e62bb188391f351f389e7f9294"
+    for mode, count, total in (("default", 29, 23_588), ("all", 205, 126_776), ("profile:editor", 117, 81_054)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -196,7 +198,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 20, 13_947), ("all", 205, 126_776)])
+@pytest.mark.parametrize("mode,count,total", [("default", 29, 23_588), ("all", 205, 126_776)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
@@ -205,9 +207,11 @@ def test_stdio_wire_surface_matches_baseline(mode, count, total):
     assert names == [row["name"] for row in baseline["tools"]], mode
 
 
-def test_stdio_wire_default_surface_is_exactly_the_core_tools():
+def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools():
     _, _, names = _stdio_surface("default")
-    assert names == sorted(CORE_TOOLS)
+    from kinocut.tool_families import FAMILY_SURFACE_TOOLS
+
+    assert names == sorted(set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS))
 
 
 # --- re-derivation 3: declarative registry inventory ------------------------------
@@ -222,9 +226,12 @@ def test_registry_inventory_is_complete_and_unambiguous():
 
 
 def test_registry_core_table_matches_default_surface():
+    from kinocut.tool_families import FAMILY_SURFACE_TOOLS
+
     assert len(CORE_TOOLS) == 20
     core_tagged = {name for name, tags in TOOL_REGISTRY.items() if "core" in tags}
-    assert core_tagged == set(CORE_TOOLS) == {row["name"] for row in BASELINE["modes"]["default"]["tools"]}
+    assert core_tagged == set(CORE_TOOLS)
+    assert {row["name"] for row in BASELINE["modes"]["default"]["tools"]} == set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS)
 
 
 def test_baseline_all_mode_agrees_with_registry_mappings():

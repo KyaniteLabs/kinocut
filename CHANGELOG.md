@@ -9,6 +9,12 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Added
+
+- Add typed operation families to the default and profile MCP surfaces: eight dispatch tools (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) plus `list_operations` discovery. The default surface becomes 29 tools / 23,588 input-schema bytes (within the ≤ 40 tools / ≤ 25%-of-full-catalog budget) and reaches all 204 registry operations; `KINOCUT_TOOLS=all` stays byte-identical to the legacy 205-tool / 126,776-byte surface. Family dispatch runs the exact registered tool after the shared wire-path validation — identical success payloads, handler errors and argument rejections — and reports verbs and only *declared* per-operation side-effect annotations via `list_operations`. See `docs/MCP_TOOL_FAMILIES.md`.
+
 ## 1.16.5 - 2026-10-27
 
 ### Added

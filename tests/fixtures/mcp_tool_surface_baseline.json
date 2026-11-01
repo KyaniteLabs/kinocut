@@ -1,10 +1,10 @@
 {
  "captured": {
-  "git_commit": "2cf76e98e82a6f026ef4679fba93933c809e4535",
+  "git_commit": "303b5e14124b38e62bb188391f351f389e7f9294",
   "kind": "repo-modes",
-  "kinocut_metadata_version": "1.16.5",
+  "kinocut_metadata_version": "1.16.0",
   "kinocut_source_version": "1.16.5",
-  "mcp_sdk_version": "1.28.1",
+  "mcp_sdk_version": "1.30.0",
   "platform": "Linux-6.17.0-1033-oem-x86_64-with-glibc2.39",
   "python_version": "3.12.3"
  },
@@ -22,7 +22,7 @@
    "mode": "all",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "1.16.0"
    },
    "tool_count": 205,
    "tool_names_sha256": "65ff9dd382cb5ff733bcb9b0bee5df37991232800d62fa6f5972ce2002113a07",
@@ -4145,11 +4145,26 @@
    "mode": "default",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "1.16.0"
    },
-   "tool_count": 20,
-   "tool_names_sha256": "fa77b92ebb2c16b35440103c75b6849fa36c351fd95c769da88a1564ab84ae9f",
+   "tool_count": 29,
+   "tool_names_sha256": "d364039e6fffa8eb5d9b7082d3115d7dd605beb92b8aef9ebc247145baefa4f1",
    "tools": [
+    {
+     "input_schema_bytes": 914,
+     "input_schema_sha256": "f74f00df182f0bc6a72b92eaaf1c965439d4444457b1c9ac059e64f5e144e8f7",
+     "module": null,
+     "name": "audio_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
     {
      "input_schema_bytes": 265,
      "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
@@ -4163,6 +4178,49 @@
       "overwrite"
      ],
      "required_params": []
+    },
+    {
+     "input_schema_bytes": 729,
+     "input_schema_sha256": "f4b56bbb7d4471c496ac62479a542288d70c2bb32ba63889e8cf91b44043e43a",
+     "module": null,
+     "name": "image_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 634,
+     "input_schema_sha256": "20233d1e5dc37a701ebbac1b2ae3c33136a2f9c8b86de476ef65ee8eecbbbd7c",
+     "module": null,
+     "name": "list_operations",
+     "profiles": [],
+     "properties": [
+      "family",
+      "overwrite",
+      "query"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 1161,
+     "input_schema_sha256": "81349c9d3721186b26ea94525f7e24632a2d7f98bdf830f0ad2562c098c7bbbc",
+     "module": null,
+     "name": "platform_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
     },
     {
      "input_schema_bytes": 322,
@@ -4260,6 +4318,21 @@
      ]
     },
     {
+     "input_schema_bytes": 925,
+     "input_schema_sha256": "05bf980f0b19d941c3ee4cd0b0fcecfe48c4233b7f448e0364a47d13b6b40a6d",
+     "module": null,
+     "name": "video_ai_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 1085,
      "input_schema_sha256": "f3c98351d8408f2407308210ddbeb2f37d6ff150060aeaec48251e005c933bb5",
      "module": "server_tools_basic",
@@ -4294,6 +4367,36 @@
       "overwrite"
      ],
      "required_params": []
+    },
+    {
+     "input_schema_bytes": 1384,
+     "input_schema_sha256": "6cbadee089c31ad66025776dbe2cad2037695fba77236cc1e02199e22367cbf2",
+     "module": null,
+     "name": "video_edit_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 1206,
+     "input_schema_sha256": "5dc6c7c46d37af0dd97a5db2850f1572083182e86573eb0f5a0c7a73229b26d3",
+     "module": null,
+     "name": "video_effects_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
     },
     {
      "input_schema_bytes": 534,
@@ -4355,6 +4458,21 @@
      ]
     },
     {
+     "input_schema_bytes": 1763,
+     "input_schema_sha256": "932250afd03d74a259dfd8138efb195436a08e098c370ca5fff1c732e2dc8fac",
+     "module": null,
+     "name": "video_plan_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 422,
      "input_schema_sha256": "8e060f42ae2cf86827086fdff25c79a80db663c81af66c16051fd14dfa5936e4",
      "module": "server_tools_creation",
@@ -4371,6 +4489,21 @@
      ],
      "required_params": [
       "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 925,
+     "input_schema_sha256": "3bff2812d4dac22410cc47756c50a92cc38538357f48b41c00d0a46e137b5e60",
+     "module": null,
+     "name": "video_qc_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -4554,7 +4687,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 13947
+   "total_input_schema_bytes": 23588
   },
   "profile:editor": {
    "launch": {
@@ -4569,10 +4702,10 @@
    "mode": "profile:editor",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "1.16.0"
    },
-   "tool_count": 108,
-   "tool_names_sha256": "0a195aecb0ba172843bf8e63421fa53590421a2d485c732a740d8be39323eec1",
+   "tool_count": 117,
+   "tool_names_sha256": "a4bc41e59d24219bfdcbe92bc97637459d5eef146ce640a594d168986a8c66b1",
    "tools": [
     {
      "input_schema_bytes": 506,
@@ -4614,6 +4747,21 @@
       "effects",
       "input_path",
       "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 914,
+     "input_schema_sha256": "f74f00df182f0bc6a72b92eaaf1c965439d4444457b1c9ac059e64f5e144e8f7",
+     "module": null,
+     "name": "audio_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -5055,6 +5203,49 @@
      "required_params": []
     },
     {
+     "input_schema_bytes": 729,
+     "input_schema_sha256": "f4b56bbb7d4471c496ac62479a542288d70c2bb32ba63889e8cf91b44043e43a",
+     "module": null,
+     "name": "image_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 634,
+     "input_schema_sha256": "20233d1e5dc37a701ebbac1b2ae3c33136a2f9c8b86de476ef65ee8eecbbbd7c",
+     "module": null,
+     "name": "list_operations",
+     "profiles": [],
+     "properties": [
+      "family",
+      "overwrite",
+      "query"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 1161,
+     "input_schema_sha256": "81349c9d3721186b26ea94525f7e24632a2d7f98bdf830f0ad2562c098c7bbbc",
+     "module": null,
+     "name": "platform_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 322,
      "input_schema_sha256": "9e108f9314c825f6fe235e2730209766422a97c4aea65de3cdac00c53a82b67c",
      "module": "server_tools_basic",
@@ -5369,6 +5560,21 @@
      "required_params": [
       "input_path",
       "texts"
+     ]
+    },
+    {
+     "input_schema_bytes": 925,
+     "input_schema_sha256": "05bf980f0b19d941c3ee4cd0b0fcecfe48c4233b7f448e0364a47d13b6b40a6d",
+     "module": null,
+     "name": "video_ai_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -5719,6 +5925,36 @@
      ],
      "required_params": [
       "timeline"
+     ]
+    },
+    {
+     "input_schema_bytes": 1384,
+     "input_schema_sha256": "6cbadee089c31ad66025776dbe2cad2037695fba77236cc1e02199e22367cbf2",
+     "module": null,
+     "name": "video_edit_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 1206,
+     "input_schema_sha256": "5dc6c7c46d37af0dd97a5db2850f1572083182e86573eb0f5a0c7a73229b26d3",
+     "module": null,
+     "name": "video_effects_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -6177,6 +6413,21 @@
      ]
     },
     {
+     "input_schema_bytes": 1763,
+     "input_schema_sha256": "932250afd03d74a259dfd8138efb195436a08e098c370ca5fff1c732e2dc8fac",
+     "module": null,
+     "name": "video_plan_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 402,
      "input_schema_sha256": "22d23c856aeeb227af6e691c2c13a6836abdf7766a00af211927712c668261c2",
      "module": "server_tools_inspection",
@@ -6231,6 +6482,21 @@
      ],
      "required_params": [
       "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 925,
+     "input_schema_sha256": "3bff2812d4dac22410cc47756c50a92cc38538357f48b41c00d0a46e137b5e60",
+     "module": null,
+     "name": "video_qc_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -6840,7 +7106,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 71413
+   "total_input_schema_bytes": 81054
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
