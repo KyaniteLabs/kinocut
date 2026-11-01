@@ -68,10 +68,11 @@ it in the same PR as the schema change that caused it.
 Committed provenance is portable: `launch.cwd` is the repo-relative root
 (`.`), never an absolute checkout path, and the script refuses
 (`assert_portable_provenance`) to write a baseline whose content embeds
-operator home directories (`/home/...`, `/Users/...`), so regeneration on any
-machine produces identical bytes. Exact host paths belong only in private,
-uncommitted capture evidence. `test_baseline_fixture_provenance_is_portable`
-guards the committed fixture against regressions.
+operator home-directory paths (POSIX and macOS user-root prefixes are both
+checked), so regeneration on any machine produces identical bytes. Exact host
+paths belong only in private, uncommitted capture evidence.
+`test_baseline_fixture_provenance_is_portable` guards the committed fixture
+against regressions.
 
 The regression tests are hermetic against the ambient environment: they pin
 or strip `KINOCUT_TOOLS` internally and pass identically when the suite runs
