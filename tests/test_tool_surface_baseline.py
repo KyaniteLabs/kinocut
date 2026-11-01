@@ -128,7 +128,7 @@ def test_headline_baseline_numbers_are_pinned():
     profile:editor 118 tools / 81,747 B. Regenerated after the compact
     surface landed; the all-mode rows are unchanged down to per-tool digests.
     """
-    assert BASELINE["captured"]["git_commit"] == "303b5e14124b38e62bb188391f351f389e7f9294"
+    assert BASELINE["captured"]["git_commit"] == "c130f03735c05f74f8e16419b4fb8262ff35648a"
     for mode, count, total in (("default", 30, 24_281), ("all", 205, 126_776), ("profile:editor", 118, 81_747)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
