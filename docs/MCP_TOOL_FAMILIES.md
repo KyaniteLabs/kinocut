@@ -117,14 +117,22 @@ Family tools themselves carry conservative **worst-case** MCP annotations
 (`readOnlyHint=false`, `destructiveHint=true`, `idempotentHint=false`)
 because every family contains operations that write rendered artifacts.
 `openWorldHint` follows the audited `FAMILY_OPEN_WORLD` table
-(`kinocut/tool_families.py`): `video_ai_ops`, `image_ops` and `platform_ops`
-are open-world — `video_analyze` downloads HTTP(S)/yt-dlp sources,
-`video_ai_upscale` and `hyperframes_remove_background` fetch model weights,
-`image_analyze_product(use_ai=true)` calls a configured vision endpoint, and
-the revideo paths run `npm ci` — while the remaining five families are
-closed with evidence (local-only engines; `kinocut_sound`'s voice adapter
-never opens a socket; `video_doctor` never downloads weights; postrescue
-plans egress without network I/O). `list_operations` and
+(`kinocut/tool_families.py`): `video_ai_ops`, `image_ops`,
+`video_plan_ops` and `platform_ops` are open-world — `video_analyze`
+downloads HTTP(S)/yt-dlp sources, `video_ai_upscale` and
+`hyperframes_remove_background` fetch model weights,
+`image_analyze_product(use_ai=true)` calls a configured vision endpoint,
+`video_qc_vision` under the supported explicit remote configuration
+(`KINOCUT_VISION_MODE=remote` + `KINOCUT_VISION_MODEL` + `ANTHROPIC_API_KEY`)
+POSTs sampled keyframes to the fixed Anthropic origin, and the revideo paths
+run `npm ci` — while the remaining four families are closed with
+configuration-audited evidence (local-only engines and local availability
+probes; `kinocut_sound`'s ASR copies only digest-verified *cached* Whisper
+models and refuses uncached ones; `video_doctor` executes only local version
+probes and reports package presence without executing anything; the rescue
+whisper leg requires an integrity-validated cached model and raises a
+dependency error otherwise). The provider policy and its off default are
+unchanged: unset/off makes zero provider attempts. `list_operations` and
 `describe_operation` are annotated read-only/idempotent/closed.
 
 ## Guardrails

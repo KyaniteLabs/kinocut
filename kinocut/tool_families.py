@@ -117,17 +117,30 @@ DISCOVERY_TOOL_NAME = "list_operations"
 # inputSchema its direct tool would advertise), with explicit callability.
 DESCRIBE_TOOL_NAME = "describe_operation"
 
-# R1 audit (Security round 1): a family tool is annotated open-world iff any
-# supported member or configuration can interact outside a closed domain.
-# Evidence per family — closed claims must cite why no member reaches out:
+# R1 audit (Security rounds 1+2): a family tool is annotated open-world iff any
+# supported member or configuration can interact outside a closed domain.  The
+# audit walks every member's engine reachability *including env-gated provider
+# configurations*, not just whether one probed sibling rejects URL inputs.
+# Evidence per family — closed claims must cite why no member/configuration
+# reaches out:
 #
 # * video_edit_ops (basic, advanced, media) — CLOSED. Every input path is
-#   validated as a local file; fonts resolve to local files only.
+#   validated as a local file; fonts resolve to local files only. The one
+#   non-FFmpeg subprocess is engine_glitch_shader's local
+#   `node -e require.resolve('canvas')` availability probe — the canvas
+#   dependency is user-installed, and the engine never invokes a package
+#   manager or the network.
 # * video_effects_ops (effects, glitch, glitch_shader) — CLOSED. Local FFmpeg
-#   filter/shader rendering; font-family resolution searches local font dirs.
-# * audio_ops (audio, sound) — CLOSED. kinocut_sound's voice adapter is local
-#   by construction ("never opens a socket", no cloud provider, no model
-#   download: kinocut_sound/voice/local_adapter.py).
+#   filter/shader rendering; font-family resolution searches local font dirs;
+#   the same local-only canvas probe as above; CRUSH GLSL sources resolve from
+#   disk.
+# * audio_ops (audio, sound) — CLOSED. Local FFmpeg/kinocut_sound DSP. The ASR
+#   job copies a digest-verified *already-cached* Whisper checkpoint and fails
+#   with asr_unavailable when the model is not cached — there is no model
+#   download path (kinocut_sound/public/asr_runtime.py). Importing the
+#   ai_engine package (server_tools_audio's `audio_spatial`) pulls
+#   transcribe/image_engine into the import graph, but no audio tool calls
+#   them and the imports perform no I/O.
 # * video_ai_ops (ai, aivideo) — OPEN. video_analyze downloads HTTP(S)/yt-dlp
 #   sources (server_tools_ai.py, ai_engine/download.py); video_ai_upscale
 #   downloads FSRCNN models from github (ai_engine/upscale.py); whisper
@@ -136,11 +149,22 @@ DESCRIBE_TOOL_NAME = "describe_operation"
 #   configured Anthropic-compatible vision endpoint over httpx
 #   (image_engine._describe_product_with_vision), a supported configuration.
 # * video_qc_ops (inspection, doctor, guardrails, motion_acceptance, release)
-#   — CLOSED. doctor reports matte readiness and "never downloads weights"
-#   (doctor.py); the rest are local FFmpeg/JSON checks.
+#   — CLOSED. doctor's only subprocess probes are local version queries
+#     (`npm --version`); whisper and friends are importlib presence checks
+#   that are reported, never executed (doctor.py PACKAGE_CHECKS);
+#   capability_report/release are find_spec-based reports; the rest are local
+#   FFmpeg/JSON checks.
 # * video_plan_ops (intent, creation, postrescue, repurpose, rescue, workflow)
-#   — CLOSED. Planning over local files; postrescue plans egress "without
-#   network I/O" (server_tools_postrescue.py).
+#   — OPEN (Security round 2 correction). server_tools_intent.video_qc_vision
+#   → watching.vision_qc.run_vision_qc → vision_provider.assess_keyframes →
+#   watching/vision_provider_worker.py POSTs base64 JPEG keyframes to
+#   https://api.anthropic.com/v1/messages under the supported explicit remote
+#   configuration (KINOCUT_VISION_MODE=remote + KINOCUT_VISION_MODEL +
+#   ANTHROPIC_API_KEY, and no KINOCUT_VISION_BASE_URL). Default/off makes zero
+#   provider attempts; the provider policy and off default are unchanged. The
+#   rescue whisper leg cannot download: the renderer only proceeds with an
+#   integrity-validated cached base model and raises a dependency error
+#   otherwise (rescue/renderer.py).
 # * platform_ops (hyperframes, revideo, shorts) — OPEN. revideo_install and
 #   the revideo render path run `npm ci` (revideo_engine.py);
 #   hyperframes_capture downloads a website and its assets;
@@ -153,7 +177,7 @@ FAMILY_OPEN_WORLD: Mapping[str, bool] = {
     "video_ai_ops": True,
     "image_ops": True,
     "video_qc_ops": False,
-    "video_plan_ops": False,
+    "video_plan_ops": True,
     "platform_ops": True,
 }
 

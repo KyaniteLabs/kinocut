@@ -13,8 +13,10 @@ Protects the compact-surface contract end to end:
   reaches the operation unless ``params`` carries an explicit override;
 * annotations — open-world hints follow the audited ``FAMILY_OPEN_WORLD``
   table and are backed by behavior: network-capable members are demonstrably
-  reachable through the open families, URL inputs are rejected by the closed
-  ones;
+  reachable through the open families — including the configuration-gated
+  remote vision provider reached via ``video_plan_ops`` (off makes zero
+  attempts, explicit remote config makes exactly one, intercepted at the
+  provider boundary) — and URL inputs are rejected by the closed ones;
 * discovery — ``list_operations`` is on-demand, deterministic, reports verbs
   and only *declared* side-effect annotations, and never leaks operations
   onto the registered surface; ``describe_operation`` returns the hidden
@@ -581,13 +583,17 @@ def test_network_capable_members_are_reachable_through_open_families(monkeypatch
         ("video_effects_ops", "effect_chromatic_aberration"),
         ("audio_ops", "audio_effects"),
         ("video_qc_ops", "video_extract_frame"),
-        ("video_plan_ops", "video_edit_session"),
     ],
 )
 def test_closed_families_reject_url_inputs_before_any_network(family, operation):
     """Behavior evidence for every closed-world verdict: a URL input is
     rejected by local path validation — the closed families have no
-    URL-accepting input path, so nothing can be fetched through them."""
+    URL-accepting input path, so nothing can be fetched through them.
+
+    The remaining closed verdicts also hold under *configuration* audits:
+    no env-gated provider route exists in their members (see the per-family
+    evidence in ``kinocut/tool_families.py`` and the provider-boundary test
+    below for the family that does carry one)."""
 
     configure_tool_surface()
     assert _surface()[family].annotations.openWorldHint is False
@@ -601,6 +607,66 @@ def test_closed_families_reject_url_inputs_before_any_network(family, operation)
     # — before any engine or fetch could run.
     assert error["type"] in {"validation_error", "input_error"}, (family, error)
     assert error["code"] in {"invalid_parameter", "invalid_input", "input_error", "unsafe_path"}, (family, error)
+
+
+@pytest.mark.skipif(shutil.which("ffmpeg") is None, reason="FFmpeg not installed")
+def test_vision_provider_boundary_off_vs_remote_through_video_plan_ops(monkeypatch, sample_video):
+    """Security round 2 R1: ``video_plan_ops`` is open-world because its member
+    ``video_qc_vision`` reaches the remote vision provider.
+
+    The provider boundary (``vision_provider.assess_keyframes``) is
+    intercepted, so no request leaves the process. With the vision mode
+    unset/off — the shipped default — a family dispatch of ``video_qc_vision``
+    over a real local video makes ZERO provider attempts; under the supported
+    explicit remote configuration it makes EXACTLY ONE, carrying the really
+    extracted keyframe files, while the family advertises
+    ``openWorldHint=true``.
+    """
+
+    configure_tool_surface()
+    from kinocut.watching import vision_provider
+    from kinocut.watching.vision_provider import SemanticVisionAssessment
+
+    attempts: list[tuple[str, list[dict]]] = []
+
+    def fake_assess(model, samples):
+        attempts.append((model, samples))
+        return SemanticVisionAssessment(verdict="pass", summary="provider boundary intercepted", findings=())
+
+    monkeypatch.setattr(vision_provider, "assess_keyframes", fake_assess)
+
+    surface = _surface()
+    assert surface["video_plan_ops"].annotations.openWorldHint is True
+
+    def _dispatch() -> dict[str, Any]:
+        result = asyncio.run(
+            _call("video_plan_ops", {"operation": "video_qc_vision", "params": {"input_path": sample_video}})
+        )
+        payload = _payload(result)
+        assert payload["success"] is True, payload
+        return payload
+
+    # 1) Default/off: zero provider attempts, assessment not evaluated.
+    for var in ("KINOCUT_VISION_MODE", "KINOCUT_VISION_MODEL", "ANTHROPIC_API_KEY", "KINOCUT_VISION_BASE_URL"):
+        monkeypatch.delenv(var, raising=False)
+    payload = _dispatch()
+    assert attempts == []
+    assert payload["assessment_status"] == "not_evaluated"
+
+    # 2) Explicit remote configuration: exactly one provider attempt whose
+    #    samples are the really extracted keyframe files (fake placeholder
+    #    key — the boundary is intercepted, nothing leaves the process).
+    monkeypatch.setenv("KINOCUT_VISION_MODE", "remote")
+    monkeypatch.setenv("KINOCUT_VISION_MODEL", "fixture-vision-model")
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "fixture-placeholder-key")
+    payload = _dispatch()
+    assert len(attempts) == 1
+    model, samples = attempts[0]
+    assert model == "fixture-vision-model"
+    assert samples, "real keyframe extraction must reach the provider boundary"
+    assert all(Path(sample["path"]).is_file() for sample in samples)
+    assert payload["assessment_status"] == "evaluated_sampled_frames"
+    assert payload["auto_scored"] is True
 
 
 def test_list_operations_reports_only_declared_annotations():
