@@ -123,7 +123,16 @@ def capture_repo_mode(mode: str) -> dict[str, Any]:
         row["module"] = TOOL_MODULE_BY_NAME.get(row["name"])
         row["profiles"] = list(TOOL_REGISTRY.get(row["name"], ()))
     surface["mode"] = mode
-    surface["launch"] = {"command": command[1:], "env_kinocut_tools": env.get("KINOCUT_TOOLS", "<unset>"), "cwd": cwd}
+    # The committed baseline must stay portable: repo-mode servers always
+    # launch from the repository root, so the launch cwd is recorded
+    # repo-relative (".") instead of the absolute checkout path, which would
+    # embed the operator's home directory and machine layout in a published
+    # fixture. assert_portable_provenance() refuses to write anything else.
+    surface["launch"] = {
+        "command": command[1:],
+        "env_kinocut_tools": env.get("KINOCUT_TOOLS", "<unset>"),
+        "cwd": ".",
+    }
     return surface
 
 
@@ -164,6 +173,41 @@ def write_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
 
 
+_PERSONAL_PATH_MARKERS = ("/home/", "/Users/", "C:\\Users\\")
+
+
+def _iter_strings(node: Any):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _iter_strings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _iter_strings(value)
+
+
+def assert_portable_provenance(payload: dict[str, Any]) -> None:
+    """Refuse to write a committed baseline that embeds operator-specific paths.
+
+    The fixture is a published artifact: its launch provenance must be
+    repo-relative so regeneration on any machine produces identical bytes.
+    Exact host paths belong only in private, uncommitted capture evidence
+    (integration captures via ``--command`` are never written by this path).
+    """
+    home = str(Path.home()).rstrip("/")
+    markers = [marker for marker in (*_PERSONAL_PATH_MARKERS, home) if marker]
+    leaked = sorted({marker for marker in markers if any(marker in value for value in _iter_strings(payload))})
+    if leaked:
+        msg = f"baseline embeds personal path(s) {leaked}; launch provenance must stay repo-relative"
+        raise ValueError(msg)
+    for mode, surface in payload.get("modes", {}).items():
+        cwd = surface.get("launch", {}).get("cwd")
+        if cwd != ".":
+            msg = f"mode {mode}: launch.cwd must be the repo-relative root '.', got {cwd!r}"
+            raise ValueError(msg)
+
+
 def regenerate_baseline() -> dict[str, Any]:
     modes = {mode: capture_repo_mode(mode) for mode in BASELINE_MODES}
     baseline = {
@@ -177,6 +221,7 @@ def regenerate_baseline() -> dict[str, Any]:
         ),
         "modes": modes,
     }
+    assert_portable_provenance(baseline)
     write_json(BASELINE_PATH, baseline)
     print(f"wrote {BASELINE_PATH}")
     for mode, surface in modes.items():

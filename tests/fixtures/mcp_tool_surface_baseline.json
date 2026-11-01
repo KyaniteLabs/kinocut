@@ -16,7 +16,7 @@
      "kinocut",
      "--mcp"
     ],
-    "cwd": "/home/simon/factory/repos/KyaniteLabs/kinocut/.worktrees/p4-baseline",
+    "cwd": ".",
     "env_kinocut_tools": "all"
    },
    "mode": "all",
@@ -4139,7 +4139,7 @@
      "kinocut",
      "--mcp"
     ],
-    "cwd": "/home/simon/factory/repos/KyaniteLabs/kinocut/.worktrees/p4-baseline",
+    "cwd": ".",
     "env_kinocut_tools": "<unset>"
    },
    "mode": "default",
@@ -4563,7 +4563,7 @@
      "kinocut",
      "--mcp"
     ],
-    "cwd": "/home/simon/factory/repos/KyaniteLabs/kinocut/.worktrees/p4-baseline",
+    "cwd": ".",
     "env_kinocut_tools": "profile:editor"
    },
    "mode": "profile:editor",

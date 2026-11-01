@@ -78,6 +78,17 @@ def _baseline_surface(mode: str) -> dict[str, tuple[int, str]]:
     }
 
 
+def _fixture_strings(node: object):
+    if isinstance(node, str):
+        yield node
+    elif isinstance(node, dict):
+        for value in node.values():
+            yield from _fixture_strings(value)
+    elif isinstance(node, list):
+        for value in node:
+            yield from _fixture_strings(value)
+
+
 def _mismatches(actual: dict[str, tuple[int, str]], expected: dict[str, tuple[int, str]]) -> list[str]:
     problems = []
     for name in sorted(set(actual) | set(expected)):
@@ -120,6 +131,29 @@ def test_headline_baseline_numbers_are_pinned():
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
 
+def test_baseline_fixture_provenance_is_portable():
+    """Committed provenance must never embed operator home/worktree paths.
+
+    The fixture is a published artifact (Kinocut receipt hygiene: no home
+    paths, no usernames), so ``launch.cwd`` is recorded repo-relative — "." is
+    the repository root the server launches from — and regeneration on any
+    machine must produce identical bytes. Exact host paths belong only in
+    private, uncommitted capture evidence. The generator's
+    ``assert_portable_provenance`` guard enforces the same rule at write time.
+    """
+    raw = BASELINE_PATH.read_text(encoding="utf-8")
+    for marker in ("/home/", "/Users/", "C:\\Users\\"):
+        assert marker not in raw, marker
+    home = str(Path.home()).rstrip("/")
+    if home:
+        for value in _fixture_strings(BASELINE):
+            assert not value.startswith(home), value
+    for mode in MODES:
+        launch = BASELINE["modes"][mode]["launch"]
+        assert launch["cwd"] == ".", (mode, launch["cwd"])
+        assert not os.path.isabs(launch["cwd"]), (mode, launch["cwd"])
+
+
 # --- re-derivation 1: in-process registration ------------------------------------
 
 
@@ -140,7 +174,17 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     from mcp.client.stdio import stdio_client
 
     async def capture() -> tuple[int, int, list[str]]:
-        env = {**os.environ, "KINOCUT_TOOLS": mode} if mode != "default" else None
+        from mcp.client.stdio import get_default_environment
+
+        if mode == "default":
+            # Hermetic by construction: build the SDK's safe allowlist
+            # environment explicitly and select the default mode by hand, so
+            # an ambient KINOCUT_TOOLS on the test host can never change what
+            # "default" measures (the allowlist never carries KINOCUT_TOOLS
+            # or PYTHONPATH; "" selects the default mode exactly like unset).
+            env = get_default_environment() | {"KINOCUT_TOOLS": ""}
+        else:
+            env = {**os.environ, "KINOCUT_TOOLS": mode}
         params = StdioServerParameters(command=sys.executable, args=["-m", "kinocut", "--mcp"], env=env)
         async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
             await session.initialize()

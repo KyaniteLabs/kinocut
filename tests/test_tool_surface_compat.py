@@ -11,6 +11,11 @@ These tests protect the behaviors the 1.16.5 tool diet promised:
 * ``KINOCUT_TOOLS`` modes are isolated: default/core is exactly the 20 core
   tools, ``all`` is exactly the registry, profiles are additive on core, and
   an unknown profile aborts startup instead of silently degrading.
+
+The tests are hermetic: an autouse fixture pins the ambient ``KINOCUT_TOOLS``
+so this file passes identically with the variable unset, ``all``, or a
+profile exported; the production rule that no-argument calls honor the
+environment at call time is asserted explicitly rather than assumed away.
 """
 
 from __future__ import annotations
@@ -46,6 +51,21 @@ def _restore_full_surface():
     """Keep the session-wide full catalog intact regardless of test outcome."""
     yield
     configure_tool_surface("all")
+
+
+@pytest.fixture(autouse=True)
+def _hermetic_selector(monkeypatch):
+    """Freeze the ambient ``KINOCUT_TOOLS`` selector for every test here.
+
+    Production deliberately reads ``KINOCUT_TOOLS`` at call time — both
+    ``configure_tool_surface()`` and ``parse_tool_mode(None)`` honor it (that
+    is how deployments select a mode). These tests control the variable
+    instead of assuming it is unset, so this file passes identically with the
+    ambient selector unset, ``all``, or any profile. The honoring contract
+    itself is asserted in
+    ``test_no_argument_calls_honor_the_controlled_environment``.
+    """
+    monkeypatch.delenv("KINOCUT_TOOLS", raising=False)
 
 
 def _surface_names() -> set[str]:
@@ -223,6 +243,27 @@ def test_parse_tool_mode_matrix():
         parse_tool_mode("profile:does_not_exist")
     with pytest.raises(ValueError):
         parse_tool_mode("everything")
+
+
+def test_no_argument_calls_honor_the_controlled_environment(monkeypatch):
+    """``configure_tool_surface()`` / ``parse_tool_mode(None)`` read
+    ``KINOCUT_TOOLS`` at call time — the deployment contract that selects a
+    mode without code changes. Asserted against a controlled environment, not
+    ambient chance (the autouse fixture pins the ambient variable to unset).
+    """
+    monkeypatch.setenv("KINOCUT_TOOLS", "all")
+    assert parse_tool_mode(None) == ("all", frozenset())
+    configure_tool_surface()
+    assert active_mode() == "all"
+    assert _surface_names() == set(TOOL_REGISTRY)
+
+    monkeypatch.setenv("KINOCUT_TOOLS", "profile:editor")
+    mode, profiles = parse_tool_mode(None)
+    assert mode == "profile:editor"
+    assert profiles == frozenset({"core", "editor"})
+    configure_tool_surface()
+    assert active_mode() == "profile:editor"
+    assert set(CORE_TOOLS) <= _surface_names()
 
 
 def test_cold_server_modes_are_isolated():
