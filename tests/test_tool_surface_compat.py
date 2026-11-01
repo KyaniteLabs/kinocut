@@ -8,8 +8,9 @@ These tests protect the behaviors the 1.16.5 tool diet promised:
 * legacy Python access (``from kinocut.server import <hidden tool>``) keeps
   working in every mode with unchanged parameters and outcomes, while the
   wire surface stays fail-closed for hidden tools;
-* ``KINOCUT_TOOLS`` modes are isolated: default/core is exactly the 20 core
-  tools, ``all`` is exactly the registry, profiles are additive on core, and
+* ``KINOCUT_TOOLS`` modes are isolated: default/core is the 20 core tools
+  plus the compact family surface (8 dispatchers + ``list_operations``),
+  ``all`` is exactly the registry, profiles are additive on core, and
   an unknown profile aborts startup instead of silently degrading.
 
 The tests are hermetic: an autouse fixture pins the ambient ``KINOCUT_TOOLS``
@@ -33,6 +34,7 @@ from mcp.server.fastmcp.exceptions import ToolError
 
 from kinocut.server import mcp, search_tools
 from kinocut.tool_discovery import discover_tools
+from kinocut.tool_families import FAMILY_SURFACE_TOOLS
 from kinocut.tool_registry import (
     CORE_TOOLS,
     TOOL_REGISTRY,
@@ -44,6 +46,11 @@ from kinocut.tool_registry import (
 )
 
 ROOT = Path(__file__).resolve().parents[1]
+
+
+def _default_surface() -> set[str]:
+    """Default mode: the core diet plus the compact family surface, exactly."""
+    return set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS)
 
 
 @pytest.fixture(autouse=True)
@@ -162,7 +169,7 @@ def test_search_tools_finds_hidden_tools_in_default_mode_without_leaking_them():
     result = search_tools("blur")
     assert result["success"] is True
     assert "video_filter" in {tool["name"] for tool in result["tools"]}
-    assert _surface_names() == set(CORE_TOOLS), "discovery must not register hidden tools"
+    assert _surface_names() == _default_surface(), "discovery must not register hidden tools"
 
 
 def test_discovery_catalog_covers_the_registry_and_restores_the_surface():
@@ -171,7 +178,7 @@ def test_discovery_catalog_covers_the_registry_and_restores_the_surface():
     assert {row["name"] for row in catalog} == set(TOOL_REGISTRY)
     assert all("required_params" in row for row in catalog)
     assert active_mode() == "default"
-    assert _surface_names() == set(CORE_TOOLS), (
+    assert _surface_names() == _default_surface(), (
         "loading the full catalog for discovery must restore the selected surface"
     )
 
@@ -185,7 +192,7 @@ def test_legacy_facade_import_of_hidden_tools_keeps_the_wire_surface_closed():
     configure_tool_surface()  # default
     hidden = facade.video_filter  # resolved through the PEP 562 module __getattr__
     assert callable(hidden)
-    assert _surface_names() == set(CORE_TOOLS), "a legacy import must not register its module's tools"
+    assert _surface_names() == _default_surface(), "a legacy import must not register its module's tools"
     with pytest.raises(ToolError, match="Unknown tool: video_filter"):
         asyncio.run(mcp.call_tool("video_filter", {"input_path": "unused.mp4"}))
 
@@ -196,7 +203,9 @@ def test_legacy_import_in_a_cold_default_mode_process():
         "from kinocut.server import mcp, video_filter  # legacy facade import of a hidden tool\n"
         "from kinocut.tool_registry import CORE_TOOLS\n"
         "names = {t.name for t in asyncio.run(mcp.list_tools())}\n"
-        "print(json.dumps({'imported': video_filter.__name__, 'count': len(names), 'is_core': names == set(CORE_TOOLS)}))\n"
+        "from kinocut.tool_families import FAMILY_SURFACE_TOOLS\n"
+        "expected = set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS)\n"
+        "print(json.dumps({'imported': video_filter.__name__, 'count': len(names), 'is_default_surface': names == expected}))\n"
     )
     env = {k: v for k, v in os.environ.items() if k != "KINOCUT_TOOLS"}
     result = subprocess.run(
@@ -204,7 +213,7 @@ def test_legacy_import_in_a_cold_default_mode_process():
     )
     assert result.returncode == 0, result.stderr
     payload = json.loads(result.stdout)
-    assert payload == {"imported": "video_filter", "count": 20, "is_core": True}
+    assert payload == {"imported": "video_filter", "count": 29, "is_default_surface": True}
 
 
 def test_ensure_tool_loaded_rejects_unknown_names():
@@ -225,7 +234,7 @@ def test_legacy_hidden_tool_call_keeps_parameters_and_outcome(sample_video):
     result = video_audio_waveform(input_path=sample_video, bins=2)
     assert result["success"] is True
     assert len(result["peaks"]) == 2
-    assert _surface_names() == set(CORE_TOOLS)
+    assert _surface_names() == _default_surface()
 
 
 # --- profile isolation ------------------------------------------------------------
@@ -269,8 +278,8 @@ def test_no_argument_calls_honor_the_controlled_environment(monkeypatch):
 def test_cold_server_modes_are_isolated():
     default = _subprocess_surface(None)
     assert default["mode"] == "default"
-    assert default["count"] == 20
-    assert set(default["names"]) == set(CORE_TOOLS)
+    assert default["count"] == 29  # 20 core tools + 8 family dispatchers + list_operations
+    assert set(default["names"]) == _default_surface()
 
     core_alias = _subprocess_surface("core")
     assert core_alias["names"] == default["names"], "core is the documented alias of the default mode"
@@ -281,11 +290,14 @@ def test_cold_server_modes_are_isolated():
     assert set(everything["names"]) == set(TOOL_REGISTRY)
 
     editor = _subprocess_surface("profile:editor")
-    expected = {name for name, tags in TOOL_REGISTRY.items() if "editor" in tags or "core" in tags}
+    expected = {name for name, tags in TOOL_REGISTRY.items() if "editor" in tags or "core" in tags} | set(
+        FAMILY_SURFACE_TOOLS
+    )
     assert editor["mode"] == "profile:editor"
     assert set(editor["names"]) == expected
     assert set(CORE_TOOLS) <= set(editor["names"])
-    assert editor["count"] == 108
+    assert set(FAMILY_SURFACE_TOOLS) <= set(editor["names"])
+    assert editor["count"] == 117  # 108 direct + the compact family surface
 
 
 def test_unknown_profile_aborts_startup_instead_of_silently_degrading():
@@ -299,12 +311,12 @@ def test_unknown_profile_aborts_startup_instead_of_silently_degrading():
 
 def test_in_process_reconfigure_cycles_never_strand_tools():
     configure_tool_surface()
-    assert _surface_names() == set(CORE_TOOLS)
+    assert _surface_names() == _default_surface()
     configure_tool_surface("profile:editor")
     assert set(CORE_TOOLS) <= _surface_names()
     configure_tool_surface("all")
     assert _surface_names() == set(TOOL_REGISTRY)
     configure_tool_surface()
-    assert _surface_names() == set(CORE_TOOLS)
+    assert _surface_names() == _default_surface()
     configure_tool_surface("all")
     assert _surface_names() == set(TOOL_REGISTRY)
