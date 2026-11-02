@@ -18,10 +18,9 @@ Use this workflow when you need proof that Kinocut can move from install to revi
 2. **01-trim**: Trim to the proof segment.
 3. **02-resize**: Resize to `9:16`.
 4. **03-caption**: Add proof hook text.
-5. **04-normalize**: Normalize audio to `-14 LUFS`.
-6. **05-export**: Export final MP4.
-7. **06-checkpoint**: Run quality check and release checkpoint.
-8. **07-receipt**: Write `video_receipt.json`.
+5. **04-normalize-final**: Normalize audio to `-14 LUFS` directly into `final_clip.mp4`, avoiding the later AAC re-encode that raised the measured true peak from `-4.84` to `-0.61 dBTP` in the baseline render.
+6. **05-checkpoint**: Run quality check and release checkpoint.
+7. **06-receipt**: Write `video_receipt.json`.
 
 ## Outputs
 
@@ -31,8 +30,7 @@ Use this workflow when you need proof that Kinocut can move from install to revi
 | Trimmed clip | `output/01_trimmed.mp4` | MP4 |
 | Vertical clip | `output/02_vertical.mp4` | MP4 |
 | Captioned clip | `output/03_captioned.mp4` | MP4 |
-| Normalized clip | `output/04_normalized.mp4` | MP4 |
-| Final clip | `output/final_clip.mp4` | MP4 |
+| Final normalized clip | `output/final_clip.mp4` | MP4 |
 | Quality report | `output/quality.json` | JSON |
 | Release checkpoint | `output/checkpoint/` | JSON + thumbnail/storyboard |
 | Video Receipt | `output/video_receipt.json` | JSON |

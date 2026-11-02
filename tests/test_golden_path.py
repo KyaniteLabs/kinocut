@@ -2,15 +2,18 @@ from __future__ import annotations
 
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from types import SimpleNamespace
+from typing import Any
 
 import pytest
 
-from kinocut import __version__
+from kinocut import Client, __version__
 from kinocut.errors import MCPVideoError
+from kinocut.quality_guardrails import VisualQualityGuardrails
 from kinocut.source_identity import stream_source_identity
 from scripts import generate_golden_pack, golden_path, verify_onboarding_release as verify
 
@@ -251,6 +254,101 @@ def test_confidence_workflow_start_error_is_typed_and_bounded(monkeypatch: pytes
     with pytest.raises(MCPVideoError, match="x") as caught:
         confidence_workflow._run(["missing-ffmpeg"])
     assert len(str(caught.value)) < 1200
+
+
+def test_confidence_workflow_uses_normalized_mp4_as_final_export(
+    tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setattr(confidence_workflow, "OUTPUT_DIR", tmp_path)
+    final_output = tmp_path / "final_clip.mp4"
+    normalized_outputs: list[str] = []
+
+    class FakeClient:
+        def _media(self, output: str) -> SimpleNamespace:
+            path = Path(output)
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(b"rendered media")
+            return SimpleNamespace(output_path=str(path))
+
+        def trim(self, video: str, **kwargs: Any) -> SimpleNamespace:
+            return self._media(kwargs["output"])
+
+        resize = trim
+
+        def add_text(self, video: str, **kwargs: Any) -> SimpleNamespace:
+            return self._media(kwargs["output"])
+
+        def normalize_audio(self, video: str, *, target_lufs: float, output: str) -> SimpleNamespace:
+            normalized_outputs.append(output)
+            assert target_lufs == -14.0
+            return self._media(output)
+
+        def convert(self, *args: Any, **kwargs: Any) -> None:
+            pytest.fail("The final normalized MP4 must not be AAC-reencoded")
+
+    tool_calls: list[dict[str, Any]] = []
+    result = confidence_workflow._edit_video(FakeClient(), tmp_path / "source.mp4", 6, tool_calls)
+
+    assert result == str(final_output)
+    assert normalized_outputs == [str(final_output)]
+    assert tool_calls[-1] == {
+        "stage": "04-normalize-final",
+        "tool": "Client.normalize_audio",
+        "output": str(final_output),
+    }
+
+
+@pytest.mark.slow
+def test_audio_quality_gate_rejects_true_peak_over_limit(tmp_path: Path) -> None:
+    if shutil.which("ffmpeg") is None:
+        pytest.skip("FFmpeg not installed")
+    over_limit = tmp_path / "audio-over-limit.mkv"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=size=320x240:rate=10:duration=2",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=1000:sample_rate=48000:duration=2",
+            "-map",
+            "0:v:0",
+            "-map",
+            "1:a:0",
+            "-af",
+            "volume='if(between(t,1,1.05),7.5,1.95)':eval=frame",
+            "-c:v",
+            "libx264",
+            "-preset",
+            "ultrafast",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:a",
+            "pcm_s16le",
+            "-shortest",
+            "-f",
+            "matroska",
+            str(over_limit),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=60,
+    )
+
+    quality = Client().quality_check(str(over_limit), fail_on_warning=True)
+    quality_json = quality if isinstance(quality, dict) else quality.model_dump()
+    audio = next(check for check in quality_json["checks"] if check["name"] == "audio_levels")
+
+    assert VisualQualityGuardrails.AUDIO_TRUE_PEAK_MAX == -1
+    assert VisualQualityGuardrails.AUDIO_LUFS_MIN <= audio["details"]["lufs"] <= VisualQualityGuardrails.AUDIO_LUFS_MAX
+    assert audio["details"]["true_peak"] > VisualQualityGuardrails.AUDIO_TRUE_PEAK_MAX
+    assert audio["passed"] is False
+    with pytest.raises(MCPVideoError, match="raw quality"):
+        confidence_workflow._validate_raw_quality(quality_json)
 
 
 def test_synthetic_generators_execute_the_same_shared_recipe(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
