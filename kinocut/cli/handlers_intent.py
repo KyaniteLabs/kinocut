@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from contextlib import nullcontext
 from typing import Any
 
 from .runner import CommandRunner, _out
@@ -123,9 +124,14 @@ def _register_review_commands(runner: CommandRunner) -> None:
             r = decide_sphere_plan(run, a.decision)
             output = getattr(a, "output", None)
             if r.get("status") == "approved" and output:
-                # --overwrite expresses consent for the final output only;
-                # per-render private work roots keep internal files collision-free.
-                with output_operation(bool(getattr(a, "overwrite", False))):
+                # Consent never narrows here: a command-local --overwrite only
+                # widens the scope inherited from the global `kino --overwrite`
+                # (established by main()); re-entering output_operation(False)
+                # would discard that inherited consent. Private per-render
+                # work roots keep internal files collision-free without any
+                # overwrite consent at all.
+                scope = output_operation(True) if getattr(a, "overwrite", False) else nullcontext()
+                with scope:
                     r["sphere_render"] = render_sphere_plan(r, output)
             _out(r, j, lambda res: f"360 assembly status={res['status']}")
             return

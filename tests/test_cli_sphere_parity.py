@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
+import kinocut
 from kinocut.cli.handlers_intent import handle_intent_commands
 from kinocut.cli.parser import build_parser
 from kinocut.client.estimates import ClientEstimatesMixin
@@ -179,6 +182,47 @@ def test_review_decide_second_render_and_overwrite_flag(sphere_scene, tmp_path, 
         ["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4"), "--overwrite"], capsys
     )
     assert replaced["sphere_render"]["status"] == "rendered"
+
+
+def test_review_decide_overwrite_flag_positions_via_real_cli(sphere_scene, tmp_path):
+    """t_f0d4f023 P2: through the real ``python -m kinocut`` entry point, the
+    documented global ``--overwrite`` (before the subcommand) and the
+    command-local ``--overwrite`` (after it) both consent to replacing the
+    final output; with no flag an existing final is refused and preserved."""
+    repo_root = Path(kinocut.__file__).resolve().parents[1]
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(json.dumps(propose_sphere_plan(str(sphere_scene))))
+    target = tmp_path / "out.mp4"
+    env = dict(os.environ, PYTHONPATH=str(repo_root))
+
+    def run_cli(global_overwrite: bool, local_overwrite: bool):
+        argv = [sys.executable, "-m", "kinocut", "--format", "json"]
+        if global_overwrite:
+            argv.append("--overwrite")
+        argv += ["review-decide", str(plan_path), "accept", "--output", str(target)]
+        if local_overwrite:
+            argv.append("--overwrite")
+        return subprocess.run(argv, env=env, capture_output=True, text=True, timeout=180)
+
+    initial = run_cli(False, False)  # fresh target: renders without consent
+    assert initial.returncode == 0
+    assert json.loads(initial.stdout)["sphere_render"]["status"] == "rendered"
+    before = hashlib.sha256(target.read_bytes()).hexdigest()
+
+    denied = run_cli(False, False)  # no-consent control: existing final refused
+    assert denied.returncode != 0
+    error = json.loads(denied.stderr or denied.stdout)["error"]
+    assert error["code"] == "output_exists"
+    assert "--overwrite" in error["message"]  # remediation names a real flag
+    assert hashlib.sha256(target.read_bytes()).hexdigest() == before  # bytes preserved
+
+    global_only = run_cli(True, False)  # documented global flag position
+    assert global_only.returncode == 0, global_only.stderr
+    assert json.loads(global_only.stdout)["sphere_render"]["status"] == "rendered"
+
+    local_only = run_cli(False, True)  # command-local flag position
+    assert local_only.returncode == 0, local_only.stderr
+    assert json.loads(local_only.stdout)["sphere_render"]["status"] == "rendered"
 
 
 def test_client_estimates_use_shared_local_oracle():
