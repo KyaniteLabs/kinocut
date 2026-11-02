@@ -43,12 +43,7 @@ def probe_360_source(path: str) -> dict[str, Any]:
             "360 source changed while probing", error_type="validation_error", code="source_identity_changed"
         )
     if not _looks_equirect(width, height, spherical):
-        raise MCPVideoError(
-            f"Not a 360 equirect source ({width}x{height}). Export a stitched "
-            "2:1 equirect MP4 (any camera). Raw dual-fisheye is not accepted.",
-            error_type="validation_error",
-            code="not_360_equirect",
-        )
+        _raise_not_equirect(width, height)
     via = "spherical_metadata" if spherical else "aspect"
     return {
         "path": resolved,
@@ -61,6 +56,37 @@ def probe_360_source(path: str) -> dict[str, Any]:
         "accepted_via": via,
         "vendor_hint": _vendor_hint(resolved, tag_blob),
     }
+
+
+def reject_raw_360_container(path: str) -> None:
+    """Intake raw-container rejection, cheap enough to run anywhere.
+
+    ``.insv``/``.360`` sources are policy-rejected on suffix alone, before any
+    decode, hashing or identity work — a forged plan cannot outrun it.
+    """
+    _reject_raw_container(path)
+
+
+def assert_equirect_geometry(path: str) -> None:
+    """Re-apply the equirect geometry check at the render seam.
+
+    Runs ffprobe on the current bytes and fails closed when the file behind an
+    approved plan is not a ~2:1 / spherical source — the quality gate
+    (bypassable via ``allow_fail``) must never be the only barrier left.
+    """
+    resolved = _validate_input_path(path)
+    width, height, _duration, spherical, _blob = _probe_geometry(resolved)
+    if not _looks_equirect(width, height, spherical):
+        _raise_not_equirect(width, height)
+
+
+def _raise_not_equirect(width: int, height: int) -> None:
+    raise MCPVideoError(
+        f"Not a 360 equirect source ({width}x{height}). Export a stitched "
+        "2:1 equirect MP4 (any camera). Raw dual-fisheye is not accepted.",
+        error_type="validation_error",
+        code="not_360_equirect",
+    )
 
 
 def _reject_raw_container(path: str) -> None:

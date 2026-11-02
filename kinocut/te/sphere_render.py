@@ -17,6 +17,7 @@ from kinocut.quality_guardrails import assert_quality
 from kinocut.source_identity import assert_source_identity, stream_source_identity
 from kinocut.te.sphere_graph import render_window_single_pass
 from kinocut.te.sphere_plan import require_approved
+from kinocut.te.sphere_probe import assert_equirect_geometry, reject_raw_360_container
 from kinocut.te.sphere_storyboard import extract_camera_clip
 
 logger = logging.getLogger(__name__)
@@ -33,6 +34,11 @@ def render_sphere_plan(
     """Extract cameras and assemble split/pip/switch/single. Requires approved."""
     current = require_approved(deepcopy(plan))
     source = current["source"]["path"]
+    # Intake rejection re-applied at the render seam: a forged or stale plan
+    # pointing at a rejected source must fail closed before any decode. The
+    # raw-container gate is pure and runs first; the quality gate (bypassable
+    # via allow_fail) must never be the only barrier.
+    reject_raw_360_container(source)
     identity = stream_source_identity(source)
     if identity.asset_id != current["source"]["sha256"]:
         raise MCPVideoError(
@@ -40,6 +46,7 @@ def render_sphere_plan(
             error_type="validation_error",
             code="source_identity_changed",
         )
+    assert_equirect_geometry(source)
     source_key = _cache_key(source)
     _validate_output_path(output_path)
     root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
