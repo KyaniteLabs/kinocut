@@ -1,0 +1,6849 @@
+{
+ "captured": {
+  "git_commit": "2cf76e98e82a6f026ef4679fba93933c809e4535",
+  "kind": "repo-modes",
+  "kinocut_metadata_version": "1.16.5",
+  "kinocut_source_version": "1.16.5",
+  "mcp_sdk_version": "1.28.1",
+  "platform": "Linux-6.17.0-1033-oem-x86_64-with-glibc2.39",
+  "python_version": "3.12.3"
+ },
+ "modes": {
+  "all": {
+   "launch": {
+    "command": [
+     "-m",
+     "kinocut",
+     "--mcp"
+    ],
+    "cwd": ".",
+    "env_kinocut_tools": "all"
+   },
+   "mode": "all",
+   "server_info": {
+    "name": "kinocut",
+    "version": "1.16.5"
+   },
+   "tool_count": 205,
+   "tool_names_sha256": "65ff9dd382cb5ff733bcb9b0bee5df37991232800d62fa6f5972ce2002113a07",
+   "tools": [
+    {
+     "input_schema_bytes": 506,
+     "input_schema_sha256": "9125e037b0ce667194f888a1f4e3e24ca584c9eb9ccd0e54e511c27f005f591e",
+     "module": "server_tools_audio",
+     "name": "audio_compose",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duration",
+      "output_path",
+      "overwrite",
+      "tracks"
+     ],
+     "required_params": [
+      "duration",
+      "output_path",
+      "tracks"
+     ]
+    },
+    {
+     "input_schema_bytes": 515,
+     "input_schema_sha256": "a14ab3cb1db2cd74ccd204671b27d311442aefa6d330b605d39a5649c544cbf0",
+     "module": "server_tools_audio",
+     "name": "audio_effects",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "effects",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "effects",
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 635,
+     "input_schema_sha256": "9a994775d0385d5805f6272047590cbc699a4f7add06a0fb638b694aca5b5dbe",
+     "module": "server_tools_audio",
+     "name": "audio_preset",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duration",
+      "intensity",
+      "output_path",
+      "overwrite",
+      "pitch",
+      "preset"
+     ],
+     "required_params": [
+      "preset"
+     ]
+    },
+    {
+     "input_schema_bytes": 454,
+     "input_schema_sha256": "3b372cdb62a5f7027bf67c81751828459f9278c59bb60279d1037a6ab86aa879",
+     "module": "server_tools_audio",
+     "name": "audio_sequence",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "sequence"
+     ],
+     "required_params": [
+      "output_path",
+      "sequence"
+     ]
+    },
+    {
+     "input_schema_bytes": 728,
+     "input_schema_sha256": "a757824db53b7dd4a091195417e14260c2ac7fbbd330f0e3dc02e32ea73827eb",
+     "module": "server_tools_audio",
+     "name": "audio_synthesize",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duration",
+      "effects",
+      "frequency",
+      "output_path",
+      "overwrite",
+      "volume",
+      "waveform"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 538,
+     "input_schema_sha256": "eade3b9af195742c161100e995c9e53a241dcd8c4f1ceac9a8ae4c517ad2fc8a",
+     "module": "server_tools_effects",
+     "name": "effect_chromatic_aberration",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "angle",
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 590,
+     "input_schema_sha256": "d98d39992ffc84e1b7b65014b985a37415c59ff6e447228e0ec08d143ec4c762",
+     "module": "server_tools_effects",
+     "name": "effect_glow",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite",
+      "radius",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 591,
+     "input_schema_sha256": "402bc194d754d11953067da7fb743e8349f388f3c145b219e405fc7cbed41e4b",
+     "module": "server_tools_effects",
+     "name": "effect_noise",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "animated",
+      "input_path",
+      "intensity",
+      "mode",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 596,
+     "input_schema_sha256": "6325284c5fdb0eafe821b5ba0b7fc571802c829717cdee133dca8bd2de9a1e2c",
+     "module": "server_tools_effects",
+     "name": "effect_scanlines",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "flicker",
+      "input_path",
+      "line_height",
+      "opacity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 625,
+     "input_schema_sha256": "e10b1c406e2663dac28ed931a805d1270a88d19aba4fbc4a6cb7c215d399ddbd",
+     "module": "server_tools_effects",
+     "name": "effect_vignette",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite",
+      "radius",
+      "smoothness"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "33bc6ea36f2ce8e67289e1eea4d6de91823f6deadc8c37a2b7fcc61e904d3bc3",
+     "module": "server_tools_glitch",
+     "name": "glitch_cmyk_split",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "amount",
+      "angle",
+      "input_path",
+      "noise",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 573,
+     "input_schema_sha256": "713536404a161ed0fef302548073406e881b8eeb0fdd8835320df05aeefb1565",
+     "module": "server_tools_glitch",
+     "name": "glitch_datamoshing",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "drift",
+      "iframe_interval",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 701,
+     "input_schema_sha256": "b2f1fdccd781055a6f4fddcb77b6c0d1be340f8c220fc8bf13d9e69821af40dc",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_depth_splatting",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "depth_scale",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "point_size",
+      "spread",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 689,
+     "input_schema_sha256": "cc36dc79aa0f3e6e4ab2b01e4967e0d7e9cc467e947cf45b230541cd5c454444",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_digital_feedback",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "decay",
+      "feedback_mix",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "rotation",
+      "scale"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 648,
+     "input_schema_sha256": "8f92000cf7358546b427cdebd00f67cd03ff38129a32ccdc38f0aec1d9e8fe4f",
+     "module": "server_tools_glitch",
+     "name": "glitch_macroblocking",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "block_size",
+      "color_reduction",
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 684,
+     "input_schema_sha256": "a049e2dc9f5604fdac39c17b5354812f5fd0e23d067a8d8368cff730e9f076d1",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_point_cloud",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "density",
+      "depth",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "point_size",
+      "rotation"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "cb44228bee969e694f890ad9785bfa09a5b9e151cc66903c85917a5eb5bb9d3b",
+     "module": "server_tools_glitch",
+     "name": "glitch_rgb_shift",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "amount",
+      "angle",
+      "input_path",
+      "noise",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 702,
+     "input_schema_sha256": "831fc40af7f836b12fc545055d67fd82996919c83f21247ffdacc643345a787a",
+     "module": "server_tools_glitch",
+     "name": "glitch_scanline_jitter",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "frequency",
+      "input_path",
+      "jitter_amount",
+      "output_path",
+      "overwrite",
+      "row_height",
+      "speed"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 635,
+     "input_schema_sha256": "78262cf28840e6ec59d865d3f1db6b6a27c5be47e814606b957d033defc8cf64",
+     "module": "server_tools_glitch",
+     "name": "glitch_screen_tearing",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "offset_range",
+      "output_path",
+      "overwrite",
+      "speed",
+      "tear_count"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 557,
+     "input_schema_sha256": "f7654750ba6d9a7bfd7680dd5af49b2b5c87037ccdba7bacb66a1af01320dea7",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_slit_scan",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "depth",
+      "direction",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 682,
+     "input_schema_sha256": "37256869f9295f9e7be1e9f681a5afd1dfe2f78f55928c0da21443fab03d5ed2",
+     "module": "server_tools_glitch",
+     "name": "glitch_turbulent_displacement",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "amount",
+      "input_path",
+      "octaves",
+      "output_path",
+      "overwrite",
+      "scale",
+      "speed"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 708,
+     "input_schema_sha256": "12743eb29ddd89778d718c606fb9167356b2c8af320b28da5df6a6529784834d",
+     "module": "server_tools_glitch",
+     "name": "glitch_vhs_tracking",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "color_bleed",
+      "input_path",
+      "noise_amount",
+      "output_path",
+      "overwrite",
+      "roll_speed",
+      "tracking"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 490,
+     "input_schema_sha256": "8b8b06756ea8674adefd03f6ae9a2bf0c8657756db760b9338f6f828387095f0",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_add_block",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "block_name",
+      "no_clipboard",
+      "overwrite",
+      "project_path"
+     ],
+     "required_params": [
+      "block_name",
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 603,
+     "input_schema_sha256": "15697d25c686cd7129e561662622d9dabd076bbb66b93f939268f4fb9f9903aa",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_benchmark",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "json_output",
+      "output_path",
+      "overwrite",
+      "project_path",
+      "runs"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 683,
+     "input_schema_sha256": "795bcb1812b9bc46b1cd10a46aaf5bb1ed901ba063eb4f06f6f4a4907bc921c9",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_capture",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "max_screenshots",
+      "output",
+      "overwrite",
+      "skip_assets",
+      "timeout_ms",
+      "url"
+     ],
+     "required_params": [
+      "url"
+     ]
+    },
+    {
+     "input_schema_bytes": 440,
+     "input_schema_sha256": "07670b427742e79900486cb564627fb89d1926aa344b30e5e9ce31e6a7e5b8ad",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_catalog",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "item_type",
+      "overwrite",
+      "tag"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 355,
+     "input_schema_sha256": "f1b5d4f481f93d4ae88e13ac08c3d12456f7d01fe41c99569abd66bc6a70d3e3",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_compositions",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite",
+      "project_path"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 265,
+     "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_doctor",
+     "profiles": [
+      "core",
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 347,
+     "input_schema_sha256": "dc57635d29cfdafc4ca52b1cf238c3e49fd13672eacf9e8d358a2d705e23d523",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_info",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite",
+      "project_path"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1069,
+     "input_schema_sha256": "423610ce6905953610aa3f4df5612ce60b7af4054bd4c8f7e25586b1e3e2a8f1",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_init",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "audio",
+      "language",
+      "model",
+      "name",
+      "output_dir",
+      "overwrite",
+      "resolution",
+      "skip_transcribe",
+      "tailwind",
+      "template",
+      "video"
+     ],
+     "required_params": [
+      "name"
+     ]
+    },
+    {
+     "input_schema_bytes": 799,
+     "input_schema_sha256": "aee75544962a98af330db82baff1f6ecb384b7f5ff06578e4c178cc362178452",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_inspect",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "at",
+      "max_issues",
+      "overwrite",
+      "project_path",
+      "samples",
+      "strict",
+      "timeout_ms",
+      "tolerance"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 406,
+     "input_schema_sha256": "e736a5c7e6c4fed7f1c768e52d7e493da3bfec98e4d7ea64c3a19eae524df0ea",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_preview",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite",
+      "port",
+      "project_path"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1142,
+     "input_schema_sha256": "61d77c635db0f2347afd721b9dfcacbb68d53e11a961956ac75f7e86fc462b97",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_remove_background",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "background_output_path",
+      "device",
+      "equipment_overlay",
+      "fail_if_equipment_on_subject",
+      "info",
+      "input_path",
+      "mask_interval",
+      "model",
+      "output_path",
+      "overwrite",
+      "quality"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 2305,
+     "input_schema_sha256": "8547571854b37cc6f29286e99b24d36c3be100b5e497049b36e30262a01929b4",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_render",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "browser_gpu",
+      "composition",
+      "crf",
+      "docker",
+      "format",
+      "fps",
+      "gpu",
+      "hdr",
+      "height",
+      "max_concurrent_renders",
+      "no_browser_gpu",
+      "output_path",
+      "overwrite",
+      "project_path",
+      "quality",
+      "quiet",
+      "resolution",
+      "sdr",
+      "strict",
+      "strict_all",
+      "strict_variables",
+      "variables",
+      "variables_file",
+      "video_bitrate",
+      "width",
+      "workers"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 789,
+     "input_schema_sha256": "84a0840557587f2f3f0430b18ae4be568a33ae02c6a9b26b753989fc439bdaaf",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_snapshot",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "at",
+      "frames",
+      "overwrite",
+      "project_path",
+      "timeout_ms",
+      "variables",
+      "variables_file"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 681,
+     "input_schema_sha256": "0b82bc490b3386d1e2389fe35625646ad18cc7c518ebc87c6cd1c0e0ab271d37",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_still",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "frame",
+      "output_path",
+      "overwrite",
+      "project_path",
+      "variables",
+      "variables_file"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 575,
+     "input_schema_sha256": "7bf8643c6021a2acc35ef5c447c56f89a742eaea385ca9db98eef8f77429168d",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_to_mcpvideo",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "post_process",
+      "project_path"
+     ],
+     "required_params": [
+      "post_process",
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 622,
+     "input_schema_sha256": "6eda3da600c1b52bfa3e59640b545384893606eed55c6977f9a32bdcf9dc1246",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_transcribe",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "input_path",
+      "language",
+      "model",
+      "overwrite",
+      "project_path"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 790,
+     "input_schema_sha256": "d44cd575c684edc933ffde7e110a35ae980cb2fa27b4f359d29f29dce86ceb37",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_tts",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "language",
+      "list_voices",
+      "output_path",
+      "overwrite",
+      "speed",
+      "text_or_file",
+      "voice"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 351,
+     "input_schema_sha256": "f4923ca153336ca02996add1804e2f6ff6c2295422f0ec2a2ac494477327f22f",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_validate",
+     "profiles": [
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite",
+      "project_path"
+     ],
+     "required_params": [
+      "project_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 468,
+     "input_schema_sha256": "387b35c52f1e9e38b8f2b939fcc574baa2bf7882614943408b2ce3368dec9a64",
+     "module": "server_tools_image",
+     "name": "image_analyze_product",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "image_path",
+      "n_colors",
+      "overwrite",
+      "use_ai"
+     ],
+     "required_params": [
+      "image_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 704,
+     "input_schema_sha256": "bdb49c97d8b79f8d1fcfd6fa69f1ad9dd5aabd4913dc6ef711be796c143d140a",
+     "module": "server_tools_image",
+     "name": "image_edit",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "allow_paid_gen",
+      "dry_run",
+      "intent",
+      "output_dir",
+      "overwrite",
+      "prefer",
+      "reference",
+      "source"
+     ],
+     "required_params": [
+      "intent",
+      "output_dir",
+      "reference",
+      "source"
+     ]
+    },
+    {
+     "input_schema_bytes": 406,
+     "input_schema_sha256": "05ce13a2627138a3f7c91204e52056bd89a86d1e4f686811c92676375c0ed199",
+     "module": "server_tools_image",
+     "name": "image_extract_colors",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "image_path",
+      "n_colors",
+      "overwrite"
+     ],
+     "required_params": [
+      "image_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 480,
+     "input_schema_sha256": "74de390b81776571104ddc51bfbdf9e1ada99de8c4bdfdd5be78f6830330f227",
+     "module": "server_tools_image",
+     "name": "image_generate_palette",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "harmony",
+      "image_path",
+      "n_colors",
+      "overwrite"
+     ],
+     "required_params": [
+      "image_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 404,
+     "input_schema_sha256": "457c93606bb03516d5e696e0b4cdf8671e2c72e44383ec532bf3069976ded6b3",
+     "module": "server_tools_revideo",
+     "name": "revideo_install",
+     "profiles": [
+      "revideo"
+     ],
+     "properties": [
+      "overwrite",
+      "project_dir",
+      "timeout"
+     ],
+     "required_params": [
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 497,
+     "input_schema_sha256": "8c2f6a9e13ae2a1f6fdc601bd95147e1db0de305847c7baaa98ddb576e15e932",
+     "module": "server_tools_revideo",
+     "name": "revideo_materialize",
+     "profiles": [
+      "revideo"
+     ],
+     "properties": [
+      "dest",
+      "job",
+      "overwrite",
+      "scene_source"
+     ],
+     "required_params": [
+      "dest",
+      "job"
+     ]
+    },
+    {
+     "input_schema_bytes": 471,
+     "input_schema_sha256": "096fd8ee0010be8626161173820f8eabcf355b4f6d7c7fae3359545f5c84772a",
+     "module": "server_tools_revideo",
+     "name": "revideo_render",
+     "profiles": [
+      "revideo"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "project_dir",
+      "timeout"
+     ],
+     "required_params": [
+      "output_path",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 760,
+     "input_schema_sha256": "b0f002aaeb8c59f2e2b9f021bb5ef786f2292ae72fca3972abec861fcdf93f0d",
+     "module": "server_tools_revideo",
+     "name": "revideo_render_job",
+     "profiles": [
+      "revideo"
+     ],
+     "properties": [
+      "install_timeout",
+      "job",
+      "output_path",
+      "overwrite",
+      "render_timeout",
+      "scene_source",
+      "work_dir"
+     ],
+     "required_params": [
+      "job",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "9e108f9314c825f6fe235e2730209766422a97c4aea65de3cdac00c53a82b67c",
+     "module": "server_tools_basic",
+     "name": "search_tools",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "query"
+     ],
+     "required_params": [
+      "query"
+     ]
+    },
+    {
+     "input_schema_bytes": 596,
+     "input_schema_sha256": "10af9ec9f0c66c37e7ab250aa10766260caa5e5386c713c006e6e70a6d68c6e9",
+     "module": "server_tools_shorts",
+     "name": "shorts_package",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "allow_fail",
+      "candidate_id",
+      "overwrite",
+      "package_root",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "candidate_id",
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 359,
+     "input_schema_sha256": "273a3057dc3d0b834986a8e9870b209b3073291ceeda9ecee837ff774b2b3b29",
+     "module": "server_tools_shorts",
+     "name": "shorts_plan_show",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "overwrite",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 524,
+     "input_schema_sha256": "fdce760c5962dd6ed6b0b03173f1463c6fdff8dfa922bea744d6aac73cb9459a",
+     "module": "server_tools_shorts",
+     "name": "shorts_render",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "candidate_id",
+      "output_path",
+      "overwrite",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "candidate_id",
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 643,
+     "input_schema_sha256": "1f4bbbf4fcf4745b023f3c96145ccf02fc4a532b3b074fce1215003828f53f21",
+     "module": "server_tools_shorts",
+     "name": "shorts_review",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "candidate_id",
+      "decision",
+      "evidence_ref",
+      "overwrite",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "candidate_id",
+      "decision",
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 396,
+     "input_schema_sha256": "6b02bb49e07f7580c8bbeaf62ef0c9850be4fde9381f5c39e2b30eae2e098787",
+     "module": "server_tools_creation",
+     "name": "shot_prompt_render",
+     "profiles": [
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "project_path",
+      "shot"
+     ],
+     "required_params": [
+      "project_path",
+      "shot"
+     ]
+    },
+    {
+     "input_schema_bytes": 265,
+     "input_schema_sha256": "a46dcefd83d18f269f60afeeb23f6a463d6534e4451c19f39f668cea130cdcc5",
+     "module": "server_tools_sound",
+     "name": "sound_capabilities",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 434,
+     "input_schema_sha256": "c231331d038b50cc77a033b1f75a8b80c5aa98b16157d837d579b56092dfe975",
+     "module": "server_tools_sound",
+     "name": "sound_master_render",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite",
+      "project_root",
+      "request"
+     ],
+     "required_params": [
+      "project_root",
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 479,
+     "input_schema_sha256": "6914510d224cdf2a68c703c3b33ffdaf13881f05f31a130f47d949b2aba3a3ce",
+     "module": "server_tools_sound",
+     "name": "sound_mix_render",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite",
+      "project_root",
+      "request"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 377,
+     "input_schema_sha256": "c8a5b9252d8dba2b795e43bf39c578367d5849a9b882045da004a74d1468829e",
+     "module": "server_tools_sound",
+     "name": "sound_plan_validate",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite",
+      "plan"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 457,
+     "input_schema_sha256": "0b958df267f14e1558fd89f2c4b3b2c09453af76d6454db9a4122d4e8eeefc64",
+     "module": "server_tools_sound",
+     "name": "sound_qa_asr",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite",
+      "project_root",
+      "request"
+     ],
+     "required_params": [
+      "project_root",
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 480,
+     "input_schema_sha256": "477d3f5e286df2729bee89756c21ad7a5287aa5d7c810c8802bda1e1d9c1867b",
+     "module": "server_tools_sound",
+     "name": "sound_qa_loudness",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite",
+      "project_root",
+      "request"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 591,
+     "input_schema_sha256": "10051f8473676dc0d3a56133d805c3baf6eddecdb018a6bbd5346d64e918d2cc",
+     "module": "server_tools_sound",
+     "name": "sound_voice_batch",
+     "profiles": [
+      "audio"
+     ],
+     "properties": [
+      "overwrite",
+      "plan",
+      "project_root",
+      "request"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 413,
+     "input_schema_sha256": "31a456ecdf1b794cf4628a5e32960b380a053255acef8f5d7922d2b9c1d0c97d",
+     "module": "server_tools_image",
+     "name": "still_gate",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "inputs",
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "inputs",
+      "output_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 659,
+     "input_schema_sha256": "1940eae53dc96dc6fdc4522e4c756e842c6af6935b4dca2a2cb59e3d1a380449",
+     "module": "server_tools_image",
+     "name": "still_grade",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "hero",
+      "inputs",
+      "lut_path",
+      "output_dir",
+      "overwrite",
+      "signal_mode"
+     ],
+     "required_params": [
+      "inputs",
+      "output_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 461,
+     "input_schema_sha256": "7738ef67727f7bdabe9c5ed306df0f6901c5b9b29c9bec981d242b0057b83590",
+     "module": "server_tools_image",
+     "name": "still_match",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "hero",
+      "inputs",
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "hero",
+      "inputs",
+      "output_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 770,
+     "input_schema_sha256": "ec23258f679afb946014e7186b0d1606d71624f6dea3173cad75f8ce5e43f1ff",
+     "module": "server_tools_image",
+     "name": "still_package",
+     "profiles": [
+      "image"
+     ],
+     "properties": [
+      "apply_grade",
+      "beats",
+      "dry_run",
+      "establish",
+      "lut_path",
+      "output_dir",
+      "overwrite",
+      "signal_mode"
+     ],
+     "required_params": [
+      "beats",
+      "establish",
+      "output_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "dacfc3b189dde88e42dfb53daea40b198ee34d437d2353cf76b08eaf6a3b7e02",
+     "module": "server_tools_creation",
+     "name": "storyboard_read",
+     "profiles": [
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "path"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "9e262cf0502f73976e3b897eb78a8b913eaf8bf3254bd8b8be1ec3efed782ecd",
+     "module": "server_tools_creation",
+     "name": "style_pack_read",
+     "profiles": [
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "path"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 630,
+     "input_schema_sha256": "a8f096ede033e741bf67477575d4510ff2abb0a355e6c30f6ea974a5e23f37a2",
+     "module": "server_tools_effects",
+     "name": "transition_glitch",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "clip1_path",
+      "clip2_path",
+      "duration",
+      "intensity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "clip1_path",
+      "clip2_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 600,
+     "input_schema_sha256": "94ed8927d5e70e3407e9c96a432e542b9c68d46b422555c8076f9444dfb8c32e",
+     "module": "server_tools_effects",
+     "name": "transition_morph",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "clip1_path",
+      "clip2_path",
+      "duration",
+      "mesh_size",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "clip1_path",
+      "clip2_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 605,
+     "input_schema_sha256": "82fe36a1d29b75e470c0909c7644e259b0f279ecd5b40d224098ed3d5d4cff54",
+     "module": "server_tools_effects",
+     "name": "transition_pixelate",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "clip1_path",
+      "clip2_path",
+      "duration",
+      "output_path",
+      "overwrite",
+      "pixel_size"
+     ],
+     "required_params": [
+      "clip1_path",
+      "clip2_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 531,
+     "input_schema_sha256": "56734195e81ec8d05e446a145e717a437bfdc556d8aebdacf35aa521a64f9702",
+     "module": "server_tools_aivideo",
+     "name": "video_acceptance_eval",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "acceptance_spec_id",
+      "overwrite",
+      "project_dir",
+      "verdict_ids"
+     ],
+     "required_params": [
+      "acceptance_spec_id",
+      "project_dir",
+      "verdict_ids"
+     ]
+    },
+    {
+     "input_schema_bytes": 1854,
+     "input_schema_sha256": "8394854f2c879c769d51948f7ec01945ec59cd83f150d2e1d2592c7125bcd50d",
+     "module": "server_tools_basic",
+     "name": "video_add_audio",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "audio_path",
+      "duration_policy",
+      "fade_in",
+      "fade_out",
+      "mix",
+      "output_path",
+      "overwrite",
+      "start_time",
+      "video_path",
+      "volume"
+     ],
+     "required_params": [
+      "audio_path",
+      "video_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 517,
+     "input_schema_sha256": "15b43acf7896974073ee35161ca9ed21e43cf920dae9714721c8222588fe48ff",
+     "module": "server_tools_audio",
+     "name": "video_add_generated_audio",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "audio_config",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "audio_config",
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1224,
+     "input_schema_sha256": "b85c254de0e267d5ff791867cbaaadd1baa58cd21c003ee322b74cf1460b34fe",
+     "module": "server_tools_basic",
+     "name": "video_add_text",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "color",
+      "crf",
+      "duration",
+      "font",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "position",
+      "preset",
+      "shadow",
+      "size",
+      "start_time",
+      "text"
+     ],
+     "required_params": [
+      "input_path",
+      "text"
+     ]
+    },
+    {
+     "input_schema_bytes": 779,
+     "input_schema_sha256": "0e51ab7905b86a98d8ba117f5161f553a9c007fada983a19a9b2fd3657899414",
+     "module": "server_tools_basic",
+     "name": "video_add_texts",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "auto_layout",
+      "crf",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "preset",
+      "texts"
+     ],
+     "required_params": [
+      "input_path",
+      "texts"
+     ]
+    },
+    {
+     "input_schema_bytes": 666,
+     "input_schema_sha256": "c77aa8d95be8b5642f4241149665c964a9956953ff86e404369bd0b1b10d11ec",
+     "module": "server_tools_ai",
+     "name": "video_ai_color_grade",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "lut_path",
+      "output_path",
+      "overwrite",
+      "reference_path",
+      "style"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 650,
+     "input_schema_sha256": "74ab2a947cf0c8ab446f3e28c68a914c75d47a34ee5f064af48737f13a6f4311",
+     "module": "server_tools_ai",
+     "name": "video_ai_remove_silence",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "keep_margin",
+      "min_silence_duration",
+      "output_path",
+      "overwrite",
+      "silence_threshold"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 471,
+     "input_schema_sha256": "198e677b90ebd0cca0331cbee45052de7f1a617e7e5814533eaffed34e1f56c1",
+     "module": "server_tools_ai",
+     "name": "video_ai_scene_detect",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite",
+      "threshold",
+      "use_ai"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 587,
+     "input_schema_sha256": "e2e69e5b701a05158574023ffc3928b8c3df42289fd47617f87685cf48d340a9",
+     "module": "server_tools_ai",
+     "name": "video_ai_stem_separation",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "model",
+      "output_dir",
+      "overwrite",
+      "stems"
+     ],
+     "required_params": [
+      "input_path",
+      "output_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 589,
+     "input_schema_sha256": "ba69b7af5b1e48970d210f0853932b91ba24d07cfb127ca47d718d53077f201a",
+     "module": "server_tools_ai",
+     "name": "video_ai_transcribe",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "language",
+      "model",
+      "output_srt",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 529,
+     "input_schema_sha256": "a05ee350971242e8550ed8c1aa8d4a087a2e9f3f54140103cfa9124ac0d23153",
+     "module": "server_tools_ai",
+     "name": "video_ai_upscale",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "model",
+      "output_path",
+      "overwrite",
+      "scale"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1428,
+     "input_schema_sha256": "8db4f87a827db1a404dba0bce195955d8764ea629cee5733f757a64c152e6fa8",
+     "module": "server_tools_ai",
+     "name": "video_analyze",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "include_audio",
+      "include_chapters",
+      "include_colors",
+      "include_quality",
+      "include_scenes",
+      "include_transcript",
+      "input_path",
+      "language",
+      "output_json",
+      "output_md",
+      "output_srt",
+      "output_txt",
+      "overwrite",
+      "scene_threshold",
+      "whisper_model"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 559,
+     "input_schema_sha256": "f442263c6d12c1ed4db2bc99c8f52075cb76e33173cafd70083a3fa82dd8f520",
+     "module": "server_tools_advanced",
+     "name": "video_apply_mask",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "feather",
+      "input_path",
+      "mask_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "mask_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1252,
+     "input_schema_sha256": "a516b598ce4654b610de6afff393199b3958a81ab7fb0953d2974eb723dfd224",
+     "module": "server_tools_audio",
+     "name": "video_audio_bed",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duck_attack",
+      "duck_ratio",
+      "duck_release",
+      "duck_threshold",
+      "fade_in",
+      "fade_out",
+      "loop",
+      "loop_crossfade",
+      "music_path",
+      "music_volume",
+      "output_path",
+      "overwrite",
+      "save_receipt",
+      "target_lufs",
+      "voice_source"
+     ],
+     "required_params": [
+      "music_path",
+      "output_path",
+      "voice_source"
+     ]
+    },
+    {
+     "input_schema_bytes": 588,
+     "input_schema_sha256": "571ca94aee7bed6a9cbfa038f9e3892beaa6bf1addcf4b3a123bfdaf531735f8",
+     "module": "server_tools_audio",
+     "name": "video_audio_spatial",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "method",
+      "output_path",
+      "overwrite",
+      "positions"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path",
+      "positions"
+     ]
+    },
+    {
+     "input_schema_bytes": 399,
+     "input_schema_sha256": "85889f9ce6f9adf534409f89131ab06efc478d94e8365621e8aeefed277fb82c",
+     "module": "server_tools_advanced",
+     "name": "video_audio_waveform",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "bins",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 589,
+     "input_schema_sha256": "0d6a8f733feb76004061da9c165a812af3eac002ea0693ac88b977a172a4ad1f",
+     "module": "server_tools_intent",
+     "name": "video_audiogram_plan",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "audio_path",
+      "chapter_marks",
+      "height",
+      "overwrite",
+      "width"
+     ],
+     "required_params": [
+      "audio_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 408,
+     "input_schema_sha256": "645876b811b15c1dde64e9f12856dc10714967c20bf6493eabb3cd137b1be4f3",
+     "module": "server_tools_effects",
+     "name": "video_auto_chapters",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 621,
+     "input_schema_sha256": "9f65e0dc9cebda4ced1b6698b2d960c3a358c0d38a77e5418d50a60a9810542a",
+     "module": "server_tools_advanced",
+     "name": "video_batch",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "inputs",
+      "operation",
+      "output_dir",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "inputs",
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 266,
+     "input_schema_sha256": "38c2e5bdc4a8b4a1532e2a1018aeafba2ba4c169b19961e3c3f9a4c36556a2dd",
+     "module": "server_tools_release",
+     "name": "video_benchmark_run",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 810,
+     "input_schema_sha256": "983b853de05c49c52720311c89f2311845dd25e573b475734bb7ffb6ced9458a",
+     "module": "server_tools_aivideo",
+     "name": "video_body_swap",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "audio_source",
+      "authorization_decision_ids",
+      "duration_policy",
+      "output_path",
+      "overwrite",
+      "project_dir",
+      "video_source"
+     ],
+     "required_params": [
+      "audio_source",
+      "output_path",
+      "project_dir",
+      "video_source"
+     ]
+    },
+    {
+     "input_schema_bytes": 484,
+     "input_schema_sha256": "127cb67ea089c20a262224d7ba7ddc030c3972a74ac3e26b522d5b86545bde07",
+     "module": "server_tools_intent",
+     "name": "video_brand_kit",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "action",
+      "kit",
+      "overwrite",
+      "path"
+     ],
+     "required_params": [
+      "action",
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 265,
+     "input_schema_sha256": "b675ae45d0c0ade916f762186d49ce63818c7e30119b2c313bcb29830b6aa632",
+     "module": "server_tools_release",
+     "name": "video_capabilities",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 624,
+     "input_schema_sha256": "e9b3684da54caeeb67592122dd0961695d14f1bc687289c255277d08147a384a",
+     "module": "server_tools_advanced",
+     "name": "video_chroma_key",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "blend",
+      "color",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "similarity"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 456,
+     "input_schema_sha256": "50d0b7f5fd8e8e6142df0bb7dbca92c6d43d0f28480144514989871e4ac1dbf4",
+     "module": "server_tools_advanced",
+     "name": "video_cleanup",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "files",
+      "keep",
+      "overwrite"
+     ],
+     "required_params": [
+      "files"
+     ]
+    },
+    {
+     "input_schema_bytes": 546,
+     "input_schema_sha256": "4f8b6959b54bf1a22431963beb6a90c5515eecbfd3f39a283242383dc396d108",
+     "module": "server_tools_advanced",
+     "name": "video_compare_quality",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "distorted_path",
+      "metrics",
+      "original_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "distorted_path",
+      "original_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "bf1d05482263790cd4a1b93bf2cf88e1d5936976778910a2efdd113225f41e5f",
+     "module": "server_tools_advanced",
+     "name": "video_composite_layers",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "dry_run",
+      "output_path",
+      "overwrite",
+      "save_layer_plan",
+      "spec_path"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 366,
+     "input_schema_sha256": "d8d0ca6fb34d48c453614ee27ba29f938bd189facdfc93cfcd12b214e8cc0cff",
+     "module": "server_tools_postrescue",
+     "name": "video_composition_plan",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 1085,
+     "input_schema_sha256": "f3c98351d8408f2407308210ddbeb2f37d6ff150060aeaec48251e005c933bb5",
+     "module": "server_tools_basic",
+     "name": "video_convert",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality",
+      "target_bitrate",
+      "two_pass"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 345,
+     "input_schema_sha256": "ba625ffd11395befda582504067e75fb0db9ad21ff2777b2ea996d57ab219205",
+     "module": "server_tools_release",
+     "name": "video_cost_ledger",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 675,
+     "input_schema_sha256": "e0dee9a26a3f21abc49f6c24926a27e97eca77929eec5633ec44e5bcb8db7ae6",
+     "module": "server_tools_advanced",
+     "name": "video_create_from_images",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "fps",
+      "images",
+      "list_file",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 373,
+     "input_schema_sha256": "e48fcfaecc9c3ed29d30c175fad49616d5e84461c735745ce1bc066029788bfd",
+     "module": "server_tools_postrescue",
+     "name": "video_creative_autopilot_plan",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 1516,
+     "input_schema_sha256": "aadc1fef306146f90129783722e7329460caef79000ee3060321e872d7a125ea",
+     "module": "server_tools_media",
+     "name": "video_crop",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "crop_percent",
+      "height",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "width",
+      "x",
+      "y"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 608,
+     "input_schema_sha256": "c7fbe5dbe07dff1ad949a59044d4cfbf1ce09630081ab3cb8056dbeace75e775",
+     "module": "server_tools_intent",
+     "name": "video_cutfile_render",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "keep_intermediates",
+      "output_path",
+      "overwrite",
+      "path",
+      "save_receipt"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 613,
+     "input_schema_sha256": "b77efcea6f1b4a22976b4b0d31c71a1b33ea0f267eb93e0f7e0535678629b452",
+     "module": "server_tools_intent",
+     "name": "video_cutfile_validate",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "goal",
+      "overwrite",
+      "path",
+      "platform",
+      "source"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 477,
+     "input_schema_sha256": "308c25ae9c94d936b867b95dccf7bf7d5e75c1680152977b21cddddcd01821c3",
+     "module": "server_tools_ai",
+     "name": "video_design_quality_check",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "auto_fix",
+      "input_path",
+      "overwrite",
+      "strict"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 490,
+     "input_schema_sha256": "fd439028812251495e6b286e7c7d53dc5e4d64c5c321e03dc2eb43d19d95f3a1",
+     "module": "server_tools_advanced",
+     "name": "video_detect_scenes",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "min_scene_duration",
+      "overwrite",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 259,
+     "input_schema_sha256": "6ce946ca43317475ee167d3f07860bde975e2e3a150ed78d18709d4f271b79e3",
+     "module": "server_tools_doctor",
+     "name": "video_doctor",
+     "profiles": [
+      "core",
+      "inspection"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 499,
+     "input_schema_sha256": "acc58dbfcd07c41bc700a30f28c2f8b81731c6c35ded9a228ba42c128cfdfbea",
+     "module": "server_tools_intent",
+     "name": "video_dub_plan",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "caption_path",
+      "overwrite",
+      "target_lang",
+      "voice"
+     ],
+     "required_params": [
+      "caption_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 815,
+     "input_schema_sha256": "b3a6788a4132623f7f905c90d2d1851dd84df7e6469f3617e5d69aed7c2fe25d",
+     "module": "server_tools_audio",
+     "name": "video_duck_audio",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "attack",
+      "input_path",
+      "music_path",
+      "music_volume",
+      "output_path",
+      "overwrite",
+      "ratio",
+      "release",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path",
+      "music_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 484,
+     "input_schema_sha256": "7bffd42f978b2169cb13663aefd15fb89fe586c24e2f5ccdce1bdad514831ebc",
+     "module": "server_tools_media",
+     "name": "video_edit",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "timeline"
+     ],
+     "required_params": [
+      "timeline"
+     ]
+    },
+    {
+     "input_schema_bytes": 793,
+     "input_schema_sha256": "39e2e137625efa575445bac45f16834ef6ee1006fd67e6905411dc9bb2bc9537",
+     "module": "server_tools_intent",
+     "name": "video_edit_session",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "action",
+      "goal",
+      "input_path",
+      "notes",
+      "overwrite",
+      "path",
+      "score",
+      "step_action"
+     ],
+     "required_params": [
+      "action",
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 495,
+     "input_schema_sha256": "8a502b5c0bc994358dbe4652195fc43a16e1f5c78549453ad9538b87f604d416",
+     "module": "server_tools_intent",
+     "name": "video_estimate_operation",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "complexity",
+      "duration_seconds",
+      "operation",
+      "overwrite"
+     ],
+     "required_params": [
+      "duration_seconds",
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 1120,
+     "input_schema_sha256": "9dbf17dbdbe8e4badcce97287d73ae1c487e2ce4cac0d8c4473e62ae0cb3e9e0",
+     "module": "server_tools_media",
+     "name": "video_export",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "c2pa_manifest_path",
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 551,
+     "input_schema_sha256": "d2a2560f978fea0d475b30fa9ce670ffb7a6c494fe0b75418e399b7e0964900e",
+     "module": "server_tools_advanced",
+     "name": "video_export_frames",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "format",
+      "fps",
+      "input_path",
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 501,
+     "input_schema_sha256": "92505713e1f02e197a5676ca9f99b9bd020483f825a61fcc3c4766892617cb78",
+     "module": "server_tools_media",
+     "name": "video_extract_audio",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 534,
+     "input_schema_sha256": "ec04b4ea9e01a7552e42aed542f4ae496b061abb132757a17d66793ff77c85fd",
+     "module": "server_tools_guardrails",
+     "name": "video_extract_frame",
+     "profiles": [
+      "core",
+      "editor",
+      "guardrails"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "timestamp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1277,
+     "input_schema_sha256": "82539c314de6c7d88d1185473bc054eea833e1c9489878e9aa811de9562f116c",
+     "module": "server_tools_media",
+     "name": "video_fade",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "crf",
+      "fade_in",
+      "fade_out",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "preset"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 786,
+     "input_schema_sha256": "e277da264c651800a69ce57f01c752f5ff83aef374884b0a5812754dcdfa312b",
+     "module": "server_tools_advanced",
+     "name": "video_filter",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "crf",
+      "filter_type",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "params",
+      "preset"
+     ],
+     "required_params": [
+      "filter_type",
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1337,
+     "input_schema_sha256": "ae61669ef3c080e6ec61b55ec1b5c4f3d7e356e89c3cbb139fd7599c57d38e29",
+     "module": "server_tools_intent",
+     "name": "video_find_moments",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "edit_project_id",
+      "embedding",
+      "index_digest",
+      "limit",
+      "min_confidence",
+      "overwrite",
+      "project_dir",
+      "revision_id",
+      "selected_span_ids",
+      "selection_example_ids",
+      "semantic_artifact",
+      "text"
+     ],
+     "required_params": [
+      "edit_project_id",
+      "project_dir",
+      "revision_id"
+     ]
+    },
+    {
+     "input_schema_bytes": 445,
+     "input_schema_sha256": "29a9cb8ea1aa36921385f5a07bc7d3206aad722267cba1398585c1204450d01a",
+     "module": "server_tools_ai",
+     "name": "video_fix_design_issues",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 515,
+     "input_schema_sha256": "fb1ad322e25e887fae3acc60eb11140f0738ac1ad52d0ecd7726a727a7621537",
+     "module": "server_tools_advanced",
+     "name": "video_generate_subtitles",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "burn",
+      "entries",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "entries",
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 641,
+     "input_schema_sha256": "06a1424b00887017fc6a61d651a75b344dff494b1aa0b4a5b41ff361c1be6576",
+     "module": "server_tools_intent",
+     "name": "video_generative_plan",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "estimated_spend_usd",
+      "max_spend_usd",
+      "model",
+      "overwrite",
+      "prompt",
+      "provider"
+     ],
+     "required_params": [
+      "prompt"
+     ]
+    },
+    {
+     "input_schema_bytes": 716,
+     "input_schema_sha256": "2aec166727d743a6a70f03d470ad85cb5c784fa2451f44947fd8d54f9d470e8a",
+     "module": "server_tools_advanced",
+     "name": "video_hls_segment",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_dir",
+      "overwrite",
+      "playlist_name",
+      "qualities",
+      "segment_duration"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 449,
+     "input_schema_sha256": "20c41d74807b8fc36f5953831e1814c1be76d668ec53ae975a884e2a53055d20",
+     "module": "server_tools_intent",
+     "name": "video_hook_candidates",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "count",
+      "language",
+      "overwrite",
+      "topic"
+     ],
+     "required_params": [
+      "topic"
+     ]
+    },
+    {
+     "input_schema_bytes": 394,
+     "input_schema_sha256": "9f24d97a02f6f6490a84db21a547005dd12fd96364001f923dc61610c88f349f",
+     "module": "server_tools_basic",
+     "name": "video_info",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "exact",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 344,
+     "input_schema_sha256": "2019f8eddfd147d20b017f1390598e30b8c346ea6b7a6d420d81c5d13d19603e",
+     "module": "server_tools_effects",
+     "name": "video_info_detailed",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 740,
+     "input_schema_sha256": "9177d5585f806a85e555ad7d7e10822431db841adc22113a9bd8c761e42577f3",
+     "module": "server_tools_inspection",
+     "name": "video_ingest",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "lineage",
+      "overwrite",
+      "project_dir",
+      "source_path",
+      "usage_rights_evidence_ref",
+      "usage_rights_status"
+     ],
+     "required_params": [
+      "project_dir",
+      "source_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 480,
+     "input_schema_sha256": "a22602ceb1cb03a38752def3a53c602c246889d2790f0e530eab8c9f4143dc7d",
+     "module": "server_tools_intent",
+     "name": "video_init_project",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "name",
+      "overwrite",
+      "path",
+      "with_cutfile"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 569,
+     "input_schema_sha256": "40402ee856497387f427ae82e8b30b2b5c09c68b631b80b30d8956514638ac78",
+     "module": "server_tools_inspection",
+     "name": "video_inspect_temporal",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "asset_id",
+      "declared_regions",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "asset_id",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 673,
+     "input_schema_sha256": "839fff3bde688cec4610d26d6a38c6c1c11698409ed7d9f52a10a853a637be87",
+     "module": "server_tools_intent",
+     "name": "video_intent",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "goal",
+      "list_verbs",
+      "overwrite",
+      "params",
+      "source",
+      "verb"
+     ],
+     "required_params": [
+      "verb"
+     ]
+    },
+    {
+     "input_schema_bytes": 270,
+     "input_schema_sha256": "8bb7263000791d6c7f9c50ef60d3f1773a68ef617cec3cd4ab743e20d6620891",
+     "module": "server_tools_intent",
+     "name": "video_language_coverage",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 657,
+     "input_schema_sha256": "bc365ed4980bcc2dc4313106c5a17ada754007815c48a6e578c920b5dac5780b",
+     "module": "server_tools_effects",
+     "name": "video_layout_grid",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "background",
+      "clips",
+      "gap",
+      "layout",
+      "output_path",
+      "overwrite",
+      "padding"
+     ],
+     "required_params": [
+      "clips",
+      "layout",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 934,
+     "input_schema_sha256": "7f35b885c8f8e72b7cdc8ecadbdad9aa3cebafe44cb39705e6a7ce913b626189",
+     "module": "server_tools_effects",
+     "name": "video_layout_pip",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "border",
+      "border_color",
+      "border_width",
+      "main_path",
+      "margin",
+      "output_path",
+      "overwrite",
+      "pip_path",
+      "position",
+      "rounded_corners",
+      "size"
+     ],
+     "required_params": [
+      "main_path",
+      "output_path",
+      "pip_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 349,
+     "input_schema_sha256": "f64300d89a6c6dc4b4fd965f08129db8e9679d24b48221894e9f0e886b5fb8e1",
+     "module": "server_tools_release",
+     "name": "video_learning_report",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 500,
+     "input_schema_sha256": "aef96f974f2fcde3bc732a9580745f556fc8bdab2322a810df2cec17f5ca591c",
+     "module": "server_tools_advanced",
+     "name": "video_luma_key",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1322,
+     "input_schema_sha256": "cb605fcc93f8e073c7c9a304728b168d1106b1be2d5dd8d566caa2700d6f7b84",
+     "module": "server_tools_basic",
+     "name": "video_merge",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "clips",
+      "output_path",
+      "overwrite",
+      "transition",
+      "transition_duration",
+      "transitions"
+     ],
+     "required_params": [
+      "clips"
+     ]
+    },
+    {
+     "input_schema_bytes": 503,
+     "input_schema_sha256": "a23765c72307aee258a011631915a8f42eaa2feb5d079095e409fcdf58642151",
+     "module": "server_tools_intent",
+     "name": "video_metric_qc",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "input_path",
+      "max_black_ratio",
+      "min_duration_seconds",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 718,
+     "input_schema_sha256": "ab1ec91040eb38fbe7306ad45f56dbfe836aa9efbc7947ae70e832a0e4aee9ab",
+     "module": "server_tools_audio",
+     "name": "video_mix_audio",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "audio_bitrate",
+      "input_path",
+      "keep_source",
+      "output_path",
+      "overwrite",
+      "sounds"
+     ],
+     "required_params": [
+      "input_path",
+      "sounds"
+     ]
+    },
+    {
+     "input_schema_bytes": 667,
+     "input_schema_sha256": "3157e2c7cf2e268df1ad796ff357a32801d728bb90911603f7e3e36536d407ba",
+     "module": "server_tools_effects",
+     "name": "video_mograph_count",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "duration",
+      "end",
+      "fps",
+      "output_path",
+      "overwrite",
+      "start",
+      "style"
+     ],
+     "required_params": [
+      "duration",
+      "end",
+      "output_path",
+      "start"
+     ]
+    },
+    {
+     "input_schema_bytes": 655,
+     "input_schema_sha256": "c387381e10ad45167d2145968cc28a8916cf7f466f90435b2a46fc95bc6534f6",
+     "module": "server_tools_effects",
+     "name": "video_mograph_progress",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "color",
+      "duration",
+      "fps",
+      "output_path",
+      "overwrite",
+      "style",
+      "track_color"
+     ],
+     "required_params": [
+      "duration",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 768,
+     "input_schema_sha256": "2d3d3adb5ce581b04f77b0d802c0b8c5a7ef6cb0814f02a000a02101c7fb340b",
+     "module": "server_tools_advanced",
+     "name": "video_normalize_audio",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "fade_seconds",
+      "input_path",
+      "lra",
+      "output_path",
+      "overwrite",
+      "target_lufs",
+      "true_peak_dbtp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 432,
+     "input_schema_sha256": "c4e3f94d4f2613666ba8c517c0b26af2fc45bfd5f440afb88d3962817b2a3d01",
+     "module": "server_tools_intent",
+     "name": "video_otio_export",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "timeline"
+     ],
+     "required_params": [
+      "output_path",
+      "timeline"
+     ]
+    },
+    {
+     "input_schema_bytes": 324,
+     "input_schema_sha256": "4ea14670dad3ed4b49a79798d4286691672e468e95f349ef97308b9a35dadc9f",
+     "module": "server_tools_intent",
+     "name": "video_otio_import",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "overwrite",
+      "path"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1238,
+     "input_schema_sha256": "1b5854c1481453e80bcc65019fdf0c5f4c0f17b0b52e35f84620ad8a250748b9",
+     "module": "server_tools_advanced",
+     "name": "video_overlay",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "background_path",
+      "crf",
+      "duration",
+      "height",
+      "opacity",
+      "output_path",
+      "overlay_path",
+      "overwrite",
+      "position",
+      "preset",
+      "start_time",
+      "width"
+     ],
+     "required_params": [
+      "background_path",
+      "overlay_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 402,
+     "input_schema_sha256": "22d23c856aeeb227af6e691c2c13a6836abdf7766a00af211927712c668261c2",
+     "module": "server_tools_inspection",
+     "name": "video_preflight",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "asset_id",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "asset_id",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 504,
+     "input_schema_sha256": "26b0e57d2f41f384870402eac237816702118deec57bd34fbe76c7dc9e3aa1cb",
+     "module": "server_tools_media",
+     "name": "video_preview",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "scale_factor"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 422,
+     "input_schema_sha256": "8e060f42ae2cf86827086fdff25c79a80db663c81af66c16051fd14dfa5936e4",
+     "module": "server_tools_creation",
+     "name": "video_project_create",
+     "profiles": [
+      "core",
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "output_dir",
+      "overwrite",
+      "slug"
+     ],
+     "required_params": [
+      "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 1067,
+     "input_schema_sha256": "1ae8b5749c4ea8a32b977ae1a5a6a4a76dccab742f65bd4a0a4a919da5949bde",
+     "module": "server_tools_intent",
+     "name": "video_project_recipe_export",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "edit_project_id",
+      "intent_verb",
+      "operations",
+      "overwrite",
+      "policies",
+      "project_dir",
+      "required_checks",
+      "review_gates",
+      "revision_id"
+     ],
+     "required_params": [
+      "edit_project_id",
+      "operations",
+      "project_dir",
+      "revision_id"
+     ]
+    },
+    {
+     "input_schema_bytes": 750,
+     "input_schema_sha256": "f23a6280fa0643ad28e73f3b51d9e09ad5d72b1213683fa47e66956375f743e4",
+     "module": "server_tools_intent",
+     "name": "video_project_recipe_replay",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "artifact",
+      "base_revision_id",
+      "edit_project_id",
+      "overwrite",
+      "project_dir",
+      "source_bindings"
+     ],
+     "required_params": [
+      "artifact",
+      "edit_project_id",
+      "project_dir",
+      "source_bindings"
+     ]
+    },
+    {
+     "input_schema_bytes": 674,
+     "input_schema_sha256": "9954f19f0876a49a8cb3c1dc51be4e38f3f297482f83ea620cffe17ccd2c810c",
+     "module": "server_tools_intent",
+     "name": "video_propose_broll",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "keyword_allowlist",
+      "max_proposals",
+      "min_span_seconds",
+      "overwrite",
+      "segments"
+     ],
+     "required_params": [
+      "segments"
+     ]
+    },
+    {
+     "input_schema_bytes": 395,
+     "input_schema_sha256": "9fe551fef15023c13322d131e0e9a7e52d4250c0cad3129173f4b6030b0a7eea",
+     "module": "server_tools_intent",
+     "name": "video_propose_mutations",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "findings",
+      "overwrite"
+     ],
+     "required_params": [
+      "findings"
+     ]
+    },
+    {
+     "input_schema_bytes": 546,
+     "input_schema_sha256": "e891943cda139d567f755167fa73ec7cc1d6c509bedcad38d8f41fd6ae19f13d",
+     "module": "server_tools_release",
+     "name": "video_publish_gate",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "blocking_findings",
+      "candidate_artifact",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "blocking_findings",
+      "candidate_artifact",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 806,
+     "input_schema_sha256": "d9cee1361c8a7a9cab10ca9931bbf5d58433f8c0f645b09e083a436f1a617e0c",
+     "module": "server_tools_intent",
+     "name": "video_publish_validate",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "captions",
+      "container",
+      "duration_seconds",
+      "height",
+      "overwrite",
+      "platform",
+      "solve",
+      "source",
+      "width"
+     ],
+     "required_params": [
+      "duration_seconds",
+      "height",
+      "platform",
+      "width"
+     ]
+    },
+    {
+     "input_schema_bytes": 502,
+     "input_schema_sha256": "bb99663b18f1466fe4681b27dfc61f1542d804e8ac6534f22b8688652a541d00",
+     "module": "server_tools_intent",
+     "name": "video_punch_zoom_plan",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "cut_times",
+      "duration_seconds",
+      "overwrite",
+      "zoom"
+     ],
+     "required_params": [
+      "cut_times"
+     ]
+    },
+    {
+     "input_schema_bytes": 343,
+     "input_schema_sha256": "bba757a63a59ca0f93192fd9291dded7a36642016589ab8ff5ddb24cebd95675",
+     "module": "server_tools_intent",
+     "name": "video_qc_narrative",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 411,
+     "input_schema_sha256": "2d67edd0b74bdc7c59ba70f04590b2b94401842bfee350ad32e7821534a8fc04",
+     "module": "server_tools_intent",
+     "name": "video_qc_vision",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite",
+      "require_vlm"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 423,
+     "input_schema_sha256": "03dbf2c54e259c4bfc41179daa68c82cd54d2ab6b36805a3411f176671ba4187",
+     "module": "server_tools_ai",
+     "name": "video_quality_check",
+     "profiles": [
+      "ai",
+      "core"
+     ],
+     "properties": [
+      "fail_on_warning",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 344,
+     "input_schema_sha256": "db626f183a1003df674384eb0f1334526b6729b58507a2890d3401dc8e93ec0b",
+     "module": "server_tools_advanced",
+     "name": "video_read_metadata",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 429,
+     "input_schema_sha256": "0fae54daff365c3cb2b76dd3909910a2e7936592f1a15b1063f00815caa7bada",
+     "module": "server_tools_release",
+     "name": "video_recipe_capture",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "overwrite",
+      "project_dir",
+      "recipe"
+     ],
+     "required_params": [
+      "project_dir",
+      "recipe"
+     ]
+    },
+    {
+     "input_schema_bytes": 986,
+     "input_schema_sha256": "9dad53464acf2cb4fa48cc852e80a385c31a41e85fc42e1efb27069faf2821f1",
+     "module": "server_tools_motion_acceptance",
+     "name": "video_record_motion_acceptance",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "dispositions",
+      "input_path",
+      "overwrite",
+      "report",
+      "report_sha256",
+      "reviewer_id",
+      "source_sha256",
+      "verdict",
+      "watched_intervals"
+     ],
+     "required_params": [
+      "dispositions",
+      "input_path",
+      "report",
+      "report_sha256",
+      "reviewer_id",
+      "source_sha256",
+      "verdict",
+      "watched_intervals"
+     ]
+    },
+    {
+     "input_schema_bytes": 650,
+     "input_schema_sha256": "ebfd391b06895392e4e776a4d52b302944fab5063727070ae237b4da5a1ec2ea",
+     "module": "server_tools_ai",
+     "name": "video_release_checkpoint",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "frame_count",
+      "input_path",
+      "min_score",
+      "output_dir",
+      "overwrite",
+      "require_audio"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 368,
+     "input_schema_sha256": "4871df985b8137157fd7a98443bd13aaa64cbad27551aa892f399f5710cbcdb7",
+     "module": "server_tools_postrescue",
+     "name": "video_remote_egress_plan",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 911,
+     "input_schema_sha256": "0e7e6b4e8d8e54328d36b83d1f47e2e76f6ca0523f95f7b05be3701a2e57719e",
+     "module": "server_tools_repurpose",
+     "name": "video_repurpose",
+     "profiles": [
+      "editor",
+      "repurpose"
+     ],
+     "properties": [
+      "include_release_checkpoint",
+      "input_path",
+      "min_score",
+      "moment_selection_record_id",
+      "output_dir",
+      "overwrite",
+      "platforms",
+      "start_job"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 558,
+     "input_schema_sha256": "4a6577950f154100031e75f32929d0c1385ca787a6b7e226beeb5de2f55d1d29",
+     "module": "server_tools_repurpose",
+     "name": "video_repurpose_plan",
+     "profiles": [
+      "editor",
+      "repurpose"
+     ],
+     "properties": [
+      "input_path",
+      "output_dir",
+      "overwrite",
+      "platforms"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 336,
+     "input_schema_sha256": "0c66949801330b751cb3ce2ab222601f63f3fc5cbef97c4942a2fafe8de196f7",
+     "module": "server_tools_rescue",
+     "name": "video_rescue_inspect",
+     "profiles": [
+      "core",
+      "rescue"
+     ],
+     "properties": [
+      "overwrite",
+      "receipt"
+     ],
+     "required_params": [
+      "receipt"
+     ]
+    },
+    {
+     "input_schema_bytes": 569,
+     "input_schema_sha256": "9185793382e7f3873b00fdf11ef9a5e1ccf0a35688de7aac8164190dc65c3767",
+     "module": "server_tools_rescue",
+     "name": "video_rescue_plan",
+     "profiles": [
+      "rescue"
+     ],
+     "properties": [
+      "output_dir",
+      "overwrite",
+      "policy",
+      "save_plan",
+      "source"
+     ],
+     "required_params": [
+      "output_dir",
+      "source"
+     ]
+    },
+    {
+     "input_schema_bytes": 848,
+     "input_schema_sha256": "4e8bad8cc493cbeae5896cc46e85755c966e7a160124bce18e825657c84f5eef",
+     "module": "server_tools_rescue",
+     "name": "video_rescue_render",
+     "profiles": [
+      "rescue"
+     ],
+     "properties": [
+      "approved_repair_ids",
+      "cancel_file",
+      "keep_intermediates",
+      "overwrite",
+      "plan",
+      "resume_receipt",
+      "save_receipt"
+     ],
+     "required_params": [
+      "plan"
+     ]
+    },
+    {
+     "input_schema_bytes": 770,
+     "input_schema_sha256": "d3b7f87ae0fac9c32e0a5d44dec0db8666b51f16f5cff33eac9b3b41758c9eca",
+     "module": "server_tools_basic",
+     "name": "video_resize",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "aspect_ratio",
+      "height",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality",
+      "width"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 366,
+     "input_schema_sha256": "c68cbfb94e7fbc303c50603da1dac80ed957e6ace571273c9cf5be2573889a7c",
+     "module": "server_tools_postrescue",
+     "name": "video_restoration_plan",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 435,
+     "input_schema_sha256": "eb3b65c9612a2189f5c1f46f6c970608fae2f579c02dcf12d34cc0b0bfe88162",
+     "module": "server_tools_advanced",
+     "name": "video_reverse",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 908,
+     "input_schema_sha256": "c66231a5bb32415b41d0971ba5ebf52259782e316a5f1962a65577566d3e135a",
+     "module": "server_tools_intent",
+     "name": "video_review_decide",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "approval",
+      "decision",
+      "edl",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "reason",
+      "review_run"
+     ],
+     "required_params": [
+      "decision",
+      "review_run"
+     ]
+    },
+    {
+     "input_schema_bytes": 436,
+     "input_schema_sha256": "962e8ccc9feb94708cea8dd09ecebe674902682a4a7b82f90eac8476a0dcdd19",
+     "module": "server_tools_release",
+     "name": "video_review_decision",
+     "profiles": [
+      "release"
+     ],
+     "properties": [
+      "decision",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "decision",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "724127c308858f6ed5e2fc68678b88ae3cef5d3926dd679f92adc0d060470a6d",
+     "module": "server_tools_release",
+     "name": "video_review_package",
+     "profiles": [
+      "core",
+      "release"
+     ],
+     "properties": [
+      "blocking_findings",
+      "candidate_artifact",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "candidate_artifact",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 456,
+     "input_schema_sha256": "9f96fdd32d112f337b1205f55e607b49318f0e8fd8b4ca723158abad9e921eec",
+     "module": "server_tools_intent",
+     "name": "video_review_run",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite",
+      "policy"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 340,
+     "input_schema_sha256": "961c9ac227db7bb4d4e119106f95603056ff21e078033f8689fc5b915ed90837",
+     "module": "server_tools_intent",
+     "name": "video_review_ui",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "output_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 1087,
+     "input_schema_sha256": "be890f29d160c166454adb794959eb3c971c9da096a05bf92e7872311400f1e4",
+     "module": "server_tools_media",
+     "name": "video_rotate",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "angle",
+      "flip_horizontal",
+      "flip_vertical",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 796,
+     "input_schema_sha256": "9881edff61c64cb239a9feb88c48853ff741f6545b647395ce50c43a07e4b1bb",
+     "module": "server_tools_aivideo",
+     "name": "video_salvage",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "acceptance_spec_id",
+      "authorization_decision_ids",
+      "overwrite",
+      "policy",
+      "project_dir",
+      "recipe",
+      "source_asset_id"
+     ],
+     "required_params": [
+      "acceptance_spec_id",
+      "policy",
+      "project_dir",
+      "recipe",
+      "source_asset_id"
+     ]
+    },
+    {
+     "input_schema_bytes": 491,
+     "input_schema_sha256": "2a7bac48089889bb6156f21ab2ad1cdc71a8214a8b28cb62bdf5c383c0914a91",
+     "module": "server_tools_intent",
+     "name": "video_seek_frame",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "fps",
+      "frame",
+      "overwrite",
+      "seconds"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 364,
+     "input_schema_sha256": "8f6e86ed05819228db859a0f6a5da25fb30c2b69e96579f51ac21f027f3e61c9",
+     "module": "server_tools_postrescue",
+     "name": "video_semantic_query",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 367,
+     "input_schema_sha256": "408e4f9b927b02a10939e6b61a94870ed0aa83d8dd5645c7f217344d238d428a",
+     "module": "server_tools_postrescue",
+     "name": "video_semantic_timeline",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 558,
+     "input_schema_sha256": "1163463b59897cad09a3db547be35669017eda5a14265c9d7c9d8934562b78e4",
+     "module": "server_tools_advanced",
+     "name": "video_shape_mask",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "feather",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "shape"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 717,
+     "input_schema_sha256": "4100557d55b91f7a37f5e40a6ce4606241d33f2d0e21c204ce963b77c99996d2",
+     "module": "server_tools_shorts",
+     "name": "video_shorts",
+     "profiles": [
+      "core",
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "segments",
+      "style"
+     ],
+     "required_params": [
+      "input_path",
+      "segments"
+     ]
+    },
+    {
+     "input_schema_bytes": 803,
+     "input_schema_sha256": "c4a2073e91450beb50906c29cc9dee6fe4d57843884528a4889945b2f8a77c8b",
+     "module": "server_tools_basic",
+     "name": "video_speed",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "factor",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "fe51dae3695113e7bcdfa2ad087bec47835b7e7be47b82eb9c775638acec940c",
+     "module": "server_tools_advanced",
+     "name": "video_split_screen",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "layout",
+      "left_path",
+      "output_path",
+      "overwrite",
+      "right_path"
+     ],
+     "required_params": [
+      "left_path",
+      "right_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 558,
+     "input_schema_sha256": "5569e36fff168ef945e9fd0e9d48b0cb495a23f8ce3aaa4f8d0d25c9eafa86a6",
+     "module": "server_tools_advanced",
+     "name": "video_stabilize",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "smoothing",
+      "zooming"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 503,
+     "input_schema_sha256": "085d4c345bd8d092c09b47dfbd61b7a42cbc066be44051268e6c5ea59959cf32",
+     "module": "server_tools_media",
+     "name": "video_storyboard",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "frame_count",
+      "input_path",
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 596,
+     "input_schema_sha256": "f0730c87c901d4435c95c0ab9047c5a4a8256096df662354791163141da2a57e",
+     "module": "server_tools_media",
+     "name": "video_subtitles",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "style",
+      "subtitle_path"
+     ],
+     "required_params": [
+      "input_path",
+      "subtitle_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 605,
+     "input_schema_sha256": "af595f4353997d691e89460e88bbb5fbf40da4ed96c326e08ca4d9f3c033a957",
+     "module": "server_tools_effects",
+     "name": "video_subtitles_styled",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "style",
+      "subtitles_path"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path",
+      "subtitles_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 891,
+     "input_schema_sha256": "c8c3ecf08a1c53ca79eaf75588a95f3f59e96a3aad2822edd389bd42819918dc",
+     "module": "server_tools_media",
+     "name": "video_template_preview",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "caption",
+      "duration",
+      "input_path",
+      "music_path",
+      "outro_path",
+      "overwrite",
+      "template",
+      "title"
+     ],
+     "required_params": [
+      "template"
+     ]
+    },
+    {
+     "input_schema_bytes": 989,
+     "input_schema_sha256": "66d86ebcfd7adb41e8bd8f11321287fb1df09e954b2a979d3d035a0d05f60e46",
+     "module": "server_tools_effects",
+     "name": "video_text_animated",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "animation",
+      "color",
+      "duration",
+      "font",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "position",
+      "size",
+      "start",
+      "text",
+      "typewriter_speed"
+     ],
+     "required_params": [
+      "input_path",
+      "text"
+     ]
+    },
+    {
+     "input_schema_bytes": 548,
+     "input_schema_sha256": "69b974b7043327244724c7ad7a4b81cbbd7a056ae00abd4d1b0042b7709981c2",
+     "module": "server_tools_media",
+     "name": "video_thumbnail",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "timestamp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 368,
+     "input_schema_sha256": "ce0a7ede4abf95344dec35c41b243c9a4b9e6f37f35184f08779c534d67b0746",
+     "module": "server_tools_postrescue",
+     "name": "video_timeline_edit_plan",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 373,
+     "input_schema_sha256": "53186ad0b5740f61cc21dec6d005a2da4e63ecb2d6eab20fcb73fbca63a4ee5e",
+     "module": "server_tools_intent",
+     "name": "video_timeline_ir_validate",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "overwrite",
+      "timeline"
+     ],
+     "required_params": [
+      "timeline"
+     ]
+    },
+    {
+     "input_schema_bytes": 584,
+     "input_schema_sha256": "613c1ae85212184f9de3baacb47c1b6aef5e393d576fec4b636d9bfee3fa3938",
+     "module": "server_tools_intent",
+     "name": "video_translate_captions",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "source_lang",
+      "target_lang"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 791,
+     "input_schema_sha256": "9d521a6342e1ef94494090a4555f55e5239ab7e3567f70c540e2f26bebb41106",
+     "module": "server_tools_basic",
+     "name": "video_trim",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "accurate",
+      "duration",
+      "end",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "start"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 624,
+     "input_schema_sha256": "9fba18a8ec1b3d2e66661afda2353295220f21ee9fdeaf22f43de5a096dd7c78",
+     "module": "server_tools_guardrails",
+     "name": "video_validate_text_layout",
+     "profiles": [
+      "core",
+      "editor",
+      "guardrails"
+     ],
+     "properties": [
+      "background_color",
+      "overlays",
+      "overwrite",
+      "video_height",
+      "video_width"
+     ],
+     "required_params": [
+      "overlays"
+     ]
+    },
+    {
+     "input_schema_bytes": 425,
+     "input_schema_sha256": "d4198f4c42ce556043d228de9858df0e2f9ee00f0286cfece713d2385a773fc9",
+     "module": "server_tools_aivideo",
+     "name": "video_verdict",
+     "profiles": [
+      "ai"
+     ],
+     "properties": [
+      "overwrite",
+      "project_dir",
+      "verdict"
+     ],
+     "required_params": [
+      "project_dir",
+      "verdict"
+     ]
+    },
+    {
+     "input_schema_bytes": 371,
+     "input_schema_sha256": "64c1849b12ca87c71d2f71aa4e8e825d1bc2f2860902d7463443b56d4290e842",
+     "module": "server_tools_postrescue",
+     "name": "video_visual_transform_plan",
+     "profiles": [
+      "postrescue"
+     ],
+     "properties": [
+      "overwrite",
+      "request"
+     ],
+     "required_params": [
+      "request"
+     ]
+    },
+    {
+     "input_schema_bytes": 1724,
+     "input_schema_sha256": "ef780b7e856e818f8e65d0258fe2c9b5679ca96b0ddc17dfbb983710d8f9b336",
+     "module": "server_tools_media",
+     "name": "video_watermark",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "crf",
+      "image_path",
+      "input_path",
+      "margin",
+      "opacity",
+      "output_path",
+      "overwrite",
+      "position",
+      "preset"
+     ],
+     "required_params": [
+      "image_path",
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 452,
+     "input_schema_sha256": "98af6f4e4f32853b033617418876640e43fc577b7cdf4b698e525fda41c19321",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_inspect",
+     "profiles": [
+      "core",
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "compare_path",
+      "overwrite",
+      "receipt_path"
+     ],
+     "required_params": [
+      "receipt_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 523,
+     "input_schema_sha256": "3da68eb2d608fa6a460ac87eba3a25840a426d2cd10a2ec2fe3db4d36fe58b39",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_plan",
+     "profiles": [
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "overwrite",
+      "save_plan",
+      "spec_path",
+      "variant"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 899,
+     "input_schema_sha256": "54b60346887689f2c61dd390b04d3a628051d00f07ea572d924d6f6f480579ab",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_render",
+     "profiles": [
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "all_variants",
+      "keep_intermediates",
+      "overwrite",
+      "resume_receipt",
+      "save_receipt",
+      "save_receipt_dir",
+      "spec_path",
+      "variant"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 345,
+     "input_schema_sha256": "f5378f4a13b43421899f10e6da89ff26a3a36f46a47d29ff8efb80a49056e50b",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_validate",
+     "profiles": [
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "overwrite",
+      "spec_path"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 542,
+     "input_schema_sha256": "502455d05cd3da4307b7f3ec63e8f8bef7ad86ceec7460c13785242f5d28d5b1",
+     "module": "server_tools_advanced",
+     "name": "video_write_metadata",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "metadata",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "metadata"
+     ]
+    }
+   ],
+   "total_input_schema_bytes": 126776
+  },
+  "default": {
+   "launch": {
+    "command": [
+     "-m",
+     "kinocut",
+     "--mcp"
+    ],
+    "cwd": ".",
+    "env_kinocut_tools": "<unset>"
+   },
+   "mode": "default",
+   "server_info": {
+    "name": "kinocut",
+    "version": "1.16.5"
+   },
+   "tool_count": 20,
+   "tool_names_sha256": "fa77b92ebb2c16b35440103c75b6849fa36c351fd95c769da88a1564ab84ae9f",
+   "tools": [
+    {
+     "input_schema_bytes": 265,
+     "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_doctor",
+     "profiles": [
+      "core",
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "9e108f9314c825f6fe235e2730209766422a97c4aea65de3cdac00c53a82b67c",
+     "module": "server_tools_basic",
+     "name": "search_tools",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "query"
+     ],
+     "required_params": [
+      "query"
+     ]
+    },
+    {
+     "input_schema_bytes": 1854,
+     "input_schema_sha256": "8394854f2c879c769d51948f7ec01945ec59cd83f150d2e1d2592c7125bcd50d",
+     "module": "server_tools_basic",
+     "name": "video_add_audio",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "audio_path",
+      "duration_policy",
+      "fade_in",
+      "fade_out",
+      "mix",
+      "output_path",
+      "overwrite",
+      "start_time",
+      "video_path",
+      "volume"
+     ],
+     "required_params": [
+      "audio_path",
+      "video_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1224,
+     "input_schema_sha256": "b85c254de0e267d5ff791867cbaaadd1baa58cd21c003ee322b74cf1460b34fe",
+     "module": "server_tools_basic",
+     "name": "video_add_text",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "color",
+      "crf",
+      "duration",
+      "font",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "position",
+      "preset",
+      "shadow",
+      "size",
+      "start_time",
+      "text"
+     ],
+     "required_params": [
+      "input_path",
+      "text"
+     ]
+    },
+    {
+     "input_schema_bytes": 779,
+     "input_schema_sha256": "0e51ab7905b86a98d8ba117f5161f553a9c007fada983a19a9b2fd3657899414",
+     "module": "server_tools_basic",
+     "name": "video_add_texts",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "auto_layout",
+      "crf",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "preset",
+      "texts"
+     ],
+     "required_params": [
+      "input_path",
+      "texts"
+     ]
+    },
+    {
+     "input_schema_bytes": 1085,
+     "input_schema_sha256": "f3c98351d8408f2407308210ddbeb2f37d6ff150060aeaec48251e005c933bb5",
+     "module": "server_tools_basic",
+     "name": "video_convert",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality",
+      "target_bitrate",
+      "two_pass"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 259,
+     "input_schema_sha256": "6ce946ca43317475ee167d3f07860bde975e2e3a150ed78d18709d4f271b79e3",
+     "module": "server_tools_doctor",
+     "name": "video_doctor",
+     "profiles": [
+      "core",
+      "inspection"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 534,
+     "input_schema_sha256": "ec04b4ea9e01a7552e42aed542f4ae496b061abb132757a17d66793ff77c85fd",
+     "module": "server_tools_guardrails",
+     "name": "video_extract_frame",
+     "profiles": [
+      "core",
+      "editor",
+      "guardrails"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "timestamp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 394,
+     "input_schema_sha256": "9f24d97a02f6f6490a84db21a547005dd12fd96364001f923dc61610c88f349f",
+     "module": "server_tools_basic",
+     "name": "video_info",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "exact",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1322,
+     "input_schema_sha256": "cb605fcc93f8e073c7c9a304728b168d1106b1be2d5dd8d566caa2700d6f7b84",
+     "module": "server_tools_basic",
+     "name": "video_merge",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "clips",
+      "output_path",
+      "overwrite",
+      "transition",
+      "transition_duration",
+      "transitions"
+     ],
+     "required_params": [
+      "clips"
+     ]
+    },
+    {
+     "input_schema_bytes": 422,
+     "input_schema_sha256": "8e060f42ae2cf86827086fdff25c79a80db663c81af66c16051fd14dfa5936e4",
+     "module": "server_tools_creation",
+     "name": "video_project_create",
+     "profiles": [
+      "core",
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "output_dir",
+      "overwrite",
+      "slug"
+     ],
+     "required_params": [
+      "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 423,
+     "input_schema_sha256": "03dbf2c54e259c4bfc41179daa68c82cd54d2ab6b36805a3411f176671ba4187",
+     "module": "server_tools_ai",
+     "name": "video_quality_check",
+     "profiles": [
+      "ai",
+      "core"
+     ],
+     "properties": [
+      "fail_on_warning",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 336,
+     "input_schema_sha256": "0c66949801330b751cb3ce2ab222601f63f3fc5cbef97c4942a2fafe8de196f7",
+     "module": "server_tools_rescue",
+     "name": "video_rescue_inspect",
+     "profiles": [
+      "core",
+      "rescue"
+     ],
+     "properties": [
+      "overwrite",
+      "receipt"
+     ],
+     "required_params": [
+      "receipt"
+     ]
+    },
+    {
+     "input_schema_bytes": 770,
+     "input_schema_sha256": "d3b7f87ae0fac9c32e0a5d44dec0db8666b51f16f5cff33eac9b3b41758c9eca",
+     "module": "server_tools_basic",
+     "name": "video_resize",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "aspect_ratio",
+      "height",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality",
+      "width"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "724127c308858f6ed5e2fc68678b88ae3cef5d3926dd679f92adc0d060470a6d",
+     "module": "server_tools_release",
+     "name": "video_review_package",
+     "profiles": [
+      "core",
+      "release"
+     ],
+     "properties": [
+      "blocking_findings",
+      "candidate_artifact",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "candidate_artifact",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 717,
+     "input_schema_sha256": "4100557d55b91f7a37f5e40a6ce4606241d33f2d0e21c204ce963b77c99996d2",
+     "module": "server_tools_shorts",
+     "name": "video_shorts",
+     "profiles": [
+      "core",
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "segments",
+      "style"
+     ],
+     "required_params": [
+      "input_path",
+      "segments"
+     ]
+    },
+    {
+     "input_schema_bytes": 803,
+     "input_schema_sha256": "c4a2073e91450beb50906c29cc9dee6fe4d57843884528a4889945b2f8a77c8b",
+     "module": "server_tools_basic",
+     "name": "video_speed",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "factor",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 791,
+     "input_schema_sha256": "9d521a6342e1ef94494090a4555f55e5239ab7e3567f70c540e2f26bebb41106",
+     "module": "server_tools_basic",
+     "name": "video_trim",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "accurate",
+      "duration",
+      "end",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "start"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 624,
+     "input_schema_sha256": "9fba18a8ec1b3d2e66661afda2353295220f21ee9fdeaf22f43de5a096dd7c78",
+     "module": "server_tools_guardrails",
+     "name": "video_validate_text_layout",
+     "profiles": [
+      "core",
+      "editor",
+      "guardrails"
+     ],
+     "properties": [
+      "background_color",
+      "overlays",
+      "overwrite",
+      "video_height",
+      "video_width"
+     ],
+     "required_params": [
+      "overlays"
+     ]
+    },
+    {
+     "input_schema_bytes": 452,
+     "input_schema_sha256": "98af6f4e4f32853b033617418876640e43fc577b7cdf4b698e525fda41c19321",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_inspect",
+     "profiles": [
+      "core",
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "compare_path",
+      "overwrite",
+      "receipt_path"
+     ],
+     "required_params": [
+      "receipt_path"
+     ]
+    }
+   ],
+   "total_input_schema_bytes": 13947
+  },
+  "profile:editor": {
+   "launch": {
+    "command": [
+     "-m",
+     "kinocut",
+     "--mcp"
+    ],
+    "cwd": ".",
+    "env_kinocut_tools": "profile:editor"
+   },
+   "mode": "profile:editor",
+   "server_info": {
+    "name": "kinocut",
+    "version": "1.16.5"
+   },
+   "tool_count": 108,
+   "tool_names_sha256": "0a195aecb0ba172843bf8e63421fa53590421a2d485c732a740d8be39323eec1",
+   "tools": [
+    {
+     "input_schema_bytes": 506,
+     "input_schema_sha256": "9125e037b0ce667194f888a1f4e3e24ca584c9eb9ccd0e54e511c27f005f591e",
+     "module": "server_tools_audio",
+     "name": "audio_compose",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duration",
+      "output_path",
+      "overwrite",
+      "tracks"
+     ],
+     "required_params": [
+      "duration",
+      "output_path",
+      "tracks"
+     ]
+    },
+    {
+     "input_schema_bytes": 515,
+     "input_schema_sha256": "a14ab3cb1db2cd74ccd204671b27d311442aefa6d330b605d39a5649c544cbf0",
+     "module": "server_tools_audio",
+     "name": "audio_effects",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "effects",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "effects",
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 635,
+     "input_schema_sha256": "9a994775d0385d5805f6272047590cbc699a4f7add06a0fb638b694aca5b5dbe",
+     "module": "server_tools_audio",
+     "name": "audio_preset",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duration",
+      "intensity",
+      "output_path",
+      "overwrite",
+      "pitch",
+      "preset"
+     ],
+     "required_params": [
+      "preset"
+     ]
+    },
+    {
+     "input_schema_bytes": 454,
+     "input_schema_sha256": "3b372cdb62a5f7027bf67c81751828459f9278c59bb60279d1037a6ab86aa879",
+     "module": "server_tools_audio",
+     "name": "audio_sequence",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "sequence"
+     ],
+     "required_params": [
+      "output_path",
+      "sequence"
+     ]
+    },
+    {
+     "input_schema_bytes": 728,
+     "input_schema_sha256": "a757824db53b7dd4a091195417e14260c2ac7fbbd330f0e3dc02e32ea73827eb",
+     "module": "server_tools_audio",
+     "name": "audio_synthesize",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duration",
+      "effects",
+      "frequency",
+      "output_path",
+      "overwrite",
+      "volume",
+      "waveform"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 538,
+     "input_schema_sha256": "eade3b9af195742c161100e995c9e53a241dcd8c4f1ceac9a8ae4c517ad2fc8a",
+     "module": "server_tools_effects",
+     "name": "effect_chromatic_aberration",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "angle",
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 590,
+     "input_schema_sha256": "d98d39992ffc84e1b7b65014b985a37415c59ff6e447228e0ec08d143ec4c762",
+     "module": "server_tools_effects",
+     "name": "effect_glow",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite",
+      "radius",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 591,
+     "input_schema_sha256": "402bc194d754d11953067da7fb743e8349f388f3c145b219e405fc7cbed41e4b",
+     "module": "server_tools_effects",
+     "name": "effect_noise",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "animated",
+      "input_path",
+      "intensity",
+      "mode",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 596,
+     "input_schema_sha256": "6325284c5fdb0eafe821b5ba0b7fc571802c829717cdee133dca8bd2de9a1e2c",
+     "module": "server_tools_effects",
+     "name": "effect_scanlines",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "flicker",
+      "input_path",
+      "line_height",
+      "opacity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 625,
+     "input_schema_sha256": "e10b1c406e2663dac28ed931a805d1270a88d19aba4fbc4a6cb7c215d399ddbd",
+     "module": "server_tools_effects",
+     "name": "effect_vignette",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite",
+      "radius",
+      "smoothness"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "33bc6ea36f2ce8e67289e1eea4d6de91823f6deadc8c37a2b7fcc61e904d3bc3",
+     "module": "server_tools_glitch",
+     "name": "glitch_cmyk_split",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "amount",
+      "angle",
+      "input_path",
+      "noise",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 573,
+     "input_schema_sha256": "713536404a161ed0fef302548073406e881b8eeb0fdd8835320df05aeefb1565",
+     "module": "server_tools_glitch",
+     "name": "glitch_datamoshing",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "drift",
+      "iframe_interval",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 701,
+     "input_schema_sha256": "b2f1fdccd781055a6f4fddcb77b6c0d1be340f8c220fc8bf13d9e69821af40dc",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_depth_splatting",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "depth_scale",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "point_size",
+      "spread",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 689,
+     "input_schema_sha256": "cc36dc79aa0f3e6e4ab2b01e4967e0d7e9cc467e947cf45b230541cd5c454444",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_digital_feedback",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "decay",
+      "feedback_mix",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "rotation",
+      "scale"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 648,
+     "input_schema_sha256": "8f92000cf7358546b427cdebd00f67cd03ff38129a32ccdc38f0aec1d9e8fe4f",
+     "module": "server_tools_glitch",
+     "name": "glitch_macroblocking",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "block_size",
+      "color_reduction",
+      "input_path",
+      "intensity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 684,
+     "input_schema_sha256": "a049e2dc9f5604fdac39c17b5354812f5fd0e23d067a8d8368cff730e9f076d1",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_point_cloud",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "density",
+      "depth",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "point_size",
+      "rotation"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "cb44228bee969e694f890ad9785bfa09a5b9e151cc66903c85917a5eb5bb9d3b",
+     "module": "server_tools_glitch",
+     "name": "glitch_rgb_shift",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "amount",
+      "angle",
+      "input_path",
+      "noise",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 702,
+     "input_schema_sha256": "831fc40af7f836b12fc545055d67fd82996919c83f21247ffdacc643345a787a",
+     "module": "server_tools_glitch",
+     "name": "glitch_scanline_jitter",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "frequency",
+      "input_path",
+      "jitter_amount",
+      "output_path",
+      "overwrite",
+      "row_height",
+      "speed"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 635,
+     "input_schema_sha256": "78262cf28840e6ec59d865d3f1db6b6a27c5be47e814606b957d033defc8cf64",
+     "module": "server_tools_glitch",
+     "name": "glitch_screen_tearing",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "offset_range",
+      "output_path",
+      "overwrite",
+      "speed",
+      "tear_count"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 557,
+     "input_schema_sha256": "f7654750ba6d9a7bfd7680dd5af49b2b5c87037ccdba7bacb66a1af01320dea7",
+     "module": "server_tools_glitch_shader",
+     "name": "glitch_slit_scan",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "depth",
+      "direction",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 682,
+     "input_schema_sha256": "37256869f9295f9e7be1e9f681a5afd1dfe2f78f55928c0da21443fab03d5ed2",
+     "module": "server_tools_glitch",
+     "name": "glitch_turbulent_displacement",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "amount",
+      "input_path",
+      "octaves",
+      "output_path",
+      "overwrite",
+      "scale",
+      "speed"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 708,
+     "input_schema_sha256": "12743eb29ddd89778d718c606fb9167356b2c8af320b28da5df6a6529784834d",
+     "module": "server_tools_glitch",
+     "name": "glitch_vhs_tracking",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "color_bleed",
+      "input_path",
+      "noise_amount",
+      "output_path",
+      "overwrite",
+      "roll_speed",
+      "tracking"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 265,
+     "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
+     "module": "server_tools_hyperframes",
+     "name": "hyperframes_doctor",
+     "profiles": [
+      "core",
+      "hyperframes"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "9e108f9314c825f6fe235e2730209766422a97c4aea65de3cdac00c53a82b67c",
+     "module": "server_tools_basic",
+     "name": "search_tools",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "query"
+     ],
+     "required_params": [
+      "query"
+     ]
+    },
+    {
+     "input_schema_bytes": 596,
+     "input_schema_sha256": "10af9ec9f0c66c37e7ab250aa10766260caa5e5386c713c006e6e70a6d68c6e9",
+     "module": "server_tools_shorts",
+     "name": "shorts_package",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "allow_fail",
+      "candidate_id",
+      "overwrite",
+      "package_root",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "candidate_id",
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 359,
+     "input_schema_sha256": "273a3057dc3d0b834986a8e9870b209b3073291ceeda9ecee837ff774b2b3b29",
+     "module": "server_tools_shorts",
+     "name": "shorts_plan_show",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "overwrite",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 524,
+     "input_schema_sha256": "fdce760c5962dd6ed6b0b03173f1463c6fdff8dfa922bea744d6aac73cb9459a",
+     "module": "server_tools_shorts",
+     "name": "shorts_render",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "candidate_id",
+      "output_path",
+      "overwrite",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "candidate_id",
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 643,
+     "input_schema_sha256": "1f4bbbf4fcf4745b023f3c96145ccf02fc4a532b3b074fce1215003828f53f21",
+     "module": "server_tools_shorts",
+     "name": "shorts_review",
+     "profiles": [
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "candidate_id",
+      "decision",
+      "evidence_ref",
+      "overwrite",
+      "plan_path_or_dir"
+     ],
+     "required_params": [
+      "candidate_id",
+      "decision",
+      "plan_path_or_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 396,
+     "input_schema_sha256": "6b02bb49e07f7580c8bbeaf62ef0c9850be4fde9381f5c39e2b30eae2e098787",
+     "module": "server_tools_creation",
+     "name": "shot_prompt_render",
+     "profiles": [
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "project_path",
+      "shot"
+     ],
+     "required_params": [
+      "project_path",
+      "shot"
+     ]
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "dacfc3b189dde88e42dfb53daea40b198ee34d437d2353cf76b08eaf6a3b7e02",
+     "module": "server_tools_creation",
+     "name": "storyboard_read",
+     "profiles": [
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "path"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "9e262cf0502f73976e3b897eb78a8b913eaf8bf3254bd8b8be1ec3efed782ecd",
+     "module": "server_tools_creation",
+     "name": "style_pack_read",
+     "profiles": [
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "overwrite",
+      "path"
+     ],
+     "required_params": [
+      "path"
+     ]
+    },
+    {
+     "input_schema_bytes": 630,
+     "input_schema_sha256": "a8f096ede033e741bf67477575d4510ff2abb0a355e6c30f6ea974a5e23f37a2",
+     "module": "server_tools_effects",
+     "name": "transition_glitch",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "clip1_path",
+      "clip2_path",
+      "duration",
+      "intensity",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "clip1_path",
+      "clip2_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 600,
+     "input_schema_sha256": "94ed8927d5e70e3407e9c96a432e542b9c68d46b422555c8076f9444dfb8c32e",
+     "module": "server_tools_effects",
+     "name": "transition_morph",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "clip1_path",
+      "clip2_path",
+      "duration",
+      "mesh_size",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "clip1_path",
+      "clip2_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 605,
+     "input_schema_sha256": "82fe36a1d29b75e470c0909c7644e259b0f279ecd5b40d224098ed3d5d4cff54",
+     "module": "server_tools_effects",
+     "name": "transition_pixelate",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "clip1_path",
+      "clip2_path",
+      "duration",
+      "output_path",
+      "overwrite",
+      "pixel_size"
+     ],
+     "required_params": [
+      "clip1_path",
+      "clip2_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1854,
+     "input_schema_sha256": "8394854f2c879c769d51948f7ec01945ec59cd83f150d2e1d2592c7125bcd50d",
+     "module": "server_tools_basic",
+     "name": "video_add_audio",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "audio_path",
+      "duration_policy",
+      "fade_in",
+      "fade_out",
+      "mix",
+      "output_path",
+      "overwrite",
+      "start_time",
+      "video_path",
+      "volume"
+     ],
+     "required_params": [
+      "audio_path",
+      "video_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 517,
+     "input_schema_sha256": "15b43acf7896974073ee35161ca9ed21e43cf920dae9714721c8222588fe48ff",
+     "module": "server_tools_audio",
+     "name": "video_add_generated_audio",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "audio_config",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "audio_config",
+      "input_path",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1224,
+     "input_schema_sha256": "b85c254de0e267d5ff791867cbaaadd1baa58cd21c003ee322b74cf1460b34fe",
+     "module": "server_tools_basic",
+     "name": "video_add_text",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "color",
+      "crf",
+      "duration",
+      "font",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "position",
+      "preset",
+      "shadow",
+      "size",
+      "start_time",
+      "text"
+     ],
+     "required_params": [
+      "input_path",
+      "text"
+     ]
+    },
+    {
+     "input_schema_bytes": 779,
+     "input_schema_sha256": "0e51ab7905b86a98d8ba117f5161f553a9c007fada983a19a9b2fd3657899414",
+     "module": "server_tools_basic",
+     "name": "video_add_texts",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "auto_layout",
+      "crf",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "preset",
+      "texts"
+     ],
+     "required_params": [
+      "input_path",
+      "texts"
+     ]
+    },
+    {
+     "input_schema_bytes": 559,
+     "input_schema_sha256": "f442263c6d12c1ed4db2bc99c8f52075cb76e33173cafd70083a3fa82dd8f520",
+     "module": "server_tools_advanced",
+     "name": "video_apply_mask",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "feather",
+      "input_path",
+      "mask_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "mask_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1252,
+     "input_schema_sha256": "a516b598ce4654b610de6afff393199b3958a81ab7fb0953d2974eb723dfd224",
+     "module": "server_tools_audio",
+     "name": "video_audio_bed",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "duck_attack",
+      "duck_ratio",
+      "duck_release",
+      "duck_threshold",
+      "fade_in",
+      "fade_out",
+      "loop",
+      "loop_crossfade",
+      "music_path",
+      "music_volume",
+      "output_path",
+      "overwrite",
+      "save_receipt",
+      "target_lufs",
+      "voice_source"
+     ],
+     "required_params": [
+      "music_path",
+      "output_path",
+      "voice_source"
+     ]
+    },
+    {
+     "input_schema_bytes": 588,
+     "input_schema_sha256": "571ca94aee7bed6a9cbfa038f9e3892beaa6bf1addcf4b3a123bfdaf531735f8",
+     "module": "server_tools_audio",
+     "name": "video_audio_spatial",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "method",
+      "output_path",
+      "overwrite",
+      "positions"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path",
+      "positions"
+     ]
+    },
+    {
+     "input_schema_bytes": 399,
+     "input_schema_sha256": "85889f9ce6f9adf534409f89131ab06efc478d94e8365621e8aeefed277fb82c",
+     "module": "server_tools_advanced",
+     "name": "video_audio_waveform",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "bins",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 408,
+     "input_schema_sha256": "645876b811b15c1dde64e9f12856dc10714967c20bf6493eabb3cd137b1be4f3",
+     "module": "server_tools_effects",
+     "name": "video_auto_chapters",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 621,
+     "input_schema_sha256": "9f65e0dc9cebda4ced1b6698b2d960c3a358c0d38a77e5418d50a60a9810542a",
+     "module": "server_tools_advanced",
+     "name": "video_batch",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "inputs",
+      "operation",
+      "output_dir",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "inputs",
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 624,
+     "input_schema_sha256": "e9b3684da54caeeb67592122dd0961695d14f1bc687289c255277d08147a384a",
+     "module": "server_tools_advanced",
+     "name": "video_chroma_key",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "blend",
+      "color",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "similarity"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 456,
+     "input_schema_sha256": "50d0b7f5fd8e8e6142df0bb7dbca92c6d43d0f28480144514989871e4ac1dbf4",
+     "module": "server_tools_advanced",
+     "name": "video_cleanup",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "files",
+      "keep",
+      "overwrite"
+     ],
+     "required_params": [
+      "files"
+     ]
+    },
+    {
+     "input_schema_bytes": 546,
+     "input_schema_sha256": "4f8b6959b54bf1a22431963beb6a90c5515eecbfd3f39a283242383dc396d108",
+     "module": "server_tools_advanced",
+     "name": "video_compare_quality",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "distorted_path",
+      "metrics",
+      "original_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "distorted_path",
+      "original_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "bf1d05482263790cd4a1b93bf2cf88e1d5936976778910a2efdd113225f41e5f",
+     "module": "server_tools_advanced",
+     "name": "video_composite_layers",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "dry_run",
+      "output_path",
+      "overwrite",
+      "save_layer_plan",
+      "spec_path"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1085,
+     "input_schema_sha256": "f3c98351d8408f2407308210ddbeb2f37d6ff150060aeaec48251e005c933bb5",
+     "module": "server_tools_basic",
+     "name": "video_convert",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality",
+      "target_bitrate",
+      "two_pass"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 675,
+     "input_schema_sha256": "e0dee9a26a3f21abc49f6c24926a27e97eca77929eec5633ec44e5bcb8db7ae6",
+     "module": "server_tools_advanced",
+     "name": "video_create_from_images",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "fps",
+      "images",
+      "list_file",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 1516,
+     "input_schema_sha256": "aadc1fef306146f90129783722e7329460caef79000ee3060321e872d7a125ea",
+     "module": "server_tools_media",
+     "name": "video_crop",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "crop_percent",
+      "height",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "width",
+      "x",
+      "y"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 490,
+     "input_schema_sha256": "fd439028812251495e6b286e7c7d53dc5e4d64c5c321e03dc2eb43d19d95f3a1",
+     "module": "server_tools_advanced",
+     "name": "video_detect_scenes",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "min_scene_duration",
+      "overwrite",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 259,
+     "input_schema_sha256": "6ce946ca43317475ee167d3f07860bde975e2e3a150ed78d18709d4f271b79e3",
+     "module": "server_tools_doctor",
+     "name": "video_doctor",
+     "profiles": [
+      "core",
+      "inspection"
+     ],
+     "properties": [
+      "overwrite"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 815,
+     "input_schema_sha256": "b3a6788a4132623f7f905c90d2d1851dd84df7e6469f3617e5d69aed7c2fe25d",
+     "module": "server_tools_audio",
+     "name": "video_duck_audio",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "attack",
+      "input_path",
+      "music_path",
+      "music_volume",
+      "output_path",
+      "overwrite",
+      "ratio",
+      "release",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path",
+      "music_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 484,
+     "input_schema_sha256": "7bffd42f978b2169cb13663aefd15fb89fe586c24e2f5ccdce1bdad514831ebc",
+     "module": "server_tools_media",
+     "name": "video_edit",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "output_path",
+      "overwrite",
+      "timeline"
+     ],
+     "required_params": [
+      "timeline"
+     ]
+    },
+    {
+     "input_schema_bytes": 1120,
+     "input_schema_sha256": "9dbf17dbdbe8e4badcce97287d73ae1c487e2ce4cac0d8c4473e62ae0cb3e9e0",
+     "module": "server_tools_media",
+     "name": "video_export",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "c2pa_manifest_path",
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 551,
+     "input_schema_sha256": "d2a2560f978fea0d475b30fa9ce670ffb7a6c494fe0b75418e399b7e0964900e",
+     "module": "server_tools_advanced",
+     "name": "video_export_frames",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "format",
+      "fps",
+      "input_path",
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 501,
+     "input_schema_sha256": "92505713e1f02e197a5676ca9f99b9bd020483f825a61fcc3c4766892617cb78",
+     "module": "server_tools_media",
+     "name": "video_extract_audio",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "format",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 534,
+     "input_schema_sha256": "ec04b4ea9e01a7552e42aed542f4ae496b061abb132757a17d66793ff77c85fd",
+     "module": "server_tools_guardrails",
+     "name": "video_extract_frame",
+     "profiles": [
+      "core",
+      "editor",
+      "guardrails"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "timestamp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1277,
+     "input_schema_sha256": "82539c314de6c7d88d1185473bc054eea833e1c9489878e9aa811de9562f116c",
+     "module": "server_tools_media",
+     "name": "video_fade",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "crf",
+      "fade_in",
+      "fade_out",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "preset"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 786,
+     "input_schema_sha256": "e277da264c651800a69ce57f01c752f5ff83aef374884b0a5812754dcdfa312b",
+     "module": "server_tools_advanced",
+     "name": "video_filter",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "crf",
+      "filter_type",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "params",
+      "preset"
+     ],
+     "required_params": [
+      "filter_type",
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 515,
+     "input_schema_sha256": "fb1ad322e25e887fae3acc60eb11140f0738ac1ad52d0ecd7726a727a7621537",
+     "module": "server_tools_advanced",
+     "name": "video_generate_subtitles",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "burn",
+      "entries",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "entries",
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 716,
+     "input_schema_sha256": "2aec166727d743a6a70f03d470ad85cb5c784fa2451f44947fd8d54f9d470e8a",
+     "module": "server_tools_advanced",
+     "name": "video_hls_segment",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_dir",
+      "overwrite",
+      "playlist_name",
+      "qualities",
+      "segment_duration"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 394,
+     "input_schema_sha256": "9f24d97a02f6f6490a84db21a547005dd12fd96364001f923dc61610c88f349f",
+     "module": "server_tools_basic",
+     "name": "video_info",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "exact",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 344,
+     "input_schema_sha256": "2019f8eddfd147d20b017f1390598e30b8c346ea6b7a6d420d81c5d13d19603e",
+     "module": "server_tools_effects",
+     "name": "video_info_detailed",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 740,
+     "input_schema_sha256": "9177d5585f806a85e555ad7d7e10822431db841adc22113a9bd8c761e42577f3",
+     "module": "server_tools_inspection",
+     "name": "video_ingest",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "lineage",
+      "overwrite",
+      "project_dir",
+      "source_path",
+      "usage_rights_evidence_ref",
+      "usage_rights_status"
+     ],
+     "required_params": [
+      "project_dir",
+      "source_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 569,
+     "input_schema_sha256": "40402ee856497387f427ae82e8b30b2b5c09c68b631b80b30d8956514638ac78",
+     "module": "server_tools_inspection",
+     "name": "video_inspect_temporal",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "asset_id",
+      "declared_regions",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "asset_id",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 657,
+     "input_schema_sha256": "bc365ed4980bcc2dc4313106c5a17ada754007815c48a6e578c920b5dac5780b",
+     "module": "server_tools_effects",
+     "name": "video_layout_grid",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "background",
+      "clips",
+      "gap",
+      "layout",
+      "output_path",
+      "overwrite",
+      "padding"
+     ],
+     "required_params": [
+      "clips",
+      "layout",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 934,
+     "input_schema_sha256": "7f35b885c8f8e72b7cdc8ecadbdad9aa3cebafe44cb39705e6a7ce913b626189",
+     "module": "server_tools_effects",
+     "name": "video_layout_pip",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "border",
+      "border_color",
+      "border_width",
+      "main_path",
+      "margin",
+      "output_path",
+      "overwrite",
+      "pip_path",
+      "position",
+      "rounded_corners",
+      "size"
+     ],
+     "required_params": [
+      "main_path",
+      "output_path",
+      "pip_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 500,
+     "input_schema_sha256": "aef96f974f2fcde3bc732a9580745f556fc8bdab2322a810df2cec17f5ca591c",
+     "module": "server_tools_advanced",
+     "name": "video_luma_key",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "threshold"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1322,
+     "input_schema_sha256": "cb605fcc93f8e073c7c9a304728b168d1106b1be2d5dd8d566caa2700d6f7b84",
+     "module": "server_tools_basic",
+     "name": "video_merge",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "clips",
+      "output_path",
+      "overwrite",
+      "transition",
+      "transition_duration",
+      "transitions"
+     ],
+     "required_params": [
+      "clips"
+     ]
+    },
+    {
+     "input_schema_bytes": 718,
+     "input_schema_sha256": "ab1ec91040eb38fbe7306ad45f56dbfe836aa9efbc7947ae70e832a0e4aee9ab",
+     "module": "server_tools_audio",
+     "name": "video_mix_audio",
+     "profiles": [
+      "audio",
+      "editor"
+     ],
+     "properties": [
+      "audio_bitrate",
+      "input_path",
+      "keep_source",
+      "output_path",
+      "overwrite",
+      "sounds"
+     ],
+     "required_params": [
+      "input_path",
+      "sounds"
+     ]
+    },
+    {
+     "input_schema_bytes": 667,
+     "input_schema_sha256": "3157e2c7cf2e268df1ad796ff357a32801d728bb90911603f7e3e36536d407ba",
+     "module": "server_tools_effects",
+     "name": "video_mograph_count",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "duration",
+      "end",
+      "fps",
+      "output_path",
+      "overwrite",
+      "start",
+      "style"
+     ],
+     "required_params": [
+      "duration",
+      "end",
+      "output_path",
+      "start"
+     ]
+    },
+    {
+     "input_schema_bytes": 655,
+     "input_schema_sha256": "c387381e10ad45167d2145968cc28a8916cf7f466f90435b2a46fc95bc6534f6",
+     "module": "server_tools_effects",
+     "name": "video_mograph_progress",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "color",
+      "duration",
+      "fps",
+      "output_path",
+      "overwrite",
+      "style",
+      "track_color"
+     ],
+     "required_params": [
+      "duration",
+      "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 768,
+     "input_schema_sha256": "2d3d3adb5ce581b04f77b0d802c0b8c5a7ef6cb0814f02a000a02101c7fb340b",
+     "module": "server_tools_advanced",
+     "name": "video_normalize_audio",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "fade_seconds",
+      "input_path",
+      "lra",
+      "output_path",
+      "overwrite",
+      "target_lufs",
+      "true_peak_dbtp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 1238,
+     "input_schema_sha256": "1b5854c1481453e80bcc65019fdf0c5f4c0f17b0b52e35f84620ad8a250748b9",
+     "module": "server_tools_advanced",
+     "name": "video_overlay",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "background_path",
+      "crf",
+      "duration",
+      "height",
+      "opacity",
+      "output_path",
+      "overlay_path",
+      "overwrite",
+      "position",
+      "preset",
+      "start_time",
+      "width"
+     ],
+     "required_params": [
+      "background_path",
+      "overlay_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 402,
+     "input_schema_sha256": "22d23c856aeeb227af6e691c2c13a6836abdf7766a00af211927712c668261c2",
+     "module": "server_tools_inspection",
+     "name": "video_preflight",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "asset_id",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "asset_id",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 504,
+     "input_schema_sha256": "26b0e57d2f41f384870402eac237816702118deec57bd34fbe76c7dc9e3aa1cb",
+     "module": "server_tools_media",
+     "name": "video_preview",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "scale_factor"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 422,
+     "input_schema_sha256": "8e060f42ae2cf86827086fdff25c79a80db663c81af66c16051fd14dfa5936e4",
+     "module": "server_tools_creation",
+     "name": "video_project_create",
+     "profiles": [
+      "core",
+      "creation",
+      "editor"
+     ],
+     "properties": [
+      "output_dir",
+      "overwrite",
+      "slug"
+     ],
+     "required_params": [
+      "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 423,
+     "input_schema_sha256": "03dbf2c54e259c4bfc41179daa68c82cd54d2ab6b36805a3411f176671ba4187",
+     "module": "server_tools_ai",
+     "name": "video_quality_check",
+     "profiles": [
+      "ai",
+      "core"
+     ],
+     "properties": [
+      "fail_on_warning",
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 344,
+     "input_schema_sha256": "db626f183a1003df674384eb0f1334526b6729b58507a2890d3401dc8e93ec0b",
+     "module": "server_tools_advanced",
+     "name": "video_read_metadata",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 986,
+     "input_schema_sha256": "9dad53464acf2cb4fa48cc852e80a385c31a41e85fc42e1efb27069faf2821f1",
+     "module": "server_tools_motion_acceptance",
+     "name": "video_record_motion_acceptance",
+     "profiles": [
+      "editor",
+      "inspection"
+     ],
+     "properties": [
+      "dispositions",
+      "input_path",
+      "overwrite",
+      "report",
+      "report_sha256",
+      "reviewer_id",
+      "source_sha256",
+      "verdict",
+      "watched_intervals"
+     ],
+     "required_params": [
+      "dispositions",
+      "input_path",
+      "report",
+      "report_sha256",
+      "reviewer_id",
+      "source_sha256",
+      "verdict",
+      "watched_intervals"
+     ]
+    },
+    {
+     "input_schema_bytes": 911,
+     "input_schema_sha256": "0e7e6b4e8d8e54328d36b83d1f47e2e76f6ca0523f95f7b05be3701a2e57719e",
+     "module": "server_tools_repurpose",
+     "name": "video_repurpose",
+     "profiles": [
+      "editor",
+      "repurpose"
+     ],
+     "properties": [
+      "include_release_checkpoint",
+      "input_path",
+      "min_score",
+      "moment_selection_record_id",
+      "output_dir",
+      "overwrite",
+      "platforms",
+      "start_job"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 558,
+     "input_schema_sha256": "4a6577950f154100031e75f32929d0c1385ca787a6b7e226beeb5de2f55d1d29",
+     "module": "server_tools_repurpose",
+     "name": "video_repurpose_plan",
+     "profiles": [
+      "editor",
+      "repurpose"
+     ],
+     "properties": [
+      "input_path",
+      "output_dir",
+      "overwrite",
+      "platforms"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 336,
+     "input_schema_sha256": "0c66949801330b751cb3ce2ab222601f63f3fc5cbef97c4942a2fafe8de196f7",
+     "module": "server_tools_rescue",
+     "name": "video_rescue_inspect",
+     "profiles": [
+      "core",
+      "rescue"
+     ],
+     "properties": [
+      "overwrite",
+      "receipt"
+     ],
+     "required_params": [
+      "receipt"
+     ]
+    },
+    {
+     "input_schema_bytes": 770,
+     "input_schema_sha256": "d3b7f87ae0fac9c32e0a5d44dec0db8666b51f16f5cff33eac9b3b41758c9eca",
+     "module": "server_tools_basic",
+     "name": "video_resize",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "aspect_ratio",
+      "height",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "quality",
+      "width"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 435,
+     "input_schema_sha256": "eb3b65c9612a2189f5c1f46f6c970608fae2f579c02dcf12d34cc0b0bfe88162",
+     "module": "server_tools_advanced",
+     "name": "video_reverse",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "724127c308858f6ed5e2fc68678b88ae3cef5d3926dd679f92adc0d060470a6d",
+     "module": "server_tools_release",
+     "name": "video_review_package",
+     "profiles": [
+      "core",
+      "release"
+     ],
+     "properties": [
+      "blocking_findings",
+      "candidate_artifact",
+      "overwrite",
+      "project_dir"
+     ],
+     "required_params": [
+      "candidate_artifact",
+      "project_dir"
+     ]
+    },
+    {
+     "input_schema_bytes": 1087,
+     "input_schema_sha256": "be890f29d160c166454adb794959eb3c971c9da096a05bf92e7872311400f1e4",
+     "module": "server_tools_media",
+     "name": "video_rotate",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "angle",
+      "flip_horizontal",
+      "flip_vertical",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 558,
+     "input_schema_sha256": "1163463b59897cad09a3db547be35669017eda5a14265c9d7c9d8934562b78e4",
+     "module": "server_tools_advanced",
+     "name": "video_shape_mask",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "feather",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "shape"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 717,
+     "input_schema_sha256": "4100557d55b91f7a37f5e40a6ce4606241d33f2d0e21c204ce963b77c99996d2",
+     "module": "server_tools_shorts",
+     "name": "video_shorts",
+     "profiles": [
+      "core",
+      "editor",
+      "shorts"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "segments",
+      "style"
+     ],
+     "required_params": [
+      "input_path",
+      "segments"
+     ]
+    },
+    {
+     "input_schema_bytes": 803,
+     "input_schema_sha256": "c4a2073e91450beb50906c29cc9dee6fe4d57843884528a4889945b2f8a77c8b",
+     "module": "server_tools_basic",
+     "name": "video_speed",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "factor",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 571,
+     "input_schema_sha256": "fe51dae3695113e7bcdfa2ad087bec47835b7e7be47b82eb9c775638acec940c",
+     "module": "server_tools_advanced",
+     "name": "video_split_screen",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "layout",
+      "left_path",
+      "output_path",
+      "overwrite",
+      "right_path"
+     ],
+     "required_params": [
+      "left_path",
+      "right_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 558,
+     "input_schema_sha256": "5569e36fff168ef945e9fd0e9d48b0cb495a23f8ce3aaa4f8d0d25c9eafa86a6",
+     "module": "server_tools_advanced",
+     "name": "video_stabilize",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "smoothing",
+      "zooming"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 503,
+     "input_schema_sha256": "085d4c345bd8d092c09b47dfbd61b7a42cbc066be44051268e6c5ea59959cf32",
+     "module": "server_tools_media",
+     "name": "video_storyboard",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "frame_count",
+      "input_path",
+      "output_dir",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 596,
+     "input_schema_sha256": "f0730c87c901d4435c95c0ab9047c5a4a8256096df662354791163141da2a57e",
+     "module": "server_tools_media",
+     "name": "video_subtitles",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "style",
+      "subtitle_path"
+     ],
+     "required_params": [
+      "input_path",
+      "subtitle_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 605,
+     "input_schema_sha256": "af595f4353997d691e89460e88bbb5fbf40da4ed96c326e08ca4d9f3c033a957",
+     "module": "server_tools_effects",
+     "name": "video_subtitles_styled",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "style",
+      "subtitles_path"
+     ],
+     "required_params": [
+      "input_path",
+      "output_path",
+      "subtitles_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 891,
+     "input_schema_sha256": "c8c3ecf08a1c53ca79eaf75588a95f3f59e96a3aad2822edd389bd42819918dc",
+     "module": "server_tools_media",
+     "name": "video_template_preview",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "caption",
+      "duration",
+      "input_path",
+      "music_path",
+      "outro_path",
+      "overwrite",
+      "template",
+      "title"
+     ],
+     "required_params": [
+      "template"
+     ]
+    },
+    {
+     "input_schema_bytes": 989,
+     "input_schema_sha256": "66d86ebcfd7adb41e8bd8f11321287fb1df09e954b2a979d3d035a0d05f60e46",
+     "module": "server_tools_effects",
+     "name": "video_text_animated",
+     "profiles": [
+      "editor",
+      "effects"
+     ],
+     "properties": [
+      "animation",
+      "color",
+      "duration",
+      "font",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "position",
+      "size",
+      "start",
+      "text",
+      "typewriter_speed"
+     ],
+     "required_params": [
+      "input_path",
+      "text"
+     ]
+    },
+    {
+     "input_schema_bytes": 548,
+     "input_schema_sha256": "69b974b7043327244724c7ad7a4b81cbbd7a056ae00abd4d1b0042b7709981c2",
+     "module": "server_tools_media",
+     "name": "video_thumbnail",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "input_path",
+      "output_path",
+      "overwrite",
+      "timestamp"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 791,
+     "input_schema_sha256": "9d521a6342e1ef94494090a4555f55e5239ab7e3567f70c540e2f26bebb41106",
+     "module": "server_tools_basic",
+     "name": "video_trim",
+     "profiles": [
+      "core",
+      "editor"
+     ],
+     "properties": [
+      "accurate",
+      "duration",
+      "end",
+      "input_path",
+      "output_path",
+      "overwrite",
+      "start"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 624,
+     "input_schema_sha256": "9fba18a8ec1b3d2e66661afda2353295220f21ee9fdeaf22f43de5a096dd7c78",
+     "module": "server_tools_guardrails",
+     "name": "video_validate_text_layout",
+     "profiles": [
+      "core",
+      "editor",
+      "guardrails"
+     ],
+     "properties": [
+      "background_color",
+      "overlays",
+      "overwrite",
+      "video_height",
+      "video_width"
+     ],
+     "required_params": [
+      "overlays"
+     ]
+    },
+    {
+     "input_schema_bytes": 1724,
+     "input_schema_sha256": "ef780b7e856e818f8e65d0258fe2c9b5679ca96b0ddc17dfbb983710d8f9b336",
+     "module": "server_tools_media",
+     "name": "video_watermark",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "crf",
+      "image_path",
+      "input_path",
+      "margin",
+      "opacity",
+      "output_path",
+      "overwrite",
+      "position",
+      "preset"
+     ],
+     "required_params": [
+      "image_path",
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 452,
+     "input_schema_sha256": "98af6f4e4f32853b033617418876640e43fc577b7cdf4b698e525fda41c19321",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_inspect",
+     "profiles": [
+      "core",
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "compare_path",
+      "overwrite",
+      "receipt_path"
+     ],
+     "required_params": [
+      "receipt_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 523,
+     "input_schema_sha256": "3da68eb2d608fa6a460ac87eba3a25840a426d2cd10a2ec2fe3db4d36fe58b39",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_plan",
+     "profiles": [
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "overwrite",
+      "save_plan",
+      "spec_path",
+      "variant"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 899,
+     "input_schema_sha256": "54b60346887689f2c61dd390b04d3a628051d00f07ea572d924d6f6f480579ab",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_render",
+     "profiles": [
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "all_variants",
+      "keep_intermediates",
+      "overwrite",
+      "resume_receipt",
+      "save_receipt",
+      "save_receipt_dir",
+      "spec_path",
+      "variant"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 345,
+     "input_schema_sha256": "f5378f4a13b43421899f10e6da89ff26a3a36f46a47d29ff8efb80a49056e50b",
+     "module": "server_tools_workflow",
+     "name": "video_workflow_validate",
+     "profiles": [
+      "editor",
+      "workflow"
+     ],
+     "properties": [
+      "overwrite",
+      "spec_path"
+     ],
+     "required_params": [
+      "spec_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 542,
+     "input_schema_sha256": "502455d05cd3da4307b7f3ec63e8f8bef7ad86ceec7460c13785242f5d28d5b1",
+     "module": "server_tools_advanced",
+     "name": "video_write_metadata",
+     "profiles": [
+      "advanced",
+      "editor"
+     ],
+     "properties": [
+      "input_path",
+      "metadata",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path",
+      "metadata"
+     ]
+    }
+   ],
+   "total_input_schema_bytes": 71413
+  }
+ },
+ "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
+ "schema_version": 1,
+ "serialization": "sum over tools of len(json.dumps(inputSchema, ensure_ascii=False, separators=(',',':')).encode('utf-8'))"
+}
