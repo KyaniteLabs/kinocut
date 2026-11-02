@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .validation_errors import reason
 from .server_app import _result, _safe_tool, mcp
 
 
@@ -46,7 +47,7 @@ async def sound_voice_batch(
             raise MCPVideoError("caption request and synthetic plan modes conflict", error_type="validation_error")
         return _result(await render_dub_request_async(request, project_root))
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()
@@ -62,7 +63,7 @@ async def sound_mix_render(request: dict[str, Any] | None = None, project_root: 
             return _result(_invoke("sound-mix-render"))
         return _result(await render_mix_request_async(request, project_root))
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()
@@ -76,7 +77,7 @@ async def sound_master_render(request: dict[str, Any], project_root: str) -> dic
     try:
         return _result(await render_master_request_async(request, project_root))
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()
@@ -90,7 +91,7 @@ async def sound_qa_loudness(request: dict[str, Any] | None = None, project_root:
     try:
         return _result(await inspect_loudness_async(request=request, project_root=project_root))
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 @mcp.tool()
@@ -106,4 +107,4 @@ async def sound_qa_asr(request: dict[str, Any] | str, project_root: str) -> dict
         real_mode(dict(request=request, project_root=project_root))
         return _result(await recognize_async(request, project_root))
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc

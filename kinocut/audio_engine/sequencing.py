@@ -15,6 +15,7 @@ from typing import Any
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _run_ffmpeg
 from ..validation import VALID_AUDIO_EFFECT_TYPES, VALID_AUDIO_SEQUENCE_TYPES, VALID_WAVEFORMS
+from ..validation_errors import rejected_value
 from .core import (
     _float_to_pcm,
     _pcm_to_float,
@@ -185,7 +186,7 @@ def _validate_audio_sequence(sequence: list[dict[str, Any]]) -> None:
         event_type = event.get("type")
         if event_type not in VALID_AUDIO_SEQUENCE_TYPES:
             raise MCPVideoError(
-                f"sequence[{i}].type must be one of {sorted(VALID_AUDIO_SEQUENCE_TYPES)}, got {event_type!r}",
+                f"sequence[{i}].type must be one of {sorted(VALID_AUDIO_SEQUENCE_TYPES)}, got {rejected_value(event_type)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )
@@ -210,7 +211,7 @@ def _validate_audio_sequence(sequence: list[dict[str, Any]]) -> None:
             waveform = event.get("waveform", "sine")
             if waveform not in VALID_WAVEFORMS:
                 raise MCPVideoError(
-                    f"sequence[{i}].waveform must be one of {sorted(VALID_WAVEFORMS)}, got {waveform!r}",
+                    f"sequence[{i}].waveform must be one of {sorted(VALID_WAVEFORMS)}, got {rejected_value(waveform)}",
                     error_type="validation_error",
                     code="invalid_parameter",
                 )
@@ -243,7 +244,11 @@ def _generate_waveform(
     elif waveform == "fm":
         return generate_fm(frequency, duration, sample_rate, volume)
     else:
-        raise MCPVideoError(f"Unknown waveform: {waveform}", error_type="validation_error", code="invalid_parameter")
+        raise MCPVideoError(
+            f"Unknown waveform: {rejected_value(waveform)}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
 
 
 def audio_sequence(
@@ -430,7 +435,7 @@ def audio_compose(
             )
         if not Path(file_path).exists():
             raise MCPVideoError(
-                f"Audio track file not found: {file_path}",
+                f"Audio track file not found: {rejected_value(file_path)}",
                 error_type="input_error",
                 code="invalid_input",
             )
@@ -473,7 +478,7 @@ def _validate_audio_effects(effects: list[dict[str, Any]]) -> None:
         effect_type = effect.get("type")
         if effect_type not in VALID_AUDIO_EFFECT_TYPES:
             raise MCPVideoError(
-                f"effects[{i}].type must be one of {sorted(VALID_AUDIO_EFFECT_TYPES)}, got {effect_type!r}",
+                f"effects[{i}].type must be one of {sorted(VALID_AUDIO_EFFECT_TYPES)}, got {rejected_value(effect_type)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )

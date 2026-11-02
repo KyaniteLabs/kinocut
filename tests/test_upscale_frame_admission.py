@@ -174,7 +174,7 @@ def test_realesrgan_audio_mux_failure_cannot_publish_silent_success(clip_factory
             raise ProcessingError("ffmpeg", 1, "audio mux failed")
 
         monkeypatch.setattr(upscale, "_reconstruct_video", fail_mux)
-        with pytest.raises(ProcessingError, match="audio mux failed"):
+        with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
             upscale.ai_upscale(str(clip), str(output))
         assert output.read_bytes() == b"prior output"
     else:

@@ -682,8 +682,9 @@ def assert_quality(
     report["all_passed"] = score_ok and not audio_missing
     if not report["all_passed"]:
         failures: list[str] = []
+        overall_score = float(report["overall_score"])
         if not score_ok:
-            failures.append(f"score {report['overall_score']:.1f} < {min_score:.1f}")
+            failures.append(f"score {overall_score:.1f} < {min_score:.1f}")
         if audio_missing:
             failures.append("no audio stream detected (audio required)")
         recommendations = "; ".join(report.get("recommendations", []))

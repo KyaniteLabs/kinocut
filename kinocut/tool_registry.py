@@ -426,11 +426,15 @@ def discovery_catalog() -> list[dict[str, Any]]:
 
     global _ACTIVE_MODE
     active_mode = _ACTIVE_MODE
-    for module in TOOL_NAMES_BY_MODULE:
-        importlib.import_module(f".{module}", __package__)
-    _capture_catalog()
-    _ACTIVE_MODE = active_mode
-    apply_tool_surface()
+    try:
+        for module in TOOL_NAMES_BY_MODULE:
+            importlib.import_module(f".{module}", __package__)
+        _capture_catalog()
+    finally:
+        # A failing hidden-module import must never leave the enlarged
+        # registration surface live: restore the selected diet regardless.
+        _ACTIVE_MODE = active_mode
+        apply_tool_surface()
     return [_TOOL_CATALOG[name] for name in TOOL_REGISTRY if name in _TOOL_CATALOG]
 
 

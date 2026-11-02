@@ -164,10 +164,11 @@ def video_intent(
                 payload["next_action"] = "review_then_sphere_render"
             except Exception as exc:
                 from kinocut.errors import MCPVideoError
+                from kinocut.validation_errors import exception_kind
 
                 logger.warning("360 assembly plan not attached: %s", exc)
                 payload["sphere_plan_error"] = (
-                    exc.to_dict() if isinstance(exc, MCPVideoError) else {"message": str(exc)}
+                    exc.to_dict() if isinstance(exc, MCPVideoError) else {"message": exception_kind(exc)}
                 )
     return _result(payload)
 

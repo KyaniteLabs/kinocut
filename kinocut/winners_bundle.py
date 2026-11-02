@@ -56,6 +56,7 @@ from .validation import (
     WINNERS_MANIFEST_REQUIRED_FIELDS,
     WINNERS_PAYLOAD_REQUIRED_FIELDS,
 )
+from .validation_errors import exception_kind, reason
 
 
 def _fail(detail: str) -> NoReturn:
@@ -96,9 +97,9 @@ def _reject_leaf_symlink(path: Path, label: str) -> None:
     except FileNotFoundError:
         return
     except OSError as exc:
-        _fail(f"could not inspect {label}: {exc}")
+        _fail(f"could not inspect {label}: {exception_kind(exc)}")
     if stat.S_ISLNK(mode):
-        _fail(f"{label} must not be a symlink: {path}")
+        _fail(f"{label} must not be a symlink")
 
 
 def _canonical_leaf(path: Path, label: str) -> Path:
@@ -107,7 +108,7 @@ def _canonical_leaf(path: Path, label: str) -> Path:
     try:
         anchored = absolute.parent.resolve(strict=False) / absolute.name
     except (OSError, RuntimeError) as exc:
-        _fail(f"could not resolve parent of {label}: {exc}")
+        _fail(f"could not resolve parent of {label}: {exception_kind(exc)}")
     _reject_leaf_symlink(anchored, label)
     return anchored
 
@@ -126,9 +127,9 @@ def _reject_symlink_below(anchor: Path, path: Path, label: str) -> None:
         except FileNotFoundError:
             continue
         except OSError as exc:
-            _fail(f"could not inspect {label}: {exc}")
+            _fail(f"could not inspect {label}: {exception_kind(exc)}")
         if stat.S_ISLNK(mode):
-            _fail(f"{label} must not contain a symlink: {current}")
+            _fail(f"{label} must not contain a symlink")
 
 
 def _regular_file_identity(path: Path, label: str) -> tuple[str, int]:
@@ -138,12 +139,12 @@ def _regular_file_identity(path: Path, label: str) -> tuple[str, int]:
         if not stat.S_ISREG(path.stat(follow_symlinks=False).st_mode):
             _fail(f"{label} must be a regular file")
     except OSError as exc:
-        _fail(f"could not inspect {label}: {exc}")
+        _fail(f"could not inspect {label}: {exception_kind(exc)}")
     flags = os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0)
     try:
         descriptor = os.open(path, flags)
     except OSError as exc:
-        _fail(f"could not open {label}: {exc}")
+        _fail(f"could not open {label}: {exception_kind(exc)}")
     digest = hashlib.sha256()
     try:
         with os.fdopen(descriptor, "rb") as handle:
@@ -154,7 +155,7 @@ def _regular_file_identity(path: Path, label: str) -> tuple[str, int]:
                 digest.update(chunk)
             after = os.fstat(handle.fileno())
     except OSError as exc:
-        _fail(f"could not read {label}: {exc}")
+        _fail(f"could not read {label}: {exception_kind(exc)}")
     markers = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
     if any(getattr(before, marker) != getattr(after, marker) for marker in markers):
         _fail(f"{label} changed while it was read")
@@ -174,7 +175,7 @@ def _read_regular_bytes(path: Path, label: str) -> bytes:
             content = handle.read()
             after = os.fstat(handle.fileno())
     except OSError as exc:
-        _fail(f"could not read {label}: {exc}")
+        _fail(f"could not read {label}: {exception_kind(exc)}")
     markers = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
     if any(getattr(before, marker) != getattr(after, marker) for marker in markers):
         _fail(f"{label} changed while it was read")
@@ -208,7 +209,7 @@ def _copy_verified_payload(source: Path, destination: Path, expected_digest: str
             os.fsync(writer.fileno())
             after = os.fstat(reader.fileno())
     except OSError as exc:
-        _fail(f"payload copy failed: {exc}")
+        _fail(f"payload copy failed: {exception_kind(exc)}")
     markers = ("st_dev", "st_ino", "st_size", "st_mtime_ns", "st_ctime_ns")
     stable = all(getattr(before, marker) == getattr(after, marker) for marker in markers)
     if not stable or digest.hexdigest() != expected_digest or copied_bytes != expected_bytes:
@@ -233,13 +234,13 @@ def _prepare_artifacts(artifacts: list[dict[str, Any]]) -> list[_PreparedArtifac
                 _fail(f"artifacts[{index}].payload_source must be a text path")
             source = _canonical_leaf(Path(source_value), f"artifacts[{index}].payload_source")
         except (TypeError, ValueError, OSError) as exc:
-            _fail(f"artifacts[{index}].payload_source is invalid: {exc}")
+            _fail(f"artifacts[{index}].payload_source is invalid: {reason(exc)}")
         name = source.name
         if not name or name in {".", ".."} or "/" in name or "\\" in name:
             _fail(f"artifacts[{index}].payload_source must have a safe filename")
         collision_key = name.casefold()
         if collision_key in used_names:
-            _fail(f"duplicate payload filename: {name}")
+            _fail("duplicate payload filename")
         used_names.add(collision_key)
         digest, size = _regular_file_identity(source, f"artifacts[{index}].payload_source")
         entry = _entry_from_spec(spec, f"payload/{name}", digest, size)
@@ -275,7 +276,7 @@ def _validate_destination(dest: Path, *, allow_nonempty: bool = False) -> None:
         if not allow_nonempty and any(dest.iterdir()):
             _fail(f"destination directory is not empty: {dest} — use a fresh directory")
     except OSError as exc:
-        _fail(f"could not inspect destination: {exc}")
+        _fail(f"could not inspect destination: {exception_kind(exc)}")
 
 
 def _validate_bundle_destination(dest: Path) -> None:
@@ -293,7 +294,7 @@ def _validate_bundle_destination(dest: Path) -> None:
         if any(payload.iterdir()):
             _fail(f"destination payload/ directory is not empty: {payload} — use a fresh bundle directory")
     except OSError as exc:
-        _fail(f"could not inspect destination payload directory: {exc}")
+        _fail(f"could not inspect destination payload directory: {exception_kind(exc)}")
 
 
 def _temporary_sibling(dest: Path) -> Path:
@@ -302,7 +303,7 @@ def _temporary_sibling(dest: Path) -> Path:
         parent.mkdir(parents=True, exist_ok=True)
         return Path(tempfile.mkdtemp(prefix=f".{dest.name}.kinocut-", dir=parent))
     except OSError as exc:
-        _fail(f"could not create temporary destination: {exc}")
+        _fail(f"could not create temporary destination: {exception_kind(exc)}")
 
 
 def _remove_temporary_tree(path: Path) -> None:
@@ -328,7 +329,7 @@ def _publish_directory(staged: Path, dest: Path) -> None:
         if removed_empty_dest and not os.path.lexists(dest):
             with suppress(OSError):
                 dest.mkdir()
-        _fail(f"could not publish destination: {exc}")
+        _fail(f"could not publish destination: {exception_kind(exc)}")
 
 
 def _replace_payload(source: Path, destination: Path) -> None:
@@ -344,7 +345,7 @@ def _preflight_merge_targets(dest: Path, relative_paths: list[Path]) -> None:
             try:
                 mode = target.stat(follow_symlinks=False).st_mode
             except OSError as exc:
-                _fail(f"could not inspect staging destination {relative}: {exc}")
+                _fail(f"could not inspect staging destination {relative}: {exception_kind(exc)}")
             if not stat.S_ISREG(mode):
                 _fail(f"staging destination must be a regular file: {relative}")
 
@@ -360,7 +361,7 @@ def _create_merge_parents(dest: Path, relative: Path, created: list[Path]) -> No
         try:
             current.mkdir()
         except OSError as exc:
-            _fail(f"could not create staging destination parent: {exc}")
+            _fail(f"could not create staging destination parent: {exception_kind(exc)}")
         created.append(current)
 
 
@@ -407,7 +408,7 @@ def _merge_staged_payloads(staged: Path, dest: Path, relative_paths: list[Path])
         if isinstance(exc, ValidationError) and restored:
             raise
         detail = "payload merge failed" if restored else "payload merge failed and rollback was incomplete"
-        _fail(f"{detail}: {exc}")
+        _fail(f"{detail}: {exception_kind(exc)}")
     finally:
         if not preserve_backup:
             _remove_temporary_tree(backup)
@@ -460,7 +461,7 @@ def write_bundle(
         raise
     except OSError as exc:
         _remove_temporary_tree(staged)
-        _fail(f"bundle copy failed: {exc}")
+        _fail(f"bundle copy failed: {exception_kind(exc)}")
 
 
 def _validate_manifest_structure(manifest: Any, bundle_dir: Path) -> tuple[str, list[dict[str, Any]], str]:
@@ -535,7 +536,7 @@ def _require_directory(path: Path, label: str) -> None:
     try:
         mode = path.stat(follow_symlinks=False).st_mode
     except OSError as exc:
-        _fail(f"could not inspect {label}: {exc}")
+        _fail(f"could not inspect {label}: {exception_kind(exc)}")
     if not stat.S_ISDIR(mode):
         _fail(f"{label} must be a directory")
 
@@ -559,7 +560,7 @@ def _payload_inventory(payload_root: Path, relative_root: Path) -> set[Path]:
                     _fail(f"payload tree must contain only regular files: {candidate.relative_to(relative_root)}")
                 present.add(candidate.relative_to(relative_root))
     except OSError as exc:
-        _fail(f"could not inspect payload tree: {exc}")
+        _fail(f"could not inspect payload tree: {exception_kind(exc)}")
     return present
 
 
@@ -570,7 +571,7 @@ def _validated_payload_identity(root: Path, payload_root: Path, payload_rel: Pat
         resolved_payload_root = payload_root.resolve(strict=True)
         resolved_candidate = candidate.resolve(strict=True)
     except OSError as exc:
-        _fail(f"listed payload missing: {payload_rel} ({exc})")
+        _fail(f"listed payload missing: {payload_rel} ({exception_kind(exc)})")
     if not resolved_candidate.is_relative_to(resolved_payload_root):
         _fail(f"listed payload escapes payload directory: {payload_rel}")
     return _regular_file_identity(candidate, f"listed payload {payload_rel}")
@@ -586,7 +587,7 @@ def verify_bundle(bundle_dir: str | Path) -> WinnersBundleReceipt:
     try:
         manifest = json.loads(_read_regular_bytes(manifest_path, "manifest.json").decode("utf-8"))
     except (json.JSONDecodeError, UnicodeDecodeError) as exc:
-        _fail(f"manifest.json is not valid JSON: {exc}")
+        _fail(f"manifest.json is not valid JSON: {exception_kind(exc)}")
 
     exported_at, entries, envelope_claim = _validate_manifest_structure(manifest, root)
     expected = hashlib.sha256(_canonical_manifest_bytes(manifest)).hexdigest()
@@ -681,4 +682,4 @@ def stage_bundle(
         raise
     except OSError as exc:
         _remove_temporary_tree(staged)
-        _fail(f"payload copy failed: {exc}")
+        _fail(f"payload copy failed: {exception_kind(exc)}")

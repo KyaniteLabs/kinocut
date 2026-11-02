@@ -23,6 +23,7 @@ from .errors import InputFileError, MCPVideoError
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
 from .merge_guardrails import validate_merge_compatibility
 from .models import EditResult
+from .validation_errors import rejected_value
 from .validation import VALID_XFADE_TRANSITIONS
 
 logger = logging.getLogger(__name__)
@@ -259,8 +260,8 @@ def _build_xfade_video_filter(
         # and CLI reach this engine directly with unchecked strings.
         if xfade_type not in VALID_XFADE_TRANSITIONS:
             raise MCPVideoError(
-                f"Invalid transition '{transition_types[i]}'. "
-                f"Must be one of: {', '.join(sorted(VALID_XFADE_TRANSITIONS))}",
+                f"Invalid transition: expected one of {', '.join(sorted(VALID_XFADE_TRANSITIONS))}, "
+                f"got {rejected_value(transition_types[i])}",
                 error_type="validation_error",
                 code="invalid_transition",
             )

@@ -111,7 +111,8 @@ def _detect_motion_vectors(input_path: str, vectors_file: str) -> None:
         raise ProcessingError(
             f"ffmpeg -i {os.path.basename(input_path)} -vf vidstabdetect",
             -1,
-            f"Video stabilization analysis timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
+            "",
+            reason=f"Video stabilization analysis timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
         ) from exc
     if result.returncode != 0:
         raise parse_ffmpeg_error(result.stderr)

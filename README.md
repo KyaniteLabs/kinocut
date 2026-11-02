@@ -102,6 +102,7 @@ Kinocut turns that into typed, guardrailed tool calls - no FFmpeg flags to guess
 
 ```python
 from kinocut import Client
+
 video = Client()
 
 clip = video.trim("interview.mp4", start="00:02:15", duration="00:00:45")
@@ -125,8 +126,8 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 
 | Surface | Version / tip | What it means |
 | --- | --- | --- |
-| **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut`. |
-| **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
+| **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut==1.16.5`. |
+| **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut==1.16.5` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
 | **This source version** | **1.16.5 published** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Published `mcp-video==1.6.20` pins this runtime; verification is recorded in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
@@ -150,7 +151,7 @@ Project creation checks completed destinations and symlink redirects. Python 3.1
 
 ## What's in 1.16.2
 
-Published 2026-10-21: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.17` installs `kinocut==1.16.2`. `create-from-images` is now frame-exact, accepts rational frame rates such as `30000/1001` and a `--list` / `list_file` input, and enforces frame-rate and image-count bounds on every entry point. The official MCP Registry entry is republished as the local `uvx kinocut` stdio package. Thanks to [@Beritwu](https://github.com/Beritwu) for [#616](https://github.com/KyaniteLabs/kinocut/pull/616). See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.2).
+Published 2026-10-21: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.17` installs `kinocut==1.16.2`. `create-from-images` is now frame-exact, accepts rational frame rates such as `30000/1001` and a `--list` / `list_file` input, and enforces frame-rate and image-count bounds on every entry point. The official MCP Registry entry is republished as the local `uvx` stdio package `kinocut`. Thanks to [@Beritwu](https://github.com/Beritwu) for [#616](https://github.com/KyaniteLabs/kinocut/pull/616). See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.2).
 
 ## What's in 1.16.1
 
@@ -210,7 +211,7 @@ While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editin
 - **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
 - **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
 - **Generative Plans and Local Caption Speech:** Generative spend-cap and legacy TTS candidate records remain non-executable plans. An installed eSpeak NG engine can render real EN/ES stock caption speech through a hashed `sound_voice_batch` request and retain audio for mixing. [Caption speech](docs/SOUND_DUB_REQUESTS.md) does not translate text or promise neural voice quality. No generation adapter exists; credentials or discovery alone do not establish execution.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]`). Default remains people. Not a new MCP/CLI name. Available in published **1.16.5**, first shipped in 1.15.1 (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
+- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]==1.16.5`). Default remains people. Not a new MCP/CLI name. Available in published **1.16.5**, first shipped in 1.15.1 (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]==1.16.5`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
 
 Product checklist: [ROADMAP.md](ROADMAP.md).
 
@@ -323,7 +324,7 @@ Agents: `video_intent` with a 360/desk/table goal and `source=`, then `video_rev
 
 ## Still / Image Editing
 
-Kinocut treats multi-still packages as first-class media — plan → receipt → fail-closed gate, same safety posture as video rescue. Requires `pip install "kinocut[image]"`; run `kino doctor` to verify the image stack.
+Kinocut treats multi-still packages as first-class media — plan → receipt → fail-closed gate, same safety posture as video rescue. Requires `pip install "kinocut[image]==1.16.5"`; run `kino doctor` to verify the image stack.
 
 **Workflow:** establish a hero plate → edit beats toward it → match shared WB/exposure → grade (optional signal LUT) → cohesion gate.
 
@@ -406,13 +407,13 @@ sudo apt install ffmpeg
 Run without a global install:
 
 ```bash
-uvx --from kinocut kino doctor
+uvx --from kinocut==1.16.5 kino doctor
 ```
 
 Or install with pip:
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 ```
 
@@ -439,14 +440,14 @@ The core install covers all FFmpeg editing tools. Optional features ship as extr
 
 | You want | Install | Approx. extra size |
 |---|---|---|
-| Speech-to-text subtitles (Whisper) | `pip install "kinocut[transcribe]"` | ~1 GB (torch) |
-| Image analysis (colors, layout, contrast) | `pip install "kinocut[image]"` | ~50 MB |
-| Vocal/instrument stem separation | `pip install "kinocut[stems]"` | ~2 GB (torch + demucs) |
-| AI upscaling | `pip install "kinocut[upscale]"` | ~2 GB (Python ≤3.12) |
-| Procedural audio/music tools | `pip install "kinocut[audio]"` | ~30 MB (numpy) |
-| Everything AI | `pip install "kinocut[ai]"` | several GB |
+| Speech-to-text subtitles (Whisper) | `pip install "kinocut[transcribe]==1.16.5"` | ~1 GB (torch) |
+| Image analysis (colors, layout, contrast) | `pip install "kinocut[image]==1.16.5"` | ~50 MB |
+| Vocal/instrument stem separation | `pip install "kinocut[stems]==1.16.5"` | ~2 GB (torch + demucs) |
+| AI upscaling | `pip install "kinocut[upscale]==1.16.5"` | ~2 GB (Python ≤3.12) |
+| Procedural audio/music tools | `pip install "kinocut[audio]==1.16.5"` | ~30 MB (numpy) |
+| Everything AI | `pip install "kinocut[ai]==1.16.5"` | several GB |
 
-Mix freely, e.g. `pip install "kinocut[transcribe,image]"`. Run `kino doctor` afterward — it reports exactly which features are available and what is missing.
+Mix freely, e.g. `pip install "kinocut[transcribe,image]==1.16.5"`. Run `kino doctor` afterward — it reports exactly which features are available and what is missing.
 
 ### Upgrading from mcp-video
 
@@ -467,7 +468,7 @@ Published `mcp-video==1.6.20` is a metadata-only compatibility installer for `ki
 
 ## En español
 
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.5** (`pip install kinocut`, **205 herramientas MCP con `KINOCUT_TOOLS=all`; 20 por defecto / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
+Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.5** (`pip install kinocut==1.16.5`, **205 herramientas MCP con `KINOCUT_TOOLS=all`; 20 por defecto / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
 
 Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
 
@@ -479,14 +480,14 @@ brew install ffmpeg
 sudo apt install ffmpeg
 
 # Instalación y diagnóstico
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 ```
 
 Para Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 `kino doctor` informa qué funciones están disponibles y qué falta instalar. La documentación completa está en inglés; los mensajes de error principales son bilingües.
@@ -498,7 +499,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
 Prove the install works before wiring an agent host:
 
 ```bash
-pip install -e .          # or: pip install kinocut
+pip install -e .          # or: pip install kinocut==1.16.5
 kino doctor               # required checks must pass
 python scripts/golden_path.py
 ```
@@ -511,8 +512,8 @@ Shareable pack (receipt + quality + media): `python scripts/generate_golden_pack
 From a clone of this repo, run the smallest confidence workflow before wiring an agent host:
 
 ```bash
-uv run --no-project --with kinocut python workflows/05-confidence-baseline/workflow.py
-uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut==1.16.5 python workflows/05-confidence-baseline/workflow.py
+uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The workflow generates a tiny source clip, creates a checked vertical video, runs quality/release checkpoint steps, and writes `workflows/05-confidence-baseline/output/video_receipt.json`.
@@ -522,7 +523,7 @@ Proof notes live in [`docs/proofs/`](docs/proofs/). Public marketing claims (ver
 ### Claude Code
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ### Claude Desktop
@@ -532,7 +533,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -545,7 +546,7 @@ claude mcp add kinocut -- uvx --from kinocut kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut", "kino", "--mcp"]
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
     }
   }
 }
@@ -610,7 +611,7 @@ kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir
 
 ## MCP Tools
 
-Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the editor profile. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
+Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
 
 | Category | Count | Highlights |
 | --- | ---: | --- |
@@ -709,7 +710,7 @@ Safety contract:
 **1.16.2** (2026-10-21):
 
 - Frame-exact `create-from-images` with rational frame rates (`30000/1001`) and `--list` / `list_file` input; frame-rate and image-count bounds on Python, CLI and MCP (thanks [@Beritwu](https://github.com/Beritwu), #616).
-- Official MCP Registry entry republished as the local `uvx kinocut` stdio package.
+- Official MCP Registry entry republished as the local `uvx` stdio package `kinocut`.
 - Surface stays **203 MCP / 177 CLI**; `mcp-video==1.6.17` installs `kinocut==1.16.2`.
 
 **1.16.1** (2026-10-05):
@@ -784,9 +785,9 @@ Kinocut is a free, open-source MCP server, Python library, and `kino` CLI for AI
 
 ```bash
 brew install ffmpeg   # or apt install ffmpeg
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ### Is it free and local-first?

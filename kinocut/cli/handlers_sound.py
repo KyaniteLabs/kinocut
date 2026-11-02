@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from ..validation_errors import reason
 from ..json_artifacts import load_json_artifact, parse_json_artifact
 from ..limits import MAX_CLI_JSON_ARTIFACT_BYTES
 from .runner import CommandRunner, _out
@@ -40,7 +41,7 @@ def _loudness(a, j):
             result = _invoke("sound-qa-loudness", request=request, project_root=a.project_root)
         _out(result, j)
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 def _master(a, j):
@@ -53,7 +54,7 @@ def _master(a, j):
         request = raw if raw.lstrip().startswith("{") else load_request_file(raw)
         _out(_invoke("sound-master-render", request=request, project_root=a.project_root), j)
     except SoundContractError as exc:
-        raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+        raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
 
 def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
@@ -84,7 +85,7 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
                 result = _invoke("sound-voice-batch", request=request, project_root=a.project_root)
             _out(result, j)
         except SoundContractError as exc:
-            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+            raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
     def _mix(a, j):
         from kinocut_sound._errors import SoundContractError
@@ -100,7 +101,7 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
                 result = _invoke("sound-mix-render", request=request, project_root=root)
             _out(result, j)
         except SoundContractError as exc:
-            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+            raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
     def _asr(a, j):
         from kinocut_sound._errors import SoundContractError
@@ -113,7 +114,7 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
             result = _invoke("sound-qa-asr", request=request, project_root=a.project_root)
             _out(result, j)
         except SoundContractError as exc:
-            raise MCPVideoError(str(exc), error_type=exc.error_type, code=exc.code) from exc
+            raise MCPVideoError(reason(exc), error_type=exc.error_type, code=exc.code) from exc
 
     runner.register("sound-capabilities", _caps)
     runner.register("sound-plan-validate", _plan)

@@ -87,18 +87,22 @@ def _check_filter_available(name: str) -> bool:
 
 
 def _require_filter(name: str, feature: str) -> None:
-    """Raise an error if a required FFmpeg filter is not available."""
+    """Raise an error if a required FFmpeg filter is not available.
+
+    The feature is a shipped label, so it is published. The filter's own
+    name is not: one caller reaches it through the filter table it was
+    given, so the name is not provably ours at every call site.
+    """
     if not _check_filter_available(name):
         raise MCPVideoError(
-            f"FFmpeg filter '{name}' is not available. {feature} requires FFmpeg "
-            f"to be compiled with additional libraries.\n"
+            f"{feature} needs an FFmpeg filter that this build does not have.\n"
             f"Install with: brew install ffmpeg (macOS) or rebuild FFmpeg with "
             f"libfreetype/libass support.",
             error_type="dependency_error",
-            code=f"missing_filter_{name}",
+            code="missing_filter",
             suggested_action={
                 "auto_fix": False,
-                "description": f"Reinstall FFmpeg with {name} support. On macOS: brew reinstall ffmpeg",
+                "description": f"Reinstall FFmpeg with the filters {feature} needs. On macOS: brew reinstall ffmpeg",
             },
         )
 

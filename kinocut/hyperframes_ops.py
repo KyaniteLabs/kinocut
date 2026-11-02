@@ -25,6 +25,8 @@ import time
 from pathlib import Path
 from typing import Any
 
+from .validation_errors import rejected_value
+
 from .defaults import DEFAULT_COMPOSITION_FPS, DEFAULT_COMPOSITION_HEIGHT, DEFAULT_COMPOSITION_WIDTH
 from .defaults import DEFAULT_REMOVE_BACKGROUND_MASK_INTERVAL
 from .errors import HyperframesRenderError, MCPVideoError
@@ -357,14 +359,14 @@ def still(
     seconds = frame / DEFAULT_COMPOSITION_FPS
     snap = snapshot(project_path, at=[seconds], frames=1, variables=variables, variables_file=variables_file)
     if not snap.success or not snap.frame_paths or not Path(snap.frame_paths[0]).is_file():
-        raise HyperframesRenderError("snapshot", 1, "Hyperframes snapshot produced no still image")
+        raise HyperframesRenderError("snapshot", 1, "", reason="Hyperframes snapshot produced no still image")
     actual_output = snap.frame_paths[0]
     if destination and Path(destination) != Path(actual_output).absolute():
         try:
             with _atomic_output(destination) as temporary:
                 shutil.copyfile(actual_output, temporary)
         except OSError as exc:
-            raise HyperframesRenderError("snapshot", 1, "Could not copy requested still image") from exc
+            raise HyperframesRenderError("snapshot", 1, "", reason="Could not copy requested still image") from exc
         actual_output = destination
 
     return HyperframesStillResult(
@@ -528,7 +530,7 @@ def remove_background(
     """Cut a person or a product out of a still or video.
 
     Default model is people (`u2net_human_seg`) via Hyperframes. Products and
-    other objects use `birefnet-general` (Kinocut ONNX, `kinocut[object-matte]`).
+    other objects use `birefnet-general` (Kinocut ONNX, `kinocut[object-matte]==1.16.5`).
     """
     if info:
         return _remove_background_info()
@@ -692,7 +694,8 @@ def render_and_post(
         raise HyperframesRenderError(
             "hyperframes render",
             0,
-            f"Render completed but output artifact was not created: {hyperframes_output}",
+            "",
+            reason="Render completed but the output artifact was not created",
         )
 
     # Step 2: Post-process with the Kinocut engine
@@ -708,7 +711,7 @@ def render_and_post(
 
         if op_type not in op_map:
             raise MCPVideoError(
-                f"Unknown post-processing operation: '{op_type}'. Valid operations: {', '.join(op_map)}",
+                f"Unknown post-processing operation: {rejected_value(op_type)}. Valid operations: {', '.join(op_map)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )

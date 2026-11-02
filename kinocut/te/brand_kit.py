@@ -9,6 +9,7 @@ from typing import Any
 
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_input_path
+from ..validation_errors import exception_kind
 
 
 @dataclass
@@ -38,7 +39,7 @@ def load_brand_kit(path: str) -> BrandKit:
         data = json.loads(p.read_text(encoding="utf-8"))
     except json.JSONDecodeError as exc:
         raise MCPVideoError(
-            f"invalid brand kit JSON: {exc}",
+            f"invalid brand kit JSON: {exception_kind(exc)}",
             error_type="validation_error",
             code="invalid_brand_kit",
         ) from exc

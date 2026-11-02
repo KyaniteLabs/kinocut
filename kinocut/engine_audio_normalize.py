@@ -120,7 +120,7 @@ def _build_loudnorm_render_filter(
             raise
         return f"{fade_filter}loudnorm=I={target_s}:LRA={lra_s}:TP={peak_s}{resample}", []
     measured_filter = ":".join(
-        f"{key}={_escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, key)))}"
+        f"{key}={_escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, 'measured level')))}"
         for key, value in measured.items()
     )
     warnings = []

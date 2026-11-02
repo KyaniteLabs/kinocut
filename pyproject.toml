@@ -246,6 +246,7 @@ include = [
     "kinocut/engine_probe.py",
     "kinocut/engine_runtime_utils.py",
     "kinocut/validation.py",
+    "kinocut/validation_errors.py",
     "kinocut/limits.py",
     "kinocut/defaults.py",
     "kinocut/creative",

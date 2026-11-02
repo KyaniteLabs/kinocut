@@ -229,7 +229,7 @@ def test_npm_failure_preserves_both_outputs_and_cleans_run_leaf(tmp_path, monkey
         return _completed(2, "renderer failed")
 
     monkeypatch.setattr(revideo_engine, "_run_npm", fail)
-    with pytest.raises(RevideoRenderError, match="renderer failed"):
+    with pytest.raises(RevideoRenderError, match="Revideo render failed"):
         render(project, str(final))
 
     assert canonical.read_bytes() == b"old-project"

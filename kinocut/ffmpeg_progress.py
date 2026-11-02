@@ -98,7 +98,7 @@ def run_progress(
                 raise diagnostics.errors[0] from None
             raise
         except subprocess.TimeoutExpired:
-            raise ProcessingError(" ".join(cmd), -1, f"FFmpeg command timed out after {timeout}s") from None
+            raise ProcessingError(" ".join(cmd), -1, "", reason=f"FFmpeg command timed out after {timeout}s") from None
     except BaseException:
         tree.close()
         raise
@@ -109,7 +109,7 @@ def run_progress(
         if proc.stderr is not None and not reader.is_alive():
             proc.stderr.close()
     if reader.is_alive():
-        raise ProcessingError(" ".join(cmd), -1, "FFmpeg diagnostic reader did not stop")
+        raise ProcessingError(" ".join(cmd), -1, "", reason="FFmpeg diagnostic reader did not stop")
     if diagnostics.errors:
         raise diagnostics.errors[0] from None
     stderr = diagnostics.prefix.decode("utf-8", errors="replace")

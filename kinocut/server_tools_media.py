@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .validation_errors import reason, rejected_value
 import contextlib
 import os
 from typing import Annotated, Any
@@ -28,6 +29,7 @@ from .server_app import _error_result, _result, _safe_tool, _validation_error, m
 from .templates import TEMPLATES, preview_template
 from .validation import VALID_AUDIO_FORMATS, VALID_FORMATS, VALID_PRESETS
 from .ffmpeg_helpers import _get_video_duration, _validate_input_path
+from .validation_errors import exception_kind
 
 ExistingVideoPath = Annotated[
     str,
@@ -196,7 +198,7 @@ def video_watermark(
     try:
         _validate_position(position)
     except MCPVideoError as exc:
-        return _validation_error(str(exc))
+        return _validation_error(reason(exc))
     if not 0 <= opacity <= 1:
         return _validation_error(f"opacity must be between 0 and 1, got {opacity}")
     if margin < 0:
@@ -204,7 +206,7 @@ def video_watermark(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset. Available: {sorted(VALID_PRESETS)}")
     input_path = _validate_input_path(input_path)
     image_path = _validate_input_path(image_path)
     return _result(
@@ -267,7 +269,7 @@ def video_export(
         format: Output format. Supported values are mp4, webm, gif, and mov.
     """
     if format not in VALID_FORMATS:
-        return _validation_error(f"Invalid format: {format}. Must be one of {sorted(VALID_FORMATS)}")
+        return _validation_error(f"Invalid format: {rejected_value(format)}. Must be one of {sorted(VALID_FORMATS)}")
     input_path = _validate_input_path(input_path)
     return _result(
         export_video(
@@ -446,7 +448,7 @@ def video_fade(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset. Available: {sorted(VALID_PRESETS)}")
     input_path = _validate_input_path(input_path)
     if fade_in < 0:
         return _validation_error(f"fade_in must be non-negative, got {fade_in}")
@@ -508,13 +510,11 @@ def video_edit(
                     with open(timeline_str, encoding="utf-8") as f:
                         parsed_timeline = _json.load(f)
                 except (_json.JSONDecodeError, OSError) as exc:
-                    return _validation_error(f"Invalid timeline JSON file: {timeline_str} — {exc}", code="invalid_json")
+                    return _validation_error(f"Invalid timeline JSON file ({exception_kind(exc)})", code="invalid_json")
             else:
-                return _validation_error(
-                    f"timeline must be a dict, valid JSON string, or path to a .json file. Got: {timeline_str[:100]}"
-                )
+                return _validation_error("timeline must be a dict, valid JSON string, or path to a .json file")
     if not isinstance(parsed_timeline, dict):
-        return _validation_error(f"timeline must be a dict or JSON object. Got: {type(parsed_timeline).__name__}")
+        return _validation_error(f"timeline must be a dict or JSON object. Got: {rejected_value(parsed_timeline)}")
     return _result(edit_timeline(parsed_timeline, output_path=output_path))
 
 
@@ -545,7 +545,9 @@ def video_template_preview(
     """
     template = template.lower().strip()
     if template not in TEMPLATES:
-        return _validation_error(f"Unknown template: '{template}'. Available: {sorted(TEMPLATES.keys())}")
+        return _validation_error(
+            f"Unknown template: '{rejected_value(template)}'. Available: {sorted(TEMPLATES.keys())}"
+        )
 
     kwargs: dict[str, Any] = {}
     if caption is not None:
@@ -589,13 +591,15 @@ def video_extract_audio(
         format: Audio format (mp3, aac, wav, ogg, flac).
     """
     if format not in VALID_AUDIO_FORMATS:
-        return _validation_error(f"Invalid audio format: {format}. Must be one of {sorted(VALID_AUDIO_FORMATS)}")
+        return _validation_error(
+            f"Invalid audio format: {rejected_value(format)}. Must be one of {sorted(VALID_AUDIO_FORMATS)}"
+        )
     input_path = _validate_input_path(input_path)
     result = extract_audio(input_path, output_path=output_path, format=format)
     if not os.path.isfile(result):
         return _error_result(
             MCPVideoError(
-                f"Audio extraction completed but output file not found: {result}",
+                "Audio extraction completed but the output file was not found",
                 error_type="processing_error",
                 code="missing_output",
             )

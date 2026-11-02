@@ -1,7 +1,9 @@
 """Tests for CLI commands via subprocess — needs FFmpeg."""
 
+import contextlib
 import json
 import os
+import signal
 import subprocess
 import sys
 from types import SimpleNamespace
@@ -11,20 +13,120 @@ import pytest
 from mcp_video import __version__
 
 
+def _descendants(pid: int) -> list[int]:
+    """Every live descendant of a process.
+
+    The CLI runs each command in its own session, so a timed-out command's
+    encoder is in neither the test's group nor the CLI's. Without this the
+    killed CLI leaves the encoder running at full speed, and the next run
+    competes with it.
+    """
+    children = _process_children()
+    found: list[int] = []
+    queue = [pid]
+    while queue:
+        for child in children.get(queue.pop(), ()):
+            found.append(child)
+            queue.append(child)
+    return found
+
+
+def _process_children() -> dict[int, list[int]]:
+    """The parent of every live process, read from the platform."""
+    if os.path.isdir("/proc"):
+        return _children_from_proc()
+    if os.name == "posix":
+        # macOS and the BSDs have no /proc; ps knows the tree.
+        return _children_from_ps()
+    # Windows terminates the tree with taskkill instead.
+    return {}
+
+
+def _children_from_proc() -> dict[int, list[int]]:
+    children: dict[int, list[int]] = {}
+    for entry in os.listdir("/proc"):
+        if not entry.isdigit():
+            continue
+        try:
+            with open(f"/proc/{entry}/stat", "rb") as handle:
+                # The command name may contain spaces or parentheses, so the
+                # fields after the final ")" are the ones that matter.
+                fields = handle.read().rsplit(b")", 1)[-1].split()
+            parent = int(fields[1])
+        except (OSError, IndexError, ValueError):
+            continue
+        children.setdefault(parent, []).append(int(entry))
+    return children
+
+
+def _children_from_ps() -> dict[int, list[int]]:
+    """The parent of every live process, read from ps."""
+    children: dict[int, list[int]] = {}
+    listing = subprocess.run(
+        ["ps", "-A", "-o", "pid=,ppid="],
+        capture_output=True,
+        text=True,
+        check=False,
+    ).stdout
+    for line in listing.splitlines():
+        parts = line.split()
+        if len(parts) != 2:
+            continue
+        try:
+            child, parent = int(parts[0]), int(parts[1])
+        except ValueError:
+            continue
+        children.setdefault(parent, []).append(child)
+    return children
+
+
+def _kill_tree(process: subprocess.Popen) -> None:
+    """Kill a timed-out command and everything it started.
+
+    The command runs in its own session, so its encoder can be in yet
+    another one: the tree is walked by parentage and the group is killed
+    as well.
+    """
+    if os.name == "posix":
+        for descendant in _descendants(process.pid):
+            with contextlib.suppress(OSError):
+                os.kill(descendant, signal.SIGKILL)
+        with contextlib.suppress(OSError):
+            os.killpg(os.getpgid(process.pid), signal.SIGKILL)
+    elif os.name == "nt":
+        subprocess.run(
+            ["taskkill", "/F", "/T", "/PID", str(process.pid)],
+            capture_output=True,
+            check=False,
+        )
+    with contextlib.suppress(subprocess.TimeoutExpired, OSError):
+        process.kill()
+
+
 def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProcess:
     """Run the mcp-video compatibility CLI (python -m mcp_video) and return result."""
     cmd = [sys.executable, "-m", "mcp_video", *list(args)]
-    result = subprocess.run(
+    process = subprocess.Popen(
         cmd,
-        capture_output=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
         text=True,
         # The CLI forces UTF-8 on its own streams (see __main__), so decode as
         # UTF-8 rather than the locale default -- cp1252 on Windows raises in
         # the subprocess reader thread and silently leaves stdout as None.
         encoding="utf-8",
         errors="replace",
-        timeout=30,
+        # Its own session, so a timeout can kill the whole group without
+        # touching the test runner.
+        start_new_session=(os.name == "posix"),
     )
+    try:
+        stdout, stderr = process.communicate(timeout=30)
+    except subprocess.TimeoutExpired:
+        _kill_tree(process)
+        stdout, stderr = process.communicate()
+        raise subprocess.TimeoutExpired(cmd, 30, output=stdout, stderr=stderr) from None
+    result = subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
     if not expect_fail and result.returncode != 0:
         pytest.fail(f"CLI failed: {result.stderr}")
     return result

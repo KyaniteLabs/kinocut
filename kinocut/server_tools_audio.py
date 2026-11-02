@@ -33,6 +33,7 @@ from .validation import (
     VALID_SPATIAL_METHODS,
     VALID_WAVEFORMS,
 )
+from .validation_errors import rejected_value
 
 _PROCEDURAL_MUSIC_PRESETS = {"drone-low", "drone-mid", "drone-tech", "drone-ominous"}
 
@@ -128,7 +129,9 @@ def audio_synthesize(
         Dict with success status and output_path.
     """
     if waveform not in VALID_WAVEFORMS:
-        return _validation_error(f"Invalid waveform: must be one of {sorted(VALID_WAVEFORMS)}, got '{waveform}'")
+        return _validation_error(
+            f"Invalid waveform: must be one of {sorted(VALID_WAVEFORMS)}, got '{rejected_value(waveform)}'"
+        )
     if frequency < MIN_FREQUENCY or frequency > MAX_FREQUENCY:
         return _validation_error(f"Invalid frequency: must be {MIN_FREQUENCY}-{MAX_FREQUENCY}, got {frequency}")
     if duration <= 0:
@@ -180,9 +183,11 @@ def audio_preset(
         Dict with success status and output_path.
     """
     if preset not in VALID_AUDIO_PRESETS:
-        return _validation_error(f"Invalid preset: must be one of {sorted(VALID_AUDIO_PRESETS)}, got '{preset}'")
+        return _validation_error(
+            f"Invalid preset: must be one of {sorted(VALID_AUDIO_PRESETS)}, got '{rejected_value(preset)}'"
+        )
     if pitch not in {"low", "mid", "high"}:
-        return _validation_error(f"Invalid pitch: must be one of ['high', 'low', 'mid'], got '{pitch}'")
+        return _validation_error(f"Invalid pitch: must be one of ['high', 'low', 'mid'], got '{rejected_value(pitch)}'")
     if intensity < 0 or intensity > 1:
         return _validation_error(f"Invalid intensity: must be 0-1, got {intensity}")
     if duration is not None and duration <= 0:
@@ -237,11 +242,12 @@ def audio_sequence(
         evt_type = event.get("type")
         if evt_type not in VALID_AUDIO_SEQUENCE_TYPES:
             return _validation_error(
-                f"Invalid sequence[{i}].type: must be one of {sorted(VALID_AUDIO_SEQUENCE_TYPES)}, got '{evt_type}'"
+                f"Invalid sequence[{i}].type: must be one of {sorted(VALID_AUDIO_SEQUENCE_TYPES)}, "
+                f"got {rejected_value(evt_type)}"
             )
         evt_at = event.get("at")
         if not isinstance(evt_at, (int, float)):
-            return _validation_error(f"Invalid sequence[{i}].at: must be numeric, got {type(evt_at).__name__}")
+            return _validation_error(f"Invalid sequence[{i}].at: must be numeric, got {rejected_value(evt_at)}")
         evt_dur = event.get("duration")
         if evt_dur is not None and evt_dur <= 0:
             return _validation_error(f"Invalid sequence[{i}].duration: must be > 0, got {evt_dur}")
@@ -328,7 +334,8 @@ def audio_effects(
         eff_type = effect.get("type")
         if eff_type not in VALID_AUDIO_EFFECT_TYPES:
             return _validation_error(
-                f"Invalid effects[{i}].type: must be one of {sorted(VALID_AUDIO_EFFECT_TYPES)}, got '{eff_type}'"
+                f"Invalid effects[{i}].type: must be one of {sorted(VALID_AUDIO_EFFECT_TYPES)}, "
+                f"got {rejected_value(eff_type)}"
             )
     input_path = _validate_input_path(input_path)
     from .audio_engine import audio_effects as _effects
@@ -379,7 +386,9 @@ def video_audio_spatial(
 ) -> dict[str, Any]:
     """Apply 3D spatial audio positioning."""
     if method not in VALID_SPATIAL_METHODS:
-        return _validation_error(f"Invalid method: must be one of {sorted(VALID_SPATIAL_METHODS)}, got '{method}'")
+        return _validation_error(
+            f"Invalid method: must be one of {sorted(VALID_SPATIAL_METHODS)}, got '{rejected_value(method)}'"
+        )
     if not isinstance(positions, list) or len(positions) == 0:
         return _validation_error("positions must be a non-empty list")
     input_path = _validate_input_path(input_path)
