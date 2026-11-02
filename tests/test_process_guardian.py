@@ -170,21 +170,92 @@ print(json.dumps(dict(code=code, reset=_WORKER_OWNER is None)))
     assert finish(worker(tmp_path, script)) == {"code": "process_ownership_unavailable", "reset": True}
 
 
-def test_unleased_call_never_uses_guardian_and_invalid_worker_binding_fails():
+def test_unleased_posix_command_uses_orphan_watchdog_and_invalid_worker_binding_fails():
     from kinocut.errors import MCPVideoError
     from kinocut.process_guardian_owner import bind_worker_lease, prepare_guardian
 
     from kinocut.process_observation import supports_nonreaping_wait
 
     guardian = prepare_guardian([sys.executable], ())
-    if supports_nonreaping_wait():
-        assert guardian is None
-    else:
-        assert guardian.retaining
-        guardian.close()
+    assert guardian is not None
+    assert guardian.retaining is not supports_nonreaping_wait()
+    guardian.close()
     with pytest.raises(MCPVideoError) as error, bind_worker_lease(-1):
         pytest.fail("invalid ownership entered")
     assert error.value.code == "process_ownership_unavailable"
+
+
+def test_unleased_owner_sigkill_stops_native_and_grandchild(tmp_path):
+    heartbeat, native_pid, grandchild_pid = (tmp_path / name for name in ("beat", "native", "grandchild"))
+    descendant = f"import os,pathlib,time; pathlib.Path({str(grandchild_pid)!r}).write_text(str(os.getpid())); p=pathlib.Path({str(heartbeat)!r});\nwhile True: p.write_text(str(time.monotonic())); time.sleep(.02)"
+    command = f"import os,pathlib,subprocess,sys,time; pathlib.Path({str(native_pid)!r}).write_text(str(os.getpid())); subprocess.Popen([sys.executable,'-c',{descendant!r}],stdin=subprocess.DEVNULL); time.sleep(30)"
+    owner = tmp_path / "owner.py"
+    owner.write_text(
+        "from kinocut.bounded_process import run_bounded\n"
+        f"import sys\nrun_bounded([sys.executable,'-c',{command!r}],timeout=40)\n"
+    )
+    process = subprocess.Popen(
+        [sys.executable, str(owner)],
+        stdin=subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        start_new_session=True,
+    )
+    group = None
+    try:
+        wait_for(lambda: heartbeat.exists() and native_pid.exists() and grandchild_pid.exists())
+        native = int(native_pid.read_text())
+        grandchild = int(grandchild_pid.read_text())
+        group = os.getpgid(native)
+        assert group != process.pid and os.getpgid(grandchild) == group
+        os.kill(process.pid, signal.SIGKILL)
+        process.wait(timeout=5)
+
+        def descendants_stopped():
+            for pid in (native, grandchild, group):
+                status = Path(f"/proc/{pid}/status")
+                if status.exists() and "State:\tZ" not in status.read_text():
+                    return False
+            return True
+
+        wait_for(descendants_stopped)
+        snapshot = heartbeat.read_bytes()
+        time.sleep(0.15)
+        assert heartbeat.read_bytes() == snapshot
+    finally:
+        if process.poll() is None:
+            os.killpg(process.pid, signal.SIGKILL)
+            process.wait(timeout=5)
+        if group is not None:
+            with contextlib.suppress(ProcessLookupError):
+                os.killpg(group, signal.SIGKILL)
+        for pipe in (process.stdout, process.stderr):
+            pipe.close()
+
+
+def test_unleased_command_spawn_stays_within_guardian_budget():
+    from kinocut.bounded_process import run_bounded
+    from kinocut.defaults import DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS
+
+    command = [sys.executable, "-c", "raise SystemExit(0)"]
+
+    def median_ms(run, n=8):
+        run()
+        samples = []
+        for _ in range(n):
+            start = time.perf_counter()
+            run()
+            samples.append((time.perf_counter() - start) * 1000)
+        samples.sort()
+        return samples[len(samples) // 2]
+
+    direct = median_ms(lambda: subprocess.run(command, check=True, capture_output=True))
+    guarded = median_ms(lambda: run_bounded(command, timeout=5))
+    extra = guarded - direct
+    assert extra < DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS, (
+        f"orphan watchdog added {extra:.1f}ms (budget {DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS}ms; "
+        f"direct={direct:.1f}ms guarded={guarded:.1f}ms)"
+    )
 
 
 @pytest.mark.parametrize("payload", [b"untrusted startup data", b"X" * 257])
