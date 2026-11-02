@@ -40,7 +40,7 @@ def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None
     dec_p.add_argument(
         "--overwrite",
         action="store_true",
-        help="Replace an existing final output (internal _sphere_work files are always safe to reuse)",
+        help="Replace an existing final output (renders use private per-render work files)",
     )
 
     init_p = subparsers.add_parser("init", help="Scaffold a local Kinocut project directory")

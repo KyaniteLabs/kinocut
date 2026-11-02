@@ -159,10 +159,13 @@ def test_review_decide_second_render_and_overwrite_flag(sphere_scene, tmp_path, 
     path = tmp_path / "plan.json"
     path.write_text(json.dumps(plan))
     out_dir = tmp_path / "out"
+    stale = out_dir / "_sphere_work" / "window-0.mp4"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"legacy flat-layout intermediate")
 
     first = _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "one.mp4")], capsys)
     assert first["sphere_render"]["status"] == "rendered"
-    assert (out_dir / "_sphere_work" / "window-0.mp4").is_file()  # stale work left behind
+    assert stale.read_bytes() == b"legacy flat-layout intermediate"  # preserved, not replaced
 
     second = _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4")], capsys)
     assert second["sphere_render"]["status"] == "rendered"  # stale _sphere_work no longer blocks

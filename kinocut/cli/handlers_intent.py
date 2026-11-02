@@ -123,8 +123,8 @@ def _register_review_commands(runner: CommandRunner) -> None:
             r = decide_sphere_plan(run, a.decision)
             output = getattr(a, "output", None)
             if r.get("status") == "approved" and output:
-                # --overwrite expresses consent for the final output only; the
-                # renderer's internal _sphere_work files never need it.
+                # --overwrite expresses consent for the final output only;
+                # per-render private work roots keep internal files collision-free.
                 with output_operation(bool(getattr(a, "overwrite", False))):
                     r["sphere_render"] = render_sphere_plan(r, output)
             _out(r, j, lambda res: f"360 assembly status={res['status']}")
