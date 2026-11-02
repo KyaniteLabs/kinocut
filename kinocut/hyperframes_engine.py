@@ -19,6 +19,7 @@ if no output_path is provided.
 from __future__ import annotations
 
 import atexit
+import http.client
 import json
 import os
 import re
@@ -106,6 +107,14 @@ def stop_preview(port: int) -> bool:
         return False
     _terminate_preview(proc)
     return True
+
+
+def release_preview(port: int, pid: int | None) -> None:
+    """Transfer a CLI preview to the caller without terminating its server."""
+    proc = _active_previews.get(port)
+    if proc is None or proc.pid != pid or proc.poll() is not None:
+        raise RuntimeError("Preview process is no longer owned or running")
+    del _active_previews[port]
 
 
 def stop_all_previews() -> None:
@@ -625,6 +634,28 @@ def _format_cli_value(value: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _preview_ready(port: int, project: Path, pid: int) -> bool:
+    """Require the exact child to identify itself on the requested local port."""
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=0.25)
+    try:
+        conn.request("GET", "/__hyperframes_config")
+        response = conn.getresponse()
+        if response.status != 200:
+            return False
+        data = json.loads(response.read(65537))
+        return (
+            isinstance(data, dict)
+            and data.get("isHyperframes") is True
+            and data.get("pid") == pid
+            and isinstance(data.get("projectDir"), str)
+            and Path(data["projectDir"]).resolve() == project
+        )
+    except (OSError, ValueError, http.client.HTTPException):
+        return False
+    finally:
+        conn.close()
+
+
 def preview(
     project_path: str,
     port: int = 3002,
@@ -639,7 +670,18 @@ def preview(
     _require_private_preview(project)
     stop_preview(port)
 
-    cmd = [*_hyperframes_command_prefix(cwd=project), "preview", str(project), "--port", str(port)]
+    cmd = [
+        *_hyperframes_command_prefix(cwd=project),
+        "preview",
+        str(project),
+        "--port",
+        str(port),
+        "--foreground",
+        "--no-open",
+        "--force-new",
+    ]
+    env = _hyperframes_environment()
+    env["HYPERFRAMES_PREVIEW_HOST"] = "127.0.0.1"
     proc = subprocess.Popen(  # noqa: S603
         cmd,
         stdin=subprocess.DEVNULL,
@@ -648,12 +690,22 @@ def preview(
         stderr=subprocess.DEVNULL,
         text=True,
         start_new_session=True,
-        env=_hyperframes_environment(),
+        env=env,
     )
 
-    time.sleep(min(startup_timeout, 2))
-    if proc.poll() is not None:
-        raise HyperframesProjectError(str(project), "Hyperframes preview exited immediately")
+    try:
+        deadline = time.monotonic() + startup_timeout
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                raise HyperframesProjectError(str(project), "Hyperframes preview exited immediately")
+            if _preview_ready(port, project, proc.pid) and proc.poll() is None:
+                break
+            time.sleep(0.1)
+        else:
+            raise HyperframesProjectError(str(project), "Hyperframes preview did not start on the requested port")
+    except BaseException:
+        _terminate_preview(proc)
+        raise
     _register_preview(port, proc)
 
     return HyperframesPreviewResult(
