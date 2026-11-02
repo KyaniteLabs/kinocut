@@ -79,7 +79,7 @@ gain goal compilation and 360 handling in published 1.16.0; there is no separate
 |---------|-------------|
 | `intent VERB` | Route a semantic intent verb to a dry-run plan. `--list` prints the catalog; `--params-json` supplies parameters. `--goal` compiles a reviewable cutfile; a 360 goal plus `--source` also proposes a source-bound `sphere_plan`. Neither renders. |
 | `review-run INPUT` | Offline watching metric floor. |
-| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. For a `360_assembly_plan` JSON artifact, explicit `accept` approves and optional `--output` renders through the shared engine; `reject` never renders, and `revise` is unsupported for sphere plans. |
+| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. For a `360_assembly_plan` JSON artifact, explicit `accept` approves and optional `--output` renders through the shared engine; `reject` never renders, and `revise` is unsupported for sphere plans. `--overwrite` (with `--output`) replaces an existing final output; internal `_sphere_work` intermediates are reused or replaced automatically and never block a retry. |
 | `cutfile-validate PATH` | Validate a cutfile JSON/YAML. |
 | `cutfile-render PATH` | Render a cutfile via the workflow engine (`-o`, `--receipt`, `--keep-intermediates`). |
 | `metric-qc INPUT` | Offline metric floor (duration / black / loudness). |

@@ -34,6 +34,37 @@ def sphere_source(tmp_path: Path) -> Path:
     return source
 
 
+@pytest.fixture
+def sphere_scene(tmp_path: Path) -> Path:
+    """2:1 testsrc2 + sine audio: passes the strict quality gate (e2e fixture)."""
+    source = tmp_path / "scene.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=640x320:d=2",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=2",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=120,
+    )
+    return source
+
+
 def test_cli_goal_proposes_source_bound_sphere_without_render(sphere_source, tmp_path, capsys):
     payload = _dispatch(
         ["intent", "reformat_vertical", "--goal", "desk 360 split 9:16", "--source", str(sphere_source)], capsys
@@ -120,6 +151,31 @@ def test_review_render_forwards_only_explicitly_accepted_plan(sphere_source, tmp
     assert calls[0][1] == str(output)
     assert result["sphere_render"]["output_path"] == str(output)
     assert plan["status"] == "proposed"
+
+
+def test_review_decide_second_render_and_overwrite_flag(sphere_scene, tmp_path, capsys):
+    """t_f0d4f023: same-dir re-render needs no cleanup; --overwrite honors the remediation."""
+    plan = propose_sphere_plan(str(sphere_scene))
+    path = tmp_path / "plan.json"
+    path.write_text(json.dumps(plan))
+    out_dir = tmp_path / "out"
+
+    first = _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "one.mp4")], capsys)
+    assert first["sphere_render"]["status"] == "rendered"
+    assert (out_dir / "_sphere_work" / "window-0.mp4").is_file()  # stale work left behind
+
+    second = _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4")], capsys)
+    assert second["sphere_render"]["status"] == "rendered"  # stale _sphere_work no longer blocks
+
+    with pytest.raises(MCPVideoError) as blocked:
+        _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4")], capsys)
+    assert blocked.value.code == "output_exists"
+    assert "--overwrite" in blocked.value.to_dict()["message"]  # remediation names a real CLI flag
+
+    replaced = _dispatch(
+        ["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4"), "--overwrite"], capsys
+    )
+    assert replaced["sphere_render"]["status"] == "rendered"
 
 
 def test_client_estimates_use_shared_local_oracle():

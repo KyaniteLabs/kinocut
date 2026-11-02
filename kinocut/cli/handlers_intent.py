@@ -117,12 +117,16 @@ def _register_review_commands(runner: CommandRunner) -> None:
                 code="invalid_review_run",
             )
         if run.get("artifact_kind") == "360_assembly_plan":
+            from kinocut.output_policy import output_operation
             from kinocut.te import decide_sphere_plan, render_sphere_plan
 
             r = decide_sphere_plan(run, a.decision)
             output = getattr(a, "output", None)
             if r.get("status") == "approved" and output:
-                r["sphere_render"] = render_sphere_plan(r, output)
+                # --overwrite expresses consent for the final output only; the
+                # renderer's internal _sphere_work files never need it.
+                with output_operation(bool(getattr(a, "overwrite", False))):
+                    r["sphere_render"] = render_sphere_plan(r, output)
             _out(r, j, lambda res: f"360 assembly status={res['status']}")
             return
         r = decide_review(run, a.decision, a.reason).to_dict()

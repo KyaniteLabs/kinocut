@@ -13,6 +13,7 @@ from kinocut.engine_merge import merge
 from kinocut.engine_probe import _cache_key
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_output, _open_staged_writer, _validate_output_path
+from kinocut.output_policy import output_operation
 from kinocut.quality_guardrails import assert_quality
 from kinocut.source_identity import assert_source_identity, stream_source_identity
 from kinocut.te.sphere_graph import render_window_single_pass
@@ -44,11 +45,16 @@ def render_sphere_plan(
     _validate_output_path(output_path)
     root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
     root.mkdir(parents=True, exist_ok=True)
-    pieces = [_render_window(current, window, root, index) for index, window in enumerate(current["windows"])]
-    assembled = pieces[0]
-    if len(pieces) > 1:
-        assembled = str(root / "assembled.mp4")
-        merge(pieces, output_path=assembled)
+    # Window intermediates under root are internal to this renderer, not user
+    # outputs: replace any stale copies left by an earlier render or a failed
+    # retry instead of failing with output_exists. The user-facing output_path
+    # keeps its no-clobber check above and at publication below.
+    with output_operation(overwrite=True):
+        pieces = [_render_window(current, window, root, index) for index, window in enumerate(current["windows"])]
+        assembled = pieces[0]
+        if len(pieces) > 1:
+            assembled = str(root / "assembled.mp4")
+            merge(pieces, output_path=assembled)
     with _atomic_output(output_path) as staged:
         with open(assembled, "rb") as rendered, _open_staged_writer(staged) as writer:
             shutil.copyfileobj(rendered, writer)

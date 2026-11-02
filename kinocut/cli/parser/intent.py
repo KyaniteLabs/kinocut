@@ -37,6 +37,11 @@ def _add_intent_workflow_parsers(subparsers: argparse._SubParsersAction) -> None
     dec_p.add_argument("decision", choices=["accept", "reject", "revise"])
     dec_p.add_argument("--reason", default="")
     dec_p.add_argument("-o", "--output", default=None, help="Render an accepted 360 assembly plan to this path")
+    dec_p.add_argument(
+        "--overwrite",
+        action="store_true",
+        help="Replace an existing final output (internal _sphere_work files are always safe to reuse)",
+    )
 
     init_p = subparsers.add_parser("init", help="Scaffold a local Kinocut project directory")
     init_p.add_argument("path", help="Project directory path")

@@ -56,6 +56,30 @@ def _equirect_video(path: Path) -> str:
     return str(path)
 
 
+def _gate_passing_sphere_video(path: Path) -> str:
+    """2:1 testsrc2 + sine audio: passes the strict quality gate (e2e fixture)."""
+    _run_ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=640x320:d=2",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=2",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            str(path),
+        ]
+    )
+    return str(path)
+
+
 def test_probe_accepts_equirect_and_rejects_insv_and_flat(tmp_path: Path) -> None:
     good = _equirect_video(tmp_path / "sphere.mp4")
     probed = probe_360_source(good)
@@ -176,6 +200,61 @@ def test_other_layouts_render(tmp_path: Path, layout: str) -> None:
     receipt = render_sphere_plan(approved, dest, work_dir=str(tmp_path / f"w-{layout}"), allow_fail=True)
     assert Path(dest).is_file()
     assert receipt["layout"] == layout
+
+
+def test_second_render_into_same_dir_replaces_stale_work_files(tmp_path: Path) -> None:
+    """t_f0d4f023: stale _sphere_work/window-*.mp4 must not block the next render."""
+    source = _equirect_video(tmp_path / "sphere.mp4")
+    approved = decide_sphere_plan(propose_sphere_plan(source, preset="desk", aspect="16:9"), "approve")
+    out_dir = tmp_path / "out"
+    render_sphere_plan(approved, str(out_dir / "one.mp4"), allow_fail=True)
+    stale = out_dir / "_sphere_work" / "window-0.mp4"
+    assert stale.is_file()  # the first render leaves internal work files behind
+
+    receipt = render_sphere_plan(approved, str(out_dir / "two.mp4"), allow_fail=True)
+    assert (out_dir / "two.mp4").is_file()
+    assert receipt["status"] == "rendered"
+
+    with pytest.raises(MCPVideoError) as clash:
+        render_sphere_plan(approved, str(out_dir / "two.mp4"), allow_fail=True)
+    assert clash.value.code == "output_exists"
+    assert "overwrite=true" in str(clash.value)
+
+
+def test_render_retry_after_quality_gate_failure_needs_no_cleanup(tmp_path: Path) -> None:
+    """t_f0d4f023: a gate failure leaves intermediates; the retry must still render."""
+    source = _equirect_video(tmp_path / "sphere.mp4")  # no audio → strict gate fails
+    approved = decide_sphere_plan(propose_sphere_plan(source, preset="desk", aspect="16:9"), "approve")
+    dest = str(tmp_path / "out.mp4")
+    with pytest.raises(MCPVideoError) as gate:
+        render_sphere_plan(approved, dest)
+    assert gate.value.code == "quality_gate_failed"
+    assert (tmp_path / "_sphere_work" / "window-0.mp4").is_file()
+    assert not Path(dest).exists()
+
+    receipt = render_sphere_plan(approved, dest, allow_fail=True)
+    assert Path(dest).is_file()
+    assert receipt["quality"]["passed"] is False
+
+
+def test_review_decide_overwrite_remediation_is_actionable_on_mcp(tmp_path: Path) -> None:
+    """The MCP tool that suggests overwrite=true must honor it (no-clobber kept)."""
+    from kinocut.server_tools_intent import video_review_decide
+
+    scene = _gate_passing_sphere_video(tmp_path / "scene.mp4")
+    plan = propose_sphere_plan(scene, preset="desk", aspect="16:9")
+    out_dir = tmp_path / "out"
+    first = video_review_decide(review_run=plan, decision="accept", output_path=str(out_dir / "one.mp4"))
+    assert first.get("success") is True, first
+    second = video_review_decide(review_run=plan, decision="accept", output_path=str(out_dir / "two.mp4"))
+    assert second.get("success") is True, second  # stale _sphere_work no longer blocks
+    blocked = video_review_decide(review_run=plan, decision="accept", output_path=str(out_dir / "two.mp4"))
+    assert blocked["success"] is False
+    assert blocked["error"]["code"] == "output_exists"
+    replaced = video_review_decide(
+        review_run=plan, decision="accept", output_path=str(out_dir / "two.mp4"), overwrite=True
+    )
+    assert replaced.get("success") is True, replaced
 
 
 def test_local_director_valid_and_invalid_json(tmp_path: Path) -> None:
