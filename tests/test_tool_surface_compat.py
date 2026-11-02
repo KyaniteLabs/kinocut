@@ -9,8 +9,9 @@ These tests protect the behaviors the 1.16.5 tool diet promised:
   working in every mode with unchanged parameters and outcomes, while the
   wire surface stays fail-closed for hidden tools;
 * ``KINOCUT_TOOLS`` modes are isolated: default/core is the 20 core tools
-  plus the compact family surface (8 dispatchers + ``list_operations``),
-  ``all`` is exactly the registry, profiles are additive on core, and
+  plus the compact family surface (8 dispatchers + ``list_operations`` +
+  ``describe_operation``), ``all`` is exactly the registry,
+  profiles are additive on core, and
   an unknown profile aborts startup instead of silently degrading.
 
 The tests are hermetic: an autouse fixture pins the ambient ``KINOCUT_TOOLS``

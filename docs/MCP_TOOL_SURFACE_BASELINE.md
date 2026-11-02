@@ -52,7 +52,7 @@ compares each against the fixture:
 3. the declarative tables in `kinocut/tool_registry.py` (205 names across 25
    modules, one module per tool, core tags matching the default surface).
 
-The headline numbers (29/23,588, 205/126,776, 117/81,054) are also asserted
+The headline numbers (30/24,281, 205/126,776, 118/81,747) are also asserted
 literally so a fixture edit cannot pass unnoticed.
 
 `tests/test_tool_surface_compat.py` protects the behaviors around the
