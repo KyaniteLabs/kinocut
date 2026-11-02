@@ -155,7 +155,7 @@ def _validate_raw_quality(quality: dict[str, Any]) -> None:
 
 
 def _edit_video(client: Any, source: Path, trim_duration: float, tool_calls: list[dict[str, Any]]) -> str:
-    print("\n[1/7] Trimming proof segment...")
+    print("\n[1/6] Trimming proof segment...")
     trimmed = client.trim(
         str(source),
         start="00:00:00",
@@ -164,7 +164,7 @@ def _edit_video(client: Any, source: Path, trim_duration: float, tool_calls: lis
     )
     tool_calls.append({"stage": "01-trim", "tool": "Client.trim", "output": _value(trimmed, "output_path")})
 
-    print("\n[2/7] Resizing to vertical 9:16...")
+    print("\n[2/6] Resizing to vertical 9:16...")
     vertical = client.resize(
         _value(trimmed, "output_path"),
         aspect_ratio="9:16",
@@ -172,7 +172,7 @@ def _edit_video(client: Any, source: Path, trim_duration: float, tool_calls: lis
     )
     tool_calls.append({"stage": "02-resize", "tool": "Client.resize", "output": _value(vertical, "output_path")})
 
-    print("\n[3/7] Adding proof caption...")
+    print("\n[3/6] Adding proof caption...")
     captioned = client.add_text(
         _value(vertical, "output_path"),
         text="Kinocut proof",
@@ -185,32 +185,21 @@ def _edit_video(client: Any, source: Path, trim_duration: float, tool_calls: lis
     )
     tool_calls.append({"stage": "03-caption", "tool": "Client.add_text", "output": _value(captioned, "output_path")})
 
-    print("\n[4/7] Normalizing audio...")
+    print("\n[4/6] Normalizing audio into the final MP4...")
     normalized = client.normalize_audio(
         _value(captioned, "output_path"),
         target_lufs=-14.0,
-        output=str(OUTPUT_DIR / "04_normalized.mp4"),
-    )
-    tool_calls.append(
-        {"stage": "04-normalize", "tool": "Client.normalize_audio", "output": _value(normalized, "output_path")}
-    )
-
-    print("\n[5/7] Exporting final MP4...")
-    final = client.convert(
-        _value(normalized, "output_path"),
-        format="mp4",
-        quality="high",
         output=str(OUTPUT_DIR / "final_clip.mp4"),
     )
-    final_path = _value(final, "output_path")
-    tool_calls.append({"stage": "05-export", "tool": "Client.convert", "output": final_path})
+    final_path = _value(normalized, "output_path")
+    tool_calls.append({"stage": "04-normalize-final", "tool": "Client.normalize_audio", "output": final_path})
     return final_path
 
 
 def _quality_and_checkpoint(
     client: Any, final_path: str, tool_calls: list[dict[str, Any]]
 ) -> tuple[dict[str, Any], dict[str, Any]]:
-    print("\n[6/7] Running quality and release checkpoint...")
+    print("\n[5/6] Running quality and release checkpoint...")
     quality = client.quality_check(final_path, fail_on_warning=True)
     quality_json = quality if isinstance(quality, dict) else quality.model_dump()
     _validate_raw_quality(quality_json)
@@ -268,8 +257,7 @@ def _receipt(
             "trimmed source clip",
             "resized to 9:16",
             "added proof caption",
-            "normalized audio",
-            "exported final MP4",
+            "normalized audio directly into the final MP4",
             "created release checkpoint",
         ],
         "guardrails_triggered": quality.get("recommendations", []),
@@ -311,7 +299,7 @@ def main() -> None:
     source = Path(sys.argv[1]).expanduser().resolve() if len(sys.argv) > 1 else OUTPUT_DIR / "source.mp4"
     tool_calls: list[dict[str, Any]] = []
     if not source.exists():
-        print("\n[0/7] Generating synthetic source clip...")
+        print("\n[0/6] Generating synthetic source clip...")
         _generate_source(source)
         print(f"   -> {source}")
     source_before = stream_source_identity(str(source))
@@ -334,7 +322,7 @@ def main() -> None:
         quality=quality,
         checkpoint=checkpoint,
     )
-    print("\n[7/7] Writing Video Receipt...")
+    print("\n[6/6] Writing Video Receipt...")
     if stream_source_identity(str(source)) != source_before:
         raise ProcessingError("source-integrity", 1, "Source changed during confidence workflow")
     receipt_path = OUTPUT_DIR / "video_receipt.json"
