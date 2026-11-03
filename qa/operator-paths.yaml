@@ -1,0 +1,698 @@
+schema_version: 2
+catalog_version: 1.0.0
+status: draft_incomplete
+run_status: NOT_EXECUTED
+complete_e2e_catalog: false
+product: kinocut
+repository: KyaniteLabs/kinocut
+provenance_basis_product_sha: a6f44fb55621462a4bb69352aea66d85e1d9dabf
+revision_policy: 'The runner reports the catalog-source git revision and catalog SHA-256 separately from
+  the exact tested product checkout SHA. Provenance basis is the initial Security-merged PR #663 target
+  only; it is not a claim that later product revisions were tested. All surface counts/names are discovered
+  at runtime, not pinned here.'
+policy:
+  pass: All 25 required setup/fixture/operator paths execute and satisfy their assertions on the caller-supplied
+    exact merged product SHA; missing required inputs remain BLOCKED.
+  blocked: Missing exact fixture, installed dependency, consent, browser, or approved human decision is
+    BLOCKED and makes the run nonzero.
+  fail: An attempted required action with a real product/test assertion failure remains FAIL and makes
+    the run nonzero.
+  discovery: CLI help and MCP inventory are discovery only; they never count as end-to-end actions.
+  safety: No paid calls, login, model downloads, external publish, consent fabrication, untrusted
+    shell evaluation, or unbounded FFmpeg jobs. One FFmpeg job/thread at a time.
+  privacy: Isolated HOME/XDG; no host credentials or user media copied; run artifacts remain under the
+    owned QA work directory.
+setup:
+- id: clean-environment
+  category: setup
+  required: true
+  action: isolate_environment
+  commands: []
+  assertions:
+  - Empty user/config state, default-off external vision; no existing media or source credentials copied.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 21
+    quote: Optional vision calls default to `KINOCUT_VISION_MODE=off`, even with credentials
+  detail: Runner executes declared argument arrays only; never a shell command string.
+- id: install-source
+  category: setup
+  required: true
+  action: source_install
+  commands:
+  - - '{{python}}'
+    - -m
+    - venv
+    - '{{venv}}'
+  - - uv
+    - pip
+    - install
+    - --python
+    - '{{venv_python}}'
+    - -e
+    - '{{product_root}}[image]'
+  - - '{{venv_python}}'
+    - -m
+    - kinocut
+    - --help
+  assertions:
+  - CLI help exits 0; isolated venv import and kino launcher resolve to the caller checkout at MERGE_SHA, not a global package.
+  sources:
+  - file: README.md
+    line: 868
+    quote: python3 -m venv .venv
+  - file: kinocut/__main__.py
+    line: 270
+    quote: 'if __name__ == "__main__":'
+  detail: Runner installs the caller checkout and documented image extra into a fresh isolated venv; public package dependencies may be downloaded.
+- id: install-doctor
+  category: setup
+  required: true
+  action: doctor
+  commands:
+  - - kino
+    - --format
+    - json
+    - doctor
+  assertions:
+  - Required FFmpeg/package checks pass; optional integrations are explicitly reported.
+  sources:
+  - file: docs/GOLDEN_PATH.md
+    line: 11
+    quote: '| 1 | `kino doctor` | Required checks OK (FFmpeg + package) |'
+  detail: Runner executes declared argument arrays only; never a shell command string.
+fixture:
+  id: tiny-synthetic-media
+  category: fixture
+  required: true
+  action: generate_fixtures
+  root: '{{qa_work}}/fixtures'
+  source_policy: Synthetic media proves transport/rendering assertions only. A lawful interview and human-only
+    approval records are separate unresolved fixtures.
+  commands:
+  - - ffmpeg
+    - -nostdin
+    - -hide_banner
+    - -loglevel
+    - error
+    - -threads
+    - '1'
+    - -f
+    - lavfi
+    - -i
+    - testsrc2=size=320x180:rate=24
+    - -f
+    - lavfi
+    - -i
+    - sine=frequency=440:sample_rate=48000
+    - -t
+    - '4'
+    - -c:v
+    - libx264
+    - -threads
+    - '1'
+    - -pix_fmt
+    - yuv420p
+    - -c:a
+    - aac
+    - '{{qa_work}}/fixtures/input.mp4'
+  - - ffmpeg
+    - -nostdin
+    - -hide_banner
+    - -loglevel
+    - error
+    - -threads
+    - '1'
+    - -i
+    - '{{qa_work}}/fixtures/input.mp4'
+    - -frames:v
+    - '1'
+    - '{{qa_work}}/fixtures/hero.png'
+  assertions:
+  - 4-second 320x180 H.264 testsrc2 video with AAC tone; full decode succeeds.
+  - One real frame becomes hero.png; two cue SRT and a confined workflow spec come from docs/examples.
+  sources:
+  - file: docs/GOLDEN_PATH.md
+    line: 62
+    quote: The deterministic source is synthetic and proves installation and timed visual
+  - file: README.md
+    line: 229
+    quote: '"schema_version": 1,'
+paths:
+- id: golden-path
+  category: operator
+  required: true
+  surface: cli
+  action: golden_path
+  assertions:
+  - Fresh final_clip.mp4, video_receipt.json, quality.json and release_checkpoint.json; artifact hashes
+    agree; raw quality >=80; pending human review remains pending.
+  sources: &id001
+  - file: docs/GOLDEN_PATH.md
+    line: 20
+    quote: python scripts/golden_path.py
+  argv:
+  - '{{venv_python}}'
+  - '{{golden_root}}/scripts/golden_path.py'
+- id: info
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - JSON metadata reports 320x180, approximately 4 seconds and an audio stream.
+  sources:
+  - file: README.md
+    line: 585
+    quote: kino info interview.mp4
+  argv:
+  - kino
+  - --format
+  - json
+  - info
+  - '{{qa_work}}/fixtures/input.mp4'
+- id: trim
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Exit 0 and success result; independent ffprobe/full decode confirms 2-second clip and retained audio.
+  sources:
+  - file: README.md
+    line: 586
+    quote: kino trim interview.mp4 -s 00:02:15 -d 45
+  argv:
+  - kino
+  - --format
+  - json
+  - trim
+  - '{{qa_work}}/fixtures/input.mp4'
+  - -s
+  - '0'
+  - -d
+  - '2'
+  - -o
+  - '{{qa_work}}/artifacts/trim.mp4'
+- id: resize
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - New decodable video has width/height ratio 9:16 and retains audio.
+  sources:
+  - file: README.md
+    line: 589
+    quote: kino resize clip.mp4 --aspect-ratio 9:16
+  argv:
+  - kino
+  - --format
+  - json
+  - resize
+  - '{{qa_work}}/artifacts/trim.mp4'
+  - --aspect-ratio
+  - '9:16'
+  - -o
+  - '{{qa_work}}/artifacts/vertical.mp4'
+- id: subtitles
+  category: operator
+  required: true
+  surface: cli
+  action: subtitle_timing
+  assertions:
+  - New video fully decodes; frames inside/outside each of the two cue windows differ as expected; screenshot
+    inspection checks text presence and timing.
+  sources:
+  - file: docs/GOLDEN_PATH.md
+    line: 59
+    quote: video plus audio, a full decode, exact source/output identities, and four
+  argv:
+  - kino
+  - --format
+  - json
+  - subtitles
+  - '{{qa_work}}/fixtures/input.mp4'
+  - '{{qa_work}}/fixtures/captions.srt'
+  - -o
+  - '{{qa_work}}/artifacts/captioned.mp4'
+- id: waveform
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Eight measured RMS bins; synthetic is false and the sine track is non-silent.
+  sources:
+  - file: docs/TOOLS.md
+    line: 528
+    quote: '| `video_audio_waveform` | Measure first-stream RMS dBFS bins and silence regions; distinguish
+      real measurements from `synthetic=true` fallback. [Evidence contract](QUALITY_EVIDENCE.md#audio-waveform)
+      |'
+  argv:
+  - kino
+  - --format
+  - json
+  - audio-waveform
+  - '{{qa_work}}/fixtures/input.mp4'
+  - --bins
+  - '8'
+- id: image-colors
+  category: operator
+  required: true
+  surface: cli
+  action: optional_cli
+  assertions:
+  - Structured result contains 3 extracted colors from the real fixture image.
+  sources:
+  - file: README.md
+    line: 332
+    quote: kino image-extract-colors product.jpg -n 8
+  argv:
+  - kino
+  - --format
+  - json
+  - image-extract-colors
+  - '{{qa_work}}/fixtures/hero.png'
+  - -n
+  - '3'
+- id: workflow-validate
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Valid spec accepted; no rendered output is created.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 259
+    quote: '| `workflow-validate` | Fail-closed structural gate for a job-spec; renders nothing |'
+  argv:
+  - kino
+  - --format
+  - json
+  - workflow-validate
+  - --spec
+  - '{{qa_work}}/fixtures/job.json'
+- id: workflow-plan
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Plan exists, includes source hashes/op graph, and no render occurred.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 260
+    quote: '| `workflow-plan` | No-render plan (op graph, source probes/hashes) for a job-spec |'
+  argv:
+  - kino
+  - --format
+  - json
+  - workflow-plan
+  - --spec
+  - '{{qa_work}}/fixtures/job.json'
+  - --save-plan
+  - '{{qa_work}}/fixtures/plan.json'
+  workspace_note: Plan output is placed inside the spec directory because WORKFLOWS.md confines workflow
+    artifacts to the spec workspace.
+- id: workflow-render
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Confined final video decodes; receipt binds source/output hashes, completed trim step and resume cursor.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 261
+    quote: '| `workflow-render` | Execute a job-spec sequentially and emit a provenance receipt |'
+  argv:
+  - kino
+  - --format
+  - json
+  - workflow-render
+  - --spec
+  - '{{qa_work}}/fixtures/job.json'
+  - --save-receipt
+  - '{{qa_work}}/fixtures/receipt.json'
+  workspace_note: Render and receipt remain inside the spec workspace under QA_WORK.
+- id: workflow-inspect
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Integrity check passes without modifying receipt/media.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 262
+    quote: '| `workflow-inspect` | Summarize any workflow/`layer_plan` receipt with a read-only integrity
+      check |'
+  argv:
+  - kino
+  - --format
+  - json
+  - workflow-inspect
+  - --receipt
+  - '{{qa_work}}/fixtures/receipt.json'
+- id: review-metrics
+  category: operator
+  required: true
+  surface: cli
+  action: cli
+  assertions:
+  - Offline review findings/verdict report is retained; it does not invent a human decision.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 81
+    quote: '| `review-run INPUT` | Offline watching metric floor. |'
+  argv:
+  - kino
+  - --format
+  - json
+  - review-run
+  - '{{qa_work}}/fixtures/input.mp4'
+- id: sound-validation
+  category: operator
+  required: true
+  surface: cli
+  action: expected_cli_rejection
+  assertions:
+  - Nonzero validation failure for an explicit empty SoundPlan; no output rendering.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 149
+    quote: '| `sound-plan-validate` | Validate a SoundPlan JSON payload (`--plan-json` optional); explicit
+      empty or invalid plans fail. See [input validation](SOUND_INPUT_VALIDATION.md). |'
+  argv:
+  - kino
+  - --format
+  - json
+  - sound-plan-validate
+  - --plan-json
+  - '{}'
+- id: overwrite-guard
+  category: operator
+  required: true
+  surface: cli
+  action: overwrite_guard
+  assertions:
+  - Refuses existing destination and preserves its pre-call hash.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 9
+    quote: Existing output files are refused by default. To replace existing media, pass
+  argv:
+  - kino
+  - trim
+  - '{{qa_work}}/fixtures/input.mp4'
+  - -s
+  - '0'
+  - -d
+  - '1'
+  - -o
+  - '{{qa_work}}/artifacts/trim.mp4'
+- id: source-alias-guard
+  category: operator
+  required: true
+  surface: cli
+  action: source_alias_guard
+  assertions:
+  - Nonzero refusal; source hash is unchanged.
+  sources:
+  - file: docs/TOOLS.md
+    line: 22
+    quote: homes remain protected even with consent. Source/output alias guards still apply.
+  argv:
+  - kino
+  - trim
+  - '{{qa_work}}/fixtures/input.mp4'
+  - -s
+  - '0'
+  - -d
+  - '1'
+  - -o
+  - '{{qa_work}}/fixtures/input.mp4'
+- id: mcp-video_doctor
+  category: operator
+  required: true
+  surface: mcp
+  action: mcp_call
+  assertions:
+  - Structured read-only diagnostics with explicit required/optional status.
+  sources:
+  - file: docs/TOOLS.md
+    line: 7
+    quote: 1. Inspect with `video_info` or `kino info`; use `video_doctor` / `kino doctor` before a long
+      job.
+  argv:
+  - kino
+  - --mcp
+  request:
+    tool: video_doctor
+    arguments: {}
+- id: mcp-video_info
+  category: operator
+  required: true
+  surface: mcp
+  action: mcp_call
+  assertions:
+  - Same source identity/metadata as CLI info; no isError or success=false.
+  sources:
+  - file: docs/TOOLS.md
+    line: 7
+    quote: 1. Inspect with `video_info` or `kino info`; use `video_doctor` / `kino doctor` before a long
+      job.
+  argv:
+  - kino
+  - --mcp
+  request:
+    tool: video_info
+    arguments:
+      input_path: '{{qa_work}}/fixtures/input.mp4'
+- id: mcp-search_tools
+  category: operator
+  required: true
+  surface: mcp
+  action: mcp_call
+  assertions:
+  - Nonempty matches expose subtitle operation names and required parameters.
+  sources:
+  - file: docs/TOOLS.md
+    line: 3
+    quote: 'Published 1.16.5 serves **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`, while
+      the default MCP registration is a curated **20-tool core** for video editing, inspection, receipts,
+      diagnostics, and one-call Shorts. Set `KINOCUT_TOOLS=all` for the full catalog or `KINOCUT_TOOLS=profile:editor`
+      for the editor profile. `search_tools` discovers hidden tools on demand without changing the selected
+      surface. All return structured JSON with `success` and operation metadata. On failure, they return
+      `{"success": false, "error": {...}}` with an eyes-free retry invocation for MCP and CLI.'
+  argv:
+  - kino
+  - --mcp
+  request:
+    tool: search_tools
+    arguments:
+      query: subtitle
+mcp_protocol:
+  launch: kino --mcp
+  client_info:
+    name: qa-fixture
+    version: '1'
+  capabilities: {}
+  requests:
+  - initialize using the installed SDK's current protocol negotiation
+  - notifications/initialized
+  - tools/list
+  surface_cases:
+  - default curated core
+  - KINOCUT_TOOLS=all
+  - KINOCUT_TOOLS=profile:editor
+  id: mcp-protocol
+  category: discovery
+  required: true
+  action: mcp_protocol
+  assertions:
+  - Initialize succeeds, tools/list names match selected surface and published schema; full catalog is
+    compared to source registry instead of trusting the README count.
+  sources:
+  - file: README.md
+    line: 613
+    quote: Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the
+      default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the
+      editor profile. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers
+      hidden operations without changing the selected surface. The table summarizes the full catalog's
+      categories.
+  modes:
+  - default
+  - all
+  - profile:editor
+  source_comparison: At runtime compare tools/list names with the target checkout registry/family definitions;
+    counts and names are observed, never static pins.
+  argv:
+  - kino
+  - --mcp
+web_and_http:
+- id: static-review-ui
+  category: operator
+  required: true
+  surface: browser
+  action: static_review_browser
+  argv:
+  - kino
+  - review-ui
+  - '{{qa_work}}/review'
+  assertions:
+  - 'On a unique free loopback port, #status shows Loaded timeline.json; #out contains initial fixture;
+    #player plays/seeks the four-second test video. Change timeline.json to {"qa_fixture":"updated"};
+    after the two-second poll #out shows updated without navigation. Break timeline JSON; visible Failed
+    to load timeline appears. Restore and verify recovery. Retain screenshots and console/network logs.
+    The arbitrary timeline JSON tests the viewer, not semantic editing quality.'
+  sources:
+  - file: docs/PLATFORM_PARITY.md
+    line: 15
+    quote: '| Browser | Static video/timeline review HTML | [Review surface](../kinocut/multipliers/review_ui.py).
+      No complete upload/edit/render application or authenticated processing service is implemented here.
+      |'
+  - file: kinocut/multipliers/review_ui.py
+    line: 57
+    quote: html_path = root / "review.html"
+  - file: kinocut/multipliers/review_ui.py
+    line: 46
+    quote: setInterval(load, 2000); // hot-reload poll
+  preconditions:
+  - Local loopback only; never stop an unrelated listener.
+  - Capture browser screenshots only when the approved local browser dependency exists; no visual PASS
+    without Product vision/human review.
+- id: hyperframes-preview
+  category: operator
+  required: true
+  surface: browser
+  action: hyperframes_preview
+  argv:
+  - kino
+  - hyperframes-preview
+  - '{{qa_work}}/hyperframes'
+  - --port
+  - '{{dynamic_port}}'
+  assertions:
+  - Pinned preview server opens composition; play/scrub and visual inspection work; screenshots and logs
+    retained. Verify port is unused; no existing process is stopped.
+  sources:
+  - file: docs/CLI_REFERENCE.md
+    line: 379
+    quote: '| `hyperframes-preview` | Launch Hyperframes preview studio |'
+  - file: tests/test_hyperframes_engine.py
+    line: 222
+    quote: (tmp_path / "index.html").write_text("<!DOCTYPE html><html></html>")
+  - file: tests/test_hyperframes_engine.py
+    line: 669
+    quote: <div data-composition-id="main" data-duration="5" data-width="1080"
+  preconditions:
+  - Local loopback only; never stop an unrelated listener.
+  - Capture browser screenshots only when the approved local browser dependency exists; no visual PASS
+    without Product vision/human review.
+  - Hyperframes CLI must already be installed and verified at a repository-documented supported version;
+    never use npx or install/download packages during this run.
+  - Set QA_GSAP_PACKAGE to a preinstalled gsap 3.12.5 package directory for the local animated fixture;
+    the runner copies its dist/gsap.min.js into its own work directory and never installs it.
+  - Before launch, Linux /proc must expose same-user process command line and birth identity so only an exact
+    project/port server can be stopped; otherwise leave the path BLOCKED without starting a server.
+  - The requested target must be the exact clean caller-supplied checkout on origin/master ancestry; do
+    not use an unmerged Hyperframes repair branch as the released product.
+  known_product_failure:
+    observed_product_sha: 463b338ad0c9c9a007c01b82b6929256972dcceb
+    native_evidence: Product QA execution card t_6442787d, run 243, final record; 24/25 paths passed and
+      hyperframes-preview returned exit 1 although direct supported Hyperframes CLI and browser play/scrub
+      succeeded. Preserve any reproduced Kino failure as FAIL.
+    unmerged_repair: 'PR #668, head 143ce626; it is not an approved/released test target. Do not test
+      its branch as product, edit it, or omit this required path.'
+discovery:
+  cli:
+    id: cli-inventory
+    required_for_discovery: true
+    action: runtime_help_only
+    argv:
+    - kino
+    - --help
+    source: Target checkout CLI help at product_sha. Report names actually observed; do not count as executed
+      operator paths.
+  mcp:
+    id: mcp-inventory
+    required_for_discovery: true
+    action: runtime_stdio_list_only
+    source: Actual initialize/tools/list from each supported mode in mcp-protocol. Report names actually
+      observed; do not count as executed operator paths.
+coverage_gaps:
+- id: unexercised-operator-families
+  status: BLOCKED
+  scope: Discovered CLI/MCP operations not mapped to the 18 concrete action paths
+  missing: Per-operation safe fixture and observable assertion from repository docs/examples/tests; dynamic
+    inventory is discovery, not execution.
+  sources:
+  - file: docs/TESTING.md
+    line: 5
+    quote: Some tests are environment-sensitive and may skip when optional dependencies or system capabilities
+      are unavailable.
+- id: lawful-interview-and-human-review
+  status: BLOCKED
+  scope: Lawful source media, caption readability, visual/audio acceptability, publication acceptance
+  missing: Operator-supplied lawful interview footage plus an actual human reviewer and explicit decision
+    evidence; no synthetic identity or approval is provided.
+  sources: *id001
+- id: optional-model-and-provider-operations
+  status: BLOCKED
+  scope: Whisper/ASR, upscale, stem separation, AI scene detection, paid or remote model paths
+  missing: An already-installed optional engine/model and any required explicit operator consent/credentials;
+    never download models, log in, or make paid/network calls.
+  sources:
+  - file: README.md
+    line: 442
+    quote: Speech-to-text subtitles (Whisper) | pip install "kinocut[transcribe]" | ~1 GB (torch)
+  - file: README.md
+    line: 447
+    quote: Everything AI | pip install "kinocut[ai]" | several GB
+- id: 360-media-and-approval
+  status: BLOCKED
+  scope: 360 dual-cam render/review, governed verdicts, acceptance, salvage and motion-attestation routes
+  missing: A lawful stitched 360 MP4, active project/asset identities and actual stored human decisions/consent
+    required by those routes.
+  sources:
+  - file: skills/kinocut/SKILL.md
+    line: 75
+    quote: Use when the source is a stitched equirect 360 MP4
+  - file: skills/kinocut/SKILL.md
+    line: 131
+    quote: Obtain or infer explicit approval only for IDs in safe_repairs
+- id: sound-and-listening-acceptance
+  status: BLOCKED
+  scope: Sound mastering/ASR/voice and release listening approval
+  missing: Supplied audio/request fixtures where required, installed optional local engines, and real
+    human listening approval; no identity or approval fabricated.
+  sources:
+  - file: skills/kinocut/SKILL.md
+    line: 247
+    quote: Real ASR uses a hashed audio/reference request and explicit root; retain its transcript ZIP
+      and report mismatches honestly.
+
+- id: visual-human-judgment
+  status: BLOCKED
+  scope: Screenshot visual interpretation, subtitle readability, picture quality, hyperframes editorial
+    acceptance
+  missing: Product must use an admitted vision-capable route or real human; the runner captures technical
+    evidence only and never marks visual review PASS.
+  sources:
+  - file: skills/kinocut/SKILL.md
+    line: 27
+    quote: Keep KINOCUT_VISION_MODE=off (the default). Prepare images ... then use the host's configured
+      vision model to inspect them.
+not_exposed:
+- id: hosted-web-editor
+  status: NOT_IMPLEMENTED
+  scope: Hosted Kinocut HTTP processing API / full web-mobile editor
+  sources:
+  - file: docs/PLATFORM_PARITY.md
+    line: 15
+    quote: No complete upload/edit/render application or authenticated processing service is implemented here.
+counting: Required paths are computed from the five catalog groups; discovery inventories and BLOCKED
+  coverage-gap declarations are reported separately.
