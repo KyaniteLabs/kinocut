@@ -157,18 +157,23 @@ def test_incomplete_catalog_cannot_hide_coverage_gaps():
 
 def test_search_tool_results_include_required_parameters():
     runner = load_runner()
-    assert runner.subtitle_search_matches({"success": True, "tools": [
-        {"name": "video_subtitles", "required_params": ["input_path"]}
-    ]}) == ["video_subtitles"]
+    assert runner.subtitle_search_matches(
+        {"success": True, "tools": [{"name": "video_subtitles", "required_params": ["input_path"]}]}
+    ) == ["video_subtitles"]
     assert runner.subtitle_search_matches({"success": True, "tools": [{"name": "video_subtitles"}]}) == []
 
 
 def test_empty_gap_list_requires_an_exhaustive_live_inventory_mapping():
     runner = load_runner()
-    paths = [{"id": "trim", "category": "operator", "required": True, "argv": ["kino", "trim"]},
-             {"id": "doctor", "category": "operator", "required": True, "request": {"tool": "video_doctor"}}]
-    catalog = {"setup": [], "paths": paths, "coverage_inventory": {
-        "cli": {"trim": "trim"}, "mcp": {"video_doctor": "doctor"}}}
+    paths = [
+        {"id": "trim", "category": "operator", "required": True, "argv": ["kino", "trim"]},
+        {"id": "doctor", "category": "operator", "required": True, "request": {"tool": "video_doctor"}},
+    ]
+    catalog = {
+        "setup": [],
+        "paths": paths,
+        "coverage_inventory": {"cli": {"trim": "trim"}, "mcp": {"video_doctor": "doctor"}},
+    }
     assert runner.exhaustive_coverage(catalog, {"trim"}, {"video_doctor"})
     assert not runner.exhaustive_coverage(catalog, {"trim", "resize"}, {"video_doctor"})
     assert not runner.exhaustive_coverage(catalog, {"trim"}, {"video_doctor", "video_info"})
@@ -176,7 +181,12 @@ def test_empty_gap_list_requires_an_exhaustive_live_inventory_mapping():
 
 def test_empty_sound_plan_rejection_accepts_structured_stderr_and_retains_error():
     runner = load_runner()
-    cp = subprocess.CompletedProcess(["kino"], 1, stdout="", stderr='{"success":false,"error":{"type":"unknown","message":"sound plan validation failed"}}')
+    cp = subprocess.CompletedProcess(
+        ["kino"],
+        1,
+        stdout="",
+        stderr='{"success":false,"error":{"type":"unknown","message":"sound plan validation failed"}}',
+    )
     error = runner.sound_plan_rejection(cp)
     assert error == {"type": "unknown", "message": "sound plan validation failed"}
     assert runner.sound_plan_rejection(subprocess.CompletedProcess(["kino"], 0, stdout=cp.stderr, stderr="")) is None
@@ -197,5 +207,5 @@ def test_browser_temporary_directory_is_short_owned_and_restores_environment(mon
 def test_hyperframes_fixture_has_real_paused_animation():
     html = (ROOT / "qa" / "fixtures" / "hyperframes.html").read_text(encoding="utf-8")
     assert 'data-composition-id="kinocut-preview-proof"' in html
-    assert 'gsap.timeline({ paused: true })' in html
+    assert "gsap.timeline({ paused: true })" in html
     assert 'window.__timelines["kinocut-preview-proof"] = timeline' in html
