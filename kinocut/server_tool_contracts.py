@@ -33,6 +33,39 @@ def _numeric_boolean_validator(model: Any) -> Any:
     return model_validator(mode="before")(classmethod(reject_numeric_booleans))
 
 
+_BOOLEAN_POLICY_TOOLS: dict[str, tuple[str, ...]] = {
+    "video_mix_audio": ("keep_source",),
+    "video_repurpose": ("include_release_checkpoint", "start_job"),
+}
+
+
+def validate_tool_arguments(name: str, tool: Any, arguments: dict[str, Any]) -> None:
+    """Run the wire-path argument checks for ``tool`` before it executes.
+
+    Shared by ``call_tool`` (the direct wire path) and the compact family
+    dispatchers so both reject the same arguments with the same payload:
+    explicit-boolean policy fields, pre-parsed mix sounds, and the contract
+    argument model (undeclared top-level arguments, numeric booleans). Raises
+    ``MCPVideoError`` with the generic wire message on any rejection.
+    """
+
+    try:
+        for field in _BOOLEAN_POLICY_TOOLS.get(name, ()):
+            if field in arguments and type(arguments[field]) is not bool:
+                raise MCPVideoError("Policy parameters require explicit booleans", code="invalid_parameter")
+        if name == "video_mix_audio" and "sounds" in arguments:
+            from .audio_mix_inputs import parse_mix_sounds
+
+            parse_mix_sounds(arguments["sounds"])
+        tool.fn_metadata.arg_model.model_validate(tool.fn_metadata.pre_parse_json(arguments))
+    except (ValueError, RecursionError, MCPVideoError):
+        raise MCPVideoError(
+            "Invalid MCP tool parameters. Use tools/list to inspect the accepted parameters.",
+            error_type="validation_error",
+            code="invalid_parameter",
+        ) from None
+
+
 class _ContractFastMCP(FastMCP):
     """Reject undeclared top-level arguments before a handler executes."""
 
@@ -61,24 +94,8 @@ class _ContractFastMCP(FastMCP):
         if tool is None:
             return await super().call_tool(name, arguments)
         try:
-            boolean_policy = {
-                "video_mix_audio": ("keep_source",),
-                "video_repurpose": ("include_release_checkpoint", "start_job"),
-            }
-            for field in boolean_policy.get(name, ()):
-                if field in arguments and type(arguments[field]) is not bool:
-                    raise MCPVideoError("Policy parameters require explicit booleans", code="invalid_parameter")
-            if name == "video_mix_audio" and "sounds" in arguments:
-                from .audio_mix_inputs import parse_mix_sounds
-
-                parse_mix_sounds(arguments["sounds"])
-            tool.fn_metadata.arg_model.model_validate(tool.fn_metadata.pre_parse_json(arguments))
-        except (ValueError, RecursionError, MCPVideoError):
-            error = MCPVideoError(
-                "Invalid MCP tool parameters. Use tools/list to inspect the accepted parameters.",
-                error_type="validation_error",
-                code="invalid_parameter",
-            )
+            validate_tool_arguments(name, tool, arguments)
+        except MCPVideoError as error:
             payload = {"success": False, "error": error.to_dict()}
             return CallToolResult(
                 isError=True,

@@ -13,14 +13,23 @@ from typing import Any
 _MAX_ECHO_CHARS = 200
 _MAX_MESSAGE_CHARS = 2000
 
-_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar("kinocut_retry_context", default=None)
+_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any], str | None] | None] = ContextVar(
+    "kinocut_retry_context", default=None
+)
 
 
 @contextlib.contextmanager
-def retry_context(tool_name: str, arguments: dict[str, Any] | None = None):
-    """Bind a user-facing error to the operation that can be retried."""
+def retry_context(tool_name: str, arguments: dict[str, Any] | None = None, invocation: str | None = None):
+    """Bind a user-facing error to the operation that can be retried.
 
-    token = _RETRY_CONTEXT.set((tool_name, dict(arguments or {})))
+    ``invocation``, when provided, replaces the derived MCP/CLI retry hint
+    wholesale. The compact family dispatchers use it so a rejection names the
+    family tool with the selected operation (and only a CLI route that has
+    been verified to exist) instead of deriving a route from a tool name that
+    has no CLI counterpart.
+    """
+
+    token = _RETRY_CONTEXT.set((tool_name, dict(arguments or {}), invocation))
     try:
         yield
     finally:
@@ -38,25 +47,30 @@ def retry_message(message: str, code: str) -> str:
     """Append an eyes-free MCP and CLI retry invocation to an error message."""
 
     context = _RETRY_CONTEXT.get()
-    tool_name = context[0] if context else "the same tool"
-    cli_name = _cli_tool_name(tool_name) if context else "the same kino command"
+    if context is None:
+        invocation = _derived_invocation("the same tool", "the same kino command", code)
+        return f"{message}; retry with {invocation}"
+    if len(context) > 2 and context[2] is not None:
+        # Caller supplied a complete, verified invocation (family dispatch).
+        return f"{message}; retry with {context[2]}"
+    invocation = _derived_invocation(context[0], _cli_tool_name(context[0]), code)
+    return f"{message}; retry with {invocation}"
+
+
+def _derived_invocation(tool_name: str, cli_name: str, code: str) -> str:
     if code in {"output_exists", "overwrite_refused"}:
-        invocation = "overwrite=true (MCP) / --overwrite (CLI)"
-    elif code in {"unsafe_path", "invalid_output_path"}:
-        invocation = "a new output_path (MCP) / --output <new-media-path> (CLI)"
-    elif code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
-        invocation = (
+        return "overwrite=true (MCP) / --overwrite (CLI)"
+    if code in {"unsafe_path", "invalid_output_path"}:
+        return "a new output_path (MCP) / --output <new-media-path> (CLI)"
+    if code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
+        return (
             "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
         )
-    elif code in {"ffmpeg_not_found", "ffprobe_not_found"}:
-        invocation = (
+    if code in {"ffmpeg_not_found", "ffprobe_not_found"}:
+        return (
             "install FFmpeg, then call " + tool_name + " (MCP) / install FFmpeg, then run kino " + cli_name + " (CLI)"
         )
-    else:
-        invocation = (
-            f"call {tool_name} with corrected parameters (MCP) / run kino {cli_name} with corrected flags (CLI)"
-        )
-    return f"{message}; retry with {invocation}"
+    return f"call {tool_name} with corrected parameters (MCP) / run kino {cli_name} with corrected flags (CLI)"
 
 
 def truncate_echo(value: str, limit: int = _MAX_ECHO_CHARS) -> str:
