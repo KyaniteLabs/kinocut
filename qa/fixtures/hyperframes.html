@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=1920, height=1080">
+    <title>KinoCut pinned Hyperframes preview proof</title>
+    <script src="./node_modules/gsap/dist/gsap.min.js"></script>
+    <style>
+      * { box-sizing: border-box; }
+      html, body { margin: 0; width: 1920px; height: 1080px; overflow: hidden; background: #10182b; }
+      #stage { position: relative; width: 1920px; height: 1080px; overflow: hidden; color: #f8fafc; font-family: Arial, sans-serif; background: linear-gradient(135deg, #111827 0%, #172554 55%, #0f766e 100%); }
+      #eyebrow { position: absolute; left: 150px; top: 125px; font-size: 32px; letter-spacing: 9px; text-transform: uppercase; color: #67e8f9; }
+      #headline { position: absolute; left: 145px; top: 205px; margin: 0; font-size: 92px; font-weight: 700; }
+      #subhead { position: absolute; left: 154px; top: 330px; margin: 0; font-size: 37px; color: #cbd5e1; }
+      #track { position: absolute; left: 160px; top: 625px; width: 1600px; height: 5px; transform-origin: left center; background: rgba(226,232,240,.35); }
+      #tick0, #tick3, #tick6 { position: absolute; top: 667px; font-size: 27px; color: #cbd5e1; }
+      #tick0 { left: 155px; } #tick3 { left: 910px; } #tick6 { left: 1680px; }
+      #marker { position: absolute; left: 0; top: 590px; width: 72px; height: 72px; border-radius: 18px; background: #fb7185; box-shadow: 0 0 36px rgba(251,113,133,.7); }
+      #note { position: absolute; left: 154px; top: 790px; font-size: 25px; color: #94a3b8; }
+      .clip { visibility: hidden; }
+    </style>
+  </head>
+  <body>
+    <main data-hf-id="hf-la00" id="stage" data-composition-id="kinocut-preview-proof" data-width="1920" data-height="1080">
+      <div data-hf-id="hf-gl35" class="clip" id="eyebrow" data-start="0" data-duration="6" data-track-index="0">KinoCut × Hyperframes</div>
+      <h1 data-hf-id="hf-5jwf" class="clip" id="headline" data-start="0" data-duration="6" data-track-index="1">Pinned preview</h1>
+      <p data-hf-id="hf-yckj" class="clip" id="subhead" data-start="0" data-duration="6" data-track-index="2">A local, deterministic playback and scrub fixture.</p>
+      <div data-hf-id="hf-jwlm" class="clip" id="track" data-start="0" data-duration="6" data-track-index="3"></div>
+      <div data-hf-id="hf-r3q6" class="clip" id="tick0" data-start="0" data-duration="6" data-track-index="4">0s</div>
+      <div data-hf-id="hf-amv1" class="clip" id="tick3" data-start="0" data-duration="6" data-track-index="5">3s</div>
+      <div data-hf-id="hf-4vsw" class="clip" id="tick6" data-start="0" data-duration="6" data-track-index="6">6s</div>
+      <div data-hf-id="hf-uuy6" class="clip" id="marker" data-start="0" data-duration="6" data-track-index="7" aria-label="time-varying marker"></div>
+      <div data-hf-id="hf-s71k" class="clip" id="note" data-start="0" data-duration="6" data-track-index="8">Expected: the marker moves left → right as the timeline plays or is scrubbed.</div>
+    </main>
+    <script>
+      const timeline = gsap.timeline({ paused: true });
+      timeline.fromTo("#marker", { x: 160, rotation: 0, backgroundColor: "#fb7185" }, { x: 1570, rotation: 360, backgroundColor: "#22d3ee", duration: 6, ease: "none" }, 0);
+      timeline.fromTo("#track", { scaleX: 0 }, { scaleX: 1, duration: 6, ease: "none" }, 0);
+      window.__timelines = window.__timelines || {};
+      window.__timelines["kinocut-preview-proof"] = timeline;
+    </script>
+  </body>
+</html>
