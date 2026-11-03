@@ -83,3 +83,11 @@ def test_preview_cli_keeps_the_reported_owned_server_alive(tmp_path):
                 pass
             except FileNotFoundError:
                 pass
+
+
+def test_engine_facade_reexports_the_shared_preview_registry():
+    from kinocut import hyperframes_engine, hyperframes_preview_lifecycle
+
+    assert hyperframes_engine._active_previews is hyperframes_preview_lifecycle._active_previews
+    assert hyperframes_engine.stop_preview is hyperframes_preview_lifecycle.stop_preview
+    assert hyperframes_engine.release_preview is hyperframes_preview_lifecycle.release_preview

@@ -1,16 +1,14 @@
-"""Hyperframes engine — subprocess wrappers calling the Hyperframes CLI.
+"""Hyperframes CLI wrappers plus compatibility exports for public operations.
 
 No pip packages needed — Hyperframes is external (Node.js).
 
-This module owns the command-resolution and subprocess plumbing plus the
-operation schema registry. The user-facing public operations (``render``,
-``compositions``, ``snapshot``, …) live in :mod:`kinocut.hyperframes_ops` and
-are re-exported from here (see the bottom of this file) so that existing
-``from ..hyperframes_engine import render`` call sites keep working.
-
-``preview`` and ``validate`` remain in this module because they call
-``subprocess``/``shutil`` directly and the test-suite patches those call sites
-on this module's namespace (``mcp_video.hyperframes_engine.subprocess.run``).
+This module owns command resolution and subprocess plumbing plus the operation
+schema registry. Public operations such as ``render`` and ``snapshot`` live in
+:mod:`kinocut.hyperframes_ops` and are re-exported below for existing imports.
+Preview-process registration and cleanup live in
+:mod:`kinocut.hyperframes_preview_lifecycle`, with names re-exported here for
+backward compatibility. ``preview`` and ``validate`` stay here because callers
+and tests patch the CLI/subprocess boundary in this module.
 
 All file paths should be absolute. Output files are generated automatically
 if no output_path is provided.
@@ -18,14 +16,12 @@ if no output_path is provided.
 
 from __future__ import annotations
 
-import atexit
 import http.client
 import json
 import os
 import re
 import shlex
 import shutil
-import signal
 import subprocess
 import time
 from collections.abc import Callable, Mapping
@@ -42,6 +38,14 @@ from .errors import (
 from .hyperframes_models import (
     HyperframesPreviewResult,
     HyperframesValidationResult,
+)
+from .hyperframes_preview_lifecycle import (
+    _active_previews,  # noqa: F401 - compatibility export
+    _register_preview,
+    _terminate_preview,
+    release_preview,  # noqa: F401 - compatibility export
+    stop_all_previews,  # noqa: F401 - compatibility export
+    stop_preview,
 )
 from .validation import HYPERFRAMES_PRIVATE_PREVIEW_VERSIONS
 
@@ -66,67 +70,6 @@ _HYPERFRAMES_PROVIDER_CREDENTIALS = frozenset(
         "ELEVENLABS_API_KEY",
     }
 )
-
-# ---------------------------------------------------------------------------
-# Preview lifecycle management
-# ---------------------------------------------------------------------------
-
-_active_previews: dict[int, subprocess.Popen[str]] = {}
-
-
-def _register_preview(port: int, proc: subprocess.Popen[str]) -> None:
-    """Track a running preview process so it can be terminated later."""
-    old = _active_previews.get(port)
-    if old is not None and old.poll() is None:
-        stop_preview(port)
-    _active_previews[port] = proc
-
-
-def _terminate_preview(proc: subprocess.Popen[str]) -> None:
-    """Best-effort termination of a preview process and its child group."""
-    if proc.poll() is not None:
-        return
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        proc.terminate()
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            proc.kill()
-        proc.wait(timeout=3)
-
-
-def stop_preview(port: int) -> bool:
-    """Terminate the preview server on *port*. Returns True if a process was stopped."""
-    proc = _active_previews.pop(port, None)
-    if proc is None:
-        return False
-    _terminate_preview(proc)
-    return True
-
-
-def release_preview(port: int, pid: int | None) -> None:
-    """Transfer a CLI preview to the caller without terminating its server."""
-    proc = _active_previews.get(port)
-    if proc is None or proc.pid != pid or proc.poll() is not None:
-        raise RuntimeError("Preview process is no longer owned or running")
-    del _active_previews[port]
-
-
-def stop_all_previews() -> None:
-    """Terminate every running preview server (called automatically at exit)."""
-    for port in list(_active_previews):
-        proc = _active_previews.pop(port, None)
-        if proc is not None:
-            _terminate_preview(proc)
-
-
-atexit.register(stop_all_previews)
-
 
 # ---------------------------------------------------------------------------
 # Private helpers
