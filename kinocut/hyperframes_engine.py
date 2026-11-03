@@ -1,16 +1,14 @@
-"""Hyperframes engine — subprocess wrappers calling the Hyperframes CLI.
+"""Hyperframes CLI wrappers plus compatibility exports for public operations.
 
 No pip packages needed — Hyperframes is external (Node.js).
 
-This module owns the command-resolution and subprocess plumbing plus the
-operation schema registry. The user-facing public operations (``render``,
-``compositions``, ``snapshot``, …) live in :mod:`kinocut.hyperframes_ops` and
-are re-exported from here (see the bottom of this file) so that existing
-``from ..hyperframes_engine import render`` call sites keep working.
-
-``preview`` and ``validate`` remain in this module because they call
-``subprocess``/``shutil`` directly and the test-suite patches those call sites
-on this module's namespace (``mcp_video.hyperframes_engine.subprocess.run``).
+This module owns command resolution and subprocess plumbing plus the operation
+schema registry. Public operations such as ``render`` and ``snapshot`` live in
+:mod:`kinocut.hyperframes_ops` and are re-exported below for existing imports.
+Preview-process registration and cleanup live in
+:mod:`kinocut.hyperframes_preview_lifecycle`, with names re-exported here for
+backward compatibility. ``preview`` and ``validate`` stay here because callers
+and tests patch the CLI/subprocess boundary in this module.
 
 All file paths should be absolute. Output files are generated automatically
 if no output_path is provided.
@@ -18,13 +16,12 @@ if no output_path is provided.
 
 from __future__ import annotations
 
-import atexit
+import http.client
 import json
 import os
 import re
 import shlex
 import shutil
-import signal
 import subprocess
 import time
 from collections.abc import Callable, Mapping
@@ -41,6 +38,14 @@ from .errors import (
 from .hyperframes_models import (
     HyperframesPreviewResult,
     HyperframesValidationResult,
+)
+from .hyperframes_preview_lifecycle import (
+    _active_previews,  # noqa: F401 - compatibility export
+    _register_preview,
+    _terminate_preview,
+    release_preview,  # noqa: F401 - compatibility export
+    stop_all_previews,  # noqa: F401 - compatibility export
+    stop_preview,
 )
 from .validation import HYPERFRAMES_PRIVATE_PREVIEW_VERSIONS
 
@@ -65,59 +70,6 @@ _HYPERFRAMES_PROVIDER_CREDENTIALS = frozenset(
         "ELEVENLABS_API_KEY",
     }
 )
-
-# ---------------------------------------------------------------------------
-# Preview lifecycle management
-# ---------------------------------------------------------------------------
-
-_active_previews: dict[int, subprocess.Popen[str]] = {}
-
-
-def _register_preview(port: int, proc: subprocess.Popen[str]) -> None:
-    """Track a running preview process so it can be terminated later."""
-    old = _active_previews.get(port)
-    if old is not None and old.poll() is None:
-        stop_preview(port)
-    _active_previews[port] = proc
-
-
-def _terminate_preview(proc: subprocess.Popen[str]) -> None:
-    """Best-effort termination of a preview process and its child group."""
-    if proc.poll() is not None:
-        return
-    try:
-        os.killpg(os.getpgid(proc.pid), signal.SIGTERM)
-    except (ProcessLookupError, PermissionError):
-        proc.terminate()
-    try:
-        proc.wait(timeout=5)
-    except subprocess.TimeoutExpired:
-        try:
-            os.killpg(os.getpgid(proc.pid), signal.SIGKILL)
-        except (ProcessLookupError, PermissionError):
-            proc.kill()
-        proc.wait(timeout=3)
-
-
-def stop_preview(port: int) -> bool:
-    """Terminate the preview server on *port*. Returns True if a process was stopped."""
-    proc = _active_previews.pop(port, None)
-    if proc is None:
-        return False
-    _terminate_preview(proc)
-    return True
-
-
-def stop_all_previews() -> None:
-    """Terminate every running preview server (called automatically at exit)."""
-    for port in list(_active_previews):
-        proc = _active_previews.pop(port, None)
-        if proc is not None:
-            _terminate_preview(proc)
-
-
-atexit.register(stop_all_previews)
-
 
 # ---------------------------------------------------------------------------
 # Private helpers
@@ -625,6 +577,28 @@ def _format_cli_value(value: Any) -> str:
 # ---------------------------------------------------------------------------
 
 
+def _preview_ready(port: int, project: Path, pid: int) -> bool:
+    """Require the exact child to identify itself on the requested local port."""
+    conn = http.client.HTTPConnection("127.0.0.1", port, timeout=0.25)
+    try:
+        conn.request("GET", "/__hyperframes_config")
+        response = conn.getresponse()
+        if response.status != 200:
+            return False
+        data = json.loads(response.read(65537))
+        return (
+            isinstance(data, dict)
+            and data.get("isHyperframes") is True
+            and data.get("pid") == pid
+            and isinstance(data.get("projectDir"), str)
+            and Path(data["projectDir"]).resolve() == project
+        )
+    except (OSError, ValueError, http.client.HTTPException):
+        return False
+    finally:
+        conn.close()
+
+
 def preview(
     project_path: str,
     port: int = 3002,
@@ -639,7 +613,18 @@ def preview(
     _require_private_preview(project)
     stop_preview(port)
 
-    cmd = [*_hyperframes_command_prefix(cwd=project), "preview", str(project), "--port", str(port)]
+    cmd = [
+        *_hyperframes_command_prefix(cwd=project),
+        "preview",
+        str(project),
+        "--port",
+        str(port),
+        "--foreground",
+        "--no-open",
+        "--force-new",
+    ]
+    env = _hyperframes_environment()
+    env["HYPERFRAMES_PREVIEW_HOST"] = "127.0.0.1"
     proc = subprocess.Popen(  # noqa: S603
         cmd,
         stdin=subprocess.DEVNULL,
@@ -648,12 +633,22 @@ def preview(
         stderr=subprocess.DEVNULL,
         text=True,
         start_new_session=True,
-        env=_hyperframes_environment(),
+        env=env,
     )
 
-    time.sleep(min(startup_timeout, 2))
-    if proc.poll() is not None:
-        raise HyperframesProjectError(str(project), "Hyperframes preview exited immediately")
+    try:
+        deadline = time.monotonic() + startup_timeout
+        while time.monotonic() < deadline:
+            if proc.poll() is not None:
+                raise HyperframesProjectError(str(project), "Hyperframes preview exited immediately")
+            if _preview_ready(port, project, proc.pid) and proc.poll() is None:
+                break
+            time.sleep(0.1)
+        else:
+            raise HyperframesProjectError(str(project), "Hyperframes preview did not start on the requested port")
+    except BaseException:
+        _terminate_preview(proc)
+        raise
     _register_preview(port, proc)
 
     return HyperframesPreviewResult(
