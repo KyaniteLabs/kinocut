@@ -224,6 +224,20 @@ def test_a_pinned_extra_reference_is_not_an_offender(tmp_path):
     assert not _offenders(path, Path("README.md"))
 
 
+def test_a_dated_fact_keeps_its_own_old_version_in_a_current_file(tmp_path):
+    # A current status file may record when an extra first shipped, naming
+    # the release that was true then. Rewriting the record to the current
+    # release would falsify it; flagging it as stale would force that
+    # rewrite. The version capture is what makes it a record.
+    path = tmp_path / "README.md"
+    path.write_text(
+        "Object-matte streaming decode shipped as `kinocut[object-matte]==1.15.1`"
+        " (2026-08-31) and is still installable.\n",
+        encoding="utf-8",
+    )
+    assert not _offenders(path, Path("README.md"))
+
+
 def test_a_prose_command_without_a_pin_is_an_offender(tmp_path):
     # A sentence that tells the reader to run it is a launch, wherever the
     # sentence is and however it is punctuated.

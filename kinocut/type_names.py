@@ -97,7 +97,12 @@ def number_text(value: Any) -> str | None:
     try:
         coerced = int(value) if isinstance(value, int) else float(value)
         text = repr(coerced)
-    except Exception:  # the coercion is caller-reachable; any failure is still not our text
+    except BaseException:
+        # Deliberately total, and deliberately local: the coercion runs on
+        # caller data inside an error-message builder, so a caller's
+        # ``__int__``/``__float__`` raising ANY exception — including a
+        # BaseException subclass — must still publish the fixed label, not
+        # escape through the message path.
         return "<number>"
     return text if len(text) <= _MAX_NUMBER_CHARS else "<number>"
 

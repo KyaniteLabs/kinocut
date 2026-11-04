@@ -221,8 +221,11 @@ NUMERIC_SPECS = frozenset("fFeEgGdiuXobn%")
 #: Treating them as numeric laundered a caller's string into a message —
 #: the guard failed open on a live class rather than on a theoretical one.
 NUMERIC_CALLS = frozenset({"float", "int", "bool", "round", "abs", "len", "sum"})
-#: Calls whose result carries a tainted argument into the result.
-CARRYING_CALLS = frozenset({"str", "repr", "format", "join", "Path", "PurePath"})
+#: Calls whose result carries a tainted argument into the result. The
+#: check inspects positional AND keyword arguments: ``"{v}".format(v=x)``
+#: launders ``x`` through a keyword the positional scan never saw, and
+#: ``format_map`` carries a mapping's values the same way.
+CARRYING_CALLS = frozenset({"str", "repr", "format", "format_map", "join", "Path", "PurePath"})
 
 #: Attributes that hold a number however the object was obtained. A number
 #: is safe to repeat, so these never taint.
@@ -954,7 +957,9 @@ def _is_tainted_expr(node: ast.AST, function: Function) -> bool:
             # is what comes back, not the value it was handed.
             return False
         if name in CARRYING_CALLS:
-            return any(_is_tainted_expr(argument, function) for argument in node.args)
+            if any(_is_tainted_expr(argument, function) for argument in node.args):
+                return True
+            return any(_is_tainted_expr(keyword.value, function) for keyword in node.keywords)
         # A value pulled out of a caller-supplied container is caller data:
         # ``op.get("op")`` returns the string the caller submitted.
         if isinstance(node.func, ast.Attribute) and node.func.attr in {"get", "pop"}:

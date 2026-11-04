@@ -375,3 +375,59 @@ def test_the_doctor_payload_names_a_renamed_foreign_exception_only_by_kind() -> 
     assert check["detail"] == "<foreign-exception>"
     assert "«redacted:sk-import»" not in str(check)
     assert "«redacted:sk-path»" not in str(check)
+
+
+# --- Gate 20: keyword laundering, the sound copy's identity, total coercion ---
+
+
+def test_the_analyzer_flags_a_keyword_formatted_caller_value() -> None:
+    """`"{v}".format(v=value)` launders through a keyword the old scan missed."""
+    source = "def refuse(value):\n    return f'cause: {\"{value}\".format(value=value)}'\n"
+    assert _taint_of(source, {"value"}) is True
+
+
+def test_the_analyzer_flags_a_format_map_caller_mapping() -> None:
+    """`format_map(mapping)` carries the mapping's values into the message."""
+    source = "def refuse(mapping):\n    return f\"cause: {'{x}'.format_map(mapping)}\"\n"
+    assert _taint_of(source, {"mapping"}) is True
+
+
+def test_the_analyzer_still_passes_a_literal_keyword_format() -> None:
+    source = "def refuse(value):\n    return f\"cause: {'{x}'.format(x='fixed phrase')}\"\n"
+    assert _taint_of(source, {"value"}) is False
+
+
+def test_the_sound_reason_rejects_a_hostile_contract_subclass() -> None:
+    """The sound copy republishes by exact identity, like the main package."""
+    from kinocut_sound._errors import SoundContractError
+    from kinocut_sound._validation_errors import reason as sound_reason
+
+    class Sneaky(SoundContractError):
+        pass
+
+    Sneaky.__name__ = "«redacted:sk-sound»"
+    hostile = Sneaky("«redacted:sk-sound-text»", code="contract")
+    assert sound_reason(hostile) == "<foreign-exception>"
+    assert "«redacted:sk-sound»" not in sound_reason(hostile)
+    assert "«redacted:sk-sound-text»" not in json.dumps({"r": sound_reason(hostile)})
+    # The exact class still republishes.
+    assert sound_reason(SoundContractError("contract refused", code="contract")) == "contract refused"
+
+
+def test_a_base_exception_from_the_coercion_still_publishes_the_label() -> None:
+    """The coercion catch is deliberately total: BaseException included."""
+    import math
+
+    class Halt(BaseException):
+        pass
+
+    class BoomBoom(int):
+        def __int__(self) -> int:
+            raise Halt("«redacted:sk-halt»")
+
+    assert number_text(BoomBoom(5)) == "<number>"
+    from kinocut_sound._validation_errors import _number_text as sound_number_text
+
+    assert sound_number_text(BoomBoom(5)) == "<number>"
+    # The total catch did not widen: ordinary values still render.
+    assert number_text(math.pi) == repr(math.pi)

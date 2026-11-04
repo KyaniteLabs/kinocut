@@ -23,11 +23,22 @@ from typing import Any
 
 from ._errors import SoundContractError
 
+import kinocut_sound._errors as _sound_error_module
+
 #: The contract errors this package raises on purpose. Their message is
 #: package-authored guidance, so it is safe to publish again. Any other
 #: exception's text may embed a path the caller submitted, so only its
 #: kind is published.
 CONTRACT_ERRORS = (SoundContractError,)
+
+#: The identity set behind :func:`reason`. Membership is by exact type
+#: object, not inheritance: every error class this package defines in
+#: ``kinocut_sound._errors`` at import time is in the set, and a
+#: caller's subclass of any of them is NOT — its name and text are its
+#: author's strings, so it is published only as its kind.
+_PACKAGE_ERROR_IDENTITIES = frozenset(
+    obj for obj in vars(_sound_error_module).values() if isinstance(obj, type) and issubclass(obj, Exception)
+)
 
 #: The type categories a contract message may name. Keyed by identity: a
 #: caller's subclass that renames itself to a shipped category is still a
@@ -74,7 +85,10 @@ def _number_text(value: Any) -> str | None:
     try:
         coerced = int(value) if isinstance(value, int) else float(value)
         text = repr(coerced)
-    except Exception:  # the coercion is caller-reachable; any failure is still not our text
+    except BaseException:
+        # Deliberately total, and deliberately local (see kinocut/type_names):
+        # a caller's coercion hook raising ANY exception still publishes
+        # the fixed label.
         return "<number>"
     return text if len(text) <= _MAX_NUMBER_CHARS else "<number>"
 
@@ -145,6 +159,6 @@ def reason(exc: BaseException) -> str:
     safe to publish again. Any other exception's text may embed a path
     the caller submitted, so only its kind is published.
     """
-    if isinstance(exc, CONTRACT_ERRORS):
+    if type(exc) in _PACKAGE_ERROR_IDENTITIES:
         return str(exc)
     return exception_kind(exc)
