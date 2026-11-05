@@ -951,6 +951,9 @@ Kinocut improves in public, and outside contributions shape it — 1.15.0's diag
 - **[@betsmayank](https://github.com/betsmayank)** — first merged external fix: Hyperframes `init` no longer hangs under MCP without a TTY ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)).
 - **[@austinwmson](https://github.com/austinwmson)** and **[@ismailkattakath](https://github.com/ismailkattakath)** — external reports that closed real gaps: `remotion_still` runtime props ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)) and the self-host Funnel + OAuth reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)).
 - **[@Dodothereal](https://github.com/Dodothereal)** and **@OyaAIProd** (account no longer exists) — early external PRs (ASS PlayRes for vertical burns [#378](https://github.com/KyaniteLabs/kinocut/pull/378), SafeSkill badges).
+- **[@Mimatovitch](https://github.com/Mimatovitch)** — reported the macOS process-cleanup bug ([#594](https://github.com/KyaniteLabs/kinocut/issues/594)); the fix shipped in 1.16.1 ([#596](https://github.com/KyaniteLabs/kinocut/pull/596)), with fuller context in the 1.16.1 release notes.
+- **[@Zoroassistant23](https://github.com/Zoroassistant23)** — investigated [#594](https://github.com/KyaniteLabs/kinocut/issues/594) and proposed a patch and test in [#595](https://github.com/KyaniteLabs/kinocut/pull/595); not merged, credited in the 1.16.1 CHANGELOG acknowledgements.
+- **[@Beritwu](https://github.com/Beritwu)** — frame-exact `create-from-images` rewrite, rational frame-rate and `--list` / `list_file` support ([#616](https://github.com/KyaniteLabs/kinocut/pull/616), shipped in 1.16.1), and the opt-in exact probe ([#599](https://github.com/KyaniteLabs/kinocut/pull/599), merged 2026-10-26, unreleased).
 
 <!-- s-plus-geo:end -->
 
