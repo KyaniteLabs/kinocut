@@ -122,14 +122,7 @@ class DesignQualityGuardrails(ChecksMixin, ScoringMixin, ProbeMixin, AnalysisMix
 
         # Auto-fix if requested
         if auto_fix:
-            for issue in self.issues:
-                if issue.fix_available and issue.auto_fix:
-                    try:
-                        result = issue.auto_fix(video_path)
-                        if result:
-                            fixes_applied.append(f"{issue.category}: {issue.message}")
-                    except Exception as e:
-                        fixes_applied.append(f"FAILED {issue.category}: {e!s}")
+            fixes_applied = self._apply_auto_fixes(video_path, self.issues)
 
         # Generate 100/100 recommendations
         report = DesignQualityReport(

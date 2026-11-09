@@ -83,6 +83,22 @@ def browser_tempdir():
                 os.environ["TMPDIR"] = previous
 
 
+PLAY_READY_TIMEOUT_MS = 30000
+
+
+def wait_for_playable(page: Any, *, timeout_ms: int, page_errors: list[str], failed_requests: list[str]) -> None:
+    """Wait until Studio enables Play; a visible-but-disabled button is not ready (#677)."""
+    try:
+        page.locator('button[aria-label="Play"]:not([disabled])').wait_for(state="visible", timeout=timeout_ms)
+    except Exception as exc:
+        if type(exc).__name__ != "TimeoutError":
+            raise
+        raise RuntimeError(
+            f"preview never became playable: Play stayed disabled for {timeout_ms / 1000:g}s; "
+            f"page errors: {page_errors[:2]}; failed requests: {failed_requests[:3]}"
+        ) from exc
+
+
 def load_catalog(path: Path) -> dict[str, Any]:
     try:
         import yaml
@@ -1650,6 +1666,12 @@ class OperatorRunner:
                     )
                     page.goto(url + "#project/hyperframes", wait_until="domcontentloaded", timeout=15000)
                     page.locator('button[aria-label="Play"]').wait_for(timeout=15000)
+                    wait_for_playable(
+                        page,
+                        timeout_ms=PLAY_READY_TIMEOUT_MS,
+                        page_errors=page_errors,
+                        failed_requests=failed_requests,
+                    )
                     frame = next((f for f in page.frames if f.locator("#stage").count()), None)
                     if frame is None:
                         raise RuntimeError("composition frame missing")

@@ -233,9 +233,9 @@ def test_large_changes_preserve_early_matches_without_pipefail(repository, workf
     _assert_classification(result, values, workflow, first_path is not None, first_path == "mcp_video.py")
 
 
-def test_invalid_base_fails_closed_and_cleans_private_list(repository, workflow, tmp_path):
+def test_invalid_base_fails_closed_and_cleans_private_list(repository, tmp_path):
     repository.write("kinocut/feature.py")
-    result, values = _classify(repository, workflow, tmp_path, repository.commit(), base="f" * 40)
+    result, values = _classify(repository, "pr-safety.yml", tmp_path, repository.commit(), base="f" * 40)
     assert result.returncode != 0
     assert values == {}, "Failed Git comparison must not publish a successful skip"
 
@@ -251,3 +251,12 @@ def test_master_without_parent_fails_closed(repository, tmp_path):
     result, values = _classify(repository, "ci.yml", tmp_path, repository.base, base="")
     assert result.returncode != 0
     assert values == {}
+
+
+@pytest.mark.parametrize("path", ["kinocut/feature.py", "docs/guide.md"])
+def test_unreachable_event_base_runs_every_check(repository, tmp_path, path):
+    """A force-pushed PR's `before` commit is gone from the checkout: validate everything, never skip (#690)."""
+    repository.write(path)
+    result, values = _classify(repository, "ci.yml", tmp_path, repository.commit(), base="f" * 40)
+    _assert_classification(result, values, "ci.yml", True, True)
+    assert "running every check" in result.stdout
