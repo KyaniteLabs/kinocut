@@ -11,7 +11,7 @@ Plugin bundle **1.16.8** pins the separately versioned Kinocut runtime
 Catalog entries use the bundle version; launchers use the runtime version.
 
 The Hermes catalog listing is a separate pin: it still launches
-`uvx kinocut==1.16.4` (203 MCP tools / 177 CLI). Do not quote the 205-tool
+`kinocut==1.16.4` through uvx (203 MCP tools / 177 CLI). Do not quote the 205-tool
 published surface as the Hermes pin.
 
 Local FFmpeg editing and color grading need no account or API key. Network use

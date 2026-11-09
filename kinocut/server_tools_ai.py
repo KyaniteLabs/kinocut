@@ -246,7 +246,9 @@ def video_quality_check(
             footage), ui-capture-dark or ui-capture-light. Recorded in the report.
     """
     if profile not in QUALITY_PROFILES:
-        return _validation_error(f"Invalid profile: must be one of {sorted(QUALITY_PROFILES)}, got '{profile}'")
+        return _validation_error(
+            f"Invalid profile: must be one of {sorted(QUALITY_PROFILES)}, got {rejected_value(profile)}"
+        )
     input_path = _validate_input_path(input_path)
     from .quality_guardrails import quality_check
 
@@ -288,7 +290,9 @@ def video_release_checkpoint(
     checkpoint; under a UI profile its relaxed bands are hard limits.
     """
     if profile not in QUALITY_PROFILES:
-        return _validation_error(f"Invalid profile: must be one of {sorted(QUALITY_PROFILES)}, got '{profile}'")
+        return _validation_error(
+            f"Invalid profile: must be one of {sorted(QUALITY_PROFILES)}, got {rejected_value(profile)}"
+        )
     if min_score < 0 or min_score > 100:
         return _validation_error(f"min_score must be 0-100, got {min_score}")
     if frame_count < 1:

@@ -211,7 +211,7 @@ def visible():
     return {tool.name for tool in asyncio.run(mcp.list_tools())}
 
 before = visible()
-assert len(before) == 20, f"default surface is {len(before)}, expected 20"
+assert len(before) == 30, f"default surface is {len(before)}, expected 30"
 
 real_import_module = importlib.import_module
 last_module = sorted(tr.TOOL_NAMES_BY_MODULE)[-1]
@@ -243,7 +243,7 @@ print("SURFACE_OK", len(before))
     )
 
     assert result.returncode == 0, result.stderr
-    assert "SURFACE_OK 20" in result.stdout
+    assert "SURFACE_OK 30" in result.stdout
 
 
 def test_cli_retry_names_resolve_to_real_parser_commands():
