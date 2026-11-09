@@ -10,8 +10,6 @@ A guardrailed local video-production surface for AI agents and humans: probe med
 - Video Receipt/provenance, explicit overwrite consent, source/output checks and human review gates. Planning, rendering, acceptance and publication remain distinct operations.
 - Templates, QA fixtures/golden packs and workflow specs support development; they are not rights-cleared user footage, a quality guarantee or current benchmark certification.
 
-## Docs proof and limits
+## See also
 
-Isolated base install and actual CLI help passed. `kino info` probed a new one-second synthetic 320×180 H.264 clip correctly; a pure time parser assertion and actual default MCP discovery passed. No existing footage/profile was touched, no cleanup/overwrite/render suite ran, no optional model/inference/download or publish/release decision occurred. The synthetic source is a probe fixture, not operator-side editing or creative-quality acceptance.
-
-Runtime source declares 1.16.5; current registry/publication status was not independently revalidated. GitHub is described here by the checkout's README as canonical; do not apply the website repository's opposite mirror policy to this code repo. See [ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md) and [domain vocabulary](CONTEXT.md).
+[ARCHITECTURE.md](ARCHITECTURE.md), [README.md](README.md) and the [domain vocabulary](CONTEXT.md).
