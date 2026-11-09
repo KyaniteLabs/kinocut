@@ -10,7 +10,10 @@ from rich.table import Table
 def quality_report_renderables(data: Any) -> tuple[Table, str]:
     if not isinstance(data, dict):
         data = {}
-    table = Table(title="Quality Check")
+    profile = data.get("profile")
+    profile_name = profile.get("name") if isinstance(profile, dict) else None
+    title = f"Quality Check (profile: {escape(str(profile_name))})" if profile_name else "Quality Check"
+    table = Table(title=title)
     table.add_column("Check", style="bold cyan")
     table.add_column("Status")
     table.add_column("Value")

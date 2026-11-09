@@ -11,12 +11,13 @@ from ..defaults import DEFAULT_QUALITY_GATE_SCORE
 class ClientQualityMixin:
     """Quality operations mixin."""
 
-    def quality_check(self, video: str, fail_on_warning: bool = False) -> dict:
+    def quality_check(self, video: str, fail_on_warning: bool = False, profile: str = "default") -> dict:
         """Run visual quality guardrails on a video.
 
         Args:
             video: Video file path
             fail_on_warning: Treat warnings as failures
+            profile: default, ui-capture-dark or ui-capture-light
 
         Returns:
             dict with keys:
@@ -25,18 +26,23 @@ class ClientQualityMixin:
                 - all_passed (bool): True if every check passed
                 - checks (list[dict]): per-check results with name, passed, score, message, details
                 - recommendations (list[str]): improvement suggestions
+                - profile (dict): the content profile and thresholds applied
         """
         from ..quality_guardrails import quality_check
 
-        return quality_check(video, fail_on_warning)
+        return quality_check(video, fail_on_warning, profile=profile)
 
     def assert_quality(
-        self, video: str, min_score: float = DEFAULT_QUALITY_GATE_SCORE, require_audio: bool = True
+        self,
+        video: str,
+        min_score: float = DEFAULT_QUALITY_GATE_SCORE,
+        require_audio: bool = True,
+        profile: str = "default",
     ) -> dict:
         """Raise if a video fails release-quality guardrails."""
         from ..quality_guardrails import assert_quality
 
-        return assert_quality(video, min_score=min_score, require_audio=require_audio)
+        return assert_quality(video, min_score=min_score, require_audio=require_audio, profile=profile)
 
     def release_checkpoint(
         self,
@@ -45,9 +51,10 @@ class ClientQualityMixin:
         min_score: float = DEFAULT_QUALITY_GATE_SCORE,
         frame_count: int = 6,
         require_audio: bool = True,
+        profile: str = "default",
     ) -> dict:
         """Run a hard quality gate, then create human-review artifacts."""
-        quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio)
+        quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio, profile=profile)
         review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
         os.makedirs(review_dir, exist_ok=True)
         thumb = self.thumbnail(input_path, output=os.path.join(review_dir, "thumbnail.jpg"))
@@ -55,6 +62,7 @@ class ClientQualityMixin:
         return {
             "video": input_path,
             "quality": quality,
+            "quality_profile": profile,
             "thumbnail": thumb.output_path,
             "storyboard": board.model_dump() if hasattr(board, "model_dump") else board,
             "review_required": True,
