@@ -74,6 +74,8 @@ def test_two_pass_commands_and_measured_values(tmp_path, monkeypatch) -> None:
     )
     result = normalize_audio(str(source), -14, 8, str(output), true_peak_dbtp=-2)
     assert result.output_path == str(output)
+    assert result.measured_input.model_dump() == {"I": -20.0, "LRA": 2.0, "TP": -3.0}
+    assert result.measured_output is None
     assert len(calls) == 2 and all(isinstance(command, list) for command in calls)
     # Analysis measures audio only; the render still retains the original video stream.
     assert "-vn" in calls[0] and "-vn" in calls[1]
@@ -112,7 +114,9 @@ def test_linear_gain_within_ceiling_has_no_warning_and_keeps_source_rate(tmp_pat
     )
     result = normalize_audio(str(source), -16, 11, str(output), true_peak_dbtp=-2)
     assert result.warnings == []
-    assert calls[1][calls[1].index("-af") + 1].endswith("linear=true,aresample=44100,asetpts=N/SR/TB,apad")
+    assert calls[1][calls[1].index("-af") + 1].endswith(
+        "linear=true:print_format=json,aresample=44100,asetpts=N/SR/TB,apad"
+    )
 
 
 def test_real_output_keeps_the_source_sample_rate(sample_video: str, tmp_path) -> None:
@@ -148,7 +152,9 @@ def test_no_audio_input_uses_stream_copy_fallback(tmp_path, monkeypatch) -> None
         "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
     )
 
-    assert normalize_audio(str(source), output_path=str(output)).output_path == str(output)
+    copied = normalize_audio(str(source), output_path=str(output))
+    assert copied.output_path == str(output)
+    assert copied.measured_input is None and copied.measured_output is None
     assert len(calls) == 1
     assert "-af" not in calls[0]
 
@@ -185,8 +191,9 @@ def test_short_audio_uses_one_pass_fallback_for_infinite_measurement(tmp_path, m
         "kinocut.engine_audio_normalize._build_edit_result", lambda *args, **kwargs: EditResult(output_path=args[0])
     )
 
-    normalize_audio(str(source), output_path=str(output))
+    result = normalize_audio(str(source), output_path=str(output))
 
+    assert result.measured_input is None and result.measured_output is None
     assert len(calls) == 2
     assert all("TP=-1.5" in command[command.index("-af") + 1] for command in calls)
     assert "measured_I" not in calls[1][calls[1].index("-af") + 1]
@@ -216,6 +223,12 @@ def test_real_two_pass_output_meets_loudness_and_peak_targets(sample_video: str,
 
     assert measured["measured_I"] == pytest.approx(-14.0, abs=1.0)
     assert measured["measured_TP"] <= -1.5
+    assert result.measured_input is not None and result.measured_output is not None
+    assert math.isfinite(result.measured_input.I)
+    assert math.isfinite(result.measured_input.LRA)
+    assert math.isfinite(result.measured_input.TP)
+    assert pytest.approx(-14.0, abs=1.0) == result.measured_output.I
+    assert math.isfinite(result.measured_output.TP)
 
 
 def test_real_default_margin_clears_production_audio_gate(tmp_path) -> None:
@@ -276,3 +289,100 @@ def test_real_default_margin_clears_production_audio_gate(tmp_path) -> None:
     assert measured[1]["measured_TP"] <= -1.0
     assert audio_rows[0]["passed"] is False
     assert audio_rows[1]["passed"] is True
+
+
+LOUDNESS_SNAPSHOT = {
+    "measured_input": {"I": -20.0, "LRA": 2.0, "TP": -12.0},
+    "measured_output": {"I": -16.0, "TP": -8.0},
+}
+
+
+def test_measured_loudness_snapshot_reaches_cli_and_mcp(tmp_path, monkeypatch, capsys) -> None:
+    """Freeze the additive before/after readings on the result, CLI, and MCP payload."""
+    from io import StringIO
+
+    from rich.console import Console
+
+    from kinocut.cli.common import output_json
+    from kinocut.cli.formatting import _format_edit_text
+    from kinocut.engine_audio_normalize_output import NormalizedAudioResult
+    from kinocut.server_app import _result
+
+    import kinocut.cli.formatting as formatting
+
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._validate_normalized_output",
+        lambda *_args: {
+            "format": {"format_name": "wav"},
+            "streams": [{"codec_type": "audio", "codec_name": "pcm_s16le"}],
+        },
+    )
+    source, output = tmp_path / "in.wav", tmp_path / "out.wav"
+    source.write_bytes(b"x")
+    analysis = {
+        "input_i": -20,
+        "input_lra": 2,
+        "input_tp": -12,
+        "input_thresh": -30,
+        "target_offset": 0.5,
+        "output_i": -99,
+        "output_tp": -50,
+    }
+    rendered = {
+        "input_i": -19,
+        "input_lra": 3,
+        "input_tp": -11,
+        "input_thresh": -29,
+        "target_offset": 0.25,
+        "output_i": -16,
+        "output_tp": -8,
+        "normalization_type": "linear",
+    }
+    responses = [json.dumps(analysis), json.dumps(rendered)]
+    calls = []
+
+    def runner(command):
+        calls.append(command)
+        return SimpleNamespace(stderr=responses.pop(0))
+
+    monkeypatch.setattr("kinocut.engine_audio_normalize._require_filter", lambda *args: None)
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._run_ffprobe_json",
+        lambda _path: {"format": {"duration": "1.0"}, "streams": [{"codec_type": "audio", "duration": "1.0"}]},
+    )
+    monkeypatch.setattr("kinocut.engine_audio_normalize._run_ffmpeg", runner)
+    monkeypatch.setattr(
+        "kinocut.engine_audio_normalize._build_edit_result",
+        lambda *args, **kwargs: EditResult(output_path=args[0], operation=args[1]),
+    )
+
+    result = normalize_audio(str(source), output_path=str(output))
+
+    assert isinstance(result, NormalizedAudioResult)
+    assert {key: result.model_dump()[key] for key in LOUDNESS_SNAPSHOT} == LOUDNESS_SNAPSHOT
+    assert "print_format=json" in calls[1][calls[1].index("-af") + 1]
+    compatible = NormalizedAudioResult(output_path=str(output), audio_codec="pcm_s16le")
+    assert compatible.measured_input is None and compatible.measured_output is None
+
+    payload = _result(result)
+    assert {key: payload[key] for key in LOUDNESS_SNAPSHOT} == LOUDNESS_SNAPSHOT
+    assert payload["success"] is True and payload["operation"] == "normalize_audio"
+    assert payload["audio_codec"] == "pcm_s16le"
+
+    output_json(result)
+    cli_json = json.loads(capsys.readouterr().out)
+    assert {key: cli_json[key] for key in LOUDNESS_SNAPSHOT} == LOUDNESS_SNAPSHOT
+
+    text_console = Console(file=StringIO(), record=True, force_terminal=True, width=120, color_system=None)
+    monkeypatch.setattr(formatting, "console", text_console)
+    _format_edit_text(result)
+    text = text_console.export_text()
+    assert "Input loudness: I -20.00 LUFS, LRA 2.00 LU, TP -12.00 dBTP" in text
+    assert "Output loudness: I -16.00 LUFS, TP -8.00 dBTP" in text
+
+    plain = Console(file=StringIO(), record=True, force_terminal=True, width=120, color_system=None)
+    monkeypatch.setattr(formatting, "console", plain)
+    _format_edit_text({"operation": "trim", "output_path": str(output)})
+    plain_text = plain.export_text()
+    assert "Input loudness" not in plain_text
+    assert "Output loudness" not in plain_text

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import BaseModel, Field
+
 from .defaults import AUDIO_NORMALIZE_OUTPUT_CODECS, AUDIO_NORMALIZE_VIDEO_CONTAINERS
 from .engine_audio_validation import _run_audio_ffmpeg
 from .errors import MCPVideoError
@@ -11,10 +13,32 @@ from .ffmpeg_helpers import _run_ffmpeg, _run_ffprobe_json
 from .models import EditResult
 
 
+class MeasuredInputLoudness(BaseModel):
+    """First-pass loudnorm reading of the source audio."""
+
+    I: float = Field(description="Integrated loudness in LUFS")  # noqa: E741
+    LRA: float = Field(description="Loudness range in LU")
+    TP: float = Field(description="True peak in dBTP")
+
+
+class MeasuredOutputLoudness(BaseModel):
+    """Second-pass loudnorm reading of the normalized audio."""
+
+    I: float = Field(description="Integrated loudness in LUFS")  # noqa: E741
+    TP: float = Field(description="True peak in dBTP")
+
+
 class NormalizedAudioResult(EditResult):
-    """A successful decoded output with the actual first audio codec."""
+    """A successful decoded output with the actual first audio codec.
+
+    ``measured_input`` and ``measured_output`` are additive. Existing callers
+    that only read the output path, codec, and warnings keep working, and both
+    readings stay null when the source audio is copied unchanged.
+    """
 
     audio_codec: str | None = None
+    measured_input: MeasuredInputLoudness | None = None
+    measured_output: MeasuredOutputLoudness | None = None
 
 
 def _normalization_codec(output: str) -> tuple[str, bool]:
