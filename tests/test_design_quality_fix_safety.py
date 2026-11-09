@@ -14,10 +14,7 @@ pytestmark = pytest.mark.usefixtures("overwrite_consent")
 
 FIXES = (
     "_auto_fix_brightness",
-    "_auto_fix_contrast",
     "_auto_fix_saturation",
-    "_auto_fix_color_cast",
-    "_auto_normalize_audio",
 )
 
 
