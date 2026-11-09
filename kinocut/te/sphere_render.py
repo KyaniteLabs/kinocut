@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import logging
 import shutil
+import tempfile
 from copy import deepcopy
 from pathlib import Path
 from typing import Any
@@ -31,7 +32,16 @@ def render_sphere_plan(
     allow_fail: bool = False,
     min_score: float | None = None,
 ) -> dict[str, Any]:
-    """Extract cameras and assemble split/pip/switch/single. Requires approved."""
+    """Extract cameras and assemble split/pip/switch/single. Requires approved.
+
+    Window/merge intermediates live in a fresh private ``render-*`` directory
+    under ``work_dir`` (default ``<output_parent>/_sphere_work``), so a retry
+    never collides with stale files and nothing pre-existing is replaced:
+    predictably-named work paths prove nothing about ownership. The private
+    directory is removed when the render succeeds and kept for debugging when
+    a gate raises. Only ``output_path`` is user-facing, and it keeps the
+    no-clobber policy unless the caller grants explicit overwrite consent.
+    """
     current = require_approved(deepcopy(plan))
     source = current["source"]["path"]
     # Intake rejection re-applied at the render seam: a forged or stale plan
@@ -51,10 +61,11 @@ def render_sphere_plan(
     _validate_output_path(output_path)
     root = Path(work_dir or Path(output_path).resolve().parent / "_sphere_work")
     root.mkdir(parents=True, exist_ok=True)
-    pieces = [_render_window(current, window, root, index) for index, window in enumerate(current["windows"])]
+    work = Path(tempfile.mkdtemp(prefix="render-", dir=root))
+    pieces = [_render_window(current, window, work, index) for index, window in enumerate(current["windows"])]
     assembled = pieces[0]
     if len(pieces) > 1:
-        assembled = str(root / "assembled.mp4")
+        assembled = str(work / "assembled.mp4")
         merge(pieces, output_path=assembled)
     with _atomic_output(output_path) as staged:
         with open(assembled, "rb") as rendered, _open_staged_writer(staged) as writer:
@@ -65,6 +76,7 @@ def render_sphere_plan(
             raise MCPVideoError(
                 "360 source changed during rendering", error_type="validation_error", code="source_identity_changed"
             )
+    shutil.rmtree(work, ignore_errors=True)  # success: internal intermediates are disposable
     if isinstance(gate.get("report"), dict) and "video_path" in gate["report"]:
         gate["report"]["video_path"] = output_path
     writer = current.get("writer") or {}
@@ -80,14 +92,14 @@ def render_sphere_plan(
     }
 
 
-def _render_window(plan: dict[str, Any], window: dict[str, Any], root: Path, index: int) -> str:
+def _render_window(plan: dict[str, Any], window: dict[str, Any], work: Path, index: int) -> str:
     layout = str(window.get("layout") or plan["layout"])
     cam_ids = list(window["cameras"])
     start = float(window["start"])
     end = float(window["end"])
     width = int(plan["output"]["width"])
     height = int(plan["output"]["height"])
-    dest = str(root / f"window-{index}.mp4")
+    dest = str(work / f"window-{index}.mp4")
     if layout == "single" or len(cam_ids) == 1:
         return extract_camera_clip(plan, cam_ids[0], start=start, end=end, output_path=dest, width=width, height=height)
     if layout in {"split", "pip", "switch"} and len(cam_ids) >= 2:
