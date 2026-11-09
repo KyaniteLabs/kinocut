@@ -257,7 +257,7 @@ print(checkpoint["thumbnail"], checkpoint["storyboard"]["frames"])
 |--------|---------|-------------|
 | `quality_check(video, fail_on_warning?)` | `dict` | Check brightness, contrast, saturation, audio levels, color balance |
 | `design_quality_check(video, auto_fix?, strict?)` | `Any` | Full design quality analysis: layout, typography, color, motion, composition |
-| `fix_design_issues(video, output?)` | `str` | Auto-fix brightness, contrast, saturation, and audio level issues |
+| `fix_design_issues(video, output?)` | `str` | Auto-fix brightness and saturation issues (audio is not changed; use `normalize_audio`) |
 | `detect_scenes(video, threshold?, output?)` | `SceneDetectionResult` | Auto-detect scene changes |
 | `thumbnail(video, timestamp?, output?)` | `ThumbnailResult` | Extract single frame |
 | `extract_frame(video, timestamp?, output?)` | `ThumbnailResult` | Alias for `thumbnail` |

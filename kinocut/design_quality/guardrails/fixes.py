@@ -24,19 +24,7 @@ class FixesMixin:
         """Apply the existing fixed gamma/brightness adjustment."""
         return _run_design_fix(video_path, ["-vf", "eq=brightness=0.1:gamma=1.1", "-c:a", "copy"])
 
-    def _auto_fix_contrast(self, video_path: str) -> str:
-        """Apply the existing contrast adjustment."""
-        return _run_design_fix(video_path, ["-vf", "eq=contrast=1.1", "-c:a", "copy"])
-
     def _auto_fix_saturation(self, video_path: str, boost: float = 1.2) -> str:
         """Apply the requested saturation adjustment."""
         safe_boost = _escape_ffmpeg_filter_value(str(boost))
         return _run_design_fix(video_path, ["-vf", f"eq=saturation={safe_boost}", "-c:a", "copy"])
-
-    def _auto_fix_color_cast(self, video_path: str) -> str:
-        """Apply the existing color-balance adjustment."""
-        return _run_design_fix(video_path, ["-vf", "colorbalance=rm=0.1:gm=0.1:bm=0.1", "-c:a", "copy"])
-
-    def _auto_normalize_audio(self, video_path: str) -> str:
-        """Normalize audio to the existing -16 LUFS target."""
-        return _run_design_fix(video_path, ["-af", "loudnorm=I=-16:TP=-1.5:LRA=11", "-c:v", "copy"])
