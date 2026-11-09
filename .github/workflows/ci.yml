@@ -32,6 +32,12 @@ jobs:
           if [[ -z "$base" || "$base" == "0000000000000000000000000000000000000000" ]]; then
             base="$(git rev-parse "$head^")"
           fi
+          # A force-pushed PR leaves `before` out of the checkout. Run everything, never skip (#690).
+          if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "::warning::Event base ${base} is not in this checkout (force-push?); running every check."
+            printf 'code=true\ndocker=true\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           changed_file="$(mktemp "$RUNNER_TEMP/kinocut-changes.XXXXXX")"
           trap 'rm -f -- "$changed_file"' EXIT
           git diff --no-renames --name-only -z "$base" "$head" -- > "$changed_file"
