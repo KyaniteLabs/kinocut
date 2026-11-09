@@ -27,6 +27,9 @@ class DesignIssue:
     fix_available: bool = False
     auto_fix: Callable | None = None
     fix_description: str = ""
+    # FFmpeg video filter for this fix. Issues that carry one are rendered
+    # together in a single pass, so every applied fix reaches the output.
+    fix_filter: str | None = None
 
 
 @dataclass
