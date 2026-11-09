@@ -28,21 +28,26 @@ class SoundContractError(Exception):
         error_type: str = "validation_error",
         code: str,
         suggested_action: dict[str, Any] | None = None,
+        details: list[dict[str, Any]] | None = None,
     ) -> None:
         self.error_type = error_type
         self.code = code
         self.suggested_action = suggested_action if suggested_action is not None else {"auto_fix": False}
+        self.details = details
         super().__init__(message)
 
     def to_dict(self) -> dict[str, Any]:
         """Return the public error payload — never includes host paths or secrets."""
 
-        return {
+        payload: dict[str, Any] = {
             "type": self.error_type,
             "code": self.code,
             "message": str(self),
             "suggested_action": self.suggested_action,
         }
+        if self.details:
+            payload["details"] = self.details
+        return payload
 
 
 # Stable contract error codes (design §"Receipt & Provenance" / §"Errors, Privacy
@@ -50,6 +55,17 @@ class SoundContractError(Exception):
 INVALID_RECORD = "invalid_record"
 UNKNOWN_RECORD_FIELD = "unknown_record_field"
 UNSAFE_LOCATION = "unsafe_location"
+INVALID_PLAN = "invalid_plan"
+
+
+class SoundPlanValidationError(SoundContractError, ValueError):
+    """A SoundPlan payload failed validation.
+
+    ``details`` lists ``{"loc", "msg", "type"}`` for each failing field. Input
+    values are deliberately left out: they can carry host paths or prompts.
+    Subclasses ``ValueError`` so pre-existing ``except ValueError`` callers
+    keep working.
+    """
 
 
 def contract_error(message: str, code: str) -> SoundContractError:

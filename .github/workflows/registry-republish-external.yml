@@ -34,7 +34,7 @@ jobs:
             *) echo "::error::repo not whitelisted: ${{ inputs.server_repo }}"; exit 1;;
           esac
       - name: Checkout payload repo
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           repository: ${{ inputs.server_repo }}
           ref: ${{ inputs.server_ref }}

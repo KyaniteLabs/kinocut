@@ -209,3 +209,47 @@ def test_hyperframes_fixture_has_real_paused_animation():
     assert 'data-composition-id="kinocut-preview-proof"' in html
     assert "gsap.timeline({ paused: true })" in html
     assert 'window.__timelines["kinocut-preview-proof"] = timeline' in html
+
+
+class _FakeLocator:
+    def __init__(self, page, selector):
+        self.page, self.selector = page, selector
+
+    def wait_for(self, **kwargs):
+        self.page.waits.append((self.selector, kwargs))
+        if self.page.error is not None:
+            raise self.page.error
+
+
+class _FakePage:
+    def __init__(self, error=None):
+        self.error, self.waits = error, []
+
+    def locator(self, selector):
+        return _FakeLocator(self, selector)
+
+
+def test_hyperframes_probe_waits_for_enabled_play_button():
+    runner = load_runner()
+    page = _FakePage()
+    runner.wait_for_playable(page, timeout_ms=1234, page_errors=[], failed_requests=[])
+    assert page.waits == [('button[aria-label="Play"]:not([disabled])', {"state": "visible", "timeout": 1234})]
+
+
+def test_hyperframes_probe_names_never_playable_with_diagnostics():
+    runner = load_runner()
+    timeout = type("TimeoutError", (Exception,), {})("Timeout 1234ms exceeded")
+    page = _FakePage(error=timeout)
+    with pytest.raises(RuntimeError, match="preview never became playable") as exc:
+        runner.wait_for_playable(
+            page, timeout_ms=1234, page_errors=["GSAP could not load"], failed_requests=["https://cdn.example/x.js"]
+        )
+    assert "GSAP could not load" in str(exc.value)
+    assert "https://cdn.example/x.js" in str(exc.value)
+
+
+def test_hyperframes_probe_does_not_mask_non_timeout_errors():
+    runner = load_runner()
+    page = _FakePage(error=ValueError("target closed"))
+    with pytest.raises(ValueError, match="target closed"):
+        runner.wait_for_playable(page, timeout_ms=10, page_errors=[], failed_requests=[])
