@@ -108,7 +108,7 @@ def test_dark_ui_capture_fails_default_but_passes_dark_profile(dark_ui):
 
     report = assert_quality(dark_ui, profile="ui-capture-dark")
     checks = {c["name"]: c for c in report["checks"]}
-    assert report["all_passed"] is True, checks
+    assert report["gate_passed"] is True, checks
     for name in ("brightness", "contrast", "saturation"):
         assert checks[name]["passed"] is True, checks[name]
     assert report["profile"]["name"] == "ui-capture-dark"
