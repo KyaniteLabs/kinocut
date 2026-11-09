@@ -1,0 +1,45 @@
+name: Duplicate PR guard
+
+# Comments when a new PR targets an issue or Linear ticket that another open or
+# recently merged PR already claims. Advisory only: it never fails, so it cannot
+# block merges.
+#
+# pull_request_target so fork PRs can be commented on. Safe because the job
+# checks out the BASE branch only and reads PR text through the API; it never
+# checks out or runs PR code.
+on:
+  pull_request_target:
+    types: [opened, reopened]
+    branches: [master]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  duplicate-guard:
+    name: Duplicate PR guard
+    runs-on: ubuntu-24.04
+    timeout-minutes: 3
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Check for overlapping PRs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ github.repository }}
+          PR: ${{ github.event.pull_request.number }}
+        run: |
+          set -uo pipefail
+          if ! report="$(python3 .github/scripts/duplicate-pr-guard.py "$REPO" "$PR")"; then
+            echo "::warning::duplicate PR guard could not run; skipping"
+            exit 0
+          fi
+          if [ -z "$report" ]; then
+            echo "No overlapping PRs."
+            exit 0
+          fi
+          printf '%s\n' "$report" >> "$GITHUB_STEP_SUMMARY"
+          printf '%s\n' "$report" | gh pr comment "$PR" --repo "$REPO" --body-file - \
+            || echo "::warning::could not post the duplicate-work comment"
