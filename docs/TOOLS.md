@@ -298,7 +298,7 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 | `video_ai_color_grade` | Color grading with style presets, reference matching or an explicit `lut_path` | FFmpeg |
 | `video_quality_check` | Check brightness, contrast, saturation, audio levels, color balance |
 | `video_design_quality_check` | Full design quality analysis: layout, typography, color, motion, composition |
-| `video_fix_design_issues` | Auto-fix brightness, contrast, saturation, and audio level issues |
+| `video_fix_design_issues` | Auto-fix brightness and saturation issues (audio is not changed; use `video_normalize_audio`) |
 | `video_release_checkpoint` | Hard quality gate plus thumbnail/storyboard artifacts before publishing |
 
 Install only the AI dependencies you need:

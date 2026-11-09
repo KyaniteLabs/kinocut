@@ -144,9 +144,10 @@ These checks do not establish HDR delivery acceptance.
 The design quality system can automatically fix:
 
 1. **Brightness**: Adjust gamma for better visibility
-2. **Contrast**: Apply mild contrast enhancement
-3. **Saturation**: Boost slightly if too flat
-4. **Audio levels**: Normalize to -16 LUFS
+2. **Saturation**: Boost slightly if too flat
+
+Contrast and audio levels are reported but not auto-fixed. For loudness, run
+`video_normalize_audio` (`kino normalize-audio`), which targets -16 LUFS by default.
 
 ## Usage in Code
 
