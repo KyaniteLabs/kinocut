@@ -1,10 +1,10 @@
 {
  "captured": {
-  "git_commit": "2cf76e98e82a6f026ef4679fba93933c809e4535",
+  "git_commit": "c130f03735c05f74f8e16419b4fb8262ff35648a",
   "kind": "repo-modes",
-  "kinocut_metadata_version": "1.16.5",
+  "kinocut_metadata_version": "1.16.0",
   "kinocut_source_version": "1.16.5",
-  "mcp_sdk_version": "1.28.1",
+  "mcp_sdk_version": "1.30.0",
   "platform": "Linux-6.17.0-1033-oem-x86_64-with-glibc2.39",
   "python_version": "3.12.3"
  },
@@ -22,7 +22,7 @@
    "mode": "all",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "1.16.0"
    },
    "tool_count": 205,
    "tool_names_sha256": "65ff9dd382cb5ff733bcb9b0bee5df37991232800d62fa6f5972ce2002113a07",
@@ -4145,11 +4145,40 @@
    "mode": "default",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "1.16.0"
    },
-   "tool_count": 20,
-   "tool_names_sha256": "fa77b92ebb2c16b35440103c75b6849fa36c351fd95c769da88a1564ab84ae9f",
+   "tool_count": 30,
+   "tool_names_sha256": "91297ee38d34413c9cc8ef24854adf687ead7c3b5ee901770c3a87e11e549dfe",
    "tools": [
+    {
+     "input_schema_bytes": 945,
+     "input_schema_sha256": "5812a345d4aa2fcce849ddbd1377bca1b2ff33f73b109c963fd221e78dfd7cf9",
+     "module": null,
+     "name": "audio_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 445,
+     "input_schema_sha256": "ed6782e7b237cbe5001dad0fee31be53aa81fbb6e908b75ded3728a20118d764",
+     "module": null,
+     "name": "describe_operation",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
     {
      "input_schema_bytes": 265,
      "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
@@ -4163,6 +4192,49 @@
       "overwrite"
      ],
      "required_params": []
+    },
+    {
+     "input_schema_bytes": 760,
+     "input_schema_sha256": "f740533b1854bb6ba9081bb508a59766f98e32a3b2b7a26064ccb26ddbc80e9f",
+     "module": null,
+     "name": "image_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 634,
+     "input_schema_sha256": "20233d1e5dc37a701ebbac1b2ae3c33136a2f9c8b86de476ef65ee8eecbbbd7c",
+     "module": null,
+     "name": "list_operations",
+     "profiles": [],
+     "properties": [
+      "family",
+      "overwrite",
+      "query"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 1192,
+     "input_schema_sha256": "a522c8824a49f519b11dfee20b87cce40457ed3bb864e4813cb9fa6a493c92dc",
+     "module": null,
+     "name": "platform_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
     },
     {
      "input_schema_bytes": 322,
@@ -4260,6 +4332,21 @@
      ]
     },
     {
+     "input_schema_bytes": 956,
+     "input_schema_sha256": "17b67d470f6e5bc77b39f36ed8e6a106968f2b1530c5283e79761e596eedf64c",
+     "module": null,
+     "name": "video_ai_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 1085,
      "input_schema_sha256": "f3c98351d8408f2407308210ddbeb2f37d6ff150060aeaec48251e005c933bb5",
      "module": "server_tools_basic",
@@ -4294,6 +4381,36 @@
       "overwrite"
      ],
      "required_params": []
+    },
+    {
+     "input_schema_bytes": 1415,
+     "input_schema_sha256": "f56220c5032985a39a7e8a7aca30f2c466a8529345e03698ed318eedcd3d18dd",
+     "module": null,
+     "name": "video_edit_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 1237,
+     "input_schema_sha256": "d5fcf41c024d1d118942c02901c1a3344a807f304c871c385bbb810bf995122d",
+     "module": null,
+     "name": "video_effects_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
     },
     {
      "input_schema_bytes": 534,
@@ -4355,6 +4472,21 @@
      ]
     },
     {
+     "input_schema_bytes": 1794,
+     "input_schema_sha256": "50b2373075d9401159c09dc754652022b745d5e7fdac3942ecf33c9b43d3d71d",
+     "module": null,
+     "name": "video_plan_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 422,
      "input_schema_sha256": "8e060f42ae2cf86827086fdff25c79a80db663c81af66c16051fd14dfa5936e4",
      "module": "server_tools_creation",
@@ -4371,6 +4503,21 @@
      ],
      "required_params": [
       "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 956,
+     "input_schema_sha256": "6ffc41070dc290756d7ecdc22e781b88d1ce678dfb220e6c0f0533bac75eba80",
+     "module": null,
+     "name": "video_qc_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -4554,7 +4701,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 13947
+   "total_input_schema_bytes": 24281
   },
   "profile:editor": {
    "launch": {
@@ -4569,10 +4716,10 @@
    "mode": "profile:editor",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "1.16.0"
    },
-   "tool_count": 108,
-   "tool_names_sha256": "0a195aecb0ba172843bf8e63421fa53590421a2d485c732a740d8be39323eec1",
+   "tool_count": 118,
+   "tool_names_sha256": "f6f5578aa5ddebb9b76a9f584c302e168dbbc6bb6ceff00f9c52928b75d97f29",
    "tools": [
     {
      "input_schema_bytes": 506,
@@ -4614,6 +4761,21 @@
       "effects",
       "input_path",
       "output_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 945,
+     "input_schema_sha256": "5812a345d4aa2fcce849ddbd1377bca1b2ff33f73b109c963fd221e78dfd7cf9",
+     "module": null,
+     "name": "audio_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -4675,6 +4837,20 @@
       "waveform"
      ],
      "required_params": []
+    },
+    {
+     "input_schema_bytes": 445,
+     "input_schema_sha256": "ed6782e7b237cbe5001dad0fee31be53aa81fbb6e908b75ded3728a20118d764",
+     "module": null,
+     "name": "describe_operation",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite"
+     ],
+     "required_params": [
+      "operation"
+     ]
     },
     {
      "input_schema_bytes": 538,
@@ -5055,6 +5231,49 @@
      "required_params": []
     },
     {
+     "input_schema_bytes": 760,
+     "input_schema_sha256": "f740533b1854bb6ba9081bb508a59766f98e32a3b2b7a26064ccb26ddbc80e9f",
+     "module": null,
+     "name": "image_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 634,
+     "input_schema_sha256": "20233d1e5dc37a701ebbac1b2ae3c33136a2f9c8b86de476ef65ee8eecbbbd7c",
+     "module": null,
+     "name": "list_operations",
+     "profiles": [],
+     "properties": [
+      "family",
+      "overwrite",
+      "query"
+     ],
+     "required_params": []
+    },
+    {
+     "input_schema_bytes": 1192,
+     "input_schema_sha256": "a522c8824a49f519b11dfee20b87cce40457ed3bb864e4813cb9fa6a493c92dc",
+     "module": null,
+     "name": "platform_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 322,
      "input_schema_sha256": "9e108f9314c825f6fe235e2730209766422a97c4aea65de3cdac00c53a82b67c",
      "module": "server_tools_basic",
@@ -5369,6 +5588,21 @@
      "required_params": [
       "input_path",
       "texts"
+     ]
+    },
+    {
+     "input_schema_bytes": 956,
+     "input_schema_sha256": "17b67d470f6e5bc77b39f36ed8e6a106968f2b1530c5283e79761e596eedf64c",
+     "module": null,
+     "name": "video_ai_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -5719,6 +5953,36 @@
      ],
      "required_params": [
       "timeline"
+     ]
+    },
+    {
+     "input_schema_bytes": 1415,
+     "input_schema_sha256": "f56220c5032985a39a7e8a7aca30f2c466a8529345e03698ed318eedcd3d18dd",
+     "module": null,
+     "name": "video_edit_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
+     "input_schema_bytes": 1237,
+     "input_schema_sha256": "d5fcf41c024d1d118942c02901c1a3344a807f304c871c385bbb810bf995122d",
+     "module": null,
+     "name": "video_effects_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -6177,6 +6441,21 @@
      ]
     },
     {
+     "input_schema_bytes": 1794,
+     "input_schema_sha256": "50b2373075d9401159c09dc754652022b745d5e7fdac3942ecf33c9b43d3d71d",
+     "module": null,
+     "name": "video_plan_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
+     ]
+    },
+    {
      "input_schema_bytes": 402,
      "input_schema_sha256": "22d23c856aeeb227af6e691c2c13a6836abdf7766a00af211927712c668261c2",
      "module": "server_tools_inspection",
@@ -6231,6 +6510,21 @@
      ],
      "required_params": [
       "slug"
+     ]
+    },
+    {
+     "input_schema_bytes": 956,
+     "input_schema_sha256": "6ffc41070dc290756d7ecdc22e781b88d1ce678dfb220e6c0f0533bac75eba80",
+     "module": null,
+     "name": "video_qc_ops",
+     "profiles": [],
+     "properties": [
+      "operation",
+      "overwrite",
+      "params"
+     ],
+     "required_params": [
+      "operation"
      ]
     },
     {
@@ -6840,7 +7134,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 71413
+   "total_input_schema_bytes": 81747
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

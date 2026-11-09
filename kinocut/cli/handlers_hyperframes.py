@@ -120,7 +120,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
     runner.register("hyperframes-compositions", _compositions)
 
     def _preview(a, j):
-        from ..hyperframes_engine import preview
+        from ..hyperframes_engine import preview, release_preview
 
         r = _with_spinner("Launching Hyperframes preview...", preview, a.project_path, port=a.port)
         _out(
@@ -129,6 +129,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
             _format_hyperframes_preview,
             json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r,
         )
+        release_preview(r.port, r.pid)
 
     runner.register("hyperframes-preview", _preview)
 

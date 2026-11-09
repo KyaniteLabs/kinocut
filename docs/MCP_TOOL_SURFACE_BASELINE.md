@@ -8,15 +8,24 @@ schema bytes — is a conscious, reviewed edit rather than silent drift.
 ## What is pinned
 
 `tests/fixtures/mcp_tool_surface_baseline.json` captures the surface of the
-repository server at 2cf76e98 (published 1.16.5) for the three supported
-selector modes, launched exactly the way registries and clients launch it
-(`python -m kinocut --mcp` over stdio, MCP initialize + tools/list):
+repository server for the three supported selector modes, launched exactly
+the way registries and clients launch it (`python -m kinocut --mcp` over
+stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 20 | 13,947 |
+| default / `core` (unset) | 30 | 24,281 |
 | `all` | 205 | 126,776 |
-| `profile:editor` | 108 | 71,413 |
+| `profile:editor` | 118 | 81,747 |
+
+The default surface is the 20-tool core diet plus the ten compact-surface
+tools (eight typed operation families + `list_operations` +
+`describe_operation`, see `docs/MCP_TOOL_FAMILIES.md`). It was captured at
+2cf76e98 (published 1.16.5) as 20 tools / 13,947 bytes and regenerated after
+the compact surface landed; the **`all` mode rows are byte-identical** across
+that regeneration (205 tools, 126,776 bytes, unchanged per-tool digests) —
+the legacy full-catalog compatibility proof. `profile:editor` moved
+108 / 71,413 → 118 / 81,747 with the same ten additions.
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required
@@ -43,7 +52,7 @@ compares each against the fixture:
 3. the declarative tables in `kinocut/tool_registry.py` (205 names across 25
    modules, one module per tool, core tags matching the default surface).
 
-The headline numbers (20/13,947, 205/126,776, 108/71,413) are also asserted
+The headline numbers (30/24,281, 205/126,776, 118/81,747) are also asserted
 literally so a fixture edit cannot pass unnoticed.
 
 `tests/test_tool_surface_compat.py` protects the behaviors around the
@@ -97,8 +106,9 @@ The capture records the server-reported version from the MCP handshake, the
 tool count, and the schema bytes under the serialization contract above.
 Note that the handshake reports the *installed distribution* version, which
 can differ from a source checkout actually launched; the script records both.
-A `uvx kinocut==1.16.5` capture matches the default mode byte-for-byte
-(20 tools / 13,947 bytes).
+A `uvx kinocut==1.16.5` capture matches the released 1.16.5 default surface
+byte-for-byte (20 tools / 13,947 bytes) — that surface predates the compact
+family layer in this checkout.
 
 Registrations counts computed from `kinocut.tool_registry` (like the table
 above) describe this repository's surface. They are not measurements of any
