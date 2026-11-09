@@ -88,6 +88,19 @@ print(json.dumps(dict(rows=rows, owner=os.getpid(), signals=signals, binary=resu
         assert result["children"] == ""  # Native and supervisor both reaped normally.
 
 
+def proc_status(pid):
+    """Return /proc/<pid>/status, or None once the process is gone.
+
+    A process can exit between an exists() check and the read, and reading
+    the status of a dying process raises ProcessLookupError, so gone counts
+    as stopped rather than as an error.
+    """
+    try:
+        return Path(f"/proc/{pid}/status").read_text()
+    except (FileNotFoundError, ProcessLookupError):
+        return None
+
+
 def wait_for(predicate, timeout=5):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -136,9 +149,9 @@ def test_worker_sigkill_stops_native_and_grandchild_and_releases_lease(tmp_path,
             assert heartbeat.read_bytes() == snapshot
             # On non-reaping PID1 hosts, abnormal shutdown can leave dead zombies.
             for pid in (native, grandchild, group):
-                status = Path(f"/proc/{pid}/status")
-                if status.exists():
-                    assert "State:\tZ" in status.read_text()
+                status = proc_status(pid)
+                if status is not None:
+                    assert "State:\tZ" in status
     finally:
         if process.poll() is None:
             os.killpg(process.pid, signal.SIGKILL)
@@ -213,8 +226,8 @@ def test_unleased_owner_sigkill_stops_native_and_grandchild(tmp_path):
 
         def descendants_stopped():
             for pid in (native, grandchild, group):
-                status = Path(f"/proc/{pid}/status")
-                if status.exists() and "State:\tZ" not in status.read_text():
+                status = proc_status(pid)
+                if status is not None and "State:\tZ" not in status:
                     return False
             return True
 
