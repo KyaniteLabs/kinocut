@@ -96,11 +96,13 @@ class MCPVideoError(Exception):
         code: str = "unknown",
         suggested_action: dict[str, Any] | None = None,
         docs_url: str | None = None,
+        details: list[dict[str, Any]] | None = None,
     ):
         self.error_type = error_type
         self.code = code
         self.suggested_action = suggested_action
         self.docs_url = docs_url
+        self.details = details
         super().__init__(message)
 
     def to_dict(self) -> dict[str, Any]:
@@ -115,6 +117,8 @@ class MCPVideoError(Exception):
             result["suggested_action"] = self.suggested_action
         if self.docs_url:
             result["documentation_url"] = self.docs_url
+        if self.details:
+            result["details"] = self.details
         return result
 
 
