@@ -461,7 +461,8 @@ def test_integration_smoke_adds_nonpublishing_exact_head_onboarding_job() -> Non
     assert "push:\n    branches: [master]" in workflow
     assert "pull_request:" in workflow
     job = _workflow_job(workflow, "clean-wheel-onboarding")
-    assert "if: github.event_name != 'push'" in job
+    assert "needs: changes" in job
+    assert "github.event_name != 'push'" in job.split("if:", 1)[1].split("\n", 1)[0]
     assert "runs-on: ubuntu-24.04" in job
     assert "timeout-minutes: 30" in job
     assert '$2 == "subtitles" && $3 == "V->V"' in job
