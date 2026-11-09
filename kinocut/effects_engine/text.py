@@ -169,6 +169,10 @@ def _load_pil_font(font_name: str, size: int):
         paths = [
             "/usr/share/fonts/**/*.ttf",
             "/usr/local/share/fonts/**/*.ttf",
+            os.path.join(
+                os.environ.get("XDG_DATA_HOME") or os.path.expanduser("~/.local/share"),
+                "fonts/**/*.ttf",
+            ),
             os.path.expanduser("~/.fonts/**/*.ttf"),
         ]
     elif system == "Windows":
