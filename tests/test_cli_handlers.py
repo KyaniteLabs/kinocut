@@ -609,7 +609,7 @@ class TestDispatchCustomLambdas:
         from mcp_video.cli import handlers_advanced
         from mcp_video.cli.common import output_json
 
-        args = _make_args(command="video-quality-check", input="test.mp4", fail_on_warning=True)
+        args = _make_args(command="video-quality-check", input="test.mp4", fail_on_warning=True, profile="default")
         report = {"overall_score": 20.0, "all_passed": False, "checks": [], "recommendations": []}
         monkeypatch.setattr("mcp_video.quality_guardrails.quality_check", lambda *_args, **_kwargs: report)
         monkeypatch.setattr(handlers_advanced, "_with_spinner", lambda _label, fn, *a, **kw: fn(*a, **kw))
@@ -625,7 +625,7 @@ class TestDispatchCustomLambdas:
         from mcp_video.cli import handlers_advanced
         from mcp_video.cli.common import output_json
 
-        args = _make_args(command="video-quality-check", input="test.mp4", fail_on_warning=True)
+        args = _make_args(command="video-quality-check", input="test.mp4", fail_on_warning=True, profile="default")
         report = {"overall_score": 95.0, "all_passed": True, "checks": [], "recommendations": []}
         monkeypatch.setattr("mcp_video.quality_guardrails.quality_check", lambda *_args, **_kwargs: report)
         monkeypatch.setattr(handlers_advanced, "_with_spinner", lambda _label, fn, *a, **kw: fn(*a, **kw))
@@ -666,6 +666,7 @@ class TestReleaseCheckpointPassthrough:
             "min_score": 80.0,
             "frame_count": 6,
             "require_audio": True,
+            "profile": "default",
         }
         defaults.update(overrides)
         return SimpleNamespace(**defaults)
@@ -684,12 +685,18 @@ class TestReleaseCheckpointPassthrough:
         monkeypatch.setattr(server_tools_ai, "video_release_checkpoint", fake_release_checkpoint)
 
         handled = handle_advanced_commands(
-            self._args(output_dir="review", min_score=70.0, frame_count=4), use_json=True
+            self._args(output_dir="review", min_score=70.0, frame_count=4, profile="ui-capture-dark"), use_json=True
         )
 
         assert handled is True
         assert calls["positional"] == ("clip.mp4",)
-        assert calls["keyword"] == {"output_dir": "review", "min_score": 70.0, "frame_count": 4, "require_audio": True}
+        assert calls["keyword"] == {
+            "output_dir": "review",
+            "min_score": 70.0,
+            "frame_count": 4,
+            "require_audio": True,
+            "profile": "ui-capture-dark",
+        }
         payload = json.loads(capsys.readouterr().out)
         assert payload["success"] is True
         assert payload["review_required"] is True

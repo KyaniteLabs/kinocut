@@ -22,6 +22,19 @@ def _add_command_output_format(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_quality_profile(parser: argparse.ArgumentParser) -> None:
+    """Content profile for the picture heuristics (#679)."""
+    from kinocut.quality_profiles import DEFAULT_QUALITY_PROFILE, QUALITY_PROFILES
+
+    parser.add_argument(
+        "--profile",
+        choices=list(QUALITY_PROFILES),
+        default=DEFAULT_QUALITY_PROFILE,
+        help="Content profile: default (camera footage), ui-capture-dark or ui-capture-light; "
+        "recorded in the report (default: default)",
+    )
+
+
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add quality subcommands to the CLI parser."""
     # video-auto-chapters
@@ -39,6 +52,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     qcheck_p = subparsers.add_parser("video-quality-check", help="Run visual quality checks on a video")
     qcheck_p.add_argument("input", help="Input video file")
     qcheck_p.add_argument("--fail-on-warning", action="store_true", help="Treat warnings as failures")
+    _add_quality_profile(qcheck_p)
     _add_command_output_format(qcheck_p)
 
     # video-design-quality-check
@@ -70,6 +84,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
         help=f"Minimum quality score 0-100 (default: {DEFAULT_QUALITY_GATE_SCORE})",
     )
     rcheck_p.add_argument("--frame-count", type=int, default=6, help="Storyboard frame count (default: 6)")
+    _add_quality_profile(rcheck_p)
     rcheck_p.add_argument(
         "--require-audio", action=argparse.BooleanOptionalAction, default=True, help="Require an audio stream"
     )

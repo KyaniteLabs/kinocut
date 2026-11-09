@@ -14,9 +14,9 @@ stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 30 | 24,281 |
-| `all` | 205 | 126,776 |
-| `profile:editor` | 118 | 81,747 |
+| default / `core` (unset) | 30 | 24,347 |
+| `all` | 205 | 126,908 |
+| `profile:editor` | 118 | 81,813 |
 
 The default surface is the 20-tool core diet plus the ten compact-surface
 tools (eight typed operation families + `list_operations` +
@@ -25,7 +25,9 @@ tools (eight typed operation families + `list_operations` +
 the compact surface landed; the **`all` mode rows are byte-identical** across
 that regeneration (205 tools, 126,776 bytes, unchanged per-tool digests) —
 the legacy full-catalog compatibility proof. `profile:editor` moved
-108 / 71,413 → 118 / 81,747 with the same ten additions.
+108 / 71,413 → 118 / 81,747 with the same ten additions. #679 then added an
+optional `profile` input to `video_quality_check` and `video_release_checkpoint`
+(default 24,281 → 24,347; `all` 126,776 → 126,908; editor 81,747 → 81,813).
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required
@@ -52,7 +54,7 @@ compares each against the fixture:
 3. the declarative tables in `kinocut/tool_registry.py` (205 names across 25
    modules, one module per tool, core tags matching the default surface).
 
-The headline numbers (30/24,281, 205/126,776, 118/81,747) are also asserted
+The headline numbers (30/24,347, 205/126,908, 118/81,813) are also asserted
 literally so a fixture edit cannot pass unnoticed.
 
 `tests/test_tool_surface_compat.py` protects the behaviors around the

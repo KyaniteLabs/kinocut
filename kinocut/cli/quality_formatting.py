@@ -10,7 +10,10 @@ from rich.table import Table
 def quality_report_renderables(data: Any) -> tuple[Table, str]:
     if not isinstance(data, dict):
         data = {}
-    table = Table(title="Quality Check")
+    profile = data.get("profile")
+    profile_name = profile.get("name") if isinstance(profile, dict) else None
+    title = f"Quality Check (profile: {escape(str(profile_name))})" if profile_name else "Quality Check"
+    table = Table(title=title)
     table.add_column("Check", style="bold cyan")
     table.add_column("Status")
     table.add_column("Value")
@@ -35,9 +38,26 @@ def quality_report_renderables(data: Any) -> tuple[Table, str]:
             if message:
                 value_parts.append(escape(str(message)))
             table.add_row(str(info.get("name", "unknown")), status, " — ".join(value_parts))
+    if "gate_passed" in data:
+        return table, f"[bold]{gate_verdict_line(data)}[/bold]"
     overall_passed = data.get("all_passed", data.get("passed", False))
     overall = "[green]PASS[/green]" if overall_passed else "[red]FAIL[/red]"
     return table, f"[bold]Overall: {overall}[/bold]"
+
+
+def gate_verdict_line(data: dict[str, Any]) -> str:
+    """Describe a score gate and the per-check outcome as separate verdicts."""
+    score = data.get("overall_score")
+    min_score = data.get("min_score")
+    gate = "[green]Gate PASSED[/green]" if data.get("gate_passed") else "[red]Gate FAILED[/red]"
+    if score is not None and min_score is not None:
+        op = "≥" if score >= min_score else "<"
+        gate += f" at score {score} {op} {min_score}"
+    failed = [str(name) for name in data.get("failed_checks") or []]
+    if failed:
+        noun = "check" if len(failed) == 1 else "checks"
+        return f"{gate}; [yellow]{len(failed)} {noun} below target:[/yellow] {escape(', '.join(failed))}"
+    return f"{gate}; all checks passed"
 
 
 def release_checkpoint_renderable(data: Any) -> Panel | str:
@@ -51,6 +71,8 @@ def release_checkpoint_renderable(data: Any) -> Panel | str:
     lines = []
     if score is not None:
         lines.append(f"[bold green]Quality score:[/bold green] {score}")
+    if isinstance(quality, dict) and "gate_passed" in quality:
+        lines.append(gate_verdict_line(quality))
     if data.get("thumbnail"):
         lines.append(f"[bold green]Thumbnail:[/bold green] {data['thumbnail']}")
     storyboard = data.get("storyboard") or {}

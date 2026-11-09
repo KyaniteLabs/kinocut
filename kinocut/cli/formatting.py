@@ -678,6 +678,44 @@ def _format_hyperframes_validate(result: Any) -> None:
     )
 
 
+def _format_hyperframes_doctor(result: Any) -> None:
+    dump = _model_dump(result)
+    data = dump.get("data") if isinstance(dump, dict) else None
+    if not isinstance(data, dict) or not isinstance(data.get("checks"), list):
+        console.print(escape(str(dump.get("stdout") if isinstance(dump, dict) else dump) or "No doctor output"))
+        return
+    from ..hyperframes_ops_helpers import _doctor_check_is_optional
+
+    ok = bool(dump.get("success", data.get("required_ok", data.get("ok"))))
+    lines = []
+    for check in data["checks"]:
+        if not isinstance(check, dict):
+            continue
+        optional = _doctor_check_is_optional(check)
+        if check.get("ok"):
+            mark = "[green]✓[/green]"
+        elif optional:
+            mark = "[yellow]-[/yellow]"
+        else:
+            mark = "[red]✗[/red]"
+        name = escape(str(check.get("name", "?")))
+        detail = escape(str(check.get("detail", "")))
+        suffix = " [dim](optional)[/dim]" if optional and not check.get("ok") else ""
+        lines.append(f"{mark} [bold]{name}[/bold]: {detail}{suffix}")
+        if not check.get("ok") and check.get("hint"):
+            lines.append(f"    [dim]hint:[/dim] {escape(str(check['hint']))}")
+    failed_required = data.get("failed_required") or []
+    failed_optional = data.get("failed_optional") or []
+    if ok:
+        verdict = "[green]Ready[/green] — all required checks passed"
+    else:
+        verdict = f"[red]Not ready[/red] — required checks failed: {escape(', '.join(failed_required))}"
+    if failed_optional:
+        verdict += f"\n[yellow]Optional features unavailable:[/yellow] {escape(', '.join(failed_optional))}"
+    lines.extend(["", verdict])
+    console.print(Panel("\n".join(lines), border_style="green" if ok else "red", title="Hyperframes Doctor"))
+
+
 def _format_hyperframes_pipeline(result: Any, project_path: str) -> None:
     data = _model_dump(result)
     lines = [

@@ -127,9 +127,11 @@ def test_headline_baseline_numbers_are_pinned():
     legacy full-catalog surface, byte-identical since 2cf76e98;
     profile:editor 118 tools / 81,747 B. Regenerated after the compact
     surface landed; the all-mode rows are unchanged down to per-tool digests.
+    #679 then added an optional ``profile`` input to video_quality_check and
+    video_release_checkpoint: default 24,347 B, all 126,908 B, editor 81,813 B.
     """
-    assert BASELINE["captured"]["git_commit"] == "c130f03735c05f74f8e16419b4fb8262ff35648a"
-    for mode, count, total in (("default", 30, 24_281), ("all", 205, 126_776), ("profile:editor", 118, 81_747)):
+    assert BASELINE["captured"]["git_commit"] == "3f5544b14069f4075555a0922d29a742b397e036"
+    for mode, count, total in (("default", 30, 24_347), ("all", 205, 126_908), ("profile:editor", 118, 81_813)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -199,7 +201,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 30, 24_281), ("all", 205, 126_776)])
+@pytest.mark.parametrize("mode,count,total", [("default", 30, 24_347), ("all", 205, 126_908)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

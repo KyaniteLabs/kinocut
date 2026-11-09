@@ -998,7 +998,7 @@ class TestServerReleaseGuardrails:
         monkeypatch.setattr(server_tools_ai, "_validate_input_path", lambda path: path)
         monkeypatch.setattr(
             "mcp_video.quality_guardrails.quality_check",
-            lambda _path, fail_on_warning=False: {
+            lambda _path, fail_on_warning=False, profile="default": {
                 "video": _path,
                 "overall_score": 25.0,
                 "all_passed": False,

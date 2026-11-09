@@ -11,7 +11,7 @@ The 1.16.5 tool diet pinned the default surface at 20 direct tools / 13,947
 input-schema bytes, and the full catalog is 205 tools / 126,776 bytes — too
 large to advertise to a model, and the diet left 185 operations unreachable
 over the wire in default mode. The family layer closes that gap: the default
-surface is now **30 tools / 24,281 bytes** (≤ 40 tools and ≤ 25% of the
+surface is now **30 tools / 24,347 bytes** (≤ 40 tools and ≤ 25% of the
 full-catalog bytes, the accepted design budget) while reaching all 204
 operations plus `search_tools`.
 
@@ -36,7 +36,7 @@ Every family tool takes `operation` (a closed enum of its member operation
 names — typos and cross-family mistakes fail validation), `params` (the
 operation's exact arguments), and the standard strict-boolean `overwrite`
 consent every Kinocut handler exposes. Profiles are additive on the compact
-surface: `profile:editor` is 118 tools / 81,747 bytes.
+surface: `profile:editor` is 118 tools / 81,813 bytes.
 
 `KINOCUT_TOOLS=all` is the **legacy full-catalog surface** and stays exactly
 the 205-name registry, byte-identical to the pre-family baseline (all

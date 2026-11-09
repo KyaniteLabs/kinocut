@@ -1,12 +1,12 @@
 {
  "captured": {
-  "git_commit": "c130f03735c05f74f8e16419b4fb8262ff35648a",
+  "git_commit": "3f5544b14069f4075555a0922d29a742b397e036",
   "kind": "repo-modes",
-  "kinocut_metadata_version": "1.16.0",
+  "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "1.16.5",
   "mcp_sdk_version": "1.30.0",
   "platform": "Linux-6.17.0-1033-oem-x86_64-with-glibc2.39",
-  "python_version": "3.12.3"
+  "python_version": "3.14.7"
  },
  "modes": {
   "all": {
@@ -22,7 +22,7 @@
    "mode": "all",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.0"
+    "version": "1.16.5"
    },
    "tool_count": 205,
    "tool_names_sha256": "65ff9dd382cb5ff733bcb9b0bee5df37991232800d62fa6f5972ce2002113a07",
@@ -3181,8 +3181,8 @@
      ]
     },
     {
-     "input_schema_bytes": 423,
-     "input_schema_sha256": "03dbf2c54e259c4bfc41179daa68c82cd54d2ab6b36805a3411f176671ba4187",
+     "input_schema_bytes": 489,
+     "input_schema_sha256": "2455509c28f0a5e3bc43bcf073feff6f15a2afe56d44763856a104903df757e4",
      "module": "server_tools_ai",
      "name": "video_quality_check",
      "profiles": [
@@ -3192,7 +3192,8 @@
      "properties": [
       "fail_on_warning",
       "input_path",
-      "overwrite"
+      "overwrite",
+      "profile"
      ],
      "required_params": [
       "input_path"
@@ -3265,8 +3266,8 @@
      ]
     },
     {
-     "input_schema_bytes": 650,
-     "input_schema_sha256": "ebfd391b06895392e4e776a4d52b302944fab5063727070ae237b4da5a1ec2ea",
+     "input_schema_bytes": 716,
+     "input_schema_sha256": "072822a73c64f7559c6e5650d8d44365e6144a18f8d3b8d810935e5e204dea0f",
      "module": "server_tools_ai",
      "name": "video_release_checkpoint",
      "profiles": [
@@ -3278,6 +3279,7 @@
       "min_score",
       "output_dir",
       "overwrite",
+      "profile",
       "require_audio"
      ],
      "required_params": [
@@ -4130,7 +4132,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 126776
+   "total_input_schema_bytes": 126908
   },
   "default": {
    "launch": {
@@ -4145,7 +4147,7 @@
    "mode": "default",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.0"
+    "version": "1.16.5"
    },
    "tool_count": 30,
    "tool_names_sha256": "91297ee38d34413c9cc8ef24854adf687ead7c3b5ee901770c3a87e11e549dfe",
@@ -4521,8 +4523,8 @@
      ]
     },
     {
-     "input_schema_bytes": 423,
-     "input_schema_sha256": "03dbf2c54e259c4bfc41179daa68c82cd54d2ab6b36805a3411f176671ba4187",
+     "input_schema_bytes": 489,
+     "input_schema_sha256": "2455509c28f0a5e3bc43bcf073feff6f15a2afe56d44763856a104903df757e4",
      "module": "server_tools_ai",
      "name": "video_quality_check",
      "profiles": [
@@ -4532,7 +4534,8 @@
      "properties": [
       "fail_on_warning",
       "input_path",
-      "overwrite"
+      "overwrite",
+      "profile"
      ],
      "required_params": [
       "input_path"
@@ -4701,7 +4704,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 24281
+   "total_input_schema_bytes": 24347
   },
   "profile:editor": {
    "launch": {
@@ -4716,7 +4719,7 @@
    "mode": "profile:editor",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.0"
+    "version": "1.16.5"
    },
    "tool_count": 118,
    "tool_names_sha256": "f6f5578aa5ddebb9b76a9f584c302e168dbbc6bb6ceff00f9c52928b75d97f29",
@@ -6528,8 +6531,8 @@
      ]
     },
     {
-     "input_schema_bytes": 423,
-     "input_schema_sha256": "03dbf2c54e259c4bfc41179daa68c82cd54d2ab6b36805a3411f176671ba4187",
+     "input_schema_bytes": 489,
+     "input_schema_sha256": "2455509c28f0a5e3bc43bcf073feff6f15a2afe56d44763856a104903df757e4",
      "module": "server_tools_ai",
      "name": "video_quality_check",
      "profiles": [
@@ -6539,7 +6542,8 @@
      "properties": [
       "fail_on_warning",
       "input_path",
-      "overwrite"
+      "overwrite",
+      "profile"
      ],
      "required_params": [
       "input_path"
@@ -7134,7 +7138,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81747
+   "total_input_schema_bytes": 81813
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
