@@ -53,3 +53,50 @@ def test_shared_installer_skips_apt_when_ffmpeg_is_on_path(tmp_path):
     recorded = calls.read_text().splitlines() if calls.exists() else []
     assert any("version" in line for line in recorded)
     assert not any("sudo" in line for line in recorded)
+
+
+def _fake(path: Path, body: str) -> None:
+    path.write_text("#!/bin/bash\n" + body + "\n")
+    path.chmod(0o755)
+
+
+def test_static_fallback_is_on_path_in_the_same_step(tmp_path):
+    """A caller that runs `bash installer; ffmpeg` in one step must find the fallback (#692)."""
+    bash = shutil.which("bash")
+    assert bash is not None
+    tools = tmp_path / "bin"
+    tools.mkdir()
+    for name in ("find", "dirname", "head", "mkdir", "ln", "cat", "sleep", "rm", "chmod"):
+        real = shutil.which(name)
+        assert real is not None, name
+        (tools / name).symlink_to(real)
+    # apt always fails, which forces the static fallback; sudo never touches the host.
+    _fake(tools / "sudo", 'case "$1" in sed) exit 0 ;; ln) shift; exec ln "$@" ;; *) exit 1 ;; esac')
+    _fake(tools / "curl", 'while [[ $# -gt 0 ]]; do [[ "$1" == -o ]] && : > "$2"; shift; done')
+    fake_bin = 'mkdir -p "$4/ffmpeg-fixture/bin"\n'
+    for tool in ("ffmpeg", "ffprobe"):
+        fake_bin += f'printf \'#!/bin/bash\\necho {tool}-static "$@"\\n\' > "$4/ffmpeg-fixture/bin/{tool}"\n'
+        fake_bin += f'chmod +x "$4/ffmpeg-fixture/bin/{tool}"\n'
+    _fake(tools / "python3", fake_bin)
+    link_dir = tmp_path / "usr-local-bin"
+    link_dir.mkdir()
+    runner_temp = tmp_path / "runner-temp"
+    runner_temp.mkdir()
+    environment = {
+        "PATH": f"{tools}:{link_dir}",
+        "RUNNER_TEMP": str(runner_temp),
+        "FFMPEG_LINK_DIR": str(link_dir),
+        "HOME": str(tmp_path),
+    }
+    result = subprocess.run(
+        [bash, "-c", f'set -euo pipefail; "{bash}" "{INSTALLER}"; ffmpeg -hide_banner -filters'],
+        env=environment,
+        capture_output=True,
+        text=True,
+        timeout=60,
+        check=False,
+    )
+    assert result.returncode == 0, result.stderr
+    assert "falling back to static build" in result.stderr
+    assert result.stdout.rstrip().endswith("ffmpeg-static -hide_banner -filters")
+    assert (link_dir / "ffprobe").exists()
