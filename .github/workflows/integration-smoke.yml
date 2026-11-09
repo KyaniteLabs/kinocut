@@ -6,6 +6,7 @@ on:
     branches: [master]
   # No `paths:` filter: required checks must always be reported. Relevance is
   # decided by the `changes` job below; irrelevant PRs get skipped (passing) jobs.
+  # If detection itself fails, the smoke jobs run (fail-safe, never skip-to-green).
   pull_request:
 
 concurrency:
@@ -51,7 +52,7 @@ jobs:
   base-cli-and-doctor:
     name: Base CLI and doctor
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -93,7 +94,7 @@ jobs:
   ffmpeg-smoke:
     name: FFmpeg operation smoke
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -140,7 +141,7 @@ jobs:
   image-extra-smoke:
     name: Image extra smoke
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -171,7 +172,7 @@ jobs:
   ai-module-smoke:
     name: AI module metadata smoke
     needs: changes
-    if: needs.changes.outputs.relevant == 'true'
+    if: ${{ !cancelled() && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true') }}
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -198,7 +199,7 @@ jobs:
   clean-wheel-onboarding:
     name: Clean-wheel onboarding journey
     needs: changes
-    if: github.event_name != 'push' && needs.changes.outputs.relevant == 'true'
+    if: ${{ !cancelled() && github.event_name != 'push' && (needs.changes.result != 'success' || needs.changes.outputs.relevant == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
