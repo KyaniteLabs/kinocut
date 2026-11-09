@@ -84,9 +84,7 @@ def _register_render_commands(runner: CommandRunner) -> None:
             variables=_variables(a, j),
             variables_file=getattr(a, "variables_file", None),
         )
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-snapshot", _snapshot)
 
@@ -142,9 +140,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
         r = _with_spinner(
             "Inspecting Hyperframes layout...", inspect, a.project_path, samples=a.samples, strict=a.strict
         )
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-inspect", _inspect)
 
@@ -152,9 +148,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import info
 
         r = _with_spinner("Reading Hyperframes project info...", info, a.project_path)
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-info", _info)
 
@@ -162,9 +156,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import catalog
 
         r = _with_spinner("Reading Hyperframes catalog...", catalog, item_type=a.item_type, tag=a.tag)
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-catalog", _catalog)
 
@@ -176,9 +168,7 @@ def _register_media_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import capture
 
         r = _with_spinner("Capturing website...", capture, a.url, output=a.output, skip_assets=a.skip_assets)
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-capture", _capture)
 
@@ -188,9 +178,7 @@ def _register_media_commands(runner: CommandRunner) -> None:
         r = _with_spinner(
             "Generating speech...", tts, a.text_or_file, output_path=a.output, voice=a.voice, speed=a.speed
         )
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-tts", _tts)
 
@@ -205,9 +193,7 @@ def _register_media_commands(runner: CommandRunner) -> None:
             model=getattr(a, "model", None),
             language=getattr(a, "language", None),
         )
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-transcribe", _transcribe)
 
@@ -232,9 +218,7 @@ def _register_media_commands(runner: CommandRunner) -> None:
             equipment_overlay=getattr(a, "equipment_overlay", None),
             fail_if_equipment_on_subject=bool(getattr(a, "fail_if_equipment_on_subject", False)),
         )
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-remove-background", _remove_background)
 
@@ -248,9 +232,7 @@ def _register_media_commands(runner: CommandRunner) -> None:
             output_path=a.output,
             runs=getattr(a, "runs", None),
         )
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
-        if not getattr(r, "success", True):
-            raise SystemExit(1)
+        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
 
     runner.register("hyperframes-benchmark", _benchmark)
 
@@ -305,7 +287,9 @@ def _register_project_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import doctor
 
         r = _with_spinner("Checking Hyperframes environment...", doctor)
-        _out(r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+        _out(
+            r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r
+        )
         if not getattr(r, "success", True):
             raise SystemExit(1)
 

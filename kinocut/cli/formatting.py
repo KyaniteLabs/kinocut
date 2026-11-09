@@ -695,7 +695,7 @@ def _format_hyperframes_doctor(result: Any) -> None:
         if check.get("ok"):
             mark = "[green]✓[/green]"
         elif optional:
-            mark = "[yellow]–[/yellow]"
+            mark = "[yellow]-[/yellow]"
         else:
             mark = "[red]✗[/red]"
         name = escape(str(check.get("name", "?")))

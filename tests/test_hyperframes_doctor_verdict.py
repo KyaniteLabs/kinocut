@@ -88,3 +88,14 @@ def test_mcp_doctor_reports_required_failure(monkeypatch):
     result = hyperframes_doctor()
     assert result["success"] is False
     assert result["data"]["required_ok"] is False
+
+
+def test_doctor_formatter_is_scoped_to_doctor_command():
+    import inspect
+    import re
+
+    from kinocut.cli import handlers_hyperframes
+
+    src = inspect.getsource(handlers_hyperframes)
+    calls = len(re.findall(r"_out\(\s*r,\s*j,\s*_format_hyperframes_doctor", src))
+    assert calls == 1, f"doctor formatter must only render hyperframes-doctor, found {calls} uses"
