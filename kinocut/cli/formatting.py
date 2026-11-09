@@ -185,6 +185,18 @@ def _format_info_text(info: Any) -> None:
     console.print(table)
 
 
+def _format_loudness(label: str, reading: object, fields: tuple[str, ...]) -> str | None:
+    """Format one additive loudness reading for the text CLI."""
+    if not isinstance(reading, dict):
+        return None
+    units = {"I": "LUFS", "LRA": "LU", "TP": "dBTP"}
+    try:
+        parts = [f"{name} {float(reading[name]):.2f} {units[name]}" for name in fields]
+    except (KeyError, TypeError, ValueError):
+        return None
+    return f"[bold green]{label}:[/bold green] {', '.join(parts)}"
+
+
 def _format_edit_text(result: Any) -> None:
     """Display edit result as a success panel."""
     data = _model_dump(result)
@@ -200,6 +212,12 @@ def _format_edit_text(result: Any) -> None:
         lines.append(f"[bold green]Size:[/bold green] {data['size_mb']:.2f} MB")
     if data.get("format"):
         lines.append(f"[bold green]Format:[/bold green] {data['format']}")
+    for line in (
+        _format_loudness("Input loudness", data.get("measured_input"), ("I", "LRA", "TP")),
+        _format_loudness("Output loudness", data.get("measured_output"), ("I", "TP")),
+    ):
+        if line:
+            lines.append(line)
     _format_success_panel(lines)
 
 
@@ -776,25 +794,6 @@ def _format_analyze_product(result: Any) -> None:
 
 def _format_error(e: Exception) -> None:
     """Display error in a styled panel."""
-    from ..errors import MCPVideoError, retry_context, retry_message
+    from .quality_formatting import format_cli_error
 
-    if isinstance(e, MCPVideoError):
-        try:
-            with retry_context("kino", {}):
-                data = e.to_dict()
-        except Exception as exc:
-            logger.debug("MCPVideoError.to_dict() failed in CLI formatting: %s", exc)
-            data = {"message": retry_message(str(e), getattr(e, "code", "unknown"))}
-        msg = data.get("message", retry_message(str(e), getattr(e, "code", "unknown")))
-        code = data.get("code", "")
-        action = data.get("suggested_action", {})
-        lines = [f"[bold red]{msg}[/bold red]"]
-        if code:
-            lines.append(f"[dim]Code: {code}[/dim]")
-        if isinstance(action, dict) and action.get("description"):
-            lines.append(f"\n[yellow]Suggested fix:[/yellow] {action['description']}")
-        err_console.print(Panel("\n".join(lines), border_style="red", title="Error"))
-    else:
-        err_console.print(
-            Panel(f"[bold red]{retry_message(str(e), 'unknown')}[/bold red]", border_style="red", title="Error")
-        )
+    format_cli_error(e, err_console, logger)
