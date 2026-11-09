@@ -230,7 +230,7 @@ def _fontconfig_sans_font() -> str | None:
     import subprocess
 
     try:
-        out = subprocess.run(  # noqa: S603
+        out = subprocess.run(
             ["fc-match", "--format=%{file}", "sans-serif"],  # noqa: S607
             stdin=subprocess.DEVNULL,
             capture_output=True,
