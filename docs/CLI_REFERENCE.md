@@ -79,7 +79,7 @@ gain goal compilation and 360 handling in published 1.16.0; there is no separate
 |---------|-------------|
 | `intent VERB` | Route a semantic intent verb to a dry-run plan. `--list` prints the catalog; `--params-json` supplies parameters. `--goal` compiles a reviewable cutfile; a 360 goal plus `--source` also proposes a source-bound `sphere_plan`. Neither renders. |
 | `review-run INPUT` | Offline watching metric floor. |
-| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. For a `360_assembly_plan` JSON artifact, explicit `accept` approves and optional `--output` renders through the shared engine; `reject` never renders, and `revise` is unsupported for sphere plans. |
+| `review-decide REVIEW_RUN.json DECISION` | Watching accept/reject/revise. For a `360_assembly_plan` JSON artifact, explicit `accept` approves and optional `--output` renders through the shared engine; `reject` never renders, and `revise` is unsupported for sphere plans. `--overwrite` (with `--output`) or the top-level `kino --overwrite` flag replaces an existing final output; every render uses a private `_sphere_work/render-*` work root that is removed on success, so stale or foreign files never block a retry. |
 | `cutfile-validate PATH` | Validate a cutfile JSON/YAML. |
 | `cutfile-render PATH` | Render a cutfile via the workflow engine (`-o`, `--receipt`, `--keep-intermediates`). |
 | `metric-qc INPUT` | Offline metric floor (duration / black / loudness). |
@@ -353,7 +353,7 @@ Use `--format json` for machine-readable output. Request files are capped at 4 M
 | `video-fix-design-issues` | Auto-fix design issues |
 | `release-checkpoint` | Hard release quality gate, then thumbnail + storyboard for human review |
 
-Quality JSON identifies each saturation and contrast metric, its unit, measured value, and whether the measurement was available. Technical and design checks use the same definitions. `video-quality-check --fail-on-warning` is a CI-style gate: it exits nonzero when `all_passed` is false. `release-checkpoint` is the CLI passthrough of the `video_release_checkpoint` MCP tool: it exits nonzero when the hard quality gate or validation fails, otherwise it writes a thumbnail and storyboard and marks `review_required: true` — inspect the artifacts before publishing.
+Quality JSON identifies each saturation and contrast metric, its unit, measured value, and whether the measurement was available. Technical and design checks use the same definitions. `video-quality-check --fail-on-warning` is a CI-style gate: it exits nonzero when `all_passed` is false. `release-checkpoint` is the CLI passthrough of the `video_release_checkpoint` MCP tool: it exits nonzero when the hard quality gate or validation fails, otherwise it writes a thumbnail and storyboard and marks `review_required: true` — inspect the artifacts before publishing. In its `quality` report, `gate_passed` is the score/audio gate verdict against `min_score`, while `all_passed` stays true only when every gating check passed; `failed_checks` names the checks below target even when the gate passes.
 
 ## Image Analysis
 

@@ -56,14 +56,15 @@ unwatched or unresponsive legacy worker stays pending rather than receiving an
 unsafe external force kill.
 
 Worker-scoped POSIX command guardians inherit the job lease and own a liveness
-pipe. Worker death stops each guardian's own live group. Confirmed cancellation
+pipe. Worker death stops each guardian's own live group. Ordinary POSIX commands
+use the same guardian so a SIGKILLed CLI cannot leave a detached encoder;
+Windows commands retain kill-on-close Job ownership. Confirmed cancellation
 requires both no executing worker-group members and a released inherited lease.
 Reconciliation uses the same proof and never treats a missing or negative caller
 liveness hint as proof that descendants stopped. Linux ignores zombie-only groups;
-other platforms conservatively require group disappearance. Normal commands are
-reaped, while abnormal zombies still require host PID1 reaping. Windows commands
-retain kill-on-close Job ownership. These controls are local execution evidence,
-not a sandbox, cryptographic identity guarantee or lease on output paths.
+other platforms conservatively require group disappearance. Abnormal zombies still
+require host PID1 reaping. These controls are local execution evidence, not a
+sandbox, cryptographic identity guarantee or lease on output paths.
 
 The runner observes a pre-start request before invoking the engine, and racing
 success/failure cannot replace pending stop ownership. No public hashed journal

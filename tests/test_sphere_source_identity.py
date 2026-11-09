@@ -3,6 +3,7 @@
 from copy import deepcopy
 import hashlib
 import os
+import subprocess
 from pathlib import Path
 
 import pytest
@@ -25,7 +26,30 @@ def isolated_operation():
 
 def _source_plan(tmp_path):
     source = tmp_path / "source.mp4"
-    source.write_bytes(b"source-one")
+    # The render seam re-validates equirect geometry, so the source must be a
+    # real probeable video (render itself stays stubbed per-test).
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=160x160:d=1",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=160x160:d=1",
+            "-filter_complex",
+            "hstack=inputs=2",
+            "-pix_fmt",
+            "yuv420p",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=60,
+    )
     plan = _plan()
     plan["source"].update(path=str(source), sha256="sha256:" + hashlib.sha256(source.read_bytes()).hexdigest())
     plan["status"] = "approved"

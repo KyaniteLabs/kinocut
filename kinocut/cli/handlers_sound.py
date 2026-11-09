@@ -64,8 +64,21 @@ def handle_sound_commands(args: Any, *, use_json: bool) -> bool:
         _out(_invoke("sound-capabilities"), j)
 
     def _plan(a, j):
+        from kinocut_sound._errors import SoundContractError
+        from kinocut.errors import MCPVideoError
+
         plan = _load_plan_json(getattr(a, "plan_json", None))
-        _out(_invoke("sound-plan-validate", plan=plan), j)
+        try:
+            result = _invoke("sound-plan-validate", plan=plan)
+        except SoundContractError as exc:
+            raise MCPVideoError(
+                str(exc),
+                error_type=exc.error_type,
+                code=exc.code,
+                suggested_action=exc.suggested_action,
+                details=exc.details,
+            ) from exc
+        _out(result, j)
 
     def _voice(a, j):
         from kinocut_sound._errors import SoundContractError

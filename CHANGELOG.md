@@ -9,6 +9,18 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Added
+
+- Add content profiles to `video-quality-check` and `release-checkpoint` (CLI `--profile`, MCP/Client `profile`): `default` (camera footage, unchanged), `ui-capture-dark` and `ui-capture-light`. A UI profile scores brightness, contrast and saturation against bands suited to screen captures — dark or light ground, flat panels, neutral palette — instead of camera-footage optima, so deliberately dark-mode demos no longer need a blanket `--min-score` drop. Under a UI profile those bands are hard limits: a blank or black capture fails the gate even when audio carries the score. Audio, color balance and temporal motion are profile-independent. Every report and checkpoint records the profile and its thresholds. (#679)
+- Add typed operation families to the default and profile MCP surfaces: eight dispatch tools (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) plus `list_operations` discovery and `describe_operation` on-demand contracts. The default surface becomes 30 tools / 24,281 input-schema bytes (within the ≤ 40 tools / ≤ 25%-of-full-catalog budget) and reaches all 204 registry operations; `KINOCUT_TOOLS=all` stays byte-identical to the legacy 205-tool / 126,776-byte surface. Family dispatch runs the exact registered tool after the shared wire-path validation — identical success payloads and handler error cores — and reports verbs and only *declared* per-operation side-effect annotations via `list_operations`. `describe_operation` returns a hidden operation's complete inputSchema (byte-for-byte the direct tool's) with the family tool that dispatches it and its verified CLI route. Family tools carry audited per-family `openWorldHint` values (open: `video_ai_ops`, `image_ops`, `video_plan_ops`, `video_qc_ops`, `platform_ops`), family-level `overwrite` consent is forwarded explicitly unless `params` overrides it, and retry hints under family dispatch name the family tool + selected operation with only `kino` routes that actually exist. See `docs/MCP_TOOL_FAMILIES.md`.
+
+### Fixed
+
+- A SIGKILLed CLI no longer leaves a detached FFmpeg: every POSIX `ProcessTree` command now runs under the existing orphan watchdog (`process_guardian`). Cost is one extra interpreter per command (measured median extra ~33ms Linux / ~89ms macOS CI; budget `DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS` = 150ms). Ctrl-C / SIGTERM cleanup is unchanged. Windows still uses Job Objects.
+- Text overlays (`video_add_text`, `kino add-text`, timeline text) no longer fail with `font_not_found` on Linux hosts without DejaVu Sans, such as Arch/Omarchy. The default font now falls back to fontconfig's scalable sans-serif match (#696).
+
 ## 1.16.5 - 2026-10-27
 
 ### Added

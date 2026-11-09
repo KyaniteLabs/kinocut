@@ -55,8 +55,10 @@ def test_cancellation_reaps_owned_phase_and_removes_private_root(converted_proje
                 await asyncio.sleep(0.01)
             assert children
             task.cancel()
+            # The bound catches a hung cleanup, not a slow one: kill, drain and
+            # private-root removal can exceed a few seconds on a loaded CI runner.
             with pytest.raises(asyncio.CancelledError):
-                await asyncio.wait_for(task, 5)
+                await asyncio.wait_for(task, 30)
             assert children[0].returncode is not None
             assert all(not path.exists() for path in directories)
             assert not (root / "mix.zip").exists() and not list(root.glob(".kinocut-mix-*"))

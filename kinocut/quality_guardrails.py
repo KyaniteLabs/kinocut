@@ -24,6 +24,13 @@ from .quality_signal_reader import read_signalstats, read_ffmpeg_signalstats
 from .quality_source import QualitySourceMixin
 from .quality_guardrail_checks import QualityChecksMixin
 from .quality_guardrail_types import QualityReport, _diagnostic
+from .quality_profiles import (
+    DEFAULT_QUALITY_PROFILE,
+    QUALITY_PROFILES,
+    VISUAL_PROFILE_CHECKS,
+    QualityProfile,
+    resolve_quality_profile,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -94,8 +101,19 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         "lavfi.signalstats.UAVG,lavfi.signalstats.VAVG"
     )
 
-    def __init__(self, max_analyze_seconds: float | None = None) -> None:
+    # Class-level default so the camera-footage behaviour holds for any instance.
+    profile: QualityProfile = QUALITY_PROFILES[DEFAULT_QUALITY_PROFILE]
+
+    def __init__(self, max_analyze_seconds: float | None = None, profile: str | None = None) -> None:
         self.max_analyze_seconds = max_analyze_seconds
+        if profile is not None and profile != DEFAULT_QUALITY_PROFILE:
+            self.profile = resolve_quality_profile(profile)
+            self.BRIGHTNESS_TARGET_MIN = self.profile.brightness.target_min
+            self.BRIGHTNESS_TARGET_MAX = self.profile.brightness.target_max
+            self.CONTRAST_MIN = self.profile.contrast.target_min
+            self.CONTRAST_MAX = self.profile.contrast.target_max
+            self.SATURATION_MIN = self.profile.saturation.target_min
+            self.SATURATION_MAX = self.profile.saturation.target_max
 
     def _movie_source(self, video: str, tail: str) -> str:
         # Quote the value: FFmpeg runs two unescaping passes over filter args,
@@ -618,6 +636,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
             },
             "overall_score": round(overall_score, 1),
             "all_passed": all_passed,
+            "profile": self.profile.receipt(),
             "checks": [
                 {
                     "name": c.check_name,
@@ -633,19 +652,25 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
 
 
 def quality_check(
-    video: str, fail_on_warning: bool = False, max_analyze_seconds: float | None = None
+    video: str,
+    fail_on_warning: bool = False,
+    max_analyze_seconds: float | None = None,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     """Public API for quality checking a video.
 
     Args:
         video: Path to video file
         fail_on_warning: If True, treat warnings as failures
+        profile: Content profile for the picture heuristics (``default``,
+            ``ui-capture-dark``, ``ui-capture-light``); recorded in the report.
 
     Returns:
         Quality report dictionary
     """
+    resolve_quality_profile(profile)
     video = _validate_input_path(video)
-    guardrails = VisualQualityGuardrails(max_analyze_seconds=max_analyze_seconds)
+    guardrails = VisualQualityGuardrails(max_analyze_seconds=max_analyze_seconds, profile=profile)
     report = guardrails.generate_report(video)
 
     if fail_on_warning:
@@ -665,28 +690,53 @@ def _report_missing_audio_stream(report: dict[str, Any]) -> bool:
     return False
 
 
+def _profile_gate_failures(report: dict[str, Any]) -> list[str]:
+    """Visual checks that fail a profile which makes its bands hard limits."""
+    if not (report.get("profile") or {}).get("visual_checks_gate"):
+        return []
+    return [
+        check["name"]
+        for check in report.get("checks", [])
+        if check.get("name") in VISUAL_PROFILE_CHECKS and check.get("passed") is not True
+    ]
+
+
 def assert_quality(
     video: str,
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     max_analyze_seconds: float | None = None,
     require_audio: bool = True,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     """Hard quality gate for agent workflows before publishing output.
 
     A video with no audio stream fails this gate even when its overall score
     meets ``min_score``; pass ``require_audio=False`` to opt out explicitly.
+    Under a non-default ``profile`` the relaxed picture bands are hard limits:
+    any failed brightness/contrast/saturation check fails the gate.
     """
-    report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds)
+    report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds, profile=profile)
     audio_missing = require_audio and _report_missing_audio_stream(report)
     score_ok = report["overall_score"] >= min_score
-    report["all_passed"] = score_ok and not audio_missing
-    if not report["all_passed"]:
+    profile_failures = _profile_gate_failures(report)
+    # ``all_passed`` stays the per-check aggregate from ``quality_check``; the
+    # score gate gets its own fields so a passing gate never reads as
+    # "every check passed" over failed checks.
+    advisory = VisualQualityGuardrails.ADVISORY_CHECKS
+    report["gate_passed"] = score_ok and not audio_missing and not profile_failures
+    report["min_score"] = min_score
+    report["failed_checks"] = [
+        c["name"] for c in report.get("checks", []) if not c.get("passed") and c.get("name") not in advisory
+    ]
+    if not report["gate_passed"]:
         failures: list[str] = []
         overall_score = float(report["overall_score"])
         if not score_ok:
             failures.append(f"score {overall_score:.1f} < {min_score:.1f}")
         if audio_missing:
             failures.append("no audio stream detected (audio required)")
+        if profile_failures:
+            failures.append(f"{report['profile']['name']} profile limits failed: {', '.join(profile_failures)}")
         recommendations = "; ".join(report.get("recommendations", []))
         raise MCPVideoError(
             f"Quality gate failed: {'; '.join(failures)}. {recommendations}",

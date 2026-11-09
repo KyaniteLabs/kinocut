@@ -817,6 +817,9 @@ class TestPreview:
             "mcp_video.hyperframes_engine._run_hyperframes",
             lambda *a, **kw: _make_completed_process(stdout="0.8.104"),
         )
+        # These command-shape tests use a fake Popen; real HTTP readiness and
+        # subprocess lifetime are exercised by test_preview_lifecycle_regression.
+        monkeypatch.setattr("mcp_video.hyperframes_engine._preview_ready", lambda *a: True)
         _active_previews.clear()
         yield
         _active_previews.clear()
@@ -861,6 +864,9 @@ class TestPreview:
             assert "npx" not in cmd[:3]
             assert "--no-install" not in cmd
             assert "preview" in cmd
+            assert "--foreground" in cmd
+            assert "--no-open" in cmd
+            assert "--force-new" in cmd
             assert "--port" in cmd
             idx = cmd.index("--port")
             assert cmd[idx + 1] == "3001"

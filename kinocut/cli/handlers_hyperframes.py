@@ -9,6 +9,7 @@ from .common import _parse_json_arg, _with_spinner
 from .formatting import (
     _format_hyperframes_add_block,
     _format_hyperframes_compositions,
+    _format_hyperframes_doctor,
     _format_hyperframes_init,
     _format_hyperframes_pipeline,
     _format_hyperframes_preview,
@@ -120,7 +121,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
     runner.register("hyperframes-compositions", _compositions)
 
     def _preview(a, j):
-        from ..hyperframes_engine import preview
+        from ..hyperframes_engine import preview, release_preview
 
         r = _with_spinner("Launching Hyperframes preview...", preview, a.project_path, port=a.port)
         _out(
@@ -129,6 +130,7 @@ def _register_inspection_commands(runner: CommandRunner) -> None:
             _format_hyperframes_preview,
             json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r,
         )
+        release_preview(r.port, r.pid)
 
     runner.register("hyperframes-preview", _preview)
 
@@ -285,7 +287,11 @@ def _register_project_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import doctor
 
         r = _with_spinner("Checking Hyperframes environment...", doctor)
-        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+        _out(
+            r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r
+        )
+        if not getattr(r, "success", True):
+            raise SystemExit(1)
 
     runner.register("hyperframes-doctor", _doctor)
 

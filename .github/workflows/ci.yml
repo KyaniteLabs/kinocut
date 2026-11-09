@@ -3,6 +3,8 @@ name: CI
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
   workflow_dispatch:
 
 concurrency:
@@ -30,6 +32,12 @@ jobs:
           if [[ -z "$base" || "$base" == "0000000000000000000000000000000000000000" ]]; then
             base="$(git rev-parse "$head^")"
           fi
+          # A force-pushed PR leaves `before` out of the checkout. Run everything, never skip (#690).
+          if ! git cat-file -e "${base}^{commit}" 2>/dev/null; then
+            echo "::warning::Event base ${base} is not in this checkout (force-push?); running every check."
+            printf 'code=true\ndocker=true\n' >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
           changed_file="$(mktemp "$RUNNER_TEMP/kinocut-changes.XXXXXX")"
           trap 'rm -f -- "$changed_file"' EXIT
           git diff --no-renames --name-only -z "$base" "$head" -- > "$changed_file"
@@ -38,7 +46,7 @@ jobs:
           while IFS= read -r -d '' changed_path; do
             printf 'changed: %q\n' "$changed_path"
             case "$changed_path" in
-              kinocut/*|kinocut_sound/*|tests/*|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
+              kinocut/*|kinocut_sound/*|tests/*|workflows/05-confidence-baseline/*|scripts/golden_path.py|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
                 code=true ;;
             esac
             case "$changed_path" in
@@ -140,6 +148,52 @@ jobs:
       - name: Run tests with coverage
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov-report=term
+
+  golden-path:
+    name: Golden path (render + quality gate)
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.14'
+          cache: 'pip'
+          cache-dependency-path: 'pyproject.toml'
+      - name: Create venv
+        run: python -m venv .venv
+      - name: Ensure FFmpeg
+        timeout-minutes: 20
+        run: bash .github/scripts/install-ffmpeg-ubuntu.sh
+      - name: Install dependencies
+        run: .venv/bin/pip install -e ".[dev]"
+      - name: Render and validate the real golden path
+        env:
+          KINOCUT_VISION_MODE: 'off'
+        run: |
+          set -euo pipefail
+          isolated="$(mktemp -d "${RUNNER_TEMP:-/tmp}/kinocut-golden-path.XXXXXX")"
+          trap 'rm -rf -- "$isolated"' EXIT
+          mkdir -p "$isolated/home" "$isolated/config" "$isolated/cache" "$isolated/data"
+          export HOME="$isolated/home"
+          export XDG_CONFIG_HOME="$isolated/config"
+          export XDG_CACHE_HOME="$isolated/cache"
+          export XDG_DATA_HOME="$isolated/data"
+          GITHUB_SHA="$GITHUB_SHA" .venv/bin/python scripts/golden_path.py
+      - name: Preserve the -1 dBTP over-limit rejection (negative control)
+        env:
+          KINOCUT_VISION_MODE: 'off'
+        run: |
+          set -euo pipefail
+          isolated="$(mktemp -d "${RUNNER_TEMP:-/tmp}/kinocut-audio-negative.XXXXXX")"
+          trap 'rm -rf -- "$isolated"' EXIT
+          mkdir -p "$isolated/home" "$isolated/config" "$isolated/cache" "$isolated/data"
+          export HOME="$isolated/home"
+          export XDG_CONFIG_HOME="$isolated/config"
+          export XDG_CACHE_HOME="$isolated/cache"
+          export XDG_DATA_HOME="$isolated/data"
+          .venv/bin/python -m pytest tests/test_golden_path.py::test_audio_quality_gate_rejects_true_peak_over_limit -q --tb=short
 
   compatibility:
     name: Compatibility (Python ${{ matrix.python-version }})

@@ -226,6 +226,29 @@ def _quality_args(
     return ["-preset", preset or default_preset, "-crf", str(crf if crf is not None else default_crf)]
 
 
+_SCALABLE_FONT_EXTS = (".ttf", ".otf", ".ttc")
+
+
+def _fontconfig_sans_font() -> str | None:
+    """Ask fontconfig for its sans-serif match; only a scalable file FFmpeg can load (#696)."""
+    import subprocess
+
+    try:
+        out = subprocess.run(
+            ["fc-match", "--format=%{file}", "sans-serif"],  # noqa: S607
+            stdin=subprocess.DEVNULL,
+            capture_output=True,
+            text=True,
+            timeout=10,
+        )
+    except (OSError, subprocess.SubprocessError):
+        return None
+    candidate = out.stdout.strip()
+    if out.returncode == 0 and candidate.lower().endswith(_SCALABLE_FONT_EXTS) and os.path.isfile(candidate):
+        return candidate
+    return None
+
+
 def _default_font() -> str:
     """Return a sensible default font path for the current OS."""
     import platform
@@ -244,8 +267,12 @@ def _default_font() -> str:
         ]:
             if os.path.isfile(p):
                 return p
+        fallback = _fontconfig_sans_font()
+        if fallback:
+            return fallback
         raise MCPVideoError(
-            "No suitable font file found on Linux. Install DejaVu fonts or specify a font path.",
+            "No suitable font file found on Linux. Install a TrueType/OpenType font "
+            "(for example DejaVu) or specify a font path.",
             error_type="dependency_error",
             code="font_not_found",
         )

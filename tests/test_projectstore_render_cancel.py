@@ -114,6 +114,14 @@ def _live_group(project, job, tmp_path, *, held_lease):
         proc.stderr.close()
 
 
+def _reconcile_once_quiescent(project, pid, timeout=10.0):
+    deadline = time.monotonic() + timeout
+    while not group_quiescent(pid):
+        assert time.monotonic() < deadline, "killed group never became quiescent"
+        time.sleep(0.01)
+    return render_jobs.reconcile_render_jobs(project)
+
+
 def test_cancel_stops_verified_descendants_before_reporting_cancelled(tmp_path):
     project, job = _job(tmp_path)
     with _live_group(project, job, tmp_path, held_lease=True) as (proc, heartbeat):
@@ -145,7 +153,10 @@ def test_unverified_live_runner_retains_pid_and_cannot_be_requeued(tmp_path):
         assert render_jobs.terminate_render_job(project, job.job_id).runner_pid == proc.pid
         os.killpg(proc.pid, signal.SIGKILL)
         proc.wait(timeout=5)
-        changed = render_jobs.reconcile_render_jobs(project)
+        # proc.wait() reaps only the leader. The orphaned heartbeat child is still
+        # exiting for a moment, and reconcile correctly declines to finalize a group
+        # with an executing member, so poll until the group is observably quiescent.
+        changed = _reconcile_once_quiescent(project, proc.pid)
         assert len(changed) == 1 and changed[0].status.value == "cancelled"
         assert changed[0].runner_pid is None
 

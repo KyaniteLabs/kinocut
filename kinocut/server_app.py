@@ -45,7 +45,10 @@ mcp = _ContractFastMCP(
         "Kinocut is a video editing MCP server. Default path: inspect (info/doctor) → "
         "plan (video_intent or cutfile) → render → quality check → human review. "
         "Do not publish without QC and a human gate. Prefer video_intent verbs over "
-        "listing every tool. Paths should be absolute. Output is auto-generated if omitted."
+        "listing every tool. The default surface reaches every operation through the "
+        "typed family tools (video_edit_ops, video_plan_ops, ...): pick the operation "
+        "with list_operations, pass its exact arguments in params. "
+        "Paths should be absolute. Output is auto-generated if omitted."
     ),
 )
 

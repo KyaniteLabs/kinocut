@@ -75,6 +75,7 @@
 | **Product site** | [kinocut.dev](https://kinocut.dev/) |
 | **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
 | **MCP Registry** | [`tech.kyanitelabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) |
+| **Legacy MCP Registry id** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) — **version-locked-deprecated** at 1.16.1 (`status=deprecated`). New installs use `tech.kyanitelabs/kinocut`. |
 | **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (canonical) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror) |
 | **License** | Apache-2.0 |
 | **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
@@ -128,6 +129,7 @@ video.release_checkpoint(short.output_path)  # thumbnail + quality gate before y
 | --- | --- | --- |
 | **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut==1.16.5`. |
 | **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut==1.16.5` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
+| **Hermes catalog pin** | **1.16.4** · **203 MCP / 177 CLI** | The Hermes listing still launches `uvx kinocut==1.16.4`. That pin is 203 MCP tools. Distinct from published 1.16.5 (205) and from the 20-tool default registration. |
 | **This source version** | **1.16.5 published** · **20 default MCP / 205 full / 177 CLI** | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Published `mcp-video==1.6.20` pins this runtime; verification is recorded in `docs/public_claims.json`. |
 | **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
 
@@ -952,6 +954,11 @@ Kinocut improves in public, and outside contributions shape it — 1.15.0's diag
 - **[@betsmayank](https://github.com/betsmayank)** — first merged external fix: Hyperframes `init` no longer hangs under MCP without a TTY ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)).
 - **[@austinwmson](https://github.com/austinwmson)** and **[@ismailkattakath](https://github.com/ismailkattakath)** — external reports that closed real gaps: `remotion_still` runtime props ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)) and the self-host Funnel + OAuth reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)).
 - **[@Dodothereal](https://github.com/Dodothereal)** and **@OyaAIProd** (account no longer exists) — early external PRs (ASS PlayRes for vertical burns [#378](https://github.com/KyaniteLabs/kinocut/pull/378), SafeSkill badges).
+- **[@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt)** — 19 reproducible bug reports from building on `kinocut.Client` ([#546](https://github.com/KyaniteLabs/kinocut/issues/546)–[#578](https://github.com/KyaniteLabs/kinocut/issues/578)), and fixes: FFmpeg children no longer inherit stdin ([#559](https://github.com/KyaniteLabs/kinocut/pull/559)), composite-layers canvas fps ([#558](https://github.com/KyaniteLabs/kinocut/pull/558)) and honest `normalize_audio` ([#569](https://github.com/KyaniteLabs/kinocut/pull/569)), shipped in 1.15.3. Their crop, trim, noise-floor, one-pass mixing and timed-layer patches were adapted into 1.16.0 ([#586](https://github.com/KyaniteLabs/kinocut/pull/586)).
+- **[@cnw-L](https://github.com/cnw-L)** — Windows drive paths survive the lavfi `movie=` filter ([#532](https://github.com/KyaniteLabs/kinocut/pull/532)), shipped in 1.15.3.
+- **[@Beritwu](https://github.com/Beritwu)** — frame-exact `create-from-images` with rational frame rates and `--list` / `list_file` input ([#616](https://github.com/KyaniteLabs/kinocut/pull/616), shipped in 1.16.2), and the opt-in exact probe ([#599](https://github.com/KyaniteLabs/kinocut/pull/599), shipped in 1.16.5).
+- **[@Mimatovitch](https://github.com/Mimatovitch)** — reported the macOS process-cleanup regression ([#594](https://github.com/KyaniteLabs/kinocut/issues/594)); the fix shipped in 1.16.1 ([#596](https://github.com/KyaniteLabs/kinocut/pull/596)).
+- **[@Zoroassistant23](https://github.com/Zoroassistant23)** — investigated [#594](https://github.com/KyaniteLabs/kinocut/issues/594) and proposed a patch with macOS checks and a regression test ([#595](https://github.com/KyaniteLabs/kinocut/pull/595)); not merged as-is, credited in the 1.16.1 release notes.
 
 <!-- s-plus-geo:end -->
 

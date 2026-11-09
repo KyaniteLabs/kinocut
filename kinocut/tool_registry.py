@@ -3,6 +3,12 @@
 The server owns one complete tool catalog, but only the selected profile is
 registered with MCP.  Hidden tools remain searchable: discovery loads the
 catalog on demand and restores the selected registration surface afterwards.
+
+Default and profile modes additionally register the compact *family* surface
+(``kinocut.tool_families``): typed dispatch tools that reach every registry
+operation without advertising one schema per operation.  ``all`` mode is the
+legacy full-catalog surface and stays exactly the registry — the family tools
+are hidden there, where every operation is already directly registered.
 """
 
 from __future__ import annotations
@@ -363,11 +369,21 @@ def _capture_catalog() -> None:
         }
 
 
+def _family_surface_tools() -> frozenset[str]:
+    """Compact-surface tool names (lazy: ``tool_families`` imports this module)."""
+
+    from .tool_families import FAMILY_SURFACE_TOOLS
+
+    return FAMILY_SURFACE_TOOLS
+
+
 def _allowed_names(mode: str, profiles: Iterable[str]) -> frozenset[str]:
     if mode == "all":
+        # The legacy full-catalog surface: exactly the registry, byte for byte.
         return frozenset(TOOL_REGISTRY)
     selected = set(profiles)
-    return frozenset(name for name, tags in TOOL_REGISTRY.items() if selected.intersection(tags))
+    selected_names = frozenset(name for name, tags in TOOL_REGISTRY.items() if selected.intersection(tags))
+    return selected_names | _family_surface_tools()
 
 
 def apply_tool_surface() -> None:
@@ -405,8 +421,34 @@ def configure_tool_surface(raw: str | None = None) -> None:
     )
     for module in modules:
         importlib.import_module(f".{module}", __package__)
+    if mode != "all":
+        # Default and profile modes carry the compact family dispatchers; the
+        # legacy ``all`` surface stays exactly the registry.
+        importlib.import_module(".server_tools_families", __package__)
     _capture_catalog()
     apply_tool_surface()
+
+
+def load_operation_tool(name: str) -> Any:
+    """Return the live FastMCP tool object for a registry operation.
+
+    Imports the operation's module on demand (registering its siblings, which
+    ``apply_tool_surface`` immediately re-hides) and resolves the tool whether
+    it is currently visible or stashed hidden.  Family dispatch uses this to
+    run the exact registered tool — same wrapped handler, same argument
+    contract — without ever exposing the hidden direct name on the wire.
+    """
+
+    module = TOOL_MODULE_BY_NAME.get(name)
+    if module is None:
+        raise KeyError(name)
+    importlib.import_module(f".{module}", __package__)
+    _capture_catalog()
+    apply_tool_surface()
+    tool = _tool_manager()._tools.get(name) or _HIDDEN_TOOLS.get(name)
+    if tool is None:
+        raise RuntimeError(f"operation {name} registered no MCP tool")
+    return tool
 
 
 def ensure_tool_loaded(name: str) -> Any:

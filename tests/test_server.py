@@ -132,7 +132,9 @@ class TestServerInitialization:
             return {t.name for t in tools.tools}
 
         tool_names = asyncio.run(run())
-        assert len(tool_names) <= 25
+        # Default surface budget: core diet + the compact family layer (<= 40
+        # tools per the accepted tool-surface design).
+        assert len(tool_names) <= 40
         assert {
             "video_info",
             "video_trim",
@@ -996,7 +998,7 @@ class TestServerReleaseGuardrails:
         monkeypatch.setattr(server_tools_ai, "_validate_input_path", lambda path: path)
         monkeypatch.setattr(
             "mcp_video.quality_guardrails.quality_check",
-            lambda _path, fail_on_warning=False: {
+            lambda _path, fail_on_warning=False, profile="default": {
                 "video": _path,
                 "overall_score": 25.0,
                 "all_passed": False,

@@ -1,4 +1,10 @@
-"""Private detached-worker lease binding and bounded guardian startup."""
+"""Private POSIX orphan-watchdog binding and bounded guardian startup.
+
+Every POSIX ProcessTree command gets a guardian. The liveness-pipe writer lives
+in the owner; SIGKILL of the owner EOFs the pipe and the supervisor kills its
+own group. Detached leased workers additionally pass the flock descriptor so
+hard worker death also releases the lease. Windows uses Job Objects instead.
+"""
 
 from __future__ import annotations
 
@@ -157,13 +163,9 @@ class Guardian:
 
 
 def prepare_guardian(cmd: list[str], pass_fds: tuple[int, ...]):
-    from .process_observation import supports_nonreaping_wait
-
     owner = _WORKER_OWNER
     if os.name != "posix":
         return None
     if owner is not None and owner[0] != os.getpid():
         owner = None
-    if owner is None and supports_nonreaping_wait():
-        return None
     return Guardian(cmd, pass_fds, owner or (os.getpid(), None, None, None))

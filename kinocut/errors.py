@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 import contextlib
-import functools
 from contextvars import ContextVar
+from functools import lru_cache
 from typing import Any
 
 from .type_names import _register_exception_kinds, builtin_type_name, type_label
@@ -20,7 +21,9 @@ _MAX_MESSAGE_CHARS = 2000
 # operator what to change.
 _MAX_ACTION_CHARS = 1000
 
-_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any]] | None] = ContextVar("kinocut_retry_context", default=None)
+_RETRY_CONTEXT: ContextVar[tuple[str, dict[str, Any], str | None] | None] = ContextVar(
+    "kinocut_retry_context", default=None
+)
 
 
 def _without_value(text: str, value: str) -> str:
@@ -37,10 +40,17 @@ def _without_value(text: str, value: str) -> str:
 
 
 @contextlib.contextmanager
-def retry_context(tool_name: str, arguments: dict[str, Any] | None = None):
-    """Bind a user-facing error to the operation that can be retried."""
+def retry_context(tool_name: str, arguments: dict[str, Any] | None = None, invocation: str | None = None):
+    """Bind a user-facing error to the operation that can be retried.
 
-    token = _RETRY_CONTEXT.set((tool_name, dict(arguments or {})))
+    ``invocation``, when provided, replaces the derived MCP/CLI retry hint
+    wholesale. The compact family dispatchers use it so a rejection names the
+    family tool with the selected operation (and only a CLI route that has
+    been verified to exist) instead of deriving a route from a tool name that
+    has no CLI counterpart.
+    """
+
+    token = _RETRY_CONTEXT.set((tool_name, dict(arguments or {}), invocation))
     try:
         yield
     finally:
@@ -68,37 +78,13 @@ _NO_CLI_EQUIVALENT: frozenset[str] = frozenset(
 )
 
 
-@functools.lru_cache(maxsize=1)
-def _cli_command_names() -> frozenset[str]:
-    """The flat CLI command names the parser actually registers.
-
-    The CLI names do not follow one mechanical pattern — ``video_trim`` is
-    ``kino trim`` while ``video_ai_transcribe`` is ``kino video-ai-transcribe``
-    — so a retry message checks the parser instead of inventing a command.
-    """
-    try:
-        from kinocut.cli.parser import build_parser
-
-        parser = build_parser()
-    except Exception:
-        # A parser that cannot be built means no command can be verified.
-        # Saying there is no equivalent is honest; naming one is not.
-        return frozenset()
-    names: set[str] = set()
-    for action in parser._actions:
-        choices = getattr(action, "choices", None)
-        if isinstance(choices, dict):
-            names.update(str(name) for name in choices)
-    return frozenset(names)
-
-
 def _cli_tool_name(tool_name: str) -> str | None:
     """Map an MCP tool name to its flat CLI command, or None when none exists."""
     if tool_name in _NO_CLI_EQUIVALENT:
         return None
     if tool_name in _CLI_TOOL_OVERRIDES:
         return _CLI_TOOL_OVERRIDES[tool_name]
-    commands = _cli_command_names()
+    commands = _cli_command_set()
     candidates: list[str] = []
     if tool_name.startswith("video_"):
         candidates.append(tool_name.removeprefix("video_").replace("_", "-"))
@@ -176,6 +162,40 @@ def _sanitize_action(action: dict[str, Any]) -> dict[str, Any]:
     return clean
 
 
+@lru_cache(maxsize=1)
+def _cli_command_set() -> frozenset[str]:
+    """The real ``kino`` subcommands — the only CLI routes hints may name.
+
+    Enumerated from the actual argparse parser (built lazily, once). If the
+    parser cannot be built, returns an empty set so hint derivation omits CLI
+    routes instead of inventing one.
+    """
+
+    try:
+        from .cli.parser import build_parser
+
+        subparsers = [a for a in build_parser()._actions if isinstance(a, argparse._SubParsersAction)]
+        return frozenset(subparsers[0].choices) if subparsers else frozenset()
+    except Exception:  # conservative fallback: omit the CLI route, never invent one
+        return frozenset()
+
+
+def cli_route_for_operation(operation: str) -> str | None:
+    """Return the verified ``kino`` subcommand for an operation, else None.
+
+    Candidates: the full name hyphenated (``video_ai_remove_silence`` →
+    ``video-ai-remove-silence``) and the legacy prefix-stripped derivation
+    (``video_trim`` → ``trim``). A route is returned only when the real CLI
+    registers it.
+    """
+
+    commands = _cli_command_set()
+    for candidate in (operation.replace("_", "-"), _cli_tool_name(operation)):
+        if candidate in commands:
+            return candidate
+    return None
+
+
 def retry_message(message: str, code: str) -> str:
     """Append an eyes-free MCP and CLI retry invocation to an error message.
 
@@ -188,6 +208,9 @@ def retry_message(message: str, code: str) -> str:
     """
 
     context = _RETRY_CONTEXT.get()
+    if context is not None and len(context) > 2 and context[2] is not None:
+        # Caller supplied a complete, verified invocation (family dispatch).
+        return f"{message}; retry with {context[2]}"
     tool_name = context[0] if context else "the same tool"
     cli_name = _cli_tool_name(tool_name) if context else None
     submitted = _argument_names(context[1]) if context else ""
@@ -213,9 +236,13 @@ def retry_message(message: str, code: str) -> str:
     if context is None:
         # No tool bound: the tokens have to carry the refusal by themselves.
         invocation = f"{mcp_action} (MCP) / {cli_action} (CLI)"
+    elif cli_name is None and tool_name not in _NO_CLI_EQUIVALENT:
+        # No verified ``kino`` route: name only the MCP half (#685).
+        invocation = f"{'' if consent or missing_tool else 'call ' + tool_name + ' with '}{mcp_action} (MCP)"
     elif cli_name is None:
-        # The tool has no single-command CLI equivalent. The special-code
-        # actions are already tool-shaped, so they are not prefixed again.
+        # The tool is known to have no single-command CLI equivalent. The
+        # special-code actions are already tool-shaped, so they are not
+        # prefixed again.
         invocation = (
             f"{'' if consent or missing_tool else 'call ' + tool_name + ' with '}{mcp_action} (MCP) / "
             "no single-command CLI equivalent "
@@ -251,11 +278,13 @@ class MCPVideoError(Exception):
         code: str = "unknown",
         suggested_action: dict[str, Any] | None = None,
         docs_url: str | None = None,
+        details: list[dict[str, Any]] | None = None,
     ):
         self.error_type = error_type
         self.code = code
         self.suggested_action = suggested_action
         self.docs_url = docs_url
+        self.details = details
         super().__init__(message)
 
     def to_dict(self) -> dict[str, Any]:
@@ -270,6 +299,8 @@ class MCPVideoError(Exception):
             result["suggested_action"] = _sanitize_action(self.suggested_action)
         if self.docs_url:
             result["documentation_url"] = self.docs_url
+        if self.details:
+            result["details"] = self.details
         return result
 
 

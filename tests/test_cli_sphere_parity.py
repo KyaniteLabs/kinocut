@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import hashlib
 import json
+import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
+import kinocut
 from kinocut.cli.handlers_intent import handle_intent_commands
 from kinocut.cli.parser import build_parser
 from kinocut.client.estimates import ClientEstimatesMixin
@@ -30,6 +33,37 @@ def sphere_source(tmp_path: Path) -> Path:
         check=True,
         capture_output=True,
         timeout=60,
+    )
+    return source
+
+
+@pytest.fixture
+def sphere_scene(tmp_path: Path) -> Path:
+    """2:1 testsrc2 + sine audio: passes the strict quality gate (e2e fixture)."""
+    source = tmp_path / "scene.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=640x320:d=2",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=2",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            str(source),
+        ],
+        check=True,
+        capture_output=True,
+        timeout=120,
     )
     return source
 
@@ -120,6 +154,75 @@ def test_review_render_forwards_only_explicitly_accepted_plan(sphere_source, tmp
     assert calls[0][1] == str(output)
     assert result["sphere_render"]["output_path"] == str(output)
     assert plan["status"] == "proposed"
+
+
+def test_review_decide_second_render_and_overwrite_flag(sphere_scene, tmp_path, capsys):
+    """t_f0d4f023: same-dir re-render needs no cleanup; --overwrite honors the remediation."""
+    plan = propose_sphere_plan(str(sphere_scene))
+    path = tmp_path / "plan.json"
+    path.write_text(json.dumps(plan))
+    out_dir = tmp_path / "out"
+    stale = out_dir / "_sphere_work" / "window-0.mp4"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"legacy flat-layout intermediate")
+
+    first = _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "one.mp4")], capsys)
+    assert first["sphere_render"]["status"] == "rendered"
+    assert stale.read_bytes() == b"legacy flat-layout intermediate"  # preserved, not replaced
+
+    second = _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4")], capsys)
+    assert second["sphere_render"]["status"] == "rendered"  # stale _sphere_work no longer blocks
+
+    with pytest.raises(MCPVideoError) as blocked:
+        _dispatch(["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4")], capsys)
+    assert blocked.value.code == "output_exists"
+    assert "--overwrite" in blocked.value.to_dict()["message"]  # remediation names a real CLI flag
+
+    replaced = _dispatch(
+        ["review-decide", str(path), "accept", "--output", str(out_dir / "two.mp4"), "--overwrite"], capsys
+    )
+    assert replaced["sphere_render"]["status"] == "rendered"
+
+
+def test_review_decide_overwrite_flag_positions_via_real_cli(sphere_scene, tmp_path):
+    """t_f0d4f023 P2: through the real ``python -m kinocut`` entry point, the
+    documented global ``--overwrite`` (before the subcommand) and the
+    command-local ``--overwrite`` (after it) both consent to replacing the
+    final output; with no flag an existing final is refused and preserved."""
+    repo_root = Path(kinocut.__file__).resolve().parents[1]
+    plan_path = tmp_path / "plan.json"
+    plan_path.write_text(json.dumps(propose_sphere_plan(str(sphere_scene))))
+    target = tmp_path / "out.mp4"
+    env = dict(os.environ, PYTHONPATH=str(repo_root))
+
+    def run_cli(global_overwrite: bool, local_overwrite: bool):
+        argv = [sys.executable, "-m", "kinocut", "--format", "json"]
+        if global_overwrite:
+            argv.append("--overwrite")
+        argv += ["review-decide", str(plan_path), "accept", "--output", str(target)]
+        if local_overwrite:
+            argv.append("--overwrite")
+        return subprocess.run(argv, env=env, capture_output=True, text=True, timeout=180)
+
+    initial = run_cli(False, False)  # fresh target: renders without consent
+    assert initial.returncode == 0
+    assert json.loads(initial.stdout)["sphere_render"]["status"] == "rendered"
+    before = hashlib.sha256(target.read_bytes()).hexdigest()
+
+    denied = run_cli(False, False)  # no-consent control: existing final refused
+    assert denied.returncode != 0
+    error = json.loads(denied.stderr or denied.stdout)["error"]
+    assert error["code"] == "output_exists"
+    assert "--overwrite" in error["message"]  # remediation names a real flag
+    assert hashlib.sha256(target.read_bytes()).hexdigest() == before  # bytes preserved
+
+    global_only = run_cli(True, False)  # documented global flag position
+    assert global_only.returncode == 0, global_only.stderr
+    assert json.loads(global_only.stdout)["sphere_render"]["status"] == "rendered"
+
+    local_only = run_cli(False, True)  # command-local flag position
+    assert local_only.returncode == 0, local_only.stderr
+    assert json.loads(local_only.stdout)["sphere_render"]["status"] == "rendered"
 
 
 def test_client_estimates_use_shared_local_oracle():
