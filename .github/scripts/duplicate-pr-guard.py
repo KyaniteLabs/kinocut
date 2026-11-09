@@ -14,7 +14,8 @@ PR code.
 
 Usage:
   duplicate-pr-guard.py OWNER/REPO PR_NUMBER   Markdown report for an opened PR (empty if clean)
-  duplicate-pr-guard.py --ticket "#679 KLH-340" Preflight before starting work; exits 1 if claimed
+  duplicate-pr-guard.py --ticket "#679 KLH-340" Preflight before starting work; exits 1 if claimed,
+                                                2 if it could not check
 """
 
 from __future__ import annotations
@@ -70,8 +71,10 @@ def prs_for_issue(repo: str, number: int) -> list[dict]:
             "api", "graphql", "-f", f"query={_REFS_QUERY}",
             "-F", f"owner={owner}", "-F", f"name={name}", "-F", f"number={number}",
         )  # fmt: skip
-    except subprocess.CalledProcessError:
-        return []  # no such issue or PR
+    except subprocess.CalledProcessError as exc:
+        if "Could not resolve" in (exc.stderr or ""):
+            return []  # no such issue or PR
+        raise
     item = json.loads(raw)["data"]["repository"]["issueOrPullRequest"]
     if not item or item["__typename"] != "Issue":
         return []  # a PR reference ("supersedes #12") is not a claim on shared work
@@ -131,9 +134,17 @@ def main(repo: str, number: int) -> str:
 
 
 def preflight(repo: str, tickets: str) -> int:
-    """Before starting work: exit 1 and explain if the ticket is already claimed."""
+    """Before starting work: exit 1 if the ticket is claimed, 2 if the check could not run."""
+    try:
+        overlaps = find_overlaps(repo, tickets)
+    except (OSError, subprocess.SubprocessError, ValueError, KeyError) as exc:
+        print(
+            f"UNKNOWN: could not check {tickets} ({type(exc).__name__}). Is `gh` installed and logged in? "
+            "Check the issue's linked pull requests on GitHub before starting."
+        )
+        return 2
     report = render(
-        find_overlaps(repo, tickets),
+        overlaps,
         f"STOP: {tickets} is already claimed by another PR:",
         "Do not start new work. Review that PR, or ask the maintainer what is still missing.",
     )

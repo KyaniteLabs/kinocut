@@ -23,3 +23,18 @@ def test_live_means_open_or_recently_merged():
     assert guard.is_live({"state": "MERGED", "mergedAt": "2026-11-09T19:34:09Z"}, CUTOFF)
     assert not guard.is_live({"state": "MERGED", "mergedAt": "2026-10-01T00:00:00Z"}, CUTOFF)
     assert not guard.is_live({"state": "CLOSED", "mergedAt": None}, CUTOFF)
+
+
+def test_preflight_exit_codes(monkeypatch, capsys):
+    claimed = {694: ({"state": "MERGED", "mergedAt": "2026-11-09T19:34:09Z", "title": "ui-capture"}, {"#679"})}
+    monkeypatch.setattr(guard, "find_overlaps", lambda repo, text: claimed)
+    assert guard.preflight("o/r", "#679") == 1
+    monkeypatch.setattr(guard, "find_overlaps", lambda repo, text: {})
+    assert guard.preflight("o/r", "#679") == 0
+
+    def unauthenticated(repo, text):
+        raise guard.subprocess.CalledProcessError(4, ["gh"], stderr="gh auth login")
+
+    monkeypatch.setattr(guard, "find_overlaps", unauthenticated)
+    assert guard.preflight("o/r", "#679") == 2
+    assert "UNKNOWN" in capsys.readouterr().out

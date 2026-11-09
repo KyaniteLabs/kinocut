@@ -6,4 +6,5 @@ adapter limited to host-specific discovery and do not duplicate policy here.
 
 Before starting work on an issue or ticket, run the duplicate check in
 `CONTRIBUTING.md` ("Before you start"). If it exits 1, stop and report the
-existing PR instead of writing new code.
+existing PR instead of writing new code. If it exits 2, check the issue's
+linked pull requests on GitHub before writing code.

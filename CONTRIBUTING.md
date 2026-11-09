@@ -76,6 +76,8 @@ python3 .github/scripts/duplicate-pr-guard.py --ticket "#679 KLH-340"
 It exits 1 and lists the PR if one that is open, or merged in the last 14
 days, already claims the issue (`Closes #N`) or names the Linear key in its
 title or branch. If it does, stop and review that PR instead of starting over.
+It exits 2 if it could not check (for example, `gh` is not logged in); then
+look at the issue's linked pull requests on GitHub yourself before starting.
 When you open a PR, put both the GitHub issue and the Linear key in it, so
 the next person's check finds yours.
 
