@@ -27,5 +27,10 @@ def test_sound_package_is_in_every_existing_lint_and_format_gate(workflow):
 def test_sound_source_changes_trigger_integration_prs():
     workflow = _workflow("integration-smoke.yml")
     trigger = workflow.split("  pull_request:", 1)[1].split("\nconcurrency:", 1)[0]
-    paths = re.findall(r'"([^"\n]+)"', trigger)
-    assert any(fnmatch.fnmatchcase("kinocut_sound/public/dub_job.py", pattern) for pattern in paths)
+    # No trigger-level paths filter (required checks must always report); the
+    # `changes` job's case pattern decides relevance instead.
+    assert "paths:" not in trigger
+    case = re.search(r"case \"\$changed_path\" in\n\s+([^\n]+)\)\n", workflow)
+    assert case, "integration-smoke change-detection case pattern missing"
+    patterns = case.group(1).split("|")
+    assert any(fnmatch.fnmatchcase("kinocut_sound/public/dub_job.py", pattern) for pattern in patterns)
