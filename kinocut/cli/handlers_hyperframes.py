@@ -9,6 +9,7 @@ from .common import _parse_json_arg, _with_spinner
 from .formatting import (
     _format_hyperframes_add_block,
     _format_hyperframes_compositions,
+    _format_hyperframes_doctor,
     _format_hyperframes_init,
     _format_hyperframes_pipeline,
     _format_hyperframes_preview,
@@ -286,7 +287,11 @@ def _register_project_commands(runner: CommandRunner) -> None:
         from ..hyperframes_engine import doctor
 
         r = _with_spinner("Checking Hyperframes environment...", doctor)
-        _out(r, j, print, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r)
+        _out(
+            r, j, _format_hyperframes_doctor, json_transform=lambda r: r.model_dump() if hasattr(r, "model_dump") else r
+        )
+        if not getattr(r, "success", True):
+            raise SystemExit(1)
 
     runner.register("hyperframes-doctor", _doctor)
 
