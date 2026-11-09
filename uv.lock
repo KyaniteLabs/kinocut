@@ -1302,6 +1302,7 @@ client = [
 dev = [
     { name = "numpy" },
     { name = "pillow" },
+    { name = "pyyaml" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "pytest-cov" },
@@ -1409,6 +1410,7 @@ requires-dist = [
     { name = "pydantic", specifier = ">=2.13.2" },
     { name = "pydantic-settings", specifier = ">=2.14.2" },
     { name = "pyjwt", specifier = ">=2.15.0" },
+    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0.2" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
     { name = "pytest-asyncio", marker = "extra == 'dev'", specifier = ">=0.23" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=6.0" },

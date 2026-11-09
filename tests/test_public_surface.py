@@ -11,6 +11,7 @@ from pathlib import Path
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
+from kinocut.tool_families import FAMILY_SURFACE_TOOLS
 from tests.public_surface_inventory import EXPECTED_CLI_COMMANDS, EXPECTED_SERVER_TOOLS  # noqa: F401
 
 
@@ -178,8 +179,11 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
 
         tool_names = {tool.name for tool in tools_result.tools}
         assert init_result.serverInfo.name == "kinocut"
-        assert tool_names == DEFAULT_SERVER_TOOLS
-        assert len(tool_names) <= 25
+        # Default surface: the core diet plus the compact family layer
+        # (8 dispatch tools + list_operations) — the <= 40 budget the
+        # tool-surface design accepted.
+        assert tool_names == DEFAULT_SERVER_TOOLS | FAMILY_SURFACE_TOOLS
+        assert len(tool_names) <= 40
 
     asyncio.run(check_server())
 
