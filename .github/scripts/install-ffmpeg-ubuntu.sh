@@ -56,5 +56,13 @@ if [[ -n "${GITHUB_PATH:-}" ]]; then
   echo "$bindir" >> "$GITHUB_PATH"
 fi
 export PATH="$bindir:$PATH"
+# `bash install-ffmpeg-ubuntu.sh; ffmpeg ...` runs in one step: this script's PATH and
+# GITHUB_PATH never reach that caller shell, so link into a dir already on PATH (#692).
+link_dir="${FFMPEG_LINK_DIR:-/usr/local/bin}"
+if [[ -w "$link_dir" ]]; then
+  ln -sf "$bindir/ffmpeg" "$bindir/ffprobe" "$link_dir/"
+else
+  sudo ln -sf "$bindir/ffmpeg" "$bindir/ffprobe" "$link_dir/"
+fi
 ffmpeg -version
 ffprobe -version
