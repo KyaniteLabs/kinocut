@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 
 from ..models import DesignIssue
+from .fixes import BRIGHTNESS_FILTER, saturation_filter
 
 logger = logging.getLogger(__name__)
 
@@ -80,6 +81,7 @@ class ChecksMixin:
                     ),
                     fix_available=True,
                     auto_fix=lambda v: self._auto_fix_brightness(v, target=40),
+                    fix_filter=BRIGHTNESS_FILTER,
                     fix_description="Increase brightness slightly for better text readability",
                 )
             )
@@ -157,6 +159,7 @@ class ChecksMixin:
                     message=f"Very low saturation ({saturation:.1f}%). Video appears desaturated.",
                     fix_available=True,
                     auto_fix=lambda v: self._auto_fix_saturation(v, boost=1.2),
+                    fix_filter=saturation_filter(1.2),
                     fix_description="Increase color saturation",
                 )
             )
