@@ -295,8 +295,12 @@ def _ffmpeg_query_stderr(args: list[str], *, timeout: float = 15.0) -> str:
 def measure_loudness(path: str | Path) -> dict[str, float]:
     """Measure integrated loudness, LRA, and true-peak via ffmpeg ebur128."""
 
+    # FFmpeg 9 can probe a valid PCM WAV of a pure tone as MPEG-TS (#705),
+    # so name the container instead of letting the prober guess.
+    input_format = ["-f", "wav"] if Path(path).suffix.lower() == ".wav" else []
     log = _ffmpeg_query_stderr(
         [
+            *input_format,
             "-i",
             str(path),
             "-filter_complex",
