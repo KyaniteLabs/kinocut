@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
+import argparse
 import re
 import contextlib
 from contextvars import ContextVar
+from functools import lru_cache
 from typing import Any
 
 # Caller-supplied values echoed into error messages are capped so a hostile
@@ -43,6 +45,40 @@ def _cli_tool_name(tool_name: str) -> str:
     return tool_name.replace("_", "-")
 
 
+@lru_cache(maxsize=1)
+def _cli_command_set() -> frozenset[str]:
+    """The real ``kino`` subcommands — the only CLI routes hints may name.
+
+    Enumerated from the actual argparse parser (built lazily, once). If the
+    parser cannot be built, returns an empty set so hint derivation omits CLI
+    routes instead of inventing one.
+    """
+
+    try:
+        from .cli.parser import build_parser
+
+        subparsers = [a for a in build_parser()._actions if isinstance(a, argparse._SubParsersAction)]
+        return frozenset(subparsers[0].choices) if subparsers else frozenset()
+    except Exception:  # conservative fallback: omit the CLI route, never invent one
+        return frozenset()
+
+
+def cli_route_for_operation(operation: str) -> str | None:
+    """Return the verified ``kino`` subcommand for an operation, else None.
+
+    Candidates: the full name hyphenated (``video_ai_remove_silence`` →
+    ``video-ai-remove-silence``) and the legacy prefix-stripped derivation
+    (``video_trim`` → ``trim``). A route is returned only when the real CLI
+    registers it.
+    """
+
+    commands = _cli_command_set()
+    for candidate in (operation.replace("_", "-"), _cli_tool_name(operation)):
+        if candidate in commands:
+            return candidate
+    return None
+
+
 def retry_message(message: str, code: str) -> str:
     """Append an eyes-free MCP and CLI retry invocation to an error message."""
 
@@ -53,24 +89,25 @@ def retry_message(message: str, code: str) -> str:
     if len(context) > 2 and context[2] is not None:
         # Caller supplied a complete, verified invocation (family dispatch).
         return f"{message}; retry with {context[2]}"
-    invocation = _derived_invocation(context[0], _cli_tool_name(context[0]), code)
+    invocation = _derived_invocation(context[0], cli_route_for_operation(context[0]), code)
     return f"{message}; retry with {invocation}"
 
 
-def _derived_invocation(tool_name: str, cli_name: str, code: str) -> str:
+def _derived_invocation(tool_name: str, cli_name: str | None, code: str) -> str:
+    """Build the retry hint; name a ``kino`` command only when ``cli_name`` is a real route."""
+
     if code in {"output_exists", "overwrite_refused"}:
         return "overwrite=true (MCP) / --overwrite (CLI)"
     if code in {"unsafe_path", "invalid_output_path"}:
         return "a new output_path (MCP) / --output <new-media-path> (CLI)"
     if code in {"hyperframes_telemetry_consent_required", "network_consent_required"}:
-        return (
-            "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP) / KINOCUT_HYPERFRAMES_TELEMETRY=true kino " + cli_name + " (CLI)"
-        )
+        mcp = "KINOCUT_HYPERFRAMES_TELEMETRY=true (MCP)"
+        return f"{mcp} / KINOCUT_HYPERFRAMES_TELEMETRY=true kino {cli_name} (CLI)" if cli_name else mcp
     if code in {"ffmpeg_not_found", "ffprobe_not_found"}:
-        return (
-            "install FFmpeg, then call " + tool_name + " (MCP) / install FFmpeg, then run kino " + cli_name + " (CLI)"
-        )
-    return f"call {tool_name} with corrected parameters (MCP) / run kino {cli_name} with corrected flags (CLI)"
+        mcp = f"install FFmpeg, then call {tool_name} (MCP)"
+        return f"{mcp} / install FFmpeg, then run kino {cli_name} (CLI)" if cli_name else mcp
+    mcp = f"call {tool_name} with corrected parameters (MCP)"
+    return f"{mcp} / run kino {cli_name} with corrected flags (CLI)" if cli_name else mcp
 
 
 def truncate_echo(value: str, limit: int = _MAX_ECHO_CHARS) -> str:
