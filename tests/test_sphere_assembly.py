@@ -56,6 +56,30 @@ def _equirect_video(path: Path) -> str:
     return str(path)
 
 
+def _gate_passing_sphere_video(path: Path) -> str:
+    """2:1 testsrc2 + sine audio: passes the strict quality gate (e2e fixture)."""
+    _run_ffmpeg(
+        [
+            "-f",
+            "lavfi",
+            "-i",
+            "testsrc2=s=640x320:d=2",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:duration=2",
+            "-pix_fmt",
+            "yuv420p",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            str(path),
+        ]
+    )
+    return str(path)
+
+
 def test_probe_accepts_equirect_and_rejects_insv_and_flat(tmp_path: Path) -> None:
     good = _equirect_video(tmp_path / "sphere.mp4")
     probed = probe_360_source(good)
@@ -176,6 +200,105 @@ def test_other_layouts_render(tmp_path: Path, layout: str) -> None:
     receipt = render_sphere_plan(approved, dest, work_dir=str(tmp_path / f"w-{layout}"), allow_fail=True)
     assert Path(dest).is_file()
     assert receipt["layout"] == layout
+
+
+def test_second_render_into_same_dir_needs_no_cleanup(tmp_path: Path) -> None:
+    """t_f0d4f023: stale _sphere_work files must not block the next render."""
+    source = _equirect_video(tmp_path / "sphere.mp4")
+    approved = decide_sphere_plan(propose_sphere_plan(source, preset="desk", aspect="16:9"), "approve")
+    out_dir = tmp_path / "out"
+    stale = out_dir / "_sphere_work" / "window-0.mp4"
+    stale.parent.mkdir(parents=True)
+    stale.write_bytes(b"legacy flat-layout intermediate left by an earlier render")
+
+    receipt = render_sphere_plan(approved, str(out_dir / "one.mp4"), allow_fail=True)
+    assert (out_dir / "one.mp4").is_file()
+    assert receipt["status"] == "rendered"
+    assert stale.read_bytes() == b"legacy flat-layout intermediate left by an earlier render"  # preserved
+
+    second = render_sphere_plan(approved, str(out_dir / "two.mp4"), allow_fail=True)
+    assert (out_dir / "two.mp4").is_file()
+    assert second["status"] == "rendered"
+    assert not list((out_dir / "_sphere_work").glob("render-*"))  # success cleans its private work root
+
+    with pytest.raises(MCPVideoError) as clash:
+        render_sphere_plan(approved, str(out_dir / "two.mp4"), allow_fail=True)
+    assert clash.value.code == "output_exists"
+    assert "overwrite=true" in str(clash.value)
+
+
+def test_render_retry_after_quality_gate_failure_needs_no_cleanup(tmp_path: Path) -> None:
+    """t_f0d4f023: a gate failure leaves intermediates; the retry must still render."""
+    source = _equirect_video(tmp_path / "sphere.mp4")  # no audio → strict gate fails
+    approved = decide_sphere_plan(propose_sphere_plan(source, preset="desk", aspect="16:9"), "approve")
+    dest = str(tmp_path / "out.mp4")
+    with pytest.raises(MCPVideoError) as gate:
+        render_sphere_plan(approved, dest)
+    assert gate.value.code == "quality_gate_failed"
+    assert list((tmp_path / "_sphere_work").glob("render-*/window-0.mp4"))  # kept for debugging
+    assert not Path(dest).exists()
+
+    receipt = render_sphere_plan(approved, dest, allow_fail=True)
+    assert Path(dest).is_file()
+    assert receipt["quality"]["passed"] is False
+
+
+def test_two_public_renders_preserve_a_prior_final(tmp_path: Path) -> None:
+    """t_f0d4f023 security review: a prior final sitting on a legacy work path
+    survives a second render in the same output directory (no silent replace)."""
+    from kinocut.server_tools_intent import video_review_decide
+
+    scene = _gate_passing_sphere_video(tmp_path / "scene.mp4")
+    out_dir = tmp_path / "out"
+    final_one = out_dir / "_sphere_work" / "window-0.mp4"
+    plan_one = propose_sphere_plan(scene, preset="desk", aspect="9:16")
+    first = video_review_decide(review_run=plan_one, decision="accept", output_path=str(final_one))
+    assert first.get("success") is True, first
+    before = _file_sha256(str(final_one))
+
+    plan_two = propose_sphere_plan(scene, preset="desk", aspect="16:9")
+    second = video_review_decide(review_run=plan_two, decision="accept", output_path=str(out_dir / "second.mp4"))
+    assert second.get("success") is True, second
+
+    assert _file_sha256(str(final_one)) == before  # no silent replacement of a user final
+    assert (out_dir / "second.mp4").is_file()
+
+
+def test_render_preserves_preexisting_work_dir_media(tmp_path: Path) -> None:
+    """t_f0d4f023 security review: caller work_dir content is foreign media —
+    never read, never replaced, and no render residue left beside it."""
+    source = _equirect_video(tmp_path / "sphere.mp4")
+    approved = decide_sphere_plan(propose_sphere_plan(source, preset="desk", aspect="16:9"), "approve")
+    work_dir = tmp_path / "scratch"
+    work_dir.mkdir()
+    kept = {"window-0.mp4": b"operator clip", "assembled.mp4": b"operator assembly", "notes.txt": b"notes"}
+    for name, blob in kept.items():
+        (work_dir / name).write_bytes(blob)
+
+    receipt = render_sphere_plan(approved, str(tmp_path / "out.mp4"), work_dir=str(work_dir), allow_fail=True)
+    assert receipt["status"] == "rendered"
+    assert (tmp_path / "out.mp4").is_file()
+    assert {p.name: p.read_bytes() for p in work_dir.iterdir()} == kept  # byte-identical, no residue
+
+
+def test_review_decide_overwrite_remediation_is_actionable_on_mcp(tmp_path: Path) -> None:
+    """The MCP tool that suggests overwrite=true must honor it (no-clobber kept)."""
+    from kinocut.server_tools_intent import video_review_decide
+
+    scene = _gate_passing_sphere_video(tmp_path / "scene.mp4")
+    plan = propose_sphere_plan(scene, preset="desk", aspect="16:9")
+    out_dir = tmp_path / "out"
+    first = video_review_decide(review_run=plan, decision="accept", output_path=str(out_dir / "one.mp4"))
+    assert first.get("success") is True, first
+    second = video_review_decide(review_run=plan, decision="accept", output_path=str(out_dir / "two.mp4"))
+    assert second.get("success") is True, second  # stale _sphere_work no longer blocks
+    blocked = video_review_decide(review_run=plan, decision="accept", output_path=str(out_dir / "two.mp4"))
+    assert blocked["success"] is False
+    assert blocked["error"]["code"] == "output_exists"
+    replaced = video_review_decide(
+        review_run=plan, decision="accept", output_path=str(out_dir / "two.mp4"), overwrite=True
+    )
+    assert replaced.get("success") is True, replaced
 
 
 def test_local_director_valid_and_invalid_json(tmp_path: Path) -> None:
