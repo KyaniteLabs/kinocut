@@ -18,6 +18,7 @@ This project follows a simple release-note style:
 
 ### Fixed
 
+- A SIGKILLed CLI no longer leaves a detached FFmpeg: every POSIX `ProcessTree` command now runs under the existing orphan watchdog (`process_guardian`). Cost is one extra interpreter per command (measured median extra ~33ms Linux / ~89ms macOS CI; budget `DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS` = 150ms). Ctrl-C / SIGTERM cleanup is unchanged. Windows still uses Job Objects.
 - Text overlays (`video_add_text`, `kino add-text`, timeline text) no longer fail with `font_not_found` on Linux hosts without DejaVu Sans, such as Arch/Omarchy. The default font now falls back to fontconfig's scalable sans-serif match (#696).
 
 ## 1.16.5 - 2026-10-27
