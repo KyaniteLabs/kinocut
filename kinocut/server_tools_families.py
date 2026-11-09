@@ -19,16 +19,14 @@ These tools are registered in default and profile modes only; the legacy
 ``KINOCUT_TOOLS=all`` surface stays exactly the 205-name registry.
 """
 
-import argparse
 import re
-from functools import lru_cache
 from typing import Annotated, Any, Literal
 
 from mcp.server.fastmcp import Context
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from .errors import MCPVideoError, _cli_tool_name, retry_context
+from .errors import MCPVideoError, _cli_command_set, cli_route_for_operation, retry_context
 from .server_app import _safe_tool, _validation_error, mcp
 from .server_tool_contracts import validate_tool_arguments
 from .tool_families import (
@@ -67,40 +65,6 @@ _PARAMS_ANNOTATION = Annotated[
         )
     ),
 ]
-
-
-@lru_cache(maxsize=1)
-def _cli_command_set() -> frozenset[str]:
-    """The real ``kino`` subcommands — the only CLI routes hints may name.
-
-    Enumerated from the actual argparse parser (37 ms, no side effects). If the
-    parser cannot be built, returns an empty set so hint derivation omits CLI
-    routes instead of inventing one.
-    """
-
-    try:
-        from .cli.parser import build_parser
-
-        subparsers = [a for a in build_parser()._actions if isinstance(a, argparse._SubParsersAction)]
-        return frozenset(subparsers[0].choices) if subparsers else frozenset()
-    except Exception:  # conservative fallback: omit the CLI route, never invent one
-        return frozenset()
-
-
-def cli_route_for_operation(operation: str) -> str | None:
-    """Return the verified ``kino`` subcommand for an operation, else None.
-
-    Candidates: the full name hyphenated (``video_ai_remove_silence`` →
-    ``video-ai-remove-silence``) and the legacy prefix-stripped derivation
-    (``video_trim`` → ``trim``). A route is returned only when the real CLI
-    registers it.
-    """
-
-    commands = _cli_command_set()
-    for candidate in (operation.replace("_", "-"), _cli_tool_name(operation)):
-        if candidate in commands:
-            return candidate
-    return None
 
 
 def _family_invocation(family: str, operation: str) -> str:

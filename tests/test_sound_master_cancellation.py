@@ -20,7 +20,11 @@ def sleeping_engine(root):
         f"#!{sys.executable}\n"
         "import json,os,sys,time\nfrom pathlib import Path\n"
         "if '-version' in sys.argv:\n print('ffmpeg version test-1.0');sys.exit(0)\n"
-        f"Path({str(state)!r}).write_text(json.dumps({{'pid':os.getpid(),'source':sys.argv[sys.argv.index('-i')+1]}}))\n"
+        # Publish atomically: the test cancels as soon as the state file exists, so an
+        # in-place write could be killed half-done and leave an empty file behind.
+        f"tmp = Path({str(state)!r} + '.tmp')\n"
+        "tmp.write_text(json.dumps({'pid':os.getpid(),'source':sys.argv[sys.argv.index('-i')+1]}))\n"
+        f"os.replace(tmp, {str(state)!r})\n"
         "time.sleep(30)\n"
     )
     script.chmod(0o700)
