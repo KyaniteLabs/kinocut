@@ -324,8 +324,9 @@ def video_fix_design_issues(
 ) -> dict[str, Any]:
     """Auto-fix design issues in a video.
 
-    Applies automatic fixes for brightness, contrast, saturation,
-    and audio level issues.
+    Applies the automatic fixes that design checks attach today: brightness
+    (very dark video) and saturation (very desaturated video). It does not
+    change audio or contrast; use video_normalize_audio for loudness.
 
     Args:
         input_path: Absolute path to input video
