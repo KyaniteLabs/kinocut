@@ -134,3 +134,36 @@ def test_release_checkpoint_records_profile(dark_ui, tmp_path):
     data = result.get("data", result)
     assert data["quality_profile"] == "ui-capture-dark"
     assert data["quality"]["profile"]["visual_checks_gate"] is True
+
+
+# Light UI: near-white ground with slightly darker flat panels (ported from #700).
+_LIGHT_UI = ",".join(
+    [
+        "drawbox=x=0:y=0:w=180:h=360:color=0xe8e8e8:t=fill",
+        "drawbox=x=200:y=28:w=400:h=36:color=0xdedede:t=fill",
+        "drawbox=x=200:y=84:w=400:h=240:color=0xf6f6f6:t=fill",
+    ]
+)
+
+
+@needs_ffmpeg
+def test_light_ui_capture_fails_default_but_passes_light_profile(tmp_path):
+    from kinocut.quality_guardrails import assert_quality, quality_check
+
+    light_ui = _render(tmp_path / "light_ui.mp4", _LIGHT_UI, base="0xf2f2f2")
+    default = quality_check(light_ui)
+    assert default["overall_score"] < 80
+    with pytest.raises(MCPVideoError):
+        assert_quality(light_ui)
+
+    profiled = quality_check(light_ui, profile="ui-capture-light")
+    report = assert_quality(light_ui, profile="ui-capture-light")
+    checks = {c["name"]: c for c in report["checks"]}
+    assert report["gate_passed"] is True, checks
+    for name in ("brightness", "contrast", "saturation"):
+        assert checks[name]["passed"] is True, checks[name]
+    # The profile only rescores the picture bands; the other checks are untouched.
+    for name in ("audio_levels", "color_balance", "temporal_motion"):
+        assert next(c for c in default["checks"] if c["name"] == name) == next(
+            c for c in profiled["checks"] if c["name"] == name
+        )
