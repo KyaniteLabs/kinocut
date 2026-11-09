@@ -67,6 +67,7 @@ def _register_analysis_command_handlers(runner: CommandRunner) -> None:
             min_score=a.min_score,
             frame_count=a.frame_count,
             require_audio=a.require_audio,
+            profile=a.profile,
         )
         _out(r, j, _format_release_checkpoint_text)
         if not r.get("success", False):
@@ -81,7 +82,13 @@ def _register_quality_command_handlers(runner: CommandRunner) -> None:
     def _quality_check(a, j):
         from ..quality_guardrails import quality_check
 
-        r = _with_spinner("Running quality check...", quality_check, a.input, fail_on_warning=a.fail_on_warning)
+        r = _with_spinner(
+            "Running quality check...",
+            quality_check,
+            a.input,
+            fail_on_warning=a.fail_on_warning,
+            profile=a.profile,
+        )
         _out(r, j, _format_quality_check)
         if a.fail_on_warning and not r.get("all_passed", False):
             raise SystemExit(1)

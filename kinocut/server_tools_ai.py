@@ -6,6 +6,7 @@ import os
 from typing import Any
 
 from .defaults import DEFAULT_QUALITY_GATE_SCORE
+from .quality_profiles import QUALITY_PROFILES
 from .errors import MCPVideoError
 from .server_app import _error_result, _result, _safe_tool, _validation_error, mcp
 from .ffmpeg_helpers import _validate_input_path
@@ -220,6 +221,7 @@ def video_ai_color_grade(
 def video_quality_check(
     input_path: str,
     fail_on_warning: bool = False,
+    profile: str = "default",
 ) -> dict[str, Any]:
     """Run visual quality checks on a video.
 
@@ -229,11 +231,15 @@ def video_quality_check(
     Args:
         input_path: Absolute path to video file
         fail_on_warning: If True, treat warnings as failures
+        profile: Content profile for the picture heuristics: default (camera
+            footage), ui-capture-dark or ui-capture-light. Recorded in the report.
     """
+    if profile not in QUALITY_PROFILES:
+        return _validation_error(f"Invalid profile: must be one of {sorted(QUALITY_PROFILES)}, got '{profile}'")
     input_path = _validate_input_path(input_path)
     from .quality_guardrails import quality_check
 
-    report = quality_check(input_path, fail_on_warning)
+    report = quality_check(input_path, fail_on_warning, profile=profile)
     if fail_on_warning and not report.get("all_passed", False):
         return _error_result(
             MCPVideoError(
@@ -259,14 +265,19 @@ def video_release_checkpoint(
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     frame_count: int = 6,
     require_audio: bool = True,
+    profile: str = "default",
 ) -> dict[str, Any]:
     """Create preview artifacts only after the video passes quality gates.
 
     Use this before publishing or chaining more polish effects. It runs a hard
     quality gate, then writes a thumbnail and storyboard for human inspection.
     A video with no audio stream fails the gate unless ``require_audio`` is
-    explicitly disabled.
+    explicitly disabled. ``profile`` (default, ui-capture-dark,
+    ui-capture-light) picks the picture heuristics and is recorded in the
+    checkpoint; under a UI profile its relaxed bands are hard limits.
     """
+    if profile not in QUALITY_PROFILES:
+        return _validation_error(f"Invalid profile: must be one of {sorted(QUALITY_PROFILES)}, got '{profile}'")
     if min_score < 0 or min_score > 100:
         return _validation_error(f"min_score must be 0-100, got {min_score}")
     if frame_count < 1:
@@ -276,7 +287,7 @@ def video_release_checkpoint(
     from .engine_thumbnail import thumbnail
     from .engine_storyboard import storyboard
 
-    report = assert_quality(input_path, min_score=min_score, require_audio=require_audio)
+    report = assert_quality(input_path, min_score=min_score, require_audio=require_audio, profile=profile)
     review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
     os.makedirs(review_dir, exist_ok=True)
     thumb = thumbnail(input_path, output_path=os.path.join(review_dir, "thumbnail.jpg"))
@@ -285,6 +296,7 @@ def video_release_checkpoint(
         {
             "video": input_path,
             "quality": report,
+            "quality_profile": profile,
             "thumbnail": thumb.frame_path,
             "storyboard": board.model_dump(),
             "review_required": True,
@@ -324,8 +336,9 @@ def video_fix_design_issues(
 ) -> dict[str, Any]:
     """Auto-fix design issues in a video.
 
-    Applies automatic fixes for brightness, contrast, saturation,
-    and audio level issues.
+    Applies the automatic fixes that design checks attach today: brightness
+    (very dark video) and saturation (very desaturated video). It does not
+    change audio or contrast; use video_normalize_audio for loudness.
 
     Args:
         input_path: Absolute path to input video

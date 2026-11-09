@@ -51,6 +51,7 @@ from .hyperframes_ops_helpers import (
     _assert_hf_remove_background_flags,
     _csv,
     _default_render_output,
+    _doctor_result,
     _hf_remove_background_result,
     _json_result,
     _normalize_mask_interval,
@@ -572,7 +573,7 @@ def remove_background(
 def doctor() -> HyperframesJsonResult:
     """Run Hyperframes environment diagnostics."""
     result, _cwd = _hyperframes_op("doctor")
-    return _json_result("doctor", result)
+    return _doctor_result(result)
 
 
 def benchmark(

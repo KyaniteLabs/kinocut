@@ -350,7 +350,8 @@ def test_real_cli_checkpoint_accepts_intentionally_silent_film(parity_source, tm
     )
     assert result.returncode == 0, result.stderr
     receipt = json.loads(result.stdout)
-    assert receipt["quality"]["all_passed"] is True
+    assert receipt["quality"]["gate_passed"] is True
+    assert receipt["quality"]["all_passed"] is False  # audio_levels check still reported failed (#678)
     assert receipt["review_required"] is True
     assert Path(receipt["thumbnail"]).is_file()
 

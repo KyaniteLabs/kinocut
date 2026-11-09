@@ -14,10 +14,7 @@ pytestmark = pytest.mark.usefixtures("overwrite_consent")
 
 FIXES = (
     "_auto_fix_brightness",
-    "_auto_fix_contrast",
     "_auto_fix_saturation",
-    "_auto_fix_color_cast",
-    "_auto_normalize_audio",
 )
 
 
@@ -76,3 +73,89 @@ def test_real_saturation_filter_error_keeps_existing_destination(source):
         DesignQualityGuardrails()._auto_fix_saturation(str(source), boost="not_a_number")
     assert output.read_bytes() == b"keep previous artifact"
     assert not list(source.parent.glob(".kinocut_tmp_*"))
+
+
+def _mean_luma_and_sat(path):
+    import subprocess
+
+    out = (
+        subprocess.run(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                f"movie={path},signalstats",
+                "-show_entries",
+                "frame_tags=lavfi.signalstats.YAVG,lavfi.signalstats.SATAVG",
+                "-of",
+                "csv=p=0",
+                "-read_intervals",
+                "%+#1",
+            ],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        .stdout.strip()
+        .splitlines()[0]
+    )
+    luma, sat = (float(v) for v in out.split(",")[:2])
+    return luma, sat
+
+
+def test_brightness_and_saturation_fixes_both_reach_output(tmp_path):
+    """#686: both fixes must survive; applying them one by one kept only the last."""
+    import subprocess
+
+    from kinocut.design_quality.guardrails.fixes import BRIGHTNESS_FILTER, saturation_filter
+    from kinocut.design_quality.models import DesignIssue
+
+    source = tmp_path / "dark.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=0x302820:s=160x90:d=1:r=10",
+            "-f",
+            "lavfi",
+            "-i",
+            "anullsrc=r=44100:cl=mono",
+            "-shortest",
+            "-pix_fmt",
+            "yuv420p",
+            str(source),
+        ],
+        check=True,
+    )
+    guardrail = DesignQualityGuardrails()
+    issues = [
+        DesignIssue(
+            "typography",
+            "warning",
+            "dark",
+            fix_available=True,
+            auto_fix=lambda v: guardrail._auto_fix_brightness(v),
+            fix_filter=BRIGHTNESS_FILTER,
+        ),
+        DesignIssue(
+            "color",
+            "warning",
+            "desaturated",
+            fix_available=True,
+            auto_fix=lambda v: guardrail._auto_fix_saturation(v),
+            fix_filter=saturation_filter(1.2),
+        ),
+    ]
+    applied = guardrail._apply_auto_fixes(str(source), issues)
+    assert applied == ["typography: dark", "color: desaturated"]
+
+    base_luma, base_sat = _mean_luma_and_sat(source)
+    fixed_luma, fixed_sat = _mean_luma_and_sat(source.with_name("dark_fixed.mp4"))
+    assert fixed_luma > base_luma + 10, "brightness fix missing from output"
+    assert fixed_sat > base_sat, "saturation fix missing from output"

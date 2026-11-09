@@ -10,7 +10,10 @@ from rich.table import Table
 def quality_report_renderables(data: Any) -> tuple[Table, str]:
     if not isinstance(data, dict):
         data = {}
-    table = Table(title="Quality Check")
+    profile = data.get("profile")
+    profile_name = profile.get("name") if isinstance(profile, dict) else None
+    title = f"Quality Check (profile: {escape(str(profile_name))})" if profile_name else "Quality Check"
+    table = Table(title=title)
     table.add_column("Check", style="bold cyan")
     table.add_column("Status")
     table.add_column("Value")
@@ -35,9 +38,26 @@ def quality_report_renderables(data: Any) -> tuple[Table, str]:
             if message:
                 value_parts.append(escape(str(message)))
             table.add_row(str(info.get("name", "unknown")), status, " — ".join(value_parts))
+    if "gate_passed" in data:
+        return table, f"[bold]{gate_verdict_line(data)}[/bold]"
     overall_passed = data.get("all_passed", data.get("passed", False))
     overall = "[green]PASS[/green]" if overall_passed else "[red]FAIL[/red]"
     return table, f"[bold]Overall: {overall}[/bold]"
+
+
+def gate_verdict_line(data: dict[str, Any]) -> str:
+    """Describe a score gate and the per-check outcome as separate verdicts."""
+    score = data.get("overall_score")
+    min_score = data.get("min_score")
+    gate = "[green]Gate PASSED[/green]" if data.get("gate_passed") else "[red]Gate FAILED[/red]"
+    if score is not None and min_score is not None:
+        op = "≥" if score >= min_score else "<"
+        gate += f" at score {score} {op} {min_score}"
+    failed = [str(name) for name in data.get("failed_checks") or []]
+    if failed:
+        noun = "check" if len(failed) == 1 else "checks"
+        return f"{gate}; [yellow]{len(failed)} {noun} below target:[/yellow] {escape(', '.join(failed))}"
+    return f"{gate}; all checks passed"
 
 
 def release_checkpoint_renderable(data: Any) -> Panel | str:
@@ -51,6 +71,8 @@ def release_checkpoint_renderable(data: Any) -> Panel | str:
     lines = []
     if score is not None:
         lines.append(f"[bold green]Quality score:[/bold green] {score}")
+    if isinstance(quality, dict) and "gate_passed" in quality:
+        lines.append(gate_verdict_line(quality))
     if data.get("thumbnail"):
         lines.append(f"[bold green]Thumbnail:[/bold green] {data['thumbnail']}")
     storyboard = data.get("storyboard") or {}
@@ -79,3 +101,29 @@ def design_quality_panel(data: Any) -> Panel:
         for w in warnings[:5]:
             lines.append(f"  - {w}")
     return Panel("\n".join(lines), title="Design Quality", border_style="green")
+
+
+def format_cli_error(e: Exception, err_console: Any, logger: Any) -> None:
+    """Display an error in a styled panel."""
+    from ..errors import MCPVideoError, retry_context, retry_message
+
+    if isinstance(e, MCPVideoError):
+        try:
+            with retry_context("kino", {}):
+                data = e.to_dict()
+        except Exception as exc:
+            logger.debug("MCPVideoError.to_dict() failed in CLI formatting: %s", exc)
+            data = {"message": retry_message(str(e), getattr(e, "code", "unknown"))}
+        msg = data.get("message", retry_message(str(e), getattr(e, "code", "unknown")))
+        code = data.get("code", "")
+        action = data.get("suggested_action", {})
+        lines = [f"[bold red]{msg}[/bold red]"]
+        if code:
+            lines.append(f"[dim]Code: {code}[/dim]")
+        if isinstance(action, dict) and action.get("description"):
+            lines.append(f"\n[yellow]Suggested fix:[/yellow] {action['description']}")
+        err_console.print(Panel("\n".join(lines), border_style="red", title="Error"))
+    else:
+        err_console.print(
+            Panel(f"[bold red]{retry_message(str(e), 'unknown')}[/bold red]", border_style="red", title="Error")
+        )

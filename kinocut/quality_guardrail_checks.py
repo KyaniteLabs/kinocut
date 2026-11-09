@@ -30,9 +30,7 @@ class QualityChecksMixin:
                 y_avg = stats["mean"]
 
         passed = self.BRIGHTNESS_TARGET_MIN <= y_avg <= self.BRIGHTNESS_TARGET_MAX
-        target = 128
-        deviation = abs(y_avg - target)
-        score = float(max(0, 100 - (deviation / target) * 100))
+        score = self.profile.brightness.score(y_avg)
 
         if y_avg < self.BRIGHTNESS_MIN:
             message = f"Video has crushed blacks (brightness: {y_avg:.1f}). Consider lifting shadows."
@@ -81,9 +79,7 @@ class QualityChecksMixin:
             raw={"y_low": y_low, "y_high": y_high, "unit": "8bit_luma"},
         )
         passed = self.CONTRAST_MIN <= y_std <= self.CONTRAST_MAX
-        optimal_contrast = 50
-        deviation = abs(y_std - optimal_contrast)
-        score = float(max(0, 100 - (deviation / optimal_contrast) * 100))
+        score = self.profile.contrast.score(y_std)
 
         if y_std < self.CONTRAST_MIN:
             message = (
@@ -141,10 +137,7 @@ class QualityChecksMixin:
 
         passed = self.SATURATION_MIN <= saturation_pct <= self.SATURATION_MAX
 
-        # Calculate score
-        optimal_sat = 50
-        deviation = abs(saturation_pct - optimal_sat)
-        score = float(max(0, 100 - (deviation / optimal_sat) * 100))
+        score = self.profile.saturation.score(saturation_pct)
 
         if saturation_pct < self.SATURATION_MIN:
             message = f"Video appears desaturated (estimated: {saturation_pct:.1f}%). Consider increasing saturation."

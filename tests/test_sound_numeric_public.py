@@ -124,6 +124,14 @@ def test_actual_plan_cli_and_mcp_reject_invalid_input(tmp_path, kind):
     assert bad.returncode != 0
     assert "sound plan validation failed" in bad.stderr
     assert not bad.stdout
+    error = json.loads(bad.stderr)["error"]
+    assert error["type"] == "validation_error"
+    assert error["code"] == "invalid_plan"
+    locs = [detail["loc"] for detail in error["details"]]
+    if kind == "boolean":
+        assert any(loc[-1] == "duration_seconds" for loc in locs), locs
+    else:
+        assert ["timeline"] in locs
     asyncio.run(asyncio.wait_for(_mcp_plans(valid, invalid), 30))
 
 
@@ -143,6 +151,9 @@ async def _mcp_plans(valid, invalid):
         payload = good.structuredContent or json.loads(good.content[0].text)
         assert payload.get("result", payload)["ok"] is True
         bad = await session.call_tool("sound_plan_validate", {"plan": invalid})
-        if not bad.isError:
-            payload = bad.structuredContent or json.loads(bad.content[0].text)
-            assert payload.get("result", payload).get("success") is False
+        assert not bad.isError
+        payload = bad.structuredContent or json.loads(bad.content[0].text)
+        payload = payload.get("result", payload)
+        assert payload.get("success") is False
+        assert payload["error"]["type"] == "validation_error"
+        assert payload["error"]["details"], payload

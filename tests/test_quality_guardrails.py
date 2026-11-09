@@ -562,7 +562,9 @@ class TestQualityCheckAPI:
         report = assert_quality(video_path, min_score=60)
 
         assert report["overall_score"] == 70.0
-        assert report["all_passed"] is True
+        assert report["gate_passed"] is True
+        # The gate passing must not relabel the per-check aggregate (#678).
+        assert report["all_passed"] is False
 
     def test_assert_quality_fails_silent_master_above_score_threshold(self, tmp_path, monkeypatch):
         """A silent master must fail the gate even when its score clears min_score."""
@@ -595,7 +597,9 @@ class TestQualityCheckAPI:
 
         report = assert_quality(video_path, min_score=80, require_audio=False)
 
-        assert report["all_passed"] is True
+        assert report["gate_passed"] is True
+        assert report["all_passed"] is False
+        assert report["failed_checks"] == ["audio_levels"]
 
     def test_assert_quality_bad_but_present_audio_stays_score_gated(self, tmp_path, monkeypatch):
         """Measurable-but-bad audio keeps the score-only gate; presence rules don't apply."""
@@ -626,7 +630,51 @@ class TestQualityCheckAPI:
 
         report = assert_quality(video_path, min_score=80)
 
-        assert report["all_passed"] is True
+        assert report["gate_passed"] is True
+        assert report["all_passed"] is False
+        assert report["failed_checks"] == ["audio_levels"]
+
+    def test_assert_quality_gate_pass_keeps_failed_checks_visible(self, tmp_path, monkeypatch):
+        """Score passing the gate over failed checks reports both verdicts (#678)."""
+        from mcp_video.cli.quality_formatting import gate_verdict_line
+        from mcp_video.quality_guardrails import assert_quality
+
+        video_path = str(tmp_path / "test.mp4")
+        create_test_video(video_path, "gray")
+
+        def check(name, passed):
+            return {"name": name, "passed": passed, "score": 50.0, "message": name, "details": {}}
+
+        monkeypatch.setattr(
+            VisualQualityGuardrails,
+            "generate_report",
+            lambda self, video: {
+                "video": video,
+                "overall_score": 40.6,
+                "all_passed": False,
+                "checks": [
+                    check("brightness", False),
+                    check("contrast", False),
+                    check("saturation", False),
+                    check("audio_levels", True),
+                    check("temporal_motion", False),
+                ],
+                "recommendations": [],
+            },
+        )
+
+        report = assert_quality(video_path, min_score=40)
+
+        assert report["all_passed"] is False
+        assert report["gate_passed"] is True
+        assert report["min_score"] == 40
+        # Advisory checks never count against the gate aggregate.
+        assert report["failed_checks"] == ["brightness", "contrast", "saturation"]
+        from rich.text import Text
+
+        line = Text.from_markup(gate_verdict_line(report)).plain
+        assert "Gate PASSED at score 40.6 ≥ 40" in line
+        assert "3 checks below target" in line
 
     def test_client_assert_quality_method_raises_on_low_score(self, tmp_path, monkeypatch):
         from mcp_video import Client
