@@ -118,6 +118,29 @@ def _validated_plan(plan):
     return SoundPlan.model_validate(payload)
 
 
+_MAX_PLAN_ERROR_DETAILS = 20
+
+
+def _plan_validation_error(exc: Exception):
+    from kinocut_sound._errors import INVALID_PLAN, SoundPlanValidationError
+
+    if isinstance(exc, ValidationError):
+        details = [
+            {"loc": [str(part) for part in err.get("loc", ())], "msg": str(err.get("msg", "")), "type": err.get("type")}
+            for err in exc.errors(include_url=False, include_input=False, include_context=False)
+        ][:_MAX_PLAN_ERROR_DETAILS]
+    else:
+        details = [{"loc": [], "msg": f"plan must be a SoundPlan object ({type(exc).__name__})", "type": "plan_type"}]
+    summary = "; ".join(f"{'.'.join(d['loc']) or '<plan>'}: {d['msg']}" for d in details[:3])
+    more = f" (+{len(details) - 3} more)" if len(details) > 3 else ""
+    return SoundPlanValidationError(
+        f"sound plan validation failed: {summary}{more}",
+        code=INVALID_PLAN,
+        suggested_action={"auto_fix": False, "description": "Fix the fields listed in error.details and retry."},
+        details=details,
+    )
+
+
 def _plan_argument(kwargs):
     plan, alias = kwargs.get("plan"), kwargs.get("plan_json")
     if plan is not None and alias is not None:
@@ -142,7 +165,7 @@ class SoundPythonAdapter:
         try:
             validated = _validated_plan(plan)
         except (ValidationError, TypeError, ValueError) as exc:
-            raise ValueError("sound plan validation failed") from exc
+            raise _plan_validation_error(exc) from exc
         return {
             "ok": True,
             "plan_hash": validated.canonical_id(),
