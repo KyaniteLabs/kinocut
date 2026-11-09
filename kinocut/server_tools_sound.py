@@ -24,7 +24,19 @@ def sound_capabilities() -> dict[str, Any]:
 @_safe_tool
 def sound_plan_validate(plan: dict[str, Any] | None = None) -> dict[str, Any]:
     """Validate a SoundPlan payload (or a built-in minimal plan when omitted)."""
-    return _result(_invoke("sound-plan-validate", plan=plan))
+    from kinocut_sound._errors import SoundContractError
+    from .errors import MCPVideoError
+
+    try:
+        return _result(_invoke("sound-plan-validate", plan=plan))
+    except SoundContractError as exc:
+        raise MCPVideoError(
+            str(exc),
+            error_type=exc.error_type,
+            code=exc.code,
+            suggested_action=exc.suggested_action,
+            details=exc.details,
+        ) from exc
 
 
 @mcp.tool()
