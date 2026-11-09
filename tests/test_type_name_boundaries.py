@@ -282,7 +282,8 @@ def test_the_analyzer_flags_caller_data_wrapped_in_the_provenance_mark() -> None
 
 
 def test_the_analyzer_accepts_a_literal_wrapped_in_the_provenance_mark() -> None:
-    source = 'def refuse(value):\n    return f"cause: {own_reason("fixed phrase")}"\n'
+    # Single quotes inside the f-string: nested same-quote f-strings only parse on 3.12+.
+    source = "def refuse(value):\n    return f\"cause: {own_reason('fixed phrase')}\"\n"
     assert _taint_of(source, {"value"}) is False
 
 
