@@ -66,6 +66,9 @@ def release_checkpoint_renderable(data: Any) -> Panel | str:
     quality = data.get("quality") or {}
     score = quality.get("overall_score")
     lines = []
+    profile = data.get("profile") or (quality.get("profile") if isinstance(quality, dict) else None)
+    if profile:
+        lines.append(f"[bold]Profile:[/bold] {escape(str(profile))}")
     if score is not None:
         lines.append(f"[bold green]Quality score:[/bold green] {score}")
     if isinstance(quality, dict) and "gate_passed" in quality:

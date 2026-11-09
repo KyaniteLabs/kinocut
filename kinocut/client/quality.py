@@ -11,12 +11,13 @@ from ..defaults import DEFAULT_QUALITY_GATE_SCORE
 class ClientQualityMixin:
     """Quality operations mixin."""
 
-    def quality_check(self, video: str, fail_on_warning: bool = False) -> dict:
+    def quality_check(self, video: str, fail_on_warning: bool = False, profile: str | None = None) -> dict:
         """Run visual quality guardrails on a video.
 
         Args:
             video: Video file path
             fail_on_warning: Treat warnings as failures
+            profile: Optional ``ui-capture-dark`` or ``ui-capture-light`` profile
 
         Returns:
             dict with keys:
@@ -28,15 +29,23 @@ class ClientQualityMixin:
         """
         from ..quality_guardrails import quality_check
 
-        return quality_check(video, fail_on_warning)
+        if profile is None:
+            return quality_check(video, fail_on_warning)
+        return quality_check(video, fail_on_warning, profile=profile)
 
     def assert_quality(
-        self, video: str, min_score: float = DEFAULT_QUALITY_GATE_SCORE, require_audio: bool = True
+        self,
+        video: str,
+        min_score: float = DEFAULT_QUALITY_GATE_SCORE,
+        require_audio: bool = True,
+        profile: str | None = None,
     ) -> dict:
         """Raise if a video fails release-quality guardrails."""
         from ..quality_guardrails import assert_quality
 
-        return assert_quality(video, min_score=min_score, require_audio=require_audio)
+        if profile is None:
+            return assert_quality(video, min_score=min_score, require_audio=require_audio)
+        return assert_quality(video, min_score=min_score, require_audio=require_audio, profile=profile)
 
     def release_checkpoint(
         self,
@@ -45,14 +54,18 @@ class ClientQualityMixin:
         min_score: float = DEFAULT_QUALITY_GATE_SCORE,
         frame_count: int = 6,
         require_audio: bool = True,
+        profile: str | None = None,
     ) -> dict:
         """Run a hard quality gate, then create human-review artifacts."""
-        quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio)
+        if profile is None:
+            quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio)
+        else:
+            quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio, profile=profile)
         review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
         os.makedirs(review_dir, exist_ok=True)
         thumb = self.thumbnail(input_path, output=os.path.join(review_dir, "thumbnail.jpg"))
         board = self.storyboard(input_path, output_dir=os.path.join(review_dir, "storyboard"), frame_count=frame_count)
-        return {
+        receipt = {
             "video": input_path,
             "quality": quality,
             "thumbnail": thumb.output_path,
@@ -60,6 +73,9 @@ class ClientQualityMixin:
             "review_required": True,
             "instructions": "Open the thumbnail/storyboard and inspect the final video before publishing.",
         }
+        if profile is not None:
+            receipt["profile"] = profile
+        return receipt
 
     def design_quality_check(
         self,

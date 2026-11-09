@@ -2,7 +2,123 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass, replace
+
+from .errors import MCPVideoError
 from .quality_guardrail_types import QualityReport, _diagnostic, _metric
+
+# Camera footage keeps the historical point targets in each check. UI captures
+# are scored against these ranges instead: a reading inside the range scores
+# 100 at the midpoint and 80 at either edge, so intentional dark or light
+# product UI clears the default release gate of 80 without moving audio,
+# motion, or failed-analysis results.
+_UI_CONTRAST = (0.5, 25.0)
+_UI_SATURATION = (0.0, 20.0)
+
+
+@dataclass(frozen=True)
+class ContentProfile:
+    """Brightness, contrast, and saturation acceptance ranges for one content kind."""
+
+    name: str
+    brightness: tuple[float, float]
+    contrast: tuple[float, float]
+    saturation: tuple[float, float]
+
+    def range_for(self, check_name: str) -> tuple[float, float] | None:
+        if check_name == "brightness":
+            return self.brightness
+        if check_name == "contrast":
+            return self.contrast
+        if check_name == "saturation":
+            return self.saturation
+        return None
+
+
+QUALITY_CONTENT_PROFILES: dict[str, ContentProfile] = {
+    "ui-capture-dark": ContentProfile("ui-capture-dark", (20.0, 80.0), _UI_CONTRAST, _UI_SATURATION),
+    "ui-capture-light": ContentProfile("ui-capture-light", (170.0, 245.0), _UI_CONTRAST, _UI_SATURATION),
+}
+
+_PROFILE_METRICS = {
+    "brightness": "y_avg",
+    "contrast": "y_std",
+    "saturation": "saturation_pct",
+}
+
+
+def resolve_content_profile(profile: str | None) -> ContentProfile | None:
+    """Return the named content profile, or None for the camera-footage defaults."""
+    if profile is None:
+        return None
+    found = QUALITY_CONTENT_PROFILES.get(profile)
+    if found is None:
+        names = ", ".join(QUALITY_CONTENT_PROFILES)
+        raise MCPVideoError(
+            f"Unknown quality content profile {profile!r}. Expected one of: {names}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
+    return found
+
+
+def score_target_range(value: float, low: float, high: float) -> float:
+    """Score 100 at the midpoint and 80 at either edge of an inclusive range."""
+    span = high - low
+    if span <= 0:
+        return 100.0 if value == low else 0.0
+    half = span / 2.0
+    distance = abs(value - ((low + high) / 2.0))
+    if distance <= half:
+        return 100.0 - 20.0 * (distance / half)
+    return max(0.0, 80.0 - 20.0 * ((distance - half) / half))
+
+
+def _profile_message(check: str, profile: str, value: float, low: float, high: float) -> str:
+    text = f"{value:.1f}"
+    if check == "brightness":
+        if value < low:
+            return f"Video is darker than the {profile} profile allows (brightness: {text})."
+        if value > high:
+            return f"Video is brighter than the {profile} profile allows (brightness: {text})."
+        return f"Brightness matches the {profile} profile (brightness: {text})"
+    if check == "contrast":
+        if value < low:
+            return f"Video has lower contrast than the {profile} profile allows (std dev: {text})."
+        if value > high:
+            return f"Video has higher contrast than the {profile} profile allows (std dev: {text})."
+        return f"Contrast matches the {profile} profile (std dev: {text})"
+    if value < low:
+        return f"Video is less saturated than the {profile} profile allows (estimated: {text}%)."
+    if value > high:
+        return f"Video is more saturated than the {profile} profile allows (estimated: {text}%)."
+    return f"Saturation matches the {profile} profile (estimated: {text}%)"
+
+
+def apply_content_profile(engine: object, report: QualityReport) -> QualityReport:
+    """Rescore a visual check when a content profile is active.
+
+    Missing measurements stay failed. Audio, motion, and color checks have no
+    profile range, so they return unchanged.
+    """
+    profile = getattr(engine, "content_profile", None)
+    metric = _PROFILE_METRICS.get(report.check_name)
+    if profile is None or metric is None or metric not in report.details:
+        return report
+    bounds = profile.range_for(report.check_name)
+    if bounds is None:
+        return report
+    value = float(report.details[metric])
+    low, high = bounds
+    details = dict(report.details)
+    details["target_range"] = [low, high]
+    return replace(
+        report,
+        passed=low <= value <= high,
+        score=score_target_range(value, low, high),
+        message=_profile_message(report.check_name, profile.name, value, low, high),
+        details=details,
+    )
 
 
 class QualityChecksMixin:
@@ -10,6 +126,9 @@ class QualityChecksMixin:
 
     def check_brightness(self, video: str) -> QualityReport:
         """Check video brightness is in acceptable range."""
+        return apply_content_profile(self, self._camera_brightness(video))
+
+    def _camera_brightness(self, video: str) -> QualityReport:
         cached = self._get_all_signalstats(video)
         y_avg = cached.get("lavfi.signalstats.YAVG")
 
@@ -55,6 +174,9 @@ class QualityChecksMixin:
 
     def check_contrast(self, video: str) -> QualityReport:
         """Check video has adequate contrast."""
+        return apply_content_profile(self, self._camera_contrast(video))
+
+    def _camera_contrast(self, video: str) -> QualityReport:
         y_high = self._mean_signalstat(video, "YHIGH")
         y_low = self._mean_signalstat(video, "YLOW")
         if y_high is None or y_low is None:
@@ -110,6 +232,9 @@ class QualityChecksMixin:
 
     def check_saturation(self, video: str) -> QualityReport:
         """Check saturation levels."""
+        return apply_content_profile(self, self._camera_saturation(video))
+
+    def _camera_saturation(self, video: str) -> QualityReport:
         sat_avg = self._mean_signalstat(video, "SATAVG")
         if sat_avg is None:
             metric = _metric(

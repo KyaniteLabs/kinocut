@@ -22,7 +22,7 @@ from .defaults import (
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
 from .quality_signal_reader import read_signalstats, read_ffmpeg_signalstats
 from .quality_source import QualitySourceMixin
-from .quality_guardrail_checks import QualityChecksMixin
+from .quality_guardrail_checks import QualityChecksMixin, resolve_content_profile
 from .quality_guardrail_types import QualityReport, _diagnostic
 
 logger = logging.getLogger(__name__)
@@ -94,8 +94,9 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         "lavfi.signalstats.UAVG,lavfi.signalstats.VAVG"
     )
 
-    def __init__(self, max_analyze_seconds: float | None = None) -> None:
+    def __init__(self, max_analyze_seconds: float | None = None, profile: str | None = None) -> None:
         self.max_analyze_seconds = max_analyze_seconds
+        self.content_profile = resolve_content_profile(profile)
 
     def _movie_source(self, video: str, tail: str) -> str:
         # Quote the value: FFmpeg runs two unescaping passes over filter args,
@@ -607,7 +608,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         overall_score = sum(c.score for c in gating) / len(gating) if gating else 0.0
         all_passed = all(c.passed for c in gating)
 
-        return {
+        report = {
             "video": video,
             "analysis_domain": {
                 "signal_units": "8bit_limited_range_code_values",
@@ -630,22 +631,30 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
             ],
             "recommendations": [c.message for c in checks if not c.passed],
         }
+        if self.content_profile is not None:
+            report["profile"] = self.content_profile.name
+        return report
 
 
 def quality_check(
-    video: str, fail_on_warning: bool = False, max_analyze_seconds: float | None = None
+    video: str,
+    fail_on_warning: bool = False,
+    max_analyze_seconds: float | None = None,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     """Public API for quality checking a video.
 
     Args:
         video: Path to video file
         fail_on_warning: If True, treat warnings as failures
+        profile: Optional ``ui-capture-dark`` or ``ui-capture-light`` content profile.
+            Adjusts brightness, contrast, and saturation only.
 
     Returns:
         Quality report dictionary
     """
     video = _validate_input_path(video)
-    guardrails = VisualQualityGuardrails(max_analyze_seconds=max_analyze_seconds)
+    guardrails = VisualQualityGuardrails(max_analyze_seconds=max_analyze_seconds, profile=profile)
     report = guardrails.generate_report(video)
 
     if fail_on_warning:
@@ -670,13 +679,14 @@ def assert_quality(
     min_score: float = DEFAULT_QUALITY_GATE_SCORE,
     max_analyze_seconds: float | None = None,
     require_audio: bool = True,
+    profile: str | None = None,
 ) -> dict[str, Any]:
     """Hard quality gate for agent workflows before publishing output.
 
     A video with no audio stream fails this gate even when its overall score
     meets ``min_score``; pass ``require_audio=False`` to opt out explicitly.
     """
-    report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds)
+    report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds, profile=profile)
     audio_missing = require_audio and _report_missing_audio_stream(report)
     score_ok = report["overall_score"] >= min_score
     # ``all_passed`` stays the per-check aggregate from ``quality_check``; the

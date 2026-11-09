@@ -22,6 +22,18 @@ def _add_command_output_format(parser: argparse.ArgumentParser) -> None:
     )
 
 
+def _add_content_profile(parser: argparse.ArgumentParser) -> None:
+    """Add the optional UI-capture content profile shared by the quality gate."""
+    from kinocut.quality_guardrail_checks import QUALITY_CONTENT_PROFILES
+
+    parser.add_argument(
+        "--profile",
+        choices=tuple(QUALITY_CONTENT_PROFILES),
+        default=None,
+        help="Content profile for brightness, contrast, and saturation (default: camera footage)",
+    )
+
+
 def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add quality subcommands to the CLI parser."""
     # video-auto-chapters
@@ -39,6 +51,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     qcheck_p = subparsers.add_parser("video-quality-check", help="Run visual quality checks on a video")
     qcheck_p.add_argument("input", help="Input video file")
     qcheck_p.add_argument("--fail-on-warning", action="store_true", help="Treat warnings as failures")
+    _add_content_profile(qcheck_p)
     _add_command_output_format(qcheck_p)
 
     # video-design-quality-check
@@ -73,4 +86,5 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     rcheck_p.add_argument(
         "--require-audio", action=argparse.BooleanOptionalAction, default=True, help="Require an audio stream"
     )
+    _add_content_profile(rcheck_p)
     _add_command_output_format(rcheck_p)

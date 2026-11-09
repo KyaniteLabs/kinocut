@@ -121,15 +121,15 @@ def test_baseline_fixture_is_wellformed():
 def test_headline_baseline_numbers_are_pinned():
     """The one-screen numbers every doc and design decision quotes.
 
-    default 30 tools / 24,281 B (20-tool core diet + the 10 compact-surface
+    default 30 tools / 24,370 B (20-tool core diet + the 10 compact-surface
     tools added by the typed operation families: 8 dispatchers,
-    list_operations, describe_operation); all 205 tools / 126,776 B — the
-    legacy full-catalog surface, byte-identical since 2cf76e98;
-    profile:editor 118 tools / 81,747 B. Regenerated after the compact
-    surface landed; the all-mode rows are unchanged down to per-tool digests.
+    list_operations, describe_operation); all 205 tools / 126,954 B;
+    profile:editor 118 tools / 81,836 B. The optional quality ``profile``
+    parameter on ``video_quality_check`` and ``video_release_checkpoint``
+    accounts for the growth past the earlier 24,281 / 126,776 / 81,747 totals.
     """
-    assert BASELINE["captured"]["git_commit"] == "c130f03735c05f74f8e16419b4fb8262ff35648a"
-    for mode, count, total in (("default", 30, 24_281), ("all", 205, 126_776), ("profile:editor", 118, 81_747)):
+    assert BASELINE["captured"]["git_commit"] == "3ebb4372b0c1944f6b7fe6e72c95420c2fe52fb7"
+    for mode, count, total in (("default", 30, 24_370), ("all", 205, 126_954), ("profile:editor", 118, 81_836)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -199,7 +199,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 30, 24_281), ("all", 205, 126_776)])
+@pytest.mark.parametrize("mode,count,total", [("default", 30, 24_370), ("all", 205, 126_954)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

@@ -694,6 +694,26 @@ class TestReleaseCheckpointPassthrough:
         assert payload["success"] is True
         assert payload["review_required"] is True
 
+    def test_handler_forwards_content_profile(self, monkeypatch, capsys):
+        import kinocut.server_tools_ai as server_tools_ai
+        from kinocut.cli.handlers_advanced import handle_advanced_commands
+
+        calls = {}
+
+        def fake_release_checkpoint(*args, **kwargs):
+            calls["keyword"] = kwargs
+            return {"success": True, "video": args[0], "review_required": True, "profile": kwargs["profile"]}
+
+        monkeypatch.setattr(server_tools_ai, "video_release_checkpoint", fake_release_checkpoint)
+
+        handled = handle_advanced_commands(self._args(profile="ui-capture-dark"), use_json=True)
+
+        assert handled is True
+        assert calls["keyword"]["profile"] == "ui-capture-dark"
+        payload = json.loads(capsys.readouterr().out)
+        assert payload["profile"] == "ui-capture-dark"
+        assert payload["success"] is True
+
     def test_handler_fails_closed_on_tool_error_result(self, monkeypatch):
         import kinocut.server_tools_ai as server_tools_ai
         from kinocut.cli.handlers_advanced import handle_advanced_commands
