@@ -458,7 +458,8 @@ def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
     ``O_EXCL``, ``0600``) so no pre-planted symlink is ever followed; the content
     is flushed and ``fsync``-ed, then swapped in with an atomic :func:`os.replace`
     followed by a parent-directory ``fsync`` for durability. The write is
-    all-or-nothing: the prior file is moved aside first, and if *any* step —
+    all-or-nothing: the prior file is kept as a backup first (hard link or
+    copy, so ``path`` never disappears for readers), and if *any* step —
     including the post-replace directory ``fsync`` — fails, the prior bytes are
     restored so a reported failure never leaves a partially-advanced file. Every
     raw OS error is mapped to a privacy-safe :class:`MCPVideoError`.
@@ -480,7 +481,12 @@ def _write_atomically(path: Path, fill: Any, *, binary: bool = False) -> None:
                 backup = path.with_name(f".{path.name}.bak.{os.getpid()}")
                 if backup.exists():
                     backup.unlink()
-                os.replace(path, backup)  # move prior bytes aside for rollback
+                # Keep the prior bytes for rollback WITHOUT moving ``path`` away: a
+                # lock-free reader must never observe the file missing mid-write (#708).
+                try:
+                    os.link(path, backup)
+                except OSError:
+                    shutil.copy2(path, backup)
             installed = False
             try:
                 os.replace(tmp, path)
