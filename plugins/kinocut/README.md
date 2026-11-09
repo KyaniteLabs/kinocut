@@ -6,9 +6,13 @@ Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
 server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
 Plugin bundle **1.16.7** pins the separately versioned Kinocut runtime
-**1.16.5**. The legacy `mcp-video` compatibility package **1.6.20** installs
-that same runtime. Catalog entries use the bundle version; launchers use the
-runtime version.
+**1.16.5** (205 MCP tools / 177 CLI; 20-tool default registration). The legacy
+`mcp-video` compatibility package **1.6.20** installs that same runtime.
+Catalog entries use the bundle version; launchers use the runtime version.
+
+The Hermes catalog listing is a separate pin: it still launches
+`uvx kinocut==1.16.4` (203 MCP tools / 177 CLI). Do not quote the 205-tool
+published surface as the Hermes pin.
 
 Local FFmpeg editing and color grading need no account or API key. Network use
 depends on the features you choose:
