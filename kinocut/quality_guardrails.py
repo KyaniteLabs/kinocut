@@ -679,8 +679,16 @@ def assert_quality(
     report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds)
     audio_missing = require_audio and _report_missing_audio_stream(report)
     score_ok = report["overall_score"] >= min_score
-    report["all_passed"] = score_ok and not audio_missing
-    if not report["all_passed"]:
+    # ``all_passed`` stays the per-check aggregate from ``quality_check``; the
+    # score gate gets its own fields so a passing gate never reads as
+    # "every check passed" over failed checks.
+    advisory = VisualQualityGuardrails.ADVISORY_CHECKS
+    report["gate_passed"] = score_ok and not audio_missing
+    report["min_score"] = min_score
+    report["failed_checks"] = [
+        c["name"] for c in report.get("checks", []) if not c.get("passed") and c.get("name") not in advisory
+    ]
+    if not report["gate_passed"]:
         failures: list[str] = []
         if not score_ok:
             failures.append(f"score {report['overall_score']:.1f} < {min_score:.1f}")
