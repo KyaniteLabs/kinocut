@@ -16,9 +16,7 @@ from .errors import MCPVideoError
 _OVERWRITE: ContextVar[bool | None] = ContextVar("kinocut_overwrite", default=None)
 _OVERWRITE_TYPE = Annotated[
     bool,
-    Field(
-        strict=True, description="Explicitly allow replacing existing media. Existing non-media files are protected."
-    ),
+    Field(strict=True, description="Allow replacing existing media files."),
 ]
 
 
@@ -44,9 +42,15 @@ def output_operation(overwrite: bool = DEFAULT_OVERWRITE):
         _OVERWRITE.reset(consent)
 
 
+def read_only(fn: Any) -> Any:
+    """Mark a handler that never writes media, so it gets no ``overwrite`` parameter."""
+    fn._kinocut_read_only = True
+    return fn
+
+
 def with_output_policy(fn: Any) -> Any:
-    """Expose a strict ``overwrite=false`` keyword on each MCP handler."""
-    if getattr(fn, "_kinocut_output_policy", False):
+    """Expose a strict ``overwrite=false`` keyword on each MCP handler that can write media."""
+    if getattr(fn, "_kinocut_output_policy", False) or getattr(fn, "_kinocut_read_only", False):
         return fn
     original = inspect.unwrap(fn)
     signature = inspect.signature(fn, globals=original.__globals__, eval_str=True)

@@ -16,6 +16,7 @@ from ..engine_resize import resize
 from ..engine_subtitle_generate import generate_subtitles
 from ..engine_subtitles import subtitles
 from ..ffmpeg_helpers import _validate_input_path, _validate_output_path
+from ..workflow.status import StepStatus
 
 __all__ = ["video_shorts"]
 
@@ -84,10 +85,14 @@ def _assemble_segments(
         trimmed_paths.append(result.output_path)
 
     if len(trimmed_paths) == 1:
-        return trimmed_paths, trimmed_paths[0], {"stage": "merge", "status": "skipped", "reason": "one segment"}
+        return (
+            trimmed_paths,
+            trimmed_paths[0],
+            {"stage": "merge", "status": StepStatus.SKIPPED, "reason": "one segment"},
+        )
     assembled_path = os.path.join(workdir, "assembled.mp4")
     merged = merge(trimmed_paths, output_path=assembled_path)
-    return trimmed_paths, merged.output_path, {"stage": "merge", "status": "completed"}
+    return trimmed_paths, merged.output_path, {"stage": "merge", "status": StepStatus.COMPLETED}
 
 
 def _measured_segment_durations(paths: list[str]) -> list[float]:
@@ -182,7 +187,7 @@ def _caption_receipt(
         )
     caption_step = {
         "stage": "captions",
-        "status": "completed",
+        "status": StepStatus.COMPLETED,
         "entry_count": burned_count,
         "requested_entry_count": requested_count,
         "burned_entry_count": burned_count,
@@ -218,7 +223,7 @@ def _apply_captions(
         # No caption needs a timeline, so the render needs no measured
         # durations: a segment that cannot be timed does not block a flow
         # that never reads a timing.
-        return assembled_path, {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
+        return assembled_path, {"stage": "captions", "status": StepStatus.SKIPPED, "reason": "segments have no text"}
 
     if len(measured) != len(parsed):
         # The caption timeline is timed from the media that actually rendered.
@@ -240,7 +245,7 @@ def _apply_captions(
         offset += span
 
     if not caption_entries:
-        return assembled_path, {"stage": "captions", "status": "skipped", "reason": "segments have no text"}
+        return assembled_path, {"stage": "captions", "status": StepStatus.SKIPPED, "reason": "segments have no text"}
     # The SRT is a transient build input, not a durable sidecar: it lives in the
     # flow-owned workdir so a re-run with overwrite consent is never blocked by
     # a stale companion file next to the requested output.
@@ -364,16 +369,16 @@ def video_shorts(
                 output_path=final_output,
             )
             steps = [
-                {"stage": "trim", "status": "completed", "segment_count": len(trimmed_paths)},
+                {"stage": "trim", "status": StepStatus.COMPLETED, "segment_count": len(trimmed_paths)},
                 merge_step,
                 caption_step,
                 {
                     "stage": "vertical_template",
-                    "status": "completed",
+                    "status": StepStatus.COMPLETED,
                     "aspect_ratio": "9:16",
                     "output_path": vertical.output_path,
                 },
-                {"stage": "export", "status": "completed", "output_path": vertical.output_path},
+                {"stage": "export", "status": StepStatus.COMPLETED, "output_path": vertical.output_path},
             ]
             return {
                 "success": True,

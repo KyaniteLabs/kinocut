@@ -212,6 +212,23 @@ def test_pil_font_loader_has_no_glob_name_error():
         assert "glob" not in str(exc)
 
 
+def test_pil_font_loader_searches_the_xdg_user_font_dir(tmp_path, monkeypatch):
+    """Fonts installed per-user on Linux land in $XDG_DATA_HOME/fonts."""
+    import platform
+
+    image_font = pytest.importorskip("PIL.ImageFont")
+    font_file = tmp_path / "fonts" / "kinotest" / "KinoTestFace-Regular.ttf"
+    font_file.parent.mkdir(parents=True)
+    font_file.write_bytes(b"")
+    opened = []
+    monkeypatch.setattr(platform, "system", lambda: "Linux")
+    monkeypatch.setenv("XDG_DATA_HOME", str(tmp_path))
+    monkeypatch.setattr(image_font, "truetype", lambda path, size: opened.append(path) or "font")
+
+    assert _load_pil_font("KinoTest Face", 24) == "font"
+    assert opened == [str(font_file)]
+
+
 def test_pil_font_loader_finds_a_real_font():
     import platform
 

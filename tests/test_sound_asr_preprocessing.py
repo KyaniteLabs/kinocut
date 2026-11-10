@@ -2,6 +2,7 @@
 
 import asyncio
 import hashlib
+import os
 from pathlib import Path
 import sys
 
@@ -174,12 +175,38 @@ def test_read_validator_exception_and_concurrent_mutation_cannot_return_material
     def mutate(handle, _size):
         handles.append(handle)
         source.write_bytes(b"modified")
+        # Exercise the stat-change branch even on coarse CI filesystems.
+        current = source.stat()
+        os.utime(source, ns=(current.st_atime_ns, current.st_mtime_ns + 1_000_000_000))
 
     with open_root(str(tmp_path)) as root:
         with pytest.raises(SoundContractError, match="invalid input"):
             read_asset(root, source.name, "sha256:" + "0" * 64, 8, validator=invalid)
         with pytest.raises(SoundContractError, match="changed during read"):
             read_asset(root, source.name, "sha256:" + "0" * 64, 8, validator=mutate)
+    assert all(handle.closed for handle in handles)
+
+
+def test_read_same_stat_mutation_still_checks_original_hash(tmp_path, monkeypatch):
+    from kinocut_sound.public import mix_files
+
+    source = tmp_path / "source"
+    original = b"original"
+    source.write_bytes(original)
+    digest = "sha256:" + hashlib.sha256(original).hexdigest()
+    handles = []
+    original_stat = source.stat()
+    monkeypatch.setattr(mix_files.os, "fstat", lambda _fd: original_stat)
+
+    def mutate(handle, _size):
+        handles.append(handle)
+        source.write_bytes(b"modified")
+
+    with (
+        mix_files.open_root(str(tmp_path)) as root,
+        pytest.raises(SoundContractError, match="hash mismatch"),
+    ):
+        mix_files.read_asset(root, source.name, digest, len(original), validator=mutate)
     assert all(handle.closed for handle in handles)
 
 

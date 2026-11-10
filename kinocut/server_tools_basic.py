@@ -12,9 +12,8 @@ import functools
 import anyio
 from mcp.server.fastmcp import Context
 
-from .contracts.receipt_ai_video import AiVideoReceiptSection
-from .receipts_ai_video import attach_ai_video_section
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
+from .output_policy import read_only
 from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation_error, mcp
 from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
@@ -91,6 +90,9 @@ def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> d
 
     if not isinstance(result, dict) or not result.get("success"):
         return result
+    from .contracts.receipt_ai_video import AiVideoReceiptSection
+    from .receipts_ai_video import attach_ai_video_section
+
     warnings = ("outro_may_be_trimmed",) if duration_policy == "shortest" else ()
     section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
     return attach_ai_video_section(result, section)
@@ -112,14 +114,17 @@ OptionalOutputVideoPath = Annotated[
 ]
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+)
 @_safe_tool
+@read_only
 def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
-    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. Pass input_path as the absolute path to the existing video. Set exact=true to also get the decoded frame_count and the raw r_frame_rate/avg_frame_rate strings (slower: the whole video stream is decoded).
+    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length.
 
     Args:
         input_path: Absolute path to the video file.
-        exact: Also report frame_count (decoded), frame_count_source, r_frame_rate and avg_frame_rate (raw ffprobe strings, null when not measurable).
+        exact: Also report decoded frame_count, frame_count_source, r_frame_rate and avg_frame_rate (null when not measurable). Slower: decodes the whole stream.
     """
     input_path = _validate_input_path(input_path)
     info = probe_exact(input_path) if exact else probe(input_path)
@@ -131,7 +136,9 @@ def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
     return {"success": True, "info": data}
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_trim(
     input_path: str,
@@ -141,7 +148,7 @@ def video_trim(
     output_path: str | None = None,
     accurate: bool = False,
 ) -> dict[str, Any]:
-    """Trim a video clip by start time and duration. Returns JSON {success, output_path} pointing at the rendered clip. Use to cut a segment out of a longer video. Pass input_path as the absolute path to the source video (e.g. from video_info), start as a timestamp, and duration or end to define the segment.
+    """Cut a segment out of a video by start time and duration or end. Returns JSON {success, output_path} pointing at the rendered clip.
 
     Args:
         input_path: Absolute path to the input video.
@@ -149,8 +156,7 @@ def video_trim(
         duration: Duration to keep (e.g. '00:00:30' or '30'). Exclusive with end.
         end: End timestamp. Exclusive with duration.
         output_path: Where to save the trimmed video. Auto-generated if omitted.
-        accurate: Frame-accurate seeking (slower).  Default False uses fast
-            input seeking which may land on the nearest keyframe.
+        accurate: Ignored: trims re-encode, so they are always frame-accurate.
     """
     if any(isinstance(value, bool) for value in (start, duration, end)):
         return _validation_error("Trim times must be timestamps or numeric seconds, not booleans")
@@ -163,9 +169,7 @@ def video_trim(
 @mcp.tool(
     title="Merge video clips",
     description=(
-        "Concatenate two or more existing video clips into one rendered output file. "
-        "Returns JSON {success, output_path}. Use to join ordered clips into a single video. "
-        "Pass clips as an ordered list of absolute paths (at least two); output is auto-named or written to output_path."
+        "Concatenate two or more video clips, in order, into one rendered file. Returns JSON {success, output_path}."
     ),
     annotations=ToolAnnotations(
         title="Merge video clips",
@@ -189,12 +193,7 @@ def video_merge(
     output_path: OptionalOutputVideoPath = None,
     transition: Annotated[
         str | None,
-        Field(
-            description=(
-                "Optional xfade transition applied to every clip boundary, such as fade, "
-                "dissolve, wipeleft, wiperight, slideleft, or slideright."
-            )
-        ),
+        Field(description=("xfade transition for every clip boundary, e.g. fade, dissolve, wipeleft, slideright.")),
     ] = None,
     transitions: Annotated[
         list[str] | None,
@@ -241,7 +240,9 @@ def video_merge(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_add_text(
     input_path: str,
@@ -257,13 +258,13 @@ def video_add_text(
     crf: int | None = None,
     preset: str | None = None,
 ) -> dict[str, Any]:
-    """Overlay text on a video (titles, captions, watermarks). Returns JSON {success, output_path}. Use to burn a single text element into a video. Pass input_path as the source video, text with the string to draw, and position/size/color to style it; output_path is auto-named when omitted.
+    """Burn one text element (title, caption, watermark) into a video. Returns JSON {success, output_path}.
 
     Args:
         input_path: Absolute path to the input video.
         text: Text to overlay.
-        position: Position on screen. Named (top-left, top-center, etc.), pixel"
-                  " {\"x\": 100, \"y\": 50}, or percentage {\"x_pct\": 0.5, \"y_pct\": 0.5}.
+        position: Named (top-left, top-center, ...), pixels {"x": 100, "y": 50},
+            or fractions {"x_pct": 0.5, "y_pct": 0.5}.
         font: Path to font file. Uses system default if omitted.
         size: Font size in pixels.
         color: Text color (CSS color name or hex).
@@ -357,9 +358,8 @@ def video_add_texts(
 @mcp.tool(
     title="Add or mix video audio",
     description=(
-        "Add, replace, or mix an audio track into an existing video and render a new output file. "
-        "Returns JSON {success, output_path}. Use to score or re-voice a video; source video and audio are read only. "
-        "Pass video_path as the source video and audio_path as the audio file; set mix to combine or false to replace."
+        "Add, replace, or mix an audio track into a video and render a new file; the sources are only read. "
+        "Returns JSON {success, output_path}."
     ),
     annotations=ToolAnnotations(
         title="Add or mix video audio",
@@ -602,6 +602,7 @@ def video_speed(
 
 @mcp.tool()
 @_safe_tool
+@read_only
 def search_tools(query: str) -> dict[str, Any]:
     """Find registered MCP tools by name, keyword, or a supported task phrase.
 

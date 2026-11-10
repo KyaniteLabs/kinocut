@@ -46,7 +46,7 @@ jobs:
           while IFS= read -r -d '' changed_path; do
             printf 'changed: %q\n' "$changed_path"
             case "$changed_path" in
-              kinocut/*|kinocut_sound/*|tests/*|workflows/05-confidence-baseline/*|scripts/golden_path.py|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
+              kinocut/*|kinocut_sound/*|plugins/*|tests/*|workflows/05-confidence-baseline/*|scripts/golden_path.py|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
                 code=true ;;
             esac
             case "$changed_path" in
@@ -331,6 +331,10 @@ jobs:
           node --version
           npm install --ignore-scripts -g hyperframes@0.8.104
           hyperframes --version
+      - name: Test Hermes Desktop plugin
+        if: needs.changes.outputs.code == 'true'
+        timeout-minutes: 2
+        run: node --test plugins/kinocut/desktop/plugin.test.mjs
       - name: Install dependencies
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e ".[dev]"

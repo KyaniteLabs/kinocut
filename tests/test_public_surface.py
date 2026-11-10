@@ -62,7 +62,6 @@ CURRENT_KINOCUT_DOC_PATHS = (
     ROOT / "docs" / "CLI_REFERENCE.md",
     ROOT / "docs" / "DESIGN_STANDARDS.md",
     ROOT / "docs" / "DIRECTORY_REBRAND_STATUS.md",
-    ROOT / "docs" / "INTEGRATION-ROADMAP.md",
     ROOT / "docs" / "LEGAL_REVIEW.md",
     ROOT / "docs" / "POST_RESCUE_FEATURES.md",
     ROOT / "docs" / "PYTHON_CLIENT.md",
@@ -72,7 +71,6 @@ CURRENT_KINOCUT_DOC_PATHS = (
     ROOT / "docs" / "VIDEO_RECEIPT.md",
     ROOT / "docs" / "WORKFLOWS.md",
     ROOT / "docs" / "KINOCUT-AUDIO-FEATURES.md",
-    ROOT / "docs" / "KINOCUT-FEATURES-ROADMAP.md",
     ROOT / "docs" / "faq.md",
     ROOT / "docs" / "launch-checklist.md",
     ROOT / "docs" / "repository-audit-checklist.md",
@@ -311,7 +309,7 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
 
 
 def test_stdio_server_all_mode_registers_the_full_catalog():
-    """``KINOCUT_TOOLS=all`` restores the full 205-tool development surface."""
+    """``KINOCUT_TOOLS=all`` restores the full 206-tool development surface."""
 
     async def check_server() -> None:
         params = StdioServerParameters(
@@ -324,7 +322,7 @@ def test_stdio_server_all_mode_registers_the_full_catalog():
             tools_result = await session.list_tools()
 
         tool_names = {tool.name for tool in tools_result.tools}
-        assert len(tool_names) == 205
+        assert len(tool_names) == 206
         assert tool_names >= DEFAULT_SERVER_TOOLS
 
     asyncio.run(check_server())

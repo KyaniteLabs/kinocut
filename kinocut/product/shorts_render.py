@@ -23,7 +23,7 @@ from .captions import CaptionConfig, WordTiming, build_caption_artifact
 from .clip_pipeline import clip_moment
 from .config import normalise_platform
 from .models import CandidateMoment, canonical_dedup_key
-from .shorts_plan import RenderRecord, ShortsPlan, load_shorts_plan, save_shorts_plan
+from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
 from .shorts_review import resolve_approved_candidate
 from ..validation_errors import rejected_value
 
@@ -306,12 +306,12 @@ def render_approved_candidate(
             ] + [new_record]
         emitted.append(payload)
 
-    revised = plan.model_copy(update={"renders": tuple(records), "status": "rendered"})
+    revised = plan.model_copy(update={"renders": tuple(records), "status": ShortsPlanStatus.RENDERED})
     save_shorts_plan(revised)
     return {
         "job_id": plan.job_id,
         "candidate_id": candidate.candidate_id,
-        "status": "rendered",
+        "status": ShortsPlanStatus.RENDERED,
         "renders": emitted,
         "external_posting": False,
         "review_warnings": tuple(dict.fromkeys(warnings)),
