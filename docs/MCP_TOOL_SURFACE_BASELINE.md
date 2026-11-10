@@ -12,27 +12,35 @@ repository server for the three supported selector modes, launched exactly
 the way registries and clients launch it (`python -m kinocut --mcp` over
 stdio, MCP initialize + tools/list):
 
-| Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
-| --- | --- | --- |
-| default / `core` (unset) | 18 | 17,429 |
-| `all` | 205 | 126,908 |
-| `profile:editor` | 114 | 80,152 |
+| Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (pinned) | Full `tools/list` JSON |
+| --- | --- | --- | --- |
+| default / `core` (unset) | 18 | 14,759 | 21,771 |
+| `all` | 206 | 119,053 | 177,842 |
+| `profile:editor` | 115 | 81,259 | 121,119 |
 
-The default surface is the 8-tool hot-path core plus the ten compact-surface
-tools (eight typed operation families + `list_operations` +
-`describe_operation`, see `docs/MCP_TOOL_FAMILIES.md`). It was captured at
-2cf76e98 (published 1.16.5) as 20 tools / 13,947 bytes and regenerated after
-the compact surface landed; the **`all` mode rows are byte-identical** across
-that regeneration (205 tools, 126,776 bytes, unchanged per-tool digests) —
-the legacy full-catalog compatibility proof. `profile:editor` moved
-108 / 71,413 → 118 / 81,747 with the same ten additions. #679 then added an
-optional `profile` input to `video_quality_check` and `video_release_checkpoint`
-(default 24,281 → 24,347; `all` 126,776 → 126,908; editor 81,747 → 81,813).
-The hot-path diet (#655) then cut the direct core from 20 tools to 8; the
-twelve dropped tools stay reachable as family operations, through
-`KINOCUT_TOOLS=all`, and (where their profile carries them) through
-`profile:<name>` (default 30 / 24,347 → 18 / 17,429; editor 118 / 81,813 →
-114 / 80,152; `all` unchanged).
+The fixture pins input-schema bytes. The last column is the whole `tools/list`
+payload (names, descriptions, annotations and schemas) in the same compact
+serialization: what a client actually loads into context. It is not pinned;
+`--regenerate-baseline` prints it.
+
+The default surface is the 8-tool hot path plus ten compact-surface tools: eight
+typed operation families, `list_operations` and `describe_operation` (see
+[MCP_TOOL_FAMILIES.md](MCP_TOOL_FAMILIES.md)). `all` lists the 206 registry tools
+by name and hides the families.
+
+### How the numbers moved
+
+- Published 1.16.5 (2cf76e98): default 20 tools / 13,947 schema bytes; `all` 205.
+- Family layer: default 30 tools, every registry operation reachable.
+- Hot-path diet (#655): direct core 20 → 8 tools; default 18 tools.
+- Schema titles dropped, `Args` help moved onto parameters (#719), shorter family
+  and `overwrite` descriptions, read-only tools stop offering `overwrite`, longest
+  texts trimmed: default `tools/list` 26,264 → 21,722 B.
+- `video_review_card` (#723) added one operation: default 21,761 B, `all` 206, editor 115.
+- `search_tools` and `video_info_detailed` stop offering `overwrite` (#747).
+
+The test docstring in `tests/test_tool_surface_baseline.py` keeps the
+step-by-step byte history.
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required
@@ -56,10 +64,10 @@ compares each against the fixture:
 
 1. in-process registration (`configure_tool_surface` + `mcp.list_tools`),
 2. a cold stdio subprocess handshake — the bytes a real client sees,
-3. the declarative tables in `kinocut/tool_registry.py` (205 names across 25
+3. the declarative tables in `kinocut/tool_registry.py` (206 names across 25
    modules, one module per tool, core tags matching the default surface).
 
-The headline numbers (30/24,347, 205/126,908, 118/81,813) are also asserted
+The headline numbers (18/14,759, 206/119,053, 115/81,259) are also asserted
 literally so a fixture edit cannot pass unnoticed.
 
 `tests/test_tool_surface_compat.py` protects the behaviors around the

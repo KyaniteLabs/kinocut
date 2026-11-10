@@ -1,6 +1,6 @@
 """Typed operation families: the compact MCP dispatch surface.
 
-The registry owns 205 direct tool registrations (``KINOCUT_TOOLS=all``).  This
+The registry owns 206 direct tool registrations (``KINOCUT_TOOLS=all``).  This
 module partitions those operations into a small set of *families* so the
 default and profile surfaces can expose every operation through a handful of
 typed dispatch tools instead of one schema per operation.
@@ -75,38 +75,14 @@ FAMILY_TITLES: Mapping[str, str] = {
 # One-line usage summaries embedded in each family tool schema.  Kept short on
 # purpose: schemas are the budget this surface exists to shrink.
 FAMILY_SUMMARIES: Mapping[str, str] = {
-    "video_edit_ops": (
-        "Run one edit operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "video_effects_ops": (
-        "Run one effect operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "audio_ops": (
-        "Run one audio operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "video_ai_ops": (
-        "Run one AI operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "image_ops": (
-        "Run one image/still operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "video_qc_ops": (
-        "Run one inspection/release operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "video_plan_ops": (
-        "Run one planning operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
-    "platform_ops": (
-        "Run one platform operation. operation is one of this family's names (see list_operations); "
-        "params holds that operation's exact arguments."
-    ),
+    "video_edit_ops": "Run one edit operation by name; params holds its arguments.",
+    "video_effects_ops": "Run one effect operation by name; params holds its arguments.",
+    "audio_ops": "Run one audio operation by name; params holds its arguments.",
+    "video_ai_ops": "Run one AI operation by name; params holds its arguments.",
+    "image_ops": "Run one image/still operation by name; params holds its arguments.",
+    "video_qc_ops": "Run one inspection/release operation by name; params holds its arguments.",
+    "video_plan_ops": "Run one planning operation by name; params holds its arguments.",
+    "platform_ops": "Run one platform operation by name; params holds its arguments.",
 }
 
 # The on-demand discovery tool that lists families, operations, verbs and

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from mcp.types import ToolAnnotations
+
 from .design_guardrails import (
     validate_text_layout,
     TextOverlaySpec,
@@ -72,17 +74,17 @@ def video_validate_text_layout(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_extract_frame(
     input_path: str,
     timestamp: float | None = None,
     output_path: str | None = None,
 ) -> dict[str, Any]:
-    """Extract a frame using the same sampling as CLI and Python frame extraction.
-
-    Omitted timestamps use smart thumbnail selection when available, falling
-    back to 10% of the clip duration. Pass 0 explicitly to extract the first frame.
+    """Extract one frame as an image. Without a timestamp, picks a smart thumbnail
+    (fallback: 10% into the clip); pass 0 for the first frame.
 
     Args:
         input_path: Absolute path to the video.

@@ -53,6 +53,9 @@ SERIALIZATION = (
 )
 
 
+LISTING_BYTES: dict[str, int] = {}
+
+
 def canonical_schema_bytes(schema: dict[str, Any]) -> bytes:
     return json.dumps(schema, ensure_ascii=False, separators=(",", ":")).encode("utf-8")
 
@@ -96,6 +99,10 @@ async def capture_surface(
             }
         )
     names_digest = hashlib.sha256("\n".join(row["name"] for row in rows).encode("utf-8")).hexdigest()
+    # Not pinned: the whole tools/list payload a client loads (names, descriptions,
+    # annotations, schemas), reported so the docs can quote it.
+    listing = [tool.model_dump(mode="json", by_alias=True, exclude_none=True) for tool in tools.tools]
+    LISTING_BYTES[env.get("KINOCUT_TOOLS", "default")] = len(canonical_schema_bytes({"tools": listing}))
     return {
         "server_info": {"name": init.serverInfo.name, "version": init.serverInfo.version},
         "tool_count": len(rows),
@@ -226,6 +233,8 @@ def regenerate_baseline() -> dict[str, Any]:
     print(f"wrote {BASELINE_PATH}")
     for mode, surface in modes.items():
         print(f"  {mode}: {surface['tool_count']} tools, {surface['total_input_schema_bytes']} schema bytes")
+    for selector, size in LISTING_BYTES.items():
+        print(f"  tools/list {selector}: {size} bytes")
     return baseline
 
 

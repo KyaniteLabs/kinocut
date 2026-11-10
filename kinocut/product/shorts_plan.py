@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
@@ -54,7 +55,21 @@ ReviewAction = Literal[
     "sensitive_unsuitable",
 ]
 
-ShortsPlanStatus = Literal["review_required", "reviewed", "rendered", "packaged"]
+
+class ShortsPlanStatus(StrEnum):
+    """The last stage any candidate in the plan reached.
+
+    This is a progress marker, not a gate: the plan holds many candidates, so
+    reviewing candidate B after packaging candidate A legitimately moves it back
+    to ``reviewed``.  The gates are per candidate: rendering needs a current
+    ``approve`` decision and packaging needs that candidate's renders.  The
+    values equal the strings stored in plan files.
+    """
+
+    REVIEW_REQUIRED = "review_required"
+    REVIEWED = "reviewed"
+    RENDERED = "rendered"
+    PACKAGED = "packaged"
 
 
 class IntakeReport(_StrictModel):
@@ -127,7 +142,7 @@ class ShortsPlan(_StrictModel):
 
     schema_version: Literal[1] = 1
     job_id: str = Field(pattern=_JOB_ID_PATTERN)
-    status: ShortsPlanStatus = "review_required"
+    status: ShortsPlanStatus = ShortsPlanStatus.REVIEW_REQUIRED
     project_dir: str = Field(min_length=1)
     output_dir: str = Field(min_length=1)
     intake: IntakeReport

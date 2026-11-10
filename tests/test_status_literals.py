@@ -20,11 +20,6 @@ PACKAGE = ROOT / "kinocut"
 ALLOWED = {
     "c2pa.py": 1,
     "intent/broll.py": 1,
-    "product/shorts_flow.py": 8,
-    "product/shorts_package.py": 2,
-    "product/shorts_render.py": 2,
-    "product/shorts_review.py": 1,
-    "projectstore/repurpose_policy.py": 4,
     "server_tools_advanced.py": 4,
     "still_plates/edit.py": 2,
     "still_plates/grade.py": 1,
@@ -45,14 +40,23 @@ def _is_str(node: ast.AST | None) -> bool:
     return isinstance(node, ast.Constant) and isinstance(node.value, str)
 
 
+def _is_untyped_dict_call(func: ast.AST) -> bool:
+    """``dict(...)`` or ``x.update(...)``; typed model constructors validate their own fields."""
+    return (isinstance(func, ast.Name) and func.id == "dict") or (
+        isinstance(func, ast.Attribute) and func.attr == "update"
+    )
+
+
 def raw_status_writes(tree: ast.AST) -> list[int]:
-    """Line numbers of ``{"status": "x"}`` and ``obj["status"] = "x"``."""
+    """Line numbers of ``{"status": "x"}``, ``obj["status"] = "x"`` and ``dict(..., status="x")``."""
     lines = []
     for node in ast.walk(tree):
         if isinstance(node, ast.Dict):
             lines += [v.lineno for k, v in zip(node.keys, node.values, strict=True) if _is_status_key(k) and _is_str(v)]
         elif isinstance(node, ast.Assign) and _is_str(node.value):
             lines += [node.lineno for t in node.targets if isinstance(t, ast.Subscript) and _is_status_key(t.slice)]
+        elif isinstance(node, ast.Call) and _is_untyped_dict_call(node.func):
+            lines += [kw.value.lineno for kw in node.keywords if kw.arg == "status" and _is_str(kw.value)]
     return sorted(lines)
 
 
@@ -67,8 +71,11 @@ def current_counts() -> Counter[str]:
 
 
 def test_detector_sees_both_write_shapes() -> None:
-    tree = ast.parse('a = {"status": "failed"}\nb["status"] = "done"\nc = {"status": s}\n')
-    assert raw_status_writes(tree) == [1, 2]
+    tree = ast.parse(
+        'a = {"status": "failed"}\nb["status"] = "done"\nc = {"status": s}\n'
+        'd = dict(a, status="x")\nd.update(status="y")\nModel(status="typed")\n'
+    )
+    assert raw_status_writes(tree) == [1, 2, 4, 5]
 
 
 def test_raw_status_writes_only_shrink() -> None:

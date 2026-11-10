@@ -12,6 +12,8 @@ from kinocut.contracts.trusted_execution import (
     ReceiptLineage,
     RenderJobRecord,
     RenderJobStatus,
+    CASBlobState,
+    can_transition_blob,
     can_transition_job,
 )
 
@@ -32,6 +34,15 @@ def test_edit_project_and_linear_revision_invariants():
     ):
         with pytest.raises(ValidationError):
             model(**_BASE, **kwargs)
+
+
+def test_cas_blob_lifecycle_needs_an_intent_before_completion():
+    assert can_transition_blob(None, CASBlobState.RESTORING)
+    assert not can_transition_blob(None, CASBlobState.AVAILABLE)
+    assert can_transition_blob(CASBlobState.RESTORING, CASBlobState.AVAILABLE)
+    assert can_transition_blob(CASBlobState.RESTORING, CASBlobState.RESTORING)
+    assert can_transition_blob(CASBlobState.AVAILABLE, CASBlobState.RESTORING)
+    assert not can_transition_blob(CASBlobState.AVAILABLE, CASBlobState.AVAILABLE)
 
 
 def test_render_job_lifecycle_is_closed_and_records_are_frozen():

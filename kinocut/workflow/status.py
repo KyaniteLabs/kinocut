@@ -22,7 +22,26 @@ class RunStatus(StrEnum):
     FAILED = "failed"
 
 
+class ReleaseStatus(StrEnum):
+    """A repurpose receipt's ``repurpose_release.status``.
+
+    Written ``PENDING`` (with the run at ``in_progress``) before the release
+    policy runs, then exactly once to a terminal value: ``PASSED`` when release
+    checkpoints ran, ``NOT_EVALUATED`` when the policy opted out of them, or
+    ``FAILED`` (run ``failed`` too).  A receipt still at ``PENDING`` means the
+    evaluation was interrupted.
+    """
+
+    PENDING = "pending"
+    PASSED = "passed"
+    NOT_EVALUATED = "not_evaluated"
+    FAILED = "failed"
+
+
 class StepStatus(StrEnum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+    # A stage the run did not need (the shorts flow skips merge for one
+    # segment and captions when no segment has text).  Not a reused step.
+    SKIPPED = "skipped"
