@@ -625,7 +625,7 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         overall_score = sum(c.score for c in gating) / len(gating) if gating else 0.0
         all_passed = all(c.passed for c in gating)
 
-        return {
+        report: dict[str, Any] = {
             "video": video,
             "analysis_domain": {
                 "signal_units": "8bit_limited_range_code_values",
@@ -648,6 +648,31 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 for c in checks
             ],
             "recommendations": [c.message for c in checks if not c.passed],
+        }
+        if self.profile.name != DEFAULT_QUALITY_PROFILE:
+            report["profile_baseline"] = self._default_profile_baseline(video, gating)
+        return report
+
+    def _default_profile_baseline(self, video: str, gating: list[QualityReport]) -> dict[str, Any]:
+        """Score the same measurements under the camera-footage profile.
+
+        A profile switch can turn a failing score into a passing one. Putting
+        the default score beside it makes that visible to whoever reads the
+        report. The picture checks reuse this run's signalstats, so no second
+        decode happens.
+        """
+        baseline = VisualQualityGuardrails(max_analyze_seconds=self.max_analyze_seconds)
+        baseline._signalstats_cache = getattr(self, "_signalstats_cache", {})
+        visual = {
+            c.check_name: c
+            for c in (baseline.check_brightness(video), baseline.check_contrast(video), baseline.check_saturation(video))
+        }
+        rescored = [visual.get(c.check_name, c) for c in gating]
+        score = sum(c.score for c in rescored) / len(rescored) if rescored else 0.0
+        return {
+            "profile": DEFAULT_QUALITY_PROFILE,
+            "overall_score": round(score, 1),
+            "failed_checks": [c.check_name for c in rescored if not c.passed],
         }
 
 
