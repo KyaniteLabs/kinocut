@@ -25,7 +25,7 @@ That produces teal fog on dark plates and breaks reel cohesion.
 ## Install
 
 ```bash
-pip install "kinocut[image]"
+pip install "kinocut[image]==1.16.5"
 kino doctor   # check still_plates capability
 ```
 

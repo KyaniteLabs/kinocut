@@ -8,6 +8,24 @@ description: Use when agents edit local video safely with Kinocut. MCP, Python, 
 Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. Published 1.16.5 serves **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is a curated 20-tool core and `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools without reading this manual.
 
 Inspect the installed schemas before using development-tip additions.
+
+**Tool surface.** The default registration is the curated 20-tool core; the
+tools named below live in named profiles. Start the server with an explicit
+selection — `KINOCUT_TOOLS=profile:<name>` (comma separated for several) or
+`KINOCUT_TOOLS=all` (205 tools) — and restart it before calling one:
+`profile:advanced` carries `video_composite_layers`, `video_hls_segment`;
+`profile:ai` carries `video_acceptance_eval`, `video_body_swap`, `video_release_checkpoint`, `video_salvage`, `video_verdict`;
+`profile:audio` carries `sound_mix_render`, `video_duck_audio`, `video_mix_audio`;
+`profile:editor` carries `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_thumbnail`;
+`profile:hyperframes` carries `hyperframes_remove_background`;
+`profile:image` carries `image_analyze_product`;
+`profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
+`profile:revideo` carries `revideo_install`, `revideo_materialize`, `revideo_render`, `revideo_render_job`;
+
+Use `search_tools` to discover names — it does not register them. If the tool
+you need is not registered, stop and report that it is unavailable instead of
+retrying.
+
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
 work is described in `docs/PLATFORM_PARITY.md`.

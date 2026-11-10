@@ -16,7 +16,7 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **Last verified publication checkpoint:** 1.16.5 (2026-10-27); consult the official registries for the latest version.
 - **Last-updated:** 2026-11-02
 - **Published surface (1.16.5):** 20 default MCP tools; `KINOCUT_TOOLS=all` serves 205 MCP tools / 177 CLI commands
-- **Hermes catalog pin:** `uvx kinocut==1.16.4` serves 203 MCP tools / 177 CLI commands — not the 1.16.5 counts
+- **Hermes catalog pin:** `kinocut==1.16.4` (launched through uvx) serves 203 MCP tools / 177 CLI commands — not the 1.16.5 counts
 - **Development-tip:** same 20-default / 205-full split as published 1.16.5; `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
@@ -24,7 +24,7 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **Legacy MCP Registry id:** `io.github.KyaniteLabs/kinocut` — version-locked-deprecated at 1.16.1 (`status=deprecated`); do not use for new installs
 - **Product site:** https://kinocut.dev/
 - **Historical live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
-- **Maintenance publication (2026-10-27):** PyPI/npm, GitHub release `v1.16.5` and the official MCP Registry report 1.16.5; shim 1.6.20 pins it. The registry entry is the local `uvx kinocut` stdio package (no hosted remote).
+- **Maintenance publication (2026-10-27):** PyPI/npm, GitHub release `v1.16.5` and the official MCP Registry report 1.16.5; shim 1.6.20 pins it. The registry entry is the local `uvx kinocut==1.16.5` stdio package (no hosted remote).
 - **Maintenance publication (2026-10-05):** PyPI/npm and GitHub release report 1.16.1; shim 1.6.16 pins it. The initial publication gate read canonical MCP Registry 1.16.1; later reads timed out. Live site last verified at 1.16.0; prepared 1.16.1 source is not deployed.
 - **Release identity checkpoint (2026-10-02):** PyPI/npm/GitHub release/canonical MCP Registry report 1.16.0; shim 1.6.15 metadata pins kinocut1.16.0. The live site was verified at 1.16.0 on 2026-10-05. Fleet work and final owner acceptance remain separate. Product source of truth is GitHub.
 - **Not:** hosted cloud editor, credit-metered SaaS, untyped FFmpeg shell wrapper
@@ -33,9 +33,9 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 
 ```bash
 brew install ffmpeg   # or: sudo apt install ffmpeg
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 Core FFmpeg edits process local media. An AI host or explicitly configured external

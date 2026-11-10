@@ -102,6 +102,12 @@ def _family_retry_message(message: str, family: str, operation: str) -> str:
     unverified = route is not None and route.group(1) not in _cli_command_set()
     if not (names_direct or unverified):
         return message
+    direct_call = re.compile(rf"\bcall {re.escape(operation)}(?=[ )])")
+    if not unverified and direct_call.search(invocation):
+        # Keep the hint's own action (overwrite=true, a new output_path, the
+        # argument names) and only swap the direct tool for the family call.
+        family_call = f'call {family}(operation="{operation}", params={{...}})'
+        return f"{head}; retry with {direct_call.sub(lambda _: family_call, invocation)}"
     return f"{head}; retry with {_family_invocation(family, operation)}"
 
 

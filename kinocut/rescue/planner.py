@@ -30,6 +30,7 @@ from .models import (
     canonical_payload,
 )
 from .policy import POLICY_ID, POLICY_VERSION, evaluate_finding
+from ..validation_errors import rejected_value
 
 
 def _realpath(path: str | Path) -> Path:
@@ -159,7 +160,7 @@ def plan_rescue(
     source, output, workspace = _normalize_entry_paths(source_path, output_dir)
     plan_path = _normalize_save_plan(save_plan, output)
     if policy_id != POLICY_ID:
-        raise rescue_error(f"unsupported rescue policy: {policy_id}", RESCUE_POLICY_VIOLATION)
+        raise rescue_error(f"unsupported rescue policy: {rejected_value(policy_id)}", RESCUE_POLICY_VIOLATION)
 
     capabilities = snapshot_capabilities()
     analysis = analyze_source(str(source), workspace, output / "previews")

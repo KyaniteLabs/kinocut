@@ -240,7 +240,7 @@ def _confine_artifact_path(path: str, workspace_root: Path, label: str) -> None:
         real.relative_to(workspace_root)
     except ValueError:
         raise workflow_error(
-            f"{label} {path!r} resolves outside the workspace root; "
+            f"{label} resolves outside the workspace root; "
             "write workflow artifacts inside the spec's workspace directory",
             UNSAFE_WORKFLOW_SOURCE,
         ) from None

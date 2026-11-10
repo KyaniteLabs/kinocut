@@ -37,6 +37,7 @@ from .engine_audio_validation import _audio_number, _run_audio_ffmpeg
 from .engine_audio_normalize_output import _validate_normalized_output
 from .engine_media_timeline import _packet_extent, _primary_audio_timeline, _timestamp
 from .limits import MAX_VIDEO_DURATION
+from .validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -213,7 +214,7 @@ def _validate_duration_policy(duration_policy: str, mix: bool) -> None:
         # Mix-mode padding has no implemented duration-bounded input chain.
         # Keep its existing fail-closed policy; looping is now bounded above.
         raise MCPVideoError(
-            f"duration_policy={duration_policy!r} is not supported with mix=True; "
+            f"duration_policy={rejected_value(duration_policy)!r} is not supported with mix=True; "
             "use keep_video, loop_audio, trim_audio, or shortest",
             error_type="validation_error",
             code="unsupported_duration_policy_for_mix",

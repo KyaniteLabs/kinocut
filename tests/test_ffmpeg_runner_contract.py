@@ -43,13 +43,15 @@ def test_run_command_resolves_bare_binary_names(monkeypatch):
     assert captured["cmd"][0] == "/resolved/bin/ffmpeg"
 
 
-def test_parse_ffmpeg_error_carries_input_path_from_command():
+def test_parse_ffmpeg_error_classifies_the_input_without_echoing_its_path():
     err = parse_ffmpeg_error(
         "/data/in.mp4: No such file or directory",
         command=["/usr/bin/ffmpeg", "-y", "-i", "/data/in.mp4", "out.mp4"],
     )
     assert isinstance(err, InputFileError)
-    assert "/data/in.mp4" in str(err)
+    # The error names the failure; it does not repeat the submitted path.
+    assert "/data/in.mp4" not in str(err)
+    assert "Input file error" in str(err)
 
 
 def test_parse_ffmpeg_error_works_without_command_context():

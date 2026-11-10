@@ -6,6 +6,7 @@ from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .paths import _auto_output
 from .ffmpeg_helpers import _run_ffmpeg
 from .errors import MCPVideoError
+from .validation_errors import rejected_value
 
 
 def extract_audio(
@@ -17,7 +18,7 @@ def extract_audio(
     VALID_AUDIO_FORMATS = {"mp3", "aac", "wav", "ogg", "flac"}
     if format not in VALID_AUDIO_FORMATS:
         raise MCPVideoError(
-            f"Invalid audio format: {format}. Must be one of {VALID_AUDIO_FORMATS}",
+            f"Invalid audio format: {rejected_value(format)}. Must be one of {VALID_AUDIO_FORMATS}",
             error_type="validation_error",
             code="invalid_parameter",
         )

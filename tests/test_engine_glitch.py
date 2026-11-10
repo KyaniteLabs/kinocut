@@ -410,7 +410,7 @@ class TestGlitchShaderFpsProbe:
 
         monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
 
-        with pytest.raises(ProcessingError, match="timed out"):
+        with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
             shader_engine._get_fps(str(tmp_path / "hung.mp4"))
 
     def test_get_fps_propagates_nonzero_probe_as_processing_error(self, monkeypatch, tmp_path):
@@ -421,7 +421,7 @@ class TestGlitchShaderFpsProbe:
 
         monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
 
-        with pytest.raises(ProcessingError, match="Invalid data found"):
+        with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
             shader_engine._get_fps(str(tmp_path / "corrupt.mp4"))
 
     def test_get_fps_sanitizes_malformed_probe_json(self, monkeypatch, tmp_path):
@@ -432,7 +432,7 @@ class TestGlitchShaderFpsProbe:
 
         monkeypatch.setattr(shader_engine, "_run_command", fake_run_command)
 
-        with pytest.raises(ProcessingError, match="Invalid JSON from ffprobe"):
+        with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
             shader_engine._get_fps(str(tmp_path / "empty.mp4"))
 
     def test_get_fps_preserves_empty_stream_fallback(self, monkeypatch, tmp_path):

@@ -16,7 +16,7 @@ On **2026-07-10**, the projectâ€™s public identity became **Kinocut**.
 
 ## Compatibility (current on the 1.14.x+ line)
 
-- `pip install mcp-video` still works via the published `mcp-video==1.6.17` shim that installs `kinocut==1.16.2`; the rename date and prior release pairs remain historical.
+- `pip install mcp-video==1.6.20` still works via the published shim that installs `kinocut==1.16.5`; the rename date and prior release pairs remain historical.
 - `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported during the window.
 - New integrations should use `kinocut`, `from kinocut import Client`, and `kino`.
 
@@ -28,11 +28,11 @@ The product is a **guardrailed local execution layer for agentic video**, not â€
 
 Please list:
 
-- **Name:** Kinocut (formerly mcp-video)  
-- **Install:** `pip install kinocut`  
-- **MCP:** `uvx --from kinocut kino` / registry `tech.kyanitelabs/kinocut`  
-- **Site:** https://kinocut.dev/  
-- **Repo:** https://github.com/KyaniteLabs/kinocut  
+- **Name:** Kinocut (formerly mcp-video)
+- **Install:** `pip install kinocut==1.16.5`
+- **MCP:** `uvx --from kinocut==1.16.5 kino` / registry `tech.kyanitelabs/kinocut`
+- **Site:** https://kinocut.dev/
+- **Repo:** https://github.com/KyaniteLabs/kinocut
 
 Version and tool counts: [`public_claims.json`](public_claims.json) (do not invent tip counts as a release).
 

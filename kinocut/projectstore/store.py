@@ -73,6 +73,7 @@ from kinocut.contracts.trusted_execution import (
 from kinocut.errors import MCPVideoError
 from kinocut.projectstore import layout
 from kinocut.projectstore._migrations import migrate_raw
+from ..validation_errors import rejected_value
 
 # Streaming chunk for copying prior record files during an atomic append.
 _COPY_CHUNK = 1 << 20
@@ -302,7 +303,9 @@ def _reject_supersession_cycle(record_id: str, supersedes: str | None, existing:
     node: str | None = record_id
     while node is not None:
         if node in seen:
-            raise contract_error(f"supersession chain forms a cycle at {node}", RECORD_SUPERSESSION_CYCLE)
+            raise contract_error(
+                f"supersession chain forms a cycle after {len(seen)} record(s)", RECORD_SUPERSESSION_CYCLE
+            )
         seen.add(node)
         node = supersedes_of.get(node)
 
@@ -368,11 +371,15 @@ def _revalidate_at_boundary(record: RecordBase, line: str) -> type[RecordBase]:
 
     model = _RECORD_REGISTRY.get(record.record_kind)
     if model is None:
-        raise contract_error(f"unknown record kind: {record.record_kind!r}", INVALID_RECORD)
+        raise contract_error("unknown record kind: not a registered kind", INVALID_RECORD)
     if type(record) is not model:
         # A subclass "lookalike" (same record_kind, extra behaviour) is refused —
-        # only the exact registered concrete type may persist.
-        raise contract_error(f"record type is not the registered {model.__name__}", INVALID_RECORD)
+        # only the exact registered concrete type may persist. The registered
+        # class's own name is a shipped name, but the refusal stays value-free
+        # by construction: the operator's actionable fact is that the exact
+        # registered type is required, and the kind they sent is already
+        # membership-proven against the registry by the lookup above.
+        raise contract_error("record type is not the registered concrete type for its record kind", INVALID_RECORD)
     parse_record_json(model, line)  # raises a stable MCPVideoError on any mismatch
     return model
 
@@ -536,7 +543,7 @@ def read_records(project: Project, record_kind: str) -> list[RecordBase]:
     _validate_project_identity(project)
     model = _RECORD_REGISTRY.get(record_kind)
     if model is None:
-        raise contract_error(f"unknown record kind: {record_kind!r}", INVALID_RECORD)
+        raise contract_error(f"unknown record kind: {rejected_value(record_kind)!r}", INVALID_RECORD)
     path = safe_target(project, layout.records_relative_path(record_kind))
     if not path.exists():
         return []

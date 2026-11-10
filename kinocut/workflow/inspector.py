@@ -32,6 +32,7 @@ from typing import Any
 from ._errors import INVALID_WORKFLOW_RECEIPT, workflow_error
 from .planner import _hash_if_exists
 from .spec import validate_spec_path
+from ..validation_errors import exception_kind
 
 _KIND_BY_TOOL = {
     "video_composite_layers": "layer_plan",
@@ -51,7 +52,7 @@ def read_receipt(receipt_path: str) -> dict[str, Any]:
     try:
         data = json.loads(resolved.read_bytes().decode("utf-8"))
     except (OSError, json.JSONDecodeError, UnicodeDecodeError) as exc:
-        raise workflow_error(f"unreadable workflow receipt: {exc}", INVALID_WORKFLOW_RECEIPT) from None
+        raise workflow_error(f"unreadable workflow receipt: {exception_kind(exc)}", INVALID_WORKFLOW_RECEIPT) from None
     if not isinstance(data, dict):
         raise workflow_error("workflow receipt must be a JSON object", INVALID_WORKFLOW_RECEIPT)
     return data

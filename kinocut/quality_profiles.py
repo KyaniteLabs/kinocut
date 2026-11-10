@@ -17,6 +17,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 from .errors import MCPVideoError
+from .validation_errors import rejected_value
 
 DEFAULT_QUALITY_PROFILE = "default"
 
@@ -114,7 +115,7 @@ def resolve_quality_profile(name: str | None) -> QualityProfile:
         return QUALITY_PROFILES[key]
     except (KeyError, TypeError):
         raise MCPVideoError(
-            f"Unknown quality profile {name!r}; choose one of: {', '.join(QUALITY_PROFILES)}",
+            f"Unknown quality profile {rejected_value(name)}; choose one of: {', '.join(QUALITY_PROFILES)}",
             error_type="validation_error",
             code="invalid_parameter",
         ) from None

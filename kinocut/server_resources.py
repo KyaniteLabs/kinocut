@@ -4,16 +4,23 @@ from __future__ import annotations
 
 import json
 
-from .engine import probe
 from .errors import MCPVideoError
 from .server_app import _error_result, mcp
+
+
+def _probe(path: str):
+    # Deferred: keeps heavy engine imports off the server startup path while
+    # the resource handlers themselves stay registered from process start.
+    from .engine_probe import probe
+
+    return probe(path)
 
 
 @mcp.resource("mcp-video://video/{path}/info")
 def video_info_resource(path: str) -> str:
     """Get metadata about a video file (duration, resolution, codec, etc.)."""
     try:
-        info = probe(path)
+        info = _probe(path)
         return info.model_dump_json(indent=2)
     except MCPVideoError as e:
         return json.dumps(_error_result(e), indent=2)
@@ -23,7 +30,7 @@ def video_info_resource(path: str) -> str:
 def video_preview_resource(path: str) -> str:
     """Get a text storyboard description (key frame timestamps)."""
     try:
-        info = probe(path)
+        info = _probe(path)
         frames = []
         dur = info.duration
         count = 8
@@ -39,7 +46,7 @@ def video_preview_resource(path: str) -> str:
 def video_audio_resource(path: str) -> str:
     """Extract and describe the audio track of a video."""
     try:
-        info = probe(path)
+        info = _probe(path)
         if info.audio_codec:
             return (
                 f"Audio codec: {info.audio_codec}\n"
