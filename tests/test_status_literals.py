@@ -34,8 +34,6 @@ ALLOWED = {
     "te/sphere_director.py": 1,
     "te/sphere_plan.py": 3,
     "te/sphere_render.py": 1,
-    "workflow/executor.py": 1,
-    "workflow/planner.py": 1,
 }
 
 
