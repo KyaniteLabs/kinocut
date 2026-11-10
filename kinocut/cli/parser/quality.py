@@ -63,7 +63,7 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     _add_command_output_format(dqcheck_p)
 
     # video-fix-design-issues
-    dfix_p = subparsers.add_parser("video-fix-design-issues", help="Auto-fix design issues in a video")
+    dfix_p = subparsers.add_parser("video-fix-design-issues", help="Auto-fix brightness and saturation in a video; audio is not changed")
     dfix_p.add_argument("input", help="Input video file")
     dfix_p.add_argument("-o", "--output", help="Output file path (auto-generated if omitted)")
     _add_command_output_format(dfix_p)
