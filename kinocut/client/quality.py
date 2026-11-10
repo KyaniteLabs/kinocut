@@ -107,7 +107,7 @@ class ClientQualityMixin:
         video: str,
         output: str | None = None,
     ) -> str:
-        """Auto-fix design issues in a video.
+        """Auto-fix brightness and saturation in a video; audio is not changed.
 
         Args:
             video: Input video path

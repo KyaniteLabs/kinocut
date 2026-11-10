@@ -7,15 +7,16 @@ available with `KINOCUT_TOOLS=all`.
 
 ## Why
 
-The 1.16.5 tool diet pinned the default surface at 20 direct tools / 13,947
-input-schema bytes, and the full catalog is 205 tools / 126,776 bytes — too
-large to advertise to a model, and the diet left 185 operations unreachable
-over the wire in default mode. The family layer closes that gap: the default
-surface was **30 tools / 24,347 bytes** (≤ 40 tools and ≤ 25% of the
-full-catalog bytes, the accepted design budget) while reaching all 204
-operations plus `search_tools`. The hot-path diet (#655) then cut the direct
-core from 20 tools to 8, because every dropped tool is already a family
-operation: the default is now **18 tools / 17,429 bytes**.
+Advertising every tool costs context on every turn. The full catalog is 206 tools,
+about 178 KB of `tools/list` JSON (119,053 bytes of input schemas). The default
+surface is 18 tools, about 22 KB (14,759 schema bytes), and still reaches all 205
+operations through the families. Measured numbers per mode live in
+[MCP_TOOL_SURFACE_BASELINE.md](MCP_TOOL_SURFACE_BASELINE.md).
+
+How it got here: published 1.16.5 lists 20 direct tools by default. The family layer
+then made every registry operation reachable from the default surface, and the
+hot-path diet (#655) cut the direct core from 20 tools to 8, because every dropped
+tool is already a family operation.
 
 ## The surface
 
@@ -25,7 +26,7 @@ Default mode registers the 8-tool hot path (`video_info`, `video_trim`,
 
 | Tool | Operations | Registry modules |
 | --- | --- | --- |
-| `video_edit_ops` | 43 | basic, advanced, media |
+| `video_edit_ops` | 44 | basic, advanced, media |
 | `video_effects_ops` | 28 | effects, glitch, glitch_shader |
 | `audio_ops` | 17 | audio, sound |
 | `video_ai_ops` | 15 | ai, aivideo |
@@ -40,12 +41,11 @@ Every family tool takes `operation` (a closed enum of its member operation
 names — typos and cross-family mistakes fail validation), `params` (the
 operation's exact arguments), and the standard strict-boolean `overwrite`
 consent every handler that can write media exposes. Profiles are additive on the compact
-surface: `profile:editor` is 114 tools / 80,922 bytes.
+surface: `profile:editor` is 115 tools / 81,259 schema bytes.
 
-`KINOCUT_TOOLS=all` is the **legacy full-catalog surface** and stays exactly
-the 205-name registry, byte-identical to the pre-family baseline (all
-per-tool schema digests unchanged); the family tools are hidden there, where
-every operation already has its direct tool.
+`KINOCUT_TOOLS=all` is the **full-catalog surface**: exactly the 206-name
+registry (the 205 family operations plus `search_tools`). The family tools are
+hidden there, where every operation already has its direct tool.
 
 ## Dispatch semantics
 
@@ -102,9 +102,9 @@ row reports:
   deterministic and total over the catalog;
 * `required_params` and the first-line description;
 * `annotations` — **only the side-effect hints the operation's registration
-  actually declares** (today: the nine media/edit operations `video_add_audio`,
-  `video_convert`, `video_crop`, `video_export`, `video_fade`, `video_merge`,
-  `video_rotate`, `video_speed`, `video_watermark`). Undeclared operations
+  actually declares** (today 15: the eight hot-path tools plus `video_convert`,
+  `video_crop`, `video_export`, `video_fade`, `video_rotate`, `video_speed` and
+  `video_watermark`). Undeclared operations
   report `null`; nothing is guessed;
 * `intent_verbs` / `intent_mutates_media` — links to the canonical
   `video_intent` verb table where one routes to the operation.

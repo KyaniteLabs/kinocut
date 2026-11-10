@@ -1,14 +1,35 @@
 # MCP Tools Reference
 
-Published 1.16.5 serves **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`, while the default MCP registration is a curated **20-tool core** for video editing, inspection, receipts, diagnostics, and one-call Shorts. Set `KINOCUT_TOOLS=all` for the full catalog or `KINOCUT_TOOLS=profile:editor` for the editor profile. `search_tools` discovers hidden tools on demand without changing the selected surface. All return structured JSON with `success` and operation metadata. On failure, they return `{"success": false, "error": {...}}` with an eyes-free retry invocation for MCP and CLI.
+Every Kinocut MCP tool, what it does and how to reach it. Every tool returns structured
+JSON with `success`. A failure returns `{"success": false, "error": {...}}` ending in the
+exact MCP and CLI retry call.
 
-## Eyes-free quick start
+## How tools are listed
 
-1. Inspect with `video_info` or `kino info`; use `video_doctor` / `kino doctor` before a long job.
-2. Search by intent with `search_tools` when the core list does not contain the needed operation.
-3. Render with an explicit output path, inspect the receipt, run quality checks, and request human review before publishing.
+| `KINOCUT_TOOLS` | Tools listed | What you get |
+| --- | --- | --- |
+| unset (default) | 18 | 8 hot-path tools, 8 operation families, `list_operations`, `describe_operation` |
+| `profile:<name>` | varies | the default 18 plus one job's tools by name (`profile:editor` lists 115) |
+| `all` | 206 | every tool by its own name; families hidden |
 
-The default surface is intentionally narrow. Hidden tools are discoverable but are not registered until `KINOCUT_TOOLS=all` or a matching profile is selected. Receipts are one-screen text cards: report artifact paths, stage status, warnings, and the next approval gate in words.
+Published 1.16.5 lists 20 tools by default and 205 with `all`. The numbers above are
+the development tip. The hot path is `video_info`, `video_trim`, `video_merge`,
+`video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts` and
+`video_doctor`. Every other tool is an operation inside one family; see
+[MCP_TOOL_FAMILIES.md](MCP_TOOL_FAMILIES.md).
+
+## Quick start for agents
+
+1. Inspect with `video_info` (CLI `kino info`). Run `video_doctor` (`kino doctor`) before
+   a long job.
+2. If the hot path lacks the operation, call `list_operations` with a family or a query,
+   then `describe_operation` for its full schema, then call the family with
+   `{"operation": ..., "params": ...}`.
+3. Write to an explicit new output path, read the result and receipt, run the quality
+   checks, and ask a person to review before anything is published.
+
+The sections below explain the main tool groups. The [complete index](#complete-index)
+at the end lists all 206 tools.
 
 ---
 
@@ -44,7 +65,7 @@ supported local filesystem and verify it before a long job. Network, cloud-sync
 and removable filesystems are not assumed compatible; do not bypass a failed
 publication check with a direct file copy.
 
-## Project-backed Inspection (3 tools)
+## Project-backed Inspection
 
 These operations share one adapter with the Python client and CLI. Only ingest accepts a
 host source path. Later operations resolve the active stored record by `asset_id`; they do
@@ -60,7 +81,7 @@ not accept a caller-supplied record or an arbitrary media path.
 providers are not contacted or downloaded implicitly; the default result explicitly marks
 both visual capabilities unavailable.
 
-## Durable Intent and Recipe Tools (3 tools)
+## Durable Intent and Recipe Tools
 
 These tools operate on an existing project, edit project, and immutable revision. Semantic
 search stays local and revision-bound. Recipe export verifies that caller-supplied operation
@@ -79,7 +100,7 @@ JSON artifact, bind every `cas_digest` slot in the destination project, then rep
 is not release authority: review gates remain metadata that the receiving workflow must
 satisfy, and no tag, package upload, directory submission, or publish action occurs.
 
-## Governed AI-video Review and Salvage (4 tools)
+## Governed AI-video Review and Salvage
 
 These operations share one validated boundary with the Python client and CLI. Protection
 has no force or bypass parameter; authorization accepts only stored human decision ids.
@@ -95,20 +116,22 @@ The end-to-end sequence and stop conditions are in
 
 ---
 
-## Meta / Discovery (1 tool)
+## Discovery
 
 | Tool | Description |
 |------|-------------|
-| `search_tools` | Rank registered MCP tools by exact name, keyword, or supported task phrases such as `remove filler words`, `resume render`, and `keep face in frame`. Returns matching names, descriptions, and required parameters; planning tools remain plans and discovery does not verify optional backends. An empty query returns no matches. Clients that eagerly load all MCP tools still receive the full registry. |
+| `list_operations` | Default surface. Lists a family's operations (or matches a `query`) with verb, required parameters and declared annotations. |
+| `describe_operation` | Default surface. Returns one operation's complete `inputSchema` and the family call that runs it. |
+| `search_tools` | Listed with `all` or `profile:editor`. Ranks registered tools by exact name, keyword or task phrase (`remove filler words`, `resume render`) and returns names, descriptions and required parameters. Discovery does not check optional backends. |
 
 ## Diagnostics and one-call Shorts
 
 | Tool | Description |
 |------|-------------|
-| `video_doctor` | Read-only JSON verdict covering FFmpeg/FFprobe, Python and optional integrations, workspace permissions/free disk, and effective guardrail defaults |
-| `video_shorts` | One local call for trim → supplied captions → 9:16 template → export; returns one receipt chain and never posts externally |
+| `video_doctor` | Read-only JSON verdict covering FFmpeg/FFprobe, Python and optional integrations, workspace permissions and free disk, and the effective guardrail defaults |
+| `video_shorts` | One local call for trim → supplied captions → 9:16 template → export; returns one receipt chain and never posts |
 
-**Python Client:**
+**Python client:**
 ```python
 from kinocut import Client
 editor = Client()
@@ -120,7 +143,7 @@ results = editor.search_tools("subtitle")
 
 ## Visual review evidence
 
-Published 1.16.0 `video_record_motion_acceptance` and CLI `record-motion-acceptance`
+Since 1.16.0, `video_record_motion_acceptance` and CLI `record-motion-acceptance`
 join Python `Client.record_motion_acceptance`. Supply the exact `report`,
 `input_path`, `reviewer_id`, `source_sha256`, `report_sha256`, complete
 `watched_intervals`, flagged-interval `dispositions`, and `verdict` (`accept` or
@@ -169,7 +192,7 @@ CLI `estimate`, and `Client.estimate_operation` share the local heuristic:
 
 ---
 
-## Cinematic Creation (4 tools)
+## Cinematic Creation
 
 Plan video generation like a director of photography before rendering. These tools implement a PUSHING CREATION-compatible pre-production workflow: project scaffold, STYLE_/NEG_ blocks, storyboard tables, and prompt expansion.
 
@@ -182,7 +205,7 @@ Plan video generation like a director of photography before rendering. These too
 
 ---
 
-## Agent Workflow Engine (4 tools)
+## Agent Workflow Engine
 
 Plan, validate, render, recover, and prove a multi-step local video job from one JSON
 job-spec over a small allowlisted op set (`probe | trim | resize | convert | crop | merge |
@@ -200,7 +223,7 @@ shapes are in [VIDEO_RECEIPT.md](VIDEO_RECEIPT.md).
 
 ---
 
-## Dedicated Video Rescue (3 tools)
+## Dedicated Video Rescue
 
 The rescue tools form one review-first local pipeline. Plan and inspect before render; pass
 only IDs from the plan's `safe_repairs`; inspect the final receipt before trusting the
@@ -214,7 +237,7 @@ package. Full contracts and examples are in [RESCUE.md](RESCUE.md).
 
 ---
 
-## Post-Rescue Planning (8 tools)
+## Post-Rescue Planning
 
 These JSON-compatible tools are side-effect-free planners and verifiers. They do not render,
 download models, contact providers, or submit jobs. See
@@ -233,7 +256,7 @@ download models, contact providers, or submit jobs. See
 
 ---
 
-## Core Editing (35 tools)
+## Core Editing
 
 | Tool | Description |
 |------|-------------|
@@ -279,7 +302,7 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 
 ---
 
-## AI-Powered (11 tools)
+## AI-Powered
 
 | Tool | Description | Dependencies |
 |------|-------------|--------------|
@@ -325,7 +348,7 @@ before enabling optional backends.
 
 ---
 
-## Hyperframes — HTML-Native Video (18 tools)
+## Hyperframes — HTML-Native Video
 
 Telemetry defaults off. Browser previews require verified Hyperframes 0.8.104 or
 0.8.140; Docker renders and previews on other versions require explicit
@@ -364,7 +387,7 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 
 ---
 
-## Revideo — guarded local code video (4 tools)
+## Revideo — guarded local code video
 
 | Tool | Purpose |
 | --- | --- |
@@ -388,7 +411,7 @@ bounded in-process rollback guard. The job file is capped at one MiB; its
 pre/post render binding is byte-exact, so formatting-only mutation also rejects
 publication.
 
-## Repurposing (2 tools)
+## Repurposing
 
 Create local YouTube/social media packages from one source video. Publishing and scheduling are intentionally out of scope for v1; the tools produce files, manifests, thumbnails, storyboards, and optional release-checkpoint artifacts for a human or downstream publisher to review.
 
@@ -399,7 +422,7 @@ Create local YouTube/social media packages from one source video. Publishing and
 
 ---
 
-## Stream shorts (saved-plan stages, 4 tools)
+## Stream shorts (saved-plan stages)
 
 Local-only review → render → package over a persisted shorts plan. No posting.
 See [STREAM_SHORTS.md](STREAM_SHORTS.md).
@@ -431,7 +454,7 @@ Bounded local-first sound discovery and invoke via `kinocut_sound.public`. This 
 
 <a id="audio-synthesis-9-tools"></a>
 
-## Audio Synthesis (10 tools)
+## Audio Synthesis
 
 Plain-file `Client.mix_audio` and `Client.duck_audio` also have published CLI
 adapters `mix-audio` and `duck-audio`. The published 1.16.0 MCP addition is
@@ -455,7 +478,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 
 ---
 
-## Visual Effects (8 tools)
+## Visual Effects
 
 | Tool | Description |
 |------|-------------|
@@ -470,7 +493,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 
 ---
 
-## Transitions (3 tools)
+## Transitions
 
 | Tool | Description |
 |------|-------------|
@@ -480,7 +503,7 @@ Generate audio from code — no external audio files needed. Pure NumPy, no extr
 
 ---
 
-## Glitch Effects (12 tools)
+## Glitch Effects
 
 CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (marked below) require Node.js, the `MCP_VIDEO_CRUSH_PATH` environment variable pointing to the [CRUSH](https://github.com/pushingsquares/crush) shader sources, and the `canvas` npm package — install it once with `npm install` inside `kinocut/_crush_shader/`. The tools report exactly which piece is missing.
 
@@ -501,7 +524,7 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 
 ---
 
-## Layout & Motion Graphics (6 tools)
+## Layout & Motion Graphics
 
 | Tool | Description |
 |------|-------------|
@@ -514,7 +537,7 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 
 ---
 
-## Analysis (8 tools)
+## Analysis
 
 | Tool | Description |
 |------|-------------|
@@ -530,7 +553,7 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 
 ---
 
-## Image Analysis (3 tools)
+## Image Analysis
 
 | Tool | Description |
 |------|-------------|
@@ -538,7 +561,7 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 | `image_generate_palette` | Generate color harmony palette from an image or video frame |
 | `image_analyze_product` | Extract colors locally; optional legacy provider description requires explicit vision mode consent |
 
-## Still / plate editor (5 tools)
+## Still / plate editor
 
 See [STILL_PLATES.md](STILL_PLATES.md) for order-of-ops, signal LUTs, and cohesion gate policy.
 
@@ -549,3 +572,265 @@ See [STILL_PLATES.md](STILL_PLATES.md) for order-of-ops, signal LUTs, and cohesi
 | `still_gate` | Fail-closed cohesion gate (luma spread, shadow green/cyan) + contact sheet |
 | `image_edit` | Free establish-locked still edit with plan/receipt; paid gen off by default |
 | `still_package` | Full package job: edit beats → match → grade → gate |
+
+## Complete index
+
+Every entry below is generated from the code, so nothing is missing. The sections above explain the important ones in depth.
+
+<!-- BEGIN GENERATED INDEX -->
+<!-- Generated by scripts/generate_reference_index.py; edit the code, then rerun it. -->
+
+206 tools with `KINOCUT_TOOLS=all`, grouped by the family that dispatches them on the default surface.
+
+### `video_edit_ops`: Edit operations (trim, merge, text, convert, export, metadata, batch) (44)
+
+| Tool | Summary |
+| --- | --- |
+| `video_add_audio` | Add, replace, or mix an audio track into a video and render a new file; the sources are only read. Returns JSON {success, output_path}. |
+| `video_add_text` | Burn one text element (title, caption, watermark) into a video. Returns JSON {success, output_path}. |
+| `video_add_texts` | Overlay multiple text elements on a video in a single FFmpeg pass. |
+| `video_apply_mask` | Apply an image mask to a video with edge feathering. |
+| `video_audio_waveform` | Extract audio waveform data (peaks and silence regions). |
+| `video_batch` | Apply the same operation to multiple video files. |
+| `video_chroma_key` | Remove a solid color background (green screen / chroma key). |
+| `video_cleanup` | Delete intermediate video files after a workflow. |
+| `video_compare_quality` | Compare video quality between original and processed versions. |
+| `video_composite_layers` | Composite ordered image/video layers from a JSON spec. |
+| `video_convert` | Transcode a video into a different container or codec (mp4, webm, gif, mov, ...). Returns JSON {success, output_path}. Use for format conversion; prefer video_export for delivery presets. Pass input_path as the source video and format as the target container; long renders stream MCP progress. |
+| `video_create_from_images` | Create a frame-exact video from a sequence of images. |
+| `video_crop` | Crop an existing video to a rectangular region or centered percentage crop and render a new output file. The source video is read only; x/y default to a centered crop when omitted. |
+| `video_detect_scenes` | Detect scene changes in a video. |
+| `video_edit` | Execute a full timeline-based edit from a JSON specification. |
+| `video_export` | Re-encode an existing video for final delivery using a quality preset and output format. Use this for publishing-ready renders; use video_convert when the main goal is container/codec conversion. The source video is read only and a new output file is produced. |
+| `video_export_frames` | Export frames from a video as individual images. |
+| `video_extract_audio` | Extract the audio track from a video file. |
+| `video_fade` | Render fade-in and/or fade-out effects onto an existing video without modifying the source file. Use fade_in for a fade from black at the start and fade_out for a fade to black at the end; output_path is created or overwritten. |
+| `video_filter` | Apply a visual filter to a video. |
+| `video_generate_subtitles` | Generate SRT subtitles from text entries and optionally burn into video. |
+| `video_hls_segment` | Segment a video into HLS (HTTP Live Streaming) format. |
+| `video_info` | Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. |
+| `video_luma_key` | Mask out dark regions based on luminance (brightness). |
+| `video_merge` | Concatenate two or more video clips, in order, into one rendered file. Returns JSON {success, output_path}. |
+| `video_normalize_audio` | Normalize audio loudness to a target LUFS level. |
+| `video_overlay` | Picture-in-picture: overlay a video on top of another. |
+| `video_preview` | Generate a fast low-resolution preview for quick review. |
+| `video_read_metadata` | Read metadata tags from a video/audio file. |
+| `video_resize` | Resize a video or change its aspect ratio. Returns JSON {success, output_path}. Use to fit a video to target dimensions or a preset ratio. Pass input_path as the source video (e.g. from video_info) and either width/height or aspect_ratio to define the target. |
+| `video_reverse` | Reverse video and audio playback so it plays backwards. |
+| `video_review_card` | Write an HTML review card (contact sheet, facts, action buttons) for Hermes Desktop chat. |
+| `video_rotate` | Rotate and/or flip an existing video and render a new output file. Supports right-angle rotations plus horizontal and vertical flips; the input video is not modified. |
+| `video_shape_mask` | Apply a geometric shape mask to a video. |
+| `video_speed` | Render a new video with playback speed changed; the source video is left unchanged. Returns JSON {success, output_path}. Use for slow-motion or fast-forward effects. Pass input_path as the source video and factor as the multiplier (below 1.0 slows, above 1.0 speeds up). |
+| `video_split_screen` | Place two videos side by side or top/bottom. |
+| `video_stabilize` | Stabilize a shaky video using motion vector analysis. |
+| `video_storyboard` | Extract key frames and create a storyboard grid for human review. |
+| `video_subtitles` | Burn subtitles (SRT/VTT/authored ASS) into a video. |
+| `video_template_preview` | Preview what a video template would do before rendering. |
+| `video_thumbnail` | Extract a single frame (thumbnail / frame grab) from a video. |
+| `video_trim` | Cut a segment out of a video by start time and duration or end. Returns JSON {success, output_path} pointing at the rendered clip. |
+| `video_watermark` | Overlay an image watermark onto an existing video and render a new output file. The video and watermark image are read only; output_path is created or overwritten. Supports named, pixel, and percentage positions plus opacity, margin, CRF, and preset controls. |
+| `video_write_metadata` | Write metadata tags to a video/audio file. |
+
+### `video_effects_ops`: Effect operations (filters, transitions, glitch, motion graphics) (28)
+
+| Tool | Summary |
+| --- | --- |
+| `effect_chromatic_aberration` | Apply chromatic aberration - RGB channel separation. |
+| `effect_glow` | Apply bloom/glow effect for highlights. |
+| `effect_noise` | Apply film grain or digital noise. |
+| `effect_scanlines` | Apply CRT-style scanlines overlay. |
+| `effect_vignette` | Apply vignette effect - darkened edges. |
+| `glitch_cmyk_split` | Apply CMYK split glitch effect. |
+| `glitch_datamoshing` | Apply datamoshing glitch effect. |
+| `glitch_depth_splatting` | Apply depth-based point splatting effect (requires Node.js + GPU). |
+| `glitch_digital_feedback` | Apply digital feedback glitch effect (requires Node.js + GPU). |
+| `glitch_macroblocking` | Apply macroblocking glitch effect. |
+| `glitch_point_cloud` | Apply point cloud rendering effect (requires Node.js + GPU). |
+| `glitch_rgb_shift` | Apply RGB channel shift glitch effect. |
+| `glitch_scanline_jitter` | Apply scanline jitter glitch effect. |
+| `glitch_screen_tearing` | Apply screen tearing glitch effect. |
+| `glitch_slit_scan` | Apply slit-scan temporal displacement effect (requires Node.js + GPU). |
+| `glitch_turbulent_displacement` | Apply turbulent displacement glitch effect. |
+| `glitch_vhs_tracking` | Apply VHS tracking error glitch effect. |
+| `transition_glitch` | Apply glitch transition between two video clips. |
+| `transition_morph` | Apply morph transition between two video clips. |
+| `transition_pixelate` | Apply pixelate transition between two video clips. |
+| `video_auto_chapters` | Auto-detect scene changes and create chapters. |
+| `video_info_detailed` | Get extended video metadata. |
+| `video_layout_grid` | Create grid-based multi-video layout. |
+| `video_layout_pip` | Picture-in-picture overlay. |
+| `video_mograph_count` | Generate animated number counter video. |
+| `video_mograph_progress` | Generate progress bar / loading animation. |
+| `video_subtitles_styled` | Burn subtitles from SRT/VTT with custom styling. |
+| `video_text_animated` | Add animated text to video. |
+
+### `audio_ops`: Audio operations (mix, synthesize, presets, sound pipeline, QC) (17)
+
+| Tool | Summary |
+| --- | --- |
+| `audio_compose` | Layer multiple audio tracks with volume mixing. |
+| `audio_effects` | Apply audio effects chain to a WAV file. |
+| `audio_preset` | Generate preset sound design elements. |
+| `audio_sequence` | Compose multiple audio events into a timed sequence. |
+| `audio_synthesize` | Generate audio procedurally using synthesis. |
+| `sound_capabilities` | Discover the bounded public sound operation set (local-first, JSON-safe). |
+| `sound_master_render` | Retain a two-pass master only after measuring final audio against its policy. |
+| `sound_mix_render` | Assemble supplied WAVs into a new ZIP; omit both arguments for a labelled demo. |
+| `sound_plan_validate` | Validate a SoundPlan payload (or a built-in minimal plan when omitted). |
+| `sound_qa_asr` | Recognize supplied local audio and compare it with a reference script. |
+| `sound_qa_loudness` | Measure hashed local audio against its policy; omit inputs for a labelled demo. |
+| `sound_voice_batch` | Retain local caption speech from a request, or run the synthetic plan demo. |
+| `video_add_generated_audio` | Add procedurally generated audio to a video. |
+| `video_audio_bed` | Mix a looped music bed under a voice source with ducking and loudness normalization. |
+| `video_audio_spatial` | Apply 3D spatial audio positioning. |
+| `video_duck_audio` | Mix background music under a video's voice with automatic ducking. |
+| `video_mix_audio` | Mix timed sounds with one AAC encode and stream-copy the primary picture. |
+
+### `video_ai_ops`: AI operations (transcription, scene detect, upscale, verdicts, quality) (15)
+
+| Tool | Summary |
+| --- | --- |
+| `video_acceptance_eval` | Evaluate exact-spec verdict and defect evidence without approving anything. |
+| `video_ai_color_grade` | Apply a color grade to a video — by LUT file, style preset, or reference video. |
+| `video_ai_remove_silence` | Remove silent sections from video. |
+| `video_ai_scene_detect` | Detect scene changes in video. |
+| `video_ai_stem_separation` | Separate audio into stems using Demucs. |
+| `video_ai_transcribe` | Transcribe speech to text using Whisper. |
+| `video_ai_upscale` | Upscale video using AI super-resolution. |
+| `video_analyze` | Comprehensive video analysis — transcript, metadata, scenes, audio, quality, chapters, colors. |
+| `video_body_swap` | Replace video while preserving approved audio with explicit duration policy. |
+| `video_design_quality_check` | Run comprehensive design quality analysis on a video. |
+| `video_fix_design_issues` | Auto-fix brightness and saturation in a video; audio is not changed. |
+| `video_quality_check` | Run visual quality checks on a video. |
+| `video_release_checkpoint` | Create preview artifacts only after the video passes quality gates. |
+| `video_salvage` | Create one lineage-bound salvage derivative and a fresh review slot. |
+| `video_verdict` | Persist exact-asset analysis; approvals require active human evidence. |
+
+### `image_ops`: Image and still operations (colors, palettes, grade, gate, packaging) (8)
+
+| Tool | Summary |
+| --- | --- |
+| `image_analyze_product` | Analyze a product image or video frame — extract colors and optionally generate AI description. |
+| `image_edit` | Establish-locked still match with plan/receipt (intent is audit metadata). |
+| `image_extract_colors` | Extract dominant colors from an image or video frame. |
+| `image_generate_palette` | Generate a color harmony palette from an image or video frame. |
+| `still_gate` | Fail-closed cohesion gate for a still package + contact sheet. |
+| `still_grade` | Grade stills in order correct→match→look; optional 3D LUT applied last. |
+| `still_match` | Match a package of stills to a hero plate with one shared WB/exposure gain. |
+| `still_package` | Multi-still package workflow: edit beats → match → grade → cohesion gate. |
+
+### `video_qc_ops`: Inspection and release operations (doctor, preflight, guardrails, review, publish) (15)
+
+| Tool | Summary |
+| --- | --- |
+| `video_benchmark_run` | Run the AI-video benchmark corpus against host capabilities. |
+| `video_capabilities` | Probe host capabilities (ffmpeg, whisper, c2pa) and return a capability report. |
+| `video_cost_ledger` | Sum known USD cost events by category for the project. |
+| `video_doctor` | Return a read-only JSON readiness verdict for the next video job. |
+| `video_extract_frame` | Extract one frame as an image. Without a timestamp, picks a smart thumbnail |
+| `video_ingest` | Ingest immutable source bytes into an existing or new private project. |
+| `video_inspect_temporal` | Build and persist the complete deterministic temporal evidence package. |
+| `video_learning_report` | Project a learning report (verdicts, defects, costs, recipes) from records. |
+| `video_preflight` | Run unified technical, loudness, color, and decode preflight. |
+| `video_publish_gate` | Evaluate the fail-closed publish gate; any blocking finding blocks publishing. |
+| `video_recipe_capture` | Capture a workflow recipe (writer); idempotent by canonical digest. |
+| `video_record_motion_acceptance` | Record an authorized human caller's explicit whole-film motion attestation. |
+| `video_review_decision` | Record a human review decision (writer); corrections supersede by record id. |
+| `video_review_package` | Assemble a review package and publish-gate verdict for a candidate artifact. |
+| `video_validate_text_layout` | Validate a set of text overlays for visual failure modes before rendering. |
+
+### `video_plan_ops`: Planning operations (intent, cutfiles, timelines, rescue, workflow, repurpose) (51)
+
+| Tool | Summary |
+| --- | --- |
+| `shot_prompt_render` | Expand one storyboard shot into prompt and negative_prompt strings. |
+| `storyboard_read` | Read a PUSHING CREATION storyboard table from storyboard.md or a project directory. |
+| `style_pack_read` | Read STYLE_ and NEG_ blocks from a style.md file or project directory. |
+| `video_audiogram_plan` | Audiogram + chapter mark plan (TE.4). |
+| `video_brand_kit` | Save or load a brand kit / style profile JSON. |
+| `video_composition_plan` | Build source-backed manifests, selections, compositions, previews, and checks. |
+| `video_creative_autopilot_plan` | Coordinate proven local planners or return a structured abstention. |
+| `video_cutfile_render` | Render a schema-valid Cutfile via the workflow engine (Track E). |
+| `video_cutfile_validate` | Validate a Cutfile, or compile one from ``goal`` / ``platform`` (N1/N5). |
+| `video_dub_plan` | ES-first plan; use sound_voice_batch with a hashed request for local stock speech. |
+| `video_edit_session` | Conversational edit session. Step with ``input_path`` measures real QC (N6). |
+| `video_estimate_operation` | Dry-run local wall-time / cost-unit estimate (not cloud pricing). |
+| `video_find_moments` | Persist or query a revision-bound local semantic index. |
+| `video_generative_plan` | Generative policy and spend-cap planning metadata (P4.1). |
+| `video_hook_candidates` | Thumbnail + hook-title candidates for human pick (TE.2). |
+| `video_init_project` | Scaffold a local Kinocut project directory (media/out/receipts + optional Cutfile). |
+| `video_intent` | Route a semantic intent verb to a plan (does not silently mutate media). |
+| `video_language_coverage` | Honest per-surface language coverage for transcribe/translate/dub. |
+| `video_metric_qc` | Offline metric floor (duration/black/loudness) — fail-closed, no invented values. |
+| `video_otio_export` | Export Timeline IR to simplified OTIO JSON (P4.2). |
+| `video_otio_import` | Import simplified OTIO JSON to Timeline IR (P4.2). |
+| `video_project_create` | Scaffold a cinematic video project with style, storyboard, and refs folders. |
+| `video_project_recipe_export` | Export a verified edit revision as a path-free portable recipe. |
+| `video_project_recipe_replay` | Replay a portable recipe into a new durable project revision. |
+| `video_propose_broll` | Transcript-keyed b-roll proposals — human review required, never silent insert. |
+| `video_propose_mutations` | Map QC findings to typed proposed mutations (human apply only). |
+| `video_publish_validate` | Validate a publish spec. ``solve=True`` also emits a cutfile (N5). |
+| `video_punch_zoom_plan` | Auto-zoom punch-in plan on cut points (TE.5). |
+| `video_qc_narrative` | Narrative/retention heuristics incl. first-15s window (P3.4). |
+| `video_qc_vision` | Prepare keyframes for visual review; provider assessment is disabled by default. |
+| `video_remote_egress_plan` | Plan explicit remote egress and fake adapter receipts without network I/O. |
+| `video_repurpose` | Submit one durable projectstore repurpose job for platform clips. |
+| `video_repurpose_plan` | Create a dry-run local repurposing manifest for platform-ready assets. |
+| `video_rescue_inspect` | Inspect a rescue plan or receipt and re-check artifact integrity. |
+| `video_rescue_plan` | Analyze one local video and return a policy-classified rescue plan. |
+| `video_rescue_render` | Render approved safe repairs from a reviewed rescue plan. |
+| `video_restoration_plan` | Plan or evaluate evidence-gated local restorative work. |
+| `video_review_decide` | Record human accept/reject/revise. Accept + EDL approval can render (N4). |
+| `video_review_run` | Watching guardrail: run offline metric floor under a review policy. |
+| `video_review_ui` | Write hot-reloading human review HTML surface (P4.3). |
+| `video_seek_frame` | Frame-accurate seek conversion (TE.9). |
+| `video_semantic_query` | Query source-backed semantic spans locally without inventing descriptions. |
+| `video_semantic_timeline` | Build a local, source-time semantic timeline from supplied analyzer evidence. |
+| `video_timeline_edit_plan` | Plan explicit or ordinary-person timeline edits as a reviewable EDL and diff. |
+| `video_timeline_ir_validate` | Validate Timeline IR and compile to render DAG (P3.0). |
+| `video_translate_captions` | Translate SRT captions with honest language-coverage reporting (EN→ES first). |
+| `video_visual_transform_plan` | Plan subject/camera analysis, reframing, or stabilization with crop budgets. |
+| `video_workflow_inspect` | Summarize any receipt this project emits, with a read-only integrity check. |
+| `video_workflow_plan` | Produce a no-render plan for an agent workflow job-spec. |
+| `video_workflow_render` | Execute an agent workflow job-spec and return a provenance receipt. |
+| `video_workflow_validate` | Validate an agent workflow job-spec without rendering any media. |
+
+### `platform_ops`: Platform operations (hyperframes, revideo, shorts packaging) (27)
+
+| Tool | Summary |
+| --- | --- |
+| `hyperframes_add_block` | Install a block from the Hyperframes catalog. |
+| `hyperframes_benchmark` | Benchmark Hyperframes render speed and file size. |
+| `hyperframes_capture` | Capture a website as editable Hyperframes components without provider captions. |
+| `hyperframes_catalog` | Browse Hyperframes catalog blocks/components. |
+| `hyperframes_compositions` | List compositions in a Hyperframes project. |
+| `hyperframes_doctor` | Run Hyperframes environment diagnostics. |
+| `hyperframes_info` | Print Hyperframes project metadata. |
+| `hyperframes_init` | Scaffold a new Hyperframes project. |
+| `hyperframes_inspect` | Inspect rendered composition layout for overflow and visual issues. |
+| `hyperframes_preview` | Launch Hyperframes preview studio for live preview. |
+| `hyperframes_remove_background` | Cut a person or a product out of a still or video. |
+| `hyperframes_render` | Render a Hyperframes composition to video. |
+| `hyperframes_snapshot` | Capture key frames as PNG screenshots for visual verification. |
+| `hyperframes_still` | Render a single frame as image from a Hyperframes composition. |
+| `hyperframes_to_mcpvideo` | Render a Hyperframes composition and post-process with mcp-video in one step. |
+| `hyperframes_transcribe` | Transcribe audio/video to word-level timestamps or import transcripts. |
+| `hyperframes_tts` | Generate speech audio or list available Hyperframes local TTS voices. |
+| `hyperframes_validate` | Validate a Hyperframes project for rendering readiness. |
+| `revideo_install` | Install the exact locked Revideo dependencies for a materialized project. |
+| `revideo_materialize` | Materialize Kinocut's pinned Revideo project for a validated job. |
+| `revideo_render` | Render and atomically publish a verified local Revideo artifact. |
+| `revideo_render_job` | Materialize, install, render, and verify one local Revideo job. |
+| `shorts_package` | Package approved platform renders from a saved plan. Never posts. |
+| `shorts_plan_show` | Load a saved shorts plan and return source-free proposals for review. |
+| `shorts_render` | Render platform drafts for an approved candidate from a saved plan. |
+| `shorts_review` | Append one human review decision to a saved shorts plan (source-free). |
+| `video_shorts` | Trim, caption, make vertical, and export selected segments in one call. |
+
+### Not in a family (1)
+
+| Tool | Summary |
+| --- | --- |
+| `search_tools` | Find registered MCP tools by name, keyword, or a supported task phrase. |
+
+<!-- END GENERATED INDEX -->
