@@ -184,3 +184,17 @@ def test_plugin_launch_stays_on_the_curated_default():
     kinocut = server["mcpServers"]["kinocut"]
     assert kinocut["args"] == ["kinocut==2.0.1"]
     assert "env" not in kinocut, "the plugin launch must stay on the environment-unset default"
+
+
+def test_skills_with_profile_tools_name_the_family_route():
+    # 2.0 reaches every profile tool through a family on the default surface. A skill that
+    # only offers the profile restart sends the agent to "unavailable" instead (seen in a
+    # Hermes run: the agent skipped video_quality_check, which video_ai_ops serves).
+    for skill in SKILL_FILES:
+        text = skill.read_text(encoding="utf-8")
+        if not _profile_map(text):
+            continue
+        assert "`describe_operation`" in text, (
+            f"{_skill_label(skill)} maps profile tools but never names describe_operation"
+        )
+        assert "search_tools" not in text, f"{_skill_label(skill)} names search_tools, which the default surface lacks"
