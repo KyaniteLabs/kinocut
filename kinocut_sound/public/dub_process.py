@@ -91,7 +91,8 @@ async def _run_async_files(args, text, deadline, stdout, stderr):
     except OSError as exc:
         raise mix_error("local speech engine cannot execute", "dub_backend_unavailable") from exc
     try:
-        await asyncio.wait_for(process.communicate(text), timeout=remaining(deadline))
+        async with asyncio.timeout(remaining(deadline)):  # wait_for can drop a cancel on 3.11 (#701)
+            await process.communicate(text)
         remaining(deadline)
         return _read_diagnostics(process.returncode, stdout, stderr)
     except TimeoutError as exc:
