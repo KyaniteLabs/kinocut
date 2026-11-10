@@ -736,6 +736,7 @@ def assert_quality(
     max_analyze_seconds: float | None = None,
     require_audio: bool = True,
     profile: str | None = None,
+    profile_reason: str | None = None,
 ) -> dict[str, Any]:
     """Hard quality gate for agent workflows before publishing output.
 
@@ -743,16 +744,31 @@ def assert_quality(
     meets ``min_score``; pass ``require_audio=False`` to opt out explicitly.
     Under a non-default ``profile`` the relaxed picture bands are hard limits:
     any failed brightness/contrast/saturation check fails the gate.
+
+    If the cut fails under the default profile, a non-default profile passes only
+    with a ``profile_reason`` ("screen recording of a dark editor"), recorded with
+    both scores in ``profile_override``.
     """
     report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds, profile=profile)
     audio_missing = require_audio and _report_missing_audio_stream(report)
     score_ok = report["overall_score"] >= min_score
     profile_failures = _profile_gate_failures(report)
+    baseline, reason = report.get("profile_baseline"), (profile_reason or "").strip()[:200]
+    default_would_fail = bool(baseline) and float(baseline["overall_score"]) < min_score
+    unexplained_switch = default_would_fail and not reason
+    if baseline and reason:
+        report["profile_override"] = {
+            "reason": reason,
+            "profile": report["profile"]["name"],
+            "profile_score": report["overall_score"],
+            "default_score": baseline["overall_score"],
+            "default_failed_checks": baseline["failed_checks"],
+        }
     # ``all_passed`` stays the per-check aggregate from ``quality_check``; the
     # score gate gets its own fields so a passing gate never reads as
     # "every check passed" over failed checks.
     advisory = VisualQualityGuardrails.ADVISORY_CHECKS
-    report["gate_passed"] = score_ok and not audio_missing and not profile_failures
+    report["gate_passed"] = score_ok and not audio_missing and not profile_failures and not unexplained_switch
     report["min_score"] = min_score
     report["failed_checks"] = [
         c["name"] for c in report.get("checks", []) if not c.get("passed") and c.get("name") not in advisory
@@ -766,6 +782,11 @@ def assert_quality(
             failures.append("no audio stream detected (audio required)")
         if profile_failures:
             failures.append(f"{report['profile']['name']} profile limits failed: {', '.join(profile_failures)}")
+        if unexplained_switch:
+            failures.append(
+                f"{report['profile']['name']} scores {overall_score:.1f} but the default profile scores "
+                f"{float(baseline['overall_score']):.1f}; pass profile_reason to say why this profile fits the cut"
+            )
         recommendations = "; ".join(report.get("recommendations", []))
         raise MCPVideoError(
             f"Quality gate failed: {'; '.join(failures)}. {recommendations}",

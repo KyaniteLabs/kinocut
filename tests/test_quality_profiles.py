@@ -106,7 +106,7 @@ def test_dark_ui_capture_fails_default_but_passes_dark_profile(dark_ui):
     with pytest.raises(MCPVideoError):
         assert_quality(dark_ui)
 
-    report = assert_quality(dark_ui, profile="ui-capture-dark")
+    report = assert_quality(dark_ui, profile="ui-capture-dark", profile_reason="dark editor screen recording")
     checks = {c["name"]: c for c in report["checks"]}
     assert report["gate_passed"] is True, checks
     for name in ("brightness", "contrast", "saturation"):
@@ -120,13 +120,53 @@ def test_profile_switch_reports_the_default_score_beside_it(dark_ui):
     from kinocut.quality_guardrails import assert_quality, quality_check
 
     default_report = quality_check(dark_ui)
-    report = assert_quality(dark_ui, profile="ui-capture-dark")
+    report = assert_quality(dark_ui, profile="ui-capture-dark", profile_reason="dark editor screen recording")
     baseline = report["profile_baseline"]
     assert baseline["profile"] == "default"
     assert baseline["overall_score"] == default_report["overall_score"]
     assert "saturation" in baseline["failed_checks"]
     assert baseline["overall_score"] < report["overall_score"]
     assert "profile_baseline" not in default_report
+
+
+@needs_ffmpeg
+def test_profile_switch_without_a_reason_keeps_the_gate_failed(dark_ui):
+    """#759: a cut that fails on default can't pass by re-running on another profile."""
+    from kinocut.quality_guardrails import assert_quality, quality_check
+
+    default_score = quality_check(dark_ui)["overall_score"]
+    profile_score = quality_check(dark_ui, profile="ui-capture-dark")["overall_score"]
+    with pytest.raises(MCPVideoError) as exc:
+        assert_quality(dark_ui, profile="ui-capture-dark")
+    message = str(exc.value)
+    assert "profile_reason" in message
+    assert f"{default_score:.1f}" in message and f"{profile_score:.1f}" in message
+
+    report = assert_quality(dark_ui, profile="ui-capture-dark", profile_reason="  dark editor screen recording  ")
+    override = report["profile_override"]
+    assert override["reason"] == "dark editor screen recording"
+    assert override["profile"] == "ui-capture-dark"
+    assert override["default_score"] == default_score
+    assert override["profile_score"] == report["overall_score"]
+    assert "saturation" in override["default_failed_checks"]
+
+
+@needs_ffmpeg
+def test_blank_reason_does_not_count(dark_ui):
+    from kinocut.quality_guardrails import assert_quality
+
+    with pytest.raises(MCPVideoError):
+        assert_quality(dark_ui, profile="ui-capture-dark", profile_reason="   ")
+
+
+@needs_ffmpeg
+def test_release_checkpoint_refuses_an_unexplained_profile_switch(dark_ui, tmp_path):
+    from kinocut.server_tools_ai import video_release_checkpoint
+
+    result = video_release_checkpoint(dark_ui, output_dir=str(tmp_path / "review"), profile="ui-capture-dark")
+    assert result["success"] is False
+    assert "profile_reason" in str(result)
+    assert not (tmp_path / "review").exists()
 
 
 @needs_ffmpeg
@@ -144,7 +184,12 @@ def test_blank_or_black_capture_fails_dark_profile_gate(capture, request):
     from kinocut.quality_guardrails import assert_quality
 
     with pytest.raises(MCPVideoError) as exc:
-        assert_quality(request.getfixturevalue(capture), min_score=0, profile="ui-capture-dark")
+        assert_quality(
+            request.getfixturevalue(capture),
+            min_score=0,
+            profile="ui-capture-dark",
+            profile_reason="dark editor screen recording",
+        )
     assert "ui-capture-dark profile limits failed" in str(exc.value)
 
 
@@ -152,7 +197,12 @@ def test_blank_or_black_capture_fails_dark_profile_gate(capture, request):
 def test_release_checkpoint_records_profile(dark_ui, tmp_path):
     from kinocut.server_tools_ai import video_release_checkpoint
 
-    result = video_release_checkpoint(dark_ui, output_dir=str(tmp_path / "review"), profile="ui-capture-dark")
+    result = video_release_checkpoint(
+        dark_ui,
+        output_dir=str(tmp_path / "review"),
+        profile="ui-capture-dark",
+        profile_reason="dark editor screen recording",
+    )
     assert result["success"] is True, result
     data = result.get("data", result)
     assert data["quality_profile"] == "ui-capture-dark"
@@ -180,7 +230,7 @@ def test_light_ui_capture_fails_default_but_passes_light_profile(tmp_path):
         assert_quality(light_ui)
 
     profiled = quality_check(light_ui, profile="ui-capture-light")
-    report = assert_quality(light_ui, profile="ui-capture-light")
+    report = assert_quality(light_ui, profile="ui-capture-light", profile_reason="light app screen recording")
     checks = {c["name"]: c for c in report["checks"]}
     assert report["gate_passed"] is True, checks
     for name in ("brightness", "contrast", "saturation"):

@@ -88,6 +88,10 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     rcheck_p.add_argument("--frame-count", type=int, default=6, help="Storyboard frame count (default: 6)")
     _add_quality_profile(rcheck_p)
     rcheck_p.add_argument(
+        "--profile-reason",
+        help="Why a non-default profile fits this cut; required when the default profile would fail it",
+    )
+    rcheck_p.add_argument(
         "--require-audio", action=argparse.BooleanOptionalAction, default=True, help="Require an audio stream"
     )
     _add_command_output_format(rcheck_p)
