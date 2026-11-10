@@ -40,7 +40,7 @@ Every family tool takes `operation` (a closed enum of its member operation
 names — typos and cross-family mistakes fail validation), `params` (the
 operation's exact arguments), and the standard strict-boolean `overwrite`
 consent every Kinocut handler exposes. Profiles are additive on the compact
-surface: `profile:editor` is 114 tools / 86,902 bytes.
+surface: `profile:editor` is 114 tools / 81,772 bytes.
 
 `KINOCUT_TOOLS=all` is the **legacy full-catalog surface** and stays exactly
 the 205-name registry, byte-identical to the pre-family baseline (all
