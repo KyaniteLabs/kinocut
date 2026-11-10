@@ -70,7 +70,8 @@ def test_video_convert_streams_mcp_progress(sample_video, tmp_path):
     out = str(tmp_path / "progress.webm")
 
     async def run():
-        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"])
+        # video_convert left the default hot path (#655); select the full catalog.
+        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"], env={"KINOCUT_TOOLS": "all"})
         async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
             await session.initialize()
             return await session.call_tool(

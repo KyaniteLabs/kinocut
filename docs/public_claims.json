@@ -12,7 +12,7 @@
   "published_mcp_tools": 205,
   "published_cli_commands": 177,
   "development_mcp_tools": 205,
-  "development_default_mcp_tools": 30,
+  "development_default_mcp_tools": 18,
   "development_cli_commands": 177,
   "registry_id": "tech.kyanitelabs/kinocut",
   "website": "https://kinocut.dev/",
