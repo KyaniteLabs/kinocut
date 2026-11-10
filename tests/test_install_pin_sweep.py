@@ -32,7 +32,7 @@ SCANNED_SUFFIXES = (".md", ".txt", ".py", ".json", ".yaml", ".yml", ".toml")
 ROOT_MANIFESTS = ("server.json", "smithery.yaml", "gemini-extension.json", "mcpb/manifest.json", "package.json")
 
 # The release every current surface must name.
-EXPECTED_PINS = {"kinocut": "1.16.5", "mcp-video": "1.6.20"}
+EXPECTED_PINS = {"kinocut": "2.0.0", "mcp-video": "1.6.21"}
 
 # README-PYPI.md is the long description baked into the package it ships in, so it
 # names that package's own version, not the previous release. Otherwise the 2.0.0

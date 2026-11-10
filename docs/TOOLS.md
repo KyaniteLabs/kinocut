@@ -12,8 +12,8 @@ exact MCP and CLI retry call.
 | `profile:<name>` | varies | the default 18 plus one job's tools by name (`profile:editor` lists 115) |
 | `all` | 206 | every tool by its own name; families hidden |
 
-Published 1.16.5 lists 20 tools by default and 205 with `all`. The numbers above are
-the development tip. The hot path is `video_info`, `video_trim`, `video_merge`,
+Kinocut 1.16.5 listed 20 tools by default and 205 with `all`; 2.0.0 lists the numbers
+above. The hot path is `video_info`, `video_trim`, `video_merge`,
 `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts` and
 `video_doctor`. Every other tool is an operation inside one family; see
 [MCP_TOOL_FAMILIES.md](MCP_TOOL_FAMILIES.md).
@@ -327,11 +327,11 @@ Layer `alpha_mode` is `straight` by default; `premultiplied` image/video inputs 
 Install only the AI dependencies you need:
 
 ```bash
-pip install "kinocut[transcribe]==1.16.5"  # Whisper transcription
-pip install "kinocut[ai-scene]==1.16.5"    # perceptual scene hashing
-pip install "kinocut[stems]==1.16.5"       # Demucs stem separation
-pip install "kinocut[upscale]==1.16.5"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
-pip install "kinocut[ai]==1.16.5"          # all AI extras, kept for compatibility
+pip install "kinocut[transcribe]==2.0.0"  # Whisper transcription
+pip install "kinocut[ai-scene]==2.0.0"    # perceptual scene hashing
+pip install "kinocut[stems]==2.0.0"       # Demucs stem separation
+pip install "kinocut[upscale]==2.0.0"     # OpenCV upscaling; Real-ESRGAN/BasicSR where supported
+pip install "kinocut[ai]==2.0.0"          # all AI extras, kept for compatibility
 pip install yt-dlp                   # only for downloading platform URLs (YouTube/Vimeo/...)
 ```
 
@@ -376,7 +376,7 @@ Create videos programmatically using [Hyperframes](https://hyperframes.io/) — 
 | `hyperframes_capture` | Capture a website as editable Hyperframes components |
 | `hyperframes_tts` | Generate speech audio with local Hyperframes TTS or list available voices |
 | `hyperframes_transcribe` | Transcribe media to word-level timestamps or import transcripts |
-| `hyperframes_remove_background` | Cut a person (default `u2net_human_seg`) or a product/object (`model="birefnet-general"`, `kinocut[object-matte]==1.16.5`) out of a still or video. `info=true` lists models without downloading. No new tool name. Guide: [PRODUCT_MATTE.md](PRODUCT_MATTE.md) |
+| `hyperframes_remove_background` | Cut a person (default `u2net_human_seg`) or a product/object (`model="birefnet-general"`, `kinocut[object-matte]==2.0.0`) out of a still or video. `info=true` lists models without downloading. No new tool name. Guide: [PRODUCT_MATTE.md](PRODUCT_MATTE.md) |
 | `hyperframes_doctor` | Run Hyperframes environment diagnostics |
 | `hyperframes_benchmark` | Compare render speed and output size, with configurable run count |
 | `hyperframes_compositions` | List all compositions in a project |
