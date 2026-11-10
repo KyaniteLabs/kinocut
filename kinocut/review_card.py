@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import base64
 import html
-import io
 import os
 import tempfile
 from typing import Any
@@ -95,16 +94,29 @@ def _sheet_bytes(sheet_path: str) -> tuple[bytes, str]:
     mime = "image/png" if raw[:8] == b"\x89PNG\r\n\x1a\n" else "image/jpeg"
     if len(raw) <= MAX_INLINE_IMAGE_BYTES:
         return raw, mime
-    from PIL import Image
+    from .ffmpeg_helpers import _run_ffmpeg_bytes
 
-    with Image.open(io.BytesIO(raw)) as img:
-        img = img.convert("RGB")
-        if img.width > MAX_IMAGE_WIDTH:
-            height = max(1, round(img.height * MAX_IMAGE_WIDTH / img.width))
-            img = img.resize((MAX_IMAGE_WIDTH, height), Image.LANCZOS)
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=80, optimize=True)
-    return buf.getvalue(), "image/jpeg"
+    # FFmpeg is a core dependency; Pillow is not, so a plain install can still downscale.
+    data = _run_ffmpeg_bytes(
+        [
+            "-v",
+            "error",
+            "-i",
+            sheet_path,
+            "-frames:v",
+            "1",
+            "-vf",
+            f"scale=w='min({MAX_IMAGE_WIDTH},iw)':h=-2,format=yuvj420p",
+            "-q:v",
+            "5",
+            "-f",
+            "image2pipe",
+            "-c:v",
+            "mjpeg",
+            "pipe:1",
+        ]
+    )
+    return data, "image/jpeg"
 
 
 def _format_duration(seconds: float) -> str:
