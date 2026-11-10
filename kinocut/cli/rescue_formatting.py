@@ -4,11 +4,12 @@ from __future__ import annotations
 
 from typing import Any
 
-from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 
-console = Console()
+from .home_paths import HomeCollapsingConsole
+
+console = HomeCollapsingConsole()
 
 
 def _model_dump(result: Any) -> Any:
