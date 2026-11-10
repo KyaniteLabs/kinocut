@@ -9,6 +9,7 @@ from typing import Any, get_args
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, TextContent
 from pydantic import create_model, model_validator
+from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import PydanticCustomError
 
 from .errors import MCPVideoError
@@ -66,6 +67,29 @@ def validate_tool_arguments(name: str, tool: Any, arguments: dict[str, Any]) -> 
         ) from None
 
 
+class _UntitledSchema(GenerateJsonSchema):
+    """Omit the titles pydantic derives from field names ("input_path" -> "Input Path").
+
+    They restate the property key, carry no validation meaning, and were
+    about a sixth of every advertised inputSchema. Titles a field declares
+    explicitly are kept.
+    """
+
+    def field_title_should_be_set(self, schema: Any) -> bool:
+        return False
+
+
+def _compact_tool_metadata(tool: Any) -> None:
+    """Drop advertised metadata that only repeats something else in the listing."""
+    tool.parameters.pop("title", None)  # "<name>Arguments" repeats the tool name
+    output_schema = tool.fn_metadata.output_schema
+    if output_schema is not None:
+        output_schema.pop("title", None)  # "<name>DictOutput" likewise
+    annotations = tool.annotations
+    if annotations is not None and annotations.title is not None and annotations.title == tool.title:
+        tool.annotations = annotations.model_copy(update={"title": None})
+
+
 class _ContractFastMCP(FastMCP):
     """Reject undeclared top-level arguments before a handler executes."""
 
@@ -87,7 +111,8 @@ class _ContractFastMCP(FastMCP):
             __validators__={"_reject_numeric_booleans": _numeric_boolean_validator(model)},
         )
         tool.fn_metadata.arg_model = model
-        tool.parameters = model.model_json_schema(by_alias=True)
+        tool.parameters = model.model_json_schema(by_alias=True, schema_generator=_UntitledSchema)
+        _compact_tool_metadata(tool)
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         tool = self._tool_manager.get_tool(name)

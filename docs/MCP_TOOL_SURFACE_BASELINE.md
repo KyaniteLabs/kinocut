@@ -14,9 +14,9 @@ stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 18 | 17,429 |
-| `all` | 205 | 126,908 |
-| `profile:editor` | 114 | 80,152 |
+| default / `core` (unset) | 18 | 15,335 |
+| `all` | 205 | 98,000 |
+| `profile:editor` | 114 | 63,857 |
 
 The default surface is the 8-tool hot-path core plus the ten compact-surface
 tools (eight typed operation families + `list_operations` +
@@ -32,7 +32,11 @@ The hot-path diet (#655) then cut the direct core from 20 tools to 8; the
 twelve dropped tools stay reachable as family operations, through
 `KINOCUT_TOOLS=all`, and (where their profile carries them) through
 `profile:<name>` (default 30 / 24,347 → 18 / 17,429; editor 118 / 81,813 →
-114 / 80,152; `all` unchanged).
+114 / 80,152; `all` unchanged). Dropping the titles pydantic derives from
+property names ("input_path" -> "Input Path") and the "<name>Arguments"
+schema title then cut every mode without changing a property, type or
+validation rule (default 17,429 → 15,335; `all` 126,908 → 98,000; editor
+80,152 → 63,857).
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required
