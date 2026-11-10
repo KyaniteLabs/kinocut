@@ -1,6 +1,6 @@
-# MCP Video Context
+# Kinocut Context
 
-A Python MCP server that exposes FFmpeg-based video processing as typed tools for AI agents.
+A Python MCP server, client and CLI that expose FFmpeg-based video processing as typed tools for AI agents.
 
 ## Language
 
@@ -11,6 +11,18 @@ _Avoid_: module, handler, worker, processor
 **Tool**:
 A function registered as an MCP tool via `@mcp.tool()` in a `server_tools_*.py` file. Tools are the public API surface.
 _Avoid_: endpoint, API, command, route
+
+**Hot path**:
+The eight tools every surface lists by name: `video_info`, `video_trim`, `video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`, `video_doctor` (`CORE_TOOLS` in `tool_registry.py`).
+_Avoid_: core 20, default tools
+
+**Operation family**:
+A typed dispatch tool (`video_edit_ops`, `audio_ops`, ...) whose `operation` enum names member tools and whose `params` are validated against that tool's own contract. Defined in `tool_families.py`. `list_operations` and `describe_operation` discover family members.
+_Avoid_: meta-tool, router
+
+**Profile**:
+A named tool selection served with `KINOCUT_TOOLS=profile:<name>`. `KINOCUT_TOOLS=all` serves every tool by name.
+_Avoid_: mode, preset
 
 **Pipeline**:
 An FFmpeg filtergraph string assembled from user parameters. Engines construct pipelines; `_run_ffmpeg()` executes them.
@@ -57,7 +69,8 @@ _Avoid_: worker
 - A **Probe** reads video metadata via ffprobe.
 - A **Guardrail** evaluates video quality; may trigger auto-fixes via **Engine** functions.
 - **Facade** files (`engine.py`, `server.py`) re-export from underlying modules.
-- A **Command** maps 1:1 to a **Tool** via the CLI layer.
+- A **Command** usually calls the same function as a **Tool**; not every Tool has a Command.
+- An **Operation family** dispatches to member **Tools**; the result is identical to calling the Tool by name.
 
 ## Example dialogue
 

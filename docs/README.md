@@ -1,100 +1,77 @@
-# Kinocut Documentation Map
+# Kinocut documentation
 
-GitHub backlog review and local fixes: [September 30 report](research/github-backlog/2026-09-30/REPORT.md).
+Start with the [project README](../README.md). This page maps the rest. Everything under
+**Current Guidance** describes how Kinocut works today; the sections after it are dated
+records.
 
-Use this page to distinguish current operating guidance from dated evidence. The
-project was renamed from `mcp-video` to **Kinocut** on 2026-07-10; historical
-artifacts keep the names, versions, commands, and paths they actually verified.
+Kinocut was called `mcp-video` until 2026-07-10. Historical records keep the names,
+versions and commands they actually verified.
 
 ## Current Guidance
 
-- [Golden path (first-run proof)](GOLDEN_PATH.md) - doctor → baseline → receipt success criteria.
-- [Public claims](public_claims.json) - version, tool/CLI counts, registry id, canonical URLs.
-- [CLI reference](CLI_REFERENCE.md) - canonical `kino` commands and flags.
-- [MCP tools](TOOLS.md) - public tool categories and contracts.
-- [Python client](PYTHON_CLIENT.md) - canonical `from kinocut import Client` usage.
-- [360 dual-cam assembly](360_ASSEMBLY.md) - stitched equirect MP4 → propose/approve/render (published 1.14.0; no new MCP name).
-- [Product / object matte](PRODUCT_MATTE.md) - product/catalog cutouts on existing `hyperframes-remove-background --model birefnet-general` (available in published 1.16.5 as the optional `kinocut[object-matte]==1.16.5` extra; first shipped in 1.15.1). No new MCP name. Example: [examples/product-matte/](../examples/product-matte/).
-- [Stream shorts](STREAM_SHORTS.md) - saved-plan review, render, and package stages (local-only).
-- [Agent workflows](WORKFLOWS.md) - job specs, render receipts, resume, and cleanup.
-- [Video rescue](RESCUE.md) - review-first repair pipeline.
-- [PR validation](research/PR_VALIDATION.md) - final publication gate and earlier checkpoint boundaries.
-- [Team PR handoff prompt](research/TEAM_PR_HANDOFF.md) - review and finish existing PR #586.
-- [GitHub backlog review](research/github-backlog/2026-09-30/REPORT.md) - reviewed issue/PR inventory and local adaptations.
-- [Testing](TESTING.md) - focused, integration, and real-media verification.
-- [Plain-file audio mixing](AUDIO_MIXING.md) - single-encode timed tracks, ducking and bounded looping.
-- [Quality evidence](QUALITY_EVIDENCE.md) - measured RMS/visual evidence, unavailable inference, and conversion guarantees.
-- [Projectstore lifecycle](PROJECTSTORE_LIFECYCLE.md) - verified CAS repair, detached stop requests and resumable jobs.
-- [Design standards](DESIGN_STANDARDS.md) - visual metrics, units, and guardrails.
-- [Licensing notes](LEGAL_REVIEW.md) - project and dependency obligations.
-- [Agent discovery](AI_AGENT_DISCOVERY.md) - concise capability and setup summary.
-- [Extended agent guide](llms-full.txt) - on-demand operational context and installed-schema discovery.
-- [External AI audit review](research/external-ai-audits/2026-09-30/REPORT.md) - checked Google/Gemini recommendations and source changes.
-- [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md) - evidence-first Wave 3 operating guide.
-- [Kinocut now](status/NOW.md) - published vs tip, human residuals, site honesty leftover.
-- [2026-09-30 ops disposition](status/2026-09-30-ops-disposition.md) - current gate applicability and owner-evidence boundaries.
-- 2026-08-19 ops closeout (removed 2026-10-11) - dual-host, CI, Cloudflare DNS, parked owner words.
-- [Post-campaign tip status](status/2026-07-27-post-campaign-tip-status.md) - historical 1.11.1-versus-development-tip snapshot (superseded by NOW.md).
-- [Post-1.10 program status](status/2026-07-24-post-1-10-program-status.md) - historical published-release and remaining-program boundary recorded after 1.11.1.
-- [Post-1.8 program status](status/2026-07-14-post-1.8-program-status.md) - historical published-release boundary (superseded for planning).
+**Start here**
 
-
-## Marketing & activation (no design)
-
-- [Install matrix](INSTALL.md)
-- [Golden path](GOLDEN_PATH.md)
-- [Prompt library](PROMPTS.md)
-- [Podcast → Shorts tutorial](TUTORIAL_PODCAST_TO_SHORTS.md)
-- [Video Receipt](VIDEO_RECEIPT.md)
-- [Failure-as-feature examples](FAILURE_EXAMPLES.md)
-- [Compare Kinocut](COMPARE.md)
-- [When to recommend](RECOMMEND.md)
-- [Rename story (mcp-video → Kinocut)](RENAME.md)
-- [Directory status board](DIRECTORY_STATUS.md)
-- [Integrations](INTEGRATIONS.md)
-- [Release ritual](RELEASE_RITUAL.md)
-- [Enterprise notes](ENTERPRISE.md)
-- [Hall of receipts](HALL_OF_RECEIPTS.md)
+- [Install matrix](INSTALL.md) - FFmpeg, Python, extras and host setup.
+- [Golden path](GOLDEN_PATH.md) - a first run that ends in a checked clip and a receipt.
+- [Integrations](INTEGRATIONS.md) - Claude Code, Claude Desktop, Cursor, Gemini CLI and other MCP clients.
+- [FAQ](faq.md)
 - [Good first agent tasks](first-agent-tasks.md)
-- [Public claims](public_claims.json)
 
-## Strategy And Roadmap
+**Reference**
 
-- [Product roadmap](../ROADMAP.md) - shipped and pending product work.
-- [Trusted execution layer plan](plans/2026-07-09-kinocut-trusted-execution-layer.md) - approved phased plan and live Phase 0 status.
-- [Kinocut research pack](plans/kinocut-research/README.md) - dated evidence behind the approved plan.
-- [Integration roadmap](archive/INTEGRATION-ROADMAP.md) - completed and deferred integrations.
-- [Feature roadmap](archive/KINOCUT-FEATURES-ROADMAP.md) - detailed feature history and backlog.
-- [Audio feature design](KINOCUT-AUDIO-FEATURES.md) - procedural-audio design record.
-- [Wishlist parallel execution plan](plans/2026-07-12-wishlist-parallel-execution.md) - dependency waves, ownership, integration gates, and stop rules.
-- [`kinocut_sound` plan index](superpowers/plans/2026-07-12-kinocut-sound-plan-index.md) - standalone-capable sound-module sequencing.
+- [MCP tools](TOOLS.md) - every tool by name.
+- [MCP operation families](MCP_TOOL_FAMILIES.md) - the default surface: hot path, families, `list_operations`, `describe_operation`.
+- [Tool surface baseline](MCP_TOOL_SURFACE_BASELINE.md) - measured tool counts and listing sizes per mode.
+- [Python client](PYTHON_CLIENT.md) - `from kinocut import Client`.
+- [CLI reference](CLI_REFERENCE.md) - `kino` commands and flags.
+- [Video Receipts](VIDEO_RECEIPT.md) - receipt kinds and what they prove.
+- [Public claims](public_claims.json) - published version, counts, registry id and canonical URLs.
+- [Agent discovery](AI_AGENT_DISCOVERY.md) and the [extended agent guide](llms-full.txt).
 
-## Release Evidence And Historical Snapshots
+**Guides**
 
-- [Golden demo pack](../demo/golden-pack/README.md) - regenerate shareable receipt + quality artifacts.
-- [1.8.0 release packet](proofs/release-1.8.0/RELEASE_PACKET.md) - dated release evidence and final-gate record.
-- [Wishlist draft verification receipt](proofs/wishlist-draft/VERIFICATION_RECEIPT.md) - historical exact-SHA pre-PR checks and then-required final gates.
-- [Wishlist input manifest](evidence/2026-07-10-wishlist-input-manifest.md) - public-safe source traceability.
+- [Agent workflows](WORKFLOWS.md) - JSON job specs, render receipts, resume and cleanup.
+- [Podcast to Shorts tutorial](TUTORIAL_PODCAST_TO_SHORTS.md) and [stream shorts](STREAM_SHORTS.md).
+- [Video rescue](RESCUE.md) - review-first repair.
+- [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md), [inspection](AI_VIDEO_INSPECTION.md) and [contracts](AI_VIDEO_CONTRACTS.md).
+- [360 dual-cam assembly](360_ASSEMBLY.md) - stitched equirectangular MP4 to propose, approve and render.
+- [Product / object matte](PRODUCT_MATTE.md) - product and catalog cutouts with `hyperframes-remove-background --model birefnet-general`, available in published 1.16.5 as the optional `kinocut[object-matte]==1.16.5` extra (first shipped in 1.15.1). No new MCP tool. Example: [examples/product-matte/](../examples/product-matte/).
+- [Still plates](STILL_PLATES.md) - match and grade a set of stills to a hero image.
+- [Audio mixing](AUDIO_MIXING.md) and the sound request guides ([mix](SOUND_MIX_REQUESTS.md), [loudness](SOUND_LOUDNESS_REQUESTS.md), [master](SOUND_MASTER_REQUESTS.md), [caption speech](SOUND_DUB_REQUESTS.md)).
+- [Quality evidence](QUALITY_EVIDENCE.md) - what is measured, what is unavailable, what is not evaluated.
+- [C2PA provenance](C2PA_PROVENANCE.md) - signed manifests on final exports.
+- [Vision and network controls](VISION_PRIVACY.md)
+- [Project store lifecycle](PROJECTSTORE_LIFECYCLE.md) - CAS repair, stop requests and resumable jobs.
+- [Desktop extension (MCPB)](MCPB.md)
+- [Prompt library](PROMPTS.md) and [failure examples](FAILURE_EXAMPLES.md).
 
-## Historical Evidence
+**Project**
 
-- `docs/proofs/` contains dated release and confidence receipts.
-- Date-prefixed audits, handoffs, plans, and `docs/status/` entries are snapshots,
-  not current install or source-layout instructions, unless they explicitly identify
-  themselves as the current release record. For current release and program state,
-  use [NOW.md](status/NOW.md); the 2026-08-19 ops closeout was removed 2026-10-11;
-- [Performance committee receipts](status/perf-committee/README.md) — inspect-only
-  2026-08-13 reports. Do not re-implement the 360 split; `render_window_single_pass`
-  already shipped in 1.14.0.
-  [post-campaign tip status](status/2026-07-27-post-campaign-tip-status.md),
-  post-1.10 and post-1.8 program status files remain dated snapshots.
-- `docs/internal/` research is also historical operating evidence, not public product
-  guidance.
-- `CHANGELOG.md` is intentionally historical and retains former package names.
+- [Kinocut now](status/NOW.md) - published release versus development tip, open human gates.
+- [Human gates](HUMAN_GATES.md) - what only a person can approve.
+- [Roadmap](../ROADMAP.md)
+- [Changelog](../CHANGELOG.md)
+- [Testing](TESTING.md), [design standards](DESIGN_STANDARDS.md), [platform parity](PLATFORM_PARITY.md)
+- [Release ritual](RELEASE_RITUAL.md) and [fleet upgrade](FLEET_UPGRADE.md)
+- [Licensing notes](LEGAL_REVIEW.md)
+- [Rename story](RENAME.md), [compare](COMPARE.md), [when to recommend](RECOMMEND.md), [enterprise notes](ENTERPRISE.md)
+- [Directory status](DIRECTORY_STATUS.md)
 
-## Compatibility Names
+## Historical records
 
-The `mcp-video` distribution, `mcp-video` CLI, `mcp_video` import, legacy receipt
-keys, `mcp_video_` intermediate prefixes, and `mcp-video://` resource aliases are
-preserved compatibility contracts. New integrations should use `kinocut`, `kino`,
-`from kinocut import Client`, and `kinocut://` for new resources.
+- `docs/status/` entries are snapshots: dated release notes, program status and
+  closeouts. [NOW.md](status/NOW.md) is the one current status file. The
+  [post-campaign tip status](status/2026-07-27-post-campaign-tip-status.md) and the
+  post-1.8 and post-1.10 program status files are kept as dated snapshots.
+- [docs/archive/](archive/README.md) holds pre-2.0 audits, roadmaps and checklists.
+- `docs/proofs/` holds dated release and confidence receipts, such as the
+  [1.8.0 release packet](proofs/release-1.8.0/RELEASE_PACKET.md).
+- `docs/plans/`, `docs/research/`, `docs/adr/` and `docs/internal/` are dated design
+  and research records, not install or usage instructions.
+- `CHANGELOG.md` keeps former package names on purpose.
+
+## Compatibility names
+
+The `mcp-video` distribution and CLI, the `mcp_video` import, legacy receipt keys,
+`mcp_video_` intermediate prefixes and `mcp-video://` resource aliases still work. New
+integrations should use `kinocut`, `kino`, `from kinocut import Client` and `kinocut://`.

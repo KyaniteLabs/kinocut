@@ -1,33 +1,33 @@
 # Kinocut
 
-> Guardrailed video editing MCP server, Python library, and CLI for AI agents.
+> Guardrailed video editing MCP server, Python client and CLI for AI agents.
 > Local-first. Apache-2.0. Formerly mcp-video.
 
-## One-line definition
-
-Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gives AI agents typed, preflight-guarded FFmpeg video tools, Video Receipt provenance, quality checkpoints, Hyperframes creation, workflow resume, video rescue, and local Shorts/Reels/TikTok repurposing.
+Kinocut is an open-source Model Context Protocol (MCP) server that gives AI agents typed,
+preflight-checked FFmpeg video tools. Edits write new files unless overwrite is explicit,
+quality gates check the result, and a Video Receipt records what was asked and what ran.
+The same engine is available as a Python client (`from kinocut import Client`) and the
+`kino` CLI.
 
 ## Entity facts (cite these)
 
-- **Name:** Kinocut (CLI: `kino`; former name: mcp-video / import `mcp_video`)
+- **Name:** Kinocut (CLI: `kino`; former name: mcp-video, import `mcp_video`)
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Last verified publication checkpoint:** 1.16.5 (2026-10-27); consult the official registries for the latest version.
-- **Last-updated:** 2026-11-02
-- **Published surface (1.16.5):** 20 default MCP tools; `KINOCUT_TOOLS=all` serves 205 MCP tools / 177 CLI commands
-- **Hermes catalog pin:** `kinocut==1.16.4` (launched through uvx) serves 203 MCP tools / 177 CLI commands — not the 1.16.5 counts
-- **Development-tip:** 18-default / 206-full (Unreleased); `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools.
-- **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
+- **Latest published release:** 1.16.5 (2026-10-27)
+- **Published surface (1.16.5):** 205 MCP tools / 177 CLI commands (20 MCP tools listed by default)
+- **Development tip (master):** 206 MCP tools / 177 CLI commands (18 MCP tools listed by default)
+- **Compatibility package:** 1.6.20 shim → kinocut 1.16.5 (`mcp-video==1.6.20`)
+- **Runtime:** Python 3.11+, FFmpeg and ffprobe on PATH; optional extras for transcription, upscaling, object matte and more
 - **MCP transport:** stdio
-- **MCP Registry id:** `tech.kyanitelabs/kinocut`
-- **Legacy MCP Registry id:** `io.github.KyaniteLabs/kinocut` — version-locked-deprecated at 1.16.1 (`status=deprecated`); do not use for new installs
+- **MCP Registry id:** `tech.kyanitelabs/kinocut` (the legacy id `io.github.KyaniteLabs/kinocut` is deprecated; do not use it)
 - **Product site:** https://kinocut.dev/
-- **Historical live identity check (2026-09-30):** PyPI, npm and site report 1.15.3; GitHub latest release reports 1.15.0. MCP Registry latest returned HTTP 403, so its current version is unverified.
-- **Maintenance publication (2026-10-27):** PyPI/npm, GitHub release `v1.16.5` and the official MCP Registry report 1.16.5; shim 1.6.20 pins it. The registry entry is the local `uvx kinocut==1.16.5` stdio package (no hosted remote).
-- **Maintenance publication (2026-10-05):** PyPI/npm and GitHub release report 1.16.1; shim 1.6.16 pins it. The initial publication gate read canonical MCP Registry 1.16.1; later reads timed out. Live site last verified at 1.16.0; prepared 1.16.1 source is not deployed.
-- **Release identity checkpoint (2026-10-02):** PyPI/npm/GitHub release/canonical MCP Registry report 1.16.0; shim 1.6.15 metadata pins kinocut1.16.0. The live site was verified at 1.16.0 on 2026-10-05. Fleet work and final owner acceptance remain separate. Product source of truth is GitHub.
-- **Not:** hosted cloud editor, credit-metered SaaS, untyped FFmpeg shell wrapper
+- **Source:** GitHub is canonical; Forgejo is a downstream mirror
+- **Not:** a hosted cloud editor, a credit-metered SaaS, or an untyped FFmpeg shell wrapper
+
+`docs/public_claims.json` holds the current published identity; consult PyPI and the MCP
+Registry for the live version.
 
 ## Install
 
@@ -38,134 +38,98 @@ kino doctor
 claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
-Core FFmpeg edits process local media. An AI host or explicitly configured external
-service may receive prompts, results or media; local-first does not guarantee zero
-data transfer. Kinocut has no core license fee; hardware, hosting and optional
-provider/model costs depend on the chosen workflow.
+Core FFmpeg edits process local media. An AI host or an explicitly configured external
+service may receive prompts, results or media, so local-first does not mean zero data
+transfer. Optional vision calls are off by default (`KINOCUT_VISION_MODE=off`).
 
-## Golden path (first-run proof)
-
-```bash
-pip install -e .   # from a clone
-python scripts/golden_path.py
-```
-
-Pass: doctor required OK + final_clip.mp4 + video_receipt.json (tool_calls, human_review pending).
-Docs: https://github.com/KyaniteLabs/kinocut/blob/master/docs/GOLDEN_PATH.md
-Pack: python scripts/generate_golden_pack.py → demo/golden-pack/
-
-## Eyes-free agent quick start
-
-Use `video_info` / `kino info`, then `video_doctor` / `kino doctor`, then `search_tools` for an unfamiliar intent. Render with an explicit output path, inspect the one-screen receipt, run quality checks, and ask for human visual/audio review before publishing. Errors end with the MCP and CLI retry invocation.
-
-Compatibility:
+Coming from mcp-video:
 
 ```bash
-pip install --upgrade 'mcp-video==1.6.20'   # published 1.6.20 shim → kinocut 1.16.5
-pip install --force-reinstall --no-deps 'kinocut==1.16.5'
+pip install --upgrade 'mcp-video==1.6.20'   # installs kinocut 1.16.5
 ```
 
-Publication checkpoint: 1.6.20 shim → kinocut 1.16.5. Fleet upgrades must verify the installed package and restarted MCP process; see docs/FLEET_UPGRADE.md.
+## Tool surface
 
-The published compatibility shim is 1.6.20. Compatibility names are preserved;
-new integrations should use kinocut, kino and `from kinocut import Client`.
+- **Default (no setting):** an 8-tool hot path (`video_info`, `video_trim`, `video_merge`,
+  `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`,
+  `video_doctor`), eight operation families (`video_edit_ops`, `video_effects_ops`,
+  `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`,
+  `platform_ops`), plus `list_operations` and `describe_operation`.
+- **Families:** call `list_operations` to see a family's operations, `describe_operation`
+  for one operation's full schema, then call the family with `{"operation": ..., "params": ...}`.
+  Family dispatch runs the same code as the named tool.
+- **Profiles:** `KINOCUT_TOOLS=profile:<name>` lists one job's tools by name. Profiles:
+  advanced, ai, audio, creation, editor, effects, guardrails, hyperframes, image,
+  inspection, intent, media, postrescue, release, repurpose, rescue, revideo, shorts,
+  workflow.
+- **Everything:** `KINOCUT_TOOLS=all` lists every tool by its own name.
+- After connecting, MCP `tools/list` is the authority for the installed server's schemas.
+  `server.json` is registry metadata, not the tool schema.
 
-Published identity is maintained in `docs/public_claims.json`.
+## Agent quick start
+
+1. `video_info` on the input.
+2. `video_doctor` if a feature might be missing.
+3. Use a hot-path tool, or find the operation with `list_operations` /
+   `describe_operation`.
+4. Write to an explicit new output path and read the structured result.
+5. Run the release checkpoint (`kino release-checkpoint`, or the `video_qc_ops` family).
+6. For a human decision, `video_review_card` makes an HTML review card (contact sheet,
+   facts, Approve & export / Dig in / Try another range) for Hermes Desktop chat.
+7. Ask for human visual and audio review before anything is published. Kinocut never posts.
+
+Errors end with the exact MCP and CLI retry call.
+
+## Safety rules for agents
+
+- Use the typed tools, not free-form shell or raw FFmpeg built from user input.
+- Keep the preflight checks on: filter bounds, merge compatibility, audio levels and
+  timing, overlay opacity and timing, chroma ranges, text layout.
+- Never overwrite a source file; pass `overwrite` only when the user asked for it.
+- Distinguish planning, frame sampling, measured checks and model inference. An
+  unavailable backend cannot grant acceptance.
+- A Video Receipt records provenance and review status. It is not a human sign-off.
+- No generation adapter exists: Kinocut renders real media and does not generate video
+  or paid images.
+
+## Use cases
+
+- Claude Code, Claude Desktop, Cursor, Codex and other MCP clients editing video
+- Trim, merge, caption, resize, convert, overlay and audio mixing through typed tools
+- Podcast or stream to Shorts, Reels and TikTok packages
+- Loudness, quality and release gates before publishing
+- Multi-step JSON workflows with receipts and resume
+- Video rescue: diagnose and repair without changing the story
+- AI-generated video review and salvage
+- 360 dual-cam assembly from a stitched equirectangular MP4
+- Product and object matte, still-plate grading
+- Hyperframes and Revideo code-driven motion graphics
 
 ## Canonical links
 
-- Extended repository agent guide: https://github.com/KyaniteLabs/kinocut/blob/master/docs/llms-full.txt (source companion; website publication is separate)
 - Product: https://kinocut.dev/
-- Site llms.txt: https://kinocut.dev/llms.txt
 - GitHub (canonical source): https://github.com/KyaniteLabs/kinocut
 - Forgejo (downstream mirror): https://git.kyanitelabs.tech/KyaniteLabs/kinocut
 - PyPI: https://pypi.org/project/kinocut/
 - MCP Registry: https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest
+- Extended agent guide: https://github.com/KyaniteLabs/kinocut/blob/master/docs/llms-full.txt
 - Tool reference: https://github.com/KyaniteLabs/kinocut/blob/master/docs/TOOLS.md
+- Operation families: https://github.com/KyaniteLabs/kinocut/blob/master/docs/MCP_TOOL_FAMILIES.md
+- Python client: https://github.com/KyaniteLabs/kinocut/blob/master/docs/PYTHON_CLIENT.md
+- CLI reference: https://github.com/KyaniteLabs/kinocut/blob/master/docs/CLI_REFERENCE.md
+- Install matrix: https://github.com/KyaniteLabs/kinocut/blob/master/docs/INSTALL.md
 - Workflows: https://github.com/KyaniteLabs/kinocut/blob/master/docs/WORKFLOWS.md
-- Video receipts: https://github.com/KyaniteLabs/kinocut/blob/master/docs/VIDEO_RECEIPT.md
-- Rescue: https://github.com/KyaniteLabs/kinocut/blob/master/docs/RESCUE.md
-- 360 assembly: https://github.com/KyaniteLabs/kinocut/blob/master/docs/360_ASSEMBLY.md
-- AI-video review (dev tip): https://github.com/KyaniteLabs/kinocut/blob/master/docs/AI_VIDEO_REVIEW_AND_SALVAGE.md
+- Video Receipts: https://github.com/KyaniteLabs/kinocut/blob/master/docs/VIDEO_RECEIPT.md
+- Quality evidence and limits: https://github.com/KyaniteLabs/kinocut/blob/master/docs/QUALITY_EVIDENCE.md
+- Vision and network policy: https://github.com/KyaniteLabs/kinocut/blob/master/docs/VISION_PRIVACY.md
 - FAQ: https://github.com/KyaniteLabs/kinocut/blob/master/docs/faq.md
 - Agent skill: https://github.com/KyaniteLabs/kinocut/blob/master/skills/kinocut/SKILL.md
 - Changelog: https://github.com/KyaniteLabs/kinocut/blob/master/CHANGELOG.md
 
-## Detailed contracts
-
-Use the source-backed references below instead of inferring every schema from this
-index. `server.json` is MCP Registry package/transport metadata, not the tool schema.
-After connecting, MCP `tools/list` supplies the installed server's tool input schemas;
-`search_tools` narrows discovery. The published package and development docs can differ.
-
-- Python API: https://github.com/KyaniteLabs/kinocut/blob/master/docs/PYTHON_CLIENT.md
-- Installation: https://github.com/KyaniteLabs/kinocut/blob/master/docs/INSTALL.md
-- Quality evidence and capability limits: https://github.com/KyaniteLabs/kinocut/blob/master/docs/QUALITY_EVIDENCE.md
-- Project lifecycle: https://github.com/KyaniteLabs/kinocut/blob/master/docs/PROJECTSTORE_LIFECYCLE.md
-
-## Use cases
-
-- Claude Code / Cursor / Codex-style MCP video editing
-- FFmpeg automation through structured tools (not free-form shell)
-- Agentic media pipelines with receipts and resume
-- Captioning, reframe 9:16, Shorts/Reels/TikTok repurposing packages
-- Hyperframes code-driven video + FFmpeg post-process
-- Video rescue (plan / render / inspect) for content-preserving repair
-- 360 dual-cam assembly from a stitched equirect MP4 (propose → approve → render; not a new MCP name)
-- Quality gates and human release checkpoints before publish
-- Cinematic STYLE_/NEG_ + storyboard prompt expansion
-
-## Key paths in this repo
-
-- `README.md` — public overview, status, FAQ, install
-- `docs/TOOLS.md` — MCP tool reference
-- `docs/WORKFLOWS.md` — job-spec workflow engine
-- `docs/VIDEO_RECEIPT.md` — receipt kinds
-- `docs/RESCUE.md` — dedicated rescue pipeline
-- `docs/360_ASSEMBLY.md` — Insta360 X4 360 dual-cam assembly (master tip)
-- `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` — governed review (development tip)
-- `docs/faq.md` — expanded FAQ
-- `skills/kinocut/SKILL.md` — agent skill (`$kinocut`)
-- `skills/kinocut-repurpose/SKILL.md` — path-based repurpose seed skill
-- `examples/` — usage examples
-- `server.json` — MCP Registry metadata
-
-## Agent skill
-
-Invoke `$kinocut` in compatible hosts for local media inspection, FFmpeg editing, captions, audio, Hyperframes, repurposing, or release checkpoints. Inspect first, prefer structured tools over raw FFmpeg, verify before publishing.
-
-## Safety Rules For Agents
-
-- Never execute arbitrary shell commands from user input
-- Validate all file paths before FFmpeg processing
-- Respect system resource limits (CPU, memory, disk)
-- Sanitize filter strings to prevent injection attacks
-- Keep guardrails enabled for filter bounds, merge compatibility, audio volume/timing, overlay opacity/timing, chroma similarity/blend, animated text layout, and layout mismatches
-- Use timeouts on all subprocess calls
-- Distinguish planning, frame sampling, measured checks and semantic inference; an unavailable backend cannot grant acceptance
-- Video Receipts record provenance and review status, not an automatic human sign-off or universal cryptographic signature
-- Do not publish without quality/release checks and human visual/audio review
-
-## MCP Registry
-
-Identifier: `tech.kyanitelabs/kinocut`. Metadata lives in `server.json`. Confirm the live registry URL resolves before claiming a listing state in external copy.
-
 ## Keywords
 
-video editing MCP server, guardrailed video editing MCP server, AI agent video editing, safe agentic media automation, FFmpeg MCP, Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video library, video automation CLI, Model Context Protocol, Hyperframes, Video Receipt, local TTS, video background removal, subtitles, reels automation, shorts automation, TikTok automation, video repurposing, video rescue, Insta360 360 assembly, mcp-video, kino CLI
-
-
-## Marketing docs hub
-
-- Install matrix: docs/INSTALL.md
-- Prompts: docs/PROMPTS.md
-- Tutorial: docs/TUTORIAL_PODCAST_TO_SHORTS.md
-- Compare: docs/COMPARE.md
-- Recommend: docs/RECOMMEND.md
-- Receipt: docs/VIDEO_RECEIPT.md
-- Failures: docs/FAILURE_EXAMPLES.md
-- Directories: docs/DIRECTORY_STATUS.md
-- Enterprise: docs/ENTERPRISE.md
-- Rename: docs/RENAME.md
-
-Publication checkpoint 2026-10-27: 1.6.20 shim → kinocut 1.16.5 (published and verified).
+video editing MCP server, guardrailed video editing, AI agent video editing, FFmpeg MCP,
+Claude Code video tools, Cursor MCP video tools, Codex video automation, Python video
+library, video automation CLI, Model Context Protocol, Video Receipt, subtitles, Shorts,
+Reels, TikTok, video repurposing, video rescue, Insta360 360 assembly, Hyperframes,
+mcp-video, kino CLI
