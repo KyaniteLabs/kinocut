@@ -46,6 +46,10 @@ Load the relevant guide when needed. Use source evidence for editorial choices; 
 
 Call `video_review_card` with the video path, then reply with the returned `preview_directive` alone on its own line. Hermes renders the card inline with Approve & export / Dig in / Try another range buttons.
 
+## Reviewing a cut on a paired TV
+
+Only when `gadget_devices` lists a TV with `ui.show_media` AND you have an http(s) URL for the cut that the TV can fetch. Kinocut serves no URLs itself, so never turn a local path into one; without a URL, use the Desktop card above. Keep media at 1080p or below. Call `gadget_action` with `action="ui.show_media"` and `args={"url": "<url>", "kind": "video", "caption": "Kinocut review: <file name>", "ttl_s": 300}`. The TV's remote sends back a chat line starting `APPROVE` or `REJECT` with that caption: treat APPROVE as Approve & export and REJECT as Try another range.
+
 ## Vision review and network permission (1.16.5)
 
 Keep `KINOCUT_VISION_MODE=off` (the default). Prepare images with `video_thumbnail`
