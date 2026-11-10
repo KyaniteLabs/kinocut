@@ -667,6 +667,7 @@ class TestReleaseCheckpointPassthrough:
             "frame_count": 6,
             "require_audio": True,
             "profile": "default",
+            "profile_reason": None,
         }
         defaults.update(overrides)
         return SimpleNamespace(**defaults)
@@ -685,7 +686,14 @@ class TestReleaseCheckpointPassthrough:
         monkeypatch.setattr(server_tools_ai, "video_release_checkpoint", fake_release_checkpoint)
 
         handled = handle_advanced_commands(
-            self._args(output_dir="review", min_score=70.0, frame_count=4, profile="ui-capture-dark"), use_json=True
+            self._args(
+                output_dir="review",
+                min_score=70.0,
+                frame_count=4,
+                profile="ui-capture-dark",
+                profile_reason="screen recording",
+            ),
+            use_json=True,
         )
 
         assert handled is True
@@ -696,6 +704,7 @@ class TestReleaseCheckpointPassthrough:
             "frame_count": 4,
             "require_audio": True,
             "profile": "ui-capture-dark",
+            "profile_reason": "screen recording",
         }
         payload = json.loads(capsys.readouterr().out)
         assert payload["success"] is True
