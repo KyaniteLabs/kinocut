@@ -3,7 +3,7 @@
     "kinocut": {
       "command": "uvx",
       "args": [
-        "kinocut==2.0.0"
+        "kinocut==2.0.1"
       ]
     }
   }

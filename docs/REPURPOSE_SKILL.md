@@ -14,7 +14,7 @@ mkdir -p .claude/skills && cp -R skills/kinocut-repurpose .claude/skills/kinocut
 Then configure Kinocut as the MCP server if the host supports MCP:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 The skill intentionally uses only current shipped tools: `video_repurpose_plan`,

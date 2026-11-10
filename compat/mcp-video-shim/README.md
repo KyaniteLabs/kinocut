@@ -7,7 +7,7 @@ Kinocut release and keeps the `mcp-video` command and `mcp_video` Python import 
 New installations should use:
 
 ```bash
-pip install kinocut==2.0.0
+pip install kinocut==2.0.1
 kino doctor
 ```
 
@@ -16,8 +16,8 @@ the upgrade. Older installer records can remove the shared executable even when
 `pip check` reports no dependency conflict:
 
 ```bash
-python -m pip install --upgrade 'mcp-video==1.6.21'
-python -m pip install --force-reinstall --no-deps 'kinocut==2.0.0'
+python -m pip install --upgrade 'mcp-video==1.6.22'
+python -m pip install --force-reinstall --no-deps 'kinocut==2.0.1'
 python -m pip check
 kino --version
 kinocut --version

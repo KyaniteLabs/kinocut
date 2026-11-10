@@ -3,8 +3,8 @@
 ## Claude Code
 
 ```bash
-pip install kinocut==2.0.0
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+pip install kinocut==2.0.1
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 kino doctor
 ```
 
@@ -19,7 +19,7 @@ Add MCP server config:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.0", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -31,7 +31,7 @@ Restart Cursor; confirm tools appear; run `search_tools` for `trim` / `receipt` 
 
 Command: `uvx`
 
-Args: `--from kinocut==2.0.0 kino --mcp`
+Args: `--from kinocut==2.0.1 kino --mcp`
 
 Transport: stdio
 
@@ -48,7 +48,7 @@ the appropriate settings file (project `.gemini/settings.json` or user
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.0", "kino", "--mcp"],
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"],
       "trust": false
     }
   }
@@ -58,7 +58,7 @@ the appropriate settings file (project `.gemini/settings.json` or user
 Alternatively, use the current Gemini CLI's project-scoped configuration command:
 
 ```bash
-gemini mcp add --scope project kinocut uvx -- --from kinocut==2.0.0 kino --mcp
+gemini mcp add --scope project kinocut uvx -- --from kinocut==2.0.1 kino --mcp
 gemini mcp list
 ```
 
@@ -92,7 +92,7 @@ configuration is sufficient for the direct stdio integrations above.
 ## Python automation / CI
 
 ```bash
-pip install kinocut==2.0.0
+pip install kinocut==2.0.1
 python -c "from kinocut import Client; print(Client().info('clip.mp4'))"
 ```
 

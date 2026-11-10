@@ -34,7 +34,7 @@ Do not claim publish-ready without human review.
 Using Kinocut only (no raw FFmpeg shell, no new tool name):
 1) kino --format json hyperframes-remove-background --info
    Confirm default model is people and birefnet-general is products-and-objects.
-2) If the object extra is missing, stop and tell me to pip install "kinocut[object-matte]==2.0.0".
+2) If the object extra is missing, stop and tell me to pip install "kinocut[object-matte]==2.0.1".
    Do not run the people model on a product turntable.
 3) Cut ABS_PATH/turntable.mp4 with --model birefnet-general --mask-interval 3
    to a cutout next to a composite-layers spec directory.
@@ -117,7 +117,7 @@ If all_passed is false, list recommendations and stop before any publish languag
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.0", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -126,7 +126,7 @@ If all_passed is false, list recommendations and stop before any publish languag
 Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 ## Skills

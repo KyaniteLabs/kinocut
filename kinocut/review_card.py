@@ -10,7 +10,6 @@ from __future__ import annotations
 
 import base64
 import html
-import io
 import os
 import tempfile
 from typing import Any
@@ -26,8 +25,7 @@ _ALLOWED_MIME = frozenset({"image/jpeg", "image/png"})
 _STYLE = """
 body{margin:0;padding:12px;font-family:system-ui,sans-serif;color:var(--foreground,#111);background:transparent}
 .card{background:var(--card,#fff);border:1px solid var(--border,#ddd);border-radius:10px;padding:14px;max-width:960px}
-h1{font-size:16px;margin:0 0 2px}
-.path{font-size:12px;color:var(--muted-foreground,#666);word-break:break-all;margin:0 0 10px}
+h1{font-size:16px;margin:0 0 10px;word-break:break-all}
 dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:13px;margin:0 0 10px}
 dt{color:var(--muted-foreground,#666)}
 dd{margin:0}
@@ -45,12 +43,16 @@ def _esc(value: object) -> str:
 def render_review_card(
     *,
     title: str,
-    input_path: str,
     facts: dict[str, str],
     images: list[tuple[str, bytes, str]],
     actions: list[tuple[str, str]],
 ) -> str:
-    """Return one self-contained HTML document: no scripts, no external URLs."""
+    """Return one self-contained HTML document: no scripts, no external URLs.
+
+    Visible text names the file by ``title`` only. The full path rides in the
+    hidden ``data-hermes-send`` text, so a screenshot of the card shows no
+    local directory names.
+    """
     parts = [
         "<!doctype html>",
         '<html lang="en"><head><meta charset="utf-8">',
@@ -59,7 +61,6 @@ def render_review_card(
         f"<style>{_STYLE}</style></head><body>",
         '<div class="card">',
         f"<h1>{_esc(title)}</h1>",
-        f'<p class="path">{_esc(input_path)}</p>',
     ]
     if facts:
         parts.append("<dl>")
@@ -93,16 +94,29 @@ def _sheet_bytes(sheet_path: str) -> tuple[bytes, str]:
     mime = "image/png" if raw[:8] == b"\x89PNG\r\n\x1a\n" else "image/jpeg"
     if len(raw) <= MAX_INLINE_IMAGE_BYTES:
         return raw, mime
-    from PIL import Image
+    from .ffmpeg_helpers import _run_ffmpeg_bytes
 
-    with Image.open(io.BytesIO(raw)) as img:
-        img = img.convert("RGB")
-        if img.width > MAX_IMAGE_WIDTH:
-            height = max(1, round(img.height * MAX_IMAGE_WIDTH / img.width))
-            img = img.resize((MAX_IMAGE_WIDTH, height), Image.LANCZOS)
-        buf = io.BytesIO()
-        img.save(buf, format="JPEG", quality=80, optimize=True)
-    return buf.getvalue(), "image/jpeg"
+    # FFmpeg is a core dependency; Pillow is not, so a plain install can still downscale.
+    data = _run_ffmpeg_bytes(
+        [
+            "-v",
+            "error",
+            "-i",
+            sheet_path,
+            "-frames:v",
+            "1",
+            "-vf",
+            f"scale=w='min({MAX_IMAGE_WIDTH},iw)':h=-2,format=yuvj420p",
+            "-q:v",
+            "5",
+            "-f",
+            "image2pipe",
+            "-c:v",
+            "mjpeg",
+            "pipe:1",
+        ]
+    )
+    return data, "image/jpeg"
 
 
 def _format_duration(seconds: float) -> str:
@@ -176,7 +190,6 @@ def write_review_card(
     ]
     document = render_review_card(
         title=name,
-        input_path=input_path,
         facts=facts,
         images=[(f"Contact sheet of {name}", sheet_data, sheet_mime)],
         actions=actions,

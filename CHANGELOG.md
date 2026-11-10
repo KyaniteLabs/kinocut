@@ -9,6 +9,14 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## 2.0.1 - 2026-11-10
+
+### Fixed
+
+- `video_review_card` works on a plain install. In 2.0.0 it needed Pillow to shrink the
+  contact sheet, which only optional extras install, so it failed with
+  `No module named 'PIL'`. It now shrinks the sheet with FFmpeg.
+
 ## 2.0.0 - 2026-11-10
 
 Your agent now sees 18 tools instead of 20, and through them it reaches every one of

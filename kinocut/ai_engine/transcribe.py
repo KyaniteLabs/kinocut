@@ -174,12 +174,12 @@ def ai_transcribe(
         import whisper
     except ImportError:
         raise MCPVideoError(
-            'Whisper not installed. Install with: pip install "kinocut[transcribe]==2.0.0"',
+            'Whisper not installed. Install with: pip install "kinocut[transcribe]==2.0.1"',
             error_type="dependency_error",
             code="missing_whisper",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[transcribe]==2.0.0" to enable transcription',
+                "description": 'Run: pip install "kinocut[transcribe]==2.0.1" to enable transcription',
             },
         ) from None
 

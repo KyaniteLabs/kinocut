@@ -14,7 +14,6 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 def _render(send: str = PAYLOAD) -> str:
     return render_review_card(
         title=PAYLOAD,
-        input_path=f"/tmp/{PAYLOAD}.mp4",
         facts={PAYLOAD: PAYLOAD},
         images=[(PAYLOAD, PNG, "image/png")],
         actions=[(PAYLOAD, send)],
@@ -54,6 +53,24 @@ def test_write_review_card_on_sample_video(sample_video, tmp_path):
     assert "<script" not in doc
 
 
+def test_visible_text_names_the_file_not_its_directory(sample_video, tmp_path):
+    import html as html_mod
+    import shutil
+
+    folder = tmp_path / "private-owner-folder"
+    folder.mkdir()
+    video = str(folder / "clip.mp4")
+    shutil.copy(sample_video, video)
+    out = write_review_card(video, frame_count=2)["output_path"]
+    with open(out, encoding="utf-8") as fh:
+        doc = fh.read()
+    visible = re.sub(r'data-hermes-send="[^"]*"', "", doc)
+    visible = re.sub(r'src="data:[^"]*"', "", visible)
+    assert "clip.mp4" in visible
+    assert "private-owner-folder" not in html_mod.unescape(visible)
+    assert "private-owner-folder" in doc  # the agent still gets the full path
+
+
 def test_default_path_never_reuses_an_existing_card(sample_video, tmp_path):
     import shutil
 
@@ -77,4 +94,28 @@ def test_large_sheet_is_downscaled_to_jpeg(tmp_path):
     data, mime = _sheet_bytes(str(path))
     assert mime == "image/jpeg"
     with Image.open(__import__("io").BytesIO(data)) as img:
+        assert img.width == MAX_IMAGE_WIDTH
+
+
+def test_large_sheet_downscales_without_pillow(tmp_path, monkeypatch):
+    """Pillow is optional; the card must still build on a plain install (2.0.0 regression)."""
+    import sys
+
+    from PIL import Image
+
+    from kinocut.review_card import MAX_IMAGE_WIDTH, MAX_INLINE_IMAGE_BYTES, _sheet_bytes
+
+    path = tmp_path / "sheet.png"
+    Image.effect_noise((2400, 1200), 100).convert("RGB").save(path)
+    assert path.stat().st_size > MAX_INLINE_IMAGE_BYTES
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "PIL", None)
+        m.setitem(sys.modules, "PIL.Image", None)
+        data, mime = _sheet_bytes(str(path))
+
+    assert mime == "image/jpeg"
+    assert data[:2] == b"\xff\xd8"
+    import io
+
+    with Image.open(io.BytesIO(data)) as img:
         assert img.width == MAX_IMAGE_WIDTH
