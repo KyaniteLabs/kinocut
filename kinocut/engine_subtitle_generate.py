@@ -64,12 +64,14 @@ def generate_subtitles(
             srt_path=srt_file,
             video_path=result.output_path,
             entry_count=len(entries),
+            entries=[dict(entry) for entry in entries],
             warnings=warnings,
         )
 
     return SubtitleResult(
         srt_path=srt_file,
         entry_count=len(entries),
+        entries=list(entries),
         warnings=warnings,
     )
 

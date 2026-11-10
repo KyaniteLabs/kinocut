@@ -403,6 +403,29 @@ def test_atomic_append_rolls_back_on_post_replace_fsync_failure(tmp_path, monkey
     assert not list((proj.root / ".kinocut" / "records").glob(".*bak*"))
 
 
+def test_atomic_append_never_leaves_the_record_file_missing(tmp_path, monkeypatch):
+    """A lock-free reader polling mid-write must always find the record file (#708)."""
+    proj = open_project(tmp_path / "proj")
+    v1 = append_record(proj, _verdict(project_id=proj.project_id, reviewer="a"))
+    path = proj.root / ".kinocut" / "records" / "clip_verdict.jsonl"
+
+    import kinocut.projectstore.store as store_mod
+
+    real_replace = store_mod.os.replace
+    seen_missing = []
+
+    def _watching_replace(src, dst):
+        seen_missing.append(not path.exists())
+        return real_replace(src, dst)
+
+    monkeypatch.setattr(store_mod.os, "replace", _watching_replace)
+    append_record(proj, _verdict(project_id=proj.project_id, reviewer="b", supersedes=v1.record_id))
+
+    assert seen_missing and not any(seen_missing)
+    assert path.read_text(encoding="utf-8").count("\n") == 2
+    assert not list(path.parent.glob(".*bak*"))
+
+
 def test_atomic_first_create_removes_file_on_fsync_failure(tmp_path, monkeypatch):
     proj = open_project(tmp_path / "proj")
     records = proj.root / ".kinocut" / "records"

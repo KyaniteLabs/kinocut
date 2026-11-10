@@ -82,7 +82,10 @@ async def run_worker_async(
     deadline = time.monotonic() + timeout
     spawn = asyncio.create_task(_spawn(args, pass_fds))
     try:
-        process, error = await asyncio.wait_for(asyncio.shield(spawn), max(0, deadline - time.monotonic()))
+        # asyncio.timeout, not wait_for: on Python 3.11 wait_for drops a cancel
+        # that lands just as the inner future finishes (#701).
+        async with asyncio.timeout(max(0, deadline - time.monotonic())):
+            process, error = await asyncio.shield(spawn)
         if error is not None:
             raise error
     except asyncio.CancelledError:
@@ -101,7 +104,8 @@ async def run_worker_async(
         asyncio.create_task(process.wait()),
     ]
     try:
-        result = await asyncio.wait_for(asyncio.gather(*tasks), remaining(deadline))
+        async with asyncio.timeout(remaining(deadline)):
+            result = await asyncio.gather(*tasks)
         return process.returncode, result[0]
     except TimeoutError as exc:
         raise mix_error("mix worker exceeded its deadline", "mix_timeout") from exc

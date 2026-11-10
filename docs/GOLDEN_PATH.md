@@ -23,7 +23,7 @@ python scripts/golden_path.py
 Or with uv / no editable install:
 
 ```bash
-uv run --no-project --with kinocut python scripts/golden_path.py
+uv run --no-project --with kinocut==1.16.5 python scripts/golden_path.py
 ```
 
 ## What you get
@@ -70,7 +70,7 @@ integrity, and audio intelligibility.
 | Symptom | Fix |
 | --- | --- |
 | Doctor: FFmpeg missing | `brew install ffmpeg` or `sudo apt install ffmpeg` |
-| Doctor: package missing | `pip install kinocut` or `pip install -e .` from clone |
+| Doctor: package missing | `pip install kinocut==1.16.5` or `pip install -e .` from clone |
 | Workflow import error | Use Python 3.11+; `pip install -e .` |
 | Optional AI extras missing | Expected for this path — core golden path does **not** need Whisper/torch |
 | Hyperframes errors | Not required for golden path |

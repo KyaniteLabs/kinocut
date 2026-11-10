@@ -58,7 +58,7 @@ def validate_rotation(layer: Any) -> float | None:
     if rotation is None:
         if pivot is not None:
             raise MCPVideoError(
-                f"layer {layer.id!r} sets pivot without rotation",
+                "layer sets pivot without rotation",
                 error_type="validation_error",
                 code="invalid_transform",
             )
@@ -67,28 +67,26 @@ def validate_rotation(layer: Any) -> float | None:
         degrees = float(rotation)
     except (TypeError, ValueError):
         raise MCPVideoError(
-            f"layer {layer.id!r} rotation must be a number of degrees",
+            "layer rotation must be a number of degrees",
             error_type="validation_error",
             code="unsupported_compositor_feature",
         ) from None
     if not math.isfinite(degrees) or not (ROTATION_MIN <= degrees <= ROTATION_MAX):
         raise MCPVideoError(
-            f"layer {layer.id!r} rotation must be a finite number of degrees within "
-            f"[{ROTATION_MIN:g}, {ROTATION_MAX:g}]",
+            f"layer rotation must be a finite number of degrees within [{ROTATION_MIN:g}, {ROTATION_MAX:g}]",
             error_type="validation_error",
             code="invalid_transform",
         )
     if layer.mask is not None or layer.matte is not None:
         raise MCPVideoError(
-            f"layer {layer.id!r} combines rotation with a mask/matte; rotation + mask "
-            "is deferred this release and fails closed",
+            "layer combines rotation with a mask/matte; rotation + mask is deferred this release and fails closed",
             error_type="validation_error",
             code="unsupported_compositor_feature",
         )
     effective_pivot = pivot if pivot is not None else DEFAULT_PIVOT
     if effective_pivot not in PIVOTS:
         raise MCPVideoError(
-            f"layer {layer.id!r} pivot {pivot!r} is not supported; use one of {list(PIVOTS)}",
+            f"layer pivot is not supported; use one of {list(PIVOTS)}",
             error_type="validation_error",
             code="unsupported_compositor_feature",
         )

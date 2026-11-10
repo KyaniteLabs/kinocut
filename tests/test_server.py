@@ -116,7 +116,7 @@ class TestServerInitialization:
 
     def test_tools_registered(self):
         # The default surface is curated; hidden tools remain callable from
-        # Python and discoverable through search_tools. Counted over a real
+        # Python and discoverable through list_operations. Counted over a real
         # stdio launch so directly-imported tool modules in other tests of
         # this worker process cannot inflate the registered surface.
         import sys
@@ -140,12 +140,9 @@ class TestServerInitialization:
             "video_trim",
             "video_merge",
             "video_add_text",
-            "video_add_texts",
             "video_add_audio",
-            "video_resize",
-            "video_convert",
-            "video_speed",
-            "search_tools",
+            "list_operations",
+            "describe_operation",
         } <= tool_names
 
     def test_resources_registered(self):

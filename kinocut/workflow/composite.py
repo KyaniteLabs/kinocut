@@ -42,6 +42,7 @@ from ._errors import (
     UNSAFE_WORKFLOW_SOURCE,
     workflow_error,
 )
+from ..validation_errors import rejected_value
 
 COMPOSITE_OP = "composite_layers"
 
@@ -88,13 +89,13 @@ def validate_composite_inputs(step: Any, source_ids: set[str], work_produced: se
     inputs = step.inputs
     if not isinstance(inputs, dict) or set(inputs) != {"layers"}:
         raise workflow_error(
-            f"step {step.id!r} ({COMPOSITE_OP}) requires an 'inputs' object with only the key 'layers'",
+            f"step {rejected_value(step.id)!r} ({COMPOSITE_OP}) requires an 'inputs' object with only the key 'layers'",
             INVALID_WORKFLOW_SPEC,
         )
     layers = inputs["layers"]
     if not isinstance(layers, list) or not layers:
         raise workflow_error(
-            f"step {step.id!r} ({COMPOSITE_OP}) 'layers' must be a non-empty list of layer objects",
+            f"step {rejected_value(step.id)!r} ({COMPOSITE_OP}) 'layers' must be a non-empty list of layer objects",
             INVALID_WORKFLOW_SPEC,
         )
     seen_ids: set[str] = set()
@@ -114,31 +115,34 @@ def _validate_layer(
 ) -> dict[str, Any]:
     if not isinstance(layer, dict):
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) layer #{offset} must be an object", INVALID_WORKFLOW_SPEC
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer #{offset} must be an object",
+            INVALID_WORKFLOW_SPEC,
         )
     unknown = sorted(set(layer) - _ALLOWED_LAYER_FIELDS)
     if unknown:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) layer #{offset} has unsupported field(s) {unknown}; "
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer #{offset} has unsupported field(s) "
+            f"{rejected_value(unknown)}; "
             f"allowed: {sorted(_ALLOWED_LAYER_FIELDS)}",
             INVALID_WORKFLOW_SPEC,
         )
     layer_id = layer.get("id")
     if not isinstance(layer_id, str) or not layer_id:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) layer #{offset} requires a non-empty string id",
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer #{offset} requires a non-empty string id",
             INVALID_WORKFLOW_SPEC,
         )
     if layer_id in seen_ids:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) has a duplicate layer id: {layer_id!r}", INVALID_WORKFLOW_SPEC
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) has a duplicate layer id: {rejected_value(layer_id)!r}",
+            INVALID_WORKFLOW_SPEC,
         )
     seen_ids.add(layer_id)
     layer_type = layer.get("type")
     if layer_type not in _SUPPORTED_LAYER_TYPES:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) layer {layer_id!r} type must be one of "
-            f"{sorted(_SUPPORTED_LAYER_TYPES)}, got {layer_type!r}",
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer {rejected_value(layer_id)!r} type must be "
+            f"one of {sorted(_SUPPORTED_LAYER_TYPES)}, got {rejected_value(layer_type)!r}",
             INVALID_WORKFLOW_SPEC,
         )
     for field in _REF_LAYER_FIELDS:
@@ -148,12 +152,14 @@ def _validate_layer(
     src = layer.get("src")
     if layer_type in ("video", "image") and not src:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) layer {layer_id!r} of type {layer_type!r} requires a 'src' @ref",
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer {rejected_value(layer_id)!r} of type "
+            f"{rejected_value(layer_type)!r} requires a 'src' @ref",
             INVALID_WORKFLOW_SPEC,
         )
     if layer_type == "solid" and src is not None:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) solid layer {layer_id!r} must not declare a 'src'",
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) solid layer {rejected_value(layer_id)!r} must not "
+            f"declare a 'src'",
             INVALID_WORKFLOW_SPEC,
         )
     return {"id": layer_id, "type": layer_type, "src": src, "mask": layer.get("mask")}
@@ -169,27 +175,32 @@ def _validate_layer_ref(
     """
     if not isinstance(ref, str) or not ref:
         raise workflow_error(
-            f"step {step_id!r} ({COMPOSITE_OP}) layer {layer_id!r} {field} must be a non-empty @ref string",
+            f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer {rejected_value(layer_id)!r} {field} must be "
+            f"a non-empty @ref string",
             INVALID_WORKFLOW_SPEC,
         )
     if ref.startswith(_SOURCE_PREFIX):
         if ref[len(_SOURCE_PREFIX) :] not in source_ids:
             raise workflow_error(
-                f"step {step_id!r} ({COMPOSITE_OP}) layer {layer_id!r} {field} references undeclared source {ref!r}",
+                f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer {rejected_value(layer_id)!r} {field} "
+                f"references undeclared source {rejected_value(ref)!r}",
                 UNKNOWN_WORKFLOW_REF,
             )
         return
     if ref.startswith(_WORK_PREFIX):
         if ref[len(_WORK_PREFIX) :] not in work_produced:
             raise workflow_error(
-                f"step {step_id!r} ({COMPOSITE_OP}) layer {layer_id!r} {field} references {ref!r} "
+                f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer {rejected_value(layer_id)!r} {field} "
+                f"references {rejected_value(ref)!r} "
                 "which is not produced by a strictly-earlier step",
                 UNKNOWN_WORKFLOW_REF,
             )
         return
     raise workflow_error(
-        f"step {step_id!r} ({COMPOSITE_OP}) layer {layer_id!r} {field} must be a workflow @ref "
-        f"(@sources.<id> or @work/<name>), got {ref!r}; nested, absolute, and ../ paths are not allowed",
+        f"step {rejected_value(step_id)!r} ({COMPOSITE_OP}) layer {rejected_value(layer_id)!r} {field} must be "
+        f"a workflow @ref "
+        f"(@sources.<id> or @work/<name>), got {rejected_value(ref)!r}; "
+        f"nested, absolute, and ../ paths are not allowed",
         UNSAFE_WORKFLOW_SOURCE,
     )
 
@@ -242,7 +253,10 @@ def render_composite_step(
     and removed after the render.
     """
     if output_abs is None:  # defensive: validator requires an output for composite
-        raise workflow_error(f"step {step.id!r} ({COMPOSITE_OP}) requires an output target", INVALID_WORKFLOW_SPEC)
+        raise workflow_error(
+            f"step {rejected_value(step.id)!r} ({COMPOSITE_OP}) requires an output target",
+            INVALID_WORKFLOW_SPEC,
+        )
     # Re-validate the layers against the executor's own read (not the validator's), so a
     # matte/unlisted path field injected between the two reads fails closed before it can
     # reach the engine (and before anything is resolved or hashed from it).
@@ -250,7 +264,8 @@ def render_composite_step(
     canvas = step.params.get("canvas")
     if not isinstance(canvas, dict):
         raise workflow_error(
-            f"step {step.id!r} ({COMPOSITE_OP}) requires a 'canvas' object in params", INVALID_WORKFLOW_PARAMS
+            f"step {rejected_value(step.id)!r} ({COMPOSITE_OP}) requires a 'canvas' object in params",
+            INVALID_WORKFLOW_PARAMS,
         )
     synth_layers: list[dict[str, Any]] = []
     for raw in step.inputs["layers"]:

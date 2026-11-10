@@ -26,12 +26,12 @@ def require_still_deps() -> None:
         missing.append("numpy")
     if missing:
         raise MCPVideoError(
-            'Still/plate tools require image extras (pillow, numpy). Install with: pip install "kinocut[image]"',
+            'Still/plate tools require image extras (pillow, numpy). Install with: pip install "kinocut[image]==1.16.5"',
             error_type="dependency_error",
             code="missing_still_plate_deps",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[image]"',
+                "description": 'Run: pip install "kinocut[image]==1.16.5"',
             },
         )
 
@@ -41,13 +41,13 @@ def validate_still_path(path: str | Path, *, must_exist: bool = True) -> Path:
     p = Path(path).expanduser()
     if must_exist and not p.is_file():
         raise MCPVideoError(
-            f"Still not found: {path}",
+            "Still not found",
             error_type="input_error",
             code="file_not_found",
         )
     if p.suffix.lower() not in STILL_EXTENSIONS:
         raise MCPVideoError(
-            f"Unsupported still format: {p.suffix}. Supported: {', '.join(sorted(STILL_EXTENSIONS))}",
+            f"Unsupported still format. Supported: {', '.join(sorted(STILL_EXTENSIONS))}",
             error_type="validation_error",
             code="unsupported_still_format",
         )

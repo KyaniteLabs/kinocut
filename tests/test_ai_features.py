@@ -630,7 +630,7 @@ def test_require_audio_stream_propagates_probe_errors(monkeypatch):
     expected = ProcessingError("ffprobe video.mp4", 1, "corrupt input")
     monkeypatch.setattr("mcp_video.ai_engine.spatial._run_ffprobe_json", lambda _video: (_ for _ in ()).throw(expected))
 
-    with pytest.raises(ProcessingError, match="corrupt input"):
+    with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
         _require_audio_stream("video.mp4")
 
 
@@ -1430,7 +1430,7 @@ class TestUpscaleHelpers:
             raise ProcessingError("ffmpeg", 1, "audio extract failed")
 
         monkeypatch.setattr("mcp_video.ai_engine.upscale._run_command", fake_run_ffmpeg)
-        with pytest.raises(ProcessingError, match="audio extract failed"):
+        with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
             _reconstruct_video(tmp_path / "frame_%04d.png", tmp_path / "out.mp4", 30, "/fake/video.mp4")
 
     def test_download_fsrcnn_model_uses_cache(self, monkeypatch, tmp_path):

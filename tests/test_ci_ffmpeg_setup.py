@@ -66,7 +66,7 @@ def test_static_fallback_is_on_path_in_the_same_step(tmp_path):
     assert bash is not None
     tools = tmp_path / "bin"
     tools.mkdir()
-    for name in ("find", "dirname", "head", "mkdir", "ln", "cat", "sleep", "rm", "chmod"):
+    for name in ("find", "dirname", "head", "mkdir", "ln", "cat", "sleep", "rm", "chmod", "mktemp"):
         real = shutil.which(name)
         assert real is not None, name
         (tools / name).symlink_to(real)

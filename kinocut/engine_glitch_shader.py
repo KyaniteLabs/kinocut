@@ -27,6 +27,7 @@ from .ffmpeg_helpers import (
     _validate_output_path,
 )
 from .limits import FFPROBE_TIMEOUT, MAX_SHADER_FRAMES
+from .validation_errors import exception_kind
 
 # Path to the CRUSH.js module bundled with Kinocut
 _CRUSH_JS_DIR = Path(__file__).resolve().parent / "_crush_shader"
@@ -81,7 +82,9 @@ def _crush_canvas_available() -> bool:
             cwd=str(_CRUSH_JS_DIR),
         )
     except (OSError, subprocess.TimeoutExpired):
-        raise ProcessingError("Node canvas dependency probe", -1, "Dependency probe failed or timed out") from None
+        raise ProcessingError(
+            "Node canvas dependency probe", -1, "", reason="Dependency probe failed or timed out"
+        ) from None
     return probe.returncode == 0
 
 
@@ -167,7 +170,9 @@ def _get_fps(input_path: str) -> str:
     try:
         data = json.loads(result.stdout)
     except json.JSONDecodeError as exc:
-        raise ProcessingError(" ".join(cmd), 0, f"Invalid JSON from ffprobe: {exc}") from None
+        raise ProcessingError(
+            " ".join(cmd), 0, "", reason=f"Invalid JSON from ffprobe: {exception_kind(exc)}"
+        ) from None
     streams = data.get("streams", [])
     if streams:
         return streams[0].get("r_frame_rate", "30/1")
@@ -210,21 +215,21 @@ def _run_node_render(node: str, render_params: dict[str, Any]) -> None:
             env=env,
         )
     except (OSError, subprocess.TimeoutExpired):
-        raise ProcessingError("CRUSH shader render", -1, "Shader renderer failed to start or timed out") from None
+        raise ProcessingError(
+            "CRUSH shader render", -1, "", reason="Shader renderer failed to start or timed out"
+        ) from None
 
     if render_result.returncode != 0:
-        raise MCPVideoError(
-            str(ProcessingError("CRUSH shader render", render_result.returncode, render_result.stderr)),
-            error_type="processing_error",
-            code="shader_render_failed",
-        )
+        error = ProcessingError("CRUSH shader render", render_result.returncode, render_result.stderr)
+        error.code = "shader_render_failed"
+        raise error from None
 
 
 def _validate_shader_frame_count(frame_count: int, input_path: str, max_frames: int = MAX_SHADER_FRAMES) -> None:
     """Raise typed errors for zero or excessive frame counts."""
     if frame_count == 0:
         raise MCPVideoError(
-            f"No frames extracted from {input_path}",
+            "No frames extracted from the input",
             error_type="processing_error",
             code="no_frames_extracted",
         )

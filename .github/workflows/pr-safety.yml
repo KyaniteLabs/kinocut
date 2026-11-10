@@ -43,6 +43,11 @@ jobs:
           if ! command -v ffmpeg >/dev/null || ! command -v ffprobe >/dev/null; then
             bash .github/scripts/install-ffmpeg-ubuntu.sh
           fi
+      - name: Verify FFmpeg
+        # Separate step on purpose: the installer updates GITHUB_PATH, which
+        # GitHub applies to SUBSEQUENT steps — never to the step that ran it.
+        if: steps.classify.outputs.code == 'true'
+        run: |
           ffmpeg -version
           ffprobe -version
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0

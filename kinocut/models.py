@@ -8,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from .defaults import DEFAULT_CRF
 from .errors import MCPVideoError as _MCPVideoError
+from .validation_errors import rejected_value
 
 
 # --- Helpers ---
@@ -163,6 +164,10 @@ class SubtitleResult(EditResult):
     srt_path: str | None = Field(default=None, description="Path to generated SRT file")
     video_path: str | None = Field(default=None, description="Path to burned-in video (if burn=True)")
     entry_count: int
+    entries: list[dict[str, Any]] = Field(
+        default_factory=list,
+        description="Cue entries actually written to the SRT and burned (clamped to the media end)",
+    )
 
     def model_post_init(self, __context: Any) -> None:
         if not self.output_path:
@@ -321,6 +326,10 @@ FilterType = Literal[
     "noise_reduction",
 ]
 
+#: The shipped filter-type vocabulary, derived from the FilterType union so
+#: a refusal can publish it without echoing a caller's submitted value.
+VALID_FILTER_TYPES = set(get_args(FilterType))
+
 ColorPreset = Literal["warm", "cool", "vintage", "cinematic", "noir"]
 
 # --- Split layout ---
@@ -433,7 +442,7 @@ def _validate_position(position: Position) -> None:
     if not isinstance(position, dict):
         if position not in VALID_NAMED_POSITIONS:
             raise _MCPVideoError(
-                f"position must be one of {sorted(VALID_NAMED_POSITIONS)}, got {position}",
+                f"position must be one of {sorted(VALID_NAMED_POSITIONS)}, got {rejected_value(position)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )
@@ -444,7 +453,7 @@ def _validate_position(position: Position) -> None:
             if not isinstance(val, (int, float)) or isinstance(val, bool):
                 raise _MCPVideoError(
                     (
-                        f"Invalid position: {position}. "
+                        f"Invalid position ({rejected_value(position)}. "
                         "Must be a named position (top-left, top-center, etc.) "
                         "or a dict with 'x'/'y' keys"
                     ),
@@ -454,7 +463,7 @@ def _validate_position(position: Position) -> None:
             if not (0.0 <= float(val) <= 1.0):
                 raise _MCPVideoError(
                     (
-                        f"Invalid position: {position}. "
+                        f"Invalid position ({rejected_value(position)}. "
                         "Must be a named position (top-left, top-center, etc.) "
                         "or a dict with 'x'/'y' keys"
                     ),
@@ -467,7 +476,7 @@ def _validate_position(position: Position) -> None:
             if not isinstance(val, (int, float)) or isinstance(val, bool):
                 raise _MCPVideoError(
                     (
-                        f"Invalid position: {position}. "
+                        f"Invalid position ({rejected_value(position)}. "
                         "Must be a named position (top-left, top-center, etc.) "
                         "or a dict with 'x'/'y' keys"
                     ),

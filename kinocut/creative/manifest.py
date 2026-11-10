@@ -106,7 +106,7 @@ def _select_role(
         return None, SelectionAbstention(
             role=role,
             code="rights_not_cleared",
-            reason=f"Best source-backed candidate {asset_id} does not have cleared rights.",
+            reason="The best source-backed candidate does not have cleared rights.",
         )
     if score < minimum_confidence:
         return None, SelectionAbstention(

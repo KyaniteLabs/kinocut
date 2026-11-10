@@ -14,11 +14,12 @@ def video_shorts(
     segments: list[dict[str, Any] | list[Any] | tuple[Any, ...]],
     style: str | dict[str, Any] | None = None,
     output_path: str | None = None,
+    overwrite: bool = False,
 ) -> dict[str, Any]:
     """Trim, caption, make vertical, and export selected segments in one call."""
     from .product.shorts_flow import video_shorts as run_video_shorts
 
-    return run_video_shorts(input_path, segments, style=style, output_path=output_path)
+    return run_video_shorts(input_path, segments, style=style, output_path=output_path, overwrite=overwrite)
 
 
 @mcp.tool()

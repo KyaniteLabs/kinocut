@@ -20,6 +20,7 @@ from ..ffmpeg_helpers import (
 from ..output_policy import with_output_policy
 from ..projectstore.receipt_ownership import durable_receipt_ownership, witness_receipt_stage
 from .models import CandidateMoment, TranscriptSegment, TranscriptWord
+from ..validation_errors import exception_kind, likely_cause, own_reason
 
 
 __all__ = [
@@ -164,7 +165,7 @@ class ShortsPlan(_StrictModel):
 
 def _plan_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {cause} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {likely_cause(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},
@@ -248,7 +249,7 @@ def save_shorts_plan(plan: ShortsPlan) -> ShortsPlan:
         raise _plan_error(
             "save_shorts_plan requires a strict ShortsPlan.",
             code="invalid_plan",
-            cause=f"got {type(plan).__name__!r}.",
+            cause=own_reason("the value is not a ShortsPlan instance."),
             recovery="Construct the plan with ShortsPlan.model_validate(...) first.",
         )
     safe_output_dir = _safe_output_dir(plan)
@@ -275,7 +276,7 @@ def load_shorts_plan(plan_path_or_dir: str) -> ShortsPlan:
         raise _plan_error(
             "The saved shorts plan could not be read.",
             code="shorts_plan_not_found",
-            cause=str(exc),
+            cause=own_reason(exception_kind(exc)),
             recovery="Restore the plan file or re-run discovery to regenerate it.",
         ) from exc
     try:
@@ -284,7 +285,7 @@ def load_shorts_plan(plan_path_or_dir: str) -> ShortsPlan:
         raise _plan_error(
             "The saved shorts plan is not valid JSON.",
             code="shorts_plan_malformed",
-            cause=f"{exc.msg} at line {exc.lineno}, column {exc.colno}.",
+            cause=own_reason(exception_kind(exc)),
             recovery="Restore the plan from a previous good backup or rerun discovery.",
         ) from exc
     try:
@@ -293,6 +294,6 @@ def load_shorts_plan(plan_path_or_dir: str) -> ShortsPlan:
         raise _plan_error(
             "The saved shorts plan failed strict validation.",
             code="shorts_plan_malformed",
-            cause=str(exc).splitlines()[0] if str(exc) else "unknown validation failure",
+            cause=own_reason(exception_kind(exc)),
             recovery="Restore the plan from a previous good backup or rerun discovery.",
         ) from exc

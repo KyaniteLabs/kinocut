@@ -70,7 +70,8 @@ def _select_platforms(platforms: list[str] | None) -> list[str]:
     unknown = [platform for platform in selected if platform not in PLATFORM_PRESETS]
     if unknown:
         raise MCPVideoError(
-            f"Unknown repurpose platform(s): {', '.join(unknown)}. Available: {', '.join(PLATFORM_PRESETS)}",
+            f"Unknown repurpose platform(s): {len(unknown)} submitted name(s) were not accepted. "
+            f"Available: {', '.join(PLATFORM_PRESETS)}",
             error_type="validation_error",
             code="invalid_platform",
         )

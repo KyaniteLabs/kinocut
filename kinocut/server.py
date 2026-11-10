@@ -15,6 +15,7 @@ from .tool_registry import (
     ensure_tool_loaded as ensure_tool_loaded,
 )
 from .server_tools_basic import VALID_XFADE_TRANSITIONS as VALID_XFADE_TRANSITIONS
+from . import server_resources  # noqa: F401  — resource registration (mcp-video:// URIs)
 
 
 # Load only the selected MCP surface at import time. Compatibility imports of

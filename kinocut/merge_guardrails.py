@@ -21,10 +21,10 @@ def validate_merge_compatibility(
         return warnings
 
     # 1. Check for zero-duration clips before transition math.
-    for info in infos:
+    for index, info in enumerate(infos, start=1):
         if info.duration <= 0:
             raise MCPVideoError(
-                f"Clip '{info.path}' has zero or negative duration ({info.duration}).",
+                f"Clip {index} of {len(infos)} has zero or negative duration ({info.duration}).",
                 error_type="validation_error",
                 code="invalid_duration",
             )

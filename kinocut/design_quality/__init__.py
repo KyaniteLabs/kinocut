@@ -10,6 +10,7 @@ from ..errors import ProcessingError
 from ..ffmpeg_helpers import _validate_input_path as _validate_input_path
 from .guardrails import DesignQualityGuardrails as DesignQualityGuardrails
 from .models import DesignIssue as DesignIssue, DesignQualityReport as DesignQualityReport
+from ..validation_errors import exception_kind
 
 
 def design_quality_check(
@@ -63,7 +64,8 @@ def fix_design_issues(video: str, output: str | None = None) -> str:
             raise ProcessingError(
                 f"copy {src} -> {output}",
                 1,
-                f"Failed to copy fixed video to output path: {e}",
+                "",
+                reason=f"Failed to copy fixed video to output path: {exception_kind(e)}",
             ) from e
         return output
 
