@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://kyanitelabs.tech">
+  <a href="https://kinocut.dev/">
     <img src="assets/kinocut-hero.webp" alt="Kinocut - guardrailed video editing for AI agents" width="100%">
   </a>
 </p>
@@ -9,958 +9,252 @@
 <h1 align="center">Kinocut</h1>
 
 <p align="center">
-  <strong>Guardrailed video editing MCP server for AI agents.</strong><br>
-  Local-first FFmpeg tools, Video Receipts, quality gates, Hyperframes, and Shorts/Reels repurposing —
-  for Claude Code, Cursor, and any MCP client. Free, Apache-2.0. Formerly mcp-video.
+  <strong>Your agent edits the video. You approve the cut.</strong><br>
+  A local, guardrailed video-editing MCP server, Python client and <code>kino</code> CLI.
+  Free, Apache-2.0. Formerly mcp-video.
 </p>
 
 <p align="center">
-  <a href="https://lobehub.com/mcp/kyanitelabs-kinocut"><img src="https://lobehub.com/badge/mcp/kyanitelabs-kinocut" alt="LobeHub MCP"></a>
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-205%20tools-orange.svg" alt="205 MCP tools served in published 1.16.5">
-  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands in published 1.16.5">
+  <img src="https://img.shields.io/badge/MCP-205%20tools-orange.svg" alt="205 MCP tools in the published package">
+  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
 
-<p align="center">
-  <a href="#see-it-work">Demo</a> &bull;
-  <a href="#status-and-releases">Status</a> &bull;
-  <a href="#whats-in-1165">1.16.5</a> &bull; <a href="#whats-in-1164">1.16.4</a> &bull; <a href="#whats-in-1163">1.16.3</a> &bull; <a href="#whats-in-1162">1.16.2</a> &bull; <a href="#whats-in-1161">1.16.1</a> &bull;
-  <a href="#changelog">Changelog</a> &bull;
-  <a href="#beyond-1165-draft--gated">Beyond</a> &bull;
-  <a href="#installation">Install</a> &bull;
-  <a href="#quick-start">Quick Start</a> &bull;
-  <a href="#mcp-tools">Tools</a> &bull;
-  <a href="docs/TOOLS.md">Tool Reference</a> &bull;
-  <a href="docs/RESCUE.md">Rescue</a> &bull;
-  <a href="docs/360_ASSEMBLY.md">360 assembly</a> &bull;
-  <a href="docs/AI_VIDEO_REVIEW_AND_SALVAGE.md">AI-video</a> &bull;
-  <a href="#agent-skill">Agent Skill</a> &bull;
-  <a href="https://kinocut.dev/">kinocut.dev</a> &bull;
-  <a href="#what-is-kinocut">What is Kinocut?</a> &bull;
-  <a href="#faq">FAQ</a> &bull;
-  <a href="llms.txt">llms.txt</a>
-</p>
+You tell your agent, *"cut the best 45 seconds of this interview into a captioned vertical
+short."* Without help, the agent guesses FFmpeg flags, overwrites your source, and hands
+back a file it never looked at.
 
-> Kinocut is a free, open-source **video editing MCP server** and **AI agent** workflow engine (plus Python client and `kino` CLI) that lets AI agents trim, caption, repurpose, and quality-gate local video media with typed tools and Video Receipts — not invented FFmpeg flags.
+Kinocut gives the agent typed tools instead. Every edit is checked before FFmpeg runs, writes
+to a new file unless you allow an overwrite, and returns a structured result the agent can
+inspect. Quality gates catch black frames, silence and bad loudness before you see the cut,
+and a **Video Receipt** records what was asked, what ran and what changed.
 
-## Table of contents
+Everything runs on your machine. No account, no upload, no credits.
 
-- [What is Kinocut?](#what-is-kinocut)
-- [See It Work](#see-it-work)
-- [Installation](#installation)
-- [Quick Start](#quick-start)
-- [MCP Tools](#mcp-tools)
-- [Status and releases](#status-and-releases)
-- [360 dual-cam assembly](#360-dual-cam-assembly)
-- [Changelog](#changelog)
-- [FAQ](#faq)
-- [Agent Skill](#agent-skill)
+## Install
 
----
+Kinocut needs [FFmpeg](https://ffmpeg.org/) on your `PATH` (`brew install ffmpeg`,
+`sudo apt install ffmpeg`, or `winget install ffmpeg`).
 
-## What is Kinocut?
+Add it to Claude Code:
 
-**TL;DR:** Kinocut is a free, local-first **video editing MCP server** (plus Python client and `kino` CLI) so AI agents can trim, caption, repurpose, and quality-gate media with typed tools and **Video Receipts** — not invented FFmpeg flags.
+```bash
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
+```
 
-**Kinocut** is a free, open-source **[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) server**, Python library, and **`kino` CLI** that gives AI agents a **guardrailed local video-editing surface**. It wraps **FFmpeg** (and optional Hyperframes / Whisper extras) with typed tools, preflight validation, **Video Receipt** provenance, and quality/release checkpoints so agent-produced media can be inspected before publish.
+Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf, Zed):
 
-| | |
+```json
+{
+  "mcpServers": {
+    "kinocut": {
+      "command": "uvx",
+      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
+    }
+  }
+}
+```
+
+Or install the package and check your machine:
+
+```bash
+pip install kinocut==1.16.5
+kino doctor
+```
+
+`kino doctor` lists which features are ready and what each missing one needs. Optional
+features install as extras; the [install matrix](docs/INSTALL.md) lists them all.
+
+For Claude Desktop extension installs, `python3 scripts/build-mcpb.py` builds a local `.mcpb`
+from `mcpb/`. It is unsigned and labeled **user-configured-local-access**: it launches your
+own Python environment, still needs Node and FFmpeg, and is not a sandbox. See
+[docs/MCPB.md](docs/MCPB.md).
+
+## What your agent sees
+
+An agent pays for every tool description it reads, on every turn. Kinocut keeps the default
+list small and puts the rest one call away.
+
+| Mode | Set with | Tools listed | What's in it |
+| --- | --- | ---: | --- |
+| Default | nothing | 18 | 8 hot-path tools, 8 operation families, `list_operations`, `describe_operation` |
+| Profile | `KINOCUT_TOOLS=profile:editor` (19 profiles) | varies | One job's tools by name, plus the families |
+| Everything | `KINOCUT_TOOLS=all` | 206 | Every tool by its own name |
+
+The hot path is `video_info`, `video_trim`, `video_merge`, `video_add_text`,
+`video_add_audio`, `video_extract_frame`, `video_shorts` and `video_doctor`.
+
+The eight families (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`,
+`image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) reach every other operation
+in the catalog. The agent calls `list_operations` to see what a family can do and
+`describe_operation` to fetch one operation's full schema. Family dispatch runs the same
+code as the named tool, so the results are identical. See
+[MCP operation families](docs/MCP_TOOL_FAMILIES.md).
+
+The 18-tool default listing is about 22 KB of JSON. The full catalog is about 178 KB.
+
+## Review a cut where you already are
+
+- **Hermes Desktop chat.** `video_review_card` writes an HTML card with a contact sheet,
+  duration, resolution and codec, and three buttons: Approve & export, Dig in, Try another
+  range. An opt-in Desktop plugin shows live render progress in the status bar and a
+  "Kinocut renders" pane. See [the Hermes plugin](plugins/kinocut/README.md).
+- **A paired Hermes Gadget TV.** The plugin skill can put the cut on the TV and map the
+  remote's Approve and Reject to Approve & export and Try another range. The TV needs a URL
+  it can fetch; Kinocut does not serve one.
+- **Anywhere else.** `kino release-checkpoint clip.mp4` writes a thumbnail, a storyboard
+  and a pass/fail quality report next to the clip.
+
+## What it can do
+
+| Job | Where to start |
 | --- | --- |
-| **Also known as** | `kino` (CLI); formerly **mcp-video** / `mcp_video` |
-| **Latest published release** | [Official PyPI version](https://pypi.org/project/kinocut/) · [GitHub release](https://github.com/KyaniteLabs/kinocut/releases/latest) |
-| **Product site** | [kinocut.dev](https://kinocut.dev/) |
-| **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
-| **MCP Registry** | [`tech.kyanitelabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) |
-| **Legacy MCP Registry id** | [`io.github.KyaniteLabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/io.github.KyaniteLabs%2Fkinocut/versions/latest) — **version-locked-deprecated** at 1.16.1 (`status=deprecated`). New installs use `tech.kyanitelabs/kinocut`. |
-| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (canonical) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror) |
-| **License** | Apache-2.0 |
-| **Runs on** | Your machine (macOS, Linux, Windows) — FFmpeg required on `PATH` |
-| **Not** | A hosted cloud editor, credit-metered SaaS, or untyped FFmpeg shell wrapper |
+| Trim, merge, caption, resize, convert, overlay, crop, speed | Hot path and `video_edit_ops` |
+| One-call vertical shorts from chosen ranges | `video_shorts` |
+| Podcast or stream to Shorts, Reels and TikTok packages | [Tutorial](docs/TUTORIAL_PODCAST_TO_SHORTS.md), [stream-to-shorts](docs/STREAM_SHORTS.md) |
+| Loudness, quality and release gates | `video_qc_ops`, [quality evidence](docs/QUALITY_EVIDENCE.md) |
+| Multi-step jobs from one JSON spec, resumable | [Workflow engine](docs/WORKFLOWS.md) |
+| Diagnose and repair a damaged clip without changing its story | [Video rescue](docs/RESCUE.md) |
+| Review and salvage AI-generated video | [AI-video review](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md) |
+| A two-cam edit from one stitched 360 MP4 | [360 assembly](docs/360_ASSEMBLY.md) |
+| Cut a product out of a still or turntable video | [Product matte](docs/PRODUCT_MATTE.md) |
+| Match and grade a set of stills to a hero image | [Still plates](docs/STILL_PLATES.md) |
+| Mix, duck, master and check speech audio | [Audio mixing](docs/AUDIO_MIXING.md), [sound mixes](docs/SOUND_MIX_REQUESTS.md) |
+| Code-driven motion graphics | Hyperframes and Revideo tools, see [tool reference](docs/TOOLS.md) |
+| Signed provenance on final exports | [C2PA](docs/C2PA_PROVENANCE.md) |
 
-**Best-fit searches:** video editing MCP server · AI agent video editing · FFmpeg MCP · Claude Code video tools · Cursor MCP video · Shorts/Reels automation · local AI video workflow · guardrailed agentic media.
-
-Machine-readable brief for agents and crawlers: [`llms.txt`](llms.txt) · [extended agent guide](docs/llms-full.txt) · site: [kinocut.dev/llms.txt](https://kinocut.dev/llms.txt).
-
-## Producer Stack
-
-Kinocut is a producer stack: inspect the source, choose a typed operation, render locally, receive a compact provenance receipt, run quality checks, and request human release approval. The default MCP surface keeps that path small; `search_tools` and profiles expand it when needed.
-
-### Eyes-free design law
-
-Every flow must be describable, reportable, and approvable in words. Receipts stay one-screen text cards with artifact paths, stage status, warnings, and the next gate. Errors end with the exact MCP and CLI retry invocation; no visual-only affordance is required.
-
-## See It Work
-
-Tell the agent what you want in plain language:
-
-*"Trim this interview to the strongest 45 seconds, add burned captions, make it vertical, and quality-check it before export."*
-
-Kinocut turns that into typed, guardrailed tool calls - no FFmpeg flags to guess, no silently broken exports:
+The same engine sits behind all three interfaces:
 
 ```python
 from kinocut import Client
 
-video = Client()
-
-clip = video.trim("interview.mp4", start="00:02:15", duration="00:00:45")
-video.ai_transcribe(clip.output_path, output_srt="captions.srt")
-captioned = video.subtitles(clip.output_path, subtitle_file="captions.srt")
-short = video.resize(captioned.output_path, aspect_ratio="9:16")
-video.release_checkpoint(short.output_path)  # thumbnail + quality gate before you publish
+kino = Client()
+clip = kino.trim("interview.mp4", start="00:02:15", duration=45)
+kino.ai_transcribe(clip.output_path, output_srt="captions.srt")
+captioned = kino.subtitles(clip.output_path, subtitle_file="captions.srt")
+vertical = kino.resize(captioned.output_path, aspect_ratio="9:16")
+kino.release_checkpoint(vertical.output_path)
 ```
-
-**Primary job:** turn a local interview or podcast into **captioned vertical clips with a Video Receipt** agents can re-run and humans can approve.
-
-**Three things people use it for**
-
-- **Repurposing** — one recording into captioned Shorts, Reels, and TikTok packages with manifests and review artifacts.
-- **Podcast & interview cuts** — find the strongest segment, normalize audio, add chapters, and export.
-- **Agent-driven media in CI** — repeatable, reviewable edits from Claude Code, Cursor, Codex-style clients, or scripts.
-
-**Paths:** [Install matrix](docs/INSTALL.md) · [Golden path](docs/GOLDEN_PATH.md) · [Prompts](docs/PROMPTS.md) · [Tutorial](docs/TUTORIAL_PODCAST_TO_SHORTS.md) · [Compare](docs/COMPARE.md) · [When to recommend](docs/RECOMMEND.md)
-
-## Status and releases
-
-| Surface | Version / tip | What it means |
-| --- | --- | --- |
-| **PyPI / npm checkpoint** | **[1.16.5](https://pypi.org/project/kinocut/1.16.5/)** (2026-10-27) | Last recorded publication checkpoint; consult the registries for the latest version. Install with `pip install kinocut==1.16.5`. |
-| **GitHub latest release / MCP Registry** | **1.16.5** | GitHub release `v1.16.5` and the official MCP Registry (`tech.kyanitelabs/kinocut`, local `uvx kinocut==1.16.5` stdio package) report 1.16.5 (verified 2026-10-27). Final owner acceptance and fleet rollout remain separate. |
-| **Hermes catalog pin** | **1.16.4** · **203 MCP / 177 CLI** | The Hermes listing still pins `kinocut==1.16.4` (launched through uvx). That pin is 203 MCP tools. Distinct from published 1.16.5 (205) and from the 20-tool default registration. |
-| **This source version** | **1.16.5 published** · **20 default MCP / 205 full / 177 CLI**; development tip **18 default / 206 full** (Unreleased) | QoL pass: curated 20-tool default MCP list (`KINOCUT_TOOLS=all` restores the full 205-tool catalog), retry-aware errors, one-call shorts, lazy startup. Telemetry, network, and overwrite defaults remain unchanged. Published `mcp-video==1.6.20` pins this runtime; verification is recorded in `docs/public_claims.json`. |
-| **Next public release** | **TBD** | Human residuals (directories, launch posts) stay gated; further bumps need a new go-ahead. |
-
-Install from PyPI for the stable package, including the optional object-matte extra. Clone `master` when you want local development changes beyond the published package; see [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md) for the published object-matte workflow.
-
-## What's in 1.16.5
-
-Published 2026-10-27: a curated **20-tool default MCP registration** with `KINOCUT_TOOLS=all` restoring the full **205 MCP tools / 177 CLI commands**; retry-aware eyes-free error payloads, the one-call `video_shorts` flow, the read-only `video_doctor` preflight and lazy startup. Opt-in exact probe reports decoded frame counts and raw rational frame rates. `mcp-video==1.6.20` installs `kinocut==1.16.5`. Apache-2.0 §4(a): the license text now ships in the npm tarball and the `mcp-video` compatibility package. See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.5).
-
-## What's in 1.16.4
-
-Published 2026-10-24: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.19` installs `kinocut==1.16.4`. Optional Kinocut model calls now default off. Use local frames with the host's chosen image model; the standalone legacy adapters require explicit permission and do not inherit Hermes routing. Local product configuration cannot activate the separate Anthropic QC worker.
-
-Revideo and Hyperframes telemetry default off. Hyperframes previews require verified CLI 0.8.104 or 0.8.140 while telemetry is off; other preview versions and Docker renders require explicit operator consent. These controls are not a network sandbox. Existing overwrite and protected-path safeguards remain in place. See the [vision and network policy](docs/VISION_PRIVACY.md) and [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.4).
-
-## What's in 1.16.3
-
-Published 2026-10-23: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.18` installs `kinocut==1.16.3`. Existing outputs require explicit boolean `overwrite=true` (CLI `--overwrite`). Existing non-media artifacts also require ownership by the same durable job, and agent configuration homes remain protected. Older receipts without ownership evidence fail closed.
-
-Project creation checks completed destinations and symlink redirects. Python 3.14 MCP request context remains available. The plugin documents optional network paths, configures optional extras in its pinned server environment, and shows Hermes tool filtering. Use one writer per output. See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.3).
-
-## What's in 1.16.2
-
-Published 2026-10-21: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.17` installs `kinocut==1.16.2`. `create-from-images` is now frame-exact, accepts rational frame rates such as `30000/1001` and a `--list` / `list_file` input, and enforces frame-rate and image-count bounds on every entry point. The official MCP Registry entry is republished as the local `uvx` stdio package `kinocut`. Thanks to [@Beritwu](https://github.com/Beritwu) for [#616](https://github.com/KyaniteLabs/kinocut/pull/616). See the [published release](https://github.com/KyaniteLabs/kinocut/releases/tag/v1.16.2).
-
-## What's in 1.16.1
-
-Version **1.16.1** repairs macOS render cleanup and faststart publication, C2PA and model-cache staging, FFmpeg 8.1 filter discovery, and audio preservation in shader/upscale reconstruction. It retains **203 MCP tools / 177 CLI commands** and pairs with `mcp-video==1.6.16`. See [maintenance release notes](docs/status/2026-10-05-1.16.1-release-notes.md) for verification and remaining platform/model acceptance limits.
-
-## What's in 1.16.0
-
-Published 2026-10-02: **203 MCP tools / 177 CLI commands**; `mcp-video==1.6.15` installs `kinocut==1.16.0`. Operator parity, bounded quality/resource controls and canonical ownership repair are described in [release notes](docs/status/2026-10-02-1.16.0-release-notes.md). The live site shows 1.16.0 (verified 2026-10-05). Shared mobile/web processing, fleet rollout, MCPB Desktop acceptance and final cross-surface owner acceptance remain separate gates.
-
-## What's in 1.15.2
-
-Kinocut **1.15.2** ships the verified sound line and an adversarial-hardened engine. Sound mastering now preserves stereo through the measured mastering chain with real caption-speech distance profiles, and `sound-qa-asr` fails closed without a real recognition request. Four guarded local Revideo operations join the public surface with rendered-format validation, and `release-checkpoint` passes the MCP release gate through from the CLI. Hardening from the adversarial audit: the MCP handshake reports the real kinocut version, a central guard rejects outputs that alias an operation's inputs, and oversized error echoes are truncated. Surface grows to **201 MCP tools / 173 CLI commands** — the `mcp-video==1.6.13` shim installs `kinocut==1.15.2`.
-
-## What's in 1.15.1
-
-Kinocut **1.15.1** is a maintenance release on top of 1.15.0: the `mcp-video` compatibility shim **1.6.12** carries the registry ownership marker, the legacy `io.github.KyaniteLabs/mcp-video` registry entry was republished so directory listings (Glama, PulseMCP) point at living metadata (#469), and the object-matte engine now streams decode with scratch-directory caps — bounded memory on large inputs (#414). Surface stays **196 MCP / 167 CLI** — no new public tool name.
-
-## What's in 1.15.0
-
-Kinocut **1.15.0** (2026-08-19) was the Windows/diagnostics release: first-class Windows support and honest diagnostics on top of 1.14.x (same 360 dual-cam assembly and performance surface), driven by a community bug report. Surface stays **196 MCP / 167 CLI** — no new public tool name.
-
-- **Honest MCP startup failures** — `kino --mcp` keeps the "requires the 'mcp' package" hint only when `mcp` is genuinely absent; every other server-tree import failure now prints its real cause (filesystem paths redacted, markup-safe) and exits non-zero. Reported in [#445](https://github.com/KyaniteLabs/kinocut/issues/445).
-- **doctor verifies the MCP server import** — new required `mcp-server-import` check imports the same server tree `--mcp` uses, so `kino doctor` can no longer report OK while MCP mode is broken.
-- **First-class Windows support** — portable projectstore file locking ([#446](https://github.com/KyaniteLabs/kinocut/pull/446), landed with credit) makes `kino --mcp` importable on Windows; lock errors follow a contention-only contract; `kino --help` no longer crashes on legacy cp1252 consoles; and a `windows-latest` CI smoke job (lint, import checks, `kino doctor`, public-surface tests) guards the platform on every change.
-- **360 dual-cam assembly** — any stitched equirect MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI Osmo 360, …) → reviewable `360_assembly_plan` (desk / table / `front_back`, split / switch / PiP / single) → approve → FFmpeg `v360` render. MCP: `video_intent` `goal=` + `video_review_decide`. Python: `Client.propose_360_assembly` / `decide_360_assembly` / `render_360_assembly`. Raw `.insv` / `.360` rejected. Director is a plug (local first; cloud opt-in). Not an optimized-AI claim. Guide: [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
-- **Faster 360 and import path** — single-pass split/PiP/switch `filter_complex` (source audio kept); sampled quality-gate analyze window; SHA-256 path/mtime cache; merge can skip re-probe when `infos=` is supplied; batched 360 storyboard stills; lazy `mcp_video` / CLI / `Client.search_tools`; doctor skips `npx --yes` unless Hyperframes is already on PATH.
-- **Lazy public import** — `import kinocut` no longer eagerly loads Client/engines (PEP 562). `from kinocut import Client` and `kinocut.Client is mcp_video.Client` still hold.
-- **Ship-seam honesty** — CLI/Client `repurpose` default `--min-score` 80; `shorts-package` fail-closed unless `--allow-fail`; candidate durable MCP `video_repurpose` applies `min_score` before job success.
-- **Compatibility window** — `mcp-video==1.6.11` installs `kinocut==1.15.0`. `mcp_video` imports, `MCP_VIDEO_*` env vars, `~/.mcp-video` data, `mcp-video://` resources, and legacy receipt keys remain supported **on the 1.14.x+ line**. The prior pair was `mcp-video==1.6.10` → `kinocut==1.14.1`.
-
-Also already on the published line from 1.13.x:
-
-- **Intent-verb surface** — `video_intent` / `intent` (~10 verbs) to dry-run plans without silent media mutations
-- **Watching guardrail floor** — `video_review_run` / `video_review_decide` (blackdetect/LUFS + first-15s inspection)
-- **B-roll proposals**, ES-first **caption translation**, **still/plate** editor, **cutfile-render**, **metric-qc**
-- Agent **workflow engine**, dedicated **video rescue**, **layered compositing**, Hyperframes, Shorts/Reels repurposing
-- **Counts at the 1.15.0 release** — **196 MCP tools** and **167 CLI commands**
-
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [1.16.5 on PyPI](https://pypi.org/project/kinocut/1.16.5/)
-
-Published quality and plain-file audio contracts are documented in
-[quality evidence](docs/QUALITY_EVIDENCE.md), [audio mixing](docs/AUDIO_MIXING.md) and
-[projectstore lifecycle](docs/PROJECTSTORE_LIFECYCLE.md). See [Unreleased](CHANGELOG.md)
-for future local changes beyond the published package.
-
-## Beyond 1.16.5 (draft / gated)
-
-The published compatibility installer `mcp-video==1.6.20` pins `kinocut==1.16.5`. Fleet upgrade and running-process verification instructions are in [docs/FLEET_UPGRADE.md](docs/FLEET_UPGRADE.md).
-
-The 2026-10-27 publication checkpoint is **1.16.5**. Draft/gated work stays out of release claims until publication is verified. Live directory submissions and launch posts remain operator/human residual (`docs/HUMAN_GATES.md`) and are **not** claimed complete.
-
-### Staged and Gated Surfaces
-
-While the core FFmpeg editing, 360 assembly, workflow engine, still/plate editing, AI-video review/salvage, and thin sound join are integrated on the **published 1.16.x** line, the following surfaces remain gated, partial, or unreleased:
-
-- **Desktop MCPB Packaging:** The unsigned staged package (`mcpb/`) is labeled **user-configured-local-access**. It requires local Node/Python/Kinocut/FFmpeg, is not a sandbox, and is distinct from future native-runtime work. See [docs/MCPB.md](docs/MCPB.md).
-- **Sonic World Audio (`kinocut_sound`):** The shipped public boundary remains the thin S12 join; S13 packages and host joins exist as deeper internals. The historical July S14 receipt records two synthetic hardware classes, while the later August rerun records Apple Silicon and an explicit `external_host_unavailable` x86 residual. Its 64 clips of 0.15 seconds prove bounded plumbing, not a full episode and not human listening approval.
-- **Trusted Execution Kernel:** The protected-timeline trusted execution kernel is post-program/gated and does not execute without the named upstream contract and human gating ([docs/plans/2026-07-09-kinocut-trusted-execution-layer.md](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)).
-- **Generative Plans and Local Caption Speech:** Generative spend-cap and legacy TTS candidate records remain non-executable plans. An installed eSpeak NG engine can render real EN/ES stock caption speech through a hashed `sound_voice_batch` request and retain audio for mixing. [Caption speech](docs/SOUND_DUB_REQUESTS.md) does not translate text or promise neural voice quality. No generation adapter exists; credentials or discovery alone do not establish execution.
-- **Product / object matte:** Catalog and shop cutouts on the existing `hyperframes-remove-background` command (`--model birefnet-general`, optional extra `kinocut[object-matte]==1.16.5`). Default remains people. Not a new MCP/CLI name. Available in published **1.16.5**, first shipped in 1.15.1 (streaming decode + scratch caps, #414); the ONNX extra installs via `kinocut[object-matte]==1.16.5`. Guide: [docs/PRODUCT_MATTE.md](docs/PRODUCT_MATTE.md).
-
-Product checklist: [ROADMAP.md](ROADMAP.md).
-
-## Agent Workflow Engine
-
-Agents can **plan, validate, render, recover, and prove** a multi-step local video job from
-a single JSON job-spec — through MCP (`video_workflow_*`), the CLI (`workflow-*`), or the
-Python client (`Client.workflow_*`) — with receipts strong enough for another agent or a
-human to trust before *and* after a render. Ops are a small allowlist
-(`probe | trim | resize | convert | crop | merge | add_text | composite_layers | burn_in`) mapped 1:1 to the same vetted engine
-functions the individual tools use; media references are symbolic and workspace-confined;
-everything fails closed.
-
-```json
-{
-  "schema_version": 1,
-  "name": "captioned-vertical-short",
-  "sources": { "hero": { "path": "input/hero.mp4" } },
-  "steps": [
-    { "id": "trim-hero", "op": "trim", "inputs": { "src": "@sources.hero" },
-      "params": { "start": 0, "duration": 6 }, "output": "@work/hero_trim.mp4" },
-    { "id": "vertical", "op": "resize", "inputs": { "src": "@work/hero_trim.mp4" },
-      "params": { "width": 1080, "height": 1920 }, "output": "@work/hero_vertical.mp4" },
-    { "id": "caption", "op": "add_text", "inputs": { "src": "@work/hero_vertical.mp4" },
-      "params": { "text": "Watch this", "position": "bottom-center" }, "output": "@outputs.master" }
-  ],
-  "outputs": { "master": { "path": "output/final.mp4" } }
-}
-```
-
-```bash
-kino workflow-validate --spec job.json    # cheap structural gate, no render
-kino workflow-plan     --spec job.json --save-plan plan.json     # dry-run op graph + hashes
-kino workflow-render   --spec job.json --save-receipt receipt.json   # execute + provenance receipt
-kino workflow-inspect  --receipt receipt.json    # read-only integrity re-check
-```
-
-The render receipt records per-step input/output hashes, a resume cursor, and a cleanup
-manifest, all with workspace-relative paths:
-
-```json
-{
-  "receipt_kind": "workflow",
-  "versions": { "mcp_video": "1.13.2", "ffmpeg": "8.1" },
-  "spec_hash": "sha256:be2f3a9b...",
-  "steps": [
-    { "id": "trim-hero", "op": "trim", "status": "completed",
-      "input_hashes": { "src": "sha256:3b976d49..." },
-      "output": "work/be2f3a9b-2effedb3/mcp_video_hero_trim.mp4", "output_hash": "sha256:00727499..." },
-    { "id": "caption", "op": "add_text", "status": "completed",
-      "output": "output/final.mp4", "output_hash": "sha256:8633ad2a..." }
-  ],
-  "cleanup_manifest": { "cleaned": true, "policy": "clean-on-success" },
-  "resume_cursor": { "last_completed_step": "caption", "next_step": null },
-  "status": "completed",
-  "render_determinism_scope": "spec/input/output hashes are deterministic; rendered bytes may vary across FFmpeg builds"
-}
-```
-
-`--all-variants` emits N distinct outputs from one declaration, and `--resume` continues a
-job that failed with its intermediates kept (fail-closed on a changed spec). Full schema,
-`@ref` grammar, variants, resume, and cleanup are in
-[docs/WORKFLOWS.md](docs/WORKFLOWS.md); a runnable spec is in
-[examples/workflows/](examples/workflows/captioned-vertical-short/).
-
-## Governed AI-video review
-
-In **Kinocut**, a contract-first path is provided for agent-edited media that must stay attributable and reviewable:
-
-1. **Ingest** the source into a private content-addressed project (`video_ingest` / `video-ingest`)
-2. **Preflight + temporal inspection** on the stored asset (`video_preflight`, `video_inspect_temporal`)
-3. **Verdict + acceptance** with exact human evidence (`video_verdict`, `video_acceptance_eval`)
-4. **Bounded derivatives only** — audio-preserving body swap or allowlisted salvage recipes (`video_body_swap`, `video_salvage`), each with lineage and a fresh non-approved review slot
-
-There is no force/bypass flag. Analyzer output alone cannot approve. Stale, aliased, or protected inputs fail closed. Operating guide: [docs/AI_VIDEO_REVIEW_AND_SALVAGE.md](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md). These surfaces are fully integrated in the published 1.15.x line — see [Status and releases](#status-and-releases).
-
-## Dedicated Video Rescue
-
-For "fix this clip" requests where the story and timeline must remain unchanged, use the
-review-first rescue pipeline. Plan and inspect the diagnosis, approve only safe repair IDs,
-render, then inspect the verified package. The source stays immutable; master and universal
-sharing copy are always verified; optional captions remain sidecars. See
-[docs/RESCUE.md](docs/RESCUE.md) for CLI, MCP, Python, cancellation, resume, and stable errors.
-
-## Layered Compositing
-
-`composite-layers` / `video_composite_layers` adds a spec-driven ordered layer stack for agents that need more than two-shot overlay primitives. It supports image, video, and solid layers; normal alpha compositing; per-layer opacity; x/y placement; transform sizing; timing windows; and mask/matte alpha sources — plus **full-canvas and positioned blend modes** (`multiply`, `screen`, `overlay`, `darken`, `lighten`) and **rotation** with a new `pivot` reference point. Dry-run plans and deterministic `layer_plan` v2 receipts capture source, filtergraph, and output hashes.
-
-```bash
-kino composite-layers --spec layers.json --dry-run --save-layer-plan layer-plan.json
-kino composite-layers --spec layers.json -o out.mp4 --save-layer-plan layer-plan.json
-```
-
-Use `composite-layers` when an agent needs a planned stack of overlays, mattes, lower thirds, blurback plates or platform variants reviewed before rendering. Non-`normal` blends support opacity and `start`/`duration` windows in two geometries: full-canvas at `{0,0}` without explicit sizing, or a positioned rectangle with both positive integer `width` and `height` and an integral nonnegative in-canvas position. RGB blending avoids applying color arithmetic to subsampled chroma planes. Scale, rotation/pivot, mask/matte, fractional positions and out-of-canvas rectangles remain deferred and fail closed with `unsupported_blend_geometry`. Video layers and masks begin playback at the declared layer start. Keep sources and masks inside the spec directory, placing the spec in a common parent of its media. Output remains video-only.
-
-## 360 dual-cam assembly
-
-Any stitched equirect 360 MP4 (Insta360, Ricoh Theta, GoPro MAX, DJI, …) can become a two-cam 16:9 or 9:16 edit without a new tool name. Export from the camera app first — Kinocut does not stitch `.insv` or GoPro `.360`.
-
-```python
-from kinocut import Client
-
-video = Client()
-plan = video.propose_360_assembly("x4-export.mp4", goal="desk 360 split 9:16")
-approved = video.decide_360_assembly(plan, "approve")
-video.render_360_assembly(approved, "desk-split.mp4")
-```
-
-Agents: `video_intent` with a 360/desk/table goal and `source=`, then `video_review_decide`. Full contract: [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
-
-## Still / Image Editing
-
-Kinocut treats multi-still packages as first-class media — plan → receipt → fail-closed gate, same safety posture as video rescue. Requires `pip install "kinocut[image]==1.16.5"`; run `kino doctor` to verify the image stack.
-
-**Workflow:** establish a hero plate → edit beats toward it → match shared WB/exposure → grade (optional signal LUT) → cohesion gate.
-
-```bash
-# Image analysis: extract colors, generate palettes, analyze products
-kino image-extract-colors product.jpg -n 8
-kino image-generate-palette scene.png --harmony triadic
-kino image-analyze-product listing.jpg --use-ai
-
-# Still/plate editing: match package to hero, grade, gate
-kino still-match --hero establish.png --inputs beat1.png beat2.png --output-dir out/matched
-kino still-grade --inputs out/matched/*.png --hero establish.png --output-dir out/graded
-kino still-gate  --inputs out/graded/*.png --output-dir out/gate
-
-# Establish-locked edit with plan/receipt (dry-run first)
-kino image-edit --source beat.png --reference establish.png \
-  --intent "match establish world and light" --output-dir out/edit --dry-run
-
-# Or run the full pipeline in one shot
-kino still-package --establish establish.png --beats beat1.png beat2.png --output-dir out/pkg
-```
-
-```python
-from kinocut import Client
-
-c = Client()
-c.still_match(hero="establish.png", inputs=["a.png", "b.png"], output_dir="out/m")
-c.still_gate(inputs=["out/m/a_matched.png", "out/m/b_matched.png"], output_dir="out/g")
-```
-
-`still-gate` fails closed on luma spread and shadow green/cyan metrics; every tool writes a JSON receipt with hashes and gains. Paid generative backends stay off by default (`prefer=edit`, `allow_paid_gen=false`). Full guide: [docs/STILL_PLATES.md](docs/STILL_PLATES.md).
-
-## Public Discovery
-
-Kinocut is built to be **findable and citable** by both search engines and AI answer engines:
-
-- Canonical product URL: **https://kinocut.dev/**
-- GitHub README + [`llms.txt`](llms.txt) with entity facts, install commands, and safety rules
-- Official MCP Registry record under `tech.kyanitelabs/kinocut`
-- FAQ answers in this README and [docs/faq.md](docs/faq.md) (answer-first, versioned claims)
-
-### Kinocut vs raw FFmpeg (and vs cloud editors)
-
-| | Kinocut | Raw FFmpeg in agent shell | Typical cloud editor API |
-| --- | --- | --- | --- |
-| Interface | Typed MCP / Python / CLI | Free-form flags | Hosted HTTP API |
-| Preflight | Guardrails before render | Agent invents flags | Vendor-specific |
-| Provenance | Video Receipts + hashes | Ad-hoc logs | Vendor dashboard |
-| Media location | Local-first | Local | Upload required |
-| Core cost | Free (Apache-2.0) | Free | Often metered |
-
-## Why It Exists
-
-AI agents can write FFmpeg commands, but they should not have to guess flags, parse brittle stderr, or silently publish broken media. Kinocut gives agents typed operations, inspectable tool metadata, structured results, preflight guardrails, and quality checkpoints so a video workflow can be automated and reviewed without turning into shell-command roulette.
-
-Use it when you want an AI assistant to:
-
-- trim, merge, resize, crop, rotate, transcode, or export video;
-- add text, subtitles, watermarks, overlays, filters, fades, effects, and transitions;
-- extract audio, normalize audio, synthesize audio, add generated audio, or create waveforms;
-- detect scenes, make thumbnails, generate storyboards, compare quality, and create release checkpoints;
-- match, grade, and gate still packages with establish-locked color cohesion, or analyze product images for colors and palettes;
-- scaffold cinematic projects, read STYLE_/NEG_ blocks, parse storyboard tables, and expand shot prompts;
-- create new Hyperframes projects, inspect rendered layouts, capture websites, generate local speech, remove backgrounds, and post-process the result with FFmpeg tools;
-- repurpose one source video into vertical, horizontal, and square local delivery packages with manifests and review artifacts;
-- drive repeatable media workflows from Claude Code, Cursor, Codex-style clients, scripts, or CI.
-
-## Installation
-
-Prerequisite: [FFmpeg](https://ffmpeg.org/) must be installed and available on `PATH`.
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Ubuntu/Debian
-sudo apt install ffmpeg
-```
-
-Run without a global install:
-
-```bash
-uvx --from kinocut==1.16.5 kino doctor
-```
-
-Or install with pip:
-
-```bash
-pip install kinocut==1.16.5
-kino doctor
-```
-
-For Claude Desktop-style MCPB installs, Kinocut includes a staged local package at
-`mcpb/` and a local build script:
-
-```bash
-python3 scripts/build-mcpb.py
-```
-
-This unsigned **user-configured-local-access** package launches an existing Python environment
-with the exact Kinocut version and still requires local Node, FFmpeg, and ffprobe. It is not a
-sandbox. Native self-contained bundles remain separate future work. See [docs/MCPB.md](docs/MCPB.md).
-
-Optional **C2PA** signing for final MP4 exports is available when
-`c2patool` and a manifest/signer are configured. Signing is off by default and only reports
-`signed` after a verification read succeeds. See [docs/C2PA_PROVENANCE.md](docs/C2PA_PROVENANCE.md).
-
-Hyperframes tools additionally need Node.js 22+ and a resolvable Hyperframes CLI. Install/pin Hyperframes in the active Node package layout, add `hyperframes` to `PATH`, or set `MCP_VIDEO_HYPERFRAMES_COMMAND`.
-
-### Which extra do I need?
-
-The core install covers all FFmpeg editing tools. Optional features ship as extras — install only what you use:
-
-| You want | Install | Approx. extra size |
-|---|---|---|
-| Speech-to-text subtitles (Whisper) | `pip install "kinocut[transcribe]==1.16.5"` | ~1 GB (torch) |
-| Image analysis (colors, layout, contrast) | `pip install "kinocut[image]==1.16.5"` | ~50 MB |
-| Vocal/instrument stem separation | `pip install "kinocut[stems]==1.16.5"` | ~2 GB (torch + demucs) |
-| AI upscaling | `pip install "kinocut[upscale]==1.16.5"` | ~2 GB (Python ≤3.12) |
-| Procedural audio/music tools | `pip install "kinocut[audio]==1.16.5"` | ~30 MB (numpy) |
-| Everything AI | `pip install "kinocut[ai]==1.16.5"` | several GB |
-
-Mix freely, e.g. `pip install "kinocut[transcribe,image]==1.16.5"`. Run `kino doctor` afterward — it reports exactly which features are available and what is missing.
-
-### Upgrading from mcp-video
-
-Kinocut preserves the original surface during the rename window. Existing installs can upgrade without changing code:
-
-```bash
-pip install --upgrade 'mcp-video==1.6.20'
-pip install --force-reinstall --no-deps 'kinocut==1.16.5'
-mcp-video doctor
-```
-
-Older shim installer records can delete the shared executable during an upgrade,
-even when dependency checks pass. The canonical reinstall restores ownership;
-use the intended release pin and preserve configured extras in locked deployments.
-See [fleet migration instructions](docs/FLEET_UPGRADE.md) for the pinned sequence.
-
-Published `mcp-video==1.6.20` is a metadata-only compatibility installer for `kinocut==1.16.5`. The `mcp_video` import, `mcp-video` command, `MCP_VIDEO_*` environment variables, `~/.mcp-video` data directory, `mcp-video://` resource URIs, and existing receipt keys remain supported on the 1.14.x+ line. New integrations should use `kinocut`, `from kinocut import Client`, and the `kino` command.
-
-## En español
-
-Kinocut es un servidor MCP de edición de video para agentes de IA. La última versión publicada es **1.16.5** (`pip install kinocut==1.16.5`, **205 herramientas MCP con `KINOCUT_TOOLS=all`; 20 por defecto / 177 CLI**). Incluye ensamblaje 360 de dual-cam desde un MP4 equirectangular ya stitched (no `.insv`), import perezoso PEP 562 y el mismo surface FFmpeg tipado para recortar, unir, subtitular, mezclar audio, efectos y reutilizar contenido (Shorts, Reels, TikTok), motor de flujos (`workflow`) con recibos verificables, rescate de video, revisión AI-video gobernada y barreras de seguridad antes de renderizar. Programas humanos residuales (directorios, lanzamiento) no se reclaman completos.
-
-Requisito: [FFmpeg](https://ffmpeg.org/) instalado y disponible en el `PATH`.
-
-```bash
-# macOS
-brew install ffmpeg
-
-# Ubuntu/Debian
-sudo apt install ffmpeg
-
-# Instalación y diagnóstico
-pip install kinocut==1.16.5
-kino doctor
-```
-
-Para Claude Code:
-
-```bash
-claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
-```
-
-`kino doctor` informa qué funciones están disponibles y qué falta instalar. La documentación completa está en inglés; los mensajes de error principales son bilingües.
-
-## Quick Start
-
-### Golden path (60 seconds)
-
-Prove the install works before wiring an agent host:
-
-```bash
-pip install -e .          # or: pip install kinocut==1.16.5
-kino doctor               # required checks must pass
-python scripts/golden_path.py
-```
-
-Success criteria and failure recovery: [`docs/GOLDEN_PATH.md`](docs/GOLDEN_PATH.md).  
-Shareable pack (receipt + quality + media): `python scripts/generate_golden_pack.py` → [`demo/golden-pack/`](demo/golden-pack/).
-
-### Try the receipt-backed proof first
-
-From a clone of this repo, run the smallest confidence workflow before wiring an agent host:
-
-```bash
-uv run --no-project --with kinocut==1.16.5 python workflows/05-confidence-baseline/workflow.py
-uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_confidence_benchmark.py
-```
-
-The workflow generates a tiny source clip, creates a checked vertical video, runs quality/release checkpoint steps, and writes `workflows/05-confidence-baseline/output/video_receipt.json`.
-
-Proof notes live in [`docs/proofs/`](docs/proofs/). Public marketing claims (version, tool counts, URLs) live in [`docs/public_claims.json`](docs/public_claims.json) and are CI-guarded.
-
-### Claude Code
-
-```bash
-claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
-```
-
-### Claude Desktop
-
-```json
-{
-  "mcpServers": {
-    "kinocut": {
-      "command": "uvx",
-      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
-    }
-  }
-}
-```
-
-### Cursor
-
-```json
-{
-  "mcpServers": {
-    "kinocut": {
-      "command": "uvx",
-      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
-    }
-  }
-}
-```
-
-Then ask your agent:
-
-> Trim this interview into a 45-second vertical clip, add burned captions, normalize the audio, make a thumbnail, and create a release checkpoint before export.
-
-## Agent Skill
-
-Kinocut includes a public agent skill at [`skills/kinocut/SKILL.md`](skills/kinocut/SKILL.md). Use `$kinocut` in compatible agent hosts when you want the agent to choose between the MCP server, CLI, and Python client while preserving the inspect, edit, verify, and human-review workflow.
-
-For path-based short-form packages from **current tools only** (no invented commands, no external publish), see [`skills/kinocut-repurpose/SKILL.md`](skills/kinocut-repurpose/SKILL.md). That skill is an explicit marketing seed; the durable kernel-backed repurposing product is still on the trusted-execution roadmap.
-
-## Python Client
-
-```python
-from kinocut import Client
-
-editor = Client()
-
-clip = editor.trim("interview.mp4", start="00:02:15", duration="00:00:45")
-caption_file = "captions.srt"
-editor.ai_transcribe(clip.output_path, output_srt=caption_file)
-captioned = editor.subtitles(clip.output_path, subtitle_file=caption_file)
-vertical = editor.resize(captioned.output_path, aspect_ratio="9:16")
-checkpoint = editor.release_checkpoint(vertical.output_path)
-
-print(checkpoint["thumbnail"])
-print(checkpoint["storyboard"])
-```
-
-## CLI
 
 ```bash
 kino info interview.mp4
 kino trim interview.mp4 -s 00:02:15 -d 45
-kino video-ai-transcribe clip.mp4 --output captions.srt
-kino subtitles clip.mp4 captions.srt
-kino resize clip.mp4 --aspect-ratio 9:16
-kino video-quality-check clip.mp4
-kino repurpose clip.mp4 --platforms youtube-shorts instagram-reel tiktok
-kino image-extract-colors product.jpg
-kino still-package --establish hero.png --beats shot1.png shot2.png --output-dir out/stills
+kino release-checkpoint clip.mp4 --profile ui-capture-dark
 ```
 
-## What Agents Can Do
+References: [MCP tools](docs/TOOLS.md) · [Python client](docs/PYTHON_CLIENT.md) ·
+[CLI](docs/CLI_REFERENCE.md) · [Video Receipts](docs/VIDEO_RECEIPT.md) ·
+[agent discovery](docs/AI_AGENT_DISCOVERY.md) · [all docs](docs/README.md) · [`llms.txt`](llms.txt)
 
-| Workflow | Example prompt |
+## Safe by default
+
+- **New files, not overwrites.** Writing over an existing file needs an explicit `overwrite`.
+- **Checked before FFmpeg runs.** Filter ranges, merge compatibility, mix levels, overlay
+  opacity and text timing are validated first, and errors end with the exact retry call.
+- **No network calls you didn't ask for.** Optional model features are off until you turn
+  them on; see [vision and network controls](docs/VISION_PRIVACY.md).
+- **Nothing gets posted.** Kinocut renders and packages. Publishing stays with you.
+
+What it won't do: Kinocut renders real media only. No generation adapter exists for
+text-to-video or paid image generation, and caption speech uses local stock speech
+(eSpeak NG), not a neural voice. The `kinocut_sound` program ships its thin S12 join; its
+benchmark is 64 synthetic clips, not a full episode and not human listening approval.
+
+## Releases
+
+| | Version | Surface |
+| --- | --- | --- |
+| **Published** on PyPI, npm and the MCP Registry | **1.16.5** (2026-10-27) | 205 MCP tools with `KINOCUT_TOOLS=all`, 20 by default, 177 CLI commands |
+| **This source** (`master`) | **1.16.5** candidate | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
+| **Compatibility package** | `mcp-video==1.6.20` | Installs `kinocut==1.16.5` for anyone still on the old name |
+
+Install from PyPI for everything above, including the optional object-matte extra
+(`kinocut[object-matte]==1.16.5`, published 1.16.5), which adds no new MCP tool.
+
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [1.16.5 on PyPI](https://pypi.org/project/kinocut/1.16.5/)
+
+| | |
 | --- | --- |
-| Social clips | "Turn this landscape recording into a captioned TikTok and YouTube Short." |
-| Podcast production | "Find the strongest segment, trim it, normalize audio, add chapters, and export." |
-| Product demos | "Create a short launch video from screenshots, title cards, and voiceover." |
-| Cinematic planning | "Create a style pack and storyboard, then render shot prompts for generation." |
-| Quality review | "Compare these two exports, make thumbnails, and flag visual or audio problems." |
-| Batch automation | "Convert this folder of clips to web-ready MP4 with consistent loudness." |
-| Code-created video | "Scaffold a Hyperframes composition, inspect it, render it, then add subtitles and a watermark." |
-| Local repurposing | "Turn this master clip into Shorts, Reels, TikTok, and YouTube assets with thumbnails and a manifest." |
-| Video rescue | "Diagnose this damaged clip, propose only safe repairs, render an approved package, and verify the receipt." |
-| Governed review (dev tip) | "Ingest this export into a project, run preflight and temporal inspection, write a verdict, and salvage only the broken region." |
+| **Source** | [GitHub](https://github.com/KyaniteLabs/kinocut) (canonical) · [Forgejo](https://git.kyanitelabs.tech/KyaniteLabs/kinocut) (downstream mirror) |
+| **MCP Registry** | [`tech.kyanitelabs/kinocut`](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) |
+| **PyPI** | [`kinocut`](https://pypi.org/project/kinocut/) |
+| **Site** | [kinocut.dev](https://kinocut.dev/) |
+| **Runs on** | macOS, Linux, Windows, with Python 3.11+ and FFmpeg |
 
-## MCP Tools
+### Coming from mcp-video
 
-Published 1.16.5 serves **205 MCP tools / 177 CLI commands** through `KINOCUT_TOOLS=all`; the default registration is a curated **20-tool MCP core**. `KINOCUT_TOOLS=profile:editor` selects the editor profile, and `search_tools` discovers hidden operations without changing the selected surface. The table summarizes the full catalog's categories.
+The project was called mcp-video until 2026-07-10. The old import (`mcp_video`), command
+(`mcp-video`), `MCP_VIDEO_*` variables and `~/.mcp-video` data directory still work. New
+setups should use `kinocut`, `from kinocut import Client` and `kino`. See
+[the rename notes](docs/RENAME.md).
 
-| Category | Count | Highlights |
-| --- | ---: | --- |
-| Core video editing | 32 | trim, merge, resize, crop, rotate, convert, overlays, subtitles, export, cleanup, templates, merge-compatibility guardrails |
-| Project-backed inspection | 3 | content-addressed ingest, unified preflight, temporal evidence packages |
-| Governed AI-video | 4 | exact-asset verdicts, acceptance evaluation, audio-preserving body swaps, lineage-bound salvage |
-| Agent workflow engine | 4 | validate, plan, render, resume, inspect multi-step jobs with provenance receipts |
-| Dedicated rescue | 3 | diagnose, approve, render, verify, quarantine, and resume local content-preserving repairs |
-| Post-rescue planning | 8 | semantic timelines/query, EDLs, visual transforms, restoration, composition, autopilot, explicit egress |
-| Cinematic creation | 4 | project scaffold, style-pack parsing, storyboard parsing, shot prompt expansion |
-| AI-assisted media | 11 | transcription, scene detection, upscaling, stem separation, silence removal, color grading |
-| Hyperframes | 18 | init, preview, render, snapshots, inspect, catalog, website capture, local TTS, transcription, background removal, diagnostics, benchmark, post-process |
-| Revideo | 4 | materialize the pinned bridge, install locked dependencies, render a project, or run the complete local job with a verified receipt |
-| Repurposing | 2 | dry-run manifests, platform-ready variants, thumbnails, storyboards, release checkpoints |
-| Procedural audio | 7 | synthesize, compose, presets, effects, sequences, generated audio, spatial audio, mix-parameter guardrails |
-| Visual effects | 8 | vignette, glow, noise, scanlines, chromatic aberration, luma key, mask, shape mask, bounded filter parameters |
-| Transitions | 3 | glitch, morph, pixelate |
-| Layout and motion | 6 | grid, picture-in-picture, split-screen, animated text, counters, progress bars, auto-chapters, layout mismatch warnings |
-| Analysis | 8 | scene detection, thumbnail, preview, storyboard, quality compare, metadata, waveform, release checkpoint |
-| Image analysis | 3 | extract colors, generate palettes, analyze product images |
-| Still / plate editing | 5 | still-match, still-grade, still-gate, image-edit, still-package — establish-locked color match with cohesion gate |
-| Discovery | 1 | `search_tools` |
+## En español
 
-```python
-from kinocut import Client
-
-editor = Client()
-matches = editor.search_tools("subtitle")
-print(matches["tools"])
-```
-
-Full reference: [docs/TOOLS.md](docs/TOOLS.md)
-
-One-call Shorts recipe: `video_shorts(input_path, segments, style?)` trims selected ranges, captions supplied segment text, applies a 9:16 template, exports one artifact, and returns one receipt chain. It never posts externally.
-
-## Agent-Safe Workflow
-
-For autonomous agents, the intended path is inspect, edit, verify, then ask a human to review release artifacts:
-
-```python
-from kinocut import Client
-
-client = Client()
-
-print(client.inspect("trim"))
-
-result = client.pipeline(
-    [
-        {"op": "trim", "input": "source.mp4", "start": "00:01:00", "duration": "00:00:45"},
-        {"op": "add_text", "text": "Launch clip", "position": "top-center"},
-        {"op": "normalize_audio"},
-        {"op": "resize", "aspect_ratio": "9:16"},
-        {"op": "export", "quality": "high"},
-        {"op": "release_checkpoint"},
-    ],
-    output_path="final-short.mp4",
-)
-```
-
-Safety contract:
-
-- Media-producing calls return structured results with output paths.
-- High-risk edit paths now run preflight guardrails before FFmpeg execution: filter bounds, merge compatibility, audio mix volume/timing, overlay/watermark/chroma opacity and similarity, animated text timing/overflow, and grid/split-screen mismatch warnings.
-- Analysis and discovery calls return structured JSON reports.
-- Tool discovery is available through `search_tools()` and `Client.inspect()`.
-- Unexpected keyword errors are converted into actionable `MCPVideoError` guidance.
-- Do not publish agent-generated video without `video_quality_check`, `video_release_checkpoint`, and human visual/audio inspection.
-- For governed AI-video derivatives, require stored identities, active human decision evidence, and a fresh review slot after every salvage or body-swap — never raw FFmpeg workarounds labeled as governed.
-
-## Changelog
-
-### Unreleased QoL pass
-
-- Added a 20-tool default MCP registration with `KINOCUT_TOOLS=all`, profile selection, hidden-tool discovery, `video_shorts`, `video_doctor`, eyes-free retry messages, deferred startup imports, and MCP progress coverage. Existing telemetry, network, and overwrite defaults remain unchanged.
-
-### Acknowledgments
-
-- [@Beritwu](https://github.com/Beritwu) — exact probe contribution in [#599](https://github.com/KyaniteLabs/kinocut/pull/599).
-- [@Mimatovitch](https://github.com/Mimatovitch) — macOS cleanup bug report in [#594](https://github.com/KyaniteLabs/kinocut/issues/594).
-
-**1.16.5** (2026-10-27):
-- Curated 20-tool default MCP registration; `KINOCUT_TOOLS=all` serves the full catalog — **205 MCP / 177 CLI**. Compatibility package `mcp-video==1.6.20` installs `kinocut==1.16.5`. Retry-aware errors, one-call shorts, `video_doctor` preflight, lazy startup, opt-in exact probe; Apache-2.0 license text shipped in all distributions.
-
-**1.16.4** (2026-10-24):
-
-- Optional model calls default off; explicit local and remote permissions keep local product analysis from activating cloud QC.
-- Revideo and Hyperframes telemetry default off, with guarded Hyperframes previews and Docker rendering.
-- Provider-neutral host image workflow and accurate network disclosures; **203 MCP / 177 CLI**. Compatibility package `mcp-video==1.6.19` installs `kinocut==1.16.4`.
-
-**1.16.3** (2026-10-23):
-
-- Explicit overwrite consent, same-job ownership for non-media artifacts, protected agent homes, and anchored publication.
-- Completed project-path checks, Python 3.14 MCP context, truthful plugin network documentation, and opt-in Hermes tool filtering.
-- Surface stays **203 MCP / 177 CLI**; `mcp-video==1.6.18` installs `kinocut==1.16.3`.
-
-**1.16.2** (2026-10-21):
-
-- Frame-exact `create-from-images` with rational frame rates (`30000/1001`) and `--list` / `list_file` input; frame-rate and image-count bounds on Python, CLI and MCP (thanks [@Beritwu](https://github.com/Beritwu), #616).
-- Official MCP Registry entry republished as the local `uvx` stdio package `kinocut`.
-- Surface stays **203 MCP / 177 CLI**; `mcp-video==1.6.17` installs `kinocut==1.16.2`.
-
-**1.16.1** (2026-10-05):
-
-- Maintenance fixes: macOS render cleanup (live process supervisor, zombie-tolerant quiescence) and MOV/MP4 faststart preservation for descriptor-anchored outputs.
-- C2PA signing and object-matte/FSRCNN model downloads now publish through owned staging files only after verification.
-- FFmpeg 8.1 filter discovery; source-audio preservation in GPU shader and Real-ESRGAN reconstruction; typed errors for shader/upscale probe failures.
-- Surface stays **203 MCP / 177 CLI**; `mcp-video==1.6.16` installs `kinocut==1.16.1`.
-
-**1.16.0** (2026-10-02):
-
-- Operator-route parity across MCP/CLI/Python (audio mixing, ducking/HLS, motion receipts, 360 intent/review controls, operation estimates); persisted MCP repurpose quality/checkpoint policy.
-- Bounded input hardening (CLI plan/review JSON size and nesting caps, explicit JSON booleans, duplicate-key rejection).
-- Added `Client.record_motion_acceptance`, temporal `motion_coherence` evidence, opt-in Anthropic keyframe review, structured FFmpeg dependency advisories, and Gemini CLI setup examples.
-- Surface grows to **203 MCP / 177 CLI**; `mcp-video==1.6.15` installs `kinocut==1.16.0`.
-
-**1.15.3** (2026-09-25):
-
-- Publication release: PyPI and npm verified 2026-09-30; `mcp-video==1.6.14` installs `kinocut==1.15.3`. Surface stays **201 MCP / 173 CLI**.
-
-**1.15.2** (2026-09-24):
-
-- Verified stereo sound mastering through the measured mastering chain (#523/#525/#526); real caption speech processed with distance profiles; `sound-qa-asr` fails closed without a real recognition request (#432).
-- Guarded local Revideo operations exposed on the public surface with rendered-format validation (#508); `release-checkpoint` passes through the MCP release gate from the CLI.
-- Adversarial hardening: the MCP handshake reports the real kinocut version (F1), a central self-overwrite guard rejects outputs aliasing inputs (F2), error echoes truncate oversized values (F4).
-- Absolute trim-end semantics preserved (#493); Windows drive paths keep their prefix (#496); empty/blank ASS caption tracks fail closed instead of rendering empty output.
-- Surface grows to **201 MCP / 173 CLI**; `mcp-video==1.6.13` installs `kinocut==1.15.2`.
-
-**1.15.1** (2026-08-31):
-
-- Registry ownership: `mcp-video` shim **1.6.12** + legacy registry republish (#469).
-- Object-matte streaming decode with scratch caps (#414).
-- `mcp-video==1.6.12` installs `kinocut==1.15.1`.
-
-**1.15.0** (2026-08-19):
-- **Honest MCP startup failures** — `kino --mcp` reports real import causes; paths redacted, markup-safe (#448, from #445).
-- **doctor `mcp-server-import` check** — required core check; doctor can't say OK while `--mcp` is broken (#449).
-- **First-class Windows support** — portable projectstore file locking (#446), contention-only lock contract, UTF-8 stdio, `windows-latest` smoke job.
-- Community-driven release — @gerardoscaglia-creator credited in [Contributing](#contributing) and the [CHANGELOG acknowledgements](CHANGELOG.md).
-- `mcp-video==1.6.11` installs `kinocut==1.15.0`.
-
-**1.14.1** (2026-08-13):
-- Patch on 1.14.0: pyright `NoReturn` on rescue cancel so GitHub Lint stays green. Same 360 + perf surface.
-- `mcp-video==1.6.10` installs `kinocut==1.14.1`.
-
-**1.14.0** (2026-08-13):
-- Published **360 dual-cam assembly** from a stitched equirect MP4 (camera-agnostic; not X4-only) via `video_intent` / `Client.propose_360_assembly` — still **196 MCP / 167 CLI**.
-- Landed the performance committee top-10: single-pass 360 `filter_complex` (audio kept), sampled QC, lazy imports, SHA cache, batched storyboard stills.
-- `mcp-video==1.6.9` installs `kinocut==1.14.0`.
-
-**1.13.0** (2026-08-07):
-- Added **Intent-verb surface** (`video_intent` / `intent`), **Watching guardrail floor** (`video_review_run` / `video_review_decide`), **B-roll proposals** (`video_propose_broll`), **Caption translation ES-first** (`video_translate_captions`), and **Trusted execution (TE)** quality-of-life additions.
-- Expanded published surface to **196 MCP tools** and **167 CLI commands** (fully synchronized across standard, test, and client interfaces).
-- Hardened path validation for caption translation, brand kit, and OTIO exports.
-
-**1.12.0** (2026-08-07):
-- Added **Still/plate editor surface** (`still-match`, `still-grade`, `still-gate`, `image-edit`, `still-package`) with fail-closed cohesion gating.
-
-**1.11.x** (2026-07-24):
-- Added thin **`kinocut_sound`** S12 public join adapters (`sound-capabilities`, `sound-plan-validate`, `sound-mix-render`, etc.).
-- Post-theme security hardening to prevent absolute host-path leaks and ensure all discovered operations have fail-closed invoke paths.
-
-See [CHANGELOG.md](CHANGELOG.md) for full historical release notes, or view the [GitHub Releases](https://github.com/KyaniteLabs/kinocut/releases) page.
-
-## FAQ
-
-### What is Kinocut?
-
-Kinocut is a free, open-source MCP server, Python library, and `kino` CLI for AI-agent video editing. It wraps FFmpeg (and optional Hyperframes/Whisper extras) with preflight guardrails, Video Receipts, and quality checkpoints. It was formerly named **mcp-video**.
-
-### How do I install it?
+Kinocut es un servidor MCP local para que tu agente de IA edite video con barreras de
+seguridad: recorta, une, subtitula, mezcla audio, crea Shorts y revisa la calidad antes de
+entregarte el corte. Nunca sobrescribe tus archivos sin permiso y no sube nada a la nube.
+La versión publicada es **1.16.5**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
 
 ```bash
-brew install ffmpeg   # or apt install ffmpeg
 pip install kinocut==1.16.5
 kino doctor
 claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
-### Is it free and local-first?
+`kino doctor` te dice qué funciones están listas y qué falta instalar. La documentación
+completa está en inglés; los mensajes de error principales son bilingües.
 
-Yes. Apache-2.0, runs on your machine, no Kinocut account or API key required for the core surface, and media is not uploaded to a Kinocut cloud.
-
-Local compute and storage still have costs. Optional providers and the host agent
-can charge separately, and prompts or tool results can reach the host's model
-provider. Local execution alone does not establish zero data egress.
-
-### Which agents work with it?
-
-Any MCP-compatible client that can run a local stdio server (Claude Code, Cursor, Windsurf, Cline, and similar). You can also use the Python client or CLI without an agent.
-
-### How many tools are there?
-
-Published 1.16.5 serves **205 MCP tools / 177 CLI commands** (`kino --mcp` tools/list with `KINOCUT_TOOLS=all`); the default registration is a curated **20-tool core**. Query the installed server's tool schemas for exact parameters. `search_tools` discovers hidden operations.
-
-### Can Kinocut edit Insta360 X4 360 video?
-
-Yes — from a **stitched 360 MP4**, not `.insv`. Propose a `360_assembly_plan`, approve it, then render split/switch/PiP/single. Works for other stitched equirect cameras too. See [docs/360_ASSEMBLY.md](docs/360_ASSEMBLY.md).
-
-### Was it called mcp-video?
-
-Yes. The current published `mcp-video==1.6.20` installs `kinocut==1.16.5`; the previous `mcp-video==1.6.19` installed `kinocut==1.16.4`; the historical `mcp-video==1.6.11` installed `kinocut==1.15.0`. Compatibility imports, CLI name, env vars, data dir, resource URIs, and receipt keys remain supported on the 1.14.x+ line.
-
-### Can Kinocut turn an Insta360 X4 file into a two-cam edit?
-
-Yes: export a stitched 360 MP4, then propose → approve → render. `.insv` is rejected. This shipped in 1.14.1 and remains in published 1.16.5.
-
-### How is Kinocut different?
-
-Unlike raw FFmpeg scripts or unguarded agent shells, Kinocut validates tools and emits receipts.
-
-### Is Kinocut production software?
-
-Treat the README status and release tags as source of truth for maturity. Validate against your own requirements before production use.
-
-More answers: [docs/faq.md](docs/faq.md) · on-site FAQ: [kinocut.dev/#faq](https://kinocut.dev/#faq)
-
-## Documentation
-
-- [Documentation map](docs/README.md)
-- [Product site](https://kinocut.dev/)
-- [Tool reference](docs/TOOLS.md)
-- [Python client reference](docs/PYTHON_CLIENT.md)
-- [CLI reference](docs/CLI_REFERENCE.md)
-- [Agent workflow engine](docs/WORKFLOWS.md)
-- [Video receipts](docs/VIDEO_RECEIPT.md)
-- [Video rescue](docs/RESCUE.md)
-- [360 dual-cam assembly](docs/360_ASSEMBLY.md)
-- [Post-rescue planning](docs/POST_RESCUE_FEATURES.md)
-- [AI-video review and salvage](docs/AI_VIDEO_REVIEW_AND_SALVAGE.md)
-- [AI-video contracts](docs/AI_VIDEO_CONTRACTS.md)
-- [AI-video inspection](docs/AI_VIDEO_INSPECTION.md)
-- [C2PA provenance](docs/C2PA_PROVENANCE.md)
-- [MCPB packaging](docs/MCPB.md)
-- [Product roadmap](ROADMAP.md)
-- [Trusted execution layer plan](docs/plans/2026-07-09-kinocut-trusted-execution-layer.md)
-- [Wishlist / 1.8 program parallel plan](docs/plans/2026-07-12-wishlist-parallel-execution.md)
-- [Sound program status](docs/status/2026-07-13-sound-program-strategic-handoff.md)
-- [AI agent discovery guide](docs/AI_AGENT_DISCOVERY.md)
-- [FAQ](docs/faq.md)
-- [Golden path (first-run proof)](docs/GOLDEN_PATH.md)
-- [Public claims (version / counts)](docs/public_claims.json)
-- [Golden demo pack](demo/golden-pack/README.md)
-- [Changelog](CHANGELOG.md)
-- [llms.txt](llms.txt)
-
-## Testing
-
-Development verification lives in [docs/TESTING.md](docs/TESTING.md). Keep public-surface, media workflow, and security checks current when changing tool behavior.
-
-## Development
+## Develop
 
 ```bash
 git clone https://github.com/KyaniteLabs/kinocut.git
 cd kinocut
-python3 -m venv .venv
-source .venv/bin/activate
+python3 -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"
-pytest tests/ -v -m "not slow and not hyperframes"
+pytest -q -m "not slow and not hyperframes"
 ```
 
-## Community
+[Contributing](CONTRIBUTING.md) · [Testing](docs/TESTING.md) · [Security](SECURITY.md) ·
+[Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Maintainers](MAINTAINERS.md) · [Code of Conduct](CODE_OF_CONDUCT.md) ·
+[Roadmap](ROADMAP.md)
 
-- [Contributing](CONTRIBUTING.md)
-- [Code of Conduct](CODE_OF_CONDUCT.md)
-- [Governance](GOVERNANCE.md)
-- [Maintainers](MAINTAINERS.md)
-- [Security](SECURITY.md)
-- [Support](SUPPORT.md)
-- [Roadmap](ROADMAP.md)
-- [Changelog](CHANGELOG.md)
-- [GitHub issues](https://github.com/KyaniteLabs/kinocut/issues)
+Want a public MCP URL without opening router ports?
+[hyperframes-selfhost](https://github.com/ismailkattakath/hyperframes-selfhost) is a
+community Apache-2.0 reference stack (Tailscale Funnel, Caddy, Google OAuth). It is not
+affiliated with KyaniteLabs; review it against your own threat model.
 
-### Community deploys
+## Contributors
 
-Operators who want a **public MCP URL** without opening home-router ports can study
-the community Apache-2.0 reference stack that puts Kinocut + Hyperframes behind
-Tailscale Funnel, Caddy, and Google OAuth (mcp-auth-proxy):
-[hyperframes-selfhost](https://github.com/ismailkattakath/hyperframes-selfhost)
-(not affiliated with KyaniteLabs; evaluate security for your threat model).
+Kinocut is better because people outside the core team sent code and sharp bug reports.
+A report with reproduction steps and a real traceback is a contribution, and every one is
+credited here and in the [CHANGELOG](CHANGELOG.md).
+
+- **[@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt)**: 19 reproducible bug reports from building on `kinocut.Client` ([#546](https://github.com/KyaniteLabs/kinocut/issues/546)–[#578](https://github.com/KyaniteLabs/kinocut/issues/578)), plus fixes: FFmpeg children no longer inherit stdin ([#559](https://github.com/KyaniteLabs/kinocut/pull/559)), composite-layers canvas fps ([#558](https://github.com/KyaniteLabs/kinocut/pull/558)) and honest `normalize_audio` ([#569](https://github.com/KyaniteLabs/kinocut/pull/569)), shipped in 1.15.3. Their crop, trim, noise-floor, one-pass mixing and timed-layer patches were adapted into 1.16.0 ([#586](https://github.com/KyaniteLabs/kinocut/pull/586)).
+- **[@WohaibHasan](https://github.com/WohaibHasan)**: absolute trim-end handling ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)), Windows drive preservation ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)) and portable UTF-8 CLI test capture ([#498](https://github.com/KyaniteLabs/kinocut/pull/498)).
+- **[@Beritwu](https://github.com/Beritwu)**: frame-exact `create-from-images` with rational frame rates and list input ([#616](https://github.com/KyaniteLabs/kinocut/pull/616), shipped in 1.16.2), and the opt-in exact probe ([#599](https://github.com/KyaniteLabs/kinocut/pull/599), shipped in 1.16.5).
+- **[@cnw-L](https://github.com/cnw-L)**: Windows drive paths survive the lavfi `movie=` filter ([#532](https://github.com/KyaniteLabs/kinocut/pull/532)), shipped in 1.15.3.
+- **[@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator)**: a Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) that exposed both diagnostics gaps fixed in 1.15.0, and the portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446)) that shipped with them.
+- **[@pedropaav-art](https://github.com/pedropaav-art)**: Windows filter-option path escaping ([#458](https://github.com/KyaniteLabs/kinocut/pull/458)), shipped in 1.15.0.
+- **[@linhaixin45-cmyk](https://github.com/linhaixin45-cmyk)**: a `kino doctor` Python-version floor with a visible install hint ([#459](https://github.com/KyaniteLabs/kinocut/pull/459)), shipped in 1.15.0.
+- **[@betsmayank](https://github.com/betsmayank)**: the first merged external fix, so Hyperframes `init` no longer hangs under MCP without a TTY ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)).
+- **[@AnttonioAzevedo](https://github.com/AnttonioAzevedo)**: caught silence removal writing corrupt MP4s ([#467](https://github.com/KyaniteLabs/kinocut/issues/467), fixed in [#506](https://github.com/KyaniteLabs/kinocut/pull/506)).
+- **[@Mimatovitch](https://github.com/Mimatovitch)**: reported the macOS process-cleanup regression ([#594](https://github.com/KyaniteLabs/kinocut/issues/594)), fixed in 1.16.1 ([#596](https://github.com/KyaniteLabs/kinocut/pull/596)).
+- **[@Zoroassistant23](https://github.com/Zoroassistant23)**: investigated [#594](https://github.com/KyaniteLabs/kinocut/issues/594) and proposed a patch with macOS checks and a regression test ([#595](https://github.com/KyaniteLabs/kinocut/pull/595)).
+- **[@austinwmson](https://github.com/austinwmson)** and **[@ismailkattakath](https://github.com/ismailkattakath)**: reports that closed real gaps, `remotion_still` runtime props ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)) and the self-host reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)).
+- **[@Dodothereal](https://github.com/Dodothereal)** and **@OyaAIProd** (account since deleted): early external PRs, including ASS PlayRes for vertical burns ([#378](https://github.com/KyaniteLabs/kinocut/pull/378)).
 
 ## License
 
-Apache 2.0. See [LICENSE](LICENSE).
+Apache 2.0. See [LICENSE](LICENSE). Built on [FFmpeg](https://ffmpeg.org/),
+[Hyperframes](https://hyperframes.io/) and the [Model Context Protocol](https://modelcontextprotocol.io/).
 
-Built with [FFmpeg](https://ffmpeg.org/), [Hyperframes](https://hyperframes.io/), and the [Model Context Protocol](https://modelcontextprotocol.io/).
-
----
-
-## Part of KyaniteLabs
-
-More from [KyaniteLabs](https://kyanitelabs.tech). Related projects:
-
-- **[Epoch](https://github.com/KyaniteLabs/Epoch)** — time-estimation MCP server (PERT) for AI agents
-- **[DialectOS](https://github.com/KyaniteLabs/DialectOS)** — Spanish dialect localization MCP server & CLI
-- **[checkyourself](https://github.com/KyaniteLabs/checkyourself)** — local-first production-readiness checks for AI-built code
-
-→ More at **[kyanitelabs.tech](https://kyanitelabs.tech)**
-
----
-
-If Kinocut is useful to you, **[star or watch it on GitHub](https://github.com/KyaniteLabs/kinocut)** — it helps other agent builders find it.
-If it saved you real editing hours: [ko-fi.com/kyanitelabs](https://ko-fi.com/kyanitelabs).
-
-Built by **[Simon Gonzalez De Cruz](https://github.com/simongonzalezdc)** — available for Forward-Deployed / Applied-AI engineering and contract work via the public profile links above.
-
-<!-- s-plus-geo:start -->
-
-## Who it's for
-
-- Primary: AI agent builders, Claude Code/Cursor users, and local media operators
-- Use when you need to edit, caption, repurpose, and quality-gate video with typed FFmpeg tools
-- Skip if you need a hosted cloud editor or untyped FFmpeg shell
-
-## Status
-
-- Maintained as of 2026 on the default branch
-- Prefer release tags when pinning dependencies
-- Report issues on the canonical [GitHub repository](https://github.com/KyaniteLabs/kinocut/issues)
-
-## Agent surface
-
-- Coding agents: read this README first, then repo docs/`AGENTS.md` if present
-- Prefer machine-readable briefs (`llms.txt`) when the repo ships one
-- MCP or skill entrypoints are documented in-repo when applicable
-
-## Contributing
-
-Issues and PRs are welcome on [GitHub](https://github.com/KyaniteLabs/kinocut). Keep public docs free of secrets and machine-local paths.
-
-### Contributors
-
-Kinocut improves in public, and outside contributions shape it — 1.15.0's diagnostics fixes trace directly to one excellent bug report. Reports with reproduction steps and a real traceback are contributions, and contributors are credited by name in the [CHANGELOG acknowledgements](CHANGELOG.md) and the release notes.
-
-- **[@gerardoscaglia-creator](https://github.com/gerardoscaglia-creator)** — his Windows MCP-mode investigation ([#445](https://github.com/KyaniteLabs/kinocut/issues/445)) exposed both diagnostics gaps fixed in 1.15.0, and his portable file-locking fix ([#446](https://github.com/KyaniteLabs/kinocut/pull/446)) landed in 1.15.0 with credit. Thank you.
-- **[@pedropaav-art](https://github.com/pedropaav-art)** — Windows filter-option path escaping ([#458](https://github.com/KyaniteLabs/kinocut/pull/458)), merged 2026-08-18, shipped in 1.15.0.
-- **[@linhaixin45-cmyk](https://github.com/linhaixin45-cmyk)** — `kino doctor` Python-version floor with a visible install hint ([#459](https://github.com/KyaniteLabs/kinocut/pull/459)), merged 2026-08-18, shipped in 1.15.0.
-- **[@WohaibHasan](https://github.com/WohaibHasan)** — absolute trim-end handling ([#493](https://github.com/KyaniteLabs/kinocut/pull/493)), Windows drive preservation ([#496](https://github.com/KyaniteLabs/kinocut/pull/496)), and portable UTF-8 CLI test capture ([#498](https://github.com/KyaniteLabs/kinocut/pull/498)).
-- **[@betsmayank](https://github.com/betsmayank)** — first merged external fix: Hyperframes `init` no longer hangs under MCP without a TTY ([#361](https://github.com/KyaniteLabs/kinocut/pull/361)).
-- **[@austinwmson](https://github.com/austinwmson)** and **[@ismailkattakath](https://github.com/ismailkattakath)** — external reports that closed real gaps: `remotion_still` runtime props ([#306](https://github.com/KyaniteLabs/kinocut/issues/306)) and the self-host Funnel + OAuth reference stack ([#432](https://github.com/KyaniteLabs/kinocut/issues/432)).
-- **[@Dodothereal](https://github.com/Dodothereal)** and **@OyaAIProd** (account no longer exists) — early external PRs (ASS PlayRes for vertical burns [#378](https://github.com/KyaniteLabs/kinocut/pull/378), SafeSkill badges).
-- **[@guillaume-hestia-projekt](https://github.com/guillaume-hestia-projekt)** — 19 reproducible bug reports from building on `kinocut.Client` ([#546](https://github.com/KyaniteLabs/kinocut/issues/546)–[#578](https://github.com/KyaniteLabs/kinocut/issues/578)), and fixes: FFmpeg children no longer inherit stdin ([#559](https://github.com/KyaniteLabs/kinocut/pull/559)), composite-layers canvas fps ([#558](https://github.com/KyaniteLabs/kinocut/pull/558)) and honest `normalize_audio` ([#569](https://github.com/KyaniteLabs/kinocut/pull/569)), shipped in 1.15.3. Their crop, trim, noise-floor, one-pass mixing and timed-layer patches were adapted into 1.16.0 ([#586](https://github.com/KyaniteLabs/kinocut/pull/586)).
-- **[@cnw-L](https://github.com/cnw-L)** — Windows drive paths survive the lavfi `movie=` filter ([#532](https://github.com/KyaniteLabs/kinocut/pull/532)), shipped in 1.15.3.
-- **[@Beritwu](https://github.com/Beritwu)** — frame-exact `create-from-images` with rational frame rates and `--list` / `list_file` input ([#616](https://github.com/KyaniteLabs/kinocut/pull/616), shipped in 1.16.2), and the opt-in exact probe ([#599](https://github.com/KyaniteLabs/kinocut/pull/599), shipped in 1.16.5).
-- **[@Mimatovitch](https://github.com/Mimatovitch)** — reported the macOS process-cleanup regression ([#594](https://github.com/KyaniteLabs/kinocut/issues/594)); the fix shipped in 1.16.1 ([#596](https://github.com/KyaniteLabs/kinocut/pull/596)).
-- **[@Zoroassistant23](https://github.com/Zoroassistant23)** — investigated [#594](https://github.com/KyaniteLabs/kinocut/issues/594) and proposed a patch with macOS checks and a regression test ([#595](https://github.com/KyaniteLabs/kinocut/pull/595)); not merged as-is, credited in the 1.16.1 release notes.
-
-<!-- s-plus-geo:end -->
-
-
-Cross-platform architecture and current support evidence: [platform parity](docs/PLATFORM_PARITY.md). Web/mobile shared processing and native clients are not implemented in this release.
+Made by [Simon Gonzalez De Cruz](https://github.com/simongonzalezdc) at
+[KyaniteLabs](https://kyanitelabs.tech). Sibling projects:
+[Epoch](https://github.com/KyaniteLabs/Epoch) (time estimates for agents),
+[DialectOS](https://github.com/KyaniteLabs/DialectOS) (Spanish dialect localization) and
+[checkyourself](https://github.com/KyaniteLabs/checkyourself) (production-readiness checks
+for AI-built code). If Kinocut saved you editing hours: [ko-fi.com/kyanitelabs](https://ko-fi.com/kyanitelabs).

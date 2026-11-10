@@ -4,66 +4,60 @@ This document is the short, explicit discovery map for agents, answer engines, a
 
 ## Canonical Positioning
 
-`Kinocut` is an open-source MCP server, Python library, and CLI for video editing
-and video creation workflows. Published 1.16.5 provides **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is a curated 20-tool core. The development tip serves **206 MCP tools / 177 CLI commands** (18-tool default; Unreleased). It
-wraps FFmpeg, governed AI-video review and salvage, deterministic project-backed
-inspection, durable edit projects, a resumable workflow engine, reviewed semantic
-selections, reusable recipes, PUSHING CREATION-style planning, Hyperframes
-authoring, bounded sound operations, layered compositing, and local repurposing
-packages with preflight guardrails. A 360/desk/table `video_intent` goal can also
-attach a reviewable `360_assembly_plan` (no extra MCP tool; in pip 1.14.1+).
-The development tip also exposes four local Revideo bridge operations backed by
-Kinocut's lockfile-pinned template; a custom scene is trusted executable TypeScript.
+`Kinocut` is an open-source MCP server, Python client and `kino` CLI for guardrailed
+video editing by AI agents. It wraps FFmpeg in typed, preflight-checked tools that write
+new files, run quality gates and record Video Receipts.
+
+- **Published 1.16.5:** 205 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
+  20 tools listed by default.
+- **Development tip:** 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
+  18 tools listed by default: an 8-tool hot path, eight operation families, and
+  `list_operations` / `describe_operation`, which reach every other operation.
+
+Beyond core editing it covers Shorts and Reels repurposing, a resumable workflow engine,
+video rescue, AI-video review and salvage, 360 dual-cam assembly (through `video_intent`,
+no extra MCP tool), product matte, still plates, bounded sound operations, Hyperframes
+and local Revideo creation (a custom Revideo scene is trusted executable TypeScript),
+and a `video_review_card` for approving a cut in Hermes Desktop chat.
 
 ## Best Queries To Match
 
 - video editing MCP server
 - MCP server for FFmpeg
 - AI agent video editing
-- agent video workflow engine
-- multi-step video job with provenance receipts
-- resumable video render workflow MCP
+- guardrailed video editing MCP server
+- safe agentic media automation
 - Claude Code video editing MCP
 - Cursor MCP video editing
 - programmatic video editing Python
-- cinematic video prompt storyboard MCP
-- AI video style pack workflow
-- Hyperframes MCP integration
-- Hyperframes TTS transcription background removal MCP
+- multi-step video job with provenance receipts
+- resumable video render workflow MCP
 - video repurposing MCP Shorts Reels TikTok
+- Hyperframes MCP integration
 - FFmpeg tools for AI agents
-- guardrailed video editing MCP server
-- safe agentic media automation
 - Kinocut public agent skill
 
 ## Best Entry Points
 
-- `README.md` - install, quick start, tools, CLI, Python client, workflows.
-- `docs/WORKFLOWS.md` - agent workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume semantics, cleanup, and privacy.
-- `docs/VIDEO_RECEIPT.md` - workflow/`layer_plan` receipt kinds, `schema_version` policy, and the `receipt_kind` discriminator.
-- `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` - exact-asset review, protection, body-swap, salvage, and re-review sequence.
+- `README.md` - install, tool surface, review, capabilities, releases.
 - `docs/status/NOW.md` - current published-versus-development truth and remaining human gates.
-- `docs/status/2026-07-27-post-campaign-tip-status.md` - historical tip snapshot, superseded by `docs/status/NOW.md`.
-- `docs/status/2026-07-12-wishlist-draft-pr-status.md` - historical incomplete implementation snapshot and non-release boundary.
-- `docs/plans/2026-07-12-wishlist-parallel-execution.md` - dependency graph and controller/author ownership for parallel work.
-- `docs/360_ASSEMBLY.md` - Insta360 X4 stitched MP4 → propose/approve/render (tip).
-- `skills/kinocut/SKILL.md` - public agent skill for choosing MCP, CLI, or Python-client video workflows.
-- `CLAUDE.md` - Layer 0 identity: what this project is, where to find staged pipelines.
+- `docs/MCP_TOOL_FAMILIES.md` - the default surface: hot path, families and discovery calls.
+- `docs/TOOLS.md` - every MCP tool by name.
+- `docs/WORKFLOWS.md` - workflow engine: job-spec schema, `@ref` grammar, op allowlist, variants, resume, cleanup and privacy.
+- `docs/VIDEO_RECEIPT.md` - receipt kinds, `schema_version` policy and the `receipt_kind` discriminator.
+- `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md` - exact-asset review, protection, body-swap, salvage and re-review.
+- `docs/360_ASSEMBLY.md` - Insta360 X4 stitched MP4 to propose, approve and render.
+- `skills/kinocut/SKILL.md` - public agent skill for choosing MCP, CLI or Python-client workflows.
 - `llms.txt` - compact machine-readable project map.
-- `kinocut/server.py` - MCP tool registration layer, including `search_tools`.
-- `kinocut/engine.py` - core FFmpeg operations.
-- `kinocut/filter_guardrails.py`, `merge_guardrails.py`, and `audio_guardrails.py` - preflight checks for risky media operations.
-- `kinocut/creation_engine.py` - PUSHING CREATION-style project, style-pack, storyboard, and shot-prompt helpers.
-- `kinocut/client/` - Python client mixins. Use `Client.inspect()`, `Client.pipeline()`, and `Client.release_checkpoint()` for guarded agent workflows.
-- `kinocut/client/meta.py` - Client-side tool discovery (`search_tools`).
-- `kinocut/client/hyperframes.py` - Hyperframes client mixin.
-- `kinocut/client/media.py` - media repurposing client helpers.
+- `kinocut/tool_registry.py` - hot path, profiles and `KINOCUT_TOOLS` selection.
+- `kinocut/tool_families.py` - typed operation families.
+- `kinocut/server.py` - MCP tool registration facade.
+- `kinocut/engine.py` - core FFmpeg operations facade.
+- `kinocut/filter_guardrails.py`, `merge_guardrails.py` and `audio_guardrails.py` - preflight checks for risky media operations.
+- `kinocut/client/` - Python client mixins. `Client.inspect(name)` describes a method, `Client.pipeline()` chains steps and `Client.release_checkpoint()` gates the result.
 - `kinocut/engine_repurpose.py` - local repurposing manifest and render orchestration.
-- `kinocut/__main__.py` - CLI.
-- `workflows/CONTEXT.md` - Layer 1 routing: which ICM workflow to use.
-- `workflows/01-social-media-clip/CONTEXT.md` - Stage contract for social clip production.
-- `workflows/02-podcast-clip/CONTEXT.md` - Stage contract for podcast highlight production.
-- `workflows/03-explainer-video/CONTEXT.md` - Stage contract for explainer video production.
+- `kinocut/__main__.py` - CLI entry point.
+- `workflows/CONTEXT.md` - routing to the staged production workflows in `workflows/`.
 - `server.json` - MCP Registry metadata for the PyPI package.
 - `CONTRIBUTING.md` - contribution and testing rules.
 - `SECURITY.md` - private vulnerability reporting.
@@ -117,7 +111,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 - Do not move business logic into `server.py`; keep it in engine modules.
 - Do not add dependencies just to wrap a single command.
 - Do not write output next to source files; use temp directories or explicit output paths.
-- Do not claim ICM folder structure is used for core code; it is layered on top (`workflows/`).
+- Do not claim the staged `workflows/` folders are used for core code; they are layered on top.
 - Do not treat a draft implementation snapshot, automated finding, or repository test receipt as human creative approval or release authority.
 
 ## Registry And Directory Targets

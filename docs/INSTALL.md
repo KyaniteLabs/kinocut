@@ -70,21 +70,32 @@ Native self-contained bundles are **not** published yet. See [MCPB.md](MCPB.md).
 
 | You want | Install | Notes |
 | --- | --- | --- |
-| Whisper transcription | `pip install "kinocut[transcribe]==1.16.5"` | Large (torch) |
-| Image analysis | `pip install "kinocut[image]==1.16.5"` | ~50 MB |
-| Stem separation | `pip install "kinocut[stems]==1.16.5"` | Large |
-| AI upscale | `pip install "kinocut[upscale]==1.16.5"` | Large; Python ≤3.12 often |
-| Product/object cutouts | `pip install "kinocut[object-matte]==1.16.5"` | ONNX Runtime; ~1 GB pinned weights on first use |
-| Procedural audio | `pip install "kinocut[audio]==1.16.5"` | numpy |
-| Everything AI | `pip install "kinocut[ai]==1.16.5"` | Several GB |
+| Whisper transcription | `pip install "kinocut[transcribe]==1.16.5"` | openai-whisper + torch; large |
+| Stem separation | `pip install "kinocut[stems]==1.16.5"` | demucs + torch; large |
+| AI upscale | `pip install "kinocut[upscale]==1.16.5"` | Real-ESRGAN; Python 3.11 or 3.12 only |
+| Product/object cutouts | `pip install "kinocut[object-matte]==1.16.5"` | ONNX Runtime; downloads ~1 GB of pinned weights on first use |
+| Scene and duplicate detection | `pip install "kinocut[ai-scene]==1.16.5"` | imagehash + Pillow |
+| Image analysis | `pip install "kinocut[image]==1.16.5"` | Pillow, numpy, scikit-learn |
+| Image analysis with Claude descriptions | `pip install "kinocut[image-ai]==1.16.5"` | adds the Anthropic SDK; needs explicit configuration |
+| Python client image helpers | `pip install "kinocut[client]==1.16.5"` | Pillow |
+| Procedural audio | `pip install "kinocut[audio]==1.16.5"` | numpy (`audio-ai` and `audio-midi` are aliases) |
+| Audio effects | `pip install "kinocut[audio-enhanced]==1.16.5"` | scipy + soundfile |
+| Beat and tempo analysis | `pip install "kinocut[audio-analysis]==1.16.5"` | librosa |
+| All audio | `pip install "kinocut[audio-all]==1.16.5"` | `audio-enhanced` + `audio-analysis` |
+| Everything AI | `pip install "kinocut[ai]==1.16.5"` | several GB; `all-ai` adds the `audio-all` set |
+
+`hyperframes` is an empty marker extra: Hyperframes itself is a separate Node.js CLI
+(see below).
 
 Core golden path **does not** require extras.
 
 ## Hyperframes (optional)
 
-Node.js 22+ and a resolvable Hyperframes CLI (`hyperframes` on PATH or `MCP_VIDEO_HYPERFRAMES_COMMAND`). Not required for FFmpeg tools or golden path.
+Install the Hyperframes CLI and the Node.js version it requires, then put `hyperframes` on
+PATH or set `MCP_VIDEO_HYPERFRAMES_COMMAND` to its command. Not required for FFmpeg tools
+or the golden path.
 
-## Revideo bridge (optional, development tip)
+## Revideo bridge (optional, since 1.15.2)
 
 The four Revideo surfaces require Node.js 18 or newer, npm, FFmpeg/ffprobe, and
 a Chromium-family browser. `revideo-install` runs `npm ci --no-audit --no-fund`

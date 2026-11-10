@@ -22,7 +22,7 @@
 **Source documents used (public):**
 - `AGENTS.md`
 - `docs/AI_VIDEO_CONTRACTS.md`, `docs/AI_VIDEO_INSPECTION.md`, `docs/AI_VIDEO_REVIEW_AND_SALVAGE.md`
-- `docs/KINOCUT-FEATURES-ROADMAP.md`, `docs/KINOCUT-AUDIO-FEATURES.md`, `docs/INTEGRATION-ROADMAP.md`
+- `docs/archive/KINOCUT-FEATURES-ROADMAP.md`, `docs/KINOCUT-AUDIO-FEATURES.md`, `docs/archive/INTEGRATION-ROADMAP.md`
 - `docs/plans/2026-07-09-kinocut-trusted-execution-layer.md`
 - `docs/plans/2026-07-12-wishlist-parallel-execution.md`
 - `docs/superpowers/specs/2026-07-10-kinocut-ai-video-editor-design.md`
