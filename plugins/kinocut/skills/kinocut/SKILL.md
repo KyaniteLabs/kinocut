@@ -18,7 +18,7 @@ before calling it. The profiles that carry the tools named below are:
 `profile:advanced` carries `video_composite_layers`, `video_hls_segment`;
 `profile:ai` carries `video_acceptance_eval`, `video_body_swap`, `video_quality_check`, `video_release_checkpoint`, `video_salvage`, `video_verdict`;
 `profile:audio` carries `sound_mix_render`, `video_duck_audio`, `video_mix_audio`;
-`profile:editor` carries `search_tools`, `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_thumbnail`;
+`profile:editor` carries `search_tools`, `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
 `profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
@@ -41,6 +41,10 @@ work is described in `docs/PLATFORM_PARITY.md`.
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
 
 Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
+
+## Showing a cut in Hermes Desktop
+
+Call `video_review_card` with the video path, then reply with the returned `preview_directive` alone on its own line. Hermes renders the card inline with Approve & export / Dig in / Try another range buttons.
 
 ## Vision review and network permission (1.16.5)
 

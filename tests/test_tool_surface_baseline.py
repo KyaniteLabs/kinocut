@@ -148,9 +148,11 @@ def test_headline_baseline_numbers_are_pinned():
     Trimming the longest remaining texts (family params, position, trim,
     merge, extract_frame) then cut default to 14,739 B, all to 118,736 B
     and editor to 80,922 B.
+    video_review_card (#723) then added one family operation: default
+    14,759 B, all 206 tools / 119,255 B, editor 115 tools / 81,461 B.
     """
-    assert BASELINE["captured"]["git_commit"] == "33bbfed4f633211ebb477950b41b846044b45e64"
-    for mode, count, total in (("default", 18, 14_739), ("all", 205, 118_736), ("profile:editor", 114, 80_922)):
+    assert BASELINE["captured"]["git_commit"] == "751b9f4fd4df64d914da5144b8192835e45d4ec3"
+    for mode, count, total in (("default", 18, 14_759), ("all", 206, 119_255), ("profile:editor", 115, 81_461)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -220,7 +222,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 14_739), ("all", 205, 118_736)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 14_759), ("all", 206, 119_255)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
@@ -242,7 +244,7 @@ def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools():
 def test_registry_inventory_is_complete_and_unambiguous():
     all_names = [name for names in TOOL_NAMES_BY_MODULE.values() for name in names]
     assert len(TOOL_NAMES_BY_MODULE) == 25
-    assert len(all_names) == 205 == len(set(all_names)), "a tool name must live in exactly one module"
+    assert len(all_names) == 206 == len(set(all_names)), "a tool name must live in exactly one module"
     assert set(TOOL_MODULE_BY_NAME) == set(all_names) == set(TOOL_REGISTRY)
     assert set(MODULE_PROFILE_TAGS) == set(TOOL_NAMES_BY_MODULE)
 
