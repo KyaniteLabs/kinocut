@@ -123,13 +123,20 @@ def format_cli_error(
         msg = data.get("message", retry_message(str(e), getattr(e, "code", "unknown")))
         code = data.get("code", "")
         action = data.get("suggested_action", {})
-        lines = [f"[bold red]{msg}[/bold red]"]
+        # Exception text is data, not Rich markup: escape it so tokens like
+        # ``[transcribe]`` in an install hint survive to the visible panel
+        # instead of being parsed as style tags.
+        lines = [f"[bold red]{escape(str(msg))}[/bold red]"]
         if code:
-            lines.append(f"[dim]Code: {code}[/dim]")
+            lines.append(f"[dim]Code: {escape(str(code))}[/dim]")
         if isinstance(action, dict) and action.get("description"):
-            lines.append(f"\n[yellow]Suggested fix:[/yellow] {action['description']}")
+            lines.append(f"\n[yellow]Suggested fix:[/yellow] {escape(str(action['description']))}")
         err_console.print(Panel("\n".join(lines), border_style="red", title="Error"))
     else:
         err_console.print(
-            Panel(f"[bold red]{retry_message(str(e), 'unknown')}[/bold red]", border_style="red", title="Error")
+            Panel(
+                f"[bold red]{escape(retry_message(str(e), 'unknown'))}[/bold red]",
+                border_style="red",
+                title="Error",
+            )
         )
