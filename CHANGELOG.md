@@ -15,8 +15,8 @@ Your agent now sees 18 tools instead of 20, and through them it reaches every on
 Kinocut's 205 operations. In 1.16.5 the default list reached only the 20 it named. The
 whole tool listing is also smaller: about 21.7 KB by default (26.5 KB in 1.16.5) and about
 178 KB with `KINOCUT_TOOLS=all` (225 KB). That is less context spent before the first
-edit. Cuts also leave the terminal: a review card in Hermes Desktop chat, a render pane
-beside it, and a review on a paired TV.
+edit. Cuts also leave the terminal: a review card in Hermes chat with an Approve & export
+button, and an opt-in Hermes Desktop plugin that shows which Kinocut tool is running.
 
 This is a major release because the default tool list changed. If your agent called one
 of the twelve tools that left it, read **Breaking changes**.
@@ -34,8 +34,8 @@ of the twelve tools that left it, read **Breaking changes**.
 ### Added
 
 - **Review a cut in Hermes chat.** `video_review_card` writes a self-contained HTML card (contact sheet, facts, and Approve & export / Dig in / Try another range buttons) that Hermes chat shows inline. Reach it through `video_edit_ops` or `KINOCUT_TOOLS=all`. (#723)
-- **Watch renders from Hermes Desktop.** An opt-in Desktop plugin, shipped beside the Hermes plugin's `mcp.json`, adds live render progress to the status bar and a "Kinocut renders" pane you open from the command palette. (#724)
-- **Review a cut on the TV.** The Hermes plugin skill can show a cut on a paired Hermes Gadget TV and map the remote's Approve and Reject to Approve & export and Try another range. The TV needs a URL it can fetch; Kinocut does not serve one. (#725)
+- **Watch renders from Hermes Desktop.** An opt-in Desktop plugin, shipped beside the Hermes plugin's `mcp.json`, shows which Kinocut tool is running in the status bar and adds a "Kinocut renders" pane you open from the command palette. (#724)
+- **Review a cut on the TV.** The Hermes plugin skill can show a cut on a paired Hermes Gadget TV and map the remote's Approve and Reject to Approve & export and Try another range. The TV needs a URL it can fetch; Kinocut does not serve one yet, and this path has not been tested on a real TV. (#725)
 - **Quality gates for screen recordings.** `video-quality-check` and `release-checkpoint` take a content profile (CLI `--profile`, MCP and Client `profile`): `default` for camera footage, `ui-capture-dark` and `ui-capture-light` for screen captures. Dark-mode demos no longer need a blanket `--min-score` drop, and a blank or black capture still fails. Reports record the profile and its thresholds. (#679)
 - **Loudness you can see.** `normalize_audio` returns the measured loudness before (`measured_input`: I, LRA, TP) and after (`measured_output`: I, TP) on the CLI, the Client and MCP. (#699)
 - **The 360 flow refuses what it cannot render.** A raw Insta360 `.insv` or a clip that is not a ~2:1 equirect is rejected at intake and again at render, before any decode, with a message that says what to export instead. (#664)
