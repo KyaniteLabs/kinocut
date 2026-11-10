@@ -169,8 +169,8 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 | | Version | Surface |
 | --- | --- | --- |
 | **Published** on PyPI, npm and the MCP Registry | **1.16.5** (2026-10-27) | 205 MCP tools with `KINOCUT_TOOLS=all`, 20 by default, 177 CLI commands |
-| **This source** (`master`) | **1.16.5** candidate | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
-| **Compatibility package** | `mcp-video==1.6.20` | Installs `kinocut==1.16.5` for anyone still on the old name |
+| **This source** (`master`) | **2.0.0** candidate | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
+| **Compatibility package** | `mcp-video==1.6.20` | Installs `kinocut==1.16.5` for anyone still on the old name; the prepared `mcp-video==1.6.21` installs `kinocut==2.0.0` |
 
 Install from PyPI for everything above, including the optional object-matte extra
 (`kinocut[object-matte]==1.16.5`, published 1.16.5), which adds no new MCP tool.
