@@ -44,7 +44,7 @@ Use these shipped surfaces only:
   the variable. If neither `video_plan_ops` nor the named tools are available,
   stop and report that the repurpose tools are unavailable instead of retrying.
   The mapping is explicit:
-  `profile:editor` carries `search_tools`, `video_repurpose_plan`, `video_repurpose`;
+  `profile:editor` carries `video_repurpose_plan`, `video_repurpose`;
 - CLI: `repurpose-plan`, then `repurpose`.
 - Optional support tools when needed: `info`, `video-ai-transcribe`, `generate-subtitles`,
   `subtitles`, `resize`, `normalize-audio`, `thumbnail`, `storyboard`,

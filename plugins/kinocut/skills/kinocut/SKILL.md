@@ -10,22 +10,25 @@ Use Kinocut when an agent needs a structured video-editing surface instead of ha
 Published 2.0.1 serves 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`; the default registration is an 18-tool default (an 8-tool hot path, eight operation families, and `list_operations` / `describe_operation`, which reach every operation). Inspect the installed schemas before using additions.
 
 **Tool surface.** This plugin's own launch (`mcp.json`) registers the
-18-tool default, and the `kino` CLI exposes its 177 commands independently. Any
-tool named below that is not in that core belongs to a named profile: start the
-server with an explicit selection — `KINOCUT_TOOLS=profile:<name>` (comma
-separated for several) or `KINOCUT_TOOLS=all` (206 tools) — and restart it
-before calling it. The profiles that carry the tools named below are:
+18-tool default, and the `kino` CLI exposes its 177 commands independently.
+A tool named below that is not in the default 18 is still reachable as an
+operation: find it with `list_operations`, read its arguments with
+`describe_operation` (`operation=<name>`), then call its family tool, for example
+`video_ai_ops` with `operation="video_quality_check"` and `params={...}`. A tool
+missing from the tool list is not unavailable. To register one as its own tool
+instead, start the server with `KINOCUT_TOOLS=profile:<name>` (comma separated
+for several) or `KINOCUT_TOOLS=all` (206 tools) and restart it. The profiles
+that carry the tools named below are:
 `profile:advanced` carries `video_composite_layers`, `video_hls_segment`;
 `profile:ai` carries `video_acceptance_eval`, `video_body_swap`, `video_quality_check`, `video_release_checkpoint`, `video_salvage`, `video_verdict`;
 `profile:audio` carries `sound_mix_render`, `video_duck_audio`, `video_mix_audio`;
-`profile:editor` carries `search_tools`, `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
+`profile:editor` carries `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
 `profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
 `profile:revideo` carries `revideo_install`, `revideo_materialize`, `revideo_render`, `revideo_render_job`;
-Use `search_tools` to discover names, but it does not register them. If the tool
-you need is not registered, stop and report that it is unavailable instead of
-retrying.
+If neither `list_operations` nor a profile has the operation, stop and report
+that it is unavailable instead of retrying.
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
 work is described in `docs/PLATFORM_PARITY.md`.
@@ -33,10 +36,10 @@ work is described in `docs/PLATFORM_PARITY.md`.
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
-2. For an unfamiliar task, call `search_tools` with the user's task (for example, "remove filler words" or "keep face in frame"), then inspect the returned tool's required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
+2. For an unfamiliar task, call `list_operations` with a short query from the user's task (for example, "silence" or "face"), then `describe_operation` for the required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
-5. Human visual/audio review. Never treat a receipt as published.
+5. Human visual/audio review. Never treat a receipt as published. In Hermes, show the cut with `video_review_card` (family `video_edit_ops`) and put its `preview_directive` on its own line in your reply; Hermes then renders the card inline with Approve & export, Dig in and Try another range.
 
 When you mention a file in a reply, use its file name or a `~/` path, never the absolute path: it carries the user's account name into every screenshot.
 
