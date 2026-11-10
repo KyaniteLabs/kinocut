@@ -13,6 +13,7 @@ import anyio
 from mcp.server.fastmcp import Context
 
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
+from .output_policy import read_only
 from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation_error, mcp
 from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
@@ -117,6 +118,7 @@ OptionalOutputVideoPath = Annotated[
     annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 )
 @_safe_tool
+@read_only
 def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
     """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length.
 

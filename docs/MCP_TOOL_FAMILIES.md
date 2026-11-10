@@ -39,8 +39,8 @@ Default mode registers the 8-tool hot path (`video_info`, `video_trim`,
 Every family tool takes `operation` (a closed enum of its member operation
 names — typos and cross-family mistakes fail validation), `params` (the
 operation's exact arguments), and the standard strict-boolean `overwrite`
-consent every Kinocut handler exposes. Profiles are additive on the compact
-surface: `profile:editor` is 114 tools / 81,812 bytes.
+consent every handler that can write media exposes. Profiles are additive on the compact
+surface: `profile:editor` is 114 tools / 81,409 bytes.
 
 `KINOCUT_TOOLS=all` is the **legacy full-catalog surface** and stays exactly
 the 205-name registry, byte-identical to the pre-family baseline (all
