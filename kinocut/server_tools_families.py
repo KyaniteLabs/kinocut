@@ -59,7 +59,7 @@ def _family_annotations(name: str) -> ToolAnnotations:
 
 _PARAMS_ANNOTATION = Annotated[
     dict[str, Any] | None,
-    Field(description="The operation's arguments, exactly as its direct tool takes them."),
+    Field(description="The operation's arguments."),
 ]
 
 
@@ -281,7 +281,7 @@ mcp.tool(
     title="List family operations",
     description=(
         "List operations: families with member counts, and each operation's family, verb, "
-        "required parameters and side-effect annotations. Optional family or query filter."
+        "required parameters and side-effect annotations."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,

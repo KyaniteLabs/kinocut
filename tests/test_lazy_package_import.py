@@ -90,3 +90,9 @@ def test_ship_seam_docs_describe_enforced_durable_quality_policy() -> None:
         assert "applies `min_score` before job success" in reference
         assert "Historical 1.15.3 did not enforce this policy" in reference
     assert "allow_fail" in client_doc
+
+
+def test_server_import_does_not_load_contracts() -> None:
+    """MCP startup skips the receipt contracts until add_audio writes a receipt."""
+    out = _run("import sys, kinocut.server; print('kinocut.contracts' in sys.modules)")
+    assert out.strip() == "False"

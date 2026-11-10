@@ -83,10 +83,8 @@ def video_extract_frame(
     timestamp: float | None = None,
     output_path: str | None = None,
 ) -> dict[str, Any]:
-    """Extract a frame using the same sampling as CLI and Python frame extraction.
-
-    Omitted timestamps use smart thumbnail selection when available, falling
-    back to 10% of the clip duration. Pass 0 explicitly to extract the first frame.
+    """Extract one frame as an image. Without a timestamp, picks a smart thumbnail
+    (fallback: 10% into the clip); pass 0 for the first frame.
 
     Args:
         input_path: Absolute path to the video.
