@@ -171,3 +171,36 @@ def test_parallel_batch_inherits_explicit_consent(sample_video, sample_video_2, 
     assert denied["failed"] == 2
     permitted = video_batch(inputs, **args, overwrite=True)
     assert permitted["success"], permitted
+
+
+def test_read_only_tools_offer_no_overwrite_consent():
+    from kinocut.server import mcp
+    from kinocut.tool_registry import configure_tool_surface
+
+    async def schemas():
+        return {tool.name: tool for tool in await mcp.list_tools()}
+
+    configure_tool_surface()
+    try:
+        tools = asyncio.run(schemas())
+    finally:
+        configure_tool_surface("all")
+    read_only = {"video_info", "video_doctor", "list_operations", "describe_operation"}
+    for name in read_only:
+        assert "overwrite" not in tools[name].inputSchema.get("properties", {}), name
+    for name, tool in tools.items():
+        if tool.annotations is not None and tool.annotations.readOnlyHint:
+            assert "overwrite" not in tool.inputSchema.get("properties", {}), name
+    assert "overwrite" in tools["video_trim"].inputSchema["properties"]
+
+
+def test_read_only_hint_rejects_overwrite_consent():
+    from mcp.types import ToolAnnotations
+
+    from kinocut.server_tool_contracts import _ContractFastMCP
+
+    def lookup(path: str) -> dict:
+        return {"path": path}
+
+    with pytest.raises(MCPVideoError):
+        _ContractFastMCP("probe").add_tool(lookup, annotations=ToolAnnotations(readOnlyHint=True))

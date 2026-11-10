@@ -160,7 +160,7 @@ def test_family_schema_is_a_closed_operation_enum_plus_params(family):
 def test_list_operations_schema_is_small_and_read_only():
     configure_tool_surface()
     tool = _surface()[DISCOVERY_TOOL_NAME]
-    assert set(tool.inputSchema["properties"]) == {"family", "query", "overwrite"}
+    assert set(tool.inputSchema["properties"]) == {"family", "query"}
     assert len(canonical_schema_bytes(tool.inputSchema)) < 1_100
     assert tool.annotations is not None
     assert tool.annotations.readOnlyHint is True
@@ -814,7 +814,7 @@ def test_list_operations_rejects_unknown_families():
 def test_describe_operation_schema_is_small_and_read_only():
     configure_tool_surface()
     tool = _surface()[DESCRIBE_TOOL_NAME]
-    assert set(tool.inputSchema["properties"]) == {"operation", "overwrite"}
+    assert set(tool.inputSchema["properties"]) == {"operation"}
     assert len(canonical_schema_bytes(tool.inputSchema)) < 900
     assert tool.annotations is not None
     assert tool.annotations.readOnlyHint is True
@@ -913,13 +913,16 @@ def test_describe_operation_rejects_unknown_operations_without_invented_routes()
 
 @pytest.mark.parametrize("operation", sorted(FAMILY_OF_OPERATION))
 def test_described_schemas_cover_optional_arguments_everywhere(operation):
-    """Every registry operation's contract is retrievable, and the described
-    schema always carries the standard strict-boolean overwrite consent."""
+    """Every registry operation's contract is retrievable, and every operation
+    that can write media carries the standard strict-boolean overwrite consent."""
 
     configure_tool_surface()
     payload = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"operation": operation})))
     assert payload["success"] is True, operation
     schema = payload["inputSchema"]
+    if operation in {"video_info", "video_doctor"}:
+        assert "overwrite" not in schema["properties"], operation
+        return
     assert schema["properties"]["overwrite"]["type"] == "boolean", operation
     required = schema.get("required", [])
     optional = set(schema["properties"]) - set(required)

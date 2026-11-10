@@ -143,9 +143,11 @@ def test_headline_baseline_numbers_are_pinned():
     default to 15,563 B, all to 119,072 B and editor to 81,772 B.
     Trimming direct-tool descriptions moved one note (exact is slower) into
     its parameter: default 15,603 B, all 119,112 B, editor 81,812 B.
+    Read-only tools then stopped offering overwrite consent: default
+    15,200 B, all 118,911 B, editor 81,409 B.
     """
     assert BASELINE["captured"]["git_commit"] == "3513762528868a622e1c180d99c0490ba8f15d56"
-    for mode, count, total in (("default", 18, 15_603), ("all", 205, 119_112), ("profile:editor", 114, 81_812)):
+    for mode, count, total in (("default", 18, 15_200), ("all", 205, 118_911), ("profile:editor", 114, 81_409)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -215,7 +217,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_603), ("all", 205, 119_112)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_200), ("all", 205, 118_911)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

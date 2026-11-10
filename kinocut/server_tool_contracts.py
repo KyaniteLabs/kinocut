@@ -103,6 +103,9 @@ class _ContractFastMCP(FastMCP):
         tool = self._tool_manager.get_tool(name)
         if tool is None:
             raise MCPVideoError("MCP tool registration failed", code="tool_registration_failed")
+        annotations = tool.annotations
+        if annotations is not None and annotations.readOnlyHint and "overwrite" in tool.parameters["properties"]:
+            raise MCPVideoError("A readOnlyHint tool must not offer overwrite consent", code="tool_registration_failed")
         model = tool.fn_metadata.arg_model
         model.model_config = {**model.model_config, "extra": "forbid"}
         model.model_rebuild(force=True)

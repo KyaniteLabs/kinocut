@@ -6,6 +6,7 @@ from typing import Any
 
 from mcp.types import ToolAnnotations
 
+from .output_policy import read_only
 from .server_app import _result, _safe_tool, mcp
 
 
@@ -13,6 +14,7 @@ from .server_app import _result, _safe_tool, mcp
     annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
 )
 @_safe_tool
+@read_only
 def video_doctor() -> dict[str, Any]:
     """Return a read-only JSON readiness verdict for the next video job."""
 
