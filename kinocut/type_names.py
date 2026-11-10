@@ -87,11 +87,10 @@ def number_text(value: Any) -> str | None:
     An exact builtin renders through its C-level ``repr``, which a caller
     cannot override. A numeric *subclass* may override ``__repr__`` and
     ``__str__``, so it is coerced to the builtin first: only digits can
-    come back, and a coercion that fails or runs long publishes the fixed
-    ``<number>`` label instead.
+    come back. A coercion that fails, or a rendering longer than
+    ``_MAX_NUMBER_CHARS`` (an exact builtin included, since a huge ``int``
+    makes ``repr`` raise), publishes the fixed ``<number>`` label instead.
     """
-    if type(value) in (int, float):
-        return repr(value)
     if isinstance(value, bool) or not isinstance(value, (int, float)):
         return None
     try:
