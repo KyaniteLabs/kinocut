@@ -201,9 +201,9 @@ def _operation_row(
 def _declared_annotations() -> dict[str, Any]:
     """Live MCP annotations per operation — only what registrations declare."""
 
-    from .tool_registry import _HIDDEN_TOOLS, _tool_manager
+    from .tool_registry import SURFACE
 
-    tools: dict[str, Any] = {**_tool_manager()._tools, **_HIDDEN_TOOLS}
+    tools = SURFACE.registered()
     declared: dict[str, Any] = {}
     for name in TOOL_REGISTRY:
         tool = tools.get(name)

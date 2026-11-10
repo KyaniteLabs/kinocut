@@ -317,10 +317,11 @@ TOOL_REGISTRY: dict[str, tuple[str, ...]] = {
 if CORE_TOOLS - TOOL_MODULE_BY_NAME.keys():
     raise RuntimeError("MCP core tool table names an unregistered tool")
 
-_TOOL_CATALOG: dict[str, dict[str, Any]] = {}
-_HIDDEN_TOOLS: dict[str, Any] = {}
-_ACTIVE_MODE = "default"
-_ACTIVE_PROFILES = frozenset({"core"})
+
+def _tool_manager() -> Any:
+    from .server_app import mcp
+
+    return mcp._tool_manager
 
 
 def parse_tool_mode(raw: str | None = None) -> tuple[str, frozenset[str]]:
@@ -344,25 +345,6 @@ def parse_tool_mode(raw: str | None = None) -> tuple[str, frozenset[str]]:
     return f"profile:{','.join(sorted(profiles))}", profiles | {"core"}
 
 
-def _tool_manager() -> Any:
-    from .server_app import mcp
-
-    return mcp._tool_manager
-
-
-def _capture_catalog() -> None:
-    for name, tool in _tool_manager()._tools.items():
-        properties = (tool.parameters or {}).get("properties") or {}
-        _TOOL_CATALOG[name] = {
-            "name": name,
-            "description": tool.description or "",
-            "required_params": list((tool.parameters or {}).get("required", [])),
-            # Parameter help lives in the schema (tool_docstrings.fold_args);
-            # discovery still searches it.
-            "parameter_text": " ".join(str(spec.get("description") or "") for spec in properties.values()),
-        }
-
-
 def _family_surface_tools() -> frozenset[str]:
     """Compact-surface tool names (lazy: ``tool_families`` imports this module)."""
 
@@ -380,66 +362,110 @@ def _allowed_names(mode: str, profiles: Iterable[str]) -> frozenset[str]:
     return selected_names | _family_surface_tools()
 
 
-def apply_tool_surface() -> None:
-    """Hide non-selected registrations without dropping their FastMCP objects.
+def _import_tool_module(module: str) -> Any:
+    return importlib.import_module(f".{module}", __package__)
+
+
+class ToolSurface:
+    """The selected MCP surface: mode, profiles, catalog and hidden registrations.
 
     Importing a ``server_tools_*`` module registers every tool in it via
-    ``@mcp.tool()``.  ``importlib.import_module`` is a no-op for already-imported
-    modules, so deleting those objects would permanently strand them.  Stashing
-    the hidden tools in ``_HIDDEN_TOOLS`` lets a later reconfigure restore them.
+    ``@mcp.tool()``, and a second import is a no-op, so a registration that is
+    not on the selected surface is stashed in ``hidden`` instead of deleted; a
+    later ``select`` can restore it.  ``select`` is the only way to change the
+    mode.  Every other method loads more modules and then re-applies the
+    current selection, so the wire surface never widens as a side effect.
     """
 
-    allowed = _allowed_names(_ACTIVE_MODE, _ACTIVE_PROFILES)
-    tools = _tool_manager()._tools
-    for name in tuple(tools):
-        if name not in allowed:
-            _HIDDEN_TOOLS[name] = tools.pop(name)
-    for name in tuple(_HIDDEN_TOOLS):
-        if name in allowed:
-            tools[name] = _HIDDEN_TOOLS.pop(name)
+    def __init__(self) -> None:
+        self.mode = "default"
+        self.profiles: frozenset[str] = frozenset({"core"})
+        self.catalog: dict[str, dict[str, Any]] = {}
+        self.hidden: dict[str, Any] = {}
+
+    def select(self, raw: str | None = None) -> None:
+        """Load and expose the surface ``KINOCUT_TOOLS`` (or ``raw``) names."""
+
+        self.mode, self.profiles = parse_tool_mode(raw)
+        modules = (
+            TOOL_NAMES_BY_MODULE
+            if self.mode == "all" or self.mode.startswith("profile:")
+            else {
+                module: names
+                for module, names in TOOL_NAMES_BY_MODULE.items()
+                if any(name in CORE_TOOLS for name in names)
+            }
+        )
+        for module in modules:
+            _import_tool_module(module)
+        if self.mode != "all":
+            # Default and profile modes carry the compact family dispatchers;
+            # the legacy ``all`` surface stays exactly the registry.
+            _import_tool_module("server_tools_families")
+        self._sync()
+
+    def load(self, module: str) -> Any:
+        """Import one tool module, keeping the selected surface unchanged."""
+
+        try:
+            return _import_tool_module(module)
+        finally:
+            self._sync()
+
+    def lookup(self, name: str) -> Any | None:
+        """The registered FastMCP tool, visible or hidden."""
+
+        return _tool_manager()._tools.get(name) or self.hidden.get(name)
+
+    def registered(self) -> dict[str, Any]:
+        """Every registered tool, visible and hidden."""
+
+        return {**_tool_manager()._tools, **self.hidden}
+
+    def _sync(self) -> None:
+        tools = _tool_manager()._tools
+        for name, tool in tools.items():
+            properties = (tool.parameters or {}).get("properties") or {}
+            self.catalog[name] = {
+                "name": name,
+                "description": tool.description or "",
+                "required_params": list((tool.parameters or {}).get("required", [])),
+                # Parameter help lives in the schema (tool_docstrings.fold_args);
+                # discovery still searches it.
+                "parameter_text": " ".join(str(spec.get("description") or "") for spec in properties.values()),
+            }
+        allowed = _allowed_names(self.mode, self.profiles)
+        for name in tuple(tools):
+            if name not in allowed:
+                self.hidden[name] = tools.pop(name)
+        for name in tuple(self.hidden):
+            if name in allowed:
+                tools[name] = self.hidden.pop(name)
+
+
+SURFACE = ToolSurface()
 
 
 def configure_tool_surface(raw: str | None = None) -> None:
     """Load and register the requested MCP surface."""
 
-    global _ACTIVE_MODE, _ACTIVE_PROFILES
-    mode, profiles = parse_tool_mode(raw)
-    _ACTIVE_MODE = mode
-    _ACTIVE_PROFILES = profiles
-    modules = (
-        TOOL_NAMES_BY_MODULE
-        if mode == "all" or mode.startswith("profile:")
-        else {
-            module: names for module, names in TOOL_NAMES_BY_MODULE.items() if any(name in CORE_TOOLS for name in names)
-        }
-    )
-    for module in modules:
-        importlib.import_module(f".{module}", __package__)
-    if mode != "all":
-        # Default and profile modes carry the compact family dispatchers; the
-        # legacy ``all`` surface stays exactly the registry.
-        importlib.import_module(".server_tools_families", __package__)
-    _capture_catalog()
-    apply_tool_surface()
+    SURFACE.select(raw)
 
 
 def load_operation_tool(name: str) -> Any:
     """Return the live FastMCP tool object for a registry operation.
 
-    Imports the operation's module on demand (registering its siblings, which
-    ``apply_tool_surface`` immediately re-hides) and resolves the tool whether
-    it is currently visible or stashed hidden.  Family dispatch uses this to
-    run the exact registered tool — same wrapped handler, same argument
-    contract — without ever exposing the hidden direct name on the wire.
+    Imports the operation's module on demand (its siblings stay hidden) and
+    resolves the tool whether it is visible or hidden.  Family dispatch uses
+    this to run the exact registered tool — same wrapped handler, same
+    argument contract — without exposing the hidden direct name on the wire.
     """
 
     module = TOOL_MODULE_BY_NAME.get(name)
     if module is None:
         raise KeyError(name)
-    importlib.import_module(f".{module}", __package__)
-    _capture_catalog()
-    apply_tool_surface()
-    tool = _tool_manager()._tools.get(name) or _HIDDEN_TOOLS.get(name)
+    SURFACE.load(module)
+    tool = SURFACE.lookup(name)
     if tool is None:
         raise RuntimeError(f"operation {name} registered no MCP tool")
     return tool
@@ -451,28 +477,16 @@ def ensure_tool_loaded(name: str) -> Any:
     module = TOOL_MODULE_BY_NAME.get(name)
     if module is None:
         raise AttributeError(name)
-    imported = importlib.import_module(f".{module}", __package__)
-    _capture_catalog()
-    apply_tool_surface()
-    return getattr(imported, name)
+    return getattr(SURFACE.load(module), name)
 
 
 def discovery_catalog() -> list[dict[str, Any]]:
     """Load the complete registry only when an agent asks for discovery."""
 
-    global _ACTIVE_MODE
-    active_mode = _ACTIVE_MODE
-    try:
-        for module in TOOL_NAMES_BY_MODULE:
-            importlib.import_module(f".{module}", __package__)
-        _capture_catalog()
-    finally:
-        # A failing hidden-module import must never leave the enlarged
-        # registration surface live: restore the selected diet regardless.
-        _ACTIVE_MODE = active_mode
-        apply_tool_surface()
-    return [_TOOL_CATALOG[name] for name in TOOL_REGISTRY if name in _TOOL_CATALOG]
+    for module in TOOL_NAMES_BY_MODULE:
+        SURFACE.load(module)
+    return [SURFACE.catalog[name] for name in TOOL_REGISTRY if name in SURFACE.catalog]
 
 
 def active_mode() -> str:
-    return _ACTIVE_MODE
+    return SURFACE.mode
