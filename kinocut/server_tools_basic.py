@@ -12,8 +12,6 @@ import functools
 import anyio
 from mcp.server.fastmcp import Context
 
-from .contracts.receipt_ai_video import AiVideoReceiptSection
-from .receipts_ai_video import attach_ai_video_section
 from .limits import MAX_RESOLUTION, MAX_SPEED_FACTOR, MIN_SPEED_FACTOR, MIN_CRF, MAX_CRF
 from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation_error, mcp
 from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
@@ -91,6 +89,9 @@ def _attach_add_audio_receipt(result: dict[str, Any], duration_policy: str) -> d
 
     if not isinstance(result, dict) or not result.get("success"):
         return result
+    from .contracts.receipt_ai_video import AiVideoReceiptSection
+    from .receipts_ai_video import attach_ai_video_section
+
     warnings = ("outro_may_be_trimmed",) if duration_policy == "shortest" else ()
     section = AiVideoReceiptSection(project_id="add_audio", duration_policy=duration_policy, warnings=warnings)
     return attach_ai_video_section(result, section)
