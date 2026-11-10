@@ -665,7 +665,11 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         baseline._signalstats_cache = getattr(self, "_signalstats_cache", {})
         visual = {
             c.check_name: c
-            for c in (baseline.check_brightness(video), baseline.check_contrast(video), baseline.check_saturation(video))
+            for c in (
+                baseline.check_brightness(video),
+                baseline.check_contrast(video),
+                baseline.check_saturation(video),
+            )
         }
         rescored = [visual.get(c.check_name, c) for c in gating]
         score = sum(c.score for c in rescored) / len(rescored) if rescored else 0.0
