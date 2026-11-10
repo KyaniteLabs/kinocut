@@ -9,7 +9,11 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
-## Unreleased
+## 2.0.0 - 2026-11-10
+
+### Thanks
+
+- Thanks to [@cnw-L](https://github.com/cnw-L) for quoting the lavfi `movie=` filter value so Windows drive paths survive filter graphs ([#532](https://github.com/KyaniteLabs/kinocut/pull/532)). It shipped in an earlier release without credit; this backfills it.
 
 ### Changed
 
