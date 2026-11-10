@@ -33,7 +33,7 @@ of the twelve tools that left it, read **Breaking changes**.
 
 ### Added
 
-- **Review a cut in Hermes Desktop chat.** `video_review_card` writes a self-contained HTML card (contact sheet, facts, and Approve & export / Dig in / Try another range buttons) that Hermes Desktop shows inline. Reach it through `video_edit_ops` or `KINOCUT_TOOLS=all`. (#723)
+- **Review a cut in Hermes chat.** `video_review_card` writes a self-contained HTML card (contact sheet, facts, and Approve & export / Dig in / Try another range buttons) that Hermes chat shows inline. Reach it through `video_edit_ops` or `KINOCUT_TOOLS=all`. (#723)
 - **Watch renders from Hermes Desktop.** An opt-in Desktop plugin, shipped beside the Hermes plugin's `mcp.json`, adds live render progress to the status bar and a "Kinocut renders" pane you open from the command palette. (#724)
 - **Review a cut on the TV.** The Hermes plugin skill can show a cut on a paired Hermes Gadget TV and map the remote's Approve and Reject to Approve & export and Try another range. The TV needs a URL it can fetch; Kinocut does not serve one. (#725)
 - **Quality gates for screen recordings.** `video-quality-check` and `release-checkpoint` take a content profile (CLI `--profile`, MCP and Client `profile`): `default` for camera footage, `ui-capture-dark` and `ui-capture-light` for screen captures. Dark-mode demos no longer need a blanket `--min-score` drop, and a blank or black capture still fails. Reports record the profile and its thresholds. (#679)
