@@ -63,8 +63,8 @@ artifacts keep the names, versions, commands, and paths they actually verified.
 - [Product roadmap](../ROADMAP.md) - shipped and pending product work.
 - [Trusted execution layer plan](plans/2026-07-09-kinocut-trusted-execution-layer.md) - approved phased plan and live Phase 0 status.
 - [Kinocut research pack](plans/kinocut-research/README.md) - dated evidence behind the approved plan.
-- [Integration roadmap](INTEGRATION-ROADMAP.md) - completed and deferred integrations.
-- [Feature roadmap](KINOCUT-FEATURES-ROADMAP.md) - detailed feature history and backlog.
+- [Integration roadmap](archive/INTEGRATION-ROADMAP.md) - completed and deferred integrations.
+- [Feature roadmap](archive/KINOCUT-FEATURES-ROADMAP.md) - detailed feature history and backlog.
 - [Audio feature design](KINOCUT-AUDIO-FEATURES.md) - procedural-audio design record.
 - [Wishlist parallel execution plan](plans/2026-07-12-wishlist-parallel-execution.md) - dependency waves, ownership, integration gates, and stop rules.
 - [`kinocut_sound` plan index](superpowers/plans/2026-07-12-kinocut-sound-plan-index.md) - standalone-capable sound-module sequencing.
