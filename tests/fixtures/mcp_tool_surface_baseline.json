@@ -3255,8 +3255,8 @@
      ]
     },
     {
-     "input_schema_bytes": 481,
-     "input_schema_sha256": "a128dc7fe50277cb6a315b29ce19550b0560191a1be532485dc8f9ab39d3fa30",
+     "input_schema_bytes": 559,
+     "input_schema_sha256": "af2529b7378ce6eaef7abc669035bfac81e301a84458f941f7adacc7389f3a3b",
      "module": "server_tools_ai",
      "name": "video_release_checkpoint",
      "profiles": [
@@ -3269,6 +3269,7 @@
       "output_dir",
       "overwrite",
       "profile",
+      "profile_reason",
       "require_audio"
      ],
      "required_params": [
@@ -4134,7 +4135,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119053
+   "total_input_schema_bytes": 119131
   },
   "default": {
    "launch": {

@@ -745,17 +745,15 @@ def assert_quality(
     Under a non-default ``profile`` the relaxed picture bands are hard limits:
     any failed brightness/contrast/saturation check fails the gate.
 
-    A profile cannot rescue a cut on its own: when the same cut would fail
-    under the default profile, a non-default profile passes the gate only with
-    a ``profile_reason`` (for example "screen recording of a dark editor").
-    The reason and both scores go into ``profile_override`` in the report.
+    If the cut fails under the default profile, a non-default profile passes only
+    with a ``profile_reason`` ("screen recording of a dark editor"), recorded with
+    both scores in ``profile_override``.
     """
     report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds, profile=profile)
     audio_missing = require_audio and _report_missing_audio_stream(report)
     score_ok = report["overall_score"] >= min_score
     profile_failures = _profile_gate_failures(report)
-    baseline = report.get("profile_baseline")
-    reason = (profile_reason or "").strip()[:200]
+    baseline, reason = report.get("profile_baseline"), (profile_reason or "").strip()[:200]
     default_would_fail = bool(baseline) and float(baseline["overall_score"]) < min_score
     unexplained_switch = default_would_fail and not reason
     if baseline and reason:
