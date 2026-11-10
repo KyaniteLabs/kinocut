@@ -93,7 +93,7 @@ wheel, or rerender invalidates the decision.
 Use the confidence benchmark to check that a workflow produced the expected receipt and review artifacts:
 
 ```bash
-uv run --no-project --with kinocut python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The benchmark is intentionally narrow: it proves the receipt-backed baseline can run and that the final video, quality report, release checkpoint, thumbnail, storyboard frames, and human-review state are present.
@@ -121,6 +121,14 @@ on **additive expansion** and a bumped version stays **backward-readable** (exis
 readers of known fields keep working). The `layer_plan` receipt is now `schema_version: 2`
 (rotation/pivot/blend fields added additively over v1); the workflow receipts are
 `schema_version: 1`.
+
+The `video_shorts` receipt is `schema_version: 2`. Its caption step keeps the v1
+`subtitle_path` key and reports it as `null`: the SRT is a transient build input inside
+the flow-owned workdir, so there is no durable path to report and the value is honestly
+empty rather than a path that no longer resolves. v2 adds `requested_entry_count`,
+`burned_entry_count`, `count_unverified` and `burned_evidence` to the caption step, so a
+count the subtitle generator cannot evidence is reported as unverified instead of as
+burned.
 
 ## `receipt_kind` discriminator + legacy inference
 

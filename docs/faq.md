@@ -37,13 +37,13 @@ Yes. Kinocut has three interfaces: MCP server (for agents), Python client (for s
 ## How do I install it?
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 ```
 
 For AI features like transcription and upscaling, install the extras:
 
 ```bash
-pip install "kinocut[ai]"
+pip install "kinocut[ai]==1.16.5"
 ```
 
 ## How do I connect Kinocut to Claude Code?
@@ -51,7 +51,7 @@ pip install "kinocut[ai]"
 Install FFmpeg and [uv](https://docs.astral.sh/uv/getting-started/installation/), then register the local stdio server:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 Run `kino doctor` in an installed Kinocut environment to inspect dependencies. The explicit `--mcp` selects server mode; invoking `kino` without a command also selects MCP today. See [installation](INSTALL.md) and [integrations](INTEGRATIONS.md) for other hosts.
@@ -90,7 +90,7 @@ Hyperframes tools cover project scaffolds, renders, snapshots, layout inspection
 
 ## Can I cut a product out of a turntable or tabletop video?
 
-Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]"`. That optional extra is available in the published **1.16.5** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
+Yes, on the same `hyperframes-remove-background` command. The default model is **people** (`u2net_human_seg`). For products and other objects pass `--model birefnet-general` after `pip install "kinocut[object-matte]==1.16.5"`. That optional extra is available in the published **1.16.5** (first shipped in 1.15.1). `--info` lists models without downloading. No new MCP tool name. See [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 
 ## Is it free?
 

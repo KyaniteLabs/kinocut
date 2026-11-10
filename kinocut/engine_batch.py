@@ -20,6 +20,8 @@ from .engine_watermark import watermark
 from .errors import MCPVideoError
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .models import EditResult
+from .validation_errors import rejected_value
+from .validation_errors import reason
 
 VALID_BATCH_OPERATIONS = {
     "trim",
@@ -38,7 +40,7 @@ VALID_BATCH_OPERATIONS = {
 def _validate_batch_operation(operation: str) -> None:
     if operation not in VALID_BATCH_OPERATIONS:
         raise MCPVideoError(
-            f"Unknown operation '{operation}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
+            f"Unknown operation '{rejected_value(operation)}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
             error_type="validation_error",
             code="invalid_operation",
         )
@@ -70,7 +72,9 @@ def video_batch(
                 "total": len(inputs),
                 "succeeded": 0,
                 "failed": len(inputs),
-                "results": [{"input": input_path, "success": False, "error": str(exc)} for input_path in inputs],
+                # The caught text is the caller's own input echoed back; the kind is
+                # what a batch result needs. The detail stays in the log.
+                "results": [{"input": input_path, "success": False, "error": reason(exc)} for input_path in inputs],
             }
 
     if output_dir:
@@ -83,7 +87,7 @@ def video_batch(
             return {"input": input_path, "success": True, "output_path": result.output_path}
         except Exception as e:
             logging.warning("Batch operation failed for %s: %s", input_path, e)
-            return {"input": input_path, "success": False, "error": str(e)}
+            return {"input": input_path, "success": False, "error": reason(e)}
 
     max_workers = min(len(inputs), os.cpu_count() or 4, 4)
     # Serial fallback for duplicate inputs (same file → same output path → race)

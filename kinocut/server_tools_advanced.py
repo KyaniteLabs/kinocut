@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from .validation_errors import reason
 import os
 from typing import Any
 
@@ -34,6 +35,7 @@ from .engine_batch import VALID_BATCH_OPERATIONS
 from .engine_composite_layers import composite_layers
 from .engine_images import _parse_fps
 from .errors import MCPVideoError
+from .validation_errors import exception_kind
 from .defaults import DEFAULT_LRA_TARGET
 from .models import _validate_position
 from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS, MAX_IMAGE_SEQUENCE_FRAMES
@@ -41,6 +43,7 @@ from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_LAYOUTS, VALID_PRESETS
 
 from .ffmpeg_helpers import _validate_input_path
+from .validation_errors import rejected_value
 
 VALID_HLS_QUALITIES = {"low", "medium", "high", "ultra"}
 VALID_QUALITY_METRICS = {"psnr", "ssim"}
@@ -98,7 +101,7 @@ def video_filter(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset: {rejected_value(preset)}")
     input_path = _validate_input_path(input_path)
     return _result(
         apply_filter(
@@ -174,7 +177,8 @@ def video_hls_segment(
     invalid_qualities = [quality for quality in qualities or [] if quality not in VALID_HLS_QUALITIES]
     if invalid_qualities:
         return _validation_error(
-            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}, got invalid values: {invalid_qualities}"
+            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}; "
+            f"{len(invalid_qualities)} submitted value(s) were not accepted"
         )
     input_path = _validate_input_path(input_path)
     return _result(
@@ -299,7 +303,7 @@ def video_overlay(
     try:
         _validate_position(position)
     except MCPVideoError as exc:
-        return _validation_error(str(exc))
+        return _validation_error(reason(exc))
     if width is not None and width <= 0:
         return _validation_error(f"width must be positive, got {width}")
     if height is not None and height <= 0:
@@ -307,7 +311,7 @@ def video_overlay(
     if crf is not None and not (0 <= crf <= 51):
         return _validation_error(f"crf must be 0-51, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset: {rejected_value(preset)}")
     background_path = _validate_input_path(background_path)
     overlay_path = _validate_input_path(overlay_path)
     if not 0 <= opacity <= 1:
@@ -346,7 +350,9 @@ def video_split_screen(
         output_path: Where to save the output. Auto-generated if omitted.
     """
     if layout not in VALID_LAYOUTS:
-        return _validation_error(f"Invalid layout: must be one of {sorted(VALID_LAYOUTS)}, got '{layout}'")
+        return _validation_error(
+            f"Invalid layout: must be one of {sorted(VALID_LAYOUTS)}, got '{rejected_value(layout)}'"
+        )
     left_path = _validate_input_path(left_path)
     right_path = _validate_input_path(right_path)
     return _result(split_screen(left_path, right_path=right_path, layout=layout, output_path=output_path))
@@ -408,7 +414,7 @@ def video_create_from_images(
         _validate_input_path(list_file)
     fps_value, _ = _parse_fps(fps)
     if fps_value > MAX_EXPORT_FRAMES_FPS:
-        return _validation_error(f"fps must be greater than 0 and at most {MAX_EXPORT_FRAMES_FPS}, got {fps}")
+        return _validation_error(f"fps must be greater than 0 and at most {MAX_EXPORT_FRAMES_FPS}, got {fps_value}")
     return _result(create_from_images(images, output_path=output_path, fps=fps, list_file=list_file))
 
 
@@ -455,7 +461,7 @@ def video_generate_subtitles(
 
         _validate_entries(entries)
     except MCPVideoError as exc:
-        return _validation_error(str(exc))
+        return _validation_error(reason(exc))
     input_path = _validate_input_path(input_path)
     return _result(generate_subtitles(entries, input_path, burn=burn))
 
@@ -477,7 +483,8 @@ def video_compare_quality(
     invalid_metrics = [metric for metric in metrics or [] if metric.lower() not in VALID_QUALITY_METRICS]
     if invalid_metrics:
         return _validation_error(
-            f"metrics must be one of {sorted(VALID_QUALITY_METRICS)}, got invalid values: {invalid_metrics}"
+            f"metrics must be one of {sorted(VALID_QUALITY_METRICS)}; "
+            f"{len(invalid_metrics)} submitted value(s) were not accepted"
         )
     original_path = _validate_input_path(original_path)
     distorted_path = _validate_input_path(distorted_path)
@@ -600,7 +607,7 @@ def video_batch(
     """
     if operation not in VALID_BATCH_OPERATIONS:
         return _validation_error(
-            f"Unknown operation '{operation}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
+            f"Unknown operation '{rejected_value(operation)}'. Valid operations: {sorted(VALID_BATCH_OPERATIONS)}",
             code="invalid_operation",
         )
     if len(inputs) > MAX_BATCH_SIZE:
@@ -646,10 +653,15 @@ def video_cleanup(
             results.append({"path": p, "status": "removed"})
             removed += 1
         except MCPVideoError as e:
-            results.append({"path": path, "status": "failed", "error": str(e)})
+            # The error's own serialization is the guarded one: a refusal
+            # that names the rule, not the path that was submitted. The
+            # message is a string, like every other result in this list.
+            results.append({"path": path, "status": "failed", "error": e.to_dict()["message"]})
             failed += 1
         except OSError as e:
-            results.append({"path": path, "status": "failed", "error": str(e)})
+            # An OSError's text carries the path it failed on. The kind is
+            # what the caller needs; the path is the caller's own anyway.
+            results.append({"path": path, "status": "failed", "error": exception_kind(e)})
             failed += 1
     return {
         "success": failed == 0,

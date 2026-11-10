@@ -32,6 +32,7 @@ from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _run_command, _validate_input_path
 from kinocut.limits import QUALITY_GUARDRAILS_TIMEOUT
 from kinocut.subtitles_eof import ClampedSegment, clamp_segments_to_eof
+from kinocut.validation_errors import exception_kind
 
 logger = logging.getLogger(__name__)
 
@@ -713,7 +714,7 @@ def analyze_voice_seam(
     except MCPVideoError as exc:
         if exc.code != _INVALID_CLAMP:
             raise
-        raise _clamp_error(str(exc)) from exc
+        raise _clamp_error(exception_kind(exc)) from exc
 
     segments = clamp_result.segments
     timing = _transcript_timing(segments, len(clamp_result.warnings), clamp_result.clamped, clamp_result.dropped)

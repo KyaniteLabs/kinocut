@@ -196,7 +196,7 @@ class ClientHyperframesMixin:
 
         Default model is people (``u2net_human_seg``). Products and other
         objects use ``model="birefnet-general"`` and
-        ``pip install "kinocut[object-matte]"``. ``info=True`` lists models
+        ``pip install "kinocut[object-matte]==1.16.5"``. ``info=True`` lists models
         without downloading. See docs/PRODUCT_MATTE.md.
         """
         from ..hyperframes_engine import remove_background

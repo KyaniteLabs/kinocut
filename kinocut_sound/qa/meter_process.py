@@ -109,7 +109,8 @@ async def run_meter_async(args, timeout):
     except OSError as exc:
         raise qa_error("meter backend unavailable", QA_UNAVAILABLE) from exc
     try:
-        output = await asyncio.wait_for(_read_async(process), timeout=max(0, deadline - time.monotonic()))
+        async with asyncio.timeout(max(0, deadline - time.monotonic())):  # wait_for can drop a cancel on 3.11 (#701)
+            output = await _read_async(process)
         return _validate_exit(process.returncode, output)
     except TimeoutError as exc:
         raise qa_error("meter exceeded deadline", "qa_meter_timeout") from exc
