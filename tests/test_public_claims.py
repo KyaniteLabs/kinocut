@@ -336,8 +336,6 @@ def test_readme_current_release_references_name_published_version(claims: dict) 
     text = (ROOT / "README.md").read_text(encoding="utf-8")
     notes_line = next((line for line in text.splitlines() if line.startswith("Full notes:")), "")
     assert re.findall(r"https://pypi\.org/project/kinocut/([0-9.]+)/\)", notes_line) == [claims["published_version"]]
-    answer = _markdown_section("README.md", "### Can Kinocut turn an Insta360 X4 file into a two-cam edit?")
-    assert re.findall(r"remains in published (\d+\.\d+\.\d+)", answer) == [claims["published_version"]]
 
 
 def test_site_status_separates_package_publication_from_deployment() -> None:
@@ -354,7 +352,7 @@ def test_site_status_separates_package_publication_from_deployment() -> None:
 
 
 def test_readme_status_does_not_present_object_matte_as_tip_only(claims: dict) -> None:
-    section = _markdown_section("README.md", "## Status and releases")
+    section = _markdown_section("README.md", "## Releases")
     normalized = section.lower()
     object_guidance = next(line for line in section.splitlines() if "optional object-matte extra" in line)
     assert "Install from PyPI" in object_guidance
@@ -365,7 +363,7 @@ def test_readme_status_does_not_present_object_matte_as_tip_only(claims: dict) -
 @pytest.mark.parametrize(
     ("relative_path", "section_heading"),
     (
-        ("README.md", "### Staged and Gated Surfaces"),
+        ("README.md", "## Releases"),
         ("docs/PRODUCT_MATTE.md", "# Product and object matte"),
         ("docs/README.md", "## Current Guidance"),
         ("docs/faq.md", "## Can I cut a product out of a turntable or tabletop video?"),

@@ -48,11 +48,17 @@ Use specialized models only where perception is required and the installed
 backend provides real evidence. Use generative prose for requested, grounded
 editorial work; preserve source names, numbers, negations and qualifications.
 
-Discover tools with search_tools using the task phrase or exact name. Query
-the connected server's MCP tools/list for its exact JSON schemas. That installed
-surface is authoritative; TOOLS.md is the readable reference. Avoid loading or
-duplicating all schemas for every task. Optional tool registration does not mean
-the tool's model or provider is installed or executable.
+The default MCP listing is 18 tools: an 8-tool hot path (video_info, video_trim,
+video_merge, video_add_text, video_add_audio, video_extract_frame, video_shorts,
+video_doctor), eight operation families, list_operations and describe_operation.
+Call list_operations to see what a family can do and describe_operation to fetch
+one operation's schema, then call the family with operation and params. Family
+dispatch runs the same code as the named tool. KINOCUT_TOOLS=profile:<name> lists
+one job's tools by name; KINOCUT_TOOLS=all lists all of them, including
+search_tools. Query the connected server's MCP tools/list for its exact JSON
+schemas. That installed surface is authoritative; TOOLS.md and
+MCP_TOOL_FAMILIES.md are the readable references. Optional tool registration
+does not mean the tool's model or provider is installed or executable.
 
 For Python, start with Client().info(absolute_input_path). For an agent workflow,
 inspect metadata, select an operation, validate its parameters, render, inspect
@@ -103,7 +109,8 @@ Chronological image-change proxies do not establish semantic coherence.
 
 VIDEO_RECEIPT.md defines receipt families and schema discriminators. Receipts
 record artifacts, calls and findings; they do not automatically sign off an edit.
-Use kino review-ui OUTPUT_DIR for the existing review surface. Consult
+Use kino review-ui OUTPUT_DIR for the existing review surface, or
+video_review_card for an HTML review card in Hermes Desktop chat. Consult
 AI_VIDEO_REVIEW_AND_SALVAGE.md and VIDEO_RECEIPT.md for exact-artifact review and
 decision contracts. An HTML review surface does not establish completed human
 viewing or permission to publish. Verify the actual receipt and artifact hashes.

@@ -34,6 +34,17 @@ ROOT_MANIFESTS = ("server.json", "smithery.yaml", "gemini-extension.json", "mcpb
 # The release every current surface must name.
 EXPECTED_PINS = {"kinocut": "1.16.5", "mcp-video": "1.6.20"}
 
+# README-PYPI.md is the long description baked into the package it ships in, so it
+# names that package's own version, not the previous release. Otherwise the 2.0.0
+# page on PyPI would tell readers to install 1.16.5.
+PACKAGE_DESCRIPTION = "README-PYPI.md"
+
+
+def _package_version() -> str:
+    import tomllib
+
+    return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
+
 # Every grammar that names the distribution, with the distribution it names.
 # Each capture is the version token that follows the package name; it must be
 # the release in EXPECTED_PINS for that distribution. The token is
@@ -166,6 +177,9 @@ def _offenders(path: Path, relative: Path) -> list[str]:
     """The install instructions in one file that do not name the release."""
     offenders: list[str] = []
     text = path.read_text(encoding="utf-8", errors="replace")
+    expected = dict(EXPECTED_PINS)
+    if relative.as_posix() == PACKAGE_DESCRIPTION:
+        expected["kinocut"] = _package_version()
     section_version: str | None = None
     for number, line in enumerate(text.splitlines(), 1):
         stripped = line.strip()
@@ -179,7 +193,7 @@ def _offenders(path: Path, relative: Path) -> list[str]:
             for match in grammar.finditer(line):
                 captured = _captured_version(match.group(1) or "")
                 if captured:
-                    if captured == EXPECTED_PINS[distribution]:
+                    if captured == expected[distribution]:
                         # Correctly pinned to the shipped release, wherever
                         # the line sits.
                         continue
