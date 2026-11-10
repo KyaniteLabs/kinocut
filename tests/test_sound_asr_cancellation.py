@@ -14,10 +14,15 @@ from tests.test_sound_asr_failures import fake_asr  # noqa: F401
 
 
 def child_args(pid_path):
+    # Write the pid to a temp file and rename it into place. A plain write_text
+    # creates the file empty first, so a cancel that lands in between left an
+    # empty pid file and assert_gone failed with int('').
+    target = repr(str(pid_path))
     return [
         sys.executable,
         "-c",
-        "import os,time,pathlib;pathlib.Path(" + repr(str(pid_path)) + ").write_text(str(os.getpid()));time.sleep(60)",
+        "import os,time,pathlib;p=pathlib.Path(" + target + ");t=p.with_suffix('.tmp');"
+        "t.write_text(str(os.getpid()));os.replace(t,p);time.sleep(60)",
     ]
 
 
