@@ -1,7 +1,8 @@
 // Kinocut desktop plugin for Hermes Desktop (opt-in).
 //
-// Shows live Kinocut render progress in the status bar and a "Kinocut renders" pane,
-// both fed by the gateway tool.start / tool.progress / tool.complete events.
+// Shows the running Kinocut tool (and its percent, when the tool reports one) in the
+// status bar, and a "Kinocut renders" pane that keeps renders apart from lookups. Both
+// are fed by the gateway tool.start / tool.progress / tool.complete events.
 // Plain uncompiled ESM: no JSX, only `@hermes/plugin-sdk`, `react` and
 // `react/jsx-runtime` resolve, and relative imports do not (so the reducer below is
 // inlined; plugin.test.mjs extracts the marked block to test it).
@@ -11,6 +12,27 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 
 // --- reducer:begin (pure; no SDK use; keep self-contained) ---
 const MAX_RECENT = 10
+
+// Kinocut tools that never write media (no `overwrite` parameter). They show under
+// Activity, not Renders. tests/test_desktop_plugin_lookups.py keeps this in sync.
+export const LOOKUP_TOOLS = new Set([
+  'describe_operation',
+  'list_operations',
+  'search_tools',
+  'video_doctor',
+  'video_info',
+  'video_info_detailed'
+])
+
+export function runKind(tool) {
+  return LOOKUP_TOOLS.has(tool) ? 'activity' : 'render'
+}
+
+// Keep the newest MAX_RECENT of each kind, so a burst of lookups never pushes renders out.
+function capPerKind(items) {
+  const seen = { render: 0, activity: 0 }
+  return items.filter(item => ++seen[item.kind] <= MAX_RECENT)
+}
 
 export function initialRenders() {
   return { active: {}, recent: [] }
@@ -92,6 +114,7 @@ export function reduceRenders(state, event) {
       tool_id: id,
       name,
       tool,
+      kind: runKind(tool),
       status: failed ? 'failed' : 'done',
       durationMs,
       message: failed
@@ -99,7 +122,7 @@ export function reduceRenders(state, event) {
         : (existing && existing.message) || (typeof payload.summary === 'string' ? payload.summary : ''),
       finishedAt: now
     }
-    return { active, recent: [done, ...prev.recent.filter(r => r.tool_id !== id)].slice(0, MAX_RECENT) }
+    return { active, recent: capPerKind([done, ...prev.recent.filter(r => r.tool_id !== id)]) }
   }
   return prev
 }
@@ -180,55 +203,74 @@ function ProgressBar({ percent }) {
   })
 }
 
+function RecentList({ items, empty, row }) {
+  if (items.length === 0) return [jsx('div', { className: 'text-(--ui-text-tertiary)', children: empty }, 'empty')]
+  return items.map(r =>
+    row(r.tool_id, [
+      jsxs(
+        'div',
+        {
+          className: 'flex justify-between gap-2',
+          children: [
+            jsx('span', { children: `${r.status === 'failed' ? '✗' : '✓'} ${r.tool}` }),
+            jsx('span', { className: 'text-(--ui-text-secondary)', children: formatDuration(r.durationMs) })
+          ]
+        },
+        'h'
+      ),
+      r.status === 'failed' ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'failed' }, 's') : null,
+      r.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.message }, 'm') : null
+    ])
+  )
+}
+
 function RendersPane({ store }) {
   const { renders } = useStore(store)
   const active = Object.values(renders.active)
   const row = (key, children) =>
     jsx('div', { className: 'flex flex-col gap-1 border-b border-(--ui-stroke-secondary) py-2', children }, key)
+  const heading = text => jsx('div', { className: 'font-medium', children: text })
+  const done = renders.recent.filter(r => r.kind === 'render')
+  const lookups = renders.recent.filter(r => r.kind === 'activity')
 
   return jsxs('div', {
     className: 'flex h-full flex-col gap-3 overflow-auto p-3 text-sm',
     children: [
-      jsx('div', { className: 'font-medium', children: 'Active' }),
       active.length === 0
-        ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'No Kinocut render running.' })
-        : active.map(a =>
-            row(a.tool_id, [
-              jsxs(
-                'div',
-                {
-                  className: 'flex justify-between gap-2',
-                  children: [
-                    jsx('span', { children: a.tool }),
-                    jsx('span', { className: 'text-(--ui-text-secondary)', children: a.percent === null ? '...' : `${a.percent}%` })
-                  ]
-                },
-                'h'
-              ),
-              jsx(ProgressBar, { percent: a.percent }, 'p'),
-              a.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: a.message }, 'm') : null
-            ])
-          ),
-      jsx('div', { className: 'font-medium', children: 'Recent' }),
-      renders.recent.length === 0
-        ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'No finished renders yet.' })
-        : renders.recent.map(r =>
-            row(r.tool_id, [
-              jsxs(
-                'div',
-                {
-                  className: 'flex justify-between gap-2',
-                  children: [
-                    jsx('span', { children: `${r.status === 'failed' ? '✗' : '✓'} ${r.tool}` }),
-                    jsx('span', { className: 'text-(--ui-text-secondary)', children: formatDuration(r.durationMs) })
-                  ]
-                },
-                'h'
-              ),
-              jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.status === 'failed' ? 'failed' : 'done' }, 's'),
-              r.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.message }, 'm') : null
-            ])
-          )
+        ? jsxs('div', {
+            className: 'flex flex-col gap-1',
+            children: [
+              jsx('div', { className: 'font-medium', children: 'Idle' }, 'h'),
+              jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'Nothing is running.' }, 't')
+            ]
+          })
+        : [
+            heading(active.length === 1 ? 'Running' : `Running (${active.length})`),
+            ...active.map(a =>
+              row(a.tool_id, [
+                jsxs(
+                  'div',
+                  {
+                    className: 'flex justify-between gap-2',
+                    children: [
+                      jsx('span', { children: a.tool }),
+                      jsx('span', {
+                        className: 'text-(--ui-text-secondary)',
+                        children: a.percent === null ? '...' : `${a.percent}%`
+                      })
+                    ]
+                  },
+                  'h'
+                ),
+                jsx(ProgressBar, { percent: a.percent }, 'p'),
+                a.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: a.message }, 'm') : null
+              ])
+            )
+          ],
+      heading('Renders'),
+      ...RecentList({ items: done, empty: 'No finished renders yet.', row }),
+      heading('Activity'),
+      ...RecentList({ items: lookups, empty: 'No lookups yet.', row })
     ]
   })
 }

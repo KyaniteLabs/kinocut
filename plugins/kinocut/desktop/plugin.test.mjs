@@ -9,7 +9,7 @@ const begin = src.indexOf('// --- reducer:begin')
 const end = src.indexOf('// --- reducer:end')
 assert.ok(begin >= 0 && end > begin, 'reducer markers present')
 const block = src.slice(begin, end)
-const { reduceRenders, initialRenders } = await import(
+const { reduceRenders, initialRenders, runKind, LOOKUP_TOOLS } = await import(
   'data:text/javascript;base64,' + Buffer.from(block).toString('base64')
 )
 
@@ -90,4 +90,27 @@ test('kinocut error objects show their message', () => {
   s = reduceRenders(s, { type: 'complete', payload: { tool_id: 'e', name: 'mcp__kinocut__video_trim', result: { success: false, error: { message: 'bad range' } } } })
   assert.equal(s.recent[0].status, 'failed')
   assert.equal(s.recent[0].message, 'bad range')
+})
+
+test('lookups are tagged activity, everything else render', () => {
+  assert.equal(runKind('video_info'), 'activity')
+  assert.equal(runKind('search_tools'), 'activity')
+  assert.equal(runKind('video_trim'), 'render')
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'l', name: 'mcp__kinocut__video_info' }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'l', name: 'mcp__kinocut__video_info' }))
+  s = reduceRenders(s, ev('start', { tool_id: 'r', name: T }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'r', name: T }))
+  assert.deepEqual(s.recent.map(r => [r.tool, r.kind]), [['video_trim', 'render'], ['video_info', 'activity']])
+})
+
+test('a burst of lookups never pushes renders out of recent', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'r', name: T }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'r', name: T }))
+  for (let i = 0; i < 25; i++) {
+    s = reduceRenders(s, ev('start', { tool_id: `l${i}`, name: 'mcp__kinocut__video_info' }))
+    s = reduceRenders(s, ev('complete', { tool_id: `l${i}`, name: 'mcp__kinocut__video_info' }))
+  }
+  assert.equal(s.recent.filter(r => r.kind === 'activity').length, 10)
+  assert.deepEqual(s.recent.filter(r => r.kind === 'render').map(r => r.tool_id), ['r'])
+  assert.equal(LOOKUP_TOOLS.size, 6)
 })
