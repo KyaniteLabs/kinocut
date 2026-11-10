@@ -7,6 +7,7 @@ import os
 import shutil
 import tempfile
 import warnings as _warnings
+from collections.abc import Callable
 
 from .defaults import (
     DEFAULT_AUDIO_CHANNELS,
@@ -19,6 +20,7 @@ from .engine_probe import get_duration, probe
 from .engine_runtime_utils import _build_edit_result, _movflags_args, _timed_operation
 from .paths import _auto_output
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _open_staged_writer, _run_ffmpeg
+from .ffmpeg_helpers import _run_ffmpeg_with_progress
 from .errors import InputFileError, MCPVideoError
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
 from .merge_guardrails import validate_merge_compatibility
@@ -28,6 +30,32 @@ from .validation import VALID_XFADE_TRANSITIONS
 
 logger = logging.getLogger(__name__)
 
+Progress = Callable[[float], None]
+
+
+def _render(args: list[str], seconds: float, on_progress: Progress | None) -> None:
+    """Run one FFmpeg render, reporting its percent complete when asked."""
+    if on_progress is None:
+        _run_ffmpeg(args)
+    else:
+        _run_ffmpeg_with_progress(args, seconds, on_progress)
+
+
+def _stage(on_progress: Progress | None, done: float, span: float, total: float) -> Progress | None:
+    """Map one render's 0-100 onto its slice of the whole merge.
+
+    A merge runs several renders (one per clip to normalize, then the
+    transition render). Each reports its own 0-100; the caller wants one
+    percentage for the whole job, weighted by seconds of video rendered.
+    """
+    if on_progress is None or total <= 0:
+        return None
+
+    def report(percent: float) -> None:
+        on_progress(min(100.0, (done + span * percent / 100.0) / total * 100.0))
+
+    return report
+
 
 def _normalize_clips(
     clips: list[str],
@@ -35,6 +63,9 @@ def _normalize_clips(
     target_w: int,
     target_h: int,
     tmpdir: str,
+    on_progress: Progress | None = None,
+    done: float = 0.0,
+    total: float = 0.0,
 ) -> list[str]:
     """Normalize clips to common resolution, codec, fps, and audio rate.
 
@@ -52,7 +83,8 @@ def _normalize_clips(
             vf_parts.insert(0, "transpose=2")
         elif info.rotation == 270:
             vf_parts.insert(0, "transpose=1")
-        _run_ffmpeg(
+        seconds = info.duration if on_progress is not None else 0.0
+        _render(
             _build_ffmpeg_cmd(
                 clip,
                 output_path=norm_path,
@@ -67,8 +99,11 @@ def _normalize_clips(
                     "-ac",
                     str(DEFAULT_AUDIO_CHANNELS),
                 ],
-            )
+            ),
+            seconds,
+            _stage(on_progress, done, seconds, total),
         )
+        done += seconds
         working.append(norm_path)
     return working
 
@@ -123,6 +158,7 @@ def merge(
     transitions: list[str] | None = None,
     transition_duration: float = 1.0,
     infos: list | None = None,
+    on_progress: Progress | None = None,
 ) -> EditResult:
     """Merge multiple clips into one video. Auto-normalizes if needed.
 
@@ -134,6 +170,8 @@ def merge(
             If shorter than clip pairs, the last type is repeated.
         transition_duration: Duration of each transition in seconds.
         infos: Optional pre-probed clip metadata. When omitted, each clip is probed.
+        on_progress: Called with the whole merge's percent complete (0-100).
+            Only renders report: a stream-copy join finishes too fast to need it.
     """
     if not clips:
         raise InputFileError("", "No clips provided for merge")
@@ -167,23 +205,42 @@ def merge(
         tmpdir = tempfile.mkdtemp(prefix="mcp_video_")
         try:
             source_clips = _add_silent_audio(clips, infos, tmpdir) if mixed_audio else list(clips)
+
+            transition_types: list[str] | None = None
+            if transitions:
+                transition_types = list(transitions)
+            elif transition:
+                transition_types = [transition] * (len(clips) - 1)
+
+            # Weight progress by seconds rendered: each normalized clip, then
+            # the transition render (whose output is shorter by the overlaps).
+            clip_seconds = sum(i.duration for i in infos) if on_progress is not None else 0.0
+            normalize_seconds = clip_seconds if needs_normalize else 0.0
+            transition_seconds = (
+                max(clip_seconds - (len(clips) - 1) * transition_duration, 0.0) if transition_types else 0.0
+            )
+            total_seconds = normalize_seconds + transition_seconds
+
             if needs_normalize:
-                working_clips = _normalize_clips(source_clips, infos, target_w, target_h, tmpdir)
+                working_clips = _normalize_clips(
+                    source_clips, infos, target_w, target_h, tmpdir, on_progress, 0.0, total_seconds
+                )
             else:
                 working_clips = source_clips
 
             output = output_path or _auto_output(clips[0], "merged")
             _validate_output_path(output)
 
-            transition_types: list[str] | None = None
-            if transitions and len(working_clips) > 1:
-                transition_types = list(transitions)
-            elif transition and len(working_clips) > 1:
-                transition_types = [transition] * (len(working_clips) - 1)
-
             with _atomic_output(output) as staged:
-                if transition_types and len(working_clips) > 1:
-                    _merge_with_transitions(working_clips, staged, transition_types, transition_duration)
+                if transition_types:
+                    _merge_with_transitions(
+                        working_clips,
+                        staged,
+                        transition_types,
+                        transition_duration,
+                        _stage(on_progress, normalize_seconds, transition_seconds, total_seconds),
+                        transition_seconds,
+                    )
                 else:
                     _concat_clips(working_clips, staged, tmpdir)
                 result = _build_edit_result(staged, "merge", timing)
@@ -291,11 +348,17 @@ def _build_acrossfade_audio_filter(n: int, pairs: int, transition_duration: floa
 
 
 def _run_transition_merge(
-    clips: list[str], output: str, filter_complex: str, map_args: list[str], has_audio: bool
+    clips: list[str],
+    output: str,
+    filter_complex: str,
+    map_args: list[str],
+    has_audio: bool,
+    on_progress: Progress | None = None,
+    seconds: float = 0.0,
 ) -> None:
     """Run the final FFmpeg merge command with or without audio."""
     if has_audio:
-        _run_ffmpeg(
+        _render(
             _build_ffmpeg_cmd(
                 *clips,
                 output_path=output,
@@ -308,10 +371,12 @@ def _run_transition_merge(
                     "-pix_fmt",
                     "yuv420p",
                 ],
-            )
+            ),
+            seconds,
+            on_progress,
         )
     else:
-        _run_ffmpeg(
+        _render(
             _build_ffmpeg_cmd(
                 *clips,
                 output_path=output,
@@ -326,7 +391,9 @@ def _run_transition_merge(
                     "-pix_fmt",
                     "yuv420p",
                 ],
-            )
+            ),
+            seconds,
+            on_progress,
         )
 
 
@@ -335,6 +402,8 @@ def _merge_with_transitions(
     output: str,
     transition_types: list[str],
     transition_duration: float,
+    on_progress: Progress | None = None,
+    seconds: float = 0.0,
 ) -> None:
     """Merge clips with xfade transitions between them.
 
@@ -366,4 +435,4 @@ def _merge_with_transitions(
         filter_complex = filter_str
         map_args = ["-map", "[vout]"]
 
-    _run_transition_merge(clips, output, filter_complex, map_args, has_audio)
+    _run_transition_merge(clips, output, filter_complex, map_args, has_audio, on_progress, seconds)

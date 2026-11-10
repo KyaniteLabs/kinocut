@@ -195,12 +195,12 @@ class TestVideoTrimTool:
 
 class TestVideoMergeTool:
     def test_returns_success(self, sample_video):
-        result = video_merge([sample_video, sample_video])
+        result = asyncio.run(video_merge([sample_video, sample_video]))
         assert result["success"] is True
         assert os.path.isfile(result["output_path"])
 
     def test_empty_clips_error(self):
-        result = video_merge([])
+        result = asyncio.run(video_merge([]))
         assert result["success"] is False
         assert "error" in result
 
