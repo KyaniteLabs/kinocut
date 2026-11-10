@@ -88,6 +88,9 @@ def test_no_frames_retains_processing_error(tmp_path, monkeypatch):
         upscale._extract_frames("empty.mp4", tmp_path)
     assert len(commands) == 1
     assert commands[0][commands[0].index("-frames:v") + 1] == str(upscale.MAX_AI_UPSCALE_FRAMES + 1)
+    # FFmpeg 9 removed -vsync; -fps_mode exists since 5.1 (#705).
+    assert "-vsync" not in commands[0]
+    assert commands[0][commands[0].index("-fps_mode") + 1] == "passthrough"
 
 
 def _select_backend(monkeypatch, backend):
