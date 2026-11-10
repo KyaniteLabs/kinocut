@@ -119,3 +119,21 @@ def test_large_sheet_downscales_without_pillow(tmp_path, monkeypatch):
 
     with Image.open(io.BytesIO(data)) as img:
         assert img.width == MAX_IMAGE_WIDTH
+
+
+def test_approve_runs_the_gate_then_exports_a_final_file(sample_video, tmp_path):
+    """#762: Approve & export must lead to a new file, not re-approve one already on disk."""
+    from kinocut.review_card import final_export_path
+
+    out = str(tmp_path / "card.html")
+    write_review_card(sample_video, output_path=out, frame_count=2)
+    with open(out, encoding="utf-8") as fh:
+        doc = fh.read()
+    approve = re.search(r'data-hermes-send="(Approve this cut[^"]*)"', doc)
+    assert approve, "Approve & export button missing"
+    text = approve.group(1)
+    final = final_export_path(sample_video)
+    assert final.endswith("-final.mp4") and final != sample_video
+    assert "video_release_checkpoint" in text
+    assert f"video_export it to {final}" in text
+    assert not os.path.exists(final)

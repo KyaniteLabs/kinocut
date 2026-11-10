@@ -22,7 +22,7 @@ that carry the tools named below are:
 `profile:advanced` carries `video_composite_layers`, `video_hls_segment`;
 `profile:ai` carries `video_acceptance_eval`, `video_body_swap`, `video_quality_check`, `video_release_checkpoint`, `video_salvage`, `video_verdict`;
 `profile:audio` carries `sound_mix_render`, `video_duck_audio`, `video_mix_audio`;
-`profile:editor` carries `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
+`profile:editor` carries `video_crop`, `video_edit`, `video_export`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
 `profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
@@ -49,7 +49,7 @@ Load the relevant guide when needed. Use source evidence for editorial choices; 
 
 ## Showing a cut in Hermes Desktop
 
-Call `video_review_card` with the video path, then reply with the returned `preview_directive` alone on its own line. Hermes renders the card inline with Approve & export / Dig in / Try another range buttons.
+Call `video_review_card` with the video path, then reply with the returned `preview_directive` alone on its own line. Hermes renders the card inline with Approve & export / Dig in / Try another range buttons. Approve & export sends a message naming the steps: run `video_release_checkpoint` on the cut, and only if it passes, `video_export` it to `<name>-final.mp4`. Do both; if the gate fails, report the failed checks instead of exporting.
 
 ## Reviewing a cut on a paired TV
 
