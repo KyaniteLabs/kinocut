@@ -6,17 +6,17 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from rich.console import Console
 from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
 
+from .home_paths import HomeCollapsingConsole
 from .quality_formatting import design_quality_panel, quality_report_renderables, release_checkpoint_renderable
 
 logger = logging.getLogger(__name__)
 
-console = Console()
-err_console = Console(stderr=True)
+console = HomeCollapsingConsole()
+err_console = HomeCollapsingConsole(stderr=True)
 
 
 def _model_dump(result: Any) -> Any:

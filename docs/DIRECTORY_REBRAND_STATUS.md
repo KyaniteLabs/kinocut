@@ -17,11 +17,10 @@ about third-party pages; verify an external page before acting on its listed sta
 - Description: Guardrailed video editing for AI agents with FFmpeg, captions,
   effects, Hyperframes, resumable workflows, repurposing, quality gates, and
   provenance receipts.
-- Published surface: 205 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all` (1.16.5)
-- Development tip: 206 MCP tools / 177 CLI commands (18-tool default; Unreleased)
-- Current release: 1.16.5 (published 2026-10-27)
+- Published surface: 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`; 18 by default (2.0.0)
+- Current release: 2.0.0 (published 2026-11-10)
 - Provider check (2026-10-24): PyPI/npm, GitHub release and the official MCP Registry report 1.16.4; shim 1.6.19 pins it.
-- Provider check (2026-10-27): PyPI/npm, GitHub release and the official MCP Registry report 1.16.5; shim 1.6.20 pins it.
+- Provider check (2026-11-10): PyPI/npm, GitHub release and the official MCP Registry report 2.0.0; shim 1.6.21 pins it.
 - Provider check (2026-10-05): PyPI/npm and GitHub release publicly report 1.16.1; the initial publication gate read official MCP Registry 1.16.1, but later reads timed out. Shim 1.6.16 pins 1.16.1. The last verified live site remains 1.16.0; 1.16.1 website source is prepared but not deployed. Immutable PyPI descriptions retain dated earlier checkpoints; current source guidance is updated without claiming vendor acceptance.
 - Submission ops: `docs/status/DIRECTORY_SUBMISSION_OPS.md`
 

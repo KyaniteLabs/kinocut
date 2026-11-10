@@ -132,12 +132,12 @@ def ai_stem_separation(
         importlib.import_module("demucs.separate")
     except ImportError:
         raise MCPVideoError(
-            'Demucs not installed. Install with: pip install "kinocut[stems]==1.16.5"',
+            'Demucs not installed. Install with: pip install "kinocut[stems]==2.0.0"',
             error_type="dependency_error",
             code="missing_demucs",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[stems]==1.16.5" to enable stem separation',
+                "description": 'Run: pip install "kinocut[stems]==2.0.0" to enable stem separation',
             },
         ) from None
 

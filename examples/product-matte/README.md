@@ -12,7 +12,7 @@ directory. Run the commands from here (or pass bare filenames).
 ## 1. Cut the product
 
 ```bash
-pip install "kinocut[object-matte]==1.16.5"
+pip install "kinocut[object-matte]==2.0.0"
 kino --format json hyperframes-remove-background --info
 
 cd examples/product-matte
