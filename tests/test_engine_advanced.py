@@ -984,7 +984,7 @@ class TestAudioWaveform:
 
         monkeypatch.setattr(engine_audio_waveform.subprocess, "run", lambda *args, **kwargs: FailedProcess())
 
-        with pytest.raises(ProcessingError, match="Unexpected FFmpeg failure"):
+        with pytest.raises(ProcessingError, match="FFmpeg processing failed"):
             audio_waveform(sample_video, bins=10)
 
     def test_waveform_ametadata_reinit_failure_uses_synthetic_fallback(self, sample_video, monkeypatch):

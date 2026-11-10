@@ -107,9 +107,9 @@ def test_null_params_is_tolerated_as_empty_params() -> None:
 
         response = server.request({"jsonrpc": "2.0", "id": 1, "method": "tools/list", "params": None})
         tools = response["result"]["tools"]
-        # Default surface: 20-tool core diet + the compact family layer
+        # Default surface: 8-tool hot-path core + the compact family layer
         # (8 dispatch tools + list_operations + describe_operation).
-        assert isinstance(tools, list) and len(tools) == 30
+        assert isinstance(tools, list) and len(tools) == 18
 
         ping = server.ping("ping-1")
         assert "result" in ping
@@ -142,12 +142,15 @@ def test_utf8_multibyte_split_across_writes_is_reassembled() -> None:
         server.send_bytes(frame[split_at:] + b"\n")
 
         response = server.read_response(2)
-        # The file does not exist, so this must be a clean structured error —
-        # and the echoed path must carry the multibyte name intact, proving
-        # the split bytes were reassembled and decoded as written.
+        # The file does not exist, so this must be a clean structured error.
+        # An error never repeats the submitted path, so the proof that the
+        # split bytes were reassembled is that the server reached the tool
+        # and answered the call: a mangled frame is a JSON parse error, not
+        # a tool error.
         text = json.dumps(response, ensure_ascii=False)
-        assert path in text
+        assert "Input file error" in text
         assert "�" not in text
+        assert path not in text
 
         ping = server.ping("ping-2")
         assert "result" in ping

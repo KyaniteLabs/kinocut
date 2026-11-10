@@ -63,7 +63,7 @@ def translate_caption_file(
     supported = coverage["surfaces"]["translate"]["supported_languages_or_pairs"]
     if pair not in supported and src_l != tgt_l and translator is None:
         raise MCPVideoError(
-            f"translate pair {pair!r} not in honest coverage {supported}",
+            f"translate pair is not in honest coverage {supported}",
             error_type="validation_error",
             code="unsupported_translate_pair",
         )

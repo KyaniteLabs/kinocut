@@ -12,7 +12,7 @@ analysis.
 Requires Python 3.11 or newer, plus FFmpeg and ffprobe on `PATH`.
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 kino info input.mp4
 ```

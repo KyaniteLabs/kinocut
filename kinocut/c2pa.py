@@ -10,6 +10,7 @@ from typing import Any
 
 from .defaults import DEFAULT_C2PA_TIMEOUT
 from .errors import C2PASigningError, C2PAToolNotFoundError, C2PAVerificationError, MCPVideoError
+from .validation_errors import exception_kind
 from .ffmpeg_helpers import _atomic_output, _validate_artifact_input_path, _validate_input_path
 
 
@@ -63,7 +64,7 @@ def _validate_manifest_path(path: str) -> str:
     _validate_artifact_input_path(path)
     if not os.path.isfile(path):
         raise MCPVideoError(
-            f"C2PA manifest file not found: {path}",
+            "C2PA manifest file not found",
             error_type="input_error",
             code="invalid_c2pa_manifest",
         )
@@ -74,7 +75,7 @@ def _resolve_c2patool() -> str:
     candidate = os.environ.get("KINOCUT_C2PATOOL") or os.environ.get("MCP_VIDEO_C2PATOOL") or "c2patool"
     resolved = shutil.which(candidate) if os.path.basename(candidate) == candidate else candidate
     if resolved is None or not os.path.isfile(resolved) or not os.access(resolved, os.X_OK):
-        raise C2PAToolNotFoundError(candidate)
+        raise C2PAToolNotFoundError()
     return os.path.realpath(resolved)
 
 
@@ -101,10 +102,9 @@ def _run_c2patool(
     if result.returncode != 0:
         if verification:
             raise C2PAVerificationError("c2patool verification command failed")
-        stderr = result.stderr[-500:] if result.stderr else ""
-        stdout = result.stdout[-500:] if result.stdout else ""
-        detail = stderr or stdout or f"c2patool exited with {result.returncode}"
-        raise C2PASigningError(detail)
+        # The child's output is not published: c2patool echoes the asset
+        # path the caller submitted.
+        raise C2PASigningError(f"c2patool exited with {result.returncode}")
     return result
 
 
@@ -113,7 +113,7 @@ def _verify_signed_asset(tool: str, asset: str) -> dict[str, Any]:
     try:
         payload = json.loads(result.stdout) if result.stdout.strip() else {}
     except json.JSONDecodeError as exc:
-        raise C2PAVerificationError(f"c2patool returned non-JSON verification output: {exc}") from exc
+        raise C2PAVerificationError(f"c2patool returned non-JSON verification output ({exception_kind(exc)})") from exc
     if not isinstance(payload, dict):
         raise C2PAVerificationError("c2patool verification output was not a JSON object")
 

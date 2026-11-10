@@ -16,7 +16,7 @@ import pytest
 from mcp_video.client import Client
 from mcp_video.errors import MCPVideoError
 from mcp_video.workflow import OP_ADAPTERS, OpAdapter, render_workflow
-from mcp_video.workflow.executor import _resolve_ref_path
+from mcp_video.workflow.paths import _resolve_ref_path
 
 
 def _write_spec(directory: Path, spec: dict, name: str = "job.json") -> str:

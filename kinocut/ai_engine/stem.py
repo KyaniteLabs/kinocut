@@ -19,6 +19,7 @@ from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _validate_input_path, _validate_output_path
 from ..limits import DEFAULT_AI_TIMEOUT, DEFAULT_FFMPEG_TIMEOUT, MAX_AUDIO_DURATION
 from ..validation import VALID_DEMUCS_MODELS
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ logger = logging.getLogger(__name__)
 def _validate_demucs_model(model: str) -> None:
     if model not in VALID_DEMUCS_MODELS:
         raise MCPVideoError(
-            f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got {model!r}",
+            f"Invalid model: must be one of {sorted(VALID_DEMUCS_MODELS)}, got {rejected_value(model)!r}",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -87,7 +88,7 @@ def _run_demucs_separation(
         )
     except subprocess.TimeoutExpired:
         raise ProcessingError(
-            " ".join(demucs_cmd), -1, f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
+            " ".join(demucs_cmd), -1, "", reason=f"Demucs command timed out after {DEFAULT_AI_TIMEOUT}s"
         ) from None
     if result.returncode != 0:
         raise ProcessingError(" ".join(demucs_cmd), result.returncode, result.stderr)
@@ -131,12 +132,12 @@ def ai_stem_separation(
         importlib.import_module("demucs.separate")
     except ImportError:
         raise MCPVideoError(
-            'Demucs not installed. Install with: pip install "kinocut[stems]"',
+            'Demucs not installed. Install with: pip install "kinocut[stems]==1.16.5"',
             error_type="dependency_error",
             code="missing_demucs",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[stems]" to enable stem separation',
+                "description": 'Run: pip install "kinocut[stems]==1.16.5" to enable stem separation',
             },
         ) from None
 
