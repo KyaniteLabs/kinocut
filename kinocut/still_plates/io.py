@@ -5,10 +5,20 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+from enum import StrEnum
 from pathlib import Path
 from typing import Any
 
 from ..errors import MCPVideoError
+
+
+class ReceiptStatus(StrEnum):
+    """Outcome of a still/plate receipt: planned by a dry run, or finished."""
+
+    PLANNED = "planned"
+    OK = "ok"
+    GATE_FAILED = "gate_failed"
+
 
 STILL_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".webp", ".bmp", ".tif", ".tiff"})
 

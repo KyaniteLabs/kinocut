@@ -10,6 +10,7 @@ from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _escape_ffmpeg_filter_value, _run_ffmpeg
 from .io import (
+    ReceiptStatus,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -125,7 +126,7 @@ def still_grade(
         "hero": str(hero_path) if hero_path else None,
         "lut_path": str(lut_path) if lut_path else None,
         "outputs": outputs,
-        "status": "ok",
+        "status": ReceiptStatus.OK,
     }
     receipt_path = write_receipt(out_dir / receipt_name, receipt)
     receipt["receipt_path"] = str(receipt_path)
