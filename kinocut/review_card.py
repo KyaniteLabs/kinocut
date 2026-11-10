@@ -2,7 +2,7 @@
 
 Hermes renders ``::preview{file="card.html"}`` inline in a sandboxed iframe with
 an opaque origin, so relative file references do not load: every image is
-embedded as a ``data:`` URI. A ``<button data-hermes-send="text">`` sends
+embedded as a ``data:`` URI, and so is the muted preview player. A ``<button data-hermes-send="text">`` sends
 ``text`` back as a hidden user turn (Hermes caps it at 500 characters).
 """
 
@@ -21,6 +21,14 @@ MAX_SEND_TEXT = 500
 MAX_INLINE_IMAGE_BYTES = 200 * 1024
 MAX_IMAGE_WIDTH = 960
 _ALLOWED_MIME = frozenset({"image/jpeg", "image/png"})
+# Hermes web reads at most 512 KB of a previewed text file; stay under it.
+MAX_CARD_BYTES = 480 * 1024
+SHEET_BYTES_WITH_PLAYER = 60 * 1024
+POSTER_WIDTH = 480
+MIN_PREVIEW_BITRATE = 48_000
+MAX_PREVIEW_BITRATE = 400_000
+# A poster darker than this mean luma (0-255) reads as a black frame.
+MIN_POSTER_LUMA = 24
 
 _STYLE = """
 body{margin:0;padding:12px;font-family:system-ui,sans-serif;color:var(--foreground,#111);background:transparent}
@@ -29,6 +37,7 @@ h1{font-size:16px;margin:0 0 10px;word-break:break-all}
 dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:13px;margin:0 0 10px}
 dt{color:var(--muted-foreground,#666)}
 dd{margin:0}
+video{display:block;width:100%;height:auto;background:#000;border-radius:6px;margin:0 0 8px}
 img{display:block;width:100%;height:auto;border:1px solid var(--border,#ddd);border-radius:6px;margin:0 0 8px}
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;
@@ -46,6 +55,8 @@ def render_review_card(
     facts: dict[str, str],
     images: list[tuple[str, bytes, str]],
     actions: list[tuple[str, str]],
+    video: bytes | None = None,
+    poster: bytes | None = None,
 ) -> str:
     """Return one self-contained HTML document: no scripts, no external URLs.
 
@@ -62,6 +73,12 @@ def render_review_card(
         '<div class="card">',
         f"<h1>{_esc(title)}</h1>",
     ]
+    if video:
+        poster_attr = f' poster="data:image/jpeg;base64,{base64.b64encode(poster).decode("ascii")}"' if poster else ""
+        parts.append(
+            f'<video src="data:video/mp4;base64,{base64.b64encode(video).decode("ascii")}"{poster_attr}'
+            f' muted autoplay loop playsinline controls aria-label="Preview of {_esc(title)}"></video>'
+        )
     if facts:
         parts.append("<dl>")
         for key, value in facts.items():
@@ -87,36 +104,88 @@ def render_review_card(
     return "\n".join(parts) + "\n"
 
 
-def _sheet_bytes(sheet_path: str) -> tuple[bytes, str]:
-    """Return the contact sheet bytes, downscaled to JPEG when over 200 KB."""
+def _jpeg(image_path: str, width: int, qscale: int) -> bytes:
+    """Encode one image as JPEG no wider than ``width`` with FFmpeg (``qscale``: 2 best .. 31 worst)."""
+    from .ffmpeg_helpers import _run_ffmpeg_bytes
+
+    # FFmpeg is a core dependency; Pillow is not, so a plain install can still build the card.
+    return _run_ffmpeg_bytes(
+        [
+            "-v", "error", "-i", image_path, "-frames:v", "1",
+            "-vf", f"scale=w='min({width},iw)':h=-2,format=yuvj420p",
+            "-q:v", str(qscale), "-f", "image2pipe", "-c:v", "mjpeg", "pipe:1",
+        ]
+    )  # fmt: skip
+
+
+def _mean_luma(image_path: str) -> float:
+    """Mean 8-bit luma of an image, sampled on a 16x16 grayscale thumbnail."""
+    from .ffmpeg_helpers import _run_ffmpeg_bytes
+
+    raw = _run_ffmpeg_bytes(
+        [
+            "-v", "error", "-i", image_path, "-frames:v", "1",
+            "-vf", "scale=16:16,format=gray", "-f", "rawvideo", "pipe:1",
+        ]
+    )  # fmt: skip
+    return sum(raw) / len(raw) if raw else 0.0
+
+
+def _sheet_bytes(sheet_path: str, max_bytes: int = MAX_INLINE_IMAGE_BYTES) -> tuple[bytes, str]:
+    """Return the contact sheet bytes, downscaled to JPEG when over ``max_bytes``."""
     with open(sheet_path, "rb") as fh:
         raw = fh.read()
     mime = "image/png" if raw[:8] == b"\x89PNG\r\n\x1a\n" else "image/jpeg"
-    if len(raw) <= MAX_INLINE_IMAGE_BYTES:
+    if len(raw) <= max_bytes:
         return raw, mime
+    data = _jpeg(sheet_path, MAX_IMAGE_WIDTH, 5)
+    for width, qscale in ((MAX_IMAGE_WIDTH, 9), (640, 9), (480, 12)):
+        if len(data) <= max_bytes:
+            break
+        data = _jpeg(sheet_path, width, qscale)
+    return data, "image/jpeg"
+
+
+def _poster_bytes(frames: list[str]) -> bytes | None:
+    """Return a JPEG of the first storyboard frame that isn't near-black, else the brightest one."""
+    best: tuple[float, str] | None = None
+    for frame in frames:
+        luma = _mean_luma(frame)
+        if luma >= MIN_POSTER_LUMA:
+            best = (luma, frame)
+            break
+        if best is None or luma > best[0]:
+            best = (luma, frame)
+    if best is None:
+        return None
+    return _jpeg(best[1], POSTER_WIDTH, 6)
+
+
+def _preview_bytes(input_path: str, duration: float, budget: int) -> bytes | None:
+    """Encode a silent low-res H.264 preview that fits in ``budget`` bytes, or None if the cut is too long."""
     from .ffmpeg_helpers import _run_ffmpeg_bytes
 
-    # FFmpeg is a core dependency; Pillow is not, so a plain install can still downscale.
-    data = _run_ffmpeg_bytes(
-        [
-            "-v",
-            "error",
-            "-i",
-            sheet_path,
-            "-frames:v",
-            "1",
-            "-vf",
-            f"scale=w='min({MAX_IMAGE_WIDTH},iw)':h=-2,format=yuvj420p",
-            "-q:v",
-            "5",
-            "-f",
-            "image2pipe",
-            "-c:v",
-            "mjpeg",
-            "pipe:1",
-        ]
-    )
-    return data, "image/jpeg"
+    if duration <= 0 or budget <= 0:
+        return None
+    bitrate = min(MAX_PREVIEW_BITRATE, int(budget * 8 * 0.85 / duration))
+    for _attempt in range(2):
+        if bitrate < MIN_PREVIEW_BITRATE:
+            return None
+        width = 480 if bitrate >= 150_000 else 320
+        data = _run_ffmpeg_bytes(
+            [
+                "-i", input_path, "-an",
+                "-vf", f"fps=12,scale='min({width},iw)':-2",
+                "-c:v", "libx264", "-preset", "veryfast", "-pix_fmt", "yuv420p",
+                "-b:v", str(bitrate), "-maxrate", str(bitrate), "-bufsize", str(bitrate * 2),
+                "-movflags", "frag_keyframe+empty_moov+default_base_moof",
+                "-f", "mp4", "pipe:1",
+            ]
+        )  # fmt: skip
+        if len(data) <= budget:
+            return data
+        bitrate = int(bitrate * 0.6)
+    return None
 
 
 def _format_duration(seconds: float) -> str:
@@ -178,7 +247,8 @@ def write_review_card(
                 error_type="processing_error",
                 code="no_frames",
             )
-        sheet_data, sheet_mime = _sheet_bytes(sheet)
+        sheet_data, sheet_mime = _sheet_bytes(sheet, SHEET_BYTES_WITH_PLAYER)
+        poster = _poster_bytes(board.frames)
 
     name = os.path.basename(input_path)
     facts = {
@@ -198,12 +268,19 @@ def write_review_card(
         ("Dig in", f"Show me more detail on {input_path}"),
         ("Try another range", f"Try a different range of {input_path}"),
     ]
-    document = render_review_card(
-        title=name,
-        facts=facts,
-        images=[(f"Contact sheet of {name}", sheet_data, sheet_mime)],
-        actions=actions,
-    )
+    card = {
+        "title": name,
+        "facts": facts,
+        "images": [(f"Contact sheet of {name}", sheet_data, sheet_mime)],
+        "actions": actions,
+    }
+    shell = render_review_card(**card)
+    poster_b64 = len(base64.b64encode(poster)) if poster else 0
+    room = MAX_CARD_BYTES - len(shell.encode("utf-8")) - poster_b64 - 400
+    video = _preview_bytes(input_path, info.duration, room * 3 // 4)
+    if video is None:
+        facts["Preview"] = "too long to play here; open the file to watch it"
+    document = render_review_card(**card, video=video, poster=poster)
     with _atomic_artifact(output_path) as staged, _open_staged_writer(staged) as stream:
         stream.write(document.encode("utf-8"))
     return {
@@ -215,4 +292,5 @@ def write_review_card(
         "duration": info.duration,
         "resolution": info.resolution,
         "size_bytes": len(document.encode("utf-8")),
+        "plays_inline": video is not None,
     }
