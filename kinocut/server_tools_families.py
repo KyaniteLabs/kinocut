@@ -16,7 +16,7 @@ family tool with the selected operation and only CLI routes that actually
 exist (``kino`` subcommands are enumerated from the real parser).
 
 These tools are registered in default and profile modes only; the legacy
-``KINOCUT_TOOLS=all`` surface stays exactly the 205-name registry.
+``KINOCUT_TOOLS=all`` surface stays exactly the 206-name registry.
 """
 
 import re
@@ -27,6 +27,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .errors import MCPVideoError, _cli_command_set, cli_route_for_operation, retry_context
+from .output_policy import read_only
 from .server_app import _safe_tool, _validation_error, mcp
 from .server_tool_contracts import validate_tool_arguments
 from .tool_families import (
@@ -58,12 +59,7 @@ def _family_annotations(name: str) -> ToolAnnotations:
 
 _PARAMS_ANNOTATION = Annotated[
     dict[str, Any] | None,
-    Field(
-        description=(
-            "Arguments for the operation, exactly as its direct tool accepts them "
-            "(required parameters in list_operations; full schema via describe_operation)."
-        )
-    ),
+    Field(description="The operation's arguments."),
 ]
 
 
@@ -159,7 +155,6 @@ async def _dispatch_family_operation(
 def _register_family_tool(name: str) -> None:
     operations = FAMILY_OPERATIONS[name]
     operation_enum = Literal[operations]  # closed, typed member set
-    family_hint = ", ".join(FAMILY_MODULES[name])
 
     async def _dispatch(
         operation: operation_enum,  # type: ignore[valid-type]
@@ -183,9 +178,7 @@ def _register_family_tool(name: str) -> None:
         name=name,
         title=FAMILY_TITLES[name],
         description=(
-            f"{FAMILY_SUMMARIES[name]} Registry modules: {family_hint}. "
-            f"Use {DISCOVERY_TOOL_NAME} to enumerate members; {DESCRIBE_TOOL_NAME} "
-            "returns one operation's full inputSchema."
+            f"{FAMILY_SUMMARIES[name]} Required arguments: {DISCOVERY_TOOL_NAME}; full schema: {DESCRIBE_TOOL_NAME}."
         ),
         annotations=_family_annotations(name),
     )(_safe_tool(_dispatch))
@@ -225,6 +218,7 @@ def _declared_annotations() -> dict[str, Any]:
 
 
 @_safe_tool
+@read_only
 def list_operations(
     family: Annotated[
         str | None,
@@ -286,10 +280,8 @@ mcp.tool(
     name=DISCOVERY_TOOL_NAME,
     title="List family operations",
     description=(
-        "Enumerate compact-surface operations on demand: families with member counts, and each "
-        "operation's family, verb, required parameters and declared side-effect annotations. "
-        "Optional family or query filters. Complements search_tools; use describe_operation "
-        "for one operation's full inputSchema."
+        "List operations: families with member counts, and each operation's family, verb, "
+        "required parameters and side-effect annotations."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,
@@ -301,6 +293,7 @@ mcp.tool(
 
 
 @_safe_tool
+@read_only
 def describe_operation(
     operation: Annotated[
         str,
@@ -351,9 +344,8 @@ mcp.tool(
     name=DESCRIBE_TOOL_NAME,
     title="Describe one operation",
     description=(
-        "Retrieve one operation's full inputSchema on demand — optional arguments, types, "
-        "defaults and nested definitions, exactly as the direct tool declares them — with the "
-        "family tool that dispatches it and its verified kino CLI route when one exists."
+        "Return one operation's full inputSchema, the family tool that dispatches it, "
+        "and its kino CLI route when one exists."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,

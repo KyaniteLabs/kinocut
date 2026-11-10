@@ -14,7 +14,7 @@ from ..errors import MCPVideoError
 from .captions import CaptionArtifact
 from .package import package_approved_clip
 from .package_models import PackageConfig, PackageLineage, ThumbnailSpec
-from .shorts_plan import RenderRecord, ShortsPlan, load_shorts_plan, save_shorts_plan
+from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
 from .shorts_review import resolve_approved_candidate
 from ..validation_errors import exception_kind, likely_cause, own_reason
 
@@ -148,14 +148,14 @@ def package_approved_candidate(
     revised = plan.model_copy(
         update={
             "package_manifests": tuple(manifests),
-            "status": "packaged",
+            "status": ShortsPlanStatus.PACKAGED,
         }
     )
     save_shorts_plan(revised)
     return {
         "job_id": plan.job_id,
         "candidate_id": candidate.candidate_id,
-        "status": "packaged",
+        "status": ShortsPlanStatus.PACKAGED,
         "packages": emitted,
         "external_posting": False,
     }

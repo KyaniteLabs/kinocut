@@ -52,8 +52,9 @@ def discover_tools(query: str, tools: Sequence[Mapping[str, Any]]) -> dict[str, 
         if name == "search_tools" or not literal:
             continue
         description = str(tool.get("description") or "")
-        lowered_name, lowered_description = name.casefold(), description.casefold()
-        name_tokens, description_tokens = _tokens(name), _tokens(description)
+        searchable = f"{description}\n{tool.get('parameter_text') or ''}"
+        lowered_name, lowered_description = name.casefold(), searchable.casefold()
+        name_tokens, description_tokens = _tokens(name), _tokens(searchable)
         exact = literal == lowered_name
         alias = name in aliases
         name_match = literal in lowered_name

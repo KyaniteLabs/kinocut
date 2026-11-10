@@ -119,7 +119,7 @@ the next person's check finds yours.
 - Every new tool needs at least: success case, error case (bad input), and one edge case
 - Add adversarial tests in `test_adversarial_audit.py` for any new validation
 - E2E tests chain multiple operations together
-- Run the full suite before pushing: `pytest tests/ -v -m "not slow" --tb=short`
+- Run the full suite before pushing: `python3 scripts/run_full_suite.py` (see `docs/TESTING.md`)
 - Keep the default non-slow suite green, and run slower or environment-sensitive coverage when your change touches those surfaces
 
 ### Automated tests vs manual scripts

@@ -32,7 +32,7 @@ from typing import Any
 from ._errors import INVALID_WORKFLOW_RECEIPT, workflow_error
 from .planner import _hash_if_exists
 from .spec import validate_spec_path
-from .status import StepStatus
+from .status import ReleaseStatus, StepStatus
 from ..validation_errors import exception_kind
 
 _KIND_BY_TOOL = {
@@ -139,7 +139,7 @@ def _inspect_workflow(
 
     overall = "planned" if planned else receipt.get("status")
     release = receipt.get("repurpose_release")
-    if not planned and error is None and isinstance(release, dict) and release.get("status") == "failed":
+    if not planned and error is None and isinstance(release, dict) and release.get("status") == ReleaseStatus.FAILED:
         error = release.get("error")
     status = {"overall": overall, "steps": steps, "failed_step": failed_step, "error": error}
 
