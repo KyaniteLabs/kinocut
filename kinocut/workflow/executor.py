@@ -51,6 +51,7 @@ from .receipt import (
     _write_receipt,
 )
 from .spec import WorkflowSpec, WorkflowStep, load_spec, parse_spec, validate_spec_path
+from .status import RunStatus, StepStatus
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
 
@@ -222,7 +223,6 @@ def _execute_steps(
     intermediates: list[str] = []
     failure: MCPVideoError | None = None
     failed_index = -1
-    still_reusing = resuming
     resumed_from: str | None = None
     _persist = _make_persist_fn(
         save_receipt,
@@ -245,6 +245,7 @@ def _execute_steps(
             step.output, workspace_root, run_dir_rel, run_dir_abs, output_paths, work_paths
         )
         input_hashes = hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter)
+        still_reusing = resuming and resumed_from is None
         if still_reusing and _step_reusable(prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache):
             _record_reused_step(
                 steps_receipt,
@@ -257,10 +258,9 @@ def _execute_steps(
                 run_dir_rel,
                 hash_cache,
             )
-            _persist(status="in_progress", resumed_from=resumed_from)
+            _persist(status=RunStatus.IN_PROGRESS, resumed_from=resumed_from)
             continue
         if still_reusing:  # first step that could not be reused = the resume point
-            still_reusing = False
             resumed_from = step.id
         started_at = _utcnow()
         try:
@@ -275,9 +275,9 @@ def _execute_steps(
         if output_rel is not None and output_rel.startswith(run_dir_rel + "/"):
             intermediates.append(output_rel)
         steps_receipt.append(
-            _step_entry(step, "completed", input_hashes, output_rel, output_hash, started_at, _utcnow())
+            _step_entry(step, StepStatus.COMPLETED, input_hashes, output_rel, output_hash, started_at, _utcnow())
         )
-        _persist(status="in_progress", resumed_from=resumed_from)
+        _persist(status=RunStatus.IN_PROGRESS, resumed_from=resumed_from)
     return steps_receipt, intermediates, failure, failed_index, resumed_from
 
 
@@ -298,12 +298,13 @@ def _make_persist_fn(
 ) -> Callable[..., None]:
     """Build the progressive-receipt writer (no-op when ``save_receipt`` is None)."""
 
-    def _persist(*, status: str, resumed_from: str | None) -> None:
+    def _persist(*, status: RunStatus, resumed_from: str | None) -> None:
         """Atomically persist a progressive receipt (no-op when save_receipt is None)."""
         if save_receipt is None:
             return
         snapshot = list(steps_receipt) + [
-            _step_entry(step, "pending", {}, step.output, None, None, None) for step in spec_steps[len(steps_receipt) :]
+            _step_entry(step, StepStatus.PENDING, {}, step.output, None, None, None)
+            for step in spec_steps[len(steps_receipt) :]
         ]
         _write_receipt(
             _build_receipt(
@@ -349,7 +350,7 @@ def _record_reused_step(
     steps_receipt.append(
         _step_entry(
             step,
-            "completed",
+            StepStatus.COMPLETED,
             input_hashes,
             output_rel,
             output_hash,
@@ -374,7 +375,7 @@ def _record_failed_step(
     steps_receipt.append(
         _step_entry(
             step,
-            "failed",
+            StepStatus.FAILED,
             input_hashes,
             output_rel,
             None,
@@ -408,7 +409,7 @@ def _finalize_render(
     """Append pending steps on failure, clean up, build + write the terminal receipt."""
     if failure is not None:
         for step in spec_steps[failed_index + 1 :]:
-            steps_receipt.append(_step_entry(step, "pending", {}, step.output, None, None, None))
+            steps_receipt.append(_step_entry(step, StepStatus.PENDING, {}, step.output, None, None, None))
     cleaned = _apply_cleanup(
         run_dir_abs,
         intermediates,
@@ -431,7 +432,7 @@ def _finalize_render(
         keep_intermediates=keep_intermediates,
         resuming=resuming,
         resumed_from=resumed_from,
-        status="failed" if failure is not None else "completed",
+        status=RunStatus.FAILED if failure is not None else RunStatus.COMPLETED,
     )
     if save_receipt is not None:
         _write_receipt(receipt, save_receipt, workspace_root, overwrite=True)
@@ -478,7 +479,7 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
         "workflow": {"name": data.get("name"), "variant": None},
         "count": len(receipts),
         "variants": receipts,
-        "status": "completed",
+        "status": RunStatus.COMPLETED,
     }
 
 
@@ -569,7 +570,7 @@ def _step_reusable(
     hash_cache: dict[str, str | None],
 ) -> bool:
     """Skip-iff gate (§5a.2): reuse a step only when its product is still valid."""
-    if prior is None or prior.get("status") != "completed":
+    if prior is None or prior.get("status") != StepStatus.COMPLETED:
         return False
     if prior.get("input_hashes") != current_input_hashes:
         return False

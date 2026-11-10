@@ -31,7 +31,14 @@ def _run_harness(run_root: Path) -> int:
     return harness_main(["--run-root", str(run_root)])
 
 
-def test_cli_ground_truth_run_end_to_end(tmp_path: Path) -> None:
+def test_cli_ground_truth_run_end_to_end(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    # The receipts must report the run's own environment; a developer shell's real
+    # cloud keys would otherwise make this assertion depend on who runs the suite.
+    import os
+
+    for name in list(os.environ):
+        if detect_cloud_keys({name: ""}):
+            monkeypatch.delenv(name)
     rc = _run_harness(tmp_path)
     assert rc == 0, "cli-ground-truth run must exit 0 (all wired steps pass)"
     run_dir = next(iter(tmp_path.iterdir()))  # the date-named run dir
