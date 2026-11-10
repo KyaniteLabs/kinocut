@@ -169,7 +169,8 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 | | Version | Surface |
 | --- | --- | --- |
 | **Published** on PyPI, npm and the MCP Registry | **2.0.0** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
-| **Compatibility package** | `mcp-video==1.6.21` | Installs `kinocut==2.0.0` for anyone still on the old name |
+| **This source** (`master`) | **2.0.1** candidate | Same surface; the review card no longer needs Pillow |
+| **Compatibility package** | `mcp-video==1.6.21` | Installs `kinocut==2.0.0` for anyone still on the old name; the prepared `mcp-video==1.6.22` installs `kinocut==2.0.1` |
 
 Install from PyPI: the published 2.0.0 package includes the optional object-matte extra
 (`kinocut[object-matte]==2.0.0`), which adds no new MCP tool.

@@ -18,6 +18,7 @@ The same engine is available as a Python client (`from kinocut import Client`) a
 - **Latest published release:** 2.0.0 (2026-11-10)
 - **Published surface (2.0.0):** 206 MCP tools / 177 CLI commands (18 MCP tools listed by default)
 - **Compatibility package:** 1.6.21 shim → kinocut 2.0.0 (`mcp-video==1.6.21`)
+- **Prepared candidate:** 1.6.22 shim → kinocut 2.0.1 (not yet published)
 - **Runtime:** Python 3.11+, FFmpeg and ffprobe on PATH; optional extras for transcription, upscaling, object matte and more
 - **MCP transport:** stdio
 - **MCP Registry id:** `tech.kyanitelabs/kinocut` (the legacy id `io.github.KyaniteLabs/kinocut` is deprecated; do not use it)

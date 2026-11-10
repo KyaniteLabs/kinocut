@@ -27,7 +27,7 @@ separate from the merged audit's evidence.
 
 **Published:** 2.0.0 · **206 MCP / 177 CLI** · 2026-11-10 · `docs/public_claims.json`; the default MCP registration is a curated 18-tool core (`KINOCUT_TOOLS=all` serves 206). PyPI/npm, GitHub release `v2.0.0` and the official MCP Registry (local `uvx kinocut==2.0.0` stdio package) report 2.0.0; shim 1.6.21 pins it.
 
-**Development candidate:** 2.0.0 · **206 MCP / 177 CLI** (development tip after the 2026-10-27 cutover: 18-tool default, plus `video_review_card` for Hermes Desktop, Unreleased). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]==1.15.1`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
+**Development candidate:** 2.0.1 · **206 MCP / 177 CLI** (development tip after the 2026-10-27 cutover: 18-tool default, plus `video_review_card` for Hermes Desktop, Unreleased). Pip history in one line: 1.14.1 = 360 dual-cam + lazy import; 1.15.0 = honest diagnostics + first-class Windows; 1.15.1 (2026-08-31) = registry ownership (shim 1.6.12, #469) + object-matte streaming decode/scratch guards (#412/#414, installable as `kinocut[object-matte]==1.15.1`); 1.15.2 (2026-09-24) = guarded Revideo operations + verified stereo mastering + adversarial hardening, surface 201 MCP / 173 CLI.
 
 **Historical product checkpoint:** Phase 1–4 + Track E **GO**. Current sound
 support covers deterministic processing and measured policy/resource controls;
