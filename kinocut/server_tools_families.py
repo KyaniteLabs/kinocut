@@ -278,10 +278,8 @@ mcp.tool(
     name=DISCOVERY_TOOL_NAME,
     title="List family operations",
     description=(
-        "Enumerate compact-surface operations on demand: families with member counts, and each "
-        "operation's family, verb, required parameters and declared side-effect annotations. "
-        "Optional family or query filters. Complements search_tools; use describe_operation "
-        "for one operation's full inputSchema."
+        "List operations: families with member counts, and each operation's family, verb, "
+        "required parameters and side-effect annotations. Optional family or query filter."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,
@@ -343,9 +341,8 @@ mcp.tool(
     name=DESCRIBE_TOOL_NAME,
     title="Describe one operation",
     description=(
-        "Retrieve one operation's full inputSchema on demand — optional arguments, types, "
-        "defaults and nested definitions, exactly as the direct tool declares them — with the "
-        "family tool that dispatches it and its verified kino CLI route when one exists."
+        "Return one operation's full inputSchema, the family tool that dispatches it, "
+        "and its kino CLI route when one exists."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,

@@ -1,6 +1,6 @@
 {
  "captured": {
-  "git_commit": "ed60df33fe1cdf6da219993117ff08260d1c39fa",
+  "git_commit": "3513762528868a622e1c180d99c0490ba8f15d56",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "1.16.5",
@@ -2531,8 +2531,8 @@
      ]
     },
     {
-     "input_schema_bytes": 463,
-     "input_schema_sha256": "2cb3726b5be3cb7d5c3926f04e71a71ff96ee8d1cb664160adafac060b105ba9",
+     "input_schema_bytes": 503,
+     "input_schema_sha256": "82b93fafb1c5e740a9b6802e9d96f90cefab95ac96ae7ba5ff01e4c160331f9c",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -4120,7 +4120,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119072
+   "total_input_schema_bytes": 119112
   },
   "default": {
    "launch": {
@@ -4347,8 +4347,8 @@
      ]
     },
     {
-     "input_schema_bytes": 463,
-     "input_schema_sha256": "2cb3726b5be3cb7d5c3926f04e71a71ff96ee8d1cb664160adafac060b105ba9",
+     "input_schema_bytes": 503,
+     "input_schema_sha256": "82b93fafb1c5e740a9b6802e9d96f90cefab95ac96ae7ba5ff01e4c160331f9c",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -4460,7 +4460,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 15563
+   "total_input_schema_bytes": 15603
   },
   "profile:editor": {
    "launch": {
@@ -5894,8 +5894,8 @@
      ]
     },
     {
-     "input_schema_bytes": 463,
-     "input_schema_sha256": "2cb3726b5be3cb7d5c3926f04e71a71ff96ee8d1cb664160adafac060b105ba9",
+     "input_schema_bytes": 503,
+     "input_schema_sha256": "82b93fafb1c5e740a9b6802e9d96f90cefab95ac96ae7ba5ff01e4c160331f9c",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -6816,7 +6816,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81772
+   "total_input_schema_bytes": 81812
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
