@@ -39,7 +39,7 @@ work is described in `docs/PLATFORM_PARITY.md`.
 2. For an unfamiliar task, call `list_operations` with a short query from the user's task (for example, "silence" or "face"), then `describe_operation` for the required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
-5. Human visual/audio review. Never treat a receipt as published.
+5. Human visual/audio review. Never treat a receipt as published. In Hermes, show the cut with `video_review_card` (family `video_edit_ops`) and put its `preview_directive` on its own line in your reply; Hermes then renders the card inline with Approve & export, Dig in and Try another range.
 
 When you mention a file in a reply, use its file name or a `~/` path, never the absolute path: it carries the user's account name into every screenshot.
 
