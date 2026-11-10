@@ -43,7 +43,7 @@ Kinocut needs [FFmpeg](https://ffmpeg.org/) on your `PATH` (`brew install ffmpeg
 Add it to Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf, Zed):
@@ -53,7 +53,7 @@ Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf,
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.0", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -62,7 +62,7 @@ Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf,
 Or install the package and check your machine:
 
 ```bash
-pip install kinocut==2.0.0
+pip install kinocut==2.0.1
 kino doctor
 ```
 
@@ -168,14 +168,13 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 
 | | Version | Surface |
 | --- | --- | --- |
-| **Published** on PyPI, npm and the MCP Registry | **2.0.0** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
-| **This source** (`master`) | **2.0.1** candidate | Same surface; the review card no longer needs Pillow |
-| **Compatibility package** | `mcp-video==1.6.21` | Installs `kinocut==2.0.0` for anyone still on the old name; the prepared `mcp-video==1.6.22` installs `kinocut==2.0.1` |
+| **Published** on PyPI, npm and the MCP Registry | **2.0.1** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
+| **Compatibility package** | `mcp-video==1.6.22` | Installs `kinocut==2.0.1` for anyone still on the old name |
 
-Install from PyPI: the published 2.0.0 package includes the optional object-matte extra
-(`kinocut[object-matte]==2.0.0`), which adds no new MCP tool.
+Install from PyPI: the published 2.0.1 package includes the optional object-matte extra
+(`kinocut[object-matte]==2.0.1`), which adds no new MCP tool.
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [2.0.0 on PyPI](https://pypi.org/project/kinocut/2.0.0/)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [2.0.1 on PyPI](https://pypi.org/project/kinocut/2.0.1/)
 
 | | |
 | --- | --- |
@@ -197,12 +196,12 @@ setups should use `kinocut`, `from kinocut import Client` and `kino`. See
 Kinocut es un servidor MCP local para que tu agente de IA edite video con barreras de
 seguridad: recorta, une, subtitula, mezcla audio, crea Shorts y revisa la calidad antes de
 entregarte el corte. Nunca sobrescribe tus archivos sin permiso y no sube nada a la nube.
-La versión publicada es **2.0.0**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
+La versión publicada es **2.0.1**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
 
 ```bash
-pip install kinocut==2.0.0
+pip install kinocut==2.0.1
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 `kino doctor` te dice qué funciones están listas y qué falta instalar. La documentación

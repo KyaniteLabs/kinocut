@@ -531,7 +531,7 @@ def remove_background(
     """Cut a person or a product out of a still or video.
 
     Default model is people (`u2net_human_seg`) via Hyperframes. Products and
-    other objects use `birefnet-general` (Kinocut ONNX, `kinocut[object-matte]==2.0.0`).
+    other objects use `birefnet-general` (Kinocut ONNX, `kinocut[object-matte]==2.0.1`).
     """
     if info:
         return _remove_background_info()

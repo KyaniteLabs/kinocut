@@ -18,7 +18,7 @@ runs:
       shell: bash
       run: |
         python -m pip install -U pip
-        python -m pip install "kinocut==2.0.0"
+        python -m pip install "kinocut==2.0.1"
     - name: Optional cutfile render
       shell: bash
       if: ${{ inputs.cutfile != '' }}

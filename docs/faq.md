@@ -18,8 +18,8 @@ client supports.
 
 Yes, as `tech.kyanitelabs/kinocut`. The
 [official MCP Registry entry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest),
-PyPI and the GitHub release report **2.0.0** (published 2026-11-10). The compatibility
-package `mcp-video==1.6.21` pins `kinocut==2.0.0`. The legacy id
+PyPI and the GitHub release report **2.0.1** (published 2026-11-10). The compatibility
+package `mcp-video==1.6.22` pins `kinocut==2.0.1`. The legacy id
 `io.github.KyaniteLabs/kinocut` is deprecated. Check the registry and PyPI for the live
 version; [public_claims.json](public_claims.json) records what this repository last
 verified.
@@ -47,7 +47,7 @@ By default, 18:
 - `list_operations` and `describe_operation` to find an operation and fetch its schema.
 
 `KINOCUT_TOOLS=profile:<name>` lists one job's tools by name (for example
-`profile:editor`), and `KINOCUT_TOOLS=all` lists every tool: 206 in 2.0.0. See [MCP_TOOL_FAMILIES.md](MCP_TOOL_FAMILIES.md).
+`profile:editor`), and `KINOCUT_TOOLS=all` lists every tool: 206 in 2.0.1. See [MCP_TOOL_FAMILIES.md](MCP_TOOL_FAMILIES.md).
 
 ## How does my agent find an operation that is not on the hot path?
 
@@ -82,7 +82,7 @@ engine as the MCP server.
 ## How do I install it?
 
 ```bash
-pip install kinocut==2.0.0
+pip install kinocut==2.0.1
 kino doctor
 ```
 
@@ -94,7 +94,7 @@ None are needed for core editing. The full list is in [INSTALL.md](INSTALL.md#op
 Install FFmpeg and [uv](https://docs.astral.sh/uv/getting-started/installation/), then:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 ## Why not call FFmpeg directly?
@@ -115,8 +115,8 @@ packages, fetching URL inputs and first-use model weights also use the network. 
 
 ## Is mcp-video a separate product?
 
-No. Kinocut is the renamed project. `pip install --upgrade 'mcp-video==1.6.21'` installs
-Kinocut 2.0.0, and the `mcp-video` command and `mcp_video` import still work. New
+No. Kinocut is the renamed project. `pip install --upgrade 'mcp-video==1.6.22'` installs
+Kinocut 2.0.1, and the `mcp-video` command and `mcp_video` import still work. New
 integrations should use `kinocut`, `kino` and `from kinocut import Client`.
 
 ## Does Kinocut generate video?
@@ -137,7 +137,7 @@ acceptance.
 Yes, from a **stitched 360 MP4**, not a raw `.insv`. `video_intent` with a 360 goal (or
 `Client.propose_360_assembly`) writes a reviewable `360_assembly_plan`. Approve it, then
 render split, switch, picture-in-picture or single view. Available in published
-`kinocut==2.0.0`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
+`kinocut==2.0.1`. See [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
 ## What do the Hyperframes and Revideo tools add?
 
@@ -150,8 +150,8 @@ editing.
 
 Yes, on the same `hyperframes-remove-background` command. The default model is
 **people** (`u2net_human_seg`). For products and other objects, pass
-`--model birefnet-general` after `pip install "kinocut[object-matte]==2.0.0"`. That
-optional object-matte extra is available in published 2.0.0 (first shipped in 1.15.1).
+`--model birefnet-general` after `pip install "kinocut[object-matte]==2.0.1"`. That
+optional object-matte extra is available in published 2.0.1 (first shipped in 1.15.1).
 `--info` lists models without downloading. No new MCP tool. See
 [PRODUCT_MATTE.md](PRODUCT_MATTE.md).
 

@@ -5,7 +5,7 @@ description: Use when agents edit local video safely with Kinocut. MCP, Python, 
 
 # Kinocut
 
-Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. Published 2.0.0 serves **206 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is an 18-tool default (an 8-tool hot path, eight operation families, and `list_operations` / `describe_operation`, which reach every operation). `KINOCUT_TOOLS=profile:editor` selects the editor profile. `list_operations` finds an operation without reading this manual.
+Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. Published 2.0.1 serves **206 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is an 18-tool default (an 8-tool hot path, eight operation families, and `list_operations` / `describe_operation`, which reach every operation). `KINOCUT_TOOLS=profile:editor` selects the editor profile. `list_operations` finds an operation without reading this manual.
 
 Inspect the installed schemas before using newer additions.
 
@@ -86,7 +86,7 @@ and `video_release_checkpoint`, then require human visual review.
 
 ## Choose A Surface
 
-- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==2.0.0`. Do not edit another host's configuration from this skill.
+- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==2.0.1`. Do not edit another host's configuration from this skill.
 - CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
 - Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
 
@@ -99,7 +99,7 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
 4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
 
-There is no `video_360_*` MCP tool and no `kino 360` command. In published 2.0.0, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
+There is no `video_360_*` MCP tool and no `kino 360` command. In published 2.0.1, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
 also proposes a nested `sphere_plan`. Save that plan as its own JSON artifact;
 after actual human review, `kino review-decide PLAN.json accept --output OUTPUT`
 approves and renders it. `reject` never renders; changed source identity blocks
@@ -127,12 +127,12 @@ directors never write pixels.
   `Client.estimate_operation` return local heuristics, dimensionless cost units,
   and no billing currency. Do not present them as measured cloud latency/cost.
 
-## Product / object matte (published in 1.15.1; current in 2.0.0)
+## Product / object matte (published in 1.15.1; current in 2.0.1)
 
-The optional object-matte extra is available in published 2.0.0. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+The optional object-matte extra is available in published 2.0.1. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
-2. `pip install "kinocut[object-matte]==2.0.0"` then `model="birefnet-general"`.
+2. `pip install "kinocut[object-matte]==2.0.1"` then `model="birefnet-general"`.
 3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
 4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
 
@@ -329,7 +329,7 @@ plan = video.composite_layers(
 Run the pinned server. Do not edit another host's configuration from this skill.
 
 ```bash
-uvx kinocut==2.0.0
+uvx kinocut==2.0.1
 ```
 
 ## Guardrails
