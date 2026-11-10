@@ -16,9 +16,7 @@ from .errors import MCPVideoError
 _OVERWRITE: ContextVar[bool | None] = ContextVar("kinocut_overwrite", default=None)
 _OVERWRITE_TYPE = Annotated[
     bool,
-    Field(
-        strict=True, description="Explicitly allow replacing existing media. Existing non-media files are protected."
-    ),
+    Field(strict=True, description="Allow replacing existing media files."),
 ]
 
 

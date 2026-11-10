@@ -137,9 +137,13 @@ def test_headline_baseline_numbers_are_pinned():
     all 98,000 B, editor 63,857 B. Same properties, types and validation.
     Moving Args help onto each parameter (#719) grew the schemas: default
     17,021 B, all 128,297 B, editor 87,550 B (tools/list itself shrank).
+    Shorter family dispatcher text then cut default to 16,373 B and editor
+    to 86,902 B (all unchanged: it carries no family tools).
+    A shorter overwrite description (on every mutating tool) then cut
+    default to 15,563 B, all to 119,072 B and editor to 81,772 B.
     """
     assert BASELINE["captured"]["git_commit"] == "ed60df33fe1cdf6da219993117ff08260d1c39fa"
-    for mode, count, total in (("default", 18, 17_021), ("all", 205, 128_297), ("profile:editor", 114, 87_550)):
+    for mode, count, total in (("default", 18, 15_563), ("all", 205, 119_072), ("profile:editor", 114, 81_772)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -209,7 +213,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 17_021), ("all", 205, 128_297)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_563), ("all", 205, 119_072)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
