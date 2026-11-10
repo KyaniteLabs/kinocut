@@ -97,9 +97,25 @@ privacy and terms fields are intentional listing metadata.
 | Grok Build | Claude Code layout above |
 | ZCode | Installs from the Claude Code marketplace |
 | MiniMax | `.minimax-plugin/plugin.json`, `kinocut.mcp.json`, bundled icon |
+| Hermes Desktop | `desktop/plugin.js` (beside `mcp.json`; one unified package) |
 | Cursor | Repository marketplace manifest, `.cursor-plugin/plugin.json`, `mcp.json`, `skills/` |
 | Kimi Code | `kimi.plugin.json`, `skills/` |
 | OpenCode | Configuration in `opencode-plugin/README.md` |
+
+## Hermes Desktop
+
+The same package ships a Hermes Desktop half, `desktop/plugin.js`, beside
+`mcp.json`. Hermes copies it to its desktop plugin folder when the package is
+installed; there is no separate install.
+
+It is opt-in. Turn it on under Capabilities > Plugins > Kinocut. Once on, it shows:
+
+- a status bar item with live render progress (`Kinocut video_trim 42%`, then a
+  brief check mark or cross when the call finishes), and
+- a "Kinocut renders" pane with active renders and the last ten finished ones,
+  opened from the command palette with "Kinocut: Show renders".
+
+It only reacts to Kinocut tool calls and reads no files or credentials.
 
 ## Manual setup for any MCP client
 

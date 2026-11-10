@@ -17,7 +17,7 @@ Kinocut is an Apache-2.0 open-source Model Context Protocol (MCP) server that gi
 - **Last-updated:** 2026-11-02
 - **Published surface (1.16.5):** 20 default MCP tools; `KINOCUT_TOOLS=all` serves 205 MCP tools / 177 CLI commands
 - **Hermes catalog pin:** `kinocut==1.16.4` (launched through uvx) serves 203 MCP tools / 177 CLI commands — not the 1.16.5 counts
-- **Development-tip:** same 20-default / 205-full split as published 1.16.5; `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools.
+- **Development-tip:** 18-default / 206-full (Unreleased); `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools.
 - **Runtime:** Python 3.11+, FFmpeg on PATH; optional extras for Whisper/upscale/etc.
 - **MCP transport:** stdio
 - **MCP Registry id:** `tech.kyanitelabs/kinocut`

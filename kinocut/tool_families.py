@@ -1,6 +1,6 @@
 """Typed operation families: the compact MCP dispatch surface.
 
-The registry owns 205 direct tool registrations (``KINOCUT_TOOLS=all``).  This
+The registry owns 206 direct tool registrations (``KINOCUT_TOOLS=all``).  This
 module partitions those operations into a small set of *families* so the
 default and profile surfaces can expose every operation through a handful of
 typed dispatch tools instead of one schema per operation.

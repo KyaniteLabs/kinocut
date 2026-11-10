@@ -16,7 +16,7 @@ family tool with the selected operation and only CLI routes that actually
 exist (``kino`` subcommands are enumerated from the real parser).
 
 These tools are registered in default and profile modes only; the legacy
-``KINOCUT_TOOLS=all`` surface stays exactly the 205-name registry.
+``KINOCUT_TOOLS=all`` surface stays exactly the 206-name registry.
 """
 
 import re
