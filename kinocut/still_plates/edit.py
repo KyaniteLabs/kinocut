@@ -9,6 +9,7 @@ from ..validation_errors import reason
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
+    ReceiptStatus,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -117,13 +118,13 @@ def image_edit(
         "stages": ["plan", "establish_match", "export"],
     }
     if dry_run:
-        receipt = {"tool": "image_edit", "status": "planned", "dry_run": True, "plan": plan, "outputs": []}
+        receipt = {"tool": "image_edit", "status": ReceiptStatus.PLANNED, "dry_run": True, "plan": plan, "outputs": []}
     else:
         dest = out_dir / f"{source_path.stem}_edited.png"
         save_rgb_array(apply_rgb_gains(src_arr, gains), dest)
         receipt = {
             "tool": "image_edit",
-            "status": "ok",
+            "status": ReceiptStatus.OK,
             "dry_run": False,
             "plan": plan,
             "outputs": [

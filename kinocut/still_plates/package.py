@@ -9,7 +9,7 @@ from ..errors import MCPVideoError
 from .edit import image_edit
 from .gate import still_gate
 from .grade import still_grade
-from .io import ensure_output_dir, validate_still_path, write_receipt
+from .io import ReceiptStatus, ensure_output_dir, validate_still_path, write_receipt
 from .match import still_match
 
 
@@ -46,7 +46,7 @@ def _dry_run_receipt(
     """Build a dry-run still-package receipt without rendering."""
     receipt = {
         "tool": "still_package",
-        "status": "planned",
+        "status": ReceiptStatus.PLANNED,
         "dry_run": True,
         "graph": graph,
         "establish": str(establish_path),
@@ -114,7 +114,7 @@ def still_package(
     passed = bool(gate_receipt.get("passed"))
     package = {
         "tool": "still_package",
-        "status": "ok" if passed else "gate_failed",
+        "status": ReceiptStatus.OK if passed else ReceiptStatus.GATE_FAILED,
         "dry_run": False,
         "graph": graph,
         "establish": str(establish_path),
