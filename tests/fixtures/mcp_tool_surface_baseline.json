@@ -1,6 +1,6 @@
 {
  "captured": {
-  "git_commit": "33bbfed4f633211ebb477950b41b846044b45e64",
+  "git_commit": "751b9f4fd4df64d914da5144b8192835e45d4ec3",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "1.16.5",
@@ -24,8 +24,8 @@
     "name": "kinocut",
     "version": "1.16.5"
    },
-   "tool_count": 205,
-   "tool_names_sha256": "65ff9dd382cb5ff733bcb9b0bee5df37991232800d62fa6f5972ce2002113a07",
+   "tool_count": 206,
+   "tool_names_sha256": "96c232945a96cd4a2cbede69deb5d43d7da19aa7543b1c71159cbf01930a02f6",
    "tools": [
     {
      "input_schema_bytes": 653,
@@ -3448,6 +3448,25 @@
      ]
     },
     {
+     "input_schema_bytes": 519,
+     "input_schema_sha256": "e5ca7047f22dab512af4807bf0346b70ee633b2d299a8eed3ddd7045a5d660c2",
+     "module": "server_tools_media",
+     "name": "video_review_card",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "frame_count",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
      "input_schema_bytes": 671,
      "input_schema_sha256": "902883f609ae5bbd54ea9e1c9cb3bd9d8c52ae0995502438484a6b1bc95c216f",
      "module": "server_tools_intent",
@@ -4117,7 +4136,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 118736
+   "total_input_schema_bytes": 119255
   },
   "default": {
    "launch": {
@@ -4290,8 +4309,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 1159,
-     "input_schema_sha256": "aea8841bea3de74ba717d7468786bd21dc9c78f2554df2d0c17b49d09a4fb034",
+     "input_schema_bytes": 1179,
+     "input_schema_sha256": "57793a8ca521638cfd5fc0bf6351131ddb8fc8803d220df0da5ee90977ff09b3",
      "module": null,
      "name": "video_edit_ops",
      "profiles": [],
@@ -4452,7 +4471,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 14739
+   "total_input_schema_bytes": 14759
   },
   "profile:editor": {
    "launch": {
@@ -4469,8 +4488,8 @@
     "name": "kinocut",
     "version": "1.16.5"
    },
-   "tool_count": 114,
-   "tool_names_sha256": "a002393f23cc9071c52e23adf202624a0188d17939c45474fc3127b2a8e1ff2c",
+   "tool_count": 115,
+   "tool_names_sha256": "cd57c2dc55336cd23e6170c0e5a61ec9e8504a5140612ff0ee5c6d43c0a861b2",
    "tools": [
     {
      "input_schema_bytes": 653,
@@ -5686,8 +5705,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1159,
-     "input_schema_sha256": "aea8841bea3de74ba717d7468786bd21dc9c78f2554df2d0c17b49d09a4fb034",
+     "input_schema_bytes": 1179,
+     "input_schema_sha256": "57793a8ca521638cfd5fc0bf6351131ddb8fc8803d220df0da5ee90977ff09b3",
      "module": null,
      "name": "video_edit_ops",
      "profiles": [],
@@ -6385,6 +6404,25 @@
      ]
     },
     {
+     "input_schema_bytes": 519,
+     "input_schema_sha256": "e5ca7047f22dab512af4807bf0346b70ee633b2d299a8eed3ddd7045a5d660c2",
+     "module": "server_tools_media",
+     "name": "video_review_card",
+     "profiles": [
+      "editor",
+      "media"
+     ],
+     "properties": [
+      "frame_count",
+      "input_path",
+      "output_path",
+      "overwrite"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
      "input_schema_bytes": 881,
      "input_schema_sha256": "e315797de4e27e1054f203b936ac77bbcf92be7ad9919131b23f37d9a7a06d87",
      "module": "server_tools_media",
@@ -6803,7 +6841,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 80922
+   "total_input_schema_bytes": 81461
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

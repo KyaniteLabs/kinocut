@@ -522,6 +522,7 @@ CPU-based glitch effects run entirely through FFmpeg. GPU-accelerated effects (m
 | `video_thumbnail` | Extract a single frame (thumbnail / frame grab) at any timestamp |
 | `video_preview` | Generate fast low-res preview |
 | `video_storyboard` | Extract key frames as a grid for review |
+| `video_review_card` | Write a self-contained HTML review card (contact sheet, facts, Approve / Dig in / Try another range buttons) for Hermes Desktop chat |
 | `video_compare_quality` | Compare PSNR/SSIM quality metrics between videos |
 | `video_read_metadata` | Read video metadata tags |
 | `video_write_metadata` | Write video metadata tags |

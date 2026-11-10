@@ -774,9 +774,9 @@ def test_list_operations_is_on_demand_and_total():
     result = asyncio.run(_call(DISCOVERY_TOOL_NAME, {}))
     payload = _payload(result)
     assert payload["success"] is True
-    assert payload["count"] == len(TOOL_REGISTRY) - 1 == 204
+    assert payload["count"] == len(TOOL_REGISTRY) - 1 == 205
     assert [family["name"] for family in payload["families"]] == list(FAMILY_MODULES)
-    assert sum(family["operations"] for family in payload["families"]) == 204
+    assert sum(family["operations"] for family in payload["families"]) == 205
     for row in payload["operations"]:
         assert row["verb"] == operation_verb(row["name"])
         assert row["family"] == FAMILY_OF_OPERATION[row["name"]]
@@ -1039,7 +1039,7 @@ def test_cold_server_mode_surfaces_are_exact():
         FAMILY_SURFACE_TOOLS
     )
     assert set(editor["names"]) == expected
-    assert editor["count"] == len(expected) == 114  # 104 direct + 8 families + list_operations + describe_operation
+    assert editor["count"] == len(expected) == 115  # 105 direct + 8 families + list_operations + describe_operation
 
 
 def test_concurrent_servers_in_different_modes_stay_isolated():

@@ -119,6 +119,31 @@ def video_storyboard(
 
 @mcp.tool()
 @_safe_tool
+def video_review_card(
+    input_path: str,
+    output_path: str | None = None,
+    frame_count: int = 6,
+) -> dict[str, Any]:
+    """Write an HTML review card (contact sheet, facts, action buttons) for Hermes Desktop chat.
+
+    Reply with the returned preview_directive alone on its own line.
+
+    Args:
+        input_path: Absolute path to the input video.
+        output_path: Where to save the .html card. Defaults next to the input.
+        frame_count: Number of contact-sheet frames (1-100).
+    """
+    from .review_card import write_review_card
+
+    input_path = _validate_input_path(input_path)
+    MAX_FRAME_COUNT = 100
+    if frame_count < 1 or frame_count > MAX_FRAME_COUNT:
+        return _validation_error(f"frame_count must be between 1 and {MAX_FRAME_COUNT}, got {frame_count}")
+    return _result(write_review_card(input_path, output_path=output_path, frame_count=frame_count))
+
+
+@mcp.tool()
+@_safe_tool
 def video_subtitles(
     input_path: str,
     subtitle_path: str,
