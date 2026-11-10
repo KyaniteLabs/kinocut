@@ -103,13 +103,19 @@ def design_quality_panel(data: Any) -> Panel:
     return Panel("\n".join(lines), title="Design Quality", border_style="green")
 
 
-def format_cli_error(e: Exception, err_console: Any, logger: Any) -> None:
+def format_cli_error(
+    e: Exception,
+    err_console: Any,
+    logger: Any,
+    command: str | None = None,
+    arguments: dict[str, Any] | None = None,
+) -> None:
     """Display an error in a styled panel."""
     from ..errors import MCPVideoError, retry_context, retry_message
 
     if isinstance(e, MCPVideoError):
         try:
-            with retry_context("kino", {}):
+            with retry_context(command or "kino", arguments or {}):
                 data = e.to_dict()
         except Exception as exc:
             logger.debug("MCPVideoError.to_dict() failed in CLI formatting: %s", exc)

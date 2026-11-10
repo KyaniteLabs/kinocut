@@ -19,6 +19,7 @@ from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation
 from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
+from .validation_errors import rejected_value
 
 
 def probe(*args: Any, **kwargs: Any) -> Any:
@@ -219,14 +220,12 @@ def video_merge(
             shortest neighboring clip.
     """
     if transition is not None and transition not in VALID_XFADE_TRANSITIONS:
-        return _validation_error(
-            f"Invalid transition '{transition}'. Must be one of: {', '.join(sorted(VALID_XFADE_TRANSITIONS))}"
-        )
+        return _validation_error(f"Invalid transition. Must be one of: {', '.join(sorted(VALID_XFADE_TRANSITIONS))}")
     if transitions is not None:
-        invalid = [t for t in transitions if t not in VALID_XFADE_TRANSITIONS]
+        invalid = sum(1 for t in transitions if not isinstance(t, str) or t not in VALID_XFADE_TRANSITIONS)
         if invalid:
             return _validation_error(
-                f"Invalid transition(s): {', '.join(invalid)}. "
+                f"Invalid transition(s): {invalid} of {len(transitions)} are not supported. "
                 f"Must be one of: {', '.join(sorted(VALID_XFADE_TRANSITIONS))}"
             )
     for _p in clips:
@@ -278,7 +277,7 @@ def video_add_text(
     if crf is not None and not (MIN_CRF <= crf <= MAX_CRF):
         return _validation_error(f"crf must be {MIN_CRF}-{MAX_CRF}, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset: {rejected_value(preset)}")
     input_path = _validate_input_path(input_path)
     if size < 8 or size > 500:
         return _validation_error(f"Font size must be between 8 and 500, got {size}")
@@ -335,7 +334,7 @@ def video_add_texts(
     if crf is not None and not (MIN_CRF <= crf <= MAX_CRF):
         return _validation_error(f"crf must be {MIN_CRF}-{MAX_CRF}, got {crf}")
     if preset is not None and preset not in VALID_PRESETS:
-        return _validation_error(f"Invalid preset: {preset}")
+        return _validation_error(f"Invalid preset: {rejected_value(preset)}")
     input_path = _validate_input_path(input_path)
     if not texts:
         return _validation_error("texts list cannot be empty")
@@ -541,9 +540,11 @@ async def video_convert(
         target_bitrate: Target video bitrate in kbps for two-pass encoding.
     """
     if format not in VALID_FORMATS:
-        return _validation_error(f"Invalid format: {format}. Must be one of {sorted(VALID_FORMATS)}")
+        return _validation_error(f"Invalid format: {rejected_value(format)}. Must be one of {sorted(VALID_FORMATS)}")
     if quality not in QUALITY_PRESETS:
-        return _validation_error(f"Invalid quality: {quality}. Must be one of {sorted(QUALITY_PRESETS)}")
+        return _validation_error(
+            f"Invalid quality: {rejected_value(quality)}. Must be one of {sorted(QUALITY_PRESETS)}"
+        )
     input_path = _validate_input_path(input_path)
     run_convert = functools.partial(
         convert,

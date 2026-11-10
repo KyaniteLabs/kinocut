@@ -636,9 +636,8 @@ class ClientMediaMixin(ClientMasksMixin):
                 code="wrong_parameter_name",
             )
         if kwargs:
-            bad = next(iter(kwargs))
             raise MCPVideoError(
-                f"create_from_images() got unexpected parameter '{bad}'. Use images= or list_file= and output_path=.",
+                "create_from_images() got an unexpected parameter. Use images= or list_file= and output_path=.",
                 error_type="validation_error",
                 code="unexpected_parameter",
             )

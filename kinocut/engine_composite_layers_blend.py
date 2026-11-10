@@ -73,7 +73,7 @@ def validate_blend_geometry(layer: Any, canvas: Any) -> None:
 
 def _blend_geometry_error(layer: Any, reasons: list[str]) -> MCPVideoError:
     return MCPVideoError(
-        f"layer {layer.id!r} blend {layer.blend!r} combines with {', '.join(reasons)}; "
+        f"layer blend combines with {', '.join(reasons)}; "
         "non-normal blend allows full-canvas or a positioned in-canvas rectangle only "
         "(scale/rotation/mask/fractional/out-of-canvas are deferred)",
         error_type="validation_error",

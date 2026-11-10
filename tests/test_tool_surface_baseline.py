@@ -129,9 +129,12 @@ def test_headline_baseline_numbers_are_pinned():
     surface landed; the all-mode rows are unchanged down to per-tool digests.
     #679 then added an optional ``profile`` input to video_quality_check and
     video_release_checkpoint: default 24,347 B, all 126,908 B, editor 81,813 B.
+    The hot-path diet then cut the direct core from 20 tools to 8 (every
+    dropped tool stays reachable through its family dispatcher): default
+    18 tools / 17,429 B, editor 114 tools / 80,152 B; all-mode unchanged.
     """
-    assert BASELINE["captured"]["git_commit"] == "3f5544b14069f4075555a0922d29a742b397e036"
-    for mode, count, total in (("default", 30, 24_347), ("all", 205, 126_908), ("profile:editor", 118, 81_813)):
+    assert BASELINE["captured"]["git_commit"] == "bba3eece49e43641d27c850d7d0f4a0c373d3f07"
+    for mode, count, total in (("default", 18, 17_429), ("all", 205, 126_908), ("profile:editor", 114, 80_152)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -201,7 +204,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 30, 24_347), ("all", 205, 126_908)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 17_429), ("all", 205, 126_908)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
@@ -231,7 +234,7 @@ def test_registry_inventory_is_complete_and_unambiguous():
 def test_registry_core_table_matches_default_surface():
     from kinocut.tool_families import FAMILY_SURFACE_TOOLS
 
-    assert len(CORE_TOOLS) == 20
+    assert len(CORE_TOOLS) == 8
     core_tagged = {name for name, tags in TOOL_REGISTRY.items() if "core" in tags}
     assert core_tagged == set(CORE_TOOLS)
     assert {row["name"] for row in BASELINE["modes"]["default"]["tools"]} == set(CORE_TOOLS) | set(FAMILY_SURFACE_TOOLS)

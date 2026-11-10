@@ -674,20 +674,17 @@ def test_vision_provider_boundary_off_vs_remote_through_video_plan_ops(monkeypat
 
 
 def test_doctor_package_launcher_boundary_through_video_qc_ops(monkeypatch):
-    """Security round 3 R1: ``video_qc_ops`` is open-world because its member
-    ``video_doctor`` can invoke a package launcher.
+    """Security round 3 R1: ``video_qc_ops`` stays open-world-annotated, but
+    ``video_doctor`` must never reach a package launcher.
 
     ``npx --yes hyperframes --version`` is not a local version query: npx may
-    fetch and install a *missing* ``hyperframes`` package from the npm
-    registry before executing it (``--yes`` suppresses the installation
-    prompt; ``--version`` is passed through to the package). Doctor reaches
-    that launcher through two supported configurations — a hyperframes CLI on
-    PATH (``doctor._check_command``'s node branch) and an explicit
-    ``MCP_VIDEO_HYPERFRAMES_COMMAND`` prefix (``doctor._check_hyperframes_cli``).
-    The real diagnostics flow runs end to end here while every final
-    ``subprocess.run`` is intercepted, so no launcher actually executes and
-    nothing leaves the process; with no hyperframes anywhere, doctor performs
-    zero launcher calls.
+    fetch and install a missing ``hyperframes`` package from the npm registry
+    before executing it. Doctor reads versions offline instead
+    (``kinocut.doctor_offline``), so whether a hyperframes CLI is on PATH or
+    the ``npx --yes hyperframes`` prefix is configured in
+    ``MCP_VIDEO_HYPERFRAMES_COMMAND``, no launcher call reaches the OS
+    boundary. Every final ``subprocess.run`` is intercepted, so nothing
+    executes or leaves the process.
     """
 
     import kinocut.doctor as doctor
@@ -736,15 +733,11 @@ def test_doctor_package_launcher_boundary_through_video_qc_ops(monkeypatch):
     #    control — zero package-launcher invocations reach the OS boundary.
     assert dispatch(has_hyperframes=False, configured_command="") == []
 
-    # 2) hyperframes CLI on PATH: exactly one launcher call, because
-    #    _check_command's node branch runs npx once node's own probe succeeds.
-    assert dispatch(has_hyperframes=True, configured_command="") == [["npx", "--yes", "hyperframes", "--version"]]
-
-    # 3) No PATH binary, but the supported explicit command prefix: the same
-    #    single launcher invocation, this time via _check_hyperframes_cli.
-    assert dispatch(has_hyperframes=False, configured_command="npx --yes hyperframes") == [
-        ["npx", "--yes", "hyperframes", "--version"]
-    ]
+    # 2) and 3): with a hyperframes CLI on PATH, or with the explicit
+    #    ``npx --yes hyperframes`` prefix configured, doctor still executes no
+    #    package launcher: versions are read offline (kinocut.doctor_offline).
+    assert dispatch(has_hyperframes=True, configured_command="") == []
+    assert dispatch(has_hyperframes=False, configured_command="npx --yes hyperframes") == []
 
 
 def test_list_operations_reports_only_declared_annotations():
@@ -996,8 +989,8 @@ def test_family_runtime_error_hints_are_retargeted_not_inherited():
 
 
 def test_code_specific_hints_survive_family_dispatch(sample_video):
-    """Tool-independent retry guidance (overwrite consent, new output path)
-    is not rewritten — it is already valid under the family surface."""
+    """Code-specific retry guidance (overwrite consent, new output path)
+    survives family dispatch; only the direct tool name is retargeted."""
 
     configure_tool_surface()
     out = str(Path(sample_video).with_name("exists.mp4"))
@@ -1015,7 +1008,10 @@ def test_code_specific_hints_survive_family_dispatch(sample_video):
     )
     assert payload["success"] is False
     assert payload["error"]["code"] == "output_exists"
-    assert "retry with overwrite=true (MCP) / --overwrite (CLI)" in payload["error"]["message"]
+    message = payload["error"]["message"]
+    assert 'call video_edit_ops(operation="video_trim", params={...}) with overwrite=true' in message
+    assert "--overwrite" in message
+    assert "call video_trim " not in message
 
 
 # --- isolation and concurrency ---------------------------------------------------------
@@ -1025,7 +1021,7 @@ def test_cold_server_mode_surfaces_are_exact():
     default = _subprocess_surface(None)
     assert default["mode"] == "default"
     assert set(default["names"]) == _default_surface_names()
-    assert default["count"] == len(_default_surface_names()) == 30
+    assert default["count"] == len(_default_surface_names()) == 18
 
     core_alias = _subprocess_surface("core")
     assert core_alias["names"] == default["names"], "core remains the documented alias of the default mode"
@@ -1040,7 +1036,7 @@ def test_cold_server_mode_surfaces_are_exact():
         FAMILY_SURFACE_TOOLS
     )
     assert set(editor["names"]) == expected
-    assert editor["count"] == len(expected) == 118  # 108 direct + 8 families + list_operations + describe_operation
+    assert editor["count"] == len(expected) == 114  # 104 direct + 8 families + list_operations + describe_operation
 
 
 def test_concurrent_servers_in_different_modes_stay_isolated():

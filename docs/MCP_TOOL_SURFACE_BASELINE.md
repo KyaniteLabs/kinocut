@@ -14,11 +14,11 @@ stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 30 | 24,347 |
+| default / `core` (unset) | 18 | 17,429 |
 | `all` | 205 | 126,908 |
-| `profile:editor` | 118 | 81,813 |
+| `profile:editor` | 114 | 80,152 |
 
-The default surface is the 20-tool core diet plus the ten compact-surface
+The default surface is the 8-tool hot-path core plus the ten compact-surface
 tools (eight typed operation families + `list_operations` +
 `describe_operation`, see `docs/MCP_TOOL_FAMILIES.md`). It was captured at
 2cf76e98 (published 1.16.5) as 20 tools / 13,947 bytes and regenerated after
@@ -28,6 +28,11 @@ the legacy full-catalog compatibility proof. `profile:editor` moved
 108 / 71,413 → 118 / 81,747 with the same ten additions. #679 then added an
 optional `profile` input to `video_quality_check` and `video_release_checkpoint`
 (default 24,281 → 24,347; `all` 126,776 → 126,908; editor 81,747 → 81,813).
+The hot-path diet (#655) then cut the direct core from 20 tools to 8; the
+twelve dropped tools stay reachable as family operations, through
+`KINOCUT_TOOLS=all`, and (where their profile carries them) through
+`profile:<name>` (default 30 / 24,347 → 18 / 17,429; editor 118 / 81,813 →
+114 / 80,152; `all` unchanged).
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required

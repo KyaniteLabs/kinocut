@@ -22,6 +22,7 @@ from typing import Any
 
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.errors import MCPVideoError
+from ..validation_errors import rejected_value
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,7 +53,7 @@ def migrate_raw(record_kind: str, raw: dict[str, Any]) -> dict[str, Any]:
         migrator = MIGRATIONS.get((record_kind, version))
         if migrator is None:
             raise contract_error(
-                f"no reader migration for {record_kind!r} schema_version {version}",
+                f"no reader migration for {rejected_value(record_kind)!r} schema_version {version}",
                 INVALID_RECORD,
             )
         current = _apply_migrator(migrator, current, record_kind, version)
@@ -91,7 +92,7 @@ def _apply_migrator(
             type(exc).__name__,
         )
         raise contract_error(
-            f"reader migration for {record_kind!r} schema_version {version} failed", INVALID_RECORD
+            f"reader migration for {rejected_value(record_kind)!r} schema_version {version} failed", INVALID_RECORD
         ) from exc
     if not isinstance(result, dict):
         raise contract_error("reader migration must return a JSON object", INVALID_RECORD)
