@@ -15,10 +15,9 @@ The same engine is available as a Python client (`from kinocut import Client`) a
 - **What it is:** MCP server + Python client + CLI for agentic video editing
 - **Publisher:** KyaniteLabs — https://kyanitelabs.tech/
 - **License:** Apache-2.0
-- **Latest published release:** 1.16.5 (2026-10-27)
-- **Published surface (1.16.5):** 205 MCP tools / 177 CLI commands (20 MCP tools listed by default)
-- **Development tip (master):** 206 MCP tools / 177 CLI commands (18 MCP tools listed by default)
-- **Compatibility package:** 1.6.20 shim → kinocut 1.16.5 (`mcp-video==1.6.20`)
+- **Latest published release:** 2.0.1 (2026-11-10)
+- **Published surface (2.0.1):** 206 MCP tools / 177 CLI commands (18 MCP tools listed by default)
+- **Compatibility package:** 1.6.22 shim → kinocut 2.0.1 (`mcp-video==1.6.22`)
 - **Runtime:** Python 3.11+, FFmpeg and ffprobe on PATH; optional extras for transcription, upscaling, object matte and more
 - **MCP transport:** stdio
 - **MCP Registry id:** `tech.kyanitelabs/kinocut` (the legacy id `io.github.KyaniteLabs/kinocut` is deprecated; do not use it)
@@ -33,9 +32,9 @@ Registry for the live version.
 
 ```bash
 brew install ffmpeg   # or: sudo apt install ffmpeg
-pip install kinocut==1.16.5
+pip install kinocut==2.0.1
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 Core FFmpeg edits process local media. An AI host or an explicitly configured external
@@ -45,7 +44,7 @@ transfer. Optional vision calls are off by default (`KINOCUT_VISION_MODE=off`).
 Coming from mcp-video:
 
 ```bash
-pip install --upgrade 'mcp-video==1.6.20'   # installs kinocut 1.16.5
+pip install --upgrade 'mcp-video==1.6.22'   # installs kinocut 2.0.1
 ```
 
 ## Tool surface

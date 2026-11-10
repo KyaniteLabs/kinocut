@@ -19,11 +19,11 @@ import pytest
 
 
 ROOT = Path(__file__).resolve().parents[1]
-KINOCUT_VERSION = "1.16.5"
+KINOCUT_VERSION = "2.0.1"
 # Marketplace bundles consume the published registry release independently of
 # this checkout's product version; reconciliation must preserve canonical code.
-PLUGIN_RUNTIME_VERSION = "1.16.5"
-SHIM_VERSION = "1.6.20"
+PLUGIN_RUNTIME_VERSION = "2.0.1"
+SHIM_VERSION = "1.6.22"
 
 
 def _toml(path: Path) -> dict:

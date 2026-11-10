@@ -21,13 +21,13 @@ mkdir -p .claude/skills && cp -R skills/kinocut-repurpose .claude/skills/kinocut
 Run the pinned Kinocut MCP server when MCP tools are available. Do not edit another host's configuration from this skill:
 
 ```bash
-uvx kinocut==1.16.5
+uvx kinocut==2.0.1
 ```
 
 For CLI-only hosts, install and verify Kinocut:
 
 ```bash
-pip install kinocut==1.16.5
+pip install kinocut==2.0.1
 kino doctor
 ```
 
@@ -36,11 +36,13 @@ kino doctor
 Use these shipped surfaces only:
 
 - MCP: `video_repurpose_plan`, then `video_repurpose`.
-  **Prerequisite:** both are profile tools, not part of the default 20-tool
-  core. Start the server with `KINOCUT_TOOLS=profile:editor` (or `all`) and
-  restart it after changing the variable; `search_tools` finds their names but
-  does not register them. On the default surface, stop and report that the
-  repurpose tools are unavailable instead of retrying.
+  **How to reach them:** neither is listed by name on the default 18 tools.
+  On the default surface, call them through the `video_plan_ops` family as
+  `{"operation": "video_repurpose_plan", "params": {...}}`; `describe_operation`
+  returns each one's parameters. To list them by name instead, start the server
+  with `KINOCUT_TOOLS=profile:editor` (or `all`) and restart it after changing
+  the variable. If neither `video_plan_ops` nor the named tools are available,
+  stop and report that the repurpose tools are unavailable instead of retrying.
   The mapping is explicit:
   `profile:editor` carries `search_tools`, `video_repurpose_plan`, `video_repurpose`;
 - CLI: `repurpose-plan`, then `repurpose`.

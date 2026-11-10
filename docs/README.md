@@ -35,7 +35,7 @@ versions and commands they actually verified.
 - [Video rescue](RESCUE.md) - review-first repair.
 - [AI-video review and salvage](AI_VIDEO_REVIEW_AND_SALVAGE.md), [inspection](AI_VIDEO_INSPECTION.md) and [contracts](AI_VIDEO_CONTRACTS.md).
 - [360 dual-cam assembly](360_ASSEMBLY.md) - stitched equirectangular MP4 to propose, approve and render.
-- [Product / object matte](PRODUCT_MATTE.md) - product and catalog cutouts with `hyperframes-remove-background --model birefnet-general`, available in published 1.16.5 as the optional `kinocut[object-matte]==1.16.5` extra (first shipped in 1.15.1). No new MCP tool. Example: [examples/product-matte/](../examples/product-matte/).
+- [Product / object matte](PRODUCT_MATTE.md) - product and catalog cutouts with `hyperframes-remove-background --model birefnet-general`, available in published 2.0.1 as the optional `kinocut[object-matte]==2.0.1` extra (first shipped in 1.15.1). No new MCP tool. Example: [examples/product-matte/](../examples/product-matte/).
 - [Still plates](STILL_PLATES.md) - match and grade a set of stills to a hero image.
 - [Audio mixing](AUDIO_MIXING.md) and the sound request guides ([mix](SOUND_MIX_REQUESTS.md), [loudness](SOUND_LOUDNESS_REQUESTS.md), [master](SOUND_MASTER_REQUESTS.md), [caption speech](SOUND_DUB_REQUESTS.md)).
 - [Quality evidence](QUALITY_EVIDENCE.md) - what is measured, what is unavailable, what is not evaluated.

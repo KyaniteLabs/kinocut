@@ -5,9 +5,9 @@
 Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
 server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
-Plugin bundle **1.16.8** pins the separately versioned Kinocut runtime
-**1.16.5** (205 MCP tools / 177 CLI; 20-tool default registration). The legacy
-`mcp-video` compatibility package **1.6.20** installs that same runtime.
+Plugin bundle **2.0.1** pins the separately versioned Kinocut runtime
+**2.0.1** (206 MCP tools / 177 CLI; 18-tool default registration). The legacy
+`mcp-video` compatibility package **1.6.22** installs that same runtime.
 Catalog entries use the bundle version; launchers use the runtime version.
 
 The Hermes catalog listing is a separate pin: it still launches
@@ -50,7 +50,7 @@ the Anthropic-compatible Messages protocol. Local mode requires a loopback endpo
 has no cloud fallback and cannot activate the separate Anthropic QC worker.
 Missing model support must be reported as unavailable; host observations do not
 turn an unevaluated Kinocut assessment into a scored pass. See the
-[vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v1.16.5/docs/VISION_PRIVACY.md) for configuration and limits.
+[vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v2.0.1/docs/VISION_PRIVACY.md) for configuration and limits.
 
 Prefer new output paths. Never target credentials, session files or agent
 configuration directories.
@@ -61,11 +61,11 @@ configuration directories.
 - FFmpeg and ffprobe on `PATH`
 - Python 3.11 or newer (uv installs it if needed)
 
-Check your setup with `uvx kinocut==1.16.5 doctor`.
+Check your setup with `uvx kinocut==2.0.1 doctor`.
 
 ## Claude installation
 
-Claude Code and Cowork run the pinned `uvx kinocut==1.16.5` launcher.
+Claude Code and Cowork run the pinned `uvx kinocut==2.0.1` launcher.
 The Python project and `uv.lock` in the repository's `packaging/claude-plugin/`
 directory record exact core dependency versions, public PyPI sources and artifact
 hashes for directory review. They live outside this folder, so hosts that read a
@@ -80,7 +80,7 @@ snapshot. uv caches the environment outside the installed plugin files.
 The first launch downloads the dependencies from PyPI. Later launches
 reuse that environment. This does not bundle FFmpeg or optional AI packages.
 Cursor, MiniMax, Kimi and Agent Plugins hosts retain the pinned
-`uvx kinocut==1.16.5` launcher below.
+`uvx kinocut==2.0.1` launcher below.
 
 Claude's directory still requires manual review for registry package launchers,
 including locked ones. The lock documents a dependency snapshot; it does not guarantee
@@ -124,15 +124,16 @@ Clients can also use the pinned configuration directly:
 ```json
 {
   "mcpServers": {
-    "kinocut": { "command": "uvx", "args": ["kinocut==1.16.5"] }
+    "kinocut": { "command": "uvx", "args": ["kinocut==2.0.1"] }
   }
 }
 ```
 
 ## Narrowing the tool list
 
-Kinocut registers 205 MCP tools; the default registration is a curated 20-tool
-core, and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
+Kinocut registers 205 MCP tools. The default registration is 18 tools that
+reach all of them (8 hot-path tools, 8 operation families, `list_operations`
+and `describe_operation`), and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
 allowlist reduces the schemas sent with each model request. For Hermes, this small inspection-and-trim set
 goes in `mcp_servers` in your Hermes `config.yaml`:
 
@@ -140,11 +141,11 @@ goes in `mcp_servers` in your Hermes `config.yaml`:
 mcp_servers:
   kinocut:
     command: uvx
-    args: ["kinocut==1.16.5"]
+    args: ["kinocut==2.0.1"]
     # video_thumbnail (below) is a profile tool, not part of the default
-    # 20-tool core: select the editor profile explicitly (108 tools).
+    # 18 tools: select the editor profile explicitly (115 tools).
     # The plugin's own .mcp.json launch deliberately stays on the
-    # environment-unset 20-tool default.
+    # environment-unset 18-tool default.
     env:
       KINOCUT_TOOLS: profile:editor
     tools:
@@ -161,11 +162,10 @@ needs. `search_tools` helps discover names; it does not enable excluded tools or
 hide schemas by itself. See the [Hermes MCP configuration reference](https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference/).
 
 Plugin hosts that start the server from this plugin's `mcp.json` get the
-20-tool core. The skills that need a profile tool (`video_repurpose_plan`,
-`video_repurpose`, and other editor-profile tools) say so and require
-`KINOCUT_TOOLS=profile:editor` plus a server restart; under the default
-launch those tools are not registered, and the skill stops and reports that
-instead of retrying.
+default 18 tools. Editor-profile operations such as `video_repurpose_plan` and
+`video_repurpose` are still callable there through their operation family
+(`video_plan_ops`). The skills say so, and say that
+`KINOCUT_TOOLS=profile:editor` plus a server restart lists them by name.
 
 For other hosts, use their tool-filtering controls if available.
 
