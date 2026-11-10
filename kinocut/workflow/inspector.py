@@ -32,6 +32,7 @@ from typing import Any
 from ._errors import INVALID_WORKFLOW_RECEIPT, workflow_error
 from .planner import _hash_if_exists
 from .spec import validate_spec_path
+from .status import StepStatus
 from ..validation_errors import exception_kind
 
 _KIND_BY_TOOL = {
@@ -130,7 +131,7 @@ def _inspect_workflow(
         entry = {"id": raw.get("id"), "op": raw.get("op"), "status": raw.get("status")}
         if raw.get("skipped"):
             entry["skipped"] = True
-        if raw.get("status") == "failed":
+        if raw.get("status") == StepStatus.FAILED:
             failed_step = raw.get("id")
             error = raw.get("error")
             entry["error"] = raw.get("error")
