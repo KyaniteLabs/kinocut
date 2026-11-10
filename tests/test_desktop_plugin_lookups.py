@@ -2,7 +2,8 @@
 
 plugins/kinocut/desktop/plugin.js files a finished tool under Activity when it
 is in LOOKUP_TOOLS and under Renders otherwise. A tool that writes media takes
-an ``overwrite`` argument, so the lookups are exactly the tools without one.
+an ``overwrite`` argument, so the lookups are exactly the tools without one,
+on the default surface and on ``KINOCUT_TOOLS=all`` together.
 """
 
 from __future__ import annotations
@@ -11,7 +12,10 @@ import asyncio
 import re
 from pathlib import Path
 
+import pytest
+
 from kinocut.server import mcp
+from kinocut.tool_registry import configure_tool_surface
 
 PLUGIN = Path(__file__).resolve().parents[1] / "plugins" / "kinocut" / "desktop" / "plugin.js"
 
@@ -23,7 +27,20 @@ def _plugin_lookups() -> set[str]:
     return set(re.findall(r"'([a-z_]+)'", block.group(1)))
 
 
-def test_lookup_tools_are_the_tools_without_overwrite():
+def _no_overwrite_tools() -> set[str]:
     tools = asyncio.run(mcp.list_tools())
-    no_overwrite = {t.name for t in tools if "overwrite" not in (t.inputSchema.get("properties") or {})}
-    assert _plugin_lookups() == no_overwrite
+    return {t.name for t in tools if "overwrite" not in (t.inputSchema.get("properties") or {})}
+
+
+@pytest.fixture
+def _surfaces():
+    yield
+    configure_tool_surface("all")
+
+
+def test_lookup_tools_are_the_tools_without_overwrite(monkeypatch, _surfaces):
+    monkeypatch.delenv("KINOCUT_TOOLS", raising=False)
+    configure_tool_surface()
+    default = _no_overwrite_tools()
+    configure_tool_surface("all")
+    assert _plugin_lookups() == default | _no_overwrite_tools()
