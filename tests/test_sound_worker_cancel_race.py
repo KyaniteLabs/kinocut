@@ -47,3 +47,19 @@ def test_cancel_as_spawn_completes_is_not_lost(monkeypatch, hops):
         assert children and children[0].returncode is not None
 
     asyncio.run(scenario())
+
+
+def test_product_code_does_not_use_asyncio_wait_for():
+    # Keep the #701 fix from regressing: while 3.11 is supported, wait_for can
+    # drop a cancel. Use `async with asyncio.timeout(...)` instead.
+    from pathlib import Path
+
+    repo = Path(__file__).resolve().parents[1]
+    offenders = [
+        f"{path.relative_to(repo)}:{number}"
+        for package in ("kinocut", "kinocut_sound")
+        for path in sorted((repo / package).rglob("*.py"))
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if "wait_for(" in line and not line.lstrip().startswith("#")
+    ]
+    assert not offenders, f"use asyncio.timeout, not wait_for (#701): {offenders}"
