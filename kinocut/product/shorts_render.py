@@ -23,8 +23,9 @@ from .captions import CaptionConfig, WordTiming, build_caption_artifact
 from .clip_pipeline import clip_moment
 from .config import normalise_platform
 from .models import CandidateMoment, canonical_dedup_key
-from .shorts_plan import RenderRecord, ShortsPlan, load_shorts_plan, save_shorts_plan
+from .shorts_plan import RenderRecord, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
 from .shorts_review import resolve_approved_candidate
+from ..validation_errors import rejected_value
 
 __all__ = ["render_approved_candidate"]
 
@@ -253,7 +254,7 @@ def _safe_render_base(plan: ShortsPlan, candidate_id: str, output_path: str | No
     if os.path.commonpath((output_root, base)) != output_root:
         raise MCPVideoError(
             f"Problem: Render output path escapes plan.output_dir. "
-            f"Likely cause: {requested!r} is outside {plan.output_dir!r}. "
+            f"Likely cause: {rejected_value(requested)!r} is outside the plan output directory. "
             f"Recovery: Pass a path under the plan output directory.",
             error_type="validation_error",
             code="unsafe_path",
@@ -305,12 +306,12 @@ def render_approved_candidate(
             ] + [new_record]
         emitted.append(payload)
 
-    revised = plan.model_copy(update={"renders": tuple(records), "status": "rendered"})
+    revised = plan.model_copy(update={"renders": tuple(records), "status": ShortsPlanStatus.RENDERED})
     save_shorts_plan(revised)
     return {
         "job_id": plan.job_id,
         "candidate_id": candidate.candidate_id,
-        "status": "rendered",
+        "status": ShortsPlanStatus.RENDERED,
         "renders": emitted,
         "external_posting": False,
         "review_warnings": tuple(dict.fromkeys(warnings)),

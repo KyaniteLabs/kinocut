@@ -6,8 +6,9 @@ from pathlib import Path
 from typing import Any
 
 from ..errors import BackendUnavailableError, MCPVideoError
+from ..validation_errors import exception_kind, rejected_value
 
-_INSTALL = 'pip install "kinocut[object-matte]"'
+_INSTALL = 'pip install "kinocut[object-matte]==1.16.5"'
 _DOCS = "docs/PRODUCT_MATTE.md"
 
 
@@ -20,7 +21,7 @@ def require_object_matte_deps() -> None:
     except ImportError as exc:
         raise MCPVideoError(
             f"Product/object cutouts require {_INSTALL} "
-            f"and the pinned birefnet-general weights. {exc}. "
+            f"and the pinned birefnet-general weights. {exception_kind(exc)}. "
             f"People cutouts: omit --model. Guide: {_DOCS}.",
             error_type="dependency_error",
             code="missing_object_matte",
@@ -42,14 +43,14 @@ def providers_for_device(device: str) -> list[str]:
     wanted = {"coreml": "CoreMLExecutionProvider", "cuda": "CUDAExecutionProvider"}.get(device)
     if wanted is None:
         raise MCPVideoError(
-            f"Unsupported object-matte device {device!r}. Use auto, cpu, coreml, or cuda.",
+            f"Unsupported object-matte device {rejected_value(device)!r}. Use auto, cpu, coreml, or cuda.",
             error_type="validation_error",
             code="invalid_parameter",
             docs_url=_DOCS,
         )
     if wanted not in available:
         raise BackendUnavailableError(
-            f"device={device} needs ONNX Runtime {wanted}. Available: {available}. Guide: {_DOCS}.",
+            f"device ({rejected_value(device)}) needs ONNX Runtime {wanted}. Available: {available}. Guide: {_DOCS}.",
             docs_url=_DOCS,
         )
     return [wanted]

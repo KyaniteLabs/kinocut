@@ -15,6 +15,7 @@ from .validation import (
     VALID_HYPERFRAMES_TEMPLATES,
 )
 from .ffmpeg_helpers import _validate_project_path
+from .validation_errors import rejected_value
 
 
 def _validate_render_args(
@@ -28,13 +29,15 @@ def _validate_render_args(
     """Validate render parameters; return error dict or None if valid."""
     if quality is not None and quality not in VALID_HYPERFRAMES_QUALITIES:
         return _validation_error(
-            f"Invalid quality: must be one of {sorted(VALID_HYPERFRAMES_QUALITIES)}, got '{quality}'"
+            f"Invalid quality: must be one of {sorted(VALID_HYPERFRAMES_QUALITIES)}, got '{rejected_value(quality)}'"
         )
     if format is not None and format not in VALID_HYPERFRAMES_FORMATS:
-        return _validation_error(f"Invalid format: must be one of {sorted(VALID_HYPERFRAMES_FORMATS)}, got '{format}'")
+        return _validation_error(
+            f"Invalid format: must be one of {sorted(VALID_HYPERFRAMES_FORMATS)}, got '{rejected_value(format)}'"
+        )
     if resolution is not None and resolution not in VALID_HYPERFRAMES_RESOLUTIONS:
         return _validation_error(
-            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{resolution}'"
+            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{rejected_value(resolution)}'"
         )
     if width is not None and (width < 1 or width > MAX_RESOLUTION):
         return _validation_error(f"Invalid width: must be 1-{MAX_RESOLUTION}, got {width}")
@@ -361,7 +364,7 @@ def hyperframes_remove_background(
     Default model ``u2net_human_seg`` is people-only (talking heads).
     For products, packaging, jewelry, bottles, ceramics, or any non-person
     object, pass ``model="birefnet-general"`` (requires
-    ``pip install "kinocut[object-matte]"``). Never falls through to the
+    ``pip install "kinocut[object-matte]==1.16.5"``). Never falls through to the
     people model. Call ``info=True`` with no input to list models and cache
     without downloading. Guide: docs/PRODUCT_MATTE.md.
     """
@@ -443,11 +446,11 @@ def hyperframes_init(
         return _validation_error("Invalid name: must match ^[a-zA-Z0-9_-]+$")
     if template not in VALID_HYPERFRAMES_TEMPLATES:
         return _validation_error(
-            f"Invalid template: must be one of {sorted(VALID_HYPERFRAMES_TEMPLATES)}, got '{template}'"
+            f"Invalid template: must be one of {sorted(VALID_HYPERFRAMES_TEMPLATES)}, got '{rejected_value(template)}'"
         )
     if resolution is not None and resolution not in VALID_HYPERFRAMES_RESOLUTIONS:
         return _validation_error(
-            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{resolution}'"
+            f"Invalid resolution: must be one of {sorted(VALID_HYPERFRAMES_RESOLUTIONS)}, got '{rejected_value(resolution)}'"
         )
     from .hyperframes_engine import create_project
 

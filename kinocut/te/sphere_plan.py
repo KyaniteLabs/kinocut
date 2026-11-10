@@ -18,6 +18,7 @@ from kinocut.errors import MCPVideoError
 from kinocut.limits import MAX_RESOLUTION
 from kinocut.te.sphere_probe import probe_360_source
 from kinocut.validation import SPHERE_LAYOUTS, SPHERE_PRESETS, SPHERE_WRITER_KINDS
+from ..validation_errors import rejected_value
 
 _FRONT = {"id": "front", "yaw": 0.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
 _BACK = {"id": "back", "yaw": 180.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
@@ -61,7 +62,7 @@ def propose_sphere_plan(
     """Build a proposed plan from a preset. Does not render."""
     if preset not in SPHERE_PRESETS or preset not in _PRESETS:
         raise MCPVideoError(
-            f"Unknown 360 preset {preset!r}. Use front_back, desk, or table.",
+            f"Unknown 360 preset {rejected_value(preset)!r}. Use front_back, desk, or table.",
             error_type="validation_error",
             code="invalid_sphere_preset",
         )
@@ -104,7 +105,7 @@ def validate_sphere_plan(plan: dict[str, Any]) -> dict[str, Any]:
     layout = plan.get("layout")
     if not isinstance(layout, str) or layout not in SPHERE_LAYOUTS:
         raise MCPVideoError(
-            f"Unknown layout {layout!r}. Use single, split, pip, or switch.",
+            f"Unknown layout {rejected_value(layout)}. Use single, split, pip, or switch.",
             error_type="validation_error",
             code="invalid_sphere_layout",
         )
@@ -171,7 +172,7 @@ def _output_size(aspect: str) -> tuple[int, int]:
     if aspect == "16:9":
         return DEFAULT_SPHERE_OUTPUT_WIDTH, DEFAULT_SPHERE_OUTPUT_HEIGHT
     raise MCPVideoError(
-        f"Unsupported output aspect {aspect!r}. Use 16:9 or 9:16.",
+        f"Unsupported output aspect {rejected_value(aspect)!r}. Use 16:9 or 9:16.",
         error_type="validation_error",
         code="invalid_sphere_aspect",
     )
@@ -297,7 +298,7 @@ def _validate_windows(windows: Any, camera_ids: set[str], source_duration: float
         layout = window.get("layout")
         if layout is not None and (not isinstance(layout, str) or layout not in SPHERE_LAYOUTS):
             raise MCPVideoError(
-                f"Unknown window layout {layout!r}.",
+                f"Unknown window layout {rejected_value(layout)}.",
                 error_type="validation_error",
                 code="invalid_sphere_layout",
             )

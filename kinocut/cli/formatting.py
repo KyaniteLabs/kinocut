@@ -792,8 +792,8 @@ def _format_analyze_product(result: Any) -> None:
     _format_success_panel(lines, title="Product Analysis")
 
 
-def _format_error(e: Exception) -> None:
+def _format_error(e: Exception, command: str | None = None, arguments: dict[str, Any] | None = None) -> None:
     """Display error in a styled panel."""
     from .quality_formatting import format_cli_error
 
-    format_cli_error(e, err_console, logger)
+    format_cli_error(e, err_console, logger, command=command, arguments=arguments)

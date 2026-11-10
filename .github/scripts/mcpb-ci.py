@@ -512,12 +512,12 @@ async def _runtime_session(args: argparse.Namespace, media: Path, progress: dict
             await _deadline(diet_session.initialize())
             diet_tools = await _deadline(diet_session.list_tools())
             diet_names = {t.name for t in diet_tools.tools}
-            diet_required = {"video_info", "video_trim", "video_merge", "search_tools", "video_doctor", "video_shorts"}
+            diet_required = {"video_info", "video_trim", "video_merge", "list_operations", "video_doctor", "video_shorts"}
             if not diet_required <= diet_names:
                 raise RuntimeError("default_diet_core_missing")
             if "video_ai_scene_detect" in diet_names:
                 raise RuntimeError("default_diet_not_curated")
-            found = await _call(diet_session, progress, "mcp_diet_search_hidden", "search_tools", {"query": "scene"})
+            found = await _call(diet_session, progress, "mcp_diet_search_hidden", "list_operations", {"query": "scene"})
             if "video_ai_scene_detect" not in json.dumps(found):
                 raise RuntimeError("hidden_discovery_failed")
             gates["default_diet"] = "passed"

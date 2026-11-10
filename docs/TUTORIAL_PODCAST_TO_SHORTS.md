@@ -13,16 +13,16 @@
 
 ```bash
 brew install ffmpeg   # or apt
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 # optional captions:
-# pip install "kinocut[transcribe]"
+# pip install "kinocut[transcribe]==1.16.5"
 ```
 
 Connect MCP (optional):
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
 ```
 
 ## Path A — Agent (recommended)

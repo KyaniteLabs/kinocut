@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from typing import Any
+from .validation_errors import rejected_value
 
 
 def tiktok_template(
@@ -273,7 +274,7 @@ def preview_template(
     tmpl = TEMPLATES.get(template_name)
     if tmpl is None:
         raise MCPVideoError(
-            f"Unknown template: {template_name}. Available: {list(TEMPLATES.keys())}",
+            f"Unknown template: {rejected_value(template_name)}. Available: {list(TEMPLATES.keys())}",
             error_type="validation_error",
             code="invalid_parameter",
         )

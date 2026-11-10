@@ -5,13 +5,13 @@
 Guarded local video editing for AI agents. The plugin adds the Kinocut MCP
 server and two skills (`kinocut`, `kinocut-repurpose`) to your agent.
 
-Plugin bundle **1.16.7** pins the separately versioned Kinocut runtime
+Plugin bundle **1.16.8** pins the separately versioned Kinocut runtime
 **1.16.5** (205 MCP tools / 177 CLI; 20-tool default registration). The legacy
 `mcp-video` compatibility package **1.6.20** installs that same runtime.
 Catalog entries use the bundle version; launchers use the runtime version.
 
 The Hermes catalog listing is a separate pin: it still launches
-`uvx kinocut==1.16.4` (203 MCP tools / 177 CLI). Do not quote the 205-tool
+`kinocut==1.16.4` through uvx (203 MCP tools / 177 CLI). Do not quote the 205-tool
 published surface as the Hermes pin.
 
 Local FFmpeg editing and color grading need no account or API key. Network use
@@ -125,6 +125,12 @@ mcp_servers:
   kinocut:
     command: uvx
     args: ["kinocut==1.16.5"]
+    # video_thumbnail (below) is a profile tool, not part of the default
+    # 20-tool core: select the editor profile explicitly (108 tools).
+    # The plugin's own .mcp.json launch deliberately stays on the
+    # environment-unset 20-tool default.
+    env:
+      KINOCUT_TOOLS: profile:editor
     tools:
       include: [search_tools, video_info, video_trim, video_thumbnail]
       resources: false
@@ -137,6 +143,13 @@ updating. Run `/reload-mcp` after changing the configuration. Use server-native
 tool names in `include`, and add the edit and quality-check tools your workflow
 needs. `search_tools` helps discover names; it does not enable excluded tools or
 hide schemas by itself. See the [Hermes MCP configuration reference](https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference/).
+
+Plugin hosts that start the server from this plugin's `mcp.json` get the
+20-tool core. The skills that need a profile tool (`video_repurpose_plan`,
+`video_repurpose`, and other editor-profile tools) say so and require
+`KINOCUT_TOOLS=profile:editor` plus a server restart; under the default
+launch those tools are not registered, and the skill stops and reports that
+instead of retrying.
 
 For other hosts, use their tool-filtering controls if available.
 

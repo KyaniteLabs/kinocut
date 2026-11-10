@@ -23,14 +23,14 @@ class QualitySourceMixin:
         data = _run_ffprobe_json(video)
         streams = data.get("streams") if isinstance(data, dict) else None
         if not isinstance(streams, list) or not streams or not all(isinstance(stream, dict) for stream in streams):
-            raise ProcessingError("ffprobe stream metadata", 1, "No usable source streams")
+            raise ProcessingError("ffprobe stream metadata", 1, "", reason="No usable source streams")
         for stream in streams:
             if not isinstance(stream.get("codec_type"), str) or not stream["codec_type"]:
-                raise ProcessingError("ffprobe stream metadata", 1, "Source stream type unavailable")
+                raise ProcessingError("ffprobe stream metadata", 1, "", reason="Source stream type unavailable")
             if stream.get("codec_type") == "video" and (
                 not isinstance(stream.get("pix_fmt"), str) or not stream["pix_fmt"]
             ):
-                raise ProcessingError("ffprobe stream metadata", 1, "Source video pixel format unavailable")
+                raise ProcessingError("ffprobe stream metadata", 1, "", reason="Source video pixel format unavailable")
         if key is not None and self._signalstats_cache_key(video) == key:
             self._quality_source_cache[key] = data
             while len(self._quality_source_cache) > QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES:
@@ -47,10 +47,12 @@ class QualitySourceMixin:
         streams = self._quality_source_probe(video)["streams"]
         formats = [stream["pix_fmt"] for stream in streams if stream.get("codec_type") == "video"]
         if not formats:
-            raise ProcessingError("ffprobe stream metadata", 1, "Source video pixel format unavailable")
+            raise ProcessingError("ffprobe stream metadata", 1, "", reason="Source video pixel format unavailable")
         grayscale = {pixel_format.startswith("gray") for pixel_format in formats}
         if len(grayscale) > 1:
-            raise ProcessingError("ffprobe stream metadata", 1, "Ambiguous mixed grayscale and color video streams")
+            raise ProcessingError(
+                "ffprobe stream metadata", 1, "", reason="Ambiguous mixed grayscale and color video streams"
+            )
         return f"{DEFAULT_QUALITY_GRAYSCALE_INPUT_FILTER},{tail}" if True in grayscale else tail
 
     def _has_audio_stream(self, video: str) -> bool | None:

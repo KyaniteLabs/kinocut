@@ -11,13 +11,17 @@ The 1.16.5 tool diet pinned the default surface at 20 direct tools / 13,947
 input-schema bytes, and the full catalog is 205 tools / 126,776 bytes — too
 large to advertise to a model, and the diet left 185 operations unreachable
 over the wire in default mode. The family layer closes that gap: the default
-surface is now **30 tools / 24,347 bytes** (≤ 40 tools and ≤ 25% of the
+surface was **30 tools / 24,347 bytes** (≤ 40 tools and ≤ 25% of the
 full-catalog bytes, the accepted design budget) while reaching all 204
-operations plus `search_tools`.
+operations plus `search_tools`. The hot-path diet (#655) then cut the direct
+core from 20 tools to 8, because every dropped tool is already a family
+operation: the default is now **18 tools / 17,429 bytes**.
 
 ## The surface
 
-Default mode registers the unchanged 20-tool core diet **plus**:
+Default mode registers the 8-tool hot path (`video_info`, `video_trim`,
+`video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`,
+`video_shorts`, `video_doctor`) **plus**:
 
 | Tool | Operations | Registry modules |
 | --- | --- | --- |

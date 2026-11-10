@@ -27,6 +27,7 @@ from pathlib import PurePosixPath
 from typing import Any
 
 from ._errors import INVALID_WORKFLOW_VARIANT, workflow_error
+from ..validation_errors import rejected_value
 
 _STEPS = "steps"
 _OUTPUTS = "outputs"
@@ -55,7 +56,9 @@ def apply_variant_overrides(spec_data: dict[str, Any], variant_id: str) -> dict[
     variant = _find_variant(spec_data, variant_id)
     overrides = variant.get("overrides") or {}
     if not isinstance(overrides, dict):
-        raise workflow_error(f"variant {variant_id!r} overrides must be an object", INVALID_WORKFLOW_VARIANT)
+        raise workflow_error(
+            f"variant {rejected_value(variant_id)!r} overrides must be an object", INVALID_WORKFLOW_VARIANT
+        )
     merged = copy.deepcopy(spec_data)
     overridden_outputs: set[str] = set()
     for key, value in overrides.items():
@@ -69,7 +72,7 @@ def _find_variant(spec_data: dict[str, Any], variant_id: str) -> dict[str, Any]:
         if isinstance(entry, dict) and entry.get("id") == variant_id:
             return entry
     raise workflow_error(
-        f"unknown variant id {variant_id!r}; declared variants: {variant_ids(spec_data) or '(none)'}",
+        f"unknown variant id {rejected_value(variant_id)!r}; declared variants: {variant_ids(spec_data) or '(none)'}",
         INVALID_WORKFLOW_VARIANT,
     )
 
@@ -78,7 +81,9 @@ def _apply_override(
     merged: dict[str, Any], variant_id: str, key: Any, value: Any, overridden_outputs: set[str]
 ) -> None:
     if not isinstance(key, str) or not key:
-        raise workflow_error(f"variant {variant_id!r} has a non-string/empty override key", INVALID_WORKFLOW_VARIANT)
+        raise workflow_error(
+            f"variant {rejected_value(variant_id)!r} has a non-string/empty override key", INVALID_WORKFLOW_VARIANT
+        )
     parts = key.split(".")
     if parts[0] == _STEPS:
         _apply_step_override(merged, variant_id, key, parts, value)
@@ -86,7 +91,7 @@ def _apply_override(
         _apply_output_override(merged, variant_id, key, parts, value, overridden_outputs)
     else:
         raise workflow_error(
-            f"variant {variant_id!r} override key {key!r} must target "
+            f"variant {rejected_value(variant_id)!r} override key {key!r} must target "
             "steps.<id>.params[.<name>], steps.<id>.output, or outputs.<id>.path",
             INVALID_WORKFLOW_VARIANT,
         )
@@ -95,7 +100,7 @@ def _apply_override(
 def _apply_step_override(merged: dict[str, Any], variant_id: str, key: str, parts: list[str], value: Any) -> None:
     if len(parts) < 3:
         raise workflow_error(
-            f"variant {variant_id!r} override key {key!r} must be steps.<id>.params[.<name>] or steps.<id>.output",
+            f"variant {rejected_value(variant_id)!r} override key {key!r} must be steps.<id>.params[.<name>] or steps.<id>.output",
             INVALID_WORKFLOW_VARIANT,
         )
     step = _find_step(merged, variant_id, parts[1], key)
@@ -103,7 +108,7 @@ def _apply_step_override(merged: dict[str, Any], variant_id: str, key: str, part
     if field == _PARAMS and len(parts) == 3:
         if not isinstance(value, dict):
             raise workflow_error(
-                f"variant {variant_id!r} override {key!r} must be an object of params to merge",
+                f"variant {rejected_value(variant_id)!r} override {key!r} must be an object of params to merge",
                 INVALID_WORKFLOW_VARIANT,
             )
         _step_params(step).update(value)
@@ -112,13 +117,13 @@ def _apply_step_override(merged: dict[str, Any], variant_id: str, key: str, part
     elif field == _OUTPUT and len(parts) == 3:
         if not isinstance(value, str) or not value:
             raise workflow_error(
-                f"variant {variant_id!r} override {key!r} output must be a non-empty string",
+                f"variant {rejected_value(variant_id)!r} override {key!r} output must be a non-empty string",
                 INVALID_WORKFLOW_VARIANT,
             )
         step[_OUTPUT] = value
     else:
         raise workflow_error(
-            f"variant {variant_id!r} override key {key!r} is not a supported step target",
+            f"variant {rejected_value(variant_id)!r} override key {key!r} is not a supported step target",
             INVALID_WORKFLOW_VARIANT,
         )
 
@@ -136,7 +141,7 @@ def _find_step(merged: dict[str, Any], variant_id: str, step_id: str, key: str) 
         if isinstance(step, dict) and step.get("id") == step_id:
             return step
     raise workflow_error(
-        f"variant {variant_id!r} override {key!r} targets unknown step {step_id!r}",
+        f"variant {rejected_value(variant_id)!r} override {key!r} targets unknown step {step_id!r}",
         INVALID_WORKFLOW_VARIANT,
     )
 
@@ -146,19 +151,19 @@ def _apply_output_override(
 ) -> None:
     if len(parts) != 3 or parts[2] != _PATH:
         raise workflow_error(
-            f"variant {variant_id!r} override key {key!r} must be outputs.<id>.path",
+            f"variant {rejected_value(variant_id)!r} override key {key!r} must be outputs.<id>.path",
             INVALID_WORKFLOW_VARIANT,
         )
     output_id = parts[1]
     outputs = merged.get(_OUTPUTS)
     if not isinstance(outputs, dict) or output_id not in outputs or not isinstance(outputs[output_id], dict):
         raise workflow_error(
-            f"variant {variant_id!r} override {key!r} targets unknown output {output_id!r}",
+            f"variant {rejected_value(variant_id)!r} override {key!r} targets unknown output {output_id!r}",
             INVALID_WORKFLOW_VARIANT,
         )
     if not isinstance(value, str) or not value:
         raise workflow_error(
-            f"variant {variant_id!r} override {key!r} path must be a non-empty string",
+            f"variant {rejected_value(variant_id)!r} override {key!r} path must be a non-empty string",
             INVALID_WORKFLOW_VARIANT,
         )
     outputs[output_id][_PATH] = value

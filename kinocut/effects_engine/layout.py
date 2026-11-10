@@ -16,6 +16,7 @@ from ..ffmpeg_helpers import (
     _escape_ffmpeg_filter_value,
 )
 from ..engine_probe import probe as _probe
+from ..validation_errors import rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -26,7 +27,7 @@ VALID_PIP_POSITIONS = {"top-left", "top-right", "bottom-left", "bottom-right"}
 def _validate_choice(name: str, value: str, valid_values: set[str]) -> None:
     if value not in valid_values:
         raise MCPVideoError(
-            f"{name} must be one of {sorted(valid_values)}, got {value}",
+            f"{name} must be one of {sorted(valid_values)}, got {rejected_value(value)}",
             error_type="validation_error",
             code="invalid_parameter",
         )

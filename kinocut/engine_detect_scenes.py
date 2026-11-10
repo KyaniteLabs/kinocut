@@ -35,6 +35,19 @@ def detect_scenes(
     info = probe(input_path)
     duration = info.duration
 
+    stderr = _run_scene_detection(input_path, safe_threshold)
+    scene_times = _parse_scene_times(stderr)
+    scenes = _build_scenes(scene_times, duration, info.fps, min_scene_duration)
+
+    return SceneDetectionResult(
+        scenes=scenes,
+        scene_count=len(scenes),
+        duration=duration,
+    )
+
+
+def _run_scene_detection(input_path: str, safe_threshold: str) -> str:
+    """Run FFmpeg's scene filter and return its stderr."""
     cmd = [
         _ffmpeg(),
         "-i",
@@ -59,12 +72,16 @@ def detect_scenes(
         raise ProcessingError(
             " ".join(cmd),
             -1,
-            f"Scene detection timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
+            "",
+            reason=f"Scene detection timed out after {DEFAULT_FFMPEG_TIMEOUT} seconds",
         ) from exc
     if proc.returncode != 0:
         raise parse_ffmpeg_error(proc.stderr)
+    return proc.stderr
 
-    scene_times = _parse_scene_times(proc.stderr)
+
+def _build_scenes(scene_times: list[float], duration: float, fps: float, min_scene_duration: float) -> list[dict]:
+    """Turn the detected cut points into the scene list."""
     scenes: list[dict] = []
     prev_time = 0.0
     for t in scene_times:
@@ -73,8 +90,8 @@ def detect_scenes(
                 {
                     "start": round(prev_time, 2),
                     "end": round(t, 2),
-                    "start_frame": round(prev_time * info.fps),
-                    "end_frame": round(t * info.fps),
+                    "start_frame": round(prev_time * fps),
+                    "end_frame": round(t * fps),
                 }
             )
             prev_time = t
@@ -84,16 +101,11 @@ def detect_scenes(
             {
                 "start": round(prev_time, 2),
                 "end": round(duration, 2),
-                "start_frame": round(prev_time * info.fps),
-                "end_frame": round(duration * info.fps),
+                "start_frame": round(prev_time * fps),
+                "end_frame": round(duration * fps),
             }
         )
-
-    return SceneDetectionResult(
-        scenes=scenes,
-        scene_count=len(scenes),
-        duration=duration,
-    )
+    return scenes
 
 
 def _parse_scene_times(stderr: str) -> list[float]:

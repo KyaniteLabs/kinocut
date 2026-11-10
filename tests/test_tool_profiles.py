@@ -13,7 +13,8 @@ from kinocut.tool_registry import CORE_TOOLS, TOOL_REGISTRY, parse_tool_mode
 def test_registry_covers_the_full_server_tool_catalog():
     assert len(TOOL_REGISTRY) >= 203
     assert len(CORE_TOOLS) <= 25
-    assert {"video_info", "video_trim", "video_add_text", "search_tools"} <= CORE_TOOLS
+    assert {"video_info", "video_trim", "video_add_text"} <= CORE_TOOLS
+    assert "search_tools" not in CORE_TOOLS  # list_operations is the default discovery tool
 
 
 def test_default_and_all_modes_are_explicit():
@@ -36,9 +37,9 @@ def test_runtime_surface_modes_and_hidden_discovery():
     default = subprocess.run([sys.executable, "-c", script], capture_output=True, text=True, check=True)
     full_env = {**os.environ, "KINOCUT_TOOLS": "all"}
     full = subprocess.run([sys.executable, "-c", script], env=full_env, capture_output=True, text=True, check=True)
-    # Default mode: the 20-tool core diet plus the 10 compact-surface tools
+    # Default mode: the 8-tool hot path plus the 10 compact-surface tools
     # (8 family dispatchers + list_operations + describe_operation).
-    assert int(default.stdout.strip()) == 30
+    assert int(default.stdout.strip()) == 18
     assert int(full.stdout.strip()) >= 203
 
     from kinocut.server import search_tools
@@ -57,11 +58,11 @@ def test_in_process_surface_reconfigure_does_not_strand_hidden_tools():
     from kinocut.tool_registry import configure_tool_surface
 
     configure_tool_surface()
-    assert len(asyncio.run(mcp.list_tools())) == 30
+    assert len(asyncio.run(mcp.list_tools())) == 18
     configure_tool_surface("all")
     assert len(asyncio.run(mcp.list_tools())) >= 203
     configure_tool_surface()
-    assert len(asyncio.run(mcp.list_tools())) == 30
+    assert len(asyncio.run(mcp.list_tools())) == 18
     configure_tool_surface("all")
     names = {tool.name for tool in asyncio.run(mcp.list_tools())}
     assert len(names) >= 203

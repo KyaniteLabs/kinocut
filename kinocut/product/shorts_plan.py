@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+from enum import StrEnum
 from pathlib import Path
 from typing import Any, Literal
 
@@ -20,6 +21,7 @@ from ..ffmpeg_helpers import (
 from ..output_policy import with_output_policy
 from ..projectstore.receipt_ownership import durable_receipt_ownership, witness_receipt_stage
 from .models import CandidateMoment, TranscriptSegment, TranscriptWord
+from ..validation_errors import exception_kind, likely_cause, own_reason
 
 
 __all__ = [
@@ -53,7 +55,21 @@ ReviewAction = Literal[
     "sensitive_unsuitable",
 ]
 
-ShortsPlanStatus = Literal["review_required", "reviewed", "rendered", "packaged"]
+
+class ShortsPlanStatus(StrEnum):
+    """The last stage any candidate in the plan reached.
+
+    This is a progress marker, not a gate: the plan holds many candidates, so
+    reviewing candidate B after packaging candidate A legitimately moves it back
+    to ``reviewed``.  The gates are per candidate: rendering needs a current
+    ``approve`` decision and packaging needs that candidate's renders.  The
+    values equal the strings stored in plan files.
+    """
+
+    REVIEW_REQUIRED = "review_required"
+    REVIEWED = "reviewed"
+    RENDERED = "rendered"
+    PACKAGED = "packaged"
 
 
 class IntakeReport(_StrictModel):
@@ -126,7 +142,7 @@ class ShortsPlan(_StrictModel):
 
     schema_version: Literal[1] = 1
     job_id: str = Field(pattern=_JOB_ID_PATTERN)
-    status: ShortsPlanStatus = "review_required"
+    status: ShortsPlanStatus = ShortsPlanStatus.REVIEW_REQUIRED
     project_dir: str = Field(min_length=1)
     output_dir: str = Field(min_length=1)
     intake: IntakeReport
@@ -164,7 +180,7 @@ class ShortsPlan(_StrictModel):
 
 def _plan_error(problem: str, *, code: str, cause: str, recovery: str) -> MCPVideoError:
     return MCPVideoError(
-        f"Problem: {problem} Likely cause: {cause} Recovery: {recovery}",
+        f"Problem: {problem} Likely cause: {likely_cause(cause)} Recovery: {recovery}",
         error_type="validation_error",
         code=code,
         suggested_action={"auto_fix": False, "description": recovery},
@@ -248,7 +264,7 @@ def save_shorts_plan(plan: ShortsPlan) -> ShortsPlan:
         raise _plan_error(
             "save_shorts_plan requires a strict ShortsPlan.",
             code="invalid_plan",
-            cause=f"got {type(plan).__name__!r}.",
+            cause=own_reason("the value is not a ShortsPlan instance."),
             recovery="Construct the plan with ShortsPlan.model_validate(...) first.",
         )
     safe_output_dir = _safe_output_dir(plan)
@@ -275,7 +291,7 @@ def load_shorts_plan(plan_path_or_dir: str) -> ShortsPlan:
         raise _plan_error(
             "The saved shorts plan could not be read.",
             code="shorts_plan_not_found",
-            cause=str(exc),
+            cause=own_reason(exception_kind(exc)),
             recovery="Restore the plan file or re-run discovery to regenerate it.",
         ) from exc
     try:
@@ -284,7 +300,7 @@ def load_shorts_plan(plan_path_or_dir: str) -> ShortsPlan:
         raise _plan_error(
             "The saved shorts plan is not valid JSON.",
             code="shorts_plan_malformed",
-            cause=f"{exc.msg} at line {exc.lineno}, column {exc.colno}.",
+            cause=own_reason(exception_kind(exc)),
             recovery="Restore the plan from a previous good backup or rerun discovery.",
         ) from exc
     try:
@@ -293,6 +309,6 @@ def load_shorts_plan(plan_path_or_dir: str) -> ShortsPlan:
         raise _plan_error(
             "The saved shorts plan failed strict validation.",
             code="shorts_plan_malformed",
-            cause=str(exc).splitlines()[0] if str(exc) else "unknown validation failure",
+            cause=own_reason(exception_kind(exc)),
             recovery="Restore the plan from a previous good backup or rerun discovery.",
         ) from exc

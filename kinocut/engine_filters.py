@@ -23,9 +23,10 @@ from .ffmpeg_helpers import (
     _sanitize_ffmpeg_number,
 )
 from .errors import MCPVideoError
+from .validation_errors import rejected_value
 from .ffmpeg_helpers import _escape_ffmpeg_filter_value, _validate_input_path, _validate_output_path
 from .filter_guardrails import clamp_filter_params, validate_filter_params
-from .models import ColorPreset, EditResult, FilterType
+from .models import ColorPreset, EditResult, FilterType, VALID_FILTER_TYPES
 
 
 def _get_color_preset_filter(preset: ColorPreset) -> str:
@@ -40,7 +41,7 @@ def _get_color_preset_filter(preset: ColorPreset) -> str:
     if preset not in preset_filters:
         valid = ", ".join(sorted(preset_filters))
         raise MCPVideoError(
-            f"Unknown color preset '{preset}'. Valid presets: {valid}",
+            f"Unknown color preset ({rejected_value(preset)}). Valid presets: {valid}",
             error_type="validation_error",
             code="invalid_color_preset",
         )
@@ -101,14 +102,17 @@ def apply_filter(
 
     filter_map = _filter_map(params, info.width, info.height, info.fps)
     if filter_type not in filter_map:
-        valid = ", ".join(sorted(filter_map))
+        valid = ", ".join(sorted(VALID_FILTER_TYPES))
         raise MCPVideoError(
-            f"Unknown filter type '{filter_type}'. Valid types: {valid}",
+            f"Unknown filter type ({rejected_value(filter_type)}). Valid types: {valid}",
             error_type="validation_error",
             code="invalid_filter_type",
         )
     filter_name, filter_string, is_audio = filter_map[filter_type]
-    _require_filter(filter_name, f"Filter '{filter_type}'")
+    if is_audio:
+        _require_filter(filter_name, "Audio filter")
+    else:
+        _require_filter(filter_name, "Video filter")
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
         if is_audio:
@@ -125,7 +129,7 @@ def _sanitize_params(params: dict[str, Any]) -> dict[str, Any]:
     sanitized = dict(params)
     for key in sanitized:
         if key != "preset":
-            sanitized[key] = _sanitize_ffmpeg_number(sanitized[key], key)
+            sanitized[key] = _sanitize_ffmpeg_number(sanitized[key], "filter parameter")
     return sanitized
 
 
@@ -212,7 +216,7 @@ def _run_audio_filter(input_path: str, filter_type: FilterType, filter_string: s
     input_info = probe(input_path)
     if input_info.audio_codec is None:
         raise MCPVideoError(
-            f"Audio filter '{filter_type}' requires an audio stream, but this video has none",
+            f"Audio filter ({rejected_value(filter_type)}) requires an audio stream, but this video has none",
             error_type="validation_error",
             code="audio_filter_no_audio",
         )

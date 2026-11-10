@@ -14,6 +14,7 @@ existing import sites.
 
 from __future__ import annotations
 
+from ..validation_errors import reason
 import hashlib
 import contextlib
 import json
@@ -38,6 +39,7 @@ from ._errors import (
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
 from .planner import _confine_artifact_path, _hash_if_exists, _probe_source
 from .spec import WorkflowStep
+from .status import RunStatus, StepStatus
 
 _CLEANUP_POLICY_CLEAN = "clean-on-success"
 _CLEANUP_POLICY_KEEP = "keep-intermediates"
@@ -88,7 +90,7 @@ def _build_outputs(
 
 def _step_entry(
     step: WorkflowStep,
-    status: str,
+    status: StepStatus,
     input_hashes: dict[str, str | None],
     output: str | None,
     output_hash: str | None,
@@ -127,9 +129,9 @@ def _resume_cursor(steps: list[dict[str, Any]]) -> dict[str, str | None]:
     last_completed: str | None = None
     next_step: str | None = None
     for step in steps:
-        if step["status"] == "completed":
+        if step["status"] == StepStatus.COMPLETED:
             last_completed = step["id"]
-        elif next_step is None and step["status"] in ("failed", "pending"):
+        elif next_step is None and step["status"] in (StepStatus.FAILED, StepStatus.PENDING):
             next_step = step["id"]
     return {"last_completed_step": last_completed, "next_step": next_step}
 
@@ -150,7 +152,7 @@ def _build_receipt(
     keep_intermediates: bool,
     resuming: bool,
     resumed_from: str | None,
-    status: str,
+    status: RunStatus,
 ) -> dict[str, Any]:
     """Assemble ONE workflow receipt (§5a schema) — the single source of truth.
 
@@ -167,7 +169,7 @@ def _build_receipt(
     # hash. Isolate the progressive output hashes in a cache COPY so absent
     # outputs never leak into the shared cache; the terminal receipt keeps
     # using the shared cache unchanged (real hashes only).
-    outputs_cache: dict[str, str | None] = hash_cache if status != "in_progress" else dict(hash_cache)
+    outputs_cache: dict[str, str | None] = hash_cache if status != RunStatus.IN_PROGRESS else dict(hash_cache)
     return {
         "schema_version": 1,
         "receipt_kind": "workflow",
@@ -333,7 +335,7 @@ def _derive_receipt_lineage(
     """
     if not isinstance(receipt, dict):
         raise workflow_error("lineage requires a workflow receipt", INVALID_WORKFLOW_RECEIPT)
-    if receipt.get("status") != "completed":
+    if receipt.get("status") != RunStatus.COMPLETED:
         raise workflow_error("lineage may only be attached to a completed receipt", INVALID_WORKFLOW_RECEIPT)
     try:
         lineage = ReceiptLineage(
@@ -345,7 +347,7 @@ def _derive_receipt_lineage(
             toolchain_fingerprint=_lineage_toolchain_fingerprint(receipt),
         )
     except ValidationError as exc:
-        raise workflow_error(f"invalid receipt lineage: {exc}", INVALID_WORKFLOW_RECEIPT) from exc
+        raise workflow_error(f"invalid receipt lineage: {reason(exc)}", INVALID_WORKFLOW_RECEIPT) from exc
     data = lineage.model_dump()
     data["source_digests"] = list(data["source_digests"])
     return data

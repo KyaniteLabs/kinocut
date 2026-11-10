@@ -10,6 +10,7 @@ from .ffmpeg_helpers import _build_ffmpeg_cmd, _run_ffmpeg
 from .ffmpeg_helpers import _atomic_artifact, _open_staged_writer, _validate_input_path, _validate_output_path
 from .errors import MCPVideoError
 from .models import EditResult
+from .validation_errors import rejected_value
 
 VALID_HLS_QUALITIES = {"low", "medium", "high", "ultra"}
 HLS_HEIGHTS = {"low": 480, "medium": 720, "high": 1080, "ultra": 1080}
@@ -26,7 +27,8 @@ def _validate_hls_options(segment_duration: int, qualities: list[str] | None) ->
     invalid = [quality for quality in resolved if quality not in VALID_HLS_QUALITIES]
     if invalid:
         raise MCPVideoError(
-            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}, got invalid values: {invalid}",
+            f"qualities must be one of {sorted(VALID_HLS_QUALITIES)}; "
+            f"{len(invalid)} submitted value(s) were not accepted",
             error_type="validation_error",
             code="invalid_parameter",
         )
@@ -58,7 +60,7 @@ def _validate_playlist_path(playlist_path: str, output_dir: str, playlist_name: 
     resolved_playlist = os.path.realpath(playlist_path)
     if resolved_playlist != resolved_output_dir and not resolved_playlist.startswith(resolved_output_dir + os.sep):
         raise MCPVideoError(
-            f"playlist_name must not escape output_dir: {playlist_name!r}",
+            f"playlist_name must not escape output_dir: {rejected_value(playlist_name)!r}",
             error_type="validation_error",
             code="invalid_output_path",
         )

@@ -12,7 +12,6 @@ from __future__ import annotations
 import contextlib
 import hashlib
 import os
-import uuid
 from collections.abc import Callable
 from pathlib import Path
 from typing import Any
@@ -20,6 +19,7 @@ from typing import Any
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _reset_operation_inputs, _validate_artifact_path
 from ..output_policy import with_output_policy
+from ..validation_errors import rejected_value
 from ._errors import (
     INVALID_WORKFLOW_RECEIPT,
     INVALID_WORKFLOW_SPEC,
@@ -30,10 +30,17 @@ from ._errors import (
     workflow_error,
 )
 from ._versions import versions
-from .composite import iter_composite_refs, render_composite_step
+from .composite import render_composite_step
 from .inspector import read_receipt
 from .ops import OP_ADAPTERS, BurnInOpAdapter, CompositeOpAdapter, OpAdapter
-from .planner import _confine_artifact_path, _hash_if_exists, _iter_step_refs
+from .paths import (
+    hash_inputs,
+    make_run_dir,
+    resolve_confined_input,
+    resolve_engine_input,
+    resolve_output,
+)
+from .planner import _confine_artifact_path, _hash_if_exists
 from .receipt import (
     _build_receipt,
     _build_sources,
@@ -44,13 +51,9 @@ from .receipt import (
     _write_receipt,
 )
 from .spec import WorkflowSpec, WorkflowStep, load_spec, parse_spec, validate_spec_path
+from .status import RunStatus, StepStatus
 from .validator import validate_workflow_spec
 from .variants import apply_variant_overrides, variant_ids
-
-_SOURCE_PREFIX = "@sources."
-_WORK_PREFIX = "@work/"
-_OUTPUT_PREFIX = "@outputs."
-_WORK_STEM_PREFIX = "mcp_video_"
 
 
 @with_output_policy
@@ -193,7 +196,7 @@ def _resolve_run_dir(
         prior_by_id, run_dir_rel, run_dir_abs = _load_resume(resume_receipt, spec_hash, workspace_root, variant)
     else:
         prior_by_id = {}
-        run_dir_rel, run_dir_abs = _make_run_dir(workspace_root, spec_hash)
+        run_dir_rel, run_dir_abs = make_run_dir(workspace_root, spec_hash)
     return resuming, prior_by_id, run_dir_rel, run_dir_abs
 
 
@@ -220,7 +223,6 @@ def _execute_steps(
     intermediates: list[str] = []
     failure: MCPVideoError | None = None
     failed_index = -1
-    still_reusing = resuming
     resumed_from: str | None = None
     _persist = _make_persist_fn(
         save_receipt,
@@ -239,10 +241,11 @@ def _execute_steps(
     )
     for index, step in enumerate(spec.steps):
         adapter = OP_ADAPTERS[step.op]
-        output_rel, output_abs = _resolve_output(
+        output_rel, output_abs = resolve_output(
             step.output, workspace_root, run_dir_rel, run_dir_abs, output_paths, work_paths
         )
-        input_hashes = _hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter)
+        input_hashes = hash_inputs(step.inputs, workspace_root, source_paths, work_paths, hash_cache, adapter)
+        still_reusing = resuming and resumed_from is None
         if still_reusing and _step_reusable(prior_by_id.get(step.id), adapter, input_hashes, output_abs, hash_cache):
             _record_reused_step(
                 steps_receipt,
@@ -255,10 +258,9 @@ def _execute_steps(
                 run_dir_rel,
                 hash_cache,
             )
-            _persist(status="in_progress", resumed_from=resumed_from)
+            _persist(status=RunStatus.IN_PROGRESS, resumed_from=resumed_from)
             continue
         if still_reusing:  # first step that could not be reused = the resume point
-            still_reusing = False
             resumed_from = step.id
         started_at = _utcnow()
         try:
@@ -273,9 +275,9 @@ def _execute_steps(
         if output_rel is not None and output_rel.startswith(run_dir_rel + "/"):
             intermediates.append(output_rel)
         steps_receipt.append(
-            _step_entry(step, "completed", input_hashes, output_rel, output_hash, started_at, _utcnow())
+            _step_entry(step, StepStatus.COMPLETED, input_hashes, output_rel, output_hash, started_at, _utcnow())
         )
-        _persist(status="in_progress", resumed_from=resumed_from)
+        _persist(status=RunStatus.IN_PROGRESS, resumed_from=resumed_from)
     return steps_receipt, intermediates, failure, failed_index, resumed_from
 
 
@@ -296,12 +298,13 @@ def _make_persist_fn(
 ) -> Callable[..., None]:
     """Build the progressive-receipt writer (no-op when ``save_receipt`` is None)."""
 
-    def _persist(*, status: str, resumed_from: str | None) -> None:
+    def _persist(*, status: RunStatus, resumed_from: str | None) -> None:
         """Atomically persist a progressive receipt (no-op when save_receipt is None)."""
         if save_receipt is None:
             return
         snapshot = list(steps_receipt) + [
-            _step_entry(step, "pending", {}, step.output, None, None, None) for step in spec_steps[len(steps_receipt) :]
+            _step_entry(step, StepStatus.PENDING, {}, step.output, None, None, None)
+            for step in spec_steps[len(steps_receipt) :]
         ]
         _write_receipt(
             _build_receipt(
@@ -347,7 +350,7 @@ def _record_reused_step(
     steps_receipt.append(
         _step_entry(
             step,
-            "completed",
+            StepStatus.COMPLETED,
             input_hashes,
             output_rel,
             output_hash,
@@ -372,7 +375,7 @@ def _record_failed_step(
     steps_receipt.append(
         _step_entry(
             step,
-            "failed",
+            StepStatus.FAILED,
             input_hashes,
             output_rel,
             None,
@@ -406,7 +409,7 @@ def _finalize_render(
     """Append pending steps on failure, clean up, build + write the terminal receipt."""
     if failure is not None:
         for step in spec_steps[failed_index + 1 :]:
-            steps_receipt.append(_step_entry(step, "pending", {}, step.output, None, None, None))
+            steps_receipt.append(_step_entry(step, StepStatus.PENDING, {}, step.output, None, None, None))
     cleaned = _apply_cleanup(
         run_dir_abs,
         intermediates,
@@ -429,7 +432,7 @@ def _finalize_render(
         keep_intermediates=keep_intermediates,
         resuming=resuming,
         resumed_from=resumed_from,
-        status="failed" if failure is not None else "completed",
+        status=RunStatus.FAILED if failure is not None else RunStatus.COMPLETED,
     )
     if save_receipt is not None:
         _write_receipt(receipt, save_receipt, workspace_root, overwrite=True)
@@ -476,7 +479,7 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
         "workflow": {"name": data.get("name"), "variant": None},
         "count": len(receipts),
         "variants": receipts,
-        "status": "completed",
+        "status": RunStatus.COMPLETED,
     }
 
 
@@ -495,7 +498,8 @@ def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
             prior = seen.get(output_path)
             if prior is not None:
                 raise workflow_error(
-                    f"variants {prior!r} and {variant_id!r} both write an output to {output_path!r}; "
+                    f"variants {rejected_value(prior)!r} and {rejected_value(variant_id)!r} both write an output "
+                    f"to {rejected_value(output_path)!r}; "
                     "give each variant a distinct output path",
                     INVALID_WORKFLOW_VARIANT,
                 )
@@ -530,14 +534,15 @@ def _load_resume(
     prior_hash = prior.get("spec_hash")
     if prior_hash != spec_hash:
         raise workflow_error(
-            f"resume receipt spec_hash {prior_hash!r} does not match the current spec_hash {spec_hash!r}; "
+            f"resume receipt spec_hash {rejected_value(prior_hash)!r} does not match the current spec_hash "
+            f"{rejected_value(spec_hash)!r}; "
             "this is a different job",
             RESUME_SPEC_MISMATCH,
         )
     prior_variant = (prior.get("workflow") or {}).get("variant") if isinstance(prior.get("workflow"), dict) else None
     if prior_variant != variant:
         raise workflow_error(
-            f"resume receipt is for variant {prior_variant!r} but variant {variant!r} was requested; "
+            f"resume receipt is for variant {prior_variant!r} but variant {rejected_value(variant)!r} was requested; "
             "resume each variant against its own receipt",
             RESUME_VARIANT_MISMATCH,
         )
@@ -565,7 +570,7 @@ def _step_reusable(
     hash_cache: dict[str, str | None],
 ) -> bool:
     """Skip-iff gate (§5a.2): reuse a step only when its product is still valid."""
-    if prior is None or prior.get("status") != "completed":
+    if prior is None or prior.get("status") != StepStatus.COMPLETED:
         return False
     if prior.get("input_hashes") != current_input_hashes:
         return False
@@ -602,7 +607,7 @@ def _run_step(
             work_paths,
             run_dir_abs,
             output_abs,
-            _resolve_confined_input,
+            resolve_confined_input,
             set(source_paths),
             set(work_paths),
         )
@@ -613,12 +618,12 @@ def _run_step(
         # resolution as merge's clips (workspace confinement + per-element hashing);
         # ``style`` is the only tunable and was value-checked above.
         resolved_srcs = [
-            str(_resolve_confined_input(ref, workspace_root, source_paths, work_paths))
+            str(resolve_confined_input(ref, workspace_root, source_paths, work_paths))
             for ref in step.inputs[adapter.input_key]
         ]
         if len(resolved_srcs) != 2:
             raise workflow_error(
-                f"step {step.id!r} (burn_in) requires exactly two srcs refs: [video, subtitle]",
+                f"step {rejected_value(step.id)!r} (burn_in) requires exactly two srcs refs: [video, subtitle]",
                 INVALID_WORKFLOW_SPEC,
             )
         kwargs = dict(step.params)
@@ -628,137 +633,12 @@ def _run_step(
             kwargs["output_path"] = str(output_abs)
         adapter.engine_fn(**kwargs)
         return
-    resolved_input = _resolve_engine_input(adapter, step.inputs, workspace_root, source_paths, work_paths)
+    resolved_input = resolve_engine_input(adapter, step.inputs, workspace_root, source_paths, work_paths)
     kwargs: dict[str, Any] = dict(step.params)
     kwargs[adapter.engine_input_param] = resolved_input
     if adapter.has_output:
         kwargs["output_path"] = str(output_abs)
     adapter.engine_fn(**kwargs)
-
-
-def _resolve_confined_input(
-    ref: str, workspace_root: Path, source_paths: dict[str, str], work_paths: dict[str, Path]
-) -> Path:
-    """Resolve a workflow @ref to a workspace-confined absolute path (composite layer source).
-
-    Reuses the SAME resolution + realpath-confinement the executor applies to every input,
-    so a composite layer source is confined identically to any other op's source (a symlink
-    swapped in after validation still fails closed at execution time).
-    """
-    return _confine_to_workspace(_resolve_ref_path(ref, workspace_root, source_paths, work_paths), workspace_root, ref)
-
-
-def _resolve_engine_input(
-    adapter: OpAdapter,
-    inputs: dict[str, Any],
-    workspace_root: Path,
-    source_paths: dict[str, str],
-    work_paths: dict[str, Path],
-) -> Any:
-    """Resolve the spec ``inputs`` into concrete engine-ready path(s)."""
-    value = inputs[adapter.input_key]
-    if adapter.multi_input:
-        return [str(_resolve_ref_path(ref, workspace_root, source_paths, work_paths)) for ref in value]
-    return str(_resolve_ref_path(value, workspace_root, source_paths, work_paths))
-
-
-def _resolve_ref_path(
-    ref: str, workspace_root: Path, source_paths: dict[str, str], work_paths: dict[str, Path]
-) -> Path:
-    """Map a symbolic (or raw-relative) input ref to its absolute path on disk."""
-    if ref.startswith(_SOURCE_PREFIX):
-        return workspace_root / source_paths[ref[len(_SOURCE_PREFIX) :]]
-    if ref.startswith(_WORK_PREFIX):
-        name = ref[len(_WORK_PREFIX) :]
-        path = work_paths.get(name)
-        if path is None:  # defensive: validator guarantees backward production
-            raise workflow_error(
-                f"internal: @work ref {ref!r} was not produced by an earlier step", INVALID_WORKFLOW_SPEC
-            )
-        return path
-    # Raw relative ref: re-confine at execution time (a symlink swapped in AFTER
-    # validation could otherwise escape — validate->execute TOCTOU).
-    return _confine_to_workspace(workspace_root / ref, workspace_root, ref)
-
-
-def _confine_to_workspace(candidate: Path, workspace_root: Path, ref: str) -> Path:
-    """Fail closed if ``candidate`` resolves outside ``workspace_root`` (realpath check)."""
-    real = Path(os.path.realpath(candidate))
-    try:
-        real.relative_to(workspace_root)
-    except ValueError:
-        raise workflow_error(
-            f"input ref {ref!r} escapes the workspace root at execution time", UNSAFE_WORKFLOW_SOURCE
-        ) from None
-    return candidate
-
-
-def _hash_inputs(
-    inputs: dict[str, Any],
-    workspace_root: Path,
-    source_paths: dict[str, str],
-    work_paths: dict[str, Path],
-    hash_cache: dict[str, str | None],
-    adapter: OpAdapter | None = None,
-) -> dict[str, str | None]:
-    """Real sha256 for every consumed input (``src`` / ``srcs[i]`` / composite layer slots)."""
-    # composite records one hash per layer source (layers[i].src/mask); every other op
-    # hashes its flat src/srcs refs. Both drive complete per-step provenance.
-    ref_pairs = iter_composite_refs(inputs) if isinstance(adapter, CompositeOpAdapter) else _iter_step_refs(inputs)
-    hashes: dict[str, str | None] = {}
-    for key, ref in ref_pairs:
-        path = _resolve_ref_path(ref, workspace_root, source_paths, work_paths)
-        hashes[key] = _hash_if_exists(path, hash_cache)
-    return hashes
-
-
-# --- @work directory + output resolution -------------------------------------
-
-
-def _make_run_dir(workspace_root: Path, spec_hash: str) -> tuple[str, Path]:
-    """Create a unique per-run @work directory (spec-hash prefix + run id)."""
-    prefix = spec_hash.split(":", 1)[-1][:8]
-    run_id = uuid.uuid4().hex[:8]
-    rel = f"work/{prefix}-{run_id}"
-    absolute = workspace_root / rel
-    absolute.mkdir(parents=True, exist_ok=True)
-    return rel, absolute
-
-
-def _resolve_output(
-    output: str | None,
-    workspace_root: Path,
-    run_dir_rel: str,
-    run_dir_abs: Path,
-    output_paths: dict[str, str],
-    work_paths: dict[str, Path],
-) -> tuple[str | None, Path | None]:
-    """Resolve a step's output target to (workspace-relative, absolute) paths.
-
-    ``@work/<name>`` targets land inside this run's dir with an ``mcp_video_``
-    stem prefix; ``@outputs.<id>`` targets resolve to the declared output path.
-    Registers the @work mapping so later steps can consume it.
-    """
-    if output is None:
-        return None, None
-    if output.startswith(_WORK_PREFIX):
-        name = output[len(_WORK_PREFIX) :]
-        filename = _WORK_STEM_PREFIX + name.replace("/", "_").replace("\\", "_")
-        absolute = run_dir_abs / filename
-        _ensure_parent(absolute)
-        work_paths[name] = absolute
-        return f"{run_dir_rel}/{filename}", absolute
-    if output.startswith(_OUTPUT_PREFIX):
-        rel = output_paths[output[len(_OUTPUT_PREFIX) :]]
-        absolute = workspace_root / rel
-        _ensure_parent(absolute)
-        return rel, absolute
-    # Validator guarantees output is @work/ or @outputs.; defensive fail-closed.
-    raise workflow_error(f"unresolvable step output target {output!r}", INVALID_WORKFLOW_SPEC)
-
-
-def _ensure_parent(path: Path) -> None:
-    path.parent.mkdir(parents=True, exist_ok=True)
 
 
 # --- Cleanup -----------------------------------------------------------------
