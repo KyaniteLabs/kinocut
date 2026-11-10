@@ -104,6 +104,12 @@ def test_an_overlong_numeric_coercion_publishes_the_fixed_label() -> None:
     assert rejected_value(HugeInt(1)) == "<number>"
 
 
+def test_an_overlong_builtin_number_publishes_the_fixed_label() -> None:
+    assert rejected_value(10**30) == "<number>"
+    assert rejected_value(10**5000) == "<number>"  # repr alone would raise past 4,300 digits
+    assert rejected_value(10**23) == str(10**23)
+
+
 def test_type_label_and_builtin_type_name_are_identity_keyed() -> None:
     assert type_label(Sneaky()) == "<object>"
     assert type_label(FakeStr("x")) == "<object>"
