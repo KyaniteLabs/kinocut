@@ -78,3 +78,27 @@ def test_large_sheet_is_downscaled_to_jpeg(tmp_path):
     assert mime == "image/jpeg"
     with Image.open(__import__("io").BytesIO(data)) as img:
         assert img.width == MAX_IMAGE_WIDTH
+
+
+def test_large_sheet_downscales_without_pillow(tmp_path, monkeypatch):
+    """Pillow is optional; the card must still build on a plain install (2.0.0 regression)."""
+    import sys
+
+    from PIL import Image
+
+    from kinocut.review_card import MAX_IMAGE_WIDTH, MAX_INLINE_IMAGE_BYTES, _sheet_bytes
+
+    path = tmp_path / "sheet.png"
+    Image.effect_noise((2400, 1200), 100).convert("RGB").save(path)
+    assert path.stat().st_size > MAX_INLINE_IMAGE_BYTES
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "PIL", None)
+        m.setitem(sys.modules, "PIL.Image", None)
+        data, mime = _sheet_bytes(str(path))
+
+    assert mime == "image/jpeg"
+    assert data[:2] == b"\xff\xd8"
+    import io
+
+    with Image.open(io.BytesIO(data)) as img:
+        assert img.width == MAX_IMAGE_WIDTH
