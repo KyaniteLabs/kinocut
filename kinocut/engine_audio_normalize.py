@@ -152,7 +152,7 @@ def _build_loudnorm_render_filter(
             None,
         )
     measured_filter = ":".join(
-        f"{key}={_escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, key)))}"
+        f"{key}={_escape_ffmpeg_filter_value(str(_sanitize_ffmpeg_number(value, 'measured level')))}"
         for key, value in measured.items()
     )
     warnings = []

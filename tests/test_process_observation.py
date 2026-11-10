@@ -59,6 +59,17 @@ def test_completed_native_leader_retains_authority_until_descendants_stopped(tmp
         assert tree.process.returncode is not None
         with pytest.raises(ChildProcessError):
             os.waitpid(tree.process.pid, os.WNOHANG)
+        # SIGKILL lands asynchronously: a descendant already inside its write
+        # can finish it after close() returns. Wait for the group to empty
+        # (bounded) so the snapshot can't race that last in-flight write.
+        deadline = time.monotonic() + 3
+        while True:
+            try:
+                original(tree.process.pid, 0)  # os.killpg is patched above
+            except ProcessLookupError:
+                break
+            assert time.monotonic() < deadline, "descendant survived close()"
+            time.sleep(0.01)
         snapshot = heartbeat.read_bytes()
         time.sleep(0.1)
         assert heartbeat.read_bytes() == snapshot

@@ -5,7 +5,7 @@ Use these fixtures for a future `agentic-video-certify` command. Each fixture sh
 Run the current local certification subset:
 
 ```bash
-uv run --no-project --with kinocut python workflows/benchmarks/run_adversarial_certification.py
+uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_adversarial_certification.py
 ```
 
 | Fixture | Purpose | Expected Behavior |

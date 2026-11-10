@@ -52,7 +52,7 @@ def _compile_params(node: IRNode, timebase: RationalTime) -> dict[str, Any]:
     if "duration" in params:
         duration = RationalTime.model_validate(params["duration"]).seconds(timebase)
         if duration <= 0:
-            raise ir_error(f"clip {node.id!r} duration must be positive")
+            raise ir_error("clip duration must be positive")
         compiled["duration"] = duration
     return compiled
 
@@ -75,7 +75,7 @@ def compile_ir_to_dag(ir: TimelineIR) -> RenderDAG:
         except Exception as exc:
             if hasattr(exc, "code"):
                 raise
-            raise ir_error(f"timeline node {node.id!r} cannot compile") from exc
+            raise ir_error("timeline node cannot compile") from exc
     return RenderDAG(
         name=ir.name,
         sources={key: DAGSource(path=value.path) for key, value in ir.sources.items()},

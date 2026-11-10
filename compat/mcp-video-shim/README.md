@@ -7,7 +7,7 @@ Kinocut release and keeps the `mcp-video` command and `mcp_video` Python import 
 New installations should use:
 
 ```bash
-pip install kinocut
+pip install kinocut==1.16.5
 kino doctor
 ```
 

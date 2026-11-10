@@ -5,6 +5,7 @@ from __future__ import annotations
 import ast
 import hashlib
 import json
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -61,6 +62,15 @@ def _sha(path: str | Path) -> str:
 @pytest.fixture
 def font_path(tmp_path) -> str:
     source = Path("/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf")
+    if not source.is_file() and shutil.which("fc-match"):
+        # Non-Debian layouts (Arch, Fedora, per-user installs): ask fontconfig.
+        found = subprocess.run(
+            ["fc-match", "-f", "%{file}", "DejaVu Sans:style=Book"],
+            capture_output=True,
+            text=True,
+            check=False,
+        ).stdout.strip()
+        source = Path(found) if Path(found).name == "DejaVuSans.ttf" else source
     if not source.is_file():
         pytest.skip("DejaVu font not installed")
     private_copy = tmp_path / "DejaVuSans.ttf"

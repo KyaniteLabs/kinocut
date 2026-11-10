@@ -286,30 +286,20 @@ MODULE_PROFILE_TAGS: Mapping[str, tuple[str, ...]] = {
     "server_tools_workflow": ("editor", "workflow"),
 }
 
-# The default is intentionally small enough to fit a one-screen tool list,
-# while retaining the common edit path, inspection, receipts, and diagnostics.
+# The default is the hot path only: the direct tools nearly every session
+# calls, plus the compact family dispatchers (registered separately), which
+# already reach every registry operation. Everything else stays one
+# ``list_operations`` call away, or visible with ``KINOCUT_TOOLS=all``.
 CORE_TOOLS = frozenset(
     {
         "video_info",
         "video_trim",
         "video_merge",
         "video_add_text",
-        "video_add_texts",
         "video_add_audio",
-        "video_resize",
-        "video_convert",
-        "video_speed",
-        "search_tools",
         "video_extract_frame",
-        "video_validate_text_layout",
-        "video_quality_check",
-        "video_review_package",
-        "video_workflow_inspect",
-        "video_rescue_inspect",
-        "hyperframes_doctor",
-        "video_doctor",
         "video_shorts",
-        "video_project_create",
+        "video_doctor",
     }
 )
 
@@ -468,11 +458,15 @@ def discovery_catalog() -> list[dict[str, Any]]:
 
     global _ACTIVE_MODE
     active_mode = _ACTIVE_MODE
-    for module in TOOL_NAMES_BY_MODULE:
-        importlib.import_module(f".{module}", __package__)
-    _capture_catalog()
-    _ACTIVE_MODE = active_mode
-    apply_tool_surface()
+    try:
+        for module in TOOL_NAMES_BY_MODULE:
+            importlib.import_module(f".{module}", __package__)
+        _capture_catalog()
+    finally:
+        # A failing hidden-module import must never leave the enlarged
+        # registration surface live: restore the selected diet regardless.
+        _ACTIVE_MODE = active_mode
+        apply_tool_surface()
     return [_TOOL_CATALOG[name] for name in TOOL_REGISTRY if name in _TOOL_CATALOG]
 
 

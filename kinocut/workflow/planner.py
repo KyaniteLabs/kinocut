@@ -29,6 +29,7 @@ from ._errors import INVALID_WORKFLOW_SPEC, UNSAFE_WORKFLOW_SOURCE, workflow_err
 from ._versions import RENDER_DETERMINISM_SCOPE, versions
 from .composite import iter_composite_refs
 from .spec import validate_spec_path
+from .status import StepStatus
 from .validator import validate_workflow_spec
 
 _SOURCE_PREFIX = "@sources."
@@ -137,7 +138,7 @@ def _plan_steps(
             {
                 "id": step["id"],
                 "op": step["op"],
-                "status": "pending",
+                "status": StepStatus.PENDING,
                 "inputs": step["inputs"],
                 "input_hashes": input_hashes,
                 "output": step["output"],
@@ -240,7 +241,7 @@ def _confine_artifact_path(path: str, workspace_root: Path, label: str) -> None:
         real.relative_to(workspace_root)
     except ValueError:
         raise workflow_error(
-            f"{label} {path!r} resolves outside the workspace root; "
+            f"{label} resolves outside the workspace root; "
             "write workflow artifacts inside the spec's workspace directory",
             UNSAFE_WORKFLOW_SOURCE,
         ) from None
