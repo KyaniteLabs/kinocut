@@ -113,3 +113,42 @@ def test_main_requires_all_provider_results(monkeypatch, tmp_path: Path, probes,
     claims.write_text(json.dumps({"published_version": "1.15.1"}), encoding="utf-8")
     monkeypatch.setattr(live, "PROVIDERS", tuple((name, lambda result=probes: result) for name in ("a", "b", "c", "d")))
     assert live.main(["--claims", str(claims)]) == expected
+
+
+def test_settle_window_reprobes_only_lagging_providers(monkeypatch) -> None:
+    calls = {"pypi": 0, "npm": 0}
+    npm_versions = iter(["1.16.5", "1.16.5", "2.0.0"])
+
+    def pypi():
+        calls["pypi"] += 1
+        return "2.0.0", ""
+
+    def npm():
+        calls["npm"] += 1
+        return next(npm_versions), ""
+
+    now = [0.0]
+    monkeypatch.setattr(live, "PROVIDERS", (("pypi", pypi), ("npm", npm)))
+    failures = live.verify_claim(
+        "2.0.0", settle_seconds=60, interval=15, sleep=lambda s: now.__setitem__(0, now[0] + s), clock=lambda: now[0]
+    )
+    assert failures == []
+    assert calls == {"pypi": 1, "npm": 3}
+
+
+def test_settle_window_still_fails_closed_after_deadline(monkeypatch) -> None:
+    now = [0.0]
+    monkeypatch.setattr(live, "PROVIDERS", (("npm", lambda: ("1.16.5", "")),))
+    failures = live.verify_claim(
+        "2.0.0", settle_seconds=30, interval=15, sleep=lambda s: now.__setitem__(0, now[0] + s), clock=lambda: now[0]
+    )
+    assert failures == ["npm: expected 2.0.0, got 1.16.5"]
+    assert now[0] == 30
+
+
+def test_no_settle_window_probes_once(monkeypatch) -> None:
+    def never_sleep(_):
+        raise AssertionError("must not wait without a settle window")
+
+    monkeypatch.setattr(live, "PROVIDERS", (("npm", lambda: ("1.16.5", "")),))
+    assert live.verify_claim("2.0.0", sleep=never_sleep) == ["npm: expected 2.0.0, got 1.16.5"]
