@@ -183,12 +183,12 @@ class TestVideoInfoTool:
 
 class TestVideoTrimTool:
     def test_returns_success(self, sample_video):
-        result = video_trim(sample_video, start="0", duration="1")
+        result = asyncio.run(video_trim(sample_video, start="0", duration="1"))
         assert result["success"] is True
         assert os.path.isfile(result["output_path"])
 
     def test_error_result(self):
-        result = video_trim("/nonexistent/video.mp4", start="0", duration="1")
+        result = asyncio.run(video_trim("/nonexistent/video.mp4", start="0", duration="1"))
         assert result["success"] is False
         assert "error" in result
 

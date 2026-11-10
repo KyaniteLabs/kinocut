@@ -140,13 +140,14 @@ def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
 )
 @_safe_tool
-def video_trim(
+async def video_trim(
     input_path: str,
     start: str | Annotated[float, Field(strict=True)] = "0",
     duration: str | Annotated[float, Field(strict=True)] | None = None,
     end: str | Annotated[float, Field(strict=True)] | None = None,
     output_path: str | None = None,
     accurate: bool = False,
+    ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Cut a segment out of a video by start time and duration or end. Returns JSON {success, output_path} pointing at the rendered clip.
 
@@ -161,9 +162,17 @@ def video_trim(
     if any(isinstance(value, bool) for value in (start, duration, end)):
         return _validation_error("Trim times must be timestamps or numeric seconds, not booleans")
     input_path = _validate_input_path(input_path)
-    return _result(
-        trim(input_path, start=start, duration=duration, end=end, output_path=output_path, accurate=accurate)
+    run_trim = functools.partial(
+        trim,
+        input_path,
+        start=start,
+        duration=duration,
+        end=end,
+        output_path=output_path,
+        accurate=accurate,
+        on_progress=_mcp_progress_reporter(ctx),
     )
+    return _result(await anyio.to_thread.run_sync(run_trim))
 
 
 @mcp.tool(
