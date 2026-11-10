@@ -4,10 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
+from mcp.types import ToolAnnotations
+
 from .server_app import _result, _safe_tool, mcp
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_shorts(
     input_path: str,

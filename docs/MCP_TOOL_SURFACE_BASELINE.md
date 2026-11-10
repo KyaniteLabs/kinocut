@@ -14,9 +14,9 @@ stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 18 | 15,335 |
-| `all` | 205 | 98,000 |
-| `profile:editor` | 114 | 63,857 |
+| default / `core` (unset) | 18 | 17,021 |
+| `all` | 205 | 128,297 |
+| `profile:editor` | 114 | 87,550 |
 
 The default surface is the 8-tool hot-path core plus the ten compact-surface
 tools (eight typed operation families + `list_operations` +
@@ -36,7 +36,11 @@ twelve dropped tools stay reachable as family operations, through
 property names ("input_path" -> "Input Path") and the "<name>Arguments"
 schema title then cut every mode without changing a property, type or
 validation rule (default 17,429 → 15,335; `all` 126,908 → 98,000; editor
-80,152 → 63,857).
+80,152 → 63,857). Moving each docstring's Args help onto its parameter
+(#719) then grew the schemas (default 15,335 → 17,021; `all` 98,000 →
+128,297; editor 63,857 → 87,550) while the default tools/list response
+shrank, because the same text no longer appears in both the description and
+the schema (default tools/list 26,264 → 26,153 B).
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required
@@ -63,7 +67,7 @@ compares each against the fixture:
 3. the declarative tables in `kinocut/tool_registry.py` (205 names across 25
    modules, one module per tool, core tags matching the default surface).
 
-The headline numbers (30/24,347, 205/126,908, 118/81,813) are also asserted
+The headline numbers (18/17,021, 205/128,297, 114/87,550) are also asserted
 literally so a fixture edit cannot pass unnoticed.
 
 `tests/test_tool_surface_compat.py` protects the behaviors around the

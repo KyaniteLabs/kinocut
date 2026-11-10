@@ -159,7 +159,6 @@ async def _dispatch_family_operation(
 def _register_family_tool(name: str) -> None:
     operations = FAMILY_OPERATIONS[name]
     operation_enum = Literal[operations]  # closed, typed member set
-    family_hint = ", ".join(FAMILY_MODULES[name])
 
     async def _dispatch(
         operation: operation_enum,  # type: ignore[valid-type]
@@ -183,7 +182,7 @@ def _register_family_tool(name: str) -> None:
         name=name,
         title=FAMILY_TITLES[name],
         description=(
-            f"{FAMILY_SUMMARIES[name]} Registry modules: {family_hint}. "
+            f"{FAMILY_SUMMARIES[name]} "
             f"Use {DISCOVERY_TOOL_NAME} to enumerate members; {DESCRIBE_TOOL_NAME} "
             "returns one operation's full inputSchema."
         ),

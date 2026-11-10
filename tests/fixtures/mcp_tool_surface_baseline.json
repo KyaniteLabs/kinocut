@@ -1,12 +1,12 @@
 {
  "captured": {
-  "git_commit": "1171c21353587bcde3f98e9b58a9a546530df857",
+  "git_commit": "ed60df33fe1cdf6da219993117ff08260d1c39fa",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "1.16.5",
   "mcp_sdk_version": "1.30.0",
   "platform": "Linux-7.2.12-3-1-ARCH-aarch64-with-glibc2.43",
-  "python_version": "3.14.9"
+  "python_version": "3.11.18"
  },
  "modes": {
   "all": {
@@ -28,8 +28,8 @@
    "tool_names_sha256": "65ff9dd382cb5ff733bcb9b0bee5df37991232800d62fa6f5972ce2002113a07",
    "tools": [
     {
-     "input_schema_bytes": 395,
-     "input_schema_sha256": "6b1bf7a13d61c513913a6316ac7de0f93687bceb7b4cdc5ad20a056a5cf88fd7",
+     "input_schema_bytes": 698,
+     "input_schema_sha256": "02c473a5b7d9e550bf7ac88e214acfd863ad7ddc981d143276a0e58f57d93f18",
      "module": "server_tools_audio",
      "name": "audio_compose",
      "profiles": [
@@ -49,8 +49,8 @@
      ]
     },
     {
-     "input_schema_bytes": 401,
-     "input_schema_sha256": "25dae0ea997a243f66d47bae7cdd3c3775b39df85db104c4d982f1f8067925de",
+     "input_schema_bytes": 639,
+     "input_schema_sha256": "3133ea47e264537106be4ca49ad6c89178fa8ecd652823aac6d399f1e9a65874",
      "module": "server_tools_audio",
      "name": "audio_effects",
      "profiles": [
@@ -70,8 +70,8 @@
      ]
     },
     {
-     "input_schema_bytes": 489,
-     "input_schema_sha256": "d6c35fe4a0fff8548a5b726473f2d5ebcf5624f994e88ac8be34a11c17ce8336",
+     "input_schema_bytes": 760,
+     "input_schema_sha256": "4667ed4e8d27137958b806afecd01b55261069fd1c870957e73cce131f8b9fa3",
      "module": "server_tools_audio",
      "name": "audio_preset",
      "profiles": [
@@ -91,8 +91,8 @@
      ]
     },
     {
-     "input_schema_bytes": 359,
-     "input_schema_sha256": "4fff161c95eaaff8fa1e596a9a9f04a0089e38390027e649358250831f48aeb6",
+     "input_schema_bytes": 707,
+     "input_schema_sha256": "7d36d87e2b95a11dbb902167b0c369018faa8ee29eb033c5a612fb2fa2e1c3e9",
      "module": "server_tools_audio",
      "name": "audio_sequence",
      "profiles": [
@@ -110,8 +110,8 @@
      ]
     },
     {
-     "input_schema_bytes": 557,
-     "input_schema_sha256": "5b1912fb6cef7feb9784af1572f0a40bc477b512abf521cab4714a93cb533544",
+     "input_schema_bytes": 1144,
+     "input_schema_sha256": "5717c42cdff38054f2b75c79809431b07e782eea14fbcb78f3d1107eb2b924eb",
      "module": "server_tools_audio",
      "name": "audio_synthesize",
      "profiles": [
@@ -130,8 +130,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 392,
-     "input_schema_sha256": "0001c48a41a0f3299d84931f97d61bd43b154604ab710e2acf271cfaacebd0df",
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "c4bc63adce80c38722fa5217192a7f0a1da78f4ee9707cee0e4ac4097bd98c2e",
      "module": "server_tools_effects",
      "name": "effect_chromatic_aberration",
      "profiles": [
@@ -151,8 +151,8 @@
      ]
     },
     {
-     "input_schema_bytes": 439,
-     "input_schema_sha256": "dcee68e4486eb93724da7e559b73840f60f7db48825d7db15820dd15b259a892",
+     "input_schema_bytes": 687,
+     "input_schema_sha256": "568632ecead4a79d87ab579428806957fff7d50d832c62dffc9426243fa01508",
      "module": "server_tools_effects",
      "name": "effect_glow",
      "profiles": [
@@ -173,8 +173,8 @@
      ]
     },
     {
-     "input_schema_bytes": 442,
-     "input_schema_sha256": "b4fdfad84474f1b5f22720fcf319f1f7eacdae45a11666181ce9092bb9285438",
+     "input_schema_bytes": 712,
+     "input_schema_sha256": "1597dd6daf820032e7ce59bb24242bd28a07e73f60dd7b42ac7dc4395b05a734",
      "module": "server_tools_effects",
      "name": "effect_noise",
      "profiles": [
@@ -195,8 +195,8 @@
      ]
     },
     {
-     "input_schema_bytes": 439,
-     "input_schema_sha256": "e11c1768bcb8eda2aa029da8e31fc690076cc04761db56807196a70b5be31b83",
+     "input_schema_bytes": 683,
+     "input_schema_sha256": "316f244882f04be031fdc61fdc40a9ee9ee4ae4c7f2439a48a8593910c32477b",
      "module": "server_tools_effects",
      "name": "effect_scanlines",
      "profiles": [
@@ -217,8 +217,8 @@
      ]
     },
     {
-     "input_schema_bytes": 469,
-     "input_schema_sha256": "b25b5f7faa225f0b73e84307789d7e0d7a41c52f582db65a2dbed767621f3a41",
+     "input_schema_bytes": 731,
+     "input_schema_sha256": "3c10ea438d292481c9b10156f4b43b3012eb08ecb8575c10137b01e2b29fd06b",
      "module": "server_tools_effects",
      "name": "effect_vignette",
      "profiles": [
@@ -238,8 +238,8 @@
      ]
     },
     {
-     "input_schema_bytes": 460,
-     "input_schema_sha256": "88f6d0d07f89086e84efef19f0ef44039fc83fc78d731d26749ce822d9ba9fba",
+     "input_schema_bytes": 717,
+     "input_schema_sha256": "05f7f64c864e914b830bfb830a9ebaed167ae82028a6819e348a9a92f203857d",
      "module": "server_tools_glitch",
      "name": "glitch_cmyk_split",
      "profiles": [
@@ -259,8 +259,8 @@
      ]
     },
     {
-     "input_schema_bytes": 430,
-     "input_schema_sha256": "3f302841c4e99a0b8aeca27aeb192793d63429d6a7bf8e57e37e6d8398ecfcdc",
+     "input_schema_bytes": 654,
+     "input_schema_sha256": "657f2c614b5dafe541c64f48ba28114f361b7bcecc8a67238062380771929e03",
      "module": "server_tools_glitch",
      "name": "glitch_datamoshing",
      "profiles": [
@@ -279,8 +279,8 @@
      ]
     },
     {
-     "input_schema_bytes": 516,
-     "input_schema_sha256": "c56a6d16dfa0ffa6217dd7c4c7e62439a8bf614494cc248c4d1a1a19b27afc88",
+     "input_schema_bytes": 847,
+     "input_schema_sha256": "b45d8e1426422cc56693ce03712f0b0ed2763dec75eff11104afc78b6241b45d",
      "module": "server_tools_glitch_shader",
      "name": "glitch_depth_splatting",
      "profiles": [
@@ -301,8 +301,8 @@
      ]
     },
     {
-     "input_schema_bytes": 509,
-     "input_schema_sha256": "19a2a810b43ed93a1a3d8552804377102d9a5857135ea42550a9442972a072aa",
+     "input_schema_bytes": 838,
+     "input_schema_sha256": "162e3e10a7f9ab256354458571199f7d6c22dc3e115346f34021c8c90f8ab643",
      "module": "server_tools_glitch_shader",
      "name": "glitch_digital_feedback",
      "profiles": [
@@ -323,8 +323,8 @@
      ]
     },
     {
-     "input_schema_bytes": 478,
-     "input_schema_sha256": "b6da0e2de7145029525183c3de8060b73656f23c0350ef8d9266381eb140c36b",
+     "input_schema_bytes": 736,
+     "input_schema_sha256": "2ce7f2b703af64d11fa7fa184315e7c1763f8c8193428c4d2e50e73f03507d5b",
      "module": "server_tools_glitch",
      "name": "glitch_macroblocking",
      "profiles": [
@@ -344,8 +344,8 @@
      ]
     },
     {
-     "input_schema_bytes": 509,
-     "input_schema_sha256": "940d55a285a108971e393306ddfbe603bf30a219f50d15d3ff18f6a92fe0e310",
+     "input_schema_bytes": 829,
+     "input_schema_sha256": "853c281bf41db73742cf2ada0ed3e34ff4355f6899cfadf3e6e28c858cb29815",
      "module": "server_tools_glitch_shader",
      "name": "glitch_point_cloud",
      "profiles": [
@@ -366,8 +366,8 @@
      ]
     },
     {
-     "input_schema_bytes": 461,
-     "input_schema_sha256": "0509945e5364b5be9dacbdd06b92258a817b48296b43f310fe17cc5007134ad1",
+     "input_schema_bytes": 739,
+     "input_schema_sha256": "5dc96add7a8d6465703aacfaf9292651997601a67ef2f4f32e3b5259467feaa6",
      "module": "server_tools_glitch",
      "name": "glitch_rgb_shift",
      "profiles": [
@@ -387,8 +387,8 @@
      ]
     },
     {
-     "input_schema_bytes": 516,
-     "input_schema_sha256": "9f4682f09a1f6b4b43c2f15993ff7900144fe288a88634832aa8821e4f0b3c0c",
+     "input_schema_bytes": 859,
+     "input_schema_sha256": "171cc27b5e2f324c210a942a5d0443384f2a0e225096ff3bd666cfa0689006df",
      "module": "server_tools_glitch",
      "name": "glitch_scanline_jitter",
      "profiles": [
@@ -409,8 +409,8 @@
      ]
     },
     {
-     "input_schema_bytes": 471,
-     "input_schema_sha256": "320316f275ebab886e76cd0c40592c5da073f988dd12178d1887c2b65ae54353",
+     "input_schema_bytes": 719,
+     "input_schema_sha256": "f67e55022fd8f3178477362a89a53646aebbb35bce664be4919b4d664f83d9a3",
      "module": "server_tools_glitch",
      "name": "glitch_screen_tearing",
      "profiles": [
@@ -430,8 +430,8 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "0681cb3b475f8f0f05653b47be35456ff90316db2fdc00a80690dc7c4c9002b0",
+     "input_schema_bytes": 665,
+     "input_schema_sha256": "d3bac41e479ad9fee13fece2148a408f3db86d5673f860ef68d31006c3eb6f01",
      "module": "server_tools_glitch_shader",
      "name": "glitch_slit_scan",
      "profiles": [
@@ -450,8 +450,8 @@
      ]
     },
     {
-     "input_schema_bytes": 503,
-     "input_schema_sha256": "b9b92db38048a4e559957a39c665e85483eb59a3edb1bcb110810cf670c66df2",
+     "input_schema_bytes": 813,
+     "input_schema_sha256": "e0494e29260d0dbf45e582303fa0f1de7b8cc33c186ef4cb353aff8229df4097",
      "module": "server_tools_glitch",
      "name": "glitch_turbulent_displacement",
      "profiles": [
@@ -472,8 +472,8 @@
      ]
     },
     {
-     "input_schema_bytes": 521,
-     "input_schema_sha256": "7a3a05b1622686edba6d2175ca6340fcab881719eaed1b50b82bec8f08fdb3ca",
+     "input_schema_bytes": 837,
+     "input_schema_sha256": "38d81220bb41b5794d9822b85d63d5394e55a8f9e6849fdbe7b5c4faaeb49f59",
      "module": "server_tools_glitch",
      "name": "glitch_vhs_tracking",
      "profiles": [
@@ -494,8 +494,8 @@
      ]
     },
     {
-     "input_schema_bytes": 362,
-     "input_schema_sha256": "f0b783e89b866c765fec440c0916b9467a7a6d7b4fedc3397238c6f7d7067636",
+     "input_schema_bytes": 505,
+     "input_schema_sha256": "27db786635858d4067fa379416135dfd283c7eeccf66f7cfca1175a446c24481",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_add_block",
      "profiles": [
@@ -567,8 +567,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 268,
-     "input_schema_sha256": "f31ea5ce4b0699c1afd7f33f6b12e032b45dc1d6bf4b7716f5a08e8c4e9dd099",
+     "input_schema_bytes": 336,
+     "input_schema_sha256": "7fdfee97ddf8f24f15bb208924951ee1d4453bc00c9d8e9b37620649d08ab7c3",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_compositions",
      "profiles": [
@@ -612,8 +612,8 @@
      ]
     },
     {
-     "input_schema_bytes": 825,
-     "input_schema_sha256": "732057626d628e5dd3e06d08e1ff87dec8a63748b19ca68c7db64f96edf494b5",
+     "input_schema_bytes": 1418,
+     "input_schema_sha256": "72759924e7ac3e1f620b6b77d706b4e0de0bb10c39c0cf05dfec786b09bdb5e8",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_init",
      "profiles": [
@@ -659,8 +659,8 @@
      ]
     },
     {
-     "input_schema_bytes": 309,
-     "input_schema_sha256": "b12bf915f38caad6efc51b570ba83c502ee3726e75e98e74b7021eafcc272590",
+     "input_schema_bytes": 437,
+     "input_schema_sha256": "74f9a40d680576b8df300aa9f03ad3ca11613c59b7ada56e05fa7027c82ad3e2",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_preview",
      "profiles": [
@@ -699,8 +699,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 1756,
-     "input_schema_sha256": "d9822a724dcb8557f0b3a12827d1ecf9cba21896d8e621b968d7fe05f98e4482",
+     "input_schema_bytes": 2643,
+     "input_schema_sha256": "879b2612c1554f4347212c0f64824b74e45f14a6942c8c6a7ffe7b1001b48df8",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_render",
      "profiles": [
@@ -760,8 +760,8 @@
      ]
     },
     {
-     "input_schema_bytes": 518,
-     "input_schema_sha256": "bc302d4ffd0656ae4225cac9f8fe7d3b7742f46f8040f2aea1643248fc8dcaea",
+     "input_schema_bytes": 862,
+     "input_schema_sha256": "37ee68eb23c0b1b99a7052c339992ff7798944a29e61b636f611534a2374bace",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_still",
      "profiles": [
@@ -780,8 +780,8 @@
      ]
     },
     {
-     "input_schema_bytes": 444,
-     "input_schema_sha256": "35881b929baeea3e1760ef7f4e68db9fbfcaedb7d11222c511c4f381f9426136",
+     "input_schema_bytes": 747,
+     "input_schema_sha256": "1902d42a7125282d35fec29bee370041cba6ba187ed898f88cbb42d1cd647b6a",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_to_mcpvideo",
      "profiles": [
@@ -837,8 +837,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 268,
-     "input_schema_sha256": "f31ea5ce4b0699c1afd7f33f6b12e032b45dc1d6bf4b7716f5a08e8c4e9dd099",
+     "input_schema_bytes": 336,
+     "input_schema_sha256": "7fdfee97ddf8f24f15bb208924951ee1d4453bc00c9d8e9b37620649d08ab7c3",
      "module": "server_tools_hyperframes",
      "name": "hyperframes_validate",
      "profiles": [
@@ -853,8 +853,8 @@
      ]
     },
     {
-     "input_schema_bytes": 350,
-     "input_schema_sha256": "a5b48ea6d3b5361606f057c3b809a659eb2060f286d3c0c7ac12aa2060c8f5a9",
+     "input_schema_bytes": 821,
+     "input_schema_sha256": "c98312339c326a7b1ebac1380d2cd57f455754b72ed72d8b067df2684a5444ec",
      "module": "server_tools_image",
      "name": "image_analyze_product",
      "profiles": [
@@ -871,8 +871,8 @@
      ]
     },
     {
-     "input_schema_bytes": 519,
-     "input_schema_sha256": "5067984582982109b521bdeb75b5cfcadcd407934f060fb7e8e26c3ce9e60751",
+     "input_schema_bytes": 897,
+     "input_schema_sha256": "bd61c5c54c296b40beba16e3734013dd9506992994c3c9beaba4f8e2dac9463d",
      "module": "server_tools_image",
      "name": "image_edit",
      "profiles": [
@@ -896,8 +896,8 @@
      ]
     },
     {
-     "input_schema_bytes": 306,
-     "input_schema_sha256": "feed5fea5ff1c006d1f9516b793e5453aa1426f12f5b90e22b7d2aee741441a1",
+     "input_schema_bytes": 479,
+     "input_schema_sha256": "0510ffb25facc222698484c5750f387ee0a9243976aa6c2ad7d96b8319be6f7f",
      "module": "server_tools_image",
      "name": "image_extract_colors",
      "profiles": [
@@ -913,8 +913,8 @@
      ]
     },
     {
-     "input_schema_bytes": 360,
-     "input_schema_sha256": "c51d4c36299228c26b9946615f48b9c0f0eb79826a6d18f012324279d9c57a1d",
+     "input_schema_bytes": 622,
+     "input_schema_sha256": "87181fbda6bae710284d9f384d23b8b9dafb0f7908c8fc590110ce6736cb6253",
      "module": "server_tools_image",
      "name": "image_generate_palette",
      "profiles": [
@@ -1008,8 +1008,8 @@
      ]
     },
     {
-     "input_schema_bytes": 254,
-     "input_schema_sha256": "270d9ba2447aac30e9a07bef9020f8f1cc70d1651143206f49d6642166a7df9b",
+     "input_schema_bytes": 348,
+     "input_schema_sha256": "e60a948479333bca7e85f5c98ee98e3619cf26dea6242e0727db7881f711614d",
      "module": "server_tools_basic",
      "name": "search_tools",
      "profiles": [
@@ -1104,8 +1104,8 @@
      ]
     },
     {
-     "input_schema_bytes": 300,
-     "input_schema_sha256": "4cdc0780b26e63cf1d1b5077aad49a3945bb4101b374c93a71c764028a7e071a",
+     "input_schema_bytes": 458,
+     "input_schema_sha256": "113ffc433e91cf98ecb8ff8cae70b4a24cafeb9c3c072cb1c23344d3a0d95a63",
      "module": "server_tools_creation",
      "name": "shot_prompt_render",
      "profiles": [
@@ -1232,8 +1232,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 325,
-     "input_schema_sha256": "9760976deeb9654a8faec01831de60036ff4855fe79d65fccc9ca790a397b313",
+     "input_schema_bytes": 444,
+     "input_schema_sha256": "68b11f3562fd1f98e8a6405ea7b5510a05115fdba33d5044273a462c60c42538",
      "module": "server_tools_image",
      "name": "still_gate",
      "profiles": [
@@ -1250,8 +1250,8 @@
      ]
     },
     {
-     "input_schema_bytes": 514,
-     "input_schema_sha256": "78b31cebb35c5e4a109a11f2e3da0b6db868c24ffeebaec153fb6baeec91e61d",
+     "input_schema_bytes": 759,
+     "input_schema_sha256": "7a283e76689808f17accbeaa792d37f5fa22c7c41d8956e1c1e9d750111af5d8",
      "module": "server_tools_image",
      "name": "still_grade",
      "profiles": [
@@ -1271,8 +1271,8 @@
      ]
     },
     {
-     "input_schema_bytes": 357,
-     "input_schema_sha256": "dafa2b216ab1290f6211aa15cc42a2ecf4f1fdd0b1ef06aca982f7aefc7dfaa0",
+     "input_schema_bytes": 526,
+     "input_schema_sha256": "b9f54f8c75366c576415e4ad40934d5a424dc6ff8e67f613674fc36153c47de1",
      "module": "server_tools_image",
      "name": "still_match",
      "profiles": [
@@ -1291,8 +1291,8 @@
      ]
     },
     {
-     "input_schema_bytes": 579,
-     "input_schema_sha256": "8d5caf813cdc7165efe9fd4282813e60e498d97095e83d96707a7852aab7866e",
+     "input_schema_bytes": 935,
+     "input_schema_sha256": "b89f3cbadf356f8e11598d61bc6dd4b083e4384a52dad2c136d61352cdb5611e",
      "module": "server_tools_image",
      "name": "still_package",
      "profiles": [
@@ -1315,8 +1315,8 @@
      ]
     },
     {
-     "input_schema_bytes": 252,
-     "input_schema_sha256": "e05427791ab6c4f408d9c9ca91b1349654fb7d7edda22b1ffb221eb011359a8a",
+     "input_schema_bytes": 351,
+     "input_schema_sha256": "dd1a8a90bd37dac7571ffdf1b62929119918e08f6d42c4865ee6d744c170a44f",
      "module": "server_tools_creation",
      "name": "storyboard_read",
      "profiles": [
@@ -1332,8 +1332,8 @@
      ]
     },
     {
-     "input_schema_bytes": 252,
-     "input_schema_sha256": "e05427791ab6c4f408d9c9ca91b1349654fb7d7edda22b1ffb221eb011359a8a",
+     "input_schema_bytes": 341,
+     "input_schema_sha256": "f9284d9383807df5efd6d9c6707baa202be8100ca3a5e3cf9d7855665d3281e2",
      "module": "server_tools_creation",
      "name": "style_pack_read",
      "profiles": [
@@ -1349,8 +1349,8 @@
      ]
     },
     {
-     "input_schema_bytes": 470,
-     "input_schema_sha256": "6aafdcc5ef509d193da02b94399ffa6e0436953a40d8f3a4906e4ce3d3028311",
+     "input_schema_bytes": 735,
+     "input_schema_sha256": "51655ed5c5413379db16b043bfdd0932e96f5807637fe2a36c6b50953d095be4",
      "module": "server_tools_effects",
      "name": "transition_glitch",
      "profiles": [
@@ -1463,8 +1463,8 @@
      ]
     },
     {
-     "input_schema_bytes": 386,
-     "input_schema_sha256": "afd174be739e206be8052fd413f6355c2c39fadbea57489e7fd397c158097423",
+     "input_schema_bytes": 615,
+     "input_schema_sha256": "3aaf13ba70e0daa57ad42de90ccd90f54d886c52de3d2d2936f6ee3977d43d73",
      "module": "server_tools_audio",
      "name": "video_add_generated_audio",
      "profiles": [
@@ -1484,8 +1484,8 @@
      ]
     },
     {
-     "input_schema_bytes": 959,
-     "input_schema_sha256": "929350096d210932fb20c1bd8a663b4d90c658ee32606abf798b72f7d458ac5f",
+     "input_schema_bytes": 1787,
+     "input_schema_sha256": "eb398869a5a5fe550cd14166deeac535be1fef07a9ef3424f168da8209cb3663",
      "module": "server_tools_basic",
      "name": "video_add_text",
      "profiles": [
@@ -1513,8 +1513,8 @@
      ]
     },
     {
-     "input_schema_bytes": 612,
-     "input_schema_sha256": "78b97507079c6eb6065e62159aeeaa7dd455c236acaa7283a54f328501f0debd",
+     "input_schema_bytes": 1312,
+     "input_schema_sha256": "f8bf49e76bbcf5a03831aa6936ce8401da836c41b6a6f4cf6b42dc8b4c79be55",
      "module": "server_tools_basic",
      "name": "video_add_texts",
      "profiles": [
@@ -1535,8 +1535,8 @@
      ]
     },
     {
-     "input_schema_bytes": 503,
-     "input_schema_sha256": "a32f26267e9b56f3f8cfb39872868c913e7996f60a905d15692b786a82b02503",
+     "input_schema_bytes": 1012,
+     "input_schema_sha256": "60bbbc58860a5d0f8d9e6ac0979fea7b172e8d319742adf6c4a86afaa7f8d01b",
      "module": "server_tools_ai",
      "name": "video_ai_color_grade",
      "profiles": [
@@ -1654,8 +1654,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1045,
-     "input_schema_sha256": "4672f0cc1cc12e43823d1926f232fba0d4ceb127d7182e62ce1a2b5092e1e145",
+     "input_schema_bytes": 1931,
+     "input_schema_sha256": "ee1f88ef135fe3f1df1e6090f64f6cafc5070241623d3b3e00f8c1ce1d7ebb1d",
      "module": "server_tools_ai",
      "name": "video_analyze",
      "profiles": [
@@ -1683,8 +1683,8 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "69f2f46121690f76c103852c095781090b56c741a738db2c4af0dcfad4c61240",
+     "input_schema_bytes": 702,
+     "input_schema_sha256": "9501feb785b9205895c90e670c02a5de48e7f68ab5b588fdf41522444f64335f",
      "module": "server_tools_advanced",
      "name": "video_apply_mask",
      "profiles": [
@@ -1704,8 +1704,8 @@
      ]
     },
     {
-     "input_schema_bytes": 895,
-     "input_schema_sha256": "9862d8ee9337a6554b26ab03a36c8b314031c8156b2867ebafcd73f9fe8e2833",
+     "input_schema_bytes": 1898,
+     "input_schema_sha256": "2c30915af037e7cdc5d769eb06b38f657aac7b6b7a0b54b34b457ae4e4c3439d",
      "module": "server_tools_audio",
      "name": "video_audio_bed",
      "profiles": [
@@ -1758,8 +1758,8 @@
      ]
     },
     {
-     "input_schema_bytes": 303,
-     "input_schema_sha256": "747937e59a9a163121414f92610b79f6c256258f8724347e2b3a807a90ddffbc",
+     "input_schema_bytes": 429,
+     "input_schema_sha256": "c070eddb1093a29c9474928faea13834e237f41a88624b2f161612459fff334e",
      "module": "server_tools_advanced",
      "name": "video_audio_waveform",
      "profiles": [
@@ -1795,8 +1795,8 @@
      ]
     },
     {
-     "input_schema_bytes": 308,
-     "input_schema_sha256": "24a71dec2c9496555e9fa61182c064d317c4c25b117e1070034f6914da5ec580",
+     "input_schema_bytes": 414,
+     "input_schema_sha256": "d059e683a222b501c8049604c286cdac60bd4b52e267e7804c5806cbd02085c4",
      "module": "server_tools_effects",
      "name": "video_auto_chapters",
      "profiles": [
@@ -1813,8 +1813,8 @@
      ]
     },
     {
-     "input_schema_bytes": 495,
-     "input_schema_sha256": "ac3aa352e48bae1bd25172a5bb5fe25684cd77cd9f06ebf2a11166000823ea6a",
+     "input_schema_bytes": 797,
+     "input_schema_sha256": "fa7e4df124b8d93d84842a650d9af022579b53e8522a20af8d6dca3329457c38",
      "module": "server_tools_advanced",
      "name": "video_batch",
      "profiles": [
@@ -1903,8 +1903,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 472,
-     "input_schema_sha256": "83f8602f270fc32b9452ddeddfed74cf5fd94d81298e1fc588a1825837045dfc",
+     "input_schema_bytes": 826,
+     "input_schema_sha256": "6a372ca778c85d1ae821429a2d741e1ac95f95c688c62b021eff7865b18de79e",
      "module": "server_tools_advanced",
      "name": "video_chroma_key",
      "profiles": [
@@ -1924,8 +1924,8 @@
      ]
     },
     {
-     "input_schema_bytes": 372,
-     "input_schema_sha256": "a9323ab77dc4eeed2a9a61318036bdb6050f2b059a17a920b2f002b3cac5e6ed",
+     "input_schema_bytes": 485,
+     "input_schema_sha256": "35fceb11b012e7f3c37b75bb99da268da7e910078710402648e414bd2383799a",
      "module": "server_tools_advanced",
      "name": "video_cleanup",
      "profiles": [
@@ -1942,8 +1942,8 @@
      ]
     },
     {
-     "input_schema_bytes": 418,
-     "input_schema_sha256": "e12e20f02c19305fdb50f1bae98a45eb1c39092595ea84f21ae175387e3eb13a",
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "9b9061d88f9aebfbd8f75ee90a7385b14c26d9a8204610949ebc4efdda1cee5a",
      "module": "server_tools_advanced",
      "name": "video_compare_quality",
      "profiles": [
@@ -1962,8 +1962,8 @@
      ]
     },
     {
-     "input_schema_bytes": 461,
-     "input_schema_sha256": "7f66a6d44e792ada84605ea0ce8310263b514ff6bbfddbe291cd604e5caae7d2",
+     "input_schema_bytes": 710,
+     "input_schema_sha256": "1c08ac7c35e960be33e6057cd97f8288db82c17bc812840c3bbce05e02326d0f",
      "module": "server_tools_advanced",
      "name": "video_composite_layers",
      "profiles": [
@@ -2035,8 +2035,8 @@
      ]
     },
     {
-     "input_schema_bytes": 538,
-     "input_schema_sha256": "cb1f2580f8c8d7e5b44c14f266732f08af8cba6652af8d80b2955ead686db9fa",
+     "input_schema_bytes": 1090,
+     "input_schema_sha256": "84e6048fb018ee10be766f20921ced742cb67b01e5ebdb610c238d579f3ab270",
      "module": "server_tools_advanced",
      "name": "video_create_from_images",
      "profiles": [
@@ -2128,8 +2128,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 354,
-     "input_schema_sha256": "0d83862de21fe07cddd9a82ad192c19937873202c95ab3efca493279354bda4e",
+     "input_schema_bytes": 499,
+     "input_schema_sha256": "03d8427c790676fb29133aed2b359cf8294ffdbdb9704665fd9ce30c52a6e36b",
      "module": "server_tools_ai",
      "name": "video_design_quality_check",
      "profiles": [
@@ -2146,8 +2146,8 @@
      ]
     },
     {
-     "input_schema_bytes": 361,
-     "input_schema_sha256": "547fa18f276e5e05cee52cae451e262efd3572cd215b87a7cd06b8bd0d3f1941",
+     "input_schema_bytes": 568,
+     "input_schema_sha256": "cbe159f24c361b79827c2cf14c70255ea3ea25eae1a2674dc3e7e943d157221d",
      "module": "server_tools_advanced",
      "name": "video_detect_scenes",
      "profiles": [
@@ -2197,8 +2197,8 @@
      ]
     },
     {
-     "input_schema_bytes": 601,
-     "input_schema_sha256": "ac5d4f58978dddb2aaa6e283ba0ec8b5df3f88aeb25bd9259506b5e23b2165a9",
+     "input_schema_bytes": 1138,
+     "input_schema_sha256": "eea993caa28ba19dcd6e69b83d54d5d7fe971d2f624d05bac4925c8a77250fd0",
      "module": "server_tools_audio",
      "name": "video_duck_audio",
      "profiles": [
@@ -2222,8 +2222,8 @@
      ]
     },
     {
-     "input_schema_bytes": 393,
-     "input_schema_sha256": "e8432ea4ee124c5af841fd83321efc808573d0fa9531933a742672ebfb43fb54",
+     "input_schema_bytes": 773,
+     "input_schema_sha256": "0d08b72ed52e936b48abe85d4330e8f564e5fbe3dd400125134ce7758b767ad8",
      "module": "server_tools_media",
      "name": "video_edit",
      "profiles": [
@@ -2303,8 +2303,8 @@
      ]
     },
     {
-     "input_schema_bytes": 419,
-     "input_schema_sha256": "3aa285ad4f8f1b22631a8651fc845fa961c6e336e55ac0fc520747951b3d8990",
+     "input_schema_bytes": 693,
+     "input_schema_sha256": "6414b8c6adff7965087074c789c111ad280855fff94c285d65590a19d74452f7",
      "module": "server_tools_advanced",
      "name": "video_export_frames",
      "profiles": [
@@ -2323,8 +2323,8 @@
      ]
     },
     {
-     "input_schema_bytes": 382,
-     "input_schema_sha256": "fc288d19d7fb6546ca7df9cd34fdad9da6471a62a06826b68456782d790bd5f6",
+     "input_schema_bytes": 562,
+     "input_schema_sha256": "65487c50efbb6bc3dc0f6d213610058b9c340b871a729c95f171954a2240e86c",
      "module": "server_tools_media",
      "name": "video_extract_audio",
      "profiles": [
@@ -2342,8 +2342,8 @@
      ]
     },
     {
-     "input_schema_bytes": 412,
-     "input_schema_sha256": "949d79f004b0830aac4c51975edad572def0473ac7ea18c0b5eb27346330f805",
+     "input_schema_bytes": 598,
+     "input_schema_sha256": "514e9a406b9cb6a298525bedbfeae3199de991b0e686f0a94a41a01aff6513a5",
      "module": "server_tools_guardrails",
      "name": "video_extract_frame",
      "profiles": [
@@ -2384,8 +2384,8 @@
      ]
     },
     {
-     "input_schema_bytes": 621,
-     "input_schema_sha256": "73a61da57f02b82156691d00fda1e73e109273359297ba03f20c6d5643ef2047",
+     "input_schema_bytes": 1229,
+     "input_schema_sha256": "c2c1eeba68be62b10a9067926c881cec2c21f2704839c14d405b1455088a53bc",
      "module": "server_tools_advanced",
      "name": "video_filter",
      "profiles": [
@@ -2435,8 +2435,8 @@
      ]
     },
     {
-     "input_schema_bytes": 339,
-     "input_schema_sha256": "9606454b7853ad767c553073ebc09976f04e3a11f0d6e96386082fea66301273",
+     "input_schema_bytes": 453,
+     "input_schema_sha256": "ce40699cc9f22443729e28449b223155dbffaaffd0dbffd15757335ce06ef731",
      "module": "server_tools_ai",
      "name": "video_fix_design_issues",
      "profiles": [
@@ -2452,8 +2452,8 @@
      ]
     },
     {
-     "input_schema_bytes": 397,
-     "input_schema_sha256": "06c976424c1ec6f6d4759c962663dce7e1df83e4a1585ff10bda056136e227d3",
+     "input_schema_bytes": 611,
+     "input_schema_sha256": "cdb5bdf7912d49df3aac6697176a70f9e37eb3bdc0f6db7bb452d791f554a2c7",
      "module": "server_tools_advanced",
      "name": "video_generate_subtitles",
      "profiles": [
@@ -2492,8 +2492,8 @@
      ]
     },
     {
-     "input_schema_bytes": 546,
-     "input_schema_sha256": "4dbf4b8d747317ea64c6875c1ffb127d19da9f66947f583dc3127cddd3376add",
+     "input_schema_bytes": 860,
+     "input_schema_sha256": "d8c86f88fb12b9890ca6c9fe740f5dd695c7e84929265ed1d108a9b5bf77d856",
      "module": "server_tools_advanced",
      "name": "video_hls_segment",
      "profiles": [
@@ -2531,8 +2531,8 @@
      ]
     },
     {
-     "input_schema_bytes": 307,
-     "input_schema_sha256": "2ccdd5b22925d2f6dd771ebfd0b7ae8bae1fcfb42aa9d901590866b00c5872ee",
+     "input_schema_bytes": 508,
+     "input_schema_sha256": "8ad1365aac5a615300cd06ab734743211c1417e2a2f880ecab2fa601687a0f40",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -2549,8 +2549,8 @@
      ]
     },
     {
-     "input_schema_bytes": 264,
-     "input_schema_sha256": "2e6efcf65b9d4d25f744908b4d3c5b0ea36c4c5b8fcdc6114ccbc9a62d6caa2f",
+     "input_schema_bytes": 310,
+     "input_schema_sha256": "9d8bc69e2cc0e5198139803c6559c86227f55a1bb4cd49debf29c8e3fac7a8a6",
      "module": "server_tools_effects",
      "name": "video_info_detailed",
      "profiles": [
@@ -2659,8 +2659,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 492,
-     "input_schema_sha256": "d5d218b77df1cab4c22b5cad8ab257ed30ad07bf09ca21f6b08bd87c7b64a739",
+     "input_schema_bytes": 799,
+     "input_schema_sha256": "30efd2a8a1e1770571a5cca8168081cc465f15ca7384f683937339a66301ada2",
      "module": "server_tools_effects",
      "name": "video_layout_grid",
      "profiles": [
@@ -2683,8 +2683,8 @@
      ]
     },
     {
-     "input_schema_bytes": 677,
-     "input_schema_sha256": "7e3517f15f32825f614626a1ac59620e95e500b0d786760d4bc9788a1ab8a116",
+     "input_schema_bytes": 1258,
+     "input_schema_sha256": "3a276afce3b87c5110b4cfe9af4d78218f88cfe69210f94383ced4d4a7caec2f",
      "module": "server_tools_effects",
      "name": "video_layout_pip",
      "profiles": [
@@ -2727,8 +2727,8 @@
      ]
     },
     {
-     "input_schema_bytes": 383,
-     "input_schema_sha256": "f0d6f93e917e1fa8d806363a87d92d1cdc4af4464d5d3464c816574a4739f159",
+     "input_schema_bytes": 593,
+     "input_schema_sha256": "48e39dfc37e6212c68f1d2f5694603f8ba5bed242a3372ff2ddcd20ce5bbecdb",
      "module": "server_tools_advanced",
      "name": "video_luma_key",
      "profiles": [
@@ -2807,8 +2807,8 @@
      ]
     },
     {
-     "input_schema_bytes": 507,
-     "input_schema_sha256": "6dc72a2452e134d736d469e87b5f71f4901264f34a51bed7f42d2edfdb1f1dea",
+     "input_schema_bytes": 772,
+     "input_schema_sha256": "d5dbc2d41193140977b6267ecb27d5befa8ff944136496d77e9b701e0ecee07c",
      "module": "server_tools_effects",
      "name": "video_mograph_count",
      "profiles": [
@@ -2832,8 +2832,8 @@
      ]
     },
     {
-     "input_schema_bytes": 484,
-     "input_schema_sha256": "7d83ed6f2e4b9f2d01bf78da924d1bbdfc3a45f7658475d84d0df3ac6c428388",
+     "input_schema_bytes": 798,
+     "input_schema_sha256": "7004b9edbca523142f28f001c6321309e197adc80b4aadc48a3cc1465004c657",
      "module": "server_tools_effects",
      "name": "video_mograph_progress",
      "profiles": [
@@ -2855,8 +2855,8 @@
      ]
     },
     {
-     "input_schema_bytes": 580,
-     "input_schema_sha256": "d98a330a588d7f5a7977168ee0639fb09934979deb5a3de19ab556a1e043473e",
+     "input_schema_bytes": 971,
+     "input_schema_sha256": "3b7cd2bb5d0969ecb99b93ecf487c1ca6db7c010dd6e554a75589d1b9d21c2c8",
      "module": "server_tools_advanced",
      "name": "video_normalize_audio",
      "profiles": [
@@ -2911,8 +2911,8 @@
      ]
     },
     {
-     "input_schema_bytes": 973,
-     "input_schema_sha256": "827f27a910a660d04678f355b93da3fe47888ef3da8cae25c0730ac6fd213b56",
+     "input_schema_bytes": 1733,
+     "input_schema_sha256": "938ef2600e017dca21fee309bd613f48ed5cded93217b6bb482fbbacec1ca4b0",
      "module": "server_tools_advanced",
      "name": "video_overlay",
      "profiles": [
@@ -2958,8 +2958,8 @@
      ]
     },
     {
-     "input_schema_bytes": 385,
-     "input_schema_sha256": "a5650b89afdf255f1c253f5506bd1fe815df1941feba9d8772b30cc8059efb1e",
+     "input_schema_bytes": 560,
+     "input_schema_sha256": "528d1013a24164ebf90e47f8e7ffe2c2d79cee7c626a002e7c432e12ba88da75",
      "module": "server_tools_media",
      "name": "video_preview",
      "profiles": [
@@ -2977,8 +2977,8 @@
      ]
     },
     {
-     "input_schema_bytes": 326,
-     "input_schema_sha256": "739f77cbddc4ad9e8d968749a67fa99f76594d80e69291063f399cbdfb03590c",
+     "input_schema_bytes": 514,
+     "input_schema_sha256": "fe0d472c7cff67ddc1f2ecd375a420ca296edce8082ac3eedf0a82c1db7bc7bb",
      "module": "server_tools_creation",
      "name": "video_project_create",
      "profiles": [
@@ -3176,8 +3176,8 @@
      ]
     },
     {
-     "input_schema_bytes": 365,
-     "input_schema_sha256": "8ccc4fa34b7383c3059793835ecff724c7114951453e3b452ebaf61570ed779a",
+     "input_schema_bytes": 608,
+     "input_schema_sha256": "a69eecc7c83220e5cfb1cd6873aec8aee7069674fa251c1ce43644a62e481630",
      "module": "server_tools_ai",
      "name": "video_quality_check",
      "profiles": [
@@ -3194,8 +3194,8 @@
      ]
     },
     {
-     "input_schema_bytes": 264,
-     "input_schema_sha256": "2e6efcf65b9d4d25f744908b4d3c5b0ea36c4c5b8fcdc6114ccbc9a62d6caa2f",
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "16100b7df557dbfb3cb58782ca26eb7f26609d7692c04c7e0fa24f05853434ec",
      "module": "server_tools_advanced",
      "name": "video_read_metadata",
      "profiles": [
@@ -3396,8 +3396,8 @@
      ]
     },
     {
-     "input_schema_bytes": 601,
-     "input_schema_sha256": "aaaf1c411383529ec42c5dbf43ff9eb19731ab151307ffb7a25074f07acb45c8",
+     "input_schema_bytes": 988,
+     "input_schema_sha256": "816413ba9608748fc3b353494d263ade68c2ef7026880606330f1a204cb087f3",
      "module": "server_tools_basic",
      "name": "video_resize",
      "profiles": [
@@ -3433,8 +3433,8 @@
      ]
     },
     {
-     "input_schema_bytes": 339,
-     "input_schema_sha256": "9606454b7853ad767c553073ebc09976f04e3a11f0d6e96386082fea66301273",
+     "input_schema_bytes": 458,
+     "input_schema_sha256": "decd03499f826074206c760a95d76ee1c6f6595c519eca125175ac6951648aaa",
      "module": "server_tools_advanced",
      "name": "video_reverse",
      "profiles": [
@@ -3638,8 +3638,8 @@
      ]
     },
     {
-     "input_schema_bytes": 425,
-     "input_schema_sha256": "0cefc637cc2a920655313fbe69b2c4964c991661e454706013590f4702e74453",
+     "input_schema_bytes": 680,
+     "input_schema_sha256": "c60c8f812b2dda9ff3b27ea254f5465ec96833412a8cf6bbfcbff7da906984ba",
      "module": "server_tools_advanced",
      "name": "video_shape_mask",
      "profiles": [
@@ -3698,8 +3698,8 @@
      ]
     },
     {
-     "input_schema_bytes": 433,
-     "input_schema_sha256": "32507a914a162f823d7b7df08c218efaccd86634918a9397dbbfed5698e0ade5",
+     "input_schema_bytes": 661,
+     "input_schema_sha256": "cbe4a72cf2f0a768a57ab9baaf655d7721d82073c0bfb68f4a077741391df74e",
      "module": "server_tools_advanced",
      "name": "video_split_screen",
      "profiles": [
@@ -3719,8 +3719,8 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "9c7971252b46ac0cb853866342bc0a78fb6bce919a97795abfc358f8fbb7d810",
+     "input_schema_bytes": 680,
+     "input_schema_sha256": "6f702f7edd8632d98519ab515a46c51ead7aca9cc4c42d27157c0965f0eed34a",
      "module": "server_tools_advanced",
      "name": "video_stabilize",
      "profiles": [
@@ -3739,8 +3739,8 @@
      ]
     },
     {
-     "input_schema_bytes": 383,
-     "input_schema_sha256": "65e711017330d4a030ba384a041849b406d385947dbc6c71bc1c5f68176ced40",
+     "input_schema_bytes": 551,
+     "input_schema_sha256": "4a67c5f9d10f895d8ffbe04f2c8d2e162e6caa4356d83087cb069d0e9f1ce4f6",
      "module": "server_tools_media",
      "name": "video_storyboard",
      "profiles": [
@@ -3758,8 +3758,8 @@
      ]
     },
     {
-     "input_schema_bytes": 458,
-     "input_schema_sha256": "7ef8fd0ad6fd79cd38e6cc9f5cf32ffb04433443c06f414c0b413cc960ed9ab1",
+     "input_schema_bytes": 865,
+     "input_schema_sha256": "a577a16cb59dd3135f6dc96f0023407f3fc04c5f8296336fb21ab201c4dd438b",
      "module": "server_tools_media",
      "name": "video_subtitles",
      "profiles": [
@@ -3779,8 +3779,8 @@
      ]
     },
     {
-     "input_schema_bytes": 459,
-     "input_schema_sha256": "dc7406576814c9eb64d6eaf92e711f7623a6a62fc03cfbeaa18a9fa0755f7f33",
+     "input_schema_bytes": 677,
+     "input_schema_sha256": "69f5aef22df2488b542a20c9f289aa3ede6817b86fac58bca90f8017d1a3637b",
      "module": "server_tools_effects",
      "name": "video_subtitles_styled",
      "profiles": [
@@ -3801,8 +3801,8 @@
      ]
     },
     {
-     "input_schema_bytes": 694,
-     "input_schema_sha256": "992e9097fe428b2b8bfb704bfd6dcc69f75929025265cdb6fa4c958c70979744",
+     "input_schema_bytes": 1228,
+     "input_schema_sha256": "8804e23b82d577b063a4b1144d607e19d07b15e430be005b1fed12d9de626304",
      "module": "server_tools_media",
      "name": "video_template_preview",
      "profiles": [
@@ -3824,8 +3824,8 @@
      ]
     },
     {
-     "input_schema_bytes": 725,
-     "input_schema_sha256": "06ef0f5d6fbabec9ff1966a73a8152bdb03b0d3d1c30846a32380579f88784c7",
+     "input_schema_bytes": 1197,
+     "input_schema_sha256": "a387f375a388488255dc7849e061d51dc5a63c5cf675a288ca36f433be828508",
      "module": "server_tools_effects",
      "name": "video_text_animated",
      "profiles": [
@@ -3852,8 +3852,8 @@
      ]
     },
     {
-     "input_schema_bytes": 430,
-     "input_schema_sha256": "4cbe7ba5d22eb9275219835cfd6942767b2e746205fe73e60555b06e8f6644c4",
+     "input_schema_bytes": 639,
+     "input_schema_sha256": "e3e403ca047a8bc579fe2ef2335ba830c14d7c9952980c120c98bb752687ccc7",
      "module": "server_tools_media",
      "name": "video_thumbnail",
      "profiles": [
@@ -3922,8 +3922,8 @@
      ]
     },
     {
-     "input_schema_bytes": 630,
-     "input_schema_sha256": "b6706c6cf520b569e4cc7f846db74674b24ffbe6f42973c4c8c65e71bc09a161",
+     "input_schema_bytes": 1101,
+     "input_schema_sha256": "60bc4cf3f33ab6a452526e5a9611e8098bf7b9225374b9932ef4fde231c90aa2",
      "module": "server_tools_basic",
      "name": "video_trim",
      "profiles": [
@@ -3944,8 +3944,8 @@
      ]
     },
     {
-     "input_schema_bytes": 467,
-     "input_schema_sha256": "52ffc22fbd2c463b471a47ff7ddcdd3f2a2f3e6ecf2a0bd5c714820aa1debba7",
+     "input_schema_bytes": 747,
+     "input_schema_sha256": "a7cc455d00d5a2a3f497860a0e8cddc694a74bf7fbcf4e6d37ab43323e07479d",
      "module": "server_tools_guardrails",
      "name": "video_validate_text_layout",
      "profiles": [
@@ -4023,8 +4023,8 @@
      ]
     },
     {
-     "input_schema_bytes": 344,
-     "input_schema_sha256": "96ce0b7fb085808530de2594a9d9aa130e9a4418949eda530311516ce8fecc6f",
+     "input_schema_bytes": 487,
+     "input_schema_sha256": "cc6924b72d353dd7144322c8efe96b6f2913be1c6d0631412d2f9b995c213bf4",
      "module": "server_tools_workflow",
      "name": "video_workflow_inspect",
      "profiles": [
@@ -4041,8 +4041,8 @@
      ]
     },
     {
-     "input_schema_bytes": 406,
-     "input_schema_sha256": "abfc24c802231cf1c3735c1bd07837a4ccb8be399ec6dbedfa1f976e43015572",
+     "input_schema_bytes": 612,
+     "input_schema_sha256": "950a5fe06a38552711766614c72cb975cd3763c31a331043491d86dd976201b9",
      "module": "server_tools_workflow",
      "name": "video_workflow_plan",
      "profiles": [
@@ -4060,8 +4060,8 @@
      ]
     },
     {
-     "input_schema_bytes": 673,
-     "input_schema_sha256": "0567dccf8ea49f1afe2299de36de470d2989568ae2acafff6ed1b7f46e4e521e",
+     "input_schema_bytes": 1158,
+     "input_schema_sha256": "d43bd4a92288f7822144cb148e1721b27e1c2f7f7ddc11e736c5e1e0d3110107",
      "module": "server_tools_workflow",
      "name": "video_workflow_render",
      "profiles": [
@@ -4083,8 +4083,8 @@
      ]
     },
     {
-     "input_schema_bytes": 262,
-     "input_schema_sha256": "19c9918d26a2de7814b188c8c472bf0efccf02188c9617cc51ec43d5e45fdfe0",
+     "input_schema_bytes": 328,
+     "input_schema_sha256": "6719d2f3165e9c360845c6dbaae4b11d21ad866944736a1e92a9653d977fafc1",
      "module": "server_tools_workflow",
      "name": "video_workflow_validate",
      "profiles": [
@@ -4100,8 +4100,8 @@
      ]
     },
     {
-     "input_schema_bytes": 420,
-     "input_schema_sha256": "ade0fd324221c9942b47d4d09ec0dcec87d66196d396eb811afc7f0a97020e65",
+     "input_schema_bytes": 628,
+     "input_schema_sha256": "1319c777aaf2a3d5f5407047118a1a921d0c98b7205bc5c44d4751a383dc247c",
      "module": "server_tools_advanced",
      "name": "video_write_metadata",
      "profiles": [
@@ -4120,7 +4120,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 98000
+   "total_input_schema_bytes": 128297
   },
   "default": {
    "launch": {
@@ -4239,8 +4239,8 @@
      ]
     },
     {
-     "input_schema_bytes": 959,
-     "input_schema_sha256": "929350096d210932fb20c1bd8a663b4d90c658ee32606abf798b72f7d458ac5f",
+     "input_schema_bytes": 1787,
+     "input_schema_sha256": "eb398869a5a5fe550cd14166deeac535be1fef07a9ef3424f168da8209cb3663",
      "module": "server_tools_basic",
      "name": "video_add_text",
      "profiles": [
@@ -4327,8 +4327,8 @@
      ]
     },
     {
-     "input_schema_bytes": 412,
-     "input_schema_sha256": "949d79f004b0830aac4c51975edad572def0473ac7ea18c0b5eb27346330f805",
+     "input_schema_bytes": 598,
+     "input_schema_sha256": "514e9a406b9cb6a298525bedbfeae3199de991b0e686f0a94a41a01aff6513a5",
      "module": "server_tools_guardrails",
      "name": "video_extract_frame",
      "profiles": [
@@ -4347,8 +4347,8 @@
      ]
     },
     {
-     "input_schema_bytes": 307,
-     "input_schema_sha256": "2ccdd5b22925d2f6dd771ebfd0b7ae8bae1fcfb42aa9d901590866b00c5872ee",
+     "input_schema_bytes": 508,
+     "input_schema_sha256": "8ad1365aac5a615300cd06ab734743211c1417e2a2f880ecab2fa601687a0f40",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -4438,8 +4438,8 @@
      ]
     },
     {
-     "input_schema_bytes": 630,
-     "input_schema_sha256": "b6706c6cf520b569e4cc7f846db74674b24ffbe6f42973c4c8c65e71bc09a161",
+     "input_schema_bytes": 1101,
+     "input_schema_sha256": "60bc4cf3f33ab6a452526e5a9611e8098bf7b9225374b9932ef4fde231c90aa2",
      "module": "server_tools_basic",
      "name": "video_trim",
      "profiles": [
@@ -4460,7 +4460,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 15335
+   "total_input_schema_bytes": 17021
   },
   "profile:editor": {
    "launch": {
@@ -4481,8 +4481,8 @@
    "tool_names_sha256": "a002393f23cc9071c52e23adf202624a0188d17939c45474fc3127b2a8e1ff2c",
    "tools": [
     {
-     "input_schema_bytes": 395,
-     "input_schema_sha256": "6b1bf7a13d61c513913a6316ac7de0f93687bceb7b4cdc5ad20a056a5cf88fd7",
+     "input_schema_bytes": 698,
+     "input_schema_sha256": "02c473a5b7d9e550bf7ac88e214acfd863ad7ddc981d143276a0e58f57d93f18",
      "module": "server_tools_audio",
      "name": "audio_compose",
      "profiles": [
@@ -4502,8 +4502,8 @@
      ]
     },
     {
-     "input_schema_bytes": 401,
-     "input_schema_sha256": "25dae0ea997a243f66d47bae7cdd3c3775b39df85db104c4d982f1f8067925de",
+     "input_schema_bytes": 639,
+     "input_schema_sha256": "3133ea47e264537106be4ca49ad6c89178fa8ecd652823aac6d399f1e9a65874",
      "module": "server_tools_audio",
      "name": "audio_effects",
      "profiles": [
@@ -4538,8 +4538,8 @@
      ]
     },
     {
-     "input_schema_bytes": 489,
-     "input_schema_sha256": "d6c35fe4a0fff8548a5b726473f2d5ebcf5624f994e88ac8be34a11c17ce8336",
+     "input_schema_bytes": 760,
+     "input_schema_sha256": "4667ed4e8d27137958b806afecd01b55261069fd1c870957e73cce131f8b9fa3",
      "module": "server_tools_audio",
      "name": "audio_preset",
      "profiles": [
@@ -4559,8 +4559,8 @@
      ]
     },
     {
-     "input_schema_bytes": 359,
-     "input_schema_sha256": "4fff161c95eaaff8fa1e596a9a9f04a0089e38390027e649358250831f48aeb6",
+     "input_schema_bytes": 707,
+     "input_schema_sha256": "7d36d87e2b95a11dbb902167b0c369018faa8ee29eb033c5a612fb2fa2e1c3e9",
      "module": "server_tools_audio",
      "name": "audio_sequence",
      "profiles": [
@@ -4578,8 +4578,8 @@
      ]
     },
     {
-     "input_schema_bytes": 557,
-     "input_schema_sha256": "5b1912fb6cef7feb9784af1572f0a40bc477b512abf521cab4714a93cb533544",
+     "input_schema_bytes": 1144,
+     "input_schema_sha256": "5717c42cdff38054f2b75c79809431b07e782eea14fbcb78f3d1107eb2b924eb",
      "module": "server_tools_audio",
      "name": "audio_synthesize",
      "profiles": [
@@ -4612,8 +4612,8 @@
      ]
     },
     {
-     "input_schema_bytes": 392,
-     "input_schema_sha256": "0001c48a41a0f3299d84931f97d61bd43b154604ab710e2acf271cfaacebd0df",
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "c4bc63adce80c38722fa5217192a7f0a1da78f4ee9707cee0e4ac4097bd98c2e",
      "module": "server_tools_effects",
      "name": "effect_chromatic_aberration",
      "profiles": [
@@ -4633,8 +4633,8 @@
      ]
     },
     {
-     "input_schema_bytes": 439,
-     "input_schema_sha256": "dcee68e4486eb93724da7e559b73840f60f7db48825d7db15820dd15b259a892",
+     "input_schema_bytes": 687,
+     "input_schema_sha256": "568632ecead4a79d87ab579428806957fff7d50d832c62dffc9426243fa01508",
      "module": "server_tools_effects",
      "name": "effect_glow",
      "profiles": [
@@ -4655,8 +4655,8 @@
      ]
     },
     {
-     "input_schema_bytes": 442,
-     "input_schema_sha256": "b4fdfad84474f1b5f22720fcf319f1f7eacdae45a11666181ce9092bb9285438",
+     "input_schema_bytes": 712,
+     "input_schema_sha256": "1597dd6daf820032e7ce59bb24242bd28a07e73f60dd7b42ac7dc4395b05a734",
      "module": "server_tools_effects",
      "name": "effect_noise",
      "profiles": [
@@ -4677,8 +4677,8 @@
      ]
     },
     {
-     "input_schema_bytes": 439,
-     "input_schema_sha256": "e11c1768bcb8eda2aa029da8e31fc690076cc04761db56807196a70b5be31b83",
+     "input_schema_bytes": 683,
+     "input_schema_sha256": "316f244882f04be031fdc61fdc40a9ee9ee4ae4c7f2439a48a8593910c32477b",
      "module": "server_tools_effects",
      "name": "effect_scanlines",
      "profiles": [
@@ -4699,8 +4699,8 @@
      ]
     },
     {
-     "input_schema_bytes": 469,
-     "input_schema_sha256": "b25b5f7faa225f0b73e84307789d7e0d7a41c52f582db65a2dbed767621f3a41",
+     "input_schema_bytes": 731,
+     "input_schema_sha256": "3c10ea438d292481c9b10156f4b43b3012eb08ecb8575c10137b01e2b29fd06b",
      "module": "server_tools_effects",
      "name": "effect_vignette",
      "profiles": [
@@ -4720,8 +4720,8 @@
      ]
     },
     {
-     "input_schema_bytes": 460,
-     "input_schema_sha256": "88f6d0d07f89086e84efef19f0ef44039fc83fc78d731d26749ce822d9ba9fba",
+     "input_schema_bytes": 717,
+     "input_schema_sha256": "05f7f64c864e914b830bfb830a9ebaed167ae82028a6819e348a9a92f203857d",
      "module": "server_tools_glitch",
      "name": "glitch_cmyk_split",
      "profiles": [
@@ -4741,8 +4741,8 @@
      ]
     },
     {
-     "input_schema_bytes": 430,
-     "input_schema_sha256": "3f302841c4e99a0b8aeca27aeb192793d63429d6a7bf8e57e37e6d8398ecfcdc",
+     "input_schema_bytes": 654,
+     "input_schema_sha256": "657f2c614b5dafe541c64f48ba28114f361b7bcecc8a67238062380771929e03",
      "module": "server_tools_glitch",
      "name": "glitch_datamoshing",
      "profiles": [
@@ -4761,8 +4761,8 @@
      ]
     },
     {
-     "input_schema_bytes": 516,
-     "input_schema_sha256": "c56a6d16dfa0ffa6217dd7c4c7e62439a8bf614494cc248c4d1a1a19b27afc88",
+     "input_schema_bytes": 847,
+     "input_schema_sha256": "b45d8e1426422cc56693ce03712f0b0ed2763dec75eff11104afc78b6241b45d",
      "module": "server_tools_glitch_shader",
      "name": "glitch_depth_splatting",
      "profiles": [
@@ -4783,8 +4783,8 @@
      ]
     },
     {
-     "input_schema_bytes": 509,
-     "input_schema_sha256": "19a2a810b43ed93a1a3d8552804377102d9a5857135ea42550a9442972a072aa",
+     "input_schema_bytes": 838,
+     "input_schema_sha256": "162e3e10a7f9ab256354458571199f7d6c22dc3e115346f34021c8c90f8ab643",
      "module": "server_tools_glitch_shader",
      "name": "glitch_digital_feedback",
      "profiles": [
@@ -4805,8 +4805,8 @@
      ]
     },
     {
-     "input_schema_bytes": 478,
-     "input_schema_sha256": "b6da0e2de7145029525183c3de8060b73656f23c0350ef8d9266381eb140c36b",
+     "input_schema_bytes": 736,
+     "input_schema_sha256": "2ce7f2b703af64d11fa7fa184315e7c1763f8c8193428c4d2e50e73f03507d5b",
      "module": "server_tools_glitch",
      "name": "glitch_macroblocking",
      "profiles": [
@@ -4826,8 +4826,8 @@
      ]
     },
     {
-     "input_schema_bytes": 509,
-     "input_schema_sha256": "940d55a285a108971e393306ddfbe603bf30a219f50d15d3ff18f6a92fe0e310",
+     "input_schema_bytes": 829,
+     "input_schema_sha256": "853c281bf41db73742cf2ada0ed3e34ff4355f6899cfadf3e6e28c858cb29815",
      "module": "server_tools_glitch_shader",
      "name": "glitch_point_cloud",
      "profiles": [
@@ -4848,8 +4848,8 @@
      ]
     },
     {
-     "input_schema_bytes": 461,
-     "input_schema_sha256": "0509945e5364b5be9dacbdd06b92258a817b48296b43f310fe17cc5007134ad1",
+     "input_schema_bytes": 739,
+     "input_schema_sha256": "5dc96add7a8d6465703aacfaf9292651997601a67ef2f4f32e3b5259467feaa6",
      "module": "server_tools_glitch",
      "name": "glitch_rgb_shift",
      "profiles": [
@@ -4869,8 +4869,8 @@
      ]
     },
     {
-     "input_schema_bytes": 516,
-     "input_schema_sha256": "9f4682f09a1f6b4b43c2f15993ff7900144fe288a88634832aa8821e4f0b3c0c",
+     "input_schema_bytes": 859,
+     "input_schema_sha256": "171cc27b5e2f324c210a942a5d0443384f2a0e225096ff3bd666cfa0689006df",
      "module": "server_tools_glitch",
      "name": "glitch_scanline_jitter",
      "profiles": [
@@ -4891,8 +4891,8 @@
      ]
     },
     {
-     "input_schema_bytes": 471,
-     "input_schema_sha256": "320316f275ebab886e76cd0c40592c5da073f988dd12178d1887c2b65ae54353",
+     "input_schema_bytes": 719,
+     "input_schema_sha256": "f67e55022fd8f3178477362a89a53646aebbb35bce664be4919b4d664f83d9a3",
      "module": "server_tools_glitch",
      "name": "glitch_screen_tearing",
      "profiles": [
@@ -4912,8 +4912,8 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "0681cb3b475f8f0f05653b47be35456ff90316db2fdc00a80690dc7c4c9002b0",
+     "input_schema_bytes": 665,
+     "input_schema_sha256": "d3bac41e479ad9fee13fece2148a408f3db86d5673f860ef68d31006c3eb6f01",
      "module": "server_tools_glitch_shader",
      "name": "glitch_slit_scan",
      "profiles": [
@@ -4932,8 +4932,8 @@
      ]
     },
     {
-     "input_schema_bytes": 503,
-     "input_schema_sha256": "b9b92db38048a4e559957a39c665e85483eb59a3edb1bcb110810cf670c66df2",
+     "input_schema_bytes": 813,
+     "input_schema_sha256": "e0494e29260d0dbf45e582303fa0f1de7b8cc33c186ef4cb353aff8229df4097",
      "module": "server_tools_glitch",
      "name": "glitch_turbulent_displacement",
      "profiles": [
@@ -4954,8 +4954,8 @@
      ]
     },
     {
-     "input_schema_bytes": 521,
-     "input_schema_sha256": "7a3a05b1622686edba6d2175ca6340fcab881719eaed1b50b82bec8f08fdb3ca",
+     "input_schema_bytes": 837,
+     "input_schema_sha256": "38d81220bb41b5794d9822b85d63d5394e55a8f9e6849fdbe7b5c4faaeb49f59",
      "module": "server_tools_glitch",
      "name": "glitch_vhs_tracking",
      "profiles": [
@@ -5019,8 +5019,8 @@
      ]
     },
     {
-     "input_schema_bytes": 254,
-     "input_schema_sha256": "270d9ba2447aac30e9a07bef9020f8f1cc70d1651143206f49d6642166a7df9b",
+     "input_schema_bytes": 348,
+     "input_schema_sha256": "e60a948479333bca7e85f5c98ee98e3619cf26dea6242e0727db7881f711614d",
      "module": "server_tools_basic",
      "name": "search_tools",
      "profiles": [
@@ -5115,8 +5115,8 @@
      ]
     },
     {
-     "input_schema_bytes": 300,
-     "input_schema_sha256": "4cdc0780b26e63cf1d1b5077aad49a3945bb4101b374c93a71c764028a7e071a",
+     "input_schema_bytes": 458,
+     "input_schema_sha256": "113ffc433e91cf98ecb8ff8cae70b4a24cafeb9c3c072cb1c23344d3a0d95a63",
      "module": "server_tools_creation",
      "name": "shot_prompt_render",
      "profiles": [
@@ -5134,8 +5134,8 @@
      ]
     },
     {
-     "input_schema_bytes": 252,
-     "input_schema_sha256": "e05427791ab6c4f408d9c9ca91b1349654fb7d7edda22b1ffb221eb011359a8a",
+     "input_schema_bytes": 351,
+     "input_schema_sha256": "dd1a8a90bd37dac7571ffdf1b62929119918e08f6d42c4865ee6d744c170a44f",
      "module": "server_tools_creation",
      "name": "storyboard_read",
      "profiles": [
@@ -5151,8 +5151,8 @@
      ]
     },
     {
-     "input_schema_bytes": 252,
-     "input_schema_sha256": "e05427791ab6c4f408d9c9ca91b1349654fb7d7edda22b1ffb221eb011359a8a",
+     "input_schema_bytes": 341,
+     "input_schema_sha256": "f9284d9383807df5efd6d9c6707baa202be8100ca3a5e3cf9d7855665d3281e2",
      "module": "server_tools_creation",
      "name": "style_pack_read",
      "profiles": [
@@ -5168,8 +5168,8 @@
      ]
     },
     {
-     "input_schema_bytes": 470,
-     "input_schema_sha256": "6aafdcc5ef509d193da02b94399ffa6e0436953a40d8f3a4906e4ce3d3028311",
+     "input_schema_bytes": 735,
+     "input_schema_sha256": "51655ed5c5413379db16b043bfdd0932e96f5807637fe2a36c6b50953d095be4",
      "module": "server_tools_effects",
      "name": "transition_glitch",
      "profiles": [
@@ -5262,8 +5262,8 @@
      ]
     },
     {
-     "input_schema_bytes": 386,
-     "input_schema_sha256": "afd174be739e206be8052fd413f6355c2c39fadbea57489e7fd397c158097423",
+     "input_schema_bytes": 615,
+     "input_schema_sha256": "3aaf13ba70e0daa57ad42de90ccd90f54d886c52de3d2d2936f6ee3977d43d73",
      "module": "server_tools_audio",
      "name": "video_add_generated_audio",
      "profiles": [
@@ -5283,8 +5283,8 @@
      ]
     },
     {
-     "input_schema_bytes": 959,
-     "input_schema_sha256": "929350096d210932fb20c1bd8a663b4d90c658ee32606abf798b72f7d458ac5f",
+     "input_schema_bytes": 1787,
+     "input_schema_sha256": "eb398869a5a5fe550cd14166deeac535be1fef07a9ef3424f168da8209cb3663",
      "module": "server_tools_basic",
      "name": "video_add_text",
      "profiles": [
@@ -5312,8 +5312,8 @@
      ]
     },
     {
-     "input_schema_bytes": 612,
-     "input_schema_sha256": "78b97507079c6eb6065e62159aeeaa7dd455c236acaa7283a54f328501f0debd",
+     "input_schema_bytes": 1312,
+     "input_schema_sha256": "f8bf49e76bbcf5a03831aa6936ce8401da836c41b6a6f4cf6b42dc8b4c79be55",
      "module": "server_tools_basic",
      "name": "video_add_texts",
      "profiles": [
@@ -5349,8 +5349,8 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "69f2f46121690f76c103852c095781090b56c741a738db2c4af0dcfad4c61240",
+     "input_schema_bytes": 702,
+     "input_schema_sha256": "9501feb785b9205895c90e670c02a5de48e7f68ab5b588fdf41522444f64335f",
      "module": "server_tools_advanced",
      "name": "video_apply_mask",
      "profiles": [
@@ -5370,8 +5370,8 @@
      ]
     },
     {
-     "input_schema_bytes": 895,
-     "input_schema_sha256": "9862d8ee9337a6554b26ab03a36c8b314031c8156b2867ebafcd73f9fe8e2833",
+     "input_schema_bytes": 1898,
+     "input_schema_sha256": "2c30915af037e7cdc5d769eb06b38f657aac7b6b7a0b54b34b457ae4e4c3439d",
      "module": "server_tools_audio",
      "name": "video_audio_bed",
      "profiles": [
@@ -5424,8 +5424,8 @@
      ]
     },
     {
-     "input_schema_bytes": 303,
-     "input_schema_sha256": "747937e59a9a163121414f92610b79f6c256258f8724347e2b3a807a90ddffbc",
+     "input_schema_bytes": 429,
+     "input_schema_sha256": "c070eddb1093a29c9474928faea13834e237f41a88624b2f161612459fff334e",
      "module": "server_tools_advanced",
      "name": "video_audio_waveform",
      "profiles": [
@@ -5442,8 +5442,8 @@
      ]
     },
     {
-     "input_schema_bytes": 308,
-     "input_schema_sha256": "24a71dec2c9496555e9fa61182c064d317c4c25b117e1070034f6914da5ec580",
+     "input_schema_bytes": 414,
+     "input_schema_sha256": "d059e683a222b501c8049604c286cdac60bd4b52e267e7804c5806cbd02085c4",
      "module": "server_tools_effects",
      "name": "video_auto_chapters",
      "profiles": [
@@ -5460,8 +5460,8 @@
      ]
     },
     {
-     "input_schema_bytes": 495,
-     "input_schema_sha256": "ac3aa352e48bae1bd25172a5bb5fe25684cd77cd9f06ebf2a11166000823ea6a",
+     "input_schema_bytes": 797,
+     "input_schema_sha256": "fa7e4df124b8d93d84842a650d9af022579b53e8522a20af8d6dca3329457c38",
      "module": "server_tools_advanced",
      "name": "video_batch",
      "profiles": [
@@ -5481,8 +5481,8 @@
      ]
     },
     {
-     "input_schema_bytes": 472,
-     "input_schema_sha256": "83f8602f270fc32b9452ddeddfed74cf5fd94d81298e1fc588a1825837045dfc",
+     "input_schema_bytes": 826,
+     "input_schema_sha256": "6a372ca778c85d1ae821429a2d741e1ac95f95c688c62b021eff7865b18de79e",
      "module": "server_tools_advanced",
      "name": "video_chroma_key",
      "profiles": [
@@ -5502,8 +5502,8 @@
      ]
     },
     {
-     "input_schema_bytes": 372,
-     "input_schema_sha256": "a9323ab77dc4eeed2a9a61318036bdb6050f2b059a17a920b2f002b3cac5e6ed",
+     "input_schema_bytes": 485,
+     "input_schema_sha256": "35fceb11b012e7f3c37b75bb99da268da7e910078710402648e414bd2383799a",
      "module": "server_tools_advanced",
      "name": "video_cleanup",
      "profiles": [
@@ -5520,8 +5520,8 @@
      ]
     },
     {
-     "input_schema_bytes": 418,
-     "input_schema_sha256": "e12e20f02c19305fdb50f1bae98a45eb1c39092595ea84f21ae175387e3eb13a",
+     "input_schema_bytes": 609,
+     "input_schema_sha256": "9b9061d88f9aebfbd8f75ee90a7385b14c26d9a8204610949ebc4efdda1cee5a",
      "module": "server_tools_advanced",
      "name": "video_compare_quality",
      "profiles": [
@@ -5540,8 +5540,8 @@
      ]
     },
     {
-     "input_schema_bytes": 461,
-     "input_schema_sha256": "7f66a6d44e792ada84605ea0ce8310263b514ff6bbfddbe291cd604e5caae7d2",
+     "input_schema_bytes": 710,
+     "input_schema_sha256": "1c08ac7c35e960be33e6057cd97f8288db82c17bc812840c3bbce05e02326d0f",
      "module": "server_tools_advanced",
      "name": "video_composite_layers",
      "profiles": [
@@ -5581,8 +5581,8 @@
      ]
     },
     {
-     "input_schema_bytes": 538,
-     "input_schema_sha256": "cb1f2580f8c8d7e5b44c14f266732f08af8cba6652af8d80b2955ead686db9fa",
+     "input_schema_bytes": 1090,
+     "input_schema_sha256": "84e6048fb018ee10be766f20921ced742cb67b01e5ebdb610c238d579f3ab270",
      "module": "server_tools_advanced",
      "name": "video_create_from_images",
      "profiles": [
@@ -5622,8 +5622,8 @@
      ]
     },
     {
-     "input_schema_bytes": 361,
-     "input_schema_sha256": "547fa18f276e5e05cee52cae451e262efd3572cd215b87a7cd06b8bd0d3f1941",
+     "input_schema_bytes": 568,
+     "input_schema_sha256": "cbe159f24c361b79827c2cf14c70255ea3ea25eae1a2674dc3e7e943d157221d",
      "module": "server_tools_advanced",
      "name": "video_detect_scenes",
      "profiles": [
@@ -5655,8 +5655,8 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 601,
-     "input_schema_sha256": "ac5d4f58978dddb2aaa6e283ba0ec8b5df3f88aeb25bd9259506b5e23b2165a9",
+     "input_schema_bytes": 1138,
+     "input_schema_sha256": "eea993caa28ba19dcd6e69b83d54d5d7fe971d2f624d05bac4925c8a77250fd0",
      "module": "server_tools_audio",
      "name": "video_duck_audio",
      "profiles": [
@@ -5680,8 +5680,8 @@
      ]
     },
     {
-     "input_schema_bytes": 393,
-     "input_schema_sha256": "e8432ea4ee124c5af841fd83321efc808573d0fa9531933a742672ebfb43fb54",
+     "input_schema_bytes": 773,
+     "input_schema_sha256": "0d08b72ed52e936b48abe85d4330e8f564e5fbe3dd400125134ce7758b767ad8",
      "module": "server_tools_media",
      "name": "video_edit",
      "profiles": [
@@ -5749,8 +5749,8 @@
      ]
     },
     {
-     "input_schema_bytes": 419,
-     "input_schema_sha256": "3aa285ad4f8f1b22631a8651fc845fa961c6e336e55ac0fc520747951b3d8990",
+     "input_schema_bytes": 693,
+     "input_schema_sha256": "6414b8c6adff7965087074c789c111ad280855fff94c285d65590a19d74452f7",
      "module": "server_tools_advanced",
      "name": "video_export_frames",
      "profiles": [
@@ -5769,8 +5769,8 @@
      ]
     },
     {
-     "input_schema_bytes": 382,
-     "input_schema_sha256": "fc288d19d7fb6546ca7df9cd34fdad9da6471a62a06826b68456782d790bd5f6",
+     "input_schema_bytes": 562,
+     "input_schema_sha256": "65487c50efbb6bc3dc0f6d213610058b9c340b871a729c95f171954a2240e86c",
      "module": "server_tools_media",
      "name": "video_extract_audio",
      "profiles": [
@@ -5788,8 +5788,8 @@
      ]
     },
     {
-     "input_schema_bytes": 412,
-     "input_schema_sha256": "949d79f004b0830aac4c51975edad572def0473ac7ea18c0b5eb27346330f805",
+     "input_schema_bytes": 598,
+     "input_schema_sha256": "514e9a406b9cb6a298525bedbfeae3199de991b0e686f0a94a41a01aff6513a5",
      "module": "server_tools_guardrails",
      "name": "video_extract_frame",
      "profiles": [
@@ -5830,8 +5830,8 @@
      ]
     },
     {
-     "input_schema_bytes": 621,
-     "input_schema_sha256": "73a61da57f02b82156691d00fda1e73e109273359297ba03f20c6d5643ef2047",
+     "input_schema_bytes": 1229,
+     "input_schema_sha256": "c2c1eeba68be62b10a9067926c881cec2c21f2704839c14d405b1455088a53bc",
      "module": "server_tools_advanced",
      "name": "video_filter",
      "profiles": [
@@ -5853,8 +5853,8 @@
      ]
     },
     {
-     "input_schema_bytes": 397,
-     "input_schema_sha256": "06c976424c1ec6f6d4759c962663dce7e1df83e4a1585ff10bda056136e227d3",
+     "input_schema_bytes": 611,
+     "input_schema_sha256": "cdb5bdf7912d49df3aac6697176a70f9e37eb3bdc0f6db7bb452d791f554a2c7",
      "module": "server_tools_advanced",
      "name": "video_generate_subtitles",
      "profiles": [
@@ -5873,8 +5873,8 @@
      ]
     },
     {
-     "input_schema_bytes": 546,
-     "input_schema_sha256": "4dbf4b8d747317ea64c6875c1ffb127d19da9f66947f583dc3127cddd3376add",
+     "input_schema_bytes": 860,
+     "input_schema_sha256": "d8c86f88fb12b9890ca6c9fe740f5dd695c7e84929265ed1d108a9b5bf77d856",
      "module": "server_tools_advanced",
      "name": "video_hls_segment",
      "profiles": [
@@ -5894,8 +5894,8 @@
      ]
     },
     {
-     "input_schema_bytes": 307,
-     "input_schema_sha256": "2ccdd5b22925d2f6dd771ebfd0b7ae8bae1fcfb42aa9d901590866b00c5872ee",
+     "input_schema_bytes": 508,
+     "input_schema_sha256": "8ad1365aac5a615300cd06ab734743211c1417e2a2f880ecab2fa601687a0f40",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -5912,8 +5912,8 @@
      ]
     },
     {
-     "input_schema_bytes": 264,
-     "input_schema_sha256": "2e6efcf65b9d4d25f744908b4d3c5b0ea36c4c5b8fcdc6114ccbc9a62d6caa2f",
+     "input_schema_bytes": 310,
+     "input_schema_sha256": "9d8bc69e2cc0e5198139803c6559c86227f55a1bb4cd49debf29c8e3fac7a8a6",
      "module": "server_tools_effects",
      "name": "video_info_detailed",
      "profiles": [
@@ -5971,8 +5971,8 @@
      ]
     },
     {
-     "input_schema_bytes": 492,
-     "input_schema_sha256": "d5d218b77df1cab4c22b5cad8ab257ed30ad07bf09ca21f6b08bd87c7b64a739",
+     "input_schema_bytes": 799,
+     "input_schema_sha256": "30efd2a8a1e1770571a5cca8168081cc465f15ca7384f683937339a66301ada2",
      "module": "server_tools_effects",
      "name": "video_layout_grid",
      "profiles": [
@@ -5995,8 +5995,8 @@
      ]
     },
     {
-     "input_schema_bytes": 677,
-     "input_schema_sha256": "7e3517f15f32825f614626a1ac59620e95e500b0d786760d4bc9788a1ab8a116",
+     "input_schema_bytes": 1258,
+     "input_schema_sha256": "3a276afce3b87c5110b4cfe9af4d78218f88cfe69210f94383ced4d4a7caec2f",
      "module": "server_tools_effects",
      "name": "video_layout_pip",
      "profiles": [
@@ -6023,8 +6023,8 @@
      ]
     },
     {
-     "input_schema_bytes": 383,
-     "input_schema_sha256": "f0d6f93e917e1fa8d806363a87d92d1cdc4af4464d5d3464c816574a4739f159",
+     "input_schema_bytes": 593,
+     "input_schema_sha256": "48e39dfc37e6212c68f1d2f5694603f8ba5bed242a3372ff2ddcd20ce5bbecdb",
      "module": "server_tools_advanced",
      "name": "video_luma_key",
      "profiles": [
@@ -6085,8 +6085,8 @@
      ]
     },
     {
-     "input_schema_bytes": 507,
-     "input_schema_sha256": "6dc72a2452e134d736d469e87b5f71f4901264f34a51bed7f42d2edfdb1f1dea",
+     "input_schema_bytes": 772,
+     "input_schema_sha256": "d5dbc2d41193140977b6267ecb27d5befa8ff944136496d77e9b701e0ecee07c",
      "module": "server_tools_effects",
      "name": "video_mograph_count",
      "profiles": [
@@ -6110,8 +6110,8 @@
      ]
     },
     {
-     "input_schema_bytes": 484,
-     "input_schema_sha256": "7d83ed6f2e4b9f2d01bf78da924d1bbdfc3a45f7658475d84d0df3ac6c428388",
+     "input_schema_bytes": 798,
+     "input_schema_sha256": "7004b9edbca523142f28f001c6321309e197adc80b4aadc48a3cc1465004c657",
      "module": "server_tools_effects",
      "name": "video_mograph_progress",
      "profiles": [
@@ -6133,8 +6133,8 @@
      ]
     },
     {
-     "input_schema_bytes": 580,
-     "input_schema_sha256": "d98a330a588d7f5a7977168ee0639fb09934979deb5a3de19ab556a1e043473e",
+     "input_schema_bytes": 971,
+     "input_schema_sha256": "3b7cd2bb5d0969ecb99b93ecf487c1ca6db7c010dd6e554a75589d1b9d21c2c8",
      "module": "server_tools_advanced",
      "name": "video_normalize_audio",
      "profiles": [
@@ -6155,8 +6155,8 @@
      ]
     },
     {
-     "input_schema_bytes": 973,
-     "input_schema_sha256": "827f27a910a660d04678f355b93da3fe47888ef3da8cae25c0730ac6fd213b56",
+     "input_schema_bytes": 1733,
+     "input_schema_sha256": "938ef2600e017dca21fee309bd613f48ed5cded93217b6bb482fbbacec1ca4b0",
      "module": "server_tools_advanced",
      "name": "video_overlay",
      "profiles": [
@@ -6217,8 +6217,8 @@
      ]
     },
     {
-     "input_schema_bytes": 385,
-     "input_schema_sha256": "a5650b89afdf255f1c253f5506bd1fe815df1941feba9d8772b30cc8059efb1e",
+     "input_schema_bytes": 560,
+     "input_schema_sha256": "528d1013a24164ebf90e47f8e7ffe2c2d79cee7c626a002e7c432e12ba88da75",
      "module": "server_tools_media",
      "name": "video_preview",
      "profiles": [
@@ -6236,8 +6236,8 @@
      ]
     },
     {
-     "input_schema_bytes": 326,
-     "input_schema_sha256": "739f77cbddc4ad9e8d968749a67fa99f76594d80e69291063f399cbdfb03590c",
+     "input_schema_bytes": 514,
+     "input_schema_sha256": "fe0d472c7cff67ddc1f2ecd375a420ca296edce8082ac3eedf0a82c1db7bc7bb",
      "module": "server_tools_creation",
      "name": "video_project_create",
      "profiles": [
@@ -6269,8 +6269,8 @@
      ]
     },
     {
-     "input_schema_bytes": 264,
-     "input_schema_sha256": "2e6efcf65b9d4d25f744908b4d3c5b0ea36c4c5b8fcdc6114ccbc9a62d6caa2f",
+     "input_schema_bytes": 322,
+     "input_schema_sha256": "16100b7df557dbfb3cb58782ca26eb7f26609d7692c04c7e0fa24f05853434ec",
      "module": "server_tools_advanced",
      "name": "video_read_metadata",
      "profiles": [
@@ -6359,8 +6359,8 @@
      ]
     },
     {
-     "input_schema_bytes": 601,
-     "input_schema_sha256": "aaaf1c411383529ec42c5dbf43ff9eb19731ab151307ffb7a25074f07acb45c8",
+     "input_schema_bytes": 988,
+     "input_schema_sha256": "816413ba9608748fc3b353494d263ade68c2ef7026880606330f1a204cb087f3",
      "module": "server_tools_basic",
      "name": "video_resize",
      "profiles": [
@@ -6380,8 +6380,8 @@
      ]
     },
     {
-     "input_schema_bytes": 339,
-     "input_schema_sha256": "9606454b7853ad767c553073ebc09976f04e3a11f0d6e96386082fea66301273",
+     "input_schema_bytes": 458,
+     "input_schema_sha256": "decd03499f826074206c760a95d76ee1c6f6595c519eca125175ac6951648aaa",
      "module": "server_tools_advanced",
      "name": "video_reverse",
      "profiles": [
@@ -6419,8 +6419,8 @@
      ]
     },
     {
-     "input_schema_bytes": 425,
-     "input_schema_sha256": "0cefc637cc2a920655313fbe69b2c4964c991661e454706013590f4702e74453",
+     "input_schema_bytes": 680,
+     "input_schema_sha256": "c60c8f812b2dda9ff3b27ea254f5465ec96833412a8cf6bbfcbff7da906984ba",
      "module": "server_tools_advanced",
      "name": "video_shape_mask",
      "profiles": [
@@ -6479,8 +6479,8 @@
      ]
     },
     {
-     "input_schema_bytes": 433,
-     "input_schema_sha256": "32507a914a162f823d7b7df08c218efaccd86634918a9397dbbfed5698e0ade5",
+     "input_schema_bytes": 661,
+     "input_schema_sha256": "cbe4a72cf2f0a768a57ab9baaf655d7721d82073c0bfb68f4a077741391df74e",
      "module": "server_tools_advanced",
      "name": "video_split_screen",
      "profiles": [
@@ -6500,8 +6500,8 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "9c7971252b46ac0cb853866342bc0a78fb6bce919a97795abfc358f8fbb7d810",
+     "input_schema_bytes": 680,
+     "input_schema_sha256": "6f702f7edd8632d98519ab515a46c51ead7aca9cc4c42d27157c0965f0eed34a",
      "module": "server_tools_advanced",
      "name": "video_stabilize",
      "profiles": [
@@ -6520,8 +6520,8 @@
      ]
     },
     {
-     "input_schema_bytes": 383,
-     "input_schema_sha256": "65e711017330d4a030ba384a041849b406d385947dbc6c71bc1c5f68176ced40",
+     "input_schema_bytes": 551,
+     "input_schema_sha256": "4a67c5f9d10f895d8ffbe04f2c8d2e162e6caa4356d83087cb069d0e9f1ce4f6",
      "module": "server_tools_media",
      "name": "video_storyboard",
      "profiles": [
@@ -6539,8 +6539,8 @@
      ]
     },
     {
-     "input_schema_bytes": 458,
-     "input_schema_sha256": "7ef8fd0ad6fd79cd38e6cc9f5cf32ffb04433443c06f414c0b413cc960ed9ab1",
+     "input_schema_bytes": 865,
+     "input_schema_sha256": "a577a16cb59dd3135f6dc96f0023407f3fc04c5f8296336fb21ab201c4dd438b",
      "module": "server_tools_media",
      "name": "video_subtitles",
      "profiles": [
@@ -6560,8 +6560,8 @@
      ]
     },
     {
-     "input_schema_bytes": 459,
-     "input_schema_sha256": "dc7406576814c9eb64d6eaf92e711f7623a6a62fc03cfbeaa18a9fa0755f7f33",
+     "input_schema_bytes": 677,
+     "input_schema_sha256": "69f5aef22df2488b542a20c9f289aa3ede6817b86fac58bca90f8017d1a3637b",
      "module": "server_tools_effects",
      "name": "video_subtitles_styled",
      "profiles": [
@@ -6582,8 +6582,8 @@
      ]
     },
     {
-     "input_schema_bytes": 694,
-     "input_schema_sha256": "992e9097fe428b2b8bfb704bfd6dcc69f75929025265cdb6fa4c958c70979744",
+     "input_schema_bytes": 1228,
+     "input_schema_sha256": "8804e23b82d577b063a4b1144d607e19d07b15e430be005b1fed12d9de626304",
      "module": "server_tools_media",
      "name": "video_template_preview",
      "profiles": [
@@ -6605,8 +6605,8 @@
      ]
     },
     {
-     "input_schema_bytes": 725,
-     "input_schema_sha256": "06ef0f5d6fbabec9ff1966a73a8152bdb03b0d3d1c30846a32380579f88784c7",
+     "input_schema_bytes": 1197,
+     "input_schema_sha256": "a387f375a388488255dc7849e061d51dc5a63c5cf675a288ca36f433be828508",
      "module": "server_tools_effects",
      "name": "video_text_animated",
      "profiles": [
@@ -6633,8 +6633,8 @@
      ]
     },
     {
-     "input_schema_bytes": 430,
-     "input_schema_sha256": "4cbe7ba5d22eb9275219835cfd6942767b2e746205fe73e60555b06e8f6644c4",
+     "input_schema_bytes": 639,
+     "input_schema_sha256": "e3e403ca047a8bc579fe2ef2335ba830c14d7c9952980c120c98bb752687ccc7",
      "module": "server_tools_media",
      "name": "video_thumbnail",
      "profiles": [
@@ -6652,8 +6652,8 @@
      ]
     },
     {
-     "input_schema_bytes": 630,
-     "input_schema_sha256": "b6706c6cf520b569e4cc7f846db74674b24ffbe6f42973c4c8c65e71bc09a161",
+     "input_schema_bytes": 1101,
+     "input_schema_sha256": "60bc4cf3f33ab6a452526e5a9611e8098bf7b9225374b9932ef4fde231c90aa2",
      "module": "server_tools_basic",
      "name": "video_trim",
      "profiles": [
@@ -6674,8 +6674,8 @@
      ]
     },
     {
-     "input_schema_bytes": 467,
-     "input_schema_sha256": "52ffc22fbd2c463b471a47ff7ddcdd3f2a2f3e6ecf2a0bd5c714820aa1debba7",
+     "input_schema_bytes": 747,
+     "input_schema_sha256": "a7cc455d00d5a2a3f497860a0e8cddc694a74bf7fbcf4e6d37ab43323e07479d",
      "module": "server_tools_guardrails",
      "name": "video_validate_text_layout",
      "profiles": [
@@ -6719,8 +6719,8 @@
      ]
     },
     {
-     "input_schema_bytes": 344,
-     "input_schema_sha256": "96ce0b7fb085808530de2594a9d9aa130e9a4418949eda530311516ce8fecc6f",
+     "input_schema_bytes": 487,
+     "input_schema_sha256": "cc6924b72d353dd7144322c8efe96b6f2913be1c6d0631412d2f9b995c213bf4",
      "module": "server_tools_workflow",
      "name": "video_workflow_inspect",
      "profiles": [
@@ -6737,8 +6737,8 @@
      ]
     },
     {
-     "input_schema_bytes": 406,
-     "input_schema_sha256": "abfc24c802231cf1c3735c1bd07837a4ccb8be399ec6dbedfa1f976e43015572",
+     "input_schema_bytes": 612,
+     "input_schema_sha256": "950a5fe06a38552711766614c72cb975cd3763c31a331043491d86dd976201b9",
      "module": "server_tools_workflow",
      "name": "video_workflow_plan",
      "profiles": [
@@ -6756,8 +6756,8 @@
      ]
     },
     {
-     "input_schema_bytes": 673,
-     "input_schema_sha256": "0567dccf8ea49f1afe2299de36de470d2989568ae2acafff6ed1b7f46e4e521e",
+     "input_schema_bytes": 1158,
+     "input_schema_sha256": "d43bd4a92288f7822144cb148e1721b27e1c2f7f7ddc11e736c5e1e0d3110107",
      "module": "server_tools_workflow",
      "name": "video_workflow_render",
      "profiles": [
@@ -6779,8 +6779,8 @@
      ]
     },
     {
-     "input_schema_bytes": 262,
-     "input_schema_sha256": "19c9918d26a2de7814b188c8c472bf0efccf02188c9617cc51ec43d5e45fdfe0",
+     "input_schema_bytes": 328,
+     "input_schema_sha256": "6719d2f3165e9c360845c6dbaae4b11d21ad866944736a1e92a9653d977fafc1",
      "module": "server_tools_workflow",
      "name": "video_workflow_validate",
      "profiles": [
@@ -6796,8 +6796,8 @@
      ]
     },
     {
-     "input_schema_bytes": 420,
-     "input_schema_sha256": "ade0fd324221c9942b47d4d09ec0dcec87d66196d396eb811afc7f0a97020e65",
+     "input_schema_bytes": 628,
+     "input_schema_sha256": "1319c777aaf2a3d5f5407047118a1a921d0c98b7205bc5c44d4751a383dc247c",
      "module": "server_tools_advanced",
      "name": "video_write_metadata",
      "profiles": [
@@ -6816,7 +6816,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 63857
+   "total_input_schema_bytes": 87550
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
