@@ -151,6 +151,43 @@ def _emit_merge_guardrails(infos: list, transition_duration: float, has_transiti
         _warnings.warn(message, stacklevel=2)
 
 
+def _normalize_needs(infos: list) -> tuple[bool, bool]:
+    """Return (needs_normalize, mixed_audio) for clips about to be merged."""
+    audio_flags = [i.audio_codec is not None for i in infos]
+    # Mixed audio presence breaks both the concat demuxer and the xfade audio
+    # graph (it would reference an [i:a] pad that does not exist).
+    mixed_audio = any(audio_flags) and not all(audio_flags)
+    differs = (
+        len({i.display_resolution for i in infos}) > 1
+        or len({i.codec for i in infos}) > 1
+        or len({round(i.fps, 2) for i in infos}) > 1
+        or len({i.audio_sample_rate for i in infos if i.audio_sample_rate}) > 1
+    )
+    return differs or mixed_audio, mixed_audio
+
+
+def _transition_types(transition: str | None, transitions: list[str] | None, n_clips: int) -> list[str] | None:
+    if transitions:
+        return list(transitions)
+    if transition:
+        return [transition] * (n_clips - 1)
+    return None
+
+
+def _render_seconds(
+    infos: list, needs_normalize: bool, has_transitions: bool, transition_duration: float, on_progress: Progress | None
+) -> tuple[float, float]:
+    """Seconds each render stage covers, to weight progress by seconds rendered.
+
+    Each normalized clip counts its full length; the transition render's output
+    is shorter by the overlaps. Both are 0 when nobody listens for progress.
+    """
+    clip_seconds = sum(i.duration for i in infos) if on_progress is not None else 0.0
+    normalize_seconds = clip_seconds if needs_normalize else 0.0
+    transition_seconds = max(clip_seconds - (len(infos) - 1) * transition_duration, 0.0) if has_transitions else 0.0
+    return normalize_seconds, transition_seconds
+
+
 def merge(
     clips: list[str],
     output_path: str | None = None,
@@ -187,17 +224,7 @@ def merge(
     _emit_merge_guardrails(infos, transition_duration, has_transitions)
     # --- End guardrails ---
 
-    resolutions = {i.display_resolution for i in infos}
-    codecs = {i.codec for i in infos}
-    fps_set = {round(i.fps, 2) for i in infos}
-    audio_rates = {i.audio_sample_rate for i in infos if i.audio_sample_rate}
-
-    audio_flags = [i.audio_codec is not None for i in infos]
-    # Mixed audio presence breaks both the concat demuxer and the xfade audio
-    # graph (it would reference an [i:a] pad that does not exist).
-    mixed_audio = any(audio_flags) and not all(audio_flags)
-
-    needs_normalize = len(resolutions) > 1 or len(codecs) > 1 or len(fps_set) > 1 or len(audio_rates) > 1 or mixed_audio
+    needs_normalize, mixed_audio = _normalize_needs(infos)
     target_w = max(i.display_width for i in infos)
     target_h = max(i.display_height for i in infos)
 
@@ -206,18 +233,9 @@ def merge(
         try:
             source_clips = _add_silent_audio(clips, infos, tmpdir) if mixed_audio else list(clips)
 
-            transition_types: list[str] | None = None
-            if transitions:
-                transition_types = list(transitions)
-            elif transition:
-                transition_types = [transition] * (len(clips) - 1)
-
-            # Weight progress by seconds rendered: each normalized clip, then
-            # the transition render (whose output is shorter by the overlaps).
-            clip_seconds = sum(i.duration for i in infos) if on_progress is not None else 0.0
-            normalize_seconds = clip_seconds if needs_normalize else 0.0
-            transition_seconds = (
-                max(clip_seconds - (len(clips) - 1) * transition_duration, 0.0) if transition_types else 0.0
+            transition_types = _transition_types(transition, transitions, len(clips))
+            normalize_seconds, transition_seconds = _render_seconds(
+                infos, needs_normalize, bool(transition_types), transition_duration, on_progress
             )
             total_seconds = normalize_seconds + transition_seconds
 
