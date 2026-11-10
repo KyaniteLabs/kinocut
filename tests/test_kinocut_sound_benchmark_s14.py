@@ -50,6 +50,8 @@ def test_pool_cancel_and_resume():
     pool.cancel()
     with pytest.raises(CancelledError):
         pool.map_tasks([("d", lambda: 4)])
+    with pytest.raises(CancelledError):  # cancel is one-way: a later map is refused too
+        pool.map_tasks([("e", lambda: 5)])
 
 
 def test_detect_class_is_named():

@@ -38,10 +38,8 @@ class BoundedProcessPool:
     _cancelled: bool = False
 
     def cancel(self) -> None:
+        """Cancel this pool for good; build a new pool to run again."""
         self._cancelled = True
-
-    def reset_cancel(self) -> None:
-        self._cancelled = False
 
     def map_tasks(
         self,
