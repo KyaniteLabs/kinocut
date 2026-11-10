@@ -62,4 +62,4 @@ def test_no_registered_tool_still_advertises_an_args_block():
     assert len(tools) > 100
     assert [t.name for t in tools if "Args:" in (t.description or "")] == []
     trim = next(t for t in tools if t.name == "video_trim")
-    assert "keyframe" in trim.inputSchema["properties"]["accurate"]["description"]
+    assert "frame-accurate" in trim.inputSchema["properties"]["accurate"]["description"]

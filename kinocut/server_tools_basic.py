@@ -124,7 +124,7 @@ def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
 
     Args:
         input_path: Absolute path to the video file.
-        exact: Also report frame_count (decoded), frame_count_source, r_frame_rate and avg_frame_rate (raw ffprobe strings, null when not measurable). Slower: decodes the whole video stream.
+        exact: Also report decoded frame_count, frame_count_source, r_frame_rate and avg_frame_rate (null when not measurable). Slower: decodes the whole stream.
     """
     input_path = _validate_input_path(input_path)
     info = probe_exact(input_path) if exact else probe(input_path)
@@ -156,8 +156,7 @@ def video_trim(
         duration: Duration to keep (e.g. '00:00:30' or '30'). Exclusive with end.
         end: End timestamp. Exclusive with duration.
         output_path: Where to save the trimmed video. Auto-generated if omitted.
-        accurate: Frame-accurate seeking (slower).  Default False uses fast
-            input seeking which may land on the nearest keyframe.
+        accurate: Ignored: trims re-encode, so they are always frame-accurate.
     """
     if any(isinstance(value, bool) for value in (start, duration, end)):
         return _validation_error("Trim times must be timestamps or numeric seconds, not booleans")
@@ -194,12 +193,7 @@ def video_merge(
     output_path: OptionalOutputVideoPath = None,
     transition: Annotated[
         str | None,
-        Field(
-            description=(
-                "Optional xfade transition applied to every clip boundary, such as fade, "
-                "dissolve, wipeleft, wiperight, slideleft, or slideright."
-            )
-        ),
+        Field(description=("xfade transition for every clip boundary, e.g. fade, dissolve, wipeleft, slideright.")),
     ] = None,
     transitions: Annotated[
         list[str] | None,
@@ -269,8 +263,8 @@ def video_add_text(
     Args:
         input_path: Absolute path to the input video.
         text: Text to overlay.
-        position: Position on screen. Named (top-left, top-center, etc.), pixel"
-                  " {\"x\": 100, \"y\": 50}, or percentage {\"x_pct\": 0.5, \"y_pct\": 0.5}.
+        position: Named (top-left, top-center, ...), pixels {"x": 100, "y": 50},
+            or fractions {"x_pct": 0.5, "y_pct": 0.5}.
         font: Path to font file. Uses system default if omitted.
         size: Font size in pixels.
         color: Text color (CSS color name or hex).

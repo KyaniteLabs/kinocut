@@ -14,9 +14,9 @@ stdio, MCP initialize + tools/list):
 
 | Mode (`KINOCUT_TOOLS`) | Tools | Input-schema bytes (UTF-8) |
 | --- | --- | --- |
-| default / `core` (unset) | 18 | 15,200 |
-| `all` | 205 | 118,911 |
-| `profile:editor` | 114 | 81,409 |
+| default / `core` (unset) | 18 | 14,739 |
+| `all` | 205 | 118,736 |
+| `profile:editor` | 114 | 80,922 |
 
 The default surface is the 8-tool hot-path core plus the ten compact-surface
 tools (eight typed operation families + `list_operations` +
@@ -48,7 +48,10 @@ description then cut default tools/list to 23,839 B (schemas 16,373 →
 the direct tools' "Pass X as …" sentences, which repeated their parameter
 descriptions, cut default tools/list to 22,716 B. Read-only tools
 (`video_info`, `video_doctor`, `list_operations`, `describe_operation`) then
-stopped offering `overwrite` consent: 22,313 B.
+stopped offering `overwrite` consent: 22,313 B. Trimming the longest
+remaining texts (the family `params` note, `position`, which also carried
+stray quote characters, and the `video_trim`, `video_merge`,
+`video_extract_frame` and `list_operations` wording) cut it to 21,722 B.
 
 Per tool, the fixture records the name, the UTF-8 byte length and SHA-256 of
 the canonical input-schema JSON, the sorted property names, the required
@@ -75,7 +78,7 @@ compares each against the fixture:
 3. the declarative tables in `kinocut/tool_registry.py` (205 names across 25
    modules, one module per tool, core tags matching the default surface).
 
-The headline numbers (18/15,200, 205/118,911, 114/81,409) are also asserted
+The headline numbers (18/14,739, 205/118,736, 114/80,922) are also asserted
 literally so a fixture edit cannot pass unnoticed.
 
 `tests/test_tool_surface_compat.py` protects the behaviors around the
