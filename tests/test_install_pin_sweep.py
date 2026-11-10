@@ -45,6 +45,7 @@ def _package_version() -> str:
 
     return tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))["project"]["version"]
 
+
 # Every grammar that names the distribution, with the distribution it names.
 # Each capture is the version token that follows the package name; it must be
 # the release in EXPECTED_PINS for that distribution. The token is

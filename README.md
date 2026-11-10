@@ -148,7 +148,7 @@ kino release-checkpoint clip.mp4 --profile ui-capture-dark
 
 References: [MCP tools](docs/TOOLS.md) · [Python client](docs/PYTHON_CLIENT.md) ·
 [CLI](docs/CLI_REFERENCE.md) · [Video Receipts](docs/VIDEO_RECEIPT.md) ·
-[all docs](docs/README.md) · [`llms.txt`](llms.txt)
+[agent discovery](docs/AI_AGENT_DISCOVERY.md) · [all docs](docs/README.md) · [`llms.txt`](llms.txt)
 
 ## Safe by default
 
@@ -219,7 +219,7 @@ pytest -q -m "not slow and not hyperframes"
 ```
 
 [Contributing](CONTRIBUTING.md) · [Testing](docs/TESTING.md) · [Security](SECURITY.md) ·
-[Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Code of Conduct](CODE_OF_CONDUCT.md) ·
+[Support](SUPPORT.md) · [Governance](GOVERNANCE.md) · [Maintainers](MAINTAINERS.md) · [Code of Conduct](CODE_OF_CONDUCT.md) ·
 [Roadmap](ROADMAP.md)
 
 Want a public MCP URL without opening router ports?
