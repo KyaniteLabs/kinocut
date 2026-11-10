@@ -189,7 +189,7 @@ async def video_trim(
     ),
 )
 @_safe_tool
-def video_merge(
+async def video_merge(
     clips: Annotated[
         list[str],
         Field(
@@ -212,8 +212,12 @@ def video_merge(
         float,
         Field(description="Duration in seconds for each transition; must fit inside neighboring clips."),
     ] = 1.0,
+    ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Merge multiple video clips into one rendered output file.
+
+    Merges that re-render (transitions, or clips that need normalizing) stream
+    MCP progress notifications so clients can show a live percentage.
 
     Args:
         clips: Ordered list of absolute paths to existing video clips. Requires at least
@@ -238,15 +242,16 @@ def video_merge(
             )
     for _p in clips:
         _validate_input_path(_p)
-    return _result(
-        merge(
-            clips,
-            output_path=output_path,
-            transition=transition,
-            transitions=transitions,
-            transition_duration=transition_duration,
-        )
+    run_merge = functools.partial(
+        merge,
+        clips,
+        output_path=output_path,
+        transition=transition,
+        transitions=transitions,
+        transition_duration=transition_duration,
+        on_progress=_mcp_progress_reporter(ctx),
     )
+    return _result(await anyio.to_thread.run_sync(run_merge))
 
 
 @mcp.tool(
