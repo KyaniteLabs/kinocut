@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _sanitize_ffmpeg_number
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_runtime_utils import _build_edit_result, _timed_operation
 from .paths import _auto_output
-from .ffmpeg_helpers import _run_ffmpeg
+from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
 from .errors import MCPVideoError
 from .models import EditResult
 from .validation import MAX_TRIM_TIME_TEXT_LENGTH
@@ -115,12 +117,14 @@ def trim(
     end: str | float | None = None,
     output_path: str | None = None,
     accurate: bool = False,
+    on_progress: Callable[[float], None] | None = None,
 ) -> EditResult:
     """Trim a video by start time and duration or end time.
 
     Args:
         accurate: Kept for compatibility. Both values use frame-accurate
             input seeking because this operation always re-encodes.
+        on_progress: Called with the render's percent complete (0-100).
     """
     input_path = _validate_input_path(input_path)
     output = output_path or _auto_output(input_path, "trimmed")
@@ -133,16 +137,27 @@ def trim(
         # Re-encoding uses FFmpeg's default accurate input seek.
         prefix.extend(["-ss", str(start)])
     prefix.extend(["-i", input_path])
+    clip_seconds: float | None = None
     if duration:
         prefix.extend(["-t", str(duration)])
+        clip_seconds = _time_to_seconds(duration)
     elif end:
         # Input seeking rebases timestamps; convert the absolute endpoint.
-        prefix.extend(["-t", str(_time_to_seconds(end) - start_sec)])
+        clip_seconds = _time_to_seconds(end) - start_sec
+        prefix.extend(["-t", str(clip_seconds)])
+    elif on_progress is not None:
+        from .engine_probe import probe
+
+        clip_seconds = probe(input_path).duration - start_sec
 
     with _atomic_output(output) as staged:
         _validate_output_path(staged)
         with _timed_operation() as timing:
-            _run_ffmpeg(prefix + _build_ffmpeg_cmd(output_path=staged))
+            args = prefix + _build_ffmpeg_cmd(output_path=staged)
+            if on_progress is None:
+                _run_ffmpeg(args)
+            else:
+                _run_ffmpeg_with_progress(args, clip_seconds, on_progress)
         result = _build_edit_result(staged, "trim", timing)
 
     return result.model_copy(update={"output_path": output})
