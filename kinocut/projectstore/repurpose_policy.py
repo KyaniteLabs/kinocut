@@ -12,6 +12,7 @@ from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _owns_operation_output
 from kinocut.workflow.planner import _hash_if_exists
 from kinocut.workflow.spec import load_spec, parse_spec
+from kinocut.workflow.status import ReleaseStatus, RunStatus
 from kinocut.workflow.receipt import _sanitize_message, _write_receipt
 from . import store
 from .render_jobs import get_render_job, job_receipt_path, job_spec_path
@@ -70,7 +71,7 @@ def enforce_repurpose_release_policy(project: store.Project, job_id: str, receip
     head = get_render_job(project, job_id)
     if head.created_by != "tool:repurpose":
         return receipt
-    pending = dict(receipt, status="in_progress", repurpose_release={"status": "pending"})
+    pending = dict(receipt, status=RunStatus.IN_PROGRESS, repurpose_release={"status": ReleaseStatus.PENDING})
     _persist_release_receipt(project, job_id, pending)
     try:
         return _evaluate_release_policy(project, job_id, receipt, head.workflow_spec_digest)
@@ -83,7 +84,7 @@ def enforce_repurpose_release_policy(project: store.Project, job_id: str, receip
         )
         error = {key: error[key] for key in ("type", "code", "message")}
         error["message"] = _sanitize_message(error["message"], project.root)
-        pending.update(status="failed", repurpose_release={"status": "failed", "error": error})
+        pending.update(status=RunStatus.FAILED, repurpose_release={"status": ReleaseStatus.FAILED, "error": error})
         _persist_release_receipt(project, job_id, pending)
         raise
 
@@ -120,7 +121,7 @@ def _evaluate_release_policy(
     sources = _bound_artifacts(project, spec_path, spec.sources, receipt.get("sources"), "resolved", "source_hash")
     evidence = {
         "policy": policy.model_dump(mode="json"),
-        "status": "not_evaluated",
+        "status": ReleaseStatus.NOT_EVALUATED,
         "sources": [{"id": source_id, "source_hash": digest} for source_id, _, digest in sources],
         "outputs": [],
     }
@@ -139,7 +140,7 @@ def _evaluate_release_policy(
     if "sha256:" + hashlib.sha256(spec_path.read_bytes()).hexdigest() != spec_digest:
         raise _unavailable()
     if policy.include_release_checkpoint:
-        evidence["status"] = "passed"
+        evidence["status"] = ReleaseStatus.PASSED
     result = dict(receipt)
     result["repurpose_release"] = evidence
     return result
