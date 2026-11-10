@@ -117,11 +117,11 @@ OptionalOutputVideoPath = Annotated[
 )
 @_safe_tool
 def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
-    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. Pass input_path as the absolute path to the existing video. Set exact=true to also get the decoded frame_count and the raw r_frame_rate/avg_frame_rate strings (slower: the whole video stream is decoded).
+    """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length.
 
     Args:
         input_path: Absolute path to the video file.
-        exact: Also report frame_count (decoded), frame_count_source, r_frame_rate and avg_frame_rate (raw ffprobe strings, null when not measurable).
+        exact: Also report frame_count (decoded), frame_count_source, r_frame_rate and avg_frame_rate (raw ffprobe strings, null when not measurable). Slower: decodes the whole video stream.
     """
     input_path = _validate_input_path(input_path)
     info = probe_exact(input_path) if exact else probe(input_path)
@@ -145,7 +145,7 @@ def video_trim(
     output_path: str | None = None,
     accurate: bool = False,
 ) -> dict[str, Any]:
-    """Trim a video clip by start time and duration. Returns JSON {success, output_path} pointing at the rendered clip. Use to cut a segment out of a longer video. Pass input_path as the absolute path to the source video (e.g. from video_info), start as a timestamp, and duration or end to define the segment.
+    """Cut a segment out of a video by start time and duration or end. Returns JSON {success, output_path} pointing at the rendered clip.
 
     Args:
         input_path: Absolute path to the input video.
@@ -167,9 +167,7 @@ def video_trim(
 @mcp.tool(
     title="Merge video clips",
     description=(
-        "Concatenate two or more existing video clips into one rendered output file. "
-        "Returns JSON {success, output_path}. Use to join ordered clips into a single video. "
-        "Pass clips as an ordered list of absolute paths (at least two); output is auto-named or written to output_path."
+        "Concatenate two or more video clips, in order, into one rendered file. Returns JSON {success, output_path}."
     ),
     annotations=ToolAnnotations(
         title="Merge video clips",
@@ -263,7 +261,7 @@ def video_add_text(
     crf: int | None = None,
     preset: str | None = None,
 ) -> dict[str, Any]:
-    """Overlay text on a video (titles, captions, watermarks). Returns JSON {success, output_path}. Use to burn a single text element into a video. Pass input_path as the source video, text with the string to draw, and position/size/color to style it; output_path is auto-named when omitted.
+    """Burn one text element (title, caption, watermark) into a video. Returns JSON {success, output_path}.
 
     Args:
         input_path: Absolute path to the input video.
@@ -363,9 +361,8 @@ def video_add_texts(
 @mcp.tool(
     title="Add or mix video audio",
     description=(
-        "Add, replace, or mix an audio track into an existing video and render a new output file. "
-        "Returns JSON {success, output_path}. Use to score or re-voice a video; source video and audio are read only. "
-        "Pass video_path as the source video and audio_path as the audio file; set mix to combine or false to replace."
+        "Add, replace, or mix an audio track into a video and render a new file; the sources are only read. "
+        "Returns JSON {success, output_path}."
     ),
     annotations=ToolAnnotations(
         title="Add or mix video audio",
