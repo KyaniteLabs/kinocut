@@ -132,9 +132,12 @@ def test_headline_baseline_numbers_are_pinned():
     The hot-path diet then cut the direct core from 20 tools to 8 (every
     dropped tool stays reachable through its family dispatcher): default
     18 tools / 17,429 B, editor 114 tools / 80,152 B; all-mode unchanged.
+    Dropping the titles pydantic derives from property names (and the
+    "<name>Arguments" schema title) then cut every mode: default 15,335 B,
+    all 98,000 B, editor 63,857 B. Same properties, types and validation.
     """
-    assert BASELINE["captured"]["git_commit"] == "bba3eece49e43641d27c850d7d0f4a0c373d3f07"
-    for mode, count, total in (("default", 18, 17_429), ("all", 205, 126_908), ("profile:editor", 114, 80_152)):
+    assert BASELINE["captured"]["git_commit"] == "1171c21353587bcde3f98e9b58a9a546530df857"
+    for mode, count, total in (("default", 18, 15_335), ("all", 205, 98_000), ("profile:editor", 114, 63_857)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -204,7 +207,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 17_429), ("all", 205, 126_908)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_335), ("all", 205, 98_000)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
