@@ -29,7 +29,7 @@ from pydantic import Field
 from .errors import MCPVideoError, _cli_command_set, cli_route_for_operation, retry_context
 from .output_policy import read_only
 from .server_app import _safe_tool, _validation_error, mcp
-from .server_tool_contracts import validate_tool_arguments
+from .server_tool_contracts import parameter_names_hint, validate_tool_arguments
 from .tool_families import (
     DESCRIBE_TOOL_NAME,
     DISCOVERY_TOOL_NAME,
@@ -146,7 +146,7 @@ async def _dispatch_family_operation(
         except MCPVideoError:
             return _validation_error(
                 f"Invalid MCP tool parameters for operation '{operation}'. "
-                f"Use {DESCRIBE_TOOL_NAME} to inspect its accepted parameters."
+                f"Use {DESCRIBE_TOOL_NAME} to inspect its accepted parameters." + parameter_names_hint(tool)
             )
         result = await tool.run(arguments, context=ctx, convert_result=False)
     return _retarget_retry_hint(result, family, operation)

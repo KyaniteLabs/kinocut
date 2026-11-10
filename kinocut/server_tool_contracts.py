@@ -7,6 +7,7 @@ from collections.abc import Callable
 from typing import Any, get_args
 
 from mcp.server.fastmcp import FastMCP
+from mcp.server.fastmcp.exceptions import ToolError
 from mcp.types import CallToolResult, TextContent
 from pydantic import create_model, model_validator
 from pydantic.json_schema import GenerateJsonSchema
@@ -14,6 +15,7 @@ from pydantic_core import PydanticCustomError
 
 from .errors import MCPVideoError
 from .tool_docstrings import fold_args
+from .tool_families import DESCRIBE_TOOL_NAME, FAMILY_OF_OPERATION
 
 
 def _numeric_boolean_validator(model: Any) -> Any:
@@ -41,6 +43,28 @@ _BOOLEAN_POLICY_TOOLS: dict[str, tuple[str, ...]] = {
 }
 
 
+_HINT_NAME_LIMIT = 12
+
+
+def parameter_names_hint(tool: Any) -> str:
+    """Name the tool's required and accepted parameters, from its own schema.
+
+    Only schema-declared names appear, never the caller's keys or values, so
+    the hint cannot reflect injected input back to the agent.
+    """
+
+    schema = getattr(tool, "parameters", None) or {}
+    accepted = list((schema.get("properties") or {}).keys())
+    if not accepted:
+        return ""
+    required = [name for name in schema.get("required") or () if name in accepted]
+    shown = accepted[:_HINT_NAME_LIMIT]
+    more = len(accepted) - len(shown)
+    accepted_text = ", ".join(shown) + (f" and {more} more" if more else "")
+    required_text = f"Required: {', '.join(required)}. " if required else ""
+    return f" {required_text}Accepted: {accepted_text}."
+
+
 def validate_tool_arguments(name: str, tool: Any, arguments: dict[str, Any]) -> None:
     """Run the wire-path argument checks for ``tool`` before it executes.
 
@@ -62,7 +86,8 @@ def validate_tool_arguments(name: str, tool: Any, arguments: dict[str, Any]) -> 
         tool.fn_metadata.arg_model.model_validate(tool.fn_metadata.pre_parse_json(arguments))
     except (ValueError, RecursionError, MCPVideoError):
         raise MCPVideoError(
-            "Invalid MCP tool parameters. Use tools/list to inspect the accepted parameters.",
+            "Invalid MCP tool parameters. Use tools/list to inspect the accepted parameters."
+            + parameter_names_hint(tool),
             error_type="validation_error",
             code="invalid_parameter",
         ) from None
@@ -122,6 +147,7 @@ class _ContractFastMCP(FastMCP):
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:
         tool = self._tool_manager.get_tool(name)
         if tool is None:
+            self._raise_if_unlisted_operation(name)
             return await super().call_tool(name, arguments)
         try:
             validate_tool_arguments(name, tool, arguments)
@@ -133,3 +159,21 @@ class _ContractFastMCP(FastMCP):
                 structuredContent=payload,
             )
         return await super().call_tool(name, arguments)
+
+    def _raise_if_unlisted_operation(self, name: str) -> None:
+        """Point a by-name call of a family-served operation at its family.
+
+        On the default and profile surfaces most operations are not listed by
+        name, and the wire stays fail-closed for them. An agent that calls one
+        directly (from 1.x guidance or memory) would otherwise see a bare
+        "Unknown tool" and conclude the operation is unavailable.
+        """
+
+        family = FAMILY_OF_OPERATION.get(name)
+        if family is None or self._tool_manager.get_tool(family) is None:
+            return
+        raise ToolError(
+            f"Unknown tool: {name}. It is not listed by name on this surface; "
+            f'call {family}(operation="{name}", params={{...}}) instead. '
+            f"{DESCRIBE_TOOL_NAME} returns its parameters."
+        )

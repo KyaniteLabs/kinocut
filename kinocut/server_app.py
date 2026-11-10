@@ -48,7 +48,10 @@ mcp = _ContractFastMCP(
         "listing every tool. The default surface reaches every operation through the "
         "typed family tools (video_edit_ops, video_plan_ops, ...): pick the operation "
         "with list_operations, pass its exact arguments in params. "
-        "Paths should be absolute. Output is auto-generated if omitted."
+        "Paths should be absolute. Output is auto-generated if omitted. "
+        "Paths are on the machine running this server: if your shell cannot see "
+        "an output, the server runs in a container or on another host, so inspect "
+        "it with Kinocut tools instead of re-running the job locally."
     ),
 )
 
