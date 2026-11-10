@@ -11,7 +11,7 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from .models import CandidateMoment, canonical_dedup_key
-from .shorts_plan import ReviewDecision, ShortsPlan, load_shorts_plan, save_shorts_plan
+from .shorts_plan import ReviewDecision, ShortsPlan, ShortsPlanStatus, load_shorts_plan, save_shorts_plan
 from ..validation_errors import exception_kind, likely_cause, own_reason
 
 
@@ -121,7 +121,7 @@ def review_shorts_plan(
     revised = plan.model_copy(
         update={
             "decisions": (*plan.decisions, record),
-            "status": "reviewed",
+            "status": ShortsPlanStatus.REVIEWED,
         }
     )
     return save_shorts_plan(revised)

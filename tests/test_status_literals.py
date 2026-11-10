@@ -20,10 +20,6 @@ PACKAGE = ROOT / "kinocut"
 ALLOWED = {
     "c2pa.py": 1,
     "intent/broll.py": 1,
-    "product/shorts_flow.py": 8,
-    "product/shorts_package.py": 2,
-    "product/shorts_render.py": 2,
-    "product/shorts_review.py": 1,
     "server_tools_advanced.py": 4,
     "still_plates/edit.py": 2,
     "still_plates/grade.py": 1,

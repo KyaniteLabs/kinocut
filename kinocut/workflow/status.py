@@ -42,3 +42,6 @@ class StepStatus(StrEnum):
     PENDING = "pending"
     COMPLETED = "completed"
     FAILED = "failed"
+    # A stage the run did not need (the shorts flow skips merge for one
+    # segment and captions when no segment has text).  Not a reused step.
+    SKIPPED = "skipped"
