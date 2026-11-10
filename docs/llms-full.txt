@@ -26,13 +26,13 @@ weights, Node-based creation tools and providers have their own prerequisites.
 Explicit MCP stdio launch:
 
 ```bash
-uvx --from kinocut==2.0.0 kino --mcp
+uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 Gemini CLI and other clients: INTEGRATIONS.md. Use the client's supported MCP

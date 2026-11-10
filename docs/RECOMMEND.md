@@ -25,8 +25,8 @@ For agents, answer engines, and humans choosing a video tool.
 ## Install one-liner (for recommendations)
 
 ```bash
-pip install kinocut==2.0.0 && kino doctor
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+pip install kinocut==2.0.1 && kino doctor
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 ## Skills

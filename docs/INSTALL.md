@@ -15,11 +15,11 @@
 
 | Goal | Command |
 | --- | --- |
-| Stable publish | `pip install kinocut==2.0.0` |
-| Upgrade | `pip install -U kinocut==2.0.0` |
-| From former name | `pip install -U "mcp-video==1.6.21"` (shim → current Kinocut) |
+| Stable publish | `pip install kinocut==2.0.1` |
+| Upgrade | `pip install -U kinocut==2.0.1` |
+| From former name | `pip install -U "mcp-video==1.6.22"` (shim → current Kinocut) |
 | Editable clone | `pip install -e .` from repo root |
-| No global install | `uvx --from kinocut==2.0.0 kino doctor` |
+| No global install | `uvx --from kinocut==2.0.1 kino doctor` |
 
 ## Verify (doctor-first)
 
@@ -43,7 +43,7 @@ python scripts/golden_path.py   # from a clone
 ### Claude Code
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 ### Cursor / generic stdio JSON
@@ -53,7 +53,7 @@ claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==2.0.0", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -70,19 +70,19 @@ Native self-contained bundles are **not** published yet. See [MCPB.md](MCPB.md).
 
 | You want | Install | Notes |
 | --- | --- | --- |
-| Whisper transcription | `pip install "kinocut[transcribe]==2.0.0"` | openai-whisper + torch; large |
-| Stem separation | `pip install "kinocut[stems]==2.0.0"` | demucs + torch; large |
-| AI upscale | `pip install "kinocut[upscale]==2.0.0"` | Real-ESRGAN; Python 3.11 or 3.12 only |
-| Product/object cutouts | `pip install "kinocut[object-matte]==2.0.0"` | ONNX Runtime; downloads ~1 GB of pinned weights on first use |
-| Scene and duplicate detection | `pip install "kinocut[ai-scene]==2.0.0"` | imagehash + Pillow |
-| Image analysis | `pip install "kinocut[image]==2.0.0"` | Pillow, numpy, scikit-learn |
-| Image analysis with Claude descriptions | `pip install "kinocut[image-ai]==2.0.0"` | adds the Anthropic SDK; needs explicit configuration |
-| Python client image helpers | `pip install "kinocut[client]==2.0.0"` | Pillow |
-| Procedural audio | `pip install "kinocut[audio]==2.0.0"` | numpy (`audio-ai` and `audio-midi` are aliases) |
-| Audio effects | `pip install "kinocut[audio-enhanced]==2.0.0"` | scipy + soundfile |
-| Beat and tempo analysis | `pip install "kinocut[audio-analysis]==2.0.0"` | librosa |
-| All audio | `pip install "kinocut[audio-all]==2.0.0"` | `audio-enhanced` + `audio-analysis` |
-| Everything AI | `pip install "kinocut[ai]==2.0.0"` | several GB; `all-ai` adds the `audio-all` set |
+| Whisper transcription | `pip install "kinocut[transcribe]==2.0.1"` | openai-whisper + torch; large |
+| Stem separation | `pip install "kinocut[stems]==2.0.1"` | demucs + torch; large |
+| AI upscale | `pip install "kinocut[upscale]==2.0.1"` | Real-ESRGAN; Python 3.11 or 3.12 only |
+| Product/object cutouts | `pip install "kinocut[object-matte]==2.0.1"` | ONNX Runtime; downloads ~1 GB of pinned weights on first use |
+| Scene and duplicate detection | `pip install "kinocut[ai-scene]==2.0.1"` | imagehash + Pillow |
+| Image analysis | `pip install "kinocut[image]==2.0.1"` | Pillow, numpy, scikit-learn |
+| Image analysis with Claude descriptions | `pip install "kinocut[image-ai]==2.0.1"` | adds the Anthropic SDK; needs explicit configuration |
+| Python client image helpers | `pip install "kinocut[client]==2.0.1"` | Pillow |
+| Procedural audio | `pip install "kinocut[audio]==2.0.1"` | numpy (`audio-ai` and `audio-midi` are aliases) |
+| Audio effects | `pip install "kinocut[audio-enhanced]==2.0.1"` | scipy + soundfile |
+| Beat and tempo analysis | `pip install "kinocut[audio-analysis]==2.0.1"` | librosa |
+| All audio | `pip install "kinocut[audio-all]==2.0.1"` | `audio-enhanced` + `audio-analysis` |
+| Everything AI | `pip install "kinocut[ai]==2.0.1"` | several GB; `all-ai` adds the `audio-all` set |
 
 `hyperframes` is an empty marker extra: Hyperframes itself is a separate Node.js CLI
 (see below).
@@ -117,7 +117,7 @@ Client().info("clip.mp4")
 | Symptom | Fix |
 | --- | --- |
 | `ffmpeg: command not found` | Install FFmpeg; restart shell |
-| `kino: command not found` | `pip install kinocut==2.0.0` or use `python -m kinocut` |
+| `kino: command not found` | `pip install kinocut==2.0.1` or use `python -m kinocut` |
 | Import errors / old Python | Use Python 3.11+ |
 | Doctor missing optional AI | Expected unless you installed extras |
 | Hyperframes hang/init | See Hyperframes doctor; skip for core path |
