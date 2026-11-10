@@ -58,12 +58,7 @@ def _family_annotations(name: str) -> ToolAnnotations:
 
 _PARAMS_ANNOTATION = Annotated[
     dict[str, Any] | None,
-    Field(
-        description=(
-            "Arguments for the operation, exactly as its direct tool accepts them "
-            "(required parameters in list_operations; full schema via describe_operation)."
-        )
-    ),
+    Field(description="The operation's arguments, exactly as its direct tool takes them."),
 ]
 
 
@@ -182,9 +177,7 @@ def _register_family_tool(name: str) -> None:
         name=name,
         title=FAMILY_TITLES[name],
         description=(
-            f"{FAMILY_SUMMARIES[name]} "
-            f"Use {DISCOVERY_TOOL_NAME} to enumerate members; {DESCRIBE_TOOL_NAME} "
-            "returns one operation's full inputSchema."
+            f"{FAMILY_SUMMARIES[name]} Required arguments: {DISCOVERY_TOOL_NAME}; full schema: {DESCRIBE_TOOL_NAME}."
         ),
         annotations=_family_annotations(name),
     )(_safe_tool(_dispatch))
