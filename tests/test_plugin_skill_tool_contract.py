@@ -1,6 +1,6 @@
 """Shipped plugin skills must not advertise tools the plugin's launch cannot serve.
 
-The plugin's own launch (``mcp.json``) registers the curated 20-tool core — the
+The plugin's own launch (``mcp.json``) registers the curated default (8-tool hot path plus the family layer) — the
 environment-unset default — while the ``kino`` CLI exposes its 177 commands
 independently. A skill that names an MCP tool outside that core must therefore
 say how to reach it: an explicit ``KINOCUT_TOOLS=profile:<name>`` selection that
@@ -35,7 +35,7 @@ TOKEN = re.compile(r"[A-Za-z_][A-Za-z0-9_]*")
 
 
 def _default_core() -> set[str]:
-    """The default surface (20 core tools plus the family dispatchers), read from a fresh process.
+    """The default surface (8 hot-path core tools plus the family dispatchers), read from a fresh process.
 
     The diet is applied when ``kinocut.server`` is imported and the surface is
     process-global, so the probe runs in its own interpreter. ``KINOCUT_TOOLS``
@@ -125,8 +125,8 @@ def _contract_offenders(text: str, core: set[str], name: str = "skill") -> list[
 
 
 def test_default_surface_is_the_curated_core_plus_families():
-    # 20 core tools + 8 family dispatchers + list_operations + describe_operation (#663).
-    assert len(_default_core()) == 30
+    # 8 hot-path core tools + 8 family dispatchers + list_operations + describe_operation (#663, #655).
+    assert len(_default_core()) == 18
 
 
 def test_every_shipped_skill_is_covered():

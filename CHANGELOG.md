@@ -11,6 +11,10 @@ This project follows a simple release-note style:
 
 ## Unreleased
 
+### Changed
+
+- Cut the default MCP direct core from 20 tools to an 8-tool hot path (`video_info`, `video_trim`, `video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`, `video_doctor`). The default `tools/list` drops from 30 tools / 24,347 input-schema bytes to 18 tools / 17,429 bytes. The twelve dropped tools (`search_tools`, `hyperframes_doctor`, `video_add_texts`, `video_convert`, `video_resize`, `video_speed`, `video_validate_text_layout`, `video_quality_check`, `video_review_package`, `video_workflow_inspect`, `video_rescue_inspect`, `video_project_create`) stay reachable as operations of their family tool, by name under `KINOCUT_TOOLS=all`, and through the profiles that carry them. A client that called one of them directly in default mode should call its family tool (see `list_operations`) or set `KINOCUT_TOOLS`.
+
 ### Added
 
 - Add content profiles to `video-quality-check` and `release-checkpoint` (CLI `--profile`, MCP/Client `profile`): `default` (camera footage, unchanged), `ui-capture-dark` and `ui-capture-light`. A UI profile scores brightness, contrast and saturation against bands suited to screen captures — dark or light ground, flat panels, neutral palette — instead of camera-footage optima, so deliberately dark-mode demos no longer need a blanket `--min-score` drop. Under a UI profile those bands are hard limits: a blank or black capture fails the gate even when audio carries the score. Audio, color balance and temporal motion are profile-independent. Every report and checkpoint records the profile and its thresholds. (#679)

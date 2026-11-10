@@ -1,12 +1,12 @@
 {
  "captured": {
-  "git_commit": "3f5544b14069f4075555a0922d29a742b397e036",
+  "git_commit": "bba3eece49e43641d27c850d7d0f4a0c373d3f07",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "1.16.5",
   "mcp_sdk_version": "1.30.0",
-  "platform": "Linux-6.17.0-1033-oem-x86_64-with-glibc2.39",
-  "python_version": "3.14.7"
+  "platform": "Linux-7.2.12-3-1-ARCH-aarch64-with-glibc2.43",
+  "python_version": "3.11.18"
  },
  "modes": {
   "all": {
@@ -588,7 +588,6 @@
      "module": "server_tools_hyperframes",
      "name": "hyperframes_doctor",
      "profiles": [
-      "core",
       "hyperframes"
      ],
      "properties": [
@@ -1014,7 +1013,6 @@
      "module": "server_tools_basic",
      "name": "search_tools",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -1520,7 +1518,6 @@
      "module": "server_tools_basic",
      "name": "video_add_texts",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -2006,7 +2003,6 @@
      "module": "server_tools_basic",
      "name": "video_convert",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -2986,7 +2982,6 @@
      "module": "server_tools_creation",
      "name": "video_project_create",
      "profiles": [
-      "core",
       "creation",
       "editor"
      ],
@@ -3186,8 +3181,7 @@
      "module": "server_tools_ai",
      "name": "video_quality_check",
      "profiles": [
-      "ai",
-      "core"
+      "ai"
      ],
      "properties": [
       "fail_on_warning",
@@ -3350,7 +3344,6 @@
      "module": "server_tools_rescue",
      "name": "video_rescue_inspect",
      "profiles": [
-      "core",
       "rescue"
      ],
      "properties": [
@@ -3408,7 +3401,6 @@
      "module": "server_tools_basic",
      "name": "video_resize",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -3505,7 +3497,6 @@
      "module": "server_tools_release",
      "name": "video_review_package",
      "profiles": [
-      "core",
       "release"
      ],
      "properties": [
@@ -3694,7 +3685,6 @@
      "module": "server_tools_basic",
      "name": "video_speed",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -3959,7 +3949,6 @@
      "module": "server_tools_guardrails",
      "name": "video_validate_text_layout",
      "profiles": [
-      "core",
       "editor",
       "guardrails"
      ],
@@ -4039,7 +4028,6 @@
      "module": "server_tools_workflow",
      "name": "video_workflow_inspect",
      "profiles": [
-      "core",
       "editor",
       "workflow"
      ],
@@ -4149,8 +4137,8 @@
     "name": "kinocut",
     "version": "1.16.5"
    },
-   "tool_count": 30,
-   "tool_names_sha256": "91297ee38d34413c9cc8ef24854adf687ead7c3b5ee901770c3a87e11e549dfe",
+   "tool_count": 18,
+   "tool_names_sha256": "cc1aa4345b6c2745cf40873d1c21f74f71ef7c7e0b0a77b3d8870b1cc3864b3e",
    "tools": [
     {
      "input_schema_bytes": 945,
@@ -4180,20 +4168,6 @@
      "required_params": [
       "operation"
      ]
-    },
-    {
-     "input_schema_bytes": 265,
-     "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
-     "module": "server_tools_hyperframes",
-     "name": "hyperframes_doctor",
-     "profiles": [
-      "core",
-      "hyperframes"
-     ],
-     "properties": [
-      "overwrite"
-     ],
-     "required_params": []
     },
     {
      "input_schema_bytes": 760,
@@ -4236,23 +4210,6 @@
      ],
      "required_params": [
       "operation"
-     ]
-    },
-    {
-     "input_schema_bytes": 322,
-     "input_schema_sha256": "9e108f9314c825f6fe235e2730209766422a97c4aea65de3cdac00c53a82b67c",
-     "module": "server_tools_basic",
-     "name": "search_tools",
-     "profiles": [
-      "core",
-      "editor"
-     ],
-     "properties": [
-      "overwrite",
-      "query"
-     ],
-     "required_params": [
-      "query"
      ]
     },
     {
@@ -4311,29 +4268,6 @@
      ]
     },
     {
-     "input_schema_bytes": 779,
-     "input_schema_sha256": "0e51ab7905b86a98d8ba117f5161f553a9c007fada983a19a9b2fd3657899414",
-     "module": "server_tools_basic",
-     "name": "video_add_texts",
-     "profiles": [
-      "core",
-      "editor"
-     ],
-     "properties": [
-      "auto_layout",
-      "crf",
-      "input_path",
-      "output_path",
-      "overwrite",
-      "preset",
-      "texts"
-     ],
-     "required_params": [
-      "input_path",
-      "texts"
-     ]
-    },
-    {
      "input_schema_bytes": 956,
      "input_schema_sha256": "17b67d470f6e5bc77b39f36ed8e6a106968f2b1530c5283e79761e596eedf64c",
      "module": null,
@@ -4346,28 +4280,6 @@
      ],
      "required_params": [
       "operation"
-     ]
-    },
-    {
-     "input_schema_bytes": 1085,
-     "input_schema_sha256": "f3c98351d8408f2407308210ddbeb2f37d6ff150060aeaec48251e005c933bb5",
-     "module": "server_tools_basic",
-     "name": "video_convert",
-     "profiles": [
-      "core",
-      "editor"
-     ],
-     "properties": [
-      "format",
-      "input_path",
-      "output_path",
-      "overwrite",
-      "quality",
-      "target_bitrate",
-      "two_pass"
-     ],
-     "required_params": [
-      "input_path"
      ]
     },
     {
@@ -4489,25 +4401,6 @@
      ]
     },
     {
-     "input_schema_bytes": 422,
-     "input_schema_sha256": "8e060f42ae2cf86827086fdff25c79a80db663c81af66c16051fd14dfa5936e4",
-     "module": "server_tools_creation",
-     "name": "video_project_create",
-     "profiles": [
-      "core",
-      "creation",
-      "editor"
-     ],
-     "properties": [
-      "output_dir",
-      "overwrite",
-      "slug"
-     ],
-     "required_params": [
-      "slug"
-     ]
-    },
-    {
      "input_schema_bytes": 956,
      "input_schema_sha256": "6ffc41070dc290756d7ecdc22e781b88d1ce678dfb220e6c0f0533bac75eba80",
      "module": null,
@@ -4520,84 +4413,6 @@
      ],
      "required_params": [
       "operation"
-     ]
-    },
-    {
-     "input_schema_bytes": 489,
-     "input_schema_sha256": "2455509c28f0a5e3bc43bcf073feff6f15a2afe56d44763856a104903df757e4",
-     "module": "server_tools_ai",
-     "name": "video_quality_check",
-     "profiles": [
-      "ai",
-      "core"
-     ],
-     "properties": [
-      "fail_on_warning",
-      "input_path",
-      "overwrite",
-      "profile"
-     ],
-     "required_params": [
-      "input_path"
-     ]
-    },
-    {
-     "input_schema_bytes": 336,
-     "input_schema_sha256": "0c66949801330b751cb3ce2ab222601f63f3fc5cbef97c4942a2fafe8de196f7",
-     "module": "server_tools_rescue",
-     "name": "video_rescue_inspect",
-     "profiles": [
-      "core",
-      "rescue"
-     ],
-     "properties": [
-      "overwrite",
-      "receipt"
-     ],
-     "required_params": [
-      "receipt"
-     ]
-    },
-    {
-     "input_schema_bytes": 770,
-     "input_schema_sha256": "d3b7f87ae0fac9c32e0a5d44dec0db8666b51f16f5cff33eac9b3b41758c9eca",
-     "module": "server_tools_basic",
-     "name": "video_resize",
-     "profiles": [
-      "core",
-      "editor"
-     ],
-     "properties": [
-      "aspect_ratio",
-      "height",
-      "input_path",
-      "output_path",
-      "overwrite",
-      "quality",
-      "width"
-     ],
-     "required_params": [
-      "input_path"
-     ]
-    },
-    {
-     "input_schema_bytes": 571,
-     "input_schema_sha256": "724127c308858f6ed5e2fc68678b88ae3cef5d3926dd679f92adc0d060470a6d",
-     "module": "server_tools_release",
-     "name": "video_review_package",
-     "profiles": [
-      "core",
-      "release"
-     ],
-     "properties": [
-      "blocking_findings",
-      "candidate_artifact",
-      "overwrite",
-      "project_dir"
-     ],
-     "required_params": [
-      "candidate_artifact",
-      "project_dir"
      ]
     },
     {
@@ -4623,25 +4438,6 @@
      ]
     },
     {
-     "input_schema_bytes": 803,
-     "input_schema_sha256": "c4a2073e91450beb50906c29cc9dee6fe4d57843884528a4889945b2f8a77c8b",
-     "module": "server_tools_basic",
-     "name": "video_speed",
-     "profiles": [
-      "core",
-      "editor"
-     ],
-     "properties": [
-      "factor",
-      "input_path",
-      "output_path",
-      "overwrite"
-     ],
-     "required_params": [
-      "input_path"
-     ]
-    },
-    {
      "input_schema_bytes": 791,
      "input_schema_sha256": "9d521a6342e1ef94494090a4555f55e5239ab7e3567f70c540e2f26bebb41106",
      "module": "server_tools_basic",
@@ -4662,49 +4458,9 @@
      "required_params": [
       "input_path"
      ]
-    },
-    {
-     "input_schema_bytes": 624,
-     "input_schema_sha256": "9fba18a8ec1b3d2e66661afda2353295220f21ee9fdeaf22f43de5a096dd7c78",
-     "module": "server_tools_guardrails",
-     "name": "video_validate_text_layout",
-     "profiles": [
-      "core",
-      "editor",
-      "guardrails"
-     ],
-     "properties": [
-      "background_color",
-      "overlays",
-      "overwrite",
-      "video_height",
-      "video_width"
-     ],
-     "required_params": [
-      "overlays"
-     ]
-    },
-    {
-     "input_schema_bytes": 452,
-     "input_schema_sha256": "98af6f4e4f32853b033617418876640e43fc577b7cdf4b698e525fda41c19321",
-     "module": "server_tools_workflow",
-     "name": "video_workflow_inspect",
-     "profiles": [
-      "core",
-      "editor",
-      "workflow"
-     ],
-     "properties": [
-      "compare_path",
-      "overwrite",
-      "receipt_path"
-     ],
-     "required_params": [
-      "receipt_path"
-     ]
     }
    ],
-   "total_input_schema_bytes": 24347
+   "total_input_schema_bytes": 17429
   },
   "profile:editor": {
    "launch": {
@@ -4721,8 +4477,8 @@
     "name": "kinocut",
     "version": "1.16.5"
    },
-   "tool_count": 118,
-   "tool_names_sha256": "f6f5578aa5ddebb9b76a9f584c302e168dbbc6bb6ceff00f9c52928b75d97f29",
+   "tool_count": 114,
+   "tool_names_sha256": "a002393f23cc9071c52e23adf202624a0188d17939c45474fc3127b2a8e1ff2c",
    "tools": [
     {
      "input_schema_bytes": 506,
@@ -5220,20 +4976,6 @@
      ]
     },
     {
-     "input_schema_bytes": 265,
-     "input_schema_sha256": "028d21dfbf1ad052b787175f385f780f73262069fc93ff5bef740974d05dd9de",
-     "module": "server_tools_hyperframes",
-     "name": "hyperframes_doctor",
-     "profiles": [
-      "core",
-      "hyperframes"
-     ],
-     "properties": [
-      "overwrite"
-     ],
-     "required_params": []
-    },
-    {
      "input_schema_bytes": 760,
      "input_schema_sha256": "f740533b1854bb6ba9081bb508a59766f98e32a3b2b7a26064ccb26ddbc80e9f",
      "module": null,
@@ -5282,7 +5024,6 @@
      "module": "server_tools_basic",
      "name": "search_tools",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -5576,7 +5317,6 @@
      "module": "server_tools_basic",
      "name": "video_add_texts",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -5825,7 +5565,6 @@
      "module": "server_tools_basic",
      "name": "video_convert",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -6502,7 +6241,6 @@
      "module": "server_tools_creation",
      "name": "video_project_create",
      "profiles": [
-      "core",
       "creation",
       "editor"
      ],
@@ -6528,25 +6266,6 @@
      ],
      "required_params": [
       "operation"
-     ]
-    },
-    {
-     "input_schema_bytes": 489,
-     "input_schema_sha256": "2455509c28f0a5e3bc43bcf073feff6f15a2afe56d44763856a104903df757e4",
-     "module": "server_tools_ai",
-     "name": "video_quality_check",
-     "profiles": [
-      "ai",
-      "core"
-     ],
-     "properties": [
-      "fail_on_warning",
-      "input_path",
-      "overwrite",
-      "profile"
-     ],
-     "required_params": [
-      "input_path"
      ]
     },
     {
@@ -6640,29 +6359,11 @@
      ]
     },
     {
-     "input_schema_bytes": 336,
-     "input_schema_sha256": "0c66949801330b751cb3ce2ab222601f63f3fc5cbef97c4942a2fafe8de196f7",
-     "module": "server_tools_rescue",
-     "name": "video_rescue_inspect",
-     "profiles": [
-      "core",
-      "rescue"
-     ],
-     "properties": [
-      "overwrite",
-      "receipt"
-     ],
-     "required_params": [
-      "receipt"
-     ]
-    },
-    {
      "input_schema_bytes": 770,
      "input_schema_sha256": "d3b7f87ae0fac9c32e0a5d44dec0db8666b51f16f5cff33eac9b3b41758c9eca",
      "module": "server_tools_basic",
      "name": "video_resize",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -6694,26 +6395,6 @@
      ],
      "required_params": [
       "input_path"
-     ]
-    },
-    {
-     "input_schema_bytes": 571,
-     "input_schema_sha256": "724127c308858f6ed5e2fc68678b88ae3cef5d3926dd679f92adc0d060470a6d",
-     "module": "server_tools_release",
-     "name": "video_review_package",
-     "profiles": [
-      "core",
-      "release"
-     ],
-     "properties": [
-      "blocking_findings",
-      "candidate_artifact",
-      "overwrite",
-      "project_dir"
-     ],
-     "required_params": [
-      "candidate_artifact",
-      "project_dir"
      ]
     },
     {
@@ -6785,7 +6466,6 @@
      "module": "server_tools_basic",
      "name": "video_speed",
      "profiles": [
-      "core",
       "editor"
      ],
      "properties": [
@@ -6999,7 +6679,6 @@
      "module": "server_tools_guardrails",
      "name": "video_validate_text_layout",
      "profiles": [
-      "core",
       "editor",
       "guardrails"
      ],
@@ -7045,7 +6724,6 @@
      "module": "server_tools_workflow",
      "name": "video_workflow_inspect",
      "profiles": [
-      "core",
       "editor",
       "workflow"
      ],
@@ -7138,7 +6816,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81813
+   "total_input_schema_bytes": 80152
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

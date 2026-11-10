@@ -1021,7 +1021,7 @@ def test_cold_server_mode_surfaces_are_exact():
     default = _subprocess_surface(None)
     assert default["mode"] == "default"
     assert set(default["names"]) == _default_surface_names()
-    assert default["count"] == len(_default_surface_names()) == 30
+    assert default["count"] == len(_default_surface_names()) == 18
 
     core_alias = _subprocess_surface("core")
     assert core_alias["names"] == default["names"], "core remains the documented alias of the default mode"
@@ -1036,7 +1036,7 @@ def test_cold_server_mode_surfaces_are_exact():
         FAMILY_SURFACE_TOOLS
     )
     assert set(editor["names"]) == expected
-    assert editor["count"] == len(expected) == 118  # 108 direct + 8 families + list_operations + describe_operation
+    assert editor["count"] == len(expected) == 114  # 104 direct + 8 families + list_operations + describe_operation
 
 
 def test_concurrent_servers_in_different_modes_stay_isolated():

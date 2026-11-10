@@ -22,22 +22,10 @@ DEFAULT_SERVER_TOOLS = {
     "video_trim",
     "video_merge",
     "video_add_text",
-    "video_add_texts",
     "video_add_audio",
-    "video_resize",
-    "video_convert",
-    "video_speed",
-    "search_tools",
     "video_extract_frame",
-    "video_validate_text_layout",
-    "video_quality_check",
-    "video_review_package",
-    "video_workflow_inspect",
-    "video_rescue_inspect",
-    "hyperframes_doctor",
     "video_doctor",
     "video_shorts",
-    "video_project_create",
 }
 
 
@@ -211,7 +199,7 @@ def visible():
     return {tool.name for tool in asyncio.run(mcp.list_tools())}
 
 before = visible()
-assert len(before) == 30, f"default surface is {len(before)}, expected 30"
+assert len(before) == 18, f"default surface is {len(before)}, expected 18"
 
 real_import_module = importlib.import_module
 last_module = sorted(tr.TOOL_NAMES_BY_MODULE)[-1]
@@ -243,7 +231,7 @@ print("SURFACE_OK", len(before))
     )
 
     assert result.returncode == 0, result.stderr
-    assert "SURFACE_OK 30" in result.stdout
+    assert "SURFACE_OK 18" in result.stdout
 
 
 def test_cli_retry_names_resolve_to_real_parser_commands():
