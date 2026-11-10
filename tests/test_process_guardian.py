@@ -252,18 +252,29 @@ def test_unleased_command_spawn_stays_within_guardian_budget():
 
     command = [sys.executable, "-c", "raise SystemExit(0)"]
 
-    def median_ms(run, n=8):
+    def elapsed_ms(run):
+        start = time.perf_counter()
         run()
-        samples = []
-        for _ in range(n):
-            start = time.perf_counter()
-            run()
-            samples.append((time.perf_counter() - start) * 1000)
-        samples.sort()
-        return samples[len(samples) // 2]
+        return (time.perf_counter() - start) * 1000
 
-    direct = median_ms(lambda: subprocess.run(command, check=True, capture_output=True))
-    guarded = median_ms(lambda: run_bounded(command, timeout=5))
+    def run_direct():
+        subprocess.run(command, check=True, capture_output=True)
+
+    def run_guarded():
+        run_bounded(command, timeout=5)
+
+    run_direct()
+    run_guarded()
+    # Interleave the two and compare best-of-N. Under xdist the runner is
+    # shared, and contention only ever adds time (twice as much to the guarded
+    # path, which starts two interpreters), so medians of separate blocks
+    # flaked on macOS. A stuck or slow guardian still makes every sample slow.
+    direct_samples, guarded_samples = [], []
+    for _ in range(12):
+        direct_samples.append(elapsed_ms(run_direct))
+        guarded_samples.append(elapsed_ms(run_guarded))
+    direct = min(direct_samples)
+    guarded = min(guarded_samples)
     extra = guarded - direct
     assert extra < DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS, (
         f"orphan watchdog added {extra:.1f}ms (budget {DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS}ms; "
