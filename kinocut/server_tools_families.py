@@ -27,6 +27,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .errors import MCPVideoError, _cli_command_set, cli_route_for_operation, retry_context
+from .output_policy import read_only
 from .server_app import _safe_tool, _validation_error, mcp
 from .server_tool_contracts import validate_tool_arguments
 from .tool_families import (
@@ -217,6 +218,7 @@ def _declared_annotations() -> dict[str, Any]:
 
 
 @_safe_tool
+@read_only
 def list_operations(
     family: Annotated[
         str | None,
@@ -291,6 +293,7 @@ mcp.tool(
 
 
 @_safe_tool
+@read_only
 def describe_operation(
     operation: Annotated[
         str,

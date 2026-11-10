@@ -2165,17 +2165,15 @@
      ]
     },
     {
-     "input_schema_bytes": 162,
-     "input_schema_sha256": "40d658a7a3a4ca85f2bed49c0f73d6d7c970616dc59a3ec8b4e2abca36135190",
+     "input_schema_bytes": 62,
+     "input_schema_sha256": "99334726611ccf58a148b0814696bfa6fe08c1b2d027e946beccf5a74331c9aa",
      "module": "server_tools_doctor",
      "name": "video_doctor",
      "profiles": [
       "core",
       "inspection"
      ],
-     "properties": [
-      "overwrite"
-     ],
+     "properties": [],
      "required_params": []
     },
     {
@@ -2531,8 +2529,8 @@
      ]
     },
     {
-     "input_schema_bytes": 503,
-     "input_schema_sha256": "82b93fafb1c5e740a9b6802e9d96f90cefab95ac96ae7ba5ff01e4c160331f9c",
+     "input_schema_bytes": 402,
+     "input_schema_sha256": "d7576221e18ce602759c3b06dafcc0e8ebdaee91845e0a9809bbed40e523bf3f",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -2541,8 +2539,7 @@
      ],
      "properties": [
       "exact",
-      "input_path",
-      "overwrite"
+      "input_path"
      ],
      "required_params": [
       "input_path"
@@ -4120,7 +4117,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119112
+   "total_input_schema_bytes": 118911
   },
   "default": {
    "launch": {
@@ -4156,14 +4153,13 @@
      ]
     },
     {
-     "input_schema_bytes": 322,
-     "input_schema_sha256": "c6d036b50733f59f946d8b18e6284d037d95a3bc85606f4350aaabf10b206ca0",
+     "input_schema_bytes": 221,
+     "input_schema_sha256": "bd3d3b1290102b73c33307d5dd407694ca9363c75019aa7d3c26c63654e45ae5",
      "module": null,
      "name": "describe_operation",
      "profiles": [],
      "properties": [
-      "operation",
-      "overwrite"
+      "operation"
      ],
      "required_params": [
       "operation"
@@ -4185,14 +4181,13 @@
      ]
     },
     {
-     "input_schema_bytes": 501,
-     "input_schema_sha256": "5e29d59755f1bd55402451fb4c3ec82ba0012decca6475ff5f097f7e105370b7",
+     "input_schema_bytes": 400,
+     "input_schema_sha256": "a96ff3d8707ea4d7e8b205d77118472f9f84165600f3c08c23dc7fd26b774680",
      "module": null,
      "name": "list_operations",
      "profiles": [],
      "properties": [
       "family",
-      "overwrite",
       "query"
      ],
      "required_params": []
@@ -4283,17 +4278,15 @@
      ]
     },
     {
-     "input_schema_bytes": 162,
-     "input_schema_sha256": "40d658a7a3a4ca85f2bed49c0f73d6d7c970616dc59a3ec8b4e2abca36135190",
+     "input_schema_bytes": 62,
+     "input_schema_sha256": "99334726611ccf58a148b0814696bfa6fe08c1b2d027e946beccf5a74331c9aa",
      "module": "server_tools_doctor",
      "name": "video_doctor",
      "profiles": [
       "core",
       "inspection"
      ],
-     "properties": [
-      "overwrite"
-     ],
+     "properties": [],
      "required_params": []
     },
     {
@@ -4347,8 +4340,8 @@
      ]
     },
     {
-     "input_schema_bytes": 503,
-     "input_schema_sha256": "82b93fafb1c5e740a9b6802e9d96f90cefab95ac96ae7ba5ff01e4c160331f9c",
+     "input_schema_bytes": 402,
+     "input_schema_sha256": "d7576221e18ce602759c3b06dafcc0e8ebdaee91845e0a9809bbed40e523bf3f",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -4357,8 +4350,7 @@
      ],
      "properties": [
       "exact",
-      "input_path",
-      "overwrite"
+      "input_path"
      ],
      "required_params": [
       "input_path"
@@ -4460,7 +4452,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 15603
+   "total_input_schema_bytes": 15200
   },
   "profile:editor": {
    "launch": {
@@ -4598,14 +4590,13 @@
      "required_params": []
     },
     {
-     "input_schema_bytes": 322,
-     "input_schema_sha256": "c6d036b50733f59f946d8b18e6284d037d95a3bc85606f4350aaabf10b206ca0",
+     "input_schema_bytes": 221,
+     "input_schema_sha256": "bd3d3b1290102b73c33307d5dd407694ca9363c75019aa7d3c26c63654e45ae5",
      "module": null,
      "name": "describe_operation",
      "profiles": [],
      "properties": [
-      "operation",
-      "overwrite"
+      "operation"
      ],
      "required_params": [
       "operation"
@@ -4991,14 +4982,13 @@
      ]
     },
     {
-     "input_schema_bytes": 501,
-     "input_schema_sha256": "5e29d59755f1bd55402451fb4c3ec82ba0012decca6475ff5f097f7e105370b7",
+     "input_schema_bytes": 400,
+     "input_schema_sha256": "a96ff3d8707ea4d7e8b205d77118472f9f84165600f3c08c23dc7fd26b774680",
      "module": null,
      "name": "list_operations",
      "profiles": [],
      "properties": [
       "family",
-      "overwrite",
       "query"
      ],
      "required_params": []
@@ -5641,17 +5631,15 @@
      ]
     },
     {
-     "input_schema_bytes": 162,
-     "input_schema_sha256": "40d658a7a3a4ca85f2bed49c0f73d6d7c970616dc59a3ec8b4e2abca36135190",
+     "input_schema_bytes": 62,
+     "input_schema_sha256": "99334726611ccf58a148b0814696bfa6fe08c1b2d027e946beccf5a74331c9aa",
      "module": "server_tools_doctor",
      "name": "video_doctor",
      "profiles": [
       "core",
       "inspection"
      ],
-     "properties": [
-      "overwrite"
-     ],
+     "properties": [],
      "required_params": []
     },
     {
@@ -5894,8 +5882,8 @@
      ]
     },
     {
-     "input_schema_bytes": 503,
-     "input_schema_sha256": "82b93fafb1c5e740a9b6802e9d96f90cefab95ac96ae7ba5ff01e4c160331f9c",
+     "input_schema_bytes": 402,
+     "input_schema_sha256": "d7576221e18ce602759c3b06dafcc0e8ebdaee91845e0a9809bbed40e523bf3f",
      "module": "server_tools_basic",
      "name": "video_info",
      "profiles": [
@@ -5904,8 +5892,7 @@
      ],
      "properties": [
       "exact",
-      "input_path",
-      "overwrite"
+      "input_path"
      ],
      "required_params": [
       "input_path"
@@ -6816,7 +6803,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81812
+   "total_input_schema_bytes": 81409
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",
