@@ -920,7 +920,7 @@ def test_described_schemas_cover_optional_arguments_everywhere(operation):
     payload = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"operation": operation})))
     assert payload["success"] is True, operation
     schema = payload["inputSchema"]
-    if operation in {"video_info", "video_doctor"}:
+    if operation in {"video_info", "video_info_detailed", "video_doctor"}:
         assert "overwrite" not in schema["properties"], operation
         return
     assert schema["properties"]["overwrite"]["type"] == "boolean", operation

@@ -1,6 +1,6 @@
 {
  "captured": {
-  "git_commit": "751b9f4fd4df64d914da5144b8192835e45d4ec3",
+  "git_commit": "1affa2e236084ce3679340139a700faeeb9b9a0e",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "1.16.5",
@@ -1008,15 +1008,14 @@
      ]
     },
     {
-     "input_schema_bytes": 303,
-     "input_schema_sha256": "67649c1ab4e738e781759400c6f1ad87261af5d8640c58e0abfc2e86304c7101",
+     "input_schema_bytes": 202,
+     "input_schema_sha256": "29577de9b934e4a370cea5ad1d0221201f8ec2dcc81c6cea356ea10ddbb11363",
      "module": "server_tools_basic",
      "name": "search_tools",
      "profiles": [
       "editor"
      ],
      "properties": [
-      "overwrite",
       "query"
      ],
      "required_params": [
@@ -2546,8 +2545,8 @@
      ]
     },
     {
-     "input_schema_bytes": 265,
-     "input_schema_sha256": "6b095e402faa9341a52405bc9ea48efa49810af56d533ea601f20db157c3d1cf",
+     "input_schema_bytes": 164,
+     "input_schema_sha256": "51951ed0e48179a7cd1a3692d3b5e01764b69d699c1c4fcb6235491dff12563d",
      "module": "server_tools_effects",
      "name": "video_info_detailed",
      "profiles": [
@@ -2555,8 +2554,7 @@
       "effects"
      ],
      "properties": [
-      "input_path",
-      "overwrite"
+      "input_path"
      ],
      "required_params": [
       "input_path"
@@ -4136,7 +4134,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119255
+   "total_input_schema_bytes": 119053
   },
   "default": {
    "launch": {
@@ -5028,15 +5026,14 @@
      ]
     },
     {
-     "input_schema_bytes": 303,
-     "input_schema_sha256": "67649c1ab4e738e781759400c6f1ad87261af5d8640c58e0abfc2e86304c7101",
+     "input_schema_bytes": 202,
+     "input_schema_sha256": "29577de9b934e4a370cea5ad1d0221201f8ec2dcc81c6cea356ea10ddbb11363",
      "module": "server_tools_basic",
      "name": "search_tools",
      "profiles": [
       "editor"
      ],
      "properties": [
-      "overwrite",
       "query"
      ],
      "required_params": [
@@ -5918,8 +5915,8 @@
      ]
     },
     {
-     "input_schema_bytes": 265,
-     "input_schema_sha256": "6b095e402faa9341a52405bc9ea48efa49810af56d533ea601f20db157c3d1cf",
+     "input_schema_bytes": 164,
+     "input_schema_sha256": "51951ed0e48179a7cd1a3692d3b5e01764b69d699c1c4fcb6235491dff12563d",
      "module": "server_tools_effects",
      "name": "video_info_detailed",
      "profiles": [
@@ -5927,8 +5924,7 @@
       "effects"
      ],
      "properties": [
-      "input_path",
-      "overwrite"
+      "input_path"
      ],
      "required_params": [
       "input_path"
@@ -6841,7 +6837,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81461
+   "total_input_schema_bytes": 81259
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

@@ -194,6 +194,19 @@ def test_read_only_tools_offer_no_overwrite_consent():
     assert "overwrite" in tools["video_trim"].inputSchema["properties"]
 
 
+def test_discovery_and_probe_tools_offer_no_overwrite_consent_on_the_full_surface():
+    from kinocut.server import mcp
+    from kinocut.tool_registry import configure_tool_surface
+
+    async def schemas():
+        return {tool.name: tool for tool in await mcp.list_tools()}
+
+    configure_tool_surface("all")
+    tools = asyncio.run(schemas())
+    for name in ("search_tools", "video_info_detailed"):
+        assert "overwrite" not in tools[name].inputSchema.get("properties", {}), name
+
+
 def test_read_only_hint_rejects_overwrite_consent():
     from mcp.types import ToolAnnotations
 

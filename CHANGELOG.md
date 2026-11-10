@@ -28,7 +28,7 @@ This project follows a simple release-note style:
 ### Changed
 
 - MCP parameter help now lives on each parameter. A tool docstring's `Args:` block moves into the matching `inputSchema` property description (a parameter's own `Field` description still wins), and the block leaves the tool description. 100 tools carried such a block; none does now. A block that names an undeclared parameter or does not parse is left in place, so no help text is dropped. Family tool descriptions no longer list internal registry module names. `video_info`, `video_doctor` (read-only) and `video_trim`, `video_add_text`, `video_extract_frame`, `video_shorts` now declare MCP tool annotations like the rest of the default surface. `search_tools` still matches parameter help. Total default `tools/list` bytes fall 43,498 → 42,574; input-schema bytes rise (default 24,347 → 28,068, `all` 126,908 → 157,205) because the help text moved there.
-- Read-only MCP tools (`video_info`, `video_doctor`, `list_operations`, `describe_operation`) no longer take an `overwrite` argument: they never write. A client that still passes it gets a validation error; drop the argument.
+- Read-only MCP tools (`video_info`, `video_doctor`, `list_operations`, `describe_operation`, `search_tools`, `video_info_detailed`) no longer take an `overwrite` argument: they never write. A client that still passes it gets a validation error; drop the argument.
 
 ### Fixed
 

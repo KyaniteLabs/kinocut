@@ -2,10 +2,25 @@
 
 # Kinocut
 
-Guarded local video editing for agents, with a CLI, Python client and MCP server.
-Kinocut uses FFmpeg and ffprobe for media inspection, editing, subtitles, audio
-and quality checks. Optional workflows include Hyperframes, Revideo and model-assisted
-analysis.
+Your agent edits the video. You approve the cut.
+
+Kinocut is a local, guardrailed video-editing MCP server, Python client and `kino`
+CLI built on FFmpeg. Every edit is checked before FFmpeg runs, writes a new file
+unless you allow an overwrite, and returns a structured result. Quality gates catch
+black frames, silence and bad loudness, and a Video Receipt records what ran.
+Formerly mcp-video.
+
+## What your agent sees
+
+By default the MCP server lists 18 tools: an 8-tool hot path (`video_info`,
+`video_trim`, `video_merge`, `video_add_text`, `video_add_audio`,
+`video_extract_frame`, `video_shorts`, `video_doctor`), eight operation families
+that reach every other operation, and `list_operations` / `describe_operation`
+to find and fetch them. `KINOCUT_TOOLS=profile:<name>` lists one job's tools by
+name and `KINOCUT_TOOLS=all` lists all 206.
+
+`video_review_card` turns a finished cut into a review card with a contact sheet
+and Approve, Dig in and Try another range buttons for Hermes Desktop chat.
 
 ## Install and inspect
 
