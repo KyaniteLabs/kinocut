@@ -139,9 +139,20 @@ def test_headline_baseline_numbers_are_pinned():
     17,021 B, all 128,297 B, editor 87,550 B (tools/list itself shrank).
     Shorter family dispatcher text then cut default to 16,373 B and editor
     to 86,902 B (all unchanged: it carries no family tools).
+    A shorter overwrite description (on every mutating tool) then cut
+    default to 15,563 B, all to 119,072 B and editor to 81,772 B.
+    Trimming direct-tool descriptions moved one note (exact is slower) into
+    its parameter: default 15,603 B, all 119,112 B, editor 81,812 B.
+    Read-only tools then stopped offering overwrite consent: default
+    15,200 B, all 118,911 B, editor 81,409 B.
+    Trimming the longest remaining texts (family params, position, trim,
+    merge, extract_frame) then cut default to 14,739 B, all to 118,736 B
+    and editor to 80,922 B.
+    video_review_card (#723) then added one family operation: default
+    14,759 B, all 206 tools / 119,053 B, editor 115 tools / 81,259 B.
     """
-    assert BASELINE["captured"]["git_commit"] == "ed60df33fe1cdf6da219993117ff08260d1c39fa"
-    for mode, count, total in (("default", 18, 16_373), ("all", 205, 128_297), ("profile:editor", 114, 86_902)):
+    assert BASELINE["captured"]["git_commit"] == "1affa2e236084ce3679340139a700faeeb9b9a0e"
+    for mode, count, total in (("default", 18, 14_759), ("all", 206, 119_053), ("profile:editor", 115, 81_259)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -211,7 +222,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 16_373), ("all", 205, 128_297)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 14_759), ("all", 206, 119_053)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
@@ -233,7 +244,7 @@ def test_stdio_wire_default_surface_is_the_core_diet_plus_family_tools():
 def test_registry_inventory_is_complete_and_unambiguous():
     all_names = [name for names in TOOL_NAMES_BY_MODULE.values() for name in names]
     assert len(TOOL_NAMES_BY_MODULE) == 25
-    assert len(all_names) == 205 == len(set(all_names)), "a tool name must live in exactly one module"
+    assert len(all_names) == 206 == len(set(all_names)), "a tool name must live in exactly one module"
     assert set(TOOL_MODULE_BY_NAME) == set(all_names) == set(TOOL_REGISTRY)
     assert set(MODULE_PROFILE_TAGS) == set(TOOL_NAMES_BY_MODULE)
 

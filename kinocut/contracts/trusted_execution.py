@@ -141,13 +141,33 @@ class CASGCReceiptRecord(RecordBase):
     retained_reachable: int = Field(ge=0)
 
 
+class CASBlobState(StrEnum):
+    RESTORING = "restoring"
+    AVAILABLE = "available"
+
+
+# A chain starts with a restore intent; completion needs a prior intent; any
+# later GC deletion may start a new restore.  ``None`` is "no record yet".
+_CAS_BLOB_TRANSITIONS: dict[CASBlobState | None, set[CASBlobState]] = {
+    None: {CASBlobState.RESTORING},
+    CASBlobState.RESTORING: {CASBlobState.RESTORING, CASBlobState.AVAILABLE},
+    CASBlobState.AVAILABLE: {CASBlobState.RESTORING},
+}
+
+
+def can_transition_blob(current: CASBlobState | None, target: CASBlobState) -> bool:
+    """Return whether an append-only lifecycle successor may make this move."""
+
+    return target in _CAS_BLOB_TRANSITIONS[current]
+
+
 class CASBlobLifecycleRecord(RecordBase):
     """Append-only repair intent/completion; immutable manifests never change."""
 
     record_kind: Literal["cas_blob_lifecycle"] = "cas_blob_lifecycle"
     digest: Sha256
     manifest_record_id: Sha256
-    state: Literal["restoring", "available"]
+    state: CASBlobState
     after_gc_receipt_id: Sha256 | None = None
     backup_location: str | None = Field(default=None, pattern=r"^\.kinocut/blobs/sha256/\.cas-repair\.[0-9a-f]{32}$")
 

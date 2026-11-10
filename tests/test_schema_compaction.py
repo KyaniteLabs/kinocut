@@ -37,7 +37,7 @@ def _tools():
     try:
         return asyncio.run(mcp.list_tools())
     finally:
-        configure_tool_surface("")
+        configure_tool_surface("all")
 
 
 def test_no_tool_advertises_auto_generated_schema_titles():

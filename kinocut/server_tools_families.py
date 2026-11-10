@@ -16,7 +16,7 @@ family tool with the selected operation and only CLI routes that actually
 exist (``kino`` subcommands are enumerated from the real parser).
 
 These tools are registered in default and profile modes only; the legacy
-``KINOCUT_TOOLS=all`` surface stays exactly the 205-name registry.
+``KINOCUT_TOOLS=all`` surface stays exactly the 206-name registry.
 """
 
 import re
@@ -27,6 +27,7 @@ from mcp.types import ToolAnnotations
 from pydantic import Field
 
 from .errors import MCPVideoError, _cli_command_set, cli_route_for_operation, retry_context
+from .output_policy import read_only
 from .server_app import _safe_tool, _validation_error, mcp
 from .server_tool_contracts import validate_tool_arguments
 from .tool_families import (
@@ -58,7 +59,7 @@ def _family_annotations(name: str) -> ToolAnnotations:
 
 _PARAMS_ANNOTATION = Annotated[
     dict[str, Any] | None,
-    Field(description="The operation's arguments, exactly as its direct tool takes them."),
+    Field(description="The operation's arguments."),
 ]
 
 
@@ -217,6 +218,7 @@ def _declared_annotations() -> dict[str, Any]:
 
 
 @_safe_tool
+@read_only
 def list_operations(
     family: Annotated[
         str | None,
@@ -278,10 +280,8 @@ mcp.tool(
     name=DISCOVERY_TOOL_NAME,
     title="List family operations",
     description=(
-        "Enumerate compact-surface operations on demand: families with member counts, and each "
-        "operation's family, verb, required parameters and declared side-effect annotations. "
-        "Optional family or query filters. Complements search_tools; use describe_operation "
-        "for one operation's full inputSchema."
+        "List operations: families with member counts, and each operation's family, verb, "
+        "required parameters and side-effect annotations."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,
@@ -293,6 +293,7 @@ mcp.tool(
 
 
 @_safe_tool
+@read_only
 def describe_operation(
     operation: Annotated[
         str,
@@ -343,9 +344,8 @@ mcp.tool(
     name=DESCRIBE_TOOL_NAME,
     title="Describe one operation",
     description=(
-        "Retrieve one operation's full inputSchema on demand — optional arguments, types, "
-        "defaults and nested definitions, exactly as the direct tool declares them — with the "
-        "family tool that dispatches it and its verified kino CLI route when one exists."
+        "Return one operation's full inputSchema, the family tool that dispatches it, "
+        "and its kino CLI route when one exists."
     ),
     annotations=ToolAnnotations(
         readOnlyHint=True,

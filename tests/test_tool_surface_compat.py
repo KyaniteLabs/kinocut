@@ -287,7 +287,7 @@ def test_cold_server_modes_are_isolated():
 
     everything = _subprocess_surface("all")
     assert everything["mode"] == "all"
-    assert everything["count"] == 205 == len(TOOL_REGISTRY)
+    assert everything["count"] == 206 == len(TOOL_REGISTRY)
     assert set(everything["names"]) == set(TOOL_REGISTRY)
 
     editor = _subprocess_surface("profile:editor")
@@ -298,7 +298,7 @@ def test_cold_server_modes_are_isolated():
     assert set(editor["names"]) == expected
     assert set(CORE_TOOLS) <= set(editor["names"])
     assert set(FAMILY_SURFACE_TOOLS) <= set(editor["names"])
-    assert editor["count"] == 114  # 104 direct + the compact family surface
+    assert editor["count"] == 115  # 105 direct + the compact family surface
 
 
 def test_unknown_profile_aborts_startup_instead_of_silently_degrading():

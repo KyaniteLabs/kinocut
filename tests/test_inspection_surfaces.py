@@ -489,7 +489,7 @@ def test_public_counts_and_client_contracts():
 
     tools = asyncio.run(list_full_catalog())
     assert {"video_ingest", "video_preflight", "video_inspect_temporal"} <= tools
-    assert len(tools) == 205  # Full-catalog development surface.
+    assert len(tools) == 206  # Full-catalog development surface.
 
     commands = build_parser()._subparsers._group_actions[0].choices
     assert {"video-ingest", "video-preflight", "video-inspect-temporal"} <= set(commands)

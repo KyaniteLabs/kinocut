@@ -7,6 +7,7 @@ from typing import Any
 
 from .paths import _auto_output
 from .errors import MCPVideoError
+from .output_policy import read_only
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_MOGRAPH_STYLES
 from .ffmpeg_helpers import _validate_input_path
@@ -569,6 +570,7 @@ def video_mograph_progress(
 
 @mcp.tool()
 @_safe_tool
+@read_only
 def video_info_detailed(
     input_path: str,
 ) -> dict[str, Any]:

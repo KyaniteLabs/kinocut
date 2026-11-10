@@ -206,6 +206,7 @@ TOOL_NAMES_BY_MODULE: Mapping[str, tuple[str, ...]] = {
         "video_thumbnail",
         "video_preview",
         "video_storyboard",
+        "video_review_card",
         "video_subtitles",
         "video_watermark",
         "video_export",

@@ -15,7 +15,7 @@ Add an example under `examples/` or `workflows/` that:
 
 Add one prompt to [PROMPTS.md](PROMPTS.md) that is deterministic-leaning, Kinocut-only, and ends with quality + human review.
 
-## Task 3 — 360 assembly dry-run (master tip)
+## Task 3 — 360 assembly dry-run
 
 Using a **synthetic** 2:1 fixture (do not commit private X4 media): propose a `360_assembly_plan`, show cameras, refuse `.insv`, and document that render needs approve. Follow [360_ASSEMBLY.md](360_ASSEMBLY.md).
 
@@ -39,7 +39,7 @@ After verifying a live directory page, update [DIRECTORY_STATUS.md](DIRECTORY_ST
 ## Rules
 
 - No secrets or private media paths in commits
-- Run `pytest tests/test_public_claims.py -q` if you touch claims/README/llms
+- Run `pytest tests/test_public_claims.py tests/test_public_surface.py -q` if you touch claims, README, llms.txt or docs
 - Design system changes are out of scope unless asked
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md) and [GOLDEN_PATH.md](GOLDEN_PATH.md).

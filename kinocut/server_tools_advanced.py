@@ -289,8 +289,8 @@ def video_overlay(
     Args:
         background_path: Absolute path to the background video.
         overlay_path: Absolute path to the overlay video.
-        position: Position on screen. Named (top-left, etc.), pixel"
-                  " {\"x\": 100, \"y\": 50}, or percentage {\"x_pct\": 0.5, \"y_pct\": 0.5}.
+        position: Named (top-left, ...), pixels {"x": 100, "y": 50},
+            or fractions {"x_pct": 0.5, "y_pct": 0.5}.
         width: Width to scale the overlay to (pixels).
         height: Height to scale the overlay to (pixels).
         opacity: Overlay opacity (0.0 to 1.0).

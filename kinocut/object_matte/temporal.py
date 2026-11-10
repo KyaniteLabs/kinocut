@@ -1,21 +1,10 @@
-"""Mask-interval sampling plus median window 3."""
+"""Per-pixel median smoothing over a short window of masks."""
 
 from __future__ import annotations
 
 from PIL import Image
 
 from ..defaults import DEFAULT_OBJECT_MATTE_MEDIAN_WINDOW
-
-
-def expand_sampled_masks(sampled: list[Image.Image], frame_count: int, interval: int) -> list[Image.Image]:
-    """Hold each inferred mask across the following interval-1 frames."""
-    if not sampled or frame_count < 1:
-        return []
-    out: list[Image.Image] = []
-    for index in range(frame_count):
-        sample_index = min(index // interval, len(sampled) - 1)
-        out.append(sampled[sample_index])
-    return out
 
 
 def median_window(masks: list[Image.Image], window: int = DEFAULT_OBJECT_MATTE_MEDIAN_WINDOW) -> list[Image.Image]:

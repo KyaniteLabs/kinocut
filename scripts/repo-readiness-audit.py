@@ -109,7 +109,7 @@ def main() -> int:
 
     print("\n== README checks ==")
     readme = read("README.md")
-    for section in ["## Installation", "## Quick Start", "## MCP Tools", "## Testing", "## License"]:
+    for section in ["## Install", "## What your agent sees", "## What it can do", "## Develop", "## License"]:
         check(
             section in readme,
             f"README contains '{section}'",
@@ -139,7 +139,7 @@ def main() -> int:
 
     print("\n== AI/search discovery checks ==")
     llms = read("llms.txt")
-    for phrase in ["MCP server", "FFmpeg", "Claude Code", "Safety Rules For Agents"]:
+    for phrase in ["MCP server", "FFmpeg", "Claude Code", "Safety rules for agents"]:
         check(
             phrase in llms,
             f"llms.txt contains '{phrase}'",

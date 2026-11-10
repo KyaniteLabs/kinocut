@@ -349,7 +349,7 @@ def video_fix_design_issues(
     input_path: str,
     output_path: str | None = None,
 ) -> dict[str, Any]:
-    """Auto-fix design issues in a video.
+    """Auto-fix brightness and saturation in a video; audio is not changed.
 
     Applies the automatic fixes that design checks attach today: brightness
     (very dark video) and saturation (very desaturated video). It does not

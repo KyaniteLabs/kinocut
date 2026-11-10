@@ -18,6 +18,25 @@ from .errors import MCPVideoError, ProcessingError
 
 
 class ProcessTree:
+    """One owned command and all its descendants.
+
+    Lifecycle (``wait``, ``kill`` and ``close`` hold ``lock``):
+
+    - ``__init__`` launches, or cleans up and raises; a half-built tree never
+      reaches the caller.
+    - Open: ``wait`` caches the first exit status it observes in ``exitcode``;
+      ``kill`` stops the tree and keeps ownership.
+    - ``close`` (idempotent) kills, reaps within ``DEFAULT_RENDER_STOP_TIMEOUT``,
+      releases the guardian or Job and sets ``closed``. Afterwards ``wait``
+      returns the recorded status (or raises if none was recorded) and
+      ``kill`` does nothing.
+
+    Losing ownership (the child or supervisor reaped by someone else) is not a
+    state: it raises ``process_ownership_unavailable``. The rest of the state
+    lives in ``process.returncode`` and ``guardian.retaining``, owned by Popen
+    and the guardian, so there is deliberately no phase field mirroring it.
+    """
+
     def __init__(
         self, cmd: list[str], *, stdout=subprocess.PIPE, stderr=subprocess.PIPE, pass_fds: tuple[int, ...] = ()
     ):

@@ -13,7 +13,13 @@ from pathlib import Path
 
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
-from kinocut.contracts.trusted_execution import CASBlobLifecycleRecord, CASGCReceiptRecord, CASManifestRecord
+from kinocut.contracts.trusted_execution import (
+    CASBlobLifecycleRecord,
+    CASBlobState,
+    CASGCReceiptRecord,
+    CASManifestRecord,
+    can_transition_blob,
+)
 from kinocut.projectstore import store
 from kinocut.projectstore.ingest import _best_effort_unlink
 
@@ -48,11 +54,12 @@ def availability(
             receipt = receipt_by_id.get(record.after_gc_receipt_id)
             if receipt is None or record.digest not in receipt.deleted_digests:
                 raise contract_error("CAS lifecycle references an invalid GC receipt", INVALID_RECORD)
-        if record.state == "available" and (
-            previous is None
-            or previous.state != "restoring"
-            or record.after_gc_receipt_id != previous.after_gc_receipt_id
-            or record.backup_location != previous.backup_location
+        if not can_transition_blob(previous.state if previous else None, record.state) or (
+            record.state is CASBlobState.AVAILABLE
+            and (
+                record.after_gc_receipt_id != previous.after_gc_receipt_id
+                or record.backup_location != previous.backup_location
+            )
         ):
             raise contract_error("CAS completion requires a matching repair intent", INVALID_RECORD)
         heads[record.digest] = record
@@ -62,14 +69,17 @@ def availability(
 def unavailable_digests(project: store.Project) -> set[str]:
     """A new deletion invalidates earlier restoration; pending repairs block reads."""
     latest_gc, heads = availability(project)
-    unavailable = set(latest_gc)
-    for digest, head in heads.items():
-        receipt = latest_gc.get(digest)
-        if head.state == "available" and head.after_gc_receipt_id == (receipt.record_id if receipt else None):
-            unavailable.discard(digest)
-        else:
-            unavailable.add(digest)
-    return unavailable
+    digests = set(latest_gc) | set(heads)
+    return {d for d in digests if not is_readable(heads.get(d), latest_gc.get(d))}
+
+
+def is_readable(head: CASBlobLifecycleRecord | None, latest_gc: CASGCReceiptRecord | None) -> bool:
+    """The derived blob state: readable unless deleted later or mid-restore."""
+    if head is None:
+        return latest_gc is None
+    return head.state is CASBlobState.AVAILABLE and head.after_gc_receipt_id == (
+        latest_gc.record_id if latest_gc else None
+    )
 
 
 def _append_state(project, manifest, state, previous, gc_receipt, backup_location):
@@ -101,7 +111,9 @@ def restore_blob(project: store.Project, manifest: CASManifestRecord, temporary:
         if target.exists()
         else None
     )
-    intent = _append_state(project, manifest, "restoring", heads.get(manifest.digest), receipt, backup_location)
+    intent = _append_state(
+        project, manifest, CASBlobState.RESTORING, heads.get(manifest.digest), receipt, backup_location
+    )
     backup_path = store.safe_target(project, backup_location) if backup_location else None
     backup = _stash_previous(target, backup_path)
     try:
@@ -109,7 +121,7 @@ def restore_blob(project: store.Project, manifest: CASManifestRecord, temporary:
             target = store.safe_target(project, manifest.blob_location)
             os.replace(temporary, target)
             store._fsync_dir(target.parent)
-        _append_state(project, manifest, "available", intent, receipt, backup_location)
+        _append_state(project, manifest, CASBlobState.AVAILABLE, intent, receipt, backup_location)
     except BaseException:
         _restore_previous(target, backup)
         raise
