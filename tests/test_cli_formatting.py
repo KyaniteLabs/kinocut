@@ -8,6 +8,7 @@ from io import StringIO
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
+import pytest
 from rich.console import Console
 
 
@@ -461,3 +462,55 @@ class TestFormattersEdgeCases:
         err.to_dict.side_effect = RuntimeError("boom")
         err.__str__ = lambda self: "mock error"
         _format_error(err)
+
+
+class TestFormatErrorMarkupSafety:
+    """Exception text is data, not Rich markup: the panel renders it literally."""
+
+    @staticmethod
+    def _render_error(err, command=None, arguments=None):
+        output = StringIO()
+        captured = Console(file=output, force_terminal=False, color_system=None, width=400)
+        with patch.object(formatting, "err_console", captured):
+            _format_error(err, command=command, arguments=arguments)
+        return output.getvalue()
+
+    def test_missing_whisper_hint_renders_the_transcribe_extra(self, monkeypatch):
+        """Regression for issue #9: the visible hint must name the transcribe extra.
+
+        The exception object already carried ``kinocut[transcribe]``, but the
+        CLI fed the message to Rich as markup, so ``[transcribe]`` was parsed
+        as a style tag and the panel told users to install the bare package.
+        Assert the rendered panel, not the exception text.
+        """
+        import builtins
+
+        real_import = builtins.__import__
+
+        def mock_import(name, *args, **kwargs):
+            if name == "whisper":
+                raise ImportError("No module named 'whisper'")
+            return real_import(name, *args, **kwargs)
+
+        monkeypatch.setattr(builtins, "__import__", mock_import)
+
+        from mcp_video.ai_engine import ai_transcribe
+        from mcp_video.errors import MCPVideoError
+
+        with pytest.raises(MCPVideoError) as exc_info:
+            ai_transcribe("video.mp4")
+
+        rendered = self._render_error(
+            exc_info.value,
+            command="video-ai-transcribe",
+            arguments={"input": "video.mp4"},
+        )
+
+        assert "kinocut[transcribe]" in rendered
+        assert 'pip install "kinocut"' not in rendered
+        assert "kino kino" not in rendered
+        assert "run kino video-ai-transcribe" in rendered
+
+    def test_plain_exception_markup_is_escaped(self):
+        rendered = self._render_error(ValueError('install "pkg[extra]" to continue'))
+        assert 'install "pkg[extra]" to continue' in rendered
