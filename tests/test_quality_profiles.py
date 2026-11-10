@@ -116,6 +116,29 @@ def test_dark_ui_capture_fails_default_but_passes_dark_profile(dark_ui):
 
 
 @needs_ffmpeg
+def test_profile_switch_reports_the_default_score_beside_it(dark_ui):
+    from kinocut.quality_guardrails import assert_quality, quality_check
+
+    default_report = quality_check(dark_ui)
+    report = assert_quality(dark_ui, profile="ui-capture-dark")
+    baseline = report["profile_baseline"]
+    assert baseline["profile"] == "default"
+    assert baseline["overall_score"] == default_report["overall_score"]
+    assert "saturation" in baseline["failed_checks"]
+    assert baseline["overall_score"] < report["overall_score"]
+    assert "profile_baseline" not in default_report
+
+
+@needs_ffmpeg
+def test_cli_table_names_the_default_score_under_a_profile(dark_ui):
+    from kinocut.cli.quality_formatting import quality_report_renderables
+    from kinocut.quality_guardrails import quality_check
+
+    table, _ = quality_report_renderables(quality_check(dark_ui, profile="ui-capture-dark"))
+    assert table.caption and "default profile this cut scores" in str(table.caption)
+
+
+@needs_ffmpeg
 @pytest.mark.parametrize("capture", ["blank_dark", "black"])
 def test_blank_or_black_capture_fails_dark_profile_gate(capture, request):
     from kinocut.quality_guardrails import assert_quality

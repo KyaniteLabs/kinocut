@@ -38,6 +38,11 @@ def quality_report_renderables(data: Any) -> tuple[Table, str]:
             if message:
                 value_parts.append(escape(str(message)))
             table.add_row(str(info.get("name", "unknown")), status, " — ".join(value_parts))
+    baseline = data.get("profile_baseline")
+    if isinstance(baseline, dict) and baseline.get("overall_score") is not None:
+        table.caption = escape(
+            f"Under the {baseline.get('profile', 'default')} profile this cut scores {baseline['overall_score']}."
+        )
     if "gate_passed" in data:
         return table, f"[bold]{gate_verdict_line(data)}[/bold]"
     overall_passed = data.get("all_passed", data.get("passed", False))
