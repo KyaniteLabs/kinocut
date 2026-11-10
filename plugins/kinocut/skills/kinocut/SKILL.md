@@ -38,6 +38,8 @@ work is described in `docs/PLATFORM_PARITY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
 5. Human visual/audio review. Never treat a receipt as published.
 
+When you mention a file in a reply, use its file name or a `~/` path, never the absolute path: it carries the user's account name into every screenshot.
+
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
 
 Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
