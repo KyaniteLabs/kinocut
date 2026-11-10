@@ -11,38 +11,78 @@ This project follows a simple release-note style:
 
 ## 2.0.0 - 2026-11-10
 
+Your agent now sees 18 tools instead of 20, and through them it reaches every one of
+Kinocut's 205 operations. In 1.16.5 the default list reached only the 20 it named. The
+whole tool listing is also smaller: about 21.7 KB by default (26.5 KB in 1.16.5) and about
+178 KB with `KINOCUT_TOOLS=all` (225 KB). That is less context spent before the first
+edit. Cuts also leave the terminal: a review card in Hermes Desktop chat, a render pane
+beside it, and a review on a paired TV.
+
+This is a major release because the default tool list changed. If your agent called one
+of the twelve tools that left it, read **Breaking changes**.
+
 ### Thanks
 
-- Thanks to [@cnw-L](https://github.com/cnw-L) for quoting the lavfi `movie=` filter value so Windows drive paths survive filter graphs ([#532](https://github.com/KyaniteLabs/kinocut/pull/532)). It shipped in an earlier release without credit; this backfills it.
+- Thanks to [@cnw-L](https://github.com/cnw-L) for quoting the lavfi `movie=` filter value so Windows drive paths survive filter graphs ([#532](https://github.com/KyaniteLabs/kinocut/pull/532)). It shipped in 1.15.3 without credit; this backfills it. Everyone who has contributed from outside the core team is credited in the [README](README.md#contributors).
 
-### Changed
+### Breaking changes
 
-- The `audio-analysis` extra now installs only `numpy`, and `audio-all` / `all-ai` no longer pull `librosa` or `msgpack`: nothing in Kinocut imports them since the librosa and soundfile bridges were removed. `pip install kinocut[audio-analysis]` keeps working. The lockfile drops 10 packages (librosa, audioread, pooch, soxr, msgpack and their helpers).
-- Trim auto-generated noise from every advertised MCP tool: the property titles pydantic derives from parameter names, the `<name>Arguments` / `<name>DictOutput` schema titles, and annotation titles that repeat the tool title. Input-schema bytes drop 22.8% in `KINOCUT_TOOLS=all` (126,908 → 98,000) and 12% in the default surface (17,429 → 15,335); the full `tools/list` for `all` drops from 225,828 to 188,661 bytes. Properties, types, defaults and validation are unchanged.
-- Cut the default MCP direct core from 20 tools to an 8-tool hot path (`video_info`, `video_trim`, `video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`, `video_doctor`). The default `tools/list` drops from 30 tools / 24,347 input-schema bytes to 18 tools / 17,429 bytes. The twelve dropped tools (`search_tools`, `hyperframes_doctor`, `video_add_texts`, `video_convert`, `video_resize`, `video_speed`, `video_validate_text_layout`, `video_quality_check`, `video_review_package`, `video_workflow_inspect`, `video_rescue_inspect`, `video_project_create`) stay reachable as operations of their family tool, by name under `KINOCUT_TOOLS=all`, and through the profiles that carry them. A client that called one of them directly in default mode should call its family tool (see `list_operations`) or set `KINOCUT_TOOLS`.
+- **The default MCP surface is 18 tools.** An 8-tool hot path (`video_info`, `video_trim`, `video_merge`, `video_add_text`, `video_add_audio`, `video_extract_frame`, `video_shorts`, `video_doctor`), eight operation families (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) that reach all 205 operations, and `list_operations` / `describe_operation` to find one and fetch its schema. Twelve tools left the default list: `search_tools`, `hyperframes_doctor`, `video_add_texts`, `video_convert`, `video_resize`, `video_speed`, `video_validate_text_layout`, `video_quality_check`, `video_review_package`, `video_workflow_inspect`, `video_rescue_inspect` and `video_project_create`. Each still works. `list_operations` replaces `search_tools`, which is still listed under `KINOCUT_TOOLS=all`; for the other eleven, call the family with `{"operation": "<name>", "params": {...}}`, or list it by name with `KINOCUT_TOOLS=all` or a profile that carries it. Family dispatch runs the same code and returns the same result as the named tool. (#663, #717)
+- **Read-only tools no longer take `overwrite`.** `video_info`, `video_info_detailed`, `video_doctor`, `search_tools`, `list_operations` and `describe_operation` never write, so they stopped asking for permission to. A client that still passes `overwrite` gets a validation error; drop the argument. (#737, #747)
+- **Tool schemas lost their auto-generated titles.** The property titles pydantic derives from parameter names, the `<name>Arguments` / `<name>DictOutput` schema titles and annotation titles that repeated the tool title are gone. Property names, types, defaults and validation are unchanged. A client that keyed on those titles should key on property names. (#718)
 
 ### Added
 
-- Add `video_review_card`: writes a self-contained HTML review card (inline contact sheet, facts, Approve & export / Dig in / Try another range buttons) that Hermes Desktop renders inline from `::preview{file="..."}`. Reached through its family or `KINOCUT_TOOLS=all`. (#723)
-- The Hermes plugin skill can show a cut on a paired Hermes Gadget TV through `ui.show_media` and map the remote's Approve / Reject back to Approve & export / Try another range. It needs a URL the TV can fetch; Kinocut does not serve one. (#725)
-- Add an opt-in Hermes Desktop plugin (`plugins/kinocut/desktop/plugin.js`, shipped beside `mcp.json`): live Kinocut render progress in the status bar and a "Kinocut renders" pane, opened from the command palette. (#724)
-- Add content profiles to `video-quality-check` and `release-checkpoint` (CLI `--profile`, MCP/Client `profile`): `default` (camera footage, unchanged), `ui-capture-dark` and `ui-capture-light`. A UI profile scores brightness, contrast and saturation against bands suited to screen captures — dark or light ground, flat panels, neutral palette — instead of camera-footage optima, so deliberately dark-mode demos no longer need a blanket `--min-score` drop. Under a UI profile those bands are hard limits: a blank or black capture fails the gate even when audio carries the score. Audio, color balance and temporal motion are profile-independent. Every report and checkpoint records the profile and its thresholds. (#679)
-- Add typed operation families to the default and profile MCP surfaces: eight dispatch tools (`video_edit_ops`, `video_effects_ops`, `audio_ops`, `video_ai_ops`, `image_ops`, `video_qc_ops`, `video_plan_ops`, `platform_ops`) plus `list_operations` discovery and `describe_operation` on-demand contracts. The default surface becomes 30 tools / 24,281 input-schema bytes (within the ≤ 40 tools / ≤ 25%-of-full-catalog budget) and reaches all 204 registry operations; `KINOCUT_TOOLS=all` stays byte-identical to the legacy 205-tool / 126,776-byte surface. Family dispatch runs the exact registered tool after the shared wire-path validation — identical success payloads and handler error cores — and reports verbs and only *declared* per-operation side-effect annotations via `list_operations`. `describe_operation` returns a hidden operation's complete inputSchema (byte-for-byte the direct tool's) with the family tool that dispatches it and its verified CLI route. Family tools carry audited per-family `openWorldHint` values (open: `video_ai_ops`, `image_ops`, `video_plan_ops`, `video_qc_ops`, `platform_ops`), family-level `overwrite` consent is forwarded explicitly unless `params` overrides it, and retry hints under family dispatch name the family tool + selected operation with only `kino` routes that actually exist. See `docs/MCP_TOOL_FAMILIES.md`.
+- **Review a cut in Hermes Desktop chat.** `video_review_card` writes a self-contained HTML card (contact sheet, facts, and Approve & export / Dig in / Try another range buttons) that Hermes Desktop shows inline. Reach it through `video_edit_ops` or `KINOCUT_TOOLS=all`. (#723)
+- **Watch renders from Hermes Desktop.** An opt-in Desktop plugin, shipped beside the Hermes plugin's `mcp.json`, adds live render progress to the status bar and a "Kinocut renders" pane you open from the command palette. (#724)
+- **Review a cut on the TV.** The Hermes plugin skill can show a cut on a paired Hermes Gadget TV and map the remote's Approve and Reject to Approve & export and Try another range. The TV needs a URL it can fetch; Kinocut does not serve one. (#725)
+- **Quality gates for screen recordings.** `video-quality-check` and `release-checkpoint` take a content profile (CLI `--profile`, MCP and Client `profile`): `default` for camera footage, `ui-capture-dark` and `ui-capture-light` for screen captures. Dark-mode demos no longer need a blanket `--min-score` drop, and a blank or black capture still fails. Reports record the profile and its thresholds. (#679)
+- **Loudness you can see.** `normalize_audio` returns the measured loudness before (`measured_input`: I, LRA, TP) and after (`measured_output`: I, TP) on the CLI, the Client and MCP. (#699)
+- **The 360 flow refuses what it cannot render.** A raw Insta360 `.insv` or a clip that is not a ~2:1 equirect is rejected at intake and again at render, before any decode, with a message that says what to export instead. (#664)
+- `qa/run.sh` runs a source-cited catalog of operator journeys against an isolated install, and says which actions it did not cover. (#670)
 
 ### Changed
 
-- MCP parameter help now lives on each parameter. A tool docstring's `Args:` block moves into the matching `inputSchema` property description (a parameter's own `Field` description still wins), and the block leaves the tool description. 100 tools carried such a block; none does now. A block that names an undeclared parameter or does not parse is left in place, so no help text is dropped. Family tool descriptions no longer list internal registry module names. `video_info`, `video_doctor` (read-only) and `video_trim`, `video_add_text`, `video_extract_frame`, `video_shorts` now declare MCP tool annotations like the rest of the default surface. `search_tools` still matches parameter help. Total default `tools/list` bytes fall 43,498 → 42,574; input-schema bytes rise (default 24,347 → 28,068, `all` 126,908 → 157,205) because the help text moved there.
-- Read-only MCP tools (`video_info`, `video_doctor`, `list_operations`, `describe_operation`, `search_tools`, `video_info_detailed`) no longer take an `overwrite` argument: they never write. A client that still passes it gets a validation error; drop the argument.
+- **Tool text is half the size.** Each parameter's help now sits on the parameter instead of in an `Args:` block in the tool description, and long tool and family descriptions were cut to what an agent needs. Description text across `KINOCUT_TOOLS=all` fell from 62.5 KB to 31.2 KB. (#719, #738, #740, #741, #742)
+- The MCP server starts about 25 ms sooner: it loads the receipt contracts only when `video_add_audio` writes a receipt. (#743)
+- `video_fix_design_issues` says what it does: it fixes brightness and saturation and leaves audio alone. Use `video_normalize_audio` for loudness. (#684)
+- `kino hyperframes-doctor` prints one line per check with a hint and exits 1 only when a required check fails. (#681)
+- The docs were rewritten from the code: tool, command and client indexes are generated, and pre-2.0 audits and roadmaps moved to `docs/archive`. (#750, #752)
 
 ### Fixed
 
-- The MCP `position` help for `video_add_text` and `video_overlay` no longer shows stray quote characters, and `video_trim`'s `accurate` help now says what the engine does: it is ignored, because trims always re-encode frame-accurately.
-- A SIGKILLed CLI no longer leaves a detached FFmpeg: every POSIX `ProcessTree` command now runs under the existing orphan watchdog (`process_guardian`). Cost is one extra interpreter per command (measured median extra ~33ms Linux / ~89ms macOS CI; budget `DEFAULT_PROCESS_GUARDIAN_SPAWN_BUDGET_MS` = 150ms). Ctrl-C / SIGTERM cleanup is unchanged. Windows still uses Job Objects.
-- Text overlays (`video_add_text`, `kino add-text`, timeline text) no longer fail with `font_not_found` on Linux hosts without DejaVu Sans, such as Arch/Omarchy. The default font now falls back to fontconfig's scalable sans-serif match (#696).
+- MCP `resources/list` was empty in 1.16.5; the resources are listed again. (#658)
+- On hardened hosts that refuse a read-open of `/` (some seccomp, LSM and container setups), every output write failed with `Atomic output could not preserve directory identity`. Writes work there now, with the same no-follow guarantee. (#658)
+- A killed `kino` command no longer leaves FFmpeg encoding in the background: each command runs under the orphan watchdog. It costs about 33 ms per command on Linux and 89 ms on macOS. (#659)
+- When brightness and saturation fixes both apply, `video_fix_design_issues` now outputs both. Before, only the last survived while `fixes_applied` listed both. (#688)
+- `release-checkpoint` keeps `all_passed` false when any gating check fails; the score gate reports its own `gate_passed`, `min_score` and `failed_checks`. (#682)
+- Retry hints name a `kino` command only when one exists. (#687)
+- `sound-plan-validate` names the field that failed (`validation_error`, `invalid_plan`, `details: [{loc, msg, type}]`) instead of `unknown`. (#683)
+- Text overlays work on Linux hosts without DejaVu Sans, such as Arch: the default font falls back to fontconfig's sans-serif, and per-user fonts in the XDG font directory are found. (#697, #707)
+- AI upscaling and the loudness checks work on FFmpeg 9. (#706)
+- Polling a render job while its runner writes the next record no longer fails with `render job not found`. (#709)
+- Cancelling a mix render on Python 3.11 is no longer silently ignored. (#712)
+- Normalized audio keeps its true-peak headroom: a redundant AAC re-encode after normalization is gone. (#667)
+- `video_shorts` with `overwrite` no longer refuses its own `.srt` sidecar, and caption offsets stop at the end of the source. (#658)
+- Hyperframes preview hands the live preview back to its caller instead of reporting that it exited. (#668)
+- `kino review-decide` never narrows the overwrite consent it inherits. (#673)
+- An error that repeats a rejected number caps it at 24 characters for plain `int` and `float` values too. (#745)
 
 ### Removed
 
-- Removed three audio bridge modules nothing imported (`kinocut.audio_engine.integrations.librosa_bridge`, `meltysynth_bridge`, `soundfile_bridge`) and the unused `object_matte.temporal.expand_sampled_masks` helper. No tool, CLI command or client method used them.
+- Three audio bridge modules nothing imported (`kinocut.audio_engine.integrations.librosa_bridge`, `meltysynth_bridge`, `soundfile_bridge`) and the unused `object_matte.temporal.expand_sampled_masks` helper. No tool, CLI command or Client method used them. (#744)
+- The `audio-analysis` extra installs only `numpy`, and `audio-all` / `all-ai` no longer pull `librosa` or `msgpack`: nothing imports them now that the audio bridges are gone. `pip install kinocut[audio-analysis]` still works. The lockfile drops 10 packages. (#748)
+
+### Upgrade
+
+```bash
+pip install --upgrade kinocut==2.0.0
+claude mcp add kinocut -- uvx --from kinocut==2.0.0 kino --mcp
+```
+
+`mcp-video==1.6.21` installs `kinocut==2.0.0` for anyone still on the old name. To keep
+the old named tools in your agent's list, set `KINOCUT_TOOLS=all` or a profile such as
+`profile:editor`.
 
 ## 1.16.5 - 2026-10-27
 
