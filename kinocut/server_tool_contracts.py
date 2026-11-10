@@ -13,6 +13,7 @@ from pydantic.json_schema import GenerateJsonSchema
 from pydantic_core import PydanticCustomError
 
 from .errors import MCPVideoError
+from .tool_docstrings import fold_args
 
 
 def _numeric_boolean_validator(model: Any) -> Any:
@@ -112,6 +113,7 @@ class _ContractFastMCP(FastMCP):
         )
         tool.fn_metadata.arg_model = model
         tool.parameters = model.model_json_schema(by_alias=True, schema_generator=_UntitledSchema)
+        tool.description = fold_args(tool.description, tool.parameters)
         _compact_tool_metadata(tool)
 
     async def call_tool(self, name: str, arguments: dict[str, Any]) -> Any:

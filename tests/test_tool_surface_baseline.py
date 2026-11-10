@@ -135,9 +135,11 @@ def test_headline_baseline_numbers_are_pinned():
     Dropping the titles pydantic derives from property names (and the
     "<name>Arguments" schema title) then cut every mode: default 15,335 B,
     all 98,000 B, editor 63,857 B. Same properties, types and validation.
+    Moving Args help onto each parameter (#719) grew the schemas: default
+    17,021 B, all 128,297 B, editor 87,550 B (tools/list itself shrank).
     """
-    assert BASELINE["captured"]["git_commit"] == "1171c21353587bcde3f98e9b58a9a546530df857"
-    for mode, count, total in (("default", 18, 15_335), ("all", 205, 98_000), ("profile:editor", 114, 63_857)):
+    assert BASELINE["captured"]["git_commit"] == "ed60df33fe1cdf6da219993117ff08260d1c39fa"
+    for mode, count, total in (("default", 18, 17_021), ("all", 205, 128_297), ("profile:editor", 114, 87_550)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -207,7 +209,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_335), ("all", 205, 98_000)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 17_021), ("all", 205, 128_297)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]

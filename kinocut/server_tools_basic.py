@@ -112,7 +112,9 @@ OptionalOutputVideoPath = Annotated[
 ]
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=False)
+)
 @_safe_tool
 def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
     """Probe a video file for metadata. Returns JSON {success, info:{duration, resolution, codec, fps, size, ...}}. Use before any edit to learn the source's dimensions and length. Pass input_path as the absolute path to the existing video. Set exact=true to also get the decoded frame_count and the raw r_frame_rate/avg_frame_rate strings (slower: the whole video stream is decoded).
@@ -131,7 +133,9 @@ def video_info(input_path: str, exact: bool = False) -> dict[str, Any]:
     return {"success": True, "info": data}
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_trim(
     input_path: str,
@@ -241,7 +245,9 @@ def video_merge(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_add_text(
     input_path: str,

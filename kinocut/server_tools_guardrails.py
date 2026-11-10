@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
+from mcp.types import ToolAnnotations
+
 from .design_guardrails import (
     validate_text_layout,
     TextOverlaySpec,
@@ -72,7 +74,9 @@ def video_validate_text_layout(
     )
 
 
-@mcp.tool()
+@mcp.tool(
+    annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
+)
 @_safe_tool
 def video_extract_frame(
     input_path: str,

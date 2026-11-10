@@ -753,7 +753,7 @@ def test_list_operations_reports_only_declared_annotations():
         "openWorldHint": False,
     }
     # Operations without declared hints are reported as undeclared, never guessed.
-    assert by_name["video_trim"]["annotations"] is None
+    assert by_name["video_resize"]["annotations"] is None
 
 
 def test_family_annotation_never_weakens_a_declared_member_hint():

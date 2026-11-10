@@ -352,10 +352,14 @@ def _tool_manager() -> Any:
 
 def _capture_catalog() -> None:
     for name, tool in _tool_manager()._tools.items():
+        properties = (tool.parameters or {}).get("properties") or {}
         _TOOL_CATALOG[name] = {
             "name": name,
             "description": tool.description or "",
             "required_params": list((tool.parameters or {}).get("required", [])),
+            # Parameter help lives in the schema (tool_docstrings.fold_args);
+            # discovery still searches it.
+            "parameter_text": " ".join(str(spec.get("description") or "") for spec in properties.values()),
         }
 
 
