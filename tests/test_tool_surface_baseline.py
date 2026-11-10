@@ -145,9 +145,12 @@ def test_headline_baseline_numbers_are_pinned():
     its parameter: default 15,603 B, all 119,112 B, editor 81,812 B.
     Read-only tools then stopped offering overwrite consent: default
     15,200 B, all 118,911 B, editor 81,409 B.
+    Trimming the longest remaining texts (family params, position, trim,
+    merge, extract_frame) then cut default to 14,739 B, all to 118,736 B
+    and editor to 80,922 B.
     """
-    assert BASELINE["captured"]["git_commit"] == "3513762528868a622e1c180d99c0490ba8f15d56"
-    for mode, count, total in (("default", 18, 15_200), ("all", 205, 118_911), ("profile:editor", 114, 81_409)):
+    assert BASELINE["captured"]["git_commit"] == "33bbfed4f633211ebb477950b41b846044b45e64"
+    for mode, count, total in (("default", 18, 14_739), ("all", 205, 118_736), ("profile:editor", 114, 80_922)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -217,7 +220,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_200), ("all", 205, 118_911)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 14_739), ("all", 205, 118_736)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
