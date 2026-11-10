@@ -308,15 +308,22 @@ def test_caller_interrupt_kills_and_reaps_actual_progress_process(monkeypatch):
 def test_no_newline_diagnostics_have_bounded_parent_memory_and_still_report_progress():
     from kinocut.ffmpeg_helpers import _parse_ffmpeg_time
 
-    values = []
-    script = "import sys; sys.stderr.buffer.write(b'x'*2000000+b' time=00:00:00.50\\r'); sys.stderr.flush()"
-    tracemalloc.start()
-    try:
-        result = run_progress([sys.executable, "-c", script], 1, values.append, _parse_ffmpeg_time)
-        _, peak = tracemalloc.get_traced_memory()
-    finally:
-        tracemalloc.stop()
-    assert peak < 2_000_000
+    # The child writes 3.5 MB (under the 4 MB hard cap) with no newline.  A
+    # reader that buffered it would peak above 3.5 MB on every run; the bounded
+    # reader holds ~0.2 MB.  tracemalloc counts the whole process, so a one-off
+    # allocation elsewhere can spike a single run: judge the quietest of three.
+    script = "import sys; sys.stderr.buffer.write(b'x'*3500000+b' time=00:00:00.50\\r'); sys.stderr.flush()"
+    peaks = []
+    for _ in range(3):
+        values = []
+        tracemalloc.start()
+        try:
+            result = run_progress([sys.executable, "-c", script], 1, values.append, _parse_ffmpeg_time)
+            _, peak = tracemalloc.get_traced_memory()
+        finally:
+            tracemalloc.stop()
+        peaks.append(peak)
+    assert min(peaks) < 2_000_000, peaks
     assert len(result.stderr.encode()) == FFMPEG_PROGRESS_STDERR_BYTES
     assert 50 in values and values[-1] == 100
 
