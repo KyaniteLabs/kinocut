@@ -137,3 +137,61 @@ def test_approve_runs_the_gate_then_exports_a_final_file(sample_video, tmp_path)
     assert "video_release_checkpoint" in text
     assert f"video_export it to {final}" in text
     assert not os.path.exists(final)
+
+
+def test_card_plays_the_cut_inline_within_the_preview_cap(sample_video, tmp_path):
+    from kinocut.review_card import MAX_CARD_BYTES
+
+    out = str(tmp_path / "card.html")
+    result = write_review_card(sample_video, output_path=out, frame_count=4)
+    with open(out, encoding="utf-8") as fh:
+        doc = fh.read()
+    assert result["plays_inline"] is True
+    video = re.search(r"<video ([^>]*)>", doc)
+    assert video, "card has no player"
+    attrs = video.group(1)
+    assert 'src="data:video/mp4;base64,' in attrs
+    assert 'poster="data:image/jpeg;base64,' in attrs
+    for flag in ("muted", "autoplay", "loop", "playsinline", "controls"):
+        assert f" {flag}" in attrs
+    assert len(doc.encode("utf-8")) <= MAX_CARD_BYTES
+
+
+def test_poster_skips_black_frames(tmp_path):
+    from PIL import Image, ImageStat
+
+    from kinocut.review_card import MIN_POSTER_LUMA, _poster_bytes
+
+    black, dim, bright = (tmp_path / f"{n}.png" for n in ("black", "dim", "bright"))
+    Image.new("RGB", (64, 36), (0, 0, 0)).save(black)
+    Image.new("RGB", (64, 36), (8, 8, 8)).save(dim)
+    Image.new("RGB", (64, 36), (180, 120, 60)).save(bright)
+
+    poster = _poster_bytes([str(black), str(dim), str(bright)])
+    with Image.open(__import__("io").BytesIO(poster)) as img:
+        assert ImageStat.Stat(img.convert("L")).mean[0] >= MIN_POSTER_LUMA
+
+    fallback = _poster_bytes([str(black), str(dim)])
+    with Image.open(__import__("io").BytesIO(fallback)) as img:
+        assert ImageStat.Stat(img.convert("L")).mean[0] > 4
+
+
+def test_cut_too_long_for_the_budget_falls_back_to_stills(sample_video):
+    from kinocut.review_card import _preview_bytes
+
+    assert _preview_bytes(sample_video, duration=3600.0, budget=100_000) is None
+
+
+def test_poster_builds_without_pillow(sample_video, tmp_path, monkeypatch):
+    """The poster frame, like the sheet, must not need Pillow."""
+    import sys
+
+    from kinocut.review_card import _poster_bytes
+    from kinocut.engine_storyboard import storyboard
+
+    board = storyboard(sample_video, output_dir=str(tmp_path / "frames"), frame_count=3)
+    with monkeypatch.context() as m:
+        m.setitem(sys.modules, "PIL", None)
+        m.setitem(sys.modules, "PIL.Image", None)
+        data = _poster_bytes(board.frames)
+    assert data is not None and data[:2] == b"\xff\xd8"
