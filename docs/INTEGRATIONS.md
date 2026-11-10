@@ -25,7 +25,7 @@ Add MCP server config:
 }
 ```
 
-Restart Cursor; confirm tools appear; run `search_tools` for `trim` / `receipt` / `workflow`.
+Restart Cursor; confirm the 18 default tools appear; call `list_operations` with `trim`, `receipt` or `workflow` to find operations beyond them.
 
 ## Generic MCP client (stdio)
 

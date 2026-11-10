@@ -1102,3 +1102,35 @@ def test_search_tools_still_discovers_hidden_operations():
     result = search_tools("waveform")
     assert "video_audio_waveform" in {tool["name"] for tool in result["tools"]}
     assert _surface_names() == _default_surface_names()
+
+
+def test_a_by_name_call_of_an_unlisted_operation_names_its_family():
+    """1.x guidance calls profile tools by name; the wire stays closed but says where they went."""
+
+    configure_tool_surface()
+    with pytest.raises(ToolError) as excinfo:
+        asyncio.run(_call("video_quality_check", {"input_path": "unused.mp4"}))
+    message = str(excinfo.value)
+    assert message.startswith("Unknown tool: video_quality_check.")
+    assert 'call video_ai_ops(operation="video_quality_check", params={...})' in message
+    assert "describe_operation" in message
+    with pytest.raises(ToolError, match=r"^Unknown tool: not_a_kinocut_tool$"):
+        asyncio.run(_call("not_a_kinocut_tool", {}))
+
+
+def test_invalid_parameter_errors_name_the_schema_fields_not_the_callers_keys():
+    configure_tool_surface()
+    direct = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"name": "video_trim"})))
+    message = direct["error"]["message"]
+    assert "Required: operation. Accepted: operation." in message
+    family = _payload(
+        asyncio.run(
+            _call(
+                "video_edit_ops",
+                {"operation": "video_audio_waveform", "params": {"input_path": "x.mp4", "zz_injected_key": 1}},
+            )
+        )
+    )["error"]["message"]
+    assert "Required: input_path." in family
+    assert "Accepted: input_path, " in family
+    assert "zz_injected_key" not in family and "zz_injected_key" not in message
