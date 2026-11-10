@@ -131,8 +131,9 @@ Clients can also use the pinned configuration directly:
 
 ## Narrowing the tool list
 
-Kinocut registers 205 MCP tools; the default registration is a curated 20-tool
-core, and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
+Kinocut registers 205 MCP tools. The default registration is 18 tools that
+reach all of them (8 hot-path tools, 8 operation families, `list_operations`
+and `describe_operation`), and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
 allowlist reduces the schemas sent with each model request. For Hermes, this small inspection-and-trim set
 goes in `mcp_servers` in your Hermes `config.yaml`:
 
@@ -142,9 +143,9 @@ mcp_servers:
     command: uvx
     args: ["kinocut==2.0.0"]
     # video_thumbnail (below) is a profile tool, not part of the default
-    # 20-tool core: select the editor profile explicitly (108 tools).
+    # 18 tools: select the editor profile explicitly (115 tools).
     # The plugin's own .mcp.json launch deliberately stays on the
-    # environment-unset 20-tool default.
+    # environment-unset 18-tool default.
     env:
       KINOCUT_TOOLS: profile:editor
     tools:
@@ -161,11 +162,10 @@ needs. `search_tools` helps discover names; it does not enable excluded tools or
 hide schemas by itself. See the [Hermes MCP configuration reference](https://hermes-agent.nousresearch.com/docs/reference/mcp-config-reference/).
 
 Plugin hosts that start the server from this plugin's `mcp.json` get the
-20-tool core. The skills that need a profile tool (`video_repurpose_plan`,
-`video_repurpose`, and other editor-profile tools) say so and require
-`KINOCUT_TOOLS=profile:editor` plus a server restart; under the default
-launch those tools are not registered, and the skill stops and reports that
-instead of retrying.
+default 18 tools. Editor-profile operations such as `video_repurpose_plan` and
+`video_repurpose` are still callable there through their operation family
+(`video_plan_ops`). The skills say so, and say that
+`KINOCUT_TOOLS=profile:editor` plus a server restart lists them by name.
 
 For other hosts, use their tool-filtering controls if available.
 

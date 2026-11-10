@@ -175,7 +175,7 @@ def test_plugin_readme_documents_the_explicit_profile_launch():
     readme = (ROOT / "plugins" / "kinocut" / "README.md").read_text(encoding="utf-8")
     assert "KINOCUT_TOOLS" in readme
     assert "profile:editor" in readme
-    assert "20-tool" in readme
+    assert "default 18 tools" in readme
 
 
 def test_plugin_launch_stays_on_the_curated_default():
