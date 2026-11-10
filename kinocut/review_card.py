@@ -25,8 +25,7 @@ _ALLOWED_MIME = frozenset({"image/jpeg", "image/png"})
 _STYLE = """
 body{margin:0;padding:12px;font-family:system-ui,sans-serif;color:var(--foreground,#111);background:transparent}
 .card{background:var(--card,#fff);border:1px solid var(--border,#ddd);border-radius:10px;padding:14px;max-width:960px}
-h1{font-size:16px;margin:0 0 2px}
-.path{font-size:12px;color:var(--muted-foreground,#666);word-break:break-all;margin:0 0 10px}
+h1{font-size:16px;margin:0 0 10px;word-break:break-all}
 dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:13px;margin:0 0 10px}
 dt{color:var(--muted-foreground,#666)}
 dd{margin:0}
@@ -44,12 +43,16 @@ def _esc(value: object) -> str:
 def render_review_card(
     *,
     title: str,
-    input_path: str,
     facts: dict[str, str],
     images: list[tuple[str, bytes, str]],
     actions: list[tuple[str, str]],
 ) -> str:
-    """Return one self-contained HTML document: no scripts, no external URLs."""
+    """Return one self-contained HTML document: no scripts, no external URLs.
+
+    Visible text names the file by ``title`` only. The full path rides in the
+    hidden ``data-hermes-send`` text, so a screenshot of the card shows no
+    local directory names.
+    """
     parts = [
         "<!doctype html>",
         '<html lang="en"><head><meta charset="utf-8">',
@@ -58,7 +61,6 @@ def render_review_card(
         f"<style>{_STYLE}</style></head><body>",
         '<div class="card">',
         f"<h1>{_esc(title)}</h1>",
-        f'<p class="path">{_esc(input_path)}</p>',
     ]
     if facts:
         parts.append("<dl>")
@@ -188,7 +190,6 @@ def write_review_card(
     ]
     document = render_review_card(
         title=name,
-        input_path=input_path,
         facts=facts,
         images=[(f"Contact sheet of {name}", sheet_data, sheet_mime)],
         actions=actions,

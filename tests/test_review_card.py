@@ -14,7 +14,6 @@ PNG = b"\x89PNG\r\n\x1a\n" + b"\x00" * 16
 def _render(send: str = PAYLOAD) -> str:
     return render_review_card(
         title=PAYLOAD,
-        input_path=f"/tmp/{PAYLOAD}.mp4",
         facts={PAYLOAD: PAYLOAD},
         images=[(PAYLOAD, PNG, "image/png")],
         actions=[(PAYLOAD, send)],
@@ -52,6 +51,24 @@ def test_write_review_card_on_sample_video(sample_video, tmp_path):
     assert "data-hermes-send" in doc
     assert 'src="data:image/' in doc
     assert "<script" not in doc
+
+
+def test_visible_text_names_the_file_not_its_directory(sample_video, tmp_path):
+    import html as html_mod
+    import shutil
+
+    folder = tmp_path / "private-owner-folder"
+    folder.mkdir()
+    video = str(folder / "clip.mp4")
+    shutil.copy(sample_video, video)
+    out = write_review_card(video, frame_count=2)["output_path"]
+    with open(out, encoding="utf-8") as fh:
+        doc = fh.read()
+    visible = re.sub(r'data-hermes-send="[^"]*"', "", doc)
+    visible = re.sub(r'src="data:[^"]*"', "", visible)
+    assert "clip.mp4" in visible
+    assert "private-owner-folder" not in html_mod.unescape(visible)
+    assert "private-owner-folder" in doc  # the agent still gets the full path
 
 
 def test_default_path_never_reuses_an_existing_card(sample_video, tmp_path):
