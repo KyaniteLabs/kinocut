@@ -121,7 +121,7 @@ The capture records the server-reported version from the MCP handshake, the
 tool count, and the schema bytes under the serialization contract above.
 Note that the handshake reports the *installed distribution* version, which
 can differ from a source checkout actually launched; the script records both.
-A `uvx kinocut==1.16.5` capture matches the released 1.16.5 default surface
+A capture of the released 1.16.5 package matched its default surface
 byte-for-byte (20 tools / 13,947 bytes) — that surface predates the compact
 family layer in this checkout.
 

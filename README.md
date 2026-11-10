@@ -18,7 +18,7 @@
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-205%20tools-orange.svg" alt="205 MCP tools in the published package">
+  <img src="https://img.shields.io/badge/MCP-206%20tools-orange.svg" alt="206 MCP tools in the published package">
   <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
@@ -171,7 +171,7 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 | **Published** on PyPI, npm and the MCP Registry | **2.0.0** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
 | **Compatibility package** | `mcp-video==1.6.21` | Installs `kinocut==2.0.0` for anyone still on the old name |
 
-Install from PyPI for everything above, including the optional object-matte extra
+Install from PyPI: the published 2.0.0 package includes the optional object-matte extra
 (`kinocut[object-matte]==2.0.0`), which adds no new MCP tool.
 
 Full notes: [CHANGELOG.md](CHANGELOG.md) · published [2.0.0 on PyPI](https://pypi.org/project/kinocut/2.0.0/)

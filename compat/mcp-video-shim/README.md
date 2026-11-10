@@ -27,8 +27,8 @@ mcp-video --version
 Preserve configured extras during the first upgrade. The new shim owns no console
 scripts; after this repair, removing it preserves all three canonical aliases.
 
-Compatibility identifiers remain supported on the published Kinocut 1.16.x line
-and the prior 1.15.x line. Project home:
+Compatibility identifiers remain supported on the published Kinocut 2.0.x line
+and the prior 1.16.x line. Project home:
 [kinocut.dev](https://kinocut.dev/).
 
 ## License
