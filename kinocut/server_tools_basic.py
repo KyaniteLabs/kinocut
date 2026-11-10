@@ -602,6 +602,7 @@ def video_speed(
 
 @mcp.tool()
 @_safe_tool
+@read_only
 def search_tools(query: str) -> dict[str, Any]:
     """Find registered MCP tools by name, keyword, or a supported task phrase.
 
