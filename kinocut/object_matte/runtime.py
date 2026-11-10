@@ -8,7 +8,7 @@ from typing import Any
 from ..errors import BackendUnavailableError, MCPVideoError
 from ..validation_errors import exception_kind, rejected_value
 
-_INSTALL = 'pip install "kinocut[object-matte]==1.16.5"'
+_INSTALL = 'pip install "kinocut[object-matte]==2.0.0"'
 _DOCS = "docs/PRODUCT_MATTE.md"
 
 

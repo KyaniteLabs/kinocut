@@ -93,7 +93,7 @@ wheel, or rerender invalidates the decision.
 Use the confidence benchmark to check that a workflow produced the expected receipt and review artifacts:
 
 ```bash
-uv run --no-project --with kinocut==1.16.5 python workflows/benchmarks/run_confidence_benchmark.py
+uv run --no-project --with kinocut==2.0.0 python workflows/benchmarks/run_confidence_benchmark.py
 ```
 
 The benchmark is intentionally narrow: it proves the receipt-backed baseline can run and that the final video, quality report, release checkpoint, thumbnail, storyboard frames, and human-review state are present.

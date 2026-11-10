@@ -182,5 +182,5 @@ def test_plugin_launch_stays_on_the_curated_default():
     """The plugin's own launch must not silently widen the default surface."""
     server = json.loads((ROOT / "plugins" / "kinocut" / ".mcp.json").read_text(encoding="utf-8"))
     kinocut = server["mcpServers"]["kinocut"]
-    assert kinocut["args"] == ["kinocut==1.16.5"]
+    assert kinocut["args"] == ["kinocut==2.0.0"]
     assert "env" not in kinocut, "the plugin launch must stay on the environment-unset default"
