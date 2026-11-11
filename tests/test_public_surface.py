@@ -308,6 +308,22 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
     asyncio.run(check_server())
 
 
+def test_default_server_lists_at_most_20_tools_and_all_restores_full_catalog():
+    """Small local models: a fresh default server lists <= 20 tools; all lists every one."""
+
+    async def count(tools_env: str | None) -> int:
+        env = {k: v for k, v in os.environ.items() if k != "KINOCUT_TOOLS"}
+        if tools_env is not None:
+            env["KINOCUT_TOOLS"] = tools_env
+        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"], env=env)
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            return len((await session.list_tools()).tools)
+
+    assert asyncio.run(count(None)) <= 20
+    assert asyncio.run(count("all")) == 206
+
+
 def test_stdio_server_all_mode_registers_the_full_catalog():
     """``KINOCUT_TOOLS=all`` restores the full 208-tool development surface."""
 
