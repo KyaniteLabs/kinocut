@@ -11,7 +11,6 @@ see it; this test drives a child process on a real pty.
 from __future__ import annotations
 
 import os
-import pty
 import select
 import signal
 import subprocess
@@ -21,6 +20,8 @@ from collections.abc import Mapping
 from pathlib import Path
 
 import pytest
+
+pty = pytest.importorskip("pty", reason="the pty regression test needs a POSIX terminal")
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 PTY_TIMEOUT_SECONDS = 30.0
