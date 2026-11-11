@@ -303,3 +303,22 @@ def write_review_card(
         "size_bytes": len(document.encode("utf-8")),
         "plays_inline": video is not None,
     }
+
+
+def attach_review_card(result: dict[str, Any], review: bool) -> dict[str, Any]:
+    """Add a review card for the rendered output to a successful media-writing result.
+
+    The edit already succeeded, so a card that cannot be made is reported
+    beside the result rather than failing it.
+    """
+    output_path = result.get("output_path")
+    if not review or not result.get("success") or not output_path:
+        return result
+    try:
+        card = write_review_card(output_path)
+    except MCPVideoError as exc:
+        result["review_card"] = {"created": False, "error": exc.to_dict()}
+        return result
+    result["review_card"] = {"created": True, "output_path": card["output_path"]}
+    result["preview_directive"] = card["preview_directive"]
+    return result
