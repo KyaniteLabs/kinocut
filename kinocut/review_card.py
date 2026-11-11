@@ -33,7 +33,7 @@ MIN_POSTER_LUMA = 24
 _STYLE = """
 body{margin:0;padding:12px;font-family:system-ui,sans-serif;color:var(--foreground,#111);background:transparent}
 .card{background:var(--card,#fff);border:1px solid var(--border,#ddd);border-radius:10px;padding:14px;max-width:960px}
-h1{font-size:16px;margin:0 0 10px;word-break:break-all}
+h1{font-size:16px;margin:0 0 10px}
 dl{display:grid;grid-template-columns:max-content 1fr;gap:2px 12px;font-size:13px;margin:0 0 10px}
 dt{color:var(--muted-foreground,#666)}
 dd{margin:0}
@@ -42,6 +42,15 @@ img{display:block;width:100%;height:auto;border:1px solid var(--border,#ddd);bor
 .actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:6px}
 button{font:inherit;font-size:13px;padding:6px 12px;border-radius:6px;cursor:pointer;
 color:var(--accent,#2563eb);background:transparent;border:1px solid var(--accent,#2563eb)}
+dd,h1{overflow-wrap:anywhere}
+@media (max-width:480px){
+body{padding:8px}
+.card{padding:12px}
+dl{grid-template-columns:1fr;gap:0}
+dt{font-size:12px;margin-top:6px}
+.actions{flex-direction:column}
+button{width:100%;min-height:44px;font-size:15px}
+}
 """.strip()
 
 
