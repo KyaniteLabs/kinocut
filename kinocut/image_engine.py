@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 from .defaults import (
     DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS,
+    ENV_PRODUCT_DESCRIPTION_MAX_TOKENS,
+    token_budget,
     DEFAULT_VISION_BASE_URL,
     DEFAULT_VISION_MODEL,
     DEFAULT_VISION_PROVIDER_TIMEOUT,
@@ -452,7 +454,7 @@ def _request_product_description(client: Any, model: str, mime_type: str, img_da
     """One bounded description request; never select a fallback provider."""
     response = client.messages.create(
         model=model,
-        max_tokens=DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS,
+        max_tokens=token_budget(ENV_PRODUCT_DESCRIPTION_MAX_TOKENS, DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS),
         messages=[
             {
                 "role": "user",
@@ -474,7 +476,12 @@ def _request_product_description(client: Any, model: str, mime_type: str, img_da
             }
         ],
     )
-    return response.content[0].text
+    from .vision_policy import strip_think_blocks
+
+    text = next(
+        (b.text for b in response.content if getattr(b, "type", "text") == "text" and getattr(b, "text", None)), ""
+    )
+    return strip_think_blocks(text)
 
 
 def analyze_product(
