@@ -45,6 +45,40 @@ _BOOLEAN_POLICY_TOOLS: dict[str, tuple[str, ...]] = {
 
 _HINT_NAME_LIMIT = 12
 
+# Spellings agents reach for instead of the compact surface's two dispatch
+# arguments. Renamed only when the tool declares the canonical name, does not
+# declare the alias itself, and the call did not also pass the canonical name.
+_ARGUMENT_ALIASES: dict[str, tuple[str, ...]] = {
+    "operation": ("name", "op", "operation_name"),
+    "params": ("args", "arguments", "parameters"),
+}
+
+
+def forgive_argument_aliases(tool: Any, arguments: dict[str, Any]) -> dict[str, Any]:
+    """Rename a known alias (``name`` for ``operation``) to the declared argument."""
+
+    declared = (getattr(tool, "parameters", None) or {}).get("properties") or {}
+    renamed = dict(arguments)
+    for canonical, aliases in _ARGUMENT_ALIASES.items():
+        if canonical not in declared or canonical in renamed:
+            continue
+        present = [alias for alias in aliases if alias in renamed and alias not in declared]
+        if len(present) == 1:
+            renamed[canonical] = renamed.pop(present[0])
+    return renamed
+
+
+def call_shape(tool_name: str, tool: Any, *, operation: str | None = None) -> str:
+    """One line showing a correct call, built from the schema's required names only."""
+
+    schema = getattr(tool, "parameters", None) or {}
+    accepted = (schema.get("properties") or {}).keys()
+    required = [name for name in schema.get("required") or () if name in accepted]
+    args = ", ".join(f"{name}=..." for name in required)
+    if operation is None:
+        return f" Call: {tool_name}({args})."
+    return f' Call: {tool_name}(operation="{operation}", params={{{args}}}).'
+
 
 def parameter_names_hint(tool: Any) -> str:
     """Name the tool's required and accepted parameters, from its own schema.
@@ -87,7 +121,8 @@ def validate_tool_arguments(name: str, tool: Any, arguments: dict[str, Any]) -> 
     except (ValueError, RecursionError, MCPVideoError):
         raise MCPVideoError(
             "Invalid MCP tool parameters. Use tools/list to inspect the accepted parameters."
-            + parameter_names_hint(tool),
+            + parameter_names_hint(tool)
+            + call_shape(name, tool),
             error_type="validation_error",
             code="invalid_parameter",
         ) from None
@@ -149,6 +184,7 @@ class _ContractFastMCP(FastMCP):
         if tool is None:
             self._raise_if_unlisted_operation(name)
             return await super().call_tool(name, arguments)
+        arguments = forgive_argument_aliases(tool, arguments)
         try:
             validate_tool_arguments(name, tool, arguments)
         except MCPVideoError as error:
