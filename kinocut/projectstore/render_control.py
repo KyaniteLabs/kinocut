@@ -13,11 +13,13 @@ import threading
 from pathlib import Path
 from collections.abc import Callable
 
+from kinocut.contracts.trusted_execution import STOP_REQUEST_STAGES as STOP_REQUEST_STAGES
+from kinocut.contracts.trusted_execution import RenderJobStage
 from kinocut.defaults import DEFAULT_RENDER_STOP_POLL_INTERVAL, DEFAULT_RENDER_STOP_TIMEOUT
 
-CANCELLATION_REQUESTED = "cancellation_requested"
-TERMINATION_REQUESTED = "termination_requested"
-STOP_REQUEST_STAGES = frozenset({CANCELLATION_REQUESTED, TERMINATION_REQUESTED})
+# Re-exported names; the stages and their legal moves live in RenderJobStage.
+CANCELLATION_REQUESTED = RenderJobStage.CANCELLATION_REQUESTED
+TERMINATION_REQUESTED = RenderJobStage.TERMINATION_REQUESTED
 logger = logging.getLogger(__name__)
 
 

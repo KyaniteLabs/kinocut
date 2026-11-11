@@ -85,6 +85,101 @@ def can_transition_job(current: RenderJobStatus, target: RenderJobStatus) -> boo
     return target in _TRANSITIONS[current]
 
 
+class RenderJobStage(StrEnum):
+    """The finer render-job lifecycle stored in ``RenderJobRecord.stage``.
+
+    ``status`` is the coarse lifecycle; ``stage`` names where inside it a job
+    is.  Each stage belongs to exactly one status (``STAGE_STATUS``), so a
+    move between stages is also a legal status move (or stays ``RUNNING``)::
+
+        QUEUED ─► RUNNING ─┬─► COMPLETED
+          │                ├─► FAILED
+          │                ├─► TERMINATION_REQUESTED ──► FAILED     (verified stop)
+          │                │        │ (a cancel upgrades it; never the reverse)
+          │                │        ▼
+          │                └─► CANCELLATION_REQUESTED ─► CANCELLED  (verified stop)
+          └──────────────────────────────────────────► CANCELLED
+        FAILED / CANCELLED ─► QUEUED                                (resume)
+
+    A stop-request stage may also re-append itself (an unconfirmed stop
+    records its error code and keeps the runner PID).  The values equal the
+    strings already stored, so record bytes do not change.
+    """
+
+    QUEUED = "queued"
+    RUNNING = "running"
+    CANCELLATION_REQUESTED = "cancellation_requested"
+    TERMINATION_REQUESTED = "termination_requested"
+    COMPLETED = "completed"
+    FAILED = "failed"
+    CANCELLED = "cancelled"
+
+
+STAGE_STATUS: dict[RenderJobStage, RenderJobStatus] = {
+    RenderJobStage.QUEUED: RenderJobStatus.QUEUED,
+    RenderJobStage.RUNNING: RenderJobStatus.RUNNING,
+    RenderJobStage.CANCELLATION_REQUESTED: RenderJobStatus.RUNNING,
+    RenderJobStage.TERMINATION_REQUESTED: RenderJobStatus.RUNNING,
+    RenderJobStage.COMPLETED: RenderJobStatus.SUCCEEDED,
+    RenderJobStage.FAILED: RenderJobStatus.FAILED,
+    RenderJobStage.CANCELLED: RenderJobStatus.CANCELLED,
+}
+
+# The stage a status reads as when its stored stage is missing (records written
+# before every move named its stage, e.g. a resumed job stored ``stage: null``)
+# or is not one of that status's stages.
+_DEFAULT_STAGE: dict[RenderJobStatus, RenderJobStage] = {
+    RenderJobStatus.QUEUED: RenderJobStage.QUEUED,
+    RenderJobStatus.RUNNING: RenderJobStage.RUNNING,
+    RenderJobStatus.SUCCEEDED: RenderJobStage.COMPLETED,
+    RenderJobStatus.FAILED: RenderJobStage.FAILED,
+    RenderJobStatus.CANCELLED: RenderJobStage.CANCELLED,
+}
+
+STOP_REQUEST_STAGES = frozenset({RenderJobStage.CANCELLATION_REQUESTED, RenderJobStage.TERMINATION_REQUESTED})
+
+_STAGE_TRANSITIONS: dict[RenderJobStage, frozenset[RenderJobStage]] = {
+    RenderJobStage.QUEUED: frozenset({RenderJobStage.RUNNING, RenderJobStage.CANCELLED}),
+    RenderJobStage.RUNNING: frozenset(
+        {
+            RenderJobStage.COMPLETED,
+            RenderJobStage.FAILED,
+            RenderJobStage.CANCELLATION_REQUESTED,
+            RenderJobStage.TERMINATION_REQUESTED,
+        }
+    ),
+    RenderJobStage.TERMINATION_REQUESTED: frozenset(
+        {RenderJobStage.TERMINATION_REQUESTED, RenderJobStage.CANCELLATION_REQUESTED, RenderJobStage.FAILED}
+    ),
+    RenderJobStage.CANCELLATION_REQUESTED: frozenset({RenderJobStage.CANCELLATION_REQUESTED, RenderJobStage.CANCELLED}),
+    RenderJobStage.COMPLETED: frozenset(),
+    RenderJobStage.FAILED: frozenset({RenderJobStage.QUEUED}),
+    RenderJobStage.CANCELLED: frozenset({RenderJobStage.QUEUED}),
+}
+
+
+def render_job_stage(status: RenderJobStatus, stage: str | None) -> RenderJobStage:
+    """Read the stage a stored ``(status, stage)`` pair is in, tolerating legacy values.
+
+    A stage that is missing, unknown, or belongs to another status reads as
+    that status's default stage, so the status always wins.
+    """
+
+    try:
+        parsed = RenderJobStage(stage) if stage is not None else None
+    except ValueError:
+        parsed = None
+    if parsed is not None and STAGE_STATUS[parsed] is status:
+        return parsed
+    return _DEFAULT_STAGE[status]
+
+
+def can_transition_stage(current: RenderJobStage, target: RenderJobStage) -> bool:
+    """Return whether a successor record may move a job from ``current`` to ``target``."""
+
+    return target in _STAGE_TRANSITIONS[current]
+
+
 class RenderJobRecord(RecordBase):
     record_kind: Literal["render_job"] = "render_job"
     job_id: JobId
