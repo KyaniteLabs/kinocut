@@ -243,7 +243,8 @@ def video_quality_check(
         input_path: Absolute path to video file
         fail_on_warning: If True, treat warnings as failures
         profile: Content profile for the picture heuristics: default (camera
-            footage), ui-capture-dark or ui-capture-light. Recorded in the report.
+            footage), dark-grade (footage graded dark on purpose),
+            ui-capture-dark or ui-capture-light. Recorded in the report.
     """
     if profile not in QUALITY_PROFILES:
         return _validation_error(
@@ -286,10 +287,11 @@ def video_release_checkpoint(
     Use this before publishing or chaining more polish effects. It runs a hard
     quality gate, then writes a thumbnail and storyboard for human inspection.
     A video with no audio stream fails the gate unless ``require_audio`` is
-    explicitly disabled. ``profile`` (default, ui-capture-dark,
-    ui-capture-light) picks the picture heuristics and is recorded in the
-    checkpoint; under a UI profile its relaxed bands are hard limits. If the
-    cut would fail under the default profile, a UI profile passes only with
+    explicitly disabled. ``profile`` (default, dark-grade,
+    ui-capture-dark, ui-capture-light) picks the picture heuristics and is
+    recorded in the checkpoint; under a non-default profile its relaxed bands
+    are hard limits. If the cut would fail under the default profile, another
+    profile passes only with
     ``profile_reason`` saying why it fits; the reason is kept in the report.
     """
     if profile not in QUALITY_PROFILES:

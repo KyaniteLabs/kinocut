@@ -5,6 +5,9 @@ deliberately dark (or light), built from flat panels and a near-neutral palette,
 fails them for being exactly what it was meant to be. A profile states that
 intent explicitly and auditably instead of lowering ``min_score`` for everything.
 
+``dark-grade`` does the same for camera footage graded dark on purpose, so
+a night or noir look is not scored as underexposure.
+
 A profile only changes the brightness, contrast and saturation bands. Audio,
 color balance and temporal motion are profile-independent. Under any
 non-default profile the relaxed bands become hard limits: a failed visual check
@@ -93,6 +96,17 @@ QUALITY_PROFILES: dict[str, QualityProfile] = {
         brightness=VisualBand(target_min=20, target_max=110, optimum=45, scale=10, plateau=True),
         contrast=_UI_CONTRAST,
         saturation=_UI_SATURATION,
+        visual_checks_gate=True,
+    ),
+    "dark-grade": QualityProfile(
+        name="dark-grade",
+        description="Intentional dark or low-key grade on camera footage: night, noir, moody interiors.",
+        # A black frame sits at Y=16; a graded night scene still averages above 20.
+        brightness=VisualBand(target_min=20, target_max=110, optimum=50, scale=15, plateau=True),
+        # A real grade keeps tonal spread; a flat black or faded frame does not.
+        contrast=VisualBand(target_min=10, target_max=100, optimum=40, scale=10, plateau=True),
+        # Desaturated and monochrome grades are deliberate looks, not defects.
+        saturation=VisualBand(target_min=0, target_max=120, optimum=40, scale=50, plateau=True),
         visual_checks_gate=True,
     ),
     "ui-capture-light": QualityProfile(

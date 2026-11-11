@@ -30,7 +30,8 @@ def _add_quality_profile(parser: argparse.ArgumentParser) -> None:
         "--profile",
         choices=list(QUALITY_PROFILES),
         default=DEFAULT_QUALITY_PROFILE,
-        help="Content profile: default (camera footage), ui-capture-dark or ui-capture-light; "
+        help="Content profile: default (camera footage), dark-grade (footage graded dark on purpose), "
+        "ui-capture-dark or ui-capture-light; "
         "recorded in the report (default: default)",
     )
 

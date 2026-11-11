@@ -1,12 +1,12 @@
 {
  "captured": {
-  "git_commit": "1affa2e236084ce3679340139a700faeeb9b9a0e",
+  "git_commit": "2a33535ba5554f1eef1fae2a5ccd02b816dbee27",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
-  "kinocut_source_version": "1.16.5",
+  "kinocut_source_version": "2.0.1",
   "mcp_sdk_version": "1.30.0",
-  "platform": "Linux-7.2.12-3-1-ARCH-aarch64-with-glibc2.43",
-  "python_version": "3.11.18"
+  "platform": "Linux-x86_64",
+  "python_version": "3.14.7"
  },
  "modes": {
   "all": {
@@ -3171,8 +3171,8 @@
      ]
     },
     {
-     "input_schema_bytes": 563,
-     "input_schema_sha256": "d4e4ee4e2650894828cc873510a4faa30215667e5de55468bee08fca425e1141",
+     "input_schema_bytes": 608,
+     "input_schema_sha256": "5295d9e99421386e1e0f3c9aa9f0f42cfae248b1b5623521f4d40dd9ed43ee65",
      "module": "server_tools_ai",
      "name": "video_quality_check",
      "profiles": [
@@ -4135,7 +4135,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119131
+   "total_input_schema_bytes": 119176
   },
   "default": {
    "launch": {
