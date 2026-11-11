@@ -35,7 +35,7 @@ function capPerKind(items) {
 }
 
 export function initialRenders() {
-  return { active: {}, recent: [], finished: [] }
+  return { active: {}, recent: [], finished: [], nextHistoryId: 1 }
 }
 
 export function shortToolName(name) {
@@ -116,14 +116,17 @@ function runKey(scope, id) {
   return scope ? `${scope}#${id}` : String(id)
 }
 
-// Keys of finished runs, so a progress or start frame that arrives after its complete
-// (reordered or replayed) does not resurrect a "running" row.
+// Keys of finished runs, so a late progress frame or a duplicate complete does not
+// resurrect or re-record a run. A start for a finished key does reopen it: providers
+// reuse tool ids (e.g. "call_0" every turn), and Hermes start frames carry no timestamp
+// that could tell a reuse from a replay. The desktop gateway does not replay tool.start.
 const MAX_FINISHED = 200
 
 // event: { type: 'start' | 'progress' | 'complete', payload, scope? (string), now? (ms) }
 export function reduceRenders(state, event) {
   const prev = state || initialRenders()
   const finished = prev.finished || []
+  const nextHistoryId = prev.nextHistoryId || 1
   const payload = (event && event.payload) || {}
   const id = payload.tool_id
   const name = payload.name
@@ -136,8 +139,10 @@ export function reduceRenders(state, event) {
     if (event.type === 'progress' && finished.includes(key)) return prev
     const existing = prev.active[key]
     const percent = event.type === 'progress' ? clampPercent(payload.percent) : null
+    const historyId = existing ? existing.historyId : nextHistoryId
     const next = {
       key,
+      historyId,
       tool_id: id,
       name,
       tool,
@@ -148,14 +153,18 @@ export function reduceRenders(state, event) {
     return {
       active: { ...prev.active, [key]: next },
       recent: prev.recent,
-      finished: event.type === 'start' ? finished.filter(k => k !== key) : finished
+      finished: event.type === 'start' ? finished.filter(k => k !== key) : finished,
+      nextHistoryId: existing ? nextHistoryId : nextHistoryId + 1
     }
   }
 
   if (event.type === 'complete') {
     const existing = prev.active[key]
+    if (!existing && finished.includes(key)) return prev
     const active = { ...prev.active }
     delete active[key]
+    const historyId = existing ? existing.historyId : nextHistoryId
+    const historyKey = `${key}@${historyId}`
     const failed = isFailedComplete(payload)
     const startedAt = existing ? existing.startedAt : now
     const durationMs =
@@ -164,7 +173,9 @@ export function reduceRenders(state, event) {
         : Math.max(0, now - startedAt)
     const result = unwrapResult(payload.result)
     const done = {
-      key,
+      key: historyKey,
+      runKey: key,
+      historyId,
       tool_id: id,
       name,
       tool,
@@ -180,8 +191,9 @@ export function reduceRenders(state, event) {
     }
     return {
       active,
-      recent: capPerKind([done, ...prev.recent.filter(r => (r.key || r.tool_id) !== key)]),
-      finished: [key, ...finished.filter(k => k !== key)].slice(0, MAX_FINISHED)
+      recent: capPerKind([done, ...prev.recent.filter(r => r.historyId !== historyId)]),
+      finished: [key, ...finished.filter(k => k !== key)].slice(0, MAX_FINISHED),
+      nextHistoryId: existing ? nextHistoryId : nextHistoryId + 1
     }
   }
   return prev

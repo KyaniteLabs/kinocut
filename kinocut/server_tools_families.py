@@ -26,7 +26,14 @@ from mcp.server.fastmcp import Context
 from mcp.types import ToolAnnotations
 from pydantic import Field
 
-from .errors import MCPVideoError, _cli_command_set, cli_route_for_operation, retry_context
+from .errors import (
+    MCPVideoError,
+    _argument_name,
+    _argument_type,
+    _cli_command_set,
+    cli_route_for_operation,
+    retry_context,
+)
 from .output_policy import read_only
 from .server_app import _safe_tool, _validation_error, mcp
 from .server_tool_contracts import call_shape, parameter_names_hint, validate_tool_arguments
@@ -121,6 +128,34 @@ def _retarget_retry_hint(result: Any, family: str, operation: str) -> Any:
     return {**result, "error": {**error, "message": message}}
 
 
+def _retarget_cleanup_refusal(result: Any, family: str, params: dict[str, Any]) -> Any:
+    """Retarget per-file cleanup refusals, which are nested inside the result."""
+
+    if not isinstance(result, dict) or result.get("success") is not False:
+        return result
+    rows = result.get("results")
+    if not isinstance(rows, list):
+        return result
+    placeholders = {key: params[key] for key in ("files", "keep") if key in params}
+    params_hint = ", ".join(
+        f"{_argument_name(key)}={_argument_type(value)}" for key, value in sorted(placeholders.items())
+    )
+    invocation = f'call {family}(operation="video_cleanup", params={{{params_hint}}}) (MCP)'
+    changed = False
+    retargeted = []
+    for row in rows:
+        if not isinstance(row, dict) or not isinstance(row.get("error"), str):
+            retargeted.append(row)
+            continue
+        head, sep, _ = row["error"].partition("; retry with ")
+        if not sep:
+            retargeted.append(row)
+            continue
+        retargeted.append({**row, "error": f"{head}; retry with {invocation}"})
+        changed = True
+    return {**result, "results": retargeted} if changed else result
+
+
 async def _dispatch_family_operation(
     operation: str,
     params: dict[str, Any] | None,
@@ -151,7 +186,10 @@ async def _dispatch_family_operation(
                 + call_shape(family, tool, operation=operation)
             )
         result = await tool.run(arguments, context=ctx, convert_result=False)
-    return _retarget_retry_hint(result, family, operation)
+    result = _retarget_retry_hint(result, family, operation)
+    if operation == "video_cleanup":
+        result = _retarget_cleanup_refusal(result, family, params or {})
+    return result
 
 
 def _register_family_tool(name: str) -> None:

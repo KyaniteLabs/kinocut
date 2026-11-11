@@ -145,6 +145,25 @@ test('a reused tool_id starts a fresh run after the earlier run completed', () =
   assert.equal(s.recent[0].durationMs, 100)
 })
 
+test('completing a reused tool_id preserves each started run in history', () => {
+  let s = initialRenders()
+  s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, summary: 'first' }, 200))
+  s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 300))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, error: 'second failed' }, 400))
+
+  assert.equal(s.recent.length, 2)
+  assert.deepEqual(s.recent.map(r => [r.status, r.message]), [['failed', 'second failed'], ['done', 'first']])
+})
+
+test('a duplicate complete for a finished run is not recorded twice', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'dup', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'dup', name: T, summary: 'once' }, 200))
+  const after = reduceRenders(s, ev('complete', { tool_id: 'dup', name: T, summary: 'again' }, 300))
+  assert.equal(after, s)
+  assert.equal(after.recent.length, 1)
+})
+
 test('a Hermes text-wrapped failure counts as failed', () => {
   const inner = JSON.stringify({ success: false, error: 'Output path already exists' })
   for (const result of [inner, JSON.stringify({ result: inner }), { result: inner }]) {
