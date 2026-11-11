@@ -1,6 +1,8 @@
 """Where Kinocut keeps downloaded models, fonts and CRUSH shaders.
 
 KINOCUT_DATA_DIR (for example a host plugin data directory) moves all of it.
+A relative value is resolved against the current directory once, so later
+chdir calls cannot move the data.
 Without it the pre-rename home paths stay in use so existing installs keep
 their caches.
 """
@@ -13,7 +15,7 @@ from pathlib import Path
 
 def _override() -> Path | None:
     raw = os.environ.get("KINOCUT_DATA_DIR", "").strip()
-    return Path(raw).expanduser() if raw else None
+    return Path(raw).expanduser().resolve() if raw else None
 
 
 def crush_home() -> Path:

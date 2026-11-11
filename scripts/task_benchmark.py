@@ -265,8 +265,8 @@ class AnthropicModel:
         calls = [ToolCall(b["id"], b["name"], b.get("input") or {}) for b in data["content"] if b["type"] == "tool_use"]
         usage = data.get("usage", {})
         # Cached prompt tokens are reported apart from input_tokens; all three are input.
-        prompt = sum(usage.get(k, 0) for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
-        return Turn(calls, prompt, usage.get("output_tokens", 0))
+        prompt = sum(usage.get(k) or 0 for k in ("input_tokens", "cache_read_input_tokens", "cache_creation_input_tokens"))
+        return Turn(calls, prompt, usage.get("output_tokens") or 0)
 
     def add_results(self, results: list[tuple[ToolCall, str, bool]]) -> None:
         blocks = [

@@ -37,3 +37,11 @@ def test_modules_use_the_resolver(monkeypatch, tmp_path):
     crush = tmp_path / "d" / "crush-js" / "src"
     crush.mkdir(parents=True)
     assert engine_glitch_shader._resolve_crush_path() == str(crush)
+
+
+def test_relative_override_is_made_absolute(monkeypatch, tmp_path):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setenv("KINOCUT_DATA_DIR", "rel-data")
+    assert data_dirs.crush_home().is_absolute()
+    assert data_dirs.crush_home() == (tmp_path / "rel-data").resolve()
+    assert data_dirs.cache_home() == (tmp_path / "rel-data").resolve() / "cache"

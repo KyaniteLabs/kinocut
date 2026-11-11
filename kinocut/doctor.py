@@ -355,7 +355,7 @@ def _check_crush() -> dict[str, Any]:
         "path": None,
         "version": None,
         "install_hint": (
-            "CRUSH shaders not found. Set MCP_VIDEO_CRUSH_PATH env var or install to ~/.mcp-video/crush-js/src. "
+            "CRUSH shaders not found. Set MCP_VIDEO_CRUSH_PATH or KINOCUT_DATA_DIR (CRUSH is read from its crush-js/src) or install to ~/.mcp-video/crush-js/src. "
             "See https://github.com/pushingsquares/crush for installation."
         ),
     }
@@ -502,7 +502,7 @@ def _check_legacy_env_paths() -> dict[str, Any]:
             "No stale pre-rename paths."
             if ok
             else "Remove stale pre-1.7 state: unset MCP_VIDEO_CRUSH_PATH and delete "
-            "~/.mcp-video (kinocut now uses KINOCUT_* / ~/.kinocut)."
+            "~/.mcp-video (kinocut now uses KINOCUT_* / ~/.kinocut; KINOCUT_DATA_DIR sets where models, fonts and CRUSH live)."
         ),
     }
 
