@@ -22,8 +22,6 @@ ALLOWED = {
     "intent/broll.py": 1,
     "server_tools_advanced.py": 4,
     "te/hooks.py": 1,
-    "te/sphere_director.py": 1,
-    "te/sphere_plan.py": 3,
     "te/sphere_render.py": 1,
 }
 
