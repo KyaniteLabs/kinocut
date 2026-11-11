@@ -78,9 +78,15 @@ def _select_platforms(platforms: list[str] | None) -> list[str]:
     return selected
 
 
-def _prepare_output_dir(input_path: str, output_dir: str | None) -> str:
+# The plan and the render write different files, so rendering a package that
+# was planned first never collides with the plan's own manifest.
+PLAN_MANIFEST = "repurpose_plan.json"
+RENDER_MANIFEST = "repurpose_manifest.json"
+
+
+def _prepare_output_dir(input_path: str, output_dir: str | None, manifest_name: str) -> str:
     output = output_dir or _auto_output_dir(input_path, "repurposed")
-    _validate_output_path(os.path.join(output, "repurpose_manifest.json"))
+    _validate_output_path(os.path.join(output, manifest_name))
     os.makedirs(output, exist_ok=True)
     return output
 
@@ -90,8 +96,8 @@ def _variant_filename(platform: str) -> str:
     return f"{safe}.mp4"
 
 
-def _write_manifest(manifest: dict[str, Any], output_dir: str) -> str:
-    manifest_path = os.path.join(output_dir, "repurpose_manifest.json")
+def _write_manifest(manifest: dict[str, Any], output_dir: str, manifest_name: str) -> str:
+    manifest_path = os.path.join(output_dir, manifest_name)
     with _atomic_artifact(manifest_path) as staged, _open_staged_writer(staged) as stream:
         stream.write(json.dumps(manifest, indent=2, sort_keys=True).encode("utf-8"))
     return manifest_path
@@ -142,9 +148,9 @@ def repurpose_plan(
     """Create a dry-run manifest for a local content repurposing package."""
     input_path = _validate_input_path(input_path)
     selected = _select_platforms(platforms)
-    package_dir = _prepare_output_dir(input_path, output_dir)
+    package_dir = _prepare_output_dir(input_path, output_dir, PLAN_MANIFEST)
     manifest = _build_manifest(input_path, package_dir, selected, render=False)
-    manifest["manifest_path"] = _write_manifest(manifest, package_dir)
+    manifest["manifest_path"] = _write_manifest(manifest, package_dir, PLAN_MANIFEST)
     return manifest
 
 
@@ -173,7 +179,7 @@ def repurpose(
     policy = repurpose_release_policy(include_release_checkpoint, min_score)
     input_path = _validate_input_path(input_path)
     selected = _select_platforms(platforms)
-    package_dir = _prepare_output_dir(input_path, output_dir)
+    package_dir = _prepare_output_dir(input_path, output_dir, RENDER_MANIFEST)
     manifest = _build_manifest(input_path, package_dir, selected, render=True)
 
     for variant in manifest["variants"]:
@@ -212,5 +218,5 @@ def repurpose(
                 min_score=policy.min_score,
             )
 
-    manifest["manifest_path"] = _write_manifest(manifest, package_dir)
+    manifest["manifest_path"] = _write_manifest(manifest, package_dir, RENDER_MANIFEST)
     return manifest

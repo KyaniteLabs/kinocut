@@ -1,4 +1,4 @@
-// node --test plugins/kinocut/desktop/
+// node --test plugins/kinocut/desktop/plugin.test.mjs
 // plugin.js imports the Hermes SDK (unresolvable here), so load only the marked pure reducer block.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -9,7 +9,7 @@ const begin = src.indexOf('// --- reducer:begin')
 const end = src.indexOf('// --- reducer:end')
 assert.ok(begin >= 0 && end > begin, 'reducer markers present')
 const block = src.slice(begin, end)
-const { reduceRenders, initialRenders, runKind, LOOKUP_TOOLS } = await import(
+const { reduceRenders, initialRenders, runKind, LOOKUP_TOOLS, eventScope, isFailedComplete } = await import(
   'data:text/javascript;base64,' + Buffer.from(block).toString('base64')
 )
 
@@ -113,4 +113,41 @@ test('a burst of lookups never pushes renders out of recent', () => {
   assert.equal(s.recent.filter(r => r.kind === 'activity').length, 10)
   assert.deepEqual(s.recent.filter(r => r.kind === 'render').map(r => r.tool_id), ['r'])
   assert.equal(LOOKUP_TOOLS.size, 6)
+})
+
+test('the same tool_id in two sessions stays two rows', () => {
+  const a = eventScope({ profile: 'p', connectionId: 'c1', session_id: 's1' })
+  const b = eventScope({ profile: 'p', connectionId: 'c1', session_id: 's2' })
+  assert.notEqual(a, b)
+  let s = reduceRenders(initialRenders(), { type: 'start', payload: { tool_id: 'call_1', name: T }, scope: a })
+  s = reduceRenders(s, { type: 'start', payload: { tool_id: 'call_1', name: T }, scope: b })
+  assert.equal(Object.keys(s.active).length, 2)
+  s = reduceRenders(s, { type: 'complete', payload: { tool_id: 'call_1', name: T }, scope: a })
+  assert.equal(Object.keys(s.active).length, 1, 'completing one session leaves the other running')
+  assert.equal(Object.values(s.active)[0].key, `${b}#call_1`)
+})
+
+test('progress that arrives after complete does not bring the run back', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'z', name: T }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'z', name: T }))
+  const after = reduceRenders(s, ev('progress', { tool_id: 'z', name: T, percent: 80 }))
+  assert.equal(after, s)
+  assert.deepEqual(after.active, {})
+})
+
+test('a Hermes text-wrapped failure counts as failed', () => {
+  const inner = JSON.stringify({ success: false, error: 'Output path already exists' })
+  for (const result of [inner, JSON.stringify({ result: inner }), { result: inner }]) {
+    assert.equal(isFailedComplete({ result }), true, JSON.stringify(result))
+    let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'w', name: T }))
+    s = reduceRenders(s, ev('complete', { tool_id: 'w', name: T, result }))
+    assert.equal(s.recent[0].status, 'failed')
+    assert.equal(s.recent[0].message, 'Output path already exists')
+  }
+  assert.equal(isFailedComplete({ result: JSON.stringify({ success: true, output: 'x.mp4' }) }), false)
+  assert.equal(isFailedComplete({ result: 'plain text, not JSON' }), false)
+})
+
+test('an MCP isError result counts as failed', () => {
+  assert.equal(isFailedComplete({ result: { isError: true, content: [{ type: 'text', text: 'nope' }] } }), true)
 })

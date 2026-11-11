@@ -144,6 +144,10 @@ def _note_operation_write(resolved: str) -> None:
         writes = {}
         _OPERATION_WRITES.set(writes)
     writes[os.path.realpath(resolved)] = (current.st_dev, current.st_ino)
+    # Cleanup in a later call can only trust what was recorded durably.
+    from .output_ledger import record_output
+
+    record_output(resolved)
 
 
 def _reset_operation_inputs(*, preserve_writes: bool = False) -> None:

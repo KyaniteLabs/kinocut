@@ -7,6 +7,7 @@ parameter bounds, and consistency across all engines.
 from __future__ import annotations
 
 import contextlib
+import os
 import pytest
 
 from mcp_video.engine import (
@@ -212,17 +213,72 @@ class TestFilesystemSafety:
         assert result["results"][0]["status"] == "failed"
         assert "managed" in result["results"][0]["error"].lower()
 
-    def test_video_cleanup_allows_mcp_video_intermediate(self, tmp_path) -> None:
+    def test_video_cleanup_removes_an_output_kinocut_wrote(self, sample_video, tmp_path) -> None:
+        from mcp_video.engine import trim
         from mcp_video.server_tools_advanced import video_cleanup
 
-        intermediate = tmp_path / "clip_trimmed.mp4"
-        intermediate.write_bytes(b"generated")
+        made = trim(sample_video, start="0", duration="1", output_path=str(tmp_path / "clip_trimmed.mp4"))
 
-        result = video_cleanup([str(intermediate)])
+        result = video_cleanup([made.output_path])
 
         assert result["success"] is True
         assert result["removed"] == 1
-        assert not intermediate.exists()
+        assert not os.path.exists(made.output_path)
+
+    def test_video_cleanup_refuses_a_user_file_with_a_kinocut_name(self, tmp_path) -> None:
+        from mcp_video.server_tools_advanced import video_cleanup
+
+        lookalike = tmp_path / "holiday_trimmed.mp4"
+        lookalike.write_bytes(b"the user's own edit")
+
+        result = video_cleanup([str(lookalike)])
+
+        assert result["success"] is False
+        assert lookalike.exists()
+        assert "did not write" in result["results"][0]["error"]
+
+    def test_video_cleanup_refuses_a_replaced_output(self, sample_video, tmp_path) -> None:
+        """Ownership is bound to the file, not the path: a new file at the same path is not Kinocut's."""
+        from mcp_video.engine import trim
+        from mcp_video.server_tools_advanced import video_cleanup
+
+        made = trim(sample_video, start="0", duration="1", output_path=str(tmp_path / "clip_trimmed.mp4"))
+        os.remove(made.output_path)
+        with open(made.output_path, "wb") as handle:
+            handle.write(b"replaced by the user")
+
+        result = video_cleanup([made.output_path])
+
+        assert result["success"] is False
+        assert os.path.exists(made.output_path)
+
+    def test_video_cleanup_refuses_protected_agent_homes(self, tmp_path, monkeypatch) -> None:
+        from mcp_video.output_ledger import record_output
+        from mcp_video.server_tools_advanced import video_cleanup
+
+        agent_home = tmp_path / "agent-home"
+        (agent_home / "sessions").mkdir(parents=True)
+        victim = agent_home / "sessions" / "mcp_video_session.json"
+        victim.write_text("{}")
+        record_output(str(victim))  # even a recorded file stays put in a protected home
+        monkeypatch.setenv("HERMES_HOME", str(agent_home))
+
+        result = video_cleanup([str(victim)])
+
+        assert result["success"] is False
+        assert victim.exists()
+
+    def test_video_cleanup_keep_matches_any_spelling_of_the_path(self, sample_video, tmp_path) -> None:
+        from mcp_video.engine import trim
+        from mcp_video.server_tools_advanced import video_cleanup
+
+        made = trim(sample_video, start="0", duration="1", output_path=str(tmp_path / "clip_trimmed.mp4"))
+        alias = os.path.join(str(tmp_path), ".", "clip_trimmed.mp4")
+
+        result = video_cleanup([alias], keep=[made.output_path])
+
+        assert result["results"][0]["status"] == "kept"
+        assert os.path.exists(made.output_path)
 
 
 class TestImageSequenceInputBounds:
