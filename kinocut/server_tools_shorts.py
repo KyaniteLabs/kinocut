@@ -2,28 +2,41 @@
 
 from __future__ import annotations
 
+import functools
 from typing import Any
 
+import anyio
+from mcp.server.fastmcp import Context
 from mcp.types import ToolAnnotations
 
-from .server_app import _result, _safe_tool, mcp
+from .server_app import _mcp_progress_reporter, _result, _safe_tool, mcp
 
 
 @mcp.tool(
     annotations=ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=False, openWorldHint=False)
 )
 @_safe_tool
-def video_shorts(
+async def video_shorts(
     input_path: str,
     segments: list[dict[str, Any] | list[Any] | tuple[Any, ...]],
     style: str | dict[str, Any] | None = None,
     output_path: str | None = None,
     overwrite: bool = False,
+    ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Trim, caption, make vertical, and export selected segments in one call."""
     from .product.shorts_flow import video_shorts as run_video_shorts
 
-    return run_video_shorts(input_path, segments, style=style, output_path=output_path, overwrite=overwrite)
+    run = functools.partial(
+        run_video_shorts,
+        input_path,
+        segments,
+        style=style,
+        output_path=output_path,
+        overwrite=overwrite,
+        on_progress=_mcp_progress_reporter(ctx),
+    )
+    return await anyio.to_thread.run_sync(run)
 
 
 @mcp.tool()
