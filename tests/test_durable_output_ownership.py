@@ -84,10 +84,10 @@ def test_hls_preserves_existing_nonmedia_and_agent_home(tmp_path, monkeypatch):
     assert not sensitive.exists()
 
 
-def _scratch_inside(tmp_path, monkeypatch, variable, scratch_rel):
+def _scratch_inside(tmp_path, monkeypatch, variable, scratch_rel, home_name="custom-profile"):
     import tempfile
 
-    config_home = tmp_path / "custom-profile"
+    config_home = tmp_path / home_name
     scratch = config_home / scratch_rel if scratch_rel else config_home
     scratch.mkdir(parents=True)
     monkeypatch.setenv(variable, str(config_home))
@@ -129,3 +129,17 @@ def test_video_shorts_runs_with_tmpdir_inside_hermes_home(sample_video, tmp_path
     )
     assert result["success"]
     assert output.exists()
+
+
+def test_temp_dir_inside_default_hermes_home_is_writable(tmp_path, monkeypatch):
+    """The real layout: HERMES_HOME is ~/.hermes, itself a sensitive home folder."""
+    from kinocut.ffmpeg_helpers import _validate_output_path
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    config_home, scratch = _scratch_inside(tmp_path, monkeypatch, "HERMES_HOME", "cache/scratch", ".hermes")
+    with output_operation():
+        _validate_output_path(str(scratch / "seg0.mp4"))
+    with output_operation(), pytest.raises(MCPVideoError):
+        _validate_output_path(str(config_home / "output.mp4"))
+    with output_operation(), pytest.raises(MCPVideoError):
+        _validate_output_path(str(tmp_path / ".ssh" / "output.mp4"))
