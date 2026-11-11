@@ -11,6 +11,7 @@ import math
 import os
 import re
 import subprocess
+import tempfile
 from collections.abc import Callable, Iterator
 from contextvars import ContextVar
 from typing import Any, BinaryIO
@@ -259,16 +260,22 @@ def _validate_artifact_location(path: str, label: str) -> str:
             code="unsafe_path",
         )
 
-    for variable in ("HERMES_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "XDG_CONFIG_HOME"):
-        configured = os.environ.get(variable)
-        if configured:
-            config_home = os.path.realpath(os.path.expanduser(configured))
-            if resolved == config_home or resolved.startswith(config_home + os.sep):
-                raise MCPVideoError(
-                    f"{label} targets a configured agent or application home",
-                    error_type="validation_error",
-                    code="unsafe_path",
-                )
+    config_homes = [
+        os.path.realpath(os.path.expanduser(os.environ[name]))
+        for name in ("HERMES_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "XDG_CONFIG_HOME")
+        if os.environ.get(name)
+    ]
+    # Hermes puts TMPDIR inside HERMES_HOME; flows write intermediates there.
+    scratch = os.path.realpath(tempfile.gettempdir())
+    if resolved.startswith(scratch + os.sep) and any(scratch.startswith(h + os.sep) for h in config_homes):
+        return resolved
+    for config_home in config_homes:
+        if resolved == config_home or resolved.startswith(config_home + os.sep):
+            raise MCPVideoError(
+                f"{label} targets a configured agent or application home",
+                error_type="validation_error",
+                code="unsafe_path",
+            )
 
     home = os.path.realpath(os.path.expanduser("~"))
     if resolved == home or resolved.startswith(home + os.sep):
