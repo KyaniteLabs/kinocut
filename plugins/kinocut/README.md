@@ -36,6 +36,11 @@ These controls are not a network sandbox. Project code, assets, requested URLs a
 dependency installation can still access the network. Review optional features
 before using them.
 
+## Known issues
+
+- Website capture (`hyperframes_capture`) downloads the requested page and its assets to local disk; captured page text is untrusted content for the agent. Provider captioning of captures is disabled (`--skip-vision`).
+- Platform URLs (YouTube, Vimeo and similar) download through yt-dlp when the operator has installed it; without yt-dlp those downloads fail with an install hint. yt-dlp's own network behavior is outside these controls.
+
 ## Vision review and provider choice
 
 Keep `KINOCUT_VISION_MODE=off` unless you choose to enable a legacy adapter.
