@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from kinocut.contracts.review import ProposalStatus
 from kinocut.errors import MCPVideoError
 
 
@@ -40,7 +41,7 @@ def generate_hook_candidates(
             "candidate_id": f"thumb-{i + 1:02d}",
             "title": titles[i],
             "layout": "bold_text_left" if i % 2 == 0 else "face_right_text",
-            "status": "proposed",
+            "status": ProposalStatus.PROPOSED,
             "apply_policy": "human_pick_required",
         }
         for i in range(n)

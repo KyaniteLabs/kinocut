@@ -42,6 +42,18 @@ class ApprovalStateValue(StrEnum):
     REJECTED = "rejected"
 
 
+class ProposalStatus(StrEnum):
+    """An agent's proposal awaiting a human: proposed, then approved or rejected.
+
+    RENDERED marks the receipt of an approved proposal that was carried out.
+    """
+
+    PROPOSED = "proposed"
+    APPROVED = "approved"
+    REJECTED = "rejected"
+    RENDERED = "rendered"
+
+
 class IntegrityResult(ValueObject):
     """Whether a required artifact re-hashed to its expected fingerprint."""
 
