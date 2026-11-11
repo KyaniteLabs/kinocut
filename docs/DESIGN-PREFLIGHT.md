@@ -210,3 +210,19 @@ This replaces the calcite icon from #791 (section 9). Both were approved on the 
 - Transparent background, per the family ledger law. The Epoch and UNBL0CK icons ship opaque; this one doesn't.
 - Shipped: `plugins/kinocut/assets/icon.png` 2000² (`41911ec7…`). `plugins/kinocut/icon.png` and `mcpb/icon.png` are uniform 512² resizes (`23e04bca…`).
 - Known gaps: the 2000² master is upscaled from a 1254² render. The mark reads at 32 px, but at 16 px it is a silver blob. A faint grey shadow flake stays attached above the wedge.
+
+### Correction 7 (2026-11-10): the reel background clashes with the new icon
+
+Simon looked at the reel's end card with icon A on the light ice ground and said: "u need to fix the backgroun it clashes with the new icon".
+
+Why it clashed: the light ice-and-teal colorway (section 10, Correction 2) was built for a clear-glass logo. Icon A is polished silver and was approved on a dark charcoal studio ground. On pale ice, the silver loses its contrast and the teal ink competes with the icon's own neutral palette.
+
+What changes: the reel takes its colours from the approved icon itself.
+- Ground: the icon's own charcoal studio ground (`#0e0e10`, lifted to `#1b1c20` under a soft key light), not an invented colour.
+- Ink: silver white `#eef0f2`. Muted text is neutral grey `#9aa0a7`.
+- Wordmark: a polished-silver gradient, with a faint offset double (calcite's double refraction).
+- Film strips in the open: silver bands with dark sprocket holes, like the icon's arms.
+- Accent: family turquoise `#00FFE6`, used sparingly (hook line, chips, tally numbers, "GET IT") as a catch, the way the icon uses it.
+- **Assumption:** charcoal is acceptable here because it is the approved icon's ground, not a claim about calcite's colour (Correction 2 still holds for the stone).
+
+What does not change: icon A, the edit, the voice-over and the mix.
