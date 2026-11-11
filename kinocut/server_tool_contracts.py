@@ -157,7 +157,7 @@ def _failed_payload(structured: Any) -> bool:
     # FastMCP wraps non-object returns as {"result": ...}; look through it.
     if set(structured) == {"result"} and isinstance(structured["result"], dict):
         structured = structured["result"]
-    return structured.get("success") is False and "error" in structured
+    return structured.get("success") is False
 
 
 def _flag_failure(result: Any) -> Any:

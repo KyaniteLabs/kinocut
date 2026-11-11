@@ -30,6 +30,24 @@ def test_review_false_skips_the_card(sample_video, tmp_path):
     assert not any(name.endswith(".html") for name in os.listdir(tmp_path))
 
 
+def test_cleanup_removes_owned_review_card(tmp_path):
+    import asyncio
+
+    from kinocut.server import mcp
+    from kinocut.output_ledger import record_output
+
+    cards = [tmp_path / name for name in ("clip_trimmed_review_card.html", "clip_trimmed_review_card_2.html")]
+    for card in cards:
+        card.write_text("review card")
+        record_output(str(card))
+    cleanup = asyncio.run(mcp.call_tool("video_cleanup", {"files": [str(card) for card in cards]}))
+    payload = cleanup[1] if isinstance(cleanup, tuple) else cleanup.structuredContent
+
+    assert payload["success"] is True
+    assert payload["removed"] == 2
+    assert all(not card.exists() for card in cards)
+
+
 def test_merge_ends_with_a_card(sample_video, tmp_path):
     out = str(tmp_path / "merged.mp4")
     result = asyncio.run(server_tools_basic.video_merge([sample_video, sample_video], output_path=out))

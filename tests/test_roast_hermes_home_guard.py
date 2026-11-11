@@ -50,6 +50,34 @@ def test_plugin_root_outside_a_hermes_home_blocks_only_the_plugin(tmp_path, monk
     assert _validate_artifact_location(str(out), "Output path") == os.path.realpath(out)
 
 
+def test_symlinked_plugin_root_also_protects_its_hermes_home(tmp_path, monkeypatch):
+    home = tmp_path / "custom-home"
+    target_plugin = tmp_path / "worktree" / "plugins" / "kinocut"
+    target_plugin.mkdir(parents=True)
+    (home / "plugins").mkdir(parents=True)
+    (home / "config.yaml").write_text("model: x\n")
+    (home / "plugins" / "kinocut").symlink_to(target_plugin, target_is_directory=True)
+    monkeypatch.setenv("PLUGIN_ROOT", str(home / "plugins" / "kinocut"))
+    monkeypatch.delenv("HERMES_HOME", raising=False)
+
+    with pytest.raises(MCPVideoError, match="configured agent or application home"):
+        _validate_artifact_location(str(home / "target.mp4"), "Output path")
+
+
+def test_linked_plugin_data_path_protects_its_hermes_home(tmp_path, monkeypatch):
+    home = tmp_path / "custom-home"
+    checkout_plugin = tmp_path / "worktree" / "plugins" / "kinocut"
+    checkout_plugin.mkdir(parents=True)
+    (home / "plugin-data" / "kinocut").mkdir(parents=True)
+    (home / "config.yaml").write_text("model: x\n")
+    monkeypatch.setenv("PLUGIN_ROOT", str(checkout_plugin))
+    monkeypatch.setenv("PLUGIN_DATA", str(home / "plugin-data" / "kinocut"))
+    monkeypatch.delenv("HERMES_HOME", raising=False)
+
+    with pytest.raises(MCPVideoError, match="configured agent or application home"):
+        _validate_artifact_location(str(home / "target.mp4"), "Output path")
+
+
 def test_relative_paths_still_work_outside_hermes(tmp_path, monkeypatch):
     monkeypatch.delenv("PLUGIN_ROOT", raising=False)
     monkeypatch.chdir(tmp_path)

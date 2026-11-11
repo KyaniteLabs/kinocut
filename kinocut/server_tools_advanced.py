@@ -5,6 +5,7 @@ from __future__ import annotations
 from .validation_errors import reason
 from collections import Counter
 import os
+import re
 from enum import StrEnum
 from typing import Any
 
@@ -664,7 +665,12 @@ def video_cleanup(
             # Deletion gets the same protected-location checks as writes.
             _validate_artifact_location(p, "Cleanup target")
             stem = os.path.splitext(os.path.basename(p))[0]
-            if not stem.startswith("mcp_video_") and not stem.endswith(_CLEANUP_MANAGED_SUFFIXES):
+            is_review_card = re.search(r"_review_card(?:_\d+)?$", stem)
+            if (
+                not stem.startswith("mcp_video_")
+                and not stem.endswith(_CLEANUP_MANAGED_SUFFIXES)
+                and not is_review_card
+            ):
                 raise MCPVideoError(
                     "Refusing to delete unmanaged file; only Kinocut-managed intermediate outputs may be cleaned up",
                     error_type="validation_error",

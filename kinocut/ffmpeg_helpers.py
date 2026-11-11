@@ -7,6 +7,7 @@ single authoritative copy of each helper.
 from __future__ import annotations
 
 import contextlib
+import functools
 import math
 import os
 import re
@@ -286,6 +287,7 @@ def _validate_write_path(
     *,
     allowed_existing_suffixes: frozenset[str],
     label: str,
+    allow_recorded: bool = False,
 ) -> str:
     """Require consent and job ownership before replacing non-media outputs."""
     if "\x00" not in path:
@@ -298,11 +300,15 @@ def _validate_write_path(
         from .output_policy import _OVERWRITE
         from .staged_writers import is_staged_output
 
-        if is_staged_output(path) and _owns_operation_output(resolved):
+        from .output_ledger import owns as owns_output
+
+        operation_owned = _owns_operation_output(resolved)
+        recorded_owned = allow_recorded and owns_output(resolved)
+        if is_staged_output(path) and operation_owned:
             return path
         suffix = os.path.splitext(resolved)[1].lower()
         permitted_media = suffix in allowed_existing_suffixes and suffix in _SAFE_EXISTING_OUTPUT_SUFFIXES
-        if not permitted_media and not _owns_operation_output(resolved):
+        if not permitted_media and not (operation_owned or recorded_owned):
             raise MCPVideoError(
                 f"Refusing to overwrite an existing file at {label.lower()}",
                 error_type="validation_error",
@@ -338,14 +344,14 @@ def _validate_output_path(path: str) -> str:
     return _validate_write_path(path, allowed_existing_suffixes=_SAFE_EXISTING_OUTPUT_SUFFIXES, label="Output path")
 
 
-def _validate_artifact_path(path: str) -> str:
-    """Validate a provenance-artifact write path (plan/receipt JSON).
-
-    Same traversal / symlink / system-dir / sensitive-dotfile guard as
-    ``_validate_output_path`` but stricter on overwrite: a workflow plan or
-    receipt may only replace a file created by this job, with explicit consent.
-    """
-    return _validate_write_path(path, allowed_existing_suffixes=frozenset(), label="Artifact path")
+def _validate_artifact_path(path: str, *, allow_recorded: bool = False) -> str:
+    """Validate provenance writes; existing artifacts need ownership and overwrite consent."""
+    return _validate_write_path(
+        path,
+        allowed_existing_suffixes=frozenset(),
+        label="Artifact path",
+        allow_recorded=allow_recorded,
+    )
 
 
 @contextlib.contextmanager
@@ -358,11 +364,11 @@ def _atomic_output(path: str) -> Iterator[str]:
 
 
 @contextlib.contextmanager
-def _atomic_artifact(path: str) -> Iterator[str]:
-    """Use the same anchored publication with the stricter JSON artifact guard."""
+def _atomic_artifact(path: str, *, allow_recorded: bool = False) -> Iterator[str]:
+    """Publish a provenance artifact through anchored, validated staging."""
     from .atomic_publication import anchored_output
 
-    with anchored_output(path, _validate_artifact_path) as staged:
+    with anchored_output(path, functools.partial(_validate_artifact_path, allow_recorded=allow_recorded)) as staged:
         yield staged
 
 

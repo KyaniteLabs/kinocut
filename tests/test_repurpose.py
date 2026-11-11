@@ -71,3 +71,27 @@ def test_render_after_plan_in_the_same_folder(sample_video, tmp_path):
     assert os.path.isfile(plan["manifest_path"])
     assert rendered["manifest_path"].endswith("repurpose_manifest.json")
     assert rendered["manifest_path"] != plan["manifest_path"]
+
+
+def test_repurpose_plan_can_replace_its_own_manifest_with_overwrite(sample_video, tmp_path):
+    import asyncio
+
+    from kinocut.server import mcp
+
+    package = str(tmp_path / "package")
+    args = {"input_path": sample_video, "output_dir": package, "platforms": ["youtube"]}
+    first = asyncio.run(mcp.call_tool("video_repurpose_plan", args))
+    first_payload = first[1] if isinstance(first, tuple) else first.structuredContent
+    assert first_payload["success"] is True
+
+    refused = asyncio.run(mcp.call_tool("video_repurpose_plan", args))
+    refused_payload = refused[1] if isinstance(refused, tuple) else refused.structuredContent
+    assert refused_payload["success"] is False
+    assert "overwrite=true" in refused_payload["error"]["message"]
+    assert "new output_path" not in refused_payload["error"]["message"]
+
+    second = asyncio.run(mcp.call_tool("video_repurpose_plan", {**args, "overwrite": True}))
+    second_payload = second[1] if isinstance(second, tuple) else second.structuredContent
+
+    assert second_payload["success"] is True
+    assert second_payload["manifest_path"] == first_payload["manifest_path"]

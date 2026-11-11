@@ -135,6 +135,16 @@ test('progress that arrives after complete does not bring the run back', () => {
   assert.deepEqual(after.active, {})
 })
 
+test('a reused tool_id starts a fresh run after the earlier run completed', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'reuse', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T }, 200))
+  s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 300))
+
+  assert.equal(s.active.reuse.startedAt, 300)
+  assert.equal(s.recent.length, 1)
+  assert.equal(s.recent[0].durationMs, 100)
+})
+
 test('a Hermes text-wrapped failure counts as failed', () => {
   const inner = JSON.stringify({ success: false, error: 'Output path already exists' })
   for (const result of [inner, JSON.stringify({ result: inner }), { result: inner }]) {

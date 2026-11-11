@@ -23,3 +23,16 @@ def test_success_is_not_flagged(sample_video):
     payload = result[1] if isinstance(result, tuple) else result.structuredContent
     assert payload["success"] is True
     assert getattr(result, "isError", False) is False
+
+
+def test_aggregate_cleanup_failure_is_an_mcp_error(tmp_path):
+    unmanaged = tmp_path / "user_trimmed.mp4"
+    unmanaged.write_bytes(b"user data")
+
+    result = _call("video_cleanup", {"files": [str(unmanaged)]})
+    payload = result[1] if isinstance(result, tuple) else result.structuredContent
+
+    assert payload["success"] is False
+    assert payload["failed"] == 1
+    assert getattr(result, "isError", False) is True
+    assert unmanaged.exists()
