@@ -129,3 +129,33 @@ Registrations counts computed from `kinocut.tool_registry` (like the table
 above) describe this repository's surface. They are not measurements of any
 particular host or client configuration — measure the real integration with
 the capture command before quoting numbers for it.
+
+## Measuring real edits
+
+Listing bytes are a proxy. `scripts/task_benchmark.py` measures what they stand
+in for: whether an agent finishes everyday edits, and what it spends doing so.
+It runs 20 fixed edits (trim, resize, convert, mute, speed, crop, merge, GIF,
+compress, vertical, and so on) on a generated 10-second clip, checks every
+output with ffprobe, and prints one row per server and model:
+
+| Column | Meaning |
+|---|---|
+| Success | edits whose output file passed its check |
+| Tokens / task | model input plus output tokens, averaged over tasks |
+| Calls / task | tool calls, averaged over tasks |
+| Retries | tool calls that came back as errors, summed |
+
+Compare two releases side by side by naming each server:
+
+```bash
+python scripts/task_benchmark.py \
+  --server "old=<older venv>/bin/kinocut --mcp" \
+  --server "new=uvx --from kinocut==2.0.1 kinocut --mcp" \
+  --model anthropic:<model id> --model openai:<model id> \
+  --out bench.json
+```
+
+Real runs call paid model APIs with `ANTHROPIC_API_KEY` and `OPENAI_API_KEY`.
+`--dry-run` replaces the model with a free scripted one and runs the first two
+edits against this checkout, to check the plumbing. No results table is
+committed yet: the first real run waits on a model and budget choice.
