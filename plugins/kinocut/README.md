@@ -174,3 +174,5 @@ For other hosts, use their tool-filtering controls if available.
 - Website: https://kinocut.dev/
 - Source and issues: https://github.com/KyaniteLabs/kinocut
 - License: Apache-2.0
+
+Kinocut is an independent project by KyaniteLabs and is not endorsed by Nous Research.
