@@ -20,6 +20,8 @@ import os
 _LEDGER_NAME = "outputs.jsonl"
 # Past this size the ledger is compacted down to entries that still match a file.
 _COMPACT_BYTES = 1024 * 1024
+# Windows has no O_NOFOLLOW; there the realpath() resolution is the guard.
+_NOFOLLOW = getattr(os, "O_NOFOLLOW", 0)
 
 
 def _state_dir() -> str:
@@ -41,7 +43,7 @@ def _identity(st: os.stat_result) -> list[int]:
 def _open_ledger(flags: int) -> int:
     directory = _state_dir()
     os.makedirs(directory, mode=0o700, exist_ok=True)
-    return os.open(_ledger_path(), flags | os.O_NOFOLLOW | getattr(os, "O_CLOEXEC", 0), 0o600)
+    return os.open(_ledger_path(), flags | _NOFOLLOW | getattr(os, "O_CLOEXEC", 0), 0o600)
 
 
 def record_output(path: str) -> None:
@@ -92,7 +94,7 @@ def _compact() -> None:
                 keep[p] = ident
     staged = _ledger_path() + f".{os.getpid()}.tmp"
     with contextlib.suppress(OSError):
-        fd = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | os.O_NOFOLLOW, 0o600)
+        fd = os.open(staged, os.O_WRONLY | os.O_CREAT | os.O_TRUNC | _NOFOLLOW, 0o600)
         with os.fdopen(fd, "w", encoding="utf-8") as stream:
             for p, ident in keep.items():
                 stream.write(json.dumps({"path": p, "id": ident}, separators=(",", ":")) + "\n")
