@@ -20,7 +20,6 @@ PACKAGE = ROOT / "kinocut"
 ALLOWED = {
     "c2pa.py": 1,
     "intent/broll.py": 1,
-    "server_tools_advanced.py": 4,
     "te/hooks.py": 1,
     "te/sphere_render.py": 1,
 }
