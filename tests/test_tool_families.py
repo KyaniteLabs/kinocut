@@ -1120,7 +1120,7 @@ def test_a_by_name_call_of_an_unlisted_operation_names_its_family():
 
 def test_invalid_parameter_errors_name_the_schema_fields_not_the_callers_keys():
     configure_tool_surface()
-    direct = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"name": "video_trim"})))
+    direct = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"zz_injected_key": "video_trim"})))
     message = direct["error"]["message"]
     assert "Required: operation. Accepted: operation." in message
     family = _payload(
@@ -1134,3 +1134,32 @@ def test_invalid_parameter_errors_name_the_schema_fields_not_the_callers_keys():
     assert "Required: input_path." in family
     assert "Accepted: input_path, " in family
     assert "zz_injected_key" not in family and "zz_injected_key" not in message
+
+
+def test_common_dispatch_aliases_are_forgiven():
+    """Agents pass ``name`` for ``operation`` and ``args`` for ``params``; both resolve."""
+
+    configure_tool_surface()
+    described = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"name": "video_trim"})))
+    assert described["success"] is True and described["name"] == "video_trim"
+    family = _payload(
+        asyncio.run(_call("video_edit_ops", {"op": "video_audio_waveform", "args": {"zz_injected_key": 1}}))
+    )
+    assert family["error"]["code"] == "invalid_parameter", "the alias reached the operation's own validation"
+    assert "for operation 'video_audio_waveform'" in family["error"]["message"]
+
+
+def test_an_alias_never_overrides_the_declared_argument():
+    configure_tool_surface()
+    payload = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"operation": "video_trim", "name": "video_merge"})))
+    assert payload["success"] is False, "the stray alias stays an undeclared argument and is rejected"
+
+
+def test_invalid_parameter_errors_show_one_line_call_shape():
+    configure_tool_surface()
+    direct = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {})))["error"]["message"]
+    assert "Call: describe_operation(operation=...)." in direct
+    family = _payload(asyncio.run(_call("video_edit_ops", {"operation": "video_audio_waveform", "params": {}})))[
+        "error"
+    ]["message"]
+    assert 'Call: video_edit_ops(operation="video_audio_waveform", params={input_path=...}).' in family
