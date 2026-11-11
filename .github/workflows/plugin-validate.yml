@@ -42,6 +42,7 @@ jobs:
         mkdir -p receipts
         HERMES_HOME="$RUNNER_TEMP/hermes-home" .hermes-runtime/.venv/bin/hermes plugins validate repo/plugins/kinocut --json > receipts/validate.json
         cat receipts/validate.json
+        python3 -c "import json,sys; d=json.load(open('receipts/validate.json')); sys.exit(0 if d.get('ok') is True else 'validator did not report ok: true')"
 
     - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
       if: always()

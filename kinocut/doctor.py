@@ -18,6 +18,7 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
+from .data_dirs import crush_home
 from .doctor_report import without_machine_paths
 from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
 from .type_names import exception_kind
@@ -334,7 +335,7 @@ def _check_crush() -> dict[str, Any]:
                 "install_hint": None,
             }
 
-    home_path = Path.home() / ".mcp-video" / "crush-js" / "src"
+    home_path = crush_home() / "crush-js" / "src"
     if home_path.is_dir():
         return {
             "name": "crush_shaders",
