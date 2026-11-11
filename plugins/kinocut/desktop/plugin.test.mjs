@@ -112,7 +112,8 @@ test('a burst of lookups never pushes renders out of recent', () => {
   }
   assert.equal(s.recent.filter(r => r.kind === 'activity').length, 10)
   assert.deepEqual(s.recent.filter(r => r.kind === 'render').map(r => r.tool_id), ['r'])
-  assert.equal(LOOKUP_TOOLS.size, 6)
+  assert.equal(LOOKUP_TOOLS.size, 7)
+  assert.equal(runKind('video_direct'), 'activity', 'a plan writes no media')
 })
 
 test('the same tool_id in two sessions stays two rows', () => {
