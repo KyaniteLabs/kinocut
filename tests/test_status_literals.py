@@ -2,9 +2,8 @@
 
 A raw ``"status": "failed"`` write hides a state machine: nothing checks which
 moves are legal.  The explicit pattern is ``RenderJobStatus`` plus
-``_TRANSITIONS`` in ``kinocut/contracts/trusted_execution.py``.  This ratchet
-pins today's raw writes per module.  A module may only go down; when you
-convert one to an enum, lower (or delete) its entry here.
+``_TRANSITIONS`` in ``kinocut/contracts/trusted_execution.py``.  The package
+has zero raw writes; this test keeps it that way.
 """
 
 from __future__ import annotations
@@ -15,14 +14,6 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 PACKAGE = ROOT / "kinocut"
-
-# Raw status-string writes known on origin/master; shrink only.
-ALLOWED = {
-    "c2pa.py": 1,
-    "intent/broll.py": 1,
-    "te/hooks.py": 1,
-    "te/sphere_render.py": 1,
-}
 
 
 def _is_status_key(node: ast.AST | None) -> bool:
@@ -71,12 +62,9 @@ def test_detector_sees_both_write_shapes() -> None:
     assert raw_status_writes(tree) == [1, 2, 4, 5]
 
 
-def test_raw_status_writes_only_shrink() -> None:
+def test_no_raw_status_writes() -> None:
     counts = current_counts()
-    grew = {f: n for f, n in counts.items() if n > ALLOWED.get(f, 0)}
-    stale = {f: (n, counts.get(f, 0)) for f, n in ALLOWED.items() if counts.get(f, 0) < n}
-    assert not grew, (
-        f"New raw status-string writes {grew}. Use a contracts enum with a transition table "
+    assert not counts, (
+        f"Raw status-string writes {dict(counts)}. Use a contracts enum with a transition table "
         "(see RenderJobStatus in kinocut/contracts/trusted_execution.py)."
     )
-    assert not stale, f"Ratchet can go down {stale}: lower ALLOWED to the new count."

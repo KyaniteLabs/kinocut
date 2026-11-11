@@ -12,7 +12,8 @@ from typing import Any
 from urllib.parse import urlparse
 
 from kinocut.errors import MCPVideoError
-from kinocut.te.sphere_plan import SpherePlanStatus, propose_sphere_plan, validate_sphere_plan
+from kinocut.contracts.review import ProposalStatus
+from kinocut.te.sphere_plan import propose_sphere_plan, validate_sphere_plan
 from kinocut.validation import SPHERE_CLOUD_DIRECTORS, SPHERE_LOCAL_DIRECTORS
 
 logger = logging.getLogger(__name__)
@@ -101,7 +102,7 @@ def apply_director(
         "model": detected["model"],
         "unavailable": False,
     }
-    plan["status"] = SpherePlanStatus.PROPOSED
+    plan["status"] = ProposalStatus.PROPOSED
     return validate_sphere_plan(plan)
 
 
