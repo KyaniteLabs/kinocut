@@ -22,7 +22,7 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
         # is stubbed rather than run against a non-media file.
         return SimpleNamespace(duration=10.0)
 
-    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+    def fake_trim(input_path, *, start, end, output_path, accurate=True, on_progress=None):
         calls.append(("trim", input_path, start, end))
         Path(output_path).write_bytes(b"trim")
         return SimpleNamespace(output_path=output_path)
@@ -42,7 +42,7 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         calls.append(("vertical", input_path, aspect_ratio, quality))
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
@@ -148,7 +148,7 @@ def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
     def fake_probe(_path):
         return SimpleNamespace(duration=10.0)
 
-    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+    def fake_trim(input_path, *, start, end, output_path, accurate=True, on_progress=None):
         Path(output_path).write_bytes(b"trim")
         return SimpleNamespace(output_path=output_path)
 
@@ -164,7 +164,7 @@ def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 
@@ -206,7 +206,7 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
             return SimpleNamespace(duration=3.0)
         return SimpleNamespace(duration=60.0)
 
-    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+    def fake_trim(input_path, *, start, end, output_path, accurate=True, on_progress=None):
         Path(output_path).write_bytes(b"trim")
         return SimpleNamespace(output_path=output_path)
 
@@ -226,7 +226,7 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 
@@ -289,7 +289,7 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
             return SimpleNamespace(duration=3.0)
         return SimpleNamespace(duration=60.0)
 
-    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+    def fake_trim(input_path, *, start, end, output_path, accurate=True, on_progress=None):
         Path(output_path).write_bytes(b"trim")
         return SimpleNamespace(output_path=output_path)
 
@@ -307,7 +307,7 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 
