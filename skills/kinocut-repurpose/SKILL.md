@@ -67,11 +67,32 @@ kino video-quality-check repurpose-out/youtube_shorts.mp4
    `youtube-shorts`, `instagram-reel`, and `tiktok` for vertical clips unless the user
    explicitly asks for horizontal or square.
 3. Run `repurpose-plan` / `video_repurpose_plan` before rendering. Review the
-   `repurpose_manifest.json` for platform outputs, aspect ratios, target LUFS, max
+   `repurpose_plan.json` for platform outputs, aspect ratios, target LUFS, max
    duration, and planned review artifacts.
 4. Render with `repurpose` / `video_repurpose` only after the plan is plausible.
 5. Inspect the rendered manifest, thumbnails, storyboards, and release checkpoint output.
 6. Stop at human review. Do not publish, schedule, upload, or claim final approval.
+
+### Rendering over MCP is a submitted job
+
+The CLI `repurpose` renders before it returns. The MCP `video_repurpose` does not:
+it submits one durable render job and returns at once with `job_id`, `status`
+(usually `queued` or `running`) and a `clips` list. A successful call means the job
+was accepted, not that any clip exists yet or passed review.
+
+- **Paths are project-relative.** Each clip's `output` and `receipt_ref` are relative
+  to the project folder: the `output_dir` you passed, or the auto-created
+  `repurpose-project` folder next to the source when you passed none. Join them to
+  that folder before reading a file.
+- **Progress lives in the receipt.** The worker rewrites `<project>/<receipt_ref>`
+  after each finished stage; each entry in its `steps` list has a `status`. Treat a
+  clip as ready only when its file exists and every step reads `completed`. Do not
+  inspect, quote or hand off a clip path before that.
+- **No status tool to poll.** There is no MCP tool for job status. If a step did not
+  complete, or the receipt is missing or stops changing, say so and report the
+  `job_id`; do not resubmit the job to "retry", which renders a second copy.
+- **Human review still gates handoff.** A finished job is rendered output, not
+  approved output. Steps 5 and 6 apply unchanged.
 
 ## Guardrails
 

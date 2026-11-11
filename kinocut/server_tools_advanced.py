@@ -44,7 +44,8 @@ from .limits import MAX_BATCH_SIZE, MAX_EXPORT_FRAMES_FPS, MAX_IMAGE_SEQUENCE_FR
 from .server_app import _result, _safe_tool, _validation_error, mcp
 from .validation import VALID_LAYOUTS, VALID_PRESETS
 
-from .ffmpeg_helpers import _validate_input_path
+from .ffmpeg_helpers import _validate_artifact_location, _validate_input_path
+from .output_ledger import owns as owns_output
 from .validation_errors import rejected_value
 
 VALID_HLS_QUALITIES = {"low", "medium", "high", "ultra"}
@@ -57,6 +58,13 @@ class CleanupOutcome(StrEnum):
     KEPT = "kept"
     REMOVED = "removed"
     FAILED = "failed"
+
+
+def _same_file(a: str, b: str) -> bool:
+    try:
+        return os.path.samefile(a, b)
+    except OSError:
+        return False
 
 
 _CLEANUP_MANAGED_SUFFIXES = (
@@ -643,18 +651,29 @@ def video_cleanup(
         files: List of absolute paths to delete.
         keep: List of absolute paths to preserve (optional).
     """
-    keep_set = set(keep or [])
+    # Compare resolved paths so "DIR/./a.mp4" and "DIR/a.mp4" are the same file.
+    keep_resolved = [os.path.realpath(k) for k in (keep or []) if isinstance(k, str) and "\x00" not in k]
     results: list[dict[str, Any]] = []
     for path in files:
-        if path in keep_set:
+        resolved = os.path.realpath(path) if "\x00" not in path else path
+        if any(resolved == k or _same_file(resolved, k) for k in keep_resolved):
             results.append({"path": path, "status": CleanupOutcome.KEPT})
             continue
         try:
             p = _validate_input_path(path)
+            # Deletion gets the same protected-location checks as writes.
+            _validate_artifact_location(p, "Cleanup target")
             stem = os.path.splitext(os.path.basename(p))[0]
             if not stem.startswith("mcp_video_") and not stem.endswith(_CLEANUP_MANAGED_SUFFIXES):
                 raise MCPVideoError(
                     "Refusing to delete unmanaged file; only Kinocut-managed intermediate outputs may be cleaned up",
+                    error_type="validation_error",
+                    code="unsafe_cleanup_path",
+                )
+            # A Kinocut-looking name is not proof; the file must be one Kinocut wrote.
+            if not owns_output(p):
+                raise MCPVideoError(
+                    "Refusing to delete a file Kinocut did not write; only recorded Kinocut outputs may be cleaned up",
                     error_type="validation_error",
                     code="unsafe_cleanup_path",
                 )

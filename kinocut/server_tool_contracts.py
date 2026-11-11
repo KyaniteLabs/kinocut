@@ -151,6 +151,33 @@ def _compact_tool_metadata(tool: Any) -> None:
         tool.annotations = annotations.model_copy(update={"title": None})
 
 
+def _failed_payload(structured: Any) -> bool:
+    if not isinstance(structured, dict):
+        return False
+    # FastMCP wraps non-object returns as {"result": ...}; look through it.
+    if set(structured) == {"result"} and isinstance(structured["result"], dict):
+        structured = structured["result"]
+    return structured.get("success") is False and "error" in structured
+
+
+def _flag_failure(result: Any) -> Any:
+    """Mark a tool's own ``success: false`` result as an MCP error.
+
+    Tools turn exceptions into ``{"success": false, "error": ...}``. Without
+    ``isError`` the host treats that as a successful call and shows a check
+    mark for a render that failed.
+    """
+    if isinstance(result, tuple) and len(result) == 2:
+        unstructured, structured = result
+    elif isinstance(result, dict):
+        unstructured, structured = [TextContent(type="text", text=json.dumps(result, indent=2))], result
+    else:
+        return result
+    if not _failed_payload(structured):
+        return result
+    return CallToolResult(isError=True, content=list(unstructured), structuredContent=structured)
+
+
 class _ContractFastMCP(FastMCP):
     """Reject undeclared top-level arguments before a handler executes."""
 
@@ -194,7 +221,7 @@ class _ContractFastMCP(FastMCP):
                 content=[TextContent(type="text", text=json.dumps(payload))],
                 structuredContent=payload,
             )
-        return await super().call_tool(name, arguments)
+        return _flag_failure(await super().call_tool(name, arguments))
 
     def _raise_if_unlisted_operation(self, name: str) -> None:
         """Point a by-name call of a family-served operation at its family.

@@ -11,7 +11,7 @@ def test_repurpose_plan_default_package_manifest(sample_video, tmp_path):
 
     assert result["success"] is True
     assert result["source"]["path"] == sample_video
-    assert result["manifest_path"].endswith("repurpose_manifest.json")
+    assert result["manifest_path"].endswith("repurpose_plan.json")
     assert os.path.isfile(result["manifest_path"])
 
     platform_names = {variant["platform"] for variant in result["variants"]}
@@ -52,3 +52,22 @@ def test_repurpose_renders_vertical_and_horizontal_with_review_artifacts(sample_
         assert os.path.isfile(variant["output_path"])
         assert variant["release_checkpoint"]["thumbnail"]
         assert os.path.isfile(variant["release_checkpoint"]["thumbnail"])
+
+
+def test_render_after_plan_in_the_same_folder(sample_video, tmp_path):
+    """The documented recipe: plan into a folder, then render into the same folder."""
+    package = str(tmp_path / "package")
+    plan = repurpose_plan(sample_video, output_dir=package, platforms=["youtube"])
+
+    rendered = repurpose(
+        sample_video,
+        output_dir=package,
+        platforms=["youtube"],
+        include_release_checkpoint=False,
+        min_score=0,
+    )
+
+    assert rendered["success"] is True
+    assert os.path.isfile(plan["manifest_path"])
+    assert rendered["manifest_path"].endswith("repurpose_manifest.json")
+    assert rendered["manifest_path"] != plan["manifest_path"]

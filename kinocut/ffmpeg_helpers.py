@@ -11,12 +11,12 @@ import math
 import os
 import re
 import subprocess
-import tempfile
 from collections.abc import Callable, Iterator
 from contextvars import ContextVar
 from typing import Any, BinaryIO
 
 from .errors import InputFileError, MCPVideoError, ProcessingError, parse_ffmpeg_error
+from .agent_homes import inside_agent_scratch_or_refuse, require_absolute_under_hermes
 from .limits import (
     DEFAULT_FFMPEG_TIMEOUT,
     FFMPEG_STDERR_DIAGNOSTIC_BYTES,
@@ -144,6 +144,10 @@ def _note_operation_write(resolved: str) -> None:
         writes = {}
         _OPERATION_WRITES.set(writes)
     writes[os.path.realpath(resolved)] = (current.st_dev, current.st_ino)
+    # Cleanup in a later call can only trust what was recorded durably.
+    from .output_ledger import record_output
+
+    record_output(resolved)
 
 
 def _reset_operation_inputs(*, preserve_writes: bool = False) -> None:
@@ -238,6 +242,7 @@ def _validate_artifact_location(path: str, label: str) -> str:
             error_type="validation_error",
             code="invalid_output_path",
         )
+    require_absolute_under_hermes(path, label)
     raw_parts = re.split(r"[\\/]+", path)
     if ".." in raw_parts:
         raise MCPVideoError(
@@ -260,22 +265,8 @@ def _validate_artifact_location(path: str, label: str) -> str:
             code="unsafe_path",
         )
 
-    config_homes = [
-        os.path.realpath(os.path.expanduser(os.environ[name]))
-        for name in ("HERMES_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "XDG_CONFIG_HOME")
-        if os.environ.get(name)
-    ]
-    # Hermes puts TMPDIR inside HERMES_HOME; flows write intermediates there.
-    scratch = os.path.realpath(tempfile.gettempdir())
-    if resolved.startswith(scratch + os.sep) and any(scratch.startswith(h + os.sep) for h in config_homes):
+    if inside_agent_scratch_or_refuse(resolved, label):
         return resolved
-    for config_home in config_homes:
-        if resolved == config_home or resolved.startswith(config_home + os.sep):
-            raise MCPVideoError(
-                f"{label} targets a configured agent or application home",
-                error_type="validation_error",
-                code="unsafe_path",
-            )
 
     home = os.path.realpath(os.path.expanduser("~"))
     if resolved == home or resolved.startswith(home + os.sep):
