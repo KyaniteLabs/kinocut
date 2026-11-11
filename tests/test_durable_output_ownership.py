@@ -82,3 +82,50 @@ def test_hls_preserves_existing_nonmedia_and_agent_home(tmp_path, monkeypatch):
     with output_operation(True), pytest.raises(MCPVideoError):
         _prepare_hls_directory("input.mp4", str(sensitive), "playlist.m3u8")
     assert not sensitive.exists()
+
+
+def _scratch_inside(tmp_path, monkeypatch, variable, scratch_rel):
+    import tempfile
+
+    config_home = tmp_path / "custom-profile"
+    scratch = config_home / scratch_rel if scratch_rel else config_home
+    scratch.mkdir(parents=True)
+    monkeypatch.setenv(variable, str(config_home))
+    monkeypatch.setattr(tempfile, "tempdir", str(scratch))
+    return config_home, scratch
+
+
+@pytest.mark.parametrize("variable", ["HERMES_HOME", "CODEX_HOME", "CLAUDE_CONFIG_DIR", "XDG_CONFIG_HOME"])
+def test_temp_dir_inside_agent_home_is_writable(tmp_path, monkeypatch, variable):
+    from kinocut.ffmpeg_helpers import _validate_output_path
+
+    config_home, scratch = _scratch_inside(tmp_path, monkeypatch, variable, "cache/scratch")
+    work = scratch / "kinocut-shorts-x"
+    work.mkdir()
+    with output_operation():
+        _validate_output_path(str(work / "seg0.mp4"))
+    with output_operation(), pytest.raises(MCPVideoError):
+        _validate_output_path(str(config_home / "output.mp4"))
+
+
+def test_temp_dir_equal_to_agent_home_stays_protected(tmp_path, monkeypatch):
+    from kinocut.ffmpeg_helpers import _validate_output_path
+
+    config_home, _ = _scratch_inside(tmp_path, monkeypatch, "HERMES_HOME", "")
+    with output_operation(), pytest.raises(MCPVideoError):
+        _validate_output_path(str(config_home / "output.mp4"))
+
+
+def test_video_shorts_runs_with_tmpdir_inside_hermes_home(sample_video, tmp_path, monkeypatch):
+    from kinocut.product import shorts_flow
+
+    _scratch_inside(tmp_path, monkeypatch, "HERMES_HOME", "cache/scratch")
+    output = tmp_path / "out" / "short.mp4"
+    output.parent.mkdir()
+    result = shorts_flow.video_shorts(
+        sample_video,
+        [{"start": 0, "end": 1}, {"start": 1, "end": 2}],
+        output_path=str(output),
+    )
+    assert result["success"]
+    assert output.exists()
