@@ -9,6 +9,7 @@ import anyio
 from mcp.server.fastmcp import Context
 from mcp.types import ToolAnnotations
 
+from .review_card import attach_review_card
 from .server_app import _mcp_progress_reporter, _result, _safe_tool, mcp
 
 
@@ -22,9 +23,15 @@ async def video_shorts(
     style: str | dict[str, Any] | None = None,
     output_path: str | None = None,
     overwrite: bool = False,
+    review: bool = True,
     ctx: Context | None = None,
 ) -> dict[str, Any]:
-    """Trim, caption, make vertical, and export selected segments in one call."""
+    """Trim, caption, make vertical, and export selected segments in one call.
+
+    Args:
+        review: Also write a review card for the result (default). Reply with the
+            returned preview_directive alone on its own line so Hermes Desktop shows it.
+    """
     from .product.shorts_flow import video_shorts as run_video_shorts
 
     run = functools.partial(
@@ -36,7 +43,8 @@ async def video_shorts(
         overwrite=overwrite,
         on_progress=_mcp_progress_reporter(ctx),
     )
-    return await anyio.to_thread.run_sync(run)
+    result = await anyio.to_thread.run_sync(run)
+    return await anyio.to_thread.run_sync(attach_review_card, result, review)
 
 
 @mcp.tool()

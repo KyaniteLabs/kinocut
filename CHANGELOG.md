@@ -14,6 +14,13 @@ This project follows a simple release-note style:
 ### Added
 - **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no longer scores as underexposed: `video-quality-check` and `release-checkpoint` take `--profile dark-grade`. A black or flat frame still fails. (#760)
 
+### Changed
+
+- `video_trim`, `video_merge` and `video_shorts` now write a review card next to the output by default and
+  return it as `review_card` plus a `preview_directive`, so an agent can show the cut without
+  a second call. Pass `review=False` to skip it. A card that fails to render is reported in
+  `review_card.error` and never fails the edit.
+
 ## 2.0.1 - 2026-11-10
 
 ### Fixed

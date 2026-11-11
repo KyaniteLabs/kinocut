@@ -1,6 +1,6 @@
 {
  "captured": {
-  "git_commit": "2a33535ba5554f1eef1fae2a5ccd02b816dbee27",
+  "git_commit": "547171c3f4033805cc220e8f778688c12ee126d6",
   "kind": "repo-modes",
   "kinocut_metadata_version": "1.16.5",
   "kinocut_source_version": "2.0.1",
@@ -2741,8 +2741,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1071,
-     "input_schema_sha256": "52e57ee4ea6d56b4c3211d0b8e657a9a6434051a02f6d9c6438a3acd15c65358",
+     "input_schema_bytes": 1114,
+     "input_schema_sha256": "6981a493f48a559a05d64b847e894cb5c219aede4e21c32d62c4fabe9156e6bf",
      "module": "server_tools_basic",
      "name": "video_merge",
      "profiles": [
@@ -2753,6 +2753,7 @@
       "clips",
       "output_path",
       "overwrite",
+      "review",
       "transition",
       "transition_duration",
       "transitions"
@@ -3673,8 +3674,8 @@
      ]
     },
     {
-     "input_schema_bytes": 542,
-     "input_schema_sha256": "64f86657801266edfd7cd44c869f4269ceeac657e84d51777380289afecf8b6b",
+     "input_schema_bytes": 744,
+     "input_schema_sha256": "56ec8b73c62e4d3b4536c89098318028ded70eba462d91d46642813b01541f7f",
      "module": "server_tools_shorts",
      "name": "video_shorts",
      "profiles": [
@@ -3686,6 +3687,7 @@
       "input_path",
       "output_path",
       "overwrite",
+      "review",
       "segments",
       "style"
      ],
@@ -3937,8 +3939,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1006,
-     "input_schema_sha256": "030dcd9f36f87d9c32cba89429de6829a36eb67c01d1ce672c89fb0facc2ec22",
+     "input_schema_bytes": 1208,
+     "input_schema_sha256": "d3233bc4cabcdcd1040ab862d74bc9d28864d972dc87b4eb765491773e87ae65",
      "module": "server_tools_basic",
      "name": "video_trim",
      "profiles": [
@@ -3952,6 +3954,7 @@
       "input_path",
       "output_path",
       "overwrite",
+      "review",
       "start"
      ],
      "required_params": [
@@ -4135,7 +4138,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119176
+   "total_input_schema_bytes": 119623
   },
   "default": {
    "launch": {
@@ -4375,8 +4378,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1071,
-     "input_schema_sha256": "52e57ee4ea6d56b4c3211d0b8e657a9a6434051a02f6d9c6438a3acd15c65358",
+     "input_schema_bytes": 1114,
+     "input_schema_sha256": "6981a493f48a559a05d64b847e894cb5c219aede4e21c32d62c4fabe9156e6bf",
      "module": "server_tools_basic",
      "name": "video_merge",
      "profiles": [
@@ -4387,6 +4390,7 @@
       "clips",
       "output_path",
       "overwrite",
+      "review",
       "transition",
       "transition_duration",
       "transitions"
@@ -4426,8 +4430,8 @@
      ]
     },
     {
-     "input_schema_bytes": 542,
-     "input_schema_sha256": "64f86657801266edfd7cd44c869f4269ceeac657e84d51777380289afecf8b6b",
+     "input_schema_bytes": 744,
+     "input_schema_sha256": "56ec8b73c62e4d3b4536c89098318028ded70eba462d91d46642813b01541f7f",
      "module": "server_tools_shorts",
      "name": "video_shorts",
      "profiles": [
@@ -4439,6 +4443,7 @@
       "input_path",
       "output_path",
       "overwrite",
+      "review",
       "segments",
       "style"
      ],
@@ -4448,8 +4453,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1006,
-     "input_schema_sha256": "030dcd9f36f87d9c32cba89429de6829a36eb67c01d1ce672c89fb0facc2ec22",
+     "input_schema_bytes": 1208,
+     "input_schema_sha256": "d3233bc4cabcdcd1040ab862d74bc9d28864d972dc87b4eb765491773e87ae65",
      "module": "server_tools_basic",
      "name": "video_trim",
      "profiles": [
@@ -4463,6 +4468,7 @@
       "input_path",
       "output_path",
       "overwrite",
+      "review",
       "start"
      ],
      "required_params": [
@@ -4470,7 +4476,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 14759
+   "total_input_schema_bytes": 15206
   },
   "profile:editor": {
    "launch": {
@@ -6045,8 +6051,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1071,
-     "input_schema_sha256": "52e57ee4ea6d56b4c3211d0b8e657a9a6434051a02f6d9c6438a3acd15c65358",
+     "input_schema_bytes": 1114,
+     "input_schema_sha256": "6981a493f48a559a05d64b847e894cb5c219aede4e21c32d62c4fabe9156e6bf",
      "module": "server_tools_basic",
      "name": "video_merge",
      "profiles": [
@@ -6057,6 +6063,7 @@
       "clips",
       "output_path",
       "overwrite",
+      "review",
       "transition",
       "transition_duration",
       "transitions"
@@ -6461,8 +6468,8 @@
      ]
     },
     {
-     "input_schema_bytes": 542,
-     "input_schema_sha256": "64f86657801266edfd7cd44c869f4269ceeac657e84d51777380289afecf8b6b",
+     "input_schema_bytes": 744,
+     "input_schema_sha256": "56ec8b73c62e4d3b4536c89098318028ded70eba462d91d46642813b01541f7f",
      "module": "server_tools_shorts",
      "name": "video_shorts",
      "profiles": [
@@ -6474,6 +6481,7 @@
       "input_path",
       "output_path",
       "overwrite",
+      "review",
       "segments",
       "style"
      ],
@@ -6674,8 +6682,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1006,
-     "input_schema_sha256": "030dcd9f36f87d9c32cba89429de6829a36eb67c01d1ce672c89fb0facc2ec22",
+     "input_schema_bytes": 1208,
+     "input_schema_sha256": "d3233bc4cabcdcd1040ab862d74bc9d28864d972dc87b4eb765491773e87ae65",
      "module": "server_tools_basic",
      "name": "video_trim",
      "profiles": [
@@ -6689,6 +6697,7 @@
       "input_path",
       "output_path",
       "overwrite",
+      "review",
       "start"
      ],
      "required_params": [
@@ -6838,7 +6847,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81259
+   "total_input_schema_bytes": 81706
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

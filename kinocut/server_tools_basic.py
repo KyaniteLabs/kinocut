@@ -18,6 +18,7 @@ from .server_app import _mcp_progress_reporter, _result, _safe_tool, _validation
 from .validation import DURATION_POLICIES, VALID_FORMATS, VALID_PRESETS, VALID_XFADE_TRANSITIONS
 from .models import QUALITY_PRESETS
 from .ffmpeg_helpers import _validate_input_path
+from .review_card import attach_review_card
 from .validation_errors import rejected_value
 
 
@@ -147,6 +148,7 @@ async def video_trim(
     end: str | Annotated[float, Field(strict=True)] | None = None,
     output_path: str | None = None,
     accurate: bool = False,
+    review: bool = True,
     ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Cut a segment out of a video by start time and duration or end. Returns JSON {success, output_path} pointing at the rendered clip.
@@ -158,6 +160,8 @@ async def video_trim(
         end: End timestamp. Exclusive with duration.
         output_path: Where to save the trimmed video. Auto-generated if omitted.
         accurate: Ignored: trims re-encode, so they are always frame-accurate.
+        review: Also write a review card for the result (default). Reply with the
+            returned preview_directive alone on its own line so Hermes Desktop shows it.
     """
     if any(isinstance(value, bool) for value in (start, duration, end)):
         return _validation_error("Trim times must be timestamps or numeric seconds, not booleans")
@@ -172,7 +176,8 @@ async def video_trim(
         accurate=accurate,
         on_progress=_mcp_progress_reporter(ctx),
     )
-    return _result(await anyio.to_thread.run_sync(run_trim))
+    result = _result(await anyio.to_thread.run_sync(run_trim))
+    return await anyio.to_thread.run_sync(attach_review_card, result, review)
 
 
 @mcp.tool(
@@ -212,6 +217,7 @@ async def video_merge(
         float,
         Field(description="Duration in seconds for each transition; must fit inside neighboring clips."),
     ] = 1.0,
+    review: bool = True,
     ctx: Context | None = None,
 ) -> dict[str, Any]:
     """Merge multiple video clips into one rendered output file.
@@ -230,6 +236,8 @@ async def video_merge(
             are provided and should have one entry per gap between clips.
         transition_duration: Duration of each transition in seconds. Must fit inside the
             shortest neighboring clip.
+        review: Also write a review card for the result (default). Reply with the
+            returned preview_directive alone on its own line so Hermes Desktop shows it.
     """
     if transition is not None and transition not in VALID_XFADE_TRANSITIONS:
         return _validation_error(f"Invalid transition. Must be one of: {', '.join(sorted(VALID_XFADE_TRANSITIONS))}")
@@ -251,7 +259,8 @@ async def video_merge(
         transition_duration=transition_duration,
         on_progress=_mcp_progress_reporter(ctx),
     )
-    return _result(await anyio.to_thread.run_sync(run_merge))
+    result = _result(await anyio.to_thread.run_sync(run_merge))
+    return await anyio.to_thread.run_sync(attach_review_card, result, review)
 
 
 @mcp.tool(

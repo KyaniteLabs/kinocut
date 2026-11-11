@@ -49,7 +49,7 @@ Load the relevant guide when needed. Use source evidence for editorial choices; 
 
 ## Showing a cut in Hermes Desktop
 
-Call `video_review_card` with the video path, then reply with the returned `preview_directive` alone on its own line. Hermes renders the card inline with Approve & export / Dig in / Try another range buttons. Approve & export sends a message naming the steps: run `video_release_checkpoint` on the cut, and only if it passes, `video_export` it to `<name>-final.mp4`. Do both; if the gate fails, report the failed checks instead of exporting.
+Trim, merge and shorts return a card with the cut: reply with their `preview_directive` alone on its own line. For any other cut, call `video_review_card` with the video path and do the same. Hermes renders the card inline with Approve & export / Dig in / Try another range buttons. Approve & export sends a message naming the steps: run `video_release_checkpoint` on the cut, and only if it passes, `video_export` it to `<name>-final.mp4`. Do both; if the gate fails, report the failed checks instead of exporting.
 
 ## Reviewing a cut on a paired TV
 

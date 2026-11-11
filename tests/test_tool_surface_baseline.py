@@ -152,9 +152,11 @@ def test_headline_baseline_numbers_are_pinned():
     14,759 B, all 206 tools / 119,053 B, editor 115 tools / 81,259 B.
     video_release_checkpoint's profile_reason (#771) then grew all to 119,131 B.
     The dark-grade profile (#760) in its docs then grew all to 119,176 B.
+    A review flag on video_trim, video_merge and video_shorts (#767) then grew
+    default to 15,206 B, all to 119,623 B and editor to 81,706 B.
     """
-    assert BASELINE["captured"]["git_commit"] == "2a33535ba5554f1eef1fae2a5ccd02b816dbee27"
-    for mode, count, total in (("default", 18, 14_759), ("all", 206, 119_176), ("profile:editor", 115, 81_259)):
+    assert BASELINE["captured"]["git_commit"] == "547171c3f4033805cc220e8f778688c12ee126d6"
+    for mode, count, total in (("default", 18, 15_206), ("all", 206, 119_623), ("profile:editor", 115, 81_706)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -224,7 +226,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 14_759), ("all", 206, 119_176)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_206), ("all", 206, 119_623)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
