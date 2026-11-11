@@ -240,3 +240,46 @@ def test_light_ui_capture_fails_default_but_passes_light_profile(tmp_path):
         assert next(c for c in default["checks"] if c["name"] == name) == next(
             c for c in profiled["checks"] if c["name"] == name
         )
+
+
+# Dark cinematic grades (#760): night, teal-and-shadow, monochrome noir, low-key gradient.
+_DARK_GRADES = {
+    "night": "testsrc2=s=640x360:d=2:r=10,eq=brightness=-0.35:contrast=0.9:saturation=0.6",
+    "teal": "testsrc2=s=640x360:d=2:r=10,eq=brightness=-0.3:saturation=0.5,colorbalance=bs=0.2:rs=-0.1",
+    "noir": "mandelbrot=s=640x360:r=10,eq=brightness=-0.25:saturation=0,trim=duration=2",
+    "lowkey": "gradients=s=640x360:d=2:r=10:c0=0x050505:c1=0x404858,eq=saturation=0.7",
+}
+
+
+def _render_source(path, source: str) -> str:
+    cmd = [
+        "ffmpeg", "-y", "-loglevel", "error",
+        "-f", "lavfi", "-i", source,
+        "-f", "lavfi", "-i", "sine=frequency=440:duration=2",
+        "-pix_fmt", "yuv420p", "-shortest", str(path),
+    ]  # fmt: skip
+    subprocess.run(cmd, check=True, capture_output=True, timeout=60)
+    return str(path)
+
+
+@needs_ffmpeg
+@pytest.mark.parametrize("grade", sorted(_DARK_GRADES))
+def test_dark_grade_profile_passes_intentional_dark_grades(grade, tmp_path):
+    from kinocut.quality_guardrails import assert_quality
+
+    clip = _render_source(tmp_path / f"{grade}.mp4", _DARK_GRADES[grade])
+    report = assert_quality(clip, profile="dark-grade", profile_reason=f"{grade} grade, dark on purpose")
+    checks = {c["name"]: c for c in report["checks"]}
+    assert report["gate_passed"] is True, checks
+    for name in ("brightness", "contrast", "saturation"):
+        assert checks[name]["passed"] is True, checks[name]
+
+
+@needs_ffmpeg
+def test_dark_grade_profile_still_fails_black_and_flat_frames(black, blank_dark):
+    from kinocut.quality_guardrails import assert_quality
+
+    for clip in (black, blank_dark):
+        with pytest.raises(MCPVideoError) as exc:
+            assert_quality(clip, profile="dark-grade", profile_reason="testing a blank frame")
+        assert "dark-grade profile limits failed" in str(exc.value)

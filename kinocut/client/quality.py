@@ -17,7 +17,7 @@ class ClientQualityMixin:
         Args:
             video: Video file path
             fail_on_warning: Treat warnings as failures
-            profile: default, ui-capture-dark or ui-capture-light
+            profile: default, dark-grade, ui-capture-dark or ui-capture-light
 
         Returns:
             dict with keys:

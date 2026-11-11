@@ -691,7 +691,7 @@ def quality_check(
     Args:
         video: Path to video file
         fail_on_warning: If True, treat warnings as failures
-        profile: Content profile for the picture heuristics (``default``,
+        profile: Picture-heuristics profile (``default``, ``dark-grade``,
             ``ui-capture-dark``, ``ui-capture-light``); recorded in the report.
 
     Returns:

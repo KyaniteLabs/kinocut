@@ -9,6 +9,11 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Added
+- **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no longer scores as underexposed: `video-quality-check` and `release-checkpoint` take `--profile dark-grade`. A black or flat frame still fails. (#760)
+
 ## 2.0.1 - 2026-11-10
 
 ### Fixed
