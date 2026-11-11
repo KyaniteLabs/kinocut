@@ -24,7 +24,7 @@ that carry the tools named below are:
 `profile:editor` carries `video_crop`, `video_edit`, `video_export`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
-`profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
+`profile:intent` carries `video_cutfile_render`, `video_direct`, `video_direct_apply`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
 `profile:revideo` carries `revideo_install`, `revideo_materialize`, `revideo_render`, `revideo_render_job`;
 If neither `list_operations` nor a profile has the operation, stop and report
 that it is unavailable instead of retrying.
@@ -46,6 +46,17 @@ When you mention a file in a reply, use its file name or a `~/` path, never the 
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
 
 Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
+
+## When the user just says what they want
+
+Pass the user's words verbatim to `video_direct(input_path=ABS_PATH, direction=WORDS)`
+(default surface: `video_plan_ops` with `{"operation": "video_direct", "params": {...}}`).
+Read the plan's assumptions back in one sentence. Mention unrecognized words.
+Ask the plan's single question if present. Resolve it with the user's words and
+review the updated plan. After the user says yes, call
+`video_direct_apply(plan=PLAN, confirm=true)`. Inspect the receipts and final video.
+Never invent parameters or claim that a plan has rendered. Use `audio_path` only
+for a voice memo without text; it invokes optional local transcription.
 
 ## Vision review and network permission (1.16.5)
 

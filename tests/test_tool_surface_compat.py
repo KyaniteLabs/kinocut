@@ -287,7 +287,7 @@ def test_cold_server_modes_are_isolated():
 
     everything = _subprocess_surface("all")
     assert everything["mode"] == "all"
-    assert everything["count"] == 206 == len(TOOL_REGISTRY)
+    assert everything["count"] == 208 == len(TOOL_REGISTRY)
     assert set(everything["names"]) == set(TOOL_REGISTRY)
 
     editor = _subprocess_surface("profile:editor")
