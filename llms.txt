@@ -17,6 +17,7 @@ The same engine is available as a Python client (`from kinocut import Client`) a
 - **License:** Apache-2.0
 - **Latest published release:** 2.0.1 (2026-11-10)
 - **Published surface (2.0.1):** 206 MCP tools / 177 CLI commands (18 MCP tools listed by default)
+- **Development (unreleased #458):** 208 MCP tools / 178 CLI commands. Spoken direction: pass the user's words verbatim to video_direct; review assumptions and any question, then call video_direct_apply with confirm=true after user approval.
 - **Compatibility package:** 1.6.22 shim → kinocut 2.0.1 (`mcp-video==1.6.22`)
 - **Runtime:** Python 3.11+, FFmpeg and ffprobe on PATH; optional extras for transcription, upscaling, object matte and more
 - **MCP transport:** stdio

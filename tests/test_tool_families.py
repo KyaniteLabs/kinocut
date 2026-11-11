@@ -772,9 +772,9 @@ def test_list_operations_is_on_demand_and_total():
     result = asyncio.run(_call(DISCOVERY_TOOL_NAME, {}))
     payload = _payload(result)
     assert payload["success"] is True
-    assert payload["count"] == len(TOOL_REGISTRY) - 1 == 205
+    assert payload["count"] == len(TOOL_REGISTRY) - 1 == 207
     assert [family["name"] for family in payload["families"]] == list(FAMILY_MODULES)
-    assert sum(family["operations"] for family in payload["families"]) == 205
+    assert sum(family["operations"] for family in payload["families"]) == 207
     for row in payload["operations"]:
         assert row["verb"] == operation_verb(row["name"])
         assert row["family"] == FAMILY_OF_OPERATION[row["name"]]
@@ -918,7 +918,7 @@ def test_described_schemas_cover_optional_arguments_everywhere(operation):
     payload = _payload(asyncio.run(_call(DESCRIBE_TOOL_NAME, {"operation": operation})))
     assert payload["success"] is True, operation
     schema = payload["inputSchema"]
-    if operation in {"video_info", "video_info_detailed", "video_doctor"}:
+    if operation in {"video_info", "video_info_detailed", "video_doctor", "video_direct"}:
         assert "overwrite" not in schema["properties"], operation
         return
     assert schema["properties"]["overwrite"]["type"] == "boolean", operation

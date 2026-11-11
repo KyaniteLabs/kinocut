@@ -19,6 +19,7 @@ export const LOOKUP_TOOLS = new Set([
   'describe_operation',
   'list_operations',
   'search_tools',
+  'video_direct',
   'video_doctor',
   'video_info',
   'video_info_detailed'

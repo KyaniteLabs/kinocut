@@ -12,6 +12,11 @@ This project follows a simple release-note style:
 ## Unreleased
 
 ### Added
+
+- Turn plain spoken direction into a deterministic, reviewable edit plan with `video_direct`, then explicitly execute it with `video_direct_apply(confirm=true)` or `kino direct "WORDS" -i INPUT --apply` (#458). Plans disclose defaults, unknown phrases and at most one question; voice memos reuse optional local transcription. Apply validates the entire tool/path/argument chain before rendering and returns per-step receipts on success or failure.
+- Support trims, silence removal, pacing, delivery formats, center reframing, -14 LUFS loudness, synchronized captions, muting and final-video thumbnails. Both tools live in the `intent` profile and the `video_plan_ops` family. Development now has 208 MCP tools / 178 CLI commands; published 2.0.1 counts are unchanged.
+
+### Added
 - **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no longer scores as underexposed: `video-quality-check` and `release-checkpoint` take `--profile dark-grade`. A black or flat frame still fails. (#760)
 
 ### Changed

@@ -1,8 +1,8 @@
 {
  "captured": {
-  "git_commit": "547171c3f4033805cc220e8f778688c12ee126d6",
+  "git_commit": "4093689cceb678ee4c837e4a5f65adbbb9f22572",
   "kind": "repo-modes",
-  "kinocut_metadata_version": "1.16.5",
+  "kinocut_metadata_version": "2.0.1",
   "kinocut_source_version": "2.0.1",
   "mcp_sdk_version": "1.30.0",
   "platform": "Linux-x86_64",
@@ -22,10 +22,10 @@
    "mode": "all",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "2.0.1"
    },
-   "tool_count": 206,
-   "tool_names_sha256": "96c232945a96cd4a2cbede69deb5d43d7da19aa7543b1c71159cbf01930a02f6",
+   "tool_count": 208,
+   "tool_names_sha256": "a2d01278d8b8745d855b83ab78426a958dd169d87511e2d7b3ef5b0367dce7b3",
    "tools": [
     {
      "input_schema_bytes": 653,
@@ -2164,6 +2164,41 @@
      ]
     },
     {
+     "input_schema_bytes": 340,
+     "input_schema_sha256": "54040a8331a8b18286f414b62d32ce4a1a7e9c8719730928a7706082ffdb5224",
+     "module": "server_tools_direct",
+     "name": "video_direct",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "audio_path",
+      "direction",
+      "input_path",
+      "output_path"
+     ],
+     "required_params": [
+      "input_path"
+     ]
+    },
+    {
+     "input_schema_bytes": 280,
+     "input_schema_sha256": "ffef55b4825905ed636e9910e80f1da34ba8850e2e0a7c8cce85fab302cdfe95",
+     "module": "server_tools_direct",
+     "name": "video_direct_apply",
+     "profiles": [
+      "intent"
+     ],
+     "properties": [
+      "confirm",
+      "overwrite",
+      "plan"
+     ],
+     "required_params": [
+      "plan"
+     ]
+    },
+    {
      "input_schema_bytes": 62,
      "input_schema_sha256": "99334726611ccf58a148b0814696bfa6fe08c1b2d027e946beccf5a74331c9aa",
      "module": "server_tools_doctor",
@@ -4138,7 +4173,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 119623
+   "total_input_schema_bytes": 120243
   },
   "default": {
    "launch": {
@@ -4153,7 +4188,7 @@
    "mode": "default",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "2.0.1"
    },
    "tool_count": 18,
    "tool_names_sha256": "cc1aa4345b6c2745cf40873d1c21f74f71ef7c7e0b0a77b3d8870b1cc3864b3e",
@@ -4400,8 +4435,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1538,
-     "input_schema_sha256": "3a550c6890ca5ca8e48bb59874ce434dc83f23521ea2a4b4656cc5c5bfc41245",
+     "input_schema_bytes": 1574,
+     "input_schema_sha256": "229819c6cc8610080c8acd0d88c7f9c4f46a06bf22bfe386e7635d6740b059f8",
      "module": null,
      "name": "video_plan_ops",
      "profiles": [],
@@ -4476,7 +4511,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 15206
+   "total_input_schema_bytes": 15242
   },
   "profile:editor": {
    "launch": {
@@ -4491,7 +4526,7 @@
    "mode": "profile:editor",
    "server_info": {
     "name": "kinocut",
-    "version": "1.16.5"
+    "version": "2.0.1"
    },
    "tool_count": 115,
    "tool_names_sha256": "cd57c2dc55336cd23e6170c0e5a61ec9e8504a5140612ff0ee5c6d43c0a861b2",
@@ -6193,8 +6228,8 @@
      ]
     },
     {
-     "input_schema_bytes": 1538,
-     "input_schema_sha256": "3a550c6890ca5ca8e48bb59874ce434dc83f23521ea2a4b4656cc5c5bfc41245",
+     "input_schema_bytes": 1574,
+     "input_schema_sha256": "229819c6cc8610080c8acd0d88c7f9c4f46a06bf22bfe386e7635d6740b059f8",
      "module": null,
      "name": "video_plan_ops",
      "profiles": [],
@@ -6847,7 +6882,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81706
+   "total_input_schema_bytes": 81742
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

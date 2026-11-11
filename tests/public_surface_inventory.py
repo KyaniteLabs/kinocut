@@ -1,6 +1,7 @@
 """Expected public CLI and MCP command names for characterization tests."""
 
 EXPECTED_CLI_COMMANDS = {
+    "direct",
     "mix-audio",
     "duck-audio",
     "record-motion-acceptance",
@@ -181,6 +182,8 @@ EXPECTED_CLI_COMMANDS = {
 }
 
 EXPECTED_SERVER_TOOLS = {
+    "video_direct",
+    "video_direct_apply",
     "video_mix_audio",
     "video_record_motion_acceptance",
     "revideo_materialize",

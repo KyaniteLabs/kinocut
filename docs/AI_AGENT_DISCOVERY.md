@@ -11,6 +11,9 @@ new files, run quality gates and record Video Receipts.
 - **Published 2.0.1:** 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
   18 tools listed by default: an 8-tool hot path, eight operation families, and
   `list_operations` / `describe_operation`, which reach every other operation.
+- **Development (unreleased #458):** 208 MCP tools / 178 CLI commands. Pass spoken edit
+  direction verbatim to `video_direct`; review assumptions and any question, then call
+  `video_direct_apply` with `confirm=true` after user approval.
 
 Beyond core editing it covers Shorts and Reels repurposing, a resumable workflow engine,
 video rescue, AI-video review and salvage, 360 dual-cam assembly (through `video_intent`,

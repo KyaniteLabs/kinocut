@@ -165,6 +165,7 @@ TOOL_NAMES_BY_MODULE: Mapping[str, tuple[str, ...]] = {
         "image_edit",
         "still_package",
     ),
+    "server_tools_direct": ("video_direct", "video_direct_apply"),
     "server_tools_inspection": (
         "video_ingest",
         "video_preflight",
@@ -273,6 +274,7 @@ MODULE_PROFILE_TAGS: Mapping[str, tuple[str, ...]] = {
     "server_tools_guardrails": ("editor", "guardrails"),
     "server_tools_hyperframes": ("hyperframes",),
     "server_tools_image": ("image",),
+    "server_tools_direct": ("intent",),
     "server_tools_inspection": ("editor", "inspection"),
     "server_tools_intent": ("intent",),
     "server_tools_media": ("editor", "media"),

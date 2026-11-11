@@ -13,6 +13,16 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
 
 def _add_core_edit_parsers(subparsers: argparse._SubParsersAction) -> None:
     """Add core editing subcommands (doctor, info, extract-frame, trim, merge, edit)."""
+    direct = subparsers.add_parser("direct", help="Turn spoken direction into a reviewable edit plan")
+    direct.add_argument("direction", help="The user's words, verbatim")
+    direct.add_argument("-i", "--input", required=True)
+    direct.add_argument("-o", "--output")
+    direct.add_argument(
+        "--apply",
+        action="store_true",
+        help="Apply this direction after reviewing its defaults; questions still require review",
+    )
+
     # doctor
     doctor_p = subparsers.add_parser("doctor", help="Diagnose core and optional integration dependencies")
     doctor_p.add_argument("--json", action="store_true", help="Output diagnostics as JSON")

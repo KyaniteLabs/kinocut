@@ -19,7 +19,7 @@
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
   <img src="https://img.shields.io/badge/MCP-206%20tools-orange.svg" alt="206 MCP tools in the published package">
-  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands">
+  <img src="https://img.shields.io/badge/CLI-178%20commands-orange.svg" alt="178 CLI commands">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -109,6 +109,34 @@ The 18-tool default listing is about 22 KB of JSON. The full catalog is about 17
 - **Anywhere else.** `kino release-checkpoint clip.mp4` writes a thumbnail, a storyboard
   and a pass/fail quality report next to the clip.
 
+## Just say what you want
+
+Give your agent ordinary words. It passes them verbatim to `video_direct`, reads
+back the assumptions in one sentence, and asks the plan's single question if
+present. After you say yes, it calls `video_direct_apply(plan=plan, confirm=true)`.
+On the default surface both are operations of `video_plan_ops`. Planning probes the
+source and never renders or saves files. Hermes already turns voice notes into
+text; an optional `audio_path` voice memo uses the existing local transcription
+path only when no text direction is supplied.
+
+- "Tighten this up and cut the dead air" → remove silence with short sound margins.
+- "Make me a 30 second vertical for TikTok with captions" → keep up to the first
+  30 seconds, resize to 1080×1920, transcribe the final timing, then burn captions.
+- "It's too quiet, skip the first 5 seconds" → trim the opening, then normalize to -14 LUFS.
+
+Use `kino direct "make it punchier and give me a thumbnail" -i in.mp4 -o out.mp4`
+to review JSON. Add `--apply` to execute; an unanswered question keeps it in review.
+Paths supplied through MCP must be absolute. Intermediate clips, subtitle sidecars,
+and the thumbnail use deterministic names beside the output. Keep the returned
+plan JSON in your agent conversation; KinoCut does not store it.
+
+The plan discloses defaults and unknown phrases. Shortening keeps the beginning
+after cleanup; it does not choose the best moment. Reframing uses a center crop
+and requires visual review. Muting silences all sound; separate music removal is
+left unrecognized because it needs model inference. Caption generation and voice
+memo transcription require the optional local transcription dependency. No speech
+means caption steps are skipped and receipts identify the actual final video.
+
 ## What it can do
 
 | Job | Where to start |
@@ -169,6 +197,7 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 | | Version | Surface |
 | --- | --- | --- |
 | **Published** on PyPI, npm and the MCP Registry | **2.0.1** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
+| **Development** (unreleased #458) | **2.0.1** + `video_direct` | 208 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 178 CLI commands |
 | **Compatibility package** | `mcp-video==1.6.22` | Installs `kinocut==2.0.1` for anyone still on the old name |
 
 Install from PyPI: the published 2.0.1 package includes the optional object-matte extra
