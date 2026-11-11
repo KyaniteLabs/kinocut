@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from .validation_errors import reason
+from collections import Counter
 import os
+from enum import StrEnum
 from typing import Any
 
 from pydantic import StrictFloat, StrictInt, StrictStr
@@ -47,6 +49,15 @@ from .validation_errors import rejected_value
 
 VALID_HLS_QUALITIES = {"low", "medium", "high", "ultra"}
 VALID_QUALITY_METRICS = {"psnr", "ssim"}
+
+
+class CleanupOutcome(StrEnum):
+    """What video_cleanup did with one requested path."""
+
+    KEPT = "kept"
+    REMOVED = "removed"
+    FAILED = "failed"
+
 
 _CLEANUP_MANAGED_SUFFIXES = (
     "_trimmed",
@@ -634,11 +645,9 @@ def video_cleanup(
     """
     keep_set = set(keep or [])
     results: list[dict[str, Any]] = []
-    removed = 0
-    failed = 0
     for path in files:
         if path in keep_set:
-            results.append({"path": path, "status": "kept"})
+            results.append({"path": path, "status": CleanupOutcome.KEPT})
             continue
         try:
             p = _validate_input_path(path)
@@ -650,22 +659,21 @@ def video_cleanup(
                     code="unsafe_cleanup_path",
                 )
             os.remove(p)
-            results.append({"path": p, "status": "removed"})
-            removed += 1
+            results.append({"path": p, "status": CleanupOutcome.REMOVED})
         except MCPVideoError as e:
             # The error's own serialization is the guarded one: a refusal
             # that names the rule, not the path that was submitted. The
             # message is a string, like every other result in this list.
-            results.append({"path": path, "status": "failed", "error": e.to_dict()["message"]})
-            failed += 1
+            results.append({"path": path, "status": CleanupOutcome.FAILED, "error": e.to_dict()["message"]})
         except OSError as e:
             # An OSError's text carries the path it failed on. The kind is
             # what the caller needs; the path is the caller's own anyway.
-            results.append({"path": path, "status": "failed", "error": exception_kind(e)})
-            failed += 1
+            results.append({"path": path, "status": CleanupOutcome.FAILED, "error": exception_kind(e)})
+    outcomes = Counter(r["status"] for r in results)
+    failed = outcomes[CleanupOutcome.FAILED]
     return {
         "success": failed == 0,
-        "removed": removed,
+        "removed": outcomes[CleanupOutcome.REMOVED],
         "failed": failed,
         "results": results,
     }
