@@ -7,9 +7,8 @@ Protects the compact-surface contract end to end:
   (<= 40 tools, <= 25% of the full-catalog baseline schema bytes); every
   family exposes a closed operation enum and nothing else;
 * dispatch — a family call runs the exact registered tool object: identical
-  success payloads, identical handler error cores (bar the transport
-  ``isError`` flag and the retargeted retry hint, both asserted explicitly
-  below), identical validation rejections; family-level ``overwrite`` consent
+  success payloads, identical handler error cores (bar the retargeted retry
+  hint, asserted explicitly below), identical validation rejections; family-level ``overwrite`` consent
   reaches the operation unless ``params`` carries an explicit override;
 * annotations — open-world hints follow the audited ``FAMILY_OPEN_WORLD``
   table and are backed by behavior: network-capable members are demonstrably
@@ -279,11 +278,10 @@ def test_family_dispatch_rejects_bad_arguments_like_the_direct_wire():
         '; retry with call video_edit_ops(operation="video_audio_waveform", params={...}) '
         "with corrected parameters (MCP) / run kino audio-waveform with corrected flags (CLI)" in family_message
     )
-    # Transport difference, asserted instead of hidden: the direct path flags
-    # the rejection with isError=True at the CallToolResult level, the family
-    # path reports the identical structured payload without the flag.
+    # Both paths flag the rejection with isError=True, so hosts that key on the
+    # transport flag never record a refused call as a success.
     assert getattr(direct, "isError", None) is True
-    assert getattr(family, "isError", False) in (False, None)
+    assert getattr(family, "isError", None) is True
 
 
 def test_unknown_and_cross_family_operations_fail_closed_at_the_wire():

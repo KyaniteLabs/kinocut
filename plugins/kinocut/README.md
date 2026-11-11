@@ -46,8 +46,10 @@ before using them.
 Keep `KINOCUT_VISION_MODE=off` unless you choose to enable a legacy adapter.
 An inherited API key or `use_ai=true` cannot override that setting. To use Hermes's
 chosen provider, prepare local frames with `video_thumbnail` or `video_qc_vision`
-and inspect them through Hermes's image tools. For local product colors, use
-`image_analyze_product(use_ai=false)`. Hermes owns its model selection, credentials
+and inspect them through Hermes's image tools. Local product colors
+(`image_analyze_product(use_ai=false)`) need the `image` extra, which this plugin's
+launcher does not install; to use them, change the launcher to
+`uvx --from 'kinocut[image]==2.0.1' kinocut`. Hermes owns its model selection, credentials
 and fallback policy; Kinocut's MCP process does not automatically inherit them.
 
 The optional product adapter supports explicit `local` and `remote` modes using
@@ -57,8 +59,9 @@ Missing model support must be reported as unavailable; host observations do not
 turn an unevaluated Kinocut assessment into a scored pass. See the
 [vision and network policy](https://github.com/KyaniteLabs/kinocut/blob/v2.0.1/docs/VISION_PRIVACY.md) for configuration and limits.
 
-Prefer new output paths. Never target credentials, session files or agent
-configuration directories.
+Prefer new output paths, and give them as absolute paths: Hermes runs the server
+inside the plugin's install folder, so relative paths are refused. Never target
+credentials, session files, the Hermes home or agent configuration directories.
 
 ## Requirements
 

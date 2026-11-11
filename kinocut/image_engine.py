@@ -118,12 +118,15 @@ def _require_image_deps() -> None:
         import PIL.Image  # noqa: F401
     except ImportError:
         raise MCPVideoError(
-            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==2.0.1",
+            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==2.0.1"
+            " (under the Hermes plugin's uvx launcher, start the server with"
+            " uvx --from 'kinocut[image]==2.0.1' kinocut instead)",
             error_type="dependency_error",
             code="missing_optional_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image]==2.0.1",
+                "description": "Run: pip install kinocut[image]==2.0.1, or for the uvx launcher: "
+                "uvx --from 'kinocut[image]==2.0.1' kinocut",
             },
         ) from None
 
