@@ -133,7 +133,7 @@ export function reduceRenders(state, event) {
   const tool = shortToolName(name)
 
   if (event.type === 'start' || event.type === 'progress') {
-    if (finished.includes(key)) return prev
+    if (event.type === 'progress' && finished.includes(key)) return prev
     const existing = prev.active[key]
     const percent = event.type === 'progress' ? clampPercent(payload.percent) : null
     const next = {
@@ -145,7 +145,11 @@ export function reduceRenders(state, event) {
       percent: percent !== null ? percent : existing ? existing.percent : null,
       message: typeof payload.message === 'string' && payload.message ? payload.message : existing ? existing.message : ''
     }
-    return { active: { ...prev.active, [key]: next }, recent: prev.recent, finished }
+    return {
+      active: { ...prev.active, [key]: next },
+      recent: prev.recent,
+      finished: event.type === 'start' ? finished.filter(k => k !== key) : finished
+    }
   }
 
   if (event.type === 'complete') {

@@ -24,12 +24,27 @@ def hermes_plugin_homes() -> list[str]:
     root = os.environ.get("PLUGIN_ROOT")
     if not root:
         return []
-    root = os.path.realpath(os.path.expanduser(root))
-    homes = [root]
-    plugins_dir = os.path.dirname(root)
-    hermes_home = os.path.dirname(plugins_dir)
-    if os.path.basename(plugins_dir) == "plugins" and os.path.isfile(os.path.join(hermes_home, "config.yaml")):
-        homes.append(hermes_home)
+    install_paths = [os.path.abspath(os.path.expanduser(root))]
+    install_paths.append(os.path.realpath(install_paths[0]))
+    homes: list[str] = []
+    for install_path in install_paths:
+        if install_path not in homes:
+            homes.append(install_path)
+        plugins_dir = os.path.dirname(install_path)
+        hermes_home = os.path.dirname(plugins_dir)
+        if (
+            os.path.basename(plugins_dir) == "plugins"
+            and os.path.isfile(os.path.join(hermes_home, "config.yaml"))
+            and hermes_home not in homes
+        ):
+            homes.append(hermes_home)
+    plugin_data = os.environ.get("PLUGIN_DATA")
+    if plugin_data:
+        data_dir = os.path.dirname(os.path.realpath(os.path.expanduser(plugin_data)))
+        if os.path.basename(data_dir) == "plugin-data":
+            hermes_home = os.path.dirname(data_dir)
+            if hermes_home not in homes:
+                homes.append(hermes_home)
     return homes
 
 
