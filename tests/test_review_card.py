@@ -195,3 +195,15 @@ def test_poster_builds_without_pillow(sample_video, tmp_path, monkeypatch):
         m.setitem(sys.modules, "PIL.Image", None)
         data = _poster_bytes(board.frames)
     assert data is not None and data[:2] == b"\xff\xd8"
+
+
+def test_card_stacks_for_phone_width():
+    """At about 390 px the facts stack and the buttons become full-width tap targets."""
+    from mcp_video.review_card import render_review_card
+
+    html = render_review_card(title="cut.mp4", facts={"Duration": "0:42"}, images=[], actions=[("Approve", "ok")])
+    phone = html.split("@media (max-width:480px){", 1)[1].split("\n}", 1)[0]
+    assert "dl{grid-template-columns:1fr" in phone
+    assert ".actions{flex-direction:column}" in phone
+    assert "min-height:44px" in phone
+    assert "overflow-wrap:anywhere" in html, "long file names wrap instead of widening the card"
