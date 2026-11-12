@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 
 from .common import output_json
+from .home_paths import collapse_home
 
 
 def handle_direct_command(args, *, use_json: bool) -> bool:
@@ -20,7 +21,7 @@ def handle_direct_command(args, *, use_json: bool) -> bool:
     if use_json:
         output_json(result)
     else:
-        print(json.dumps(result, indent=2))
+        print(collapse_home(json.dumps(result, indent=2)))
     if not result.get("success"):
         raise SystemExit(1)
     return True

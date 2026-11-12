@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import json
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -46,3 +48,36 @@ def test_json_output_keeps_absolute_paths(home, capsys):
     cut = f"{home}/clips/final_cut.mp4"
     output_json({"output_path": cut})
     assert json.loads(capsys.readouterr().out)["output_path"] == cut
+
+
+def test_direct_human_output_collapses_home_but_json_preserves_it(home, capsys):
+    from kinocut.cli.handlers_direct import handle_direct_command
+
+    cut = f"{home}/clips/final_cut.mp4"
+    args = SimpleNamespace(
+        command="direct",
+        input=f"{home}/clips/source.mp4",
+        direction="louder",
+        output=cut,
+        apply=False,
+        overwrite=False,
+    )
+    plan = {
+        "input_path": args.input,
+        "output_path": cut,
+        "steps": [],
+        "assumptions": [],
+        "question": None,
+        "unrecognized": [],
+        "estimate": {"step_count": 0},
+    }
+    result = {"success": True, "plan": plan, "assumptions": [], "question": None, "plan_id": "fixture"}
+    with patch("kinocut.server_tools_direct.video_direct", return_value=result):
+        handle_direct_command(args, use_json=False)
+        human = capsys.readouterr().out
+        handle_direct_command(args, use_json=True)
+        machine = capsys.readouterr().out
+
+    assert home not in human
+    assert "~/clips/final_cut.mp4" in human
+    assert json.loads(machine)["plan"]["output_path"] == cut
