@@ -174,6 +174,53 @@ def _execute_step(tool: str, args: dict[str, Any], current: str) -> dict[str, An
         return _error_result(exc)
 
 
+def _dry_run_result(plan: dict[str, Any]) -> dict[str, Any]:
+    """Report a validated plan without rendering anything."""
+    return {
+        "success": True,
+        "dry_run": True,
+        "step_count": len(plan["steps"]),
+        "steps": plan["steps"],
+        "assumptions": plan.get("assumptions", []),
+        "question": plan.get("question"),
+        "output_path": plan["output_path"],
+        "receipts": [],
+    }
+
+
+def _copy_silent_output(current: str, plan: dict[str, Any]) -> str:
+    """Copy the last render to the plan output when no speech was transcribed."""
+    output = plan["output_path"]
+    _validate_input_path(clean_path(current))
+    _validate_output_path(clean_path(output))
+    with _atomic_output(output) as staged:
+        shutil.copyfile(current, staged)
+    return output
+
+
+def _cleanup_intermediates(produced: list[str], plan: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
+    """Remove rendered intermediates; return (kept, removed, retained)."""
+    intermediate_paths = {
+        step["args"]["output_path"]
+        for step in plan["steps"]
+        if step["tool"] not in {"video_ai_transcribe", "video_thumbnail"}
+        and step["args"]["output_path"] != plan["output_path"]
+    }
+    removed, retained = [], []
+    for path in produced:
+        if path not in intermediate_paths:
+            continue
+        try:
+            Path(path).unlink()
+        except FileNotFoundError:
+            removed.append(path)
+        except OSError:
+            retained.append(path)
+        else:
+            removed.append(path)
+    return [path for path in produced if path not in removed], removed, retained
+
+
 @mcp.tool()
 @_safe_tool
 def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] = False) -> dict[str, Any]:
@@ -181,21 +228,13 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
 
     Hand-edited tools, paths and arguments are checked before any execution.
     Stops at the first failure and reports receipts and artifacts already made.
+    Intermediate video renders are removed after every planned step succeeds.
     """
     if type(confirm) is not bool:
         invalid("confirm must be an explicit boolean.")
     plan = validate_plan(copy.deepcopy(plan))
     if not confirm:
-        return {
-            "success": True,
-            "dry_run": True,
-            "step_count": len(plan["steps"]),
-            "steps": plan["steps"],
-            "assumptions": plan.get("assumptions", []),
-            "question": plan.get("question"),
-            "output_path": plan["output_path"],
-            "receipts": [],
-        }
+        return _dry_run_result(plan)
     current = plan["input_path"]
     receipts, produced = [], []
     no_speech = False
@@ -240,11 +279,10 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
         elif tool != "video_thumbnail":
             current = args["output_path"]
     if no_speech and current != plan["output_path"]:
-        output = plan["output_path"]
-        _validate_input_path(clean_path(current))
-        _validate_output_path(clean_path(output))
-        with _atomic_output(output) as staged:
-            shutil.copyfile(current, staged)
-        produced.append(output)
-        current = output
-    return {"success": True, "dry_run": False, "receipts": receipts, "produced": produced, "output_path": current}
+        current = _copy_silent_output(current, plan)
+        produced.append(current)
+    produced, removed, retained = _cleanup_intermediates(produced, plan)
+    result = {"success": True, "dry_run": False, "receipts": receipts, "produced": produced, "output_path": current}
+    if retained:
+        result["cleanup"] = {"intermediates_removed": removed, "intermediates_retained": retained}
+    return result

@@ -35,11 +35,11 @@ def planned(text, probe=None):
         ("skip the first five seconds", ["video_trim"]),
         ("lose the last 3 seconds", ["video_trim"]),
         (
-            "make me a thirty second vertical for TikTok with captions",
+            "make me a 30-second version for vertical TikTok with captions",
             ["video_trim", "video_resize", "video_ai_transcribe", "video_subtitles"],
         ),
         ("make it 30s", ["video_trim"]),
-        ("half a minute please", ["video_trim"]),
+        ("make it half a minute", ["video_trim"]),
         ("make it 1:30", ["video_trim"]),
         ("add subtitles", ["video_ai_transcribe", "video_subtitles"]),
         ("no captions", []),
@@ -62,7 +62,13 @@ def test_phrase_corpus(text, tools):
 
 @pytest.mark.parametrize(
     "text,seconds",
-    [("thirty seconds", 30), ("30s", 30), ("half a minute", 30), ("1:30", 90), ("one minute thirty seconds", 90)],
+    [
+        ("make it thirty seconds", 30),
+        ("make it 30s", 30),
+        ("make it half a minute", 30),
+        ("make it 1:30", 90),
+        ("make it one minute thirty seconds", 90),
+    ],
 )
 def test_normalized_lengths(text, seconds):
     from kinocut.direct import parse_direction
@@ -72,7 +78,7 @@ def test_normalized_lengths(text, seconds):
 
 def test_order_chaining_assumptions_and_estimate():
     plan = planned(
-        "skip first 5 seconds lose last 2 seconds tighten speed up a little 30s tiktok louder captions thumbnail",
+        "skip first 5 seconds lose last 2 seconds tighten speed up a little make it 30s tiktok louder captions thumbnail",
         {"duration": 100, "has_audio": True},
     )
     tools = [s["tool"] for s in plan["steps"]]
@@ -128,7 +134,7 @@ def test_text_cap_controls_and_caps():
     assert parse_direction("speed 0.1x").speed == 0.5
     assert parse_direction("faster a lot").speed == 1.25
     assert parse_direction("slow it down").speed == 0.9
-    assert parse_direction("999999 seconds").target_length == 14400
+    assert parse_direction("make it 999999 seconds").target_length == 14400
 
 
 def test_contradictions_negation_and_later_format():
@@ -188,9 +194,76 @@ def test_music_mute_repro_discloses_that_music_stays_unchanged():
     assert any("music" in assumption.lower() for assumption in plan["assumptions"])
 
 
-def test_leftover_negation_requests_clarification():
-    plan = planned("don't make the soundtrack purple", {"duration": 60, "has_audio": True})
+@pytest.mark.parametrize("text", ["don't make the soundtrack purple", "not purple"])
+def test_leftover_negation_requests_clarification(text):
+    plan = planned(text, {"duration": 60, "has_audio": True})
     assert plan["question"] is not None
+
+
+@pytest.mark.parametrize(
+    "text,forbidden",
+    [
+        ("drop the captions", {"video_ai_transcribe", "video_subtitles"}),
+        ("lose the subtitles", {"video_ai_transcribe", "video_subtitles"}),
+        ("hide the captions", {"video_ai_transcribe", "video_subtitles"}),
+        ("avoid the subtitles", {"video_ai_transcribe", "video_subtitles"}),
+        ("get rid of the captions", {"video_ai_transcribe", "video_subtitles"}),
+        ("skip the captions, make it vertical", {"video_ai_transcribe", "video_subtitles"}),
+        ("make it vertical. captions are not needed", {"video_ai_transcribe", "video_subtitles"}),
+        ("leave the pauses in", {"video_ai_remove_silence"}),
+        ("leave the silence alone", {"video_ai_remove_silence"}),
+        ("nothing faster please, add captions", {"video_speed"}),
+        ("the thumbnail is fine as is; make it vertical", {"video_thumbnail"}),
+    ],
+)
+def test_negation_after_or_around_intent_does_not_add_that_edit(text, forbidden):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    assert forbidden.isdisjoint(step["tool"] for step in plan["steps"])
+    assert plan["question"]
+
+
+def test_no_sound_is_not_negation_of_the_mute_intent():
+    plan = planned("make it vertical, no sound", {"duration": 60, "has_audio": True})
+    assert [step["tool"] for step in plan["steps"]] == ["video_resize", "video_add_audio"]
+    assert plan["question"] is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "cut 10 seconds from the middle",
+        "remove 10 seconds in the middle",
+        "cut out 5 seconds after the intro",
+        "chop the last bit, about 4 seconds",
+        "make it 5 seconds shorter",
+        "shorten it by 10 seconds",
+        "cut it down by 30 seconds",
+        "start at 30 seconds",
+        "the last 5 seconds are shaky",
+        "cut everything before 15 seconds",
+        "I only want the last 4 seconds",
+        "add 2 seconds of black at the end",
+        "captions should appear after 3 seconds",
+        "hold the title for 3 seconds",
+        "it should be at least 60 seconds",
+        "30 seconds",
+    ],
+)
+def test_ambiguous_time_references_ask_instead_of_becoming_target_length(text):
+    plan = planned(text, {"duration": 480, "has_audio": True})
+    assert plan["question"]
+    assert "video_trim" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text",
+    ["cut it down to 30 seconds", "keep it to 30 seconds", "under 30 seconds", "max 30 seconds", "30-second version"],
+)
+def test_explicit_length_cues_still_create_target_length_plans(text):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    assert plan["question"] is None
+    assert [step["tool"] for step in plan["steps"]] == ["video_trim"]
+    assert plan["steps"][0]["args"]["duration"] == 30
 
 
 @pytest.mark.parametrize(
@@ -257,7 +330,7 @@ def test_skip_remainder_below_minimum_trim_duration_asks():
 
 
 def test_no_audio_and_short_content_do_not_invent_work():
-    plan = planned("30s louder captions", {"duration": 2, "has_audio": False})
+    plan = planned("make it 30s louder captions", {"duration": 2, "has_audio": False})
     assert plan["steps"] == []
     assert any("audio" in a for a in plan["assumptions"])
     assert any("shorter" in a for a in plan["assumptions"])
