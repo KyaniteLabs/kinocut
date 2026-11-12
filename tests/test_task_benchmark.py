@@ -114,3 +114,35 @@ def test_cli_rejects_bad_specs() -> None:
         bench.build_model("gemini:x")
     with pytest.raises(SystemExit):
         bench.main([])
+
+
+def test_anthropic_input_tokens_include_cache_reads_and_writes(monkeypatch):
+    """Cached prompt tokens are input; leaving them out understates a cached run."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
+    usage = {
+        "input_tokens": 10,
+        "cache_read_input_tokens": 700,
+        "cache_creation_input_tokens": 90,
+        "output_tokens": 5,
+    }
+    monkeypatch.setattr(bench, "_post", lambda url, headers, body: {"content": [], "usage": usage})
+    model = bench.AnthropicModel("test-model")
+    model.start("p", [])
+    turn = asyncio.run(model.step())
+    assert (turn.input_tokens, turn.output_tokens) == (800, 5)
+
+
+def test_anthropic_null_usage_fields_count_as_zero(monkeypatch):
+    """A null cache field (not just a missing one) must not raise TypeError."""
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "test-key-not-real")
+    usage = {
+        "input_tokens": 10,
+        "cache_read_input_tokens": None,
+        "cache_creation_input_tokens": None,
+        "output_tokens": None,
+    }
+    monkeypatch.setattr(bench, "_post", lambda url, headers, body: {"content": [], "usage": usage})
+    model = bench.AnthropicModel("test-model")
+    model.start("p", [])
+    turn = asyncio.run(model.step())
+    assert (turn.input_tokens, turn.output_tokens) == (10, 0)

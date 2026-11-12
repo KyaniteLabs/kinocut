@@ -35,7 +35,7 @@ work is described in `docs/PLATFORM_PARITY.md`.
 
 ## Default path (do this first)
 
-1. `kino doctor` then `kino --format json info <file>`.
+1. Call the MCP `video_doctor` tool, then `video_info` on the file. (The bundle launches through uvx, so there is no `kino` on PATH; to use the CLI, run `uvx --from kinocut==2.0.1 kino <command>`.)
 2. For an unfamiliar task, call `list_operations` with a short query from the user's task (for example, "silence" or "face"), then `describe_operation` for the required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
@@ -104,7 +104,7 @@ and `video_release_checkpoint`, then require human visual review.
 ## Start Here
 
 - Read `../../README.md` for runtime requirements, network disclosures, and the safety contract.
-- Run `kino doctor` before FFmpeg / Hyperframes / AI extras.
+- Call `video_doctor` (CLI: `uvx --from kinocut==2.0.1 kino doctor`) before FFmpeg / Hyperframes / AI extras.
 
 ## Choose A Surface
 
@@ -277,7 +277,7 @@ Receipts store workspace-relative paths only — keep specs and example receipts
 
 ## Workflow
 
-1. Inspect the input first: `kino info <file>` or the MCP/Python equivalent.
+1. Inspect the input first: the MCP `video_info` tool (CLI: `uvx --from kinocut==2.0.1 kino info <file>`).
 2. Make a low-risk plan: trim, resize, normalize audio, subtitles, overlays, effects, or Hyperframes render.
 3. Prefer previews or dry-run manifests before expensive or destructive exports:
    - `preview` for quick visual review.
@@ -304,6 +304,8 @@ Receipts store workspace-relative paths only — keep specs and example receipts
    Do not claim full-episode sound completion from the thin S12 public join alone.
 
 ## CLI Examples
+
+These need the CLI on PATH (for example `pip install kinocut==2.0.1`); under the uvx bundle prefix each with `uvx --from kinocut==2.0.1`.
 
 ```bash
 kino doctor

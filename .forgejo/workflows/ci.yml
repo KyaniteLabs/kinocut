@@ -158,7 +158,7 @@ jobs:
       # green G2 lane). The suite's not-slow shards still fail on bookworm-based
       # fresh venvs (pre-existing, py3.11/pip-resolution sensitive), so the test
       # job keeps the apt toolchain instead of the baked bookworm base image.
-      image: ubuntu:24.04
+      image: ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
     needs: lint
     # PR-safe test matrix: Node 18 + FFmpeg + the full dependency tree + the "not slow" suite.
     # Four serial shards stay below the instance's per-job timeout without xdist subprocess contention.
@@ -225,7 +225,7 @@ jobs:
     container:
       # Same noble posture as `test` (see rationale there); the slow suite has
       # the same bookworm latent failures.
-      image: ubuntu:24.04
+      image: ubuntu:24.04@sha256:fe81560990fae86dc4743202b2cb4d3df98d0bcf949173cecef15ce1127ef852
     needs: test-ffmpeg-matrix
     # Slow real-media integration suite, skipped by the PR `test` job. Runs only
     # on push to master — and only when the matrix actually ran: a skipped

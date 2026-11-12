@@ -110,6 +110,11 @@ privacy and terms fields are intentional listing metadata.
 | Kimi Code | `kimi.plugin.json`, `skills/` |
 | OpenCode | Configuration in `opencode-plugin/README.md` |
 
+## What the Hermes integration is
+
+For Hermes, the integration is the MCP server plus two skills. It has no native
+hooks. The only Desktop piece is the opt-in status item and renders pane described below.
+
 ## Hermes Desktop
 
 The same package ships a Hermes Desktop half, `desktop/plugin.js`, beside
@@ -139,7 +144,7 @@ Clients can also use the pinned configuration directly:
 
 ## Narrowing the tool list
 
-Kinocut registers 205 MCP tools. The default registration is 18 tools that
+Kinocut registers 206 MCP tools. The default registration is 18 tools that
 reach all of them (8 hot-path tools, 8 operation families, `list_operations`
 and `describe_operation`), and `KINOCUT_TOOLS=all` (or a profile) exposes the rest. A host tool
 allowlist reduces the schemas sent with each model request. For Hermes, this small inspection-and-trim set

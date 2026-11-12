@@ -299,6 +299,10 @@ DEFAULT_VISION_MODE = "off"
 DEFAULT_VISION_MODEL = "claude-sonnet-4-20250514"
 DEFAULT_VISION_BASE_URL = "https://api.anthropic.com"
 DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS = 300
+ENV_PRODUCT_DESCRIPTION_MAX_TOKENS = "KINOCUT_PRODUCT_DESCRIPTION_MAX_TOKENS"
+ENV_VISION_MAX_TOKENS = "KINOCUT_VISION_MAX_TOKENS"
+MIN_VISION_MAX_TOKENS = 16
+MAX_VISION_MAX_TOKENS = 8192
 DEFAULT_VISION_PROVIDER_TIMEOUT = 60
 DEFAULT_VISION_PROVIDER_MAX_TOKENS = 1024
 DEFAULT_VISION_MAX_FRAME_WIDTH = 1280
@@ -314,3 +318,20 @@ DEFAULT_FONT_DOWNLOAD_DEADLINE = 60
 DEFAULT_AI_SCENE_FRAME_INTERVAL = 0.5
 DEFAULT_AI_SCENE_JPEG_QUALITY = 2
 DEFAULT_AI_SCENE_HASH_THRESHOLD = 10
+
+
+def token_budget(env_name: str, default: int) -> int:
+    """Operator-set output-token budget; reasoning models need more than the defaults.
+
+    Reads env_name as an integer between MIN_VISION_MAX_TOKENS and
+    MAX_VISION_MAX_TOKENS. An unset, malformed or out-of-range value falls
+    back to default rather than failing a request.
+    """
+    import os
+
+    raw = os.environ.get(env_name, "").strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        return default
+    return value if MIN_VISION_MAX_TOKENS <= value <= MAX_VISION_MAX_TOKENS else default

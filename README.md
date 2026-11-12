@@ -15,6 +15,11 @@
 </p>
 
 <p align="center">
+  <strong>On Hermes:</strong> <code>hermes plugins install kinocut</code>, then see the
+  <a href="plugins/kinocut/README.md">Hermes plugin guide</a>. Other agents: see Install below.
+</p>
+
+<p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>

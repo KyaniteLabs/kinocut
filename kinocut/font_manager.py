@@ -7,6 +7,7 @@ import subprocess
 import sys
 
 from .errors import MCPVideoError
+from .data_dirs import cache_home
 from .defaults import DEFAULT_FONT_DOWNLOAD_DEADLINE
 from .limits import MAX_FONT_DOWNLOAD_BYTES, MAX_FONT_IDENTIFIER_CHARACTERS, MAX_FONT_DOWNLOAD_DIAGNOSTIC_BYTES
 from .atomic_publication import anchored_output
@@ -16,7 +17,11 @@ from .bounded_process import run_bounded
 from .font_download_worker import _GOOGLE_FONT_URLS, DOWNLOAD_INVALID, DOWNLOAD_OVER_LIMIT
 from .font_validation import validate_font_stream
 
-_FONT_CACHE_DIR = os.path.expanduser("~/.cache/mcp-video/fonts")
+_FONT_CACHE_DIR: str | None = None  # tests may pin a directory; otherwise data_dirs decides
+
+
+def _font_cache_dir() -> str:
+    return _FONT_CACHE_DIR or str(cache_home() / "fonts")
 
 
 def resolve_font(font_name: str) -> str:
@@ -46,7 +51,7 @@ def resolve_font(font_name: str) -> str:
             code="unknown_font",
         )
 
-    local_path = os.path.join(_FONT_CACHE_DIR, f"{normalized}.ttf")
+    local_path = os.path.join(_font_cache_dir(), f"{normalized}.ttf")
 
     if os.path.islink(local_path):
         raise MCPVideoError("Font cache entry must not be a symlink", code="unsafe_path")
