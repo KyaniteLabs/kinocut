@@ -9,7 +9,7 @@ from dataclasses import dataclass, field
 MAX_TEXT = 4000
 MAX_LENGTH = 14400.0
 _NUMBER = r"\d+(?:\.\d+)?"
-_TIME = rf"(?:\d+:\d{{2}}|{_NUMBER}\s*(?:minutes?|mins?|m)(?:\s*{_NUMBER}\s*(?:seconds?|secs?|s))?|{_NUMBER}\s*(?:seconds?|secs?|s))"
+_TIME = rf"(?:\d+:\d{{2}}|{_NUMBER}[ -]*(?:minutes?|mins?|m)(?:\s*{_NUMBER}[ -]*(?:seconds?|secs?|s))?|{_NUMBER}[ -]*(?:seconds?|secs?|s))"
 _ONES = dict(
     zip(
         [
@@ -80,7 +80,7 @@ def _seconds(value: str) -> float:
     if ":" in value:
         m, s = value.split(":")
         return float(m) * 60 + float(s)
-    parts = re.findall(rf"({_NUMBER})\s*(minutes?|mins?|m|seconds?|secs?|s)\b", value)
+    parts = re.findall(rf"({_NUMBER})[ -]*(minutes?|mins?|m|seconds?|secs?|s)\b", value)
     return sum(float(n) * (60 if unit.startswith("m") else 1) for n, unit in parts)
 
 
@@ -131,9 +131,24 @@ def _clause(text: str, position: int, limit: int | None = None) -> str:
 
 
 def _is_negated(match: re.Match, text: str, intent: str) -> bool:
-    clause = _clause(text, match.start(), match.end())
+    start = max((m.end() for m in re.finditer(r"[,;.!?]|\b(?:but|then|and)\b", text[: match.start()])), default=0)
+    leading_separator = re.match(r"[,;.!?]|\b(?:but|then|and)\b", text[match.start() :])
+    if leading_separator:
+        start = match.start() + leading_separator.end()
+    end = re.search(r"[,;.!?]|\b(?:but|then|and)\b", text[start:])
+    stop = start + end.start() if end else len(text)
+    clause = text[start:stop]
+    local_start = max(0, match.start() - start)
+    local_end = min(stop, match.end()) - start
+    before = clause[:local_start]
+    after = clause[local_end:]
     terms = _INTENT_WORDS[intent]
-    denied = re.search(r"\b(?:no|not|without|don't|do not|never)\b", clause) and re.search(rf"\b(?:{terms})\b", clause)
+    negators = re.finditer(
+        r"\b(?:no|not|without|don't|do not|never|drop|lose|hide|skip|get rid of|leave|avoid|nothing)\b", before
+    )
+    denied = any(len(re.findall(r"\w+", before[negator.end() :])) <= 2 for negator in negators) or re.search(
+        r"\b(?:is|are|was|were)\s+not\s+(?:needed|wanted|necessary)\b|\bfine as is\b", after
+    )
     preserved = intent != "reframe" and re.search(
         rf"\b(?:keep|preserve|retain)\b(?:\s+\w+){{0,3}}\s+(?:{terms})\b", clause
     )
@@ -179,15 +194,22 @@ def _parse_formats(d: Direction, take) -> None:
 
 
 def _parse_captions(d: Direction, take) -> None:
-    negatives = take(
-        r"\b(?:no|not|without|don't|do not|never|keep|preserve|retain|remove|turn off|switch off)"
+    negative_matches = take(
+        r"\b(?:no|not|without|don't|do not|never|keep|preserve|retain|remove|drop|lose|hide|skip|avoid|leave)"
         r"(?: add| include| use| want)?(?: the)? (?:captions?|subtitles?)\b"
+        r"|\bget rid of(?: the)? (?:captions?|subtitles?)\b"
+        r"|\b(?:turn|switch) off (?:the )?(?:captions?|subtitles?)\b"
         r"|\b(?:turn|switch) (?:the )?(?:captions?|subtitles?) off\b"
         r"|\b(?:captions?|subtitles?) off\b"
+        r"|\b(?:captions?|subtitles?)\s+(?:are\s+)?not\s+(?:needed|wanted|necessary)\b"
+        r"|\b(?:captions?|subtitles?)\s+(?:are\s+)?fine as is\b"
     )
     positives = [
-        m for m in take(r"\b(?:captions?|subtitles?)\b") if not any(n.start() <= m.start() < n.end() for n in negatives)
+        m
+        for m in take(r"\b(?:captions?|subtitles?)\b")
+        if not any(n.start() <= m.start() < n.end() for n in negative_matches)
     ]
+    negatives = [m for m in negative_matches if re.search(r"captions?|subtitles?", m[0])]
     d.captions = bool(positives) and not negatives
     d.explicit_negation |= bool(negatives)
     if negatives:
@@ -216,8 +238,23 @@ def _parse_lengths(d: Direction, text: str, consumed: list) -> None:
     lengths = []
     for m in re.finditer(rf"\b{_TIME}\b", text):
         if not any(consumed[m.start() : m.end()]):
-            lengths.append(m)
             consumed[m.start() : m.end()] = [True] * len(m[0])
+            before = text[max(0, m.start() - 48) : m.start()]
+            after = text[m.end() : min(len(text), m.end() + 32)]
+            explicit_length = re.search(
+                r"\b(?:make it|keep it(?: to| under)?|cut(?: it)?(?: down)? to|shorten it to|limit it to|set it to|under|at most|max(?:imum)?(?: of)?)\s*$",
+                before,
+            ) or re.match(r"\s+version\b", after)
+            modifier = r"\b(?:shorter|by|before|after|start|end|first|last|at least|add|hold|appear|middle|bit)\b"
+            ambiguous = any(
+                len(re.findall(r"\w+", before[cue.end() :])) <= 2 for cue in re.finditer(modifier, before)
+            ) or any(len(re.findall(r"\w+", after[: cue.start()])) <= 2 for cue in re.finditer(modifier, after))
+            removal_verb = re.search(r"\b(?:cut|remove|drop|lose|chop|shave)\b(?:\s+\w+){0,4}\s*$", before)
+            target_connection = re.search(r"\b(?:to|down to)\s*$", before)
+            if ambiguous or (removal_verb and not target_connection) or not explicit_length:
+                d.question = d.question or "Should I keep that as the total length, or remove that part?"
+            else:
+                lengths.append(m)
     if lengths:
         d.target_length = _bounded(d, _seconds(lengths[-1][0]), "Target length")
         if len({_seconds(m[0]) for m in lengths}) > 1:
@@ -229,7 +266,7 @@ def _unrecognized(text: str, consumed: list) -> list:
     # Remove only grammatical glue. Substantive unknown words remain visible.
     rest = "".join(" " if consumed[i] else c for i, c in enumerate(text))
     rest = re.sub(
-        r"\b(?:um|uh|please|and|then|but|with|for|to|a|an|the|this|it|me|my|i|want|can|you|make|give|add|cut|remove|version|it's|is)\b",
+        r"\b(?:um|uh|please|and|then|but|with|for|to|a|an|the|this|it|me|my|i|want|can|you|make|give|add|cut|remove|keep|under|max|maximum|at|most|version|it's|is)\b",
         " ",
         rest,
     )
@@ -307,7 +344,7 @@ def parse_direction(text: str) -> Direction:
             "Separate music removal is not available without model inference; the mixed audio stays unchanged."
         )
     if any(
-        re.search(r"\b(?:no|without|don't|do not|never|keep|preserve|retain|off|remove)\b", part)
+        re.search(r"\b(?:no|not|without|don't|do not|never|keep|preserve|retain|off|remove)\b", part)
         for part in d.unrecognized
     ):
         d.question = d.question or "Could you clarify what you want to change?"

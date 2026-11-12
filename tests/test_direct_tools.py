@@ -18,11 +18,11 @@ def api(tmp_path, monkeypatch):
 
 def test_direct_is_review_only_and_stable(api, tmp_path):
     tools, src, out = api
-    first = tools.video_direct(src, "30 seconds louder", output_path=out)
+    first = tools.video_direct(src, "make it 30 seconds louder", output_path=out)
     assert first["success"]
     assert first["question"] is None
     assert first["assumptions"] == first["plan"]["assumptions"]
-    assert first["plan_id"] == tools.video_direct(src, "30 seconds louder", output_path=out)["plan_id"]
+    assert first["plan_id"] == tools.video_direct(src, "make it 30 seconds louder", output_path=out)["plan_id"]
     assert sorted(p.name for p in tmp_path.iterdir()) == ["source.mp4"]
 
 
@@ -414,6 +414,37 @@ def test_cli_question_prevents_apply(api, monkeypatch, capsys):
     args = build_parser().parse_args(["direct", "vertical and square", "-i", src, "-o", out, "--apply"])
     handle_direct_command(args, use_json=True)
     assert json.loads(capsys.readouterr().out)["question"]
+
+
+def test_cli_ambiguous_time_prevents_apply(api, monkeypatch, capsys):
+    tools, src, out = api
+    from kinocut.cli.parser import build_parser
+    from kinocut.cli.handlers_direct import handle_direct_command
+
+    monkeypatch.setattr(tools, "video_direct_apply", lambda *a, **kw: pytest.fail("unanswered question applied"))
+    args = build_parser().parse_args(["direct", "make it 5 seconds shorter", "-i", src, "-o", out, "--apply"])
+    handle_direct_command(args, use_json=True)
+    assert json.loads(capsys.readouterr().out)["question"]
+
+
+def test_successful_apply_removes_intermediate_video_renders(api, monkeypatch, tmp_path):
+    tools, src, out = api
+    from pathlib import Path
+
+    plan = tools.video_direct(src, "skip the first 1 second and make it louder", output_path=out)["plan"]
+    intermediate = Path(plan["steps"][0]["args"]["output_path"])
+
+    def render(tool, args, current):
+        Path(args["output_path"]).write_bytes(b"rendered")
+        return {"success": True, "output_path": args["output_path"]}
+
+    monkeypatch.setattr(tools, "_execute_step", render)
+    result = tools.video_direct_apply(plan, confirm=True)
+
+    assert result["success"]
+    assert Path(out).is_file()
+    assert not intermediate.exists()
+    assert result["produced"] == [out]
 
 
 def test_success_without_artifact_is_a_reported_failure(api, monkeypatch):

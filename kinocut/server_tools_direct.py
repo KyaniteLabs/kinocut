@@ -181,6 +181,7 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
 
     Hand-edited tools, paths and arguments are checked before any execution.
     Stops at the first failure and reports receipts and artifacts already made.
+    Intermediate video renders are removed after every planned step succeeds.
     """
     if type(confirm) is not bool:
         invalid("confirm must be an explicit boolean.")
@@ -247,4 +248,26 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
             shutil.copyfile(current, staged)
         produced.append(output)
         current = output
-    return {"success": True, "dry_run": False, "receipts": receipts, "produced": produced, "output_path": current}
+    intermediate_paths = {
+        step["args"]["output_path"]
+        for step in plan["steps"]
+        if step["tool"] not in {"video_ai_transcribe", "video_thumbnail"}
+        and step["args"]["output_path"] != plan["output_path"]
+    }
+    removed, retained = [], []
+    for path in produced:
+        if path not in intermediate_paths:
+            continue
+        try:
+            Path(path).unlink()
+        except FileNotFoundError:
+            removed.append(path)
+        except OSError:
+            retained.append(path)
+        else:
+            removed.append(path)
+    produced = [path for path in produced if path not in removed]
+    result = {"success": True, "dry_run": False, "receipts": receipts, "produced": produced, "output_path": current}
+    if retained:
+        result["cleanup"] = {"intermediates_removed": removed, "intermediates_retained": retained}
+    return result
