@@ -65,7 +65,14 @@ for (const entry of readdirSync(pluginsDir, { withFileTypes: true })) {
   const mcpPath = join(dir, "mcp.json");
   if (existsSync(mcpPath)) {
     const { $schema, ...mcp } = readJson(mcpPath);
-    sync(join(dir, ".mcp.json"), fmt(mcp));
+    // Claude defaults to stdio; omit that type so .mcp.json keeps its plain shape.
+    const claudeServers = Object.fromEntries(
+      Object.entries(mcp.mcpServers ?? {}).map(([name, { type, ...rest }]) => [
+        name,
+        type === "stdio" ? rest : { type, ...rest },
+      ]),
+    );
+    sync(join(dir, ".mcp.json"), fmt({ ...mcp, mcpServers: claudeServers }));
 
     // 3. Every launcher must pin the plugin's own version.
     for (const [name, server] of Object.entries(mcp.mcpServers ?? {})) {
