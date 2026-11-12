@@ -1,0 +1,20 @@
+{
+  "name": "kyanitelabs-kinocut",
+  "interface": {
+    "displayName": "Kyanite Labs (kinocut)"
+  },
+  "plugins": [
+    {
+      "name": "kinocut",
+      "source": {
+        "source": "local",
+        "path": "./plugins/kinocut"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}
