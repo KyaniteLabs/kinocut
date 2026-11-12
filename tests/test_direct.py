@@ -246,7 +246,6 @@ def test_no_sound_is_not_negation_of_the_mute_intent():
         "captions should appear after 3 seconds",
         "hold the title for 3 seconds",
         "it should be at least 60 seconds",
-        "30 seconds",
     ],
 )
 def test_ambiguous_time_references_ask_instead_of_becoming_target_length(text):
@@ -632,3 +631,187 @@ def test_unicode_normalization_stays_within_text_cap():
     direction = parse_direction("\u0130" * 4000)
     assert len(direction.text) <= 4000
     assert any("4000" in a for a in direction.assumptions)
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "make a 30 second clip from the middle",
+        "make a 30 second clip featuring the chorus",
+        "make a 30 second clip showing the goal",
+        "make a 30 second clip that shows the goal",
+        "make a 30 second clip focused on the chorus",
+        "make a 30 second clip with the best moments",
+        "make a 30 second clip with the goal",
+        "make a 30 second clip containing the goal",
+        "make a 30 second clip where the dog jumps",
+        "make a 30 second clip when she speaks",
+        "make a 30 second clip during the speech",
+        "make it 30 seconds but keep the ending",
+        "make it 30 seconds while keeping the punchline",
+        "make it 30 seconds, keep the ending",
+        "make it 30 seconds, keeping the outro",
+        "make it 30 seconds and keep the last part",
+        "make it 30 seconds and end on the punchline",
+        "trim to 30 seconds, starting from the end",
+        "trim it to the last 30 seconds",
+        "keep the last 30 seconds",
+        "make it 30 seconds from 1:00",
+        "make a 30 second teaser of the finale",
+        "make a 30 second recap",
+        "make a 30 second highlight reel",
+        "make a 30 second clip, ending with the logo",
+        "make a 30 second clip with captions from the end",
+        "make a 30 second clip with captions from the middle",
+        "make a 30 second clip with captions before the credits",
+        "make a 30 second clip with captions after the intro",
+        "make a 30 second vertical clip from the end",
+        "make a 30 second clip from the end with captions",
+        "make a 30 second clip before the speech",
+        "make a 30 second clip of the ending",
+        "make a 30 second clip of the highlights",
+    ],
+)
+def test_length_requests_with_unresolved_selection_phrases_require_review(text):
+    from kinocut.direct import parse_direction
+
+    direction = parse_direction(text)
+    plan = planned(text, {"duration": 120, "width": 1920, "height": 1080, "has_audio": True})
+    assert direction.target_length is None
+    assert direction.question
+    assert "video_trim" not in [step["tool"] for step in plan["steps"]]
+
+
+def test_highlight_reel_is_not_misread_as_an_instagram_reel():
+    plan = planned("make a 30 second highlight reel", {"duration": 120, "has_audio": True})
+    assert plan["question"]
+    assert plan["steps"] == []
+
+
+@pytest.mark.parametrize(
+    "text,seconds",
+    [
+        ("make it 30 seconds long please and louder", 30),
+        ("make it 30 seconds long and louder", 30),
+        ("make it 30 seconds total with captions", 30),
+        ("make it 30 seconds or less and louder", 30),
+        ("keep it under 30 seconds, but remove the first 5 seconds", 30),
+    ],
+)
+def test_supported_length_suffix_sequences_preserve_the_total(text, seconds):
+    plan = planned(text, {"duration": 120, "width": 1920, "height": 1080, "has_audio": True})
+    assert plan["question"] is None
+    assert plan["estimate"]["duration_seconds"] == seconds
+    assert "video_trim" in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text,seconds",
+    [
+        ("20 seconds with captions", 20),
+        ("20 seconds and captions", 20),
+        ("1 minute, captions", 60),
+        ("30 seconds max, add captions", 30),
+        ("20 seconds, captions, vertical", 20),
+        ("30 seconds", 30),
+        ("5 seconds, vertical", 5),
+        ("60 seconds, vertical with captions", 60),
+    ],
+)
+def test_bare_length_at_request_start_is_the_total(text, seconds):
+    plan = planned(text, {"duration": 120, "width": 1920, "height": 1080, "has_audio": True})
+    assert plan["question"] is None
+    assert plan["estimate"]["duration_seconds"] == seconds
+    assert "video_trim" in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "remove silence and caption it",
+        "remove the silence and give me captions",
+        "remove the silence and I want captions",
+        "drop the music and turn on captions",
+        "hide the watermark and enable captions",
+        "lose the intro and caption the rest",
+        "add captions and get the silence removed",
+        "add captions but have silence removed",
+        "I want captions and the pauses removed",
+        "captions on and silence removed",
+        "remove silences and then add captions",
+        "remove silences plus add captions",
+    ],
+)
+def test_caption_requests_do_not_cross_removal_boundaries(text):
+    from kinocut.direct import parse_direction
+
+    direction = parse_direction(text)
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    tools = {step["tool"] for step in plan["steps"]}
+    assert direction.captions
+    assert {"video_ai_transcribe", "video_subtitles"}.issubset(tools)
+    if text in {
+        "drop the music and turn on captions",
+        "hide the watermark and enable captions",
+        "lose the intro and caption the rest",
+    }:
+        assert plan["question"]
+    else:
+        assert plan["question"] is None
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "remove silences, captions",
+        "remove silences and captions",
+        "remove the silences and the captions",
+        "captions and silences removed",
+        "remove captions and silences",
+    ],
+)
+def test_caption_removal_lists_require_review_without_adding_captions(text):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    tools = {step["tool"] for step in plan["steps"]}
+    assert plan["question"]
+    assert not {"video_ai_transcribe", "video_subtitles"} & tools
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "remove silences and music",
+        "remove silences and filler words",
+        "remove the watermark",
+        "lose the intro",
+    ],
+)
+def test_unsupported_removal_items_require_review(text):
+    assert planned(text, {"duration": 60, "has_audio": True})["question"]
+
+
+@pytest.mark.parametrize(
+    "text,factor",
+    [
+        ("slow it down to quarter speed", 0.25),
+        ("slow it to half-speed", 0.5),
+        ("play it at half speed", 0.5),
+        ("make it half as fast", 0.5),
+        ("speed it up to double speed", 2.0),
+        ("make it twice as fast", 2.0),
+        ("half speed", 0.5),
+        ("slow it down by half", 0.5),
+        ("slow it down to half speed and add captions", 0.5),
+    ],
+)
+def test_common_speed_words_map_to_their_stated_factors(text, factor):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert plan["question"] is None
+    speed = next(step for step in plan["steps"] if step["tool"] == "video_speed")
+    assert speed["args"]["factor"] == factor
+
+
+def test_unknown_speed_word_requires_clarification():
+    plan = planned("slow it down to triple speed", {"duration": 8, "has_audio": True})
+    assert plan["question"] == "What playback speed should I use?"
+    assert "video_speed" not in [step["tool"] for step in plan["steps"]]
