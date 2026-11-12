@@ -79,5 +79,35 @@ def test_direct_human_output_collapses_home_but_json_preserves_it(home, capsys):
         machine = capsys.readouterr().out
 
     assert home not in human
-    assert "~/clips/final_cut.mp4" in human
+    assert json.loads(human)["plan"]["output_path"] == "~" + cut[len(home) :]
+    assert json.loads(machine)["plan"]["output_path"] == cut
+
+
+@pytest.mark.parametrize(
+    "home",
+    ["/synthetic/rené", r"C:\Users\josé"],
+)
+def test_direct_human_output_hides_non_ascii_and_windows_home_paths(home, monkeypatch, capsys):
+    from kinocut.cli.handlers_direct import handle_direct_command
+
+    monkeypatch.setenv("HOME", home)
+    monkeypatch.setenv("USERPROFILE", home)
+    cut = home + r"\clips\final_cut.mp4" if "\\" in home else home + "/clips/final_cut.mp4"
+    args = SimpleNamespace(
+        command="direct",
+        input="fixture.mp4",
+        direction="louder",
+        output=cut,
+        apply=False,
+        overwrite=False,
+    )
+    result = {"success": True, "plan": {"output_path": cut}, "question": None}
+    with patch("kinocut.server_tools_direct.video_direct", return_value=result):
+        handle_direct_command(args, use_json=False)
+        human = capsys.readouterr().out
+        handle_direct_command(args, use_json=True)
+        machine = capsys.readouterr().out
+
+    assert home not in human
+    assert json.loads(human)["plan"]["output_path"] == "~" + cut[len(home) :]
     assert json.loads(machine)["plan"]["output_path"] == cut
