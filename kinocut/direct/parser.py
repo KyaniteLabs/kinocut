@@ -111,7 +111,7 @@ def _bounded(d: Direction, value, label):
 
 
 _INTENT_WORDS = {
-    "format": r"vertical|portrait|square|landscape|youtube|instagram|tiktok|reels?|shorts|feed|9:16|1:1|16:9",
+    "format": r"vertical|portrait|square|landscape|youtube|instagram|tiktok|reels|shorts|feed|9:16|1:1|16:9",
     "captions": r"captions?|subtitles?",
     "silence": r"silences?|pauses|dead air|tighten",
     "loudness": r"quiet|louder|normalize|balance",
@@ -173,7 +173,7 @@ def _parse_formats(d: Direction, take) -> None:
     formats = _take_intent(
         d,
         take,
-        r"\b(?:youtube shorts?|instagram reels?|tiktok|tik tok|reels?|shorts|vertical|portrait|9:16|square|1:1|instagram(?: (?:square|feed))?|feed|youtube|landscape|16:9)\b",
+        r"\b(?:youtube shorts?|instagram reels?|tiktok|tik tok|reels|shorts|vertical|portrait|9:16|square|1:1|instagram(?: (?:square|feed))?|feed|youtube|landscape|16:9)\b",
         "format",
     )
     choices = []
@@ -194,6 +194,7 @@ def _parse_formats(d: Direction, take) -> None:
 
 
 def _parse_captions(d: Direction, take) -> None:
+    removal_gap = r"(?:\s+(?!(?:but|while|then|with|and|plus)\b|,)\w+){0,5}"
     negative_matches = take(
         r"\b(?:no|not|without|don't|do not|never|keep|preserve|retain|remove|drop|lose|hide|skip|avoid|leave)"
         r"(?: add| include| use| want)?(?: the)? (?:captions?|subtitles?)\b"
@@ -201,13 +202,27 @@ def _parse_captions(d: Direction, take) -> None:
         r"|\b(?:turn|switch) off (?:the )?(?:captions?|subtitles?)\b"
         r"|\b(?:turn|switch) (?:the )?(?:captions?|subtitles?) off\b"
         r"|\b(?:captions?|subtitles?) off\b"
-        r"|\b(?:remove|drop|lose|hide|skip|avoid|leave|get rid of)(?:\s+(?!(?:but|while|then|with)\b|and\s+(?:add|burn|include|put)\b)\w+){0,5}\s+(?:captions?|subtitles?)\b"
+        rf"|\b(?:remove|drop|lose|hide|skip|avoid|leave|get rid of){removal_gap}\s+(?:captions?|subtitles?)\b"
+        rf"|\b(?:remove|drop|lose|hide|skip|avoid|leave|get rid of){removal_gap}(?:\s+and\s+|,\s+)(?:the\s+)?(?:captions|subtitles?)\b"
         r"|\b(?:captions?|subtitles?)\s+(?:(?:are|is)\s+)?(?:not|aren't|isn't)\s+(?:needed|wanted|necessary)\b"
         r"|\b(?:captions?|subtitles?)\s+(?:(?:are|is)\s+)?(?:unnecessary|optional)\b"
-        r"|\b(?:captions?|subtitles?)\b(?:\s+(?!(?:but|while|then|with)\b|and\s+(?:add|burn|include|put)\b)\w+){0,4}\s+(?:removed|deleted|dropped|hidden|skipped|avoided)\b"
+        r"|\b(?:captions?|subtitles?)\b(?:\s+(?!(?:but|while|then|with|and)\b|,)\w+){0,4}\s+(?:removed|deleted|dropped|hidden|skipped|avoided)\b"
+        r"|\b(?:captions?|subtitles?)\s+(?:and|,)\s+(?:the\s+)?(?:captions|subtitles?)\s+(?:(?:are|is)\s+)?(?:removed|deleted|dropped|hidden|skipped|avoided)\b"
         r"|\boptional\s+(?:captions?|subtitles?)\b"
         r"|\b(?:captions?|subtitles?)\s+(?:are\s+)?fine as is\b"
     )
+    ambiguous_removal = take(
+        r"\b(?:captions?|subtitles?)\s+and\s+(?:the\s+)?(?:dead air|silences?|pauses)\s+"
+        r"(?:(?:are|is)\s+)?(?:removed|deleted|dropped|hidden|skipped|avoided)\b"
+    )
+    for match in ambiguous_removal:
+        clause_start = max(
+            (m.end() for m in re.finditer(r"[,;.!?]|\b(?:but|then|and)\b", d.text[: match.start()])),
+            default=0,
+        )
+        prefix = d.text[clause_start : match.start()]
+        if not re.search(r"\b(?:add|include|burn|put|want|give|enable|turn on|switch on)\b", prefix):
+            negative_matches.append(match)
     positives = [
         m
         for m in take(r"\b(?:captions?|subtitles?)\b")
@@ -222,6 +237,58 @@ def _parse_captions(d: Direction, take) -> None:
         d.assumptions.append("Conflicting caption requests: no captions wins, even if requested earlier.")
 
 
+def _supported_removal_item(item: str) -> bool:
+    item = item.strip(" ,.!?;:")
+    item = re.sub(r"^(?:(?:the|all|any)\s+)+", "", item)
+    return bool(
+        re.fullmatch(r"(?:dead air|silences?|pauses)(?:\s+(?:removed|deleted))?", item)
+        or re.fullmatch(r"audio", item)
+        or re.fullmatch(rf"(?:first|last)\s+{_TIME}", item)
+    )
+
+
+def _independent_edit_clause(item: str) -> bool:
+    item = item.strip(" ,.!?;:")
+    return bool(
+        re.match(
+            r"(?:then\s+|but\s+|while\s+|plus\s+)?(?:"
+            r"add|include|burn|put|give me|i want|turn on|switch on|enable|caption(?: it| the rest)?|"
+            r"remove|drop|lose|hide|skip|too quiet|louder|normalize|balance|speed|slow|faster|punchier|"
+            r"tighten|mute|no sound|thumbnail|reframe|smart crop|keep (?:the |my )?face|"
+            r"vertical|portrait|square|landscape|youtube|tiktok|reels?|shorts|"
+            r"make it (?:vertical|square|landscape)|(?:the )?(?:first|last)\s+"
+            r"\d+(?::\d{2}|\s*(?:seconds?|secs?|s|minutes?|mins?|m))"
+            r")\b",
+            item,
+        )
+    )
+
+
+def _ask_about_unsupported_removals(d: Direction) -> None:
+    separators = list(re.finditer(r",|\b(?:and|plus|but|then|while)\b", d.text))
+    for command in re.finditer(r"\b(?:get rid of|remove|drop|lose|hide|skip)\b", d.text):
+        next_separator = next((m for m in separators if m.start() >= command.end()), None)
+        item_end = next_separator.start() if next_separator else len(d.text)
+        if not _supported_removal_item(d.text[command.end() : item_end]):
+            d.question = d.question or "Could you clarify what should be removed?"
+            continue
+        separator = next_separator
+        while separator and separator.group() in {",", "and", "plus"}:
+            next_start = separator.end()
+            following = next((m for m in separators if m.start() >= next_start), None)
+            next_end = following.start() if following else len(d.text)
+            item = d.text[next_start:next_end]
+            if not item.strip():
+                separator = following
+                continue
+            if _independent_edit_clause(item):
+                break
+            if not _supported_removal_item(item):
+                d.question = d.question or "Could you clarify what should be removed?"
+                break
+            separator = following
+
+
 def _parse_pacing(d: Direction, take, consumed: list) -> None:
     pacing = _take_intent(
         d,
@@ -229,12 +296,33 @@ def _parse_pacing(d: Direction, take, consumed: list) -> None:
         rf"\b(?:speed(?: (?:it|this))? up(?: (?:(?:by|to) )?{_NUMBER}x)?(?: a (?:little|lot))?|speed(?: (?:it|this))? {_NUMBER}x|{_NUMBER}x speed|{_NUMBER}x faster|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down(?: (?:(?:by|to) )?{_NUMBER}x| to half speed)?)\b",
         "pacing",
     )
-    if pacing:
-        value = pacing[-1][0]
+    word_pacing = _take_intent(
+        d,
+        take,
+        r"\b(?:"
+        r"(?:(?:slow(?: it)?(?: down)?|speed(?: it)? up|play(?: it)? at|make(?: it)?)\s+(?:(?:to|by|at)\s+)?)?"
+        r"(?:quarter|half|double)[ -]speed|"
+        r"slow(?: it)? down\s+by\s+half|"
+        r"(?:(?:make(?: it)?)\s+)?(?:half|twice) as fast"
+        r")\b",
+        "pacing",
+    )
+    all_pacing = pacing + word_pacing
+    if all_pacing:
+        value = max(all_pacing, key=lambda match: (match.start(), match.end()))[0]
         numeric = re.search(rf"({_NUMBER})x", value)
+        word_factor = re.search(r"\bquarter[ -]speed\b", value)
+        half_factor = re.search(r"\bhalf(?:[ -]speed| as fast)\b", value)
+        double_factor = re.search(r"\bdouble[ -]speed\b|\btwice as fast\b", value)
         raw = (
             float(numeric[1])
             if numeric
+            else 0.25
+            if word_factor
+            else 0.5
+            if half_factor or re.search(r"\bby half\b", value)
+            else 2.0
+            if double_factor
             else 0.5
             if "half speed" in value
             else 0.9
@@ -249,9 +337,17 @@ def _parse_pacing(d: Direction, take, consumed: list) -> None:
         if numeric and raw >= 1 and "slow" in value:
             d.question = d.question or "What playback speed should I use?"
             return
-        d.speed = min(2.0, max(0.5, raw))
+        minimum = 0.25 if raw == 0.25 else 0.5
+        d.speed = min(2.0, max(minimum, raw))
         if raw != d.speed:
             d.assumptions.append("Playback speed was capped to the safe range 0.5-2.0x.")
+    for value in re.finditer(r"\b[a-z]+[ -]speed\b|\b(?:[a-z]+\s+)?as fast\b", d.text):
+        if any(consumed[value.start() : value.end()]):
+            continue
+        if re.search(r"\b(?:slow|speed|play|make|faster|slower)\b", _clause(d.text, value.start())):
+            d.speed = None
+            d.question = d.question or "What playback speed should I use?"
+            return
     for value in re.finditer(rf"\b{_NUMBER}x\b", d.text):
         if any(consumed[value.start() : value.end()]):
             continue
@@ -262,6 +358,92 @@ def _parse_pacing(d: Direction, take, consumed: list) -> None:
             return
 
 
+def _independent_length_edit(item: str, start: int, consumed: list) -> bool:
+    item = item.strip(" ,;:.!?")
+    if re.match(
+        r"(?:add|include|burn|put|give me|i want|turn on|switch on|enable)\s+(?:the\s+)?(?:captions?|subtitles?)\b",
+        item,
+    ):
+        return True
+    prefix_words = r"\s*(?:(?:please|make|it|this|the|a|an|remove|drop|lose|hide|skip|then|but|with|turn|switch|on|add|include|burn|put|give|me|i|want|enable|speed|slow|by|to|up|down|little|lot)(?:\s+|$))*\s*"
+    for intent in ("silence", "loudness", "thumbnail", "reframe", "mute", "pacing"):
+        for match in re.finditer(rf"(?:{_INTENT_WORDS[intent]})", item):
+            absolute_start = start + match.start()
+            absolute_end = start + match.end()
+            if any(consumed[absolute_start:absolute_end]) and re.fullmatch(prefix_words, item[: match.start()]):
+                return True
+    return bool(
+        re.match(
+            r"(?:skip|cut|lose|remove|drop|trim)\b.*\b(?:first|last)\s+\d+(?::\d{2}|\s*(?:seconds?|secs?|s|minutes?|mins?|m))",
+            item,
+        )
+    )
+
+
+def _harmless_length_suffix(item: str) -> bool:
+    remaining_chars = list(item)
+    neutral_intents = rf"\b(?:{_INTENT_WORDS['format']}|captions?|subtitles?)\b"
+    for match in re.finditer(neutral_intents, item):
+        remaining_chars[match.start() : match.end()] = [" "] * len(match[0])
+    remaining = "".join(remaining_chars)
+    remaining = re.sub(r"[,;:.!?]+", " ", remaining)
+    remaining = re.sub(
+        r"\b(?:a|an|the|this|it|me|please|long|total|max|maximum|at|most|or|less|with|for|on|version|clip|short|video|cut|and|then|but|plus|to|of|add|include|burn|put)\b",
+        " ",
+        remaining,
+    )
+    return not remaining.strip()
+
+
+def _format_edit_suffix(item: str, start: int, consumed: list) -> bool:
+    remaining = list(item)
+    formats = []
+    edits = []
+    for intent, pattern in _INTENT_WORDS.items():
+        for match in re.finditer(rf"(?:{pattern})", item):
+            absolute_start = start + match.start()
+            absolute_end = start + match.end()
+            if any(consumed[absolute_start:absolute_end]):
+                remaining[match.start() : match.end()] = [" "] * len(match[0])
+                if intent == "format":
+                    formats.append(match.start())
+                elif intent != "captions":
+                    edits.append(match.start())
+    for match in re.finditer(r"\b(?:captions?|subtitles?)\b", item):
+        if any(consumed[start + match.start() : start + match.end()]):
+            remaining[match.start() : match.end()] = [" "] * len(match[0])
+    if not any(format_start < edit_start for format_start in formats for edit_start in edits):
+        return False
+    residue = re.sub(r"[,;:.!?]+", " ", "".join(remaining))
+    residue = re.sub(
+        r"\b(?:a|an|the|this|it|me|please|long|total|max|maximum|at|most|or|less|with|for|on|version|clip|short|video|cut|and|then|but|plus|to|of|add|include|burn|put)\b",
+        " ",
+        residue,
+    )
+    return not residue.strip()
+
+
+def _length_suffix_is_supported(text: str, start: int, consumed: list) -> bool:
+    separators = list(re.finditer(r"[,;.!?]|\b(?:and|then|but|plus)\b", text[start:]))
+    segment_start = start
+    has_separator = False
+    for separator in separators:
+        segment_end = start + separator.start()
+        segment = text[segment_start:segment_end]
+        if has_separator and _independent_length_edit(segment, segment_start, consumed):
+            return True
+        if not _harmless_length_suffix(segment):
+            return False
+        segment_start = start + separator.end()
+        has_separator = True
+    final = text[segment_start:]
+    return (
+        (has_separator and _independent_length_edit(final, segment_start, consumed))
+        or _harmless_length_suffix(final)
+        or (not has_separator and _format_edit_suffix(final, segment_start, consumed))
+    )
+
+
 def _parse_lengths(d: Direction, text: str, consumed: list) -> None:
     lengths = []
     for m in re.finditer(rf"\b{_TIME}\b", text):
@@ -269,10 +451,6 @@ def _parse_lengths(d: Direction, text: str, consumed: list) -> None:
             consumed[m.start() : m.end()] = [True] * len(m[0])
             before = text[max(0, m.start() - 48) : m.start()]
             after = text[m.end() : min(len(text), m.end() + 64)]
-            edit_offset = next(
-                (i for i, used in enumerate(consumed[m.end() : m.end() + len(after)]) if used), len(after)
-            )
-            position_clause = after[:edit_offset]
             format_word = rf"(?:{_INTENT_WORDS['format']}|clip|short|video|cut|version)"
             after_clause = re.sub(r"^[,;:]\s*", "", after).lstrip()
             next_word = re.match(r"([a-z0-9:]+)", after_clause)
@@ -284,22 +462,12 @@ def _parse_lengths(d: Direction, text: str, consumed: list) -> None:
             format_after_max = re.match(rf"{format_word}\b", after_max)
             simple_suffix = re.fullmatch(r"(?:long|total)(?:\s+please)?|please|or less|at most", after_max)
             edit_after = any(consumed[m.end() : m.end() + len(after)])
-            edit_connector = re.match(r"(?:and|then|but|with|for)\b", after_max)
             suffix = re.match(r"(?:or less|at most|long|total|please)\b", after_max)
             suffix_tail = after_max[suffix.end() :].lstrip(" ,;:") if suffix else ""
             suffix_then_edit = bool(suffix and re.match(r"(?:and|then|with|for)\b", suffix_tail) and edit_after)
-            max_separator = bool(trailing_max and re.match(r"\s*[,;:]", after_clause[trailing_max.end() :]))
-            separated_edit = bool(edit_after and (re.match(r"\s*[,;:]", after) or max_separator or edit_connector))
             format_before = re.search(rf"\b{_INTENT_WORDS['format']}\s*(?:,|\band\b)?\s*$", before)
-            allowed_after = bool(
-                format_after
-                or format_after_max
-                or (trailing_max and not after_max)
-                or simple_suffix
-                or suffix_then_edit
-                or separated_edit
-            )
-            unresolved_after = bool(next_word and not allowed_after and next_word[1] not in {"but", "then"})
+            allowed_after = _length_suffix_is_supported(text, m.end(), consumed)
+            unresolved_after = bool(next_word and not allowed_after)
             explicit_length = (
                 re.search(
                     r"\b(?:make (?:it|this|that)(?: (?:about|around|exactly|approximately|approx(?:imately)?|roughly))?|make (?:a|me a|the video)|keep it(?: to| under)?|cut(?: it)?(?: down)? to|trim(?: it)?(?: down)? to|shorten(?: it)? to|limit it to|set it to|under|at most|max(?:imum)?(?: of)?)\s*$",
@@ -311,16 +479,10 @@ def _parse_lengths(d: Direction, text: str, consumed: list) -> None:
                 or (trailing_max and not after_max)
                 or simple_suffix
                 or suffix_then_edit
+                or not before.strip()
             )
             modifier = r"\b(?:shorter|by|before|after|start|end|first|last|at least|hold|appear|middle|bit|add)\b"
-            position_after = re.search(
-                r"\b(?:from|starting|start|end|first|last|middle|best|between|per|before|after|at least|by|shorter)\b"
-                r"|\bof\s+(?:the\s+)?(?!(?:clip|video|format)\b)\w+|\bfor\s+each\b",
-                position_clause,
-            )
-            ambiguous = bool(position_after) or any(
-                len(re.findall(r"\w+", before[cue.end() :])) <= 2 for cue in re.finditer(modifier, before)
-            )
+            ambiguous = any(len(re.findall(r"\w+", before[cue.end() :])) <= 2 for cue in re.finditer(modifier, before))
             less_modifier = re.search(r"\bless\b", after_clause) and not re.match(r"or less\b", after_clause)
             ambiguous |= bool(less_modifier)
             removal_verb = re.search(r"\b(?:cut|remove|drop|lose|chop|shave)\b(?:\s+\w+){0,4}\s*$", before)
@@ -412,6 +574,7 @@ def parse_direction(text: str) -> Direction:
     )
     _parse_pacing(d, take, consumed)
     _parse_lengths(d, text, consumed)
+    _ask_about_unsupported_removals(d)
     d.unrecognized = _unrecognized(text, consumed)
     if re.search(r"\b(?:(?:remove|mute) (?:the )?(?:\w+ )?music|no music)\b", text):
         d.assumptions.append(
