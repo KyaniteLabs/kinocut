@@ -189,3 +189,17 @@ For other hosts, use their tool-filtering controls if available.
 - License: Apache-2.0
 
 Kinocut is an independent project by KyaniteLabs and is not endorsed by Nous Research.
+
+## Install
+
+Claude Code (2.1.275 or later):
+
+```
+/plugin install kinocut --marketplace KyaniteLabs/kinocut
+```
+
+Codex:
+
+```
+codex plugin marketplace add KyaniteLabs/kinocut
+```

@@ -1,6 +1,7 @@
 {
   "mcpServers": {
     "kinocut": {
+      "type": "stdio",
       "command": "uvx",
       "args": [
         "kinocut==2.0.1"
