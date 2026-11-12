@@ -136,7 +136,7 @@ def _retarget_cleanup_refusal(result: Any, family: str, params: dict[str, Any]) 
     rows = result.get("results")
     if not isinstance(rows, list):
         return result
-    placeholders = {key: params[key] for key in ("files", "keep") if key in params}
+    placeholders = {key: params[key] for key in ("files", "keep") if key in params and params[key] is not None}
     params_hint = ", ".join(
         f"{_argument_name(key)}={_argument_type(value)}" for key, value in sorted(placeholders.items())
     )

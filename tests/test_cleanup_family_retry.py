@@ -25,7 +25,10 @@ def test_cleanup_refusal_retry_uses_family_tool_and_cleanup_params(tmp_path):
     result = asyncio.run(
         mcp.call_tool(
             "video_edit_ops",
-            {"operation": "video_cleanup", "params": {"files": [str(user_file)]}},
+            {
+                "operation": "video_cleanup",
+                "params": {"files": [str(user_file)], "keep": None},
+            },
         )
     )
     message = result.structuredContent["results"][0]["error"]
