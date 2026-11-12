@@ -7,6 +7,7 @@ import copy
 import hashlib
 import inspect
 import json
+import os
 import shutil
 from concurrent.futures import ThreadPoolExecutor
 from contextvars import copy_context
@@ -131,6 +132,48 @@ def _run_step(tool: str, args: dict) -> dict:
     return result
 
 
+def _stat_or_none(path: str | None) -> os.stat_result | None:
+    try:
+        return Path(path).stat() if path else None
+    except OSError:
+        return None
+
+
+def _artifact_changed(before: os.stat_result | None, after: os.stat_result | None) -> bool:
+    if after is None:
+        return False
+    if before is None:
+        return True
+    return (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+    )
+
+
+def _execute_step(tool: str, args: dict[str, Any], current: str) -> dict[str, Any]:
+    """Validate one step's paths and arguments, then run it; errors become results."""
+    try:
+        validate_args(tool, args)
+        _validate_input_path(clean_path(current))
+        if tool == "video_subtitles":
+            _validate_input_path(clean_path(args["subtitle_path"]))
+        if tool != "video_ai_transcribe":
+            _validate_output_path(clean_path(args["output_path"]))
+        if tool == "video_trim" and "duration" in args:
+            # Cleanup has unknown length until rendered. Never overrun it.
+            info = probe(current)
+            duration = info["duration"] if isinstance(info, dict) else info.duration
+            available = duration - args["start"]
+            if available <= 0:
+                invalid("Trim begins after the available video.")
+            args["duration"] = min(args["duration"], available)
+        return _run_step(tool, args)
+    except Exception as exc:
+        return _error_result(exc)
+
+
 @mcp.tool()
 @_safe_tool
 def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] = False) -> dict[str, Any]:
@@ -167,38 +210,9 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
             receipts.append({"step": index, "tool": tool, "success": True, "skipped": "No speech was transcribed."})
             continue
         artifact = args.get("output_srt") if tool == "video_ai_transcribe" else args["output_path"]
-        try:
-            before = Path(artifact).stat() if artifact else None
-        except OSError:
-            before = None
-        try:
-            validate_args(tool, args)
-            _validate_input_path(clean_path(current))
-            if tool == "video_subtitles":
-                _validate_input_path(clean_path(args["subtitle_path"]))
-            if tool != "video_ai_transcribe":
-                _validate_output_path(clean_path(args["output_path"]))
-            if tool == "video_trim" and "duration" in args:
-                # Cleanup has unknown length until rendered. Never overrun it.
-                info = probe(current)
-                duration = info["duration"] if isinstance(info, dict) else info.duration
-                available = duration - args["start"]
-                if available <= 0:
-                    invalid("Trim begins after the available video.")
-                args["duration"] = min(args["duration"], available)
-            result = _run_step(tool, args)
-        except Exception as exc:
-            result = _error_result(exc)
-        try:
-            after = Path(artifact).stat() if artifact else None
-        except OSError:
-            after = None
-        wrote_artifact = after is not None and (
-            before is None
-            or (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns)
-            != (after.st_dev, after.st_ino, after.st_size, after.st_mtime_ns)
-        )
-        if artifact and wrote_artifact:
+        before = _stat_or_none(artifact)
+        result = _execute_step(tool, args, current)
+        if artifact and _artifact_changed(before, _stat_or_none(artifact)):
             produced.append(artifact)
         elif result.get("success") and not result.get("no_speech"):
             result = {
