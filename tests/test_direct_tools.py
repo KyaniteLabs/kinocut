@@ -18,11 +18,11 @@ def api(tmp_path, monkeypatch):
 
 def test_direct_is_review_only_and_stable(api, tmp_path):
     tools, src, out = api
-    first = tools.video_direct(src, "make it 30 seconds louder", output_path=out)
+    first = tools.video_direct(src, "make it 30 seconds then louder", output_path=out)
     assert first["success"]
     assert first["question"] is None
     assert first["assumptions"] == first["plan"]["assumptions"]
-    assert first["plan_id"] == tools.video_direct(src, "make it 30 seconds louder", output_path=out)["plan_id"]
+    assert first["plan_id"] == tools.video_direct(src, "make it 30 seconds then louder", output_path=out)["plan_id"]
     assert sorted(p.name for p in tmp_path.iterdir()) == ["source.mp4"]
 
 
@@ -445,6 +445,36 @@ def test_successful_apply_removes_intermediate_video_renders(api, monkeypatch, t
     assert Path(out).is_file()
     assert not intermediate.exists()
     assert result["produced"] == [out]
+
+
+@pytest.mark.parametrize("alias_kind", ["double_slash", "dot_segment", "symlinked_directory"])
+def test_successful_apply_never_cleans_final_output_through_path_alias(api, monkeypatch, tmp_path, alias_kind):
+    tools, src, out = api
+    from pathlib import Path
+    import os
+
+    plan = tools.video_direct(src, "louder", output_path=out)["plan"]
+    final = Path(out)
+    if alias_kind == "double_slash":
+        alias = str(final.parent) + "//" + final.name
+    elif alias_kind == "dot_segment":
+        alias = str(final.parent) + "/./" + final.name
+    else:
+        linked_directory = tmp_path / "linked"
+        linked_directory.symlink_to(tmp_path, target_is_directory=True)
+        alias = str(linked_directory / final.name)
+    plan["steps"][-1]["args"]["output_path"] = alias
+
+    def render(tool, args, current):
+        Path(args["output_path"]).write_bytes(b"final render")
+        return {"success": True, "output_path": args["output_path"]}
+
+    monkeypatch.setattr(tools, "_execute_step", render)
+    result = tools.video_direct_apply(plan, confirm=True)
+
+    assert result["success"]
+    assert os.path.realpath(result["output_path"]) == os.path.realpath(out)
+    assert Path(result["output_path"]).is_file()
 
 
 def test_success_without_artifact_is_a_reported_failure(api, monkeypatch):

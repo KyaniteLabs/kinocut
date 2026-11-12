@@ -267,6 +267,102 @@ def test_explicit_length_cues_still_create_target_length_plans(text):
 
 
 @pytest.mark.parametrize(
+    "text",
+    [
+        "Make me a 30 second vertical for TikTok with captions",
+        "trim it to 30 seconds",
+        "trim to 30 seconds",
+        "shorten to 30 seconds",
+        "trim it down to 15 seconds",
+        "make a 30 second clip",
+        "make this 30 seconds",
+        "make it about 30 seconds",
+        "make it around 30 seconds",
+        "make it exactly 30 seconds",
+        "make it vertical and 30 seconds",
+        "tiktok, 15s",
+        "30 seconds, vertical, with captions",
+        "vertical for tiktok, 30 seconds max",
+    ],
+)
+def test_common_total_length_phrases_create_trim_plans(text):
+    plan = planned(text, {"duration": 120, "has_audio": True})
+    assert plan["question"] is None
+    assert "video_trim" in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "make it 10 seconds longer",
+        "make it 30 seconds less",
+        "make it 5 seconds slower",
+        "make it 30 seconds louder",
+        "max 3 seconds of silence between sentences",
+        "make it 90s style",
+        "keep it to 10 seconds longer than the original",
+        "keep it under 30 seconds per clip",
+    ],
+)
+def test_unresolved_words_after_length_do_not_become_total_length(text):
+    plan = planned(text, {"duration": 120, "has_audio": True})
+    assert plan["question"]
+    assert "video_trim" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text,expected",
+    [
+        ("speed it up to 2x", 2.0),
+        ("slow it down 0.5x", 0.5),
+        ("slow it down by 0.5x", 0.5),
+        ("slow it down to 0.5x", 0.5),
+    ],
+)
+def test_adjacent_explicit_pacing_values_are_preserved(text, expected):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert plan["question"] is None
+    speed = next(step for step in plan["steps"] if step["tool"] == "video_speed")
+    assert speed["args"]["factor"] == expected
+
+
+@pytest.mark.parametrize("text", ["speed it up by 0.5x", "0.5x faster", "make it 1x faster"])
+def test_ambiguous_nonaccelerating_faster_values_require_clarification(text):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert plan["question"]
+    assert "video_speed" not in [step["tool"] for step in plan["steps"]]
+
+
+def test_unresolved_pacing_multiplier_requires_clarification():
+    plan = planned("speed it up around 2x", {"duration": 8, "has_audio": True})
+    assert plan["question"]
+    assert "video_speed" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "get rid of all the captions",
+        "remove all the subtitles",
+        "drop any captions",
+        "get rid of every caption",
+        "captions should be removed",
+    ],
+)
+def test_caption_removal_quantifiers_do_not_add_captions(text):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    assert plan["question"]
+    assert {"video_ai_transcribe", "video_subtitles"}.isdisjoint(step["tool"] for step in plan["steps"])
+
+
+@pytest.mark.parametrize("text", ["captions aren't needed", "captions are unnecessary", "vertical; captions optional"])
+def test_more_no_caption_phrasings_require_confirmation(text):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    assert plan["question"]
+    assert {"video_ai_transcribe", "video_subtitles"}.isdisjoint(step["tool"] for step in plan["steps"])
+
+
+@pytest.mark.parametrize(
     "text,forbidden",
     [
         ("make it vertical, don't mute it", "video_add_audio"),
@@ -330,7 +426,7 @@ def test_skip_remainder_below_minimum_trim_duration_asks():
 
 
 def test_no_audio_and_short_content_do_not_invent_work():
-    plan = planned("make it 30s louder captions", {"duration": 2, "has_audio": False})
+    plan = planned("make it 30s then louder captions", {"duration": 2, "has_audio": False})
     assert plan["steps"] == []
     assert any("audio" in a for a in plan["assumptions"])
     assert any("shorter" in a for a in plan["assumptions"])

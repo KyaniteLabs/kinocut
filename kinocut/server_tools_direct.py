@@ -200,15 +200,17 @@ def _copy_silent_output(current: str, plan: dict[str, Any]) -> str:
 
 def _cleanup_intermediates(produced: list[str], plan: dict[str, Any]) -> tuple[list[str], list[str], list[str]]:
     """Remove rendered intermediates; return (kept, removed, retained)."""
+    final_output = os.path.realpath(plan["output_path"])
     intermediate_paths = {
-        step["args"]["output_path"]
+        os.path.realpath(step["args"]["output_path"])
         for step in plan["steps"]
         if step["tool"] not in {"video_ai_transcribe", "video_thumbnail"}
-        and step["args"]["output_path"] != plan["output_path"]
+        and os.path.realpath(step["args"]["output_path"]) != final_output
     }
     removed, retained = [], []
     for path in produced:
-        if path not in intermediate_paths:
+        resolved = os.path.realpath(path)
+        if resolved == final_output or resolved not in intermediate_paths:
             continue
         try:
             Path(path).unlink()
