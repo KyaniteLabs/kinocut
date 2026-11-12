@@ -26,6 +26,13 @@ This project follows a simple release-note style:
   a second call. Pass `review=False` to skip it. A card that fails to render is reported in
   `review_card.error` and never fails the edit.
 
+### Fixed
+
+- CLI commands that draw a progress bar (`kino trim`, `kino video-ai-transcribe`, …) no longer hang on a
+  real terminal. The home-directory redaction stream wrote through Rich's live-display proxy and recursed
+  into itself; it now writes to the terminal underneath the proxy, so human output still shows `~` and JSON
+  still carries absolute paths.
+
 ## 2.0.1 - 2026-11-10
 
 ### Fixed
