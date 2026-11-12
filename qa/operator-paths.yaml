@@ -494,6 +494,21 @@ paths:
     tool: search_tools
     arguments:
       query: subtitle
+- id: brand-render
+  category: brand
+  required: false
+  surface: asset
+  action: brand_render
+  wiring: Declared for QA catalog change control; the runner handler and required-path registration
+    land with the follow-up engineering card. Until then the path runs by hand from its command line.
+  assertions:
+  - Exit 0; ink_pixels > 0 and the measured ink bbox lies inside the 4283x800 canvas. A sha256 match
+    to the Design manifest alone does not satisfy this path.
+  sources:
+  - file: assets/kinocut-wordmark.svg
+    line: 1
+    quote: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4283 800" role="img" aria-labelledby="title desc" data-typeface="Chakra Petch" data-weight="700">'
+  command: python3 ~/fleet/ops/qa-brand-render/render_gate.py assets/kinocut-wordmark.svg
 mcp_protocol:
   launch: kino --mcp
   client_info:
