@@ -21,7 +21,20 @@ def handle_direct_command(args, *, use_json: bool) -> bool:
     if use_json:
         output_json(result)
     else:
-        print(collapse_home(json.dumps(result, indent=2)))
+        print(json.dumps(_collapse_home_paths(result), indent=2))
     if not result.get("success"):
         raise SystemExit(1)
     return True
+
+
+def _collapse_home_paths(value):
+    """Hide home paths in human-readable direct output before JSON escaping."""
+    if isinstance(value, str):
+        return collapse_home(value)
+    if isinstance(value, list):
+        return [_collapse_home_paths(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_collapse_home_paths(item) for item in value)
+    if isinstance(value, dict):
+        return {_collapse_home_paths(key): _collapse_home_paths(item) for key, item in value.items()}
+    return value
