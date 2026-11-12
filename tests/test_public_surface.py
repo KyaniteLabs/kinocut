@@ -321,7 +321,7 @@ def test_default_server_lists_at_most_20_tools_and_all_restores_full_catalog():
             return len((await session.list_tools()).tools)
 
     assert asyncio.run(count(None)) <= 20
-    assert asyncio.run(count("all")) == 206
+    assert asyncio.run(count("all")) == 208
 
 
 def test_stdio_server_all_mode_registers_the_full_catalog():
