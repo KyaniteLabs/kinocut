@@ -216,12 +216,33 @@ def test_unrecognized_start_end_cut_phrasings_ask_instead_of_changing_length(tex
     assert "video_trim" not in [step["tool"] for step in plan["steps"]]
 
 
-def test_skip_start_and_end_keeps_the_middle():
-    plan = planned("skip the first 2 seconds and the last 2 seconds", {"duration": 8, "has_audio": True})
+@pytest.mark.parametrize(
+    "text",
+    [
+        "skip the first 2 seconds and the last 2 seconds",
+        "skip the last 2 seconds and the first 2 seconds",
+    ],
+)
+def test_skip_start_and_end_keeps_the_middle(text):
+    plan = planned(text, {"duration": 8, "has_audio": True})
     assert plan["question"] is None
     assert [step["tool"] for step in plan["steps"]] == ["video_trim"]
     assert plan["steps"][0]["args"]["start"] == 2
     assert plan["steps"][0]["args"]["duration"] == 4
+
+
+def test_unmatched_first_or_last_phrase_asks_before_becoming_target_length():
+    plan = planned("skip the last 2 seconds followed by the first 2 seconds", {"duration": 8, "has_audio": True})
+    assert plan["question"]
+
+
+@pytest.mark.parametrize("text", ["speed it up 2x", "2x faster"])
+def test_explicit_pacing_multiplier_is_preserved(text):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert plan["question"] is None
+    assert plan["unrecognized"] == []
+    assert [step["tool"] for step in plan["steps"]] == ["video_speed"]
+    assert plan["steps"][0]["args"]["factor"] == 2.0
 
 
 def test_bare_multiple_does_not_become_speed():

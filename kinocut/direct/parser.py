@@ -200,7 +200,7 @@ def _parse_pacing(d: Direction, take) -> None:
     pacing = _take_intent(
         d,
         take,
-        rf"\b(?:speed(?: (?:it|this))? up(?: a (?:little|lot))?|speed(?: (?:it|this))? {_NUMBER}x|{_NUMBER}x speed|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down)\b",
+        rf"\b(?:speed(?: (?:it|this))? up(?: (?:by )?{_NUMBER}x)?(?: a (?:little|lot))?|speed(?: (?:it|this))? {_NUMBER}x|{_NUMBER}x speed|{_NUMBER}x faster|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down)\b",
         "pacing",
     )
     if pacing:
@@ -259,8 +259,11 @@ def parse_direction(text: str) -> Direction:
         label = "start" if match["side"] == "first" else "end"
         setattr(d, f"trim_{label}", _bounded(d, _seconds(match["time"]), f"Trim {label}"))
     if trim_matches:
-        for match in _take_intent(d, take, rf"\b(?:and|,)\s+(?:the )?(?P<side>last) (?P<time>{_TIME})\b", "length"):
-            d.trim_end = _bounded(d, _seconds(match["time"]), "Trim end")
+        for match in _take_intent(
+            d, take, rf"\b(?:and|,)\s+(?:the )?(?P<side>first|last) (?P<time>{_TIME})\b", "length"
+        ):
+            label = "start" if match["side"] == "first" else "end"
+            setattr(d, f"trim_{label}", _bounded(d, _seconds(match["time"]), f"Trim {label}"))
 
     # A time next to a boundary word can mean either removing that section or
     # keeping a target-length excerpt. Without an explicit matching trim form,
@@ -268,6 +271,12 @@ def parse_direction(text: str) -> Direction:
     for _match in take(
         rf"\b(?:{_TIME}\s+(?:off|from)\s+(?:the\s+)?(?:start|beginning|end)|(?:start|beginning|end)\s+(?:by\s+)?{_TIME})\b"
     ):
+        d.question = d.question or "Should I remove that amount from the start or end, or keep it as the target length?"
+    for match in re.finditer(rf"\b(?:first|last) {_TIME}\b", text):
+        span = slice(match.start(), match.end())
+        if any(consumed[span]):
+            continue
+        consumed[span] = [True] * len(match[0])
         d.question = d.question or "Should I remove that amount from the start or end, or keep it as the target length?"
 
     _parse_formats(d, take)
