@@ -11,8 +11,8 @@ revision_policy: 'The runner reports the catalog-source git revision and catalog
   only; it is not a claim that later product revisions were tested. All surface counts/names are discovered
   at runtime, not pinned here.'
 policy:
-  pass: All 25 required setup/fixture/operator paths execute and satisfy their assertions on the caller-supplied
-    exact merged product SHA; missing required inputs remain BLOCKED.
+  pass: All 26 required setup/fixture/brand/operator/protocol/browser paths execute and satisfy their assertions
+    on the caller-supplied exact merged product SHA; missing required inputs remain BLOCKED.
   blocked: Missing exact fixture, installed dependency, consent, browser, or approved human decision is
     BLOCKED and makes the run nonzero.
   fail: An attempted required action with a real product/test assertion failure remains FAIL and makes
@@ -496,11 +496,11 @@ paths:
       query: subtitle
 - id: brand-render
   category: brand
-  required: false
+  required: true
   surface: asset
   action: brand_render
-  wiring: Declared for QA catalog change control; the runner handler and required-path registration
-    land with the follow-up engineering card. Until then the path runs by hand from its command line.
+  wiring: Executed by qa/runner.py's brand_render handler; {{fleet_root}} resolves to the fleet checkout
+    (KINOCUT_QA_FLEET_ROOT or ~/fleet) and {{product_root}} to the caller-supplied checkout.
   assertions:
   - Exit 0; ink_pixels > 0 and the measured ink bbox lies inside the 4283x800 canvas. A sha256 match
     to the Design manifest alone does not satisfy this path.
@@ -508,7 +508,17 @@ paths:
   - file: assets/kinocut-wordmark.svg
     line: 1
     quote: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 4283 800" role="img" aria-labelledby="title desc" data-typeface="Chakra Petch" data-weight="700">'
-  command: python3 ~/fleet/ops/qa-brand-render/render_gate.py assets/kinocut-wordmark.svg
+  argv:
+  - '{{python}}'
+  - '{{fleet_root}}/ops/qa-brand-render/render_gate.py'
+  - '{{product_root}}/assets/kinocut-wordmark.svg'
+  - --json
+  - '{{qa_work}}/artifacts/brand-render.json'
+  - --scratch
+  - '{{qa_work}}/tmp/brand-render'
+  - --timeout
+  - '240'
+  command: '{{python}} {{fleet_root}}/ops/qa-brand-render/render_gate.py {{product_root}}/assets/kinocut-wordmark.svg --json {{qa_work}}/artifacts/brand-render.json --scratch {{qa_work}}/tmp/brand-render --timeout 240'
 mcp_protocol:
   launch: kino --mcp
   client_info:

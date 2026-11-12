@@ -26,7 +26,7 @@ def test_catalog_keeps_original_required_operator_ids_and_provenance():
     required = runner.required_paths(catalog)
     ids = [path["id"] for path in required]
 
-    assert len(ids) == 25
+    assert len(ids) == 26
     assert len(ids) == len(set(ids))
     assert {
         "clean-environment",
@@ -54,6 +54,7 @@ def test_catalog_keeps_original_required_operator_ids_and_provenance():
         "mcp-protocol",
         "static-review-ui",
         "hyperframes-preview",
+        "brand-render",
     } <= set(ids)
     assert all(path.get("sources") for path in required)
     assert catalog["complete_e2e_catalog"] is False
@@ -116,7 +117,7 @@ def test_mcp_inventory_is_reported_separately_from_action_coverage():
         catalog,
     )
 
-    assert summary["required_path_count"] == 25
+    assert summary["required_path_count"] == 26
     assert summary["reported_path_count"] == 3
     assert summary["required_operator_action_path_count"] == 20
     assert summary["passed_operator_action_path_count"] == 1
@@ -253,3 +254,133 @@ def test_hyperframes_probe_does_not_mask_non_timeout_errors():
     page = _FakePage(error=ValueError("target closed"))
     with pytest.raises(ValueError, match="target closed"):
         runner.wait_for_playable(page, timeout_ms=10, page_errors=[], failed_requests=[])
+
+
+def _brand_runner(runner, tmp_path, monkeypatch, gate_root):
+    product = tmp_path / "product"
+    (product / "assets").mkdir(parents=True)
+    (product / "assets" / "kinocut-wordmark.svg").write_text("<svg/>", encoding="utf-8")
+    work = tmp_path / "work"
+    (work / "artifacts").mkdir(parents=True)
+    monkeypatch.setenv(runner.FLEET_ROOT_ENV, str(gate_root))
+    instance = object.__new__(runner.OperatorRunner)
+    instance.product_root = product
+    instance.product_problem = None
+    instance.product_sha = "0" * 40
+    instance.work = work
+    instance.venv = work / "venv"
+    instance.python = instance.venv / "bin" / "python"
+    instance.kino = instance.venv / "bin" / "kino"
+    instance.hyperframes_executable = None
+    instance.results = []
+    instance.catalog = runner.load_catalog(CATALOG_PATH)
+    instance.catalog_path = CATALOG_PATH
+    return instance
+
+
+def _write_fake_gate(gate_root, body):
+    gate = gate_root / "ops" / "qa-brand-render" / "render_gate.py"
+    gate.parent.mkdir(parents=True)
+    gate.write_text(body, encoding="utf-8")
+    return gate
+
+
+_FAKE_GATE = """import json
+import sys
+from pathlib import Path
+
+args = sys.argv[1:]
+asset = args[0]
+report = Path(args[args.index("--json") + 1])
+report.parent.mkdir(parents=True, exist_ok=True)
+result = {RESULT}
+report.write_text(json.dumps({{"results": [result]}}), encoding="utf-8")
+print(("PASS" if result["ok"] else "FAIL"), asset)
+sys.exit(0 if result["ok"] else 1)
+"""
+
+
+def test_brand_render_catalog_entry_binds_the_runner_argv():
+    runner = load_runner()
+    catalog = runner.load_catalog(CATALOG_PATH)
+    entry = next(path for path in catalog["paths"] if path["id"] == "brand-render")
+
+    assert entry["required"] is True
+    assert entry["action"] == "brand_render"
+    expanded = runner.expand_argv(
+        entry["argv"],
+        {
+            "python": "/usr/bin/python3",
+            "fleet_root": Path("/opt/fleet"),
+            "product_root": Path("/src/kinocut"),
+            "qa_work": Path("/qa"),
+        },
+    )
+    assert expanded[0] == "/usr/bin/python3"
+    assert expanded[1] == "/opt/fleet/ops/qa-brand-render/render_gate.py"
+    assert expanded[2] == "/src/kinocut/assets/kinocut-wordmark.svg"
+    assert expanded[expanded.index("--json") + 1] == "/qa/artifacts/brand-render.json"
+    assert entry["command"].startswith("{{python}} {{fleet_root}}/ops/qa-brand-render/render_gate.py")
+
+
+def test_brand_render_drift_is_detected_when_the_entry_stops_being_required():
+    runner = load_runner()
+    catalog = runner.load_catalog(CATALOG_PATH)
+    entry = next(path for path in catalog["paths"] if path["id"] == "brand-render")
+    entry["required"] = False
+
+    with pytest.raises(runner.CatalogError, match="required path set drift"):
+        runner.validate_catalog(catalog)
+
+
+def test_brand_render_handler_passes_positive_ink_inside_the_canvas(tmp_path, monkeypatch):
+    runner = load_runner()
+    instance = _brand_runner(runner, tmp_path, monkeypatch, tmp_path / "fleet")
+    _write_fake_gate(
+        tmp_path / "fleet",
+        _FAKE_GATE.format(
+            RESULT=(
+                '{"path": asset, "ok": True, "ink_pixels": 1234, '
+                '"ink_bbox": [10.0, 10.0, 90.0, 40.0], "canvas": [0.0, 0.0, 100.0, 50.0], '
+                '"outside_edges": []}'
+            )
+        ),
+    )
+
+    instance._run_brand_render(instance._entry("brand-render"))
+
+    assert instance.results[-1]["status"] == "PASS"
+    assert "ink_pixels=1234" in instance.results[-1]["detail"]
+    assert "ink_bbox=[10.000, 10.000, 90.000, 40.000]" in instance.results[-1]["detail"]
+
+
+def test_brand_render_handler_fails_a_blanked_asset(tmp_path, monkeypatch):
+    runner = load_runner()
+    instance = _brand_runner(runner, tmp_path, monkeypatch, tmp_path / "fleet")
+    _write_fake_gate(
+        tmp_path / "fleet",
+        _FAKE_GATE.format(
+            RESULT=(
+                '{"path": asset, "ok": False, "ink_pixels": 0, '
+                '"ink_bbox": [10.0, 60.0, 90.0, 90.0], "canvas": [0.0, 0.0, 100.0, 50.0], '
+                '"outside_edges": ["bottom"], "reason": "0 ink pixels"}'
+            )
+        ),
+    )
+
+    instance._run_brand_render(instance._entry("brand-render"))
+
+    assert instance.results[-1]["status"] == "FAIL"
+    assert "ink_pixels=0" in instance.results[-1]["detail"]
+    assert "outside_edges" in instance.results[-1]["detail"]
+
+
+def test_brand_render_handler_blocks_when_the_gate_cannot_run(tmp_path, monkeypatch):
+    runner = load_runner()
+    instance = _brand_runner(runner, tmp_path, monkeypatch, tmp_path / "fleet")
+    _write_fake_gate(tmp_path / "fleet", "import sys\nprint('ERROR no chrome', file=sys.stderr)\nsys.exit(2)\n")
+
+    instance._run_brand_render(instance._entry("brand-render"))
+
+    assert instance.results[-1]["status"] == "BLOCKED"
+    assert "could not run" in instance.results[-1]["detail"]
