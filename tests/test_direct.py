@@ -311,6 +311,52 @@ def test_unresolved_words_after_length_do_not_become_total_length(text):
 
 
 @pytest.mark.parametrize(
+    "text,expected_tools",
+    [
+        ("make it 30 seconds and louder", ["video_trim", "video_normalize_audio"]),
+        ("make it 30 seconds, louder", ["video_trim", "video_normalize_audio"]),
+        ("make it 30 seconds with captions", ["video_trim", "video_ai_transcribe", "video_subtitles"]),
+        ("make it 30 seconds and vertical", ["video_trim", "video_resize"]),
+    ],
+)
+def test_duration_is_preserved_before_independent_edits(text, expected_tools):
+    plan = planned(text, {"duration": 120, "width": 1920, "height": 1080, "has_audio": True})
+    assert plan["question"] is None
+    assert [step["tool"] for step in plan["steps"]] == expected_tools
+    assert plan["estimate"]["duration_seconds"] == 30
+
+
+@pytest.mark.parametrize("text", ["slow it down 2x", "slow it down by 2x", "slow down 2x"])
+def test_slowdown_factors_at_or_above_one_require_clarification(text):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert plan["question"] == "What playback speed should I use?"
+    assert "video_speed" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text,expected_tools",
+    [
+        (
+            "remove silence and add captions",
+            {"video_ai_remove_silence", "video_ai_transcribe", "video_subtitles"},
+        ),
+        (
+            "remove pauses then add subtitles",
+            {"video_ai_remove_silence", "video_ai_transcribe", "video_subtitles"},
+        ),
+        (
+            "add captions with silences removed",
+            {"video_ai_remove_silence", "video_ai_transcribe", "video_subtitles"},
+        ),
+    ],
+)
+def test_caption_removal_does_not_cross_into_other_edits(text, expected_tools):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    assert plan["question"] is None
+    assert expected_tools.issubset(step["tool"] for step in plan["steps"])
+
+
+@pytest.mark.parametrize(
     "text,expected",
     [
         ("speed it up to 2x", 2.0),
@@ -337,6 +383,44 @@ def test_unresolved_pacing_multiplier_requires_clarification():
     plan = planned("speed it up around 2x", {"duration": 8, "has_audio": True})
     assert plan["question"]
     assert "video_speed" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text",
+    [
+        "30 seconds max per clip",
+        "keep it under 30 seconds max per clip",
+        "make a 30 second clip from the end",
+        "make a 30 second clip of the last part",
+        "make a 30 second clip from the middle",
+        "vertical for tiktok, 3 seconds max between cuts",
+        "30 seconds max per caption line",
+    ],
+)
+def test_segment_and_per_item_lengths_require_clarification(text):
+    plan = planned(text, {"duration": 120, "width": 1920, "height": 1080, "has_audio": True})
+    assert plan["question"]
+    assert "video_trim" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text,seconds",
+    [
+        ("make it 30 seconds with captions", 30),
+        ("make it 60 seconds for tiktok", 60),
+        ("make it 30 seconds long", 30),
+        ("make it 30 seconds total", 30),
+        ("make it 30 seconds please", 30),
+        ("make it 30 seconds or less", 30),
+        ("make it 30 seconds at most", 30),
+        ("make it 45 seconds and remove the silences", 45),
+    ],
+)
+def test_common_length_suffixes_do_not_trigger_clarification(text, seconds):
+    plan = planned(text, {"duration": 120, "width": 1920, "height": 1080, "has_audio": True})
+    assert plan["question"] is None
+    assert "video_trim" in [step["tool"] for step in plan["steps"]]
+    assert plan["estimate"]["duration_seconds"] == seconds
 
 
 @pytest.mark.parametrize(
