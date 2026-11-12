@@ -43,3 +43,19 @@ def test_relative_override_is_made_absolute(monkeypatch, tmp_path):
     assert data_dirs.crush_home().is_absolute()
     assert data_dirs.crush_home() == (tmp_path / "rel-data").resolve()
     assert data_dirs.cache_home() == (tmp_path / "rel-data").resolve() / "cache"
+
+
+def test_relative_override_stays_anchored_after_chdir(monkeypatch, tmp_path):
+    first = tmp_path / "first"
+    second = tmp_path / "second"
+    first.mkdir()
+    second.mkdir()
+    monkeypatch.chdir(first)
+    monkeypatch.setenv("KINOCUT_DATA_DIR", "anchored-data")
+
+    initial = data_dirs.crush_home()
+    monkeypatch.chdir(second)
+
+    assert initial == (first / "anchored-data").resolve()
+    assert data_dirs.crush_home() == initial
+    assert data_dirs.cache_home() == initial / "cache"

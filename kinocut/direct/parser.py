@@ -61,6 +61,7 @@ class Direction:
     assumptions: list[str] = field(default_factory=list)
     unrecognized: list[str] = field(default_factory=list)
     question: str | None = None
+    explicit_negation: bool = False
     input_path: str = "input.mp4"
     output_path: str = "input_direct.mp4"
 
@@ -109,9 +110,56 @@ def _bounded(d: Direction, value, label):
     return min(MAX_LENGTH, max(0.01, value))
 
 
+_INTENT_WORDS = {
+    "format": r"vertical|portrait|square|landscape|youtube|instagram|tiktok|reels?|shorts|feed|9:16|1:1|16:9",
+    "captions": r"captions?|subtitles?",
+    "silence": r"silence|pauses|dead air|tighten",
+    "loudness": r"quiet|louder|normalize|balance",
+    "thumbnail": r"thumbnail",
+    "reframe": r"reframe|face|crop",
+    "mute": r"mute|audio|sound",
+    "pacing": r"speed|faster|punchier|slow",
+    "length": r"skip|cut|lose|remove|drop|trim|seconds?|minutes?",
+}
+
+
+def _clause(text: str, position: int, limit: int | None = None) -> str:
+    start = max((m.end() for m in re.finditer(r"[,;.!?]|\b(?:but|then|and)\b", text[:position])), default=0)
+    end = re.search(r"[,;.!?]|\b(?:but|then|and)\b", text[position:])
+    stop = position + end.start() if end else len(text)
+    return text[start : min(stop, limit) if limit is not None else stop]
+
+
+def _is_negated(match: re.Match, text: str, intent: str) -> bool:
+    clause = _clause(text, match.start(), match.end())
+    terms = _INTENT_WORDS[intent]
+    denied = re.search(r"\b(?:no|without|don't|do not|never)\b", clause) and re.search(rf"\b(?:{terms})\b", clause)
+    preserved = intent != "reframe" and re.search(
+        rf"\b(?:keep|preserve|retain)\b(?:\s+\w+){{0,3}}\s+(?:{terms})\b", clause
+    )
+    turned_off = re.search(rf"\b(?:turn|switch) off\b(?:\s+the)?\s+(?:{terms})\b", clause) or re.search(
+        rf"\b(?:{terms})\s+off\b", clause
+    )
+    return bool(denied or preserved or turned_off)
+
+
+def _take_intent(d: Direction, take, pattern: str, intent: str):
+    matches = take(pattern)
+    active = [match for match in matches if not _is_negated(match, d.text, intent)]
+    denied = len(active) != len(matches)
+    d.explicit_negation |= denied
+    if active and denied:
+        d.question = d.question or "You asked both to change and keep the same thing; which should I follow?"
+        return []
+    return active
+
+
 def _parse_formats(d: Direction, take) -> None:
-    formats = take(
-        r"\b(?:youtube shorts?|instagram reels?|tiktok|tik tok|reels?|shorts|vertical|portrait|9:16|square|1:1|instagram(?: (?:square|feed))?|feed|youtube|landscape|16:9)\b"
+    formats = _take_intent(
+        d,
+        take,
+        r"\b(?:youtube shorts?|instagram reels?|tiktok|tik tok|reels?|shorts|vertical|portrait|9:16|square|1:1|instagram(?: (?:square|feed))?|feed|youtube|landscape|16:9)\b",
+        "format",
     )
     choices = []
     for m in formats:
@@ -131,19 +179,28 @@ def _parse_formats(d: Direction, take) -> None:
 
 
 def _parse_captions(d: Direction, take) -> None:
-    negatives = take(r"\b(?:no|without|don't|do not|never)(?: add| include| use| want)? (?:captions?|subtitles?)\b")
+    negatives = take(
+        r"\b(?:no|without|don't|do not|never|keep|preserve|retain|remove|turn off|switch off)"
+        r"(?: add| include| use| want)?(?: the)? (?:captions?|subtitles?)\b"
+        r"|\b(?:turn|switch) (?:the )?(?:captions?|subtitles?) off\b"
+        r"|\b(?:captions?|subtitles?) off\b"
+    )
     positives = [
         m for m in take(r"\b(?:captions?|subtitles?)\b") if not any(n.start() <= m.start() < n.end() for n in negatives)
     ]
     d.captions = bool(positives) and not negatives
+    d.explicit_negation |= bool(negatives)
     if negatives and positives:
         d.assumptions.append("Conflicting caption requests: no captions wins, even if requested earlier.")
         d.question = d.question or "Should captions stay off?"
 
 
 def _parse_pacing(d: Direction, take) -> None:
-    pacing = take(
-        rf"\b(?:speed(?: (?:it|this))? up(?: a (?:little|lot))?|speed (?:{_NUMBER})x|{_NUMBER}x|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down)\b"
+    pacing = _take_intent(
+        d,
+        take,
+        rf"\b(?:speed(?: (?:it|this))? up(?: a (?:little|lot))?|speed (?:{_NUMBER})x|{_NUMBER}x|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down)\b",
+        "pacing",
     )
     if pacing:
         value = pacing[-1][0]
@@ -192,22 +249,42 @@ def parse_direction(text: str) -> Direction:
         return matches
 
     for label, side in [("start", "first"), ("end", "last")]:
-        matches = take(rf"\b(?:skip|cut|lose|remove|drop|trim)(?: off)?(?: the)? {side} (?P<time>{_TIME})\b")
+        matches = _take_intent(
+            d, take, rf"\b(?:skip|cut|lose|remove|drop|trim)(?: off)?(?: the)? {side} (?P<time>{_TIME})\b", "length"
+        )
         if matches:
             setattr(d, f"trim_{label}", _bounded(d, _seconds(matches[-1]["time"]), f"Trim {label}"))
 
     _parse_formats(d, take)
     _parse_captions(d, take)
-    d.remove_silence = bool(take(r"\b(?:dead air|silence|pauses|tighten(?: (?:this|it))?(?: up)?)\b"))
-    d.loudness = bool(take(r"\b(?:too quiet|louder|normalize(?: the audio)?|balance (?:the )?audio)\b"))
-    d.thumbnail = bool(take(r"\bthumbnail\b"))
-    d.reframe = bool(take(r"\b(?:reframe|keep (?:the |my )?face in (?:the )?frame|smart crop)\b"))
-    d.mute = bool(take(r"\b(?:mute(?! (?:the )?music\b)|remove (?:all |the )?audio|no sound)\b"))
+    d.remove_silence = bool(
+        _take_intent(d, take, r"\b(?:dead air|silence|pauses|tighten(?: (?:this|it))?(?: up)?)\b", "silence")
+    )
+    d.loudness = bool(
+        _take_intent(d, take, r"\b(?:too quiet|louder|normalize(?: the audio)?|balance (?:the )?audio)\b", "loudness")
+    )
+    d.thumbnail = bool(_take_intent(d, take, r"\bthumbnail\b", "thumbnail"))
+    d.reframe = bool(
+        _take_intent(d, take, r"\b(?:reframe|keep (?:the |my )?face in (?:the )?frame|smart crop)\b", "reframe")
+    )
+    d.mute = bool(
+        _take_intent(
+            d,
+            take,
+            r"\b(?:mute(?! (?:the )?(?:\w+ )?music\b)|remove (?:all |the )?audio|no sound)\b",
+            "mute",
+        )
+    )
     _parse_pacing(d, take)
     _parse_lengths(d, text, consumed)
     d.unrecognized = _unrecognized(text, consumed)
-    if re.search(r"\b(?:(?:remove|mute) (?:the )?music|no music)\b", text):
+    if re.search(r"\b(?:(?:remove|mute) (?:the )?(?:\w+ )?music|no music)\b", text):
         d.assumptions.append(
             "Separate music removal is not available without model inference; the mixed audio stays unchanged."
         )
+    if any(
+        re.search(r"\b(?:no|without|don't|do not|never|keep|preserve|retain|off|remove)\b", part)
+        for part in d.unrecognized
+    ):
+        d.question = d.question or "Could you clarify what you want to change?"
     return d
