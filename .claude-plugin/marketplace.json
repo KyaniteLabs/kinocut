@@ -1,0 +1,16 @@
+{
+  "name": "kyanitelabs-kinocut",
+  "description": "Kyanite Labs plugins from the kinocut repository.",
+  "owner": {
+    "name": "Kyanite Labs",
+    "url": "https://github.com/KyaniteLabs"
+  },
+  "plugins": [
+    {
+      "name": "kinocut",
+      "source": "./plugins/kinocut",
+      "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.",
+      "version": "2.0.1"
+    }
+  ]
+}
