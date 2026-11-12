@@ -247,7 +247,8 @@ _DARK_GRADES = {
     "night": "testsrc2=s=640x360:d=2:r=10,eq=brightness=-0.35:contrast=0.9:saturation=0.6",
     "teal": "testsrc2=s=640x360:d=2:r=10,eq=brightness=-0.3:saturation=0.5,colorbalance=bs=0.2:rs=-0.1",
     "noir": "mandelbrot=s=640x360:r=10,eq=brightness=-0.25:saturation=0,trim=duration=2",
-    "lowkey": "gradients=s=640x360:d=2:r=10:c0=0x050505:c1=0x404858,eq=saturation=0.7",
+    # gradients is randomly seeded by default; a fixed seed keeps the fixture deterministic.
+    "lowkey": "gradients=s=640x360:d=2:r=10:c0=0x050505:c1=0x404858:seed=1,eq=saturation=0.7",
 }
 
 

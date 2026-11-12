@@ -25,10 +25,11 @@ that carry the tools named below are:
 `profile:editor` carries `video_crop`, `video_edit`, `video_export`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
-`profile:intent` carries `video_cutfile_render`, `video_direct`, `video_direct_apply`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
+`profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide` in published 2.0.1. The next release adds `video_direct` and `video_direct_apply`;
 `profile:revideo` carries `revideo_install`, `revideo_materialize`, `revideo_render`, `revideo_render_job`;
-If neither `list_operations` nor a profile has the operation, stop and report
-that it is unavailable instead of retrying.
+If neither `list_operations` nor a profile has an operation, follow an
+operation-specific fallback below; otherwise stop and report that it is
+unavailable instead of retrying.
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
 work is described in `docs/PLATFORM_PARITY.md`.
@@ -55,9 +56,14 @@ Trim, merge and shorts return a card with the cut: reply with their `preview_dir
 
 Only when `gadget_devices` lists a TV with `ui.show_media` AND you have an http(s) URL for the cut that the TV can fetch. Kinocut serves no URLs itself, so never turn a local path into one; without a URL, use the Desktop card above. Keep media at 1080p or below. Call `gadget_action` with `action="ui.show_media"` and `args={"url": "<url>", "kind": "video", "caption": "Kinocut review: <file name>", "ttl_s": 300}`. The TV's remote sends back a chat line starting `APPROVE` or `REJECT` with that caption: treat APPROVE as Approve & export and REJECT as Try another range.
 
-## When the user just says what they want
+## When the user just says what they want (next release)
 
-Pass the user's words verbatim to `video_direct(input_path=ABS_PATH, direction=WORDS)`
+The `video_direct` planning flow is from the next release and is not available in
+the published 2.0.1 launch. Check `list_operations` first. If `video_direct` is
+not listed, use `video_intent` for supported intents.
+
+When available, pass the user's words verbatim to
+`video_direct(input_path=ABS_PATH, direction=WORDS)`
 (default surface: `video_plan_ops` with `{"operation": "video_direct", "params": {...}}`).
 Read the plan's assumptions back in one sentence. Mention unrecognized words.
 Ask the plan's single question if present. Resolve it with the user's words and

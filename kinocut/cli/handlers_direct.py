@@ -14,7 +14,9 @@ def handle_direct_command(args, *, use_json: bool) -> bool:
 
     result = video_direct(args.input, args.direction, output_path=args.output)
     if args.apply and result.get("success") and not result.get("question"):
-        result = video_direct_apply(result["plan"], confirm=True)
+        result = video_direct_apply(
+            result["plan"], confirm=True, overwrite=args.overwrite or getattr(args, "allow_existing_output", False)
+        )
     if use_json:
         output_json(result)
     else:

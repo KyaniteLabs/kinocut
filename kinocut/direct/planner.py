@@ -42,9 +42,9 @@ class Plan:
 def _plan_timing(d, duration, has_audio, add, assumptions, question):
     """Trim, silence, speed and target length, in edit order. Returns (duration, question)."""
     if d.trim_start or d.trim_end:
-        if duration is not None and duration <= d.trim_start + d.trim_end:
+        if duration is not None and duration - d.trim_start - d.trim_end < 0.01:
             question = question or "The requested cuts remove the whole clip; how much should I keep?"
-            assumptions.append("The trim was skipped because it would leave no video.")
+            assumptions.append("The trim was skipped because it would leave no video or less than 0.01 seconds.")
         elif d.trim_end and duration is None:
             question = question or "How long is the source clip so I can trim its end?"
             assumptions.append("End trimming needs source duration; this trim is deferred.")

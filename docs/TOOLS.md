@@ -10,7 +10,7 @@ exact MCP and CLI retry call.
 | --- | --- | --- |
 | unset (default) | 18 | 8 hot-path tools, 8 operation families, `list_operations`, `describe_operation` |
 | `profile:<name>` | varies | the default 18 plus one job's tools by name (`profile:editor` lists 115) |
-| `all` | 206 | every tool by its own name; families hidden |
+| `all` | 208 | every tool by its own name; families hidden |
 
 Kinocut 1.16.5 listed 20 tools by default and 205 with `all`; 2.0.0 lists the numbers
 above. The hot path is `video_info`, `video_trim`, `video_merge`,
@@ -29,7 +29,7 @@ above. The hot path is `video_info`, `video_trim`, `video_merge`,
    checks, and ask a person to review before anything is published.
 
 The sections below explain the main tool groups. The [complete index](#complete-index)
-at the end lists all 206 tools.
+at the end lists all 208 tools.
 
 ---
 
