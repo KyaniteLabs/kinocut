@@ -188,7 +188,7 @@ def plan_direction(direction: Direction, probe: dict | None) -> Plan:
         assumptions.append("The thumbnail uses the first frame of the final video.")
 
     out, video_indices = _bind_paths(d, steps)
-    if not steps:
+    if not steps and not d.explicit_negation:
         question = question or "What should change: length, captions, sound, or format?"
     if d.unrecognized:
         assumptions.append("Unrecognized words are listed for review and do not create edit steps.")

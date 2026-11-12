@@ -10,12 +10,18 @@ their caches.
 from __future__ import annotations
 
 import os
+from functools import cache
 from pathlib import Path
+
+
+@cache
+def _resolve_override(raw: str) -> Path:
+    return Path(raw).expanduser().resolve()
 
 
 def _override() -> Path | None:
     raw = os.environ.get("KINOCUT_DATA_DIR", "").strip()
-    return Path(raw).expanduser().resolve() if raw else None
+    return _resolve_override(raw) if raw else None
 
 
 def crush_home() -> Path:

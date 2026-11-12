@@ -142,6 +142,56 @@ def test_contradictions_negation_and_later_format():
     assert planned("1:1 then 9:16")["steps"][0]["args"]["height"] == 1920
 
 
+@pytest.mark.parametrize(
+    "text,forbidden,allowed",
+    [
+        ("Don't mute it, just make it 30 seconds.", "video_add_audio", ["video_trim"]),
+        ("Keep the pauses, don't remove silence.", "video_ai_remove_silence", []),
+        ("Don't speed it up; add captions.", "video_speed", ["video_ai_transcribe", "video_subtitles"]),
+    ],
+)
+def test_negation_suppresses_forbidden_edits_in_its_clause(text, forbidden, allowed):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    tools = [step["tool"] for step in plan["steps"]]
+    assert forbidden not in tools
+    assert tools == allowed
+    assert plan["question"] is not None
+
+
+def test_conflicting_pacing_instruction_asks_one_question():
+    plan = planned("Speed it up, but don't speed it up.")
+    assert plan["question"] is not None
+    assert plan["question"].count("?") == 1
+    assert "video_speed" not in [step["tool"] for step in plan["steps"]]
+
+
+@pytest.mark.parametrize(
+    "text,forbidden",
+    [
+        ("Mute the background music", "video_add_audio"),
+        ("remove the captions", "video_subtitles"),
+        ("turn off subtitles", "video_subtitles"),
+        ("don't speed it up", "video_speed"),
+        ("keep the pauses", "video_ai_remove_silence"),
+        ("don't remove the silence", "video_ai_remove_silence"),
+        ("no thumbnail", "video_thumbnail"),
+    ],
+)
+def test_negated_intent_repros_do_not_create_edits(text, forbidden):
+    plan = planned(text, {"duration": 60, "has_audio": True})
+    assert forbidden not in [step["tool"] for step in plan["steps"]]
+
+
+def test_music_mute_repro_discloses_that_music_stays_unchanged():
+    plan = planned("Mute the background music", {"duration": 60, "has_audio": True})
+    assert any("music" in assumption.lower() for assumption in plan["assumptions"])
+
+
+def test_leftover_negation_requests_clarification():
+    plan = planned("don't make the soundtrack purple", {"duration": 60, "has_audio": True})
+    assert plan["question"] is not None
+
+
 def test_no_audio_and_short_content_do_not_invent_work():
     plan = planned("30s louder captions", {"duration": 2, "has_audio": False})
     assert plan["steps"] == []
