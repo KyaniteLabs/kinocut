@@ -236,7 +236,7 @@ OBJECT_MATTE_STILL_SUFFIXES = frozenset({".png", ".jpg", ".jpeg", ".webp", ".tif
 
 
 # Revideo bridge (Sinter x Kino integration, liminal #999). The vendored
-# template under kinocut/revideo_template pins @revideo 0.10.4 (MIT) via a
+# template under kinocut/revideo_template pins @revideo 0.11.0 (MIT) via a
 # committed package-lock.json; installs go through `npm ci` only.
 DEFAULT_REVIDEO_FPS = 30.0
 DEFAULT_REVIDEO_WIDTH = 1920
