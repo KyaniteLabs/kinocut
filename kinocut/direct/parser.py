@@ -133,7 +133,7 @@ def _clause(text: str, position: int, limit: int | None = None) -> str:
 def _is_negated(match: re.Match, text: str, intent: str) -> bool:
     clause = _clause(text, match.start(), match.end())
     terms = _INTENT_WORDS[intent]
-    denied = re.search(r"\b(?:no|without|don't|do not|never)\b", clause) and re.search(rf"\b(?:{terms})\b", clause)
+    denied = re.search(r"\b(?:no|not|without|don't|do not|never)\b", clause) and re.search(rf"\b(?:{terms})\b", clause)
     preserved = intent != "reframe" and re.search(
         rf"\b(?:keep|preserve|retain)\b(?:\s+\w+){{0,3}}\s+(?:{terms})\b", clause
     )
@@ -148,8 +148,8 @@ def _take_intent(d: Direction, take, pattern: str, intent: str):
     active = [match for match in matches if not _is_negated(match, d.text, intent)]
     denied = len(active) != len(matches)
     d.explicit_negation |= denied
-    if active and denied:
-        d.question = d.question or "You asked both to change and keep the same thing; which should I follow?"
+    if denied:
+        d.question = d.question or "Should I apply that change, or keep this part as requested?"
         return []
     return active
 
@@ -180,7 +180,7 @@ def _parse_formats(d: Direction, take) -> None:
 
 def _parse_captions(d: Direction, take) -> None:
     negatives = take(
-        r"\b(?:no|without|don't|do not|never|keep|preserve|retain|remove|turn off|switch off)"
+        r"\b(?:no|not|without|don't|do not|never|keep|preserve|retain|remove|turn off|switch off)"
         r"(?: add| include| use| want)?(?: the)? (?:captions?|subtitles?)\b"
         r"|\b(?:turn|switch) (?:the )?(?:captions?|subtitles?) off\b"
         r"|\b(?:captions?|subtitles?) off\b"
@@ -190,16 +190,17 @@ def _parse_captions(d: Direction, take) -> None:
     ]
     d.captions = bool(positives) and not negatives
     d.explicit_negation |= bool(negatives)
+    if negatives:
+        d.question = d.question or "Should captions stay off?"
     if negatives and positives:
         d.assumptions.append("Conflicting caption requests: no captions wins, even if requested earlier.")
-        d.question = d.question or "Should captions stay off?"
 
 
 def _parse_pacing(d: Direction, take) -> None:
     pacing = _take_intent(
         d,
         take,
-        rf"\b(?:speed(?: (?:it|this))? up(?: a (?:little|lot))?|speed (?:{_NUMBER})x|{_NUMBER}x|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down)\b",
+        rf"\b(?:speed(?: (?:it|this))? up(?: a (?:little|lot))?|speed(?: (?:it|this))? {_NUMBER}x|{_NUMBER}x speed|(?:a lot )?(?:punchier|faster)(?: a lot)?|slow(?: it)? down)\b",
         "pacing",
     )
     if pacing:
@@ -248,12 +249,26 @@ def parse_direction(text: str) -> Direction:
             consumed[match.start() : match.end()] = [True] * len(match[0])
         return matches
 
-    for label, side in [("start", "first"), ("end", "last")]:
-        matches = _take_intent(
-            d, take, rf"\b(?:skip|cut|lose|remove|drop|trim)(?: off)?(?: the)? {side} (?P<time>{_TIME})\b", "length"
-        )
-        if matches:
-            setattr(d, f"trim_{label}", _bounded(d, _seconds(matches[-1]["time"]), f"Trim {label}"))
+    trim_matches = _take_intent(
+        d,
+        take,
+        rf"\b(?:skip|cut|lose|remove|drop|trim)(?: off)?(?: the)? (?P<side>first|last) (?P<time>{_TIME})\b",
+        "length",
+    )
+    for match in trim_matches:
+        label = "start" if match["side"] == "first" else "end"
+        setattr(d, f"trim_{label}", _bounded(d, _seconds(match["time"]), f"Trim {label}"))
+    if trim_matches:
+        for match in _take_intent(d, take, rf"\b(?:and|,)\s+(?:the )?(?P<side>last) (?P<time>{_TIME})\b", "length"):
+            d.trim_end = _bounded(d, _seconds(match["time"]), "Trim end")
+
+    # A time next to a boundary word can mean either removing that section or
+    # keeping a target-length excerpt. Without an explicit matching trim form,
+    # preserve the intent for review rather than silently treating it as length.
+    for _match in take(
+        rf"\b(?:{_TIME}\s+(?:off|from)\s+(?:the\s+)?(?:start|beginning|end)|(?:start|beginning|end)\s+(?:by\s+)?{_TIME})\b"
+    ):
+        d.question = d.question or "Should I remove that amount from the start or end, or keep it as the target length?"
 
     _parse_formats(d, take)
     _parse_captions(d, take)

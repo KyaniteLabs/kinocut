@@ -139,6 +139,7 @@ def test_contradictions_negation_and_later_format():
     assert plan["steps"][0]["args"]["height"] == 1080
     assert any("caption" in a for a in plan["assumptions"])
     assert planned("no captions add captions")["steps"] == []
+    assert planned("no captions")["question"]
     assert planned("1:1 then 9:16")["steps"][0]["args"]["height"] == 1920
 
 
@@ -190,6 +191,48 @@ def test_music_mute_repro_discloses_that_music_stays_unchanged():
 def test_leftover_negation_requests_clarification():
     plan = planned("don't make the soundtrack purple", {"duration": 60, "has_audio": True})
     assert plan["question"] is not None
+
+
+@pytest.mark.parametrize(
+    "text,forbidden",
+    [
+        ("make it vertical, don't mute it", "video_add_audio"),
+        ("make it vertical, not mute it", "video_add_audio"),
+        ("tighten it up but keep the pauses", "video_ai_remove_silence"),
+        ("no thumbnail, just make it louder", "video_thumbnail"),
+        ("don't speed it up, make it square", "video_speed"),
+    ],
+)
+def test_negation_in_mixed_requests_blocks_apply_until_clarified(text, forbidden):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert forbidden not in [step["tool"] for step in plan["steps"]]
+    assert plan["question"]
+
+
+@pytest.mark.parametrize("text", ["trim 3 seconds off the start", "cut 2 seconds from the end"])
+def test_unrecognized_start_end_cut_phrasings_ask_instead_of_changing_length(text):
+    plan = planned(text, {"duration": 8, "has_audio": True})
+    assert plan["question"]
+    assert "video_trim" not in [step["tool"] for step in plan["steps"]]
+
+
+def test_skip_start_and_end_keeps_the_middle():
+    plan = planned("skip the first 2 seconds and the last 2 seconds", {"duration": 8, "has_audio": True})
+    assert plan["question"] is None
+    assert [step["tool"] for step in plan["steps"]] == ["video_trim"]
+    assert plan["steps"][0]["args"]["start"] == 2
+    assert plan["steps"][0]["args"]["duration"] == 4
+
+
+def test_bare_multiple_does_not_become_speed():
+    plan = planned("make it 2x louder", {"duration": 8, "has_audio": True})
+    assert [step["tool"] for step in plan["steps"]] == ["video_normalize_audio"]
+
+
+def test_skip_remainder_below_minimum_trim_duration_asks():
+    plan = planned("skip the first 7.995 seconds", {"duration": 8, "has_audio": True})
+    assert plan["question"]
+    assert plan["steps"] == []
 
 
 def test_no_audio_and_short_content_do_not_invent_work():

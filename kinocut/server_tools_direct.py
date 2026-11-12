@@ -7,7 +7,10 @@ import copy
 import hashlib
 import inspect
 import json
+import os
+import shutil
 from concurrent.futures import ThreadPoolExecutor
+from contextvars import copy_context
 from dataclasses import replace
 from pathlib import Path
 from typing import Annotated, Any
@@ -18,8 +21,8 @@ from pydantic import Field
 from .direct import parse_direction, plan_direction
 from .direct_validation import clean_path, invalid, validate_args, validate_plan
 from .engine import probe
-from .ffmpeg_helpers import _atomic_artifact, _validate_input_path, _validate_output_path
-from .output_policy import read_only
+from .ffmpeg_helpers import _atomic_artifact, _atomic_output, _validate_input_path, _validate_output_path
+from .output_policy import output_operation, read_only
 from .server_app import _error_result, _safe_tool, mcp
 
 
@@ -41,9 +44,20 @@ def video_direct(
     input_path = _validate_input_path(input_path)
     if audio_path is not None:
         audio_path = _validate_input_path(audio_path)
-    output = output_path or str(Path(input_path).with_name(f"{Path(input_path).stem}_direct.mp4"))
+    if output_path is None:
+        source = Path(input_path)
+        output = str(source.with_name(f"{source.stem}_direct.mp4"))
+        suffix = 2
+        while Path(output).exists() or Path(output).is_symlink():
+            output = str(source.with_name(f"{source.stem}_direct-{suffix}.mp4"))
+            suffix += 1
+    else:
+        output = output_path
     clean_path(output)
-    _validate_output_path(output)
+    # Planning never writes, so checking an existing media target here should
+    # not force the caller to supply apply-time overwrite consent prematurely.
+    with output_operation(True):
+        _validate_output_path(output)
     if Path(output).resolve() == Path(input_path).resolve():
         invalid("Direct output must not replace the source.")
     response = {"success": True}
@@ -62,7 +76,11 @@ def video_direct(
             metadata[key] = getattr(info, key)
     parsed = replace(parse_direction(direction or ""), input_path=input_path, output_path=output)
     if output_path is None:
-        parsed.assumptions.append("The default output is a new clip named with _direct beside the source.")
+        parsed.assumptions.append(
+            "The default output is a new clip named with _direct beside the source, numbered if needed."
+        )
+    elif Path(output).exists():
+        parsed.assumptions.append("The output already exists; applying this plan requires explicit overwrite consent.")
     plan = plan_direction(parsed, metadata).to_dict()
     plan_id = hashlib.sha256(json.dumps(plan, sort_keys=True, allow_nan=False).encode()).hexdigest()
     response.update(plan=plan, assumptions=plan["assumptions"], question=plan["question"], plan_id=plan_id)
@@ -108,9 +126,52 @@ def _run_step(tool: str, args: dict) -> dict:
     if inspect.isawaitable(result):
         # 2.x renders some edits as async tools. This tool may be called from
         # inside the MCP event loop, so finish the coroutine on its own loop.
+        context = copy_context()
         with ThreadPoolExecutor(max_workers=1) as pool:
-            result = pool.submit(asyncio.run, result).result()
+            result = pool.submit(context.run, asyncio.run, result).result()
     return result
+
+
+def _stat_or_none(path: str | None) -> os.stat_result | None:
+    try:
+        return Path(path).stat() if path else None
+    except OSError:
+        return None
+
+
+def _artifact_changed(before: os.stat_result | None, after: os.stat_result | None) -> bool:
+    if after is None:
+        return False
+    if before is None:
+        return True
+    return (before.st_dev, before.st_ino, before.st_size, before.st_mtime_ns) != (
+        after.st_dev,
+        after.st_ino,
+        after.st_size,
+        after.st_mtime_ns,
+    )
+
+
+def _execute_step(tool: str, args: dict[str, Any], current: str) -> dict[str, Any]:
+    """Validate one step's paths and arguments, then run it; errors become results."""
+    try:
+        validate_args(tool, args)
+        _validate_input_path(clean_path(current))
+        if tool == "video_subtitles":
+            _validate_input_path(clean_path(args["subtitle_path"]))
+        if tool != "video_ai_transcribe":
+            _validate_output_path(clean_path(args["output_path"]))
+        if tool == "video_trim" and "duration" in args:
+            # Cleanup has unknown length until rendered. Never overrun it.
+            info = probe(current)
+            duration = info["duration"] if isinstance(info, dict) else info.duration
+            available = duration - args["start"]
+            if available <= 0:
+                invalid("Trim begins after the available video.")
+            args["duration"] = min(args["duration"], available)
+        return _run_step(tool, args)
+    except Exception as exc:
+        return _error_result(exc)
 
 
 @mcp.tool()
@@ -148,26 +209,10 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
         if tool == "video_subtitles" and no_speech:
             receipts.append({"step": index, "tool": tool, "success": True, "skipped": "No speech was transcribed."})
             continue
-        try:
-            validate_args(tool, args)
-            _validate_input_path(clean_path(current))
-            if tool == "video_subtitles":
-                _validate_input_path(clean_path(args["subtitle_path"]))
-            if tool != "video_ai_transcribe":
-                _validate_output_path(clean_path(args["output_path"]))
-            if tool == "video_trim" and "duration" in args:
-                # Cleanup has unknown length until rendered. Never overrun it.
-                info = probe(current)
-                duration = info["duration"] if isinstance(info, dict) else info.duration
-                available = duration - args["start"]
-                if available <= 0:
-                    invalid("Trim begins after the available video.")
-                args["duration"] = min(args["duration"], available)
-            result = _run_step(tool, args)
-        except Exception as exc:
-            result = _error_result(exc)
         artifact = args.get("output_srt") if tool == "video_ai_transcribe" else args["output_path"]
-        if artifact and Path(artifact).is_file():
+        before = _stat_or_none(artifact)
+        result = _execute_step(tool, args, current)
+        if artifact and _artifact_changed(before, _stat_or_none(artifact)):
             produced.append(artifact)
         elif result.get("success") and not result.get("no_speech"):
             result = {
@@ -194,4 +239,12 @@ def video_direct_apply(plan: dict, confirm: Annotated[bool, Field(strict=True)] 
             no_speech = result.get("no_speech", False)
         elif tool != "video_thumbnail":
             current = args["output_path"]
+    if no_speech and current != plan["output_path"]:
+        output = plan["output_path"]
+        _validate_input_path(clean_path(current))
+        _validate_output_path(clean_path(output))
+        with _atomic_output(output) as staged:
+            shutil.copyfile(current, staged)
+        produced.append(output)
+        current = output
     return {"success": True, "dry_run": False, "receipts": receipts, "produced": produced, "output_path": current}

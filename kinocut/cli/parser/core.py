@@ -17,6 +17,7 @@ def _add_core_edit_parsers(subparsers: argparse._SubParsersAction) -> None:
     direct.add_argument("direction", help="The user's words, verbatim")
     direct.add_argument("-i", "--input", required=True)
     direct.add_argument("-o", "--output")
+    direct.add_argument("--overwrite", action="store_true", help="Replace permitted existing output files")
     direct.add_argument(
         "--apply",
         action="store_true",

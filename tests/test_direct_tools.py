@@ -26,6 +26,19 @@ def test_direct_is_review_only_and_stable(api, tmp_path):
     assert sorted(p.name for p in tmp_path.iterdir()) == ["source.mp4"]
 
 
+def test_default_output_chooses_a_free_name_on_a_second_plan(api):
+    tools, src, _ = api
+    first = tools.video_direct(src, "make it louder")
+    assert first["success"]
+    first_output = first["plan"]["output_path"]
+    from pathlib import Path
+
+    Path(first_output).write_bytes(b"first render")
+    second = tools.video_direct(src, "make it louder")
+    assert second["success"]
+    assert second["plan"]["output_path"] != first_output
+
+
 def test_voice_memo_only_when_text_is_empty(api, monkeypatch, tmp_path):
     tools, src, out = api
     from kinocut import ai_engine
@@ -148,9 +161,10 @@ def test_stop_first_failure_preserves_receipts(api, monkeypatch):
     assert result["output_path"] == result["produced"][0]
 
 
-def test_captions_no_speech_skip_and_thumbnail_use_actual_final(api, monkeypatch):
+def test_captions_no_speech_publish_planned_output_and_thumbnail_uses_actual_final(api, monkeypatch):
     tools, src, out = api
     from kinocut import ai_engine
+    from pathlib import Path
 
     plan = tools.video_direct(src, "captions thumbnail", output_path=out)["plan"]
     monkeypatch.setattr(
@@ -173,8 +187,67 @@ def test_captions_no_speech_skip_and_thumbnail_use_actual_final(api, monkeypatch
     )
     result = tools.video_direct_apply(plan, confirm=True)
     assert result["success"]
-    assert result["output_path"] == src
+    assert result["output_path"] == out
+    assert result["produced"][-1] == out
+    assert Path(out).read_bytes() == Path(src).read_bytes()
     assert result["receipts"][1]["skipped"] == "No speech was transcribed."
+
+
+def test_captions_without_speech_still_publish_the_requested_output(api, monkeypatch):
+    tools, src, out = api
+    from kinocut import ai_engine
+    from pathlib import Path
+
+    plan = tools.video_direct(src, "captions", output_path=out)["plan"]
+    monkeypatch.setattr(
+        ai_engine, "ai_transcribe", lambda *a, **kw: {"transcript": "", "segments": [], "language": "en"}
+    )
+    result = tools.video_direct_apply(plan, confirm=True)
+    assert result["success"]
+    assert result["output_path"] == out
+    assert Path(out).read_bytes() == Path(src).read_bytes()
+
+
+def test_async_trim_receives_overwrite_consent_from_apply(api, monkeypatch):
+    tools, src, out = api
+    from kinocut import server_tools_basic
+    from kinocut.output_policy import _OVERWRITE
+    from pathlib import Path
+
+    plan = tools.video_direct(src, "skip the first 1 second", output_path=out)["plan"]
+    stale = Path(plan["steps"][0]["args"]["output_path"])
+    stale.write_bytes(b"stale intermediate")
+
+    async def trim(**args):
+        assert _OVERWRITE.get() is True
+        Path(args["output_path"]).write_bytes(b"new intermediate")
+        return {"success": True, "output_path": args["output_path"]}
+
+    monkeypatch.setattr(server_tools_basic, "video_trim", trim)
+    blocked = tools.video_direct_apply(plan, confirm=True)
+    assert not blocked["success"]
+    assert blocked["error"]["code"] == "output_exists"
+    assert not blocked.get("produced"), blocked
+    result = tools.video_direct_apply(plan, confirm=True, overwrite=True)
+    assert result["success"], result
+    assert result["produced"] == [str(stale)]
+
+
+def test_stale_intermediate_is_not_reported_as_produced(api, monkeypatch):
+    tools, src, out = api
+    from pathlib import Path
+
+    plan = tools.video_direct(src, "skip the first 1 second and make it louder", output_path=out)["plan"]
+    stale = Path(plan["steps"][0]["args"]["output_path"])
+    stale.write_bytes(b"old intermediate")
+    monkeypatch.setattr(
+        tools,
+        "_run_step",
+        lambda *_: {"success": False, "error": {"code": "render_failed", "message": "failed"}},
+    )
+    result = tools.video_direct_apply(plan, confirm=True, overwrite=True)
+    assert not result["success"]
+    assert result["produced"] == []
 
 
 def test_cli_direct_review_and_apply(api, capsys, monkeypatch):
@@ -187,12 +260,39 @@ def test_cli_direct_review_and_apply(api, capsys, monkeypatch):
     result = json.loads(capsys.readouterr().out)
     assert result["plan"]["steps"][0]["tool"] == "video_normalize_audio"
 
-    def apply(plan, confirm=False):
+    def apply(plan, confirm=False, overwrite=False):
         assert confirm is True
+        assert overwrite is False
         return {"success": True, "output_path": out, "receipts": []}
 
     monkeypatch.setattr(tools, "video_direct_apply", apply)
     args = build_parser().parse_args(["direct", "louder", "-i", src, "-o", out, "--apply"])
+    assert handle_direct_command(args, use_json=True)
+    assert json.loads(capsys.readouterr().out)["output_path"] == out
+
+
+def test_cli_direct_accepts_overwrite_after_command(api):
+    _, src, _ = api
+    from kinocut.cli.parser import build_parser
+
+    args = build_parser().parse_args(["direct", "skip the first 1 second", "-i", src, "--overwrite", "--apply"])
+    assert args.overwrite is True
+
+
+def test_cli_direct_passes_overwrite_to_apply(api, monkeypatch, capsys):
+    tools, src, out = api
+    from kinocut.cli.parser import build_parser
+    from kinocut.cli.handlers_direct import handle_direct_command
+
+    monkeypatch.setattr(tools, "video_direct", lambda *a, **kw: {"success": True, "plan": {}, "question": None})
+
+    def apply(plan, confirm=False, overwrite=False):
+        assert confirm is True
+        assert overwrite is True
+        return {"success": True, "output_path": out, "receipts": []}
+
+    monkeypatch.setattr(tools, "video_direct_apply", apply)
+    args = build_parser().parse_args(["direct", "louder", "-i", src, "-o", out, "--overwrite", "--apply"])
     assert handle_direct_command(args, use_json=True)
     assert json.loads(capsys.readouterr().out)["output_path"] == out
 
