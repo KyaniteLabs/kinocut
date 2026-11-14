@@ -44,7 +44,7 @@ jobs:
         cat receipts/validate.json
         python3 -c "import json,sys; d=json.load(open('receipts/validate.json')); sys.exit(0 if d.get('ok') is True else 'validator did not report ok: true')"
 
-    - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
       if: always()
       with:
         name: plugin-validation
