@@ -192,10 +192,11 @@ Kinocut is an independent project by KyaniteLabs and is not endorsed by Nous Res
 
 ## Install
 
-Claude Code (2.1.275 or later):
+Claude Code:
 
 ```
-/plugin install kinocut --marketplace KyaniteLabs/kinocut
+/plugin marketplace add KyaniteLabs/kinocut
+/plugin install kinocut@kyanitelabs-kinocut
 ```
 
 Codex:

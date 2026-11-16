@@ -9,8 +9,7 @@
     {
       "name": "kinocut",
       "source": "./plugins/kinocut",
-      "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, repurposing, and Hyperframes via MCP, Python, or CLI.",
-      "version": "2.0.1"
+      "description": "Use when an agent must edit local video safely. Guarded FFmpeg, receipts, repurposing, and Hyperframes via MCP, Python, or CLI."
     }
   ]
 }
