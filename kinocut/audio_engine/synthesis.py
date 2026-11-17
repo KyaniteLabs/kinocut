@@ -78,6 +78,43 @@ def _validate_synth_effects(effects: dict[str, Any] | None) -> None:
         )
 
 
+# Where a lowpass sweep ends when the caller gives no "to" (issue #843).
+_SWEEP_DEFAULT_TO = {"sweep_down": 200.0, "sweep_up": 8000.0}
+
+
+def _apply_lowpass_sweep(samples: Any, start: float, end: float, sample_rate: int) -> Any:
+    """Lowpass whose cutoff glides exponentially from ``start`` to ``end`` Hz over the sound.
+
+    Numpy-only: Hann-windowed STFT frames at 75% overlap, each multiplied by a
+    2-pole Butterworth magnitude at that frame's cutoff, then overlap-added.
+    """
+    import numpy as np
+
+    x = np.asarray(samples, dtype=np.float64)
+    if x.size == 0:
+        return samples
+    nyq = sample_rate / 2.0
+    start = float(min(max(start, 20.0), nyq * 0.95))
+    end = float(min(max(end, 20.0), nyq * 0.95))
+    n_fft, hop = 1024, 256
+    win = np.hanning(n_fft + 1)[:-1]
+    pad = np.concatenate([np.zeros(n_fft), x, np.zeros(n_fft)])
+    out = np.zeros_like(pad)
+    norm = np.zeros_like(pad)
+    freqs = np.fft.rfftfreq(n_fft, 1.0 / sample_rate)
+    n_frames = 1 + (len(pad) - n_fft) // hop
+    for k in range(n_frames):
+        i = k * hop
+        centre = min(max(i + n_fft // 2 - n_fft, 0), len(x) - 1)
+        cutoff = start * (end / start) ** (centre / max(len(x) - 1, 1))
+        mag = 1.0 / np.sqrt(1.0 + (freqs / cutoff) ** 4)
+        frame = np.fft.irfft(np.fft.rfft(pad[i : i + n_fft] * win) * mag, n_fft)
+        out[i : i + n_fft] += frame * win
+        norm[i : i + n_fft] += win**2
+    out = out / np.maximum(norm, 1e-12)
+    return out[n_fft : n_fft + len(x)]
+
+
 def _apply_filter_effects(
     samples: Any,
     effects: dict[str, Any],
@@ -88,7 +125,17 @@ def _apply_filter_effects(
     if "lowpass" in effects:
         lp = effects["lowpass"]
         cutoff = lp.get("frequency", 2000) if isinstance(lp, dict) else lp
-        samples = apply_lowpass(samples, cutoff, sample_rate)
+        sweep = lp.get("type") if isinstance(lp, dict) else None
+        if sweep in (None, "static"):
+            samples = apply_lowpass(samples, cutoff, sample_rate)
+        elif sweep in _SWEEP_DEFAULT_TO:
+            samples = _apply_lowpass_sweep(samples, cutoff, lp.get("to", _SWEEP_DEFAULT_TO[sweep]), sample_rate)
+        else:
+            raise MCPVideoError(
+                f"lowpass type must be one of {['static', *sorted(_SWEEP_DEFAULT_TO)]}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
 
     # Highpass
     if "highpass" in effects:
