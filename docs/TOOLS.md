@@ -21,92 +21,49 @@ above. The hot path is `video_info`, `video_trim`, `video_merge`,
 ## Request log (opt-in)
 
 Kinocut can keep a local log of `(request → chosen operation)` pairs so routing
-
 experiments have real data to draw on. It is **off by default**; nothing is
-
 recorded unless you enable it:
 
-
-
 ```bash
-
 KINOCUT_REQUEST_LOG=1        # log to <state dir>/request_log.jsonl
-
 KINOCUT_REQUEST_LOG=/path/to/corpus.jsonl
-
 ```
 
-
-
 The state dir is `KINOCUT_STATE_DIR` if set, else `XDG_STATE_HOME`, else
-
 `~/.local/state/kinocut`. Every operation invoked through the MCP surface is
-
 logged — family dispatch (`video_plan_ops(operation=..., params=...)`) and
-
 direct calls both capture the chosen operation; discovery tools
-
 (`list_operations`, `describe_operation`, `search_tools`) are not operations
-
 and are not logged.
 
-
-
 Each JSONL record has exactly four fields: `request_text` (the redacted tool
-
 arguments), `chosen_operation`, `timestamp` (ISO-8601 UTC) and `session_id`
-
 (identifies the server process that handled the call).
 
-
-
 **Redaction.** Nothing is written until every string in the request has been
-
-redacted: absolute/relative/home/Windows file paths become `<path>`, URLs keep
-
-their scheme, host and path but lose their query string, and URL userinfo is
-
-dropped. Anything credential-shaped is replaced with `<redacted>`: assignments
-
-like `api_key=`/`"token":`/`password:`, `Bearer` tokens, known token shapes
-
-(`sk-…`, `AKIA…`, `ghp_…`, `xox…`, `github_pat_…`, PEM private key blocks) and
-
-dense secret-shaped runs (32+ base64/hex characters). Email addresses and
-
-`@handles` become `<email>`/`<handle>`, and home-directory paths cover
-
-usernames. Deliberate limit: free-text personal names are **not** detected
-
-(that would need a name-recognition model); treat `request_text` as
-
-de-identified, not anonymous. Records are capped at 8 KiB of request text.
-
-
+redacted: absolute, relative, home-directory and Windows file paths become
+`<path>`, URLs keep their scheme, host and path but lose their query string,
+and URL userinfo is dropped. Anything credential-shaped is replaced with
+`<redacted>`: assignments like `api_key=`, `"token":` or `password:`,
+`Bearer` tokens, known token shapes (`sk-…`, `AKIA…`, `ghp_…`, `xox…`,
+`github_pat_…`, PEM private key blocks) and dense secret-shaped runs (32+
+base64 or hex characters). Email addresses and `@handles` become
+`<email>`/`<handle>`, and home-directory paths cover usernames. Deliberate
+limit: free-text personal names are **not** detected (that would need a
+name-recognition model); treat `request_text` as de-identified, not anonymous.
+Records are capped at 8 KiB of request text.
 
 **Local only.** The log is one JSONL file on the machine that ran the
-
 operation. There is no network upload and no telemetry endpoint.
-
-
 
 Harvest it with:
 
-
-
 ```bash
-
 python -m kinocut.request_log [--path /path/to/log.jsonl] [--limit N]
-
 ```
 
-
-
 which re-emits the records as JSONL on stdout, skipping (and reporting)
-
 malformed lines.
-
-
 
 ## Quick start for agents
 
