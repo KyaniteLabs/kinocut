@@ -1,6 +1,6 @@
 {
  "captured": {
-  "git_commit": "4093689cceb678ee4c837e4a5f65adbbb9f22572",
+  "git_commit": "511889fa41e30c00862dde8a7c2c19c59a687a1c",
   "kind": "repo-modes",
   "kinocut_metadata_version": "2.0.1",
   "kinocut_source_version": "2.0.1",
@@ -2314,8 +2314,8 @@
      ]
     },
     {
-     "input_schema_bytes": 916,
-     "input_schema_sha256": "20ce8966fbad2a9fa9faabaf645724cad5e064b34d6ecd8f736161334d15c2d1",
+     "input_schema_bytes": 1366,
+     "input_schema_sha256": "a47c45d6072f9ec9f4951760c78da1de08b182c88f3f4152246f9fd77ce99320",
      "module": "server_tools_media",
      "name": "video_export",
      "profiles": [
@@ -2327,7 +2327,10 @@
       "format",
       "input_path",
       "output_path",
+      "override_reason",
       "overwrite",
+      "profile",
+      "profile_reason",
       "quality"
      ],
      "required_params": [
@@ -4173,7 +4176,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 120243
+   "total_input_schema_bytes": 120693
   },
   "default": {
    "launch": {
@@ -5774,8 +5777,8 @@
      ]
     },
     {
-     "input_schema_bytes": 916,
-     "input_schema_sha256": "20ce8966fbad2a9fa9faabaf645724cad5e064b34d6ecd8f736161334d15c2d1",
+     "input_schema_bytes": 1366,
+     "input_schema_sha256": "a47c45d6072f9ec9f4951760c78da1de08b182c88f3f4152246f9fd77ce99320",
      "module": "server_tools_media",
      "name": "video_export",
      "profiles": [
@@ -5787,7 +5790,10 @@
       "format",
       "input_path",
       "output_path",
+      "override_reason",
       "overwrite",
+      "profile",
+      "profile_reason",
       "quality"
      ],
      "required_params": [
@@ -6882,7 +6888,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81742
+   "total_input_schema_bytes": 82192
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

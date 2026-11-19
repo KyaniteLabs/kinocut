@@ -156,9 +156,11 @@ def test_headline_baseline_numbers_are_pinned():
     default to 15,206 B, all to 119,623 B and editor to 81,706 B.
     video_direct and video_direct_apply (#458) then added two intent tools:
     default 15,242 B, all 208 tools / 120,243 B, editor 115 tools / 81,742 B.
+    Reviewed exports add optional profile and approval fields to video_export:
+    all 120,693 B and editor 82,192 B.
     """
-    assert BASELINE["captured"]["git_commit"] == "4093689cceb678ee4c837e4a5f65adbbb9f22572"
-    for mode, count, total in (("default", 18, 15_242), ("all", 208, 120_243), ("profile:editor", 115, 81_742)):
+    assert BASELINE["captured"]["git_commit"] == "511889fa41e30c00862dde8a7c2c19c59a687a1c"
+    for mode, count, total in (("default", 18, 15_242), ("all", 208, 120_693), ("profile:editor", 115, 82_192)):
         assert BASELINE["modes"][mode]["tool_count"] == count, mode
         assert BASELINE["modes"][mode]["total_input_schema_bytes"] == total, mode
 
@@ -228,7 +230,7 @@ def _stdio_surface(mode: str) -> tuple[int, int, list[str]]:
     return asyncio.run(capture())
 
 
-@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_242), ("all", 208, 120_243)])
+@pytest.mark.parametrize("mode,count,total", [("default", 18, 15_242), ("all", 208, 120_693)])
 def test_stdio_wire_surface_matches_baseline(mode, count, total):
     wire_count, wire_total, names = _stdio_surface(mode)
     baseline = BASELINE["modes"][mode]
