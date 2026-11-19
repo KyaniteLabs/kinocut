@@ -86,7 +86,7 @@ def render_review_card(
         poster_attr = f' poster="data:image/jpeg;base64,{base64.b64encode(poster).decode("ascii")}"' if poster else ""
         parts.append(
             f'<video src="data:video/mp4;base64,{base64.b64encode(video).decode("ascii")}"{poster_attr}'
-            f' muted autoplay loop playsinline controls aria-label="Preview of {_esc(title)}"></video>'
+            f' preload="none" muted loop playsinline controls aria-label="Preview of {_esc(title)}"></video>'
         )
     if facts:
         parts.append("<dl>")

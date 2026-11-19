@@ -152,7 +152,9 @@ def test_card_plays_the_cut_inline_within_the_preview_cap(sample_video, tmp_path
     attrs = video.group(1)
     assert 'src="data:video/mp4;base64,' in attrs
     assert 'poster="data:image/jpeg;base64,' in attrs
-    for flag in ("muted", "autoplay", "loop", "playsinline", "controls"):
+    assert 'preload="none"' in attrs
+    assert " autoplay" not in attrs
+    for flag in ("muted", "loop", "playsinline", "controls"):
         assert f" {flag}" in attrs
     assert len(doc.encode("utf-8")) <= MAX_CARD_BYTES
 
