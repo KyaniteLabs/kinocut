@@ -1,6 +1,6 @@
 {
  "captured": {
-  "git_commit": "4093689cceb678ee4c837e4a5f65adbbb9f22572",
+  "git_commit": "0ff7e0e603b6f5ae71eebdb57656605d4784bafc",
   "kind": "repo-modes",
   "kinocut_metadata_version": "2.0.1",
   "kinocut_source_version": "2.0.1",
@@ -3709,8 +3709,8 @@
      ]
     },
     {
-     "input_schema_bytes": 744,
-     "input_schema_sha256": "56ec8b73c62e4d3b4536c89098318028ded70eba462d91d46642813b01541f7f",
+     "input_schema_bytes": 888,
+     "input_schema_sha256": "6146d025d0e4a29555ceef416617c9b94c8de53d3e99ca79340882e13392613a",
      "module": "server_tools_shorts",
      "name": "video_shorts",
      "profiles": [
@@ -4173,7 +4173,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 120243
+   "total_input_schema_bytes": 120387
   },
   "default": {
    "launch": {
@@ -4465,8 +4465,8 @@
      ]
     },
     {
-     "input_schema_bytes": 744,
-     "input_schema_sha256": "56ec8b73c62e4d3b4536c89098318028ded70eba462d91d46642813b01541f7f",
+     "input_schema_bytes": 888,
+     "input_schema_sha256": "6146d025d0e4a29555ceef416617c9b94c8de53d3e99ca79340882e13392613a",
      "module": "server_tools_shorts",
      "name": "video_shorts",
      "profiles": [
@@ -4511,7 +4511,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 15242
+   "total_input_schema_bytes": 15386
   },
   "profile:editor": {
    "launch": {
@@ -6503,8 +6503,8 @@
      ]
     },
     {
-     "input_schema_bytes": 744,
-     "input_schema_sha256": "56ec8b73c62e4d3b4536c89098318028ded70eba462d91d46642813b01541f7f",
+     "input_schema_bytes": 888,
+     "input_schema_sha256": "6146d025d0e4a29555ceef416617c9b94c8de53d3e99ca79340882e13392613a",
      "module": "server_tools_shorts",
      "name": "video_shorts",
      "profiles": [
@@ -6882,7 +6882,7 @@
      ]
     }
    ],
-   "total_input_schema_bytes": 81742
+   "total_input_schema_bytes": 81886
   }
  },
  "note": "Deterministic baseline of the repository MCP surface. Regenerate after an intentional schema change with: python scripts/mcp_surface_baseline.py --regenerate-baseline — then review the diff; the regression tests fail until the baseline is consciously updated.",

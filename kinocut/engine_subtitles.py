@@ -91,6 +91,14 @@ def _fill_burn_source(fd: int, subtitle_format: str, subtitle_path: str, input_p
                 os.close(fd)
 
 
+def _burn_style(style: str | None, subtitle_format: str) -> str | None:
+    if style is not None:
+        return parse_force_style(style)
+    if subtitle_format != "ass":
+        return parse_force_style(DEFAULT_SUBTITLE_STYLE)
+    return None
+
+
 def subtitles(
     input_path: str,
     subtitle_path: str,
@@ -124,18 +132,7 @@ def subtitles(
             )
         encoding = QUALITY_PRESETS[quality]
 
-    # An explicit style always wins and is validated (an explicit empty/hostile
-    # style is rejected, never silently treated as "omitted"). When style is
-    # omitted (None), SRT/VTT keep the legacy safe default so plain captions stay
-    # readable, while authored ASS gets no force_style so its own PlayRes/styles/
-    # positions are preserved.
-    if style is not None:
-        force_style = parse_force_style(style)
-    elif subtitle_format != "ass":
-        force_style = parse_force_style(DEFAULT_SUBTITLE_STYLE)
-    else:
-        force_style = None
-
+    force_style = _burn_style(style, subtitle_format)
     workdir = _synthesis_workdir(output)
     temp_ass: str | None = None
     try:

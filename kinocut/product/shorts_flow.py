@@ -435,50 +435,30 @@ def video_shorts(
         )
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir, progress)
-            segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
-            if fit == "crop":
-                framed = resize(
-                    assembled_path,
-                    aspect_ratio="9:16",
-                    quality=quality,
-                    output_path=os.path.join(workdir, "framed.mp4") if has_captions else final_output,
-                    on_progress=progress.stage(seconds),
-                    fit=fit,
-                )
-                progress.finish(seconds)
-                # Burn captions within the final frame, so center cropping cannot cut off text.
-                output, caption_step = _apply_captions(
-                    parsed,
-                    segment_durations,
-                    framed.output_path,
-                    caption_style,
-                    final_output,
-                    workdir,
-                    truncated_captions,
-                    quality=quality,
+            durations = _measured_segment_durations(trimmed_paths) if has_captions else []
+            resize_source = assembled_path
+            if fit == "pad":
+                resize_source, caption_step = _apply_captions(
+                    parsed, durations, assembled_path, caption_style, None, workdir, truncated_captions
                 )
                 if has_captions:
                     progress.finish(seconds)
-                return _shorts_result(len(trimmed_paths), merge_step, caption_step, output, fit)
-
-            captioned_path, caption_step = _apply_captions(
-                parsed,
-                segment_durations,
-                assembled_path,
-                caption_style,
-                None,
-                workdir,
-                truncated_captions,
-            )
-            if has_captions:
-                progress.finish(seconds)
-
-            vertical = resize(
-                captioned_path,
+            frame_output = os.path.join(workdir, "framed.mp4") if fit == "crop" and has_captions else final_output
+            framed = resize(
+                resize_source,
                 aspect_ratio="9:16",
                 quality=quality,
-                output_path=final_output,
+                output_path=frame_output,
                 on_progress=progress.stage(seconds),
+                fit=fit,
             )
             progress.finish(seconds)
-            return _shorts_result(len(trimmed_paths), merge_step, caption_step, vertical.output_path, fit)
+            output = framed.output_path
+            if fit == "crop":
+                # Burn captions within the final frame, so center cropping cannot cut off text.
+                output, caption_step = _apply_captions(
+                    parsed, durations, output, caption_style, final_output, workdir, truncated_captions, quality=quality
+                )
+                if has_captions:
+                    progress.finish(seconds)
+            return _shorts_result(len(trimmed_paths), merge_step, caption_step, output, fit)

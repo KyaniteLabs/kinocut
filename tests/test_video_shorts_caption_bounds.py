@@ -24,7 +24,7 @@ def _stub_engines(monkeypatch, tmp_path) -> None:
         Path(output_path).write_bytes(b"merge")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None, fit="pad"):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 
