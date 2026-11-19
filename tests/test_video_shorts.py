@@ -1,5 +1,6 @@
-"""Tests for the one-call shorts flow without invoking FFmpeg."""
+"""Tests for the one-call shorts flow."""
 
+import shutil
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -37,12 +38,12 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
         Path(output_path).write_text("captions", encoding="utf-8")
         return SimpleNamespace(srt_path=output_path)
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, **kwargs):
         calls.append(("caption", input_path, subtitle_path, style))
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None, fit="pad"):
         calls.append(("vertical", input_path, aspect_ratio, quality))
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
@@ -66,7 +67,7 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 
     assert result["success"] is True
     assert result["output_path"].endswith("final.mp4")
-    assert [call[0] for call in calls] == ["trim", "trim", "merge", "caption-file", "caption", "vertical"]
+    assert [call[0] for call in calls] == ["trim", "trim", "merge", "vertical", "caption-file", "caption"]
     assert result["receipt"]["receipt_kind"] == "video_shorts"
     assert len(result["receipt"]["steps"]) == 5
     assert result["external_posting"] is False
@@ -75,6 +76,41 @@ def test_video_shorts_reuses_existing_engines_and_returns_one_receipt_chain(tmp_
 def test_video_shorts_rejects_bad_segment_range():
     with pytest.raises(MCPVideoError, match="end must be greater than start"):
         shorts_flow.video_shorts("source.mp4", [{"start": 2, "end": 1}])
+
+
+@pytest.mark.parametrize(("fit", "top_has_picture"), [("crop", True), ("pad", False)])
+def test_shorts_framing_controls_black_bars(sample_video, tmp_path, fit, top_has_picture):
+    import subprocess
+
+    from kinocut.engine_probe import probe
+
+    if shutil.which("ffmpeg") is None:
+        pytest.skip("ffmpeg not installed")
+    output = str(tmp_path / f"{fit}.mp4")
+    result = shorts_flow.video_shorts(sample_video, [(0, 1)], style={"fit": fit, "quality": "low"}, output_path=output)
+    assert result["success"]
+    info = probe(output)
+    assert (info.width, info.height) == (1080, 1920)
+    sample = subprocess.run(
+        [
+            "ffmpeg",
+            "-v",
+            "error",
+            "-i",
+            output,
+            "-frames:v",
+            "1",
+            "-vf",
+            "crop=1080:32:0:0,scale=2:2,format=rgb24",
+            "-f",
+            "rawvideo",
+            "-",
+        ],
+        check=True,
+        capture_output=True,
+        timeout=30,
+    ).stdout
+    assert bool(max(sample) > 40) is top_has_picture
 
 
 def test_video_shorts_rerun_with_overwrite_replaces_prior_output(sample_video, tmp_path):
@@ -160,11 +196,11 @@ def test_video_shorts_refuses_to_overwrite_its_own_input(tmp_path, monkeypatch):
         Path(output_path).write_text("captions", encoding="utf-8")
         return SimpleNamespace(srt_path=output_path)
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, **kwargs):
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None, fit="pad"):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 
@@ -222,11 +258,11 @@ def test_video_shorts_captions_follow_the_measured_trims(tmp_path, monkeypatch):
             warnings=["synthetic generator warning"],
         )
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, **kwargs):
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None, fit="pad"):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 
@@ -303,11 +339,11 @@ def test_the_caption_receipt_lists_the_burned_entries_and_not_the_requested_ones
         burned = list(entries)[:1]
         return SimpleNamespace(srt_path=output_path, entry_count=len(burned), entries=burned, warnings=[])
 
-    def fake_subtitles(input_path, subtitle_path, output_path, style=None):
+    def fake_subtitles(input_path, subtitle_path, output_path, style=None, **kwargs):
         Path(output_path).write_bytes(b"captioned")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None, fit="pad"):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 

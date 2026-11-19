@@ -29,6 +29,8 @@ async def video_shorts(
     """Trim, caption, make vertical, and export selected segments in one call.
 
     Args:
+        style: Optional caption style or options. Set ``style.fit`` to ``pad``
+            to keep the whole source picture. The default is a center crop.
         review: Also write a review card for the result (default). Reply with the
             returned preview_directive alone on its own line so Hermes Desktop shows it.
     """

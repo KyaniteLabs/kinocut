@@ -30,7 +30,7 @@ from .ffmpeg_helpers import (
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path, _escape_ffmpeg_filter_path
 from .defaults import DEFAULT_SUBTITLE_STYLE
 from .errors import MCPVideoError
-from .models import EditResult
+from .models import QUALITY_PRESETS, EditResult, QualityLevel
 from .subtitles_common import (
     _has_renderable_ass_dialogue,
     _require_renderable_ass_dialogue,
@@ -96,6 +96,8 @@ def subtitles(
     subtitle_path: str,
     output_path: str | None = None,
     style: str | None = None,
+    *,
+    quality: QualityLevel | None = None,
 ) -> EditResult:
     """Burn subtitles (SRT/VTT/authored ASS) into a video.
 
@@ -106,6 +108,7 @@ def subtitles(
         style: Optional ``force_style`` override (``Key=Value,...``). Omitted by
             default so authored ASS styling is preserved; when given it is
             validated through the closed style parser.
+        quality: Optional encoding preset for the captioned delivery.
     """
     input_path = _validate_input_path(input_path)
     subtitle_path = _validate_input_path(subtitle_path)
@@ -113,6 +116,13 @@ def subtitles(
     _require_filter("subtitles", "Subtitle burn-in")
     output = output_path or _auto_output(input_path, "subtitled")
     _validate_output_path(output)
+    encoding = {}
+    if quality is not None:
+        if not isinstance(quality, str) or quality not in QUALITY_PRESETS:
+            raise MCPVideoError(
+                "Unknown encoding quality preset", error_type="validation_error", code="invalid_parameter"
+            )
+        encoding = QUALITY_PRESETS[quality]
 
     # An explicit style always wins and is validated (an explicit empty/hostile
     # style is rejected, never silently treated as "omitted"). When style is
@@ -149,6 +159,8 @@ def subtitles(
                     output_path=staged,
                     video_filter=video_filter,
                     audio_codec="copy",
+                    crf=encoding.get("crf"),
+                    preset=encoding.get("preset"),
                 )
             )
             result = _build_edit_result(staged, "subtitles", timing)

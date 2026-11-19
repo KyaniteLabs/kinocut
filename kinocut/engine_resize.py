@@ -66,9 +66,12 @@ def resize(
     quality: QualityLevel = "high",
     output_path: str | None = None,
     on_progress: Callable[[float], None] | None = None,
+    *,
+    fit: str = "pad",
 ) -> EditResult:
     """Resize a video. Use aspect_ratio for preset sizes (e.g. '9:16').
 
+    ``fit="crop"`` fills the target frame and crops overflow at the center.
     ``on_progress`` receives the render's percent complete (0-100).
     """
     input_path = _validate_input_path(input_path)
@@ -88,8 +91,16 @@ def resize(
     output = output_path or _auto_output(input_path, f"{w}x{h}")
     _validate_output_path(output)
 
-    # Scale to fit within target, then pad to exact dimensions
-    vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
+    if fit == "crop":
+        # Use the display aspect ratio, including source sample aspect ratio.
+        wide = f"gte(dar,{w}/{h})"
+        width_expr = f"if({wide},ceil({h}*dar/2)*2,{w})"
+        height_expr = f"if({wide},{h},ceil({w}/dar/2)*2)"
+        vf = f"scale=w='{width_expr}':h='{height_expr}',setsar=1,crop={w}:{h}"
+    elif fit == "pad":
+        vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
+    else:
+        raise MCPVideoError("Resize fit must be pad or crop", error_type="validation_error", code="invalid_parameter")
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
         args = _build_ffmpeg_cmd(

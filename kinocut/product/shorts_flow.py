@@ -83,20 +83,23 @@ def _segment_parts(segment: Mapping[str, Any] | Sequence[Any], index: int) -> tu
     return start_f, end_f, text
 
 
-def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, str]:
+def _style_options(style: str | Mapping[str, Any] | None) -> tuple[str | None, str, str]:
     if style is None:
-        return None, "high"
+        return None, "high", "crop"
     if isinstance(style, str):
-        return style, "high"
+        return style, "high", "crop"
     if not isinstance(style, Mapping):
         raise _flow_error("style must be a string or object")
     caption_style = style.get("caption_style") or style.get("subtitle_style")
     if caption_style is not None and not isinstance(caption_style, str):
         raise _flow_error("style.caption_style must be a string")
     quality = style.get("quality", "high")
-    if quality not in {"low", "medium", "high", "ultra"}:
+    if not isinstance(quality, str) or quality not in {"low", "medium", "high", "ultra"}:
         raise _flow_error("style.quality must be low, medium, high, or ultra")
-    return caption_style, quality
+    fit = style.get("fit", "crop")
+    if fit not in ("crop", "pad"):
+        raise _flow_error("style.fit must be crop or pad")
+    return caption_style, quality, fit
 
 
 def _default_output(input_path: str) -> str:
@@ -257,9 +260,11 @@ def _apply_captions(
     measured: list[float],
     assembled_path: str,
     caption_style: str | None,
-    final_output: str,
+    output_path: str | None,
     workdir: str,
     truncated_captions: int = 0,
+    *,
+    quality: str | None = None,
 ) -> tuple[str, dict[str, Any]]:
     """Burn segment captions onto the assembled master, offset per segment."""
 
@@ -295,12 +300,14 @@ def _apply_captions(
     # a stale companion file next to the requested output.
     subtitle_path = os.path.join(workdir, "captions.srt")
     generated = generate_subtitles(caption_entries, assembled_path, output_path=subtitle_path, burn=False)
-    captioned_path = os.path.join(workdir, "captioned.mp4")
+    captioned_path = output_path or os.path.join(workdir, "captioned.mp4")
+    encoding = {"quality": quality} if quality is not None else {}
     subtitles(
         assembled_path,
         generated.srt_path,
         output_path=captioned_path,
         style=caption_style,
+        **encoding,
     )
     return captioned_path, _caption_receipt(caption_entries, generated, truncated_captions)
 
@@ -361,7 +368,7 @@ def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]])
 
 
 def _shorts_result(
-    segment_count: int, merge_step: dict[str, Any], caption_step: dict[str, Any], output_path: str
+    segment_count: int, merge_step: dict[str, Any], caption_step: dict[str, Any], output_path: str, fit: str
 ) -> dict[str, Any]:
     steps = [
         {"stage": "trim", "status": StepStatus.COMPLETED, "segment_count": segment_count},
@@ -371,6 +378,7 @@ def _shorts_result(
             "stage": "vertical_template",
             "status": StepStatus.COMPLETED,
             "aspect_ratio": "9:16",
+            "fit": fit,
             "output_path": output_path,
         },
         {"stage": "export", "status": StepStatus.COMPLETED, "output_path": output_path},
@@ -397,6 +405,7 @@ def video_shorts(
     ``segments`` accepts mappings with ``start``, ``end``, and optional ``text``
     or compact ``(start, end[, text])`` sequences.  All work stays local and
     uses the existing trim, merge, subtitle, and resize engines.
+    ``style.fit`` defaults to a center crop. Use ``"pad"`` to retain the full picture.
     """
 
     parsed, truncated_captions = _parse_segments(segments)
@@ -410,7 +419,7 @@ def video_shorts(
         # input (Gate 2 P2-1: `video_shorts` could overwrite its source when
         # `overwrite=True` and `output_path == input_path`).
         source = _validate_input_path(input_path)
-        caption_style, quality = _style_options(style)
+        caption_style, quality, fit = _style_options(style)
         final_output = output_path or _default_output(source)
 
         # Fail fast on an occupied destination (same guard the final resize
@@ -427,12 +436,37 @@ def video_shorts(
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
             trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir, progress)
             segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
+            if fit == "crop":
+                framed = resize(
+                    assembled_path,
+                    aspect_ratio="9:16",
+                    quality=quality,
+                    output_path=os.path.join(workdir, "framed.mp4") if has_captions else final_output,
+                    on_progress=progress.stage(seconds),
+                    fit=fit,
+                )
+                progress.finish(seconds)
+                # Burn captions within the final frame, so center cropping cannot cut off text.
+                output, caption_step = _apply_captions(
+                    parsed,
+                    segment_durations,
+                    framed.output_path,
+                    caption_style,
+                    final_output,
+                    workdir,
+                    truncated_captions,
+                    quality=quality,
+                )
+                if has_captions:
+                    progress.finish(seconds)
+                return _shorts_result(len(trimmed_paths), merge_step, caption_step, output, fit)
+
             captioned_path, caption_step = _apply_captions(
                 parsed,
                 segment_durations,
                 assembled_path,
                 caption_style,
-                final_output,
+                None,
                 workdir,
                 truncated_captions,
             )
@@ -447,4 +481,4 @@ def video_shorts(
                 on_progress=progress.stage(seconds),
             )
             progress.finish(seconds)
-            return _shorts_result(len(trimmed_paths), merge_step, caption_step, vertical.output_path)
+            return _shorts_result(len(trimmed_paths), merge_step, caption_step, vertical.output_path, fit)
