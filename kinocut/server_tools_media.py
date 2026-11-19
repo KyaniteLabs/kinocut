@@ -279,12 +279,23 @@ def video_export(
         str | None,
         Field(description="Optional C2PA manifest definition JSON to sign the final mp4 export."),
     ] = None,
+    profile: Annotated[str | None, Field(description="Quality profile for a review-card export.")] = None,
+    profile_reason: Annotated[
+        str | None, Field(description="Why the selected review-card quality profile fits this cut.")
+    ] = None,
+    override_reason: Annotated[
+        str | None, Field(description="Reason explicitly authorized by the user to export a failed checkpoint.")
+    ] = None,
 ) -> dict[str, Any]:
     """Export a video for final delivery with quality tuning.
 
     Use ``video_export`` when you want to re-encode a video for publishing
     with a quality preset (e.g. high-quality mp4 for YouTube).  For
     format/converter changes (mp4 → webm, gif), prefer :func:`video_convert`.
+
+    The review card's ``<source-stem>-final.mp4`` path runs a quality checkpoint
+    and returns its receipt. A failed checkpoint requires an explicit
+    ``override_reason`` from the user.
 
     Args:
         input_path: Absolute path to the existing input video. The source is read only.
@@ -293,9 +304,28 @@ def video_export(
         quality: Delivery quality preset: low, medium, high, or ultra.
         format: Output format. Supported values are mp4, webm, gif, and mov.
     """
+    from .review_card import final_export_path
+
     if format not in VALID_FORMATS:
         return _validation_error(f"Invalid format: {rejected_value(format)}. Must be one of {sorted(VALID_FORMATS)}")
     input_path = _validate_input_path(input_path)
+    if output_path and os.path.realpath(output_path) == final_export_path(input_path):
+        if format != "mp4":
+            return _validation_error("A review-card export requires mp4.")
+        from .engine_export import export_reviewed_cut
+
+        result, receipt = export_reviewed_cut(
+            input_path,
+            output_path,
+            quality=quality,
+            c2pa_manifest_path=c2pa_manifest_path,
+            profile=profile,
+            profile_reason=profile_reason,
+            override_reason=override_reason,
+        )
+        return {**_result(result), "review_receipt": receipt}
+    if any(value is not None for value in (profile, profile_reason, override_reason)):
+        return _validation_error("Review export options require the card's <source-stem>-final.mp4 delivery path.")
     return _result(
         export_video(
             input_path,

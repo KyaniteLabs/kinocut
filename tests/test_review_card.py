@@ -121,8 +121,8 @@ def test_large_sheet_downscales_without_pillow(tmp_path, monkeypatch):
         assert img.width == MAX_IMAGE_WIDTH
 
 
-def test_approve_runs_the_gate_then_exports_a_final_file(sample_video, tmp_path):
-    """#762: Approve & export must lead to a new file, not re-approve one already on disk."""
+def test_approve_targets_the_guarded_final_export(sample_video, tmp_path):
+    """The review card delegates approval and export to the same call."""
     from kinocut.review_card import final_export_path
 
     out = str(tmp_path / "card.html")
@@ -134,8 +134,9 @@ def test_approve_runs_the_gate_then_exports_a_final_file(sample_video, tmp_path)
     text = approve.group(1)
     final = final_export_path(sample_video)
     assert final.endswith("-final.mp4") and final != sample_video
-    assert "video_release_checkpoint" in text
-    assert f"video_export it to {final}" in text
+    assert "Run video_export via video_edit_ops" in text
+    assert f"with output_path={final}" in text
+    assert "Wait for my explicit reason" in text
     assert not os.path.exists(final)
 
 

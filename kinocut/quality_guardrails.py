@@ -26,6 +26,7 @@ from .quality_guardrail_checks import QualityChecksMixin
 from .quality_guardrail_types import QualityReport, _diagnostic
 from .quality_profiles import (
     DEFAULT_QUALITY_PROFILE,
+    FILM_GRADE_PROFILE,
     QUALITY_PROFILES,
     VISUAL_PROFILE_CHECKS,
     QualityProfile,
@@ -621,7 +622,18 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
         # The technical gate (overall_score, all_passed) is computed from the
         # non-advisory checks only, so a low-motion finding stays a
         # recommendation instead of silently failing a clean video.
-        gating = [c for c in checks if c.check_name not in self.ADVISORY_CHECKS]
+        baseline_checks = [c for c in checks if c.check_name not in self.ADVISORY_CHECKS]
+        approved_cast = None
+        if self.profile.name == FILM_GRADE_PROFILE:
+            approved_cast = next(
+                (
+                    c
+                    for c in baseline_checks
+                    if c.check_name == "color_balance" and not c.passed and c.details.get("color_cast")
+                ),
+                None,
+            )
+        gating = [c for c in baseline_checks if c is not approved_cast]
         overall_score = sum(c.score for c in gating) / len(gating) if gating else 0.0
         all_passed = all(c.passed for c in gating)
 
@@ -647,10 +659,12 @@ class VisualQualityGuardrails(QualityChecksMixin, QualitySourceMixin):
                 }
                 for c in checks
             ],
-            "recommendations": [c.message for c in checks if not c.passed],
+            "recommendations": [c.message for c in checks if not c.passed and c is not approved_cast],
         }
+        if approved_cast is not None:
+            report["advisory_checks"] = ["color_balance"]
         if self.profile.name != DEFAULT_QUALITY_PROFILE:
-            report["profile_baseline"] = self._default_profile_baseline(video, gating)
+            report["profile_baseline"] = self._default_profile_baseline(video, baseline_checks)
         return report
 
     def _default_profile_baseline(self, video: str, gating: list[QualityReport]) -> dict[str, Any]:
@@ -691,7 +705,7 @@ def quality_check(
     Args:
         video: Path to video file
         fail_on_warning: If True, treat warnings as failures
-        profile: Picture-heuristics profile (``default``, ``dark-grade``,
+        profile: Picture-heuristics profile (``default``, ``dark-grade``, ``film-grade``,
             ``ui-capture-dark``, ``ui-capture-light``); recorded in the report.
 
     Returns:
@@ -737,11 +751,15 @@ def assert_quality(
     require_audio: bool = True,
     profile: str | None = None,
     profile_reason: str | None = None,
+    *,
+    require_clean_audio: bool = False,
 ) -> dict[str, Any]:
     """Hard quality gate for agent workflows before publishing output.
 
     A video with no audio stream fails this gate even when its overall score
     meets ``min_score``; pass ``require_audio=False`` to opt out explicitly.
+    For review-card delivery and film-grade footage, audio levels must also pass
+    when an audio stream is present.
     Under a non-default ``profile`` the relaxed picture bands are hard limits:
     any failed brightness/contrast/saturation check fails the gate.
 
@@ -755,7 +773,12 @@ def assert_quality(
     profile_failures = _profile_gate_failures(report)
     baseline, reason = report.get("profile_baseline"), (profile_reason or "").strip()[:200]
     default_would_fail = bool(baseline) and float(baseline["overall_score"]) < min_score
-    unexplained_switch = default_would_fail and not reason
+    unexplained_switch = (default_would_fail or bool(report.get("advisory_checks"))) and not reason
+    failed_audio = (require_clean_audio or profile == FILM_GRADE_PROFILE) and any(
+        check["name"] == "audio_levels" and not check["passed"]
+        for check in report["checks"]
+        if require_audio or check["details"].get("has_audio") is not False
+    )
     if baseline and reason:
         report["profile_override"] = {
             "reason": reason,
@@ -767,8 +790,10 @@ def assert_quality(
     # ``all_passed`` stays the per-check aggregate from ``quality_check``; the
     # score gate gets its own fields so a passing gate never reads as
     # "every check passed" over failed checks.
-    advisory = VisualQualityGuardrails.ADVISORY_CHECKS
-    report["gate_passed"] = score_ok and not audio_missing and not profile_failures and not unexplained_switch
+    advisory = {*VisualQualityGuardrails.ADVISORY_CHECKS, *report.get("advisory_checks", [])}
+    report["gate_passed"] = (
+        score_ok and not audio_missing and not failed_audio and not profile_failures and not unexplained_switch
+    )
     report["min_score"] = min_score
     report["failed_checks"] = [
         c["name"] for c in report.get("checks", []) if not c.get("passed") and c.get("name") not in advisory
@@ -780,6 +805,8 @@ def assert_quality(
             failures.append(f"score {overall_score:.1f} < {min_score:.1f}")
         if audio_missing:
             failures.append("no audio stream detected (audio required)")
+        elif failed_audio:
+            failures.append("audio level check failed")
         if profile_failures:
             failures.append(f"{report['profile']['name']} profile limits failed: {', '.join(profile_failures)}")
         if unexplained_switch:

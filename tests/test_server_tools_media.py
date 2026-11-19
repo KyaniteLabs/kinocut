@@ -201,6 +201,48 @@ class TestVideoExport:
         result = video_export("/nonexistent/video.mp4", format="mp4")
         assert result["success"] is False
 
+    def test_review_export_blocks_failed_checkpoint_until_explicit_override(self, sample_video, tmp_path, monkeypatch):
+        from pathlib import Path
+
+        from kinocut import engine_export, quality_guardrails
+        from kinocut.errors import MCPVideoError
+        from kinocut.models import EditResult
+        from kinocut.review_card import final_export_path
+
+        source = tmp_path / "cut.mp4"
+        source.write_bytes(Path(sample_video).read_bytes())
+        checked = []
+
+        def fail_checkpoint(snapshot, **kwargs):
+            assert kwargs["require_clean_audio"]
+            assert Path(snapshot).read_bytes() == source.read_bytes()
+            checked.append(snapshot)
+            raise MCPVideoError("Clipped audio", error_type="quality_error", code="quality_gate_failed")
+
+        def export(snapshot, *, output_path, **kwargs):
+            assert snapshot == checked[-1]
+            Path(output_path).write_bytes(Path(snapshot).read_bytes())
+            return EditResult(output_path=output_path)
+
+        monkeypatch.setattr(quality_guardrails, "assert_quality", fail_checkpoint)
+        monkeypatch.setattr(engine_export, "export_video", export)
+        final = final_export_path(str(source))
+        failed = video_export(str(source), output_path=final)
+        assert failed["error"]["code"] == "quality_gate_failed"
+        assert not Path(final).exists()
+
+        delivered = video_export(str(source), output_path=final, override_reason="Approved alternate reference copy")
+        checkpoint = delivered["review_receipt"]["checkpoint"]
+        assert delivered["success"]
+        assert Path(final).is_file()
+        assert checkpoint["passed"] is False
+        assert checkpoint["failure"]["code"] == "quality_gate_failed"
+        assert checkpoint["override_reason"] == "Approved alternate reference copy"
+
+    def test_override_requires_the_review_delivery_path(self, sample_video, tmp_path):
+        result = video_export(sample_video, output_path=str(tmp_path / "exported.mp4"), override_reason="review")
+        assert result["success"] is False
+
     @pytest.mark.slow
     def test_exports_mp4(self, sample_video, tmp_path):
         out = str(tmp_path / "exported.mp4")

@@ -8,8 +8,8 @@ intent explicitly and auditably instead of lowering ``min_score`` for everything
 ``dark-grade`` does the same for camera footage graded dark on purpose, so
 a night or noir look is not scored as underexposure.
 
-A profile only changes the brightness, contrast and saturation bands. Audio,
-color balance and temporal motion are profile-independent. Under any
+A profile sets the brightness, contrast and saturation bands. The film-grade
+profile also treats a measured color cast as advisory. Under any
 non-default profile the relaxed bands become hard limits: a failed visual check
 fails the release gate even when the overall score clears ``min_score``, so a
 blank or black capture cannot slip through on the strength of its audio.
@@ -23,6 +23,7 @@ from .errors import MCPVideoError
 from .validation_errors import rejected_value
 
 DEFAULT_QUALITY_PROFILE = "default"
+FILM_GRADE_PROFILE = "film-grade"
 
 
 @dataclass(frozen=True)
@@ -64,7 +65,11 @@ class QualityProfile:
             "name": self.name,
             "description": self.description,
             "visual_checks_gate": self.visual_checks_gate,
-            "profile_independent_checks": ["audio_levels", "color_balance", "temporal_motion"],
+            "profile_independent_checks": (
+                ["audio_levels", "temporal_motion"]
+                if self.name == FILM_GRADE_PROFILE
+                else ["audio_levels", "color_balance", "temporal_motion"]
+            ),
             "bands": {
                 "brightness": asdict(self.brightness),
                 "contrast": asdict(self.contrast),
@@ -107,6 +112,14 @@ QUALITY_PROFILES: dict[str, QualityProfile] = {
         contrast=VisualBand(target_min=10, target_max=100, optimum=40, scale=10, plateau=True),
         # Desaturated and monochrome grades are deliberate looks, not defects.
         saturation=VisualBand(target_min=0, target_max=120, optimum=40, scale=50, plateau=True),
+        visual_checks_gate=True,
+    ),
+    FILM_GRADE_PROFILE: QualityProfile(
+        name=FILM_GRADE_PROFILE,
+        description="Film footage with intentional color grading. Measured color casts are advisory.",
+        brightness=VisualBand(target_min=40, target_max=200, optimum=128, scale=40, plateau=True),
+        contrast=VisualBand(target_min=20, target_max=100, optimum=50, scale=20, plateau=True),
+        saturation=VisualBand(target_min=0, target_max=120, optimum=50, scale=50, plateau=True),
         visual_checks_gate=True,
     ),
     "ui-capture-light": QualityProfile(

@@ -284,3 +284,42 @@ def test_dark_grade_profile_still_fails_black_and_flat_frames(black, blank_dark)
         with pytest.raises(MCPVideoError) as exc:
             assert_quality(clip, profile="dark-grade", profile_reason="testing a blank frame")
         assert "dark-grade profile limits failed" in str(exc.value)
+
+
+def test_film_grade_keeps_the_measured_cast_and_still_rejects_clipping(tmp_path, monkeypatch):
+    from kinocut.quality_guardrails import QualityReport, VisualQualityGuardrails, assert_quality
+
+    clip = tmp_path / "film.mp4"
+    clip.touch()
+    visual = {
+        name: QualityReport(check_name=name, passed=True, score=100.0, message="")
+        for name in ("brightness", "contrast", "saturation")
+    }
+    checks = [
+        *visual.values(),
+        QualityReport(
+            check_name="color_balance",
+            passed=False,
+            score=30.0,
+            message="Color cast detected",
+            details={"color_cast": ["red"]},
+        ),
+        QualityReport(check_name="audio_levels", passed=True, score=100.0, message="Audio passed"),
+    ]
+    monkeypatch.setattr(VisualQualityGuardrails, "run_all_checks", lambda *_: checks)
+    for name, check in visual.items():
+        monkeypatch.setattr(VisualQualityGuardrails, f"check_{name}", lambda *_, check=check: check)
+
+    with pytest.raises(MCPVideoError, match="profile_reason"):
+        assert_quality(str(clip), profile="film-grade")
+
+    report = assert_quality(str(clip), profile="film-grade", profile_reason="Intentional warm grade")
+    assert report["gate_passed"]
+    assert report["advisory_checks"] == ["color_balance"]
+    assert report["profile_baseline"]["failed_checks"] == ["color_balance"]
+    assert report["profile_override"]["reason"] == "Intentional warm grade"
+
+    checks[-1].passed = False
+    checks[-1].message = "Audio is clipping"
+    with pytest.raises(MCPVideoError, match="audio level check failed"):
+        assert_quality(str(clip), profile="film-grade", profile_reason="Intentional warm grade")

@@ -287,7 +287,7 @@ def video_release_checkpoint(
     Use this before publishing or chaining more polish effects. It runs a hard
     quality gate, then writes a thumbnail and storyboard for human inspection.
     A video with no audio stream fails the gate unless ``require_audio`` is
-    explicitly disabled. ``profile`` (default, dark-grade,
+    explicitly disabled. ``profile`` (default, dark-grade, film-grade,
     ui-capture-dark, ui-capture-light) picks the picture heuristics and is
     recorded in the checkpoint; under a non-default profile its relaxed bands
     are hard limits. If the cut would fail under the default profile, another

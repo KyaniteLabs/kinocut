@@ -222,7 +222,7 @@ def _fresh_card_path(input_path: str) -> str:
 
 
 def final_export_path(input_path: str) -> str:
-    """Where Approve & export asks the agent to write the delivered cut: ``<stem>-final.mp4``."""
+    """Return the guarded delivery path used by Approve & export."""
     return f"{os.path.splitext(input_path)[0]}-final.mp4"
 
 
@@ -271,8 +271,10 @@ def write_review_card(
     actions = [
         (
             "Approve & export",
-            f"Approve this cut: {input_path}. Run video_release_checkpoint on it; "
-            f"if it passes, video_export it to {final_path}.",
+            f"Approve this cut: {input_path}. Run video_export via video_edit_ops, or directly if available, "
+            f"with output_path={final_path}. "
+            "If the export reports a failed quality checkpoint, show me the failure. "
+            "Wait for my explicit reason before retrying with override_reason.",
         ),
         ("Dig in", f"Show me more detail on {input_path}"),
         ("Try another range", f"Try a different range of {input_path}"),
