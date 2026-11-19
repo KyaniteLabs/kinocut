@@ -2,7 +2,6 @@
 
 from typing import Any
 
-from .errors import MCPVideoError
 from .quality_profiles import FILM_GRADE_PROFILE, VISUAL_PROFILE_CHECKS
 
 NO_AUDIO_STREAM_REASON = "no_audio_stream"
@@ -29,7 +28,7 @@ def _profile_gate_failures(report: dict[str, Any]) -> list[str]:
     ]
 
 
-def enforce_quality_gate(
+def quality_gate_failures(
     report: dict[str, Any],
     *,
     min_score: float,
@@ -38,8 +37,8 @@ def enforce_quality_gate(
     profile_reason: str | None,
     require_clean_audio: bool,
     advisory_checks: tuple[str, ...],
-) -> dict[str, Any]:
-    """Record the decision and raise on a failed quality gate."""
+) -> list[str]:
+    """Record the gate decision and return its failure reasons."""
     audio_missing = require_audio and _report_missing_audio_stream(report)
     score_ok = report["overall_score"] >= min_score
     profile_failures = _profile_gate_failures(report)
@@ -70,8 +69,8 @@ def enforce_quality_gate(
     report["failed_checks"] = [
         c["name"] for c in report.get("checks", []) if not c.get("passed") and c.get("name") not in advisory
     ]
+    failures: list[str] = []
     if not report["gate_passed"]:
-        failures: list[str] = []
         overall_score = float(report["overall_score"])
         if not score_ok:
             failures.append(f"score {overall_score:.1f} < {min_score:.1f}")
@@ -86,14 +85,4 @@ def enforce_quality_gate(
                 f"{report['profile']['name']} scores {overall_score:.1f} but the default profile scores "
                 f"{float(baseline['overall_score']):.1f}; pass profile_reason to say why this profile fits the cut"
             )
-        recommendations = "; ".join(report.get("recommendations", []))
-        raise MCPVideoError(
-            f"Quality gate failed: {'; '.join(failures)}. {recommendations}",
-            error_type="quality_error",
-            code="quality_gate_failed",
-            suggested_action={
-                "auto_fix": False,
-                "description": "Inspect storyboard/thumbnail, fix visual/audio issues, then rerun quality checks.",
-            },
-        )
-    return report
+    return failures

@@ -18,12 +18,13 @@ from .defaults import (
     DEFAULT_QUALITY_SIGNALSTATS_FALLBACK_PIXEL_FORMATS,
     QUALITY_SIGNALSTATS_CACHE_MAX_ENTRIES,
 )
+from .errors import MCPVideoError
 from .limits import QUALITY_GUARDRAILS_TIMEOUT
 from .quality_signal_reader import read_signalstats, read_ffmpeg_signalstats
 from .quality_source import QualitySourceMixin
 from .quality_guardrail_checks import QualityChecksMixin
 from .quality_guardrail_types import QualityReport, _diagnostic
-from .quality_gate_report import NO_AUDIO_STREAM_REASON, enforce_quality_gate
+from .quality_gate_report import NO_AUDIO_STREAM_REASON, quality_gate_failures
 from .quality_profiles import (
     DEFAULT_QUALITY_PROFILE,
     FILM_GRADE_PROFILE,
@@ -742,7 +743,7 @@ def assert_quality(
     both scores in ``profile_override``.
     """
     report = quality_check(video, fail_on_warning=False, max_analyze_seconds=max_analyze_seconds, profile=profile)
-    checked = enforce_quality_gate(
+    failures = quality_gate_failures(
         report,
         min_score=min_score,
         require_audio=require_audio,
@@ -751,4 +752,15 @@ def assert_quality(
         require_clean_audio=require_clean_audio,
         advisory_checks=VisualQualityGuardrails.ADVISORY_CHECKS,
     )
-    return checked
+    if failures:
+        recommendations = "; ".join(report.get("recommendations", []))
+        raise MCPVideoError(
+            f"Quality gate failed: {'; '.join(failures)}. {recommendations}",
+            error_type="quality_error",
+            code="quality_gate_failed",
+            suggested_action={
+                "auto_fix": False,
+                "description": "Inspect storyboard/thumbnail, fix visual/audio issues, then rerun quality checks.",
+            },
+        )
+    return report
