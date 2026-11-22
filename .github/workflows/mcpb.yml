@@ -12,11 +12,64 @@ permissions:
 
 concurrency:
   group: staged-mcpb-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede stale PR runs; every master commit keeps its own exact-head run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
+  relevance:
+    # Decides whether the staged artifact needs rebuilding and re-running on
+    # three operating systems. Skipping is a job-level `if:` on
+    # build-validate, so every required check below still reports (skipped
+    # jobs count as passing). If this job fails, everything runs.
+    name: MCPB relevance
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
+    outputs:
+      run: ${{ steps.premerge.outputs.tested == 'true' && 'false' || steps.paths.outputs.run || 'true' }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - id: premerge
+        name: Was this master tree already tested on its pull request?
+        if: github.event_name == 'push'
+        timeout-minutes: 2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/merged_tree_tested.py --repository "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA" --workflow mcpb.yml >> "$GITHUB_OUTPUT"
+      - id: paths
+        name: Skip only pull requests that change nothing but prose docs
+        if: github.event_name == 'pull_request'
+        timeout-minutes: 1
+        shell: bash
+        env:
+          PR_BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          PR_HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+          changed_file="$(mktemp "$RUNNER_TEMP/kinocut-changes.XXXXXX")"
+          trap 'rm -f -- "$changed_file"' EXIT
+          git diff --no-renames --name-only -z "$PR_BASE_SHA...$PR_HEAD_SHA" -- > "$changed_file"
+          run=false
+          while IFS= read -r -d '' changed_path; do
+            printf 'changed: %q\n' "$changed_path"
+            # docs/** and top-level Markdown other than README.md (wheel metadata)
+            # never enter the wheel or the bundle; anything else does or might.
+            if [[ "$changed_path" == docs/* ]]; then continue; fi
+            if [[ "$changed_path" != */* && "$changed_path" == *.md && "$changed_path" != README.md ]]; then continue; fi
+            run=true
+          done < "$changed_file"
+          printf 'run=%s\n' "$run" >> "$GITHUB_OUTPUT"
+
   build-validate:
     name: Build and validate staged artifact
+    needs: relevance
+    if: ${{ !cancelled() && (needs.relevance.result != 'success' || needs.relevance.outputs.run == 'true') }}
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     outputs:
@@ -72,6 +125,7 @@ jobs:
   clean-runtime:
     name: Core runtime (${{ matrix.os }})
     needs: build-validate
+    if: ${{ !cancelled() && needs.build-validate.result == 'success' }}
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 25
     strategy:
@@ -202,6 +256,7 @@ jobs:
   optional-present:
     name: Optional discovery and callability
     needs: build-validate
+    if: ${{ !cancelled() && needs.build-validate.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -293,6 +348,7 @@ jobs:
   aggregate:
     name: Aggregate exact evidence
     needs: [build-validate, clean-runtime, optional-present]
+    if: ${{ !cancelled() && needs.build-validate.result == 'success' && needs.clean-runtime.result == 'success' && needs.optional-present.result == 'success' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:

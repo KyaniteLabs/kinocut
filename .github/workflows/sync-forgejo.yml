@@ -4,6 +4,9 @@ on:
   workflow_run:
     workflows: ["CI"]
     types: [completed]
+    # Only master CI can be synced; pull-request CI completions used to start a
+    # run here that always skipped.
+    branches: [master]
 
 permissions:
   contents: read
