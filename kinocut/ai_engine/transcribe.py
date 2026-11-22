@@ -15,6 +15,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from .._install_hints import pip_install_hint
 from ..errors import InputFileError, MCPVideoError
 from ..ffmpeg_helpers import _get_video_duration, _run_command, _seconds_to_srt_time, _validate_output_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT, MAX_AI_TRANSCRIBE_DURATION
@@ -173,13 +174,16 @@ def ai_transcribe(
     try:
         import whisper
     except ImportError:
+        # The hint must name the version that is actually running, not the
+        # release this message was written against (audit row 78).
+        hint = pip_install_hint("transcribe")
         raise MCPVideoError(
-            'Whisper not installed. Install with: pip install "kinocut[transcribe]==2.0.1"',
+            f"Whisper not installed. Install with: {hint}",
             error_type="dependency_error",
             code="missing_whisper",
             suggested_action={
                 "auto_fix": False,
-                "description": 'Run: pip install "kinocut[transcribe]==2.0.1" to enable transcription',
+                "description": f"Run: {hint} to enable transcription",
             },
         ) from None
 
