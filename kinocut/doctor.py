@@ -18,6 +18,7 @@ from typing import Any
 
 from concurrent.futures import ThreadPoolExecutor
 
+from ._install_hints import pip_install_hint, pinned_requirement
 from .data_dirs import crush_home
 from .doctor_report import without_machine_paths
 from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
@@ -44,7 +45,7 @@ ImportModuleFn = Callable[[str], Any]
 
 PYTHON_313_UPSCALE_BACKEND_HINT = (
     "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
-    'The OpenCV fallback is still installed by: pip install "kinocut[upscale]==2.0.1". '
+    f"The OpenCV fallback is still installed by: {pip_install_hint('upscale')}. "
     "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
 )
 
@@ -103,55 +104,55 @@ COMMAND_CHECKS = (
 )
 
 PACKAGE_CHECKS = (
-    ("mcp", "mcp", "core", True, "Install the base package: pip install kinocut==2.0.1"),
-    ("pydantic", "pydantic", "core", True, "Install the base package: pip install kinocut==2.0.1"),
-    ("rich", "rich", "core", True, "Install the base package: pip install kinocut==2.0.1"),
-    ("pillow", "PIL", "image", False, 'Install image extras: pip install "kinocut[image]==2.0.1"'),
-    ("scikit-learn", "sklearn", "image", False, 'Install image extras: pip install "kinocut[image]==2.0.1"'),
-    ("webcolors", "webcolors", "image", False, 'Install image extras: pip install "kinocut[image]==2.0.1"'),
-    ("anthropic", "anthropic", "image-ai", False, 'Install image AI extras: pip install "kinocut[image-ai]==2.0.1"'),
+    ("mcp", "mcp", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
+    ("pydantic", "pydantic", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
+    ("rich", "rich", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
+    ("pillow", "PIL", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("scikit-learn", "sklearn", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("webcolors", "webcolors", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("anthropic", "anthropic", "image-ai", False, f"Install image AI extras: {pip_install_hint('image-ai')}"),
     (
         "openai-whisper",
         "whisper",
         "ai",
         False,
-        'Install transcription extras: pip install "kinocut[transcribe]==2.0.1"',
+        f"Install transcription extras: {pip_install_hint('transcribe')}",
     ),
-    ("demucs", "demucs", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==2.0.1"'),
-    ("realesrgan", "realesrgan", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==2.0.1"'),
-    ("basicsr", "basicsr", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==2.0.1"'),
-    ("numpy", "numpy", "audio", False, 'Install audio extras: pip install "kinocut[audio]==2.0.1"'),
-    ("opencv-contrib-python", "cv2", "ai", False, 'Install upscale extras: pip install "kinocut[upscale]==2.0.1"'),
+    ("demucs", "demucs", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("realesrgan", "realesrgan", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
+    ("basicsr", "basicsr", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
+    ("numpy", "numpy", "audio", False, f"Install audio extras: {pip_install_hint('audio')}"),
+    ("opencv-contrib-python", "cv2", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
     (
         "torch",
         "torch",
         "ai",
         False,
-        'Install stem/upscale extras: pip install "kinocut[stems]==2.0.1" or "kinocut[upscale]==2.0.1"',
+        f"Install stem/upscale extras: {pip_install_hint('stems')} or {pip_install_hint('upscale')}",
     ),
-    ("torchaudio", "torchaudio", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==2.0.1"'),
-    ("torchcodec", "torchcodec", "ai", False, 'Install stem-separation extras: pip install "kinocut[stems]==2.0.1"'),
-    ("imagehash", "imagehash", "ai", False, 'Install AI scene extras: pip install "kinocut[ai-scene]==2.0.1"'),
+    ("torchaudio", "torchaudio", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("torchcodec", "torchcodec", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("imagehash", "imagehash", "ai", False, f"Install AI scene extras: {pip_install_hint('ai-scene')}"),
     (
         "scipy",
         "scipy",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     (
         "soundfile",
         "soundfile",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     (
         "librosa",
         "librosa",
         "audio-enhanced",
         False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
     (
@@ -380,7 +381,7 @@ def _check_audio_engine() -> dict[str, Any]:
         "ok": has_numpy,
         "path": None,
         "version": status,
-        "install_hint": None if has_numpy else 'pip install "kinocut[audio]==2.0.1" for professional audio synthesis',
+        "install_hint": None if has_numpy else f"{pip_install_hint('audio')} for professional audio synthesis",
         "details": {
             "numpy": has_numpy,
             "scipy": has_scipy,
@@ -404,7 +405,7 @@ def _check_mcp_video(find_spec: FindSpecFn, package_version: PackageVersionFn) -
         "ok": found,
         "path": path,
         "version": package_version("kinocut") if found else None,
-        "install_hint": None if found else "Install the local package: pip install kinocut==2.0.1",
+        "install_hint": None if found else f"Install the local package: {pip_install_hint(quoted=False)}",
     }
 
 
@@ -465,7 +466,7 @@ def _check_alias_identity() -> dict[str, Any]:
             "category": "migration",
             "ok": False,
             "detail": "unable to import kinocut/mcp_video",
-            "remediation": "Reinstall the package: pip install --force-reinstall kinocut==2.0.1",
+            "remediation": f"Reinstall the package: pip install --force-reinstall {pinned_requirement()}",
         }
     ok = getattr(kinocut, "Client", None) is getattr(mcp_video, "Client", None)
     return {
@@ -629,7 +630,7 @@ def _check_mcp_server_import(import_module: ImportModuleFn) -> dict[str, Any]:
             "detail": exception_kind(exc),
             "install_hint": (
                 "Run 'kino --mcp' to see the full error; usually a broken install "
-                "(pip install --force-reinstall kinocut==2.0.1) or a platform-specific dependency issue."
+                f"(pip install --force-reinstall {pinned_requirement()}) or a platform-specific dependency issue."
             ),
         }
     return {
@@ -733,7 +734,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     hint = None
     if not ok:
         hint = (
-            'Product/object cutouts need pip install "kinocut[object-matte]==2.0.1" '
+            f"Product/object cutouts need {pip_install_hint('object-matte')} "
             "and the pinned BiRefNet-general weights. "
             "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
         )
@@ -772,7 +773,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
     if not ok:
         hint = (
             "Still/plate tools need the image stack (Pillow + NumPy). "
-            'Install: pip install "kinocut[image]==2.0.1". '
+            f"Install: {pip_install_hint('image')}. "
             "Free establish-locked edit uses local match; no paid still-generation adapter exists."
         )
     return {
