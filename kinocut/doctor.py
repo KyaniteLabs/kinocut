@@ -45,7 +45,7 @@ ImportModuleFn = Callable[[str], Any]
 
 PYTHON_313_UPSCALE_BACKEND_HINT = (
     "Real-ESRGAN/BasicSR are skipped on Python 3.13+ because BasicSR currently fails to build there. "
-    f'The OpenCV fallback is still installed by: {pip_install_hint("upscale")}. '
+    f"The OpenCV fallback is still installed by: {pip_install_hint('upscale')}. "
     "Use Python 3.11 or 3.12 if you specifically need the Real-ESRGAN backend."
 )
 
@@ -107,52 +107,52 @@ PACKAGE_CHECKS = (
     ("mcp", "mcp", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
     ("pydantic", "pydantic", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
     ("rich", "rich", "core", True, f"Install the base package: {pip_install_hint(quoted=False)}"),
-    ("pillow", "PIL", "image", False, f'Install image extras: {pip_install_hint("image")}'),
-    ("scikit-learn", "sklearn", "image", False, f'Install image extras: {pip_install_hint("image")}'),
-    ("webcolors", "webcolors", "image", False, f'Install image extras: {pip_install_hint("image")}'),
-    ("anthropic", "anthropic", "image-ai", False, f'Install image AI extras: {pip_install_hint("image-ai")}'),
+    ("pillow", "PIL", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("scikit-learn", "sklearn", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("webcolors", "webcolors", "image", False, f"Install image extras: {pip_install_hint('image')}"),
+    ("anthropic", "anthropic", "image-ai", False, f"Install image AI extras: {pip_install_hint('image-ai')}"),
     (
         "openai-whisper",
         "whisper",
         "ai",
         False,
-        f'Install transcription extras: {pip_install_hint("transcribe")}',
+        f"Install transcription extras: {pip_install_hint('transcribe')}",
     ),
-    ("demucs", "demucs", "ai", False, f'Install stem-separation extras: {pip_install_hint("stems")}'),
-    ("realesrgan", "realesrgan", "ai", False, f'Install upscale extras: {pip_install_hint("upscale")}'),
-    ("basicsr", "basicsr", "ai", False, f'Install upscale extras: {pip_install_hint("upscale")}'),
-    ("numpy", "numpy", "audio", False, f'Install audio extras: {pip_install_hint("audio")}'),
-    ("opencv-contrib-python", "cv2", "ai", False, f'Install upscale extras: {pip_install_hint("upscale")}'),
+    ("demucs", "demucs", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("realesrgan", "realesrgan", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
+    ("basicsr", "basicsr", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
+    ("numpy", "numpy", "audio", False, f"Install audio extras: {pip_install_hint('audio')}"),
+    ("opencv-contrib-python", "cv2", "ai", False, f"Install upscale extras: {pip_install_hint('upscale')}"),
     (
         "torch",
         "torch",
         "ai",
         False,
-        f'Install stem/upscale extras: {pip_install_hint("stems")} or {pip_install_hint("upscale")}',
+        f"Install stem/upscale extras: {pip_install_hint('stems')} or {pip_install_hint('upscale')}",
     ),
-    ("torchaudio", "torchaudio", "ai", False, f'Install stem-separation extras: {pip_install_hint("stems")}'),
-    ("torchcodec", "torchcodec", "ai", False, f'Install stem-separation extras: {pip_install_hint("stems")}'),
-    ("imagehash", "imagehash", "ai", False, f'Install AI scene extras: {pip_install_hint("ai-scene")}'),
+    ("torchaudio", "torchaudio", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("torchcodec", "torchcodec", "ai", False, f"Install stem-separation extras: {pip_install_hint('stems')}"),
+    ("imagehash", "imagehash", "ai", False, f"Install AI scene extras: {pip_install_hint('ai-scene')}"),
     (
         "scipy",
         "scipy",
         "audio-enhanced",
         False,
-        f'Install enhanced audio extras: {pip_install_hint("audio-enhanced")}',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     (
         "soundfile",
         "soundfile",
         "audio-enhanced",
         False,
-        f'Install enhanced audio extras: {pip_install_hint("audio-enhanced")}',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     (
         "librosa",
         "librosa",
         "audio-enhanced",
         False,
-        f'Install enhanced audio extras: {pip_install_hint("audio-enhanced")}',
+        f"Install enhanced audio extras: {pip_install_hint('audio-enhanced')}",
     ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
     (
@@ -381,7 +381,7 @@ def _check_audio_engine() -> dict[str, Any]:
         "ok": has_numpy,
         "path": None,
         "version": status,
-        "install_hint": None if has_numpy else f'{pip_install_hint("audio")} for professional audio synthesis',
+        "install_hint": None if has_numpy else f"{pip_install_hint('audio')} for professional audio synthesis",
         "details": {
             "numpy": has_numpy,
             "scipy": has_scipy,
@@ -734,7 +734,7 @@ def _check_object_matte(find_spec: FindSpecFn) -> dict[str, Any]:
     hint = None
     if not ok:
         hint = (
-            f'Product/object cutouts need {pip_install_hint("object-matte")} '
+            f"Product/object cutouts need {pip_install_hint('object-matte')} "
             "and the pinned BiRefNet-general weights. "
             "People cutouts: omit --model. Guide: docs/PRODUCT_MATTE.md."
         )
@@ -773,7 +773,7 @@ def _check_still_plates(find_spec: FindSpecFn, package_version: PackageVersionFn
     if not ok:
         hint = (
             "Still/plate tools need the image stack (Pillow + NumPy). "
-            f'Install: {pip_install_hint("image")}. '
+            f"Install: {pip_install_hint('image')}. "
             "Free establish-locked edit uses local match; no paid still-generation adapter exists."
         )
     return {

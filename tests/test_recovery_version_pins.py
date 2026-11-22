@@ -108,9 +108,7 @@ class TestWhisperRecoveryInterpolatesTheRunningVersion:
         chunk = LongformChunk(index=0, start=0.0, end=1.0, duration=1.0)
 
         with pytest.raises(MCPVideoError) as exc_info:
-            _longform_runtime._transcribe_chunk(
-                "video.mp4", chunk, model="tiny", language=None, work_dir=str(tmp_path)
-            )
+            _longform_runtime._transcribe_chunk("video.mp4", chunk, model="tiny", language=None, work_dir=str(tmp_path))
 
         err = exc_info.value
         assert err.code == "missing_whisper"
