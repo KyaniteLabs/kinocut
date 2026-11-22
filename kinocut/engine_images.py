@@ -184,11 +184,6 @@ def _list_file_too_large() -> MCPVideoError:
     )
 
 
-def _format_fps_for_ffmpeg(fps: float | int | str) -> str:
-    """Serialize FPS without rounding non-integer values before FFmpeg sees them."""
-    return _coerce_fps(fps)[1]
-
-
 def _coerce_fps(fps: float | int | str) -> tuple[float, str]:
     """Validate an FPS value and return its numeric and FFmpeg-serialized forms."""
     value, rate = _parse_fps(fps)

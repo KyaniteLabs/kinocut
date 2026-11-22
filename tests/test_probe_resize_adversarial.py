@@ -18,11 +18,10 @@ pytestmark = pytest.mark.usefixtures("overwrite_consent")
 
 
 @pytest.fixture(autouse=True)
-def isolated_probe_operation():
-    engine_probe.invalidate_probe_cache()
+def isolated_probe_operation(monkeypatch):
+    monkeypatch.setattr(engine_probe, "_probe_cache", {})
     _reset_operation_inputs()
     yield
-    engine_probe.invalidate_probe_cache()
     _reset_operation_inputs()
 
 

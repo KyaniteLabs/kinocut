@@ -9,8 +9,6 @@ assembly, S13 host joins) match on them.
 
 from __future__ import annotations
 
-from typing import Any
-
 from kinocut_sound._errors import SoundContractError
 
 
@@ -35,14 +33,3 @@ PRESET_INVALID = "preset_invalid"
 AUDITION_INVALID = "audition_invalid"
 PORT_UNAVAILABLE = "port_unavailable"
 CATALOG_INVALID = "catalog_invalid"
-
-
-def world_error_dict(code: str, message: str) -> dict[str, Any]:
-    """Return the public error payload shape for world errors."""
-
-    return {
-        "type": "validation_error",
-        "code": code,
-        "message": message,
-        "suggested_action": {"auto_fix": False},
-    }

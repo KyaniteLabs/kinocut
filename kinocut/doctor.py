@@ -146,21 +146,7 @@ PACKAGE_CHECKS = (
         False,
         'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
     ),
-    (
-        "librosa",
-        "librosa",
-        "audio-enhanced",
-        False,
-        'Install enhanced audio extras: pip install "kinocut[audio-enhanced]==2.0.1"',
-    ),
     ("basic-pitch", "basic_pitch", "audio-ai", False, BASIC_PITCH_MANUAL_HINT),
-    (
-        "meltysynth",
-        "meltysynth",
-        "manual-midi",
-        False,
-        "MeltySynth is not currently published on PyPI; install a compatible meltysynth module manually.",
-    ),
 )
 
 

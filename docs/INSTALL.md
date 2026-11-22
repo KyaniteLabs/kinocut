@@ -80,7 +80,7 @@ Native self-contained bundles are **not** published yet. See [MCPB.md](MCPB.md).
 | Python client image helpers | `pip install "kinocut[client]==2.0.1"` | Pillow |
 | Procedural audio | `pip install "kinocut[audio]==2.0.1"` | numpy (`audio-ai` and `audio-midi` are aliases) |
 | Audio effects | `pip install "kinocut[audio-enhanced]==2.0.1"` | scipy + soundfile |
-| Beat and tempo analysis | `pip install "kinocut[audio-analysis]==2.0.1"` | librosa |
+| Audio analysis extra compatibility | `pip install "kinocut[audio-analysis]==2.0.1"` | numpy (alias of `audio`) |
 | All audio | `pip install "kinocut[audio-all]==2.0.1"` | `audio-enhanced` + `audio-analysis` |
 | Everything AI | `pip install "kinocut[ai]==2.0.1"` | several GB; `all-ai` adds the `audio-all` set |
 

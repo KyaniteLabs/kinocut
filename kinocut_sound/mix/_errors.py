@@ -22,7 +22,3 @@ class MixError(SoundContractError):
 
 def mix_error(message: str, code: str) -> MixError:
     return MixError(message, code=code)
-
-
-def bounded_mix_error(message: str, code: str) -> MixError:
-    return mix_error(message, code)

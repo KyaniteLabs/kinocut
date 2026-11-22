@@ -174,12 +174,12 @@ def test_invalid_frame_rates_are_rejected(fps):
 
 
 def test_frame_rate_serialization_accepts_rationals():
-    from mcp_video.engine_images import _format_fps_for_ffmpeg
+    from mcp_video.engine_images import _coerce_fps
 
-    assert _format_fps_for_ffmpeg("30000/1001") == "30000/1001"
-    assert _format_fps_for_ffmpeg("60/1") == "60/1"
-    assert _format_fps_for_ffmpeg(30) == "30"
-    assert _format_fps_for_ffmpeg(29.97002997) == "29.97002997"
+    assert _coerce_fps("30000/1001")[1] == "30000/1001"
+    assert _coerce_fps("60/1")[1] == "60/1"
+    assert _coerce_fps(30)[1] == "30"
+    assert _coerce_fps(29.97002997)[1] == "29.97002997"
 
 
 def test_even_dimension_pngs_skip_normalization(tmp_path, monkeypatch):

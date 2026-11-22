@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import asyncio
-import ast
 import inspect
 import json
 import subprocess
@@ -19,32 +18,6 @@ from kinocut.revideo_models import RevideoRenderResult
 
 ROOT = Path(__file__).resolve().parents[1]
 _NAMES = {"revideo_materialize", "revideo_install", "revideo_render", "revideo_render_job"}
-
-_FACADE_EXPORTS = (
-    "video_rescue_inspect",
-    "video_rescue_plan",
-    "video_rescue_render",
-    "video_composition_plan",
-    "video_creative_autopilot_plan",
-    "video_remote_egress_plan",
-    "video_restoration_plan",
-    "video_semantic_query",
-    "video_semantic_timeline",
-    "video_timeline_edit_plan",
-    "video_visual_transform_plan",
-    "video_benchmark_run",
-    "video_capabilities",
-    "video_cost_ledger",
-    "video_learning_report",
-    "video_publish_gate",
-    "video_recipe_capture",
-    "video_review_decision",
-    "video_review_package",
-    "revideo_install",
-    "revideo_materialize",
-    "revideo_render",
-    "revideo_render_job",
-)
 
 
 def _receipt() -> RevideoRenderResult:
@@ -68,10 +41,12 @@ def test_render_receipt_schema_describes_exact_job_bytes() -> None:
 
 
 def test_server_registers_exact_revideo_tools_and_defaults() -> None:
-    from kinocut import server_tools_revideo
+    from kinocut import server, server_tools_revideo
     from kinocut.tool_registry import TOOL_REGISTRY
 
     assert TOOL_REGISTRY.keys() >= _NAMES
+    for name in _NAMES:
+        assert getattr(server, name) is getattr(server_tools_revideo, name)
     assert (
         inspect.signature(server_tools_revideo.revideo_install).parameters["timeout"].default
         == DEFAULT_REVIDEO_INSTALL_TIMEOUT
@@ -80,34 +55,6 @@ def test_server_registers_exact_revideo_tools_and_defaults() -> None:
         inspect.signature(server_tools_revideo.revideo_render).parameters["timeout"].default
         == DEFAULT_REVIDEO_RENDER_TIMEOUT
     )
-
-
-def test_server_facade_exports_preserve_callable_identity_and_signatures() -> None:
-    from kinocut import server, server_facade_exports, server_tools_revideo
-
-    assert server_facade_exports.__all__ == _FACADE_EXPORTS
-    for name in _FACADE_EXPORTS:
-        assert getattr(server, name) is getattr(server_facade_exports, name)
-    for name in _NAMES:
-        facade_callable = getattr(server, name)
-        registered_callable = getattr(server_tools_revideo, name)
-        assert facade_callable is registered_callable
-        assert inspect.signature(facade_callable) == inspect.signature(registered_callable)
-
-
-def test_server_facade_exports_remain_declarative_and_ordered() -> None:
-    path = ROOT / "kinocut" / "server_facade_exports.py"
-    tree = ast.parse(path.read_text(encoding="utf-8"))
-    imports = [node.module for node in tree.body if isinstance(node, ast.ImportFrom)]
-    assignments = [target.id for node in tree.body if isinstance(node, ast.Assign) for target in node.targets]
-    assert imports == [
-        "server_tools_rescue",
-        "server_tools_postrescue",
-        "server_tools_release",
-        "server_tools_revideo",
-    ]
-    assert assignments == ["__all__"]
-    assert not any(isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)) for node in tree.body)
 
 
 def test_mcp_success_envelopes(monkeypatch, tmp_path) -> None:

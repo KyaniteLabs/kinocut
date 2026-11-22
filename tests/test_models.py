@@ -7,7 +7,6 @@ from mcp_video.models import (
     PREVIEW_PRESETS,
     QUALITY_PRESETS,
     EditResult,
-    ErrorResult,
     StoryboardResult,
     ThumbnailResult,
     Timeline,
@@ -17,7 +16,6 @@ from mcp_video.models import (
     TimelineTrack,
     TimelineTransition,
     VideoInfo,
-    WatermarkSettings,
     _position_coords,
     _resolve_position,
 )
@@ -101,11 +99,6 @@ class TestResults:
         assert r.progress is None
         assert r.thumbnail_base64 is None
 
-    def test_error_result(self):
-        r = ErrorResult(error={"type": "test", "message": "oops"})
-        assert r.success is False
-        assert r.model_dump()["success"] is False
-
     def test_storyboard_result(self):
         r = StoryboardResult(frames=["f1.jpg", "f2.jpg"], count=2, grid="grid.jpg")
         assert r.success is True
@@ -179,17 +172,6 @@ class TestTimelineModels:
         )
         assert with_tracks.width == 1080
         assert len(with_tracks.tracks) == 1
-
-
-class TestWatermarkSettings:
-    def test_defaults_and_custom(self):
-        wm = WatermarkSettings(image_path="/tmp/logo.png")
-        assert wm.position == "bottom-right"
-        assert wm.opacity == 0.7
-
-        custom = WatermarkSettings(image_path="/tmp/logo.png", position="top-left", opacity=0.5)
-        assert custom.position == "top-left"
-        assert custom.opacity == 0.5
 
 
 class TestPresetConstants:

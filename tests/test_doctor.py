@@ -456,6 +456,9 @@ def test_cli_doctor_json_outputs_structured_report():
     assert isinstance(data["checks"], list)
     assert any(check["name"] == "mcp-video" for check in data["checks"])
     assert any(check["name"] == "ffmpeg" for check in data["checks"])
+    assert {
+        check["name"] for check in data["checks"] if check["category"] in {"audio-enhanced", "audio-ai", "manual-midi"}
+    } == {"scipy", "soundfile", "basic-pitch"}
 
 
 def test_cli_doctor_text_outputs_summary():

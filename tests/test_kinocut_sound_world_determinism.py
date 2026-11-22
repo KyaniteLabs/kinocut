@@ -173,9 +173,9 @@ def test_world_does_not_redefine_centralized_constants():
 
 
 def test_world_error_payload_shape_is_stable():
-    from kinocut_sound.world._errors import world_error_dict
+    from kinocut_sound.world._errors import world_error
 
-    payload = world_error_dict("unknown_foley_cue", "fixture cue missing")
+    payload = world_error("fixture cue missing", "unknown_foley_cue").to_dict()
     assert payload == {
         "type": "validation_error",
         "code": "unknown_foley_cue",

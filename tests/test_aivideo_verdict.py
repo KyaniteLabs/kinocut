@@ -9,7 +9,6 @@ from kinocut.aivideo.verdict import (
     acceptance_eval,
     approved_clips,
     defects_for_asset,
-    record_defect,
     record_verdict,
 )
 from kinocut.contracts._common import canonical_record_id
@@ -108,14 +107,14 @@ def test_approved_only_query_is_a_positive_list(project):
 
 
 def test_defect_workflow_records_and_queries_exact_asset(project):
-    finding = record_defect(project, _defect(project))
+    finding = append_record(project, _defect(project))
     assert defects_for_asset(project, finding.target_id) == [finding]
     assert defects_for_asset(project, "sha256:" + "d" * 64) == []
 
 
 def test_acceptance_eval_lists_unmet_beats_and_forbidden_defects(project):
     spec = _spec(project, required_beats=["intro"])
-    finding = record_defect(project, _defect(project, defect_code="text_drift"))
+    finding = append_record(project, _defect(project, defect_code="text_drift"))
     verdict = _approved_verdict(
         project,
         spec,
@@ -139,7 +138,7 @@ def test_approved_verdict_satisfies_requirements_without_blocking_defects(projec
 
 def test_threshold_violation_is_reported(project):
     spec = _spec(project, forbidden_defect_codes=())
-    finding = record_defect(project, _defect(project, defect_code="identity_drift", severity="medium"))
+    finding = append_record(project, _defect(project, defect_code="identity_drift", severity="medium"))
     verdict = _approved_verdict(
         project,
         spec,
@@ -152,7 +151,7 @@ def test_threshold_violation_is_reported(project):
 
 def test_unreferenced_same_asset_forbidden_defect_is_reported(project):
     spec = _spec(project, severity_thresholds=())
-    finding = record_defect(project, _defect(project, defect_code="text_drift"))
+    finding = append_record(project, _defect(project, defect_code="text_drift"))
     verdict = _approved_verdict(project, spec, defect_ids=())
     report = acceptance_eval(project, spec=spec, verdicts=[verdict])
     assert finding.record_id in report.forbidden_defect_ids
@@ -161,7 +160,7 @@ def test_unreferenced_same_asset_forbidden_defect_is_reported(project):
 
 def test_unreferenced_same_asset_threshold_defect_is_reported(project):
     spec = _spec(project, forbidden_defect_codes=())
-    finding = record_defect(
+    finding = append_record(
         project,
         _defect(project, defect_code="identity_drift", severity="medium"),
     )
@@ -173,7 +172,7 @@ def test_unreferenced_same_asset_threshold_defect_is_reported(project):
 
 def test_referenced_foreign_asset_defect_fails_closed(project):
     spec = _spec(project, forbidden_defect_codes=(), severity_thresholds=())
-    finding = record_defect(
+    finding = append_record(
         project,
         _defect(project, target_id="sha256:" + "d" * 64),
     )
@@ -190,7 +189,7 @@ def test_referenced_foreign_asset_defect_fails_closed(project):
 def test_cross_referenced_defect_is_foreign_even_when_both_assets_are_accepted(project):
     spec = _spec(project, forbidden_defect_codes=(), severity_thresholds=())
     second_asset = "sha256:" + "d" * 64
-    finding = record_defect(project, _defect(project, target_id=second_asset))
+    finding = append_record(project, _defect(project, target_id=second_asset))
     first = _approved_verdict(
         project,
         spec,

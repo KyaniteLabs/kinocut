@@ -675,12 +675,11 @@ def test_heavy_ai_extras_keep_python313_installable():
         assert all(not dependency.startswith("basic-pitch") for dependency in optional_deps[extra])
 
 
-def test_optional_extras_do_not_advertise_unpublished_dependencies():
+def test_optional_extras_keep_basic_pitch_manual():
     pyproject = tomllib.loads((ROOT / "pyproject.toml").read_text(encoding="utf-8"))
     optional_deps = pyproject["project"]["optional-dependencies"]
     dependency_text = "\n".join(dependency for dependencies in optional_deps.values() for dependency in dependencies)
 
-    assert "meltysynth" not in dependency_text
     assert "basic-pitch" not in dependency_text
 
 

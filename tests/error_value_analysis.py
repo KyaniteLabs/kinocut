@@ -136,7 +136,6 @@ ERROR_BUILDERS = frozenset(
         "voice_error",
         "bounded_voice_error",
         "mix_error",
-        "bounded_mix_error",
         "dag_error",
         "workflow_error",
         "rescue_error",

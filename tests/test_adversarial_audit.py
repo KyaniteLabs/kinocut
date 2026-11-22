@@ -19,7 +19,6 @@ from mcp_video.errors import (
     MCPVideoError,
     InputFileError,
     ProcessingError,
-    wrap_error,
 )
 
 
@@ -30,25 +29,6 @@ from mcp_video.errors import (
 
 class TestErrorHandlingRobustness:
     """_error_result handles all exception types."""
-
-    def test_wrap_error_mcpvideoerror(self) -> None:
-        """wrap_error returns MCPVideoError as-is."""
-        original = InputFileError("/tmp/test.mp4")
-        result = wrap_error(original)
-        assert result is original
-
-    def test_wrap_error_generic_exception(self) -> None:
-        """wrap_error converts generic Exception to ProcessingError."""
-        original = RuntimeError("something broke")
-        result = wrap_error(original)
-        assert isinstance(result, ProcessingError)
-        assert "something broke" in str(result) or "something broke" in result.command
-
-    def test_wrap_error_value_error(self) -> None:
-        """wrap_error converts ValueError to ProcessingError."""
-        original = ValueError("bad value")
-        result = wrap_error(original)
-        assert isinstance(result, ProcessingError)
 
     def test_server_error_result_mcpvideoerror(self) -> None:
         """_error_result handles MCPVideoError correctly."""
@@ -187,13 +167,6 @@ class TestErrorTypeConsistency:
                 "/nonexistent/clip2.mp4",
                 "/tmp/out.mp4",
             )
-
-    def test_wrap_error_preserves_processing_error(self) -> None:
-        """wrap_error keeps ProcessingError details."""
-        err = ProcessingError("ffmpeg -i test.mp4", 1, "No such file")
-        result = wrap_error(err)
-        assert isinstance(result, ProcessingError)
-        assert result.returncode == 1
 
 
 class TestFilesystemSafety:

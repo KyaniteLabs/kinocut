@@ -115,8 +115,3 @@ def _cached_font_valid(path: str) -> bool:
             return validate_font_stream(source)
     except OSError:
         return False
-
-
-def list_available_fonts() -> list[str]:
-    """Return the list of built-in downloadable font names."""
-    return list(_GOOGLE_FONT_URLS.keys())

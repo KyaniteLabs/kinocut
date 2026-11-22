@@ -288,18 +288,6 @@ def probe_audio_input(path: str) -> VideoInfo:
     return info
 
 
-def invalidate_probe_cache(path: str | None = None) -> None:
-    """Drop cached probe data. Pass a path to evict one entry, or None for all."""
-    with _probe_cache_lock:
-        if path is None:
-            _probe_cache.clear()
-        else:
-            path = os.path.realpath(path)
-            keys_to_remove = [k for k in _probe_cache if k[0] == path]
-            for k in keys_to_remove:
-                del _probe_cache[k]
-
-
 def get_duration(path: str) -> float:
     """Get duration of a video in seconds."""
     return probe(path).duration

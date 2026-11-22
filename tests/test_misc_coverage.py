@@ -7,13 +7,6 @@ import pytest
 
 
 class TestFontManager:
-    def test_list_available_fonts(self):
-        from mcp_video.font_manager import list_available_fonts
-
-        fonts = list_available_fonts()
-        assert isinstance(fonts, list)
-        assert "roboto" in fonts
-
     def test_resolve_font_local_file(self, tmp_path):
         from mcp_video.font_manager import resolve_font
 

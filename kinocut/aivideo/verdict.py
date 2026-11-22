@@ -172,12 +172,6 @@ def _artifact_is_valid(project: Project, artifact_id: str) -> bool:
     return False
 
 
-def record_defect(project: Project, finding: DefectFinding) -> DefectFinding:
-    """Persist one governed defect finding in the canonical project store."""
-
-    return cast(DefectFinding, append_record(project, finding))
-
-
 def defects_for_asset(project: Project, target_id: str) -> list[DefectFinding]:
     """Return active findings bound to one exact asset or artifact digest."""
 

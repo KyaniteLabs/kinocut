@@ -684,13 +684,6 @@ def parse_ffmpeg_error(stderr: str, command: list[str] | None = None) -> MCPVide
     return ProcessingError(cmd_str, 1, stderr)
 
 
-def wrap_error(exc: Exception) -> MCPVideoError:
-    """Convert any exception to MCPVideoError. Returns as-is if already MCPVideoError."""
-    if isinstance(exc, MCPVideoError):
-        return exc
-    return ProcessingError(str(exc), 1, getattr(exc, "stderr", ""))
-
-
 class RevideoNotFoundError(MCPVideoError):
     """Node.js or npm not found for the Revideo bridge."""
 

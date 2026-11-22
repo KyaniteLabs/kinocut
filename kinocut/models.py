@@ -135,13 +135,6 @@ class EditResult(BaseModel):
     )
 
 
-class ErrorResult(BaseModel):
-    """Structured error result returned to agents."""
-
-    success: Literal[False] = False
-    error: dict[str, Any]
-
-
 class StoryboardResult(EditResult):
     """Result of storyboard generation."""
 
@@ -420,18 +413,6 @@ class Timeline(BaseModel):
     duration: float | None = None
     tracks: list[TimelineTrack] = Field(default_factory=list)
     export: TimelineExport = Field(default_factory=TimelineExport)
-
-
-# --- Watermark settings ---
-
-
-class WatermarkSettings(BaseModel):
-    """Settings for watermark overlay."""
-
-    image_path: str
-    position: Position = "bottom-right"
-    opacity: float = 0.7
-    margin: int = 20
 
 
 # --- Position helpers ---
