@@ -41,7 +41,8 @@ from kinocut.projectstore.render_jobs import (
     start_render_job,
 )
 from kinocut.projectstore.store import Project, open_project
-from kinocut.projectstore.render_control import CANCELLATION_REQUESTED, STOP_REQUEST_STAGES, watch_runner_stop
+from kinocut.projectstore.render_control import watch_runner_stop
+from kinocut.contracts.trusted_execution import STOP_REQUEST_STAGES, RenderJobStage, render_job_stage
 from kinocut.workflow.executor import attach_receipt_lineage, render_workflow
 
 logger = logging.getLogger(__name__)
@@ -126,8 +127,9 @@ def _run_owned_job(project: Project, job_id: str, receipt_path: Path, resume_rec
 
 def _requested_stop_label(project: Project, job_id: str) -> str | None:
     head = get_render_job(project, job_id)
-    if head.status is RenderJobStatus.RUNNING and head.stage in STOP_REQUEST_STAGES:
-        return "cancelled" if head.stage == CANCELLATION_REQUESTED else "failed"
+    stage = render_job_stage(head.status, head.stage)
+    if stage in STOP_REQUEST_STAGES:
+        return "cancelled" if stage is RenderJobStage.CANCELLATION_REQUESTED else "failed"
     return None
 
 

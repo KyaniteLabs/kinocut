@@ -71,7 +71,7 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
         missing = getattr(exc, "name", None)
         if isinstance(exc, ModuleNotFoundError) and (missing == "mcp" or str(missing).startswith("mcp.")):
             err_console.print(
-                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut==1.16.5[/bold]",
+                "[red]MCP mode requires the 'mcp' package.[/red]\nInstall with: [bold]pip install kinocut==2.0.1[/bold]",
             )
         else:
             err_console.print(f"[red]MCP mode failed to start:[/red] {_render_import_failure(exc)}")
@@ -160,6 +160,7 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
     from .cli.handlers_image import handle_image_commands
     from .cli.handlers_inspection import handle_inspection_commands
     from .cli.handlers_intent import handle_intent_commands
+    from .cli.handlers_direct import handle_direct_command
     from .cli.handlers_media import handle_media_commands
     from .cli.handlers_postrescue import handle_post_rescue_commands
     from .cli.handlers_release import handle_release_commands
@@ -172,6 +173,7 @@ def _dispatch_cli(args: object, *, use_json: bool) -> bool:
 
     return bool(
         handle_initial_command(args, use_json=use_json)
+        or handle_direct_command(args, use_json=use_json)
         or handle_aivideo_commands(args, use_json=use_json)
         or handle_release_commands(args, use_json=use_json)
         or handle_revideo_commands(args, use_json=use_json)

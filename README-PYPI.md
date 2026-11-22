@@ -27,7 +27,7 @@ and Approve, Dig in and Try another range buttons for Hermes Desktop chat.
 Requires Python 3.11 or newer, plus FFmpeg and ffprobe on `PATH`.
 
 ```bash
-pip install kinocut==2.0.0
+pip install kinocut==2.0.1
 kino doctor
 kino info input.mp4
 ```

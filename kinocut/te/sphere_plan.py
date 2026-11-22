@@ -14,11 +14,16 @@ from kinocut.defaults import (
     DEFAULT_SPHERE_VERTICAL_HEIGHT,
     DEFAULT_SPHERE_VERTICAL_WIDTH,
 )
+from kinocut.contracts.review import ProposalStatus
 from kinocut.errors import MCPVideoError
 from kinocut.limits import MAX_RESOLUTION
 from kinocut.te.sphere_probe import probe_360_source
 from kinocut.validation import SPHERE_LAYOUTS, SPHERE_PRESETS, SPHERE_WRITER_KINDS
 from ..validation_errors import rejected_value
+
+
+# Review states a stored plan may hold; only APPROVED may render.
+_PLAN_STATES = frozenset({ProposalStatus.PROPOSED, ProposalStatus.APPROVED, ProposalStatus.REJECTED})
 
 _FRONT = {"id": "front", "yaw": 0.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
 _BACK = {"id": "back", "yaw": 180.0, "pitch": 0.0, "roll": 0.0, "fov": DEFAULT_SPHERE_FOV}
@@ -86,7 +91,7 @@ def propose_sphere_plan(
         "layout": chosen_layout,
         "windows": windows,
         "writer": {"kind": writer_kind, "provider": None, "model": None},
-        "status": "proposed",
+        "status": ProposalStatus.PROPOSED,
         "stills": [],
     }
     return validate_sphere_plan(plan)
@@ -128,7 +133,7 @@ def validate_sphere_plan(plan: dict[str, Any]) -> dict[str, Any]:
             error_type="validation_error",
             code="invalid_sphere_plan",
         )
-    if not isinstance(plan.get("status"), str) or plan["status"] not in {"proposed", "approved", "rejected"}:
+    if not isinstance(plan.get("status"), str) or plan["status"] not in _PLAN_STATES:
         raise MCPVideoError("360 plan status is invalid.", error_type="validation_error", code="invalid_sphere_plan")
     _validate_output(plan.get("output"))
     return plan
@@ -143,10 +148,10 @@ def decide_sphere_plan(plan: dict[str, Any], decision: str, *, layout: str | Non
             current["layout"] = layout
             for window in current.get("windows") or []:
                 window["layout"] = layout
-        current["status"] = "approved"
+        current["status"] = ProposalStatus.APPROVED
         return validate_sphere_plan(current)
     if verb == "reject":
-        current["status"] = "rejected"
+        current["status"] = ProposalStatus.REJECTED
         return current
     raise MCPVideoError(
         "360 review decision must be approve, accept, or reject.",
@@ -157,7 +162,7 @@ def decide_sphere_plan(plan: dict[str, Any], decision: str, *, layout: str | Non
 
 def require_approved(plan: dict[str, Any]) -> dict[str, Any]:
     current = validate_sphere_plan(plan)
-    if current.get("status") != "approved":
+    if current.get("status") != ProposalStatus.APPROVED:
         raise MCPVideoError(
             "360 assembly render requires an approved plan.",
             error_type="validation_error",

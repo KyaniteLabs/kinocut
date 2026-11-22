@@ -151,7 +151,7 @@ async def _mcp_plans(valid, invalid):
         payload = good.structuredContent or json.loads(good.content[0].text)
         assert payload.get("result", payload)["ok"] is True
         bad = await session.call_tool("sound_plan_validate", {"plan": invalid})
-        assert not bad.isError
+        assert bad.isError
         payload = bad.structuredContent or json.loads(bad.content[0].text)
         payload = payload.get("result", payload)
         assert payload.get("success") is False

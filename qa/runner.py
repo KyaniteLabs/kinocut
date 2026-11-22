@@ -13,12 +13,14 @@ import argparse
 import asyncio
 import hashlib
 import importlib
+import importlib.util
 import json
 import math
 import os
 import re
 import shutil
 import signal
+import site
 import socket
 import subprocess
 import sys
@@ -59,9 +61,12 @@ EXPECTED_PATH_IDS = {
     "mcp-protocol",
     "static-review-ui",
     "hyperframes-preview",
+    "brand-render",
 }
 PLACEHOLDER = re.compile(r"\{\{([a-z_]+)\}\}")
 COMMAND_ALLOWLIST = {"kino", "ffmpeg", "ffprobe", "uv", "{{python}}", "{{venv_python}}"}
+BRAND_RENDER_ASSET = Path("assets") / "kinocut-wordmark.svg"
+FLEET_ROOT_ENV = "KINOCUT_QA_FLEET_ROOT"
 
 
 class CatalogError(ValueError):
@@ -259,6 +264,32 @@ def _sha256(path: Path) -> str:
         for chunk in iter(lambda: stream.read(1024 * 1024), b""):
             digest.update(chunk)
     return digest.hexdigest()
+
+
+def _format_box(value: Any, *, digits: int = 3) -> str:
+    if not isinstance(value, list) or len(value) != 4:
+        return repr(value)
+    return "[" + ", ".join(f"{float(item):.{digits}f}" for item in value) + "]"
+
+
+def _gate_user_site() -> str | None:
+    """Return the user site dir only when the gate's Pillow dependency lives there.
+
+    The brand gate is a fleet tool, not product code. It needs Pillow, which on
+    this host is installed in the interpreter's user site; the product isolation
+    env hides that by pointing HOME at the QA work dir.
+    """
+    try:
+        spec = importlib.util.find_spec("PIL")
+    except (ImportError, ValueError):
+        return None
+    if spec is None or not spec.origin:
+        return None
+    try:
+        user_site = Path(site.getusersitepackages()).resolve()
+    except (TypeError, OSError):
+        return None
+    return str(user_site) if user_site.is_dir() and Path(spec.origin).resolve().is_relative_to(user_site) else None
 
 
 def _deep_find(value: Any, key: str) -> list[Any]:
@@ -519,6 +550,11 @@ class OperatorRunner:
                 return entry
         raise CatalogError(f"required path not found: {path_id}")
 
+    def _fleet_root(self) -> Path:
+        configured = os.environ.get(FLEET_ROOT_ENV)
+        root = Path(configured).expanduser() if configured else Path.home() / "fleet"
+        return root.resolve()
+
     def _values(self) -> dict[str, Any]:
         return {
             "qa_work": self.work,
@@ -526,6 +562,7 @@ class OperatorRunner:
             "venv": self.venv,
             "python": sys.executable,
             "venv_python": self.python,
+            "fleet_root": self._fleet_root(),
         }
 
     def _expanded(self, entry: dict[str, Any], key: str = "argv") -> list[str]:
@@ -537,11 +574,32 @@ class OperatorRunner:
             return report
         return _read_json_object(cp.stderr)
 
-    def run(self) -> int:
+    def run(self, only: list[str] | None = None) -> int:
+        selected = list(dict.fromkeys(only or []))
+        if selected:
+            known = {entry["id"] for entry in required_paths(self.catalog)}
+            unknown = sorted(set(selected) - known)
+            if unknown:
+                raise CatalogError(f"unknown targeted path id(s): {unknown}")
+            entries = [entry for entry in required_paths(self.catalog) if entry["id"] in set(selected)]
+            print(f"TARGETED {','.join(entry['id'] for entry in entries)}", flush=True)
+            for entry in entries:
+                self._run_selected(entry)
+            summary = {
+                "catalog_schema_version": self.catalog["schema_version"],
+                "catalog_revision": self.catalog_revision,
+                "product_sha": self.product_sha or "unverified",
+                **coverage_counts(self.results, self.catalog),
+                "targeted_path_ids": [entry["id"] for entry in entries],
+                "coverage_complete": False,
+            }
+            print("SUMMARY " + json.dumps(summary, sort_keys=True), flush=True)
+            return exit_code(self.results)
         self._run_clean_environment()
         self._run_source_install()
         self._run_doctor()
         self._run_fixtures()
+        self._run_brand_render(self._entry("brand-render"))
         self._discover_cli()
         self._run_golden_path()
         for path_id in (
@@ -1013,6 +1071,148 @@ class OperatorRunner:
             self._pass(entry, "CLI returned exit 0 and structured operator output")
             return
         self._blocked(entry, f"runner does not implement declared action type {action!r}")
+
+    def _run_brand_render(self, entry: dict[str, Any]) -> None:
+        if self.product_problem or not self.product_sha:
+            self._blocked(entry, self.product_problem or "exact product SHA is unavailable")
+            return
+        argv = self._expanded(entry)
+        try:
+            report_path = Path(argv[argv.index("--json") + 1])
+        except (ValueError, IndexError):
+            self._fail(entry, "brand-render argv must name a machine-readable --json path")
+            return
+        # Chrome's process-singleton socket lives under TMPDIR and has a hard
+        # length limit, so keep it short even when the QA work dir is deep. The
+        # gate is a fleet tool (not product code): it keeps the isolated HOME/XDG
+        # but must also see the interpreter's Pillow install, which the product
+        # PYTHONNOUSERSITE guard would hide.
+        base_env = self._base_env()
+        with tempfile.TemporaryDirectory(prefix="kinoqa-brand-", dir="/tmp") as chrome_tmp:
+            env = {
+                "PATH": base_env["PATH"],
+                "HOME": base_env["HOME"],
+                "XDG_CONFIG_HOME": base_env["XDG_CONFIG_HOME"],
+                "XDG_CACHE_HOME": base_env["XDG_CACHE_HOME"],
+                "XDG_DATA_HOME": base_env["XDG_DATA_HOME"],
+                "TMPDIR": chrome_tmp,
+                "LANG": "C.UTF-8",
+                "LC_ALL": "C.UTF-8",
+                "NO_COLOR": "1",
+            }
+            user_site = _gate_user_site()
+            if user_site:
+                env["PYTHONPATH"] = user_site
+            cp = self._run(argv, timeout=600, env=env)
+        payload: dict[str, Any] | None = None
+        if report_path.is_file():
+            try:
+                raw = json.loads(report_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError):
+                raw = None
+            if isinstance(raw, dict) and isinstance(raw.get("results"), list):
+                payload = raw
+        if cp.returncode == 2:
+            self._blocked(
+                entry,
+                f"brand render gate could not run (exit 2): {cp.stderr[-500:] or cp.stdout[-500:]}",
+            )
+            return
+        if payload is None:
+            self._fail(
+                entry,
+                f"brand render gate produced no machine-readable evidence: {cp.stderr[-500:] or cp.stdout[-500:]}",
+                code=cp.returncode,
+            )
+            return
+        results = [item for item in payload["results"] if isinstance(item, dict)]
+        expected = (self.product_root / BRAND_RENDER_ASSET).resolve()
+        if not any(Path(str(item.get("path", ""))).resolve() == expected for item in results):
+            self._fail(
+                entry,
+                f"brand render gate did not report {BRAND_RENDER_ASSET.as_posix()}",
+                code=cp.returncode,
+            )
+            return
+        problems: list[str] = []
+        if cp.returncode != 0:
+            problems.append(f"gate exited {cp.returncode}")
+        measured: list[str] = []
+        for item in results:
+            label = Path(str(item.get("path") or "asset")).name
+            ink = item.get("ink_pixels")
+            bbox = item.get("ink_bbox")
+            canvas = item.get("canvas")
+            if item.get("ok") is not True:
+                detail = "; ".join(
+                    part for part in (str(item.get("reason") or ""), str(item.get("error") or "")) if part
+                )
+                problems.append(f"{label}: gate ok={item.get('ok')!r} {detail}")
+            if not isinstance(ink, int) or ink <= 0:
+                problems.append(f"{label}: ink_pixels={ink!r} is not a positive measured count")
+            if not isinstance(bbox, list) or len(bbox) != 4 or not all(
+                isinstance(value, (int, float)) for value in bbox
+            ):
+                problems.append(f"{label}: ink_bbox={bbox!r} is not a measured box")
+            if not isinstance(canvas, list) or len(canvas) != 4 or not all(
+                isinstance(value, (int, float)) for value in canvas
+            ):
+                problems.append(f"{label}: canvas={canvas!r} is not a measured canvas")
+            if (
+                isinstance(bbox, list)
+                and isinstance(canvas, list)
+                and len(bbox) == 4
+                and len(canvas) == 4
+                and all(isinstance(value, (int, float)) for value in (*bbox, *canvas))
+            ):
+                left, top, right, bottom = (float(value) for value in bbox)
+                x, y, width, height = (float(value) for value in canvas)
+                if (
+                    left < x - 0.5
+                    or top < y - 0.5
+                    or right > x + width + 0.5
+                    or bottom > y + height + 0.5
+                ):
+                    problems.append(f"{label}: ink bbox {_format_box(bbox)} lies outside canvas {_format_box(canvas)}")
+            if item.get("outside_edges"):
+                problems.append(f"{label}: outside_edges={item.get('outside_edges')}")
+            measured.append(
+                f"{label} ink_pixels={ink} ink_bbox={_format_box(bbox)} canvas={_format_box(canvas)}"
+            )
+        evidence = "; ".join(measured)
+        if problems:
+            self._fail(entry, f"{'; '.join(problems)}; measured: {evidence}", code=cp.returncode)
+            return
+        self._pass(
+            entry,
+            f"headless Chrome rendered {BRAND_RENDER_ASSET.as_posix()} inside its canvas; {evidence}",
+            code=cp.returncode,
+        )
+
+    def _run_selected(self, entry: dict[str, Any]) -> None:
+        action = entry.get("action")
+        if action == "isolate_environment":
+            self._run_clean_environment()
+        elif action == "source_install":
+            self._run_source_install()
+        elif action == "doctor":
+            self._run_doctor()
+        elif action == "generate_fixtures":
+            self._run_fixtures()
+        elif action == "golden_path":
+            self._run_golden_path()
+        elif action == "brand_render":
+            self._run_brand_render(entry)
+        elif action == "mcp_protocol":
+            self._run_mcp_protocol()
+        elif action == "mcp_call":
+            self._run_mcp_call(entry)
+        elif action == "static_review_browser":
+            self._run_static_review(entry)
+        elif action == "hyperframes_preview":
+            self._run_hyperframes(entry)
+        else:
+            self._run_operator(entry)
 
     def _raw_frame(self, path: Path, timestamp: float) -> bytes:
         argv = [
@@ -1753,15 +1953,39 @@ class OperatorRunner:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--product-root", required=True, type=Path, help="caller-supplied clean exact product checkout")
+    parser.add_argument("--product-root", type=Path, help="caller-supplied clean exact product checkout")
     parser.add_argument("--product-sha", help="optional full SHA that must equal the supplied checkout HEAD")
     parser.add_argument("--catalog", type=Path, default=CATALOG)
     parser.add_argument("--work-dir", type=Path, help="new empty work directory; generated outputs remain there")
+    parser.add_argument(
+        "--only",
+        action="append",
+        metavar="PATH_ID",
+        help="run only the named required path(s); targeted mode never claims full-catalog coverage",
+    )
+    parser.add_argument(
+        "--catalog-check",
+        action="store_true",
+        help="validate the catalog (schema, allowlist, required-path set) and exit without running paths",
+    )
     args = parser.parse_args()
+    if args.catalog_check:
+        try:
+            catalog = load_catalog(args.catalog)
+        except CatalogError as exc:
+            print(f"BLOCKED catalog: {exc}", file=sys.stderr, flush=True)
+            return 2
+        print(
+            f"CATALOG OK {args.catalog} required_paths={len(required_paths(catalog))}",
+            flush=True,
+        )
+        return 0
+    if args.product_root is None:
+        parser.error("--product-root is required unless --catalog-check is used")
     work = args.work_dir or Path(tempfile.mkdtemp(prefix="kinocut-qa-", dir=os.environ.get("TMPDIR"))) / "run"
     try:
         runner = OperatorRunner(args.product_root, work, args.catalog, args.product_sha)
-        return runner.run()
+        return runner.run(args.only)
     except (CatalogError, OSError, ValueError) as exc:
         print(f"BLOCKED runner: {exc}", file=sys.stderr, flush=True)
         return 2

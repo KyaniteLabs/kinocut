@@ -36,7 +36,14 @@ class HomeCollapsingStream:
 
     @property
     def _target(self) -> TextIO:
-        return sys.stderr if self._stderr else sys.stdout
+        target = sys.stderr if self._stderr else sys.stdout
+        # Rich's Live display (used by Progress) swaps sys.stdout/sys.stderr for
+        # a FileProxy that forwards writes back into the same Console. Writing
+        # through that proxy would call Console.print -> this stream -> proxy
+        # again, recursing until the process dies (the TTY hang in #776).
+        # Console.file unwraps a proxy the same way; mirror it so this stream
+        # always writes to the terminal underneath it.
+        return getattr(target, "rich_proxied_file", target)
 
     def write(self, text: str) -> int:
         self._target.write(collapse_home(text))

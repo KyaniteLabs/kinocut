@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Callable
+
 from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_probe import probe
 from .engine_runtime_utils import _build_edit_result, _timed_operation
 from .paths import _auto_output
-from .ffmpeg_helpers import _run_ffmpeg
+from .ffmpeg_helpers import _run_ffmpeg, _run_ffmpeg_with_progress
 from .errors import MCPVideoError
 from .models import ASPECT_RATIOS, QUALITY_PRESETS, EditResult, QualityLevel
 from .validation import _validate_pixel_integer
@@ -63,8 +65,12 @@ def resize(
     aspect_ratio: str | None = None,
     quality: QualityLevel = "high",
     output_path: str | None = None,
+    on_progress: Callable[[float], None] | None = None,
 ) -> EditResult:
-    """Resize a video. Use aspect_ratio for preset sizes (e.g. '9:16')."""
+    """Resize a video. Use aspect_ratio for preset sizes (e.g. '9:16').
+
+    ``on_progress`` receives the render's percent complete (0-100).
+    """
     input_path = _validate_input_path(input_path)
 
     info = probe(input_path)
@@ -86,15 +92,17 @@ def resize(
     vf = f"scale={w}:{h}:force_original_aspect_ratio=decrease,pad={w}:{h}:(ow-iw)/2:(oh-ih)/2:black"
 
     with _timed_operation() as timing, _atomic_output(output) as staged:
-        _run_ffmpeg(
-            _build_ffmpeg_cmd(
-                input_path,
-                output_path=staged,
-                video_filter=vf,
-                crf=preset["crf"],
-                preset=preset["preset"],
-            )
+        args = _build_ffmpeg_cmd(
+            input_path,
+            output_path=staged,
+            video_filter=vf,
+            crf=preset["crf"],
+            preset=preset["preset"],
         )
+        if on_progress is None:
+            _run_ffmpeg(args)
+        else:
+            _run_ffmpeg_with_progress(args, info.duration, on_progress)
         result = _build_edit_result(staged, "resize", timing)
     result.output_path = output
     result.elapsed_ms = timing["elapsed_ms"]

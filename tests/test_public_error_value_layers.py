@@ -23,6 +23,7 @@ hide in a truncated or re-encoded message.
 
 from __future__ import annotations
 
+import asyncio
 import json
 
 import pytest
@@ -111,7 +112,7 @@ def test_merge_transition_never_repeats_the_submitted_value():
     """The MCP tool validates the transition before it touches the paths."""
     from kinocut.server_tools_basic import video_merge
 
-    result = video_merge(clips=["/tmp/a.mp4", "/tmp/b.mp4"], transition=SECRET)
+    result = asyncio.run(video_merge(clips=["/tmp/a.mp4", "/tmp/b.mp4"], transition=SECRET))
     _assert_clean_result(result, "merge transition")
     # The refusal still says what was expected.
     assert "transition" in json.dumps(result).lower()
@@ -120,7 +121,7 @@ def test_merge_transition_never_repeats_the_submitted_value():
 def test_merge_transitions_never_repeat_the_submitted_values():
     from kinocut.server_tools_basic import video_merge
 
-    result = video_merge(clips=["/tmp/a.mp4", "/tmp/b.mp4"], transitions=[SECRET])
+    result = asyncio.run(video_merge(clips=["/tmp/a.mp4", "/tmp/b.mp4"], transitions=[SECRET]))
     _assert_clean_result(result, "merge transitions")
     assert "transition" in json.dumps(result).lower()
 

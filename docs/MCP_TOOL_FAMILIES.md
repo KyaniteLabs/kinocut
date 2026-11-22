@@ -13,7 +13,7 @@ surface is 18 tools, about 22 KB (14,759 schema bytes), and still reaches all 20
 operations through the families. Measured numbers per mode live in
 [MCP_TOOL_SURFACE_BASELINE.md](MCP_TOOL_SURFACE_BASELINE.md).
 
-How it got here: published 1.16.5 lists 20 direct tools by default. The family layer
+How it got here: 1.16.5 listed 20 direct tools by default. The family layer
 then made every registry operation reachable from the default surface, and the
 hot-path diet (#655) cut the direct core from 20 tools to 8, because every dropped
 tool is already a family operation.

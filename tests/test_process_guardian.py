@@ -89,16 +89,20 @@ print(json.dumps(dict(rows=rows, owner=os.getpid(), signals=signals, binary=resu
 
 
 def proc_status(pid):
-    """Return /proc/<pid>/status, or None once the process is gone.
+    """Return a /proc-style status with a ``State:`` line, or None once the process is gone.
 
     A process can exit between an exists() check and the read, and reading
     the status of a dying process raises ProcessLookupError, so gone counts
-    as stopped rather than as an error.
+    as stopped rather than as an error.  Without procfs (macOS) ask ``ps``;
+    returning None there would count a live process as stopped.
     """
-    try:
-        return Path(f"/proc/{pid}/status").read_text()
-    except (FileNotFoundError, ProcessLookupError):
-        return None
+    if Path("/proc/self/status").exists():
+        try:
+            return Path(f"/proc/{pid}/status").read_text()
+        except (FileNotFoundError, ProcessLookupError):
+            return None
+    stat = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True, text=True).stdout.strip()
+    return f"State:\t{stat}" if stat else None
 
 
 def wait_for(predicate, timeout=5):

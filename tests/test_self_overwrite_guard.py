@@ -7,6 +7,8 @@ the current operation — resolved-path compare, not string-level — with the
 same structured ``invalid_output_path`` error the other write guardrails use.
 """
 
+import asyncio
+
 import contextvars
 import hashlib
 import os
@@ -132,7 +134,7 @@ class TestSelfOverwriteRegression:
 
         before_digest = _file_digest(sample_video)
 
-        result = video_trim(sample_video, start="0", duration="0.4", output_path=sample_video)
+        result = asyncio.run(video_trim(sample_video, start="0", duration="0.4", output_path=sample_video))
 
         assert result["success"] is False
         assert result["error"]["code"] == "invalid_output_path"

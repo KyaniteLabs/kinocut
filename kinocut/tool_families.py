@@ -52,6 +52,7 @@ FAMILY_MODULES: Mapping[str, tuple[str, ...]] = {
     ),
     "video_plan_ops": (
         "server_tools_intent",
+        "server_tools_direct",
         "server_tools_creation",
         "server_tools_postrescue",
         "server_tools_repurpose",

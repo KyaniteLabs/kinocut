@@ -11,7 +11,7 @@ def test_repurpose_plan_default_package_manifest(sample_video, tmp_path):
 
     assert result["success"] is True
     assert result["source"]["path"] == sample_video
-    assert result["manifest_path"].endswith("repurpose_manifest.json")
+    assert result["manifest_path"].endswith("repurpose_plan.json")
     assert os.path.isfile(result["manifest_path"])
 
     platform_names = {variant["platform"] for variant in result["variants"]}
@@ -52,3 +52,46 @@ def test_repurpose_renders_vertical_and_horizontal_with_review_artifacts(sample_
         assert os.path.isfile(variant["output_path"])
         assert variant["release_checkpoint"]["thumbnail"]
         assert os.path.isfile(variant["release_checkpoint"]["thumbnail"])
+
+
+def test_render_after_plan_in_the_same_folder(sample_video, tmp_path):
+    """The documented recipe: plan into a folder, then render into the same folder."""
+    package = str(tmp_path / "package")
+    plan = repurpose_plan(sample_video, output_dir=package, platforms=["youtube"])
+
+    rendered = repurpose(
+        sample_video,
+        output_dir=package,
+        platforms=["youtube"],
+        include_release_checkpoint=False,
+        min_score=0,
+    )
+
+    assert rendered["success"] is True
+    assert os.path.isfile(plan["manifest_path"])
+    assert rendered["manifest_path"].endswith("repurpose_manifest.json")
+    assert rendered["manifest_path"] != plan["manifest_path"]
+
+
+def test_repurpose_plan_can_replace_its_own_manifest_with_overwrite(sample_video, tmp_path):
+    import asyncio
+
+    from kinocut.server import mcp
+
+    package = str(tmp_path / "package")
+    args = {"input_path": sample_video, "output_dir": package, "platforms": ["youtube"]}
+    first = asyncio.run(mcp.call_tool("video_repurpose_plan", args))
+    first_payload = first[1] if isinstance(first, tuple) else first.structuredContent
+    assert first_payload["success"] is True
+
+    refused = asyncio.run(mcp.call_tool("video_repurpose_plan", args))
+    refused_payload = refused[1] if isinstance(refused, tuple) else refused.structuredContent
+    assert refused_payload["success"] is False
+    assert "overwrite=true" in refused_payload["error"]["message"]
+    assert "new output_path" not in refused_payload["error"]["message"]
+
+    second = asyncio.run(mcp.call_tool("video_repurpose_plan", {**args, "overwrite": True}))
+    second_payload = second[1] if isinstance(second, tuple) else second.structuredContent
+
+    assert second_payload["success"] is True
+    assert second_payload["manifest_path"] == first_payload["manifest_path"]

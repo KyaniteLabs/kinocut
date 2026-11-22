@@ -9,6 +9,9 @@ from typing import Any
 # Whole phrases point at existing public contracts; they do not imply that an
 # optional backend is installed or that a planning tool executes the operation.
 _PHRASE_TOOLS = {
+    "spoken direction": ("video_direct",),
+    "just say what you want": ("video_direct",),
+    "apply direction plan": ("video_direct_apply",),
     "remove filler words": ("video_timeline_edit_plan",),
     "remove ums": ("video_timeline_edit_plan",),
     "find pauses": ("video_audio_waveform", "video_ai_remove_silence"),

@@ -5,7 +5,7 @@ from __future__ import annotations
 import math
 import os
 import tempfile
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +17,39 @@ from ..engine_subtitle_generate import generate_subtitles
 from ..engine_subtitles import subtitles
 from ..ffmpeg_helpers import _validate_input_path, _validate_output_path
 from ..workflow.status import StepStatus
+
+Progress = Callable[[float], None]
+
+
+class _StagedProgress:
+    """One 0-100 for the whole flow, built from each render's own 0-100.
+
+    Each stage gets a weight (seconds of video it renders). A stage's
+    percent maps onto its slice; ``finish`` jumps to the slice's end for a
+    stage that cannot report progress itself.
+    """
+
+    def __init__(self, on_progress: Progress | None, weights: Sequence[float]) -> None:
+        self._on_progress = on_progress
+        self._total = sum(weights)
+        self._done = 0.0
+
+    def stage(self, span: float) -> Progress | None:
+        if self._on_progress is None or self._total <= 0 or span <= 0:
+            return None
+        start, report = self._done, self._on_progress
+        total = self._total
+
+        def stage_progress(percent: float) -> None:
+            report(min(100.0, (start + span * min(max(percent, 0.0), 100.0) / 100.0) / total * 100.0))
+
+        return stage_progress
+
+    def finish(self, span: float) -> None:
+        self._done += max(span, 0.0)
+        if self._on_progress is not None and self._total > 0:
+            self._on_progress(min(100.0, self._done / self._total * 100.0))
+
 
 __all__ = ["video_shorts"]
 
@@ -75,13 +108,18 @@ def _assemble_segments(
     source: str,
     parsed: list[tuple[float, float, str | None]],
     workdir: str,
+    progress: _StagedProgress,
 ) -> tuple[list[str], str, dict[str, Any]]:
     """Trim every segment, then merge the trims into one assembled master."""
 
     trimmed_paths: list[str] = []
     for index, (start, end, _text) in enumerate(parsed):
         trimmed = os.path.join(workdir, f"segment-{index:03d}.mp4")
-        result = trim(source, start=start, end=end, output_path=trimmed, accurate=True)
+        span = end - start
+        result = trim(
+            source, start=start, end=end, output_path=trimmed, accurate=True, on_progress=progress.stage(span)
+        )
+        progress.finish(span)
         trimmed_paths.append(result.output_path)
 
     if len(trimmed_paths) == 1:
@@ -91,8 +129,14 @@ def _assemble_segments(
             {"stage": "merge", "status": StepStatus.SKIPPED, "reason": "one segment"},
         )
     assembled_path = os.path.join(workdir, "assembled.mp4")
-    merged = merge(trimmed_paths, output_path=assembled_path)
+    seconds = _seconds(parsed)
+    merged = merge(trimmed_paths, output_path=assembled_path, on_progress=progress.stage(seconds))
+    progress.finish(seconds)
     return trimmed_paths, merged.output_path, {"stage": "merge", "status": StepStatus.COMPLETED}
+
+
+def _seconds(parsed: list[tuple[float, float, str | None]]) -> float:
+    return sum(end - start for (start, end, _text) in parsed)
 
 
 def _measured_segment_durations(paths: list[str]) -> list[float]:
@@ -316,12 +360,37 @@ def _caption_timings(source: str, parsed: list[tuple[float, float, str | None]])
     return True
 
 
+def _shorts_result(
+    segment_count: int, merge_step: dict[str, Any], caption_step: dict[str, Any], output_path: str
+) -> dict[str, Any]:
+    steps = [
+        {"stage": "trim", "status": StepStatus.COMPLETED, "segment_count": segment_count},
+        merge_step,
+        caption_step,
+        {
+            "stage": "vertical_template",
+            "status": StepStatus.COMPLETED,
+            "aspect_ratio": "9:16",
+            "output_path": output_path,
+        },
+        {"stage": "export", "status": StepStatus.COMPLETED, "output_path": output_path},
+    ]
+    return {
+        "success": True,
+        "operation": "video_shorts",
+        "output_path": output_path,
+        "external_posting": False,
+        "receipt": {"schema_version": 2, "receipt_kind": "video_shorts", "steps": steps},
+    }
+
+
 def video_shorts(
     input_path: str,
     segments: Sequence[Mapping[str, Any] | Sequence[Any]],
     style: str | Mapping[str, Any] | None = None,
     output_path: str | None = None,
     overwrite: bool = False,
+    on_progress: Progress | None = None,
 ) -> dict[str, Any]:
     """Trim, caption, make vertical, and export selected segments in one call.
 
@@ -349,8 +418,14 @@ def video_shorts(
         _validate_output_path(final_output)
 
         has_captions = _caption_timings(source, parsed)
+        seconds = _seconds(parsed)
+        progress = _StagedProgress(
+            on_progress,
+            # trims, merge (several segments only), captions (when burned), vertical render
+            [seconds, seconds if len(parsed) > 1 else 0.0, seconds if has_captions else 0.0, seconds],
+        )
         with tempfile.TemporaryDirectory(prefix="kinocut-shorts-") as workdir:
-            trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir)
+            trimmed_paths, assembled_path, merge_step = _assemble_segments(source, parsed, workdir, progress)
             segment_durations = _measured_segment_durations(trimmed_paths) if has_captions else []
             captioned_path, caption_step = _apply_captions(
                 parsed,
@@ -361,33 +436,15 @@ def video_shorts(
                 workdir,
                 truncated_captions,
             )
+            if has_captions:
+                progress.finish(seconds)
 
             vertical = resize(
                 captioned_path,
                 aspect_ratio="9:16",
                 quality=quality,
                 output_path=final_output,
+                on_progress=progress.stage(seconds),
             )
-            steps = [
-                {"stage": "trim", "status": StepStatus.COMPLETED, "segment_count": len(trimmed_paths)},
-                merge_step,
-                caption_step,
-                {
-                    "stage": "vertical_template",
-                    "status": StepStatus.COMPLETED,
-                    "aspect_ratio": "9:16",
-                    "output_path": vertical.output_path,
-                },
-                {"stage": "export", "status": StepStatus.COMPLETED, "output_path": vertical.output_path},
-            ]
-            return {
-                "success": True,
-                "operation": "video_shorts",
-                "output_path": vertical.output_path,
-                "external_posting": False,
-                "receipt": {
-                    "schema_version": 2,
-                    "receipt_kind": "video_shorts",
-                    "steps": steps,
-                },
-            }
+            progress.finish(seconds)
+            return _shorts_result(len(trimmed_paths), merge_step, caption_step, vertical.output_path)

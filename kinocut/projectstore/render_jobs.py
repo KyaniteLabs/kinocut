@@ -19,17 +19,19 @@ from kinocut.defaults import DEFAULT_RENDER_STOP_TIMEOUT
 from kinocut.projectstore._filelock import lock_exclusive, unlock
 from kinocut.contracts._errors import INVALID_RECORD, contract_error
 from kinocut.contracts.adapter import validate_record
-from kinocut.contracts.trusted_execution import RenderJobRecord, RenderJobStatus, can_transition_job
+from kinocut.contracts.trusted_execution import (
+    STOP_REQUEST_STAGES,
+    RenderJobRecord,
+    RenderJobStage,
+    RenderJobStatus,
+    STAGE_STATUS,
+    can_transition_stage,
+    render_job_stage,
+)
 from kinocut.projectstore.edit_projects import _append_transaction, get_branch
 from kinocut.projectstore.events import _build_event_locked
 from kinocut.projectstore import layout
-from kinocut.projectstore.render_control import (
-    CANCELLATION_REQUESTED,
-    STOP_REQUEST_STAGES,
-    TERMINATION_REQUESTED,
-    group_quiescent,
-    stop_runner_group,
-)
+from kinocut.projectstore.render_control import group_quiescent, stop_runner_group
 from kinocut.projectstore.store import (
     Project,
     _project_lock,
@@ -96,21 +98,26 @@ def _job_heads(project: Project) -> dict[str, RenderJobRecord]:
     return heads
 
 
-def _build_from(project: Project, head: RenderJobRecord, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
-    """Build and validate a frozen successor of ``head`` (lock held by caller, no append);
-    returns the record with its canonical ``record_id`` populated so a paired record (the
-    success event) can reference it before the append. Progress carries forward unless
-    overridden; the failure summary resets and the active stage clears on re-queue."""
+def _build_from(project: Project, head: RenderJobRecord, target: RenderJobStage, **changes: Any) -> RenderJobRecord:
+    """Build and validate a frozen successor of ``head`` in stage ``target`` (lock held
+    by caller, no append). The single gate for every render-job write: an illegal stage
+    move raises before anything is built. Returns the record with its canonical
+    ``record_id`` populated so a paired record (the success event) can reference it
+    before the append. Progress carries forward unless overridden; the failure
+    summary resets unless given."""
+    current = render_job_stage(head.status, head.stage)
+    if not can_transition_stage(current, target):
+        raise contract_error(f"illegal render-job transition {current.value} -> {target.value}", INVALID_RECORD)
     fields: dict[str, Any] = head.model_dump(mode="json")
     fields["record_id"] = None
     fields.update(
-        stage=changes.get("stage", None if target is RenderJobStatus.QUEUED else head.stage),
+        stage=target.value,
         stage_index=changes.get("stage_index", head.stage_index),
         runner_pid=changes.get("runner_pid", head.runner_pid),
         completed_artifacts=changes.get("completed_artifacts", head.completed_artifacts),
         error_code=changes.get("error_code"),
         error_message=changes.get("error_message"),
-        status=target,
+        status=STAGE_STATUS[target],
         created_at=_now(),
         supersedes=head.record_id,
     )
@@ -118,28 +125,76 @@ def _build_from(project: Project, head: RenderJobRecord, target: RenderJobStatus
     return record
 
 
-def _append_from(project: Project, head: RenderJobRecord, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
+def _append_from(project: Project, head: RenderJobRecord, target: RenderJobStage, **changes: Any) -> RenderJobRecord:
     """Append a frozen successor of ``head`` (lock held by caller); see :func:`_build_from`."""
     return append_record_locked(project, _build_from(project, head, target, **changes))
 
 
-def _transition(project: Project, job_id: str, target: RenderJobStatus, **changes: Any) -> RenderJobRecord:
-    """Poll-first lifecycle move: read the head under the lock, enforce a legal transition, append."""
-    with _project_lock(project):
-        head = _job_heads(project).get(job_id)
-        if head is None:
-            raise contract_error("render job not found", INVALID_RECORD)
-        if (
-            head.status is RenderJobStatus.RUNNING
-            and target is RenderJobStatus.FAILED
-            and head.stage in STOP_REQUEST_STAGES
-        ):
-            # The stop controller owns the terminal once requested. A racing
-            # runner failure must not discard its PID before quiescence.
-            return head
-        if not can_transition_job(head.status, target):
-            raise contract_error(f"illegal render-job transition {head.status.value} -> {target.value}", INVALID_RECORD)
-        return _append_from(project, head, target, **changes)
+def _locked_head(project: Project, job_id: str) -> RenderJobRecord:
+    head = _job_heads(project).get(job_id)
+    if head is None:
+        raise contract_error("render job not found", INVALID_RECORD)
+    return head
+
+
+def _stop_requested(head: RenderJobRecord) -> bool:
+    return render_job_stage(head.status, head.stage) in STOP_REQUEST_STAGES
+
+
+# Named moves. Each is the one place its lifecycle move is written (lock held by caller).
+
+
+def _start_locked(project: Project, head: RenderJobRecord, pid: int) -> RenderJobRecord:
+    """QUEUED -> RUNNING with the runner's PID."""
+    return _append_from(project, head, RenderJobStage.RUNNING, runner_pid=pid)
+
+
+def _fail_locked(project: Project, head: RenderJobRecord, code: str, message: str) -> RenderJobRecord:
+    """RUNNING (or a verified termination) -> FAILED with best-effort progress and a bounded summary."""
+    artifacts, completed = _best_effort_progress(project, head.job_id)
+    return _append_from(
+        project,
+        head,
+        RenderJobStage.FAILED,
+        stage_index=completed,
+        completed_artifacts=artifacts,
+        error_code=(code or "render_failed")[:64],
+        error_message=(message or "")[:_MESSAGE_CAP],
+        runner_pid=None,
+    )
+
+
+def _cancel_locked(project: Project, head: RenderJobRecord, *, with_progress: bool) -> RenderJobRecord:
+    """QUEUED or a verified cancellation -> CANCELLED; the runner PID is released."""
+    changes: dict[str, Any] = {"runner_pid": None}
+    if with_progress:
+        artifacts, completed = _best_effort_progress(project, head.job_id)
+        changes.update(stage_index=completed, completed_artifacts=artifacts)
+    return _append_from(project, head, RenderJobStage.CANCELLED, **changes)
+
+
+def _request_stop_locked(project: Project, head: RenderJobRecord, requested: RenderJobStage) -> RenderJobRecord:
+    """RUNNING -> a stop-request stage. A cancellation request is sticky: a later
+    termination request never downgrades it. Appends only on a stage change."""
+    current = render_job_stage(head.status, head.stage)
+    if current is RenderJobStage.CANCELLATION_REQUESTED:
+        requested = RenderJobStage.CANCELLATION_REQUESTED
+    if current is requested:
+        return head
+    return _append_from(project, head, requested)
+
+
+def _note_unconfirmed_stop_locked(project: Project, head: RenderJobRecord, code: str) -> RenderJobRecord:
+    """A stop-request stage re-appends itself with the stop error; the PID is retained."""
+    if head.error_code == code:
+        return head
+    return _append_from(
+        project,
+        head,
+        render_job_stage(head.status, head.stage),
+        error_code=code,
+        error_message="runner stop is unconfirmed; PID retained for retry",
+    )
 
 
 def _resolve_spec(project: Project, spec_path: Any) -> Path:
@@ -195,7 +250,8 @@ def _best_effort_progress(project: Project, job_id: str) -> tuple[tuple[str, ...
 
 
 def mark_running(project: Project, job_id: str, pid: int) -> RenderJobRecord:
-    return _transition(project, job_id, RenderJobStatus.RUNNING, runner_pid=pid, stage="running")
+    with _project_lock(project):
+        return _start_locked(project, _locked_head(project, job_id), pid)
 
 
 def mark_succeeded(project: Project, job_id: str, receipt: dict[str, Any]) -> RenderJobRecord:
@@ -209,21 +265,13 @@ def mark_succeeded(project: Project, job_id: str, receipt: dict[str, Any]) -> Re
     crash-atomic) and a retry produces exactly one succeeded head and one event."""
     artifacts, completed = _extract_progress(receipt)
     with _project_lock(project):
-        head = _job_heads(project).get(job_id)
-        if head is None:
-            raise contract_error("render job not found", INVALID_RECORD)
-        if head.stage in STOP_REQUEST_STAGES:
+        head = _locked_head(project, job_id)
+        if _stop_requested(head):
             raise contract_error("render job cannot succeed while stop is requested", INVALID_RECORD)
-        if not can_transition_job(head.status, RenderJobStatus.SUCCEEDED):
-            raise contract_error(
-                f"illegal render-job transition {head.status.value} -> {RenderJobStatus.SUCCEEDED.value}",
-                INVALID_RECORD,
-            )
         succeeded = _build_from(
             project,
             head,
-            RenderJobStatus.SUCCEEDED,
-            stage="completed",
+            RenderJobStage.COMPLETED,
             stage_index=completed,
             completed_artifacts=artifacts,
             runner_pid=None,
@@ -241,18 +289,13 @@ def mark_succeeded(project: Project, job_id: str, receipt: dict[str, Any]) -> Re
 
 
 def mark_failed(project: Project, job_id: str, code: str, message: str) -> RenderJobRecord:
-    artifacts, completed = _best_effort_progress(project, job_id)
-    return _transition(
-        project,
-        job_id,
-        RenderJobStatus.FAILED,
-        stage="failed",
-        stage_index=completed,
-        completed_artifacts=artifacts,
-        error_code=(code or "render_failed")[:64],
-        error_message=(message or "")[:_MESSAGE_CAP],
-        runner_pid=None,
-    )
+    with _project_lock(project):
+        head = _locked_head(project, job_id)
+        if _stop_requested(head):
+            # The stop controller owns the terminal once requested. A racing
+            # runner failure must not discard its PID before quiescence.
+            return head
+        return _fail_locked(project, head, code, message)
 
 
 def submit_render_job(
@@ -282,10 +325,10 @@ def submit_render_job(
             "job_id": job_id,
             "edit_project_id": edit_project_id,
             "revision_id": revision_id,
-            "status": RenderJobStatus.QUEUED,
+            "status": STAGE_STATUS[RenderJobStage.QUEUED],
             "workflow_spec_digest": spec_digest,
             "spec_path": (_job_subdir(job_id) / "spec.json").as_posix(),
-            "stage": "queued",
+            "stage": RenderJobStage.QUEUED.value,
             "stage_index": 0,
             "stage_total": len(verdict["steps"]),
             "project_id": project.project_id,
@@ -341,18 +384,19 @@ def cancel_render_job(project: Project, job_id: str) -> RenderJobRecord:
     _require_job_id(job_id)
     with _project_lock(project):
         head = _job_heads(project).get(job_id)
-        if head is None or not can_transition_job(head.status, RenderJobStatus.CANCELLED):
+        if head is None or head.status not in (RenderJobStatus.QUEUED, RenderJobStatus.RUNNING):
             raise contract_error("render job cannot be cancelled in its current state", INVALID_RECORD)
         if head.status is RenderJobStatus.QUEUED:
-            return _append_from(project, head, RenderJobStatus.CANCELLED, stage="cancelled", runner_pid=None)
-        head = _prepare_stop_locked(project, head, CANCELLATION_REQUESTED)
-    return _request_stop(project, head)
+            return _cancel_locked(project, head, with_progress=False)
+        head = _request_stop_locked(project, head, RenderJobStage.CANCELLATION_REQUESTED)
+    return _await_stop(project, head)
 
 
 def resume_render_job(project: Project, job_id: str) -> RenderJobRecord:
     """Resume a FAILED/CANCELLED job back to QUEUED (legal transition only); progress carries forward."""
     _require_job_id(job_id)
-    return _transition(project, job_id, RenderJobStatus.QUEUED)
+    with _project_lock(project):
+        return _append_from(project, _locked_head(project, job_id), RenderJobStage.QUEUED)
 
 
 def _runner_lease_is_held(project: Project, job_id: str) -> bool:
@@ -386,11 +430,7 @@ def _runner_stop_observer(project: Project, job_id: str, owner_pid: int) -> Call
         fingerprint = (current.st_dev, current.st_ino, current.st_size, current.st_mtime_ns)
         if fingerprint != signature:
             head = get_render_job(project, job_id)
-            requested = (
-                head.status is RenderJobStatus.RUNNING
-                and head.runner_pid == owner_pid
-                and head.stage in STOP_REQUEST_STAGES
-            )
+            requested = head.runner_pid == owner_pid and _stop_requested(head)
             signature = fingerprint
         return requested
 
@@ -403,65 +443,32 @@ def terminate_render_job(project: Project, job_id: str) -> RenderJobRecord:
     request so verified completion records CANCELLED rather than FAILED."""
     _require_job_id(job_id)
     with _project_lock(project):
-        head = _job_heads(project).get(job_id)
-        if head is None:
-            raise contract_error("render job not found", INVALID_RECORD)
+        head = _locked_head(project, job_id)
         if head.status is not RenderJobStatus.RUNNING:
             return head
-
-        head = _prepare_stop_locked(project, head, TERMINATION_REQUESTED)
-    return _request_stop(project, head)
-
-
-def _prepare_stop_locked(project: Project, head: RenderJobRecord, stage: str) -> RenderJobRecord:
-    """Append intent while locked; process signaling/waiting happens after release."""
-    if head.stage == CANCELLATION_REQUESTED:
-        stage = CANCELLATION_REQUESTED
-    if head.stage != stage:
-        head = _append_from(project, head, RenderJobStatus.RUNNING, stage=stage)
-    return head
+        head = _request_stop_locked(project, head, RenderJobStage.TERMINATION_REQUESTED)
+    return _await_stop(project, head)
 
 
-def _request_stop(project: Project, head: RenderJobRecord) -> RenderJobRecord:
+def _await_stop(project: Project, head: RenderJobRecord) -> RenderJobRecord:
     """Wait without the project lock or external PID signals; retain unconfirmed work."""
     outcome = stop_runner_group(head.runner_pid, lambda: _runner_lease_is_held(project, head.job_id))
     with _project_lock(project):
-        current = _job_heads(project).get(head.job_id)
-        if current is None:
-            raise contract_error("render job not found", INVALID_RECORD)
+        current = _locked_head(project, head.job_id)
         if current.status is not RenderJobStatus.RUNNING:
             return current
-        if current.runner_pid != head.runner_pid or current.stage not in STOP_REQUEST_STAGES:
+        if current.runner_pid != head.runner_pid or not _stop_requested(current):
             raise contract_error("runner identity changed during stop", INVALID_RECORD)
         if outcome == "stopped":
             return _finish_stop_locked(project, current)
-        code = f"runner_stop_{outcome}"
-        if current.error_code == code:
-            return current
-        return _append_from(
-            project,
-            current,
-            RenderJobStatus.RUNNING,
-            stage=current.stage,
-            error_code=code,
-            error_message="runner stop is unconfirmed; PID retained for retry",
-        )
+        return _note_unconfirmed_stop_locked(project, current, f"runner_stop_{outcome}")
 
 
 def _finish_stop_locked(project: Project, head: RenderJobRecord) -> RenderJobRecord:
-    cancelled = head.stage == CANCELLATION_REQUESTED
-    artifacts, completed = _best_effort_progress(project, head.job_id)
-    return _append_from(
-        project,
-        head,
-        RenderJobStatus.CANCELLED if cancelled else RenderJobStatus.FAILED,
-        stage="cancelled" if cancelled else "failed",
-        stage_index=completed,
-        completed_artifacts=artifacts,
-        runner_pid=None,
-        error_code=None if cancelled else "terminated",
-        error_message=None if cancelled else "runner terminated by request",
-    )
+    """A verified stop: cancellation -> CANCELLED, termination -> FAILED."""
+    if render_job_stage(head.status, head.stage) is RenderJobStage.CANCELLATION_REQUESTED:
+        return _cancel_locked(project, head, with_progress=True)
+    return _fail_locked(project, head, "terminated", "runner terminated by request")
 
 
 def start_render_job(project: Project, job_id: str) -> RenderJobRecord:
@@ -471,7 +478,9 @@ def start_render_job(project: Project, job_id: str) -> RenderJobRecord:
     try:
         with _project_lock(project):
             head = _job_heads(project).get(job_id)
-            if head is None or not can_transition_job(head.status, RenderJobStatus.RUNNING):
+            if head is None or not can_transition_stage(
+                render_job_stage(head.status, head.stage), RenderJobStage.RUNNING
+            ):
                 raise contract_error("render job cannot be started in its current state", INVALID_RECORD)
             proc = subprocess.Popen(  # noqa: S603 - argv is fully controlled; shell is never used
                 [
@@ -490,7 +499,7 @@ def start_render_job(project: Project, job_id: str) -> RenderJobRecord:
                 close_fds=True,
                 shell=False,
             )
-            return _append_from(project, head, RenderJobStatus.RUNNING, runner_pid=proc.pid, stage="running")
+            return _start_locked(project, head, proc.pid)
     except BaseException:
         if proc is not None:
             # This is our newly spawned child, which cannot render before RUNNING
@@ -510,7 +519,7 @@ def reconcile_render_jobs(project: Project, *, is_alive: Callable[[int], bool] |
         for job_id, head in _job_heads(project).items():
             if head.status is not RenderJobStatus.RUNNING:
                 continue
-            if head.stage in STOP_REQUEST_STAGES:
+            if _stop_requested(head):
                 if group_quiescent(head.runner_pid) and not _runner_lease_is_held(project, job_id):
                     changed.append(_finish_stop_locked(project, head))
                 continue
@@ -518,18 +527,5 @@ def reconcile_render_jobs(project: Project, *, is_alive: Callable[[int], bool] |
                 continue
             if not group_quiescent(head.runner_pid) or _runner_lease_is_held(project, job_id):
                 continue
-            artifacts, completed = _best_effort_progress(project, job_id)
-            changed.append(
-                _append_from(
-                    project,
-                    head,
-                    RenderJobStatus.FAILED,
-                    stage="failed",
-                    stage_index=completed,
-                    completed_artifacts=artifacts,
-                    error_code="orphaned_runner",
-                    error_message="runner is no longer alive",
-                    runner_pid=None,
-                )
-            )
+            changed.append(_fail_locked(project, head, "orphaned_runner", "runner is no longer alive"))
     return changed

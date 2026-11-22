@@ -6,6 +6,7 @@ from __future__ import annotations
 import argparse
 import json
 import sys
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -86,25 +87,53 @@ PROVIDERS = (
 )
 
 
-def verify_claim(claimed: str) -> list[str]:
-    failures: list[str] = []
-    for name, probe in PROVIDERS:
+def _probe_failures(claimed: str, providers) -> dict[str, str]:
+    failures: dict[str, str] = {}
+    for name, probe in providers:
         version, error = probe()
         print(f"{name}={version or 'unresolved'}")
         if version is None:
-            failures.append(f"{name}: {error or 'unresolved'}")
+            failures[name] = f"{name}: {error or 'unresolved'}"
         elif version != claimed:
-            failures.append(f"{name}: expected {claimed}, got {version}")
+            failures[name] = f"{name}: expected {claimed}, got {version}"
     return failures
+
+
+def verify_claim(
+    claimed: str,
+    settle_seconds: float = 0,
+    interval: float = 15,
+    sleep: Callable[[float], None] = time.sleep,
+    clock: Callable[[], float] = time.monotonic,
+) -> list[str]:
+    """Probe every provider; re-probe only the failing ones until ``settle_seconds`` pass.
+
+    Registries serve a fresh upload after a short delay (npm took about a minute
+    for 1.16.1 and 2.0.0), so a check that runs right after publishing needs a
+    window before it fails closed.
+    """
+    deadline = clock() + settle_seconds
+    failures = _probe_failures(claimed, PROVIDERS)
+    while failures and clock() + interval <= deadline:
+        print(f"waiting {interval:g}s for: {', '.join(failures)}")
+        sleep(interval)
+        failures = _probe_failures(claimed, [p for p in PROVIDERS if p[0] in failures])
+    return list(failures.values())
 
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--claims", type=Path, default=CLAIMS)
+    parser.add_argument(
+        "--settle-seconds",
+        type=float,
+        default=0,
+        help="keep re-probing lagging providers for this long before failing",
+    )
     args = parser.parse_args(argv)
     claimed = load_claimed_published(args.claims)
     print(f"claimed_published={claimed}")
-    failures = verify_claim(claimed)
+    failures = verify_claim(claimed, settle_seconds=args.settle_seconds)
     if failures:
         print("FAIL: " + "; ".join(failures), file=sys.stderr)
         return 1

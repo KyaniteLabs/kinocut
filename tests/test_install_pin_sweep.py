@@ -32,7 +32,7 @@ SCANNED_SUFFIXES = (".md", ".txt", ".py", ".json", ".yaml", ".yml", ".toml")
 ROOT_MANIFESTS = ("server.json", "smithery.yaml", "gemini-extension.json", "mcpb/manifest.json", "package.json")
 
 # The release every current surface must name.
-EXPECTED_PINS = {"kinocut": "1.16.5", "mcp-video": "1.6.20"}
+EXPECTED_PINS = {"kinocut": "2.0.1", "mcp-video": "1.6.22"}
 
 # README-PYPI.md is the long description baked into the package it ships in, so it
 # names that package's own version, not the previous release. Otherwise the 2.0.0
@@ -396,20 +396,20 @@ def test_a_wrong_or_missing_release_is_an_offender(tmp_path, line):
 @pytest.mark.parametrize(
     "line",
     [
-        "pip install kinocut==1.16.5",
-        'pip install "kinocut[image]==1.16.5"',
-        "uvx kinocut==1.16.5",
-        "uvx --from kinocut==1.16.5 kino",
-        '"args": ["--from", "kinocut==1.16.5", "kino"]',
-        "npm install kinocut@1.16.5",
-        "pip install -U mcp-video==1.6.20",
+        "pip install kinocut==2.0.1",
+        'pip install "kinocut[image]==2.0.1"',
+        "uvx kinocut==2.0.1",
+        "uvx --from kinocut==2.0.1 kino",
+        '"args": ["--from", "kinocut==2.0.1", "kino"]',
+        "npm install kinocut@2.0.1",
+        "pip install -U mcp-video==1.6.22",
         # The shim's launch forms, pinned to the release it ships.
-        "pipx run mcp-video==1.6.20",
-        "uvx mcp-video==1.6.20",
-        "uvx --from mcp-video==1.6.20 mcp-video doctor --json",
-        "uv run --no-project --with mcp-video==1.6.20 python workflow.py",
-        '"args": ["--from", "mcp-video==1.6.20", "mcp-video"]',
-        '"args": ["--with", "mcp-video==1.6.20"]',
+        "pipx run mcp-video==1.6.22",
+        "uvx mcp-video==1.6.22",
+        "uvx --from mcp-video==1.6.22 mcp-video doctor --json",
+        "uv run --no-project --with mcp-video==1.6.22 python workflow.py",
+        '"args": ["--from", "mcp-video==1.6.22", "mcp-video"]',
+        '"args": ["--with", "mcp-video==1.6.22"]',
     ],
 )
 def test_the_current_release_is_not_an_offender(tmp_path, line):

@@ -7,6 +7,8 @@ no matter what the engine throws.
 
 from __future__ import annotations
 
+import asyncio
+
 import pytest
 
 import mcp_video.server_tools_basic as server_tools_basic
@@ -19,7 +21,7 @@ def test_novel_exception_types_return_error_envelope(monkeypatch, sample_video, 
 
     monkeypatch.setattr(server_tools_basic, "trim", explode)
 
-    result = server_tools_basic.video_trim(sample_video, start="0", duration="1")
+    result = asyncio.run(server_tools_basic.video_trim(sample_video, start="0", duration="1"))
 
     assert isinstance(result, dict)
     assert result["success"] is False

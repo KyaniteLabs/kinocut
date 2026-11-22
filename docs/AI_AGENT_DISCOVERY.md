@@ -8,11 +8,12 @@ This document is the short, explicit discovery map for agents, answer engines, a
 video editing by AI agents. It wraps FFmpeg in typed, preflight-checked tools that write
 new files, run quality gates and record Video Receipts.
 
-- **Published 1.16.5:** 205 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
-  20 tools listed by default.
-- **Development tip:** 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
+- **Published 2.0.1:** 206 MCP tools / 177 CLI commands with `KINOCUT_TOOLS=all`;
   18 tools listed by default: an 8-tool hot path, eight operation families, and
   `list_operations` / `describe_operation`, which reach every other operation.
+- **Development (unreleased #458):** 208 MCP tools / 178 CLI commands. Pass spoken edit
+  direction verbatim to `video_direct`; review assumptions and any question, then call
+  `video_direct_apply` with `confirm=true` after user approval.
 
 Beyond core editing it covers Shorts and Reels repurposing, a resumable workflow engine,
 video rescue, AI-video review and salvage, 360 dual-cam assembly (through `video_intent`,
@@ -67,7 +68,7 @@ and a `video_review_card` for approving a cut in Hermes Desktop chat.
 Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 Claude Desktop:
@@ -77,7 +78,7 @@ Claude Desktop:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -90,7 +91,7 @@ Cursor:
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -118,7 +119,7 @@ Use $kinocut to inspect this media, plan guarded edits, produce release artifact
 
 High-leverage listing targets:
 
-- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - `tech.kyanitelabs/kinocut` reports published 1.16.5 as a local stdio package (verified 2026-10-27).
+- [Official MCP Registry](https://registry.modelcontextprotocol.io/v0/servers/tech.kyanitelabs%2Fkinocut/versions/latest) - `tech.kyanitelabs/kinocut` reports published 2.0.1 as a local stdio package (verified 2026-10-27).
 - [Directory rebrand status](DIRECTORY_REBRAND_STATUS.md) - live reconciliation ledger for stale former-name listings and downstream mirrors.
 - [Glama MCP Registry](https://glama.ai/mcp/servers) — Submit via GitHub repo URL.
 - [Smithery](https://smithery.ai) — Submit via GitHub repo URL once the official registry and Glama listings are fresh.

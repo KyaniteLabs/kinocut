@@ -9,6 +9,38 @@ This project follows a simple release-note style:
 - `Fixed` for bug fixes.
 - `Security` for vulnerability fixes.
 
+## Unreleased
+
+### Added
+
+- Turn plain spoken direction into a deterministic, reviewable edit plan with `video_direct`, then explicitly execute it with `video_direct_apply(confirm=true)` or `kino direct "WORDS" -i INPUT --apply` (#458). Plans disclose defaults, unknown phrases and at most one question; voice memos reuse optional local transcription. Apply validates the entire tool/path/argument chain before rendering and returns per-step receipts on success or failure.
+- Support trims, silence removal, pacing, delivery formats, center reframing, -14 LUFS loudness, synchronized captions, muting and final-video thumbnails. Both tools live in the `intent` profile and the `video_plan_ops` family. Development now has 208 MCP tools / 178 CLI commands; published 2.0.1 counts are unchanged.
+
+### Added
+- **`dark-grade` quality profile.** Footage graded dark on purpose (night, noir, low-key interiors) no longer scores as underexposed: `video-quality-check` and `release-checkpoint` take `--profile dark-grade`. A black or flat frame still fails. (#760)
+
+### Changed
+
+- `video_trim`, `video_merge` and `video_shorts` now write a review card next to the output by default and
+  return it as `review_card` plus a `preview_directive`, so an agent can show the cut without
+  a second call. Pass `review=False` to skip it. A card that fails to render is reported in
+  `review_card.error` and never fails the edit.
+
+### Fixed
+
+- CLI commands that draw a progress bar (`kino trim`, `kino video-ai-transcribe`, …) no longer hang on a
+  real terminal. The home-directory redaction stream wrote through Rich's live-display proxy and recursed
+  into itself; it now writes to the terminal underneath the proxy, so human output still shows `~` and JSON
+  still carries absolute paths.
+
+## 2.0.1 - 2026-11-10
+
+### Fixed
+
+- `video_review_card` works on a plain install. In 2.0.0 it needed Pillow to shrink the
+  contact sheet, which only optional extras install, so it failed with
+  `No module named 'PIL'`. It now shrinks the sheet with FFmpeg.
+
 ## 2.0.0 - 2026-11-10
 
 Your agent now sees 18 tools instead of 20, and through them it reaches every one of

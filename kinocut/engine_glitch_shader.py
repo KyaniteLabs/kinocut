@@ -20,6 +20,7 @@ import tempfile
 from pathlib import Path
 from typing import Any
 
+from .data_dirs import crush_home
 from .errors import MCPVideoError, ProcessingError
 from .ffmpeg_helpers import (
     _run_command,
@@ -41,7 +42,7 @@ def _resolve_crush_path() -> str:
 
     Resolution order:
     1. MCP_VIDEO_CRUSH_PATH environment variable
-    2. ~/.mcp-video/crush-js/src
+    2. $KINOCUT_DATA_DIR/crush-js/src, else ~/.mcp-video/crush-js/src
     3. Bundled relative path (../../../../CRUSH_SHADERS/crush-js/src from render script)
     """
     env_path = os.environ.get("MCP_VIDEO_CRUSH_PATH")
@@ -50,7 +51,7 @@ def _resolve_crush_path() -> str:
         if p.is_dir():
             return str(p)
 
-    home_path = Path.home() / ".mcp-video" / "crush-js" / "src"
+    home_path = crush_home() / "crush-js" / "src"
     if home_path.is_dir():
         return str(home_path)
 

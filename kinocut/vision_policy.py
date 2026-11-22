@@ -1,6 +1,7 @@
 """Operator-owned permission for Kinocut's optional provider calls."""
 
 import os
+import re
 
 from .defaults import DEFAULT_VISION_MODE
 from .errors import MCPVideoError
@@ -29,3 +30,13 @@ def require_vision_provider(endpoint_kind: str | None = None, *, fixed_origin: b
             error_type="validation_error",
             code="vision_provider_disabled",
         )
+
+
+_THINK_RE = re.compile(r"<think(?:ing)?>.*?</think(?:ing)?>", re.DOTALL | re.IGNORECASE)
+
+
+def strip_think_blocks(text: str) -> str:
+    """Drop reasoning-model <think> blocks, including an unterminated trailing one."""
+    cleaned = _THINK_RE.sub("", text)
+    cleaned = re.sub(r"<think(?:ing)?>.*\Z", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
+    return cleaned.strip()

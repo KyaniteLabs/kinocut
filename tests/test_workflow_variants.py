@@ -633,7 +633,7 @@ def test_variants_do_not_change_public_surface_counts():
             await session.initialize()
             tools_result = await session.list_tools()
         tool_names = {t.name for t in tools_result.tools}
-        assert len(tool_names) == 206  # Full-catalog development surface.
+        assert len(tool_names) == 208  # Full-catalog development surface.
         assert {"video_workflow_render", "video_workflow_plan", "video_workflow_validate"} <= tool_names
 
     asyncio.run(check_server())
@@ -651,4 +651,4 @@ def test_variant_flags_do_not_add_cli_commands():
     assert result.returncode == 0
     command_lists = re.findall(r"\{([^}]+)\}", result.stdout)
     command_list = max(command_lists, key=lambda value: len(value.split(",")))
-    assert len(set(command_list.split(","))) == 177  # Current development-tip CLI surface.
+    assert len(set(command_list.split(","))) == 178  # Current development-tip CLI surface.

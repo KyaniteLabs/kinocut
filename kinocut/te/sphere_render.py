@@ -9,6 +9,7 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any
 
+from kinocut.contracts.review import ProposalStatus
 from kinocut.defaults import DEFAULT_QUALITY_GATE_SCORE, DEFAULT_SPHERE_QC_SECONDS
 from kinocut.engine_merge import merge
 from kinocut.engine_probe import _cache_key
@@ -87,7 +88,7 @@ def render_sphere_plan(
         "cameras": current["cameras"],
         "layout": current["layout"],
         "writer": writer,
-        "status": "rendered",
+        "status": ProposalStatus.RENDERED,
         "quality": gate,
     }
 

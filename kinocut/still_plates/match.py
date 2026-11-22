@@ -8,6 +8,7 @@ from typing import Any
 from ..defaults import STILL_MATCH_MAX_GAIN, STILL_MATCH_MIN_GAIN
 from ..errors import MCPVideoError
 from .io import (
+    ReceiptStatus,
     ensure_output_dir,
     file_sha256,
     load_rgb_array,
@@ -125,5 +126,5 @@ def still_match(
     receipt_path = write_receipt(out_dir / receipt_name, receipt)
     receipt["receipt_path"] = str(receipt_path)
     receipt["output_dir"] = str(out_dir)
-    receipt["status"] = "ok"
+    receipt["status"] = ReceiptStatus.OK
     return receipt

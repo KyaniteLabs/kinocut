@@ -1,7 +1,7 @@
 """Image analysis engine — color extraction, palette generation, product analysis.
 
 Pure Python (no FFmpeg). Requires optional deps: Pillow, scikit-learn, webcolors.
-Install with: pip install kinocut[image]==1.16.5
+Install with: pip install kinocut[image]==2.0.1
 """
 
 from __future__ import annotations
@@ -13,6 +13,8 @@ from urllib.parse import urlparse
 
 from .defaults import (
     DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS,
+    ENV_PRODUCT_DESCRIPTION_MAX_TOKENS,
+    token_budget,
     DEFAULT_VISION_BASE_URL,
     DEFAULT_VISION_MODEL,
     DEFAULT_VISION_PROVIDER_TIMEOUT,
@@ -118,12 +120,15 @@ def _require_image_deps() -> None:
         import PIL.Image  # noqa: F401
     except ImportError:
         raise MCPVideoError(
-            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==1.16.5",
+            "Image analysis requires optional dependencies. Install with: pip install kinocut[image]==2.0.1"
+            " (under the Hermes plugin's uvx launcher, start the server with"
+            " uvx --from 'kinocut[image]==2.0.1' kinocut instead)",
             error_type="dependency_error",
             code="missing_optional_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image]==1.16.5",
+                "description": "Run: pip install kinocut[image]==2.0.1, or for the uvx launcher: "
+                "uvx --from 'kinocut[image]==2.0.1' kinocut",
             },
         ) from None
 
@@ -410,12 +415,12 @@ def _describe_product_with_vision(
         import anthropic
     except ImportError:
         raise MCPVideoError(
-            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]==1.16.5",
+            "AI description requires the anthropic package. Install with: pip install kinocut[image-ai]==2.0.1",
             error_type="dependency_error",
             code="missing_ai_dep",
             suggested_action={
                 "auto_fix": False,
-                "description": "Run: pip install kinocut[image-ai]==1.16.5",
+                "description": "Run: pip install kinocut[image-ai]==2.0.1",
             },
         ) from None
 
@@ -449,7 +454,7 @@ def _request_product_description(client: Any, model: str, mime_type: str, img_da
     """One bounded description request; never select a fallback provider."""
     response = client.messages.create(
         model=model,
-        max_tokens=DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS,
+        max_tokens=token_budget(ENV_PRODUCT_DESCRIPTION_MAX_TOKENS, DEFAULT_PRODUCT_DESCRIPTION_MAX_TOKENS),
         messages=[
             {
                 "role": "user",
@@ -471,7 +476,12 @@ def _request_product_description(client: Any, model: str, mime_type: str, img_da
             }
         ],
     )
-    return response.content[0].text
+    from .vision_policy import strip_think_blocks
+
+    text = next(
+        (b.text for b in response.content if getattr(b, "type", "text") == "text" and getattr(b, "text", None)), ""
+    )
+    return strip_think_blocks(text)
 
 
 def analyze_product(

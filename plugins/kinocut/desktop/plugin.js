@@ -1,7 +1,8 @@
 // Kinocut desktop plugin for Hermes Desktop (opt-in).
 //
-// Shows live Kinocut render progress in the status bar and a "Kinocut renders" pane,
-// both fed by the gateway tool.start / tool.progress / tool.complete events.
+// Shows the running Kinocut tool (and its percent, when the tool reports one) in the
+// status bar, and a "Kinocut renders" pane that keeps renders apart from lookups. Both
+// are fed by the gateway tool.start / tool.progress / tool.complete events.
 // Plain uncompiled ESM: no JSX, only `@hermes/plugin-sdk`, `react` and
 // `react/jsx-runtime` resolve, and relative imports do not (so the reducer below is
 // inlined; plugin.test.mjs extracts the marked block to test it).
@@ -12,8 +13,30 @@ import { jsx, jsxs } from 'react/jsx-runtime'
 // --- reducer:begin (pure; no SDK use; keep self-contained) ---
 const MAX_RECENT = 10
 
+// Kinocut tools that never write media (no `overwrite` parameter). They show under
+// Activity, not Renders. tests/test_desktop_plugin_lookups.py keeps this in sync.
+export const LOOKUP_TOOLS = new Set([
+  'describe_operation',
+  'list_operations',
+  'search_tools',
+  'video_direct',
+  'video_doctor',
+  'video_info',
+  'video_info_detailed'
+])
+
+export function runKind(tool) {
+  return LOOKUP_TOOLS.has(tool) ? 'activity' : 'render'
+}
+
+// Keep the newest MAX_RECENT of each kind, so a burst of lookups never pushes renders out.
+function capPerKind(items) {
+  const seen = { render: 0, activity: 0 }
+  return items.filter(item => ++seen[item.kind] <= MAX_RECENT)
+}
+
 export function initialRenders() {
-  return { active: {}, recent: [] }
+  return { active: {}, recent: [], finished: [], nextHistoryId: 1 }
 }
 
 export function shortToolName(name) {
@@ -35,39 +58,92 @@ export function clampPercent(value) {
   return Math.min(100, Math.max(0, Math.round(n)))
 }
 
-// The SDK doc does not name a failure field on tool.complete; accept the plausible ones.
+// Hermes hands MCP results to tool.complete as text: `{ result: "<JSON>" }`, sometimes
+// nested once more. Unwrap up to three layers of JSON strings or `result` fields.
+export function unwrapResult(value) {
+  let r = value
+  for (let i = 0; i < 3; i++) {
+    if (typeof r === 'string') {
+      try {
+        r = JSON.parse(r)
+      } catch {
+        return null
+      }
+      continue
+    }
+    if (r && typeof r === 'object' && !('success' in r) && !('error' in r) && !('isError' in r) && 'result' in r) {
+      r = r.result
+      continue
+    }
+    break
+  }
+  return r && typeof r === 'object' ? r : null
+}
+
+function failureOf(r) {
+  return Boolean(r && (r.error || r.ok === false || r.success === false || r.isError === true))
+}
+
+// The SDK doc does not name a failure field on tool.complete; accept the plausible ones,
+// on the payload itself and on its (possibly text-wrapped) result.
 export function isFailedComplete(payload) {
   if (!payload) return false
-  if (payload.error) return true
-  if (payload.ok === false || payload.success === false) return true
-  const r = payload.result
-  if (r && typeof r === 'object') {
-    if (r.error || r.ok === false || r.success === false || r.isError === true) return true
-  }
-  return false
+  if (failureOf(payload)) return true
+  return failureOf(unwrapResult(payload.result))
 }
 
 function errorText(err) {
   if (!err) return ''
   if (typeof err === 'string') return err
   if (typeof err === 'object' && typeof err.message === 'string') return err.message
+  if (typeof err === 'object' && Array.isArray(err.content)) {
+    const t = err.content.find(c => c && typeof c.text === 'string')
+    if (t) return t.text
+  }
   return ''
 }
 
-// event: { type: 'start' | 'progress' | 'complete', payload, now? (ms) }
+// Two sessions or gateway connections can both use tool_id "call_1". The scope (profile,
+// connection, session) keeps their rows apart; with no scope the key is the bare id.
+export function eventScope(frame) {
+  if (!frame || typeof frame !== 'object') return ''
+  return [frame.profile, frame.connectionId, frame.session_id]
+    .map(v => (typeof v === 'string' || typeof v === 'number' ? String(v) : ''))
+    .join('|')
+    .replace(/^\|+$/, '')
+}
+
+function runKey(scope, id) {
+  return scope ? `${scope}#${id}` : String(id)
+}
+
+// Keys of finished runs, so a late progress frame or a duplicate complete does not
+// resurrect or re-record a run. A start for a finished key does reopen it: providers
+// reuse tool ids (e.g. "call_0" every turn), and Hermes start frames carry no timestamp
+// that could tell a reuse from a replay. The desktop gateway does not replay tool.start.
+const MAX_FINISHED = 200
+
+// event: { type: 'start' | 'progress' | 'complete', payload, scope? (string), now? (ms) }
 export function reduceRenders(state, event) {
   const prev = state || initialRenders()
+  const finished = prev.finished || []
+  const nextHistoryId = prev.nextHistoryId || 1
   const payload = (event && event.payload) || {}
   const id = payload.tool_id
   const name = payload.name
   if (!event || !id || !isKinocutTool(name)) return prev
+  const key = runKey(typeof event.scope === 'string' ? event.scope : '', id)
   const now = typeof event.now === 'number' ? event.now : 0
   const tool = shortToolName(name)
 
   if (event.type === 'start' || event.type === 'progress') {
-    const existing = prev.active[id]
+    if (event.type === 'progress' && finished.includes(key)) return prev
+    const existing = prev.active[key]
     const percent = event.type === 'progress' ? clampPercent(payload.percent) : null
+    const historyId = existing ? existing.historyId : nextHistoryId
     const next = {
+      key,
+      historyId,
       tool_id: id,
       name,
       tool,
@@ -75,31 +151,51 @@ export function reduceRenders(state, event) {
       percent: percent !== null ? percent : existing ? existing.percent : null,
       message: typeof payload.message === 'string' && payload.message ? payload.message : existing ? existing.message : ''
     }
-    return { active: { ...prev.active, [id]: next }, recent: prev.recent }
+    return {
+      active: { ...prev.active, [key]: next },
+      recent: prev.recent,
+      finished: event.type === 'start' ? finished.filter(k => k !== key) : finished,
+      nextHistoryId: existing ? nextHistoryId : nextHistoryId + 1
+    }
   }
 
   if (event.type === 'complete') {
-    const existing = prev.active[id]
+    const existing = prev.active[key]
+    if (!existing && finished.includes(key)) return prev
     const active = { ...prev.active }
-    delete active[id]
+    delete active[key]
+    const historyId = existing ? existing.historyId : nextHistoryId
+    const historyKey = `${key}@${historyId}`
     const failed = isFailedComplete(payload)
     const startedAt = existing ? existing.startedAt : now
     const durationMs =
       typeof payload.duration_s === 'number' && Number.isFinite(payload.duration_s)
         ? Math.max(0, Math.round(payload.duration_s * 1000))
         : Math.max(0, now - startedAt)
+    const result = unwrapResult(payload.result)
     const done = {
+      key: historyKey,
+      runKey: key,
+      historyId,
       tool_id: id,
       name,
       tool,
+      kind: runKind(tool),
       status: failed ? 'failed' : 'done',
       durationMs,
       message: failed
-        ? errorText(payload.error || (payload.result && payload.result.error)) || (existing && existing.message) || ''
+        ? errorText(payload.error || (result && result.error) || (result && result.isError ? result : null)) ||
+          (existing && existing.message) ||
+          ''
         : (existing && existing.message) || (typeof payload.summary === 'string' ? payload.summary : ''),
       finishedAt: now
     }
-    return { active, recent: [done, ...prev.recent.filter(r => r.tool_id !== id)].slice(0, MAX_RECENT) }
+    return {
+      active,
+      recent: capPerKind([done, ...prev.recent.filter(r => r.historyId !== historyId)]),
+      finished: [key, ...finished.filter(k => k !== key)].slice(0, MAX_FINISHED),
+      nextHistoryId: existing ? nextHistoryId : nextHistoryId + 1
+    }
   }
   return prev
 }
@@ -135,8 +231,8 @@ function createStore(ctx) {
       listeners.add(fn)
       return () => listeners.delete(fn)
     },
-    dispatch(type, payload) {
-      const renders = reduceRenders(state.renders, { type, payload, now: Date.now() })
+    dispatch(type, payload, scope) {
+      const renders = reduceRenders(state.renders, { type, payload, scope, now: Date.now() })
       if (renders === state.renders) return
       let flash = state.flash
       if (type === 'complete') {
@@ -180,55 +276,74 @@ function ProgressBar({ percent }) {
   })
 }
 
+function RecentList({ items, empty, row }) {
+  if (items.length === 0) return [jsx('div', { className: 'text-(--ui-text-tertiary)', children: empty }, 'empty')]
+  return items.map(r =>
+    row(r.key || r.tool_id, [
+      jsxs(
+        'div',
+        {
+          className: 'flex justify-between gap-2',
+          children: [
+            jsx('span', { children: `${r.status === 'failed' ? '✗' : '✓'} ${r.tool}` }),
+            jsx('span', { className: 'text-(--ui-text-secondary)', children: formatDuration(r.durationMs) })
+          ]
+        },
+        'h'
+      ),
+      r.status === 'failed' ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'failed' }, 's') : null,
+      r.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.message }, 'm') : null
+    ])
+  )
+}
+
 function RendersPane({ store }) {
   const { renders } = useStore(store)
   const active = Object.values(renders.active)
   const row = (key, children) =>
     jsx('div', { className: 'flex flex-col gap-1 border-b border-(--ui-stroke-secondary) py-2', children }, key)
+  const heading = text => jsx('div', { className: 'font-medium', children: text })
+  const done = renders.recent.filter(r => r.kind === 'render')
+  const lookups = renders.recent.filter(r => r.kind === 'activity')
 
   return jsxs('div', {
     className: 'flex h-full flex-col gap-3 overflow-auto p-3 text-sm',
     children: [
-      jsx('div', { className: 'font-medium', children: 'Active' }),
       active.length === 0
-        ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'No Kinocut render running.' })
-        : active.map(a =>
-            row(a.tool_id, [
-              jsxs(
-                'div',
-                {
-                  className: 'flex justify-between gap-2',
-                  children: [
-                    jsx('span', { children: a.tool }),
-                    jsx('span', { className: 'text-(--ui-text-secondary)', children: a.percent === null ? '...' : `${a.percent}%` })
-                  ]
-                },
-                'h'
-              ),
-              jsx(ProgressBar, { percent: a.percent }, 'p'),
-              a.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: a.message }, 'm') : null
-            ])
-          ),
-      jsx('div', { className: 'font-medium', children: 'Recent' }),
-      renders.recent.length === 0
-        ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'No finished renders yet.' })
-        : renders.recent.map(r =>
-            row(r.tool_id, [
-              jsxs(
-                'div',
-                {
-                  className: 'flex justify-between gap-2',
-                  children: [
-                    jsx('span', { children: `${r.status === 'failed' ? '✗' : '✓'} ${r.tool}` }),
-                    jsx('span', { className: 'text-(--ui-text-secondary)', children: formatDuration(r.durationMs) })
-                  ]
-                },
-                'h'
-              ),
-              jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.status === 'failed' ? 'failed' : 'done' }, 's'),
-              r.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: r.message }, 'm') : null
-            ])
-          )
+        ? jsxs('div', {
+            className: 'flex flex-col gap-1',
+            children: [
+              jsx('div', { className: 'font-medium', children: 'Idle' }, 'h'),
+              jsx('div', { className: 'text-(--ui-text-tertiary)', children: 'Nothing is running.' }, 't')
+            ]
+          })
+        : [
+            heading(active.length === 1 ? 'Running' : `Running (${active.length})`),
+            ...active.map(a =>
+              row(a.key || a.tool_id, [
+                jsxs(
+                  'div',
+                  {
+                    className: 'flex justify-between gap-2',
+                    children: [
+                      jsx('span', { children: a.tool }),
+                      jsx('span', {
+                        className: 'text-(--ui-text-secondary)',
+                        children: a.percent === null ? '...' : `${a.percent}%`
+                      })
+                    ]
+                  },
+                  'h'
+                ),
+                jsx(ProgressBar, { percent: a.percent }, 'p'),
+                a.message ? jsx('div', { className: 'text-(--ui-text-tertiary)', children: a.message }, 'm') : null
+              ])
+            )
+          ],
+      heading('Renders'),
+      ...RecentList({ items: done, empty: 'No finished renders yet.', row }),
+      heading('Activity'),
+      ...RecentList({ items: lookups, empty: 'No lookups yet.', row })
     ]
   })
 }
@@ -276,7 +391,7 @@ export default {
       ['tool.progress', 'progress'],
       ['tool.complete', 'complete']
     ]) {
-      ctx.onEvent(type, ({ payload }) => store.dispatch(kind, payload))
+      ctx.onEvent(type, frame => store.dispatch(kind, frame && frame.payload, eventScope(frame)))
     }
 
     ctx.registerMany([

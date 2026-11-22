@@ -16,7 +16,7 @@ from kinocut.product import shorts_flow
 def _stub_engines(monkeypatch, tmp_path) -> None:
     """Trim, merge and resize without touching a media file."""
 
-    def fake_trim(input_path, *, start, end, output_path, accurate=True):
+    def fake_trim(input_path, *, start, end, output_path, accurate=True, on_progress=None):
         Path(output_path).write_bytes(b"trim")
         return SimpleNamespace(output_path=output_path)
 
@@ -24,7 +24,7 @@ def _stub_engines(monkeypatch, tmp_path) -> None:
         Path(output_path).write_bytes(b"merge")
         return SimpleNamespace(output_path=output_path)
 
-    def fake_resize(input_path, *, aspect_ratio, output_path, quality):
+    def fake_resize(input_path, *, aspect_ratio, output_path, quality, on_progress=None):
         Path(output_path).write_bytes(b"vertical")
         return SimpleNamespace(output_path=output_path)
 

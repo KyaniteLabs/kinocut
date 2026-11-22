@@ -31,6 +31,18 @@ def overwrite_consent():
 
 
 @pytest.fixture(autouse=True, scope="session")
+def _isolated_output_ledger(tmp_path_factory):
+    """Keep the cleanup ownership ledger out of the real home during tests."""
+    previous = os.environ.get("KINOCUT_STATE_DIR")
+    os.environ["KINOCUT_STATE_DIR"] = str(tmp_path_factory.mktemp("kinocut-state"))
+    yield
+    if previous is None:
+        os.environ.pop("KINOCUT_STATE_DIR", None)
+    else:
+        os.environ["KINOCUT_STATE_DIR"] = previous
+
+
+@pytest.fixture(autouse=True, scope="session")
 def _full_mcp_surface():
     """Register the full MCP catalog for this worker's in-process tests.
 

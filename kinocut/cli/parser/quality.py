@@ -30,7 +30,8 @@ def _add_quality_profile(parser: argparse.ArgumentParser) -> None:
         "--profile",
         choices=list(QUALITY_PROFILES),
         default=DEFAULT_QUALITY_PROFILE,
-        help="Content profile: default (camera footage), ui-capture-dark or ui-capture-light; "
+        help="Content profile: default (camera footage), dark-grade (footage graded dark on purpose), "
+        "ui-capture-dark or ui-capture-light; "
         "recorded in the report (default: default)",
     )
 
@@ -87,6 +88,10 @@ def add_parsers(subparsers: argparse._SubParsersAction) -> None:
     )
     rcheck_p.add_argument("--frame-count", type=int, default=6, help="Storyboard frame count (default: 6)")
     _add_quality_profile(rcheck_p)
+    rcheck_p.add_argument(
+        "--profile-reason",
+        help="Why a non-default profile fits this cut; required when the default profile would fail it",
+    )
     rcheck_p.add_argument(
         "--require-audio", action=argparse.BooleanOptionalAction, default=True, help="Require an audio stream"
     )

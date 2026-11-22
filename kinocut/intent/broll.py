@@ -7,6 +7,7 @@ from dataclasses import asdict, dataclass
 from typing import Any
 from collections.abc import Sequence
 
+from kinocut.contracts.review import ProposalStatus
 from kinocut.errors import MCPVideoError
 
 
@@ -25,7 +26,7 @@ class BrollProposal:
     def to_dict(self) -> dict[str, Any]:
         d = asdict(self)
         d["time_range"] = {"start": self.time_range[0], "end": self.time_range[1]}
-        d["status"] = "proposed"
+        d["status"] = ProposalStatus.PROPOSED
         d["apply_policy"] = "human_review_required"
         return d
 

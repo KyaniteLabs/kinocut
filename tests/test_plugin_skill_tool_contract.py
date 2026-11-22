@@ -175,12 +175,26 @@ def test_plugin_readme_documents_the_explicit_profile_launch():
     readme = (ROOT / "plugins" / "kinocut" / "README.md").read_text(encoding="utf-8")
     assert "KINOCUT_TOOLS" in readme
     assert "profile:editor" in readme
-    assert "20-tool" in readme
+    assert "default 18 tools" in readme
 
 
 def test_plugin_launch_stays_on_the_curated_default():
     """The plugin's own launch must not silently widen the default surface."""
     server = json.loads((ROOT / "plugins" / "kinocut" / ".mcp.json").read_text(encoding="utf-8"))
     kinocut = server["mcpServers"]["kinocut"]
-    assert kinocut["args"] == ["kinocut==1.16.5"]
+    assert kinocut["args"] == ["kinocut==2.0.1"]
     assert "env" not in kinocut, "the plugin launch must stay on the environment-unset default"
+
+
+def test_skills_with_profile_tools_name_the_family_route():
+    # 2.0 reaches every profile tool through a family on the default surface. A skill that
+    # only offers the profile restart sends the agent to "unavailable" instead (seen in a
+    # Hermes run: the agent skipped video_quality_check, which video_ai_ops serves).
+    for skill in SKILL_FILES:
+        text = skill.read_text(encoding="utf-8")
+        if not _profile_map(text):
+            continue
+        assert "`describe_operation`" in text, (
+            f"{_skill_label(skill)} maps profile tools but never names describe_operation"
+        )
+        assert "search_tools" not in text, f"{_skill_label(skill)} names search_tools, which the default surface lacks"

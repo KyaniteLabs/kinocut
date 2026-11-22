@@ -428,12 +428,12 @@ jobs:
               claims.write_text(json.dumps({"published_version": version}))
               try:
                   result = subprocess.run(
-                      [sys.executable, "scripts/verify_published_claims_live.py", "--claims", str(claims)],
-                      stdin=subprocess.DEVNULL, timeout=180, check=False,
+                      [sys.executable, "scripts/verify_published_claims_live.py", "--claims", str(claims), "--settle-seconds", "240"],
+                      stdin=subprocess.DEVNULL, timeout=360, check=False,
                   )
               except subprocess.TimeoutExpired:
                   error = MCPVideoError(
-                      "Publication claims verification timed out after 180 seconds; verify providers before updating public claims.",
+                      "Publication claims verification timed out after 360 seconds; verify providers before updating public claims.",
                       error_type="processing_error", code="publication_verification_timeout",
                   )
                   print(json.dumps(error.to_dict()), file=sys.stderr)

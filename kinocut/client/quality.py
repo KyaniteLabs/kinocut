@@ -17,7 +17,7 @@ class ClientQualityMixin:
         Args:
             video: Video file path
             fail_on_warning: Treat warnings as failures
-            profile: default, ui-capture-dark or ui-capture-light
+            profile: default, dark-grade, ui-capture-dark or ui-capture-light
 
         Returns:
             dict with keys:
@@ -38,11 +38,14 @@ class ClientQualityMixin:
         min_score: float = DEFAULT_QUALITY_GATE_SCORE,
         require_audio: bool = True,
         profile: str = "default",
+        profile_reason: str | None = None,
     ) -> dict:
         """Raise if a video fails release-quality guardrails."""
         from ..quality_guardrails import assert_quality
 
-        return assert_quality(video, min_score=min_score, require_audio=require_audio, profile=profile)
+        return assert_quality(
+            video, min_score=min_score, require_audio=require_audio, profile=profile, profile_reason=profile_reason
+        )
 
     def release_checkpoint(
         self,
@@ -52,9 +55,16 @@ class ClientQualityMixin:
         frame_count: int = 6,
         require_audio: bool = True,
         profile: str = "default",
+        profile_reason: str | None = None,
     ) -> dict:
         """Run a hard quality gate, then create human-review artifacts."""
-        quality = self.assert_quality(input_path, min_score=min_score, require_audio=require_audio, profile=profile)
+        quality = self.assert_quality(
+            input_path,
+            min_score=min_score,
+            require_audio=require_audio,
+            profile=profile,
+            profile_reason=profile_reason,
+        )
         review_dir = output_dir or f"{os.path.splitext(input_path)[0]}_release_review"
         os.makedirs(review_dir, exist_ok=True)
         thumb = self.thumbnail(input_path, output=os.path.join(review_dir, "thumbnail.jpg"))

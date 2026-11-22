@@ -238,7 +238,7 @@ def test_info_still_does_not_download(monkeypatch):
         lambda path: (_ for _ in ()).throw(AssertionError("info must not download")),
     )
     result = remove_background(info=True)
-    assert result.data["models"]["birefnet-general"]["install"] == 'pip install "kinocut[object-matte]==1.16.5"'
+    assert result.data["models"]["birefnet-general"]["install"] == 'pip install "kinocut[object-matte]==2.0.1"'
 
 
 def test_assert_alpha_output_rejects_mp4() -> None:

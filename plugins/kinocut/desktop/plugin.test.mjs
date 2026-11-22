@@ -1,4 +1,4 @@
-// node --test plugins/kinocut/desktop/
+// node --test plugins/kinocut/desktop/plugin.test.mjs
 // plugin.js imports the Hermes SDK (unresolvable here), so load only the marked pure reducer block.
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
@@ -9,7 +9,7 @@ const begin = src.indexOf('// --- reducer:begin')
 const end = src.indexOf('// --- reducer:end')
 assert.ok(begin >= 0 && end > begin, 'reducer markers present')
 const block = src.slice(begin, end)
-const { reduceRenders, initialRenders } = await import(
+const { reduceRenders, initialRenders, runKind, LOOKUP_TOOLS, eventScope, isFailedComplete } = await import(
   'data:text/javascript;base64,' + Buffer.from(block).toString('base64')
 )
 
@@ -90,4 +90,94 @@ test('kinocut error objects show their message', () => {
   s = reduceRenders(s, { type: 'complete', payload: { tool_id: 'e', name: 'mcp__kinocut__video_trim', result: { success: false, error: { message: 'bad range' } } } })
   assert.equal(s.recent[0].status, 'failed')
   assert.equal(s.recent[0].message, 'bad range')
+})
+
+test('lookups are tagged activity, everything else render', () => {
+  assert.equal(runKind('video_info'), 'activity')
+  assert.equal(runKind('search_tools'), 'activity')
+  assert.equal(runKind('video_trim'), 'render')
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'l', name: 'mcp__kinocut__video_info' }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'l', name: 'mcp__kinocut__video_info' }))
+  s = reduceRenders(s, ev('start', { tool_id: 'r', name: T }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'r', name: T }))
+  assert.deepEqual(s.recent.map(r => [r.tool, r.kind]), [['video_trim', 'render'], ['video_info', 'activity']])
+})
+
+test('a burst of lookups never pushes renders out of recent', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'r', name: T }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'r', name: T }))
+  for (let i = 0; i < 25; i++) {
+    s = reduceRenders(s, ev('start', { tool_id: `l${i}`, name: 'mcp__kinocut__video_info' }))
+    s = reduceRenders(s, ev('complete', { tool_id: `l${i}`, name: 'mcp__kinocut__video_info' }))
+  }
+  assert.equal(s.recent.filter(r => r.kind === 'activity').length, 10)
+  assert.deepEqual(s.recent.filter(r => r.kind === 'render').map(r => r.tool_id), ['r'])
+  assert.equal(LOOKUP_TOOLS.size, 7)
+  assert.equal(runKind('video_direct'), 'activity', 'a plan writes no media')
+})
+
+test('the same tool_id in two sessions stays two rows', () => {
+  const a = eventScope({ profile: 'p', connectionId: 'c1', session_id: 's1' })
+  const b = eventScope({ profile: 'p', connectionId: 'c1', session_id: 's2' })
+  assert.notEqual(a, b)
+  let s = reduceRenders(initialRenders(), { type: 'start', payload: { tool_id: 'call_1', name: T }, scope: a })
+  s = reduceRenders(s, { type: 'start', payload: { tool_id: 'call_1', name: T }, scope: b })
+  assert.equal(Object.keys(s.active).length, 2)
+  s = reduceRenders(s, { type: 'complete', payload: { tool_id: 'call_1', name: T }, scope: a })
+  assert.equal(Object.keys(s.active).length, 1, 'completing one session leaves the other running')
+  assert.equal(Object.values(s.active)[0].key, `${b}#call_1`)
+})
+
+test('progress that arrives after complete does not bring the run back', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'z', name: T }))
+  s = reduceRenders(s, ev('complete', { tool_id: 'z', name: T }))
+  const after = reduceRenders(s, ev('progress', { tool_id: 'z', name: T, percent: 80 }))
+  assert.equal(after, s)
+  assert.deepEqual(after.active, {})
+})
+
+test('a reused tool_id starts a fresh run after the earlier run completed', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'reuse', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T }, 200))
+  s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 300))
+
+  assert.equal(s.active.reuse.startedAt, 300)
+  assert.equal(s.recent.length, 1)
+  assert.equal(s.recent[0].durationMs, 100)
+})
+
+test('completing a reused tool_id preserves each started run in history', () => {
+  let s = initialRenders()
+  s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, summary: 'first' }, 200))
+  s = reduceRenders(s, ev('start', { tool_id: 'reuse', name: T }, 300))
+  s = reduceRenders(s, ev('complete', { tool_id: 'reuse', name: T, error: 'second failed' }, 400))
+
+  assert.equal(s.recent.length, 2)
+  assert.deepEqual(s.recent.map(r => [r.status, r.message]), [['failed', 'second failed'], ['done', 'first']])
+})
+
+test('a duplicate complete for a finished run is not recorded twice', () => {
+  let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'dup', name: T }, 100))
+  s = reduceRenders(s, ev('complete', { tool_id: 'dup', name: T, summary: 'once' }, 200))
+  const after = reduceRenders(s, ev('complete', { tool_id: 'dup', name: T, summary: 'again' }, 300))
+  assert.equal(after, s)
+  assert.equal(after.recent.length, 1)
+})
+
+test('a Hermes text-wrapped failure counts as failed', () => {
+  const inner = JSON.stringify({ success: false, error: 'Output path already exists' })
+  for (const result of [inner, JSON.stringify({ result: inner }), { result: inner }]) {
+    assert.equal(isFailedComplete({ result }), true, JSON.stringify(result))
+    let s = reduceRenders(initialRenders(), ev('start', { tool_id: 'w', name: T }))
+    s = reduceRenders(s, ev('complete', { tool_id: 'w', name: T, result }))
+    assert.equal(s.recent[0].status, 'failed')
+    assert.equal(s.recent[0].message, 'Output path already exists')
+  }
+  assert.equal(isFailedComplete({ result: JSON.stringify({ success: true, output: 'x.mp4' }) }), false)
+  assert.equal(isFailedComplete({ result: 'plain text, not JSON' }), false)
+})
+
+test('an MCP isError result counts as failed', () => {
+  assert.equal(isFailedComplete({ result: { isError: true, content: [{ type: 'text', text: 'nope' }] } }), true)
 })

@@ -69,7 +69,7 @@ def test_mcp_trim_accepts_numeric_seconds_and_rejects_booleans(field):
         assert getattr(parsed, field) == value
     with pytest.raises(ValidationError):
         model.model_validate({"input_path": "source.mp4", field: True})
-    result = server_tools_basic.video_trim("source.mp4", **{field: True})
+    result = asyncio.run(server_tools_basic.video_trim("source.mp4", **{field: True}))
     assert result["error"]["type"] == "validation_error"
 
 
@@ -199,12 +199,14 @@ def test_convert_rejects_bitrate_for_fixed_quality_formats(format, tmp_path):
 
 def test_real_numeric_trim_and_single_pass_bitrate_keep_source(parity_source, tmp_path, monkeypatch):
     digest = hashlib.sha256(parity_source.read_bytes()).hexdigest()
-    trimmed = server_tools_basic.video_trim(
-        str(parity_source),
-        start=0.25,
-        duration=0.5,
-        output_path=str(tmp_path / "trimmed.mp4"),
-        accurate=True,
+    trimmed = asyncio.run(
+        server_tools_basic.video_trim(
+            str(parity_source),
+            start=0.25,
+            duration=0.5,
+            output_path=str(tmp_path / "trimmed.mp4"),
+            accurate=True,
+        )
     )
     assert trimmed["success"] is True
     assert trimmed["duration"] == pytest.approx(0.5, abs=0.08)

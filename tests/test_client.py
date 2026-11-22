@@ -691,7 +691,9 @@ class TestClientAgentApiConsistency:
         monkeypatch.setattr(
             editor,
             "assert_quality",
-            lambda input_path, min_score=80.0, require_audio=True, profile="default": {"overall_score": 99.0},
+            lambda input_path, min_score=80.0, require_audio=True, profile="default", profile_reason=None: {
+                "overall_score": 99.0
+            },
         )
         monkeypatch.setattr(
             editor,

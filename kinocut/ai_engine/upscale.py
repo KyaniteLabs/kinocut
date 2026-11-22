@@ -16,6 +16,7 @@ import tempfile
 from pathlib import Path
 
 from ..audio_bed_validation import reject_output_alias
+from ..data_dirs import cache_home
 from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import (
     _atomic_output,
@@ -107,7 +108,7 @@ def _download_fsrcnn_model(scale: int) -> Path:
             code="invalid_parameter",
         )
 
-    cache_dir = Path.home() / ".cache" / "mcp-video" / "models"
+    cache_dir = cache_home() / "models"
     cache_dir.mkdir(parents=True, exist_ok=True)
     model_path = cache_dir / f"FSRCNN_x{scale}.pb"
     model_filename = model_path.name
@@ -426,7 +427,7 @@ def ai_upscale(
             except ImportError:
                 raise MCPVideoError(
                     "AI upscaling requires either realesrgan or opencv-contrib-python (cv2). "
-                    'Install with: pip install "kinocut[upscale]==1.16.5" (Python 3.11/3.12)',
+                    'Install with: pip install "kinocut[upscale]==2.0.1" (Python 3.11/3.12)',
                     error_type="dependency_error",
                     code="missing_upscale_dep",
                 ) from None

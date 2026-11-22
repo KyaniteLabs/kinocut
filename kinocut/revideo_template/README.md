@@ -30,7 +30,7 @@ Kinocut renders.
 
 ## Contract
 
-- **Versions are pinned exactly** (`0.10.4` / TypeScript `5.3.3`) and
+- **Versions are pinned exactly** (`0.11.0` / TypeScript `5.3.3`) and
   `package-lock.json` is committed. Installs use `npm ci` — never `npm install`
   — so a materialized project is byte-reproducible. Never widen a version
   range without regenerating the lockfile and re-running the smoke render.

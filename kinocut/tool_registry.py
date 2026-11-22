@@ -165,6 +165,7 @@ TOOL_NAMES_BY_MODULE: Mapping[str, tuple[str, ...]] = {
         "image_edit",
         "still_package",
     ),
+    "server_tools_direct": ("video_direct", "video_direct_apply"),
     "server_tools_inspection": (
         "video_ingest",
         "video_preflight",
@@ -273,6 +274,7 @@ MODULE_PROFILE_TAGS: Mapping[str, tuple[str, ...]] = {
     "server_tools_guardrails": ("editor", "guardrails"),
     "server_tools_hyperframes": ("hyperframes",),
     "server_tools_image": ("image",),
+    "server_tools_direct": ("intent",),
     "server_tools_inspection": ("editor", "inspection"),
     "server_tools_intent": ("intent",),
     "server_tools_media": ("editor", "media"),
@@ -367,6 +369,24 @@ def _import_tool_module(module: str) -> Any:
     return importlib.import_module(f".{module}", __package__)
 
 
+def _with_user_language(name: str, description: str) -> str:
+    """Append the operation's user-language line to the description the catalog indexes.
+
+    The line says what a person asks for, which the docstring does not, so
+    retrieval can match ordinary wording. It is appended after the docstring,
+    never in front of it, so every surface that shows only the first line
+    (``list_operations``, ``search_tools``, the reference index) is unchanged.
+    See ``kinocut.operation_aliases``.
+    """
+
+    from .operation_aliases import operation_alias
+
+    line = operation_alias(name)
+    if not line:
+        return description
+    return f"{description.rstrip()}\n\n{line}" if description.strip() else line
+
+
 class ToolSurface:
     """The selected MCP surface: mode, profiles, catalog and hidden registrations.
 
@@ -429,7 +449,7 @@ class ToolSurface:
             properties = (tool.parameters or {}).get("properties") or {}
             self.catalog[name] = {
                 "name": name,
-                "description": tool.description or "",
+                "description": _with_user_language(name, tool.description or ""),
                 "required_params": list((tool.parameters or {}).get("required", [])),
                 # Parameter help lives in the schema (tool_docstrings.fold_args);
                 # discovery still searches it.

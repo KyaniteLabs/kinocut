@@ -388,7 +388,7 @@ TypeScript. Dependency installation may access npm; rendering is local.
 
 | Method | Returns | Description |
 |--------|---------|-------------|
-| `repurpose_plan(video, output_dir?, platforms?)` | `dict` | Write a dry-run `repurpose_manifest.json` |
+| `repurpose_plan(video, output_dir?, platforms?)` | `dict` | Write a dry-run `repurpose_plan.json` |
 | `repurpose(video, output_dir?, platforms?, include_release_checkpoint?, min_score=80.0?)` | `dict` | Render platform-ready assets, thumbnails, storyboards, and checkpoint artifacts. Default `min_score` is `DEFAULT_QUALITY_GATE_SCORE` (80). Since 1.16.0, MCP `video_repurpose` is a durable job and applies `min_score` before job success; the worker enforces its frozen checkpoint policy. 1.15.3 did not. |
 | `shorts_package(..., allow_fail=False?)` | `dict` | Package approved shorts renders. Quality gate fails closed unless `allow_fail=True`. |
 

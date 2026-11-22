@@ -6,12 +6,19 @@ import json
 import os
 import shutil
 import subprocess
+from enum import StrEnum
 from typing import Any
 
 from .defaults import DEFAULT_C2PA_TIMEOUT
 from .errors import C2PASigningError, C2PAToolNotFoundError, C2PAVerificationError, MCPVideoError
 from .validation_errors import exception_kind
 from .ffmpeg_helpers import _atomic_output, _validate_artifact_input_path, _validate_input_path
+
+
+class SigningStatus(StrEnum):
+    """Outcome of C2PA signing. Every failure raises, so a returned receipt is SIGNED."""
+
+    SIGNED = "signed"
 
 
 _UNTRUSTED_SIGNING_CREDENTIAL_STATUS = "signingCredential.untrusted"
@@ -47,7 +54,7 @@ def sign_export_with_c2pa(
             raise C2PASigningError("c2patool completed without producing the signed output")
         verification = _verify_signed_asset(tool, signed_tmp)
     return {
-        "status": "signed",
+        "status": SigningStatus.SIGNED,
         "verified": True,
         "trusted": verification["trusted"],
         "warning_codes": verification["warning_codes"],

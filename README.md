@@ -15,11 +15,16 @@
 </p>
 
 <p align="center">
+  <strong>On Hermes:</strong> <code>hermes plugins install kinocut</code>, then see the
+  <a href="plugins/kinocut/README.md">Hermes plugin guide</a>. Other agents: see Install below.
+</p>
+
+<p align="center">
   <a href="https://pypi.org/project/kinocut/"><img src="https://img.shields.io/pypi/v/kinocut.svg" alt="PyPI"></a>
   <a href="https://kinocut.dev/"><img src="https://img.shields.io/badge/site-kinocut.dev-0A0A0A" alt="kinocut.dev"></a>
   <a href="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml"><img src="https://github.com/KyaniteLabs/kinocut/actions/workflows/ci.yml/badge.svg?branch=master" alt="GitHub CI"></a>
-  <img src="https://img.shields.io/badge/MCP-205%20tools-orange.svg" alt="205 MCP tools in the published package">
-  <img src="https://img.shields.io/badge/CLI-177%20commands-orange.svg" alt="177 CLI commands">
+  <img src="https://img.shields.io/badge/MCP-206%20tools-orange.svg" alt="206 MCP tools in the published package">
+  <img src="https://img.shields.io/badge/CLI-178%20commands-orange.svg" alt="178 CLI commands">
   <img src="https://img.shields.io/badge/python-3.11%2B-blue.svg" alt="Python 3.11+">
   <img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg" alt="Apache 2.0">
 </p>
@@ -43,7 +48,7 @@ Kinocut needs [FFmpeg](https://ffmpeg.org/) on your `PATH` (`brew install ffmpeg
 Add it to Claude Code:
 
 ```bash
-claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf, Zed):
@@ -53,7 +58,7 @@ Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf,
   "mcpServers": {
     "kinocut": {
       "command": "uvx",
-      "args": ["--from", "kinocut==1.16.5", "kino", "--mcp"]
+      "args": ["--from", "kinocut==2.0.1", "kino", "--mcp"]
     }
   }
 }
@@ -62,7 +67,7 @@ Or to any MCP client that reads a JSON config (Claude Desktop, Cursor, Windsurf,
 Or install the package and check your machine:
 
 ```bash
-pip install kinocut==1.16.5
+pip install kinocut==2.0.1
 kino doctor
 ```
 
@@ -108,6 +113,34 @@ The 18-tool default listing is about 22 KB of JSON. The full catalog is about 17
   it can fetch; Kinocut does not serve one.
 - **Anywhere else.** `kino release-checkpoint clip.mp4` writes a thumbnail, a storyboard
   and a pass/fail quality report next to the clip.
+
+## Just say what you want
+
+Give your agent ordinary words. It passes them verbatim to `video_direct`, reads
+back the assumptions in one sentence, and asks the plan's single question if
+present. After you say yes, it calls `video_direct_apply(plan=plan, confirm=true)`.
+On the default surface both are operations of `video_plan_ops`. Planning probes the
+source and never renders or saves files. Hermes already turns voice notes into
+text; an optional `audio_path` voice memo uses the existing local transcription
+path only when no text direction is supplied.
+
+- "Tighten this up and cut the dead air" → remove silence with short sound margins.
+- "Make me a 30 second vertical for TikTok with captions" → keep up to the first
+  30 seconds, resize to 1080×1920, transcribe the final timing, then burn captions.
+- "It's too quiet, skip the first 5 seconds" → trim the opening, then normalize to -14 LUFS.
+
+Use `kino direct "make it punchier and give me a thumbnail" -i in.mp4 -o out.mp4`
+to review JSON. Add `--apply` to execute; an unanswered question keeps it in review.
+Paths supplied through MCP must be absolute. Intermediate clips, subtitle sidecars,
+and the thumbnail use deterministic names beside the output. Keep the returned
+plan JSON in your agent conversation; KinoCut does not store it.
+
+The plan discloses defaults and unknown phrases. Shortening keeps the beginning
+after cleanup; it does not choose the best moment. Reframing uses a center crop
+and requires visual review. Muting silences all sound; separate music removal is
+left unrecognized because it needs model inference. Caption generation and voice
+memo transcription require the optional local transcription dependency. No speech
+means caption steps are skipped and receipts identify the actual final video.
 
 ## What it can do
 
@@ -168,14 +201,14 @@ benchmark is 64 synthetic clips, not a full episode and not human listening appr
 
 | | Version | Surface |
 | --- | --- | --- |
-| **Published** on PyPI, npm and the MCP Registry | **1.16.5** (2026-10-27) | 205 MCP tools with `KINOCUT_TOOLS=all`, 20 by default, 177 CLI commands |
-| **This source** (`master`) | **2.0.0** candidate | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
-| **Compatibility package** | `mcp-video==1.6.20` | Installs `kinocut==1.16.5` for anyone still on the old name; the prepared `mcp-video==1.6.21` installs `kinocut==2.0.0` |
+| **Published** on PyPI, npm and the MCP Registry | **2.0.1** (2026-11-10) | 206 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 177 CLI commands |
+| **Development** (unreleased #458) | **2.0.1** + `video_direct` | 208 MCP tools with `KINOCUT_TOOLS=all`, 18 by default, 178 CLI commands |
+| **Compatibility package** | `mcp-video==1.6.22` | Installs `kinocut==2.0.1` for anyone still on the old name |
 
-Install from PyPI for everything above, including the optional object-matte extra
-(`kinocut[object-matte]==1.16.5`, published 1.16.5), which adds no new MCP tool.
+Install from PyPI: the published 2.0.1 package includes the optional object-matte extra
+(`kinocut[object-matte]==2.0.1`), which adds no new MCP tool.
 
-Full notes: [CHANGELOG.md](CHANGELOG.md) · published [1.16.5 on PyPI](https://pypi.org/project/kinocut/1.16.5/)
+Full notes: [CHANGELOG.md](CHANGELOG.md) · published [2.0.1 on PyPI](https://pypi.org/project/kinocut/2.0.1/)
 
 | | |
 | --- | --- |
@@ -197,12 +230,12 @@ setups should use `kinocut`, `from kinocut import Client` and `kino`. See
 Kinocut es un servidor MCP local para que tu agente de IA edite video con barreras de
 seguridad: recorta, une, subtitula, mezcla audio, crea Shorts y revisa la calidad antes de
 entregarte el corte. Nunca sobrescribe tus archivos sin permiso y no sube nada a la nube.
-La versión publicada es **1.16.5**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
+La versión publicada es **2.0.1**. Necesitas [FFmpeg](https://ffmpeg.org/) en el `PATH`.
 
 ```bash
-pip install kinocut==1.16.5
+pip install kinocut==2.0.1
 kino doctor
-claude mcp add kinocut -- uvx --from kinocut==1.16.5 kino --mcp
+claude mcp add kinocut -- uvx --from kinocut==2.0.1 kino --mcp
 ```
 
 `kino doctor` te dice qué funciones están listas y qué falta instalar. La documentación

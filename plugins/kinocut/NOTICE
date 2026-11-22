@@ -1,0 +1,11 @@
+Kinocut Hermes plugin
+Copyright KyaniteLabs. Licensed under Apache-2.0 (see LICENSE in this directory).
+
+This plugin package contains the plugin manifest, the skills, the desktop pane
+(desktop/plugin.js) and icon.png. It bundles no third-party source or fonts.
+
+The kinocut MCP server it launches (uvx kinocut) is a separate package. Its
+bundled asset (the Chakra Petch font, SIL Open Font License 1.1) and its
+dependency licences are listed in THIRD_PARTY.md at the root of the Kinocut
+repository, with the OFL text in assets/CHAKRA-PETCH-OFL.txt. FFmpeg is not
+bundled; Kinocut runs the one on your PATH.

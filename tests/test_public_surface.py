@@ -130,7 +130,7 @@ def test_cli_help_lists_all_commands():
     help_commands = set(command_list.split(","))
 
     assert help_commands == EXPECTED_CLI_COMMANDS
-    assert len(EXPECTED_CLI_COMMANDS) == 177
+    assert len(EXPECTED_CLI_COMMANDS) == 178
 
 
 def test_agent_cookbook_dry_run():
@@ -308,8 +308,24 @@ def test_stdio_server_launches_and_lists_tools_like_registry_clients():
     asyncio.run(check_server())
 
 
+def test_default_server_lists_at_most_20_tools_and_all_restores_full_catalog():
+    """Small local models: a fresh default server lists <= 20 tools; all lists every one."""
+
+    async def count(tools_env: str | None) -> int:
+        env = {k: v for k, v in os.environ.items() if k != "KINOCUT_TOOLS"}
+        if tools_env is not None:
+            env["KINOCUT_TOOLS"] = tools_env
+        params = StdioServerParameters(command=sys.executable, args=["-m", "mcp_video"], env=env)
+        async with stdio_client(params) as (read, write), ClientSession(read, write) as session:
+            await session.initialize()
+            return len((await session.list_tools()).tools)
+
+    assert asyncio.run(count(None)) <= 20
+    assert asyncio.run(count("all")) == 208
+
+
 def test_stdio_server_all_mode_registers_the_full_catalog():
-    """``KINOCUT_TOOLS=all`` restores the full 206-tool development surface."""
+    """``KINOCUT_TOOLS=all`` restores the full 208-tool development surface."""
 
     async def check_server() -> None:
         params = StdioServerParameters(
@@ -322,7 +338,7 @@ def test_stdio_server_all_mode_registers_the_full_catalog():
             tools_result = await session.list_tools()
 
         tool_names = {tool.name for tool in tools_result.tools}
-        assert len(tool_names) == 206
+        assert len(tool_names) == 208
         assert tool_names >= DEFAULT_SERVER_TOOLS
 
     asyncio.run(check_server())

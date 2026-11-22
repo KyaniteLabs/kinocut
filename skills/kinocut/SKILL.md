@@ -5,26 +5,29 @@ description: Use when agents edit local video safely with Kinocut. MCP, Python, 
 
 # Kinocut
 
-Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. Published 1.16.5 serves **205 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is a curated 20-tool core and `KINOCUT_TOOLS=profile:editor` selects the editor profile. `search_tools` discovers hidden tools without reading this manual.
+Use Kinocut when an agent needs a structured video-editing surface instead of hand-writing FFmpeg commands. Published 2.0.1 serves **206 MCP tools / 177 CLI commands** with `KINOCUT_TOOLS=all`; the default registration is an 18-tool default (an 8-tool hot path, eight operation families, and `list_operations` / `describe_operation`, which reach every operation). `KINOCUT_TOOLS=profile:editor` selects the editor profile. `list_operations` finds an operation without reading this manual.
 
-Inspect the installed schemas before using development-tip additions.
+Inspect the installed schemas before using newer additions.
 
-**Tool surface.** The default registration is the curated 20-tool core; the
-tools named below live in named profiles. Start the server with an explicit
-selection — `KINOCUT_TOOLS=profile:<name>` (comma separated for several) or
-`KINOCUT_TOOLS=all` (205 tools) — and restart it before calling one:
+**Tool surface.** The default registration is the 18-tool default.
+A tool named below that is not in the default 18 is still reachable as an
+operation: find it with `list_operations`, read its arguments with
+`describe_operation` (`operation=<name>`), then call its family tool, for example
+`video_ai_ops` with `operation="video_quality_check"` and `params={...}`. A tool
+missing from the tool list is not unavailable. To register one as its own tool
+instead, start the server with `KINOCUT_TOOLS=profile:<name>` (comma separated
+for several) or `KINOCUT_TOOLS=all` (206 tools) and restart it. The profiles
+that carry the tools named below are:
 `profile:advanced` carries `video_composite_layers`, `video_hls_segment`;
 `profile:ai` carries `video_acceptance_eval`, `video_body_swap`, `video_quality_check`, `video_release_checkpoint`, `video_salvage`, `video_verdict`;
 `profile:audio` carries `sound_mix_render`, `video_duck_audio`, `video_mix_audio`;
-`profile:editor` carries `search_tools`, `video_crop`, `video_edit`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_thumbnail`;
+`profile:editor` carries `video_crop`, `video_edit`, `video_export`, `video_fade`, `video_ingest`, `video_inspect_temporal`, `video_preflight`, `video_record_motion_acceptance`, `video_review_card`, `video_thumbnail`;
 `profile:hyperframes` carries `hyperframes_remove_background`;
 `profile:image` carries `image_analyze_product`;
-`profile:intent` carries `video_cutfile_render`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
+`profile:intent` carries `video_cutfile_render`, `video_direct`, `video_direct_apply`, `video_estimate_operation`, `video_intent`, `video_qc_vision`, `video_review_decide`;
 `profile:revideo` carries `revideo_install`, `revideo_materialize`, `revideo_render`, `revideo_render_job`;
-
-Use `search_tools` to discover names — it does not register them. If the tool
-you need is not registered, stop and report that it is unavailable instead of
-retrying.
+If neither `list_operations` nor a profile has the operation, stop and report
+that it is unavailable instead of retrying.
 
 Desktop-local execution is available; native Android/iOS clients and a complete
 browser processing application remain unimplemented. Recommended service/client
@@ -33,16 +36,27 @@ work is described in `docs/PLATFORM_PARITY.md`.
 ## Default path (do this first)
 
 1. `kino doctor` then `kino --format json info <file>`.
-2. For an unfamiliar task, call `search_tools` with the user's task (for example, "remove filler words" or "keep face in frame"), then inspect the returned tool's required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
+2. For an unfamiliar task, call `list_operations` with a short query from the user's task (for example, "silence" or "face"), then `describe_operation` for the required inputs. Plan with `video_intent` for supported intents (optional `goal=` compiles a cutfile; a 360/desk/table/`x4` goal also proposes a `360_assembly_plan`). Check that the proposal actually satisfies the request before rendering.
 3. Render (`video_cutfile_render`, `video_edit`, workflow, or a single engine tool). For 360: `video_review_decide` approve/reject on that plan, then render — never render a `proposed` plan. `.insv` is rejected; need a stitched 360 MP4. Guide: `docs/360_ASSEMBLY.md`.
 4. `video-quality-check` / `assert_quality`. Sync `repurpose` and `shorts-package` fail-closed at score 80 unless skipped/`allow_fail`.
-5. Human visual/audio review. Never treat a receipt as published.
+5. Human visual/audio review. Never treat a receipt as published. In Hermes, put the cut's `preview_directive` on its own line in your reply: trim, merge and shorts return one with the cut, and `video_review_card` (family `video_edit_ops`) makes one for any other cut; Hermes then renders the card inline with Approve & export, Dig in and Try another range. Approve & export asks you to run `video_release_checkpoint` on the cut and, only if it passes, `video_export` it to `<name>-final.mp4`; if the gate fails, report the failed checks instead.
 
 When you mention a file in a reply, use its file name or a `~/` path, never the absolute path: it carries the user's account name into every screenshot.
 
 Depth (rescue, salvage, composite, Hyperframes, thin sound S12): `docs/TOOLS.md`, `docs/RESCUE.md`, `docs/WORKFLOWS.md`. Workflow allowlist: probe, trim, resize, convert, crop, add_text, merge, composite_layers, burn_in.
 
 Load the relevant guide when needed. Use source evidence for editorial choices; preserve names, numbers, negation, and qualifications. Report missing evidence or unsupported actions instead of inventing source claims, timestamps, or capabilities. A planning tool proposes an edit; its existence does not mean the required detector or model has run. Code owns timing, transforms, validation, and execution; human review remains separate from model judgment.
+
+## When the user just says what they want
+
+Pass the user's words verbatim to `video_direct(input_path=ABS_PATH, direction=WORDS)`
+(default surface: `video_plan_ops` with `{"operation": "video_direct", "params": {...}}`).
+Read the plan's assumptions back in one sentence. Mention unrecognized words.
+Ask the plan's single question if present. Resolve it with the user's words and
+review the updated plan. After the user says yes, call
+`video_direct_apply(plan=PLAN, confirm=true)`. Inspect the receipts and final video.
+Never invent parameters or claim that a plan has rendered. Use `audio_path` only
+for a voice memo without text; it invokes optional local transcription.
 
 ## Vision review and network permission (1.16.5)
 
@@ -86,7 +100,7 @@ and `video_release_checkpoint`, then require human visual review.
 
 ## Choose A Surface
 
-- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==1.16.5`. Do not edit another host's configuration from this skill.
+- MCP: best for Claude Code, Cursor, Codex-style clients, and other agent hosts. Run `uvx kinocut==2.0.1`. Do not edit another host's configuration from this skill.
 - CLI: best for direct local edits, quick diagnostics, `composite-layers --dry-run`, batch jobs, and CI-friendly JSON output.
 - Python client: best for repeatable pipelines that need structured results, output paths, and saved layer-plan receipts.
 
@@ -99,7 +113,7 @@ Use when the source is a **stitched equirect 360 MP4** from any camera (Insta360
 3. `video_review_decide` / `Client.decide_360_assembly` with `approve` or `reject`.
 4. Render only an approved plan (`Client.render_360_assembly` or `video_review_decide` + `output_path`).
 
-There is no `video_360_*` MCP tool and no `kino 360` command. In published 1.16.5, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
+There is no `video_360_*` MCP tool and no `kino 360` command. In published 2.0.1, `kino intent reformat_vertical --goal "desk 360 split 9:16" --source PATH`
 also proposes a nested `sphere_plan`. Save that plan as its own JSON artifact;
 after actual human review, `kino review-decide PLAN.json accept --output OUTPUT`
 approves and renders it. `reject` never renders; changed source identity blocks
@@ -127,12 +141,12 @@ directors never write pixels.
   `Client.estimate_operation` return local heuristics, dimensionless cost units,
   and no billing currency. Do not present them as measured cloud latency/cost.
 
-## Product / object matte (published in 1.15.1; current in 1.16.5)
+## Product / object matte (published in 1.15.1; current in 2.0.1)
 
-The optional object-matte extra is available in published 1.16.5. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
+The optional object-matte extra is available in published 2.0.1. Use the **existing** `hyperframes-remove-background` / `hyperframes_remove_background` command. Default model is people. For catalog SKUs, jewelry, bottles, shoes, packaging, or anything that is not a person:
 
 1. `hyperframes_remove_background(info=true)` — lists models, no download.
-2. `pip install "kinocut[object-matte]==1.16.5"` then `model="birefnet-general"`.
+2. `pip install "kinocut[object-matte]==2.0.1"` then `model="birefnet-general"`.
 3. Optional `--mask-interval 3` on product video. Optional equipment overlay for leftover turntable/stand/tripod/sweep.
 4. Composite onto a shop plate with `composite-layers`. Keep every `src` inside the spec directory.
 
@@ -329,7 +343,7 @@ plan = video.composite_layers(
 Run the pinned server. Do not edit another host's configuration from this skill.
 
 ```bash
-uvx kinocut==1.16.5
+uvx kinocut==2.0.1
 ```
 
 ## Guardrails
