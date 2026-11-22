@@ -9,19 +9,35 @@ on:
 
 concurrency:
   group: ci-${{ github.ref }}
-  cancel-in-progress: true
+  # Supersede stale PR runs; every master commit keeps its own exact-head run.
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   changes:
     name: Change detection
     runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read
+      pull-requests: read
     outputs:
-      code: ${{ steps.classify.outputs.code }}
-      docker: ${{ steps.classify.outputs.docker }}
+      # A master push whose tree its pull request head already passed re-tests
+      # nothing: every code job reports a skip instead (see merged_tree_tested.py).
+      tested: ${{ steps.premerge.outputs.tested }}
+      code: ${{ steps.premerge.outputs.tested == 'true' && 'false' || steps.classify.outputs.code }}
+      docker: ${{ steps.premerge.outputs.tested == 'true' && 'false' || steps.classify.outputs.docker }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
+      - id: premerge
+        name: Was this master tree already tested on its pull request?
+        if: github.event_name == 'push'
+        timeout-minutes: 2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: python3 .github/scripts/merged_tree_tested.py --repository "$GITHUB_REPOSITORY" --sha "$GITHUB_SHA" --workflow ci.yml >> "$GITHUB_OUTPUT"
       - id: classify
         timeout-minutes: 1
         shell: bash
@@ -46,7 +62,7 @@ jobs:
           while IFS= read -r -d '' changed_path; do
             printf 'changed: %q\n' "$changed_path"
             case "$changed_path" in
-              kinocut/*|kinocut_sound/*|plugins/*|tests/*|workflows/05-confidence-baseline/*|scripts/golden_path.py|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
+              kinocut/*|kinocut_sound/*|plugins/*|tests/*|workflows/05-confidence-baseline/*|scripts/golden_path.py|scripts/annotate-pytest-failures.py|mcp_video.py|pyproject.toml|uv.lock|Dockerfile|.github/workflows/*|.github/scripts/*)
                 code=true ;;
             esac
             case "$changed_path" in
@@ -58,7 +74,10 @@ jobs:
 
   repository-readiness:
     name: Repository readiness
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -73,7 +92,10 @@ jobs:
 
   lint:
     name: Lint
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -89,9 +111,9 @@ jobs:
         # pin deliberately together with the pyproject floor.
         run: .venv/bin/pip install "ruff==0.15.11"
       - name: Ruff check
-        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/
+        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Ruff format check
-        run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/
+        run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Type check core modules
         run: |
           .venv/bin/pip install -e . pyright
@@ -99,7 +121,10 @@ jobs:
 
   package-surface:
     name: Package surface
+    needs: changes
+    if: ${{ !cancelled() && needs.changes.outputs.tested != 'true' }}
     runs-on: ubuntu-24.04
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -121,6 +146,7 @@ jobs:
     name: Test (Python 3.13)
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Skip tests
         if: needs.changes.outputs.code != 'true'
@@ -146,14 +172,19 @@ jobs:
         if: needs.changes.outputs.code == 'true'
         run: .venv/bin/pip install -e ".[dev]"
       - name: Run tests with coverage
+        id: pytest
         if: needs.changes.outputs.code == 'true'
-        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov-report=term
+        run: .venv/bin/pytest tests/ -q -m "not slow" --tb=short -n auto --maxprocesses=4 --dist loadfile --cov=kinocut --cov-report=term --junitxml="$RUNNER_TEMP/kinocut-pytest.xml"
+      - name: Annotate failing tests
+        if: failure() && needs.changes.outputs.code == 'true' && steps.pytest.outcome == 'failure'
+        run: .venv/bin/python scripts/annotate-pytest-failures.py "$RUNNER_TEMP/kinocut-pytest.xml"
 
   golden-path:
     name: Golden path (render + quality gate)
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
@@ -199,6 +230,7 @@ jobs:
     name: Compatibility (Python ${{ matrix.python-version }})
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 35
     strategy:
       fail-fast: false
       matrix:
@@ -235,6 +267,7 @@ jobs:
     name: Minimal install (no extras)
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 30
     steps:
       - name: Skip minimal install check
         if: needs.changes.outputs.code != 'true'
@@ -270,6 +303,7 @@ jobs:
     name: Slow suite (real-media)
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 40
     steps:
       - name: Skip slow suite
         if: needs.changes.outputs.code != 'true'
@@ -351,6 +385,7 @@ jobs:
     name: FFmpeg matrix (FFmpeg ${{ matrix.major }})
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     # Cross-FFmpeg-version filtergraph portability matrix. The other test jobs
     # run a single apt/ubuntu ffmpeg, so a filtergraph that parses on ffmpeg 8
     # but not 6 (e.g. scale2ref rw/rh vars, added in ffmpeg 7 — the 2026-07-09
@@ -441,6 +476,7 @@ jobs:
     name: Docker build
     needs: changes
     runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Skip Docker build
@@ -457,6 +493,7 @@ jobs:
     name: Windows smoke
     needs: changes
     runs-on: windows-latest
+    timeout-minutes: 30
     steps:
       - name: Skip Windows smoke
         if: needs.changes.outputs.code != 'true'

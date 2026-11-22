@@ -19,8 +19,8 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_linux_ci_delegates_ffmpeg_to_the_retrying_installer() -> None:
-    """ci.yml / integration-smoke / mcpb / pr-safety must not inline apt-get."""
-    for filename in ("ci.yml", "integration-smoke.yml", "mcpb.yml", "pr-safety.yml"):
+    """ci.yml / integration-smoke / mcpb must not inline apt-get."""
+    for filename in ("ci.yml", "integration-smoke.yml", "mcpb.yml"):
         text = (WORKFLOWS / filename).read_text(encoding="utf-8")
         assert "install-ffmpeg-ubuntu.sh" in text, filename
         for line in text.splitlines():

@@ -10,7 +10,8 @@ permissions:
 
 concurrency:
   group: mirror-smoke-${{ github.ref }}
-  cancel-in-progress: true
+  # Master-only workflow: never cancel an exact-head run the Forgejo sync gate waits on.
+  cancel-in-progress: false
 
 jobs:
   canonical-surface:

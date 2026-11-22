@@ -14,7 +14,7 @@ def _workflow(name):
     return (ROOT / ".github" / "workflows" / name).read_text()
 
 
-@pytest.mark.parametrize("workflow", ["ci.yml", "pr-safety.yml"])
+@pytest.mark.parametrize("workflow", ["ci.yml"])
 def test_sound_package_is_in_every_existing_lint_and_format_gate(workflow):
     inspected = 0
     for command in _workflow(workflow).splitlines():

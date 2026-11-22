@@ -89,7 +89,7 @@ def repository(tmp_path):
     return _Repository(directory)
 
 
-@pytest.fixture(params=["ci.yml", "pr-safety.yml"])
+@pytest.fixture(params=["ci.yml"])
 def workflow(request):
     return request.param
 
@@ -141,7 +141,6 @@ def _assert_classification(result, values, workflow, code, docker):
         ("Dockerfile", True, False, True),
         (".dockerignore", False, False, True),
         (".github/workflows/ci.yml", True, True, True),
-        (".github/workflows/pr-safety.yml", True, True, False),
         (".github/workflows/integration-smoke.yml", True, True, False),
         (".github/workflows/mcpb.yml", True, True, False),
         (".github/workflows/publish.yml", True, True, False),
@@ -149,7 +148,7 @@ def _assert_classification(result, values, workflow, code, docker):
         (".github/scripts/check-hyperframes-results.py", True, True, False),
         (".github/scripts/check-built-artifacts.py", True, True, False),
         (".github/scripts/future-guard.py", True, True, False),
-        ("scripts/annotate-pytest-failures.py", False, True, False),
+        ("scripts/annotate-pytest-failures.py", True, True, False),
         ("docs/guide.md", False, False, False),
         ("CHANGELOG.md", False, False, False),
     ],
@@ -231,13 +230,6 @@ def test_large_changes_preserve_early_matches_without_pipefail(repository, workf
         assert changed.split(b"\0")[0] == first_path.encode()
     result, values = _classify(repository, workflow, tmp_path, head)
     _assert_classification(result, values, workflow, first_path is not None, first_path == "mcp_video.py")
-
-
-def test_invalid_base_fails_closed_and_cleans_private_list(repository, tmp_path):
-    repository.write("kinocut/feature.py")
-    result, values = _classify(repository, "pr-safety.yml", tmp_path, repository.commit(), base="f" * 40)
-    assert result.returncode != 0
-    assert values == {}, "Failed Git comparison must not publish a successful skip"
 
 
 @pytest.mark.parametrize("base", ["", "0" * 40])
