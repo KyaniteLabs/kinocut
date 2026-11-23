@@ -115,9 +115,11 @@ def _render_one(
     save_receipt: str | None,
     variant: str | None,
     keep_intermediates: bool,
+    *,
+    _preloaded: tuple[Path, dict[str, Any], str] | None = None,
 ) -> dict[str, Any]:
     """Render exactly one spec (base or a single variant) and return its receipt."""
-    verdict, spec, workspace_root, spec_hash = _load_render_spec(spec_path, variant)
+    verdict, spec, workspace_root, spec_hash = _load_render_spec(spec_path, variant, _preloaded=_preloaded)
     source_paths: dict[str, str] = verdict["source_paths"]
     output_paths: dict[str, str] = verdict["output_paths"]
     resuming, prior_by_id, run_dir_rel, run_dir_abs = _resolve_run_dir(
@@ -173,11 +175,19 @@ def _render_one(
 # --- Single-spec render helpers ---
 
 
-def _load_render_spec(spec_path: str, variant: str | None) -> tuple[dict[str, Any], WorkflowSpec, Path, str]:
+def _load_render_spec(
+    spec_path: str,
+    variant: str | None,
+    *,
+    _preloaded: tuple[Path, dict[str, Any], str] | None = None,
+) -> tuple[dict[str, Any], WorkflowSpec, Path, str]:
     """Read once, hash, validate and parse the spec (eliminating read-between-validate TOCTOU)."""
-    resolved = validate_spec_path(spec_path)
-    raw, data = load_spec_bytes(resolved)
-    spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
+    if _preloaded is not None:
+        resolved, data, spec_hash = _preloaded
+    else:
+        resolved = validate_spec_path(spec_path)
+        raw, data = load_spec_bytes(resolved)
+        spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
     verdict = validate_workflow_spec(spec_path, variant=variant, _preloaded=(resolved, data))
     effective = apply_variant_overrides(data, variant) if variant is not None else data
     spec = parse_spec(effective)  # real param/input VALUES (verdict carries only names)
@@ -506,14 +516,15 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
         raise workflow_error("all_variants requested but the spec declares no variants", INVALID_WORKFLOW_SPEC)
     spec_hash = "sha256:" + hashlib.sha256(raw).hexdigest()
     workspace_root = Path(os.path.realpath(resolved.parent))
-    _reject_variant_output_collisions(spec_path, ids)
+    snapshot = (resolved, data, spec_hash)
+    _reject_variant_output_collisions(spec_path, ids, _preloaded=(resolved, data))
     if save_receipt_dir is not None:
         _ensure_receipt_dir(save_receipt_dir, workspace_root)
 
     receipts: list[dict[str, Any]] = []
     for variant_id in ids:
         save_path = _variant_receipt_path(save_receipt_dir, variant_id)
-        receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates))
+        receipts.append(_render_one(spec_path, None, save_path, variant_id, keep_intermediates, _preloaded=snapshot))
 
     return {
         "schema_version": 1,
@@ -528,7 +539,12 @@ def _render_all_variants(spec_path: str, save_receipt_dir: str | None, keep_inte
     }
 
 
-def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
+def _reject_variant_output_collisions(
+    spec_path: str,
+    ids: list[str],
+    *,
+    _preloaded: tuple[Path, dict[str, Any]] | None = None,
+) -> None:
     """Fail closed when two variants resolve an output to the SAME path.
 
     Auto-naming keeps default outputs distinct per variant, but two variants can
@@ -538,7 +554,7 @@ def _reject_variant_output_collisions(spec_path: str, ids: list[str]) -> None:
     """
     seen: dict[str, str] = {}  # resolved output path -> owning variant id
     for variant_id in ids:
-        verdict = validate_workflow_spec(spec_path, variant=variant_id)
+        verdict = validate_workflow_spec(spec_path, variant=variant_id, _preloaded=_preloaded)
         for output_path in verdict["output_paths"].values():
             prior = seen.get(output_path)
             if prior is not None:

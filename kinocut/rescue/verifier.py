@@ -66,8 +66,19 @@ def _decode(path: str) -> tuple[bool, str]:
         return False, type(exc).__name__
     err = (result.stderr or "").strip()
     if err:
-        return False, err.splitlines()[0][:200]
+        return False, "ffmpeg_decode_error"
     return True, ""
+
+
+def _parse_packet_line(line: str) -> dict[str, str]:
+    packet: dict[str, str] = {}
+    for part in line.split("|"):
+        if "=" not in part:
+            continue
+        key, value = part.split("=", 1)
+        if value != "N/A":
+            packet[key] = value
+    return packet
 
 
 def _parse_compact_packets(stdout: str) -> list[dict[str, Any]]:
@@ -75,16 +86,89 @@ def _parse_compact_packets(stdout: str) -> list[dict[str, Any]]:
     for line in stdout.splitlines():
         if not line.strip():
             continue
-        packet: dict[str, Any] = {}
-        for part in line.split("|"):
-            if "=" not in part:
-                continue
-            key, value = part.split("=", 1)
-            if value != "N/A":
-                packet[key] = value
+        packet = _parse_packet_line(line)
         if packet:
             packets.append(packet)
     return packets
+
+
+def _update_packet_state(
+    packet: dict[str, str],
+    kinds: dict[int, str | None],
+    last: dict[int, float],
+    ends: dict[str, float],
+    monotonic: bool,
+) -> bool:
+    try:
+        index = int(packet.get("stream_index", -1))
+    except (TypeError, ValueError):
+        return monotonic
+    dts_val = packet.get("dts_time", packet.get("pts_time"))
+    try:
+        ts = float(0 if dts_val is None else dts_val)
+    except (TypeError, ValueError):
+        pass
+    else:
+        if ts + 1e-6 < last.get(index, ts):
+            monotonic = False
+        last[index] = ts
+    kind = kinds.get(index)
+    if kind in {"audio", "video"}:
+        pts_val = packet.get("pts_time", packet.get("dts_time"))
+        dur_val = packet.get("duration_time", 0)
+        try:
+            end = float(0 if pts_val is None else pts_val) + float(0 if dur_val is None else dur_val)
+        except (TypeError, ValueError):
+            pass
+        else:
+            ends[kind] = max(ends.get(kind, end), end)
+    return monotonic
+
+
+def _scan_packet_summary(
+    path: str, raw: dict[str, Any], *, pass_fds: tuple[int, ...] = ()
+) -> tuple[bool, bool, tuple[float, float] | None]:
+    """Stream ffprobe compact packets incrementally (O(1) memory, no 16 MiB cap)."""
+    import subprocess
+    from ..engine_runtime_utils import _ffprobe
+    from ..process_tree import ProcessTree
+
+    kinds = {int(s.get("index", -1)): s.get("codec_type") for s in raw.get("streams", [])}
+    command = [
+        _ffprobe(),
+        "-v",
+        "error",
+        "-show_packets",
+        "-show_entries",
+        "packet=stream_index,pts_time,dts_time,duration_time",
+        "-of",
+        "compact=p=0:nk=0",
+        path,
+    ]
+    last: dict[int, float] = {}
+    ends: dict[str, float] = {}
+    monotonic = True
+    tree = None
+    try:
+        tree = ProcessTree(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, pass_fds=pass_fds)
+        if tree.process is None or tree.process.stdout is None:
+            return False, False, None
+        for raw_line in tree.process.stdout:
+            line = raw_line.decode("utf-8", errors="replace").strip()
+            if line:
+                packet = _parse_packet_line(line)
+                if packet:
+                    monotonic = _update_packet_state(packet, kinds, last, ends, monotonic)
+        rc = tree.wait(timeout=120)
+    except (MCPVideoError, OSError, subprocess.TimeoutExpired):
+        return False, False, None
+    finally:
+        if tree is not None:
+            tree.close()
+    if rc != 0:
+        return False, False, None
+    av = (ends["video"], ends["audio"]) if {"video", "audio"} <= ends.keys() else None
+    return True, (monotonic and bool(last)), av
 
 
 def _packets(path: str, *, pass_fds: tuple[int, ...] = ()) -> list[dict[str, Any]]:
@@ -179,6 +263,37 @@ def _caption_segments(path: str | None) -> list[tuple[float, float, str]]:
     return segments
 
 
+def _sidecar_facts(
+    caption_path: str | None, transcript_path: str | None, master_duration: float, tolerance: float
+) -> dict[str, Any]:
+    caption_missing = bool(caption_path) and not Path(caption_path).is_file()
+    segments = _caption_segments(caption_path)
+    transcript_missing = bool(transcript_path) and not Path(transcript_path).is_file()
+    transcript = (
+        Path(transcript_path).read_text(encoding="utf-8")
+        if transcript_path and Path(transcript_path).is_file()
+        else None
+    )
+    caption_text = " ".join(text for _, _, text in segments)
+    caption_ok = not caption_path or (
+        not caption_missing
+        and bool(segments)
+        and all(
+            0 <= start < end and (end <= master_duration or _within_time_tolerance(end, master_duration, tolerance))
+            for start, end, _ in segments
+        )
+    )
+    spoken_ok = (not transcript_missing) and (
+        transcript is None or " ".join(transcript.split()) == " ".join(caption_text.split())
+    )
+    return {
+        "caption_path": caption_path,
+        "caption_ok": caption_ok,
+        "transcript": transcript,
+        "spoken_ok": spoken_ok,
+    }
+
+
 def _verification_facts(
     source: str,
     master: str,
@@ -196,21 +311,11 @@ def _verification_facts(
     tolerance = max(0.10, 2 / max(_fps(source_raw), 1))
     master_duration, source_duration = _duration(master_raw), _duration(source_raw)
     share_duration = _duration(share_raw)
-    delta = abs(master_duration - source_duration)
-    master_packets, share_packets = _packets(master), _packets(sharing_copy)
+    master_probe_ok, master_mono, sync_ends = _scan_packet_summary(master, master_raw)
+    share_probe_ok, share_mono, _ = _scan_packet_summary(sharing_copy, share_raw)
     source_counts, master_counts = _stream_counts(source_raw), _stream_counts(master_raw)
     share_counts = _stream_counts(share_raw)
-    sync_ends = _av_endpoints(master_raw, master_packets)
     sync_delta = abs(sync_ends[0] - sync_ends[1]) if sync_ends is not None else None
-    caption_missing = bool(caption_path) and not Path(caption_path).is_file()
-    segments = _caption_segments(caption_path)
-    transcript_missing = bool(transcript_path) and not Path(transcript_path).is_file()
-    transcript = (
-        Path(transcript_path).read_text(encoding="utf-8")
-        if transcript_path and Path(transcript_path).is_file()
-        else None
-    )
-    caption_text = " ".join(text for _, _, text in segments)
     video = next((s for s in share_raw.get("streams", []) if s.get("codec_type") == "video"), {})
     audio = next((s for s in share_raw.get("streams", []) if s.get("codec_type") == "audio"), None)
     formats = str(share_raw.get("format", {}).get("format_name", "")).split(",")
@@ -225,10 +330,10 @@ def _verification_facts(
         "share_decode": share_decode,
         "share_error": share_error,
         "tolerance": tolerance,
-        "delta": delta,
+        "delta": abs(master_duration - source_duration),
         "duration_ok": _within_time_tolerance(master_duration, source_duration, tolerance)
         and _within_time_tolerance(share_duration, master_duration, tolerance),
-        "monotonic": _monotonic(master_packets) and _monotonic(share_packets),
+        "monotonic": master_probe_ok and share_probe_ok and master_mono and share_mono,
         "source_counts": source_counts,
         "master_counts": master_counts,
         "coverage": all(
@@ -237,23 +342,14 @@ def _verification_facts(
         and (master_counts.get("audio", 0) == 0 or share_counts.get("audio", 0) > 0),
         "sync_delta": sync_delta,
         "sync_ok": (
-            not (master_counts.get("video", 0) > 0 and master_counts.get("audio", 0) > 0)
-            if sync_ends is None
-            else _within_time_tolerance(*sync_ends, tolerance)
-        ),
-        "caption_path": caption_path,
-        "caption_ok": not caption_path
-        or (
-            not caption_missing
-            and bool(segments)
-            and all(
-                0 <= start < end and (end <= master_duration or _within_time_tolerance(end, master_duration, tolerance))
-                for start, end, _ in segments
+            master_probe_ok
+            and (
+                not (master_counts.get("video", 0) > 0 and master_counts.get("audio", 0) > 0)
+                if sync_ends is None
+                else _within_time_tolerance(*sync_ends, tolerance)
             )
         ),
-        "transcript": transcript,
-        "spoken_ok": (not transcript_missing)
-        and (transcript is None or " ".join(transcript.split()) == " ".join(caption_text.split())),
+        **_sidecar_facts(caption_path, transcript_path, master_duration, tolerance),
         "universal_ok": "mp4" in formats
         and video.get("codec_name") == "h264"
         and video.get("pix_fmt") == "yuv420p"

@@ -90,10 +90,11 @@ def test_rescue_verifier_parses_over_5000_packets_and_fails_closed_when_empty(mo
         },
     )
     monkeypatch.setattr(verifier, "_decode", lambda p: (True, ""))
-    monkeypatch.setattr(verifier, "_packets", lambda p: [])
+    monkeypatch.setattr(verifier, "_scan_packet_summary", lambda p, raw: (False, False, None))
 
     facts = verifier._verification_facts("s.mp4", "m.mp4", "sh.mp4", None, None)
     assert facts["sync_ok"] is False
+    assert facts["monotonic"] is False
 
 
 def test_init_project_validates_path_and_escapes_yaml_name(tmp_path):
@@ -374,22 +375,125 @@ def test_svt_av1_preset_maps_x264_names_to_integers():
     assert _svt_av1_preset("6") == "6"
 
 
-def test_probe_cache_reuses_inode_entry_across_rename(tmp_path):
-    """V-05: probing staged path then published path on same inode must hit cache with updated path."""
+def test_probe_cache_invalidates_same_size_preserved_mtime_rewrite(tmp_path):
+    """P1-4: probe cache must include st_ctime_ns so same-size in-place rewrites never return stale metadata."""
+    import os
     from kinocut.engine_probe import _cache_info, _cache_key, _cached_info
     from kinocut.models import VideoInfo
 
-    staged = tmp_path / ".staged.mp4"
-    staged.write_bytes(b"abc123")
-    key = _cache_key(str(staged))
-    info = VideoInfo(path=str(staged), duration=1.0, width=64, height=64, fps=10.0, codec="h264", size_bytes=6)
-    _cache_info(str(staged), key, info, has_video=True)
+    media = tmp_path / "clip.mp4"
+    media.write_bytes(b"aaaaaa")
+    st_before = media.stat()
+    key_before = _cache_key(str(media))
+    info = VideoInfo(path=str(media), duration=1.0, width=64, height=64, fps=10.0, codec="h264", size_bytes=6)
+    _cache_info(str(media), key_before, info, has_video=True)
+    assert _cached_info(str(media), key_before, require_video=True) is not None
 
-    final = tmp_path / "final.mp4"
-    staged.rename(final)
-    hit = _cached_info(str(final), _cache_key(str(final)), require_video=True)
-    assert hit is not None
-    assert hit.path == str(final)
+    # Rewrite same length and restore original mtime: ctime changes so cache key must differ.
+    media.write_bytes(b"bbbbbb")
+    os.utime(media, ns=(st_before.st_atime_ns, st_before.st_mtime_ns))
+    key_after = _cache_key(str(media))
+    assert key_after != key_before
+    assert _cached_info(str(media), key_after, require_video=True) is None
+
+
+def test_glitch_effects_succeed_on_rotation_tagged_video(tmp_path):
+    """P1-3: glitch_screen_tearing and glitch_turbulent_displacement must size maps from display dimensions."""
+    import subprocess
+    from kinocut.engine_glitch import glitch_screen_tearing, glitch_turbulent_displacement
+    from kinocut.engine_probe import probe
+
+    raw = tmp_path / "raw.mp4"
+    src = tmp_path / "rot90.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=blue:s=64x48:r=10:d=0.4",
+            "-c:v",
+            "libx264",
+            str(raw),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        ["ffmpeg", "-y", "-v", "error", "-display_rotation", "90", "-i", str(raw), "-c", "copy", str(src)],
+        check=True,
+    )
+    info = probe(str(src))
+    assert info.rotation == 90 and (info.display_width, info.display_height) == (48, 64)
+    out1 = tmp_path / "tearing.mp4"
+    out2 = tmp_path / "turb.mp4"
+    r1 = glitch_screen_tearing(str(src), str(out1))
+    r2 = glitch_turbulent_displacement(str(src), str(out2))
+    assert r1.success and out1.is_file()
+    assert r2.success and out2.is_file()
+
+
+def test_normalized_merge_preserves_timing_and_strict_decode_across_cuts(tmp_path):
+    """P1-2: alternating-resolution AAC/MP3 normalized merge must not drift per cut and must decode strictly."""
+    import subprocess
+    from kinocut.engine_merge import merge
+    from kinocut.rescue.verifier import _decode
+
+    clips = []
+    for i in range(6):
+        c = tmp_path / f"c{i}.mp4"
+        size = "64x48" if i % 2 == 0 else "96x72"
+        acodec = "aac" if i % 2 == 0 else "libmp3lame"
+        subprocess.run(
+            [
+                "ffmpeg",
+                "-y",
+                "-v",
+                "error",
+                "-f",
+                "lavfi",
+                "-i",
+                f"color=c=red:s={size}:r=30:d=1.0",
+                "-f",
+                "lavfi",
+                "-i",
+                "sine=frequency=440:sample_rate=44100:duration=1.0",
+                "-c:v",
+                "libx264",
+                "-c:a",
+                acodec,
+                str(c),
+            ],
+            check=True,
+        )
+        clips.append(str(c))
+    out = tmp_path / "merged.mp4"
+    res = merge(clips, output_path=str(out))
+    assert res.success
+    assert 5.95 <= res.duration <= 6.10
+    ok, err = _decode(str(out))
+    assert ok is True, err
+
+
+def test_init_project_expands_tilde_before_validation(monkeypatch, tmp_path):
+    """P1-7: init_project must expand ~ before _validate_output_path so the validated path matches disk writes."""
+    import importlib
+
+    mod = importlib.import_module("kinocut.te.init_project")
+    seen: list[str] = []
+    real_validate = mod._validate_output_path
+
+    def spy_validate(p: str) -> str:
+        seen.append(p)
+        return real_validate(p)
+
+    monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setattr(mod, "_validate_output_path", spy_validate)
+    result = mod.init_project("~/demo_proj")
+    assert seen and not seen[0].startswith("~")
+    assert result["path"] == str((tmp_path / "demo_proj").resolve())
 
 
 def test_seconds_to_srt_time_clamps_negative_values():

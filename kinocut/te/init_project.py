@@ -17,8 +17,9 @@ def init_project(
     with_cutfile: bool = True,
 ) -> dict[str, Any]:
     """Create a minimal Kinocut project directory (idempotent on empty dirs)."""
-    safe_path = _validate_output_path(path)
-    root = Path(safe_path).expanduser().resolve()
+    expanded = str(Path(path).expanduser())
+    safe_path = _validate_output_path(expanded)
+    root = Path(safe_path)
     root.mkdir(parents=True, exist_ok=True)
     slug = name or root.name
     media = root / "media"

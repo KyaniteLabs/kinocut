@@ -25,17 +25,19 @@ class _ProbeCacheEntry(NamedTuple):
     has_video: bool
 
 
-_probe_cache: dict[tuple[int, int, int, int], _ProbeCacheEntry] = {}
+_probe_cache: dict[tuple[Any, ...], _ProbeCacheEntry] = {}
 _MAX_PROBE_CACHE = 256
 _probe_cache_lock = threading.Lock()
 
 
-def _cache_key(path: str) -> tuple[int, int, int, int]:
+def _cache_key(path: str) -> tuple[Any, ...]:
     try:
         stat = os.stat(path)
     except OSError as exc:
         raise InputFileError(path, "Cannot inspect media identity") from exc
-    return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
+    if stat.st_ino:
+        return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    return (path, stat.st_dev, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
 
 
 def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | None:

@@ -187,7 +187,7 @@ def _validate_steps(
     unproduced = sorted(output_ids - outputs_produced)
     if unproduced:
         raise workflow_error(
-            f"workflow declares output(s) {unproduced} with no producing step",
+            f"workflow declares {len(unproduced)} output(s) with no producing step",
             INVALID_WORKFLOW_SPEC,
         )
     return verdict

@@ -253,7 +253,7 @@ def glitch_screen_tearing(
     vf = (
         "split=3[main][src1][src2];"
         f"[src1]scale=16:ih,format=gray,geq=lum='{xexpr}'[xsmall];"
-        f"[xsmall]scale={info.width}:{info.height}:flags=neighbor[xmap];"
+        f"[xsmall]scale={info.display_width}:{info.display_height}:flags=neighbor[xmap];"
         "[main]format=gbrp[main3];"
         "[src2]geq=lum=128,format=gray[ymap];"
         "[main3][xmap][ymap]displace=edge=smear"
@@ -646,7 +646,9 @@ def glitch_turbulent_displacement(
     octaves = max(1, min(5, octaves))
 
     info = probe(input_path)
-    filter_complex = _build_turbulent_filter(amount, scale, speed, octaves, width=info.width, height=info.height)
+    filter_complex = _build_turbulent_filter(
+        amount, scale, speed, octaves, width=info.display_width, height=info.display_height
+    )
 
     cmd = [
         "ffmpeg",

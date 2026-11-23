@@ -84,28 +84,21 @@ def _normalize_clips(
         elif info.rotation == 270:
             vf_parts.insert(0, "transpose=1")
         seconds = info.duration if on_progress is not None else 0.0
-        has_audio = info.audio_codec is not None
-        extra = [
-            "-r",
-            str(DEFAULT_FPS),
-            "-ar",
-            str(DEFAULT_SAMPLE_RATE),
-            "-ac",
-            str(DEFAULT_AUDIO_CHANNELS),
-            "-avoid_negative_ts",
-            "make_zero",
-        ]
-        if has_audio:
-            extra.append("-shortest")
         _render(
             _build_ffmpeg_cmd(
                 clip,
                 output_path=norm_path,
                 video_filter=",".join(vf_parts),
-                audio_filter="apad" if has_audio else None,
                 crf=DEFAULT_CRF,
                 preset=DEFAULT_PRESET,
-                extra=extra,
+                extra=[
+                    "-r",
+                    str(DEFAULT_FPS),
+                    "-ar",
+                    str(DEFAULT_SAMPLE_RATE),
+                    "-ac",
+                    str(DEFAULT_AUDIO_CHANNELS),
+                ],
                 movflags=False,
             ),
             seconds,
@@ -132,13 +125,35 @@ def _merge_single_clip(clip: str, output_path: str | None) -> EditResult:
     return result.model_copy(update={"output_path": output})
 
 
-def _concat_clips(clips: list[str], output: str, tmpdir: str) -> None:
+def _video_stream_duration(clip: str) -> float | None:
+    """Return the video stream's duration in seconds so concat demuxer aligns cuts on video frames."""
+    from .ffmpeg_helpers import _run_ffprobe_json
+
+    try:
+        data = _run_ffprobe_json(clip)
+    except MCPVideoError:
+        return None
+    for stream in data.get("streams", []):
+        if stream.get("codec_type") == "video":
+            try:
+                value = float(stream.get("duration"))
+            except (TypeError, ValueError):
+                return None
+            return value if value > 0 else None
+    return None
+
+
+def _concat_clips(clips: list[str], output: str, tmpdir: str, *, use_video_duration: bool = False) -> None:
     """Concatenate clips using FFmpeg concat demuxer."""
     concat_file = os.path.join(tmpdir, "concat.txt")
     with open(concat_file, "w") as f:
         for clip in clips:
             abs_path = os.path.abspath(clip).replace("\\", "\\\\").replace("'", "'\\''")
             f.write(f"file '{abs_path}'\n")
+            if use_video_duration:
+                vdur = _video_stream_duration(clip)
+                if vdur is not None:
+                    f.write(f"duration {vdur:.6f}\n")
     _run_ffmpeg(["-f", "concat", "-safe", "0", "-i", concat_file, "-c", "copy", *_movflags_args(output), output])
 
 
@@ -269,7 +284,7 @@ def merge(
                         transition_seconds,
                     )
                 else:
-                    _concat_clips(working_clips, staged, tmpdir)
+                    _concat_clips(working_clips, staged, tmpdir, use_video_duration=needs_normalize)
                 result = _build_edit_result(staged, "merge", timing)
         finally:
             shutil.rmtree(tmpdir, ignore_errors=True)

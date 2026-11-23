@@ -1613,19 +1613,26 @@ class OperatorRunner:
             return
         self.preview_process = process
         http_code = None
+        html = ""
         try:
+            import http.client
+
             url = f"http://127.0.0.1:{port}/review.html?media=input.mp4"
             deadline = time.monotonic() + 5
             while time.monotonic() < deadline:
+                conn = http.client.HTTPConnection("127.0.0.1", port, timeout=1)
                 try:
-                    with urllib.request.urlopen(url, timeout=1) as response:
-                        http_code = response.status
-                        html = response.read().decode("utf-8", errors="replace")
+                    conn.request("GET", "/review.html?media=input.mp4")
+                    response = conn.getresponse()
+                    http_code = response.status
+                    html = response.read().decode("utf-8", errors="replace")
                     break
-                except (urllib.error.URLError, TimeoutError):
+                except (OSError, http.client.HTTPException):
                     if process.poll() is not None:
                         break
                     time.sleep(0.1)
+                finally:
+                    conn.close()
             if http_code != 200 or 'id="player"' not in html or "setInterval(load, 2000)" not in html:
                 self._fail(
                     entry,
@@ -1634,9 +1641,15 @@ class OperatorRunner:
                 )
                 return
             for name in ("timeline.json", "input.mp4"):
-                with urllib.request.urlopen(f"http://127.0.0.1:{port}/{name}", timeout=5) as response:
+                conn = http.client.HTTPConnection("127.0.0.1", port, timeout=5)
+                try:
+                    conn.request("GET", f"/{name}")
+                    response = conn.getresponse()
+                    response.read()
                     if response.status != 200:
                         raise RuntimeError(f"HTTP {response.status} for {name}")
+                finally:
+                    conn.close()
             try:
                 sync_playwright = importlib.import_module("playwright.sync_api").sync_playwright
             except ImportError:
