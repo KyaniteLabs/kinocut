@@ -14,6 +14,7 @@ from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 from functools import wraps
 from threading import RLock
+from collections.abc import Callable
 from typing import Any
 
 from kinocut_sound._canonical import BoundedCode
@@ -194,12 +195,19 @@ def _locked(method: Any) -> Any:
 
 
 class ConsentLedger:
-    """In-memory append-only authorization ledger and transitive lineage graph."""
+    """In-memory append-only authorization ledger and transitive lineage graph.
 
-    def __init__(self, *, max_lease_seconds: int) -> None:
+    Decision time is the caller's ``at_iso`` unless a trusted ``clock`` is
+    injected. Deployments that face untrusted callers should inject one: the
+    ledger then never decides earlier than the clock says, so a stale
+    ``at_iso`` cannot replay an expired grant.
+    """
+
+    def __init__(self, *, max_lease_seconds: int, clock: Callable[[], str] | None = None) -> None:
         if isinstance(max_lease_seconds, bool) or not isinstance(max_lease_seconds, int) or max_lease_seconds < 1:
             raise _authorization_error("invalid lease ceiling", "invalid_lease_duration")
         self._max_lease_seconds = max_lease_seconds
+        self._clock = clock
         self._lock = RLock()
         self._events: list[LedgerEvent] = []
         self._grant_revisions: dict[str, list[ConsentGrant]] = {}
@@ -346,7 +354,7 @@ class ConsentLedger:
         lease_id = _code(lease_id)
         actor_id = _code(actor_id)
         output_asset_id = _code(output_asset_id)
-        now = _parse_time(at_iso)
+        now = self._now(at_iso)
         lease = self._leases.get(lease_id)
         if lease is None:
             raise _authorization_error("generation lease is missing", "lease_missing")
@@ -575,7 +583,7 @@ class ConsentLedger:
                 and egress.territory == territory
                 and set(data_classes) <= set(egress.data_classes)
                 and 0 <= retention_days <= egress.retention_ceiling_days
-                and _parse_time(at_iso) < _parse_time(egress.expiry_iso)
+                and self._now(at_iso) < _parse_time(egress.expiry_iso)
             )
             if not allowed:
                 raise _authorization_error("cloud egress is denied", "cloud_egress_denied")
@@ -602,7 +610,7 @@ class ConsentLedger:
         context: AuthorizationContext,
         allow_pending: frozenset[str] = frozenset(),
     ) -> None:
-        now = _parse_time(at_iso)
+        now = self._now(at_iso)
         for grant_id in grant_ids:
             revisions = self._grant_revisions.get(grant_id)
             if not revisions:
@@ -621,9 +629,19 @@ class ConsentLedger:
                 raise _authorization_error("consent revocation is pending", "revocation_pending")
             self._enforce_scope(grant, context)
 
+    def _now(self, at_iso: str) -> datetime:
+        """Decision time: never earlier than the trusted clock, when one is injected."""
+        now = _parse_time(at_iso)
+        if self._clock is not None:
+            now = max(now, _parse_time(self._clock()))
+        return now
+
     def _enforce_scope(self, grant: ConsentGrant, context: AuthorizationContext) -> None:
         if not isinstance(context, AuthorizationContext) or not isinstance(context.operation, str):
             raise _authorization_error("consent scope is invalid", "grant_scope_invalid")
+        if not grant.scope.operations:
+            # An empty operation list used to mean "every operation"; it now grants nothing.
+            raise _authorization_error("consent grant names no operations", "grant_scope_invalid")
         try:
             requested = (
                 (_code(context.operation), grant.scope.operations),
@@ -716,7 +734,7 @@ class ConsentLedger:
         )
 
     def _active_lease_ids(self, grant_id: str, at_iso: str) -> tuple[str, ...]:
-        now = _parse_time(at_iso)
+        now = self._now(at_iso)
         active: list[str] = []
         for lease in tuple(self._leases.values()):
             if lease.status is not LeaseStatus.ACTIVE:
@@ -759,7 +777,7 @@ class ConsentLedger:
         self._apply_derivative_policy(replacement, at_iso)
 
     def _apply_derivative_policy(self, grant: ConsentGrant, at_iso: str) -> None:
-        delete_codes = {"delete_on_revocation", "delete_after_use"}
+        delete_codes = {"delete", "delete_after_use", "delete_on_revocation"}
         disposition = (
             DerivativeDisposition.DELETE
             if grant.retention.biometric_retention in delete_codes
