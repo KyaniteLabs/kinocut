@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 import re
 from dataclasses import asdict, dataclass
 from typing import Any
@@ -66,6 +67,12 @@ def propose_broll(
                 error_type="validation_error",
                 code="invalid_broll_segment",
             ) from exc
+        if not (math.isfinite(start) and math.isfinite(end)) or start < 0 or end < 0:
+            raise MCPVideoError(
+                f"segment {idx} start and end must be finite, non-negative seconds",
+                error_type="validation_error",
+                code="invalid_broll_segment",
+            )
         if end - start < min_span_seconds:
             continue
         for word in _WORD.findall(text):
