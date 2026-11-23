@@ -1,0 +1,64 @@
+name: Security gates
+
+# Head-of-Security card F5 (AUDIT-2026-09-15): secret scan and dependency
+# audit. Moved here from Forgejo CI when GitHub became KinoCut's only CI
+# (fleet GIT-CI-STRATEGY-20261123); same commands, same allowlists.
+# Always-on: secrets can land in any path, so there is no path filter.
+on:
+  pull_request:
+  push:
+    branches: [master]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number && format('pr-{0}', github.event.pull_request.number) || github.sha }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  secret-scan:
+    name: secret-scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - name: Secret scan
+        run: python3 scripts/secret_scan.py
+
+  dep-audit:
+    name: dep-audit
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - name: Python dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          # Audits the shipped runtime surface exactly as the pipeline installs it.
+          python3 -m venv .venv-audit
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 --upgrade pip
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 -e .
+          .venv-audit/bin/pip freeze --exclude-editable > audit-frozen.txt
+          .venv-audit/bin/pip install --quiet --timeout 60 --retries 3 pip-audit
+          mapfile -t ignore_flags < <(grep -vE '^[[:space:]]*(#|$)' scripts/pip_audit_allowlist.txt | awk '{print "--ignore-vuln", $1}')
+          .venv-audit/bin/pip-audit --no-deps -r audit-frozen.txt "${ignore_flags[@]}"
+      - name: npm dependency audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [ ! -f npm/package-lock.json ]; then
+            echo "npm surface: no package-lock.json (thin uvx launcher, zero runtime deps); nothing to audit yet"
+            exit 0
+          fi
+          cd npm
+          npm audit --package-lock-only --audit-level=high

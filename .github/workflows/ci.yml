@@ -391,8 +391,7 @@ jobs:
     # but not 6 (e.g. scale2ref rw/rh vars, added in ffmpeg 7 — the 2026-07-09
     # composite masked-render incident) slips through. This downloads pinned
     # static ffmpeg 6/7/8 builds and runs the render/filtergraph tests against
-    # each. Mirror of the source-of-truth `.forgejo/workflows/ci.yml` job; keep
-    # the two in parity. Static builds pinned to immutable BtbN release tags.
+    # each. Static builds pinned to immutable BtbN release tags.
     strategy:
       fail-fast: false
       matrix:

@@ -85,15 +85,13 @@ def test_main_red_and_green_exit_codes(tmp_path):
     assert green == 0
 
 
-def test_ci_yml_wires_the_security_gate_jobs():
-    """Prose-to-code pin: the F5 card's gates must stay in ci.yml, always-on."""
-    workflow = (ROOT / ".forgejo" / "workflows" / "ci.yml").read_text(encoding="utf-8")
+def test_security_workflow_wires_the_gate_jobs():
+    """Prose-to-code pin: the F5 card's gates stay wired on GitHub, always-on."""
+    workflow = (ROOT / ".github" / "workflows" / "security.yml").read_text(encoding="utf-8")
     _head, sep, gates = workflow.partition("\n  secret-scan:")
-    assert sep, "ci.yml must define a secret-scan job"
-    assert "\n  dep-audit:" in gates, "ci.yml must define a dep-audit job after secret-scan"
-    assert "workflow_dispatch:" in workflow
-    assert gates.count("runs-on: light") == 2, "both gate jobs ride the light runner"
-    assert gates.count("ci-images-base:v1") == 2, "gate jobs run in the prebuilt base image"
-    assert "apt-get" not in gates, "toolchain is baked into the image; no per-job apt"
+    assert sep, "security.yml must define a secret-scan job"
+    assert "\n  dep-audit:" in gates, "security.yml must define a dep-audit job after secret-scan"
+    assert "pull_request:" in workflow and "workflow_dispatch:" in workflow
+    assert "paths:" not in workflow, "secrets can land in any path; no path filter"
     assert "scripts/secret_scan.py" in gates
     assert "scripts/pip_audit_allowlist.txt" in gates
