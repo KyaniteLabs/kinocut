@@ -9,9 +9,11 @@ from __future__ import annotations
 
 import math
 import wave
+from typing import Any
 
 from kinocut.errors import MCPVideoError
 from kinocut.ffmpeg_helpers import _atomic_output, _open_staged_writer
+from kinocut.validation_errors import rejected_value
 
 # ---------------------------------------------------------------------------
 # Optional numpy import with graceful fallback
@@ -191,11 +193,19 @@ else:
         # Generate band-limited square then integrate
         square_pcm = generate_square(frequency, duration, sample_rate, 1.0)
         square_float = np.array(_pcm_to_float(square_pcm), dtype=np.float64)
-        # Leaky integration to avoid DC drift
-        triangle = np.zeros(n_samples, dtype=np.float64)
+        # Leaky integration to avoid DC drift: y[i] = leak*y[i-1] + x[i]
         leak = 0.995
-        for i in range(1, n_samples):
-            triangle[i] = leak * triangle[i - 1] + square_float[i]
+        triangle = np.zeros(n_samples, dtype=np.float64)
+        if n_samples > 0:
+            triangle[0] = square_float[0]
+            if n_samples > 1:
+                try:
+                    from scipy import signal
+
+                    triangle = signal.lfilter([1.0], [1.0, -leak], square_float)
+                except ImportError:
+                    for i in range(1, n_samples):
+                        triangle[i] = leak * triangle[i - 1] + square_float[i]
         # Normalize and remove DC
         triangle -= np.mean(triangle)
         max_val = np.max(np.abs(triangle))
@@ -330,26 +340,34 @@ else:
         duration: float,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """Apply ADSR envelope with exponential curves."""
-        n = len(samples)
-        env = np.ones(n, dtype=np.float64)
-        a_samp = int(attack * sample_rate)
-        d_samp = int(decay * sample_rate)
-        r_samp = int(release * sample_rate)
-        s_start = a_samp + d_samp
-        s_end = n - r_samp
+        """Apply ADSR envelope with exponential curves.
 
+        Attack ramps 0 -> 1, decay 1 -> sustain, sustain holds, and release
+        falls from sustain to exactly 0, so the clip does not end on a click.
+        When the three stages do not fit the clip they are shortened
+        proportionally instead of producing a negative-length stage.
+        """
+        n = len(samples)
+        if n == 0:
+            return samples
+        env = np.ones(n, dtype=np.float64)
+        # Leave room for at least one sustain sample so every stage has somewhere to land.
+        budget = max(n - 1, 0)
+        wanted = np.array([max(attack, 0.0), max(decay, 0.0), max(release, 0.0)]) * sample_rate
+        stage_total = float(wanted.sum())
+        if stage_total > budget:
+            wanted = wanted * (budget / stage_total)
+        a_samp, d_samp, r_samp = (int(value) for value in wanted)
+        d_end = a_samp + d_samp
+        s_end = max(n - r_samp, d_end)
         if a_samp > 0:
             env[:a_samp] = 1.0 - np.exp(-5.0 * np.arange(a_samp) / a_samp)
-        if d_samp > 0 and s_start <= n:
-            end_idx = min(s_start + d_samp, n)
-            d_len = end_idx - s_start
-            env[s_start:end_idx] = 1.0 - (1.0 - sustain) * (1.0 - np.exp(-5.0 * np.arange(d_len) / d_samp))
-        if s_end > s_start:
-            env[s_start:s_end] = sustain
-        if r_samp > 0 and s_end < n:
-            r_len = n - s_end
-            env[s_end:] = sustain * np.exp(-5.0 * np.arange(r_len) / r_samp)
+        if d_samp > 0:
+            env[a_samp:d_end] = 1.0 - (1.0 - sustain) * (1.0 - np.exp(-5.0 * np.arange(d_samp) / d_samp))
+        env[d_end:s_end] = sustain
+        if s_end < n:
+            k = np.arange(n - s_end)
+            env[s_end:] = sustain * (np.exp(-5.0 * k / k[-1]) - np.exp(-5.0)) / (1.0 - np.exp(-5.0))
 
         return samples * env
 
@@ -360,54 +378,74 @@ else:
         duration: float,
         sample_rate: int,
     ) -> np.ndarray:
-        """Apply fade in/out with exponential curves."""
-        n = len(samples)
-        envelope = np.ones(n, dtype=np.float64)
-        fi_samp = int(fade_in * sample_rate)
-        fo_samp = int(fade_out * sample_rate)
+        """Apply fade in/out with exponential curves that reach 1 and 0 exactly.
 
+        Overlapping fades multiply instead of the later one overwriting the earlier.
+        """
+        n = len(samples)
+        if n == 0:
+            return samples
+        envelope = np.ones(n, dtype=np.float64)
+        fi_samp = min(max(int(fade_in * sample_rate), 0), n)
+        fo_samp = min(max(int(fade_out * sample_rate), 0), n)
         if fi_samp > 0:
-            fi_samp = min(fi_samp, n)
-            envelope[:fi_samp] = 1.0 - np.exp(-5.0 * np.arange(fi_samp) / fi_samp)
+            k = np.arange(fi_samp)
+            envelope[:fi_samp] = (1.0 - np.exp(-5.0 * k / max(fi_samp - 1, 1))) / (1.0 - np.exp(-5.0))
         if fo_samp > 0:
-            fo_samp = min(fo_samp, n)
-            envelope[-fo_samp:] = np.exp(-5.0 * np.arange(fo_samp) / fo_samp)
+            k = np.arange(fo_samp)
+            envelope[-fo_samp:] *= (np.exp(-5.0 * k / max(fo_samp - 1, 1)) - np.exp(-5.0)) / (1.0 - np.exp(-5.0))
 
         return samples * envelope
+
+    def _require_cutoff(cutoff: Any, sample_rate: int) -> float:
+        """A filter cutoff must be a real frequency below Nyquist."""
+        try:
+            value = float(cutoff)
+        except (TypeError, ValueError):
+            value = math.nan
+        nyquist = sample_rate / 2.0
+        if not (0.0 < value < nyquist):
+            raise MCPVideoError(
+                f"Filter cutoff must be greater than 0 and below the Nyquist frequency ({nyquist:g} Hz), "
+                f"got {rejected_value(cutoff)}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        return value
+
+    def _one_pole_lowpass(samples: np.ndarray, cutoff: float, sample_rate: int) -> np.ndarray:
+        rc = 1.0 / (2.0 * math.pi * cutoff)
+        dt = 1.0 / sample_rate
+        alpha = dt / (rc + dt)
+        result = np.zeros_like(samples)
+        result[0] = samples[0]
+        for i in range(1, len(samples)):
+            result[i] = result[i - 1] + alpha * (samples[i] - result[i - 1])
+        return result
 
     def apply_lowpass(
         samples: np.ndarray,
         cutoff: float,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """Butterworth lowpass filter (2-pole)."""
+        """Butterworth lowpass filter (2-pole); single-pole RC without scipy."""
+        cutoff = _require_cutoff(cutoff, sample_rate)
         try:
             from scipy import signal
-
-            sos = signal.butter(2, cutoff, btype="low", fs=sample_rate, output="sos")
-            return signal.sosfiltfilt(sos, samples)
         except ImportError:
-            # Fallback to single-pole RC
-            rc = 1.0 / (2.0 * math.pi * cutoff)
-            dt = 1.0 / sample_rate
-            alpha = dt / (rc + dt)
-            result = np.zeros_like(samples)
-            result[0] = samples[0]
-            for i in range(1, len(samples)):
-                result[i] = result[i - 1] + alpha * (samples[i] - result[i - 1])
-            return result
+            return _one_pole_lowpass(samples, cutoff, sample_rate)
+        sos = signal.butter(2, cutoff, btype="low", fs=sample_rate, output="sos")
+        return signal.sosfiltfilt(sos, samples)
 
     def apply_highpass(
         samples: np.ndarray,
         cutoff: float,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """Butterworth highpass filter (2-pole)."""
+        """Butterworth highpass filter (2-pole); single-pole RC without scipy."""
+        cutoff = _require_cutoff(cutoff, sample_rate)
         try:
             from scipy import signal
-
-            sos = signal.butter(2, cutoff, btype="high", fs=sample_rate, output="sos")
-            return signal.sosfiltfilt(sos, samples)
         except ImportError:
             rc = 1.0 / (2.0 * math.pi * cutoff)
             dt = 1.0 / sample_rate
@@ -417,6 +455,42 @@ else:
             for i in range(1, len(samples)):
                 result[i] = alpha * (result[i - 1] + samples[i] - samples[i - 1])
             return result
+        sos = signal.butter(2, cutoff, btype="high", fs=sample_rate, output="sos")
+        return signal.sosfiltfilt(sos, samples)
+
+    def _block_feedback(samples: np.ndarray, delay: int, step: Any) -> np.ndarray:
+        """Run a recursion whose feedback is exactly ``delay`` samples behind, a block at a time.
+
+        Inside any block of ``delay`` samples every delayed value comes from the
+        previous block, so ``step(x_block, state_prev) -> (y_block, state)`` can
+        be whole-array arithmetic. That keeps these effects O(n) in numpy with
+        no per-sample Python loop and no scipy.
+        """
+        n = len(samples)
+        if n == 0:
+            return samples
+        x = np.zeros(((n + delay - 1) // delay) * delay, dtype=np.float64)
+        x[:n] = samples
+        out = np.zeros_like(x)
+        state = np.zeros(delay)
+        for start in range(0, x.size, delay):
+            block = x[start : start + delay]
+            out[start : start + delay], state = step(block, state)
+        return out[:n]
+
+    def _comb_step(gain: float, damp: float) -> Any:
+        """Freeverb comb: ``y = x + g*s[n-d]``, ``s = (1-damp)*y + damp*s[n-d]``."""
+
+        def step(block: np.ndarray, state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+            y = block + gain * state
+            return y, (1.0 - damp) * y + damp * state
+
+        return step
+
+    @staticmethod
+    def _allpass_step(block: np.ndarray, state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Schroeder all-pass: ``y = s[n-d] - 0.5*x``, ``s = x + 0.5*s[n-d]``."""
+        return state - 0.5 * block, block + 0.5 * state
 
     def apply_reverb(
         samples: np.ndarray,
@@ -425,35 +499,21 @@ else:
         wet_level: float = 0.2,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """Freeverb-style reverb: 8 comb filters + 4 all-pass filters."""
-        n = len(samples)
-        wet = np.zeros(n, dtype=np.float64)
+        """Freeverb-style reverb: 8 comb filters + 4 all-pass filters.
 
+        Each stage is the classic feedback delay line, processed block-wise so
+        the result matches the per-sample loop it replaces.
+        """
+        wet = np.zeros(len(samples), dtype=np.float64)
         # Comb filter delays (in samples) — classic Freeverb values scaled by room_size
         comb_delays = [1557, 1617, 1491, 1422, 1277, 1356, 1188, 1116]
         for delay in comb_delays:
-            d = int(delay * (0.5 + room_size))
-            buffer = np.zeros(d, dtype=np.float64)
-            ptr = 0
-            feedback = 0.84 * room_size
-            for i in range(n):
-                output = samples[i] + buffer[ptr] * feedback
-                buffer[ptr] = output * (1.0 - damping) + buffer[ptr] * damping
-                ptr = (ptr + 1) % d
-                wet[i] += output
+            d = max(1, int(delay * (0.5 + room_size)))
+            wet += _block_feedback(samples, d, _comb_step(0.84 * room_size, damping))
         wet /= 8.0
 
-        # All-pass filters
-        ap_delays = [225, 556, 441, 341]
-        for delay in ap_delays:
-            d = max(1, delay)
-            buffer = np.zeros(d, dtype=np.float64)
-            ptr = 0
-            for i in range(n):
-                buf_out = buffer[ptr]
-                buffer[ptr] = wet[i] + buf_out * 0.5
-                wet[i] = buf_out - wet[i] * 0.5
-                ptr = (ptr + 1) % d
+        for delay in (225, 556, 441, 341):
+            wet = _block_feedback(wet, delay, _allpass_step)
 
         # Mix wet and dry
         return samples * (1.0 - wet_level) + wet * wet_level
@@ -465,16 +525,13 @@ else:
         mix: float = 0.3,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """Stereo ping-pong delay."""
-        n = len(samples)
-        delay_samp = int(delay_time * sample_rate)
-        wet = np.zeros(n, dtype=np.float64)
-        buffer = np.zeros(delay_samp, dtype=np.float64)
-        ptr = 0
-        for i in range(n):
-            wet[i] = buffer[ptr]
-            buffer[ptr] = samples[i] + buffer[ptr] * feedback
-            ptr = (ptr + 1) % delay_samp
+        """Delay line with feedback: ``s[n] = x[n] + f*s[n-d]``, ``y[n] = s[n-d]``."""
+        delay_samp = max(1, int(delay_time * sample_rate))
+
+        def step(block: np.ndarray, state: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+            return state, block + feedback * state
+
+        wet = _block_feedback(samples, delay_samp, step)
         return samples * (1.0 - mix) + wet * mix
 
     def apply_chorus(
@@ -540,21 +597,50 @@ else:
         type_: str = "soft",
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """Distortion: soft clip, tube, or bit-crush."""
+        """Distortion: soft clip, tube, or bit-crush, followed by the ``tone`` tilt.
+
+        ``tone`` (0-1) sets the cutoff of a one-pole low-pass on the shaped
+        signal, from 500 Hz to 12 kHz; an unknown ``type_`` is an error rather
+        than a silent no-op.
+        """
         if type_ == "soft":
-            # Soft clip using tanh
-            return np.tanh(samples * (1.0 + drive * 10.0))
+            shaped = np.tanh(samples * (1.0 + drive * 10.0))
         elif type_ == "tube":
             # Asymmetric tube distortion
             s = samples * (1.0 + drive * 5.0)
-            return np.where(s >= 0, np.tanh(s), np.tanh(s * 1.5) / 1.5)
+            shaped = np.where(s >= 0, np.tanh(s), np.tanh(s * 1.5) / 1.5)
         elif type_ == "bit":
-            # Bit crush
             bits = max(1, int(16 * (1.0 - drive)))
             max_val = 2.0 ** (bits - 1)
-            return np.round(samples * max_val) / max_val
+            shaped = np.round(samples * max_val) / max_val
         else:
-            return samples
+            raise MCPVideoError(
+                f"distortion type must be one of ['bit', 'soft', 'tube'], got {rejected_value(type_)}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+        return apply_tone(shaped, tone, sample_rate)
+
+    def apply_tone(
+        samples: np.ndarray,
+        tone: float = 0.5,
+        sample_rate: int = DEFAULT_SAMPLE_RATE,
+    ) -> np.ndarray:
+        """One-pole low-pass tilt: ``tone`` 0 rolls off from 500 Hz, 1 from 12 kHz."""
+        x = np.asarray(samples, dtype=np.float64)
+        if x.size == 0:
+            return x
+        cutoff = 500.0 * (12000.0 / 500.0) ** min(max(float(tone), 0.0), 1.0)
+        cutoff = min(cutoff, sample_rate / 2.0 * 0.95)
+        try:
+            from scipy import signal
+
+            alpha = (2.0 * math.pi * cutoff / sample_rate) / (2.0 * math.pi * cutoff / sample_rate + 1.0)
+            return signal.lfilter([alpha], [1.0, -(1.0 - alpha)], x)
+        except ImportError:
+            spectrum = np.fft.rfft(x)
+            freqs = np.fft.rfftfreq(x.size, 1.0 / sample_rate)
+            return np.fft.irfft(spectrum / np.sqrt(1.0 + (freqs / cutoff) ** 2), n=x.size)
 
     def apply_compressor(
         samples: np.ndarray,
@@ -565,23 +651,35 @@ else:
         makeup: float = 1.0,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """RMS compressor with attack/release envelope."""
+        """RMS compressor with attack/release envelope.
+
+        The running RMS is a prefix sum (vectorised); only the one-pole
+        envelope follower stays a per-sample loop. Attack and release are
+        never shorter than one sample, so 0 no longer divides by zero.
+        """
         n = len(samples)
+        if n == 0:
+            return samples
+        # Attack/release of at least one sample (0 would raise ZeroDivisionError).
+        attack = max(float(attack), 1.0 / sample_rate)
+        release = max(float(release), 1.0 / sample_rate)
         attack_coef = np.exp(-1.0 / (attack * sample_rate))
         release_coef = np.exp(-1.0 / (release * sample_rate))
         envelope = np.zeros(n, dtype=np.float64)
         gain = np.ones(n, dtype=np.float64)
 
-        # RMS envelope
-        window = int(0.01 * sample_rate)  # 10ms window
-        for i in range(n):
-            start = max(0, i - window)
-            rms = np.sqrt(np.mean(samples[start : i + 1] ** 2))
-            if rms > envelope[i - 1] if i > 0 else 0:
-                envelope[i] = attack_coef * (envelope[i - 1] if i > 0 else 0) + (1.0 - attack_coef) * rms
-            else:
-                envelope[i] = release_coef * (envelope[i - 1] if i > 0 else 0) + (1.0 - release_coef) * rms
+        # RMS over a trailing 10 ms window via prefix sums
+        window = max(1, int(0.01 * sample_rate))
+        idx = np.arange(n)
+        start = np.maximum(0, idx - window)
+        prefix = np.concatenate([[0.0], np.cumsum(np.asarray(samples, dtype=np.float64) ** 2)])
+        rms = np.sqrt((prefix[idx + 1] - prefix[start]) / (idx - start + 1))
 
+        previous = 0.0
+        for i in range(n):
+            coefficient = attack_coef if rms[i] > previous else release_coef
+            envelope[i] = coefficient * previous + (1.0 - coefficient) * rms[i]
+            previous = envelope[i]
             if envelope[i] > threshold:
                 db_reduction = (np.log10(envelope[i] / threshold) * 20.0) * (1.0 - 1.0 / ratio) / 20.0
                 gain[i] = 10.0 ** (-db_reduction)
@@ -597,31 +695,45 @@ else:
         high_freq: float = 4000.0,
         sample_rate: int = DEFAULT_SAMPLE_RATE,
     ) -> np.ndarray:
-        """3-band parametric EQ using shelving filters."""
+        """3-band parametric EQ: low/high shelves and a mid peak one octave-band wide."""
         try:
             from scipy import signal
+        except ImportError as exc:
+            raise MCPVideoError(
+                'The eq effect needs scipy. Install with: pip install "kinocut[audio-enhanced]"',
+                error_type="dependency_error",
+                code="missing_scipy",
+                suggested_action={"auto_fix": False, "description": "Install the audio-enhanced extra."},
+            ) from exc
 
-            result = samples.copy()
-            # Low shelf
-            if low_gain != 0.0:
-                sos = signal.butter(1, low_freq, btype="low", fs=sample_rate, output="sos")
-                low = signal.sosfiltfilt(sos, samples)
-                result += low * (10.0 ** (low_gain / 20.0) - 1.0)
-            # High shelf
-            if high_gain != 0.0:
-                sos = signal.butter(1, high_freq, btype="high", fs=sample_rate, output="sos")
-                high = signal.sosfiltfilt(sos, samples)
-                result += high * (10.0 ** (high_gain / 20.0) - 1.0)
-            # Mid peaking
-            if mid_gain != 0.0:
-                mid_freq = (low_freq * high_freq) ** 0.5
-                bw = np.log2(high_freq / low_freq)
-                b, a = signal.iirpeak(mid_freq, bw, fs=sample_rate)
-                mid = signal.filtfilt(b, a, samples)
-                result += mid * (10.0 ** (mid_gain / 20.0) - 1.0)
-            return result
-        except ImportError:
-            return samples
+        if not 0.0 < low_freq < high_freq < sample_rate / 2.0:
+            raise MCPVideoError(
+                f"low_freq and high_freq must satisfy 0 < low_freq < high_freq < {sample_rate / 2.0:g} Hz, "
+                f"got {rejected_value(low_freq)} and {rejected_value(high_freq)}",
+                error_type="validation_error",
+                code="invalid_parameter",
+            )
+
+        result = samples.copy()
+        # Low shelf
+        if low_gain != 0.0:
+            sos = signal.butter(1, low_freq, btype="low", fs=sample_rate, output="sos")
+            low = signal.sosfiltfilt(sos, samples)
+            result += low * (10.0 ** (low_gain / 20.0) - 1.0)
+        # High shelf
+        if high_gain != 0.0:
+            sos = signal.butter(1, high_freq, btype="high", fs=sample_rate, output="sos")
+            high = signal.sosfiltfilt(sos, samples)
+            result += high * (10.0 ** (high_gain / 20.0) - 1.0)
+        # Mid peaking: iirpeak's second argument is Q, not octave bandwidth
+        if mid_gain != 0.0:
+            mid_freq = (low_freq * high_freq) ** 0.5
+            octaves = np.log2(high_freq / low_freq)
+            bandwidth_hz = mid_freq * (2.0 ** (octaves / 2.0) - 2.0 ** (-octaves / 2.0))
+            b, a = signal.iirpeak(mid_freq, mid_freq / bandwidth_hz, fs=sample_rate)
+            mid = signal.filtfilt(b, a, samples)
+            result += mid * (10.0 ** (mid_gain / 20.0) - 1.0)
+        return result
 
     def apply_pan(
         samples: np.ndarray,
@@ -694,9 +806,14 @@ else:
     # -----------------------------------------------------------------------
 
     def _float_to_pcm(samples: np.ndarray) -> bytes:
-        """Convert float samples (-1 to 1) to 16-bit PCM bytes."""
-        clipped = np.clip(samples, -1.0, 1.0)
-        int16 = (clipped * 32767.0).astype(np.int16)
+        """Convert float samples (-1 to 1) to 16-bit PCM bytes.
+
+        Rounds instead of truncating, and maps NaN/inf to silence/full scale
+        first so a NaN can never leak into the integer conversion.
+        """
+        finite = np.nan_to_num(np.asarray(samples, dtype=np.float64), nan=0.0, posinf=1.0, neginf=-1.0)
+        clipped = np.clip(finite, -1.0, 1.0)
+        int16 = np.round(clipped * 32767.0).astype(np.int16)
         return int16.tobytes()
 
     def _pcm_to_float(

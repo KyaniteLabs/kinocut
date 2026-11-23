@@ -5,6 +5,7 @@ NumPy-aware mixing with stereo support.
 
 from __future__ import annotations
 
+import math
 import tempfile
 import wave
 from collections.abc import Iterator
@@ -14,6 +15,7 @@ from typing import Any
 
 from ..errors import MCPVideoError
 from ..ffmpeg_helpers import _run_ffmpeg
+from ..limits import MAX_AUDIO_DURATION
 from ..validation import VALID_AUDIO_EFFECT_TYPES, VALID_AUDIO_SEQUENCE_TYPES, VALID_WAVEFORMS
 from ..validation_errors import rejected_value
 from .core import (
@@ -42,7 +44,8 @@ from .core import (
     generate_triangle,
     write_wav,
 )
-from .synthesis import audio_preset
+from .presets import get_preset_config
+from .synthesis import audio_preset, validate_effect_items
 
 # ---------------------------------------------------------------------------
 # Audio Constants
@@ -71,10 +74,26 @@ def _wav_format_tag(path: str) -> int | None:
     return None
 
 
+def _is_plain_pcm_at_rate(path: str, sample_rate: int) -> bool:
+    """True when the stdlib reader can take this WAV as is, at the mix rate."""
+    if _wav_format_tag(path) != 0x0001:
+        return False
+    try:
+        with wave.open(path, "rb") as wav_file:
+            return wav_file.getframerate() == sample_rate
+    except (wave.Error, OSError):
+        return False
+
+
 @contextmanager
 def _canonical_wav_input(path: str, sample_rate: int) -> Iterator[str]:
-    """Decode WAV variants unsupported by older stdlib readers to mono PCM16."""
-    if _wav_format_tag(path) == 0x0001:
+    """Decode to mono PCM16 at ``sample_rate`` unless the WAV already is exactly that.
+
+    Both things matter: a format tag the stdlib cannot read, and a sample rate
+    that differs from the mix rate. Reading a 48 kHz file as if it were 44.1 kHz
+    pitch-shifts it by about 8 percent, so the rate is normalised too.
+    """
+    if _is_plain_pcm_at_rate(path, sample_rate):
         yield path
         return
 
@@ -170,6 +189,38 @@ def _mix_into_buffer(mix_buffer: Any, samples: Any, start_sample: int, volume: f
     return mix_buffer
 
 
+def _require_finite_number(value: Any, label: str, *, minimum: float | None = None, exclusive: bool = False) -> float:
+    """NaN, infinities, booleans and negatives are rejected before any buffer is sized."""
+    if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
+        raise MCPVideoError(f"{label} must be a finite number", error_type="validation_error", code="invalid_parameter")
+    if minimum is not None and (value <= minimum if exclusive else value < minimum):
+        word = "greater than" if exclusive else "at least"
+        raise MCPVideoError(
+            f"{label} must be {word} {minimum}", error_type="validation_error", code="invalid_parameter"
+        )
+    return float(value)
+
+
+def _resample(samples: Any, source_rate: int, target_rate: int) -> Any:
+    """Linear resampling: enough to layer a rendered preset into a sequence."""
+    if source_rate == target_rate or len(samples) == 0:
+        return samples
+    ratio = source_rate / target_rate
+    count = int(len(samples) / ratio)
+    try:
+        import numpy as np
+
+        if isinstance(samples, np.ndarray):
+            positions = np.arange(count) * ratio
+            left = np.floor(positions).astype(int)
+            right = np.minimum(left + 1, len(samples) - 1)
+            fraction = positions - left
+            return samples[left] * (1.0 - fraction) + samples[right] * fraction
+    except ImportError:
+        pass
+    return [samples[min(int(index * ratio), len(samples) - 1)] for index in range(count)]
+
+
 def _validate_audio_sequence(sequence: list[dict[str, Any]]) -> None:
     """Validate sequence events before generating any output file."""
     if not isinstance(sequence, list) or not sequence:
@@ -191,21 +242,10 @@ def _validate_audio_sequence(sequence: list[dict[str, Any]]) -> None:
                 code="invalid_parameter",
             )
 
-        at = event.get("at")
-        if not isinstance(at, (int, float)):
-            raise MCPVideoError(
-                f"sequence[{i}].at must be numeric",
-                error_type="validation_error",
-                code="invalid_parameter",
-            )
+        _require_finite_number(event.get("at"), f"sequence[{i}].at", minimum=0)
 
         duration = event.get("duration", 1.0)
-        if not isinstance(duration, (int, float)) or duration <= 0:
-            raise MCPVideoError(
-                f"sequence[{i}].duration must be > 0",
-                error_type="validation_error",
-                code="invalid_parameter",
-            )
+        _require_finite_number(duration, f"sequence[{i}].duration", minimum=0, exclusive=True)
 
         if event_type == "tone":
             waveform = event.get("waveform", "sine")
@@ -215,6 +255,15 @@ def _validate_audio_sequence(sequence: list[dict[str, Any]]) -> None:
                     error_type="validation_error",
                     code="invalid_parameter",
                 )
+
+    # The mix buffer is allocated from the furthest event end; bound it up front.
+    span = max(float(event.get("at", 0)) + float(event.get("duration", 1.0)) for event in sequence)
+    if span > MAX_AUDIO_DURATION:
+        raise MCPVideoError(
+            f"Sequence spans {span:.1f} seconds; the maximum is {MAX_AUDIO_DURATION} seconds",
+            error_type="validation_error",
+            code="sequence_too_long",
+        )
 
 
 def _generate_waveform(
@@ -276,8 +325,16 @@ def audio_sequence(
     """
     _validate_audio_sequence(sequence)
 
-    # Calculate total duration
-    max_end = max(event.get("at", 0) + event.get("duration", 1.0) for event in sequence)
+    # Calculate total duration: a preset event without an explicit duration
+    # lasts as long as the preset itself, so the buffer is sized for it.
+    def _event_duration(event: dict[str, Any]) -> float:
+        if "duration" in event:
+            return float(event["duration"])
+        if event.get("type") == "preset":
+            return float(get_preset_config(event.get("name", "ui-blip"))["duration"])
+        return 1.0
+
+    max_end = max(event.get("at", 0) + _event_duration(event) for event in sequence)
     total_samples = int(max_end * sample_rate)
     channels = 2 if stereo else 1
 
@@ -285,7 +342,7 @@ def audio_sequence(
 
     for event in sequence:
         start_time = event.get("at", 0)
-        duration = event.get("duration", 1.0)
+        duration = _event_duration(event)
         event_type = event.get("type", "tone")
 
         start_sample = int(start_time * sample_rate)
@@ -304,13 +361,22 @@ def audio_sequence(
                 audio_preset(
                     preset=event.get("name", "ui-blip"),
                     output=tmp_path,
-                    duration=duration,
+                    pitch=event.get("pitch", "mid"),
+                    duration=duration if "duration" in event else None,
                     intensity=event.get("intensity", 0.5),
                 )
 
                 with wave.open(tmp_path, "rb") as wav_file:
+                    preset_rate = wav_file.getframerate()
                     frames = wav_file.readframes(wav_file.getnframes())
                     samples = _pcm_to_float(frames)
+            # Presets render at their own rate; mixing them in unresampled would
+            # pitch-shift every sequence that is not at 44.1 kHz.
+            samples = _resample(samples, preset_rate, sample_rate)
+            volume = event.get("volume")
+            if volume is not None:
+                _require_finite_number(volume, "preset event volume", minimum=0)
+                samples = samples * volume
 
         elif event_type == "whoosh":
             volume = event.get("volume", 0.3)
@@ -330,10 +396,14 @@ def audio_sequence(
 
 def _validate_audio_compose_tracks(tracks: list[dict[str, Any]], duration: float) -> None:
     """Validate compose tracks before allocating or writing output."""
-    if duration <= 0:
-        raise MCPVideoError("duration must be > 0", error_type="validation_error", code="invalid_parameter")
     if not isinstance(tracks, list) or not tracks:
         raise MCPVideoError("tracks cannot be empty", error_type="validation_error", code="invalid_parameter")
+    if not 0 < duration <= MAX_AUDIO_DURATION:
+        raise MCPVideoError(
+            f"duration must be greater than 0 and at most {MAX_AUDIO_DURATION} seconds, got {rejected_value(duration)}",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
 
     for i, track in enumerate(tracks):
         if not isinstance(track, dict):
@@ -343,12 +413,13 @@ def _validate_audio_compose_tracks(tracks: list[dict[str, Any]], duration: float
                 code="invalid_parameter",
             )
         volume = track.get("volume", 1.0)
-        if not isinstance(volume, (int, float)) or volume < 0 or volume > 1:
+        if not isinstance(volume, (int, float)) or isinstance(volume, bool) or not (0 <= volume <= 1):
             raise MCPVideoError(
-                f"tracks[{i}].volume must be between 0 and 1, got {volume}",
+                f"tracks[{i}].volume must be between 0 and 1, got {rejected_value(volume)}",
                 error_type="validation_error",
                 code="invalid_parameter",
             )
+        _require_finite_number(track.get("start", 0), f"tracks[{i}].start", minimum=0)
 
 
 def _mix_track_samples(
@@ -646,6 +717,9 @@ def audio_effects(
     _validate_audio_effects(effects)
 
     samples, sample_rate = _read_audio_input(input_path)
+    # Values are checked once the file's sample rate is known, so cutoffs can
+    # be compared against the real Nyquist frequency before any DSP runs.
+    validate_effect_items(effects, sample_rate)
 
     for effect in effects:
         samples = _apply_audio_effect(effect, samples, sample_rate)
