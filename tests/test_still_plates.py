@@ -424,3 +424,57 @@ def test_mcp_stdio_still_match_round_trip(still_fixture_dir: Path, monkeypatch) 
         Path(payload.get("receipt_path") or (out / "still_match_receipt.json")).is_file()
         or (out / "still_match_receipt.json").is_file()
     )
+
+
+# --- roast audit T-01 / D-14: outputs obey consent, never alias inputs, never collide ---
+
+
+def test_still_match_needs_consent_to_replace_existing_outputs(still_fixture_dir: Path) -> None:
+    hero = _write_rgb(still_fixture_dir / "hero.png", (0.5, 0.5, 0.5))
+    a = _write_rgb(still_fixture_dir / "a.png", (0.4, 0.4, 0.4))
+    out = still_fixture_dir / "o"
+    first = still_match(hero=hero, inputs=[a], output_dir=out)
+    before = Path(first["outputs"][0]["output"]).read_bytes()
+
+    with pytest.raises(MCPVideoError) as ei:
+        still_match(hero=hero, inputs=[a], output_dir=out)
+    assert ei.value.code == "output_exists"
+    assert Path(first["outputs"][0]["output"]).read_bytes() == before
+
+
+def test_still_match_replaces_outputs_with_consent(still_fixture_dir: Path, overwrite_consent) -> None:
+    hero = _write_rgb(still_fixture_dir / "hero.png", (0.5, 0.5, 0.5))
+    a = _write_rgb(still_fixture_dir / "a.png", (0.4, 0.4, 0.4))
+    out = still_fixture_dir / "o"
+    still_match(hero=hero, inputs=[a], output_dir=out)
+    second = still_match(hero=hero, inputs=[a], output_dir=out)
+    assert second["status"] == "ok"
+    assert Path(second["receipt_path"]).is_file()
+
+
+def test_still_outputs_cannot_alias_a_recorded_input(still_fixture_dir: Path) -> None:
+    from kinocut.ffmpeg_helpers import _validate_input_path
+    from kinocut.still_plates.io import save_rgb_array
+
+    a = _write_rgb(still_fixture_dir / "a.png", (0.4, 0.4, 0.4))
+    original = a.read_bytes()
+    _validate_input_path(str(a))  # the tool wrapper records every input like this
+    with pytest.raises(MCPVideoError) as ei:
+        save_rgb_array(np.zeros((4, 4, 3), dtype=np.float32) + 0.9, a)
+    assert ei.value.code == "invalid_output_path"
+    assert a.read_bytes() == original
+
+
+def test_still_match_gives_same_stem_inputs_distinct_outputs(still_fixture_dir: Path) -> None:
+    hero = _write_rgb(still_fixture_dir / "hero.png", (0.5, 0.5, 0.5))
+    (still_fixture_dir / "day").mkdir()
+    (still_fixture_dir / "night").mkdir()
+    a = _write_rgb(still_fixture_dir / "day" / "shot.png", (0.4, 0.4, 0.4))
+    b = _write_rgb(still_fixture_dir / "night" / "shot.png", (0.7, 0.7, 0.7))
+
+    receipt = still_match(hero=hero, inputs=[a, b], output_dir=still_fixture_dir / "o")
+
+    outputs = [Path(o["output"]) for o in receipt["outputs"]]
+    assert len(set(outputs)) == 2
+    assert all(path.is_file() for path in outputs)
+    assert [o["source"] for o in receipt["outputs"]] == [str(a.resolve()), str(b.resolve())]
