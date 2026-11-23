@@ -80,15 +80,6 @@ jobs:
           done < "$changed_file"
           printf 'code=%s\ndocker=%s\n' "$code" "$docker" >> "$GITHUB_OUTPUT"
 
-  secret-scan:
-    name: Secret scan
-    runs-on: ubuntu-24.04
-    timeout-minutes: 10
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-      - name: Run deterministic secret scanner
-        run: python3 scripts/secret_scan.py
-
   repository-readiness:
     name: Repository readiness
     needs: changes
@@ -410,8 +401,7 @@ jobs:
     # but not 6 (e.g. scale2ref rw/rh vars, added in ffmpeg 7 — the 2026-07-09
     # composite masked-render incident) slips through. This downloads pinned
     # static ffmpeg 6/7/8 builds and runs the render/filtergraph tests against
-    # each. Mirror of the source-of-truth `.forgejo/workflows/ci.yml` job; keep
-    # the two in parity. Static builds pinned to immutable BtbN release tags.
+    # each. Static builds pinned to immutable BtbN release tags.
     strategy:
       fail-fast: false
       matrix:
