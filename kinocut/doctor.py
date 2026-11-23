@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import hashlib
 import importlib.metadata
 import importlib.util
 import logging
@@ -21,7 +20,7 @@ from concurrent.futures import ThreadPoolExecutor
 from ._install_hints import pip_install_hint, pinned_requirement
 from .data_dirs import crush_home
 from .doctor_report import without_machine_paths
-from .doctor_offline import offline_probe_environment, report_resolved_hyperframes
+from .doctor_offline import cached_sha256_file, offline_probe_environment, report_resolved_hyperframes
 from .type_names import exception_kind
 from .defaults import (
     DEFAULT_HYPERFRAMES_TELEMETRY,
@@ -700,11 +699,7 @@ def _object_matte_cache_path() -> Path:
 
 
 def _sha256_file(path: Path) -> str:
-    digest = hashlib.sha256()
-    with path.open("rb") as handle:
-        for chunk in iter(lambda: handle.read(1 << 20), b""):
-            digest.update(chunk)
-    return digest.hexdigest()
+    return cached_sha256_file(path)
 
 
 def _object_matte_runtime() -> tuple[bool, list[str]]:

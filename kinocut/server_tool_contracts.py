@@ -2,9 +2,13 @@
 
 from __future__ import annotations
 
+import functools
+import inspect
 import json
 from collections.abc import Callable
 from typing import Any, get_args
+
+import anyio
 
 from mcp.server.fastmcp import FastMCP
 from mcp.server.fastmcp.exceptions import ToolError
@@ -178,6 +182,16 @@ def _flag_failure(result: Any) -> Any:
     return CallToolResult(isError=True, content=list(unstructured), structuredContent=structured)
 
 
+def _offload_sync_tool(fn: Callable[..., Any]) -> Callable[..., Any]:
+    """Run synchronous MCP tool handlers on a worker thread so FastMCP's event loop stays responsive."""
+
+    @functools.wraps(fn, assigned=(*functools.WRAPPER_ASSIGNMENTS, "__annotations__"))
+    async def _async_offload(*args: Any, **kwargs: Any) -> Any:
+        return await anyio.to_thread.run_sync(functools.partial(fn, *args, **kwargs))
+
+    return _async_offload
+
+
 class _ContractFastMCP(FastMCP):
     """Reject undeclared top-level arguments before a handler executes."""
 
@@ -185,6 +199,8 @@ class _ContractFastMCP(FastMCP):
         from .output_policy import with_output_policy
 
         fn = with_output_policy(fn)
+        if not inspect.iscoroutinefunction(fn):
+            fn = _offload_sync_tool(fn)
         super().add_tool(fn, *args, **kwargs)
         name = kwargs.get("name") or (args[0] if args else None) or fn.__name__
         tool = self._tool_manager.get_tool(name)

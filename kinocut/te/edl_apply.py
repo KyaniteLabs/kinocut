@@ -95,9 +95,9 @@ def _concat_keeps(src: str, keep: list[tuple[float, float]], out: str) -> str:
     if len(keep) == 1:
         start, end = keep[0]
         return trim(src, start=start, duration=end - start, output_path=out, accurate=True).output_path
-    tmp = tempfile.mkdtemp(prefix="kinocut_edl_")
-    parts: list[str] = []
-    for i, (start, end) in enumerate(keep):
-        part = os.path.join(tmp, f"k{i:03d}.mp4")
-        parts.append(trim(src, start=start, duration=end - start, output_path=part, accurate=True).output_path)
-    return merge(parts, output_path=out).output_path
+    with tempfile.TemporaryDirectory(prefix="kinocut_edl_") as tmp:
+        parts: list[str] = []
+        for i, (start, end) in enumerate(keep):
+            part = os.path.join(tmp, f"k{i:03d}.mp4")
+            parts.append(trim(src, start=start, duration=end - start, output_path=part, accurate=True).output_path)
+        return merge(parts, output_path=out).output_path

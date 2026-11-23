@@ -225,3 +225,168 @@ def test_staged_writers_find_output_start_ignores_flag_values_equal_to_minus_i()
 
     cmd = ["ffmpeg", "-y", "-i", "in.mp4", "-metadata", "-i", "-c:v", "libx264", "out.mp4"]
     assert _find_output_start(cmd) == 4
+
+
+def test_merge_normalize_needs_detects_mismatched_audio_codecs():
+    """S-01: same sample rate but different audio codecs (aac vs mp3) must trigger normalization."""
+    from kinocut.engine_merge import _normalize_needs
+
+    a = SimpleNamespace(
+        display_resolution="640x360", codec="h264", fps=30.0, audio_codec="aac", audio_sample_rate=44100
+    )
+    b = SimpleNamespace(
+        display_resolution="640x360", codec="h264", fps=30.0, audio_codec="mp3", audio_sample_rate=44100
+    )
+    needs, mixed = _normalize_needs([a, b])
+    assert needs is True
+    assert mixed is False
+
+
+def test_rescue_verifier_rejects_missing_sidecars_and_truncated_share(monkeypatch, tmp_path):
+    """S-04 & S-07: missing explicit sidecars and truncated/silent sharing copies must fail checks."""
+    monkeypatch.setattr(verifier, "_sha", lambda p: "sha256:" + "0" * 64)
+
+    def fake_probe(p):
+        if p == "share.mp4":
+            return {
+                "format": {"duration": "1.0", "format_name": "mp4"},
+                "streams": [{"index": 0, "codec_type": "video", "codec_name": "h264", "pix_fmt": "yuv420p"}],
+            }
+        return {
+            "format": {"duration": "4.0", "format_name": "mp4"},
+            "streams": [
+                {
+                    "index": 0,
+                    "codec_type": "video",
+                    "codec_name": "h264",
+                    "pix_fmt": "yuv420p",
+                    "avg_frame_rate": "30/1",
+                },
+                {"index": 1, "codec_type": "audio", "codec_name": "aac"},
+            ],
+        }
+
+    monkeypatch.setattr(verifier, "_run_ffprobe_json", fake_probe)
+    monkeypatch.setattr(verifier, "_decode", lambda p: (True, ""))
+    monkeypatch.setattr(
+        verifier,
+        "_packets",
+        lambda p: [
+            {"stream_index": 0, "pts_time": "3.9", "duration_time": "0.1"},
+            {"stream_index": 1, "pts_time": "3.9", "duration_time": "0.1"},
+        ],
+    )
+    facts = verifier._verification_facts(
+        "src.mp4",
+        "master.mp4",
+        "share.mp4",
+        str(tmp_path / "missing.srt"),
+        str(tmp_path / "missing.txt"),
+    )
+    assert facts["duration_ok"] is False
+    assert facts["coverage"] is False
+    assert facts["universal_ok"] is False
+    assert facts["caption_ok"] is False
+    assert facts["spoken_ok"] is False
+
+
+def test_rescue_inspector_rejects_empty_artifact_list_as_not_verified(tmp_path):
+    """S-06: empty artifact list must never claim all_present=True and all_matching=True."""
+    from kinocut.rescue.inspector import inspect_rescue
+
+    plan = tmp_path / "plan.json"
+    plan.write_text(
+        json.dumps(
+            {
+                "schema_version": 1,
+                "receipt_kind": "rescue_plan",
+                "tool": "video_rescue_plan",
+                "status": "ok",
+                "source": {},
+            }
+        ),
+        encoding="utf-8",
+    )
+    inspected = inspect_rescue(str(plan))
+    assert inspected["integrity"]["all_present"] is False
+    assert inspected["integrity"]["all_matching"] is False
+
+
+def test_cli_out_prints_string_returning_formatters(capsys):
+    """S-09: _out must emit non-None return strings from text formatters."""
+    from kinocut.cli.runner import _out
+
+    _out({"frame": 50}, False, lambda res: f"frame={res['frame']}")
+    assert capsys.readouterr().out.strip() == "frame=50"
+
+
+def test_compare_quality_parses_infinite_psnr_as_high():
+    """S-10: FFmpeg PSNR average:inf on identical videos must report a JSON-safe perfect metric."""
+    from kinocut.engine_compare_quality import _overall_quality, _parse_metric
+
+    computed: dict[str, float] = {}
+    _parse_metric("PSNR y:inf u:inf v:inf average:inf min:inf max:inf", "psnr", computed)
+    assert computed["psnr"] == 100.0
+    assert _overall_quality(computed) == "high"
+
+
+def test_c2pa_signing_requires_c2patool_in_capability_report():
+    """S-11: empty diagnostics must not report c2pa_signing as available."""
+    from kinocut.capability_report import capability_report
+
+    reports = {r.capability_id: r for r in capability_report({"checks": []})}
+    assert reports["c2pa_signing"].availability == "unavailable"
+
+
+def test_design_guardrails_flags_invalid_color_instead_of_clean():
+    """S-13: invalid color hex must produce an invalid_color warning, not clean=True."""
+    from kinocut.design_guardrails import TextOverlaySpec, validate_text_layout
+
+    warnings = validate_text_layout([TextOverlaySpec(text="Hello", position="center", size=48, color="#GGGGGG")])
+    assert any(w.code == "invalid_color" for w in warnings)
+
+
+def test_sound_load_plan_json_rejects_whitespace():
+    """S-15: whitespace --plan-json must fail closed instead of running sample demo."""
+    from kinocut.cli.handlers_sound import _load_plan_json
+
+    assert _load_plan_json(None) is None
+    with pytest.raises(MCPVideoError, match="empty or whitespace"):
+        _load_plan_json("   ")
+
+
+def test_reverse_enforces_uncompressed_memory_budget():
+    """V-02: reverse must refuse inputs whose decoded frame buffer exceeds MAX_REVERSE_FRAME_BYTES."""
+    from kinocut.engine_reverse import _enforce_reverse_memory_budget
+
+    huge = SimpleNamespace(width=3840, height=2160, duration=600.0, fps=60.0)
+    with pytest.raises(MCPVideoError) as exc:
+        _enforce_reverse_memory_budget(huge)
+    assert exc.value.code == "reverse_memory_limit"
+
+
+def test_svt_av1_preset_maps_x264_names_to_integers():
+    """V-03: _convert_av1 must translate x264 preset strings into numeric libsvtav1 presets."""
+    from kinocut.engine_convert import _svt_av1_preset
+
+    assert _svt_av1_preset("fast") == "8"
+    assert _svt_av1_preset("slow") == "5"
+    assert _svt_av1_preset("6") == "6"
+
+
+def test_probe_cache_reuses_inode_entry_across_rename(tmp_path):
+    """V-05: probing staged path then published path on same inode must hit cache with updated path."""
+    from kinocut.engine_probe import _cache_info, _cache_key, _cached_info
+    from kinocut.models import VideoInfo
+
+    staged = tmp_path / ".staged.mp4"
+    staged.write_bytes(b"abc123")
+    key = _cache_key(str(staged))
+    info = VideoInfo(path=str(staged), duration=1.0, width=64, height=64, fps=10.0, codec="h264", size_bytes=6)
+    _cache_info(str(staged), key, info, has_video=True)
+
+    final = tmp_path / "final.mp4"
+    staged.rename(final)
+    hit = _cached_info(str(final), _cache_key(str(final)), require_video=True)
+    assert hit is not None
+    assert hit.path == str(final)

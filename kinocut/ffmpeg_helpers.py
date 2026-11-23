@@ -444,7 +444,8 @@ def _run_command(
             )
             if result.returncode != 0:
                 if stderr_sink is not None:
-                    stderr_sink.seek(0)
+                    stderr_sink.seek(0, os.SEEK_END)
+                    stderr_sink.seek(max(0, stderr_sink.tell() - FFMPEG_STDERR_DIAGNOSTIC_BYTES))
                     result.stderr = stderr_sink.read(FFMPEG_STDERR_DIAGNOSTIC_BYTES).decode("utf-8", errors="replace")
                     stderr_sink.seek(0)
                 raise ProcessingError(cmd_str, result.returncode, result.stderr)

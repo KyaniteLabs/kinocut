@@ -175,6 +175,8 @@ FASTSTART_COPY_CHUNK_BYTES = 1024 * 1024
 
 # Stop GPU shader frame extraction after one overflow sentinel frame.
 MAX_SHADER_FRAMES = 7200
+# Uncompressed YUV420p frame buffer budget for FFmpeg's in-RAM reverse filter (V-02).
+MAX_REVERSE_FRAME_BYTES = 2 * 1024 * 1024 * 1024
 
 
 def resolve_ffmpeg_timeout(override: float | None = None) -> float:

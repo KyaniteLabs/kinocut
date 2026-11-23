@@ -25,17 +25,17 @@ class _ProbeCacheEntry(NamedTuple):
     has_video: bool
 
 
-_probe_cache: dict[tuple[str, int, int, int, int, int], _ProbeCacheEntry] = {}
+_probe_cache: dict[tuple[int, int, int, int], _ProbeCacheEntry] = {}
 _MAX_PROBE_CACHE = 256
 _probe_cache_lock = threading.Lock()
 
 
-def _cache_key(path: str) -> tuple[str, int, int, int, int, int]:
+def _cache_key(path: str) -> tuple[int, int, int, int]:
     try:
         stat = os.stat(path)
     except OSError as exc:
         raise InputFileError(path, "Cannot inspect media identity") from exc
-    return (path, stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns, stat.st_ctime_ns)
+    return (stat.st_dev, stat.st_ino, stat.st_size, stat.st_mtime_ns)
 
 
 def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | None:
@@ -47,7 +47,7 @@ def _cached_info(path: str, key: tuple, *, require_video: bool) -> VideoInfo | N
         raise InputFileError(path, "Media changed while reading cached metadata")
     if require_video and not cached.has_video:
         raise InputFileError(path, "No video stream found")
-    return cached.info.model_copy(deep=True)
+    return cached.info.model_copy(deep=True, update={"path": path})
 
 
 def _cache_info(path: str, key: tuple, info: VideoInfo, *, has_video: bool) -> None:
