@@ -178,6 +178,21 @@ def _video_stream_duration(clip: str) -> float | None:
     return None
 
 
+def _fill_missing_duration(clip: str, info):
+    """Populate missing container duration from video tags/packets (e.g. live Matroska)."""
+    if (getattr(info, "duration", 0.0) or 0.0) > 0:
+        return info
+    measured = _video_stream_duration(clip)
+    if measured is not None and measured > 0 and hasattr(info, "model_copy"):
+        return info.model_copy(update={"duration": measured})
+    return info
+
+
+def _resolve_merge_infos(clips: list[str], infos: list | None) -> list:
+    raw_infos = [probe(c) for c in clips] if (infos is None or len(infos) != len(clips)) else infos
+    return [_fill_missing_duration(c, info) for c, info in zip(clips, raw_infos, strict=True)]
+
+
 def _concat_clips(clips: list[str], output: str, tmpdir: str, *, use_video_duration: bool = False) -> None:
     """Concatenate clips using FFmpeg concat demuxer."""
     concat_file = os.path.join(tmpdir, "concat.txt")
@@ -275,8 +290,7 @@ def merge(
         return _merge_single_clip(_validate_input_path(clips[0]), output_path)
 
     clips = [_validate_input_path(c) for c in clips]
-    if infos is None or len(infos) != len(clips):
-        infos = [probe(c) for c in clips]
+    infos = _resolve_merge_infos(clips, infos)
 
     # --- Guardrails: pre-merge compatibility ---
     has_transitions = bool(transition or transitions)

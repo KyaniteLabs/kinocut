@@ -589,6 +589,37 @@ def test_normalized_merge_trims_overlong_audio_to_video_duration(tmp_path):
     assert res_mkv.success and 1.95 <= res_mkv.duration <= 2.15
     assert _decode(str(out_mkv)) == (True, "")
 
+    # Tagless live Matroska (-live 1) omits both container and stream duration; packet span must resolve it.
+    c2_live = tmp_path / "c2_live.mkv"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=green:s=96x72:r=30:d=1.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=880:sample_rate=44100:duration=3.0",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "libmp3lame",
+            "-live",
+            "1",
+            str(c2_live),
+        ],
+        check=True,
+    )
+    out_live = tmp_path / "merged_from_live_mkv.mp4"
+    res_live = merge([str(c1), str(c2_live)], output_path=str(out_live))
+    assert res_live.success and 1.95 <= res_live.duration <= 2.15
+    assert _decode(str(out_live)) == (True, "")
+
 
 def test_rescue_decode_returns_stable_code_and_scan_enforces_streaming_timeout(monkeypatch, tmp_path):
     """_decode must return stable ffmpeg_decode_error on nonzero exit; _scan_packet_summary must bound stalled reads."""
