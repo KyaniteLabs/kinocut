@@ -560,6 +560,35 @@ def test_normalized_merge_trims_overlong_audio_to_video_duration(tmp_path):
     assert res.success and 1.95 <= res.duration <= 2.15
     assert _decode(str(out)) == (True, "")
 
+    # Matroska omits stream.duration; normalized merge must still trim 3s audio to 1s video.
+    c2_mkv = tmp_path / "c2.mkv"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=green:s=96x72:r=30:d=1.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=880:sample_rate=44100:duration=3.0",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "libmp3lame",
+            str(c2_mkv),
+        ],
+        check=True,
+    )
+    out_mkv = tmp_path / "merged_from_mkv.mp4"
+    res_mkv = merge([str(c1), str(c2_mkv)], output_path=str(out_mkv))
+    assert res_mkv.success and 1.95 <= res_mkv.duration <= 2.15
+    assert _decode(str(out_mkv)) == (True, "")
+
 
 def test_rescue_decode_returns_stable_code_and_scan_enforces_streaming_timeout(monkeypatch, tmp_path):
     """_decode must return stable ffmpeg_decode_error on nonzero exit; _scan_packet_summary must bound stalled reads."""

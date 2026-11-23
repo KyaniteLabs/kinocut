@@ -131,8 +131,23 @@ def _merge_single_clip(clip: str, output_path: str | None) -> EditResult:
     return result.model_copy(update={"output_path": output})
 
 
+def _parse_tag_duration(raw: object) -> float | None:
+    if not isinstance(raw, str):
+        return None
+    parts = raw.strip().split(":")
+    if len(parts) != 3:
+        return None
+    try:
+        hours, minutes, secs = float(parts[0]), float(parts[1]), float(parts[2])
+    except ValueError:
+        return None
+    total = hours * 3600.0 + minutes * 60.0 + secs
+    return total if total > 0 else None
+
+
 def _video_stream_duration(clip: str) -> float | None:
-    """Return the video stream's duration in seconds so concat demuxer aligns cuts on video frames."""
+    """Return the video stream's duration in seconds (stream header, Matroska tag, or packet span)."""
+    from .engine_media_timeline import _packet_extent
     from .ffmpeg_helpers import _run_ffprobe_json
 
     try:
@@ -140,12 +155,26 @@ def _video_stream_duration(clip: str) -> float | None:
     except MCPVideoError:
         return None
     for stream in data.get("streams", []):
-        if stream.get("codec_type") == "video":
-            try:
-                value = float(stream.get("duration"))
-            except (TypeError, ValueError):
-                return None
-            return value if value > 0 else None
+        if stream.get("codec_type") != "video":
+            continue
+        try:
+            value = float(stream.get("duration"))
+        except (TypeError, ValueError):
+            value = 0.0
+        if value > 0:
+            return value
+        tags = stream.get("tags") or {}
+        if isinstance(tags, dict):
+            for key, tag_val in tags.items():
+                if str(key).upper() == "DURATION" or str(key).upper().startswith("DURATION-"):
+                    parsed = _parse_tag_duration(tag_val)
+                    if parsed is not None:
+                        return parsed
+        try:
+            _start, span = _packet_extent(clip, "v:0")
+        except MCPVideoError:
+            return None
+        return span if span > 0 else None
     return None
 
 
