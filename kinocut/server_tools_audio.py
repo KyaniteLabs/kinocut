@@ -352,12 +352,19 @@ def video_add_generated_audio(
 ) -> dict[str, Any]:
     """Add procedurally generated audio to a video.
 
-    One-shot convenience function to generate and add audio to video.
+    One-shot convenience function: synthesizes the configured drone and timed
+    events (tones, noise, sound presets) and lays the result over the video.
+    This is procedural sound design, not speech or narration.
+
+    The output keeps the video's full duration. A video that already has an
+    audio track keeps it, with the generated track mixed underneath; tracks
+    sum without loudness normalization and may clip. A silent video receives
+    the generated track as its only audio.
 
     Args:
         input_path: Absolute path to input video.
         audio_config: Configuration dict with:
-            - drone: {"frequency", "volume"} for background tone
+            - drone: {"frequency", "volume"} for background drone
             - events: List of timed sound events
         output_path: Absolute path for output video.
 
@@ -371,9 +378,17 @@ def video_add_generated_audio(
             error_type="validation_error",
             code="invalid_parameter",
         )
+    from .audio_engine import _has_audio_stream
     from .audio_engine import add_generated_audio as _add_gen_audio
 
-    return _result(_add_gen_audio(input_path, audio_config, output_path))
+    mixes_with_source = _has_audio_stream(input_path)
+    result = _result(_add_gen_audio(input_path, audio_config, output_path))
+    if result.get("success") and mixes_with_source:
+        result["warnings"] = [
+            "The generated audio is mixed under the video's existing audio track. Tracks sum without "
+            "loudness normalization and may clip; listen before publishing."
+        ]
+    return result
 
 
 @mcp.tool()
