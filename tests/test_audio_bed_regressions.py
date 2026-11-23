@@ -79,3 +79,12 @@ def test_disabled_loop_with_a_short_bed_keeps_its_warning(sample_video, tmp_path
     result = audio_bed(sample_video, bed, str(tmp_path / "bed.mp4"), loop=False)
     assert "bed_shorter_than_voice_loop_disabled" in result["warnings"]
     assert "bed_shorter_than_voice_crossfade_zero" not in result["warnings"]
+
+
+def test_normalize_audio_says_so_when_the_input_has_no_audio(sample_video_no_audio, tmp_path):
+    from kinocut.engine_audio_normalize import normalize_audio
+
+    result = normalize_audio(sample_video_no_audio, output_path=str(tmp_path / "normalized.mp4"))
+
+    assert result.measured_input is None and result.measured_output is None
+    assert any("input_has_no_audio_stream" in warning for warning in result.warnings), result.warnings
