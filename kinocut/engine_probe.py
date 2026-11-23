@@ -149,6 +149,10 @@ def _build_video_info(path: str, data: dict) -> VideoInfo:
     )
 
 
+def _is_probe_timeout(exc: ProcessingError) -> bool:
+    return "timed out" in str(exc).lower() or exc.code == "timeout"
+
+
 def probe(path: str) -> VideoInfo:
     """Get metadata about a video file using ffprobe.
 
@@ -165,6 +169,8 @@ def probe(path: str) -> VideoInfo:
     try:
         data = _run_ffprobe_json(path)
     except ProcessingError as exc:
+        if _is_probe_timeout(exc):
+            raise
         raise InputFileError(path, "Not a valid video file") from exc
     info = _build_video_info(path, data)
 
@@ -217,6 +223,8 @@ def probe_exact(path: str) -> ExactVideoInfo:
     try:
         data = _run_ffprobe_json(path, count_frames=True, timeout=FFPROBE_EXACT_TIMEOUT)
     except ProcessingError as exc:
+        if _is_probe_timeout(exc):
+            raise
         raise InputFileError(path, "Not a valid video file, or decoding it for an exact probe failed") from exc
     info = _build_video_info(path, data)
     video_stream = _get_video_stream(data) or {}
@@ -245,6 +253,8 @@ def probe_audio_input(path: str) -> VideoInfo:
     try:
         data = _run_ffprobe_json(path)
     except ProcessingError as exc:
+        if _is_probe_timeout(exc):
+            raise
         raise InputFileError(path, "Not a valid media file") from exc
 
     # Try video first — reuses the same ffprobe data (no second subprocess)

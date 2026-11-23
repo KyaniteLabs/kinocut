@@ -463,6 +463,23 @@ class HyperframesProjectError(MCPVideoError):
         )
 
 
+def _hyperframes_recovery_hint(returncode: int, stderr: str) -> str:
+    """Return package-authored recovery guidance matched to failure class (#803)."""
+    lower = (stderr or "").lower()
+    if returncode in (137, -9) or "out of memory" in lower or "heap out of memory" in lower:
+        return "Hyperframes ran out of memory; reduce resolution/fps or free host memory, then retry."
+    if any(tok in lower for tok in ("chromium", "chrome", "browser", "playwright", "puppeteer", "sandbox")):
+        return "Browser launch or runtime failed; run `kino hyperframes-doctor` to verify Chromium and sandbox setup."
+    if any(tok in lower for tok in ("enoent", "command not found", "cannot find module", "node")):
+        return "Runtime dependency or binary is missing; run `kino hyperframes-doctor` to verify Node and Hyperframes."
+    if "timed out" in lower or returncode == -1:
+        return "Render timed out; verify host load or simplify the composition, then retry."
+    return (
+        "Check the project's index.html and its composition root, or run `kino hyperframes-doctor` "
+        "to inspect environment diagnostics."
+    )
+
+
 class HyperframesRenderError(MCPVideoError):
     """Hyperframes render failure."""
 
@@ -479,10 +496,7 @@ class HyperframesRenderError(MCPVideoError):
             code=f"hyperframes_exit_{returncode}",
             suggested_action={
                 "auto_fix": False,
-                "description": (
-                    "Check the project's index.html and its composition root, then "
-                    "render again to read Hyperframes' own diagnostic."
-                ),
+                "description": _hyperframes_recovery_hint(returncode, stderr),
             },
         )
         self.command = command

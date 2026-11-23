@@ -523,7 +523,7 @@ def _check_workspace() -> dict[str, Any]:
     return {
         "name": "workspace",
         "category": "core",
-        "required": True,
+        "required": False,
         "ok": readable and writable and free_bytes is not None,
         "path": str(workspace),
         "version": None,

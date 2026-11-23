@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 
-from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _sanitize_ffmpeg_number
+from .ffmpeg_helpers import _atomic_output, _build_ffmpeg_cmd, _format_ffmpeg_number, _sanitize_ffmpeg_number
 from .ffmpeg_helpers import _validate_input_path, _validate_output_path
 from .engine_runtime_utils import _build_edit_result, _timed_operation
 from .paths import _auto_output
@@ -133,18 +133,18 @@ def trim(
     start_sec = _validate_trim_times(start, duration, end)
 
     prefix: list[str] = []
-    if start:
+    if start_sec > 0:
         # Re-encoding uses FFmpeg's default accurate input seek.
-        prefix.extend(["-ss", str(start)])
+        prefix.extend(["-ss", _format_ffmpeg_number(start_sec)])
     prefix.extend(["-i", input_path])
     clip_seconds: float | None = None
-    if duration:
-        prefix.extend(["-t", str(duration)])
+    if duration is not None and duration != "":
         clip_seconds = _time_to_seconds(duration)
-    elif end:
+        prefix.extend(["-t", _format_ffmpeg_number(clip_seconds)])
+    elif end is not None and end != "":
         # Input seeking rebases timestamps; convert the absolute endpoint.
         clip_seconds = _time_to_seconds(end) - start_sec
-        prefix.extend(["-t", str(clip_seconds)])
+        prefix.extend(["-t", _format_ffmpeg_number(clip_seconds)])
     elif on_progress is not None:
         from .engine_probe import probe
 

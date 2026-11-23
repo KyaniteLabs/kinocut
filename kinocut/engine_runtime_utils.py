@@ -16,6 +16,7 @@ from .errors import (
     FFmpegNotFoundError,
     FFprobeNotFoundError,
     MCPVideoError,
+    ProcessingError,
 )
 from .limits import DEFAULT_CRF, DEFAULT_PRESET, DOCTOR_COMMAND_TIMEOUT
 from .models import EditResult
@@ -71,13 +72,16 @@ def _check_filter_available(name: str) -> bool:
     """Check if an FFmpeg filter is available."""
     global _AVAILABLE_FILTERS
     if _AVAILABLE_FILTERS is None:
-        proc = subprocess.run(  # noqa: S603
-            [_ffmpeg(), "-filters"],
-            stdin=subprocess.DEVNULL,
-            capture_output=True,
-            text=True,
-            timeout=10,
-        )
+        try:
+            proc = subprocess.run(  # noqa: S603
+                [_ffmpeg(), "-filters"],
+                stdin=subprocess.DEVNULL,
+                capture_output=True,
+                text=True,
+                timeout=10,
+            )
+        except subprocess.TimeoutExpired:
+            raise ProcessingError("ffmpeg -filters", -1, "", reason="FFmpeg filter probe timed out after 10s") from None
         _AVAILABLE_FILTERS = set()
         for line in proc.stdout.split("\n"):
             parts = line.strip().split()
