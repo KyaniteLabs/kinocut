@@ -60,10 +60,8 @@ def _decode(path: str) -> tuple[bool, str]:
             ["ffmpeg", "-v", "error", "-xerror", "-i", path, "-map", "0", "-f", "null", "-"],
             timeout=120,
         )
-    except MCPVideoError as exc:
-        return False, exc.code or type(exc).__name__
-    except OSError as exc:
-        return False, type(exc).__name__
+    except (MCPVideoError, OSError):
+        return False, "ffmpeg_decode_error"
     err = (result.stderr or "").strip()
     if err:
         return False, "ffmpeg_decode_error"
@@ -126,10 +124,11 @@ def _update_packet_state(
 
 
 def _scan_packet_summary(
-    path: str, raw: dict[str, Any], *, pass_fds: tuple[int, ...] = ()
+    path: str, raw: dict[str, Any], *, pass_fds: tuple[int, ...] = (), timeout: float = 120.0
 ) -> tuple[bool, bool, tuple[float, float] | None]:
-    """Stream ffprobe compact packets incrementally (O(1) memory, no 16 MiB cap)."""
+    """Stream ffprobe compact packets incrementally (O(1) memory, bounded wall-clock timeout)."""
     import subprocess
+    import threading
     from ..engine_runtime_utils import _ffprobe
     from ..process_tree import ProcessTree
 
@@ -149,23 +148,36 @@ def _scan_packet_summary(
     ends: dict[str, float] = {}
     monotonic = True
     tree = None
+    timed_out = threading.Event()
+    timer: threading.Timer | None = None
     try:
         tree = ProcessTree(command, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, pass_fds=pass_fds)
         if tree.process is None or tree.process.stdout is None:
             return False, False, None
+
+        def _kill_on_timeout() -> None:
+            timed_out.set()
+            if tree is not None:
+                tree.close()
+
+        timer = threading.Timer(timeout, _kill_on_timeout)
+        timer.daemon = True
+        timer.start()
         for raw_line in tree.process.stdout:
             line = raw_line.decode("utf-8", errors="replace").strip()
             if line:
                 packet = _parse_packet_line(line)
                 if packet:
                     monotonic = _update_packet_state(packet, kinds, last, ends, monotonic)
-        rc = tree.wait(timeout=120)
+        rc = tree.wait(timeout=timeout)
     except (MCPVideoError, OSError, subprocess.TimeoutExpired):
         return False, False, None
     finally:
+        if timer is not None:
+            timer.cancel()
         if tree is not None:
             tree.close()
-    if rc != 0:
+    if timed_out.is_set() or rc != 0:
         return False, False, None
     av = (ends["video"], ends["audio"]) if {"video", "audio"} <= ends.keys() else None
     return True, (monotonic and bool(last)), av

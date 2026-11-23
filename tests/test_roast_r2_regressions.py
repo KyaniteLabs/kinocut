@@ -495,6 +495,92 @@ def test_init_project_expands_tilde_before_validation(monkeypatch, tmp_path):
     assert seen and not seen[0].startswith("~")
     assert result["path"] == str((tmp_path / "demo_proj").resolve())
 
+    # Relative path "." must still resolve to an absolute path and non-empty project name.
+    proj_dot = tmp_path / "dot_project"
+    proj_dot.mkdir()
+    monkeypatch.chdir(proj_dot)
+    dot_res = mod.init_project(".")
+    assert dot_res["path"] == str(proj_dot.resolve())
+    assert dot_res["name"] == "dot_project"
+
+
+def test_normalized_merge_trims_overlong_audio_to_video_duration(tmp_path):
+    """Merge normalization must trim audio longer than video so concatenated A/V stays aligned."""
+    import subprocess
+    from kinocut.engine_merge import merge
+    from kinocut.rescue.verifier import _decode
+
+    c1, c2 = tmp_path / "c1.mp4", tmp_path / "c2.mp4"
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=red:s=64x48:r=30:d=1.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=440:sample_rate=44100:duration=1.0",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            str(c1),
+        ],
+        check=True,
+    )
+    subprocess.run(
+        [
+            "ffmpeg",
+            "-y",
+            "-v",
+            "error",
+            "-f",
+            "lavfi",
+            "-i",
+            "color=c=green:s=96x72:r=30:d=1.0",
+            "-f",
+            "lavfi",
+            "-i",
+            "sine=frequency=880:sample_rate=44100:duration=3.0",
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "libmp3lame",
+            str(c2),
+        ],
+        check=True,
+    )
+    out = tmp_path / "merged.mp4"
+    res = merge([str(c1), str(c2)], output_path=str(out))
+    assert res.success and 1.95 <= res.duration <= 2.15
+    assert _decode(str(out)) == (True, "")
+
+
+def test_rescue_decode_returns_stable_code_and_scan_enforces_streaming_timeout(monkeypatch, tmp_path):
+    """_decode must return stable ffmpeg_decode_error on nonzero exit; _scan_packet_summary must bound stalled reads."""
+    import time
+    from kinocut.rescue import verifier
+
+    empty = tmp_path / "empty.mp4"
+    empty.write_bytes(b"")
+    ok, code = verifier._decode(str(empty))
+    assert ok is False and code == "ffmpeg_decode_error"
+
+    sleeper = tmp_path / "stall_ffprobe.sh"
+    sleeper.write_text("#!/bin/sh\nsleep 30\n", encoding="utf-8")
+    sleeper.chmod(0o755)
+    monkeypatch.setattr("kinocut.engine_runtime_utils._ffprobe", lambda: str(sleeper))
+    t0 = time.monotonic()
+    res = verifier._scan_packet_summary(str(empty), {"streams": []}, timeout=0.3)
+    elapsed = time.monotonic() - t0
+    assert res == (False, False, None)
+    assert elapsed < 5.0
+
 
 def test_seconds_to_srt_time_clamps_negative_values():
     """B-DR11: negative Whisper timestamps must clamp to 00:00:00,000."""

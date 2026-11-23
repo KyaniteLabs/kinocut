@@ -84,11 +84,17 @@ def _normalize_clips(
         elif info.rotation == 270:
             vf_parts.insert(0, "transpose=1")
         seconds = info.duration if on_progress is not None else 0.0
+        audio_filter = None
+        if info.audio_codec is not None:
+            vdur = _video_stream_duration(clip) or (float(info.duration) if info.duration else None)
+            if vdur is not None and vdur > 0:
+                audio_filter = f"apad=whole_dur={vdur:.6f},atrim=0:{vdur:.6f},asetpts=PTS-STARTPTS"
         _render(
             _build_ffmpeg_cmd(
                 clip,
                 output_path=norm_path,
                 video_filter=",".join(vf_parts),
+                audio_filter=audio_filter,
                 crf=DEFAULT_CRF,
                 preset=DEFAULT_PRESET,
                 extra=[
