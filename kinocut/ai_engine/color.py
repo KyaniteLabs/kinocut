@@ -15,7 +15,7 @@ from pathlib import Path
 from ..errors import InputFileError, MCPVideoError, ProcessingError
 from ..ffmpeg_helpers import _run_command, _validate_input_path, _validate_output_path
 from ..limits import DEFAULT_FFMPEG_TIMEOUT
-from ..validation_errors import rejected_value
+from ..validation_errors import reason, rejected_value
 
 logger = logging.getLogger(__name__)
 
@@ -167,35 +167,35 @@ def _match_reference_colors(video: str, reference: str) -> dict:
     """
 
     def extract_mean_color(video_path: str) -> dict:
-        """Extract mean RGB values from video using signalstats filter."""
-        cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats", "-f", "null", "-"]
+        """Extract mean RGB values from a video using the signalstats filter.
+
+        ``signalstats`` only publishes its measurements when a ``metadata=print``
+        filter is attached, and it writes them to stdout as
+        ``lavfi.signalstats.YAVG=<n>`` once per frame. Reading stderr (as this
+        used to) never matched, so every reference "match" was a no-op.
+        """
+        cmd = ["ffmpeg", "-i", video_path, "-vf", "signalstats,metadata=print:file=-", "-f", "null", "-"]
         result = _run_command(cmd, timeout=DEFAULT_FFMPEG_TIMEOUT)
 
-        # Default values if extraction fails
-        mean_rgb = {"r": 128, "g": 128, "b": 128}
+        def mean(channel: str) -> float:
+            values = [
+                float(value) for value in re.findall(rf"lavfi\.signalstats\.{channel}AVG=(-?[\d.]+)", result.stdout)
+            ]
+            if not values:
+                raise ValueError(f"signalstats reported no {channel}AVG values")
+            return sum(values) / len(values)
 
-        # Parse signalstats output
-        # Look for mean values in stderr output
-        stderr = result.stderr
+        # signalstats reports limited-range YUV; recentre U and V on 128.
+        y = mean("Y")
+        u = mean("U") - 128
+        v = mean("V") - 128
 
-        # Try to extract mean Y/U/V or R/G/B values
-        # This is a simplified extraction - signalstats outputs in YUV by default
-        y_match = re.search(r"YAVG ([\d.]+)", stderr)
-        u_match = re.search(r"UAVG ([\d.]+)", stderr)
-        v_match = re.search(r"VAVG ([\d.]+)", stderr)
-
-        if y_match and u_match and v_match:
-            # Convert YUV to approximate RGB (simplified)
-            y = float(y_match.group(1))
-            u = float(u_match.group(1)) - 128
-            v = float(v_match.group(1)) - 128
-
-            # Approximate RGB from YUV
-            mean_rgb["r"] = max(0, min(255, y + 1.402 * v))
-            mean_rgb["g"] = max(0, min(255, y - 0.344 * u - 0.714 * v))
-            mean_rgb["b"] = max(0, min(255, y + 1.772 * u))
-
-        return mean_rgb
+        # Approximate RGB from YUV
+        return {
+            "r": max(0, min(255, y + 1.402 * v)),
+            "g": max(0, min(255, y - 0.344 * u - 0.714 * v)),
+            "b": max(0, min(255, y + 1.772 * u)),
+        }
 
     try:
         # Extract mean colors from both videos
@@ -226,9 +226,17 @@ def _match_reference_colors(video: str, reference: str) -> dict:
             "green": green_adj,
             "blue": blue_adj,
         }
-    except (ProcessingError, ValueError, OSError):
-        # Fall back to neutral params if analysis fails
-        return {"contrast": 1.0, "saturation": 1.0, "gamma": 1.0, "red": 1.0, "green": 1.0, "blue": 1.0}
+    except (ProcessingError, ValueError, OSError) as exc:
+        # Neutral parameters would grade nothing while reporting a successful match.
+        raise MCPVideoError(
+            f"Reference colour match failed ({reason(exc)}); no grade was applied.",
+            error_type="processing_error",
+            code="reference_match_failed",
+            suggested_action={
+                "auto_fix": False,
+                "description": "Use a style preset or a LUT instead, or supply a reference video that decodes.",
+            },
+        ) from exc
 
 
 # ---------------------------------------------------------------------------

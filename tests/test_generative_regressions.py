@@ -255,3 +255,62 @@ def test_stem_separation_fails_when_a_requested_stem_is_missing(tmp_path, monkey
 
     with pytest.raises(ProcessingError, match="drums"):
         _run_demucs_separation(str(audio), output, "htdemucs", ["vocals", "drums"])
+
+
+# --- D-03: a partial frame sequence is not a completed render ---------------------
+
+
+def _patch_shader_plumbing(monkeypatch, tmp_path: Path, rendered_frame_count: int) -> list:
+    import kinocut.engine_glitch_shader as shader
+    import kinocut.engine_probe as probe_module
+
+    script = tmp_path / "render_frames.mjs"
+    script.write_text("// stub")
+    monkeypatch.setattr(shader, "_check_node", lambda: "node")
+    monkeypatch.setattr(shader, "_check_shader_dependencies", lambda: None)
+    monkeypatch.setattr(shader, "_RENDER_SCRIPT", script)
+    monkeypatch.setattr(shader, "_get_fps", lambda path: 30.0)
+    monkeypatch.setattr(shader, "_extract_frames", lambda path, directory: {"frame_count": 5})
+    monkeypatch.setattr(shader, "_validate_shader_frame_count", lambda count, path: None)
+    monkeypatch.setattr(probe_module, "probe", lambda path: SimpleNamespace(audio_codec=None))
+
+    def render(node, params):
+        for index in range(rendered_frame_count):
+            (Path(params["outputDir"]) / f"frame_{index}.png").write_bytes(b"png")
+
+    monkeypatch.setattr(shader, "_run_node_render", render)
+    assembled: list = []
+    monkeypatch.setattr(shader, "_assemble_video", lambda *args: assembled.append(args))
+    return assembled
+
+
+def test_shader_render_refuses_a_partial_frame_sequence(tmp_path, monkeypatch):
+    import kinocut.engine_glitch_shader as shader
+
+    assembled = _patch_shader_plumbing(monkeypatch, tmp_path, rendered_frame_count=3)
+    source = tmp_path / "in.mp4"
+    source.write_bytes(b"x")
+
+    with pytest.raises(MCPVideoError) as partial:
+        shader._run_shader_effect("digital_feedback", str(source), str(tmp_path / "out.mp4"), {})
+    assert partial.value.code == "shader_partial_output"
+    assert not assembled
+
+
+def test_shader_render_reports_the_frames_it_actually_produced(tmp_path, monkeypatch):
+    import kinocut.engine_glitch_shader as shader
+
+    _patch_shader_plumbing(monkeypatch, tmp_path, rendered_frame_count=5)
+    source = tmp_path / "in.mp4"
+    source.write_bytes(b"x")
+
+    result = shader._run_shader_effect("digital_feedback", str(source), str(tmp_path / "out.mp4"), {})
+    assert result["frames_processed"] == 5
+
+
+def test_shader_renderer_exits_nonzero_on_a_failed_frame():
+    # The Node renderer used to log each failed frame and still print "Done".
+    script = Path(ops.__file__).parent / "_crush_shader" / "render_frames.mjs"
+    text = script.read_text(encoding="utf-8")
+    assert "failedFrames += 1" in text
+    assert "process.exit(1)" in text.split("failedFrames > 0")[1]

@@ -731,25 +731,46 @@ class TestColorGrade:
                 assert os.path.exists(result), f"Output not created for style: {style}"
                 assert os.path.getsize(result) > 0, f"Output is empty for style: {style}"
 
-    def test_reference_color_analysis_failure_falls_back_to_neutral(self, monkeypatch):
-        """Reference matching should remain best-effort when FFmpeg analysis fails."""
-        import subprocess
+    def test_reference_color_analysis_failure_is_an_error_not_a_neutral_grade(self):
+        """A failed analysis must not report a successful match that graded nothing."""
+        from mcp_video.ai_engine.color import _match_reference_colors
+        from mcp_video.errors import MCPVideoError
 
+        with pytest.raises(MCPVideoError) as exc:
+            _match_reference_colors("/nonexistent/input.mp4", "/nonexistent/reference.mp4")
+        assert exc.value.code == "reference_match_failed"
+        assert exc.value.error_type == "processing_error"
+
+    @requires_ffmpeg
+    def test_reference_match_actually_moves_the_colours_toward_the_reference(self):
+        """The stats regex never matched real FFmpeg output, so matching was a permanent no-op."""
         from mcp_video.ai_engine.color import _match_reference_colors
 
-        def fake_run(cmd, capture_output, text, timeout, **kwargs):
-            return subprocess.CompletedProcess(cmd, 1, "", "signalstats unavailable")
+        with tempfile.TemporaryDirectory() as tmpdir:
+            blue = os.path.join(tmpdir, "blue.mp4")
+            red = os.path.join(tmpdir, "red.mp4")
+            for path, colour in ((blue, "blue"), (red, "red")):
+                subprocess.run(
+                    [
+                        "ffmpeg",
+                        "-y",
+                        "-loglevel",
+                        "error",
+                        "-f",
+                        "lavfi",
+                        "-i",
+                        f"color=c={colour}:s=64x64:d=0.3:r=10",
+                        "-pix_fmt",
+                        "yuv420p",
+                        path,
+                    ],
+                    check=True,
+                )
+            params = _match_reference_colors(blue, red)
 
-        monkeypatch.setattr(subprocess, "run", fake_run)
-
-        assert _match_reference_colors("input.mp4", "reference.mp4") == {
-            "contrast": 1.0,
-            "saturation": 1.0,
-            "gamma": 1.0,
-            "red": 1.0,
-            "green": 1.0,
-            "blue": 1.0,
-        }
+        # A blue source matched to a red reference needs more red and less blue than unity.
+        assert params["red"] > 1.3
+        assert params["blue"] < 0.8
 
     @requires_ffmpeg
     def test_color_grade_with_reference(self):

@@ -103,7 +103,14 @@ def _run_benchmark_run() -> dict[str, Any]:
     from .benchmark import run_aivideo_benchmark
 
     receipt = run_aivideo_benchmark(None)
-    return {"success": True, "operation": "benchmark_run", "benchmark": _dump(receipt)}
+    return {
+        "success": True,
+        "operation": "benchmark_run",
+        "benchmark": _dump(receipt),
+        # Say what was measured: capability availability, never an executed edit or export.
+        "scope": "capability_availability_only",
+        "executed_media": False,
+    }
 
 
 _RUNNERS: dict[str, Callable[..., dict[str, Any]]] = {

@@ -96,6 +96,11 @@ def video_capabilities() -> dict[str, Any]:
 @mcp.tool()
 @_safe_tool
 def video_benchmark_run() -> dict[str, Any]:
-    """Run the AI-video benchmark corpus against host capabilities."""
+    """Count which AI-video corpus capabilities are available on this host.
+
+    No media is rendered or exported: a passed item means the capability it
+    needs reported ``available``, nothing more. Use it as an environment audit,
+    not as evidence that an edit or export works.
+    """
 
     return _run("benchmark_run")

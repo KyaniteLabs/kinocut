@@ -101,7 +101,7 @@ def test_build_add_audio_args_folds_filters_into_delay_chain():
     )
     assert "-af" not in args
     fc = args[args.index("-filter_complex") + 1]
-    assert "adelay=500|500" in fc
+    assert "adelay=500:all=1" in fc  # every channel is delayed, not just the first two
     assert "volume=0.5" in fc
     assert "afade=t=in:st=0:d=0.2" in fc
 

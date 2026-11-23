@@ -301,7 +301,8 @@ def _run_shader_effect(
         # Run Node.js render
         _run_node_render(node, render_params)
 
-        # Check rendered frames
+        # Check rendered frames: the Node renderer exits nonzero on a failed
+        # frame, but the count is the contract, so verify it here too.
         rendered = sorted(Path(rendered_dir).glob("frame_*.png"))
         if not rendered:
             raise MCPVideoError(
@@ -309,11 +310,17 @@ def _run_shader_effect(
                 error_type="processing_error",
                 code="shader_no_output",
             )
+        if len(rendered) != frame_count:
+            raise MCPVideoError(
+                f"Shader render produced {len(rendered)} of {frame_count} frames",
+                error_type="processing_error",
+                code="shader_partial_output",
+            )
 
         # Assemble video
         _assemble_video(rendered_dir, audio_path, output, fps)
 
-    return {"output": output, "effect": effect_name, "frames_processed": frame_count}
+    return {"output": output, "effect": effect_name, "frames_processed": len(rendered)}
 
 
 # ---------------------------------------------------------------------------
