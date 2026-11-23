@@ -45,20 +45,16 @@ python3 -m pytest tests/test_aivideo_*.py tests/test_body_swap.py tests/test_wav
 python3 -m pytest tests/test_public_surface.py -q --tb=short
 ```
 
-## Test Suite: `tests/test_real_all_features.py`
+## Test Suite: `tests/test_real_media.py`
 
 ### Running the Tests
 
 ```bash
-# Run all tests
-python -m pytest tests/test_real_all_features.py -v
-
-# Run specific category
-python -m pytest tests/test_real_all_features.py::TestAIFeatures -v
-python -m pytest tests/test_real_all_features.py::TestCoreVideoEditing -v
+# Run real-media integration tests
+python -m pytest tests/test_real_media.py -v
 
 # Skip slow tests (those marked with @pytest.mark.slow)
-python -m pytest tests/test_real_all_features.py -v -m "not slow"
+python -m pytest tests/test_real_media.py -v -m "not slow"
 ```
 
 ### Coverage Areas

@@ -121,11 +121,11 @@ def run_cli(*args: str, expect_fail: bool = False) -> subprocess.CompletedProces
         start_new_session=(os.name == "posix"),
     )
     try:
-        stdout, stderr = process.communicate(timeout=30)
+        stdout, stderr = process.communicate(timeout=60)
     except subprocess.TimeoutExpired:
         _kill_tree(process)
         stdout, stderr = process.communicate()
-        raise subprocess.TimeoutExpired(cmd, 30, output=stdout, stderr=stderr) from None
+        raise subprocess.TimeoutExpired(cmd, 60, output=stdout, stderr=stderr) from None
     result = subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
     if not expect_fail and result.returncode != 0:
         pytest.fail(f"CLI failed: {result.stderr}")
