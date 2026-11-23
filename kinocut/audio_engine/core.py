@@ -550,8 +550,10 @@ else:
         try:
             from scipy import signal
         except ImportError as exc:
+            from .._install_hints import pip_install_hint
+
             raise MCPVideoError(
-                'The eq effect needs scipy. Install with: pip install "kinocut[audio-enhanced]"',
+                f"The eq effect needs scipy. Install with: {pip_install_hint('audio-enhanced')}",
                 error_type="dependency_error",
                 code="missing_scipy",
                 suggested_action={"auto_fix": False, "description": "Install the audio-enhanced extra."},
