@@ -253,7 +253,7 @@ def test_stem_separation_fails_when_a_requested_stem_is_missing(tmp_path, monkey
 
     monkeypatch.setattr(stem_module.subprocess, "run", partial_demucs)
 
-    with pytest.raises(ProcessingError, match="drums"):
+    with pytest.raises(ProcessingError, match="requested stem file"):
         _run_demucs_separation(str(audio), output, "htdemucs", ["vocals", "drums"])
 
 
