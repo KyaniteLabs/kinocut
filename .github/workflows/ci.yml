@@ -80,6 +80,15 @@ jobs:
           done < "$changed_file"
           printf 'code=%s\ndocker=%s\n' "$code" "$docker" >> "$GITHUB_OUTPUT"
 
+  secret-scan:
+    name: Secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - name: Run deterministic secret scanner
+        run: python3 scripts/secret_scan.py
+
   repository-readiness:
     name: Repository readiness
     needs: changes
@@ -119,7 +128,7 @@ jobs:
         # pin deliberately together with the pyproject floor.
         run: .venv/bin/pip install "ruff==0.15.11"
       - name: Ruff check
-        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
+        run: .venv/bin/ruff check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/ qa/ .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Ruff format check
         run: .venv/bin/ruff format --check kinocut/ kinocut_sound/ mcp_video.py tests/ scripts/annotate-pytest-failures.py .github/scripts/check-hyperframes-results.py .github/scripts/merged_tree_tested.py
       - name: Type check core modules

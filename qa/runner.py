@@ -344,8 +344,13 @@ def measured_waveform(data: dict[str, Any] | None) -> bool:
     return (
         isinstance(peaks, list)
         and len(peaks) == 8
-        and all(isinstance(p, dict) and isinstance(p.get("time"), (int, float))
-                and isinstance(p.get("level"), (int, float)) and math.isfinite(p["level"]) for p in peaks)
+        and all(
+            isinstance(p, dict)
+            and isinstance(p.get("time"), (int, float))
+            and isinstance(p.get("level"), (int, float))
+            and math.isfinite(p["level"])
+            for p in peaks
+        )
         and any(p["level"] > -50 for p in peaks)
     )
 
@@ -354,9 +359,14 @@ def subtitle_search_matches(data: dict[str, Any]) -> list[str]:
     tools = data.get("tools")
     if data.get("success") is False or not isinstance(tools, list):
         return []
-    return [item["name"] for item in tools if isinstance(item, dict)
-            and isinstance(item.get("name"), str) and "subtitle" in item["name"].lower()
-            and isinstance(item.get("required_params"), list)]
+    return [
+        item["name"]
+        for item in tools
+        if isinstance(item, dict)
+        and isinstance(item.get("name"), str)
+        and "subtitle" in item["name"].lower()
+        and isinstance(item.get("required_params"), list)
+    ]
 
 
 def sound_plan_rejection(cp: subprocess.CompletedProcess[str]) -> dict[str, Any] | None:
@@ -492,7 +502,9 @@ class OperatorRunner:
     ) -> subprocess.CompletedProcess[str]:
         executable = argv[0] if argv else ""
         trusted_paths = {str(Path(sys.executable).resolve()), str(self.python.resolve()), str(self.kino.resolve())}
-        trusted = executable in {"git", "kino", "ffmpeg", "ffprobe", "uv"} or str(Path(executable).resolve()) in trusted_paths
+        trusted = (
+            executable in {"git", "kino", "ffmpeg", "ffprobe", "uv"} or str(Path(executable).resolve()) in trusted_paths
+        )
         if self.hyperframes_executable and str(Path(executable).resolve()) == str(
             Path(self.hyperframes_executable).resolve()
         ):
@@ -681,7 +693,11 @@ class OperatorRunner:
                     self._fail(entry, f"CLI help failed in the supplied checkout: {tail}", code=install.returncode)
                 return
         check = self._run(
-            [str(self.python), "-c", "import kinocut,pathlib,importlib.metadata; print(pathlib.Path(kinocut.__file__).resolve()); print(importlib.metadata.version('kinocut'))"],
+            [
+                str(self.python),
+                "-c",
+                "import kinocut,pathlib,importlib.metadata; print(pathlib.Path(kinocut.__file__).resolve()); print(importlib.metadata.version('kinocut'))",
+            ],
             cwd=self.work,
             timeout=30,
         )
@@ -889,6 +905,12 @@ class OperatorRunner:
         if quality is None or receipt is None or self._decode(output / "final_clip.mp4").returncode != 0:
             self._fail(entry, "golden-path artifact JSON or full media decode failed")
             return
+        if quality.get("all_passed") is not True or float(quality.get("overall_score") or 0) < 80:
+            self._fail(
+                entry,
+                f"golden-path quality gate did not pass: all_passed={quality.get('all_passed')} score={quality.get('overall_score')}",
+            )
+            return
         self._pass(
             entry, "isolated exact-SHA clone wrote receipt/quality/checkpoint/media; human review remains pending"
         )
@@ -1013,12 +1035,17 @@ class OperatorRunner:
             if entry["id"] == "info":
                 probe = self._ffprobe(self.work / "fixtures" / "input.mp4")
                 data = _read_json_object(cp.stdout)
+                info_res = data.get("resolution") if isinstance(data, dict) else None
+                dims_match = isinstance(data, dict) and (
+                    (data.get("width") == probe["width"] and data.get("height") == probe["height"])
+                    or info_res == f"{probe['width']}x{probe['height']}"
+                )
                 if (
                     not probe
                     or probe["width"] != 320
                     or probe["height"] != 180
                     or not probe["has_audio"]
-                    or data is None
+                    or not dims_match
                 ):
                     self._fail(entry, "CLI info did not return JSON metadata matching independent ffprobe")
                     return
@@ -1150,12 +1177,16 @@ class OperatorRunner:
                 problems.append(f"{label}: gate ok={item.get('ok')!r} {detail}")
             if not isinstance(ink, int) or ink <= 0:
                 problems.append(f"{label}: ink_pixels={ink!r} is not a positive measured count")
-            if not isinstance(bbox, list) or len(bbox) != 4 or not all(
-                isinstance(value, (int, float)) for value in bbox
+            if (
+                not isinstance(bbox, list)
+                or len(bbox) != 4
+                or not all(isinstance(value, (int, float)) for value in bbox)
             ):
                 problems.append(f"{label}: ink_bbox={bbox!r} is not a measured box")
-            if not isinstance(canvas, list) or len(canvas) != 4 or not all(
-                isinstance(value, (int, float)) for value in canvas
+            if (
+                not isinstance(canvas, list)
+                or len(canvas) != 4
+                or not all(isinstance(value, (int, float)) for value in canvas)
             ):
                 problems.append(f"{label}: canvas={canvas!r} is not a measured canvas")
             if (
@@ -1167,18 +1198,11 @@ class OperatorRunner:
             ):
                 left, top, right, bottom = (float(value) for value in bbox)
                 x, y, width, height = (float(value) for value in canvas)
-                if (
-                    left < x - 0.5
-                    or top < y - 0.5
-                    or right > x + width + 0.5
-                    or bottom > y + height + 0.5
-                ):
+                if left < x - 0.5 or top < y - 0.5 or right > x + width + 0.5 or bottom > y + height + 0.5:
                     problems.append(f"{label}: ink bbox {_format_box(bbox)} lies outside canvas {_format_box(canvas)}")
             if item.get("outside_edges"):
                 problems.append(f"{label}: outside_edges={item.get('outside_edges')}")
-            measured.append(
-                f"{label} ink_pixels={ink} ink_bbox={_format_box(bbox)} canvas={_format_box(canvas)}"
-            )
+            measured.append(f"{label} ink_pixels={ink} ink_bbox={_format_box(bbox)} canvas={_format_box(canvas)}")
         evidence = "; ".join(measured)
         if problems:
             self._fail(entry, f"{'; '.join(problems)}; measured: {evidence}", code=cp.returncode)
@@ -1630,7 +1654,11 @@ class OperatorRunner:
             try:
                 with browser_tempdir() as browser_tmp, sync_playwright() as playwright:
                     try:
-                        browser = playwright.chromium.launch(headless=True, executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"), env={**self._base_env(), "TMPDIR": browser_tmp})
+                        browser = playwright.chromium.launch(
+                            headless=True,
+                            executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"),
+                            env={**self._base_env(), "TMPDIR": browser_tmp},
+                        )
                     except Exception as exc:
                         browser_log.write_text(
                             json.dumps({"console": console_lines, "requests": requests, "page_errors": page_errors}),
@@ -1837,7 +1865,11 @@ class OperatorRunner:
         try:
             with browser_tempdir() as browser_tmp, sync_playwright() as playwright:
                 try:
-                    browser = playwright.chromium.launch(headless=True, executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"), env={**self._base_env(), "TMPDIR": browser_tmp})
+                    browser = playwright.chromium.launch(
+                        headless=True,
+                        executable_path=os.environ.get("QA_CHROMIUM_EXECUTABLE"),
+                        env={**self._base_env(), "TMPDIR": browser_tmp},
+                    )
                 except Exception as exc:
                     browser_log.write_text(
                         json.dumps({"console": console_lines, "requests": requests, "page_errors": page_errors}),

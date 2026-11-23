@@ -55,6 +55,30 @@ def _tree(fetch: Fetch, repository: str, sha: str) -> str | None:
     return tree.get("sha") if isinstance(tree, dict) else None
 
 
+def _ci_pytest_executed(fetch: Fetch, repository: str, run_id: Any) -> tuple[bool, str]:
+    """Verify the matched ci.yml PR run actually executed pytest rather than skipping to green."""
+    if not isinstance(run_id, int):
+        return False, "matched ci.yml run has no integer id"
+    jobs_payload = fetch(f"/repos/{repository}/actions/runs/{run_id}/jobs?per_page=100")
+    jobs = jobs_payload.get("jobs", []) if isinstance(jobs_payload, dict) else []
+    test_jobs = [job for job in jobs if isinstance(job, dict) and job.get("name") == "Test (Python 3.13)"]
+    if not test_jobs:
+        return False, f"ci.yml run {run_id} has no Test (Python 3.13) job"
+    job = test_jobs[-1]
+    if job.get("status") != "completed" or job.get("conclusion") != "success":
+        return False, f"Test (Python 3.13) job in run {run_id} is {job.get('status')}/{job.get('conclusion')}"
+    steps = job.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return False, f"Test (Python 3.13) job in run {run_id} reported no step outcomes"
+    ran_pytest = any(
+        isinstance(step, dict) and step.get("name") == "Run tests with coverage" and step.get("conclusion") == "success"
+        for step in steps
+    )
+    if not ran_pytest:
+        return False, f"Test (Python 3.13) job in run {run_id} skipped pytest"
+    return True, ""
+
+
 def decide(fetch: Fetch, repository: str, sha: str, workflow: str) -> tuple[bool, str]:
     pulls = fetch(f"/repos/{repository}/commits/{sha}/pulls")
     merged = [
@@ -93,6 +117,10 @@ def decide(fetch: Fetch, repository: str, sha: str, workflow: str) -> tuple[bool
             False,
             f"newest {workflow} run {newest.get('id')} for {head} is {newest.get('status')}/{newest.get('conclusion')}",
         )
+    if workflow == "ci.yml":
+        executed, reason = _ci_pytest_executed(fetch, repository, newest.get("id"))
+        if not executed:
+            return False, reason
     return (
         True,
         f"tree of {sha} equals pull request #{pull.get('number')} head {head}, which passed {workflow} in run {newest.get('id')}",
