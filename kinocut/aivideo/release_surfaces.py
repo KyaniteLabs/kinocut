@@ -56,10 +56,9 @@ def _run_review_decision(project_dir: str, decision: dict[str, Any], *, human_ch
         )
     try:
         contract = ReviewDecision.model_validate(payload)
-    except ValidationError as exc:
-        # Name the offending fields only; never echo the submitted values.
-        fields = ", ".join(".".join(str(part) for part in error["loc"]) for error in exc.errors())
-        raise _error(f"Review decision is invalid at: {fields}", "invalid_review_decision") from None
+    except ValidationError:
+        # Never echo submitted field names or values from a ValidationError.
+        raise _error("Review decision payload failed schema validation", "invalid_review_decision") from None
     stored = record_review_decision(project, contract)
     return {"success": True, "operation": "review_decision", "review_decision": _dump(stored)}
 

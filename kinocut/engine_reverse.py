@@ -23,10 +23,13 @@ from .models import EditResult
 
 def _enforce_reverse_memory_budget(input_info) -> None:
     """Reject inputs whose decoded frame buffer would OOM FFmpeg's in-RAM reverse filter."""
-    if not (input_info.width and input_info.height and input_info.duration):
+    width = getattr(input_info, "width", 0) or 0
+    height = getattr(input_info, "height", 0) or 0
+    duration = getattr(input_info, "duration", 0.0) or 0.0
+    if not (width and height and duration):
         return
-    fps = float(input_info.fps or 30.0)
-    estimated_bytes = int(input_info.width * input_info.height * 1.5 * float(input_info.duration) * fps)
+    fps = float(getattr(input_info, "fps", None) or 30.0)
+    estimated_bytes = int(width * height * 1.5 * float(duration) * fps)
     if estimated_bytes > MAX_REVERSE_FRAME_BYTES:
         est_mb = estimated_bytes / (1024 * 1024)
         cap_mb = MAX_REVERSE_FRAME_BYTES / (1024 * 1024)

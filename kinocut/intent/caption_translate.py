@@ -146,7 +146,7 @@ def _offline_map_translate(text: str, source_lang: str, target_lang: str) -> tup
     """Replace whole words only; return the text and the number of source words replaced."""
     if source_lang != "en" or target_lang != "es":
         raise MCPVideoError(
-            f"offline_map only supports en→es, got {source_lang}→{target_lang}",
+            "offline_map only supports en→es",
             error_type="validation_error",
             code="offline_map_pair",
         )

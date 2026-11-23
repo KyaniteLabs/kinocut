@@ -132,21 +132,20 @@ _FREQUENCY_PARAMS: dict[str, frozenset[str]] = {
 _TOP_LEVEL_RANGES: dict[str, tuple[float, float]] = {"fade_in": (0.0, 600.0), "fade_out": (0.0, 600.0)}
 
 
-def _invalid_effect(effect: str, param: str, expected: str) -> MCPVideoError:
-    where = f"effects.{effect}.{param}" if param else f"effects.{effect}"
-    return MCPVideoError(f"{where} must be {expected}", error_type="validation_error", code="invalid_parameter")
+def _invalid_effect(expected: str) -> MCPVideoError:
+    return MCPVideoError(
+        f"audio effect parameter must be {expected}", error_type="validation_error", code="invalid_parameter"
+    )
 
 
-def _require_number(
-    effect: str, param: str, value: Any, bounds: tuple[float | None, float | None], nyquist: float | None = None
-) -> None:
+def _require_number(value: Any, bounds: tuple[float | None, float | None], nyquist: float | None = None) -> None:
     if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
-        raise _invalid_effect(effect, param, "a finite number")
+        raise _invalid_effect("a finite number")
     low, high = bounds
     if (low is not None and value < low) or (high is not None and value > high):
-        raise _invalid_effect(effect, param, f"between {low} and {high}")
+        raise _invalid_effect(f"between {low} and {high}")
     if nyquist is not None and not (0.0 < value < nyquist):
-        raise _invalid_effect(effect, param, f"greater than 0 and below the Nyquist frequency ({nyquist:g} Hz)")
+        raise _invalid_effect(f"greater than 0 and below the Nyquist frequency ({nyquist:g} Hz)")
 
 
 def validate_effect_values(effects: dict[str, Any] | None, sample_rate: int) -> None:
@@ -162,31 +161,30 @@ def validate_effect_values(effects: dict[str, Any] | None, sample_rate: int) -> 
     nyquist = sample_rate / 2.0
     for effect, spec in effects.items():
         if effect in _TOP_LEVEL_RANGES:
-            _require_number(effect, "", spec, _TOP_LEVEL_RANGES[effect])
+            _require_number(spec, _TOP_LEVEL_RANGES[effect])
             continue
         if effect in ("lowpass", "highpass") and not isinstance(spec, dict):
-            _require_number(effect, "frequency", spec, (None, None), nyquist)
+            _require_number(spec, (None, None), nyquist)
             continue
         if not isinstance(spec, dict):
-            raise _invalid_effect(effect, "", "a number or a dict of parameters")
+            raise _invalid_effect("a number or a dict of parameters")
         ranges = _EFFECT_PARAM_RANGES.get(effect, {})
         frequencies = _FREQUENCY_PARAMS.get(effect, frozenset())
         choices = _EFFECT_PARAM_CHOICES.get(effect, {})
         unknown = sorted(set(spec) - set(ranges) - frequencies - set(choices))
         if unknown:
             raise MCPVideoError(
-                f"effects.{effect} does not accept parameter(s) {unknown}; "
-                f"accepted: {sorted((*ranges, *frequencies, *choices))}",
+                "audio effect received unsupported parameter(s)",
                 error_type="validation_error",
                 code="invalid_parameter",
             )
         for param, value in spec.items():
             if param in frequencies:
-                _require_number(effect, param, value, (None, None), nyquist)
+                _require_number(value, (None, None), nyquist)
             elif param in ranges:
-                _require_number(effect, param, value, ranges[param])
+                _require_number(value, ranges[param])
             elif value not in choices[param]:
-                raise _invalid_effect(effect, param, f"one of {sorted(choices[param])}")
+                raise _invalid_effect("a supported option")
 
 
 # Where a lowpass sweep ends when the caller gives no "to" (issue #843).

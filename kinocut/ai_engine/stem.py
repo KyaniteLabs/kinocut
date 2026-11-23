@@ -106,7 +106,7 @@ def _run_demucs_separation(
             " ".join(demucs_cmd),
             result.returncode,
             result.stderr,
-            reason=f"Demucs finished but produced no file for requested stem(s): {', '.join(missing)}",
+            reason="Demucs finished without writing every requested stem file",
         )
 
     return result_paths

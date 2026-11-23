@@ -633,7 +633,7 @@ def create_project(
     if project_dir.exists() and any(project_dir.iterdir()):
         # A printed warning is not a gate: refuse rather than overwrite scaffolding and renders.
         raise MCPVideoError(
-            f"Project directory already exists and is not empty: {project_dir}",
+            "Project directory already exists and is not empty",
             error_type="validation_error",
             code="output_exists",
             suggested_action={

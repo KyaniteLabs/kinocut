@@ -98,8 +98,13 @@ def _compute_frame_hashes(
     hashes = []
     for frame_path in frames:
         try:
-            with Image.open(frame_path) as img:
+            img = Image.open(frame_path)
+            try:
                 phash = imagehash.phash(img)
+            finally:
+                close = getattr(img, "close", None)
+                if callable(close):
+                    close()
             # Extract timestamp from frame number
             # frame_0001.jpg corresponds to 0.0s, frame_0002.jpg to 0.5s, etc.
             frame_num = int(frame_path.stem.split("_")[1])
