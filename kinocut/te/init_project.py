@@ -5,6 +5,10 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Any
 
+import yaml
+
+from ..ffmpeg_helpers import _validate_output_path
+
 
 def init_project(
     path: str,
@@ -13,7 +17,8 @@ def init_project(
     with_cutfile: bool = True,
 ) -> dict[str, Any]:
     """Create a minimal Kinocut project directory (idempotent on empty dirs)."""
-    root = Path(path).expanduser().resolve()
+    safe_path = _validate_output_path(path)
+    root = Path(safe_path).expanduser().resolve()
     root.mkdir(parents=True, exist_ok=True)
     slug = name or root.name
     media = root / "media"
@@ -31,10 +36,8 @@ def init_project(
     if with_cutfile:
         cf = root / "cutfile.yaml"
         if not cf.exists():
-            cf.write_text(
-                f'name: "{slug}"\nversion: 1\nsources: []\nops: []\n',
-                encoding="utf-8",
-            )
+            payload = {"name": slug, "version": 1, "sources": [], "ops": []}
+            cf.write_text(yaml.safe_dump(payload, sort_keys=False), encoding="utf-8")
         cutfile_path = str(cf)
     return {
         "artifact_kind": "project_init",

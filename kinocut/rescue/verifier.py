@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import hashlib
-import json
 import math
 import re
 from pathlib import Path
@@ -68,6 +67,23 @@ def _decode(path: str) -> tuple[bool, str]:
     return True, ""
 
 
+def _parse_compact_packets(stdout: str) -> list[dict[str, Any]]:
+    packets: list[dict[str, Any]] = []
+    for line in stdout.splitlines():
+        if not line.strip():
+            continue
+        packet: dict[str, Any] = {}
+        for part in line.split("|"):
+            if "=" not in part:
+                continue
+            key, value = part.split("=", 1)
+            if value != "N/A":
+                packet[key] = value
+        if packet:
+            packets.append(packet)
+    return packets
+
+
 def _packets(path: str, *, pass_fds: tuple[int, ...] = ()) -> list[dict[str, Any]]:
     try:
         command = [
@@ -78,12 +94,12 @@ def _packets(path: str, *, pass_fds: tuple[int, ...] = ()) -> list[dict[str, Any
             "-show_entries",
             "packet=stream_index,pts_time,dts_time,duration_time",
             "-of",
-            "json",
+            "compact=p=0:nk=0",
             path,
         ]
         result = _run_command(command, timeout=60, pass_fds=pass_fds) if pass_fds else _run_command(command, timeout=60)
-        return json.loads(result.stdout).get("packets", [])[:5000]
-    except (MCPVideoError, OSError, json.JSONDecodeError):
+        return _parse_compact_packets(result.stdout)
+    except (MCPVideoError, OSError):
         return []
 
 
@@ -208,7 +224,11 @@ def _verification_facts(
             master_counts.get(kind, 0) >= count for kind, count in source_counts.items() if kind != "subtitle"
         ),
         "sync_delta": sync_delta,
-        "sync_ok": sync_ends is None or _within_time_tolerance(*sync_ends, tolerance),
+        "sync_ok": (
+            not (master_counts.get("video", 0) > 0 and master_counts.get("audio", 0) > 0)
+            if sync_ends is None
+            else _within_time_tolerance(*sync_ends, tolerance)
+        ),
         "caption_path": caption_path,
         "caption_ok": not caption_path
         or all(

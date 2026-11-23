@@ -37,6 +37,45 @@ def _render_import_failure(exc: ImportError) -> str:
     return escape(text)
 
 
+def _run_mcp_stdio_isolated(mcp: Any) -> None:
+    """Isolate fd 1 for MCP JSON-RPC frames so stray prints/library stdout go to stderr."""
+    lowlevel = getattr(mcp, "_mcp_server", None)
+    if lowlevel is None:
+        mcp.run()
+        return
+    try:
+        stdout_fd = sys.stdout.fileno()
+        stderr_fd = sys.stderr.fileno()
+    except (AttributeError, OSError, ValueError):
+        mcp.run()
+        return
+    import io
+    import os
+    import anyio
+    from mcp.server.stdio import stdio_server
+
+    proto_fd = os.dup(stdout_fd)
+    saved_stdout = sys.stdout
+    try:
+        sys.stdout.flush()
+        os.dup2(stderr_fd, stdout_fd)
+        sys.stdout = sys.stderr
+
+        async def _serve() -> None:
+            raw_proto = os.fdopen(proto_fd, "wb", buffering=0, closefd=False)
+            text_proto = io.TextIOWrapper(raw_proto, encoding="utf-8")
+            async with stdio_server(stdout=anyio.wrap_file(text_proto)) as (read_stream, write_stream):
+                await lowlevel.run(read_stream, write_stream, lowlevel.create_initialization_options())
+
+        anyio.run(_serve)
+    finally:
+        with contextlib.suppress(OSError):
+            os.dup2(proto_fd, stdout_fd)
+        with contextlib.suppress(OSError):
+            os.close(proto_fd)
+        sys.stdout = saved_stdout
+
+
 def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None:
     """Start the MCP server, reporting import failures under their real cause.
 
@@ -56,7 +95,7 @@ def _run_mcp_mode(import_server: Callable[[], Any] = _import_mcp_server) -> None
         except MCPVideoError:
             err_console.print("[red]MCP mode failed to start:[/red] supervised process observation failed.")
             sys.exit(1)
-        mcp.run()
+        _run_mcp_stdio_isolated(mcp)
     except ValueError as exc:
         # Invalid KINOCUT_TOOLS configuration: surface selection raises
         # ValueError listing the allowed modes/profiles. Report it as a
