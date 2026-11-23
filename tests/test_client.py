@@ -649,6 +649,92 @@ class TestClientAgentApiConsistency:
         assert any("Stacked visual polish effects" in warning for warning in result.warnings)
         assert any("release checkpoint" in warning for warning in result.warnings)
 
+    @staticmethod
+    def _patch_glow(editor, monkeypatch, produced):
+        def fake_effect_glow(*, input_path, output_path=None, **kwargs):
+            target = output_path or produced
+            return editor._to_edit_result(target, operation="effect_glow")
+
+        monkeypatch.setattr(editor, "effect_glow", fake_effect_glow)
+
+    def test_pipeline_never_hands_the_final_output_to_a_trailing_quality_check(self, editor, monkeypatch):
+        seen = {}
+
+        def fake_quality_check(**kwargs):
+            seen.update(kwargs)
+            return {"all_passed": True, "checks": []}
+
+        self._patch_glow(editor, monkeypatch, "/tmp/glow.mp4")
+        monkeypatch.setattr(editor, "quality_check", fake_quality_check)
+
+        result = editor.pipeline(
+            [{"op": "effect_glow", "input_path": "/tmp/in.mp4"}, {"op": "quality_check"}],
+            output_path="/tmp/final.mp4",
+        )
+
+        assert result.output_path == "/tmp/final.mp4"
+        assert seen["input_path"] == "/tmp/final.mp4"
+        assert "output_path" not in seen
+        assert any("release checkpoint" in warning for warning in result.warnings)
+
+    def test_pipeline_reports_a_failed_quality_check(self, editor, monkeypatch):
+        self._patch_glow(editor, monkeypatch, "/tmp/final.mp4")
+        monkeypatch.setattr(
+            editor,
+            "quality_check",
+            lambda **kwargs: {
+                "all_passed": False,
+                "checks": [{"name": "black_frames", "passed": False}, {"name": "resolution", "passed": True}],
+            },
+        )
+
+        result = editor.pipeline([{"op": "effect_glow", "input_path": "/tmp/in.mp4"}, {"op": "quality_check"}])
+
+        assert any("quality_check FAILED" in warning and "black_frames" in warning for warning in result.warnings)
+        assert any("release checkpoint" in warning for warning in result.warnings)
+
+    def test_pipeline_hard_gate_counts_only_after_the_last_edit(self, editor, monkeypatch):
+        self._patch_glow(editor, monkeypatch, "/tmp/final.mp4")
+        monkeypatch.setattr(
+            editor,
+            "assert_quality",
+            lambda input_path, **kwargs: {"video": input_path, "overall_score": 95.0},
+        )
+
+        gated_before_edit = editor.pipeline(
+            [{"op": "assert_quality", "input_path": "/tmp/in.mp4"}, {"op": "effect_glow"}],
+            output_path="/tmp/final.mp4",
+        )
+        gated_after_edit = editor.pipeline(
+            [{"op": "effect_glow", "input_path": "/tmp/in.mp4"}, {"op": "assert_quality"}],
+            output_path="/tmp/final.mp4",
+        )
+
+        assert any("release checkpoint" in warning for warning in gated_before_edit.warnings)
+        assert not any("release checkpoint" in warning for warning in gated_after_edit.warnings)
+        assert gated_after_edit.output_path == "/tmp/final.mp4"
+
+    def test_to_edit_result_rejects_a_reported_failure(self, editor):
+        with pytest.raises(MCPVideoError) as failed:
+            editor._to_edit_result(
+                {
+                    "success": False,
+                    "output_path": "/tmp/half-rendered.mp4",
+                    "error": {
+                        "type": "processing_error",
+                        "code": "render_failed",
+                        "message": "decoder threw away a frame",
+                    },
+                }
+            )
+        assert failed.value.code == "render_failed"
+        assert failed.value.error_type == "processing_error"
+
+    def test_to_edit_result_keeps_dict_warnings(self, editor):
+        result = editor._to_edit_result({"output_path": "/tmp/out.mp4", "warnings": ["listen before publishing"]})
+        assert result.success is True
+        assert result.warnings == ["listen before publishing"]
+
     def test_pipeline_cleanup_failure_surfaces_warning(self, editor, monkeypatch, tmp_path):
         intermediate = tmp_path / "scene.mp4"
         final = tmp_path / "final.mp4"
