@@ -148,7 +148,7 @@ def _manifest_and_selection():
     return manifest, selection
 
 
-def _plan(*, include_audio: bool = True, compile_target: str = "workflow.v1"):
+def _plan(*, include_audio: bool = True, compile_target: str = "workflow.v1", layout_kind="full_frame"):
     manifest, selection = _manifest_and_selection()
     plan = plan_composition(
         manifest=manifest.model_dump(mode="json"),
@@ -162,7 +162,7 @@ def _plan(*, include_audio: bool = True, compile_target: str = "workflow.v1"):
         layouts=[
             LayoutSpec(
                 id="layout:full_frame",
-                kind="full_frame",
+                kind=layout_kind,
                 role_bindings=("primary_video",),
             ).model_dump(mode="json")
         ],
@@ -297,6 +297,16 @@ def test_compiler_is_declarative_allowlisted_and_rejects_unsupported_features() 
     _, invalid_target = _plan(include_audio=False, compile_target="shell.v1")
     with pytest.raises(CreativeContractError, match="compile target is not allowlisted"):
         compile_composition_plan(manifest=manifest, plan=invalid_target)
+
+
+@pytest.mark.parametrize("layout_kind", ["picture_in_picture", "split_screen", "grid"])
+def test_compiler_rejects_layouts_it_cannot_apply(layout_kind: str) -> None:
+    manifest, plan = _plan(include_audio=False, layout_kind=layout_kind)
+
+    with pytest.raises(CreativeContractError, match=f"does not support.*{layout_kind}") as exc_info:
+        compile_composition_plan(manifest=manifest, plan=plan)
+
+    assert exc_info.value.code == "compile_feature_unsupported"
 
 
 def _verification_evidence(plan, approval) -> VerificationEvidence:

@@ -6,6 +6,7 @@ import os
 
 import pytest
 
+from kinocut.errors import FFprobeNotFoundError
 from mcp_video.server_tools_media import (
     video_crop,
     video_edit,
@@ -340,12 +341,43 @@ class TestVideoTemplatePreview:
 
     def test_valid_template_no_video(self):
         result = video_template_preview("tiktok")
-        # Should return a dict with template info, not an error
-        assert isinstance(result, dict)
+        assert result["success"] is True
+        assert result["duration_source"] == "default"
 
     def test_valid_template_with_duration(self):
         result = video_template_preview("youtube-shorts", duration=30.0)
         assert isinstance(result, dict)
+
+    @pytest.mark.parametrize(
+        ("duration", "probe_duration", "expected", "source", "probe_calls"),
+        [
+            (None, None, 10.0, "default_after_probe_failure", 1),
+            (None, float("nan"), 10.0, "default_after_probe_failure", 1),
+            (None, 6.0, 6.0, "probe", 1),
+            (4.0, None, 4.0, "override", 0),
+        ],
+    )
+    def test_reports_duration_source(
+        self, tmp_path, monkeypatch, duration, probe_duration, expected, source, probe_calls
+    ):
+        input_path = tmp_path / "video.mp4"
+        input_path.touch()
+        calls = []
+
+        def probe(path):
+            calls.append(path)
+            if probe_duration is None:
+                raise FFprobeNotFoundError()
+            return probe_duration
+
+        monkeypatch.setattr("kinocut.server_tools_media._get_video_duration", probe)
+
+        result = video_template_preview("tiktok", input_path=str(input_path), duration=duration)
+
+        assert result["success"] is True
+        assert result["estimated_duration"] == expected
+        assert result["duration_source"] == source
+        assert len(calls) == probe_calls
 
 
 # ---------------------------------------------------------------------------

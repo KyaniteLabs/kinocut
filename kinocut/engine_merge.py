@@ -84,21 +84,29 @@ def _normalize_clips(
         elif info.rotation == 270:
             vf_parts.insert(0, "transpose=1")
         seconds = info.duration if on_progress is not None else 0.0
+        has_audio = info.audio_codec is not None
+        extra = [
+            "-r",
+            str(DEFAULT_FPS),
+            "-ar",
+            str(DEFAULT_SAMPLE_RATE),
+            "-ac",
+            str(DEFAULT_AUDIO_CHANNELS),
+            "-avoid_negative_ts",
+            "make_zero",
+        ]
+        if has_audio:
+            extra.append("-shortest")
         _render(
             _build_ffmpeg_cmd(
                 clip,
                 output_path=norm_path,
                 video_filter=",".join(vf_parts),
+                audio_filter="apad" if has_audio else None,
                 crf=DEFAULT_CRF,
                 preset=DEFAULT_PRESET,
-                extra=[
-                    "-r",
-                    str(DEFAULT_FPS),
-                    "-ar",
-                    str(DEFAULT_SAMPLE_RATE),
-                    "-ac",
-                    str(DEFAULT_AUDIO_CHANNELS),
-                ],
+                extra=extra,
+                movflags=False,
             ),
             seconds,
             _stage(on_progress, done, seconds, total),
