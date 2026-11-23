@@ -21,7 +21,13 @@ def _load_plan_json(raw: str | None) -> dict[str, Any] | None:
         return None
     text = raw.strip()
     if not text:
-        return None
+        from kinocut.errors import MCPVideoError
+
+        raise MCPVideoError(
+            "plan-json must not be empty or whitespace; omit --plan-json to use the sample plan",
+            error_type="validation_error",
+            code="invalid_parameter",
+        )
     if text.startswith("{"):
         return parse_json_artifact(raw, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)
     return load_json_artifact(text, max_bytes=MAX_CLI_JSON_ARTIFACT_BYTES)

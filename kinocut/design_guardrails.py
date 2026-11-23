@@ -275,7 +275,17 @@ def _check_contrast(
                     )
                 )
         except (ValueError, TypeError) as exc:
-            logger.debug("Skipping contrast check for overlay %d: %s", i, exc)
+            logger.debug("Invalid color in contrast check for overlay %d: %s", i, exc)
+            warnings.append(
+                LayoutWarning(
+                    code="invalid_color",
+                    message=(
+                        f"Text '{overlay.text[:30]}...' has an invalid color value; contrast could not be verified."
+                    ),
+                    severity="warning",
+                    overlay_indices=(i,),
+                )
+            )
     return warnings
 
 

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import sys
 from typing import Any
 
 from .common import _parse_json_arg
@@ -35,7 +36,10 @@ def _run(operation: str, args: Any, use_json: bool) -> None:
         kwargs = {}
     else:  # benchmark_run
         kwargs = {}
-    _out(run_release_operation(operation, **kwargs), use_json)
+    result = run_release_operation(operation, **kwargs)
+    _out(result, use_json)
+    if operation == "publish_gate" and result.get("publish_gate", {}).get("publishable") is False:
+        sys.exit(1)
 
 
 def handle_release_commands(args: Any, *, use_json: bool) -> bool:

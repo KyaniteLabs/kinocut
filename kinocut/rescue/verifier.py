@@ -56,14 +56,17 @@ def _fps(raw: dict[str, Any]) -> float:
 
 def _decode(path: str) -> tuple[bool, str]:
     try:
-        _run_command(
-            ["ffmpeg", "-v", "error", "-i", path, "-map", "0", "-f", "null", "-"],
+        result = _run_command(
+            ["ffmpeg", "-v", "error", "-xerror", "-i", path, "-map", "0", "-f", "null", "-"],
             timeout=120,
         )
     except MCPVideoError as exc:
         return False, exc.code or type(exc).__name__
     except OSError as exc:
         return False, type(exc).__name__
+    err = (result.stderr or "").strip()
+    if err:
+        return False, err.splitlines()[0][:200]
     return True, ""
 
 
@@ -192,12 +195,16 @@ def _verification_facts(
     source_after = _sha(source)
     tolerance = max(0.10, 2 / max(_fps(source_raw), 1))
     master_duration, source_duration = _duration(master_raw), _duration(source_raw)
+    share_duration = _duration(share_raw)
     delta = abs(master_duration - source_duration)
     master_packets, share_packets = _packets(master), _packets(sharing_copy)
     source_counts, master_counts = _stream_counts(source_raw), _stream_counts(master_raw)
+    share_counts = _stream_counts(share_raw)
     sync_ends = _av_endpoints(master_raw, master_packets)
     sync_delta = abs(sync_ends[0] - sync_ends[1]) if sync_ends is not None else None
+    caption_missing = bool(caption_path) and not Path(caption_path).is_file()
     segments = _caption_segments(caption_path)
+    transcript_missing = bool(transcript_path) and not Path(transcript_path).is_file()
     transcript = (
         Path(transcript_path).read_text(encoding="utf-8")
         if transcript_path and Path(transcript_path).is_file()
@@ -207,6 +214,9 @@ def _verification_facts(
     video = next((s for s in share_raw.get("streams", []) if s.get("codec_type") == "video"), {})
     audio = next((s for s in share_raw.get("streams", []) if s.get("codec_type") == "audio"), None)
     formats = str(share_raw.get("format", {}).get("format_name", "")).split(",")
+    share_audio_ok = (audio is None and master_counts.get("audio", 0) == 0) or (
+        audio is not None and audio.get("codec_name") == "aac"
+    )
     return {
         "source_before": source_before,
         "source_after": source_after,
@@ -216,13 +226,15 @@ def _verification_facts(
         "share_error": share_error,
         "tolerance": tolerance,
         "delta": delta,
-        "duration_ok": _within_time_tolerance(master_duration, source_duration, tolerance),
+        "duration_ok": _within_time_tolerance(master_duration, source_duration, tolerance)
+        and _within_time_tolerance(share_duration, master_duration, tolerance),
         "monotonic": _monotonic(master_packets) and _monotonic(share_packets),
         "source_counts": source_counts,
         "master_counts": master_counts,
         "coverage": all(
             master_counts.get(kind, 0) >= count for kind, count in source_counts.items() if kind != "subtitle"
-        ),
+        )
+        and (master_counts.get("audio", 0) == 0 or share_counts.get("audio", 0) > 0),
         "sync_delta": sync_delta,
         "sync_ok": (
             not (master_counts.get("video", 0) > 0 and master_counts.get("audio", 0) > 0)
@@ -231,16 +243,21 @@ def _verification_facts(
         ),
         "caption_path": caption_path,
         "caption_ok": not caption_path
-        or all(
-            0 <= start < end and (end <= master_duration or _within_time_tolerance(end, master_duration, tolerance))
-            for start, end, _ in segments
+        or (
+            not caption_missing
+            and bool(segments)
+            and all(
+                0 <= start < end and (end <= master_duration or _within_time_tolerance(end, master_duration, tolerance))
+                for start, end, _ in segments
+            )
         ),
         "transcript": transcript,
-        "spoken_ok": transcript is None or " ".join(transcript.split()) == " ".join(caption_text.split()),
+        "spoken_ok": (not transcript_missing)
+        and (transcript is None or " ".join(transcript.split()) == " ".join(caption_text.split())),
         "universal_ok": "mp4" in formats
         and video.get("codec_name") == "h264"
         and video.get("pix_fmt") == "yuv420p"
-        and (audio is None or audio.get("codec_name") == "aac"),
+        and share_audio_ok,
     }
 
 

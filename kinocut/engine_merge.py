@@ -161,6 +161,7 @@ def _normalize_needs(infos: list) -> tuple[bool, bool]:
         len({i.display_resolution for i in infos}) > 1
         or len({i.codec for i in infos}) > 1
         or len({round(i.fps, 2) for i in infos}) > 1
+        or len({i.audio_codec for i in infos if i.audio_codec}) > 1
         or len({i.audio_sample_rate for i in infos if i.audio_sample_rate}) > 1
     )
     return differs or mixed_audio, mixed_audio

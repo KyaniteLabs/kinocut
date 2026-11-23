@@ -58,17 +58,19 @@ def test_a_captionless_render_does_not_need_a_measured_timeline(tmp_path, monkey
 
 
 def test_a_captionless_render_does_not_need_the_source_measured(tmp_path, monkeypatch):
-    # A flow with no caption text never reads a timing, so it has no reason
-    # to measure the source either. An unmeasurable source must not fail it.
+    # A flow with no caption text still checks measurable source bounds when
+    # available, but an unmeasurable source must not fail a captionless render.
+    from kinocut.errors import MCPVideoError
+
     source = tmp_path / "source.mp4"
     source.write_bytes(b"source")
     monkeypatch.setattr(shorts_flow, "_validate_input_path", lambda path: path)
     _stub_engines(monkeypatch, tmp_path)
 
-    def no_probe(path):
-        raise AssertionError("a captionless flow must not measure the source")
+    def unmeasurable_probe(path):
+        raise MCPVideoError("unmeasurable fixture")
 
-    monkeypatch.setattr("kinocut.engine_probe.probe", no_probe)
+    monkeypatch.setattr("kinocut.engine_probe.probe", unmeasurable_probe)
 
     result = shorts_flow.video_shorts(
         str(source),

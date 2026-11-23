@@ -114,8 +114,12 @@ def plain_cmd(
         result = fn(*pargs, **kwargs)
         if use_json:
             output_json(json_transform(result) if json_transform else result)
+        elif formatter:
+            formatted = formatter(result)
+            if formatted is not None:
+                print(formatted)
         else:
-            formatter(result) if formatter else print(result)
+            print(result)
 
     return handler
 
@@ -130,5 +134,9 @@ def _out(
     """Helper for custom handlers: emit JSON or formatted text."""
     if use_json:
         output_json(json_transform(result) if json_transform else result)
+    elif formatter:
+        formatted = formatter(result)
+        if formatted is not None:
+            print(formatted)
     else:
-        formatter(result) if formatter else print(result)
+        print(result)

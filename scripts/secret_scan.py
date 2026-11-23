@@ -205,9 +205,11 @@ def scan_text_lines(lines: Iterable[str]) -> Iterable[tuple[int, str, str, str]]
 def scan_worktree(root: Path, allow: tuple[set[str], set[str], set[str]]) -> tuple[list[Finding], int, int]:
     files, allow_lines, allow_hashes = allow
     tracked = _run_git(root, ["ls-files"])
-    paths = tracked.split("\n") if tracked is not None else [
-        str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()
-    ]
+    paths = (
+        tracked.split("\n")
+        if tracked is not None
+        else [str(p.relative_to(root)) for p in root.rglob("*") if p.is_file()]
+    )
     findings: list[Finding] = []
     suppressed = scanned = 0
     for rel in sorted(p for p in paths if p):
@@ -236,7 +238,7 @@ def scan_history(root: Path, allow: tuple[set[str], set[str], set[str]]) -> tupl
     log = _run_git(root, ["log", "-p", "--no-color", "--full-history", "--diff-filter=AM", "--", "."])
     if log is None:
         print("history: git log unavailable (or not a repo); worktree scan only")
-        return [], 0, 0
+        return [], -1, 0
     findings: list[Finding] = []
     suppressed = commits = 0
     sha = current_file = ""
@@ -286,11 +288,16 @@ def main(argv: list[str] | None = None) -> int:
 
     findings, files_scanned, suppressed = scan_worktree(root, allow_set)
     history_note = ""
+    history_failed = False
     if not args.skip_history:
         h_findings, commits, h_suppressed = scan_history(root, allow_set)
         findings.extend(h_findings)
         suppressed += h_suppressed
-        history_note = f", {commits} commits"
+        if commits < 0:
+            history_failed = True
+            history_note = ", history unavailable"
+        else:
+            history_note = f", {commits} commits"
     else:
         history_note = ", history skipped"
 
@@ -300,7 +307,11 @@ def main(argv: list[str] | None = None) -> int:
         f"secret-scan: scanned {files_scanned} tracked files{history_note}; "
         f"{len(findings)} findings; {suppressed} allowlisted suppressions"
     )
-    return 1 if findings else 0
+    if findings:
+        return 1
+    if history_failed:
+        return 2
+    return 0
 
 
 if __name__ == "__main__":

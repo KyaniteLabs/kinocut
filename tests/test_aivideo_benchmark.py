@@ -9,13 +9,14 @@ from kinocut.aivideo.benchmark import (
 )
 
 
-def _diagnostics(ffmpeg_ok: bool, whisper_ok: bool = False, ffmpeg_version: str = "n8.1"):
+def _diagnostics(ffmpeg_ok: bool, whisper_ok: bool = False, c2patool_ok: bool = False, ffmpeg_version: str = "n8.1"):
     return {
         "success": True,
         "checks": [
             {"name": "ffmpeg", "category": "core", "required": True, "ok": ffmpeg_ok, "version": ffmpeg_version},
             {"name": "ffprobe", "category": "core", "required": True, "ok": ffmpeg_ok},
             {"name": "openai-whisper", "category": "optional", "required": False, "ok": whisper_ok},
+            {"name": "c2patool", "category": "optional", "required": False, "ok": c2patool_ok},
         ],
     }
 
@@ -36,7 +37,7 @@ def test_benchmark_receipt_records_one_result_per_corpus_item():
 
 
 def test_benchmark_all_pass_when_deps_present():
-    receipt = run_aivideo_benchmark(diagnostics=_diagnostics(ffmpeg_ok=True, whisper_ok=True))
+    receipt = run_aivideo_benchmark(diagnostics=_diagnostics(ffmpeg_ok=True, whisper_ok=True, c2patool_ok=True))
     assert receipt.passed_count == len(AIVIDEO_CORPUS.items)
     assert receipt.failed_count == 0
     assert all(r.availability == "available" for r in receipt.results)
