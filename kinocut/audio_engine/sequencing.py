@@ -300,6 +300,34 @@ def _generate_waveform(
         )
 
 
+def _render_preset_event(event: dict[str, Any], sample_rate: int) -> Any:
+    """Render one ``preset`` sequence event at the sequence's sample rate.
+
+    A preset event without its own ``duration`` keeps the preset's duration.
+    Presets render at their own rate, so mixing them in unresampled would
+    pitch-shift every sequence that is not at 44.1 kHz.
+    """
+    with tempfile.TemporaryDirectory(prefix="kinocut-preset-") as directory:
+        tmp_path = str(Path(directory) / "preset.wav")
+        audio_preset(
+            preset=event.get("name", "ui-blip"),
+            output=tmp_path,
+            pitch=event.get("pitch", "mid"),
+            duration=event.get("duration"),
+            intensity=event.get("intensity", 0.5),
+        )
+        with wave.open(tmp_path, "rb") as wav_file:
+            preset_rate = wav_file.getframerate()
+            frames = wav_file.readframes(wav_file.getnframes())
+            samples = _pcm_to_float(frames)
+    samples = _resample(samples, preset_rate, sample_rate)
+    volume = event.get("volume")
+    if volume is not None:
+        _require_finite_number(volume, "preset event volume", minimum=0)
+        samples = samples * volume
+    return samples
+
+
 def audio_sequence(
     sequence: list[dict[str, Any]],
     output: str,
@@ -356,27 +384,7 @@ def audio_sequence(
             samples = _pcm_to_float(pcm)
 
         elif event_type == "preset":
-            with tempfile.TemporaryDirectory(prefix="kinocut-preset-") as directory:
-                tmp_path = str(Path(directory) / "preset.wav")
-                audio_preset(
-                    preset=event.get("name", "ui-blip"),
-                    output=tmp_path,
-                    pitch=event.get("pitch", "mid"),
-                    duration=duration if "duration" in event else None,
-                    intensity=event.get("intensity", 0.5),
-                )
-
-                with wave.open(tmp_path, "rb") as wav_file:
-                    preset_rate = wav_file.getframerate()
-                    frames = wav_file.readframes(wav_file.getnframes())
-                    samples = _pcm_to_float(frames)
-            # Presets render at their own rate; mixing them in unresampled would
-            # pitch-shift every sequence that is not at 44.1 kHz.
-            samples = _resample(samples, preset_rate, sample_rate)
-            volume = event.get("volume")
-            if volume is not None:
-                _require_finite_number(volume, "preset event volume", minimum=0)
-                samples = samples * volume
+            samples = _render_preset_event(event, sample_rate)
 
         elif event_type == "whoosh":
             volume = event.get("volume", 0.3)

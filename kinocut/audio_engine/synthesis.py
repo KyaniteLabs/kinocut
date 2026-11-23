@@ -507,6 +507,38 @@ def audio_synthesize(
     return write_wav(pcm_data, output, sample_rate)
 
 
+def _apply_preset_controls(config: dict[str, Any], mult: float, intensity: float) -> None:
+    """Apply ``pitch`` and ``intensity`` to a preset config, in place.
+
+    ``intensity`` drives every preset the same way: loudness and effect wetness
+    scale together around the authored values (0.5 = as authored, 0 = half,
+    1 = 1.5x), so 0 is never silent. ``pitch`` shifts the frequency; a noise
+    generator ignores frequency, so for noise the filter edges move instead
+    and the parameter is not silently dropped.
+    """
+    config["frequency"] = config["frequency"] * mult
+    scale = 0.5 + intensity
+    config["volume"] = min(1.0, config["volume"] * scale)
+    effects = config.get("effects") or {}
+    for name in ("reverb", "delay", "chorus", "flanger"):
+        wet = effects.get(name)
+        if isinstance(wet, dict):
+            for key in ("wet_level", "mix"):
+                if key in wet:
+                    wet[key] = min(1.0, wet[key] * scale)
+    if config.get("waveform") != "noise":
+        return
+    ceiling = DEFAULT_SAMPLE_RATE / 2.0 * 0.95
+    for name in ("lowpass", "highpass"):
+        spec = effects.get(name)
+        if isinstance(spec, dict):
+            for key in ("frequency", "to"):
+                if key in spec:
+                    spec[key] = min(spec[key] * mult, ceiling)
+        elif isinstance(spec, (int, float)):
+            effects[name] = min(spec * mult, ceiling)
+
+
 def audio_preset(
     preset: str,
     output: str,
@@ -556,36 +588,8 @@ def audio_preset(
         )
 
     config = get_preset_config(preset)
-
-    mult = _PITCH_MULT[pitch]
-    config["frequency"] = config["frequency"] * mult
-
     if duration is not None:
         config["duration"] = duration
-
-    # intensity drives every preset the same way: loudness and wetness scale
-    # together around the authored values, so 0 is never silent and 1 is 1.5x.
-    scale = 0.5 + float(intensity)
-    config["volume"] = min(1.0, config["volume"] * scale)
-    effects = config.get("effects") or {}
-    for name in ("reverb", "delay", "chorus", "flanger"):
-        wet = effects.get(name)
-        if isinstance(wet, dict):
-            for key in ("wet_level", "mix"):
-                if key in wet:
-                    wet[key] = min(1.0, wet[key] * scale)
-
-    # A noise generator ignores "frequency"; shifting its filter edges is what
-    # "pitch" means for noise, so the parameter is not silently dropped.
-    if config.get("waveform") == "noise":
-        ceiling = DEFAULT_SAMPLE_RATE / 2.0 * 0.95
-        for name in ("lowpass", "highpass"):
-            spec = effects.get(name)
-            if isinstance(spec, dict):
-                for key in ("frequency", "to"):
-                    if key in spec:
-                        spec[key] = min(spec[key] * mult, ceiling)
-            elif isinstance(spec, (int, float)):
-                effects[name] = min(spec * mult, ceiling)
+    _apply_preset_controls(config, _PITCH_MULT[pitch], float(intensity))
 
     return audio_synthesize(output=output, stereo=stereo, pan=pan, **config)

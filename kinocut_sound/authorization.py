@@ -197,10 +197,8 @@ def _locked(method: Any) -> Any:
 class ConsentLedger:
     """In-memory append-only authorization ledger and transitive lineage graph.
 
-    Decision time is the caller's ``at_iso`` unless a trusted ``clock`` is
-    injected. Deployments that face untrusted callers should inject one: the
-    ledger then never decides earlier than the clock says, so a stale
-    ``at_iso`` cannot replay an expired grant.
+    Decision time is the caller's ``at_iso`` unless a trusted ``clock`` is injected;
+    face untrusted callers with one, and a stale ``at_iso`` cannot replay a grant.
     """
 
     def __init__(self, *, max_lease_seconds: int, clock: Callable[[], str] | None = None) -> None:
